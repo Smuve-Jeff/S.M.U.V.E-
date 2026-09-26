@@ -4,6 +4,8 @@ import { ChatMusicCommandEngineService } from './chat-music-command-engine.servi
 import { MusicManagerService, TrackNote, TrackModel } from './music-manager.service';
 import { AudioEngineService } from './audio-engine.service';
 import { SpeechSynthesisService } from './speech-synthesis.service';
+import { UserProfileService } from './user-profile.service';
+import { initialProfile, UserProfile } from '../types/profile.types';
 
 function makeTrack(
   id: string,
@@ -46,6 +48,7 @@ describe('ChatMusicCommandEngineService', () => {
   let playAudition: jest.Mock;
   let stopAudition: jest.Mock;
   let speak: jest.Mock;
+  let profile: ReturnType<typeof signal<UserProfile>>;
 
   beforeEach(() => {
     tracks = signal<TrackModel[]>([]);
@@ -69,6 +72,7 @@ describe('ChatMusicCommandEngineService', () => {
     playAudition = jest.fn();
     stopAudition = jest.fn();
     speak = jest.fn();
+    profile = signal<UserProfile>(initialProfile);
 
     const audioMock = {
       tempo,
@@ -98,6 +102,7 @@ describe('ChatMusicCommandEngineService', () => {
         { provide: MusicManagerService, useValue: musicMock as any },
         { provide: AudioEngineService, useValue: audioMock as any },
         { provide: SpeechSynthesisService, useValue: { speak } as any },
+        { provide: UserProfileService, useValue: { profile } },
       ],
     });
 
@@ -162,20 +167,103 @@ describe('ChatMusicCommandEngineService', () => {
     expect(noteCount()).toBeGreaterThan(20);
   });
 
-  it('builds a beat from natural language with default BPM', () => {
+  it('builds a beat from natural language with the artist profile as its default', () => {
+    profile.set({
+      ...initialProfile,
+      primaryGenre: 'Ambient',
+      genreSpecificData: { tempo: 82, key: 'D major' },
+      musicalJourney: {
+        ...initialProfile.musicalJourney,
+        preferredBpmRange: '70-90',
+        musicBlueprint: {
+          ...initialProfile.musicalJourney.musicBlueprint,
+          rhythmicFeel: 'sparse and breathing',
+          harmonicLanguage: 'open fifths',
+          sonicNonNegotiables: 'leave the room tone intact',
+        },
+      },
+    });
+
     const result = service.tryExecute('make me a beat');
     expect(result).not.toBeNull();
+    expect(result!.content).toContain('D major');
+    expect(result!.content).toContain('Ambient energy');
+    expect(result!.content).toContain('leave the room tone intact');
     expect(trackNames()).toContain('Drums');
-    expect(tempo()).toBe(120);
+    expect(tempo()).toBe(80);
+    const drums = tracks().find((track) => track.name === 'Drums')!;
+    expect(drums.notes.filter((note) => note.midi === 38)).toHaveLength(0);
+    const chords = tracks().find((track) => track.name === 'Chords')!;
+    expect(chords.notes).toHaveLength(8); // four open fifths, two notes each
   });
 
-  it('writes a chord progression from "play C - Am - F - G"', () => {
+  it.each([
+    ['lofi', 'lofi'],
+    ['house', 'house'],
+    ['jazz', 'jazz'],
+    ['drum and bass', 'drum and bass'],
+    ['reggaeton', 'reggaeton'],
+    ['afrobeats', 'afrobeats'],
+    ['amapiano', 'amapiano'],
+    ['drill', 'drill'],
+    ['metal', 'metal'],
+  ])('adapts generated drums to %s rather than using one default groove', (promptGenre, expectedGenre) => {
+    const result = service.tryExecute(`make a ${promptGenre} beat`);
+    expect(result).not.toBeNull();
+    expect(result!.content).toContain(`${expectedGenre} energy`);
+    const drumTrack = tracks().find((track) => track.name === 'Drums')!;
+    expect(drumTrack.notes.length).toBeGreaterThan(0);
+    expect(new Set(drumTrack.notes.map((note) => note.step)).size).toBeGreaterThan(4);
+    service.tryExecute('undo');
+  });
+
+  it('keeps an unlisted genre label and explicit BPM/key instead of calling it trap', () => {
+    const result = service.tryExecute('make a cumbia beat at 96 in F minor');
+    expect(result).not.toBeNull();
+    expect(result!.content).toContain('cumbia energy');
+    expect(result!.content).toContain('F minor at 96 BPM');
+    expect(tempo()).toBe(96);
+  });
+
+  it('uses an explicit tempo and key instead of profile defaults', () => {
+    profile.set({
+      ...initialProfile,
+      primaryGenre: 'Ambient',
+      musicalJourney: {
+        ...initialProfile.musicalJourney,
+        preferredBpmRange: '70-90',
+      },
+    });
+    const result = service.tryExecute('make a house beat at 124 in A minor');
+    expect(result!.content).toContain('A minor at 124 BPM');
+    expect(tempo()).toBe(124);
+  });
+
+  it('creates reproducible musical note content with unique note ids', () => {
+    service.tryExecute('make a jazz beat');
+    const first = tracks().map((track) => track.notes.map(({ midi, step, velocity }) => ({ midi, step, velocity })));
+    const firstIds = tracks().flatMap((track) => track.notes.map((note) => note.id));
+    service.tryExecute('undo');
+    service.tryExecute('make a jazz beat');
+    const second = tracks().map((track) => track.notes.map(({ midi, step, velocity }) => ({ midi, step, velocity })));
+    const secondIds = tracks().flatMap((track) => track.notes.map((note) => note.id));
+
+    expect(second).toEqual(first);
+    expect(new Set(secondIds).size).toBe(secondIds.length);
+    expect(secondIds).not.toEqual(firstIds);
+  });
+
+  it('writes a chord progression with the nearest-octave voice leading', () => {
     const result = service.tryExecute('play C - Am - F - G');
     expect(result).not.toBeNull();
     expect(result!.content).toContain('C – Am – F – G');
     const chords = tracks().find((t) => t.name === 'Chords');
     expect(chords).toBeDefined();
     expect(chords!.notes).toHaveLength(12); // 4 triads × 3 notes
+    const roots = [0, 4, 8, 12].map((step) =>
+      chords!.notes.filter((note) => note.step === step * 4).reduce((lowest, note) => Math.min(lowest, note.midi), Infinity)
+    );
+    expect(roots).toEqual([60, 57, 53, 55]);
   });
 
   it('plants a bassline in a requested key', () => {

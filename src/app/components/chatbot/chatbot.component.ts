@@ -41,6 +41,7 @@ import { SmuveWidgetComponent } from '../smuve-widget/smuve-widget.component';
 import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ChatMusicCommandEngineService } from '../../services/chat-music-command-engine.service';
+import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
 
 interface ChatMessage {
   id: string;
@@ -144,6 +145,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
   /** Chat Music Command Engine — chat-driven creation / preview / undo / tempo. */
   private get chatMusic(): ChatMusicCommandEngineService | null {
     return this.injector.get(ChatMusicCommandEngineService, null);
+  }
+  /** Existing profile fine-tuning compiler — reused rather than maintaining a second persona profile. */
+  private get artistFinetune(): ArtistProfileFinetuneService | null {
+    return this.injector.get(ArtistProfileFinetuneService, null);
   }
 
   @ViewChild('messageViewport') private scrollContainer!: ElementRef;
@@ -557,6 +562,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
     const persona = getPersonaOption(profile.settings?.ai?.commanderPersona);
     const totalControl = profile.settings?.ai?.aiTotalControlEnabled === true;
     const tier = this.aiService.conversationalTier();
+    const artistFineTune = this.artistFinetune?.promptBlock();
 
     return [
       'You are S.M.U.V.E 2.0 — the AI Music Manager and total sentience of this application.',
@@ -568,6 +574,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked {
       '',
       `COMPLETE ARTIST CONTEXT (calibrate every production, marketing, and strategy answer to this — never ask the artist to repeat it):
 ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational until the questionnaire is finished.'}`,
+      '',
+      artistFineTune
+        ? `S.M.U.V.E ARTIST FINE-TUNE — apply this existing profile compiler to every recommendation; the artist’s explicit request takes priority, and their sonic non-negotiables remain protected:\n${artistFineTune}`
+        : 'S.M.U.V.E ARTIST FINE-TUNE: Honor the artist’s stated genre, sonic blueprint, preferred tempo, production priorities, and boundaries. Their explicit request takes priority; do not flatten their identity into a genre stereotype.',
       '',
       `ARTIST REQUEST: ${question}`,
     ].join('\n');
