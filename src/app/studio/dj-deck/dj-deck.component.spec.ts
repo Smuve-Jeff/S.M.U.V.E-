@@ -148,6 +148,9 @@ describe('DjDeckComponent', () => {
             pauseDeck: jest.fn(),
             setDeckRate: jest.fn(),
             setDeckLoopRegion: jest.fn(),
+            beginScratchMonitor: jest.fn(),
+            endScratchMonitor: jest.fn(),
+            scaleDeckLoop: jest.fn().mockReturnValue(true),
             setSaturation: jest.fn(),
             setMasterOutputLevel: jest.fn(),
             setDeckGain: jest.fn(),
@@ -337,6 +340,49 @@ describe('DjDeckComponent', () => {
 
     expect(component.isScratchingA()).toBe(false);
     expect(component.scratchVelocityA()).toBe(0);
+    expect(engine.playDeck).toHaveBeenCalledWith('A');
+  });
+
+  it('starts a groove monitor the moment a parked vinyl platter is touched', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      isPlaying: false,
+    }));
+
+    component.onPlatterDown('A', {
+      preventDefault: jest.fn(),
+    } as unknown as MouseEvent);
+
+    expect(component.isScratchingA()).toBe(true);
+    expect(engine.pauseDeck).not.toHaveBeenCalled();
+    // A stopping deck used to be silent for the whole grab — no source ran, so
+    // scratch() and setDeckRate() modulated nothing.
+    expect(engine.beginScratchMonitor).toHaveBeenCalledWith('A');
+
+    component.onPlatterUp();
+
+    expect(engine.endScratchMonitor).toHaveBeenCalledWith('A');
+  });
+
+  it('monitors a spinning platter through the grab and restores playback on release', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    mockDeckService.deckA.update((d: typeof initialDeckState) => ({
+      ...d,
+      isPlaying: true,
+      slip: false,
+    }));
+
+    component.onPlatterDown('A', {
+      preventDefault: jest.fn(),
+    } as unknown as MouseEvent);
+
+    expect(engine.pauseDeck).toHaveBeenCalledWith('A');
+    expect(engine.beginScratchMonitor).toHaveBeenCalledWith('A');
+
+    component.onPlatterUp();
+
+    expect(engine.endScratchMonitor).toHaveBeenCalledWith('A');
     expect(engine.playDeck).toHaveBeenCalledWith('A');
   });
 
@@ -673,6 +719,30 @@ describe('DjDeckComponent', () => {
     component.setLoopLengthPreset('A', NaN);
     expect(mockDeckService.toggleLoop).not.toHaveBeenCalled();
     expect(component.sessionNotice()).toMatch(/finite/i);
+  });
+
+  it('halves and doubles the engaged loop through the booth chips', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+
+    component.halveLoop('A');
+
+    expect(engine.scaleDeckLoop).toHaveBeenCalledWith('A', 0.5);
+    expect(mockDeckService.deckA().loop).toBe(true);
+    expect(component.sessionNotice()).toMatch(/halved/i);
+
+    component.doubleLoop('B');
+
+    expect(engine.scaleDeckLoop).toHaveBeenCalledWith('B', 2);
+    expect(component.sessionNotice()).toMatch(/doubled/i);
+  });
+
+  it('asks for an engaged loop before scaling one', () => {
+    const engine = TestBed.inject(AudioEngineService) as any;
+    engine.scaleDeckLoop.mockReturnValue(false);
+
+    component.halveLoop('A');
+
+    expect(component.sessionNotice()).toMatch(/engage a loop/i);
   });
 
   it('clamps setPrecisionEqBand into [0, 2] and ignores out-of-range indices', () => {

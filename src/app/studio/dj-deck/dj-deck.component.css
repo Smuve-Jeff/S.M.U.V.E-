@@ -1226,6 +1226,21 @@
   color: var(--vv-ink);
   border-color: var(--vv-line);
 }
+/* Loop length effects (÷2 / ×2) — fixed-width so they never squeeze the
+   beat presets, and inert until a region is actually engaged. */
+.loop-chip-effect {
+  flex: 0 0 auto;
+  min-width: 30px;
+  padding: 0 4px;
+}
+.loop-chip-effect:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.loop-chip-effect:disabled:hover {
+  color: var(--vv-ink-faint);
+  border-color: var(--vv-line-soft);
+}
 
 /* ── Pitch fader ───────────────────────────────────────────────────── */
 .pitch-control {

@@ -75,6 +75,9 @@ const WAVEFORM_OVERVIEW_HEIGHT = 96;
 const IDLE_REPAINT_INTERVAL_MILLIS = 180;
 /** Platter momentum decay time constant after a scratch release. */
 const PLATTER_SPIN_DECAY_MILLIS = 520;
+/** Stillness (ms) after which a held platter stops sounding — the groove only
+ *  speaks while the hand is actually moving it. */
+const PLATTER_IDLE_SILENCE_MILLIS = 90;
 const MAX_PLATTER_SPIN_DEG_PER_SEC = 1080;
 /** Rotation speed of a real record — 33⅓ and 45 RPM. */
 const PLATTER_DEG_PER_SEC_33 = 200;
@@ -284,6 +287,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   > = { A: null, B: null };
   private rollIntervals: Record<'A' | 'B', any> = { A: null, B: null };
   private samplerReturnTimers: Record<'A' | 'B', any> = { A: null, B: null };
+  /** Silence timers for a hand that has stopped moving the vinyl. */
+  private platterIdleTimers: Record<'A' | 'B', any> = { A: null, B: null };
 
   public uiService = inject(UIService);
   private recordingStatus = inject(RecordingStatusService);
@@ -345,6 +350,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.clearRollInterval('B');
     this.clearSamplerReturnTimer('A');
     this.clearSamplerReturnTimer('B');
+    this.clearPlatterIdleTimer('A');
+    this.clearPlatterIdleTimer('B');
   }
 
   /**
@@ -1180,6 +1187,36 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.deckService.sync(deck);
   }
 
+  /**
+   * Loop length effects — `÷2` / `×2` on the region that is already engaged.
+   * The in-point stays put, so the loop tightens or opens from its head like
+   * the hardware loop controls the booth models.
+   */
+  halveLoop(deck: 'A' | 'B') {
+    this.scaleLoop(deck, 0.5, 'halved');
+  }
+
+  doubleLoop(deck: 'A' | 'B') {
+    this.scaleLoop(deck, 2, 'doubled');
+  }
+
+  private scaleLoop(deck: 'A' | 'B', factor: number, label: string) {
+    if (!this.engine.scaleDeckLoop(deck, factor)) {
+      this.sessionNotice.set(
+        `Engage a loop on deck ${deck} before scaling it.`
+      );
+      return;
+    }
+    const deckSignal =
+      deck === 'A' ? this.deckService.deckA : this.deckService.deckB;
+    if (typeof deckSignal?.update === 'function') {
+      deckSignal.update((d: any) => ({ ...d, loop: true }));
+    }
+    this.haptics.preset('loopMarker');
+    this.requestRepaint();
+    this.sessionNotice.set(`Deck ${deck} loop ${label}.`);
+  }
+
   setStemGain(deck: 'A' | 'B', stem: string, event: Event) {
     const target = event.target as HTMLInputElement | null;
     const gain = target?.valueAsNumber ?? 0;
@@ -1224,6 +1261,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const deckState = this.getDeckState(deck);
     this.wasPlaying[deck] = deckState.isPlaying;
     if (deckState.isPlaying) this.engine.pauseDeck(deck);
+    // Touching the vinyl has to be heard even though the transport is now
+    // stopped: the monitor plays the groove under the hand, so the scratch is
+    // audible while it is being performed (slip or not, playing or parked).
+    this.engine.beginScratchMonitor(deck);
     // Catching a spinning record cancels the free-wheel of a previous flick.
     this.setPlatterSpin(deck, 0);
     this.haptics.preset('tick');
@@ -1299,6 +1340,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const isA = deck === 'A';
     if (!(isA ? this.isScratchingA() : this.isScratchingB())) return;
 
+    this.clearPlatterIdleTimer(deck);
+    this.engine.endScratchMonitor(deck);
+
     if (isA) {
       this.isScratchingA.set(false);
       this.activeTouchA = null;
@@ -1321,6 +1365,24 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.wasPlaying[deck] = false;
     this.deckService.syncProgress();
     this.requestRepaint();
+  }
+
+  /** Silence the platter once the hand has been still for a moment. */
+  private armPlatterIdleTimer(deck: 'A' | 'B') {
+    this.clearPlatterIdleTimer(deck);
+    this.platterIdleTimers[deck] = setTimeout(() => {
+      this.platterIdleTimers[deck] = null;
+      const stillHeld =
+        deck === 'A' ? this.isScratchingA() : this.isScratchingB();
+      if (!stillHeld) return;
+      this.engine.setDeckRate(deck, 0, false);
+    }, PLATTER_IDLE_SILENCE_MILLIS);
+  }
+
+  private clearPlatterIdleTimer(deck: 'A' | 'B') {
+    const timer = this.platterIdleTimers[deck];
+    if (timer !== null) clearTimeout(timer);
+    this.platterIdleTimers[deck] = null;
   }
 
   private setPlatterSpin(deck: 'A' | 'B', value: number) {
@@ -1378,6 +1440,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const SECONDS_PER_FRAME = 0.016;
     const velocity = (delta / SECONDS_PER_FRAME) * scrubSecondsPerRadian;
     this.engine.setDeckRate(deck, velocity, false);
+    // The groove only speaks while the hand moves it: a stalled platter goes
+    // quiet instead of running on at the speed of the last flick.
+    this.armPlatterIdleTimer(deck);
     const velocityValue = Math.max(
       -1,
       Math.min(1, velocity / SCRATCH_VELOCITY_NORMALIZER)

@@ -344,4 +344,82 @@ describe('AudioEngineService', () => {
     expect(targets.truePeak).toBe(-0.2);
     expect(compressorNode.threshold.setTargetAtTime).toHaveBeenCalled();
   });
+
+  // ── DJ booth deck path ──────────────────────────────────────────────
+
+  const makeDeckBuffer = (duration = 120): AudioBuffer =>
+    ({
+      duration,
+      length: 100,
+      numberOfChannels: 2,
+      sampleRate: 44100,
+      getChannelData: jest.fn().mockReturnValue(new Float32Array(100)),
+    } as unknown as AudioBuffer);
+
+  it('routes deck sources through the stem gains into the EQ chain', () => {
+    const deck = service.getDeck('A');
+
+    // The per-stem gains were left dangling, so every deck (and every
+    // scratch) was silent no matter what the transport did.
+    expect(deck.gains.other.connect).toHaveBeenCalledWith(deck.eqLow);
+    expect(deck.gains.drums.connect).toHaveBeenCalledWith(deck.eqLow);
+    expect(deck.gains.vocals.connect).toHaveBeenCalledWith(deck.eqLow);
+  });
+
+  it('plays the groove through a platter monitor while the vinyl is held', () => {
+    const deck = service.getDeck('A');
+    service.loadDeck('A', makeDeckBuffer());
+    deck.pauseOffset = 12;
+
+    service.beginScratchMonitor('A');
+
+    const src = mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
+    expect(deck.scratchMonitor).toBe(true);
+    // The transport stays stopped — only the monitor is running.
+    expect(deck.isPlaying).toBe(false);
+    expect(src.start).toHaveBeenCalledWith(0, 12);
+    expect(src.connect).toHaveBeenCalledWith(deck.gains.other);
+
+    service.endScratchMonitor('A');
+
+    expect(deck.scratchMonitor).toBe(false);
+    expect(src.stop).toHaveBeenCalled();
+  });
+
+  it('re-cues a parked deck inside a freshly engaged loop region', () => {
+    const deck = service.getDeck('A');
+    service.loadDeck('A', makeDeckBuffer());
+    deck.pauseOffset = 90;
+
+    service.setDeckLoopRegion('A', 30, 34);
+
+    expect(deck.loopEnabled).toBe(true);
+    expect(deck.loopStart).toBe(30);
+    expect(deck.loopEnd).toBe(34);
+    // The playhead has to land inside the region or the first press of play
+    // never repeats anything.
+    expect(deck.pauseOffset).toBe(30);
+  });
+
+  it('scales an engaged loop by half and double around its in-point', () => {
+    const deck = service.getDeck('A');
+    service.loadDeck('A', makeDeckBuffer());
+    deck.pauseOffset = 10;
+    service.setDeckLoopRegion('A', 10, 18);
+
+    expect(service.scaleDeckLoop('A', 0.5)).toBe(true);
+    expect(deck.loopStart).toBe(10);
+    expect(deck.loopEnd).toBeCloseTo(14);
+
+    expect(service.scaleDeckLoop('A', 2)).toBe(true);
+    expect(deck.loopStart).toBe(10);
+    expect(deck.loopEnd).toBeCloseTo(18);
+  });
+
+  it('refuses to scale a loop that is not engaged', () => {
+    service.loadDeck('A', makeDeckBuffer());
+
+    expect(service.scaleDeckLoop('A', 2)).toBe(false);
+    expect(service.scaleDeckLoop('A', 0)).toBe(false);
+  });
 });

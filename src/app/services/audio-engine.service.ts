@@ -92,6 +92,9 @@ interface DeckChannel {
   cueGain: GainNode;
   analyser: AnalyserNode;
   isPlaying: boolean;
+  /** Audible platter monitor: a source runs while a hand holds the vinyl,
+   *  distinct from transport playback so `isPlaying` stays honest. */
+  scratchMonitor: boolean;
   startTime: number;
   pauseOffset: number;
   rate: number;
@@ -143,6 +146,9 @@ const AUDIO_PARAM_PROPERTIES = new Set([
   'release',
   'pitch',
 ]);
+
+/** Shortest loop region the DJ booth's ÷2 loop effect may shrink to (seconds). */
+const MIN_LOOP_SECONDS = 0.05;
 
 /** A small inert AudioParam used only when the browser has no Web Audio API. */
 function createSilentAudioParam(initialValue = 0): AudioParam {
@@ -1090,6 +1096,7 @@ export class AudioEngineService {
       cueGain: this.ctx.createGain(),
       analyser: this.ctx.createAnalyser(),
       isPlaying: false,
+      scratchMonitor: false,
       startTime: 0,
       pauseOffset: 0,
       rate: 1.0,
@@ -1184,6 +1191,10 @@ export class AudioEngineService {
     // fader → analyser → master. Pre-fader taps feed the A/B send returns
     // and the CUE (headphone) bus. Crossfader + hamster live on the fader
     // gain.
+    // The per-stem gains are the deck's input stage — route them into the
+    // EQ first, or the sources feed dangling nodes and the turntable is
+    // silent (scratch included).
+    Object.values(deck.gains).forEach((g) => g.connect(deck.eqLow));
     deck.eqLow.connect(deck.eqMid);
     deck.eqMid.connect(deck.eqHigh);
     deck.eqHigh.connect(deck.filter);
@@ -1256,6 +1267,8 @@ export class AudioEngineService {
     }
 
     this.stopDeck(id);
+    // Transport playback supersedes a platter monitor.
+    deck.scratchMonitor = false;
     this.resume();
 
     const buffer = deck.buffer;
@@ -1324,6 +1337,7 @@ export class AudioEngineService {
       deck.slipStartOffset = deck.pauseOffset;
     }
     this.stopDeck(id);
+    deck.scratchMonitor = false;
   }
 
   seekDeck(id: DeckId, pos: number) {
@@ -1342,6 +1356,9 @@ export class AudioEngineService {
     if (deck.isPlaying) {
       this.stopDeck(id);
       this.playDeck(id);
+    } else if (deck.scratchMonitor) {
+      // The hand moved the groove: re-cue the monitor so the scrub is heard.
+      this.startScratchMonitorSource(id);
     }
   }
 
@@ -1443,6 +1460,66 @@ export class AudioEngineService {
   }
 
   /**
+   * Start the audible platter monitor for a deck that is being held.
+   *
+   * A platter grab stops the transport (so a slip scratch can resolve back to
+   * the ghost playhead), which also stops every buffer source — and a scratch
+   * on a stopped graph is silent. The monitor plays the deck's own buffer from
+   * the current playhead *without* touching `isPlaying`, so `scratch()` and
+   * `seekDeck()` modulate real audio while the hand is on the vinyl. Release
+   * with `endScratchMonitor()`, which leaves the needle where the hand let go.
+   */
+  beginScratchMonitor(id: DeckId) {
+    const deck = this.getDeck(id);
+    if (!deck || !deck.buffer) return;
+    deck.scratchMonitor = true;
+    this.startScratchMonitorSource(id);
+  }
+
+  /** Stop the platter monitor, keeping the playhead where it was left. */
+  endScratchMonitor(id: DeckId) {
+    const deck = this.getDeck(id);
+    if (!deck || !deck.scratchMonitor) return;
+    this.stopDeckSources(deck);
+    deck.scratchMonitor = false;
+  }
+
+  /**
+   * Single full-mix source for the platter monitor, cued at `pauseOffset` and
+   * running at the deck's current rate (negative while scratching backwards).
+   * It enters the graph through the `other` stem gain, so the scratch respects
+   * the channel EQ, filter, FX, pan and fader like any other deck audio.
+   */
+  private startScratchMonitorSource(id: DeckId) {
+    const deck = this.getDeck(id);
+    if (!deck || !deck.buffer || !deck.scratchMonitor) return;
+    this.stopDeckSources(deck);
+    const buffer = deck.buffer;
+    const rate = Number.isFinite(deck.rate) && deck.rate !== 0 ? deck.rate : 1;
+    const pos = Math.max(
+      0,
+      Math.min(deck.pauseOffset, Math.max(0, buffer.duration - 0.001))
+    );
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = rate;
+    const target = deck.gains.other ?? deck.gains.instrumental ?? deck.gains.drums;
+    src.connect(target ?? deck.eqLow);
+    src.start(this.ctx.currentTime, pos);
+    deck.sources = { other: src };
+  }
+
+  private stopDeckSources(deck: DeckChannel) {
+    Object.values(deck.sources).forEach((s) => {
+      if (!s) return;
+      try {
+        s.stop();
+      } catch (e) {}
+    });
+    deck.sources = {};
+  }
+
+  /**
    * Beat-quantized loop region — enables a loop between `start` and `end`
    * seconds and keeps any running playback inside the region. Powers the
    * DJ booth's loop-length presets (1/8, 1/4, 1/2, 1, 2, 4, 8 beats).
@@ -1455,6 +1532,10 @@ export class AudioEngineService {
     const e = Number.isFinite(end)
       ? Math.max(s + 0.01, Math.min(end, dur))
       : dur;
+    // Read the playhead before the loop is engaged: progress is reported
+    // wrapped inside the region once loopEnabled is set, so the real offset of
+    // a parked deck would look like it was already inside.
+    const pos = this.getDeckProgress(id).position;
     deck.loopStart = s;
     deck.loopEnd = e;
     deck.loopEnabled = true;
@@ -1464,11 +1545,34 @@ export class AudioEngineService {
       src.loopStart = s;
       src.loopEnd = e;
     });
-    // Keep the live playhead inside the loop region.
-    if (deck.isPlaying) {
-      const pos = this.getDeckProgress(id).position;
-      if (pos < s || pos >= e) this.seekDeck(id, s);
-    }
+    // Keep the live playhead inside the loop region. A parked deck has to be
+    // re-cued too — otherwise the loop is engaged outside its own bounds and
+    // the first press of play never repeats.
+    if (pos < s || pos >= e) this.seekDeck(id, s);
+  }
+
+  /**
+   * Loop length effect — halve (`÷2`) or double (`×2`) the active loop region
+   * while holding its in-point steady. Returns false when no region is engaged
+   * so the caller can report the miss instead of silently doing nothing.
+   */
+  scaleDeckLoop(id: DeckId, factor: number): boolean {
+    const deck = this.getDeck(id);
+    if (!deck || !deck.buffer) return false;
+    if (!Number.isFinite(factor) || factor <= 0) return false;
+    if (!deck.loopEnabled || deck.loopEnd <= deck.loopStart) return false;
+    const duration = deck.buffer.duration;
+    const start = deck.loopStart;
+    const span = Math.max(
+      MIN_LOOP_SECONDS,
+      (deck.loopEnd - start) * factor
+    );
+    const end = Math.max(
+      start + MIN_LOOP_SECONDS,
+      Math.min(duration, start + span)
+    );
+    this.setDeckLoopRegion(id, start, end);
+    return true;
   }
 
   /** Release the deck's loop and restore full-track playback bounds. */

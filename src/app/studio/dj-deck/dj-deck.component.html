@@ -282,6 +282,26 @@
           >
             {{ preset.label }}
           </button>
+          <button
+            type="button"
+            class="loop-chip loop-chip-effect"
+            [disabled]="!deckService.deckA().loop"
+            (click)="halveLoop('A')"
+            aria-label="Halve deck A loop"
+            title="Halve the active loop"
+          >
+            ÷2
+          </button>
+          <button
+            type="button"
+            class="loop-chip loop-chip-effect"
+            [disabled]="!deckService.deckA().loop"
+            (click)="doubleLoop('A')"
+            aria-label="Double deck A loop"
+            title="Double the active loop"
+          >
+            ×2
+          </button>
         </div>
 
         <div class="pitch-control">
@@ -662,6 +682,26 @@
             (click)="setLoopLengthPreset('B', preset.beats)"
           >
             {{ preset.label }}
+          </button>
+          <button
+            type="button"
+            class="loop-chip loop-chip-effect"
+            [disabled]="!deckService.deckB().loop"
+            (click)="halveLoop('B')"
+            aria-label="Halve deck B loop"
+            title="Halve the active loop"
+          >
+            ÷2
+          </button>
+          <button
+            type="button"
+            class="loop-chip loop-chip-effect"
+            [disabled]="!deckService.deckB().loop"
+            (click)="doubleLoop('B')"
+            aria-label="Double deck B loop"
+            title="Double the active loop"
+          >
+            ×2
           </button>
         </div>
 
