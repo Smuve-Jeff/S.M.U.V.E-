@@ -28,7 +28,7 @@ describe('SmuveTotalControlService', () => {
         aiTotalControlEnabled: false,
         aiProfanityEnabled: true,
         aiPersonaIntensityEnabled: true,
-        commanderPersona: 'Ominous Musical GOD',
+        commanderPersona: 'S.M.U.V.E. Prime',
       },
     },
   });
@@ -165,14 +165,14 @@ describe('SmuveTotalControlService', () => {
     expect(profileSignal().settings.ai.commanderPersona).toBe('Supportive');
   });
 
-  it('restores the default ominous Musical GOD persona by name or alias', async () => {
+  it('restores the default S.M.U.V.E. Prime persona by name or alias', async () => {
     await service.executeCommand('/ai persona supportive');
-    const result = await service.executeCommand('/ai persona god');
+    const result = await service.executeCommand('/ai persona prime');
 
     expect(result.success).toBe(true);
     expect(result.message).toContain('PERSONA RESTORED');
     expect(profileSignal().settings.ai.commanderPersona).toBe(
-      'Ominous Musical GOD'
+      'S.M.U.V.E. Prime'
     );
   });
 
@@ -182,7 +182,7 @@ describe('SmuveTotalControlService', () => {
     expect(result.success).toBe(false);
     expect(result.message).toContain('Unknown persona');
     expect(profileSignal().settings.ai.commanderPersona).toBe(
-      'Ominous Musical GOD'
+      'S.M.U.V.E. Prime'
     );
     expect(updateProfile).not.toHaveBeenCalled();
   });
@@ -191,7 +191,7 @@ describe('SmuveTotalControlService', () => {
     const result = await service.executeCommand('/ai persona');
 
     expect(result.success).toBe(true);
-    expect(result.message).toContain('Ominous Musical GOD (default)');
+    expect(result.message).toContain('S.M.U.V.E. Prime (default)');
     expect(result.message).toContain('Supportive');
   });
 
@@ -208,7 +208,7 @@ describe('SmuveTotalControlService', () => {
     const ai = profileSignal().settings.ai;
     expect(ai.aiProfanityEnabled).toBe(false);
     expect(ai.aiPersonaIntensityEnabled).toBe(true);
-    expect(ai.commanderPersona).toBe('Ominous Musical GOD');
+    expect(ai.commanderPersona).toBe('S.M.U.V.E. Prime');
   });
 
   it('reports an unknown command instead of guessing', async () => {

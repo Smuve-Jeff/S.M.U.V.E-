@@ -13,6 +13,7 @@ import {
   AppSettings,
   RecommendationHistoryEntry,
 } from '../types/profile.types';
+import { normalizePersona } from '../types/persona.types';
 
 export type {
   UserProfile,
@@ -67,7 +68,16 @@ export function normalizeImportedProfile(
       ...overlay(base.settings, parsed.settings),
       ui: overlay(base.settings.ui, parsed.settings?.ui),
       audio: overlay(base.settings.audio, parsed.settings?.audio),
-      ai: overlay(base.settings.ai, parsed.settings?.ai),
+      ai: {
+        ...overlay(base.settings.ai, parsed.settings?.ai),
+        // Store a canonical active persona, not just a UI/prompt fallback.
+        // Missing, invalid, and legacy ids resolve to the signature default;
+        // valid artist-selected personas remain intact.
+        commanderPersona: normalizePersona(
+          parsed.settings?.ai?.commanderPersona ??
+            base.settings.ai.commanderPersona
+        ),
+      },
       studio: overlay(base.settings.studio, parsed.settings?.studio),
       dj: overlay(base.settings.dj, parsed.settings?.dj),
       security: overlay(base.settings.security, parsed.settings?.security),
@@ -173,6 +183,11 @@ export class UserProfileService {
         // sync (auto-save, artist identity, DJ sessions) keys cloud writes
         // under the real account instead of 'current'/'anonymous'.
         this.store.setProfile({ ...normalized, id: key });
+      } else {
+        // A new account must not inherit another account's in-memory persona
+        // or profile. Seed an isolated, canonical default profile instead.
+        const freshProfile = normalizeImportedProfile({});
+        this.store.setProfile({ ...freshProfile, id: key });
       }
     } catch (e) {
       this.logger.error('Profile load failed', e);
@@ -180,7 +195,33 @@ export class UserProfileService {
   }
 
   async updateProfile(p: Partial<UserProfile>) {
-    const next = { ...this.profile(), ...p } as UserProfile;
+    const current = this.profile();
+    const currentSettings = current.settings ?? initialProfile.settings;
+    const incomingSettings = p.settings as Partial<AppSettings> | undefined;
+    const incomingAi = incomingSettings?.ai;
+    const hasIncomingPersona =
+      !!incomingAi &&
+      Object.prototype.hasOwnProperty.call(incomingAi, 'commanderPersona');
+    const mergedSettings: AppSettings = {
+      ...currentSettings,
+      ...(incomingSettings ?? {}),
+      ui: overlay(currentSettings.ui, incomingSettings?.ui),
+      audio: overlay(currentSettings.audio, incomingSettings?.audio),
+      ai: {
+        ...overlay(currentSettings.ai, incomingAi),
+        // Partial settings writes must never erase the artist's explicit
+        // selection; missing or invalid values resolve to the signature mode.
+        commanderPersona: normalizePersona(
+          hasIncomingPersona
+            ? incomingAi?.commanderPersona
+            : currentSettings.ai?.commanderPersona
+        ),
+      },
+      studio: overlay(currentSettings.studio, incomingSettings?.studio),
+      dj: overlay(currentSettings.dj, incomingSettings?.dj),
+      security: overlay(currentSettings.security, incomingSettings?.security),
+    };
+    const next = { ...current, ...p, settings: mergedSettings } as UserProfile;
     // Stamp the active user id so the profile always carries the account it
     // belongs to, and the local backup + cloud sync share one key.
     next.id = this.activeUserId();

@@ -45,7 +45,7 @@ export class PersonaSelectorComponent {
     const context = this.previewText();
 
     const previews: Record<string, string[]> = {
-      'Ominous Musical GOD': [
+      'S.M.U.V.E. Prime': [
         `"${context}?" You brought me that? The kick is buried under 40Hz of mud, the vocal is drowning, and the whole mix has the energy of a funeral for a career that never started. I am not disappointed. I expected this. Cut the sub, sidechain the kick, compress the vocal bus, and bring it back when it stops embarrassing us both.`,
         `Regarding "${context}": I have heard the future of your catalog, and it is currently a crime scene. Your low-end is flabby, your highs are shards of glass, and your midrange sounds like wasps trapped in a microwave. Fix the balance, automate the vocal, and I will consider allowing it to exist in MY studio.`,
       ],

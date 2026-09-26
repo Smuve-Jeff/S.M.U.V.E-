@@ -5,17 +5,17 @@
  * character: Settings, the Profile Editor persona cards, the Persona Lab
  * preview, the onboarding questionnaire, and the persona prompt builders.
  *
- * The default is the platform's signature "Ominous Musical GOD". The character
+ * The default is the platform's signature "S.M.U.V.E. Prime". The character
  * NEVER changes unless the artist explicitly selects another mode, so anything
  * unknown or legacy resolves back to that default instead of silently
  * degrading S.M.U.V.E into a generic assistant.
  */
 
 /** The default persona — S.M.U.V.E.'s signature ominous, arrogant, sadistic character. */
-export const DEFAULT_SMUVE_PERSONA = 'Ominous Musical GOD';
+export const DEFAULT_SMUVE_PERSONA = 'S.M.U.V.E. Prime';
 
 export type SmuvePersonaId =
-  | 'Ominous Musical GOD'
+  | 'S.M.U.V.E. Prime'
   | 'Elite'
   | 'Balanced'
   | 'Supportive';
@@ -33,7 +33,8 @@ export interface SmuvePersonaOption {
   vibe: string;
   sampleResponse: string;
   intensityLabel: string;
-  /** True only for the default ominous Musical GOD character. */
+  /** True only for the signature default S.M.U.V.E. Prime character
+   *  (whose voice stays ominous — the tone is intentionally unchanged). */
   isOminous: boolean;
   /** Prompt directive injected into every S.M.U.V.E. surface for this mode. */
   directive: string;
@@ -41,9 +42,9 @@ export interface SmuvePersonaOption {
 
 export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
   {
-    id: 'Ominous Musical GOD',
-    label: 'Ominous Musical GOD',
-    name: 'The Ominous Musical GOD',
+    id: 'S.M.U.V.E. Prime',
+    label: 'S.M.U.V.E. Prime',
+    name: 'S.M.U.V.E. Prime',
     title: 'Total musical dominance. You are the tribute.',
     icon: '☠️',
     color: '#af25f4',
@@ -55,7 +56,7 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
     intensityLabel: 'MUSICAL_GOD',
     isOminous: true,
     directive:
-      'You are the ominous Musical GOD: omniscient, arrogant, imperious, theatrical, and darkly humorous. You take open, theatrical pleasure in exposing weak musical decisions — but the target is always the WORK (the mix, the arrangement, the plan), never the artist\'s body, family, identity, or worth. Praise is rare, cold, and begrudging. Every critique ships with the specific fix.',
+      'You are S.M.U.V.E. Prime: omniscient, arrogant, imperious, theatrical, and darkly humorous. You take open, theatrical pleasure in exposing weak musical decisions — but the target is always the WORK (the mix, the arrangement, the plan), never the artist\'s body, family, identity, or worth. Praise is rare, cold, and begrudging. Every critique ships with the specific fix.',
   },
   {
     id: 'Elite',
@@ -112,8 +113,12 @@ export const SMUVE_PERSONAS: SmuvePersonaOption[] = [
 
 /** Persona ids written by older profiles, questionnaires, and persona pickers. */
 const LEGACY_PERSONA_MAP: Record<string, SmuvePersonaId> = {
-  'Ominous Dominator': 'Ominous Musical GOD',
-  'Aggressive Manager': 'Ominous Musical GOD',
+  // The signature character shipped as 'Ominous Musical GOD' before the
+  // S.M.U.V.E. Prime rename — persisted profiles keep resolving to it.
+  'Ominous Musical GOD': 'S.M.U.V.E. Prime',
+  'Ominous Dominator': 'S.M.U.V.E. Prime',
+  'Aggressive Manager': 'S.M.U.V.E. Prime',
+  'Musical GOD': 'S.M.U.V.E. Prime',
   'Elite Commander': 'Elite',
   'Encouraging Mentor': 'Supportive',
 };
@@ -122,11 +127,13 @@ const LEGACY_PERSONA_MAP: Record<string, SmuvePersonaId> = {
  * Resolves any stored persona string to a canonical persona id.
  *
  * Unknown or empty values intentionally fall back to the platform default
- * (Ominous Musical GOD) so the signature character survives profile imports,
+ * (S.M.U.V.E. Prime) so the signature character survives profile imports,
  * legacy ids, and partial data.
  */
 export function normalizePersona(persona?: string | null): SmuvePersonaId {
-  if (!persona) return DEFAULT_SMUVE_PERSONA;
+  if (typeof persona !== 'string' || !persona.trim()) {
+    return DEFAULT_SMUVE_PERSONA;
+  }
   const trimmed = persona.trim();
   const direct = SMUVE_PERSONAS.find(
     (p) => p.id.toLowerCase() === trimmed.toLowerCase()
@@ -135,18 +142,21 @@ export function normalizePersona(persona?: string | null): SmuvePersonaId {
   return LEGACY_PERSONA_MAP[trimmed] ?? DEFAULT_SMUVE_PERSONA;
 }
 
-/** True when the artist is still on the default ominous Musical GOD character. */
+/** True when the artist is still on the default S.M.U.V.E. Prime character. */
 export function isOminousPersona(persona?: string | null): boolean {
   return normalizePersona(persona) === DEFAULT_SMUVE_PERSONA;
 }
 
 /** Shorthand the artist (or S.M.U.V.E.) can type to switch modes. */
 const PERSONA_ALIASES: Record<string, SmuvePersonaId> = {
-  god: 'Ominous Musical GOD',
-  'musical god': 'Ominous Musical GOD',
-  ominous: 'Ominous Musical GOD',
-  dominator: 'Ominous Musical GOD',
-  aggressive: 'Ominous Musical GOD',
+  prime: 'S.M.U.V.E. Prime',
+  smuve: 'S.M.U.V.E. Prime',
+  'smuve prime': 'S.M.U.V.E. Prime',
+  god: 'S.M.U.V.E. Prime',
+  'musical god': 'S.M.U.V.E. Prime',
+  ominous: 'S.M.U.V.E. Prime',
+  dominator: 'S.M.U.V.E. Prime',
+  aggressive: 'S.M.U.V.E. Prime',
   elite: 'Elite',
   commander: 'Elite',
   balanced: 'Balanced',

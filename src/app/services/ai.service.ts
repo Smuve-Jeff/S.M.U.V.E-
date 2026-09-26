@@ -121,8 +121,8 @@ export class AiService {
    * The character contract every S.M.U.V.E. surface shares.
    *
    * Persona precedence: the artist's explicit choice in Settings wins;
-   * anything unset, unknown, or legacy resolves to the default Ominous
-   * Musical GOD character. Profanity and intensity are artist-controlled
+   * anything unset, unknown, or legacy resolves to the default S.M.U.V.E.
+   * Prime character. Profanity and intensity are artist-controlled
    * modifiers layered on top of that character — never replacements for it.
    */
   personaDirectives(): string {
@@ -136,7 +136,7 @@ export class AiService {
       `PERSONA — ${persona.id}${
         persona.isOminous
           ? ' (DEFAULT — the artist has not overridden it; never drift into a polite generic assistant)'
-          : ' (artist-selected mode — honor it instead of the default Musical GOD presentation)'
+          : ' (artist-selected mode — honor it instead of the default S.M.U.V.E. Prime presentation)'
       }:`,
       persona.directive,
     ];
@@ -252,7 +252,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
 
   constructor() {}
 
-  /** True while the artist is on the default Ominous Musical GOD character. */
+  /** True while the artist is on the default S.M.U.V.E. Prime character. */
   isOminousPersonaActive(): boolean {
     return isOminousPersona(
       this.userProfileService.profile().settings?.ai?.commanderPersona
@@ -336,7 +336,16 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       }));
     }
   }
+  private ensurePersonaDirectives(prompt: string): string {
+    // Chatbot, Studio, and questionnaire prompts already include the shared
+    // contract. Every other S.M.U.V.E. AI surface gets it here automatically.
+    const directives = this.personaDirectives();
+    if (prompt.includes(directives)) return prompt;
+    return `${directives}\n\n${prompt}`;
+  }
+
   async getAIResponse(prompt: string): Promise<string> {
+    const contextualPrompt = this.ensurePersonaDirectives(prompt);
     this.isProcessing.set(true);
     try {
       // The backend now requires a valid API session for /ai/analyze; attach
@@ -350,7 +359,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
         this.http
           .post<{ text: string }>(
             `${APP_SECURITY_CONFIG.auth_api_url}/ai/analyze`,
-            { prompt },
+            { prompt: contextualPrompt },
             { headers }
           )
           .pipe(

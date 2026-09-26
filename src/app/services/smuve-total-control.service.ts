@@ -102,7 +102,7 @@ export class SmuveTotalControlService {
       return {
         success: false,
         message:
-          'Musical GOD Full-Control Mode is off. S.M.U.V.E. will advise on projects, profile, and exports, but will not change them until you grant command authority in Settings → AI (or type /ai totalcontrol).',
+          'S.M.U.V.E. Prime Full-Control Mode is off. S.M.U.V.E. will advise on projects, profile, and exports, but will not change them until you grant command authority in Settings → AI (or type /ai totalcontrol).',
         actionRequired: 'Enable AI Total Control in Settings',
       };
     }
@@ -1029,8 +1029,8 @@ export class SmuveTotalControlService {
         }`,
       };
     }
-    // Persona control — keeps the default Musical GOD character unless the
-    // artist deliberately switches it.
+    // Persona control — keeps the default S.M.U.V.E. Prime character unless
+    // the artist deliberately switches it.
     if (cmd.action === 'persona' || cmd.action.startsWith('persona ')) {
       const requested = cmd.action.replace(/^persona\s*/, '').trim();
       if (!requested) {
@@ -1056,7 +1056,7 @@ export class SmuveTotalControlService {
       return {
         success: true,
         message: persona.isOminous
-          ? 'PERSONA RESTORED: Ominous Musical GOD. The default character is back — you will hear about every weak decision, at length.'
+          ? 'PERSONA RESTORED: S.M.U.V.E. Prime. The default character is back — you will hear about every weak decision, at length.'
           : `PERSONA SWITCHED: ${persona.id}. ${persona.directive}`,
       };
     }

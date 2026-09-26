@@ -461,10 +461,10 @@ export const initialProfile: UserProfile = {
     },
     ai: {
       kbWriteAccess: true,
-      // Default commander persona changed to the platform's ominous persona
-      // so the S.M.U.V.E voice uses the intended character; voice
+      // Default commander persona is the platform's signature S.M.U.V.E.
+      // Prime character so the S.M.U.V.E voice uses the intended tone; voice
       // shape-shifting is permanent core identity (not toggleable).
-      commanderPersona: 'Ominous Musical GOD',
+      commanderPersona: 'S.M.U.V.E. Prime',
       aiMimicEnabled: false,
       aiProfanityEnabled: true,
       aiPersonaIntensityEnabled: true,

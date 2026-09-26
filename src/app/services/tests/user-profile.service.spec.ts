@@ -8,6 +8,7 @@ import { DatabaseService } from '../database.service';
 import { AuthService } from '../auth.service';
 import { LoggingService } from '../logging.service';
 import { initialProfile } from '../../types/profile.types';
+import { DEFAULT_SMUVE_PERSONA } from '../../types/persona.types';
 
 /**
  * A `.json` archive as the export button produces one. `File.text()` is not
@@ -137,7 +138,7 @@ describe('UserProfileService', () => {
       expect(normalized.financials.accounts).toEqual([]);
       expect(normalized.touringDetails.travelPreference).toBe('Van');
       expect(normalized.settings.ai.commanderPersona).toBe(
-        initialProfile.settings.ai.commanderPersona
+        DEFAULT_SMUVE_PERSONA
       );
     });
 
@@ -181,6 +182,19 @@ describe('UserProfileService', () => {
       expect(normalized.musicalJourney.musicBlueprint?.lyricalThemes).toEqual([]);
     });
 
+    it('normalizes missing and unknown stored persona ids to the signature default', () => {
+      const normalized = normalizeImportedProfile({
+        artistName: 'Nova',
+        settings: {
+          ai: { commanderPersona: 'Retired Persona' },
+        } as any,
+      });
+
+      expect(normalized.settings.ai.commanderPersona).toBe(
+        DEFAULT_SMUVE_PERSONA
+      );
+    });
+
     it('keeps the archive values that are present', () => {
       const normalized = normalizeImportedProfile({
         artistName: 'Nova',
@@ -201,6 +215,32 @@ describe('UserProfileService', () => {
         initialProfile.settings.ai.aiProfanityEnabled
       );
       expect(normalized.team).toHaveLength(1);
+    });
+
+    it('preserves the selected persona across a partial settings update', async () => {
+      await service.updateProfile({
+        settings: {
+          ...service.profile().settings,
+          ai: {
+            ...service.profile().settings.ai,
+            commanderPersona: 'Supportive',
+          },
+        },
+      });
+
+      await service.updateProfile({
+        settings: {
+          studio: {
+            ...service.profile().settings.studio,
+            stageFxEnabled: false,
+          },
+        } as any,
+      });
+
+      expect(service.profile().settings.ai.commanderPersona).toBe('Supportive');
+      expect(savedProfiles.at(-1)?.profile.settings.ai.commanderPersona).toBe(
+        'Supportive'
+      );
     });
 
     it('persists a normalized profile under the active user', async () => {
@@ -229,6 +269,41 @@ describe('UserProfileService', () => {
       expect(service.profile().financials.accounts).toEqual([]);
       expect(service.profile().team).toEqual([]);
       expect(service.profile().settings.ai).toBeDefined();
+      expect(service.profile().settings.ai.commanderPersona).toBe(
+        DEFAULT_SMUVE_PERSONA
+      );
+    });
+
+    it('seeds a fresh profile when the account has no saved profile', async () => {
+      await service.updateProfile({
+        settings: {
+          ...service.profile().settings,
+          ai: {
+            ...service.profile().settings.ai,
+            commanderPersona: 'Supportive',
+          },
+        },
+        artistName: 'Previous Artist',
+      });
+
+      await service.loadProfile('u2');
+
+      expect(service.profile().artistName).toBe('New Artist');
+      expect(service.profile().settings.ai.commanderPersona).toBe(
+        DEFAULT_SMUVE_PERSONA
+      );
+      expect(service.profile().id).toBe('u2');
+    });
+
+    it('retains a valid artist-selected persona when loading a cloud profile', async () => {
+      database.loadUserProfile.mockResolvedValueOnce({
+        artistName: 'Nova',
+        settings: { ai: { commanderPersona: 'Supportive' } },
+      });
+
+      await service.loadProfile('u1');
+
+      expect(service.profile().settings.ai.commanderPersona).toBe('Supportive');
     });
 
     it('rejects a file that is not a profile', async () => {

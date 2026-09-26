@@ -385,6 +385,11 @@ describe('AiService', () => {
     );
 
     const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+    expect(req.request.body.prompt).toContain('PERSONA — S.M.U.V.E. Prime');
+    expect(req.request.body.prompt).toContain('EGO MANDATES');
+    expect(req.request.body.prompt).toContain(
+      'Provide a detailed analysis of the Test Upgrade upgrade.'
+    );
     req.flush({ text: 'The **Test Upgrade** is a **High**-impact upgrade' });
 
     const response = await requestPromise;
@@ -476,26 +481,33 @@ describe('AiService', () => {
       });
     };
 
-    it('defaults to the ominous Musical GOD character when nothing is configured', () => {
+    it('defaults to the S.M.U.V.E. Prime character when nothing is configured', () => {
       const directives = service.personaDirectives();
 
-      expect(directives).toContain('PERSONA — Ominous Musical GOD');
+      expect(directives).toContain('PERSONA — S.M.U.V.E. Prime');
       expect(directives).toContain('DEFAULT');
       expect(directives).toContain('EGO MANDATES');
       expect(directives).toContain('SADISTIC EDGE');
       expect(service.isOminousPersonaActive()).toBe(true);
     });
 
-    it('treats legacy and unknown persona ids as the default rather than a generic assistant', () => {
+    it('treats the pre-rename and unknown persona ids as the default rather than a generic assistant', () => {
       setAi({ commanderPersona: 'Ominous Dominator' });
       expect(service.personaDirectives()).toContain('EGO MANDATES');
 
+      // Profiles saved while the character was called 'Ominous Musical GOD'
+      // must keep resolving to the signature persona.
+      setAi({ commanderPersona: 'Ominous Musical GOD' });
+      expect(service.personaDirectives()).toContain(
+        'PERSONA — S.M.U.V.E. Prime'
+      );
+
       setAi({ commanderPersona: 'Something Nobody Configured' });
-      expect(service.personaDirectives()).toContain('Ominous Musical GOD');
+      expect(service.personaDirectives()).toContain('S.M.U.V.E. Prime');
       expect(service.personaDirectives()).toContain('EGO MANDATES');
     });
 
-    it('honors an explicit artist persona choice and drops the Musical GOD mandates', () => {
+    it('honors an explicit artist persona choice and drops the default mandates', () => {
       setAi({ commanderPersona: 'Encouraging Mentor' });
 
       const directives = service.personaDirectives();
@@ -504,6 +516,32 @@ describe('AiService', () => {
       expect(directives).toContain('artist-selected');
       expect(directives).not.toContain('EGO MANDATES');
       expect(service.isOminousPersonaActive()).toBe(false);
+    });
+
+    it('applies an explicit persona to generic AI requests without replacing it', async () => {
+      setAi({ commanderPersona: 'Supportive' });
+      const requestPromise = service.getAIResponse('Explain this arrangement.');
+      const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+
+      expect(req.request.body.prompt).toContain('PERSONA — Supportive');
+      expect(req.request.body.prompt).toContain('Explain this arrangement.');
+      expect(req.request.body.prompt).not.toContain('EGO MANDATES');
+      req.flush({ text: 'Start with the chorus.' });
+
+      await expect(requestPromise).resolves.toBe('Start with the chorus.');
+    });
+
+    it('does not duplicate the persona contract when a surface already supplied it', async () => {
+      const directives = service.personaDirectives();
+      const requestPromise = service.getAIResponse(
+        `${directives}\n\nAnalyze the mix.`
+      );
+      const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+
+      expect(req.request.body.prompt.match(/PERSONA — /g)).toHaveLength(1);
+      req.flush({ text: 'Cut the low-mid buildup.' });
+
+      await expect(requestPromise).resolves.toBe('Cut the low-mid buildup.');
     });
 
     it('unlocks profanity only when the artist enables explicit language', () => {
@@ -541,7 +579,7 @@ describe('AiService', () => {
       const prompt = service.personaSystemPrompt;
 
       expect(prompt).toContain('SADISTIC EDGE');
-      expect(prompt).toContain('Current Persona: Ominous Musical GOD');
+      expect(prompt).toContain('Current Persona: S.M.U.V.E. Prime');
       expect(prompt).toContain('LANGUAGE — UNLOCKED');
     });
   });

@@ -157,7 +157,7 @@ export const SMUVE_TV_CHANNELS: readonly SmuveTvChannel[] = [
     shows: [
       show('one-1', 'S.M.U.V.E ONE LIVE', 'Continuous signal from the core engine', 120, 'live'),
       show('one-2', 'THE FLAGSHIP BLOCK', 'Whatever the flagship is running tonight', 60, 'episode'),
-      show('one-3', 'S.M.U.V.E TRANSMISSION', 'Direct address from the Musical GOD', 45, 'news'),
+      show('one-3', 'S.M.U.V.E TRANSMISSION', 'Direct address from S.M.U.V.E. Prime', 45, 'news'),
       show('one-4', 'THE AFTERGLOW', 'One last thing before the sign-off', 90, 'episode'),
     ],
   },

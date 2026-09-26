@@ -168,7 +168,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   /**
    * Canonical persona driving this conversation. Falls back to the default
-   * Ominous Musical GOD, so the badge never reads as "unset" and legacy ids
+   * S.M.U.V.E. Prime, so the badge never reads as "unset" and legacy ids
    * ('Ominous Dominator', 'Aggressive Manager') display their real mode.
    */
   personaLabel = computed(() =>
