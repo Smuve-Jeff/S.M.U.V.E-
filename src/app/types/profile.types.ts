@@ -48,6 +48,10 @@ export interface AppSettings {
      *  localStorage `smuve_stage_fx` so the Studio shell and the global
      *  `stage-fx-off` body-class kill-switch honor it everywhere. */
     stageFxEnabled: boolean;
+    /** Smart Creation Sheet recall — the pack/preset/mode the artist touched
+     *  last. Mirrored to localStorage so a pre-auth session still re-arms, and
+     *  stored on the profile so the choice follows the artist between devices. */
+    smartSheet?: SmartSheetMemory;
   };
   dj: {
     crossfaderCurve: 'linear' | 'power' | 'exp' | 'cut';
@@ -130,6 +134,19 @@ export interface StrategicSignals {
   technicalAuthority: number;
   syncViability: number;
   touringStability: number;
+}
+
+export interface SmartSheetMemory {
+  lastStarterId?: string;
+  lastVocalPresetId?: string;
+  lastChordMoodId?: string;
+  lastTab?: string;
+  /** Epoch (ms) of the newest write; the account copy only wins when it is newer. */
+  updatedAt?: number;
+  /** Per-item use stamps keyed by category (`starter:trap`, `vocal:…`,
+   *  `chord:…`) — drives the combined Recently Used row. Merged by max across
+   *  devices instead of being picked, so both devices' history survives. */
+  recent?: Record<string, number>;
 }
 
 export interface SyncDetails {
@@ -496,6 +513,7 @@ export const initialProfile: UserProfile = {
       latencyCompensation: 0,
       highFidelityExport: true,
       stageFxEnabled: true,
+      smartSheet: {},
     },
     dj: {
       crossfaderCurve: 'power',

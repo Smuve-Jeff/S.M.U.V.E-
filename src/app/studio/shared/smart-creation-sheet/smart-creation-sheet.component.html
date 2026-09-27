@@ -1,0 +1,374 @@
+<div class="sc-backdrop" (click)="closeSheet.emit()" aria-hidden="true"></div>
+
+<div
+  class="sc-sheet studio-workspace-surface"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="sc-title"
+  [class.sc-dragging]="sheetDragOffset() > 0"
+  [style.transform]="sheetDragOffset() ? 'translateY(' + sheetDragOffset() + 'px)' : null"
+  (click)="$event.stopPropagation()"
+>
+  <!-- Sheet chrome: grab anywhere in the handle/header/tab band to drag or
+       flick the sheet closed. The scrolling panel below keeps its own gestures. -->
+  <div
+    class="sc-sheet-chrome"
+    (touchstart)="onDragStart($event)"
+    (touchmove)="onDragMove($event)"
+    (touchend)="onDragEnd()"
+    (touchcancel)="onDragCancel()"
+  >
+    <!-- Drag Handle for Mobile Touch -->
+    <div class="sc-drag-handle" aria-hidden="true"></div>
+
+    <!-- Header -->
+    <header class="sc-header">
+      <div class="sc-header-left">
+        <div class="sc-badge">
+          <span class="material-symbols-outlined">bolt</span>
+          <span>SMART CREATOR</span>
+        </div>
+        <h2 id="sc-title" class="sc-title">Make Music in Seconds</h2>
+        <p class="sc-subtitle">
+          Pick a starting point. S.M.U.V.E. loads the sounds, tempo, and notes automatically.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="sc-close-btn"
+        (click)="closeSheet.emit()"
+        aria-label="Close Smart Creator"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+
+    <!-- Navigation Workflow Tabs -->
+    <nav class="sc-tabs" role="tablist" aria-label="Creation modes">
+      <button
+        type="button"
+        role="tab"
+        class="sc-tab"
+        [class.sc-tab-active]="activeTab() === 'beats'"
+        [attr.aria-selected]="activeTab() === 'beats'"
+        (click)="setTab('beats')"
+      >
+        <span class="material-symbols-outlined">grid_view</span>
+        <span>Beats & Loops</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="sc-tab"
+        [class.sc-tab-active]="activeTab() === 'vocals'"
+        [attr.aria-selected]="activeTab() === 'vocals'"
+        (click)="setTab('vocals')"
+      >
+        <span class="material-symbols-outlined">mic</span>
+        <span>Vocal Booth</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="sc-tab"
+        [class.sc-tab-active]="activeTab() === 'chords'"
+        [attr.aria-selected]="activeTab() === 'chords'"
+        (click)="setTab('chords')"
+      >
+        <span class="material-symbols-outlined">piano</span>
+        <span>Chords & Keys</span>
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="sc-tab"
+        [class.sc-tab-active]="activeTab() === 'ai'"
+        [attr.aria-selected]="activeTab() === 'ai'"
+        (click)="setTab('ai')"
+      >
+        <span class="material-symbols-outlined">auto_awesome</span>
+        <span>AI Assistant</span>
+      </button>
+    </nav>
+  </div>
+
+  <p class="sc-swipe-hint" aria-hidden="true">
+    <span class="material-symbols-outlined">swipe</span>
+    <span>Swipe the panel to change mode</span>
+  </p>
+
+  <!-- Combined Recently Used row — the same three catalogues, newest first -->
+  <div class="sc-recent-row" *ngIf="recentItems().length" role="group" aria-label="Recently used">
+    <span class="sc-recent-label">
+      <span class="material-symbols-outlined">history</span>
+      <span>Recent</span>
+    </span>
+    <div class="sc-recent-strip">
+      <button
+        *ngFor="let item of recentItems()"
+        type="button"
+        class="sc-recent-chip"
+        (click)="useRecent(item)"
+        [attr.aria-label]="'Reuse ' + item.kind + ' ' + item.name"
+      >
+        <span class="sc-recent-emoji">{{ item.emoji }}</span>
+        <span class="sc-recent-name">{{ item.name }}</span>
+        <span class="sc-recent-kind">{{ item.kind }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Content Panels -->
+  <div
+    class="sc-content"
+    (touchstart)="onContentTouchStart($event)"
+    (touchend)="onContentTouchEnd($event)"
+    (touchcancel)="onContentTouchCancel()"
+  >
+    <!-- 1. BEATS & LOOPS PANEL -->
+    <section *ngIf="activeTab() === 'beats'" class="sc-panel animate-fade-in" aria-label="Genre beat starters">
+      <div class="sc-panel-head">
+        <span class="sc-section-kicker">1-TAP GENRE GROOVES</span>
+        <p class="sc-section-hint">Tap any card to instantly load all tracks and hear the beat.</p>
+      </div>
+
+      <button
+        *ngIf="lastStarter() as starter"
+        type="button"
+        class="sc-resume-bar"
+        (click)="loadStarter(starter)"
+        [attr.aria-label]="'Reload last groove ' + starter.name"
+      >
+        <span class="material-symbols-outlined sc-resume-icon">history</span>
+        <span class="sc-resume-meta">
+          <span class="sc-resume-label">Last groove · 1-tap rearm</span>
+          <span class="sc-resume-name">{{ starter.emoji }} {{ starter.name }} · {{ starter.bpm }} BPM</span>
+        </span>
+        <span class="sc-resume-tag">RELOAD</span>
+      </button>
+
+      <div class="sc-starters-grid">
+        <button
+          *ngFor="let starter of orderedStarters()"
+          type="button"
+          class="sc-starter-card"
+          [style.background]="starter.gradient"
+          (click)="loadStarter(starter)"
+          [attr.aria-label]="'Load ' + starter.name + ' at ' + starter.bpm + ' BPM'"
+        >
+          <div class="sc-starter-top">
+            <span class="sc-starter-emoji">{{ starter.emoji }}</span>
+            <div class="sc-starter-meta">
+              <span class="sc-starter-name">{{ starter.name }}</span>
+              <span class="sc-starter-genre">{{ starter.genre }} · {{ starter.bpm }} BPM</span>
+              <span *ngIf="starter.id === lastStarterId()" class="sc-last-used-chip">LAST USED</span>
+            </div>
+            <span class="sc-play-pill">
+              <span class="material-symbols-outlined">play_arrow</span>
+              <span>JAM</span>
+            </span>
+          </div>
+          <p class="sc-starter-tagline">{{ starter.tagline }}</p>
+          <div class="sc-starter-tags">
+            <span *ngFor="let inst of starter.instruments" class="sc-tag">{{ inst }}</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="sc-panel-footer">
+        <span class="sc-footer-label">Want full control?</span>
+        <button type="button" class="sc-link-btn" (click)="openDrumMachine()">
+          <span class="material-symbols-outlined">tune</span>
+          Open Step Sequencer
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. VOCAL BOOTH PANEL -->
+    <section *ngIf="activeTab() === 'vocals'" class="sc-panel animate-fade-in" aria-label="Vocal recording setup">
+      <div class="sc-panel-head">
+        <span class="sc-section-kicker">RECORD YOUR VOICE</span>
+        <p class="sc-section-hint">Pro vocal chain ready with Auto-Pitch, Reverb, and Noise Gate.</p>
+      </div>
+
+      <div class="sc-vocal-preset-section">
+        <span class="sc-section-kicker">1-TAP VOCAL PRESETS</span>
+        <p class="sc-section-hint">Tap a preset to arm the full chain — pitch, tone, and space dialed in.</p>
+
+        <button
+          *ngIf="lastVocalPreset() as preset"
+          type="button"
+          class="sc-resume-bar"
+          (click)="applyVocalPreset(preset)"
+          [attr.aria-label]="'Re-arm last vocal preset ' + preset.name"
+        >
+          <span class="material-symbols-outlined sc-resume-icon">history</span>
+          <span class="sc-resume-meta">
+            <span class="sc-resume-label">Last preset · 1-tap rearm</span>
+            <span class="sc-resume-name">{{ preset.emoji }} {{ preset.name }}</span>
+          </span>
+          <span class="sc-resume-tag">REARM</span>
+        </button>
+
+        <div class="sc-vocal-presets-grid">
+          <button
+            *ngFor="let preset of orderedVocalPresets()"
+            type="button"
+            class="sc-vocal-preset-card"
+            [style.background]="preset.gradient"
+            (click)="applyVocalPreset(preset)"
+            [attr.aria-label]="'Arm ' + preset.name + ' vocal preset (' + preset.category + ')'"
+          >
+            <div class="sc-vocal-preset-head">
+              <span class="sc-vocal-preset-emoji">{{ preset.emoji }}</span>
+              <div class="sc-vocal-preset-meta">
+                <span class="sc-vocal-preset-name">{{ preset.name }}</span>
+                <span class="sc-vocal-preset-category">{{ preset.category }}</span>
+                <span *ngIf="preset.id === lastVocalPresetId()" class="sc-last-used-chip">LAST USED</span>
+              </div>
+              <span class="sc-play-pill">
+                <span class="material-symbols-outlined">bolt</span>
+                <span>ARM</span>
+              </span>
+            </div>
+            <p class="sc-vocal-preset-tagline">{{ preset.tagline }}</p>
+            <div class="sc-starter-tags">
+              <span *ngFor="let module of preset.chain" class="sc-tag">{{ module }}</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="sc-vocals-grid">
+        <div class="sc-vocal-card sc-vocal-studio">
+          <div class="sc-vocal-icon-wrap">
+            <span class="material-symbols-outlined">mic</span>
+          </div>
+          <div class="sc-vocal-info">
+            <h3>Vocal Suite Pro</h3>
+            <p>Pitch Correction, Tube Compressor, Studio Reverb, and Take Comping.</p>
+            <div class="sc-vocal-badges">
+              <span class="sc-tag">Auto-Pitch Ready</span>
+              <span class="sc-tag">Real-Time DSP</span>
+              <span class="sc-tag">High Fidelity</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="sc-action-primary"
+            (click)="setupVocalRecording()"
+          >
+            <span class="material-symbols-outlined">radio_button_checked</span>
+            <span>ENTER VOCAL BOOTH</span>
+          </button>
+        </div>
+
+        <div class="sc-vocal-card sc-vocal-quick">
+          <div class="sc-vocal-icon-wrap sc-icon-quick">
+            <span class="material-symbols-outlined">record_voice_over</span>
+          </div>
+          <div class="sc-vocal-info">
+            <h3>Quick Voice Memo</h3>
+            <p>Instant 1-tap idea recorder for melodies, lyrics, and rap bars.</p>
+            <div class="sc-vocal-badges">
+              <span class="sc-tag">Instant Start</span>
+              <span class="sc-tag">Low Latency</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="sc-action-secondary"
+            (click)="setupAudioRecorder()"
+          >
+            <span class="material-symbols-outlined">mic_external_on</span>
+            <span>RECORD VOICE MEMO</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. CHORDS & KEYS PANEL -->
+    <section *ngIf="activeTab() === 'chords'" class="sc-panel animate-fade-in" aria-label="Chord progression generator">
+      <div class="sc-panel-head">
+        <span class="sc-section-kicker">HARMONIC ASSISTANT</span>
+        <p class="sc-section-hint">Never hit a wrong note. Inject rich progressions straight into your timeline.</p>
+      </div>
+
+      <button
+        *ngIf="lastChordMood() as mood"
+        type="button"
+        class="sc-resume-bar"
+        (click)="applyChordMood(mood)"
+        [attr.aria-label]="'Inject last chord mood ' + mood.label"
+      >
+        <span class="material-symbols-outlined sc-resume-icon">history</span>
+        <span class="sc-resume-meta">
+          <span class="sc-resume-label">Last mood · 1-tap rearm</span>
+          <span class="sc-resume-name">{{ mood.emoji }} {{ mood.label }} · {{ mood.key }}</span>
+        </span>
+        <span class="sc-resume-tag">INJECT</span>
+      </button>
+
+      <div class="sc-chords-grid">
+        <button
+          *ngFor="let mood of orderedChordMoods()"
+          type="button"
+          class="sc-chord-mood-card"
+          (click)="applyChordMood(mood)"
+          [attr.aria-label]="'Inject ' + mood.label + ' chords in ' + mood.key"
+        >
+          <div class="sc-chord-head">
+            <span class="sc-chord-emoji">{{ mood.emoji }}</span>
+            <div class="sc-chord-meta">
+              <span class="sc-chord-title">{{ mood.label }}</span>
+              <span class="sc-chord-key">{{ mood.key }} · {{ mood.mood }}</span>
+              <span *ngIf="mood.id === lastChordMoodId()" class="sc-last-used-chip">LAST USED</span>
+            </div>
+            <span class="sc-inject-chip">
+              <span class="material-symbols-outlined">add</span>
+              <span>INJECT</span>
+            </span>
+          </div>
+          <div class="sc-progression-preview">
+            <span *ngFor="let roman of mood.progression" class="sc-roman-pill">{{ roman }}</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="sc-panel-footer">
+        <button type="button" class="sc-link-btn" (click)="openChordEditor()">
+          <span class="material-symbols-outlined">music_note</span>
+          Custom Chord Builder & Voicings
+        </button>
+        <button type="button" class="sc-link-btn" (click)="openPianoRoll()">
+          <span class="material-symbols-outlined">piano</span>
+          Open Piano Roll
+        </button>
+      </div>
+    </section>
+
+    <!-- 4. AI PRODUCER PANEL -->
+    <section *ngIf="activeTab() === 'ai'" class="sc-panel animate-fade-in" aria-label="AI creative tools">
+      <div class="sc-panel-head">
+        <span class="sc-section-kicker">AI CREATIVE COLLABORATION</span>
+        <p class="sc-section-hint">Co-produce with S.M.U.V.E. AI — brainstorm concepts, generate beats, and master mixes.</p>
+      </div>
+
+      <div class="sc-ai-cards">
+        <div class="sc-ai-card">
+          <div class="sc-ai-card-content">
+            <span class="material-symbols-outlined sc-ai-icon">auto_awesome</span>
+            <div>
+              <h3>AI Song Producer</h3>
+              <p>Describe what you want ("Hard Atlanta trap beat with flute lead") and let AI lay the tracks down.</p>
+            </div>
+          </div>
+          <button type="button" class="sc-action-primary" (click)="openAiProduce()">
+            <span class="material-symbols-outlined">arrow_forward</span>
+            <span>OPEN AI PRODUCER</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
