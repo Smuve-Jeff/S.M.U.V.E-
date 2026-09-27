@@ -2,10 +2,13 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { AppError, parseIdParam } from "@/lib";
 import { authenticate, requireRole } from "@/middleware/auth";
+import { disconnectUserSockets } from "@/socket";
 import {
   deleteUser,
   getUserById,
+  issueAuthToken,
   listUsers,
+  revokePasswordResetTokens,
   updateUser,
   verifyUserPassword,
 } from "@/services";
@@ -89,7 +92,25 @@ router.put(
       }
     }
 
-    res.json(await updateUser(id, patch));
+    const updated = await updateUser(id, patch);
+
+    if (patch.password !== undefined) {
+      // Rotating the credential retires every outstanding recovery link, so a
+      // reset email sent before the change cannot be replayed against the new
+      // password.
+      await revokePasswordResetTokens(id);
+      disconnectUserSockets(id);
+    }
+
+    // Revoking every session also kills the caller's own token, so the owner
+    // changing their own password gets a replacement instead of being logged
+    // out of the device they just used. Admins resetting someone else's
+    // credential never receive a token for that account.
+    const replacementToken = patch.password !== undefined && id === me.userId
+      ? await issueAuthToken(id)
+      : null;
+
+    res.json(replacementToken ? { ...updated, token: replacementToken } : updated);
   },
 );
 

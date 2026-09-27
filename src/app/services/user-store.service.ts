@@ -10,6 +10,14 @@ export interface AuthUser {
   lastLogin: Date;
   profileCompleteness: number;
   emailVerified: boolean;
+  /**
+   * Whether the app should actually block sensitive routes on verification.
+   *
+   * Derived from the API ("can this deployment send the mail?") rather than
+   * from `emailVerified` alone — otherwise an environment without a mail
+   * provider locks artists out of routes they can never unlock.
+   */
+  emailVerificationRequired?: boolean;
   verificationCode?: string;
 }
 

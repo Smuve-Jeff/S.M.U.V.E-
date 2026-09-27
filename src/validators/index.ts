@@ -67,6 +67,35 @@ export const authSchemas = {
       password: z.string().min(1, "Password is required").max(100),
     })
     .strict(),
+
+  // Account recovery. The start request only ever echoes a generic message,
+  // and redemption carries the single-use token plus the new credential, which
+  // is held to the same strength policy as registration.
+  forgotPassword: z
+    .object({
+      email: emailField(),
+    })
+    .strict(),
+
+  verifyEmail: z
+    .object({
+      code: z
+        .string()
+        .trim()
+        .regex(/^\d{6}$/, "Enter the 6-digit verification code"),
+    })
+    .strict(),
+
+  resetPassword: z
+    .object({
+      token: z
+        .string()
+        .trim()
+        .min(20, "Reset token is required")
+        .max(200, "Reset token is malformed"),
+      password: passwordField(),
+    })
+    .strict(),
 };
 
 export const userSchemas = {

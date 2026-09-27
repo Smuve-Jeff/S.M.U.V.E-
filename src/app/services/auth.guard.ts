@@ -16,10 +16,13 @@ export const authGuard: CanActivateFn = (route, state) => {
 
   const user = authService.currentUser();
 
-  // Enforce email verification for strategic/sensitive routes
+  // Enforce email verification for strategic/sensitive routes — but only when
+  // verification is actually completable. `emailVerificationRequired` is set
+  // from the API's own "can I send mail?" answer, so a deployment without a
+  // mail provider never gates a route that cannot be unlocked.
   const isSensitive =
     state.url.includes('business') || state.url.includes('release');
-  if (isSensitive && user && !user.emailVerified) {
+  if (isSensitive && user?.emailVerificationRequired === true) {
     router.navigate(['/hub']);
     return false;
   }

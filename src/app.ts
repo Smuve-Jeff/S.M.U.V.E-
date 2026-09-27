@@ -76,6 +76,22 @@ const authLimiter = rateLimit({
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/register", authLimiter);
 
+/**
+ * Account recovery writes a grant row and sends an email, and — unlike /login
+ * — every request looks successful (deliberately, so the response cannot be
+ * used to probe which addresses have accounts). So it needs its own small
+ * budget that counts *all* attempts rather than skipping the successful ones.
+ */
+const recoveryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many recovery attempts. Try again in 15 minutes." },
+});
+app.use("/api/auth/forgot-password", recoveryLimiter);
+app.use("/api/auth/reset-password", recoveryLimiter);
+
 // Parse JSON bodies
 app.use(express.json());
 

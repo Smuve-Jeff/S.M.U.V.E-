@@ -342,6 +342,15 @@ export const routes: Routes = [
       ),
   },
   {
+    // Account recovery: request a single-use reset link, or redeem one from
+    // `/reset-password?token=...` (the URL the API emails).
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./components/reset-password/reset-password.component').then(
+        (m) => m.ResetPasswordComponent
+      ),
+  },
+  {
     path: '',
     canActivateChild: [authChildGuard],
     children: protectedRoutes,

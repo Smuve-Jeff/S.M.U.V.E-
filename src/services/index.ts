@@ -9,3 +9,7 @@ export * from "./ai-proxy.service";
 export * from "./project.service";
 export * from "./game-invite.service";
 export * from "./live-stream.service";
+export * from "./email.service";
+export * from "./account-token.service";
+export * from "./password-reset.service";
+export * from "./email-verification.service";

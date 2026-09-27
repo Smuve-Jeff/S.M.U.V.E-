@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "@/config/env";
+import { isEmailConfigured } from "./email.service";
 import { AppDataSource } from "@/database/data-source";
 import { User } from "@/entities/User";
 import { AppError } from "@/lib";
@@ -13,12 +14,27 @@ export const toPublicUser = (user: User): PublicUser => ({
   name: user.name,
   email: user.email,
   role: user.role,
+  emailVerified: Boolean(user.emailVerified),
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
 
+/**
+ * Mint a session token.
+ *
+ * `tv` carries the account's tokenVersion so `authenticate` can tell a live
+ * token from one issued before a credential rotation, and the algorithm is
+ * pinned at signing time to match the pin at verification time.
+ */
 const signToken = (user: User): string =>
-  jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
+  jwt.sign(
+    { userId: user.id, role: user.role, tv: Number(user.tokenVersion ?? 0) },
+    JWT_SECRET,
+    { expiresIn: "7d", algorithm: "HS256" },
+  );
+
+/** Whether this deployment can deliver verification mail (surfaced to the UI). */
+const verificationAvailable = (): boolean => isEmailConfigured();
 
 /** Create an account with a bcrypt-hashed password and return a JWT. */
 export const registerUser = async (input: {
@@ -40,7 +56,11 @@ export const registerUser = async (input: {
     }),
   );
 
-  return { token: signToken(user), user: toPublicUser(user) };
+  return {
+    token: signToken(user),
+    user: toPublicUser(user),
+    emailVerificationAvailable: verificationAvailable(),
+  };
 };
 
 /** Verify credentials and return a JWT. */
@@ -58,7 +78,23 @@ export const loginUser = async (input: {
     throw new AppError(401, "Invalid email or password");
   }
 
-  return { token: signToken(user), user: toPublicUser(user) };
+  return {
+    token: signToken(user),
+    user: toPublicUser(user),
+    emailVerificationAvailable: verificationAvailable(),
+  };
+};
+
+/**
+ * Mint a fresh token for an account.
+ *
+ * Used after a credential rotation: revoking every session necessarily kills
+ * the caller's own token too, so the request that changed the password hands
+ * back a replacement rather than logging the owner out of their own device.
+ */
+export const issueAuthToken = async (id: number): Promise<string | null> => {
+  const user = await repo().findOneBy({ id });
+  return user ? signToken(user) : null;
 };
 
 export const getUserById = async (id: number): Promise<PublicUser> => {
@@ -90,10 +126,20 @@ export const updateUser = async (
   }
 
   if (patch.name !== undefined) user.name = patch.name;
-  if (patch.email !== undefined) user.email = patch.email;
+  if (patch.email !== undefined) {
+    if (patch.email !== user.email) {
+      // A new address has never been confirmed — carrying the old "verified"
+      // flag onto it would be a lie the UI then acts on.
+      user.emailVerified = false;
+    }
+    user.email = patch.email;
+  }
   if (patch.role !== undefined) user.role = patch.role;
   if (patch.password !== undefined) {
     user.password = await bcrypt.hash(patch.password, 10);
+    // Rotating the credential revokes every session that was opened with the
+    // old one: the tokens already in the wild carry the previous version.
+    user.tokenVersion = Number(user.tokenVersion ?? 0) + 1;
   }
 
   const updated = await repo().save(user);

@@ -3,11 +3,13 @@ import app from "@/app";
 import { DB_NAME, NODE_ENV, PORT } from "@/config/env";
 import { AppDataSource } from "@/database/data-source";
 import { setupSocketIO } from "@/socket";
+import { logEmailConfiguration } from "@/services/email.service";
 
 async function main() {
   try {
     await AppDataSource.initialize();
     console.log(`[api] Connected to database: ${DB_NAME}`);
+    logEmailConfiguration();
 
     const server = createServer(app);
     setupSocketIO(server);

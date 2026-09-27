@@ -91,7 +91,7 @@
           Establish Link
         </button>
 
-        <div class="text-center mt-6">
+        <div class="text-center mt-6 flex flex-col items-center gap-4">
           <button
             type="button"
             (click)="onResendCode()"
@@ -100,6 +100,16 @@
           >
             Resend Transmission
           </button>
+          @if (usesApiAuth()) {
+            <button
+              type="button"
+              (click)="skipVerification()"
+              [disabled]="isLoading()"
+              class="text-[9px] font-black text-silver-dim/60 hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50"
+            >
+              Verify Later From Settings
+            </button>
+          }
         </div>
       } @else if (requires2FA()) {
         <div class="space-y-3">
@@ -258,7 +268,7 @@
     }
 
     <!-- Toggle Mode -->
-    <div class="mt-12 pt-8 border-t border-white/5 text-center">
+    <div class="mt-12 pt-8 border-t border-white/5 text-center flex flex-col items-center gap-4">
       <button
         (click)="toggleMode()"
         [disabled]="isLoading()"
@@ -267,6 +277,13 @@
         {{
           isRegistering() ? 'Return to Authorization' : 'New Artist Designation'
         }}
+      </button>
+      <button
+        (click)="openRecovery()"
+        [disabled]="isLoading()"
+        class="text-[10px] font-black text-silver-dim/70 hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50"
+      >
+        Forgot Access Cipher?
       </button>
     </div>
   </div>

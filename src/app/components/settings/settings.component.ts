@@ -24,6 +24,7 @@ import type { PasswordPolicyResult } from '../../services/security.service';
 import { MicrophoneService } from '../../services/microphone.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { AuthService } from '../../services/auth.service';
+import { ApiAuthService } from '../../services/api-auth.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { PermissionService } from '../../services/permission.service';
 import { HardwareService } from '../../services/hardware.service';
@@ -51,6 +52,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   microphoneService = inject(MicrophoneService);
   audioEngine = inject(AudioEngineService);
   authService = inject(AuthService);
+  private apiAuth = inject(ApiAuthService);
   permissionService = inject(PermissionService);
   hardwareService = inject(HardwareService);
   localStorageService = inject(LocalStorageService);
@@ -79,6 +81,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
   private activityHandler: (() => void) | null = null;
   /** Live policy readout so the form can never submit a rejected secret. */
   passwordPolicy = computed(() => this.evaluatePassword(this.passwordNew()));
+  /** Secure-channel (email) verification state, read from the session. */
+  channelVerified = computed(
+    () => this.authService.currentUser()?.emailVerified === true
+  );
+  channelCode = signal('');
+  channelBusy = signal(false);
 
   settings = computed(() => {
     return this.withSettingsDefaults(this.profileService.profile().settings);
@@ -616,13 +624,19 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.passwordBusy.set(true);
     try {
       const token = this.tokenService.jwtToken();
-      await firstValueFrom(
-        this.http.put(
+      const response = await firstValueFrom(
+        this.http.put<{ token?: string }>(
           `${APP_SECURITY_CONFIG.api_url}/user/${accountId}`,
           { currentPassword: current, password: next },
           { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         )
       );
+      // Rotating the credential revokes every session the account had open —
+      // including this one. Adopting the replacement token keeps the artist
+      // signed in on the device they just used.
+      if (response?.token) {
+        this.tokenService.setToken(response.token, 'api');
+      }
       this.updateSetting('security', 'passwordUpdatedAt', Date.now());
       await this.securityService.logEvent(
         'PASSWORD_ROTATED',
@@ -633,7 +647,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       this.resetPasswordForm();
       this.passwordChangeOpen.set(false);
       this.notificationService.show(
-        'Password updated. Revoke any session you do not recognize below.',
+        'Password updated. Every other device was signed out.',
         'success'
       );
     } catch (error: any) {
@@ -646,6 +660,66 @@ export class SettingsComponent implements OnInit, OnDestroy {
       );
     } finally {
       this.passwordBusy.set(false);
+    }
+  }
+
+  // ─── Secure-channel verification ──────────────────────────────────────────
+
+  /** Email a fresh single-use code to the address on this account. */
+  async sendChannelCode() {
+    if (this.channelBusy()) return;
+    this.channelBusy.set(true);
+    try {
+      const response = await this.apiAuth.sendEmailVerification();
+      this.notificationService.show(
+        response.message || 'Verification code sent.',
+        'success'
+      );
+    } catch (error: any) {
+      this.notificationService.show(
+        error?.status === 429
+          ? 'Too many verification attempts. Try again in 15 minutes.'
+          : 'Verification email unavailable right now.',
+        'error'
+      );
+    } finally {
+      this.channelBusy.set(false);
+    }
+  }
+
+  /**
+   * Confirm the emailed code. The API is the only thing that can mark an
+   * address verified — this adopts the answer it returns instead of assuming.
+   */
+  async confirmChannelCode() {
+    const code = this.channelCode().trim();
+    if (!/^\d{6}$/.test(code)) {
+      this.notificationService.show('Enter the 6-digit code.', 'error');
+      return;
+    }
+    if (this.channelBusy()) return;
+
+    this.channelBusy.set(true);
+    try {
+      const response = await this.apiAuth.confirmEmailVerification(code);
+      this.authService.markEmailVerified(response.user?.email);
+      this.channelCode.set('');
+      await this.securityService.logEvent(
+        'EMAIL_CHANNEL_VERIFIED',
+        'Account email channel was verified.'
+      );
+      this.notificationService.show('Secure channel verified.', 'success');
+    } catch (error: any) {
+      if (error?.status === 400 || error?.status === 429) {
+        this.notificationService.show(
+          error.message || 'That code was not accepted.',
+          'error'
+        );
+      } else {
+        this.notificationService.show('Verification failed. Try again.', 'error');
+      }
+    } finally {
+      this.channelBusy.set(false);
     }
   }
 

@@ -35,7 +35,20 @@ jest.mock("@/database/data-source", () => {
     getRawMany: jest.fn(async () => []),
     getMany: jest.fn(async () => []),
   };
-  return { AppDataSource: { createQueryBuilder: jest.fn(() => chain) } };
+  return {
+    AppDataSource: {
+      createQueryBuilder: jest.fn(() => chain),
+      // The handshake re-reads the account to enforce session revocation, so
+      // the stub has to answer that one lookup with a live account.
+      getRepository: jest.fn(() => ({
+        findOne: jest.fn(async () => ({
+          id: 1,
+          role: "user",
+          tokenVersion: 0,
+        })),
+      })),
+    },
+  };
 });
 
 jest.mock("@/services", () => ({

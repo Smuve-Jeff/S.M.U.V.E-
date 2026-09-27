@@ -27,8 +27,10 @@ export class LoginComponent implements OnInit {
   private logger = inject(LoggingService);
   private loginConfirmation = inject(LoginConfirmationService);
 
-  /** True when the active session was issued by the API (skips demo email verification). */
-  private usesApiAuth = signal(false);
+  /** True when the active session was issued by the API (not the demo store). */
+  usesApiAuth = signal(false);
+  /** Whether the API can actually deliver a verification code. */
+  apiVerificationAvailable = signal(false);
   showPassword = signal(false);
 
   isRegistering = signal(false);
@@ -78,10 +80,12 @@ export class LoginComponent implements OnInit {
     try {
       let result;
       if (this.isVerifying()) {
-        result = await this.authService.verifyEmail(
-          this.verificationCode,
-          this.credentials.email
-        );
+        result = this.usesApiAuth()
+          ? await this.verifyApiCode()
+          : await this.authService.verifyEmail(
+              this.verificationCode,
+              this.credentials.email
+            );
       } else if (this.isRegistering()) {
         const validation = this.passwordValidation;
         if (!validation.isValid) {
@@ -114,9 +118,19 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  /**
+   * Whether this signup can actually be verified: the demo store always can
+   * (it prints the code locally), the API only when it has a mail provider.
+   */
+  private canVerifyChannel(): boolean {
+    return this.usesApiAuth() ? this.apiVerificationAvailable() : true;
+  }
+
   private handleSuccessfulAuth() {
-    // Only the legacy demo registration requires the email verification step.
-    if (this.isRegistering() && !this.isVerifying() && !this.usesApiAuth()) {
+    // A fresh signup goes through the verification step — but never into a
+    // dead end waiting for mail the deployment cannot send.
+    if (this.isRegistering() && !this.isVerifying() && this.canVerifyChannel()) {
+      this.verificationCode = '';
       this.isVerifying.set(true);
       this.isLoading.set(false);
       return;
@@ -144,14 +158,64 @@ export class LoginComponent implements OnInit {
   async onResendCode() {
     this.isLoading.set(true);
     try {
+      if (this.usesApiAuth()) {
+        const result = await this.apiAuth.sendEmailVerification();
+        this.message.set(result.message || 'TRANSMISSION RE-SENT.');
+        this.isError.set(false);
+        return;
+      }
       const result = await this.authService.resendVerificationCode();
       this.message.set(result.message);
       this.isError.set(!result.success);
     } catch (e) {
-      this.message.set('RESEND FAILED.');
+      this.isError.set(true);
+      this.message.set(this.apiErrorMessage(
+        e instanceof ApiAuthError ? e : new ApiAuthError(0, 'RESEND FAILED.')
+      ));
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /** Confirm an emailed code against the API and adopt the verified state. */
+  private async verifyApiCode(): Promise<{ success: boolean; message: string }> {
+    if (!this.verificationCode || this.verificationCode.length !== 6) {
+      return { success: false, message: 'ENTER THE 6-DIGIT TRANSMISSION CODE.' };
+    }
+
+    try {
+      const response = await this.apiAuth.confirmEmailVerification(
+        this.verificationCode
+      );
+      const user = this.authService.markEmailVerified(response.user?.email);
+      return {
+        success: true,
+        message: `CHANNEL SECURE, ${user?.artistName ?? 'ARTIST'}. WELCOME TO THE ELITE.`,
+      };
+    } catch (err) {
+      if (err instanceof ApiAuthError) {
+        // 400 = wrong/expired code (retype or resend); 429 = the guessing
+        // budget is spent (a new code is required). Different fixes, so they
+        // are never collapsed into one denial.
+        if (err.status === 400 || err.status === 429) {
+          return { success: false, message: err.message };
+        }
+        return { success: false, message: this.apiErrorMessage(err) };
+      }
+      return { success: false, message: 'VERIFICATION FAILED. TRY AGAIN.' };
+    }
+  }
+
+  /**
+   * Leave the verification step without confirming.
+   *
+   * Sign-in is deliberately not gated on verification, so an artist whose mail
+   * is slow or filtered can still use the app and confirm later from Settings.
+   */
+  async skipVerification(): Promise<void> {
+    this.isVerifying.set(false);
+    this.message.set('');
+    await this.navigateAfterAuth();
   }
 
   toggleMode() {
@@ -161,6 +225,11 @@ export class LoginComponent implements OnInit {
     this.usesApiAuth.set(false);
     this.credentials.password = '';
     this.message.set('');
+  }
+
+  /** Hand off to the account-recovery screen (forgotten access cipher). */
+  async openRecovery(): Promise<void> {
+    await this.router.navigate(['/reset-password']);
   }
 
   /**
@@ -242,6 +311,9 @@ export class LoginComponent implements OnInit {
       });
       const user = this.authService.establishApiSession(response);
       this.usesApiAuth.set(true);
+      this.apiVerificationAvailable.set(
+        response.emailVerificationAvailable === true
+      );
       return {
         success: true,
         message: `IDENTITY SEALED, ${user.artistName}. THE SYSTEM IS READY. DO NOT DISAPPOINT ME.`,

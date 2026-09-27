@@ -4,6 +4,8 @@ import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "@/config/env";
 import { AppDataSource } from "@/database/data-source";
+// Type-only — resolved by entity name at runtime (see account-token.service).
+import type { User } from "@/entities/User";
 import {
   activateSessionMember,
   buildSessionSyncPayload,
@@ -294,6 +296,18 @@ export const emitChallengeResponse = (challenge: {
   ioServer.to(challenge.toUserId).emit("challenge_response", payload);
 };
 
+/**
+ * Drop every live realtime connection for an account.
+ *
+ * Sockets authenticate once, at handshake, so a session revoked mid-connection
+ * would otherwise keep receiving that account's rooms until it happened to
+ * reconnect. Called from the credential-rotation routes — the same moment the
+ * account's HTTP tokens stop working.
+ */
+export const disconnectUserSockets = (userId: number | string): void => {
+  ioServer?.in(String(userId)).disconnectSockets(true);
+};
+
 /*
  * Socket.io social + studio-collaboration server, ported from the legacy
  * server/ backend. Attach to the same HTTP server as the REST API.
@@ -358,12 +372,57 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
           (socket.handshake.headers?.authorization as string | undefined) || "",
         ).split(" ")[1];
       if (!token) return null;
-      const payload = jwt.verify(token, JWT_SECRET) as {
+      // Algorithm pinned: a token must never be verified according to the
+      // algorithm its own header claims.
+      const payload = jwt.verify(token, JWT_SECRET, {
+        algorithms: ["HS256"],
+      }) as {
         userId?: unknown;
         role?: unknown;
       };
       if (!payload?.userId) return null;
       return { userId: Number(payload.userId), role: String(payload.role ?? "user") };
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * Current session version + role for an account, straight from the database.
+   * Sockets authenticate once, so the handshake has to consult the account
+   * rather than trusting a token that may predate a credential rotation.
+   */
+  const loadAccountState = async (
+    userId: number,
+  ): Promise<{ role: string; tokenVersion: number } | null> => {
+    try {
+      const user = await AppDataSource.getRepository<User>("User").findOne({
+        where: { id: userId },
+        select: { id: true, role: true, tokenVersion: true },
+      });
+      return user
+        ? { role: user.role, tokenVersion: Number(user.tokenVersion ?? 0) }
+        : null;
+    } catch {
+      return null;
+    }
+  };
+
+  /** Unverified claim from the handshake token, including its `tv`. */
+  const readSessionVersion = (socket: {
+    handshake: { auth?: Record<string, unknown>; headers?: Record<string, unknown> };
+  }): number | null => {
+    try {
+      const token =
+        (socket.handshake.auth?.token as string | undefined) ||
+        String(
+          (socket.handshake.headers?.authorization as string | undefined) || "",
+        ).split(" ")[1];
+      if (!token) return null;
+      const payload = jwt.verify(token, JWT_SECRET, {
+        algorithms: ["HS256"],
+      }) as { tv?: unknown };
+      return Number(payload?.tv ?? 0);
     } catch {
       return null;
     }
@@ -470,13 +529,25 @@ export const setupSocketIO = (httpServer: HttpServer): Server => {
   // garbage-token client is rejected with `connect_error` instead of
   // briefly connecting and then being disconnected from the connection
   // handler. The verified identity is stashed on the socket for reuse.
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     const user = getSender(socket);
     if (!user) {
       next(new Error("unauthorized"));
       return;
     }
-    (socket as unknown as { authUser?: AuthUser }).authUser = user;
+
+    // A token that is still cryptographically valid can still belong to a
+    // session the account has since revoked (password reset / rotation).
+    const account = await loadAccountState(user.userId);
+    if (!account || readSessionVersion(socket) !== account.tokenVersion) {
+      next(new Error("session revoked"));
+      return;
+    }
+
+    (socket as unknown as { authUser?: AuthUser }).authUser = {
+      userId: user.userId,
+      role: account.role,
+    };
     next();
   });
 

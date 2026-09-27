@@ -25,7 +25,14 @@ const strongProfile = {
     {
       id: 'w1',
       title: 'Window Light',
+      // The identifiers that make a work payable live on ONE release: an ISRC
+      // on the recording, an ISWC on the composition, and a UPC on the
+      // release. Spreading them across separate works is exactly the state the
+      // pathway's `release-identifiers` step reports as incomplete, so a
+      // fixture meant to be "complete" has to carry all three here.
       isrc: 'US-AAA-25-00001',
+      iswc: 'T-123456789-0',
+      upc: '012345678905',
       releaseDate: '2025-02-01',
       releaseType: 'Single',
       distributor: 'DistroKid',
@@ -47,7 +54,9 @@ const strongProfile = {
     {
       id: 'w3',
       title: 'Room Tone',
-      upc: '012345678905',
+      // A different release, so a different UPC — duplicating the one above
+      // would be an invalid catalogue even if the assertions passed.
+      upc: '012345678912',
       releaseDate: '2025-08-01',
       releaseType: 'EP',
       distributor: 'DistroKid',
@@ -177,6 +186,25 @@ const officialProfile = {
       { platform: 'YouTube' },
     ],
   },
+  // "Fully official" also means the collectors are claimed: a PRO pays
+  // performance royalties only, so SoundExchange (non-interactive) and The MLC
+  // (US mechanicals) are separate registrations, and a PRO affiliation alone
+  // leaves both pools unclaimed.
+  officialArtistProfiles: [
+    ...(strongProfile as any).officialArtistProfiles,
+    {
+      id: 'soundexchange',
+      destinationId: 'soundexchange',
+      url: 'https://www.soundexchange.com/north-star',
+      verified: true,
+    },
+    {
+      id: 'the-mlc',
+      destinationId: 'the-mlc',
+      url: 'https://portal.themlc.com/north-star',
+      verified: true,
+    },
+  ],
 } as unknown as UserProfile;
 
 describe('ArtistProfileFinetuneService', () => {

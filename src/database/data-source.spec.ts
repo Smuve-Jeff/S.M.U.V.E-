@@ -23,6 +23,9 @@ jest.mock("@/entities/GameInvite", () => ({ GameInvite: class GameInvite {} }));
 jest.mock("@/entities/LiveStream", () => ({ LiveStream: class LiveStream {} }));
 jest.mock("@/entities/UserBlock", () => ({ UserBlock: class UserBlock {} }));
 jest.mock("@/entities/RoomMessage", () => ({ RoomMessage: class RoomMessage {} }));
+jest.mock("@/entities/AccountToken", () => ({
+  AccountToken: class AccountToken {},
+}));
 
 import { AppDataSource } from "./data-source";
 

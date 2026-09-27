@@ -284,6 +284,9 @@ export class AuthService {
       lastLogin: new Date(),
       profileCompleteness: storedUser.profileCompleteness,
       emailVerified: storedUser.emailVerified,
+      // The demo store has no mail pipeline to complete verification with, so
+      // it keeps the historical behaviour of gating on the local flag.
+      emailVerificationRequired: !storedUser.emailVerified,
     };
 
     this.userStore.setUser(user);
@@ -431,7 +434,13 @@ export class AuthService {
       createdAt: new Date(response.user.createdAt),
       lastLogin: new Date(),
       profileCompleteness: 100,
-      emailVerified: true,
+      // The server's answer, not an assumption: an API session used to claim a
+      // verified address unconditionally, which made the guard's "verified"
+      // check meaningless.
+      emailVerified: response.user.emailVerified === true,
+      emailVerificationRequired:
+        response.emailVerificationAvailable === true &&
+        response.user.emailVerified !== true,
     };
 
     this.userStore.setUser(user);
@@ -470,6 +479,33 @@ export class AuthService {
       // Never let cleanup failure abort the logout itself.
     }
     this.logger.info('AUTH_LOG: SESSION TERMINATED.');
+  }
+
+  /**
+   * Adopt the server's verification state after an API confirmation.
+   *
+   * The gate is `emailVerificationRequired`, so clearing `emailVerified` alone
+   * would leave the artist still blocked from sensitive routes.
+   */
+  markEmailVerified(verifiedEmail?: string): AuthUser | null {
+    const currentUser = this.userStore.user();
+    if (!currentUser) return null;
+    // A confirmation for a different address must not flip this session.
+    if (
+      verifiedEmail &&
+      verifiedEmail.toLowerCase() !== currentUser.email.toLowerCase()
+    ) {
+      return currentUser;
+    }
+
+    const verifiedUser: AuthUser = {
+      ...currentUser,
+      emailVerified: true,
+      emailVerificationRequired: false,
+    };
+    this.userStore.setUser(verifiedUser);
+    this.persistSession(verifiedUser);
+    return verifiedUser;
   }
 
   validatePassword(p: string) {
@@ -544,7 +580,11 @@ export class AuthService {
 
       const currentUser = this.userStore.user();
       if (currentUser?.email.toLowerCase() === normalizedEmail) {
-        const verifiedUser = { ...currentUser, emailVerified: true };
+        const verifiedUser = {
+          ...currentUser,
+          emailVerified: true,
+          emailVerificationRequired: false,
+        };
         this.userStore.setUser(verifiedUser);
         this.persistSession(verifiedUser);
       }

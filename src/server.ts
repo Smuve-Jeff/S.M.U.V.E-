@@ -5,6 +5,7 @@ import apiApp from "@/app";
 import { setupSocketIO } from "@/socket";
 import { AppDataSource } from "@/database/data-source";
 import { DB_NAME, NODE_ENV, PORT } from "@/config/env";
+import { logEmailConfiguration } from "@/services/email.service";
 
 async function runProductionMigrations(): Promise<void> {
   if (AppDataSource.isInitialized) {
@@ -57,6 +58,7 @@ async function main(): Promise<void> {
     await AppDataSource.initialize();
     await runProductionMigrations();
     console.log(`[api] Connected to database: ${DB_NAME}`);
+    logEmailConfiguration();
 
     const unified = createUnifiedApp();
     const server = createServer(unified);

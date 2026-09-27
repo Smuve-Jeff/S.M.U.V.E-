@@ -6,6 +6,8 @@ import { CreateLiveStreams1786243200003 } from "./1786243200003-CreateLiveStream
 import { CreateUserBlocks1786243200004 } from "./1786243200004-CreateUserBlocks";
 import { CreateChallengeDedupeIndex1786243200005 } from "./1786243200005-CreateChallengeDedupeIndex";
 import { CreateRoomMessages1786243200006 } from "./1786243200006-CreateRoomMessages";
+import { CreateAccountTokens1786243200007 } from "./1786243200007-CreateAccountTokens";
+import { AddUserSessionAndVerificationColumns1786243200008 } from "./1786243200008-AddUserSessionAndVerificationColumns";
 
 /**
  * Metadata per migration drives dialect assertions:
@@ -28,6 +30,8 @@ const migrations: MigrationEntry[] = [
   { migration: new CreateUserBlocks1786243200004(), hasSerialColumn: false, hasJson: false },
   { migration: new CreateChallengeDedupeIndex1786243200005(), hasSerialColumn: false, hasJson: false },
   { migration: new CreateRoomMessages1786243200006(), hasSerialColumn: true, hasJson: false },
+  { migration: new CreateAccountTokens1786243200007(), hasSerialColumn: true, hasJson: false },
+  { migration: new AddUserSessionAndVerificationColumns1786243200008(), hasSerialColumn: false, hasJson: false },
 ];
 
 const migrationNames = [
@@ -38,6 +42,8 @@ const migrationNames = [
   "CreateUserBlocks1786243200004",
   "CreateChallengeDedupeIndex1786243200005",
   "CreateRoomMessages1786243200006",
+  "CreateAccountTokens1786243200007",
+  "AddUserSessionAndVerificationColumns1786243200008",
 ];
 
 /** Stand-in QueryRunner that records every statement it is asked to run. */
@@ -145,5 +151,44 @@ describe("database migrations (dialect-aware)", () => {
     const my6 = normalizeSql(await runUp(new CreateRoomMessages1786243200006(), "mysql"));
     expect(my6).toContain("id int AUTO_INCREMENT PRIMARY KEY");
     expect(my6).toContain("ON room_messages (room_id, created_at)");
+
+    // 0007 — account_tokens: ONE live grant per (account, purpose) is the
+    // invariant, so the unique index has to be exactly that pair — a unique
+    // index on tokenHash alone would reject a 6-digit code colliding with
+    // another account's, and dropping uniqueness would allow replayable
+    // duplicates. tokenHash stays separately indexed for the unauthenticated
+    // reset lookup.
+    const pg7 = normalizeSql(await runUp(new CreateAccountTokens1786243200007(), "postgres"));
+    expect(pg7).toContain('"id" SERIAL PRIMARY KEY');
+    expect(pg7).toContain(
+      'CREATE UNIQUE INDEX IF NOT EXISTS "uq_account_tokens_user_purpose" ON "account_tokens" ("userId", "purpose")',
+    );
+    expect(pg7).toContain(
+      'CREATE INDEX IF NOT EXISTS "idx_account_tokens_hash" ON "account_tokens" ("tokenHash")',
+    );
+    const my7 = normalizeSql(await runUp(new CreateAccountTokens1786243200007(), "mysql"));
+    expect(my7).toContain("id int AUTO_INCREMENT PRIMARY KEY");
+    expect(my7).toContain(
+      "CREATE UNIQUE INDEX IF NOT EXISTS uq_account_tokens_user_purpose ON account_tokens (userId, purpose)",
+    );
+    expect(my7).toContain(
+      "CREATE INDEX IF NOT EXISTS idx_account_tokens_hash ON account_tokens (tokenHash)",
+    );
+
+    // 0008 — the revocation/verification columns must be added NOT NULL with a
+    // default so the ALTER succeeds on a populated users table, and the PG
+    // branch stays re-runnable (IF NOT EXISTS) after a partially applied run.
+    const pg8 = normalizeSql(await runUp(new AddUserSessionAndVerificationColumns1786243200008(), "postgres"));
+    expect(pg8).toContain(
+      'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "tokenVersion" integer NOT NULL DEFAULT 0',
+    );
+    expect(pg8).toContain(
+      'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "emailVerified" boolean NOT NULL DEFAULT false',
+    );
+    const my8 = normalizeSql(await runUp(new AddUserSessionAndVerificationColumns1786243200008(), "mysql"));
+    expect(my8).toContain("ALTER TABLE users ADD COLUMN tokenVersion int NOT NULL DEFAULT 0");
+    expect(my8).toContain(
+      "ALTER TABLE users ADD COLUMN emailVerified boolean NOT NULL DEFAULT false",
+    );
   });
 });

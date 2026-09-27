@@ -58,6 +58,13 @@ jest.mock("@/services", () => ({
   buildSessionSyncPayload: jest.fn(async () => ({})),
 }));
 
+// The auth router drops revoked sockets through this module; routing tests
+// only need the export to exist.
+jest.mock("@/socket", () => ({
+  setupSocketIO: jest.fn(),
+  disconnectUserSockets: jest.fn(),
+}));
+
 jest.mock("@/services/studio-collab.service", () => ({
   getStudioMember: jest.fn(async () => ({ status: "active" })),
 }));
@@ -79,6 +86,15 @@ jest.mock("@/services/live-stream.service", () => ({
   endLiveStream: jest.fn(async () => undefined),
   resolveViewerJoin: jest.fn(),
   redeemViewerJoin: jest.fn(),
+  // Account recovery / verification surfaces reachable from the auth router.
+  getEmailConfigurationIssue: jest.fn(() => ""),
+  requestPasswordReset: jest.fn(async () => true),
+  resetPasswordWithToken: jest.fn(),
+  revokePasswordResetTokens: jest.fn(async () => undefined),
+  sendEmailVerificationCode: jest.fn(async () => ({ sent: true, message: "sent" })),
+  confirmEmailVerification: jest.fn(),
+  issueAuthToken: jest.fn(async () => "fresh.token.value"),
+  verifyUserPassword: jest.fn(async () => true),
 }));
 
 jest.mock("@/database/data-source", () => ({
@@ -86,6 +102,11 @@ jest.mock("@/database/data-source", () => ({
     initialize: jest.fn(async () => undefined),
     destroy: jest.fn(async () => undefined),
     query: jest.fn(async () => []),
+    // `authenticate` re-reads the account on every request to enforce session
+    // revocation, so routing tests need a (empty) account lookup.
+    getRepository: jest.fn(() => ({
+      findOne: jest.fn(async () => null),
+    })),
     createQueryBuilder: jest.fn(() => {
       throw new Error("not used in routing tests");
     }),
