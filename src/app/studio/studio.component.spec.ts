@@ -16,7 +16,7 @@ import { ProjectTemplateService } from "../services/project-template.service";
 import { IdeasGeneratorService } from "../services/ideas-generator.service";
 import { SnackbarService } from "../services/snackbar.service";
 import { ActivatedRoute, Router } from "@angular/router";
-import { signal, Component, NO_ERRORS_SCHEMA } from "@angular/core";
+import { signal, NO_ERRORS_SCHEMA } from "@angular/core";
 import { of } from "rxjs";
 import { ProjectWorkspaceService } from "./project-workspace.service";
 import { AudioEngineLatencyService } from "../services/audio-engine-latency.service";

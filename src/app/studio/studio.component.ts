@@ -614,7 +614,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     return source.subarray(0, length);
   }
 
-  onBezierCurveChanged(curve: any): void {
+  onBezierCurveChanged(_curve: unknown): void {
     this.snackbarService.info("Bezier curve applied to automation lane");
   }
   crossLinkAnnouncement = signal<string>("");
@@ -1343,7 +1343,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       // the pointerdown listener installed in the constructor will
       // take over the moment the user interacts.
       this.audioEngine.resume();
-    } catch (e) {
+    } catch {
       // silent — fallback handled by armOnFirstUserGesture()
     }
 

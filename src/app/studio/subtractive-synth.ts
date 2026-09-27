@@ -93,7 +93,7 @@ export class SubtractiveSynth extends Instrument {
       this.workletNode.connect(this.masterFilter);
       this.workletReady = true;
       this.useWorklet = true;
-    } catch (e) {
+    } catch {
       // Fallback: stay on main-thread oscillator nodes
       console.debug("Synth worklet unavailable, using main-thread oscillators");
     }
@@ -313,7 +313,7 @@ export class SubtractiveSynth extends Instrument {
       this.workletNode.port.postMessage({ type: "STOP_ALL" });
     }
 
-    this.voices.forEach((voice, note) => {
+    this.voices.forEach((voice) => {
       // Skip worklet-managed voices (they have no oscillators array)
       if (!voice.oscillators) return;
       const now = this.audioContext.currentTime;
@@ -324,12 +324,16 @@ export class SubtractiveSynth extends Instrument {
       voice.oscillators.forEach((osc) => {
         try {
           osc.stop(now + 0.01);
-        } catch (e) {}
+        } catch {
+          /* already stopped */
+        }
       });
       if (voice.subOscillator) {
         try {
           voice.subOscillator.stop(now + 0.01);
-        } catch (e) {}
+        } catch {
+          /* already stopped */
+        }
       }
       setTimeout(() => this.executeStop(voice), 20);
     });
@@ -341,13 +345,17 @@ export class SubtractiveSynth extends Instrument {
     voice.oscillators.forEach((osc) => {
       try {
         osc.stop();
-      } catch (e) {}
+      } catch {
+        /* already stopped */
+      }
       this.oscillatorPool.release(osc);
     });
     if (voice.subOscillator) {
       try {
         voice.subOscillator.stop();
-      } catch (e) {}
+      } catch {
+        /* already stopped */
+      }
       this.oscillatorPool.release(voice.subOscillator);
     }
     this.gainPool.release(voice.gain);

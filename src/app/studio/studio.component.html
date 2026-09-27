@@ -651,7 +651,7 @@
         <app-session-view></app-session-view>
       </div>
       <div class="comp-view" *ngSwitchCase="'piano-roll'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-piano-roll
             (openBezierEditor)="toggleBezierEditor($event)"
           ></app-piano-roll>
@@ -666,7 +666,7 @@
         <app-drum-machine></app-drum-machine>
       </div>
       <div class="comp-view" *ngSwitchCase="'mixer'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-mixer></app-mixer>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -676,7 +676,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'performance'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-performance-mode
             [pads]="performancePads()"
             (padClicked)="onPerformancePadClicked($event)"
@@ -689,7 +689,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'performer'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-performer></app-performer>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -699,7 +699,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'mastering'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-mastering-suite></app-mastering-suite>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -709,7 +709,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'ai-produce'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-ai-produce></app-ai-produce>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -719,7 +719,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'dj'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-dj-deck></app-dj-deck>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -729,7 +729,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'vocal-suite'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-vocal-suite></app-vocal-suite>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -739,7 +739,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'channel-rack'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-channel-rack></app-channel-rack>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -749,7 +749,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'effects-rack'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-effects-rack-ui></app-effects-rack-ui>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -759,7 +759,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'audio-recorder'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-audio-recorder-view></app-audio-recorder-view>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -769,7 +769,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'sampler'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-sampler></app-sampler>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -779,7 +779,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'score'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-score-view></app-score-view>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -789,7 +789,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'plugins'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-plugin-store></app-plugin-store>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -799,7 +799,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'sample-library'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-sample-library></app-sample-library>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -809,7 +809,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'sound-browser'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-sound-browser></app-sound-browser>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -819,7 +819,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'sound-pad'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-sound-pad-grid></app-sound-pad-grid>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -829,7 +829,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'synthesizer'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-synthesizer [clip]="null"></app-synthesizer>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
@@ -839,7 +839,7 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'chord-editor'">
-        @defer (on viewport) {
+        @defer (on viewport; prefetch on idle) {
           <app-chord-editor
             (navigateToPianoRoll)="setActiveView('piano-roll')"
           ></app-chord-editor>

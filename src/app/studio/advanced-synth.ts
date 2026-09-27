@@ -164,7 +164,9 @@ export class AdvancedSynth extends Instrument {
       sampleStop1 = () => {
         try {
           osc1.stop();
-        } catch (e) {}
+        } catch {
+          /* already stopped */
+        }
         this.oscPool.release(osc1);
       };
     }
@@ -194,7 +196,9 @@ export class AdvancedSynth extends Instrument {
       sampleStop2 = () => {
         try {
           osc2.stop();
-        } catch (e) {}
+        } catch {
+          /* already stopped */
+        }
         this.oscPool.release(osc2);
       };
     }
@@ -257,7 +261,7 @@ export class AdvancedSynth extends Instrument {
 
   /** Immediately stop all active voices (panic). */
   stopAll(): void {
-    this.voices.forEach((voice, note) => {
+    this.voices.forEach((voice) => {
       const now = this.audioContext.currentTime;
       voice.ampGain.gain.cancelScheduledValues(now);
       voice.ampGain.gain.setValueAtTime(voice.ampGain.gain.value, now);
@@ -274,7 +278,9 @@ export class AdvancedSynth extends Instrument {
     if (voice.sampleStop2) voice.sampleStop2();
     try {
       voice.lfo.stop();
-    } catch (e) {}
+    } catch {
+      /* already stopped */
+    }
     this.oscPool.release(voice.lfo);
     this.gainPool.release(voice.ampGain);
     this.filterPool.release(voice.filter);
