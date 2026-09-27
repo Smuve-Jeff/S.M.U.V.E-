@@ -1202,27 +1202,11 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
   // premium-network mirrors, and the Pluto stitchers were rejected on policy;
   // everything here is an operator-hosted, query-string-free feed.
   {
-    id: 'ion-mystery',
-    name: 'ION MYSTERY',
-    url: 'https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01438-ewscrippscompan-ionmystery-tablo/playlist.m3u8',
-    genre: 'entertainment',
-    operator: 'E.W. Scripps Company',
-    source: 'Free ad-supported (FAST)',
-  },
-  {
     id: 'true-crime-network',
     name: 'TRUE CRIME NETWORK',
     url: 'https://amg00979-amg00979c1-firetv-us-3622.playouts.now.amagi.tv/playlist.m3u8',
     genre: 'documentary',
     operator: 'Tegna',
-    source: 'Free ad-supported (FAST)',
-  },
-  {
-    id: 'cinevault-westerns',
-    name: 'CINEVAULT WESTERNS',
-    url: 'https://gsn-cinevault-westerns-2-us.roku.wurl.tv/playlist.m3u8',
-    genre: 'movies',
-    operator: 'Game Show Network',
     source: 'Free ad-supported (FAST)',
   },
   {
