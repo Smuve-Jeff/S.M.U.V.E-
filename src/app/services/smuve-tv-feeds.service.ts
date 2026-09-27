@@ -543,7 +543,7 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
   {
     id: 'dry-bar-comedy',
     name: 'DRY BAR COMEDY',
-    url: 'https://drybar-drybarcomedy-1-us.samsung.wurl.tv/playlist.m3u8',
+    url: 'https://drybar-drybarcomedy-1-au.samsung.wurl.tv/playlist.m3u8',
     genre: 'comedy',
     operator: 'Dry Bar Comedy',
     source: 'Free ad-supported (FAST)',
@@ -1195,6 +1195,68 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
     operator: 'Game Show Network',
     source: 'Free ad-supported (FAST)',
   },
+  // ── Popular licensed channels, third pass ──────────────
+  // Mined from the upstream iptv-org US playlist rather than the aggregator
+  // gists the earlier passes used, then verified the same way: manifest,
+  // variant, and real segment bytes. The jmp2.uk proxy redirects, the raw-IP
+  // premium-network mirrors, and the Pluto stitchers were rejected on policy;
+  // everything here is an operator-hosted, query-string-free feed.
+  {
+    id: 'ion-mystery',
+    name: 'ION MYSTERY',
+    url: 'https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01438-ewscrippscompan-ionmystery-tablo/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'E.W. Scripps Company',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'true-crime-network',
+    name: 'TRUE CRIME NETWORK',
+    url: 'https://amg00979-amg00979c1-firetv-us-3622.playouts.now.amagi.tv/playlist.m3u8',
+    genre: 'documentary',
+    operator: 'Tegna',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'cinevault-westerns',
+    name: 'CINEVAULT WESTERNS',
+    url: 'https://gsn-cinevault-westerns-2-us.roku.wurl.tv/playlist.m3u8',
+    genre: 'movies',
+    operator: 'Game Show Network',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'great-entertainment-tv',
+    name: 'GREAT ENTERTAINMENT TELEVISION',
+    url: 'https://a-cdn.klowdtv.com/live2/greattv_720p/playlist.m3u8',
+    genre: 'vintage',
+    operator: 'Great Entertainment Television',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'pbs-kids',
+    name: 'PBS KIDS',
+    url: 'https://livestream.pbskids.org/out/v1/14507d931bbe48a69287e4850e53443c/est.m3u8',
+    genre: 'cartoons',
+    operator: 'PBS',
+    source: 'Public broadcaster',
+  },
+  {
+    id: 'movies-weigel',
+    name: 'MOVIES!',
+    url: 'https://bozztv.com/dvrfl03/hdirect/hdirect-ovair1-movies!/index.m3u8',
+    genre: 'movies',
+    operator: 'Weigel Broadcasting',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'mbc-drama-usa',
+    name: 'MBC DRAMA USA',
+    url: 'https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-drama-usa/ea2f5db904aff224b7066e59c7f585a2/index.m3u8',
+    genre: 'entertainment',
+    operator: 'MBC Group',
+    source: 'Free ad-supported (FAST)',
+  },
 ];
 
 /**
@@ -1254,19 +1316,20 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   'expedition': 'magellantv-now',
   'curious-mind': 'curiosity-now',
   'the-courtroom': 'court-tv',
-  'true-crime-archive': 'inside-crime',
+  'true-crime-archive': 'true-crime-network',
   // ── Television, Entertainment & Movies ─────────────────
   // TVS airs the classic sitcom library; the Tyler Perry channel carries the
   // family sitcoms, so neither station is fed a stand-up channel any more.
   'prime-sitcoms': 'tvs-comedy',
   'family-sitcoms': 'bet-tyler-perry-comedy',
   'workplace-sitcoms': 'portlandia',
-  'standup-spotlight': 'jfl-gags',
+  // Dry Bar's clean stand-up sets, on the mirror that resolves.
+  'standup-spotlight': 'dry-bar-comedy',
   // Hallmark's own channel rather than mockbuster fare.
   'modern-movies': 'hallmark-movies-more',
   'feelgood-movies': 'lifetime-love-and-drama',
   'movie-marathon': 'gravitas-movies',
-  'classic-drama': 'electricnow',
+  'classic-drama': 'mbc-drama-usa',
   'teen-drama': 'degrassi',
   'crime-series': 'law-and-crime',
   // A whole reality network rather than a single reality show.
@@ -1291,19 +1354,22 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   // ── Series ─────────────────────────────────────────────
   'star-trek-tng': 'rakuten-scifi',
   // ── Vintage ────────────────────────────────────────────
-  'vintage-classics': 'cw-gold',
+  // Greats of the past sixty years, on the vintage desk.
+  'vintage-classics': 'great-entertainment-tv',
   'game-show-classics': 'lets-make-a-deal-classic',
   // ── The Pluto-style expansion: Entertainment, Movies, Drama,
   // ── Sci-Fi, Sitcoms, and Cartoons ───────────────────────
   'stunt-arena': 'wipeout-xtra',
   'kitchen-battle': 'hells-kitchen',
-  'movie-matinee': 'dove-channel',
+  // Weigel's broadcast movie network: real films on the matinee desk.
+  'movie-matinee': 'movies-weigel',
   'premiere-drama': 'bbc-drama',
   // A real sci-fi channel, rather than horror films standing in for science.
   'deep-space': 'doctor-who-classic',
   'throwback-sitcoms': 'nbc-comedy-vault',
   'anime-action': 'filmrise-anime',
-  'kids-world': 'toon-goggles',
+  // The trusted children's broadcaster, not a toy-commercial block.
+  'kids-world': 'pbs-kids',
 };
 
 /**
