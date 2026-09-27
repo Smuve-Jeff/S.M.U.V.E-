@@ -661,11 +661,13 @@
 .hub-footer:hover { color: rgba(220, 235, 229, 0.78); }
 
 .hub-footer-brand {
-  font-family: 'Italiana', 'Cinzel', serif;
-  font-size: 12px;
+  font-family: var(--font-brand, 'Marcellus', 'Cinzel', serif);
+  font-size: 12.5px;
   font-weight: 400;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 
 /* ============================================================

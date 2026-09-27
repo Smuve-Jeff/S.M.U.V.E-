@@ -978,13 +978,15 @@
   opacity: 0.85;
 }
 .al-footer-sub {
-  font-family: 'Italiana', 'Cinzel', serif;
+  font-family: var(--font-brand, 'Marcellus', 'Cinzel', serif);
   font-size: 13px;
   font-weight: 400;
   color: var(--teal-400, #2ba09c);
   margin: 0;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   opacity: 0.82;
   transition: opacity 0.3s ease;
 }

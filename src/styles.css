@@ -70,6 +70,10 @@
   --font-elegant: 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
   --font-flourish:
     'Italiana', 'Italiana Fallback', 'Bodoni Moda', 'Times New Roman', serif;
+  /* Brand wordmark — Roman inscriptional serif (Trajan lineage). Sturdier
+     and more legible than Italiana at small footer sizes on every device. */
+  --font-brand:
+    'Marcellus', 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
 
   /* Mobile guards */
   --mobile-nav-height: 64px;

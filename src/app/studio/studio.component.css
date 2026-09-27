@@ -1018,7 +1018,7 @@
 /* ── Elegant copyright mark ── */
 .comp-footer-mark {
   font-family:
-    'Playfair Display', 'Cormorant Garamond', 'Georgia', 'Times New Roman',
+    var(--font-brand), 'Cormorant Garamond', 'Georgia', 'Times New Roman',
     serif;
   font-size: 13px;
   font-weight: 400;
@@ -1028,29 +1028,33 @@
   transition: opacity 0.3s ease;
 }
 
-/* ── Elegant brand name ── */
+/* ── Elegant brand name — Marcellus wordmark ── */
 .comp-footer-brand .comp-footer-brand-name {
-  font-family:
-    'Italiana', 'Cinzel', serif;
-  font-size: 15px;
+  font-family: var(--font-brand);
+  font-size: 14px;
   font-weight: 400;
   font-style: normal;
   color: var(--espresso-text);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   line-height: 1;
+  /* Marcellus is optical-size-free; a hair of extra tracking keeps the
+     wordmark airy at 14px while staying crisp on low-DPR Android. */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   transition: color 0.3s ease;
 }
 
 /* ── Elegant "Presents" ── */
 .comp-footer-brand .comp-footer-brand-byline {
-  font-family: 'Inter', 'Public Sans', system-ui, sans-serif;
+  font-family:
+    var(--font-brand), 'Inter', 'Public Sans', system-ui, sans-serif;
   font-size: 8px;
   font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.25em;
+  letter-spacing: 0.3em;
   color: var(--espresso-muted);
-  opacity: 0.65;
+  opacity: 0.68;
   line-height: 1;
 }
 

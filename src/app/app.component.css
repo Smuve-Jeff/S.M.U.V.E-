@@ -477,8 +477,7 @@ footer {
   user-select: none;
   position: relative;
   cursor: default;
-  font-family:
-    'Italiana', 'Cinzel', serif;
+  font-family: var(--font-brand, 'Marcellus', 'Cinzel', serif);
 }
 
 .app-footer-brand::before {
@@ -513,24 +512,27 @@ footer {
 
 .app-footer-brand-name {
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 400;
   font-style: normal;
   color: var(--ivory-100, #faf9ff);
-  letter-spacing: 0.3em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   line-height: 1;
+  /* Marcellus ships one weight — never let the browser fake-bold the mark. */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   transition: color 0.3s ease;
 }
 
 .app-footer-brand-byline {
   font-family: inherit;
   font-size: 8px;
-  font-weight: 600;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.42em;
-  color: rgba(250, 249, 255, 0.52);
-  opacity: 0.72;
+  letter-spacing: 0.38em;
+  color: rgba(250, 249, 255, 0.55);
+  opacity: 0.75;
   line-height: 1;
 }
 
