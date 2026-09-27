@@ -1,4 +1,4 @@
-import { LoggingService } from '../services/logging.service';
+import { LoggingService } from "../services/logging.service";
 import {
   Injectable,
   signal,
@@ -6,15 +6,15 @@ import {
   effect,
   inject,
   DestroyRef,
-} from '@angular/core';
-import { InstrumentService } from './instrument.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { PlaybackState } from './playback-state';
-import { MusicManagerService } from '../services/music-manager.service';
-import { MicrophoneService } from '../services/microphone.service';
-import { StudioRecordingEngineService } from './studio-recording-engine.service';
-import { RecordingStatusService } from './recording-status.service';
-import { ScreenWakeLockService } from '../services/screen-wake-lock.service';
+} from "@angular/core";
+import { InstrumentService } from "./instrument.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { PlaybackState } from "./playback-state";
+import { MusicManagerService } from "../services/music-manager.service";
+import { MicrophoneService } from "../services/microphone.service";
+import { StudioRecordingEngineService } from "./studio-recording-engine.service";
+import { RecordingStatusService } from "./recording-status.service";
+import { ScreenWakeLockService } from "../services/screen-wake-lock.service";
 
 export interface MicChannel {
   id: string;
@@ -27,7 +27,7 @@ export interface MicChannel {
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class AudioSessionService {
   private logger = inject(LoggingService);
@@ -40,24 +40,24 @@ export class AudioSessionService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly wakeLock = inject(ScreenWakeLockService);
 
-  readonly playbackState = signal<PlaybackState>('stopped');
-  readonly isPlaying = computed(() => this.playbackState() === 'playing');
-  readonly isRecording = computed(() => this.playbackState() === 'recording');
-  readonly isStopped = computed(() => this.playbackState() === 'stopped');
+  readonly playbackState = signal<PlaybackState>("stopped");
+  readonly isPlaying = computed(() => this.playbackState() === "playing");
+  readonly isRecording = computed(() => this.playbackState() === "recording");
+  readonly isStopped = computed(() => this.playbackState() === "stopped");
 
   masterVolume = signal(80);
   micChannels = signal<MicChannel[]>([
     {
-      id: 'mic-1',
-      label: 'Lead Vocals',
+      id: "mic-1",
+      label: "Lead Vocals",
       level: 70,
       muted: false,
       pan: 0,
       armed: true,
     },
     {
-      id: 'guitar-1',
-      label: 'Secondary In',
+      id: "guitar-1",
+      label: "Secondary In",
       level: 60,
       muted: false,
       pan: 20,
@@ -91,15 +91,15 @@ export class AudioSessionService {
 
     // Mobile audio hygiene: stop playback when the app/tab is backgrounded so
     // the engine doesn't keep consuming battery or resume mid-bar unannounced.
-    if (typeof document !== 'undefined') {
+    if (typeof document !== "undefined") {
       document.addEventListener(
-        'visibilitychange',
-        this.handleVisibilityChange
+        "visibilitychange",
+        this.handleVisibilityChange,
       );
       this.destroyRef.onDestroy(() => {
         document.removeEventListener(
-          'visibilitychange',
-          this.handleVisibilityChange
+          "visibilitychange",
+          this.handleVisibilityChange,
         );
       });
     }
@@ -107,8 +107,8 @@ export class AudioSessionService {
 
   private handleVisibilityChange = (): void => {
     if (
-      typeof document !== 'undefined' &&
-      document.visibilityState === 'hidden' &&
+      typeof document !== "undefined" &&
+      document.visibilityState === "hidden" &&
       (this.isPlaying() || this.isRecording())
     ) {
       this.stop();
@@ -128,10 +128,10 @@ export class AudioSessionService {
   togglePlay(): void {
     if (this.engine.isPlaying()) {
       this.engine.stop();
-      this.playbackState.set('stopped');
+      this.playbackState.set("stopped");
     } else {
       this.engine.start();
-      this.playbackState.set('playing');
+      this.playbackState.set("playing");
     }
   }
 
@@ -139,20 +139,20 @@ export class AudioSessionService {
     if (this.isRecording()) {
       this.engine.stop();
       void this.musicManager.stopRecording(
-        this.musicManager.selectedTrackId() || ''
+        this.musicManager.selectedTrackId() || "",
       );
-      this.playbackState.set('stopped');
+      this.playbackState.set("stopped");
       this.recordingStatus.clearRecordingSource();
     } else {
       this.engine.start();
       this.musicManager.startRecording();
-      this.playbackState.set('recording');
+      this.playbackState.set("recording");
       const trackId = this.musicManager.selectedTrackId();
       const track = trackId
         ? this.musicManager.tracks().find((t) => t.id === trackId)
         : null;
       this.recordingStatus.setRecordingSource({
-        type: 'transport',
+        type: "transport",
         trackId: trackId || undefined,
         trackName: track?.name,
       });
@@ -163,10 +163,10 @@ export class AudioSessionService {
     this.engine.stop();
     if (this.recordingEngine.isRecording()) {
       void this.musicManager.stopRecording(
-        this.musicManager.selectedTrackId() || ''
+        this.musicManager.selectedTrackId() || "",
       );
     }
-    this.playbackState.set('stopped');
+    this.playbackState.set("stopped");
     this.recordingStatus.clearRecordingSource();
   }
 
@@ -177,25 +177,25 @@ export class AudioSessionService {
 
   updateChannelLevel(id: string, newLevel: number): void {
     this.micChannels.update((channels) =>
-      channels.map((ch) => (ch.id === id ? { ...ch, level: newLevel } : ch))
+      channels.map((ch) => (ch.id === id ? { ...ch, level: newLevel } : ch)),
     );
   }
 
   toggleChannelMute(id: string): void {
     this.micChannels.update((channels) =>
-      channels.map((ch) => (ch.id === id ? { ...ch, muted: !ch.muted } : ch))
+      channels.map((ch) => (ch.id === id ? { ...ch, muted: !ch.muted } : ch)),
     );
   }
 
   updateChannelPan(id: string, newPan: number): void {
     this.micChannels.update((channels) =>
-      channels.map((ch) => (ch.id === id ? { ...ch, pan: newPan } : ch))
+      channels.map((ch) => (ch.id === id ? { ...ch, pan: newPan } : ch)),
     );
   }
 
   toggleChannelArm(id: string): void {
     this.micChannels.update((channels) =>
-      channels.map((ch) => (ch.id === id ? { ...ch, armed: !ch.armed } : ch))
+      channels.map((ch) => (ch.id === id ? { ...ch, armed: !ch.armed } : ch)),
     );
     const channel = this.micChannels().find((ch) => ch.id === id);
     if (channel?.armed && !this.recordingEngine.isInitialized()) {
@@ -205,12 +205,12 @@ export class AudioSessionService {
 
   updateChannelDevice(id: string, deviceId: string): void {
     this.micChannels.update((channels) =>
-      channels.map((ch) => (ch.id === id ? { ...ch, deviceId } : ch))
+      channels.map((ch) => (ch.id === id ? { ...ch, deviceId } : ch)),
     );
   }
 
   onNoteClicked(note: { midi: number; velocity: number }): void {
-    this.logger.info('AudioSession: Note clicked:', note);
-    this.instrumentService.play('0', note.midi ?? 60, note.velocity ?? 0.8);
+    this.logger.info("AudioSession: Note clicked:", note);
+    this.instrumentService.play("0", note.midi ?? 60, note.velocity ?? 0.8);
   }
 }

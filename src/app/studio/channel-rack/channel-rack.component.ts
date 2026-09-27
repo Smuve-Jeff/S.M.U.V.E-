@@ -1,13 +1,13 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Component, computed, inject, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 import {
   MusicManagerService,
   TrackModel,
   TrackNote,
-} from '../../services/music-manager.service';
-import { InstrumentsService } from '../../services/instruments.service';
-import { SnackbarService } from '../../services/snackbar.service';
+} from "../../services/music-manager.service";
+import { InstrumentsService } from "../../services/instruments.service";
+import { SnackbarService } from "../../services/snackbar.service";
 
 /** One lane shows one bar of steps (the classic 16-step pattern window). */
 const LANE_STEPS = 16;
@@ -15,11 +15,11 @@ const LANE_STEPS = 16;
 const MIN_BARS = 4;
 
 @Component({
-  selector: 'app-channel-rack',
+  selector: "app-channel-rack",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './channel-rack.component.html',
-  styleUrls: ['./channel-rack.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./channel-rack.component.html",
+  styleUrls: ["./channel-rack.component.css", "../shared/platform-ux.css"],
 })
 export class ChannelRackComponent {
   public musicManager = inject(MusicManagerService);
@@ -44,7 +44,7 @@ export class ChannelRackComponent {
   readonly instrumentCategories: string[] = (() => {
     const seen: string[] = [];
     for (const preset of this.instruments.getPresets()) {
-      const category = preset.category ?? 'Other';
+      const category = preset.category ?? "Other";
       if (!seen.includes(category)) seen.push(category);
     }
     return seen;
@@ -53,7 +53,7 @@ export class ChannelRackComponent {
   presetsByCategory(category: string) {
     return this.instruments
       .getPresets()
-      .filter((p) => (p.category ?? 'Other') === category);
+      .filter((p) => (p.category ?? "Other") === category);
   }
 
   /** Preset display name for the lane subtitle (registry id → label). */
@@ -86,7 +86,7 @@ export class ChannelRackComponent {
     const noteCount = track.notes?.length ?? 0;
     const confirmMessage =
       noteCount > 0
-        ? `Delete "${track.name}" and its ${noteCount} note${noteCount === 1 ? '' : 's'}?`
+        ? `Delete "${track.name}" and its ${noteCount} note${noteCount === 1 ? "" : "s"}?`
         : `Delete "${track.name}"?`;
     if (!confirm(confirmMessage)) return;
     if (this.instrumentPickerTrackId() === id) {
@@ -102,11 +102,11 @@ export class ChannelRackComponent {
     // Only the kit categories get a real drum-type track (drum-machine
     // ownership, swing); melodic presets stay melodic.
     const type =
-      preset?.category === 'drum' || preset?.category === 'perc'
-        ? 'drum'
-        : 'midi';
+      preset?.category === "drum" || preset?.category === "perc"
+        ? "drum"
+        : "midi";
     const id = this.musicManager.addTrack(
-      preset?.name ?? 'New ' + instrumentId,
+      preset?.name ?? "New " + instrumentId,
       instrumentId,
       type,
     );
@@ -118,7 +118,9 @@ export class ChannelRackComponent {
   }
 
   toggleInstrumentPicker(trackId: string) {
-    this.instrumentPickerTrackId.update((id) => (id === trackId ? null : trackId));
+    this.instrumentPickerTrackId.update((id) =>
+      id === trackId ? null : trackId,
+    );
   }
 
   setInstrument(track: TrackModel, presetId: string) {
@@ -126,14 +128,10 @@ export class ChannelRackComponent {
       this.instrumentPickerTrackId.set(null);
       return;
     }
-    const preset = this.instruments
-      .getPresets()
-      .find((p) => p.id === presetId);
+    const preset = this.instruments.getPresets().find((p) => p.id === presetId);
     this.musicManager.setInstrument(track.id, presetId);
     this.instrumentPickerTrackId.set(null);
-    this.snackbar.success(
-      `🎛 ${track.name} → ${preset?.name ?? presetId}`,
-    );
+    this.snackbar.success(`🎛 ${track.name} → ${preset?.name ?? presetId}`);
   }
 
   toggleMute(track: TrackModel) {
@@ -168,8 +166,8 @@ export class ChannelRackComponent {
     }
   }
 
-  reorderTrack(index: number, direction: 'up' | 'down') {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+  reorderTrack(index: number, direction: "up" | "down") {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= this.tracks().length) return;
     this.musicManager.reorderTrack(index, targetIndex);
   }
@@ -179,7 +177,7 @@ export class ChannelRackComponent {
     // The Studio shell routes cross-links, so ask for the same jump the
     // arrangement's per-clip piano button uses.
     this.musicManager.requestCrossLink({
-      view: 'piano-roll',
+      view: "piano-roll",
       trackId: track.id,
       label: track.name,
     });
@@ -211,10 +209,7 @@ export class ChannelRackComponent {
 
   /** Number of full 16-step bars this track reaches (min 4 to extend). */
   barCount(track: TrackModel): number {
-    const maxStep = track.notes.reduce(
-      (max, n) => Math.max(max, n.step),
-      -1
-    );
+    const maxStep = track.notes.reduce((max, n) => Math.max(max, n.step), -1);
     const needed = Math.floor(maxStep / LANE_STEPS) + 1;
     return Math.max(MIN_BARS, needed);
   }
@@ -238,10 +233,8 @@ export class ChannelRackComponent {
   nudgeBar(direction: 1 | -1) {
     // The rack lane is a shared window, so keep it inside every track's
     // bar range instead of paging into infinity.
-    const maxBar = Math.max(
-      MIN_BARS,
-      ...this.tracks().map((t) => this.barCount(t)),
-    ) - 1;
+    const maxBar =
+      Math.max(MIN_BARS, ...this.tracks().map((t) => this.barCount(t))) - 1;
     this.stepBar.update((bar) =>
       Math.max(0, Math.min(maxBar, bar + direction)),
     );
@@ -258,7 +251,7 @@ export class ChannelRackComponent {
     if (hits.length > 0) {
       this.musicManager.removeNotes(
         track.id,
-        hits.map((n) => n.id)
+        hits.map((n) => n.id),
       );
       return;
     }

@@ -1,9 +1,9 @@
-import { FileLoaderService, SampleMap } from '../services/file-loader.service';
+import { FileLoaderService, SampleMap } from "../services/file-loader.service";
 
 export class SamplerEngine {
   constructor(
     private readonly context: BaseAudioContext,
-    private readonly fileLoader: FileLoaderService
+    private readonly fileLoader: FileLoaderService,
   ) {}
 
   playNote(
@@ -11,16 +11,16 @@ export class SamplerEngine {
     midi: number,
     velocity: number,
     output: AudioNode,
-    when: number = this.context.currentTime
+    when: number = this.context.currentTime,
   ): () => void {
     const zone = sampleMap.zones.find(
-      (z) => midi >= z.midiRange[0] && midi <= z.midiRange[1]
+      (z) => midi >= z.midiRange[0] && midi <= z.midiRange[1],
     );
     if (!zone) return () => {};
 
     const layer =
       zone.layers.find(
-        (l) => velocity >= l.minVelocity && velocity <= l.maxVelocity
+        (l) => velocity >= l.minVelocity && velocity <= l.maxVelocity,
       ) || zone.layers[0];
     const buffer = this.fileLoader.getBuffer(layer.url);
     if (!buffer) return () => {};

@@ -21,10 +21,10 @@ export interface BezierControlPoint {
  * Each point has in/out control handles for curve shaping.
  */
 export interface BezierSegment {
-  p0: { t: number; value: number };       // Start point
-  p1: { t: number; value: number };       // Start control point (outgoing handle)
-  p2: { t: number; value: number };       // End control point (incoming handle)
-  p3: { t: number; value: number };       // End point
+  p0: { t: number; value: number }; // Start point
+  p1: { t: number; value: number }; // Start control point (outgoing handle)
+  p2: { t: number; value: number }; // End control point (incoming handle)
+  p3: { t: number; value: number }; // End point
 }
 
 /**
@@ -56,7 +56,7 @@ export function bezierTimeToU(
   segment: BezierSegment,
   targetTime: number,
   tolerance = 0.0001,
-  maxIter = 10
+  maxIter = 10,
 ): number {
   let u = targetTime; // Initial guess
   for (let i = 0; i < maxIter; i++) {
@@ -90,7 +90,7 @@ export function bezierTimeToU(
 /**
  * Build a cubic bezier segment from two automation points with optional
  * control handle offsets for professional curve shaping.
- * 
+ *
  * Default handles produce a smooth monotonic curve (ease-in-out).
  */
 export function buildBezierSegment(
@@ -99,7 +99,7 @@ export function buildBezierSegment(
   endTime: number,
   endValue: number,
   cpIn: { t: number; value: number } = { t: 0.25, value: 0 },
-  cpOut: { t: number; value: number } = { t: 0.75, value: 0 }
+  cpOut: { t: number; value: number } = { t: 0.75, value: 0 },
 ): BezierSegment {
   const dt = endTime - startTime;
   const dv = endValue - startValue;
@@ -122,7 +122,10 @@ export function buildBezierSegment(
  * Create a default bezier segment with smooth ease-in-out handles.
  * These are the "professional default" curves used in Cubase/Logic.
  */
-export function defaultBezierHandles(): { cpIn: { t: number; value: number }; cpOut: { t: number; value: number } } {
+export function defaultBezierHandles(): {
+  cpIn: { t: number; value: number };
+  cpOut: { t: number; value: number };
+} {
   return {
     cpIn: { t: 0.33, value: 0 },
     cpOut: { t: 0.67, value: 0 },
@@ -139,7 +142,10 @@ export function bezierInterpolate(
   endTime: number,
   endValue: number,
   ratio: number,
-  handles?: { cpIn: { t: number; value: number }; cpOut: { t: number; value: number } }
+  handles?: {
+    cpIn: { t: number; value: number };
+    cpOut: { t: number; value: number };
+  },
 ): number {
   const segment = buildBezierSegment(
     startTime,
@@ -147,7 +153,7 @@ export function bezierInterpolate(
     endTime,
     endValue,
     handles?.cpIn ?? { t: 0.25, value: 0 },
-    handles?.cpOut ?? { t: 0.75, value: 0 }
+    handles?.cpOut ?? { t: 0.75, value: 0 },
   );
 
   // Map ratio (0..1) to actual time within segment

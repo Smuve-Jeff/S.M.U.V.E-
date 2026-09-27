@@ -1,40 +1,40 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { PerformerComponent } from './performer.component';
-import { AudioSessionService } from '../audio-session.service';
-import { MusicManagerService } from '../../services/music-manager.service';
-import { LiveEngineService } from '../../services/live-engine.service';
-import { InstrumentsService } from '../../services/instruments.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { HapticService } from '../../services/haptic.service';
-import { DjMidiService } from '../../services/dj-midi.service';
-import { PerformanceRecordingService } from '../performance-recording.service';
-import { RecordingStatusService } from '../recording-status.service';
-import { FxMacrosService } from '../../services/fx-macros.service';
-import { StudioRecordingEngineService } from '../studio-recording-engine.service';
-import { RecordingLimiterService } from '../recording-limiter.service';
-import { Subject } from 'rxjs';
-import { FormsModule } from '@angular/forms';
-import { signal, Component } from '@angular/core';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { PerformerComponent } from "./performer.component";
+import { AudioSessionService } from "../audio-session.service";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { LiveEngineService } from "../../services/live-engine.service";
+import { InstrumentsService } from "../../services/instruments.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { HapticService } from "../../services/haptic.service";
+import { DjMidiService } from "../../services/dj-midi.service";
+import { PerformanceRecordingService } from "../performance-recording.service";
+import { RecordingStatusService } from "../recording-status.service";
+import { FxMacrosService } from "../../services/fx-macros.service";
+import { StudioRecordingEngineService } from "../studio-recording-engine.service";
+import { RecordingLimiterService } from "../recording-limiter.service";
+import { Subject } from "rxjs";
+import { FormsModule } from "@angular/forms";
+import { signal, Component } from "@angular/core";
 
 @Component({
-  selector: 'app-performance-grid',
+  selector: "app-performance-grid",
   standalone: true,
-  template: '<div></div>',
+  template: "<div></div>",
 })
 class StubPerformanceGridComponent {}
 
-describe('PerformerComponent', () => {
+describe("PerformerComponent", () => {
   let component: PerformerComponent;
   let fixture: ComponentFixture<PerformerComponent>;
   let mockLiveEngine: any;
 
   beforeEach(async () => {
     mockLiveEngine = {
-      activeInstrument: signal('grand-piano-v2'),
+      activeInstrument: signal("grand-piano-v2"),
       smartChords: signal(false),
       arpeggiatorEnabled: signal(false),
       scaleLock: signal(false),
-      scaleMode: signal('major'),
+      scaleMode: signal("major"),
       initialize: jest.fn().mockResolvedValue(true),
       setInstrument: jest.fn().mockResolvedValue(true),
       triggerNoteStart: jest.fn(),
@@ -44,7 +44,7 @@ describe('PerformerComponent', () => {
       setModWheel: jest.fn(),
       setScale: jest.fn(),
       updateParameter: jest.fn(),
-      midiToNote: jest.fn().mockReturnValue('C4'),
+      midiToNote: jest.fn().mockReturnValue("C4"),
     };
 
     await TestBed.configureTestingModule({
@@ -175,11 +175,11 @@ describe('PerformerComponent', () => {
             presets: [],
             activeMacroId: signal(null),
             activeMacro: () => ({
-              name: 'Test',
-              glyph: '🎛',
-              description: '',
-              xTarget: { label: 'X' },
-              yTarget: { label: 'Y' },
+              name: "Test",
+              glyph: "🎛",
+              description: "",
+              xTarget: { label: "X" },
+              yTarget: { label: "Y" },
             }),
             engage: jest.fn(),
             release: jest.fn(),
@@ -188,7 +188,7 @@ describe('PerformerComponent', () => {
             reset: jest.fn(),
             engaged: signal(false),
             xyPos: signal({ x: 0.5, y: 0.5 }),
-            currentValues: signal({ xLabel: '0', yLabel: '0' }),
+            currentValues: signal({ xLabel: "0", yLabel: "0" }),
           },
         },
       ],
@@ -199,30 +199,37 @@ describe('PerformerComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 
-  it('should set instrument', async () => {
-    await component.setInstrument('analog-warmth');
-    expect(mockLiveEngine.setInstrument).toHaveBeenCalledWith('analog-warmth');
+  it("should set instrument", async () => {
+    await component.setInstrument("analog-warmth");
+    expect(mockLiveEngine.setInstrument).toHaveBeenCalledWith("analog-warmth");
   });
 
-  it('should toggle smart chords', () => {
+  it("should toggle smart chords", () => {
     component.toggleSmartChords();
     expect(component.smartChords()).toBe(true);
     expect(mockLiveEngine.smartChords()).toBe(true);
   });
 
-  it('XY pad lifecycle engages on down and releases (reset) on up', () => {
-    const fx = (TestBed as any).inject ? (TestBed as any).inject(FxMacrosService) : null;
+  it("XY pad lifecycle engages on down and releases (reset) on up", () => {
+    const fx = (TestBed as any).inject
+      ? (TestBed as any).inject(FxMacrosService)
+      : null;
     const fxMacros = (fx ?? component.fxMacros) as any;
-    const pad = document.createElement('div');
-    Object.defineProperty(pad, 'getBoundingClientRect', {
+    const pad = document.createElement("div");
+    Object.defineProperty(pad, "getBoundingClientRect", {
       value: () => ({ left: 0, top: 0, width: 100, height: 100 }),
     });
     const makeEvent = (id: number, x: number, y: number) =>
-      ({ pointerId: id, clientX: x, clientY: y, preventDefault: jest.fn() } as any);
+      ({
+        pointerId: id,
+        clientX: x,
+        clientY: y,
+        preventDefault: jest.fn(),
+      }) as any;
 
     component.onPadDown(makeEvent(1, 25, 25), pad);
     expect(fxMacros.engage).toHaveBeenCalled();
@@ -232,11 +239,11 @@ describe('PerformerComponent', () => {
     expect(fxMacros.release).toHaveBeenCalled(); // release ⇒ reset parity path
   });
 
-  it('device toggling delegates to DjMidiService (gating, not cosmetic)', () => {
+  it("device toggling delegates to DjMidiService (gating, not cosmetic)", () => {
     const midi = component.midiService as any;
     midi.isDeviceEnabled = jest.fn(() => false);
-    component.toggleDevice('Controller X');
-    expect(midi.toggleDevice).toHaveBeenCalledWith('Controller X');
-    expect(component.isDeviceEnabled('Controller X')).toBe(false);
+    component.toggleDevice("Controller X");
+    expect(midi.toggleDevice).toHaveBeenCalledWith("Controller X");
+    expect(component.isDeviceEnabled("Controller X")).toBe(false);
   });
 });

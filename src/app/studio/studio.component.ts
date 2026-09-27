@@ -13,168 +13,167 @@ import {
   ViewChild,
   ElementRef,
   HostListener,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { ActivatedRoute, Router } from "@angular/router";
 
-import { MidiWriter, MidiTrackData } from './midi-writer.util';
+import { MidiWriter, MidiTrackData } from "./midi-writer.util";
 
-import { AudioSessionService } from './audio-session.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { HardwareService } from '../services/hardware.service';
-import { AiService } from '../services/ai.service';
-import { UIService } from '../services/ui.service';
+import { AudioSessionService } from "./audio-session.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { HardwareService } from "../services/hardware.service";
+import { AiService } from "../services/ai.service";
+import { UIService } from "../services/ui.service";
 import {
   MusicManagerService,
   type TrackNote,
-} from '../services/music-manager.service';
-import { ProjectService } from '../services/project.service';
-import { HapticService } from '../services/haptic.service';
-import { InteractionDialogService } from '../services/interaction-dialog.service';
-import { ProjectTemplateService } from '../services/project-template.service';
-import { AuthService } from '../services/auth.service';
-import { CollaborationService } from '../services/collaboration.service';
-import { SnackbarService } from '../services/snackbar.service';
-import { LoggingService } from '../services/logging.service';
+} from "../services/music-manager.service";
+import { ProjectService } from "../services/project.service";
+import { HapticService } from "../services/haptic.service";
+import { InteractionDialogService } from "../services/interaction-dialog.service";
+import { ProjectTemplateService } from "../services/project-template.service";
+import { AuthService } from "../services/auth.service";
+import { CollaborationService } from "../services/collaboration.service";
+import { SnackbarService } from "../services/snackbar.service";
+import { LoggingService } from "../services/logging.service";
 import {
   UserProfileService,
   type UserProfile,
-} from '../services/user-profile.service';
+} from "../services/user-profile.service";
 
-import { MixerComponent } from './mixer/mixer.component';
-import { ArrangementViewComponent } from './arrangement-view/arrangement-view.component';
-import { PianoRollComponent } from './piano-roll/piano-roll.component';
-import { MasteringSuiteComponent } from './mastering-suite/mastering-suite.component';
-import { DrumMachineComponent } from './drum-machine/drum-machine.component';
-import { PerformerComponent } from './performer/performer.component';
-import { TransportBarComponent } from './transport-bar/transport-bar.component';
-import { SnackbarComponent } from './shared/snackbar/snackbar.component';
-import { SearchOverlayComponent } from './shared/search-overlay/search-overlay.component';
-import { AiAssistantComponent } from './shared/ai-assistant/ai-assistant.component';
-import { AiProduceComponent } from '../components/ai-produce/ai-produce.component';
-import { DjDeckComponent } from './dj-deck/dj-deck.component';
-import { VocalSuiteComponent } from './vocal-suite/vocal-suite.component';
-import { ChannelRackComponent } from './channel-rack/channel-rack.component';
-import { EffectsRackUiComponent } from './effects-rack-ui/effects-rack-ui.component';
-import { AiBandComponent } from './ai-band/ai-band.component';
-import { IdeasGeneratorService } from '../services/ideas-generator.service';
-import { HistoryService } from '../services/history.service';
-import { AiMixAssistantService } from './effects/ai-mix-assistant.service';
+import { MixerComponent } from "./mixer/mixer.component";
+import { ArrangementViewComponent } from "./arrangement-view/arrangement-view.component";
+import { PianoRollComponent } from "./piano-roll/piano-roll.component";
+import { MasteringSuiteComponent } from "./mastering-suite/mastering-suite.component";
+import { DrumMachineComponent } from "./drum-machine/drum-machine.component";
+import { PerformerComponent } from "./performer/performer.component";
+import { SnackbarComponent } from "./shared/snackbar/snackbar.component";
+import { SearchOverlayComponent } from "./shared/search-overlay/search-overlay.component";
+import { AiAssistantComponent } from "./shared/ai-assistant/ai-assistant.component";
+import { AiProduceComponent } from "../components/ai-produce/ai-produce.component";
+import { DjDeckComponent } from "./dj-deck/dj-deck.component";
+import { VocalSuiteComponent } from "./vocal-suite/vocal-suite.component";
+import { ChannelRackComponent } from "./channel-rack/channel-rack.component";
+import { EffectsRackUiComponent } from "./effects-rack-ui/effects-rack-ui.component";
+import { AiBandComponent } from "./ai-band/ai-band.component";
+import { IdeasGeneratorService } from "../services/ideas-generator.service";
+import { HistoryService } from "../services/history.service";
+import { AiMixAssistantService } from "./effects/ai-mix-assistant.service";
 import {
   SmartRecordingService,
   type CompTake,
-} from './smart-recording.service';
+} from "./smart-recording.service";
 import {
   ProjectWorkspaceService,
   type ProjectBundle,
-} from './project-workspace.service';
-import { SmartSoundService } from './smart-sound.service';
-import { AudioImportService } from './audio-import.service';
-import { SmartProductionFoundationsService } from './smart-production-foundations.service';
-import { ComponentRecordingService } from './component-recording.service';
-import { SoundBrowserComponent } from './sound-browser/sound-browser.component';
-import { SynthesizerComponent } from './synthesizer/synthesizer.component';
-import { SoundPadGridComponent } from './sound-pad-grid/sound-pad-grid.component';
-import { AudioRecorderViewComponent } from './audio-recorder-view/audio-recorder-view.component';
-import { SampleLibraryComponent } from './sample-library/sample-library.component';
-import { BeginnerWizardComponent } from './beginner-wizard/beginner-wizard.component';
-import { ChordEditorComponent } from './chord-editor/chord-editor.component';
-import { MidiInputWidgetComponent } from './midi-input-widget/midi-input-widget.component';
-import { SamplerComponent } from './sampler/sampler.component';
+} from "./project-workspace.service";
+import { SmartSoundService } from "./smart-sound.service";
+import { AudioImportService } from "./audio-import.service";
+import { SmartProductionFoundationsService } from "./smart-production-foundations.service";
+import { ComponentRecordingService } from "./component-recording.service";
+import { SoundBrowserComponent } from "./sound-browser/sound-browser.component";
+import { SynthesizerComponent } from "./synthesizer/synthesizer.component";
+import { SoundPadGridComponent } from "./sound-pad-grid/sound-pad-grid.component";
+import { AudioRecorderViewComponent } from "./audio-recorder-view/audio-recorder-view.component";
+import { SampleLibraryComponent } from "./sample-library/sample-library.component";
+import { BeginnerWizardComponent } from "./beginner-wizard/beginner-wizard.component";
+import { ChordEditorComponent } from "./chord-editor/chord-editor.component";
+import { MidiInputWidgetComponent } from "./midi-input-widget/midi-input-widget.component";
+import { SamplerComponent } from "./sampler/sampler.component";
 import {
   PerformanceModeComponent,
   PerformancePad,
-} from './performance-mode/performance-mode.component';
-import { VocalCompViewComponent } from './vocal-comp-view/vocal-comp-view.component';
-import { BezierEditorComponent } from './automation/bezier-editor.component';
-import { ScoreViewComponent } from './score-view/score-view.component';
-import { PluginStoreComponent } from './plugin-store/plugin-store.component';
-import { WaveformRendererComponent } from './waveform-renderer/waveform-renderer.component';
-import { StudioTransportShellComponent } from './shared/studio-transport-shell/studio-transport-shell.component';
-import { SessionViewComponent } from './session-view/session-view.component';
-import { SmartCreationSheetComponent } from './shared/smart-creation-sheet/smart-creation-sheet.component';
+} from "./performance-mode/performance-mode.component";
+import { VocalCompViewComponent } from "./vocal-comp-view/vocal-comp-view.component";
+import { BezierEditorComponent } from "./automation/bezier-editor.component";
+import { ScoreViewComponent } from "./score-view/score-view.component";
+import { PluginStoreComponent } from "./plugin-store/plugin-store.component";
+import { WaveformRendererComponent } from "./waveform-renderer/waveform-renderer.component";
+import { StudioTransportShellComponent } from "./shared/studio-transport-shell/studio-transport-shell.component";
+import { SessionViewComponent } from "./session-view/session-view.component";
+import { SmartCreationSheetComponent } from "./shared/smart-creation-sheet/smart-creation-sheet.component";
 import {
   StudioCoachAction,
   StudioCoachActionId,
   StudioTelemetryService,
-} from './studio-telemetry.service';
-import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
-import { StudioOrchestrationService } from '../services/studio-orchestration.service';
-import { buildZip, type ZipEntry } from './zip.util';
+} from "./studio-telemetry.service";
+import { AudioEngineLatencyService } from "../services/audio-engine-latency.service";
+import { StudioOrchestrationService } from "../services/studio-orchestration.service";
+import { buildZip, type ZipEntry } from "./zip.util";
 
 type StudioView =
-  | 'arrangement'
-  | 'session'
-  | 'dj'
-  | 'piano-roll'
-  | 'mixer'
-  | 'performance'
-  | 'mastering'
-  | 'drum-machine'
-  | 'channel-rack'
-  | 'vocal-suite'
-  | 'effects-rack'
-  | 'performer'
-  | 'audio-recorder'
-  | 'sample-library'
-  | 'sound-browser'
-  | 'sound-pad'
-  | 'synthesizer'
-  | 'chord-editor'
-  | 'sampler'
-  | 'score'
-  | 'plugins'
-  | 'ai-produce';
-type MobileStudioPanel = 'browser' | 'inspector' | 'fx-rack' | 'templates';
+  | "arrangement"
+  | "session"
+  | "dj"
+  | "piano-roll"
+  | "mixer"
+  | "performance"
+  | "mastering"
+  | "drum-machine"
+  | "channel-rack"
+  | "vocal-suite"
+  | "effects-rack"
+  | "performer"
+  | "audio-recorder"
+  | "sample-library"
+  | "sound-browser"
+  | "sound-pad"
+  | "synthesizer"
+  | "chord-editor"
+  | "sampler"
+  | "score"
+  | "plugins"
+  | "ai-produce";
+type MobileStudioPanel = "browser" | "inspector" | "fx-rack" | "templates";
 
 const PATH_STUDIO_VIEWS = new Set<StudioView>([
-  'arrangement',
-  'session',
-  'dj',
-  'piano-roll',
-  'mixer',
-  'performance',
-  'mastering',
-  'drum-machine',
-  'channel-rack',
-  'vocal-suite',
-  'effects-rack',
-  'performer',
-  'audio-recorder',
-  'sample-library',
-  'sound-browser',
-  'sound-pad',
-  'synthesizer',
-  'chord-editor',
-  'sampler',
-  'score',
-  'plugins',
-  'ai-produce',
+  "arrangement",
+  "session",
+  "dj",
+  "piano-roll",
+  "mixer",
+  "performance",
+  "mastering",
+  "drum-machine",
+  "channel-rack",
+  "vocal-suite",
+  "effects-rack",
+  "performer",
+  "audio-recorder",
+  "sample-library",
+  "sound-browser",
+  "sound-pad",
+  "synthesizer",
+  "chord-editor",
+  "sampler",
+  "score",
+  "plugins",
+  "ai-produce",
 ]);
 function isStudioView(value: string): value is StudioView {
   return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
 }
 
 /** 3-way theme storage key. Persists across sessions. */
-const THEME_STORAGE_KEY = 'smuve_studio_theme';
+const THEME_STORAGE_KEY = "smuve_studio_theme";
 /** Stage FX ambience (aurora / marquee / sheens) storage key. */
-const STAGE_FX_STORAGE_KEY = 'smuve_stage_fx';
-type AppTheme = 'light' | 'focus' | 'dark';
-const THEME_ORDER: AppTheme[] = ['light', 'focus', 'dark'];
+const STAGE_FX_STORAGE_KEY = "smuve_stage_fx";
+type AppTheme = "light" | "focus" | "dark";
+const THEME_ORDER: AppTheme[] = ["light", "focus", "dark"];
 const NEXT_THEME_ICON: Record<AppTheme, string> = {
-  light: 'filter_drama',
-  focus: 'dark_mode',
-  dark: 'light_mode',
+  light: "filter_drama",
+  focus: "dark_mode",
+  dark: "light_mode",
 };
 const THEME_LABEL: Record<AppTheme, string> = {
-  light: 'LIGHT',
-  focus: 'FOCUS',
-  dark: 'DARK',
+  light: "LIGHT",
+  focus: "FOCUS",
+  dark: "DARK",
 };
 
 @Component({
-  selector: 'app-studio',
+  selector: "app-studio",
   standalone: true,
   imports: [
     CommonModule,
@@ -213,16 +212,16 @@ const THEME_LABEL: Record<AppTheme, string> = {
     SessionViewComponent,
     SmartCreationSheetComponent,
   ],
-  templateUrl: './studio.component.html',
+  templateUrl: "./studio.component.html",
   styleUrls: [
-    './studio.component.css',
-    './studio-shell-refinement.css',
-    './stage-2.0-atmosphere.css',
-    './studio-redesign.css',
+    "./studio.component.css",
+    "./studio-shell-refinement.css",
+    "./stage-2.0-atmosphere.css",
+    "./studio-redesign.css",
     /* Platform UX layer — Android touch + Chrome desktop ergonomics.
        Also registered in each interactive instrument's styleUrls
        (encapsulation keeps shell styles out of child templates). */
-    './shared/platform-ux.css',
+    "./shared/platform-ux.css",
   ],
   /* Studio-wide deep responsive refinement (additive layer, see
      DEEP RESPONSIVE REFINEMENT blocks in the subview stylesheets). */
@@ -295,7 +294,11 @@ const THEME_LABEL: Record<AppTheme, string> = {
           padding: 14px;
           border: 1px solid rgba(14, 124, 123, 0.18);
           border-radius: 18px;
-          background: linear-gradient(135deg, rgba(251, 247, 236, 0.98), rgba(230, 245, 244, 0.92));
+          background: linear-gradient(
+            135deg,
+            rgba(251, 247, 236, 0.98),
+            rgba(230, 245, 244, 0.92)
+          );
           box-shadow: 0 10px 24px rgba(61, 53, 42, 0.08);
           /* The lane is a fixed-height flex sibling of the canvas, so on a short
              phone (or with Android Chrome's 200% text scaling) an uncapped card
@@ -326,7 +329,11 @@ const THEME_LABEL: Record<AppTheme, string> = {
           align-items: center;
           padding: 2px 7px;
           border-radius: 9999px;
-          background: linear-gradient(135deg, rgba(14, 124, 123, 0.2), rgba(20, 184, 166, 0.3));
+          background: linear-gradient(
+            135deg,
+            rgba(14, 124, 123, 0.2),
+            rgba(20, 184, 166, 0.3)
+          );
           border: 1px solid rgba(14, 124, 123, 0.35);
           color: #0e7c7b;
           font-size: 8px;
@@ -368,7 +375,10 @@ const THEME_LABEL: Record<AppTheme, string> = {
           color: var(--stage-ink, #1f1a12);
           text-align: left;
           cursor: pointer;
-          transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+          transition:
+            transform 160ms ease,
+            box-shadow 160ms ease,
+            border-color 160ms ease;
           touch-action: manipulation;
           -webkit-tap-highlight-color: transparent;
         }
@@ -411,7 +421,12 @@ const THEME_LABEL: Record<AppTheme, string> = {
           font-size: 9px;
         }
         .comp-mobile-start-hero {
-          background: linear-gradient(135deg, rgba(20, 184, 166, 0.22), rgba(14, 124, 123, 0.12), rgba(255, 255, 255, 0.9));
+          background: linear-gradient(
+            135deg,
+            rgba(20, 184, 166, 0.22),
+            rgba(14, 124, 123, 0.12),
+            rgba(255, 255, 255, 0.9)
+          );
           border: 1.5px solid rgba(20, 184, 166, 0.55);
           box-shadow: 0 4px 14px rgba(20, 184, 166, 0.18);
         }
@@ -426,7 +441,11 @@ const THEME_LABEL: Record<AppTheme, string> = {
         }
         .comp-mobile-start-primary {
           border-color: rgba(14, 124, 123, 0.32);
-          background: linear-gradient(135deg, rgba(14, 124, 123, 0.14), rgba(255, 255, 255, 0.72));
+          background: linear-gradient(
+            135deg,
+            rgba(14, 124, 123, 0.14),
+            rgba(255, 255, 255, 0.72)
+          );
         }
       }
       /* Landscape phones: the shell spends ~44px on the topbar, ~48px on the
@@ -487,10 +506,11 @@ const THEME_LABEL: Record<AppTheme, string> = {
   ],
 })
 export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
-  @ViewChild('fileInput', { static: false }) fileInput?: ElementRef<HTMLInputElement>;
+  @ViewChild("fileInput", { static: false })
+  fileInput?: ElementRef<HTMLInputElement>;
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
   @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;
-  @ViewChild('spectrumCanvas', { static: false })
+  @ViewChild("spectrumCanvas", { static: false })
   spectrumCanvas?: ElementRef<HTMLCanvasElement>;
 
   /** Animation frame handle for spectrum analyzer rendering */
@@ -539,7 +559,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly orchestration = inject(StudioOrchestrationService);
 
   // ---- State ----
-  activeView = signal<StudioView>('arrangement');
+  activeView = signal<StudioView>("arrangement");
   showSmartCreationSheet = signal(false);
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showAiAssistant = signal(false);
@@ -553,13 +573,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showComponentRecording = signal(false);
   showStudioInsights = signal(false);
   showProjectMenu = signal(false);
-  toggleProjectMenu() { this.showProjectMenu.update(v => !v); }
+  toggleProjectMenu() {
+    this.showProjectMenu.update((v) => !v);
+  }
   /** True while an Insights engine probe is in-flight. */
   insightsProbeRunning = signal(false);
 
   // ── Bezier editor state ──────────────────────────────────
   showBezierEditor = signal(false);
-  bezierLaneId = signal<string>('');
+  bezierLaneId = signal<string>("");
 
   toggleBezierEditor(laneId?: string): void {
     this.haptic.light();
@@ -593,27 +615,29 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onBezierCurveChanged(curve: any): void {
-    this.snackbarService.info('Bezier curve applied to automation lane');
+    this.snackbarService.info("Bezier curve applied to automation lane");
   }
-  crossLinkAnnouncement = signal<string>('');
+  crossLinkAnnouncement = signal<string>("");
 
   // ── Performance Pads ────────────────────────────────────
   performancePads = signal<PerformancePad[]>([
-    { id: 1, name: 'KICK', type: 'one-shot', isPlaying: false },
-    { id: 2, name: 'SNARE', type: 'one-shot', isPlaying: false },
-    { id: 3, name: 'HAT', type: 'one-shot', isPlaying: false },
-    { id: 4, name: 'CLAP', type: 'one-shot', isPlaying: false },
-    { id: 5, name: 'BASS', type: 'loop', isPlaying: false },
-    { id: 6, name: 'CHORD', type: 'loop', isPlaying: false },
-    { id: 7, name: 'LEAD', type: 'loop', isPlaying: false },
-    { id: 8, name: 'FX', type: 'one-shot', isPlaying: false },
+    { id: 1, name: "KICK", type: "one-shot", isPlaying: false },
+    { id: 2, name: "SNARE", type: "one-shot", isPlaying: false },
+    { id: 3, name: "HAT", type: "one-shot", isPlaying: false },
+    { id: 4, name: "CLAP", type: "one-shot", isPlaying: false },
+    { id: 5, name: "BASS", type: "loop", isPlaying: false },
+    { id: 6, name: "CHORD", type: "loop", isPlaying: false },
+    { id: 7, name: "LEAD", type: "loop", isPlaying: false },
+    { id: 8, name: "FX", type: "one-shot", isPlaying: false },
   ]);
 
   onPerformancePadClicked(pad: PerformancePad): void {
     this.haptic.medium();
     // Toggle playing state
     this.performancePads.update((pads) =>
-      pads.map((p) => (p.id === pad.id ? { ...p, isPlaying: !p.isPlaying } : p))
+      pads.map((p) =>
+        p.id === pad.id ? { ...p, isPlaying: !p.isPlaying } : p,
+      ),
     );
     // Trigger a note on the live engine
     const midiNotes: Record<string, number> = {
@@ -634,24 +658,26 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         const freq = 440 * Math.pow(2, (note - 69) / 12);
         const time = this.audioEngine.ctx?.currentTime ?? 0;
         this.audioEngine.playSynth?.(time, freq, 0.4, 0.9, 0, {
-          type: 'sine',
+          type: "sine",
         });
       } catch {
         // test mock / suspended context — the visual toggle still lands
       }
     }
     this.snackbarService.info(
-      `Pad ${pad.isPlaying ? 'OFF' : 'HIT'}: ${pad.name}`
+      `Pad ${pad.isPlaying ? "OFF" : "HIT"}: ${pad.name}`,
     );
   }
   private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
   headerCollapsed = signal(false);
   studioWeeklyDashboard = computed(() =>
-    this.studioTelemetry.weeklyDashboard()
+    this.studioTelemetry.weeklyDashboard(),
   );
   /** True after the very first time this component has been constructed this browser. */
-  firstNavigationSeen = signal(this.hasLocalStorageKey('smuve_first_nav_seen', 'true'));
+  firstNavigationSeen = signal(
+    this.hasLocalStorageKey("smuve_first_nav_seen", "true"),
+  );
   /**
    * Mark the first navigation as seen. Called once on construction so the
    * topbar staggered entrance animation only fires for the first load.
@@ -660,7 +686,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.firstNavigationSeen()) return;
     this.firstNavigationSeen.set(true);
     try {
-      localStorage.setItem('smuve_first_nav_seen', 'true');
+      localStorage.setItem("smuve_first_nav_seen", "true");
     } catch {
       /* private mode / locked storage — degrade silently */
     }
@@ -685,8 +711,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.uiService.setBeginnerMode(next);
     this.snackbarService.info(
       next
-        ? 'Beginner Mode ON — simplified controls with tips'
-        : 'Pro Mode ON — full studio controls'
+        ? "Beginner Mode ON — simplified controls with tips"
+        : "Pro Mode ON — full studio controls",
     );
   }
 
@@ -698,10 +724,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // would loop straight back to the wizard. Hand those off into Pro mode
     // so the real tool renders — LEARN in the topbar returns anytime, and
     // the wizard keeps its progress marks either way.
-    if (view === 'arrangement' && this.isBeginnerMode()) {
+    if (view === "arrangement" && this.isBeginnerMode()) {
       this.uiService.setBeginnerMode(false);
       this.snackbarService.info(
-        'PRO ARRANGEMENT OPEN — tap LEARN to return to Beginner Mode'
+        "PRO ARRANGEMENT OPEN — tap LEARN to return to Beginner Mode",
       );
     }
     this.setActiveView(view);
@@ -714,42 +740,42 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     // Auto-configure based on the preset type
     switch (payload.preset) {
-      case 'house':
+      case "house":
         // Auto-apply house drum style and set tempo
         this.audioEngine.tempo.set(124);
         this.snackbarService.info(
-          'Beginner preset loaded: House beat at 124 BPM — tap Generate Style in the drum machine!'
+          "Beginner preset loaded: House beat at 124 BPM — tap Generate Style in the drum machine!",
         );
         break;
-      case 'c-major-beginner':
+      case "c-major-beginner":
         // Set a beginner-friendly tempo and notify
         this.audioEngine.tempo.set(100);
         this.snackbarService.info(
-          'Beginner preset loaded: C Major scale locked at 100 BPM — try the white keys!'
+          "Beginner preset loaded: C Major scale locked at 100 BPM — try the white keys!",
         );
         break;
-      case 'lofi-85':
+      case "lofi-85":
         this.audioEngine.tempo.set(85);
         this.snackbarService.info(
-          'Beginner preset loaded: Lo-Fi vibe at 85 BPM'
+          "Beginner preset loaded: Lo-Fi vibe at 85 BPM",
         );
         break;
       default:
-        this.snackbarService.info('Preset loaded — explore and have fun!');
+        this.snackbarService.info("Preset loaded — explore and have fun!");
     }
   }
 
   /** Navigate back to the Hub home page */
   navigateHome() {
     this.haptic.light();
-    this.router.navigate(['/hub']);
+    this.router.navigate(["/hub"]);
   }
 
   /**
    * 3-way theme model — replaces the old binary isDarkMode.
    * Persisted in localStorage; applied via <body> class.
    */
-  themeMode = signal<AppTheme>('light');
+  themeMode = signal<AppTheme>("light");
   /**
    * Stage FX ambience — aurora field, marquee, sheens & pulse animations.
    * Defaults ON. Persisted in localStorage; OFF adds `stage-fx-off` to
@@ -769,9 +795,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Read browser storage without making Studio construction fail in SSR/WebViews. */
   private hasLocalStorageKey(key: string, expectedValue?: string): boolean {
     try {
-      if (typeof localStorage === 'undefined') return false;
+      if (typeof localStorage === "undefined") return false;
       const value = localStorage.getItem(key);
-      return value !== null && (expectedValue === undefined || value === expectedValue);
+      return (
+        value !== null &&
+        (expectedValue === undefined || value === expectedValue)
+      );
     } catch {
       return false;
     }
@@ -780,14 +809,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Compute the first-load Stage FX state (storage → motion pref → on). */
   private initialStageFxEnabled(): boolean {
     try {
-      if (typeof localStorage !== 'undefined') {
+      if (typeof localStorage !== "undefined") {
         const stored = localStorage.getItem(STAGE_FX_STORAGE_KEY);
-        if (stored !== null) return stored !== 'off';
+        if (stored !== null) return stored !== "off";
       }
       if (
-        typeof window !== 'undefined' &&
-        typeof window.matchMedia === 'function' &&
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
       ) {
         return false;
       }
@@ -807,7 +836,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   userGestureSeen = this.audioEngine.userGestureSeen;
   /** True when the tobtap should show the ARM AUDIO pip. */
   showArmAudioPip = computed(
-    () => this.audioContextState() === 'suspended' && !this.userGestureSeen()
+    () => this.audioContextState() === "suspended" && !this.userGestureSeen(),
   );
   /**
    * True when the user has armed audio AND the transport is rolling.
@@ -819,7 +848,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   isLivePerforming = computed(() => {
     const api = this.audioEngine;
     const playing =
-      typeof api.isPlaying === 'function' ? api.isPlaying() : false;
+      typeof api.isPlaying === "function" ? api.isPlaying() : false;
     return playing && !this.showArmAudioPip();
   });
 
@@ -827,13 +856,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   inspectorWidth = signal(300);
 
   studioQualityClass = computed(() => {
-    return this.audioEngine.performanceTier() === 'ultra'
-      ? 'studio-ultra'
-      : 'studio-perf';
+    return this.audioEngine.performanceTier() === "ultra"
+      ? "studio-ultra"
+      : "studio-perf";
   });
 
   currentBar = computed(
-    () => Math.floor(this.audioEngine.visualStep() / 16) + 1
+    () => Math.floor(this.audioEngine.visualStep() / 16) + 1,
   );
 
   /**
@@ -841,11 +870,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * Benchmarked against BandLab, FL Studio Mobile, and Voloco.
    */
   bottomNavItems = computed(() => [
-    { id: 'arrangement', label: 'Timeline', icon: 'view_quilt' },
-    { id: 'drum-machine', label: 'Beats', icon: 'grid_view' },
-    { id: 'piano-roll', label: 'Keys', icon: 'piano' },
-    { id: 'vocal-suite', label: 'Vocals', icon: 'mic' },
-    { id: 'mixer', label: 'Mixer', icon: 'tune' },
+    { id: "arrangement", label: "Timeline", icon: "view_quilt" },
+    { id: "drum-machine", label: "Beats", icon: "grid_view" },
+    { id: "piano-roll", label: "Keys", icon: "piano" },
+    { id: "vocal-suite", label: "Vocals", icon: "mic" },
+    { id: "mixer", label: "Mixer", icon: "tune" },
   ]);
 
   /**
@@ -854,56 +883,166 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   studioWorkflowCategories = computed(() => [
     {
-      id: 'create',
-      label: 'Create & Jam',
-      icon: 'auto_awesome',
-      description: 'Record takes, program drums, play synths & chords',
+      id: "create",
+      label: "Create & Jam",
+      icon: "auto_awesome",
+      description: "Record takes, program drums, play synths & chords",
       views: [
-        { id: 'drum-machine' as StudioView, label: 'Drum Machine', icon: 'grid_view', description: 'Step sequencer & beat builder', primary: true },
-        { id: 'piano-roll' as StudioView, label: 'Piano Roll', icon: 'piano', description: 'Keys, melody & note editing', primary: true },
-        { id: 'vocal-suite' as StudioView, label: 'Vocal Suite', icon: 'mic', description: 'Auto-pitch & real-time vocal chain', primary: true },
-        { id: 'audio-recorder' as StudioView, label: 'Quick Recorder', icon: 'mic_external_on', description: 'Instant voice memo & mic capture' },
-        { id: 'chord-editor' as StudioView, label: 'Chords', icon: 'music_note', description: '1-tap progressions & voicings' },
-        { id: 'sound-pad' as StudioView, label: 'Sound Pads', icon: 'grid_on', description: 'MPC-style touch finger drumming' },
-        { id: 'synthesizer' as StudioView, label: 'Synthesizer', icon: 'waves', description: 'Analog & wavetable synth voices' },
-        { id: 'ai-produce' as StudioView, label: 'AI Producer', icon: 'psychology', description: 'Prompt-guided beat generation' },
+        {
+          id: "drum-machine" as StudioView,
+          label: "Drum Machine",
+          icon: "grid_view",
+          description: "Step sequencer & beat builder",
+          primary: true,
+        },
+        {
+          id: "piano-roll" as StudioView,
+          label: "Piano Roll",
+          icon: "piano",
+          description: "Keys, melody & note editing",
+          primary: true,
+        },
+        {
+          id: "vocal-suite" as StudioView,
+          label: "Vocal Suite",
+          icon: "mic",
+          description: "Auto-pitch & real-time vocal chain",
+          primary: true,
+        },
+        {
+          id: "audio-recorder" as StudioView,
+          label: "Quick Recorder",
+          icon: "mic_external_on",
+          description: "Instant voice memo & mic capture",
+        },
+        {
+          id: "chord-editor" as StudioView,
+          label: "Chords",
+          icon: "music_note",
+          description: "1-tap progressions & voicings",
+        },
+        {
+          id: "sound-pad" as StudioView,
+          label: "Sound Pads",
+          icon: "grid_on",
+          description: "MPC-style touch finger drumming",
+        },
+        {
+          id: "synthesizer" as StudioView,
+          label: "Synthesizer",
+          icon: "waves",
+          description: "Analog & wavetable synth voices",
+        },
+        {
+          id: "ai-produce" as StudioView,
+          label: "AI Producer",
+          icon: "psychology",
+          description: "Prompt-guided beat generation",
+        },
       ],
     },
     {
-      id: 'arrange',
-      label: 'Song Builder',
-      icon: 'view_quilt',
-      description: 'Timeline arrangement, loops, patterns & score',
+      id: "arrange",
+      label: "Song Builder",
+      icon: "view_quilt",
+      description: "Timeline arrangement, loops, patterns & score",
       views: [
-        { id: 'arrangement' as StudioView, label: 'Arrangement', icon: 'view_quilt', description: 'Full song timeline & tracks', primary: true },
-        { id: 'session' as StudioView, label: 'Session View', icon: 'dashboard', description: 'Non-linear clip & loop launcher' },
-        { id: 'channel-rack' as StudioView, label: 'Channel Rack', icon: 'inventory_2', description: 'Instruments & pattern overview' },
-        { id: 'score' as StudioView, label: 'Score View', icon: 'music_note', description: 'Musical notation & sheet export' },
+        {
+          id: "arrangement" as StudioView,
+          label: "Arrangement",
+          icon: "view_quilt",
+          description: "Full song timeline & tracks",
+          primary: true,
+        },
+        {
+          id: "session" as StudioView,
+          label: "Session View",
+          icon: "dashboard",
+          description: "Non-linear clip & loop launcher",
+        },
+        {
+          id: "channel-rack" as StudioView,
+          label: "Channel Rack",
+          icon: "inventory_2",
+          description: "Instruments & pattern overview",
+        },
+        {
+          id: "score" as StudioView,
+          label: "Score View",
+          icon: "music_note",
+          description: "Musical notation & sheet export",
+        },
       ],
     },
     {
-      id: 'mix',
-      label: 'Mix & Polish',
-      icon: 'tune',
-      description: '12-track console, dynamic FX, DJ & mastering',
+      id: "mix",
+      label: "Mix & Polish",
+      icon: "tune",
+      description: "12-track console, dynamic FX, DJ & mastering",
       views: [
-        { id: 'mixer' as StudioView, label: 'Mixer', icon: 'tune', description: '12-track fader console & routing', primary: true },
-        { id: 'effects-rack' as StudioView, label: 'Effects Rack', icon: 'magic_button', description: 'Dynamic VST audio inserts' },
-        { id: 'dj' as StudioView, label: 'DJ Booth', icon: 'album', description: 'Live platter decks & crossfader' },
-        { id: 'mastering' as StudioView, label: 'Mastering', icon: 'graphic_eq', description: 'Loudness maximizer & bus limiters' },
-        { id: 'performance' as StudioView, label: 'Performance', icon: 'interpreter_mode', description: 'Live performance scene triggers' },
+        {
+          id: "mixer" as StudioView,
+          label: "Mixer",
+          icon: "tune",
+          description: "12-track fader console & routing",
+          primary: true,
+        },
+        {
+          id: "effects-rack" as StudioView,
+          label: "Effects Rack",
+          icon: "magic_button",
+          description: "Dynamic VST audio inserts",
+        },
+        {
+          id: "dj" as StudioView,
+          label: "DJ Booth",
+          icon: "album",
+          description: "Live platter decks & crossfader",
+        },
+        {
+          id: "mastering" as StudioView,
+          label: "Mastering",
+          icon: "graphic_eq",
+          description: "Loudness maximizer & bus limiters",
+        },
+        {
+          id: "performance" as StudioView,
+          label: "Performance",
+          icon: "interpreter_mode",
+          description: "Live performance scene triggers",
+        },
       ],
     },
     {
-      id: 'library',
-      label: 'Sounds & Packs',
-      icon: 'library_music',
-      description: 'Sample packs, instrument presets & audio tools',
+      id: "library",
+      label: "Sounds & Packs",
+      icon: "library_music",
+      description: "Sample packs, instrument presets & audio tools",
       views: [
-        { id: 'sound-browser' as StudioView, label: 'Sound Browser', icon: 'queue_music', description: 'Curated kits, bass & instruments' },
-        { id: 'sample-library' as StudioView, label: 'Sample Library', icon: 'library_music', description: 'Imported audio & loop storage' },
-        { id: 'sampler' as StudioView, label: 'Sampler', icon: 'graphic_eq', description: 'Sample slicing & key mapping' },
-        { id: 'plugins' as StudioView, label: 'Plugin Store', icon: 'extension', description: 'Pro studio effects & synthesizers' },
+        {
+          id: "sound-browser" as StudioView,
+          label: "Sound Browser",
+          icon: "queue_music",
+          description: "Curated kits, bass & instruments",
+        },
+        {
+          id: "sample-library" as StudioView,
+          label: "Sample Library",
+          icon: "library_music",
+          description: "Imported audio & loop storage",
+        },
+        {
+          id: "sampler" as StudioView,
+          label: "Sampler",
+          icon: "graphic_eq",
+          description: "Sample slicing & key mapping",
+        },
+        {
+          id: "plugins" as StudioView,
+          label: "Plugin Store",
+          icon: "extension",
+          description: "Pro studio effects & synthesizers",
+        },
       ],
     },
   ]);
@@ -914,15 +1053,17 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     for (const cat of this.studioWorkflowCategories()) {
       if (cat.views.some((v) => v.id === view)) return cat.id;
     }
-    return 'arrange';
+    return "arrange";
   });
 
   /** Open or toggle the Smart Creation assistant */
   toggleSmartCreation(open?: boolean): void {
     this.haptic.light();
-    this.showSmartCreationSheet.update((curr) => (open !== undefined ? open : !curr));
+    this.showSmartCreationSheet.update((curr) =>
+      open !== undefined ? open : !curr,
+    );
     if (this.showSmartCreationSheet()) {
-      this.studioTelemetry.trackEvent('smart_creation_opened', {}, true);
+      this.studioTelemetry.trackEvent("smart_creation_opened", {}, true);
     }
   }
 
@@ -938,38 +1079,38 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * the rail but stay reachable via the URL (?view=...) and mobile shell.
    */
   allStudioViews = computed(() => [
-    { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
-    { id: 'session', label: 'Session', icon: 'grid_view' },
-    { id: 'piano-roll', label: 'Piano Roll', icon: 'piano' },
-    { id: 'drum-machine', label: 'Drum Machine', icon: 'grid_view' },
-    { id: 'channel-rack', label: 'Channel Rack', icon: 'inventory_2' },
-    { id: 'mixer', label: 'Mixer', icon: 'tune' },
-    { id: 'effects-rack', label: 'Effects Rack', icon: 'magic_button' },
-    { id: 'vocal-suite', label: 'Vocal Suite', icon: 'mic' },
-    { id: 'dj', label: 'DJ Booth', icon: 'album' },
-    { id: 'performance', label: 'Performance', icon: 'interpreter_mode' },
-    { id: 'mastering', label: 'Mastering', icon: 'graphic_eq' },
-    { id: 'ai-produce', label: 'AI Produce', icon: 'auto_awesome' },
-    { id: 'sound-browser', label: 'Sound Browser', icon: 'queue_music' },
-    { id: 'sound-pad', label: 'Sound Pad', icon: 'grid_on' },
-    { id: 'synthesizer', label: 'Synthesizer', icon: 'waves' },
-    { id: 'chord-editor', label: 'Chords', icon: 'music_note' },
-    { id: 'sampler', label: 'Sampler', icon: 'library_music' },
-    { id: 'score', label: 'Score', icon: 'music_note' },
-    { id: 'sample-library', label: 'Sample Library', icon: 'library_music' },
-    { id: 'plugins', label: 'Plugin Store', icon: 'extension' },
-    { id: 'audio-recorder', label: 'Recorder', icon: 'mic_external_on' },
+    { id: "arrangement", label: "Arrange", icon: "view_quilt" },
+    { id: "session", label: "Session", icon: "grid_view" },
+    { id: "piano-roll", label: "Piano Roll", icon: "piano" },
+    { id: "drum-machine", label: "Drum Machine", icon: "grid_view" },
+    { id: "channel-rack", label: "Channel Rack", icon: "inventory_2" },
+    { id: "mixer", label: "Mixer", icon: "tune" },
+    { id: "effects-rack", label: "Effects Rack", icon: "magic_button" },
+    { id: "vocal-suite", label: "Vocal Suite", icon: "mic" },
+    { id: "dj", label: "DJ Booth", icon: "album" },
+    { id: "performance", label: "Performance", icon: "interpreter_mode" },
+    { id: "mastering", label: "Mastering", icon: "graphic_eq" },
+    { id: "ai-produce", label: "AI Produce", icon: "auto_awesome" },
+    { id: "sound-browser", label: "Sound Browser", icon: "queue_music" },
+    { id: "sound-pad", label: "Sound Pad", icon: "grid_on" },
+    { id: "synthesizer", label: "Synthesizer", icon: "waves" },
+    { id: "chord-editor", label: "Chords", icon: "music_note" },
+    { id: "sampler", label: "Sampler", icon: "library_music" },
+    { id: "score", label: "Score", icon: "music_note" },
+    { id: "sample-library", label: "Sample Library", icon: "library_music" },
+    { id: "plugins", label: "Plugin Store", icon: "extension" },
+    { id: "audio-recorder", label: "Recorder", icon: "mic_external_on" },
     {
-      id: 'performer',
-      label: 'Performer',
-      icon: 'piano_off',
+      id: "performer",
+      label: "Performer",
+      icon: "piano_off",
       hidden: !this.uiService.showMobileNav(),
     },
   ]);
 
   constructor() {
     this.route.queryParamMap.subscribe((params) => {
-      const view = params.get('view');
+      const view = params.get("view");
       if (view && isStudioView(view)) this.activeView.set(view);
     });
 
@@ -1007,10 +1148,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const stored = localStorage.getItem(THEME_STORAGE_KEY) as AppTheme | null;
       if (stored && (THEME_ORDER as string[]).includes(stored)) {
         this.themeMode.set(stored);
-        document.body.classList.add(stored + '-mode');
+        document.body.classList.add(stored + "-mode");
       } else {
         const profileTheme = this.uiService.activeTheme().name;
-        const mapped: AppTheme = profileTheme === 'Light' ? 'light' : 'dark';
+        const mapped: AppTheme = profileTheme === "Light" ? "light" : "dark";
         this.themeMode.set(mapped);
       }
     } catch {
@@ -1025,13 +1166,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       } catch {
         /* ignore */
       }
-      document.body.classList.remove('light-mode', 'focus-mode', 'dark-mode');
-      document.body.classList.add(theme + '-mode');
+      document.body.classList.remove("light-mode", "focus-mode", "dark-mode");
+      document.body.classList.add(theme + "-mode");
     });
 
     // ── Stage FX effect — sync body class so every view honors the toggle ──
     effect(() => {
-      document.body.classList.toggle('stage-fx-off', !this.stageFxEnabled());
+      document.body.classList.toggle("stage-fx-off", !this.stageFxEnabled());
     });
 
     // ── Stage FX live-sync — the executive preference is the single source
@@ -1062,11 +1203,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     effect(() => {
       try {
         const tier =
-          typeof this.audioEngine.performanceTier === 'function'
+          typeof this.audioEngine.performanceTier === "function"
             ? this.audioEngine.performanceTier()
-            : 'ultra';
+            : "ultra";
         if (
-          tier === 'performance' &&
+          tier === "performance" &&
           !this.stageFxUserTouched &&
           this.stageFxEnabled()
         ) {
@@ -1076,7 +1217,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           // the profile) stays consistent instead of re-enabling ambience.
           this.persistStageFxState(false);
           this.snackbarService.info(
-            'Stage FX OFF · adaptive low-power mode — tap FX to re-enable'
+            "Stage FX OFF · adaptive low-power mode — tap FX to re-enable",
           );
         }
       } catch {
@@ -1094,7 +1235,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const bar = this.currentBar();
       try {
         const playing =
-          typeof this.audioEngine.isPlaying === 'function'
+          typeof this.audioEngine.isPlaying === "function"
             ? this.audioEngine.isPlaying()
             : false;
         if (playing) {
@@ -1113,7 +1254,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       untracked(() => {
         const trackName =
           this.musicManager.tracks().find((t) => t.id === req.trackId)?.name ||
-          'selected track';
+          "selected track";
         if (this.activeView() !== req.view) {
           this.setActiveView(req.view);
         }
@@ -1124,9 +1265,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           this.musicManager.selectedTrackId.set(req.trackId);
         }
         this.crossLinkAnnouncement.set(
-          `Opened Piano Roll for ${req.label || trackName}. The related notes are highlighted.`
+          `Opened Piano Roll for ${req.label || trackName}. The related notes are highlighted.`,
         );
-        setTimeout(() => this.crossLinkAnnouncement.set(''), 4500);
+        setTimeout(() => this.crossLinkAnnouncement.set(""), 4500);
       });
     });
   }
@@ -1136,7 +1277,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // Back navigation: the browser/WebView history handler is always live
     // (desktop back button, Alt+Left, and Android WebView history-back); the
     // native Android back gesture is bridged separately when on device.
-    window.addEventListener('popstate', this.onStudioPopState);
+    window.addEventListener("popstate", this.onStudioPopState);
     void this.registerNativeBackButton();
     try {
       // Try to resume immediately (works on first server-side render or
@@ -1152,12 +1293,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (restored) {
       const source = this.projectWorkspace.lastRecoveredSource();
       this.snackbarService.info(
-        `Restored ${this.formatPersistenceSource(source)} snapshot`
+        `Restored ${this.formatPersistenceSource(source)} snapshot`,
       );
       this.studioTelemetry.trackEvent(
-        'project_recovered',
-        { source: source ?? 'unknown' },
-        true
+        "project_recovered",
+        { source: source ?? "unknown" },
+        true,
       );
     }
 
@@ -1170,33 +1311,33 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       if (first) {
         this.musicManager.applyGeneratedRecipe(first);
         this.studioTelemetry.trackEvent(
-          'starter_recipe_seeded',
-          { source: 'ideas_generator' },
-          true
+          "starter_recipe_seeded",
+          { source: "ideas_generator" },
+          true,
         );
       } else {
         // Fallback — newProject auto-populates piano + drums.
         this.musicManager.newProject(false);
         this.studioTelemetry.trackEvent(
-          'starter_recipe_seeded',
-          { source: 'new_project_fallback' },
-          true
+          "starter_recipe_seeded",
+          { source: "new_project_fallback" },
+          true,
         );
       }
     }
 
     this.route.queryParamMap.subscribe((params) => {
-      const sessionId = params.get('sessionId');
+      const sessionId = params.get("sessionId");
       if (sessionId && !this.collaboration.currentSession()) {
         const user = this.authService.currentUser();
         if (user) {
           this.collaboration.joinSession(sessionId, user);
-          this.studioTelemetry.trackEvent('collab_joined', { sessionId }, true);
-          const projectHint = params.get('project');
+          this.studioTelemetry.trackEvent("collab_joined", { sessionId }, true);
+          const projectHint = params.get("project");
           this.snackbarService.info(
             projectHint
               ? `JOINING SESSION: ${projectHint}`
-              : 'JOINING COLLABORATION SESSION'
+              : "JOINING COLLABORATION SESSION",
           );
         }
       }
@@ -1218,7 +1359,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           untracked(() => {
             const source = fresh.remoteUserName ?? fresh.remoteUserId.slice(-4);
             this.snackbarService.info(
-              `CONFLICT ON ${fresh.fieldKey.toUpperCase()} · ${source} edited the same field`
+              `CONFLICT ON ${fresh.fieldKey.toUpperCase()} · ${source} edited the same field`,
             );
           });
         }
@@ -1231,8 +1372,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Flatten the peer-cursors map for the @for template. */
   peerCursorList = computed(() =>
     Object.values(this.collaboration.peerCursors()).filter(
-      (c) => c.surface === 'studio'
-    )
+      (c) => c.surface === "studio",
+    ),
   );
 
   /** A peer is "talking" when their voicePeers state is `connected` / `muted`
@@ -1240,11 +1381,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   isPeerTalking(userId: string): boolean {
     const peer = this.collaboration.voicePeers()[userId];
     if (!peer) return false;
-    return peer.state === 'connected' || peer.state === 'muted';
+    return peer.state === "connected" || peer.state === "muted";
   }
 
   /** Throttled-by-service mousemove handler — publishes normalized {x,y}. */
-  @HostListener('mousemove', ['$event'])
+  @HostListener("mousemove", ["$event"])
   onStudioMouseMove(event: MouseEvent): void {
     const host = (event.currentTarget as HTMLElement) ?? null;
     if (!host) return;
@@ -1252,7 +1393,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!rect.width || !rect.height) return;
     const x = (event.clientX - rect.left) / rect.width;
     const y = (event.clientY - rect.top) / rect.height;
-    this.collaboration.publishCursor('studio', x, y);
+    this.collaboration.publishCursor("studio", x, y);
   }
 
   ngAfterViewInit() {
@@ -1264,11 +1405,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy() {
     this.stopSpectrumAnalyzer();
     this.stopCompTakePreview();
-    window.removeEventListener('popstate', this.onStudioPopState);
+    window.removeEventListener("popstate", this.onStudioPopState);
     this.backButtonHandle?.remove();
     this.backButtonHandle = null;
     this.backTrapDepth = 0;
-    this.studioTelemetry.endSession('component_destroy');
+    this.studioTelemetry.endSession("component_destroy");
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1315,14 +1456,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private syncBackHistoryTrap(openCount: number): void {
     // `window.history` deliberately qualified: the class field `this.history`
     // is the project undo/redo service, and the similar names invite mistakes.
-    if (typeof window === 'undefined' || !window.history) return;
+    if (typeof window === "undefined" || !window.history) return;
     const native = window.history;
     if (openCount > this.backTrapDepth) {
       const add = openCount - this.backTrapDepth;
       for (let i = 0; i < add; i++) {
         native.pushState(
           { ...(native.state ?? {}), smuveStudioOverlay: true },
-          ''
+          "",
         );
       }
       this.backTrapDepth = openCount;
@@ -1363,11 +1504,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private async registerNativeBackButton(): Promise<void> {
     if (this.backButtonHandle) return;
     try {
-      const { Capacitor } = await import('@capacitor/core');
+      const { Capacitor } = await import("@capacitor/core");
       if (!Capacitor.isNativePlatform()) return;
-      const { App } = await import('@capacitor/app');
+      const { App } = await import("@capacitor/app");
       this.backButtonHandle = await App.addListener(
-        'backButton',
+        "backButton",
         ({ canGoBack }) => {
           if (this.dismissTopOverlay()) {
             this.exitArmedAt = 0;
@@ -1386,15 +1527,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
             return;
           }
           this.exitArmedAt = now;
-          this.snackbarService.info(
-            'Press back again to leave the Studio'
-          );
-        }
+          this.snackbarService.info("Press back again to leave the Studio");
+        },
       );
     } catch (e) {
       // Web build, plugin absent, or a native bridge error — the history
       // trap and the Escape key still cover dismissal.
-      this.logger.warn('[Studio] native back listener unavailable', e);
+      this.logger.warn("[Studio] native back listener unavailable", e);
     }
   }
 
@@ -1408,7 +1547,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.snackbarService.info(`Theme · ${THEME_LABEL[next]} mode`);
       // Keep the app-wide theme in sync so the Hub shell follows the
       // Studio: light/focus → Light, dark → Dark (profile-backed).
-      this.uiService.setTheme(next === 'dark' ? 'Dark' : 'Light');
+      this.uiService.setTheme(next === "dark" ? "Dark" : "Light");
       return next;
     });
   }
@@ -1432,8 +1571,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.persistStageFxState(next);
     this.snackbarService.info(
       next
-        ? 'Stage FX ON — full ambient lighting'
-        : 'Stage FX OFF — calm mode · saving battery & CPU'
+        ? "Stage FX ON — full ambient lighting"
+        : "Stage FX OFF — calm mode · saving battery & CPU",
     );
   }
 
@@ -1444,7 +1583,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   private persistStageFxState(enabled: boolean): void {
     try {
-      localStorage.setItem(STAGE_FX_STORAGE_KEY, enabled ? 'on' : 'off');
+      localStorage.setItem(STAGE_FX_STORAGE_KEY, enabled ? "on" : "off");
     } catch {
       /* private mode / locked storage — degrade silently */
     }
@@ -1489,9 +1628,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * handler that owns the Ctrl+ combos) so neither interferes with the
    * other. Never fires while typing.
    */
-  @HostListener('document:keydown', ['$event'])
+  @HostListener("document:keydown", ["$event"])
   onStageFxShortcut(event: KeyboardEvent): void {
-    if (event.key !== 'f' && event.key !== 'F') return;
+    if (event.key !== "f" && event.key !== "F") return;
     if (!event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) {
       return;
     }
@@ -1499,9 +1638,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const target = event.target as HTMLElement | null;
     const tag = target?.tagName;
     if (
-      tag === 'INPUT' ||
-      tag === 'TEXTAREA' ||
-      tag === 'SELECT' ||
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT" ||
       target?.isContentEditable
     ) {
       return;
@@ -1521,7 +1660,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // target bail-out so Escape also works while a panel input has focus
     // (guarded against IME composition, which owns Escape while active).
     if (
-      event.key === 'Escape' &&
+      event.key === "Escape" &&
       !event.isComposing &&
       this.dismissTopOverlay()
     ) {
@@ -1531,9 +1670,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const target = event.target as HTMLElement | null;
     if (
       target &&
-      (target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.tagName === 'SELECT' ||
+      (target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
         target.isContentEditable)
     ) {
       return;
@@ -1553,7 +1692,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const target = event.target as HTMLElement | null;
     if (
       target?.closest(
-        'input, textarea, select, [contenteditable="true"], [contenteditable=""], a[href]'
+        'input, textarea, select, [contenteditable="true"], [contenteditable=""], a[href]',
       )
     ) {
       return;
@@ -1617,7 +1756,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     if (this.mobileDrawerOpen()) {
       this.mobileDrawerOpen.set(false);
-      this.syncPanelFocus('.comp-drawer', false);
+      this.syncPanelFocus(".comp-drawer", false);
       return true;
     }
     return false;
@@ -1626,19 +1765,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   setActiveView(view: StudioView) {
     if (this.mobileDrawerOpen()) {
       this.mobileDrawerOpen.set(false);
-      this.syncPanelFocus('.comp-drawer', false);
+      this.syncPanelFocus(".comp-drawer", false);
     }
     this.activeView.set(view);
     this.mobilePanel.set(null);
     this.haptic.light();
-    this.studioTelemetry.trackEvent('view_changed', { view }, true);
-    if (view === 'plugins') {
-      this.studioTelemetry.trackEvent('plugin_store_opened', { view }, true);
+    this.studioTelemetry.trackEvent("view_changed", { view }, true);
+    if (view === "plugins") {
+      this.studioTelemetry.trackEvent("plugin_store_opened", { view }, true);
     }
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { view },
-      queryParamsHandling: 'merge',
+      queryParamsHandling: "merge",
     });
   }
 
@@ -1647,72 +1786,76 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   copyShareLink() {
-    if (!this.collaboration.can('share')) {
-      this.snackbarService.error('Your session role does not allow sharing.');
+    if (!this.collaboration.can("share")) {
+      this.snackbarService.error("Your session role does not allow sharing.");
       return;
     }
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-      this.snackbarService.error('Sharing is unavailable in this environment');
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
+      this.snackbarService.error("Sharing is unavailable in this environment");
       return;
     }
     const session = this.collaboration.currentSession();
     const sessionId = session?.sessionId;
     const project = this.projectService.currentProject();
-    const baseUrl = window.location.origin + '/studio';
+    const baseUrl = window.location.origin + "/studio";
 
     const params = new URLSearchParams();
-    if (sessionId) params.set('sessionId', sessionId);
-    if (project?.name) params.set('project', project.name);
+    if (sessionId) params.set("sessionId", sessionId);
+    if (project?.name) params.set("project", project.name);
 
     const queryString = params.toString();
     const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
 
     if (!navigator.clipboard?.writeText) {
-      this.snackbarService.error('Clipboard access is unavailable');
-      this.studioTelemetry.trackEvent('share_link_copied', { hasSession: !!sessionId }, false);
+      this.snackbarService.error("Clipboard access is unavailable");
+      this.studioTelemetry.trackEvent(
+        "share_link_copied",
+        { hasSession: !!sessionId },
+        false,
+      );
       return;
     }
 
     navigator.clipboard
       .writeText(url)
       .then(() => {
-        this.snackbarService.success('Studio link copied to clipboard');
+        this.snackbarService.success("Studio link copied to clipboard");
         this.studioTelemetry.trackEvent(
-          'share_link_copied',
+          "share_link_copied",
           { hasSession: !!sessionId },
-          true
+          true,
         );
       })
       .catch(() => {
-        this.snackbarService.error('Could not copy link');
+        this.snackbarService.error("Could not copy link");
         this.studioTelemetry.trackEvent(
-          'share_link_copied',
+          "share_link_copied",
           { hasSession: !!sessionId },
-          false
+          false,
         );
       });
   }
 
   async newProject() {
     const confirmed = await this.dialog.confirm({
-      title: 'New Session',
-      message: 'Start a fresh session? Unsaved changes will be lost.',
-      confirmLabel: 'Create',
-      cancelLabel: 'Cancel',
+      title: "New Session",
+      message: "Start a fresh session? Unsaved changes will be lost.",
+      confirmLabel: "Create",
+      cancelLabel: "Cancel",
     });
     if (confirmed) {
       this.musicManager.newProject();
       this.projectWorkspace.startFreshProject({
         bpm: this.audioEngine.tempo(),
       });
-      this.snackbarService.success('New session created');
-      this.studioTelemetry.trackEvent('new_project_created', undefined, true);
+      this.snackbarService.success("New session created");
+      this.studioTelemetry.trackEvent("new_project_created", undefined, true);
     }
   }
 
   applyTemplate(id: string) {
     const template = this.templateService.templates.find(
-      (item) => item.id === id
+      (item) => item.id === id,
     );
     if (!template) return;
     this.templateService.applyTemplate(id);
@@ -1722,12 +1865,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       genre: template.genre,
     });
     this.closeMobilePanel();
-    this.snackbarService.success('Template applied');
+    this.snackbarService.success("Template applied");
     this.haptic.medium();
     this.studioTelemetry.trackEvent(
-      'template_applied',
+      "template_applied",
       { templateId: id },
-      true
+      true,
     );
   }
 
@@ -1743,7 +1886,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleMobileDrawer() {
     this.haptic.light();
     this.mobileDrawerOpen.update((v) => !v);
-    this.syncPanelFocus('.comp-drawer', this.mobileDrawerOpen());
+    this.syncPanelFocus(".comp-drawer", this.mobileDrawerOpen());
   }
 
   toggleRail() {
@@ -1765,13 +1908,16 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Move focus into an opened slide-out surface and return it to the
    * originating control when the surface closes. */
   private syncPanelFocus(selector: string, open: boolean): void {
-    if (typeof document === 'undefined') return;
+    if (typeof document === "undefined") return;
     if (open) {
       const active = document.activeElement;
-      if (active instanceof HTMLElement) this.panelTriggers.set(selector, active);
+      if (active instanceof HTMLElement)
+        this.panelTriggers.set(selector, active);
       setTimeout(() => {
         const panel = document.querySelector<HTMLElement>(selector);
-        panel?.querySelector<HTMLElement>('button, input, select, textarea')?.focus();
+        panel
+          ?.querySelector<HTMLElement>("button, input, select, textarea")
+          ?.focus();
       }, 0);
       return;
     }
@@ -1787,8 +1933,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   async adjustBpm() {
     const result = await this.dialog.prompt({
-      title: 'Adjust Tempo',
-      message: 'Enter new BPM (20-300):',
+      title: "Adjust Tempo",
+      message: "Enter new BPM (20-300):",
       initialValue: this.audioEngine.tempo().toString(),
     });
     if (result) {
@@ -1813,22 +1959,22 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleCollaboration() {
     if (this.collaboration.currentSession()) {
       this.collaboration.leaveSession();
-      this.snackbarService.info('Left collaboration session');
-      this.studioTelemetry.trackEvent('collab_left', undefined, true);
+      this.snackbarService.info("Left collaboration session");
+      this.studioTelemetry.trackEvent("collab_left", undefined, true);
     } else {
       const user = this.authService.currentUser() || {
-        id: 'anon',
-        name: 'Anonymous',
+        id: "anon",
+        name: "Anonymous",
       };
       this.collaboration.startSession(
         user as any,
-        this.musicManager.snapshotProject()
+        this.musicManager.snapshotProject(),
       );
-      this.snackbarService.success('Collaboration session started');
+      this.snackbarService.success("Collaboration session started");
       this.studioTelemetry.trackEvent(
-        'collab_started',
+        "collab_started",
         { userId: user.id },
-        true
+        true,
       );
     }
   }
@@ -1843,9 +1989,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleAiMixAssistant() {
     this.haptic.light();
     this.showAiMixAssistant.update((v) => !v);
-    this.syncPanelFocus('.comp-aimix-panel', this.showAiMixAssistant());
+    this.syncPanelFocus(".comp-aimix-panel", this.showAiMixAssistant());
     if (this.showAiMixAssistant()) {
-      this.studioTelemetry.trackEvent('ai_mix_panel_opened', undefined, true);
+      this.studioTelemetry.trackEvent("ai_mix_panel_opened", undefined, true);
     }
     if (
       this.showAiMixAssistant() &&
@@ -1860,9 +2006,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleStudioInsights() {
     this.haptic.light();
     this.showStudioInsights.update((v) => !v);
-    this.syncPanelFocus('.comp-insights-panel', this.showStudioInsights());
+    this.syncPanelFocus(".comp-insights-panel", this.showStudioInsights());
     if (this.showStudioInsights()) {
-      this.studioTelemetry.trackEvent('insights_panel_opened', undefined, true);
+      this.studioTelemetry.trackEvent("insights_panel_opened", undefined, true);
       // Cheap live snapshot so the coach has a latency sample without a full
       // offline benchmark every open.
       try {
@@ -1873,7 +2019,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
             masterWorkletActive: snap.masterWorkletActive,
             sampleRateHz: snap.sampleRateHz,
           },
-          snap.contextState === 'running'
+          snap.contextState === "running",
         );
       } catch {
         /* engine may be suspended / unavailable */
@@ -1884,7 +2030,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Humanize camelCase gap categories for the insights panel. */
   formatInsightCategory(category: string): string {
     return category
-      .replace(/([A-Z])/g, ' $1')
+      .replace(/([A-Z])/g, " $1")
       .replace(/^./, (c) => c.toUpperCase())
       .trim();
   }
@@ -1896,16 +2042,16 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   formatPersistenceSource(source: string | null): string {
     switch (source) {
-      case 'autosave':
-        return 'auto-save';
-      case 'recovery':
-        return 'background recovery';
-      case 'import':
-        return 'imported';
-      case 'manual':
-        return 'saved';
+      case "autosave":
+        return "auto-save";
+      case "recovery":
+        return "background recovery";
+      case "import":
+        return "imported";
+      case "manual":
+        return "saved";
       default:
-        return 'local';
+        return "local";
     }
   }
 
@@ -1940,21 +2086,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           masterWorkletActive: snap.masterWorkletActive,
           sampleRateHz: snap.sampleRateHz,
         },
-        true
+        true,
       );
       this.snackbarService.success(
-        `Engine probe · ${Math.round(snap.totalLatencyMs)} ms · ×${bench.speedRatio.toFixed(2)} render`
+        `Engine probe · ${Math.round(snap.totalLatencyMs)} ms · ×${bench.speedRatio.toFixed(2)} render`,
       );
     } catch (e) {
       this.studioTelemetry.trackEvent(
-        'studio_error',
+        "studio_error",
         {
-          action: 'latency_probe',
-          error: e instanceof Error ? e.message : 'unknown',
+          action: "latency_probe",
+          error: e instanceof Error ? e.message : "unknown",
         },
-        false
+        false,
       );
-      this.snackbarService.error('Engine probe failed');
+      this.snackbarService.error("Engine probe failed");
     } finally {
       this.insightsProbeRunning.set(false);
     }
@@ -1966,17 +2112,17 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const id = action.id as StudioCoachActionId;
     try {
       switch (id) {
-        case 'probe_latency':
+        case "probe_latency":
           await this.runInsightsLatencyProbe();
           break;
-        case 'seed_starter': {
+        case "seed_starter": {
           const recipe = this.ideasGenerator.recipes?.[0];
           if (recipe) {
             this.musicManager.applyGeneratedRecipe(recipe);
             this.studioTelemetry.trackEvent(
-              'starter_recipe_seeded',
-              { source: 'coach', recipeId: recipe.id },
-              true
+              "starter_recipe_seeded",
+              { source: "coach", recipeId: recipe.id },
+              true,
             );
             this.snackbarService.success(`Starter seeded · ${recipe.name}`);
           } else if (this.templateService.templates?.[0]) {
@@ -1987,25 +2133,25 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           }
           break;
         }
-        case 'start_collab':
+        case "start_collab":
           if (!this.collaboration.currentSession()) {
             this.toggleCollaboration();
           } else {
-            this.snackbarService.info('Collab session already active');
+            this.snackbarService.info("Collab session already active");
           }
           break;
-        case 'export_project':
+        case "export_project":
           await this.exportProject();
           break;
-        case 'open_ai_mix':
+        case "open_ai_mix":
           if (!this.showAiMixAssistant()) {
             this.toggleAiMixAssistant();
           }
           break;
-        case 'open_plugins':
-          this.setActiveView('plugins');
+        case "open_plugins":
+          this.setActiveView("plugins");
           break;
-        case 'share_link':
+        case "share_link":
           this.copyShareLink();
           break;
         default:
@@ -2016,13 +2162,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       });
     } catch (e) {
       this.studioTelemetry.trackEvent(
-        'studio_error',
+        "studio_error",
         {
-          action: 'coach_action',
+          action: "coach_action",
           coachId: id,
-          error: e instanceof Error ? e.message : 'unknown',
+          error: e instanceof Error ? e.message : "unknown",
         },
-        false
+        false,
       );
     }
   }
@@ -2037,22 +2183,22 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   runAiMixAnalysis() {
     this.aiMixAssistant.analyzeAll();
     this.studioTelemetry.trackEvent(
-      'ai_mix_analysis_run',
+      "ai_mix_analysis_run",
       { trackCount: this.musicManager.tracks().length },
-      true
+      true,
     );
     this.snackbarService.success(
-      'AI Mix Assistant analyzed ' +
+      "AI Mix Assistant analyzed " +
         this.musicManager.tracks().length +
-        ' tracks'
+        " tracks",
     );
   }
 
   /** Apply a specific AI mix suggestion to a track */
   applyMixSuggestion(suggestionId: string) {
-    if (!this.collaboration.can('edit')) {
+    if (!this.collaboration.can("edit")) {
       this.snackbarService.error(
-        'Your session role is view-only for mix edits.'
+        "Your session role is view-only for mix edits.",
       );
       return;
     }
@@ -2062,7 +2208,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!suggestion) return;
 
     suggestion.action();
-    this.snackbarService.info('Applied: ' + suggestion.label);
+    this.snackbarService.info("Applied: " + suggestion.label);
     this.haptic.light();
   }
 
@@ -2071,33 +2217,33 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleSmartRecordingPanel() {
     this.haptic.light();
     this.showSmartRecordingPanel.update((v) => !v);
-    this.syncPanelFocus('.comp-rec-panel', this.showSmartRecordingPanel());
+    this.syncPanelFocus(".comp-rec-panel", this.showSmartRecordingPanel());
   }
 
   toggleImportPanel() {
     this.haptic.light();
     this.showImportPanel.update((v) => !v);
-    this.syncPanelFocus('.comp-import-panel', this.showImportPanel());
+    this.syncPanelFocus(".comp-import-panel", this.showImportPanel());
   }
 
   toggleComponentRecording() {
     this.haptic.light();
     this.showComponentRecording.update((v) => !v);
-    this.syncPanelFocus('.comp-rec-src-panel', this.showComponentRecording());
+    this.syncPanelFocus(".comp-rec-src-panel", this.showComponentRecording());
   }
 
   selectComponentRecording(component: any) {
     this.componentRecording.setActiveSource(component);
     this.snackbarService.info(
-      'Recording source: ' +
-        (this.componentRecording.getConfig(component)?.label || component)
+      "Recording source: " +
+        (this.componentRecording.getConfig(component)?.label || component),
     );
   }
 
-  setRecordingMode(mode: 'normal' | 'punch' | 'comp') {
+  setRecordingMode(mode: "normal" | "punch" | "comp") {
     this.smartRecording.setRecordingMode(mode);
-    this.studioTelemetry.trackEvent('recording_mode_changed', { mode }, true);
-    this.snackbarService.info('Recording mode: ' + mode.toUpperCase());
+    this.studioTelemetry.trackEvent("recording_mode_changed", { mode }, true);
+    this.snackbarService.info("Recording mode: " + mode.toUpperCase());
   }
 
   // ── Project Workspace ─────────────────────────────────
@@ -2105,25 +2251,25 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleProjectMetadata() {
     this.haptic.light();
     this.showProjectMetadata.update((v) => !v);
-    this.syncPanelFocus('.comp-meta-panel', this.showProjectMetadata());
+    this.syncPanelFocus(".comp-meta-panel", this.showProjectMetadata());
   }
 
   async saveProject() {
     this.haptic.medium();
     try {
       await this.projectWorkspace.manualSave();
-      this.snackbarService.success('Project saved');
-      this.studioTelemetry.trackEvent('project_saved', undefined, true);
+      this.snackbarService.success("Project saved");
+      this.studioTelemetry.trackEvent("project_saved", undefined, true);
     } catch (error) {
       this.studioTelemetry.trackEvent(
-        'studio_error',
+        "studio_error",
         {
-          action: 'project_save',
-          error: error instanceof Error ? error.message : 'unknown',
+          action: "project_save",
+          error: error instanceof Error ? error.message : "unknown",
         },
-        false
+        false,
       );
-      this.snackbarService.error('Could not save project');
+      this.snackbarService.error("Could not save project");
     }
   }
 
@@ -2142,26 +2288,33 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const bundle = JSON.parse(text) as ProjectBundle;
       const success = await this.projectWorkspace.importProjectBundle(bundle);
       if (success) {
-        this.snackbarService.success('Project loaded successfully');
-        this.studioTelemetry.trackEvent('project_imported', { format: 'smuve' }, true);
+        this.snackbarService.success("Project loaded successfully");
+        this.studioTelemetry.trackEvent(
+          "project_imported",
+          { format: "smuve" },
+          true,
+        );
       } else {
         this.studioTelemetry.trackEvent(
-          'project_imported',
-          { format: 'smuve', reason: 'rejected' },
-          false
+          "project_imported",
+          { format: "smuve", reason: "rejected" },
+          false,
         );
-        this.snackbarService.error('Failed to load project bundle');
+        this.snackbarService.error("Failed to load project bundle");
       }
     } catch (error) {
       this.studioTelemetry.trackEvent(
-        'project_imported',
-        { format: 'smuve', error: error instanceof Error ? error.message : 'invalid_json' },
-        false
+        "project_imported",
+        {
+          format: "smuve",
+          error: error instanceof Error ? error.message : "invalid_json",
+        },
+        false,
       );
-      this.snackbarService.error('Invalid project file format');
+      this.snackbarService.error("Invalid project file format");
     } finally {
       // Reset the input so selecting the same file again emits a change event.
-      input.value = '';
+      input.value = "";
     }
   }
 
@@ -2169,25 +2322,25 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.haptic.light();
     try {
       this.projectWorkspace.downloadProjectBundle();
-      this.snackbarService.success('Project exported as .smuve bundle');
+      this.snackbarService.success("Project exported as .smuve bundle");
       this.studioTelemetry.trackEvent(
-        'project_exported',
-        { format: 'smuve' },
-        true
+        "project_exported",
+        { format: "smuve" },
+        true,
       );
     } catch (e) {
       this.studioTelemetry.trackEvent(
-        'project_exported',
-        { format: 'smuve', error: e instanceof Error ? e.message : 'unknown' },
-        false
+        "project_exported",
+        { format: "smuve", error: e instanceof Error ? e.message : "unknown" },
+        false,
       );
       this.studioTelemetry.trackEvent(
-        'studio_error',
+        "studio_error",
         {
-          action: 'project_export',
-          error: e instanceof Error ? e.message : 'unknown',
+          action: "project_export",
+          error: e instanceof Error ? e.message : "unknown",
         },
-        false
+        false,
       );
       throw e;
     }
@@ -2195,51 +2348,51 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   setProjectGenre(genre: string) {
     this.projectWorkspace.setGenre(genre);
-    this.snackbarService.info('Genre: ' + genre);
+    this.snackbarService.info("Genre: " + genre);
   }
 
   setProjectMood(mood: string) {
     this.projectWorkspace.updateMetadata({ mood });
-    this.snackbarService.info('Mood: ' + mood);
+    this.snackbarService.info("Mood: " + mood);
   }
 
   setProjectKey(key: string) {
     this.projectWorkspace.updateMetadata({ key });
-    this.snackbarService.info('Key: ' + key);
+    this.snackbarService.info("Key: " + key);
   }
 
   // ── AI Chord Suggestions ─────────────────────────────
 
   /** Selected genre for chord progression suggestions */
-  chordGenre = signal<string>('pop');
+  chordGenre = signal<string>("pop");
 
   /** Available chord progression genres */
   chordGenres = [
-    'neo-soul',
-    'trap',
-    'lo-fi',
-    'house',
-    'drill',
-    'pop',
-    'rnb',
-    'deep-house',
-    'dubstep',
-    'ambient',
-    'jazz',
-    'funk',
-    'reggaeton',
-    'techno',
-    'phonk',
-    'garage',
+    "neo-soul",
+    "trap",
+    "lo-fi",
+    "house",
+    "drill",
+    "pop",
+    "rnb",
+    "deep-house",
+    "dubstep",
+    "ambient",
+    "jazz",
+    "funk",
+    "reggaeton",
+    "techno",
+    "phonk",
+    "garage",
   ];
 
   /** Computed chord progression based on selected genre */
   chordProgression = computed(() =>
-    this.aiMixAssistant.suggestChordProgression(this.chordGenre())
+    this.aiMixAssistant.suggestChordProgression(this.chordGenre()),
   );
 
   /** Chord voicing type */
-  chordVoicing = signal<'close' | 'open' | 'wide'>('close');
+  chordVoicing = signal<"close" | "open" | "wide">("close");
 
   /** Computed MIDI notes for the current voicing */
   voicingNotes = computed(() => {
@@ -2252,9 +2405,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const baseNotes = notes.map((n) => n.note);
     const voicing = this.chordVoicing();
 
-    if (voicing === 'close') return baseNotes;
+    if (voicing === "close") return baseNotes;
 
-    if (voicing === 'open') {
+    if (voicing === "open") {
       // Open voicing: spread middle notes up an octave
       return [
         baseNotes[0], // root stays
@@ -2263,7 +2416,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       ];
     }
 
-    if (voicing === 'wide') {
+    if (voicing === "wide") {
       // Wide voicing: root + fifth below, upper structure above
       const root = baseNotes[0];
       const fifth = baseNotes[2];
@@ -2302,9 +2455,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!trackId) {
       const midiTrack = this.musicManager
         .tracks()
-        .find((t) => t.type === 'midi');
+        .find((t) => t.type === "midi");
       trackId =
-        midiTrack?.id ?? this.musicManager.addTrack('Chords', 'grand-piano');
+        midiTrack?.id ?? this.musicManager.addTrack("Chords", "grand-piano");
     }
     if (!trackId) return;
 
@@ -2322,14 +2475,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     ]);
     this.musicManager.selectedTrackId.set(trackId);
     this.snackbarService.success(
-      `Applied ${chord} — ${notes.length} notes at bar ${index + 1}`
+      `Applied ${chord} — ${notes.length} notes at bar ${index + 1}`,
     );
   }
 
   /** Convert a chord symbol (e.g. 'Imaj7') to MIDI notes */
   private chordToNotes(
     chord: string,
-    position: number
+    position: number,
   ): Array<{
     note: number;
     velocity: number;
@@ -2354,14 +2507,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     };
     const INTERVALS: Record<string, number[]> = {
       maj7: [0, 4, 7, 11],
-      '7': [0, 4, 7, 10],
+      "7": [0, 4, 7, 10],
       m7: [0, 3, 7, 10],
       maj9: [0, 4, 7, 11, 14],
       m9: [0, 3, 7, 10, 14],
       m11: [0, 3, 7, 10, 14, 17],
-      '7sus4': [0, 5, 7, 10],
-      '7alt': [0, 4, 7, 10, 14],
-      '13': [0, 4, 7, 10, 14, 17],
+      "7sus4": [0, 5, 7, 10],
+      "7alt": [0, 4, 7, 10, 14],
+      "13": [0, 4, 7, 10, 14, 17],
       sus2: [0, 2, 7],
       sus4: [0, 5, 7],
     };
@@ -2434,8 +2587,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.previewSource = source;
       this.previewingTakeId.set(take.id);
     } catch (e) {
-      this.logger.warn('Failed to preview comp take', e);
-      this.snackbarService.error('Could not preview take');
+      this.logger.warn("Failed to preview comp take", e);
+      this.snackbarService.error("Could not preview take");
     }
   }
 
@@ -2463,7 +2616,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const groupId = this.smartRecording.activeCompGroupId();
     const takes = this.smartRecording.activeCompGroupTakes();
     if (!groupId || takes.length === 0) {
-      this.snackbarService.info('No comp takes to export');
+      this.snackbarService.info("No comp takes to export");
       return;
     }
     try {
@@ -2473,37 +2626,37 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         if (!bytes) continue;
         const safeLabel = (take.label || `Take ${take.takeNumber}`).replace(
           /[^\w\d-]+/g,
-          '_'
+          "_",
         );
         entries.push({ name: `${safeLabel}.wav`, data: bytes });
       }
       if (entries.length === 0) {
-        this.snackbarService.info('No take audio available');
+        this.snackbarService.info("No take audio available");
         return;
       }
       const blob = buildZip(entries);
       const projectName = (
-        this.projectWorkspace.metadata()?.name || 'smuve_takes'
-      ).replace(/[^a-zA-Z0-9_-]+/g, '_');
+        this.projectWorkspace.metadata()?.name || "smuve_takes"
+      ).replace(/[^a-zA-Z0-9_-]+/g, "_");
       this.downloadBlob(blob, `${projectName}_comp_takes.zip`);
       this.snackbarService.success(
-        `Exported ${entries.length} take${entries.length === 1 ? '' : 's'} · ZIP`
+        `Exported ${entries.length} take${entries.length === 1 ? "" : "s"} · ZIP`,
       );
       this.studioTelemetry.trackEvent(
-        'comp_takes_exported',
-        { count: entries.length, groupId, format: 'zip' },
-        true
+        "comp_takes_exported",
+        { count: entries.length, groupId, format: "zip" },
+        true,
       );
     } catch (e) {
       this.studioTelemetry.trackEvent(
-        'studio_error',
+        "studio_error",
         {
-          action: 'comp_takes_export',
-          error: e instanceof Error ? e.message : 'unknown',
+          action: "comp_takes_export",
+          error: e instanceof Error ? e.message : "unknown",
         },
-        false
+        false,
       );
-      this.snackbarService.error('Take export failed');
+      this.snackbarService.error("Take export failed");
     }
   }
 
@@ -2523,7 +2676,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Helper: trigger a file download from a Blob */
   private downloadBlob(blob: Blob, filename: string) {
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -2531,7 +2684,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
-
 
   // ── Smart Sound ───────────────────────────────────────
 
@@ -2548,19 +2700,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     try {
       const bpm = this.audioEngine.tempo();
       const projectName = (
-        this.projectWorkspace.metadata()?.name || 'S_M_U_V_E_Project'
-      ).replace(/[^a-zA-Z0-9_-]/g, '_');
+        this.projectWorkspace.metadata()?.name || "S_M_U_V_E_Project"
+      ).replace(/[^a-zA-Z0-9_-]/g, "_");
 
       // Convert music manager tracks to MidiTrackData
       const midiTracks: MidiTrackData[] = [];
       const tracks = this.musicManager.tracks();
 
       tracks.forEach((track) => {
-        if (track.type === 'audio' || track.type === 'bus') return; // Skip audio/bus
+        if (track.type === "audio" || track.type === "bus") return; // Skip audio/bus
         if (track.notes.length === 0) {
           // Still include an empty track so arrangement is preserved
           midiTracks.push({
-            name: track.name || 'Untitled',
+            name: track.name || "Untitled",
             notes: [],
             program: undefined,
           });
@@ -2574,21 +2726,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
             note: n.midi,
             velocity: Math.max(
               1,
-              Math.min(127, Math.round((n.velocity ?? 0.8) * 127))
+              Math.min(127, Math.round((n.velocity ?? 0.8) * 127)),
             ),
             startTick: Math.round(
-              n.step * ticksPerStep + (n.microOffset ?? 0) * ticksPerStep
+              n.step * ticksPerStep + (n.microOffset ?? 0) * ticksPerStep,
             ),
             durationTicks: Math.max(
               1,
-              Math.round((n.length ?? 1) * ticksPerStep)
+              Math.round((n.length ?? 1) * ticksPerStep),
             ),
             channel: 0,
           };
         });
 
         midiTracks.push({
-          name: track.name || 'Untitled',
+          name: track.name || "Untitled",
           notes: midiNotes,
           program: undefined,
         });
@@ -2598,35 +2750,35 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const arrayBuffer = MidiWriter.toArrayBuffer(
         midiTracks,
         bpm,
-        projectName
+        projectName,
       );
-      const blob = new Blob([arrayBuffer], { type: 'audio/midi' });
+      const blob = new Blob([arrayBuffer], { type: "audio/midi" });
       this.downloadBlob(blob, `${projectName}.mid`);
       this.studioTelemetry.trackEvent(
-        'midi_exported',
+        "midi_exported",
         { trackCount: midiTracks.length },
-        true
+        true,
       );
       this.snackbarService.success(
-        `MIDI exported — ${midiTracks.length} track(s)`
+        `MIDI exported — ${midiTracks.length} track(s)`,
       );
     } catch (e) {
-      this.logger.warn('MIDI export failed', e);
+      this.logger.warn("MIDI export failed", e);
       this.studioTelemetry.trackEvent(
-        'midi_exported',
-        { error: e instanceof Error ? e.message : 'unknown' },
-        false
+        "midi_exported",
+        { error: e instanceof Error ? e.message : "unknown" },
+        false,
       );
       this.studioTelemetry.trackEvent(
-        'studio_error',
+        "studio_error",
         {
-          action: 'midi_export',
-          error: e instanceof Error ? e.message : 'unknown',
+          action: "midi_export",
+          error: e instanceof Error ? e.message : "unknown",
         },
-        false
+        false,
       );
       this.snackbarService.error(
-        'MIDI export failed. Check browser console for details.'
+        "MIDI export failed. Check browser console for details.",
       );
     }
   }
@@ -2649,7 +2801,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         return;
       }
       analyser.getByteFrequencyData(dataArray);
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
       const w = canvas.width;
@@ -2660,7 +2812,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const barW = Math.max(2, Math.floor((w - barCount) / barCount));
       const gap = Math.max(
         0,
-        Math.floor((w - barCount * barW) / (barCount + 1))
+        Math.floor((w - barCount * barW) / (barCount + 1)),
       );
 
       for (let i = 0; i < barCount; i++) {
@@ -2697,21 +2849,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const ctrl = event.ctrlKey || event.metaKey;
 
     // Save
-    if (ctrl && event.key === 's') {
+    if (ctrl && event.key === "s") {
       event.preventDefault();
       this.saveProject();
       return true;
     }
 
     // Export
-    if (ctrl && event.key === 'e') {
+    if (ctrl && event.key === "e") {
       event.preventDefault();
       this.exportProject();
       return true;
     }
 
     // Undo
-    if (ctrl && event.key === 'z' && !event.shiftKey) {
+    if (ctrl && event.key === "z" && !event.shiftKey) {
       event.preventDefault();
       this.history.undo();
       return true;
@@ -2719,8 +2871,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Redo
     if (
-      (ctrl && event.key === 'Z') ||
-      (ctrl && event.shiftKey && event.key === 'z')
+      (ctrl && event.key === "Z") ||
+      (ctrl && event.shiftKey && event.key === "z")
     ) {
       event.preventDefault();
       this.history.redo();
@@ -2728,7 +2880,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     // AI Assistant
-    if (ctrl && event.key === 'i') {
+    if (ctrl && event.key === "i") {
       event.preventDefault();
       this.toggleAiMixAssistant();
       return true;

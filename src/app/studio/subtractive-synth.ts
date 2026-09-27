@@ -1,8 +1,8 @@
-import { Instrument } from './instrument';
-import { ADSREnvelope } from './adsr-envelope';
-import { NodePool } from './performance-utils';
-import { SamplerEngine } from './sampler-engine';
-import { SampleMap } from '../services/file-loader.service';
+import { Instrument } from "./instrument";
+import { ADSREnvelope } from "./adsr-envelope";
+import { NodePool } from "./performance-utils";
+import { SamplerEngine } from "./sampler-engine";
+import { SampleMap } from "../services/file-loader.service";
 
 interface Voice {
   oscillators: OscillatorNode[];
@@ -13,7 +13,7 @@ interface Voice {
   sampleStop?: () => void;
 }
 
-export type OscillatorType = 'sine' | 'square' | 'sawtooth' | 'triangle';
+export type OscillatorType = "sine" | "square" | "sawtooth" | "triangle";
 
 export class SubtractiveSynth extends Instrument {
   private readonly envelope = new ADSREnvelope(
@@ -22,7 +22,7 @@ export class SubtractiveSynth extends Instrument {
     0.2,
     0.8,
     0.5,
-    true
+    true,
   );
   private readonly filterEnvelope = new ADSREnvelope(
     this.audioContext,
@@ -30,12 +30,12 @@ export class SubtractiveSynth extends Instrument {
     0.3,
     0.5,
     0.3,
-    true
+    true,
   );
 
   private voices: Map<number, Voice> = new Map();
   private masterFilter: BiquadFilterNode;
-  private oscillatorType: OscillatorType = 'sawtooth';
+  private oscillatorType: OscillatorType = "sawtooth";
   private numOscillators: number = 2;
   private detuneValue: number = 10;
   private subOscillatorLevel: number = 0.3;
@@ -63,15 +63,15 @@ export class SubtractiveSynth extends Instrument {
     this.samplerEngine = samplerEngine;
 
     this.oscillatorPool = new NodePool(this.audioContext, (ctx) =>
-      ctx.createOscillator()
+      ctx.createOscillator(),
     );
     this.gainPool = new NodePool(this.audioContext, (ctx) => ctx.createGain());
     this.filterPool = new NodePool(this.audioContext, (ctx) =>
-      ctx.createBiquadFilter()
+      ctx.createBiquadFilter(),
     );
 
     this.masterFilter = this.audioContext.createBiquadFilter();
-    this.masterFilter.type = 'lowpass';
+    this.masterFilter.type = "lowpass";
     this.masterFilter.frequency.value = this.filterCutoff;
     this.masterFilter.Q.value = 1.0;
     this.masterFilter.connect(this.output);
@@ -84,18 +84,18 @@ export class SubtractiveSynth extends Instrument {
   private async initWorklet(): Promise<void> {
     try {
       await this.audioContext.audioWorklet.addModule(
-        'assets/worklets/synth-processor.worklet.js'
+        "assets/worklets/synth-processor.worklet.js",
       );
       this.workletNode = new AudioWorkletNode(
         this.audioContext,
-        'synth-processor'
+        "synth-processor",
       );
       this.workletNode.connect(this.masterFilter);
       this.workletReady = true;
       this.useWorklet = true;
     } catch (e) {
       // Fallback: stay on main-thread oscillator nodes
-      console.debug('Synth worklet unavailable, using main-thread oscillators');
+      console.debug("Synth worklet unavailable, using main-thread oscillators");
     }
   }
 
@@ -114,7 +114,7 @@ export class SubtractiveSynth extends Instrument {
     if (this.useWorklet && this.workletReady && this.workletNode) {
       const noteId = ++this.nextNoteId;
       this.workletNode.port.postMessage({
-        type: 'NOTE_ON',
+        type: "NOTE_ON",
         payload: {
           noteId,
           freq: frequency,
@@ -136,7 +136,7 @@ export class SubtractiveSynth extends Instrument {
         startTime: this.audioContext.currentTime,
         stop: () => {
           this.workletNode?.port.postMessage({
-            type: 'NOTE_OFF',
+            type: "NOTE_OFF",
             payload: { noteId, freq: frequency },
           });
         },
@@ -152,7 +152,7 @@ export class SubtractiveSynth extends Instrument {
           this.activeSampleMap,
           note,
           velocity,
-          sampleGain
+          sampleGain,
         );
       }
       return;
@@ -177,12 +177,12 @@ export class SubtractiveSynth extends Instrument {
     let subOscillator: OscillatorNode | null = null;
     if (this.subOscillatorLevel > 0) {
       subOscillator = this.oscillatorPool.get();
-      subOscillator.type = 'sine';
+      subOscillator.type = "sine";
       subOscillator.frequency.value = frequency / 2;
     }
 
     const voiceFilter = this.filterPool.get();
-    voiceFilter.type = 'lowpass';
+    voiceFilter.type = "lowpass";
     voiceFilter.frequency.value = this.filterCutoff;
     voiceFilter.Q.value = 1.0;
 
@@ -199,13 +199,13 @@ export class SubtractiveSynth extends Instrument {
     const filterMin = this.filterCutoff;
     const filterMax = Math.min(
       this.filterCutoff + this.filterEnvelopeAmount,
-      20000
+      20000,
     );
     this.filterEnvelope.applyToParam(
       voiceFilter.frequency,
       velocity,
       filterMin,
-      filterMax
+      filterMax,
     );
 
     oscillators.forEach((osc) => {
@@ -235,7 +235,7 @@ export class SubtractiveSynth extends Instrument {
         this.activeSampleMap,
         note,
         velocity,
-        sampleGain
+        sampleGain,
       );
     }
 
@@ -264,14 +264,17 @@ export class SubtractiveSynth extends Instrument {
       if (!voice.oscillators) {
         const frequency = 440 * Math.pow(2, (note - 69) / 12);
         this.workletNode?.port.postMessage({
-          type: 'NOTE_OFF',
+          type: "NOTE_OFF",
           payload: { noteId: note, freq: frequency },
         });
         // Let release envelope complete before cleanup
-        setTimeout(() => {
-          this.voices.delete(note);
-          this.voiceManager.removeVoice(note);
-        }, this.envelope.release * 1000 + 100);
+        setTimeout(
+          () => {
+            this.voices.delete(note);
+            this.voiceManager.removeVoice(note);
+          },
+          this.envelope.release * 1000 + 100,
+        );
         return;
       }
 
@@ -279,7 +282,7 @@ export class SubtractiveSynth extends Instrument {
       this.envelope.releaseEnvelope(voice.gain);
       this.filterEnvelope.releaseParam(
         voice.filter.frequency,
-        this.filterCutoff
+        this.filterCutoff,
       );
 
       const stopTime = this.audioContext.currentTime + this.envelope.release;
@@ -298,7 +301,7 @@ export class SubtractiveSynth extends Instrument {
           this.voices.delete(note);
           this.voiceManager.removeVoice(note);
         },
-        this.envelope.release * 1000 + 100
+        this.envelope.release * 1000 + 100,
       );
     }
   }
@@ -307,7 +310,7 @@ export class SubtractiveSynth extends Instrument {
   stopAll(): void {
     // ── Phase 1 Latency: STOP_ALL via worklet ──
     if (this.useWorklet && this.workletNode) {
-      this.workletNode.port.postMessage({ type: 'STOP_ALL' });
+      this.workletNode.port.postMessage({ type: "STOP_ALL" });
     }
 
     this.voices.forEach((voice, note) => {
@@ -319,10 +322,14 @@ export class SubtractiveSynth extends Instrument {
       // Fast release (5ms) for panic
       voice.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.005);
       voice.oscillators.forEach((osc) => {
-        try { osc.stop(now + 0.01); } catch (e) {}
+        try {
+          osc.stop(now + 0.01);
+        } catch (e) {}
       });
       if (voice.subOscillator) {
-        try { voice.subOscillator.stop(now + 0.01); } catch (e) {}
+        try {
+          voice.subOscillator.stop(now + 0.01);
+        } catch (e) {}
       }
       setTimeout(() => this.executeStop(voice), 20);
     });

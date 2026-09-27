@@ -1,13 +1,13 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, input, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
 import {
   CompSection,
   Take,
   TakeManagerService,
-} from '../../services/take-manager.service';
-import { MusicManagerService } from '../../services/music-manager.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { HapticService } from '../../services/haptic.service';
+} from "../../services/take-manager.service";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { HapticService } from "../../services/haptic.service";
 
 /**
  * Sprint A3 Phase 3 — take-lane panel. Renders the `TakeManagerService` take
@@ -16,11 +16,11 @@ import { HapticService } from '../../services/haptic.service';
  * stamp a take from the track's current note region.
  */
 @Component({
-  selector: 'app-take-lane',
+  selector: "app-take-lane",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './take-lane.component.html',
-  styleUrls: ['./take-lane.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./take-lane.component.html",
+  styleUrls: ["./take-lane.component.css", "../shared/platform-ux.css"],
 })
 export class TakeLaneComponent {
   /** Track whose take stack this panel displays. */
@@ -36,7 +36,7 @@ export class TakeLaneComponent {
 
   /** Id of the currently comp-selected take, or null. */
   activeTakeId = computed(
-    () => this.takeManager.getActiveTake(this.trackId())()?.id ?? null
+    () => this.takeManager.getActiveTake(this.trackId())()?.id ?? null,
   );
 
   /** Punch-in armed for this track? */
@@ -64,14 +64,14 @@ export class TakeLaneComponent {
       .find((t) => t.id === this.trackId());
     const furthest = (track?.notes ?? []).reduce(
       (max, n) => Math.max(max, n.step + (n.length ?? 1)),
-      0
+      0,
     );
     return Math.max(4, Math.ceil(furthest / 16));
   });
 
   /** Bar numbers available for section assignment (1-based). */
   sectionBarColumns = computed(() =>
-    Array.from({ length: this.sectionBars() }, (_, i) => i + 1)
+    Array.from({ length: this.sectionBars() }, (_, i) => i + 1),
   );
 
   /** 1-based order badge for a take inside the comp stack, or null. */
@@ -111,7 +111,7 @@ export class TakeLaneComponent {
   applyComp(): void {
     const merged = this.takeManager.applyComp(this.trackId());
     if (merged.length === 0) {
-      this.snack.info('Comp stack is empty — tap takes in order first');
+      this.snack.info("Comp stack is empty — tap takes in order first");
       return;
     }
     this.musicManager.replaceTrackNotes(this.trackId(), merged);
@@ -125,7 +125,9 @@ export class TakeLaneComponent {
   onChipTap(takeId: string): void {
     if (this.sectionMode()) {
       this.pickedTakeId.set(takeId);
-      this.snack.info(`Section take picked — tap a bar to assign ${this.labelFor(takeId)}`);
+      this.snack.info(
+        `Section take picked — tap a bar to assign ${this.labelFor(takeId)}`,
+      );
     } else if (this.compMode()) {
       this.toggleComp(takeId);
     } else {
@@ -144,20 +146,20 @@ export class TakeLaneComponent {
   sectionForBar(bar: number): CompSection | undefined {
     const start = (bar - 1) * 16;
     return this.sections().find(
-      (s) => s.startStep <= start && s.endStep > start
+      (s) => s.startStep <= start && s.endStep > start,
     );
   }
 
   /** Short take label for a take id (falls back to 'Take ?'). */
   labelFor(takeId: string): string {
-    return this.takes().find((t) => t.id === takeId)?.label ?? 'Take';
+    return this.takes().find((t) => t.id === takeId)?.label ?? "Take";
   }
 
   /** Assign the picked take to a bar (toggles off if already that take). */
   assignBar(bar: number): void {
     const takeId = this.pickedTakeId();
     if (!takeId) {
-      this.snack.info('Tap a take chip first to pick which take to assign');
+      this.snack.info("Tap a take chip first to pick which take to assign");
       return;
     }
     const existing = this.sectionForBar(bar);
@@ -192,12 +194,12 @@ export class TakeLaneComponent {
       .find((t) => t.id === this.trackId());
     if (!track) return;
     if (this.sections().length === 0) {
-      this.snack.info('No sections assigned — pick a take, then tap bars');
+      this.snack.info("No sections assigned — pick a take, then tap bars");
       return;
     }
     const merged = this.takeManager.applySections(
       this.trackId(),
-      track.notes ?? []
+      track.notes ?? [],
     );
     this.musicManager.replaceTrackNotes(this.trackId(), merged);
     this.sectionMode.set(false);
@@ -211,8 +213,8 @@ export class TakeLaneComponent {
     const next = !this.punchIn();
     this.takeManager.setPunchIn(this.trackId(), next);
     this.haptic.light();
-    this.snack[next ? 'success' : 'info'](
-      next ? 'Punch-in armed — next record stop stamps a take' : 'Punch-in off'
+    this.snack[next ? "success" : "info"](
+      next ? "Punch-in armed — next record stop stamps a take" : "Punch-in off",
     );
   }
 
@@ -227,13 +229,13 @@ export class TakeLaneComponent {
       this.trackId(),
       `Take ${count}`,
       track.notes ?? [],
-      this.musicManager.currentStep()
+      this.musicManager.currentStep(),
     );
     this.haptic.medium();
     this.snack.success(
       `Take ${count} stamped · ${take.noteCount ?? 0} note${
-        take.noteCount === 1 ? '' : 's'
-      }`
+        take.noteCount === 1 ? "" : "s"
+      }`,
     );
   }
 
@@ -246,7 +248,7 @@ export class TakeLaneComponent {
 
   /** Compact region readout: "0–16" or '' when the take has no region. */
   formatRegion(take: Take): string {
-    if (take.startStep === undefined || take.endStep === undefined) return '';
+    if (take.startStep === undefined || take.endStep === undefined) return "";
     return `${take.startStep}–${take.endStep}`;
   }
 }

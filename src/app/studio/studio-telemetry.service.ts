@@ -1,41 +1,41 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, signal } from "@angular/core";
 
 export type StudioTelemetryEventName =
-  | 'studio_session_start'
-  | 'studio_session_end'
-  | 'view_changed'
-  | 'smart_creation_opened'
-  | 'starter_recipe_seeded'
-  | 'new_project_created'
-  | 'template_applied'
-  | 'recording_mode_changed'
-  | 'collab_started'
-  | 'collab_joined'
-  | 'collab_left'
-  | 'project_saved'
-  | 'project_imported'
-  | 'project_recovered'
-  | 'project_exported'
-  | 'midi_exported'
-  | 'comp_takes_exported'
-  | 'ai_mix_panel_opened'
-  | 'ai_mix_analysis_run'
-  | 'plugin_store_opened'
-  | 'share_link_copied'
-  | 'insights_panel_opened'
-  | 'latency_probe_run'
-  | 'coach_action_taken'
-  | 'coach_action_dismissed'
-  | 'studio_error';
+  | "studio_session_start"
+  | "studio_session_end"
+  | "view_changed"
+  | "smart_creation_opened"
+  | "starter_recipe_seeded"
+  | "new_project_created"
+  | "template_applied"
+  | "recording_mode_changed"
+  | "collab_started"
+  | "collab_joined"
+  | "collab_left"
+  | "project_saved"
+  | "project_imported"
+  | "project_recovered"
+  | "project_exported"
+  | "midi_exported"
+  | "comp_takes_exported"
+  | "ai_mix_panel_opened"
+  | "ai_mix_analysis_run"
+  | "plugin_store_opened"
+  | "share_link_copied"
+  | "insights_panel_opened"
+  | "latency_probe_run"
+  | "coach_action_taken"
+  | "coach_action_dismissed"
+  | "studio_error";
 
 export type StudioCoachActionId =
-  | 'probe_latency'
-  | 'seed_starter'
-  | 'start_collab'
-  | 'export_project'
-  | 'open_ai_mix'
-  | 'open_plugins'
-  | 'share_link';
+  | "probe_latency"
+  | "seed_starter"
+  | "start_collab"
+  | "export_project"
+  | "open_ai_mix"
+  | "open_plugins"
+  | "share_link";
 
 export interface StudioTelemetryEvent {
   id: string;
@@ -96,10 +96,10 @@ export interface StudioWeeklyDashboard {
   coachActions: StudioCoachAction[];
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class StudioTelemetryService {
-  private readonly STORAGE_KEY = 'smuve_studio_telemetry_events_v1';
-  private readonly DISMISS_KEY = 'smuve_studio_coach_dismissed_v1';
+  private readonly STORAGE_KEY = "smuve_studio_telemetry_events_v1";
+  private readonly DISMISS_KEY = "smuve_studio_coach_dismissed_v1";
   private readonly MAX_EVENTS = 4000;
   private readonly WINDOW_DAYS = 7;
 
@@ -107,7 +107,7 @@ export class StudioTelemetryService {
   private activeSessionStartedAt = signal<number | null>(null);
   private events = signal<StudioTelemetryEvent[]>(this.loadEvents());
   private dismissedCoachIds = signal<Set<StudioCoachActionId>>(
-    this.loadDismissed()
+    this.loadDismissed(),
   );
 
   /** Active studio session id (null when no session is open). */
@@ -124,7 +124,7 @@ export class StudioTelemetryService {
 
   private readonly parity = signal<StudioCompetitorScore[]>([
     {
-      app: 'S.M.U.V.E',
+      app: "S.M.U.V.E",
       scores: {
         onboardingSpeed: 72,
         latencyReliability: 66,
@@ -135,7 +135,7 @@ export class StudioTelemetryService {
       },
     },
     {
-      app: 'BandLab',
+      app: "BandLab",
       scores: {
         onboardingSpeed: 88,
         latencyReliability: 76,
@@ -146,7 +146,7 @@ export class StudioTelemetryService {
       },
     },
     {
-      app: 'FL Studio Mobile',
+      app: "FL Studio Mobile",
       scores: {
         onboardingSpeed: 75,
         latencyReliability: 85,
@@ -157,7 +157,7 @@ export class StudioTelemetryService {
       },
     },
     {
-      app: 'n-Track Studio',
+      app: "n-Track Studio",
       scores: {
         onboardingSpeed: 69,
         latencyReliability: 82,
@@ -168,7 +168,7 @@ export class StudioTelemetryService {
       },
     },
     {
-      app: 'Audio Evolution Mobile Studio',
+      app: "Audio Evolution Mobile Studio",
       scores: {
         onboardingSpeed: 63,
         latencyReliability: 89,
@@ -179,7 +179,7 @@ export class StudioTelemetryService {
       },
     },
     {
-      app: 'Koala Sampler',
+      app: "Koala Sampler",
       scores: {
         onboardingSpeed: 93,
         latencyReliability: 79,
@@ -201,7 +201,7 @@ export class StudioTelemetryService {
       completed.length > 0
         ? completed.reduce(
             (sum, s) => sum + Math.max(0, s.endAt - s.startAt),
-            0
+            0,
           ) / completed.length
         : 0;
 
@@ -211,11 +211,11 @@ export class StudioTelemetryService {
         (e) =>
           e.sessionId === s.id &&
           [
-            'starter_recipe_seeded',
-            'template_applied',
-            'recording_mode_changed',
-            'ai_mix_analysis_run',
-          ].includes(e.name)
+            "starter_recipe_seeded",
+            "template_applied",
+            "recording_mode_changed",
+            "ai_mix_analysis_run",
+          ].includes(e.name),
       );
       if (firstCreative && firstCreative.ts >= s.startAt) {
         ideaToFirstLoopSamples.push(firstCreative.ts - s.startAt);
@@ -228,18 +228,18 @@ export class StudioTelemetryService {
         : 0;
 
     const exportEvents = events.filter((e) =>
-      ['project_exported', 'midi_exported', 'comp_takes_exported'].includes(
-        e.name
-      )
+      ["project_exported", "midi_exported", "comp_takes_exported"].includes(
+        e.name,
+      ),
     );
     const exportSuccess = exportEvents.filter(
-      (e) => e.success !== false
+      (e) => e.success !== false,
     ).length;
     const exportSuccessRate =
       exportEvents.length === 0 ? 1 : exportSuccess / exportEvents.length;
 
     const crashSessionIds = new Set(
-      events.filter((e) => e.name === 'studio_error').map((e) => e.sessionId)
+      events.filter((e) => e.name === "studio_error").map((e) => e.sessionId),
     );
     const crashFreeSessionsRate =
       completed.length === 0
@@ -249,8 +249,8 @@ export class StudioTelemetryService {
 
     const collabSessionIds = new Set(
       events
-        .filter((e) => ['collab_started', 'collab_joined'].includes(e.name))
-        .map((e) => e.sessionId)
+        .filter((e) => ["collab_started", "collab_joined"].includes(e.name))
+        .map((e) => e.sessionId),
     );
     const collabSessionRate =
       completed.length === 0
@@ -258,12 +258,12 @@ export class StudioTelemetryService {
         : completed.filter((s) => collabSessionIds.has(s.id)).length /
           completed.length;
 
-    const latencyProbes = events.filter((e) => e.name === 'latency_probe_run');
+    const latencyProbes = events.filter((e) => e.name === "latency_probe_run");
     const latencySamples = latencyProbes
-      .map((e) => Number(e.data?.['totalLatencyMs']))
+      .map((e) => Number(e.data?.["totalLatencyMs"]))
       .filter((n) => Number.isFinite(n) && n >= 0);
     const speedSamples = latencyProbes
-      .map((e) => Number(e.data?.['speedRatio']))
+      .map((e) => Number(e.data?.["speedRatio"]))
       .filter((n) => Number.isFinite(n) && n > 0);
     const avgLatencyMs =
       latencySamples.length > 0
@@ -291,7 +291,7 @@ export class StudioTelemetryService {
    * telemetry so the Insights backlog moves when the user actually closes gaps.
    */
   readonly liveScores = computed<Record<string, number>>(() => {
-    const base = this.parity().find((r) => r.app === 'S.M.U.V.E')?.scores ?? {};
+    const base = this.parity().find((r) => r.app === "S.M.U.V.E")?.scores ?? {};
     const m = this.northStarMetrics();
     const recent = this.recentEvents();
     const volume = (name: StudioTelemetryEventName) =>
@@ -307,8 +307,8 @@ export class StudioTelemetryService {
               ? 0
               : -8
         : 0) +
-      Math.min(8, volume('starter_recipe_seeded') * 2) +
-      Math.min(6, volume('template_applied') * 2);
+      Math.min(8, volume("starter_recipe_seeded") * 2) +
+      Math.min(6, volume("template_applied") * 2);
 
     let latencyDelta = (m.crashFreeSessionsRate - 1) * 12;
     if (m.latencyProbeCount > 0) {
@@ -325,48 +325,48 @@ export class StudioTelemetryService {
 
     const workflowDelta =
       (m.exportSuccessRate - 1) * 18 +
-      Math.min(10, volume('project_saved') * 1.5) +
-      Math.min(8, volume('project_exported') + volume('midi_exported')) +
+      Math.min(10, volume("project_saved") * 1.5) +
+      Math.min(8, volume("project_exported") + volume("midi_exported")) +
       (m.avgSessionMinutes >= 5 ? 4 : m.avgSessionMinutes >= 2 ? 2 : 0);
 
     const collabDelta =
       m.collabSessionRate * 22 +
-      Math.min(8, volume('collab_started') + volume('collab_joined')) -
+      Math.min(8, volume("collab_started") + volume("collab_joined")) -
       // Empty week stays at baseline (collabSessionRate 0) without a penalty.
       0;
 
     const aiDelta =
-      Math.min(10, volume('ai_mix_analysis_run') * 3) +
-      Math.min(6, volume('ai_mix_panel_opened') * 2) -
-      (volume('ai_mix_analysis_run') === 0 && recent.length > 12 ? 4 : 0);
+      Math.min(10, volume("ai_mix_analysis_run") * 3) +
+      Math.min(6, volume("ai_mix_panel_opened") * 2) -
+      (volume("ai_mix_analysis_run") === 0 && recent.length > 12 ? 4 : 0);
 
     const ecoDelta =
-      Math.min(12, volume('plugin_store_opened') * 3) +
-      Math.min(8, volume('share_link_copied') * 2) +
-      Math.min(6, volume('project_exported')) +
-      (volume('plugin_store_opened') + volume('share_link_copied') === 0 &&
+      Math.min(12, volume("plugin_store_opened") * 3) +
+      Math.min(8, volume("share_link_copied") * 2) +
+      Math.min(6, volume("project_exported")) +
+      (volume("plugin_store_opened") + volume("share_link_copied") === 0 &&
       recent.length > 12
         ? -4
         : 0);
 
     return {
       onboardingSpeed: this.clampScore(
-        (base['onboardingSpeed'] ?? 0) + onboardingDelta
+        (base["onboardingSpeed"] ?? 0) + onboardingDelta,
       ),
       latencyReliability: this.clampScore(
-        (base['latencyReliability'] ?? 0) + latencyDelta
+        (base["latencyReliability"] ?? 0) + latencyDelta,
       ),
       workflowVelocity: this.clampScore(
-        (base['workflowVelocity'] ?? 0) + workflowDelta
+        (base["workflowVelocity"] ?? 0) + workflowDelta,
       ),
       collabFlywheel: this.clampScore(
-        (base['collabFlywheel'] ?? 0) + collabDelta
+        (base["collabFlywheel"] ?? 0) + collabDelta,
       ),
       aiGuidanceDepth: this.clampScore(
-        (base['aiGuidanceDepth'] ?? 0) + aiDelta
+        (base["aiGuidanceDepth"] ?? 0) + aiDelta,
       ),
       ecosystemLockIn: this.clampScore(
-        (base['ecosystemLockIn'] ?? 0) + ecoDelta
+        (base["ecosystemLockIn"] ?? 0) + ecoDelta,
       ),
     };
   });
@@ -374,13 +374,13 @@ export class StudioTelemetryService {
   readonly prioritizedBacklog = computed<StudioGapRow[]>(() => {
     const data = this.parity();
     const smuveScores = this.liveScores();
-    const competitors = data.filter((r) => r.app !== 'S.M.U.V.E');
+    const competitors = data.filter((r) => r.app !== "S.M.U.V.E");
     const categories = Object.keys(this.weights);
     const rows: StudioGapRow[] = categories.map((category) => {
       const smuveScore = smuveScores[category] ?? 0;
       const bestCompetitorScore = competitors.reduce(
         (max, c) => Math.max(max, c.scores[category] ?? 0),
-        0
+        0,
       );
       const gap = Math.max(0, bestCompetitorScore - smuveScore);
       const weight = this.weights[category] ?? 0;
@@ -438,16 +438,16 @@ export class StudioTelemetryService {
     const id = `studio_${now}_${Math.random().toString(36).slice(2, 8)}`;
     this.activeSessionId.set(id);
     this.activeSessionStartedAt.set(now);
-    this.trackEvent('studio_session_start', context, true);
+    this.trackEvent("studio_session_start", context, true);
     return id;
   }
 
-  endSession(reason: string = 'ended'): void {
+  endSession(reason: string = "ended"): void {
     const sessionId = this.activeSessionId();
     const startedAt = this.activeSessionStartedAt();
     if (!sessionId || !startedAt) return;
     const durationMs = Math.max(0, Date.now() - startedAt);
-    this.trackEvent('studio_session_end', { reason, durationMs }, true);
+    this.trackEvent("studio_session_end", { reason, durationMs }, true);
     this.activeSessionId.set(null);
     this.activeSessionStartedAt.set(null);
   }
@@ -455,7 +455,7 @@ export class StudioTelemetryService {
   trackEvent(
     name: StudioTelemetryEventName,
     data?: Record<string, unknown>,
-    success?: boolean
+    success?: boolean,
   ): void {
     const event: StudioTelemetryEvent = {
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -483,20 +483,20 @@ export class StudioTelemetryService {
       masterWorkletActive?: boolean;
       sampleRateHz?: number;
     },
-    success: boolean = true
+    success: boolean = true,
   ): void {
-    this.trackEvent('latency_probe_run', { ...data }, success);
+    this.trackEvent("latency_probe_run", { ...data }, success);
   }
 
   /** Mark a coach CTA as completed (taken) and hide it for the local week. */
   completeCoachAction(
     id: StudioCoachActionId,
-    data?: Record<string, unknown>
+    data?: Record<string, unknown>,
   ): void {
     this.trackEvent(
-      'coach_action_taken',
+      "coach_action_taken",
       { actionId: id, ...(data || {}) },
-      true
+      true,
     );
     this.dismissCoachAction(id, false);
   }
@@ -504,7 +504,7 @@ export class StudioTelemetryService {
   /** Soft-dismiss a coach CTA without treating it as completed. */
   dismissCoachAction(id: StudioCoachActionId, track: boolean = true): void {
     if (track) {
-      this.trackEvent('coach_action_dismissed', { actionId: id }, true);
+      this.trackEvent("coach_action_dismissed", { actionId: id }, true);
     }
     this.dismissedCoachIds.update((prev) => {
       const next = new Set(prev);
@@ -535,10 +535,10 @@ export class StudioTelemetryService {
     endAt: number;
     ended: boolean;
   }> {
-    const starts = events.filter((e) => e.name === 'studio_session_start');
+    const starts = events.filter((e) => e.name === "studio_session_start");
     return starts.map((s) => {
       const end = events.find(
-        (e) => e.sessionId === s.sessionId && e.name === 'studio_session_end'
+        (e) => e.sessionId === s.sessionId && e.name === "studio_session_end",
       );
       return {
         id: s.sessionId ?? s.id,
@@ -558,9 +558,9 @@ export class StudioTelemetryService {
       return parsed.filter(
         (e: any) =>
           e &&
-          typeof e.id === 'string' &&
-          typeof e.name === 'string' &&
-          typeof e.ts === 'number'
+          typeof e.id === "string" &&
+          typeof e.name === "string" &&
+          typeof e.ts === "number",
       );
     } catch {
       return [];
@@ -583,8 +583,8 @@ export class StudioTelemetryService {
       if (!Array.isArray(parsed)) return new Set();
       return new Set(
         parsed.filter(
-          (id: unknown): id is StudioCoachActionId => typeof id === 'string'
-        )
+          (id: unknown): id is StudioCoachActionId => typeof id === "string",
+        ),
       );
     } catch {
       return new Set();
@@ -605,81 +605,81 @@ export class StudioTelemetryService {
 
   private buildCoachAction(
     row: StudioGapRow,
-    metrics: StudioNorthStarMetrics
+    metrics: StudioNorthStarMetrics,
   ): StudioCoachAction | null {
     const priority = row.weightedGap;
     switch (row.category) {
-      case 'latencyReliability':
+      case "latencyReliability":
         return {
-          id: 'probe_latency',
+          id: "probe_latency",
           category: row.category,
-          title: 'Run engine latency probe',
+          title: "Run engine latency probe",
           reason:
             metrics.latencyProbeCount === 0
-              ? 'No latency samples yet — Audio Evolution leads reliability until we measure this device.'
+              ? "No latency samples yet — Audio Evolution leads reliability until we measure this device."
               : `Avg round-trip ${metrics.avgLatencyMs} ms (gap −${row.gap}). Probe again after buffer tweaks.`,
-          ctaLabel: 'Probe now',
+          ctaLabel: "Probe now",
           priority,
         };
-      case 'onboardingSpeed':
+      case "onboardingSpeed":
         return {
-          id: 'seed_starter',
+          id: "seed_starter",
           category: row.category,
-          title: 'Seed a starter recipe',
+          title: "Seed a starter recipe",
           reason:
             metrics.ideaToFirstLoopSeconds > 90
               ? `Idea → first loop is ${metrics.ideaToFirstLoopSeconds}s. Starter recipes cut cold-start friction.`
-              : 'Koala/BandLab win first-loop speed. Drop a starter loop to close the gap.',
-          ctaLabel: 'Apply starter',
+              : "Koala/BandLab win first-loop speed. Drop a starter loop to close the gap.",
+          ctaLabel: "Apply starter",
           priority,
-          targetView: 'arrangement',
+          targetView: "arrangement",
         };
-      case 'collabFlywheel':
+      case "collabFlywheel":
         return {
-          id: 'start_collab',
+          id: "start_collab",
           category: row.category,
-          title: 'Start a collab session',
+          title: "Start a collab session",
           reason: `Collab session rate is ${Math.round(
-            metrics.collabSessionRate * 100
+            metrics.collabSessionRate * 100,
           )}%. BandLab’s flywheel starts with one shared booth.`,
-          ctaLabel: 'Start collab',
+          ctaLabel: "Start collab",
           priority,
         };
-      case 'workflowVelocity':
+      case "workflowVelocity":
         return {
-          id: 'export_project',
+          id: "export_project",
           category: row.category,
-          title: 'Export this session',
+          title: "Export this session",
           reason:
             metrics.exportSuccessRate < 1
-              ? 'Recent exports failed — retry to protect workflow velocity.'
-              : 'FL Mobile wins finish speed. Ship a bounce to raise the velocity score.',
-          ctaLabel: 'Export project',
+              ? "Recent exports failed — retry to protect workflow velocity."
+              : "FL Mobile wins finish speed. Ship a bounce to raise the velocity score.",
+          ctaLabel: "Export project",
           priority,
         };
-      case 'aiGuidanceDepth':
+      case "aiGuidanceDepth":
         return {
-          id: 'open_ai_mix',
+          id: "open_ai_mix",
           category: row.category,
-          title: 'Run AI Mix analysis',
+          title: "Run AI Mix analysis",
           reason:
-            'Keep the AI guidance lead warm — analyze the current mix and act on the top tip.',
-          ctaLabel: 'Open AI Mix',
+            "Keep the AI guidance lead warm — analyze the current mix and act on the top tip.",
+          ctaLabel: "Open AI Mix",
           priority,
         };
-      case 'ecosystemLockIn':
+      case "ecosystemLockIn":
         return {
-          id: row.gap >= 20 ? 'open_plugins' : 'share_link',
+          id: row.gap >= 20 ? "open_plugins" : "share_link",
           category: row.category,
           title:
-            row.gap >= 20 ? 'Browse WASM plugin store' : 'Copy a share link',
+            row.gap >= 20 ? "Browse WASM plugin store" : "Copy a share link",
           reason:
             row.gap >= 20
-              ? 'Ecosystem lock-in trails BandLab. Enable a WASM insert to deepen the stack.'
-              : 'Share the booth link so peers land in the same session graph.',
-          ctaLabel: row.gap >= 20 ? 'Open plugins' : 'Copy link',
+              ? "Ecosystem lock-in trails BandLab. Enable a WASM insert to deepen the stack."
+              : "Share the booth link so peers land in the same session graph.",
+          ctaLabel: row.gap >= 20 ? "Open plugins" : "Copy link",
           priority,
-          targetView: row.gap >= 20 ? 'plugins' : undefined,
+          targetView: row.gap >= 20 ? "plugins" : undefined,
         };
       default:
         return null;

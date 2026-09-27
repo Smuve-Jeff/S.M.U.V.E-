@@ -1,5 +1,5 @@
-import { Instrument } from './instrument';
-import { Sampler } from './sampler';
+import { Instrument } from "./instrument";
+import { Sampler } from "./sampler";
 
 export interface PadFX {
   saturation: number;
@@ -29,20 +29,20 @@ export class DrumMachine extends Instrument {
     this.sampler.connect(this.output);
 
     const padNames = [
-      'Kick',
-      'Snare',
-      'Clap',
-      'Hi-Hat (C)',
-      'Hi-Hat (O)',
-      'Tom',
-      'Rim',
-      'Crash',
+      "Kick",
+      "Snare",
+      "Clap",
+      "Hi-Hat (C)",
+      "Hi-Hat (O)",
+      "Tom",
+      "Rim",
+      "Crash",
     ];
 
     padNames.forEach((name, i) => {
       const gain = this.audioContext.createGain();
       const filter = this.audioContext.createBiquadFilter();
-      filter.type = 'lowpass';
+      filter.type = "lowpass";
       filter.frequency.value = 20000;
 
       const pad: DrumPad = {
@@ -68,7 +68,7 @@ export class DrumMachine extends Instrument {
   loadSample(
     pitch: number,
     buffer: AudioBuffer,
-    velocityThreshold: number = 127
+    velocityThreshold: number = 127,
   ) {
     this.sampler.loadSample(pitch, buffer, velocityThreshold);
   }
@@ -76,7 +76,7 @@ export class DrumMachine extends Instrument {
   triggerPad(
     pitch: number,
     velocity: number,
-    when: number = this.audioContext.currentTime
+    when: number = this.audioContext.currentTime,
   ) {
     const pad = this.pads.find((p) => p.pitch === pitch);
     if (pad) {

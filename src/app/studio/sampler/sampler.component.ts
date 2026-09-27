@@ -8,18 +8,17 @@ import {
   ViewChild,
   ElementRef,
   effect,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Sampler, SampleZone } from '../sampler';
-import { AudioSessionService } from '../audio-session.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { FileLoaderService } from '../../services/file-loader.service';
-import { HapticService } from '../../services/haptic.service';
-import { WaveformRendererComponent } from '../waveform-renderer/waveform-renderer.component';
-import { AudioImportService } from '../audio-import.service';
-import { SnackbarService } from '../../services/snackbar.service';
-
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { Sampler, SampleZone } from "../sampler";
+import { AudioSessionService } from "../audio-session.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { FileLoaderService } from "../../services/file-loader.service";
+import { HapticService } from "../../services/haptic.service";
+import { WaveformRendererComponent } from "../waveform-renderer/waveform-renderer.component";
+import { AudioImportService } from "../audio-import.service";
+import { SnackbarService } from "../../services/snackbar.service";
 
 interface SamplerZoneUI {
   pitch: number;
@@ -38,15 +37,26 @@ interface SamplerZoneUI {
 }
 
 const NOTE_NAMES = [
-  'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
 ];
 
 @Component({
-  selector: 'app-sampler',
+  selector: "app-sampler",
   standalone: true,
   imports: [CommonModule, FormsModule, WaveformRendererComponent],
-  templateUrl: './sampler.component.html',
-  styleUrls: ['./sampler.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./sampler.component.html",
+  styleUrls: ["./sampler.component.css", "../shared/platform-ux.css"],
   // KnobComponent available for future ADSR knob UI
 })
 export class SamplerComponent implements AfterViewInit, OnDestroy {
@@ -62,7 +72,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   /** Source BPM for tempo-matching the selected zone to the project tempo. */
   stretchSourceBpm = signal(120);
 
-  @ViewChild('dropZone') dropZoneRef!: ElementRef<HTMLDivElement>;
+  @ViewChild("dropZone") dropZoneRef!: ElementRef<HTMLDivElement>;
 
   private sampler: Sampler | null = null;
 
@@ -80,7 +90,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   modulation = signal(0);
   isImporting = signal(false);
   dragOver = signal(false);
-  activeTab = signal<'zones' | 'adsr' | 'loops' | 'routing'>('zones');
+  activeTab = signal<"zones" | "adsr" | "loops" | "routing">("zones");
 
   // Waveform data for the selected zone
   waveformData = signal<Float32Array | null>(null);
@@ -88,20 +98,29 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   private suppressZoneClickPitch: number | null = null;
 
   // Output channel names
-  outputChannels = ['Master', 'Ch 1', 'Ch 2', 'Ch 3', 'Ch 4', 'Ch 5', 'Ch 6', 'Ch 7'];
+  outputChannels = [
+    "Master",
+    "Ch 1",
+    "Ch 2",
+    "Ch 3",
+    "Ch 4",
+    "Ch 5",
+    "Ch 6",
+    "Ch 7",
+  ];
   mixerConnected = signal(false);
 
   // ── ADSR SVG calculation helpers ─────────────────────
   adsrSvgPoints = computed(() => {
     const zone = this.selectedZone();
-    if (!zone) return '';
+    if (!zone) return "";
     const total = zone.attack + zone.decay + 0.5 + zone.release;
     const ax = (zone.attack / total) * 180;
     const dx = (zone.decay / total) * 180;
     const sx = (0.5 / total) * 180;
     const rx = (zone.release / total) * 180;
-    const sustainY = 50 - (zone.sustain * 35);
-    return `10,50 ${10+ax},10 ${10+ax+dx},${sustainY} ${10+ax+dx+sx},${sustainY} ${10+ax+dx+sx+rx},50`;
+    const sustainY = 50 - zone.sustain * 35;
+    return `10,50 ${10 + ax},10 ${10 + ax + dx},${sustainY} ${10 + ax + dx + sx},${sustainY} ${10 + ax + dx + sx + rx},50`;
   });
 
   // ── Initialization ───────────────────────────────────
@@ -130,7 +149,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
       await this.sampler.init();
       this.sampler.connect(ctx.destination);
     } catch (e) {
-      console.warn('Sampler init failed:', e);
+      console.warn("Sampler init failed:", e);
     }
   }
 
@@ -140,7 +159,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   }
 
   getSelectValue(event: Event): string {
-    return (event.target as HTMLSelectElement).value || '';
+    return (event.target as HTMLSelectElement).value || "";
   }
 
   /**
@@ -149,7 +168,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
    * event bindings must go through component helpers.
    */
   parseStretchBpm(value: unknown): number {
-    const n = typeof value === 'number' ? value : Number(value);
+    const n = typeof value === "number" ? value : Number(value);
     return Number.isFinite(n) && n >= 20 && n <= 300 ? Math.round(n) : 120;
   }
 
@@ -215,7 +234,9 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   async importSample(): Promise<void> {
     this.isImporting.set(true);
     try {
-      const files = await this.fileLoader.pickLocalFiles('.mp3,.wav,.ogg,.flac,.aiff');
+      const files = await this.fileLoader.pickLocalFiles(
+        ".mp3,.wav,.ogg,.flac,.aiff",
+      );
       if (files.length === 0) return;
 
       const ctx = this.audioEngine.ctx;
@@ -228,7 +249,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
           const pitch = this.findFreePitch();
           this.sampler.loadSample(pitch, buffer);
         } catch (e) {
-          console.warn('Failed to import:', file.name, e);
+          console.warn("Failed to import:", file.name, e);
         }
       }
       this.refreshZones();
@@ -247,7 +268,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   }
 
   onDropZoneKeydown(event: KeyboardEvent): void {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     void this.importSample();
   }
@@ -263,7 +284,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     try {
       const ctx = this.audioEngine.ctx;
       for (const file of files) {
-        if (!file.type.startsWith('audio/')) continue;
+        if (!file.type.startsWith("audio/")) continue;
         try {
           const buffer = await this.fileLoader.decodeToAudioBuffer(ctx, file);
           if (!this.sampler) await this.initializeSampler();
@@ -273,7 +294,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
           this.sampler.loadSample(pitch, buffer);
           this.selectZone(pitch);
         } catch (e) {
-          console.warn('Failed to drop import:', file.name, e);
+          console.warn("Failed to drop import:", file.name, e);
         }
       }
       this.refreshZones();
@@ -297,7 +318,12 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     const zone = this.sampler.getZone(pitch);
     if (!zone) return;
 
-    const adsr = zone.adsr || { attack: 0.005, decay: 0.1, sustain: 0.8, release: 0.2 };
+    const adsr = zone.adsr || {
+      attack: 0.005,
+      decay: 0.1,
+      sustain: 0.8,
+      release: 0.2,
+    };
     (adsr as any)[param] = value;
     this.sampler.setAdsr(pitch, adsr);
     this.refreshZones();
@@ -344,7 +370,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     const target = this.audioEngine.tempo();
     const source = Math.max(20, this.stretchSourceBpm());
     if (Math.abs(source - target) < 0.5) {
-      this.snackbar.info('Source already matches project tempo');
+      this.snackbar.info("Source already matches project tempo");
       return;
     }
     this.haptic.medium();
@@ -388,7 +414,12 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     const startPct = Math.max(0, Math.min(99, value)) / 100;
     const endPct = zone.loop?.end ?? 1;
     if (startPct < endPct) {
-      this.sampler.setLoop(pitch, startPct, endPct, zone.loop?.crossfade ?? 0.02);
+      this.sampler.setLoop(
+        pitch,
+        startPct,
+        endPct,
+        zone.loop?.crossfade ?? 0.02,
+      );
     }
     this.refreshZones();
   }
@@ -400,7 +431,12 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     const startPct = zone.loop?.start ?? 0;
     const endPct = Math.max(1, Math.min(100, value)) / 100;
     if (endPct > startPct) {
-      this.sampler.setLoop(pitch, startPct, endPct, zone.loop?.crossfade ?? 0.02);
+      this.sampler.setLoop(
+        pitch,
+        startPct,
+        endPct,
+        zone.loop?.crossfade ?? 0.02,
+      );
     }
     this.refreshZones();
   }
@@ -424,7 +460,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   }
 
   onZonePointerDown(event: PointerEvent, pitch: number): void {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
     this.suppressZoneClickPitch = pitch;
     this.selectZone(pitch);
     this.playNote(pitch);
@@ -464,7 +500,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     this.pitchBend.set(rawValue);
     if (!this.sampler) return;
     // Normalize slider 0..100 → -1..+1 (center at 50)
-    const normalized = ((rawValue - 50) / 50);
+    const normalized = (rawValue - 50) / 50;
     this.sampler.setPitchBend(Math.max(-1, Math.min(1, normalized)));
   }
 
@@ -475,7 +511,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   }
 
   // ── Tab Switching ────────────────────────────────────
-  setActiveTab(tab: 'zones' | 'adsr' | 'loops' | 'routing'): void {
+  setActiveTab(tab: "zones" | "adsr" | "loops" | "routing"): void {
     this.haptic.light();
     this.activeTab.set(tab);
   }
@@ -513,7 +549,10 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     for (const zone of allZones) {
       if (zone.outputChannel < 0) {
         // Route to master
-        this.sampler.connectZoneOutput(zone.pitch, this.audioEngine.ctx.destination);
+        this.sampler.connectZoneOutput(
+          zone.pitch,
+          this.audioEngine.ctx.destination,
+        );
       } else {
         // Route to a mixer track output
         const trackId = `sampler-${zone.pitch}`;
@@ -530,7 +569,10 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     const allZones = this.sampler.getAllZones();
     for (const zone of allZones) {
       // Reconnect to master output directly
-      this.sampler.connectZoneOutput(zone.pitch, this.audioEngine.ctx.destination);
+      this.sampler.connectZoneOutput(
+        zone.pitch,
+        this.audioEngine.ctx.destination,
+      );
     }
     this.mixerConnected.set(false);
     this.haptic.light();
@@ -553,7 +595,7 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     if (channelIndex < 0) {
       this.sampler.connectZoneOutput(pitch, this.audioEngine.ctx.destination);
     } else {
-      const trackId = channelIndex === 0 ? 'master' : `channel-${channelIndex}`;
+      const trackId = channelIndex === 0 ? "master" : `channel-${channelIndex}`;
       const trackOutput = this.audioEngine.getTrackOutput(trackId);
       this.sampler.connectZoneOutput(pitch, trackOutput);
     }

@@ -1,5 +1,5 @@
-import { Instrument } from './instrument';
-import { NodePool } from './performance-utils';
+import { Instrument } from "./instrument";
+import { NodePool } from "./performance-utils";
 
 export interface WavetableFrame {
   /** Normalized table data (Float32Array, length = tableSize) */
@@ -43,9 +43,13 @@ export class WavetableSynth extends Instrument {
 
   constructor(audioContext: AudioContext) {
     super(audioContext, 10);
-    this.oscPool = new NodePool(this.audioContext, (ctx) => ctx.createOscillator());
+    this.oscPool = new NodePool(this.audioContext, (ctx) =>
+      ctx.createOscillator(),
+    );
     this.gainPool = new NodePool(this.audioContext, (ctx) => ctx.createGain());
-    this.filterPool = new NodePool(this.audioContext, (ctx) => ctx.createBiquadFilter());
+    this.filterPool = new NodePool(this.audioContext, (ctx) =>
+      ctx.createBiquadFilter(),
+    );
     this.generateDefaultTables();
   }
 
@@ -125,7 +129,7 @@ export class WavetableSynth extends Instrument {
     osc.frequency.setValueAtTime(freq, now);
 
     const filter = this.filterPool.get();
-    filter.type = 'lowpass';
+    filter.type = "lowpass";
     filter.frequency.setValueAtTime(this.params.filterCutoff, now);
     filter.Q.setValueAtTime(this.params.filterResonance, now);
 
@@ -133,7 +137,10 @@ export class WavetableSynth extends Instrument {
     const p = this.params;
     env.gain.setValueAtTime(0, now);
     env.gain.linearRampToValueAtTime(normVel, now + p.attack);
-    env.gain.linearRampToValueAtTime(normVel * p.sustain, now + p.attack + p.decay);
+    env.gain.linearRampToValueAtTime(
+      normVel * p.sustain,
+      now + p.attack + p.decay,
+    );
 
     osc.connect(filter);
     filter.connect(env);
@@ -172,13 +179,21 @@ export class WavetableSynth extends Instrument {
     const now = this.audioContext.currentTime;
     voice.env.gain.cancelScheduledValues(now);
     voice.env.gain.setValueAtTime(voice.env.gain.value, now);
-    voice.env.gain.exponentialRampToValueAtTime(0.001, now + this.params.release);
+    voice.env.gain.exponentialRampToValueAtTime(
+      0.001,
+      now + this.params.release,
+    );
 
-    setTimeout(() => {
-      try { voice.osc.stop(); } catch (e) {}
-      this.oscPool.release(voice.osc);
-      this.gainPool.release(voice.env);
-      this.filterPool.release(voice.filter);
-    }, this.params.release * 1000 + 50);
+    setTimeout(
+      () => {
+        try {
+          voice.osc.stop();
+        } catch (e) {}
+        this.oscPool.release(voice.osc);
+        this.gainPool.release(voice.env);
+        this.filterPool.release(voice.filter);
+      },
+      this.params.release * 1000 + 50,
+    );
   }
 }

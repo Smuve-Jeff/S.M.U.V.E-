@@ -6,18 +6,18 @@ import {
   ViewChild,
   AfterViewInit,
   OnDestroy,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
 
 @Component({
-  selector: 'app-swipe-container',
+  selector: "app-swipe-container",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './swipe-container.component.html',
-  styleUrls: ['./swipe-container.component.css', '../platform-ux.css'],
+  templateUrl: "./swipe-container.component.html",
+  styleUrls: ["./swipe-container.component.css", "../platform-ux.css"],
 })
 export class SwipeContainerComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('container', { static: false })
+  @ViewChild("container", { static: false })
   container!: ElementRef<HTMLDivElement>;
 
   swipeLeft = output<void>();
@@ -38,10 +38,10 @@ export class SwipeContainerComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     const el = this.container.nativeElement;
-    el.addEventListener('touchstart', this.boundTouchStart, {
+    el.addEventListener("touchstart", this.boundTouchStart, {
       passive: true,
     });
-    el.addEventListener('touchend', this.boundTouchEnd, {
+    el.addEventListener("touchend", this.boundTouchEnd, {
       passive: true,
     });
   }
@@ -49,8 +49,8 @@ export class SwipeContainerComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy() {
     const el = this.container?.nativeElement;
     if (el) {
-      el.removeEventListener('touchstart', this.boundTouchStart);
-      el.removeEventListener('touchend', this.boundTouchEnd);
+      el.removeEventListener("touchstart", this.boundTouchStart);
+      el.removeEventListener("touchend", this.boundTouchEnd);
     }
   }
 

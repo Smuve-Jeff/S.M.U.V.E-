@@ -5,13 +5,13 @@ import {
   computed,
   OnDestroy,
   Injector,
-} from '@angular/core';
-import { LoggingService } from '../services/logging.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { LocalStorageService } from '../services/local-storage.service';
-import { StudioRecordingEngineService } from './studio-recording-engine.service';
-import { WavEncoder } from './wav-encoder.util';
-import { Subject } from 'rxjs';
+} from "@angular/core";
+import { LoggingService } from "../services/logging.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { LocalStorageService } from "../services/local-storage.service";
+import { StudioRecordingEngineService } from "./studio-recording-engine.service";
+import { WavEncoder } from "./wav-encoder.util";
+import { Subject } from "rxjs";
 
 /**
  * A Take is a single completed recording — analogous to a comp in
@@ -39,7 +39,7 @@ export interface PerformanceTake {
  * richer take lifecycle (take 1..N, per-take peak metering, comping,
  * export with stems metadata) used by the Performer view.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class PerformanceRecordingService implements OnDestroy {
   private logger = inject(LoggingService);
   private audioEngine = inject(AudioEngineService);
@@ -79,7 +79,7 @@ export class PerformanceRecordingService implements OnDestroy {
 
   /** Real-time derived — for UI pulse on record */
   meterFlash = computed(() =>
-    Math.max(this.liveInputDbL(), this.liveInputDbR())
+    Math.max(this.liveInputDbL(), this.liveInputDbR()),
   );
 
   selectedTake = computed(() => {
@@ -101,6 +101,14 @@ export class PerformanceRecordingService implements OnDestroy {
   private ownsMediaStream = false;
   /** Pending async engine boot started in startRecording(); awaited in finishTake(). */
   private engineStartPromise: Promise<boolean> | null = null;
+  /**
+   * Track the take was armed against in startRecording(). finishTake() accepts
+   * the same pair, but a stop path that only knows the take (a hardware stop,
+   * an auto-stop) used to produce an unattributed take even though the artist
+   * had already said which track they were punching into.
+   */
+  private pendingTrackId?: string;
+  private pendingTrackName?: string;
 
   recordingFinished$ = new Subject<PerformanceTake>();
   takeArmed$ = new Subject<number>();
@@ -136,12 +144,14 @@ export class PerformanceRecordingService implements OnDestroy {
         this._mediaStream = engine.getMediaStream?.() ?? null;
         this.ownsMediaStream = false;
         this.inited = true;
-        this.logger.info('PerformanceRecording: sharing the studio input stream.');
+        this.logger.info(
+          "PerformanceRecording: sharing the studio input stream.",
+        );
         return true;
       } catch (e) {
         this.logger.warn(
-          'PerformanceRecording: shared recording engine initialization failed.',
-          e
+          "PerformanceRecording: shared recording engine initialization failed.",
+          e,
         );
         return false;
       }
@@ -169,12 +179,12 @@ export class PerformanceRecordingService implements OnDestroy {
       this._mediaStream = stream;
       this.ownsMediaStream = true;
       this.inited = true;
-      this.logger.info('PerformanceRecording: input stream active.');
+      this.logger.info("PerformanceRecording: input stream active.");
       return true;
     } catch (e) {
       this.logger.warn(
-        'PerformanceRecording: getUserMedia failed (likely no mic permission).',
-        e
+        "PerformanceRecording: getUserMedia failed (likely no mic permission).",
+        e,
       );
       return false;
     }
@@ -221,6 +231,8 @@ export class PerformanceRecordingService implements OnDestroy {
 
   startRecording(trackId?: string, trackName?: string) {
     if (this.isRecording()) return;
+    this.pendingTrackId = trackId;
+    this.pendingTrackName = trackName;
     const engine = this.recordingEngine;
     this.liveMidi = [];
     this.peakL = -Infinity;
@@ -234,7 +246,7 @@ export class PerformanceRecordingService implements OnDestroy {
       this.engineStartPromise = (async () => {
         const ready = await this.initialize();
         if (!ready) {
-          this.logger.warn('PerformanceRecording: capture is unavailable.');
+          this.logger.warn("PerformanceRecording: capture is unavailable.");
           this.isRecording.set(false);
           this.isArmed.set(false);
           return false;
@@ -242,7 +254,9 @@ export class PerformanceRecordingService implements OnDestroy {
         engine.startRecording();
         const started = engine.isRecording();
         if (!started) {
-          this.logger.warn('PerformanceRecording: engine refused to start capture.');
+          this.logger.warn(
+            "PerformanceRecording: engine refused to start capture.",
+          );
           this.isRecording.set(false);
           this.isArmed.set(false);
         }
@@ -272,11 +286,15 @@ export class PerformanceRecordingService implements OnDestroy {
 
   async finishTake(
     trackId?: string,
-    trackName?: string
+    trackName?: string,
   ): Promise<PerformanceTake | null> {
     if (!this.isRecording()) return null;
     let durationMs = performance.now() - this.startTimestampMs;
     const takeNumber = this.armedTakeNumber();
+    // A stop that does not repeat the track still attributes the take to the
+    // track it was armed against.
+    const takeTrackId = trackId ?? this.pendingTrackId;
+    const takeTrackName = trackName ?? this.pendingTrackName;
 
     // ── Real capture via StudioRecordingEngine AudioWorklet ──
     let blob: Blob;
@@ -301,7 +319,7 @@ export class PerformanceRecordingService implements OnDestroy {
           const { left, right } = engine.getRecordedBuffers();
           if (left.length === 0 || right.length === 0) {
             this.logger.warn(
-              'PerformanceRecording: capture stopped without PCM buffers; take discarded.'
+              "PerformanceRecording: capture stopped without PCM buffers; take discarded.",
             );
             this.resetRecordingState();
             return null;
@@ -311,18 +329,23 @@ export class PerformanceRecordingService implements OnDestroy {
           const sampleRate = this.audioEngine.ctx.sampleRate;
           blob = WavEncoder.encodeMultiChannel(
             [leftChannel, rightChannel],
-            'wav-16',
-            sampleRate
+            "wav-16",
+            sampleRate,
           );
           durationMs = Math.round((leftChannel.length / sampleRate) * 1000);
         }
       } catch (e) {
-        this.logger.warn('PerformanceRecording: engine capture failed; take discarded.', e);
+        this.logger.warn(
+          "PerformanceRecording: engine capture failed; take discarded.",
+          e,
+        );
         this.resetRecordingState();
         return null;
       }
     } else {
-      this.logger.warn('PerformanceRecording: no capture engine available; take discarded.');
+      this.logger.warn(
+        "PerformanceRecording: no capture engine available; take discarded.",
+      );
       this.resetRecordingState();
       return null;
     }
@@ -338,8 +361,8 @@ export class PerformanceRecordingService implements OnDestroy {
       peakDbL: isFinite(this.peakL) ? this.peakL : -60,
       peakDbR: isFinite(this.peakR) ? this.peakR : -60,
       recordedAt: Date.now(),
-      trackId,
-      trackName,
+      trackId: takeTrackId,
+      trackName: takeTrackName,
       isComping: false,
       notes: [...this.liveMidi],
     };
@@ -351,7 +374,7 @@ export class PerformanceRecordingService implements OnDestroy {
     this.isArmed.set(false);
 
     try {
-      await this.localStorage.saveItem('performance_takes', { ...take });
+      await this.localStorage.saveItem("performance_takes", { ...take });
     } catch {
       // best-effort persistence
     }
@@ -373,9 +396,9 @@ export class PerformanceRecordingService implements OnDestroy {
       }
       // Drop the orphaned IndexedDB row too, otherwise a deleted take
       // resurrects on the next session restore.
-      void this.localStorage.deleteItem('performance_takes', takeId).catch(
-        () => undefined
-      );
+      void this.localStorage
+        .deleteItem("performance_takes", takeId)
+        .catch(() => undefined);
     }
     this.takes.update((arr) => arr.filter((t) => t.id !== takeId));
     if (this.selectedTakeId() === takeId) {
@@ -385,25 +408,27 @@ export class PerformanceRecordingService implements OnDestroy {
 
   setComping(takeId: string, isComping: boolean) {
     this.takes.update((arr) =>
-      arr.map((t) => (t.id === takeId ? { ...t, isComping } : t))
+      arr.map((t) => (t.id === takeId ? { ...t, isComping } : t)),
     );
   }
 
-  async exportTake(takeId: string, format: 'wav' | 'mp3' | 'stems-metadata') {
+  async exportTake(takeId: string, format: "wav" | "mp3" | "stems-metadata") {
     const take = this.takes().find((t) => t.id === takeId);
     if (!take) return;
     // best-effort download. Only WAV data exists in this build (no MP3
     // encoder is wired), so never advertise a format the blob isn't —
     // stems-metadata is not a downloadable artifact and exports the WAV.
-    const extension = 'wav';
-    const a = document.createElement('a');
+    const extension = "wav";
+    const a = document.createElement("a");
     a.href = take.url;
-    a.download = `${take.name.replace(/\s+/g, '_')}.${extension}`;
+    a.download = `${take.name.replace(/\s+/g, "_")}.${extension}`;
     a.click();
   }
 
   private resetRecordingState(): void {
     this.engineStartPromise = null;
+    this.pendingTrackId = undefined;
+    this.pendingTrackName = undefined;
     this.isRecording.set(false);
     this.isArmed.set(false);
     this.liveMidi = [];
@@ -415,7 +440,7 @@ export class PerformanceRecordingService implements OnDestroy {
   private joinChunks(chunks: Float32Array[], minimumLength = 0): Float32Array {
     const length = Math.max(
       minimumLength,
-      chunks.reduce((total, chunk) => total + chunk.length, 0)
+      chunks.reduce((total, chunk) => total + chunk.length, 0),
     );
     const result = new Float32Array(length);
     let offset = 0;

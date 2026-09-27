@@ -1,24 +1,24 @@
-import { Instrument } from './instrument';
-import { NodePool } from './performance-utils';
-import { SamplerEngine } from './sampler-engine';
-import { SampleMap } from '../services/file-loader.service';
+import { Instrument } from "./instrument";
+import { NodePool } from "./performance-utils";
+import { SamplerEngine } from "./sampler-engine";
+import { SampleMap } from "../services/file-loader.service";
 
 type SupportedFilterType =
-  | 'allpass'
-  | 'bandpass'
-  | 'highpass'
-  | 'highshelf'
-  | 'lowpass'
-  | 'lowshelf'
-  | 'notch'
-  | 'peaking';
+  | "allpass"
+  | "bandpass"
+  | "highpass"
+  | "highshelf"
+  | "lowpass"
+  | "lowshelf"
+  | "notch"
+  | "peaking";
 
 export type OscillatorType =
-  | 'sine'
-  | 'square'
-  | 'sawtooth'
-  | 'triangle'
-  | 'sample';
+  | "sine"
+  | "square"
+  | "sawtooth"
+  | "triangle"
+  | "sample";
 
 export interface SynthParams {
   osc1Type: OscillatorType;
@@ -34,7 +34,7 @@ export interface SynthParams {
   lfoType: OscillatorType;
   lfoRate: number;
   lfoAmount: number;
-  lfoTarget: 'cutoff' | 'pitch' | 'volume';
+  lfoTarget: "cutoff" | "pitch" | "volume";
 
   filterType: SupportedFilterType;
   filterCutoff: number;
@@ -50,19 +50,19 @@ export interface SynthParams {
 
 export class AdvancedSynth extends Instrument {
   private params: SynthParams = {
-    osc1Type: 'sawtooth',
+    osc1Type: "sawtooth",
     osc1Octave: 0,
     osc1Detune: 0,
     osc1Mix: 0.5,
-    osc2Type: 'square',
+    osc2Type: "square",
     osc2Octave: -1,
     osc2Detune: 5,
     osc2Mix: 0.3,
-    lfoType: 'sine',
+    lfoType: "sine",
     lfoRate: 5,
     lfoAmount: 500,
-    lfoTarget: 'cutoff',
-    filterType: 'lowpass',
+    lfoTarget: "cutoff",
+    filterType: "lowpass",
     filterCutoff: 2000,
     filterResonance: 1,
     attack: 0.1,
@@ -82,11 +82,11 @@ export class AdvancedSynth extends Instrument {
     super(audioContext, 8); // Slightly lower polyphony for advanced synth on mobile
     this.samplerEngine = samplerEngine;
     this.oscPool = new NodePool(this.audioContext, (ctx) =>
-      ctx.createOscillator()
+      ctx.createOscillator(),
     );
     this.gainPool = new NodePool(this.audioContext, (ctx) => ctx.createGain());
     this.filterPool = new NodePool(this.audioContext, (ctx) =>
-      ctx.createBiquadFilter()
+      ctx.createBiquadFilter(),
     );
   }
 
@@ -107,9 +107,9 @@ export class AdvancedSynth extends Instrument {
     // LFO
     const lfo = this.oscPool.get();
     lfo.type =
-      (this.params.lfoType as OscillatorType) !== 'sample'
+      (this.params.lfoType as OscillatorType) !== "sample"
         ? (this.params.lfoType as any)
-        : 'sine';
+        : "sine";
     lfo.frequency.setValueAtTime(this.params.lfoRate, now);
 
     const lfoGain = this.gainPool.get();
@@ -117,7 +117,7 @@ export class AdvancedSynth extends Instrument {
 
     lfo.connect(lfoGain);
 
-    if (this.params.lfoTarget === 'cutoff') {
+    if (this.params.lfoTarget === "cutoff") {
       lfoGain.connect(filter.frequency);
     }
 
@@ -127,7 +127,7 @@ export class AdvancedSynth extends Instrument {
     ampGain.gain.linearRampToValueAtTime(1, now + this.params.attack);
     ampGain.gain.linearRampToValueAtTime(
       this.params.sustain,
-      now + this.params.attack + this.params.decay
+      now + this.params.attack + this.params.decay,
     );
 
     const osc1Gain = this.gainPool.get();
@@ -141,7 +141,7 @@ export class AdvancedSynth extends Instrument {
 
     // Osc 1
     if (
-      this.params.osc1Type === 'sample' &&
+      this.params.osc1Type === "sample" &&
       this.samplerEngine &&
       this.params.sampleMap
     ) {
@@ -149,14 +149,14 @@ export class AdvancedSynth extends Instrument {
         this.params.sampleMap,
         note,
         velocity,
-        osc1Gain
+        osc1Gain,
       );
-    } else if (this.params.osc1Type !== 'sample') {
+    } else if (this.params.osc1Type !== "sample") {
       const osc1 = this.oscPool.get();
       osc1.type = this.params.osc1Type as any;
       osc1.frequency.setValueAtTime(
         freq * Math.pow(2, this.params.osc1Octave),
-        now
+        now,
       );
       osc1.detune.setValueAtTime(this.params.osc1Detune, now);
       osc1.connect(osc1Gain);
@@ -171,7 +171,7 @@ export class AdvancedSynth extends Instrument {
 
     // Osc 2
     if (
-      this.params.osc2Type === 'sample' &&
+      this.params.osc2Type === "sample" &&
       this.samplerEngine &&
       this.params.sampleMap
     ) {
@@ -179,14 +179,14 @@ export class AdvancedSynth extends Instrument {
         this.params.sampleMap,
         note,
         velocity,
-        osc2Gain
+        osc2Gain,
       );
-    } else if (this.params.osc2Type !== 'sample') {
+    } else if (this.params.osc2Type !== "sample") {
       const osc2 = this.oscPool.get();
       osc2.type = this.params.osc2Type as any;
       osc2.frequency.setValueAtTime(
         freq * Math.pow(2, this.params.osc2Octave),
-        now
+        now,
       );
       osc2.detune.setValueAtTime(this.params.osc2Detune, now);
       osc2.connect(osc2Gain);
@@ -199,7 +199,7 @@ export class AdvancedSynth extends Instrument {
       };
     }
 
-    if (this.params.lfoTarget === 'volume') {
+    if (this.params.lfoTarget === "volume") {
       const lfoAmpGain = this.gainPool.get();
       lfoAmpGain.gain.setValueAtTime(0, now);
       lfoGain.connect(lfoAmpGain.gain);
@@ -241,7 +241,7 @@ export class AdvancedSynth extends Instrument {
       voice.ampGain.gain.setValueAtTime(voice.ampGain.gain.value, now);
       voice.ampGain.gain.exponentialRampToValueAtTime(
         0.001,
-        now + this.params.release
+        now + this.params.release,
       );
 
       setTimeout(
@@ -250,7 +250,7 @@ export class AdvancedSynth extends Instrument {
           this.voices.delete(note);
           this.voiceManager.removeVoice(note);
         },
-        this.params.release * 1000 + 100
+        this.params.release * 1000 + 100,
       );
     }
   }

@@ -1,1 +1,1 @@
-export type PlaybackState = 'stopped' | 'playing' | 'recording';
+export type PlaybackState = "stopped" | "playing" | "recording";

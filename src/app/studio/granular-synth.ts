@@ -1,11 +1,11 @@
-import { Instrument } from './instrument';
+import { Instrument } from "./instrument";
 
 export interface GranularParams {
-  grainSize: number;       // ms per grain
-  grainDensity: number;    // grains per second
-  positionSpread: number;  // random variation in grain start position (0..1)
-  pitchSpread: number;     // random pitch variation in semitones
-  panSpread: number;       // random pan spread (0..1)
+  grainSize: number; // ms per grain
+  grainDensity: number; // grains per second
+  positionSpread: number; // random variation in grain start position (0..1)
+  pitchSpread: number; // random pitch variation in semitones
+  panSpread: number; // random pan spread (0..1)
   attack: number;
   release: number;
   reverse: boolean;
@@ -82,8 +82,13 @@ export class GranularSynth extends Instrument {
     // Random start position
     const centerPos = 0.3; // default to first third
     const spread = this.params.positionSpread * bufDuration;
-    const pos = Math.max(0, Math.min(bufDuration - 0.01,
-      centerPos * bufDuration + (Math.random() - 0.5) * spread * 2));
+    const pos = Math.max(
+      0,
+      Math.min(
+        bufDuration - 0.01,
+        centerPos * bufDuration + (Math.random() - 0.5) * spread * 2,
+      ),
+    );
 
     const grainLenSec = this.params.grainSize / 1000;
     const adjustedLen = Math.min(grainLenSec, bufDuration - pos);
@@ -110,7 +115,10 @@ export class GranularSynth extends Instrument {
     const env = this.audioContext.createGain();
     env.gain.setValueAtTime(0, now);
     env.gain.linearRampToValueAtTime(velocity * 0.3, now + this.params.attack);
-    env.gain.setValueAtTime(velocity * 0.3, now + adjustedLen - this.params.release);
+    env.gain.setValueAtTime(
+      velocity * 0.3,
+      now + adjustedLen - this.params.release,
+    );
     env.gain.exponentialRampToValueAtTime(0.001, now + adjustedLen);
 
     source.connect(panner);
@@ -127,7 +135,9 @@ export class GranularSynth extends Instrument {
     const now = this.audioContext.currentTime;
     this.activeGrains = this.activeGrains.filter((g) => {
       if (g.scheduledAt + 2 < now) {
-        try { g.source.stop(); } catch (e) {}
+        try {
+          g.source.stop();
+        } catch (e) {}
         g.source.disconnect();
         g.gain.disconnect();
         g.panner.disconnect();
@@ -157,7 +167,9 @@ export class GranularSynth extends Instrument {
       grain.gain.gain.setValueAtTime(grain.gain.gain.value, now);
       grain.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
       setTimeout(() => {
-        try { grain.source.stop(); } catch (e) {}
+        try {
+          grain.source.stop();
+        } catch (e) {}
         grain.source.disconnect();
         grain.gain.disconnect();
         grain.panner.disconnect();

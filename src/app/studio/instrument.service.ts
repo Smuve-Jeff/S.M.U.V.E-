@@ -1,5 +1,5 @@
-import { Injectable, inject } from '@angular/core';
-import { AudioEngineService } from '../services/audio-engine.service';
+import { Injectable, inject } from "@angular/core";
+import { AudioEngineService } from "../services/audio-engine.service";
 
 export interface Clip {
   id: string;
@@ -8,7 +8,7 @@ export interface Clip {
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class InstrumentService {
   private engine = inject(AudioEngineService);
@@ -39,7 +39,7 @@ export class InstrumentService {
       0,
       0,
       0,
-      { type: 'sine' }
+      { type: "sine" },
     );
   }
 

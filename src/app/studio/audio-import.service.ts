@@ -1,12 +1,12 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
-import { FileLoaderService } from '../services/file-loader.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { MusicManagerService } from '../services/music-manager.service';
-import { LoggingService } from '../services/logging.service';
-import { SnackbarService } from '../services/snackbar.service';
-import { AudioStretchService } from './audio-stretch.service';
+import { Injectable, inject, signal, computed } from "@angular/core";
+import { FileLoaderService } from "../services/file-loader.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { MusicManagerService } from "../services/music-manager.service";
+import { LoggingService } from "../services/logging.service";
+import { SnackbarService } from "../services/snackbar.service";
+import { AudioStretchService } from "./audio-stretch.service";
 
-export type EnhancePreset = 'clean' | 'vocal' | 'broadcast' | 'master';
+export type EnhancePreset = "clean" | "vocal" | "broadcast" | "master";
 
 export interface EnhancePresetConfig {
   id: EnhancePreset;
@@ -33,9 +33,9 @@ export interface EnhancePresetConfig {
  */
 export const ENHANCE_PRESETS: readonly EnhancePresetConfig[] = [
   {
-    id: 'clean',
-    label: 'Clean Lift',
-    description: 'Gentle polish for instrumentals — keeps the balance intact.',
+    id: "clean",
+    label: "Clean Lift",
+    description: "Gentle polish for instrumentals — keeps the balance intact.",
     highPassHz: 30,
     lowShelfDb: 1,
     presenceHz: 3000,
@@ -47,9 +47,9 @@ export const ENHANCE_PRESETS: readonly EnhancePresetConfig[] = [
     targetPeakDb: -1,
   },
   {
-    id: 'vocal',
-    label: 'Vocal Focus',
-    description: 'Clears mud and lifts diction so a vocal sits on top.',
+    id: "vocal",
+    label: "Vocal Focus",
+    description: "Clears mud and lifts diction so a vocal sits on top.",
     highPassHz: 85,
     lowShelfDb: -1.5,
     presenceHz: 3500,
@@ -61,9 +61,9 @@ export const ENHANCE_PRESETS: readonly EnhancePresetConfig[] = [
     targetPeakDb: -1,
   },
   {
-    id: 'broadcast',
-    label: 'Broadcast',
-    description: 'Dense, forward and consistent — podcast / radio ready.',
+    id: "broadcast",
+    label: "Broadcast",
+    description: "Dense, forward and consistent — podcast / radio ready.",
     highPassHz: 100,
     lowShelfDb: -2,
     presenceHz: 4000,
@@ -75,9 +75,9 @@ export const ENHANCE_PRESETS: readonly EnhancePresetConfig[] = [
     targetPeakDb: -0.8,
   },
   {
-    id: 'master',
-    label: 'Master Glue',
-    description: 'Warm top and tight low end for a full-mix two-track.',
+    id: "master",
+    label: "Master Glue",
+    description: "Warm top and tight low end for a full-mix two-track.",
     highPassHz: 25,
     lowShelfDb: 2,
     presenceHz: 2800,
@@ -127,19 +127,19 @@ export interface ImportedAudio {
 
 type EditSnapshot = Pick<
   ImportedAudio,
-  | 'trimStart'
-  | 'trimEnd'
-  | 'gain'
-  | 'stretchRatio'
-  | 'pitchSemitones'
-  | 'fadeIn'
-  | 'fadeOut'
-  | 'loopStart'
-  | 'loopEnd'
-  | 'normalize'
+  | "trimStart"
+  | "trimEnd"
+  | "gain"
+  | "stretchRatio"
+  | "pitchSemitones"
+  | "fadeIn"
+  | "fadeOut"
+  | "loopStart"
+  | "loopEnd"
+  | "normalize"
 >;
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AudioImportService {
   private fileLoader = inject(FileLoaderService);
   private audioEngine = inject(AudioEngineService);
@@ -158,7 +158,7 @@ export class AudioImportService {
   isLoading = signal(false);
 
   /** Selected enhancement shape for the import editor. */
-  enhancePreset = signal<EnhancePreset>('clean');
+  enhancePreset = signal<EnhancePreset>("clean");
   /** True while an offline enhancement render is in flight. */
   isEnhancing = signal(false);
   /** Preset catalogue for the UI. */
@@ -176,7 +176,7 @@ export class AudioImportService {
     this.isLoading.set(true);
     try {
       const files = await this.fileLoader.pickLocalFiles(
-        '.mp3,.wav,.ogg,.flac,.aiff,.m4a'
+        ".mp3,.wav,.ogg,.flac,.aiff,.m4a",
       );
       if (files.length === 0) {
         this.isLoading.set(false);
@@ -193,7 +193,7 @@ export class AudioImportService {
 
           const imported: ImportedAudio = {
             id: `import_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-            name: file.name.replace(/\.[^/.]+$/, ''),
+            name: file.name.replace(/\.[^/.]+$/, ""),
             buffer,
             blob: file,
             url,
@@ -229,8 +229,8 @@ export class AudioImportService {
         this.snackbar.success(`Imported ${results.length} audio file(s)`);
       }
     } catch (e) {
-      this.logger.error('Audio import failed', e);
-      this.snackbar.error('Audio import failed');
+      this.logger.error("Audio import failed", e);
+      this.snackbar.error("Audio import failed");
     } finally {
       this.isLoading.set(false);
     }
@@ -243,26 +243,23 @@ export class AudioImportService {
   stretchBuffer(
     buffer: AudioBuffer,
     ratio: number,
-    options: { windowSize?: number } = {}
+    options: { windowSize?: number } = {},
   ): AudioBuffer {
     const ctx = this.audioEngine.ctx;
     const channels = buffer.numberOfChannels;
-    const stretchedLen = Math.max(
-      1,
-      Math.ceil(buffer.length * ratio)
-    );
+    const stretchedLen = Math.max(1, Math.ceil(buffer.length * ratio));
     const out = ctx.createBuffer(channels, stretchedLen, buffer.sampleRate);
     for (let ch = 0; ch < channels; ch++) {
-      const data = this.stretch.timeStretch(
-        buffer.getChannelData(ch),
-        ratio,
-        { windowSize: options.windowSize }
-      );
+      const data = this.stretch.timeStretch(buffer.getChannelData(ch), ratio, {
+        windowSize: options.windowSize,
+      });
       // copyToChannel throws if the WSOLA output is even a few frames longer
       // than the precomputed buffer length — copy through getChannelData and
       // truncate instead.
       const target = out.getChannelData(ch);
-      target.set((data as Float32Array<ArrayBuffer>).subarray(0, target.length));
+      target.set(
+        (data as Float32Array<ArrayBuffer>).subarray(0, target.length),
+      );
     }
     return out;
   }
@@ -274,15 +271,17 @@ export class AudioImportService {
     const out = ctx.createBuffer(
       channels,
       Math.max(1, buffer.length),
-      buffer.sampleRate
+      buffer.sampleRate,
     );
     for (let ch = 0; ch < channels; ch++) {
       const data = this.stretch.pitchShift(
         buffer.getChannelData(ch),
-        semitones
+        semitones,
       );
       const target = out.getChannelData(ch);
-      target.set((data as Float32Array<ArrayBuffer>).subarray(0, target.length));
+      target.set(
+        (data as Float32Array<ArrayBuffer>).subarray(0, target.length),
+      );
     }
     return out;
   }
@@ -291,7 +290,7 @@ export class AudioImportService {
   tempoMatchBuffer(
     buffer: AudioBuffer,
     sourceBpm: number,
-    targetBpm: number
+    targetBpm: number,
   ): AudioBuffer {
     const ratio = sourceBpm / targetBpm;
     return this.stretchBuffer(buffer, ratio);
@@ -319,7 +318,7 @@ export class AudioImportService {
 
   /** Update trim start (normalized 0-1) */
   setTrimStart(value: number | string) {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    const num = typeof value === "string" ? parseFloat(value) : value;
     this.updateCurrentAudio({
       trimStart: Math.max(0, Math.min(num, this.selectedAudio()?.trimEnd ?? 1)),
     });
@@ -327,7 +326,7 @@ export class AudioImportService {
 
   /** Update trim end (normalized 0-1) */
   setTrimEnd(value: number | string) {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    const num = typeof value === "string" ? parseFloat(value) : value;
     this.updateCurrentAudio({
       trimEnd: Math.max(this.selectedAudio()?.trimStart ?? 0, Math.min(num, 1)),
     });
@@ -335,39 +334,41 @@ export class AudioImportService {
 
   /** Set gain multiplier */
   setGain(gain: number | string) {
-    const num = typeof gain === 'string' ? parseFloat(gain) : gain;
+    const num = typeof gain === "string" ? parseFloat(gain) : gain;
     this.updateCurrentAudio({ gain: Math.max(0, Math.min(2, num)) });
   }
 
   setStretchRatio(value: number | string) {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    const num = typeof value === "string" ? parseFloat(value) : value;
     this.updateCurrentAudio({ stretchRatio: Math.max(0.25, Math.min(4, num)) });
   }
 
   setPitchSemitones(value: number | string) {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    this.updateCurrentAudio({ pitchSemitones: Math.max(-12, Math.min(12, num)) });
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    this.updateCurrentAudio({
+      pitchSemitones: Math.max(-12, Math.min(12, num)),
+    });
   }
 
   setFadeIn(value: number | string) {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    const num = typeof value === "string" ? parseFloat(value) : value;
     this.updateCurrentAudio({ fadeIn: Math.max(0, Math.min(0.5, num)) });
   }
 
   setFadeOut(value: number | string) {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    const num = typeof value === "string" ? parseFloat(value) : value;
     this.updateCurrentAudio({ fadeOut: Math.max(0, Math.min(0.5, num)) });
   }
 
   setLoopStart(value: number | string) {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    const num = typeof value === "string" ? parseFloat(value) : value;
     this.updateCurrentAudio({
       loopStart: Math.max(0, Math.min(num, this.selectedAudio()?.loopEnd ?? 1)),
     });
   }
 
   setLoopEnd(value: number | string) {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
+    const num = typeof value === "string" ? parseFloat(value) : value;
     this.updateCurrentAudio({
       loopEnd: Math.max(this.selectedAudio()?.loopStart ?? 0, Math.min(num, 1)),
     });
@@ -436,7 +437,10 @@ export class AudioImportService {
       processedBuffer = this.stretchBuffer(processedBuffer, audio.stretchRatio);
     }
     if (Math.abs(audio.pitchSemitones) > 0.001) {
-      processedBuffer = this.pitchShiftBuffer(processedBuffer, audio.pitchSemitones);
+      processedBuffer = this.pitchShiftBuffer(
+        processedBuffer,
+        audio.pitchSemitones,
+      );
     }
 
     this.applyGainFadeAndNormalize(processedBuffer, audio);
@@ -446,7 +450,7 @@ export class AudioImportService {
     const wavBlob = this.createWavBlob(
       interleaved,
       processedBuffer.sampleRate,
-      processedBuffer.numberOfChannels
+      processedBuffer.numberOfChannels,
     );
     const editedUrl = URL.createObjectURL(wavBlob);
     if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
@@ -462,11 +466,11 @@ export class AudioImportService {
 
     this.selectedAudio.set(edited);
     this.importedAudio.update((prev) =>
-      prev.map((a) => (a.id === audio.id ? edited : a))
+      prev.map((a) => (a.id === audio.id ? edited : a)),
     );
     this.appliedEditState.set(audio.id, this.snapshot(edited));
 
-    this.snackbar.success('Audio edits applied');
+    this.snackbar.success("Audio edits applied");
     return Promise.resolve(wavBlob);
   }
 
@@ -478,7 +482,7 @@ export class AudioImportService {
     this.applyEdits().then((blob) => {
       if (!blob) return;
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `${audio.name}_edited.wav`;
       document.body.appendChild(a);
@@ -512,9 +516,9 @@ export class AudioImportService {
     const OfflineCtor: any =
       (globalThis as any).OfflineAudioContext ??
       (globalThis as any).webkitOfflineAudioContext;
-    if (typeof OfflineCtor !== 'function') {
+    if (typeof OfflineCtor !== "function") {
       this.snackbar.warning(
-        'Audio enhancement is unavailable in this environment'
+        "Audio enhancement is unavailable in this environment",
       );
       return null;
     }
@@ -525,30 +529,30 @@ export class AudioImportService {
       const offline: OfflineAudioContext = new OfflineCtor(
         source.numberOfChannels,
         source.length,
-        source.sampleRate
+        source.sampleRate,
       );
 
       const input = offline.createBufferSource();
       input.buffer = source;
 
       const rumble = offline.createBiquadFilter();
-      rumble.type = 'highpass';
+      rumble.type = "highpass";
       rumble.frequency.value = config.highPassHz;
       rumble.Q.value = 0.7;
 
       const warmth = offline.createBiquadFilter();
-      warmth.type = 'lowshelf';
+      warmth.type = "lowshelf";
       warmth.frequency.value = 220;
       warmth.gain.value = config.lowShelfDb;
 
       const presence = offline.createBiquadFilter();
-      presence.type = 'peaking';
+      presence.type = "peaking";
       presence.frequency.value = config.presenceHz;
       presence.Q.value = 1.1;
       presence.gain.value = config.presenceDb;
 
       const air = offline.createBiquadFilter();
-      air.type = 'highshelf';
+      air.type = "highshelf";
       air.frequency.value = config.airHz;
       air.gain.value = config.airDb;
 
@@ -574,7 +578,7 @@ export class AudioImportService {
       const wav = this.createWavBlob(
         this.interleaveChannels(rendered),
         rendered.sampleRate,
-        rendered.numberOfChannels
+        rendered.numberOfChannels,
       );
       const url = URL.createObjectURL(wav);
       if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
@@ -589,8 +593,8 @@ export class AudioImportService {
       this.snackbar.success(`Enhanced audio: ${config.label}`);
       return wav;
     } catch (e) {
-      this.logger.error('Audio enhancement failed', e);
-      this.snackbar.error('Could not enhance this audio file');
+      this.logger.error("Audio enhancement failed", e);
+      this.snackbar.error("Could not enhance this audio file");
       return null;
     } finally {
       this.isEnhancing.set(false);
@@ -609,7 +613,7 @@ export class AudioImportService {
       enhancedBuffer: null,
       enhancedPreset: null,
     });
-    this.snackbar.info('Restored the original audio');
+    this.snackbar.info("Restored the original audio");
   }
 
   /** Scale a rendered buffer to `targetPeakDb` using its true sample peak. */
@@ -655,21 +659,21 @@ export class AudioImportService {
   renderWaveform(
     canvas: HTMLCanvasElement,
     waveform: number[],
-    color: string = '#0E7C7B'
+    color: string = "#0E7C7B",
   ) {
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const w = canvas.width;
     const h = canvas.height;
     ctx.clearRect(0, 0, w, h);
 
     // Waveform background
-    ctx.fillStyle = 'rgba(14, 124, 123, 0.06)';
+    ctx.fillStyle = "rgba(14, 124, 123, 0.06)";
     ctx.fillRect(0, 0, w, h);
 
     // Center line
     const midY = h / 2;
-    ctx.strokeStyle = 'rgba(61, 53, 42, 0.08)';
+    ctx.strokeStyle = "rgba(61, 53, 42, 0.08)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, midY);
@@ -691,20 +695,20 @@ export class AudioImportService {
   renderTrimRegion(
     canvas: HTMLCanvasElement,
     audio: ImportedAudio,
-    waveform: number[]
+    waveform: number[],
   ) {
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const w = canvas.width;
     const h = canvas.height;
 
     // Dim regions outside trim
-    ctx.fillStyle = 'rgba(31, 26, 18, 0.25)';
+    ctx.fillStyle = "rgba(31, 26, 18, 0.25)";
     ctx.fillRect(0, 0, w * audio.trimStart, h);
     ctx.fillRect(w * audio.trimEnd, 0, w - w * audio.trimEnd, h);
 
     // Trim boundary lines
-    ctx.strokeStyle = '#D97706';
+    ctx.strokeStyle = "#D97706";
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
@@ -728,9 +732,9 @@ export class AudioImportService {
   addToProject(audio: ImportedAudio) {
     const addTrack = (buffer: AudioBuffer) => {
       this.musicManager.addAudioTrack({
-        id: 'audio_' + Date.now(),
+        id: "audio_" + Date.now(),
         name: audio.name,
-        color: '#0E7C7B',
+        color: "#0E7C7B",
         buffer,
         offset: 0,
       });
@@ -753,8 +757,8 @@ export class AudioImportService {
         // Edited re-decode failed (rare) — fall back to the unedited buffer
         // so the import still lands in the arrangement.
         this.logger.warn(
-          'Re-decoding edited audio failed — using original buffer',
-          e
+          "Re-decoding edited audio failed — using original buffer",
+          e,
         );
       }
       addTrack(buffer);
@@ -780,7 +784,7 @@ export class AudioImportService {
     const updated = { ...current, ...partial };
     this.selectedAudio.set(updated);
     this.importedAudio.update((prev) =>
-      prev.map((a) => (a.id === current.id ? updated : a))
+      prev.map((a) => (a.id === current.id ? updated : a)),
     );
   }
 
@@ -800,7 +804,7 @@ export class AudioImportService {
   private createWavBlob(
     interleaved: Float32Array,
     sampleRate: number,
-    channels: number
+    channels: number,
   ): Blob {
     const numSamples = interleaved.length;
     const buffer = new ArrayBuffer(44 + numSamples * 2);
@@ -809,10 +813,10 @@ export class AudioImportService {
       for (let i = 0; i < str.length; i++)
         view.setUint8(offset + i, str.charCodeAt(i));
     };
-    w(0, 'RIFF');
+    w(0, "RIFF");
     view.setUint32(4, 36 + numSamples * 2, true);
-    w(8, 'WAVE');
-    w(12, 'fmt ');
+    w(8, "WAVE");
+    w(12, "fmt ");
     view.setUint32(16, 16, true);
     view.setUint16(20, 1, true);
     view.setUint16(22, channels, true);
@@ -820,23 +824,27 @@ export class AudioImportService {
     view.setUint32(28, sampleRate * channels * 2, true);
     view.setUint16(32, channels * 2, true);
     view.setUint16(34, 16, true);
-    w(36, 'data');
+    w(36, "data");
     view.setUint32(40, numSamples * 2, true);
     for (let i = 0; i < numSamples; i++) {
       const s = Math.max(-1, Math.min(1, interleaved[i]));
       view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
     }
-    return new Blob([buffer], { type: 'audio/wav' });
+    return new Blob([buffer], { type: "audio/wav" });
   }
 
   private applyGainFadeAndNormalize(
     buffer: AudioBuffer,
-    settings: ImportedAudio
+    settings: ImportedAudio,
   ): void {
     const fadeInSamples = Math.floor(buffer.length * settings.fadeIn);
     const fadeOutSamples = Math.floor(buffer.length * settings.fadeOut);
 
-    const applyShaping = (sample: number, index: number, total: number): number => {
+    const applyShaping = (
+      sample: number,
+      index: number,
+      total: number,
+    ): number => {
       let value = sample * settings.gain;
       if (fadeInSamples > 0 && index < fadeInSamples) {
         value *= index / fadeInSamples;

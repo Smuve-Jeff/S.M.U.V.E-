@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { TransportBarComponent } from '../../transport-bar/transport-bar.component';
+import { ChangeDetectionStrategy, Component } from "@angular/core";
+import { TransportBarComponent } from "../../transport-bar/transport-bar.component";
 
 /**
  * Shared boundary between transport state and project utility actions.
@@ -10,11 +10,11 @@ import { TransportBarComponent } from '../../transport-bar/transport-bar.compone
  * the transport's internal signals.
  */
 @Component({
-  selector: 'app-studio-transport-shell',
+  selector: "app-studio-transport-shell",
   standalone: true,
   imports: [TransportBarComponent],
-  templateUrl: './studio-transport-shell.component.html',
-  styleUrl: './studio-transport-shell.component.css',
+  templateUrl: "./studio-transport-shell.component.html",
+  styleUrl: "./studio-transport-shell.component.css",
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StudioTransportShellComponent {}

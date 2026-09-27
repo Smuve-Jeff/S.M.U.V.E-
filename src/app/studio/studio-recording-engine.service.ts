@@ -1,24 +1,24 @@
-import { Injectable, inject, signal, OnDestroy } from '@angular/core';
-import { LoggingService } from '../services/logging.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
-import { LocalStorageService } from '../services/local-storage.service';
-import { WavEncoder } from './wav-encoder.util';
-import { RecordingLimiterService } from './recording-limiter.service';
-import { Subject } from 'rxjs';
+import { Injectable, inject, signal, OnDestroy } from "@angular/core";
+import { LoggingService } from "../services/logging.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { AudioEngineLatencyService } from "../services/audio-engine-latency.service";
+import { LocalStorageService } from "../services/local-storage.service";
+import { WavEncoder } from "./wav-encoder.util";
+import { RecordingLimiterService } from "./recording-limiter.service";
+import { Subject } from "rxjs";
 
 export interface RecordingMetadata {
   id: string;
   name: string;
   timestamp: number;
   duration: number;
-  format: 'wav' | 'webm';
+  format: "wav" | "webm";
   bitDepth: number;
   sampleRate: number;
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class StudioRecordingEngineService implements OnDestroy {
   private logger = inject(LoggingService);
@@ -75,7 +75,7 @@ export class StudioRecordingEngineService implements OnDestroy {
       try {
         if (this.recordingWorkletContext !== ctx) {
           await ctx.audioWorklet.addModule(
-            'assets/worklets/recording-processor.worklet.js'
+            "assets/worklets/recording-processor.worklet.js",
           );
           this.recordingWorkletContext = ctx;
         }
@@ -83,8 +83,8 @@ export class StudioRecordingEngineService implements OnDestroy {
       } catch (e) {
         this.recordingWorkletReady = false;
         this.logger.error(
-          'StudioRecordingEngine: Recording worklet failed to load; capture was not started.',
-          e
+          "StudioRecordingEngine: Recording worklet failed to load; capture was not started.",
+          e,
         );
         this.cleanup();
         return false;
@@ -105,11 +105,11 @@ export class StudioRecordingEngineService implements OnDestroy {
       this.isInitialized.set(true);
       this.startLevelMonitoring();
       this.logger.info(
-        'StudioRecordingEngine: Initialized high-performance capture via AudioWorklet.'
+        "StudioRecordingEngine: Initialized high-performance capture via AudioWorklet.",
       );
       return true;
     } catch (error) {
-      this.logger.error('StudioRecordingEngine: Initialization failed', error);
+      this.logger.error("StudioRecordingEngine: Initialization failed", error);
       this.cleanup();
       return false;
     }
@@ -120,7 +120,7 @@ export class StudioRecordingEngineService implements OnDestroy {
     const ctx = this.audioEngine.ctx;
     if (!this.recordingWorkletReady || this.recordingWorkletContext !== ctx) {
       this.logger.error(
-        'StudioRecordingEngine: Cannot start recording because the recording worklet is unavailable.'
+        "StudioRecordingEngine: Cannot start recording because the recording worklet is unavailable.",
       );
       return;
     }
@@ -130,7 +130,7 @@ export class StudioRecordingEngineService implements OnDestroy {
       this.cleanup();
       if (!workletWasReady) {
         this.logger.error(
-          'StudioRecordingEngine: Cannot start a stream-backed recording before initialization.'
+          "StudioRecordingEngine: Cannot start a stream-backed recording before initialization.",
         );
         return;
       }
@@ -151,7 +151,7 @@ export class StudioRecordingEngineService implements OnDestroy {
       this.startLevelMonitoring();
     } else if (!this.isInitialized()) {
       this.logger.error(
-        'StudioRecordingEngine: Cannot start recording without initialization'
+        "StudioRecordingEngine: Cannot start recording without initialization",
       );
       return;
     }
@@ -162,17 +162,17 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.pendingMidi = [];
     this.recordedBlob.set(null);
 
-    this.workletNode = new AudioWorkletNode(ctx, 'recording-processor');
+    this.workletNode = new AudioWorkletNode(ctx, "recording-processor");
     this.workletNode.port.onmessage = (event) => {
-      if (event.data.command === 'DATA') {
+      if (event.data.command === "DATA") {
         this.leftChannel.push(...event.data.left);
         this.rightChannel.push(...event.data.right);
         const sampleCount = event.data.left.reduce(
           (acc: number, cur: Float32Array) => acc + cur.length,
-          0
+          0,
         );
         this.recordingTime.update((t) => t + sampleCount / ctx.sampleRate);
-      } else if (event.data.command === 'FLUSHED') {
+      } else if (event.data.command === "FLUSHED") {
         this.flushResolver?.();
         this.flushResolver = null;
       }
@@ -181,12 +181,14 @@ export class StudioRecordingEngineService implements OnDestroy {
     if (this.sourceNode) {
       // Route capture through the headroom limiter when enabled. Falls back to
       // a direct connection if it can't engage, so capture never breaks.
-      const workletInput = this.limiter.connectToRecordingChain(this.sourceNode);
+      const workletInput = this.limiter.connectToRecordingChain(
+        this.sourceNode,
+      );
       workletInput.connect(this.workletNode);
     }
     // Keep the AudioWorklet active while preventing microphone feedback.
     this.workletNode.connect(this.silentSink ?? ctx.destination);
-    this.workletNode.port.postMessage({ command: 'START' });
+    this.workletNode.port.postMessage({ command: "START" });
     this.isRecording.set(true);
     this.isPaused.set(false);
   }
@@ -194,14 +196,14 @@ export class StudioRecordingEngineService implements OnDestroy {
   pauseRecording() {
     if (this.isRecording()) {
       this.isPaused.set(true);
-      this.workletNode?.port.postMessage({ command: 'STOP' });
+      this.workletNode?.port.postMessage({ command: "STOP" });
     }
   }
 
   resumeRecording() {
     if (this.isRecording() && this.isPaused()) {
       this.isPaused.set(false);
-      this.workletNode?.port.postMessage({ command: 'START' });
+      this.workletNode?.port.postMessage({ command: "START" });
     }
   }
 
@@ -209,10 +211,10 @@ export class StudioRecordingEngineService implements OnDestroy {
     if (!this.isRecording()) return;
     this.isRecording.set(false);
     this.isFlushing = true;
-    this.workletNode?.port.postMessage({ command: 'STOP' });
+    this.workletNode?.port.postMessage({ command: "STOP" });
     await new Promise<void>((resolve) => {
       this.flushResolver = resolve;
-      this.workletNode?.port.postMessage({ command: 'FLUSH' });
+      this.workletNode?.port.postMessage({ command: "FLUSH" });
       setTimeout(() => {
         this.flushResolver = null;
         resolve();
@@ -231,7 +233,11 @@ export class StudioRecordingEngineService implements OnDestroy {
       channels = [new Float32Array(1), new Float32Array(1)];
     }
     this.recordingTime.set(channels[0].length / sampleRate);
-    const wavBlob = WavEncoder.encodeMultiChannel(channels, 'wav-16', sampleRate);
+    const wavBlob = WavEncoder.encodeMultiChannel(
+      channels,
+      "wav-16",
+      sampleRate,
+    );
     this.recordedBlob.set(wavBlob);
 
     const id = `studio_rec_${Date.now()}`;
@@ -240,11 +246,11 @@ export class StudioRecordingEngineService implements OnDestroy {
       name: `Studio Session ${new Date().toLocaleTimeString()}`,
       timestamp: Date.now(),
       duration: channels[0].length / sampleRate,
-      format: 'wav',
+      format: "wav",
       bitDepth: 16,
       sampleRate,
     };
-    await this.localStorage.saveItem('audio_blobs', {
+    await this.localStorage.saveItem("audio_blobs", {
       id,
       blob: wavBlob,
       ...metadata,
@@ -263,9 +269,10 @@ export class StudioRecordingEngineService implements OnDestroy {
   }
 
   /** Return the current left/right channel buffers for SmartRecordingService to pull real comp takes */
-  getRecordedBuffers(
-    applyCompensation: boolean = true
-  ): { left: Float32Array[]; right: Float32Array[] } {
+  getRecordedBuffers(applyCompensation: boolean = true): {
+    left: Float32Array[];
+    right: Float32Array[];
+  } {
     const left = this.leftChannel.map((chunk) => chunk.slice());
     const right = this.rightChannel.map((chunk) => chunk.slice());
     if (!applyCompensation) {
@@ -275,8 +282,8 @@ export class StudioRecordingEngineService implements OnDestroy {
       0,
       Math.round(
         (this.latency.getAppliedCompensationMs() / 1000) *
-          this.audioEngine.ctx.sampleRate
-      )
+          this.audioEngine.ctx.sampleRate,
+      ),
     );
     return {
       left: this.trimChunkList(left, framesToTrim),
@@ -286,7 +293,7 @@ export class StudioRecordingEngineService implements OnDestroy {
 
   private joinChannels(
     left: Float32Array[],
-    right: Float32Array[]
+    right: Float32Array[],
   ): [Float32Array, Float32Array] {
     const totalLength = left.reduce((sum, chunk) => sum + chunk.length, 0);
     const leftChannel = new Float32Array(totalLength);
@@ -304,7 +311,7 @@ export class StudioRecordingEngineService implements OnDestroy {
 
   private trimChunkList(
     chunks: Float32Array[],
-    framesToTrim: number
+    framesToTrim: number,
   ): Float32Array[] {
     if (framesToTrim <= 0 || chunks.length === 0) {
       return chunks;

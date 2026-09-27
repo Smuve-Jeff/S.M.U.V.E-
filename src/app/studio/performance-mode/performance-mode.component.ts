@@ -8,34 +8,39 @@ import {
   computed,
   OnInit,
   OnDestroy,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HapticService } from '../../services/haptic.service';
-import { HardwareService } from '../../services/hardware.service';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { HapticService } from "../../services/haptic.service";
+import { HardwareService } from "../../services/hardware.service";
 
 export interface PerformancePad {
   id: number;
   name: string;
-  type: 'loop' | 'one-shot';
+  type: "loop" | "one-shot";
   isPlaying: boolean;
   midiNote?: number; // MIDI note number for hardware mapping
 }
 
-export type VelocityZone = 'soft' | 'medium' | 'hard';
+export type VelocityZone = "soft" | "medium" | "hard";
 
-const VELOCITY_ZONES: { zone: VelocityZone; range: [number, number]; label: string; color: string }[] = [
-  { zone: 'soft',   range: [0.1, 0.4], label: 'Soft',    color: '#2BA09C' },
-  { zone: 'medium', range: [0.4, 0.7], label: 'Medium',  color: '#0E7C7B' },
-  { zone: 'hard',   range: [0.7, 1.0], label: 'Hard',    color: '#D97706' },
+const VELOCITY_ZONES: {
+  zone: VelocityZone;
+  range: [number, number];
+  label: string;
+  color: string;
+}[] = [
+  { zone: "soft", range: [0.1, 0.4], label: "Soft", color: "#2BA09C" },
+  { zone: "medium", range: [0.4, 0.7], label: "Medium", color: "#0E7C7B" },
+  { zone: "hard", range: [0.7, 1.0], label: "Hard", color: "#D97706" },
 ];
 
 @Component({
-  selector: 'app-performance-mode',
+  selector: "app-performance-mode",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './performance-mode.component.html',
-  styleUrls: ['./performance-mode.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./performance-mode.component.html",
+  styleUrls: ["./performance-mode.component.css", "../shared/platform-ux.css"],
 })
 export class PerformanceModeComponent implements OnInit, OnDestroy {
   private haptic = inject(HapticService);
@@ -56,9 +61,9 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
 
   currentVelocityZone = computed<VelocityZone>(() => {
     const v = this.activeVelocity();
-    if (v < 0.4) return 'soft';
-    if (v < 0.7) return 'medium';
-    return 'hard';
+    if (v < 0.4) return "soft";
+    if (v < 0.7) return "medium";
+    return "hard";
   });
 
   velocityZones = VELOCITY_ZONES;
@@ -121,7 +126,8 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
   /** Map each pad id to a MIDI note number (36=C2 baseline). */
   midiNoteMap = signal<Record<number, number>>({});
 
-  midiNoteMapForPad = (padId: number) => computed(() => this.midiNoteMap()[padId] ?? 36);
+  midiNoteMapForPad = (padId: number) =>
+    computed(() => this.midiNoteMap()[padId] ?? 36);
 
   /** Initialize default MIDI mapping (keys C2–G2 for 8 pads). */
   private initDefaultMidiMap(): void {
@@ -158,7 +164,10 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
   }
 
   setMidiNoteForPad(padId: number, note: number): void {
-    this.midiNoteMap.update((m) => ({ ...m, [padId]: Math.max(0, Math.min(127, Math.round(note))) }));
+    this.midiNoteMap.update((m) => ({
+      ...m,
+      [padId]: Math.max(0, Math.min(127, Math.round(note))),
+    }));
     this.haptic.light();
   }
 
@@ -231,7 +240,7 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
   }
 
   onPadKeydown(pad: PerformancePad, event: KeyboardEvent): void {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     this.triggerPad(pad);
   }
@@ -249,7 +258,20 @@ export class PerformanceModeComponent implements OnInit, OnDestroy {
   }
 
   midiNoteName(note: number): string {
-    const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    const names = [
+      "C",
+      "C#",
+      "D",
+      "D#",
+      "E",
+      "F",
+      "F#",
+      "G",
+      "G#",
+      "A",
+      "A#",
+      "B",
+    ];
     return `${names[note % 12]}${Math.floor(note / 12) - 1}`;
   }
 

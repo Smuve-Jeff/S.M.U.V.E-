@@ -1,10 +1,10 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { LoggingService } from '../services/logging.service';
-import { RecordingStatusService } from './recording-status.service';
-import { LocalStorageService } from '../services/local-storage.service';
-import { StudioRecordingEngineService } from './studio-recording-engine.service';
-import { WavEncoder } from './wav-encoder.util';
+import { Injectable, inject, signal, computed } from "@angular/core";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { LoggingService } from "../services/logging.service";
+import { RecordingStatusService } from "./recording-status.service";
+import { LocalStorageService } from "../services/local-storage.service";
+import { StudioRecordingEngineService } from "./studio-recording-engine.service";
+import { WavEncoder } from "./wav-encoder.util";
 
 /** A single recorded take within a comp group */
 export interface CompTake {
@@ -48,7 +48,7 @@ export interface CompSegment {
   takeId: string | null;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class SmartRecordingService {
   private readonly audioEngine = inject(AudioEngineService);
   private readonly logger = inject(LoggingService);
@@ -58,7 +58,7 @@ export class SmartRecordingService {
 
   // ── Recording mode ────────────────────────────────────────
   /** 'normal' = standard recording, 'punch' = punch-in/out, 'comp' = comp takes */
-  recordingMode = signal<'normal' | 'punch' | 'comp'>('normal');
+  recordingMode = signal<"normal" | "punch" | "comp">("normal");
 
   /** Punch-in punch-out bar positions */
   punchInBar = signal<number | null>(null);
@@ -102,36 +102,36 @@ export class SmartRecordingService {
   activeCompGroupTakes = computed(() => this.activeCompGroup()?.takes || []);
 
   currentTakeLabel = computed(() => {
-    if (this.recordingMode() === 'comp') {
+    if (this.recordingMode() === "comp") {
       return `Take ${this.currentTakeNumber()}`;
     }
-    return this.recordingMode() === 'punch' ? 'Punch Rec' : 'Rec';
+    return this.recordingMode() === "punch" ? "Punch Rec" : "Rec";
   });
 
   punchStatusLabel = computed(() => {
-    if (!this.punchArmed()) return '';
+    if (!this.punchArmed()) return "";
     const inBar = this.punchInBar();
     const outBar = this.punchOutBar();
     if (inBar !== null && outBar !== null) {
       return `PUNCH ${inBar}→${outBar}`;
     }
     if (inBar !== null) return `PUNCH IN at bar ${inBar}`;
-    return 'PUNCH ARMED';
+    return "PUNCH ARMED";
   });
 
   hasPunchRegion = computed(
-    () => this.punchInBar() !== null && this.punchOutBar() !== null
+    () => this.punchInBar() !== null && this.punchOutBar() !== null,
   );
 
   // ── Recording mode controls ───────────────────────────────
 
-  setRecordingMode(mode: 'normal' | 'punch' | 'comp') {
+  setRecordingMode(mode: "normal" | "punch" | "comp") {
     this.recordingMode.set(mode);
-    if (mode === 'punch') {
+    if (mode === "punch") {
       this.punchArmed.set(false);
       this.isPunching.set(false);
     }
-    if (mode === 'comp') {
+    if (mode === "comp") {
       this.startNewCompGroup();
     }
     this.logger.info(`SmartRecording: Mode set to ${mode}`);
@@ -170,7 +170,7 @@ export class SmartRecordingService {
    * Called by the sequencer each bar — checks if we should start/stop punching.
    */
   async onBarTick(bar: number) {
-    if (this.recordingMode() !== 'punch' || !this.punchArmed()) return;
+    if (this.recordingMode() !== "punch" || !this.punchArmed()) return;
 
     const inBar = this.punchInBar();
     const outBar = this.punchOutBar();
@@ -179,8 +179,8 @@ export class SmartRecordingService {
       // Enter punch region — start actual recording
       this.isPunching.set(true);
       this.recordingStatus.setRecordingSource({
-        type: 'transport',
-        trackId: 'punch',
+        type: "transport",
+        trackId: "punch",
         trackName: `Punch (bar ${inBar})`,
       });
       // Initialize recording engine if needed and start capture
@@ -191,7 +191,7 @@ export class SmartRecordingService {
       this.recordingEngine.startRecording();
       this.audioEngine.isRecording.set(true);
       this.logger.info(
-        `SmartRecording: Punch IN at bar ${bar} — recording started`
+        `SmartRecording: Punch IN at bar ${bar} — recording started`,
       );
     }
 
@@ -203,7 +203,7 @@ export class SmartRecordingService {
       this.audioEngine.isRecording.set(false);
       this.recordingStatus.clearRecordingSource();
       this.logger.info(
-        `SmartRecording: Punch OUT at bar ${bar} — recording saved`
+        `SmartRecording: Punch OUT at bar ${bar} — recording saved`,
       );
     }
   }
@@ -213,13 +213,13 @@ export class SmartRecordingService {
   startNewCompGroup(
     trackId?: string,
     trackName?: string,
-    sectionLabel?: string
+    sectionLabel?: string,
   ) {
     const group: CompGroup = {
       id: `comp_${Date.now()}`,
-      trackId: trackId || 'comp-track',
-      trackName: trackName || 'Comp Track',
-      sectionLabel: sectionLabel || 'Section',
+      trackId: trackId || "comp-track",
+      trackName: trackName || "Comp Track",
+      sectionLabel: sectionLabel || "Section",
       takes: [],
       selectedTakeId: null,
       createdAt: Date.now(),
@@ -228,7 +228,7 @@ export class SmartRecordingService {
     this.activeCompGroupId.set(group.id);
     this.currentTakeNumber.set(1);
     this.logger.info(
-      `SmartRecording: New comp group "${sectionLabel}" created`
+      `SmartRecording: New comp group "${sectionLabel}" created`,
     );
   }
 
@@ -240,8 +240,8 @@ export class SmartRecordingService {
     }
     this.isCompRecording.set(true);
     this.recordingStatus.setRecordingSource({
-      type: 'transport',
-      trackId: 'comp',
+      type: "transport",
+      trackId: "comp",
       trackName: `Take ${this.currentTakeNumber()}`,
     });
   }
@@ -270,8 +270,8 @@ export class SmartRecordingService {
       const sampleRate = this.audioEngine.ctx.sampleRate;
       blob = WavEncoder.encodeMultiChannel(
         [alignedLeft, alignedRight],
-        'wav-16',
-        sampleRate
+        "wav-16",
+        sampleRate,
       );
       durationMs = Math.round((frameCount / sampleRate) * 1000);
     } else {
@@ -305,7 +305,7 @@ export class SmartRecordingService {
         if (g.id !== this.activeCompGroupId()) return g;
         const takes = [...g.takes, take];
         return { ...g, takes, selectedTakeId: take.id };
-      })
+      }),
     );
 
     this.currentTakeNumber.update((n) => n + 1);
@@ -314,7 +314,7 @@ export class SmartRecordingService {
 
     // Persist
     try {
-      await this.storage.saveItem('comp_groups', this.compGroups());
+      await this.storage.saveItem("comp_groups", this.compGroups());
     } catch {
       // best-effort
     }
@@ -336,7 +336,7 @@ export class SmartRecordingService {
             isCompSelection: t.id === takeId,
           })),
         };
-      })
+      }),
     );
   }
 
@@ -348,10 +348,10 @@ export class SmartRecordingService {
         return {
           ...g,
           takes: g.takes.map((t) =>
-            t.id === takeId ? { ...t, isMuted: !t.isMuted } : t
+            t.id === takeId ? { ...t, isMuted: !t.isMuted } : t,
           ),
         };
-      })
+      }),
     );
   }
 
@@ -366,7 +366,7 @@ export class SmartRecordingService {
           takes,
           selectedTakeId: g.selectedTakeId === takeId ? null : g.selectedTakeId,
         };
-      })
+      }),
     );
   }
 
@@ -388,13 +388,10 @@ export class SmartRecordingService {
     this.compGroups.update((groups) =>
       groups.map((g) => {
         if (g.id !== groupId) return g;
-        const start = Math.min(
-          ...g.takes.map((t) => t.regionStartBar),
-          1
-        );
+        const start = Math.min(...g.takes.map((t) => t.regionStartBar), 1);
         const rawEnd = Math.max(
           ...g.takes.map((t) => t.regionEndBar),
-          start + segBars
+          start + segBars,
         );
         const end = Math.max(rawEnd, start + segBars);
         const segments: CompSegment[] = [];
@@ -407,7 +404,7 @@ export class SmartRecordingService {
           });
         }
         return { ...g, segments };
-      })
+      }),
     );
   }
 
@@ -419,10 +416,10 @@ export class SmartRecordingService {
         return {
           ...g,
           segments: g.segments.map((s) =>
-            s.id === segmentId ? { ...s, takeId } : s
+            s.id === segmentId ? { ...s, takeId } : s,
           ),
         };
-      })
+      }),
     );
   }
 
@@ -436,7 +433,7 @@ export class SmartRecordingService {
     const group = this.compGroups().find((g) => g.id === groupId);
     if (!group) return null;
     const seg = group.segments?.find(
-      (s) => bar >= s.startBar && bar < s.endBar
+      (s) => bar >= s.startBar && bar < s.endBar,
     );
     return seg?.takeId ?? group.selectedTakeId;
   }
@@ -451,7 +448,7 @@ export class SmartRecordingService {
    */
   async onLoopPass(): Promise<CompTake | null> {
     if (!this.autoTakeOnLoop()) return null;
-    if (this.recordingMode() !== 'comp') return null;
+    if (this.recordingMode() !== "comp") return null;
     if (!this.isCompRecording()) {
       // First loop pass — start take 1
       this.startCompTake();
@@ -472,13 +469,13 @@ export class SmartRecordingService {
    */
   detectSilenceBoundaries(
     samples: Float32Array,
-    sampleRate: number
+    sampleRate: number,
   ): Array<{ startSample: number; endSample: number }> {
     if (!this.autoSplitEnabled()) return [];
 
     const threshold = this.autoSplitThreshold();
     const minSilenceSamples = Math.floor(
-      (this.autoSplitMinSilenceMs() / 1000) * sampleRate
+      (this.autoSplitMinSilenceMs() / 1000) * sampleRate,
     );
     const thresholdLinear = Math.pow(10, threshold / 20);
 
@@ -505,7 +502,7 @@ export class SmartRecordingService {
             boundaries.push({
               startSample: Math.max(
                 0,
-                silenceStart - Math.floor(sampleRate * 0.01)
+                silenceStart - Math.floor(sampleRate * 0.01),
               ),
               endSample: i + Math.floor(sampleRate * 0.01),
             });
@@ -528,7 +525,7 @@ export class SmartRecordingService {
   findZeroCrossing(
     buffer: Float32Array,
     targetIndex: number,
-    sampleRate: number
+    sampleRate: number,
   ): number {
     if (!this.zeroCrossingEnabled()) return targetIndex;
 
@@ -572,17 +569,17 @@ export class SmartRecordingService {
     bufferA: Float32Array,
     bufferB: Float32Array,
     spliceSample: number,
-    sampleRate: number
+    sampleRate: number,
   ): Float32Array {
     const crossfadeSamples = Math.floor(
-      (this.crossfadeMs() / 1000) * sampleRate
+      (this.crossfadeMs() / 1000) * sampleRate,
     );
 
     // Align splice to nearest zero-crossing for pop-free edit
     const alignedSplice = this.findZeroCrossing(
       bufferA,
       spliceSample,
-      sampleRate
+      sampleRate,
     );
 
     // Calculate output length: A up to splice + crossfade region + remainder of B
@@ -590,11 +587,12 @@ export class SmartRecordingService {
     const fadeEnd = Math.min(
       alignedSplice + crossfadeSamples,
       bufferA.length,
-      bufferB.length + alignedSplice
+      bufferB.length + alignedSplice,
     );
     const fadeLength = fadeEnd - fadeStart;
 
-    const totalLength = alignedSplice + fadeLength + (bufferB.length - crossfadeSamples);
+    const totalLength =
+      alignedSplice + fadeLength + (bufferB.length - crossfadeSamples);
     const result = new Float32Array(totalLength);
 
     // Copy bufferA up to the splice point
@@ -606,10 +604,11 @@ export class SmartRecordingService {
     for (let i = 0; i < fadeLength; i++) {
       const t = i / Math.max(1, fadeLength);
       // Equal-power crossfade (constant power throughout transition)
-      const gainA = Math.cos(t * Math.PI / 2);
-      const gainB = Math.sin(t * Math.PI / 2);
+      const gainA = Math.cos((t * Math.PI) / 2);
+      const gainB = Math.sin((t * Math.PI) / 2);
 
-      const sampleA = fadeStart + i < bufferA.length ? bufferA[fadeStart + i] : 0;
+      const sampleA =
+        fadeStart + i < bufferA.length ? bufferA[fadeStart + i] : 0;
       const sampleB = i < bufferB.length ? bufferB[i] : 0;
 
       result[alignedSplice + i] = sampleA * gainA + sampleB * gainB;
@@ -622,7 +621,7 @@ export class SmartRecordingService {
 
     this.logger.info(
       `SmartRecording: Crossfade applied (${crossfadeSamples} samples, ` +
-        `splice at zero-crossing offset ${alignedSplice - spliceSample})`
+        `splice at zero-crossing offset ${alignedSplice - spliceSample})`,
     );
 
     return result;
@@ -638,7 +637,7 @@ export class SmartRecordingService {
    */
   compileComp(
     buffers: Map<string, Float32Array>,
-    sampleRate: number
+    sampleRate: number,
   ): Float32Array | null {
     const group = this.activeCompGroup();
     if (!group || group.takes.length === 0) return null;
@@ -664,7 +663,7 @@ export class SmartRecordingService {
         current,
         next,
         current.length - Math.floor((this.crossfadeMs() / 1000) * sampleRate),
-        sampleRate
+        sampleRate,
       );
     }
 
@@ -674,13 +673,10 @@ export class SmartRecordingService {
   // ── Utility ───────────────────────────────────────────────
 
   /** Join worklet chunks into one channel, padding a short companion channel. */
-  private joinChunks(
-    chunks: Float32Array[],
-    minimumLength = 0
-  ): Float32Array {
+  private joinChunks(chunks: Float32Array[], minimumLength = 0): Float32Array {
     const length = Math.max(
       minimumLength,
-      chunks.reduce((total, chunk) => total + chunk.length, 0)
+      chunks.reduce((total, chunk) => total + chunk.length, 0),
     );
     const result = new Float32Array(length);
     let offset = 0;
@@ -697,7 +693,7 @@ export class SmartRecordingService {
     const sampleRate = 48000;
     const numSamples = Math.max(
       1,
-      Math.floor((durationMs / 1000) * sampleRate)
+      Math.floor((durationMs / 1000) * sampleRate),
     );
     const buffer = new ArrayBuffer(44 + numSamples * 2);
     const view = new DataView(buffer);
@@ -708,10 +704,10 @@ export class SmartRecordingService {
       }
     };
 
-    writeStr(0, 'RIFF');
+    writeStr(0, "RIFF");
     view.setUint32(4, 36 + numSamples * 2, true);
-    writeStr(8, 'WAVE');
-    writeStr(12, 'fmt ');
+    writeStr(8, "WAVE");
+    writeStr(12, "fmt ");
     view.setUint32(16, 16, true);
     view.setUint16(20, 1, true);
     view.setUint16(22, 1, true);
@@ -719,9 +715,9 @@ export class SmartRecordingService {
     view.setUint32(28, sampleRate * 2, true);
     view.setUint16(32, 2, true);
     view.setUint16(34, 16, true);
-    writeStr(36, 'data');
+    writeStr(36, "data");
     view.setUint32(40, numSamples * 2, true);
 
-    return new Blob([buffer], { type: 'audio/wav' });
+    return new Blob([buffer], { type: "audio/wav" });
   }
 }

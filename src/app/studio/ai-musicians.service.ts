@@ -1,9 +1,9 @@
-import { Injectable, effect, inject, signal } from '@angular/core';
-import { MusicManagerService } from '../services/music-manager.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { AiService } from '../services/ai.service';
+import { Injectable, effect, inject, signal } from "@angular/core";
+import { MusicManagerService } from "../services/music-manager.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { AiService } from "../services/ai.service";
 
-export type MusicianId = 'drummer' | 'bassist' | 'keyboardist';
+export type MusicianId = "drummer" | "bassist" | "keyboardist";
 
 /** The anchor a generated part is built from: a real track and its root pitch. */
 interface Anchor {
@@ -20,7 +20,7 @@ interface Anchor {
  * a second claimant silently kills the transport. Observers run after the human
  * parts, so a generated note can never mute or displace what the artist wrote.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AiMusiciansService {
   private musicManager = inject(MusicManagerService);
   private engine = inject(AudioEngineService);
@@ -53,9 +53,9 @@ export class AiMusiciansService {
 
   private attach(): void {
     if (this.detach) return;
-    if (typeof this.musicManager.onStep !== 'function') return;
+    if (typeof this.musicManager.onStep !== "function") return;
     this.detach = this.musicManager.onStep((step, time, duration) =>
-      this.renderStep(step, time, duration)
+      this.renderStep(step, time, duration),
     );
   }
 
@@ -77,15 +77,16 @@ export class AiMusiciansService {
   renderStep(step: number, time: number, duration: number): MusicianId[] {
     const played: MusicianId[] = [];
     if (this.ai.isAIDrummerActive() && step % 4 === 0) {
-      if (this.playDrummer(step, time, duration)) played.push('drummer');
+      if (this.playDrummer(step, time, duration)) played.push("drummer");
     }
     if (this.ai.isAIBassistActive() && step % 2 === 0) {
-      if (this.playBassist(step, time, duration)) played.push('bassist');
+      if (this.playBassist(step, time, duration)) played.push("bassist");
     }
     // Off-beat chord stabs (steps 2, 6, 10 …): a fixed, reproducible rhythm, so
     // a jam lands the same way twice instead of flickering with Math.random().
     if (this.ai.isAIKeyboardistActive() && step % 4 === 2) {
-      if (this.playKeyboardist(step, time, duration)) played.push('keyboardist');
+      if (this.playKeyboardist(step, time, duration))
+        played.push("keyboardist");
     }
     if (played.length > 0) {
       this.stepsRendered.update((n) => n + 1);
@@ -106,7 +107,7 @@ export class AiMusiciansService {
    */
   private resolveAnchor(step: number): Anchor | null {
     for (const t of this.musicManager.tracks()) {
-      if (t.type === 'drum' || t.type === 'bus') continue;
+      if (t.type === "drum" || t.type === "bus") continue;
       if (t.muted) continue;
       const notes = (t.notes || []).filter((n) => n.midi > 0);
       const atStep = notes.filter((n) => Math.floor(n.step) === step % 64);
@@ -143,7 +144,7 @@ export class AiMusiciansService {
         0,
         0,
         0,
-        drumTrack.synthParams
+        drumTrack.synthParams,
       );
       return true;
     } catch {
@@ -167,7 +168,7 @@ export class AiMusiciansService {
         0,
         0,
         0,
-        anchor.track.synthParams
+        anchor.track.synthParams,
       );
       return true;
     } catch {
@@ -180,7 +181,7 @@ export class AiMusiciansService {
   private playKeyboardist(
     step: number,
     time: number,
-    duration: number
+    duration: number,
   ): boolean {
     try {
       const anchor = this.resolveAnchor(step);
@@ -195,7 +196,7 @@ export class AiMusiciansService {
         0,
         0,
         0,
-        anchor.track.synthParams
+        anchor.track.synthParams,
       );
       return true;
     } catch {

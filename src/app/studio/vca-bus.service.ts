@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, signal } from "@angular/core";
 
 /**
  * A Voltage Controlled Amplifier (VCA) bus.
@@ -21,9 +21,9 @@ export interface VcaBus {
 
 export type VcaAssignments = Record<string, string | null>;
 
-const STORAGE_KEY = 'smuve_vca_routing_v1';
+const STORAGE_KEY = "smuve_vca_routing_v1";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class VcaBusService {
   /** All VCA buses in the project. */
   buses = signal<VcaBus[]>([]);
@@ -58,7 +58,7 @@ export class VcaBusService {
         assignments?: VcaAssignments;
       };
       if (Array.isArray(parsed.buses)) this.buses.set(parsed.buses);
-      if (parsed.assignments && typeof parsed.assignments === 'object') {
+      if (parsed.assignments && typeof parsed.assignments === "object") {
         this.assignments.set(parsed.assignments);
       }
     } catch {
@@ -73,7 +73,7 @@ export class VcaBusService {
         JSON.stringify({
           buses: this.buses(),
           assignments: this.assignments(),
-        })
+        }),
       );
     } catch {
       // no-op: Safari private mode, etc.
@@ -102,8 +102,10 @@ export class VcaBusService {
     const bus: VcaBus = {
       id: crypto.randomUUID
         ? crypto.randomUUID()
-        : 'vca_' + Math.random().toString(36).slice(2) + Date.now().toString(36),
-      name: name.trim() || 'VCA',
+        : "vca_" +
+          Math.random().toString(36).slice(2) +
+          Date.now().toString(36),
+      name: name.trim() || "VCA",
       faderValue: 1.0,
       muted: false,
     };
@@ -126,7 +128,7 @@ export class VcaBusService {
     const trimmed = name.trim();
     if (!trimmed) return;
     this.buses.update((bs) =>
-      bs.map((b) => (b.id === busId ? { ...b, name: trimmed } : b))
+      bs.map((b) => (b.id === busId ? { ...b, name: trimmed } : b)),
     );
     this.persist();
   }
@@ -144,14 +146,14 @@ export class VcaBusService {
   setBusFader(busId: string, faderValue: number): void {
     const clamped = Math.max(0, Math.min(1.5, faderValue));
     this.buses.update((bs) =>
-      bs.map((b) => (b.id === busId ? { ...b, faderValue: clamped } : b))
+      bs.map((b) => (b.id === busId ? { ...b, faderValue: clamped } : b)),
     );
     this.persist();
   }
 
   toggleBusMute(busId: string): void {
     this.buses.update((bs) =>
-      bs.map((b) => (b.id === busId ? { ...b, muted: !b.muted } : b))
+      bs.map((b) => (b.id === busId ? { ...b, muted: !b.muted } : b)),
     );
     this.persist();
   }

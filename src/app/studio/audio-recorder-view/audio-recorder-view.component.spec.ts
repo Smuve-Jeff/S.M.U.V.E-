@@ -1,16 +1,16 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
-import { AudioRecorderViewComponent } from './audio-recorder-view.component';
-import { AudioRecorderService } from '../audio-recorder.service';
-import { HapticService } from '../../services/haptic.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { LoggingService } from '../../services/logging.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
-import { MusicManagerService } from '../../services/music-manager.service';
-import { InteractionDialogService } from '../../services/interaction-dialog.service';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { NO_ERRORS_SCHEMA, signal } from "@angular/core";
+import { AudioRecorderViewComponent } from "./audio-recorder-view.component";
+import { AudioRecorderService } from "../audio-recorder.service";
+import { HapticService } from "../../services/haptic.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { LoggingService } from "../../services/logging.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { InteractionDialogService } from "../../services/interaction-dialog.service";
 
-describe('AudioRecorderViewComponent', () => {
+describe("AudioRecorderViewComponent", () => {
   let component: AudioRecorderViewComponent;
   let fixture: ComponentFixture<AudioRecorderViewComponent>;
 
@@ -51,11 +51,11 @@ describe('AudioRecorderViewComponent', () => {
   };
 
   const rec = (over: Partial<Record<string, unknown>> = {}) => ({
-    id: 'rec_1',
-    name: 'Take One',
+    id: "rec_1",
+    name: "Take One",
     timestamp: 1000,
     durationSec: 5,
-    url: 'blob:rec_1',
+    url: "blob:rec_1",
     ...over,
   });
 
@@ -71,7 +71,9 @@ describe('AudioRecorderViewComponent', () => {
         { provide: AudioEngineService, useValue: mockAudioEngine },
         {
           provide: AudioEngineLatencyService,
-          useValue: { trimAudioBuffer: jest.fn((buffer: AudioBuffer) => buffer) },
+          useValue: {
+            trimAudioBuffer: jest.fn((buffer: AudioBuffer) => buffer),
+          },
         },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: InteractionDialogService, useValue: mockDialog },
@@ -84,11 +86,11 @@ describe('AudioRecorderViewComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 
-  it('maps dBFS input levels to a 0-100 percentage', () => {
+  it("maps dBFS input levels to a 0-100 percentage", () => {
     expect(component.levelToPct(-60)).toBe(0);
     expect(component.levelToPct(-30)).toBe(50);
     expect(component.levelToPct(0)).toBe(100);
@@ -96,59 +98,59 @@ describe('AudioRecorderViewComponent', () => {
     expect(component.levelToPct(NaN)).toBe(0);
   });
 
-  it('formats elapsed seconds as mm:ss', () => {
-    expect(component.formatTime(0)).toBe('00:00');
-    expect(component.formatTime(65)).toBe('01:05');
-    expect(component.formatTime(125)).toBe('02:05');
+  it("formats elapsed seconds as mm:ss", () => {
+    expect(component.formatTime(0)).toBe("00:00");
+    expect(component.formatTime(65)).toBe("01:05");
+    expect(component.formatTime(125)).toBe("02:05");
   });
 
-  it('formats take ages as relative time', () => {
-    expect(component.formatTakeAge(Date.now() - 30_000)).toBe('30s ago');
-    expect(component.formatTakeAge(Date.now() - 120_000)).toBe('2m ago');
+  it("formats take ages as relative time", () => {
+    expect(component.formatTakeAge(Date.now() - 30_000)).toBe("30s ago");
+    expect(component.formatTakeAge(Date.now() - 120_000)).toBe("2m ago");
   });
 
-  it('loads offline recordings from the recorder service', async () => {
+  it("loads offline recordings from the recorder service", async () => {
     mockRecorder.getOfflineRecordings.mockResolvedValue([
-      { id: 'r1', name: 'Rough', timestamp: 42, settings: {} },
+      { id: "r1", name: "Rough", timestamp: 42, settings: {} },
     ]);
     component.ngOnInit();
     await fixture.whenStable();
     expect(component.recordings()).toHaveLength(1);
-    expect(component.recordings()[0].name).toBe('Rough');
+    expect(component.recordings()[0].name).toBe("Rough");
     expect(component.recordingCount()).toBe(1);
   });
 
-  it('deletes a recording and revokes its object URL', () => {
+  it("deletes a recording and revokes its object URL", () => {
     component.recordings.set([rec()]);
-    component.deleteRecording('rec_1');
-    expect(mockRecorder.revokeRecordingUrl).toHaveBeenCalledWith('blob:rec_1');
+    component.deleteRecording("rec_1");
+    expect(mockRecorder.revokeRecordingUrl).toHaveBeenCalledWith("blob:rec_1");
     expect(component.recordings()).toHaveLength(0);
     expect(mockSnackbar.info).toHaveBeenCalledWith(
-      'Recording removed from list'
+      "Recording removed from list",
     );
   });
 
-  it('renames a recording in place', () => {
+  it("renames a recording in place", () => {
     component.recordings.set([rec()]);
     component.startRename(component.recordings()[0]);
-    expect(component.renamingId()).toBe('rec_1');
-    component.renameValue.set('Final Take');
+    expect(component.renamingId()).toBe("rec_1");
+    component.renameValue.set("Final Take");
     component.confirmRename();
-    expect(component.recordings()[0].name).toBe('Final Take');
+    expect(component.recordings()[0].name).toBe("Final Take");
     expect(component.renamingId()).toBeNull();
   });
 
-  it('toggles the noise gate and notifies via snackbar', () => {
+  it("toggles the noise gate and notifies via snackbar", () => {
     component.toggleNoiseGate();
     expect(component.noiseGateEnabled()).toBe(true);
     expect(mockSnackbar.info).toHaveBeenCalledWith(
-      'Noise gate ON (threshold: -50 dB)'
+      "Noise gate ON (threshold: -50 dB)",
     );
     component.toggleNoiseGate();
     expect(component.noiseGateEnabled()).toBe(false);
   });
 
-  it('clamps the noise gate threshold to the -80..-20 range', () => {
+  it("clamps the noise gate threshold to the -80..-20 range", () => {
     component.setNoiseGateThreshold(-90);
     expect(component.noiseGateThreshold()).toBe(-80);
     component.setNoiseGateThreshold(-10);
@@ -157,25 +159,25 @@ describe('AudioRecorderViewComponent', () => {
     expect(component.noiseGateThreshold()).toBe(-40);
   });
 
-  it('promotes the most recent recording into an active take', () => {
+  it("promotes the most recent recording into an active take", () => {
     component.recordings.set([rec({ durationSec: 7 })]);
     component.promoteToTake();
     expect(component.takes()).toHaveLength(1);
     expect(component.takes()[0].isActive).toBe(true);
-    expect(component.takes()[0].name).toBe('Take 1');
+    expect(component.takes()[0].name).toBe("Take 1");
     expect(component.takes()[0].durationSec).toBe(7);
   });
 
-  it('refuses to promote a take when nothing is recorded', () => {
+  it("refuses to promote a take when nothing is recorded", () => {
     component.recordings.set([]);
     component.promoteToTake();
     expect(component.takes()).toHaveLength(0);
     expect(mockSnackbar.error).toHaveBeenCalledWith(
-      'Record something first to promote a take'
+      "Record something first to promote a take",
     );
   });
 
-  it('selects a single take as active for comping', () => {
+  it("selects a single take as active for comping", () => {
     component.recordings.set([rec()]);
     component.promoteToTake();
     component.promoteToTake();
@@ -184,7 +186,7 @@ describe('AudioRecorderViewComponent', () => {
     expect(component.takes()[1].isActive).toBe(false);
   });
 
-  it('toggles per-take mute state', () => {
+  it("toggles per-take mute state", () => {
     component.recordings.set([rec()]);
     component.promoteToTake();
     const takeId = component.takes()[0].id;
@@ -194,7 +196,7 @@ describe('AudioRecorderViewComponent', () => {
     expect(component.takeMuted()[takeId]).toBe(false);
   });
 
-  it('removes a take and its mute entry', () => {
+  it("removes a take and its mute entry", () => {
     component.recordings.set([rec()]);
     component.promoteToTake();
     const takeId = component.takes()[0].id;
@@ -204,30 +206,30 @@ describe('AudioRecorderViewComponent', () => {
     expect(component.takeMuted()[takeId]).toBeUndefined();
   });
 
-  it('clears all takes after a confirmed dialog', async () => {
+  it("clears all takes after a confirmed dialog", async () => {
     component.recordings.set([rec()]);
     component.promoteToTake();
     await component.clearAllTakes();
     expect(mockDialog.confirm).toHaveBeenCalled();
     expect(component.takes()).toHaveLength(0);
-    expect(mockSnackbar.info).toHaveBeenCalledWith('All takes cleared');
+    expect(mockSnackbar.info).toHaveBeenCalledWith("All takes cleared");
   });
 
-  it('keeps takes intact when the clear dialog is cancelled', async () => {
+  it("keeps takes intact when the clear dialog is cancelled", async () => {
     mockDialog.confirm.mockResolvedValueOnce(false);
     component.recordings.set([rec()]);
     component.promoteToTake();
     await component.clearAllTakes();
     expect(component.takes()).toHaveLength(1);
-    expect(mockSnackbar.info).not.toHaveBeenCalledWith('All takes cleared');
+    expect(mockSnackbar.info).not.toHaveBeenCalledWith("All takes cleared");
   });
 
-  it('arms recording from the idle REC state', async () => {
+  it("arms recording from the idle REC state", async () => {
     const getUserMedia = jest.fn().mockResolvedValue({
       getAudioTracks: () => [],
       getTracks: () => [],
     });
-    Object.defineProperty(navigator, 'mediaDevices', {
+    Object.defineProperty(navigator, "mediaDevices", {
       value: { getUserMedia },
       configurable: true,
     });
@@ -235,14 +237,14 @@ describe('AudioRecorderViewComponent', () => {
     expect(getUserMedia).toHaveBeenCalled();
     expect(mockRecorder.startRecording).toHaveBeenCalled();
     expect(mockSnackbar.success).toHaveBeenCalledWith(
-      'Recording armed — capture live input'
+      "Recording armed — capture live input",
     );
     component.ngOnDestroy(); // clear intervals / contexts
   });
 
-  it('records through the noise gate and closes it when armed', async () => {
+  it("records through the noise gate and closes it when armed", async () => {
     const gateGain = { value: 1, setTargetAtTime: jest.fn() };
-    const captureStream = { id: 'gated-stream' };
+    const captureStream = { id: "gated-stream" };
     const analyser = {
       fftSize: 0,
       frequencyBinCount: 128,
@@ -268,7 +270,7 @@ describe('AudioRecorderViewComponent', () => {
       getAudioTracks: () => [],
       getTracks: () => [],
     });
-    Object.defineProperty(navigator, 'mediaDevices', {
+    Object.defineProperty(navigator, "mediaDevices", {
       value: { getUserMedia },
       configurable: true,
     });
@@ -287,19 +289,19 @@ describe('AudioRecorderViewComponent', () => {
     }
   });
 
-  it('stops recording when already armed', () => {
+  it("stops recording when already armed", () => {
     mockRecorder.isRecording.set(true);
     component.toggleRecord();
     expect(mockRecorder.stopRecording).toHaveBeenCalled();
-    expect(mockSnackbar.info).toHaveBeenCalledWith('Recording stopped');
+    expect(mockSnackbar.info).toHaveBeenCalledWith("Recording stopped");
     component.ngOnDestroy();
   });
 
-  it('rejects exporting a recording that has no audio data', () => {
-    component.recordings.set([rec({ url: '' })]);
+  it("rejects exporting a recording that has no audio data", () => {
+    component.recordings.set([rec({ url: "" })]);
     component.exportToArrangement(component.recordings()[0]);
     expect(mockSnackbar.error).toHaveBeenCalledWith(
-      'Recording has no audio data to export'
+      "Recording has no audio data to export",
     );
     expect(mockMusicManager.addAudioTrack).not.toHaveBeenCalled();
   });

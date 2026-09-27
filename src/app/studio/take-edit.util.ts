@@ -14,7 +14,7 @@
  */
 export function peakNormalizeInPlace(
   buffer: AudioBuffer,
-  targetPeakDb = -1
+  targetPeakDb = -1,
 ): number {
   const channels = buffer.numberOfChannels;
   let peak = 0;
@@ -51,9 +51,9 @@ export function peakNormalizeInPlace(
  */
 export function trimSilenceEdges(
   buffer: AudioBuffer,
-  ctx: Pick<AudioContext, 'createBuffer'>,
+  ctx: Pick<AudioContext, "createBuffer">,
   thresholdDb = -50,
-  paddingMs = 20
+  paddingMs = 20,
 ): AudioBuffer {
   const channels = buffer.numberOfChannels;
   const length = buffer.length;

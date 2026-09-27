@@ -1,13 +1,13 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SessionViewComponent } from './session-view.component';
-import { AudioSessionService } from '../audio-session.service';
-import { MusicManagerService } from '../../services/music-manager.service';
-import { HapticService } from '../../services/haptic.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { signal } from '@angular/core';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { SessionViewComponent } from "./session-view.component";
+import { AudioSessionService } from "../audio-session.service";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { HapticService } from "../../services/haptic.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { signal } from "@angular/core";
 
-describe('SessionViewComponent', () => {
+describe("SessionViewComponent", () => {
   let component: SessionViewComponent;
   let fixture: ComponentFixture<SessionViewComponent>;
   let audioSessionMock: any;
@@ -65,40 +65,35 @@ describe('SessionViewComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 
-  it('should start with defaults: quantization off, follow-on off, no queue', () => {
-    expect(component.launchQuantize()).toBe('none');
+  it("should start with defaults: quantization off, follow-on off, no queue", () => {
+    expect(component.launchQuantize()).toBe("none");
     expect(component.followOnEnabled()).toBe(false);
     expect(component.queuedClipIds().size).toBe(0);
   });
 
-  it('should expose quantize options', () => {
-    expect(component.quantizeOptions).toEqual([
-      'none',
-      '1bar',
-      '2bar',
-      '4bar',
-    ]);
+  it("should expose quantize options", () => {
+    expect(component.quantizeOptions).toEqual(["none", "1bar", "2bar", "4bar"]);
   });
 
-  it('should launch a scene immediately when quantization is off', () => {
+  it("should launch a scene immediately when quantization is off", () => {
     const scene = component.scenes()[0];
     component.launchScene(scene);
     expect(component.activeSceneId()).toBe(scene.id);
     expect(
-      component.clips().filter((c) => c.sceneId === scene.id)
+      component.clips().filter((c) => c.sceneId === scene.id),
     ).toHaveLength(3);
     expect(
-      component.clips().filter((c) => c.sceneId === scene.id && c.isPlaying)
+      component.clips().filter((c) => c.sceneId === scene.id && c.isPlaying),
     ).toHaveLength(3);
   });
 
-  it('should queue a scene when quantization is on', () => {
+  it("should queue a scene when quantization is on", () => {
     jest.useFakeTimers();
-    component.launchQuantize.set('1bar');
+    component.launchQuantize.set("1bar");
     audioSessionMock.isPlaying.set(true);
     const scene = component.scenes()[1];
     component.launchScene(scene);
@@ -111,80 +106,91 @@ describe('SessionViewComponent', () => {
     jest.useRealTimers();
   });
 
-  it('should stop all clips and clear the queue', () => {
+  it("should stop all clips and clear the queue", () => {
     component.launchScene(component.scenes()[0]);
-    component.queuedClipIds.set(new Set(['c1']));
+    component.queuedClipIds.set(new Set(["c1"]));
     component.stopAll();
     expect(component.activeSceneId()).toBeNull();
     expect(component.queuedClipIds().size).toBe(0);
     expect(component.clips().every((c) => !c.isPlaying)).toBe(true);
-    expect(snackbarMock.info).toHaveBeenCalledWith('Session stopped');
+    expect(snackbarMock.info).toHaveBeenCalledWith("Session stopped");
   });
 
-  it('should trigger a clip with velocity and toggle its playing state', () => {
+  it("should trigger a clip with velocity and toggle its playing state", () => {
     const clip = component.clips()[0];
     component.triggerClip(clip, 0.5);
     expect(component.clips()[0].isPlaying).toBe(true);
     expect(component.clips()[0].velocity).toBe(0.5);
   });
 
-  it('should add scenes with unique ids', () => {
+  it("should add scenes with unique ids", () => {
     const before = component.scenes().length;
     component.addScene();
     expect(component.scenes().length).toBe(before + 1);
   });
 
-  it('should save and load presets', () => {
-    component.presetNameInput.set('Test Preset');
+  it("should save and load presets", () => {
+    component.presetNameInput.set("Test Preset");
     component.savePreset();
-    expect(component.savedPresets().some((p) => p.name === 'Test Preset')).toBe(
-      true
+    expect(component.savedPresets().some((p) => p.name === "Test Preset")).toBe(
+      true,
     );
     // Mutate, then load back
     component.scenes.update((s) => s.slice(0, 2));
-    component.loadPreset('Test Preset');
+    component.loadPreset("Test Preset");
     expect(component.scenes().length).toBeGreaterThan(2);
   });
 
-  it('should add automation points to a clip', () => {
-    component.toggleAutomation('c1');
-    component.addAutomationPoint('c1');
-    const clip = component.clips().find((c) => c.id === 'c1');
+  it("should add automation points to a clip", () => {
+    component.toggleAutomation("c1");
+    component.addAutomationPoint("c1");
+    const clip = component.clips().find((c) => c.id === "c1");
     expect(clip?.automation?.length).toBe(1);
   });
 
-  it('should compute clip tracks from music manager tracks', () => {
+  it("should compute clip tracks from music manager tracks", () => {
     const tracks = component.clipTracks();
     expect(tracks.length).toBeGreaterThan(0);
-    expect(tracks[0].id).toBe('t1');
+    expect(tracks[0].id).toBe("t1");
   });
 
-  it('should edit and delete the visible automation point without affecting other targets', () => {
-    component.toggleAutomation('c1');
-    component.addAutomationPoint('c1');
-    component.automationEditTarget.set('filter');
-    component.addAutomationPoint('c1');
+  it("should edit and delete the visible automation point without affecting other targets", () => {
+    component.toggleAutomation("c1");
+    component.addAutomationPoint("c1");
+    component.automationEditTarget.set("filter");
+    component.addAutomationPoint("c1");
 
-    component.updateAutomationValue('c1', 0, 0.25);
-    const clip = component.clips().find((c) => c.id === 'c1')!;
-    expect(clip.automation?.find((point) => point.target === 'volume')?.value).toBe(0.5);
-    expect(clip.automation?.find((point) => point.target === 'filter')?.value).toBe(0.25);
+    component.updateAutomationValue("c1", 0, 0.25);
+    const clip = component.clips().find((c) => c.id === "c1")!;
+    expect(
+      clip.automation?.find((point) => point.target === "volume")?.value,
+    ).toBe(0.5);
+    expect(
+      clip.automation?.find((point) => point.target === "filter")?.value,
+    ).toBe(0.25);
 
-    component.automationEditTarget.set('filter');
-    component.deleteAutomationPoint('c1', 0);
-    expect(component.clips().find((c) => c.id === 'c1')?.automation).toHaveLength(2);
-    expect(component.clips().find((c) => c.id === 'c1')?.automation?.filter((point) => point.target === 'filter')).toHaveLength(1);
+    component.automationEditTarget.set("filter");
+    component.deleteAutomationPoint("c1", 0);
+    expect(
+      component.clips().find((c) => c.id === "c1")?.automation,
+    ).toHaveLength(2);
+    expect(
+      component
+        .clips()
+        .find((c) => c.id === "c1")
+        ?.automation?.filter((point) => point.target === "filter"),
+    ).toHaveLength(1);
   });
 
-  it('should toggle track mute state', () => {
-    expect(component.mutedTrackIds().has('t1')).toBe(false);
-    component.muteTrack('t1');
-    expect(component.mutedTrackIds().has('t1')).toBe(true);
-    component.muteTrack('t1');
-    expect(component.mutedTrackIds().has('t1')).toBe(false);
+  it("should toggle track mute state", () => {
+    expect(component.mutedTrackIds().has("t1")).toBe(false);
+    component.muteTrack("t1");
+    expect(component.mutedTrackIds().has("t1")).toBe(true);
+    component.muteTrack("t1");
+    expect(component.mutedTrackIds().has("t1")).toBe(false);
   });
 
-  it('should follow-on to the next scene when enabled', () => {
+  it("should follow-on to the next scene when enabled", () => {
     jest.useFakeTimers();
     component.followOnEnabled.set(true);
     component.launchScene(component.scenes()[0]);
@@ -193,7 +199,7 @@ describe('SessionViewComponent', () => {
     // every scene to the outro and reset activeSceneId to null).
     jest.advanceTimersByTime(16001);
     // Follow-on advances to scene 1 (Verse)
-    expect(component.activeSceneId()).toBe('verse');
+    expect(component.activeSceneId()).toBe("verse");
     jest.useRealTimers();
   });
 });

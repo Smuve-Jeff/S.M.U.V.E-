@@ -5,54 +5,59 @@ import {
   computed,
   ElementRef,
   ViewChild,
-  HostListener,
   AfterViewInit,
   OnDestroy,
   Output,
   EventEmitter,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 import {
   MusicManagerService,
   TrackModel,
-} from '../../services/music-manager.service';
-import { AudioSessionService } from '../audio-session.service';
-import { HistoryService } from '../../services/history.service';
-import { HapticService } from '../../services/haptic.service';
-import { EnhancedTouchGestureService } from '../../services/enhanced-touch-gesture.service';
-import { StudioTrack, StudioClip } from '../../types/studio.types';
+} from "../../services/music-manager.service";
+import { AudioSessionService } from "../audio-session.service";
+import { HistoryService } from "../../services/history.service";
+import { HapticService } from "../../services/haptic.service";
+import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gesture.service";
+import { StudioTrack, StudioClip } from "../../types/studio.types";
 import {
   StemSeparationService,
   Stems,
-} from '../../services/stem-separation.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { TakeManagerService } from '../../services/take-manager.service';
-import { TakeLaneComponent } from '../take-lane/take-lane.component';
-import { WebGLRenderer } from '../webgl/webgl-renderer';
-import { TimelineRenderer,
+} from "../../services/stem-separation.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { TakeManagerService } from "../../services/take-manager.service";
+import { TakeLaneComponent } from "../take-lane/take-lane.component";
+import { WebGLRenderer } from "../webgl/webgl-renderer";
+import {
+  TimelineRenderer,
   TimelineClip,
   TimelineTrack,
   clipColorFromId,
-} from '../webgl/timeline-renderer';
-import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
-import { StudioBottomSheetComponent } from '../shared/studio-bottom-sheet/studio-bottom-sheet.component';
+} from "../webgl/timeline-renderer";
+import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
+import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
 
 export type ArrangementTool =
-  | 'select'
-  | 'draw'
-  | 'split'
-  | 'trim'
-  | 'slip'
-  | 'duplicate'
-  | 'glue';
+  | "select"
+  | "draw"
+  | "split"
+  | "trim"
+  | "slip"
+  | "duplicate"
+  | "glue";
 
 @Component({
-  selector: 'app-arrangement-view',
+  selector: "app-arrangement-view",
   standalone: true,
-  imports: [CommonModule, FormsModule, TakeLaneComponent, StudioBottomSheetComponent],
-  templateUrl: './arrangement-view.component.html',
-  styleUrls: ['./arrangement-view.component.css', '../shared/platform-ux.css'],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TakeLaneComponent,
+    StudioBottomSheetComponent,
+  ],
+  templateUrl: "./arrangement-view.component.html",
+  styleUrls: ["./arrangement-view.component.css", "../shared/platform-ux.css"],
 })
 export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   public readonly musicManager = inject(MusicManagerService);
@@ -88,34 +93,41 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   readonly tracks = this.musicManager.tracks;
   /** The visible editing mode is explicit; the low-level renderer tool follows it. */
-  editMode = signal<ArrangementTool>('select');
-  activeTool = signal<'select' | 'blade' | 'glue'>('select');
+  editMode = signal<ArrangementTool>("select");
+  activeTool = signal<"select" | "blade" | "glue">("select");
   selectedClipIds = signal<Set<string>>(new Set());
   snapEnabled = signal(true);
   isRecordingAutomation = signal(false);
   clipActionsOpen = signal(false);
   overviewZoom = signal(1);
 
-  readonly arrangementTools: Array<{ id: ArrangementTool; label: string; icon: string }> = [
-    { id: 'select', label: 'Select', icon: 'near_me' },
-    { id: 'draw', label: 'Draw', icon: 'edit' },
-    { id: 'split', label: 'Split', icon: 'content_cut' },
-    { id: 'trim', label: 'Trim', icon: 'compare_arrows' },
-    { id: 'slip', label: 'Slip', icon: 'swap_horiz' },
-    { id: 'duplicate', label: 'Duplicate', icon: 'content_copy' },
-    { id: 'glue', label: 'Glue', icon: 'join_full' },
+  readonly arrangementTools: Array<{
+    id: ArrangementTool;
+    label: string;
+    icon: string;
+  }> = [
+    { id: "select", label: "Select", icon: "near_me" },
+    { id: "draw", label: "Draw", icon: "edit" },
+    { id: "split", label: "Split", icon: "content_cut" },
+    { id: "trim", label: "Trim", icon: "compare_arrows" },
+    { id: "slip", label: "Slip", icon: "swap_horiz" },
+    { id: "duplicate", label: "Duplicate", icon: "content_copy" },
+    { id: "glue", label: "Glue", icon: "join_full" },
   ];
 
   setEditMode(mode: ArrangementTool): void {
     this.editMode.set(mode);
     this.activeTool.set(
-      mode === 'split' ? 'blade' : mode === 'glue' ? 'glue' : 'select',
+      mode === "split" ? "blade" : mode === "glue" ? "glue" : "select",
     );
     this.haptic.light();
   }
 
   editModeLabel(): string {
-    return this.arrangementTools.find((tool) => tool.id === this.editMode())?.label ?? 'Select';
+    return (
+      this.arrangementTools.find((tool) => tool.id === this.editMode())
+        ?.label ?? "Select"
+    );
   }
 
   openClipActions(): void {
@@ -138,8 +150,13 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     if (!target) return;
     const rect = target.getBoundingClientRect();
     if (!rect.width) return;
-    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    this.musicManager.currentStep.set(Math.round(ratio * 16 * Math.max(1, this.effectiveBars())));
+    const ratio = Math.max(
+      0,
+      Math.min(1, (event.clientX - rect.left) / rect.width),
+    );
+    this.musicManager.currentStep.set(
+      Math.round(ratio * 16 * Math.max(1, this.effectiveBars())),
+    );
     this.markDirty();
   }
 
@@ -147,29 +164,26 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   barWidth = signal(200);
   rulerHeight = 32;
 
-  @ViewChild('gridViewport') gridViewport!: ElementRef<HTMLDivElement>;
-  @ViewChild('glCanvas') glCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild("gridViewport") gridViewport!: ElementRef<HTMLDivElement>;
+  @ViewChild("glCanvas") glCanvas!: ElementRef<HTMLCanvasElement>;
 
   bars = computed(() => Array.from({ length: 64 }, (_, i) => i));
   playheadPos = computed(
-    () => (this.musicManager.currentStep() / 16) * this.barWidth()
+    () => (this.musicManager.currentStep() / 16) * this.barWidth(),
   );
 
   // Sprint A4: Song-Mode UI surface.
   // Defensive optional-chaining so tests that stub `musicManager` without
   // an `engine` field don't crash (defaulting to a sane 'song'/'64'-bar view).
   readonly engine = this.musicManager?.engine;
-  readonly playMode = computed(() => this.engine?.playMode?.() ?? 'song');
+  readonly playMode = computed(() => this.engine?.playMode?.() ?? "song");
   readonly effectiveBars = computed(() =>
-    Math.max(
-      1,
-      Math.round((this.engine?.effectiveLoopLength?.() ?? 64) / 16)
-    )
+    Math.max(1, Math.round((this.engine?.effectiveLoopLength?.() ?? 64) / 16)),
   );
   readonly songEnded = computed(() => this.engine?.songEnded?.() ?? false);
   togglePlayMode(): void {
     if (!this.engine?.setPlayMode) return;
-    const next = this.engine.playMode() === 'song' ? 'pattern' : 'song';
+    const next = this.engine.playMode() === "song" ? "pattern" : "song";
     this.engine.setPlayMode(next);
     this.haptic?.medium?.();
   }
@@ -204,7 +218,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       this.isGlInitialized = true;
       this.markDirty();
     } catch (e) {
-      console.warn('WebGL init failed — arrangement view will fall back to DOM', e);
+      console.warn(
+        "WebGL init failed — arrangement view will fall back to DOM",
+        e,
+      );
     }
   }
 
@@ -234,7 +251,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const scrollY = viewport.scrollTop;
 
     // Resize if needed
-    if (canvas.width !== Math.round(vpW * dpr) || canvas.height !== Math.round(vpH * dpr)) {
+    if (
+      canvas.width !== Math.round(vpW * dpr) ||
+      canvas.height !== Math.round(vpH * dpr)
+    ) {
       this.glRenderer.resize();
     }
 
@@ -249,7 +269,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
     // Build timeline tracks from MusicManager tracks
     const visibleTracks = this.tracks().filter(
-      (t) => !t.parentId || !this.tracks().find((p) => p.id === t.parentId)?.collapsed
+      (t) =>
+        !t.parentId ||
+        !this.tracks().find((p) => p.id === t.parentId)?.collapsed,
     );
 
     const tlTracks: TimelineTrack[] = [];
@@ -280,11 +302,11 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
           label: clip.name || track.name,
           selected: this.selectedClipIds().has(clip.id),
           isCrosslinked: this.isClipCrosslinked(track, clip),
-          type: (clip.type as TimelineClip['type']) || 'midi',
+          type: (clip.type as TimelineClip["type"]) || "midi",
           // Phase F2 — fade lengths as fractions of the clip width so the
           // renderer can draw wedges that scale with zoom.
-          fadeIn: clip.type === 'audio' ? (clip.fadeIn || 0) / clipLen : 0,
-          fadeOut: clip.type === 'audio' ? (clip.fadeOut || 0) / clipLen : 0,
+          fadeIn: clip.type === "audio" ? (clip.fadeIn || 0) / clipLen : 0,
+          fadeOut: clip.type === "audio" ? (clip.fadeOut || 0) / clipLen : 0,
         });
       }
       y += th;
@@ -300,7 +322,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       playheadBar,
       totalBars,
       camera,
-      this.rulerHeight
+      this.rulerHeight,
     );
   }
 
@@ -329,7 +351,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
     // Determine which track lane was clicked
     const visibleTracks = this.tracks().filter(
-      (t) => !t.parentId || !this.tracks().find((p) => p.id === t.parentId)?.collapsed
+      (t) =>
+        !t.parentId ||
+        !this.tracks().find((p) => p.id === t.parentId)?.collapsed,
     );
     let y = rulerH;
     let hitTrack: TrackModel | null = null;
@@ -373,11 +397,11 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   onClipPointerDown(e: PointerEvent, trackId: string, clip: StudioClip) {
     e.stopPropagation();
     this.selectTrack(trackId);
-    if (this.activeTool() === 'glue') {
+    if (this.activeTool() === "glue") {
       const next = new Set(
         Array.from(this.selectedClipIds()).filter(
-          (id) => this.findClipOwner(id)?.track.id === trackId
-        )
+          (id) => this.findClipOwner(id)?.track.id === trackId,
+        ),
       );
       next.add(clip.id);
       this.selectedClipIds.set(next);
@@ -401,14 +425,14 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   onLanePointerDownWorld(track: TrackModel, barX: number) {
     this.selectTrack(track.id);
 
-    if (this.activeTool() === 'select') {
+    if (this.activeTool() === "select") {
       let bar = barX;
       if (this.snapEnabled()) bar = Math.floor(bar * 4) / 4;
 
       this.musicManager.addClipToTrack(track.id, {
         start: bar,
         length: 4,
-        type: track.type === 'midi' || track.type === 'drum' ? 'midi' : 'audio',
+        type: track.type === "midi" || track.type === "drum" ? "midi" : "audio",
       });
       this.haptic.light();
       this.markDirty();
@@ -427,7 +451,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const time = this.musicManager.currentStep() / 16;
     this.markers.update((ms) => [
       ...ms,
-      { id: 'marker_' + Date.now(), name, time, color: '#facc15' },
+      { id: "marker_" + Date.now(), name, time, color: "#facc15" },
     ]);
   }
 
@@ -440,7 +464,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   createGroup() {
-    this.musicManager.addTrack('New Group', 'none', 'bus');
+    this.musicManager.addTrack("New Group", "none", "bus");
   }
 
   selectTrack(id: string) {
@@ -463,7 +487,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   removeTrack(id: string, e: Event) {
     e.stopPropagation();
-    if (confirm('Delete track?')) this.musicManager.removeTrack(id);
+    if (confirm("Delete track?")) this.musicManager.removeTrack(id);
   }
 
   toggleTakes(id: string, e: Event) {
@@ -486,7 +510,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   addTrack() {
-    this.musicManager.addTrack('New Track', 'grand-piano');
+    this.musicManager.addTrack("New Track", "grand-piano");
     this.markDirty();
   }
 
@@ -515,7 +539,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.selectedClipIds().forEach((id) => {
       const found = this.findClipOwner(id);
       if (found) {
-        const newId = 'clip_' + Date.now() + Math.random();
+        const newId = "clip_" + Date.now() + Math.random();
         this.musicManager.addClipToTrack(found.track.id, {
           ...found.clip,
           id: newId,
@@ -536,7 +560,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   consolidateSelected() {
     const selection = this.getConsolidateSelection();
     if (!selection) {
-      this.snackbar.info('Select 2+ clips on one track to glue');
+      this.snackbar.info("Select 2+ clips on one track to glue");
       return;
     }
 
@@ -545,7 +569,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       null;
     if (!mergedClipId) {
       this.snackbar.info(
-        'Glue works on touching clips that share the same type/source'
+        "Glue works on touching clips that share the same type/source",
       );
       return;
     }
@@ -574,14 +598,14 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     });
 
     if (moved === 0) {
-      this.snackbar.info('Selected clips are already on the grid');
+      this.snackbar.info("Selected clips are already on the grid");
       return;
     }
 
     this.haptic.medium();
     this.markDirty();
     this.snackbar.info(
-      `Quantized ${moved} clip${moved === 1 ? '' : 's'} to the grid`
+      `Quantized ${moved} clip${moved === 1 ? "" : "s"} to the grid`,
     );
   }
 
@@ -590,7 +614,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   private findClipOwner(
-    clipId: string
+    clipId: string,
   ): { track: TrackModel; clip: StudioClip } | null {
     for (const track of this.tracks()) {
       const clip = track.clips.find((c) => c.id === clipId);
@@ -599,12 +623,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     return null;
   }
 
-  private getConsolidateSelection():
-    | {
-        track: TrackModel;
-        clipIds: string[];
-      }
-    | null {
+  private getConsolidateSelection(): {
+    track: TrackModel;
+    clipIds: string[];
+  } | null {
     const ids = Array.from(this.selectedClipIds());
     if (ids.length < 2) return null;
 
@@ -612,7 +634,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       .map((id) => this.findClipOwner(id))
       .filter(
         (owner): owner is { track: TrackModel; clip: StudioClip } =>
-          owner !== null
+          owner !== null,
       );
     if (owners.length !== ids.length) return null;
 
@@ -627,13 +649,13 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       const id = this.musicManager.selectedTrackId();
       return id ? (this.tracks().find((t) => t.id === id) ?? null) : null;
     }
-    return this.findClipOwner(ids.values().next().value ?? '')?.track ?? null;
+    return this.findClipOwner(ids.values().next().value ?? "")?.track ?? null;
   }
 
   findFirstSelectedClip(): StudioClip | null {
     const ids = this.selectedClipIds();
     if (ids.size === 0) return null;
-    return this.findClipOwner(ids.values().next().value ?? '')?.clip ?? null;
+    return this.findClipOwner(ids.values().next().value ?? "")?.clip ?? null;
   }
 
   splitAtPlayhead() {
@@ -650,14 +672,14 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     if (!tid) return;
     const result = await this.musicManager.bounceTrack(tid);
     if (!result) {
-      this.snackbar.show('🎚 Bounce failed — select a valid track');
+      this.snackbar.show("🎚 Bounce failed — select a valid track");
       return;
     }
     const name =
       this.musicManager.selectedTrack?.()?.name ??
       this.tracks().find((t) => t.id === tid)?.name ??
-      'track';
-    const a = document.createElement('a');
+      "track";
+    const a = document.createElement("a");
     a.href = result.url;
     a.download = `${name}-bounce.wav`;
     document.body.appendChild(a);
@@ -677,7 +699,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
    * 'end' adjusts the right edge (length only). Clamped so a clip can
    * never collapse below a quarter bar or start before bar 0.
    */
-  trimSelected(edge: 'start' | 'end', deltaBars: number): void {
+  trimSelected(edge: "start" | "end", deltaBars: number): void {
     const ids = Array.from(this.selectedClipIds());
     if (ids.length === 0) return;
     let changed = 0;
@@ -690,7 +712,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       let nextStart = start;
       let nextLength = length;
 
-      if (edge === 'start') {
+      if (edge === "start") {
         nextStart = Math.max(0, start + deltaBars);
         const actualDelta = nextStart - start;
         nextLength = Math.max(0.25, length - actualDelta);
@@ -709,9 +731,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       this.haptic.light();
       this.markDirty();
       this.snackbar.show(
-        `✂ Trimmed ${changed} clip${changed === 1 ? '' : 's'} ${
-          edge === 'start' ? 'left' : 'right'
-        }`
+        `✂ Trimmed ${changed} clip${changed === 1 ? "" : "s"} ${
+          edge === "start" ? "left" : "right"
+        }`,
       );
     }
   }
@@ -720,7 +742,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
    * Cycle the fade-in/fade-out length (in bars) on selected audio clips:
    * 0 → 0.5 → 1 → 2 → 0. MIDI clips are skipped with a hint.
    */
-  cycleFade(side: 'in' | 'out'): void {
+  cycleFade(side: "in" | "out"): void {
     const ids = Array.from(this.selectedClipIds());
     if (ids.length === 0) return;
     let changed = 0;
@@ -730,21 +752,21 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       const found = this.findClipOwner(id);
       if (!found) return;
       const { track, clip } = found;
-      if (clip.type !== 'audio') {
+      if (clip.type !== "audio") {
         skipped++;
         return;
       }
-      const current = side === 'in' ? clip.fadeIn || 0 : clip.fadeOut || 0;
+      const current = side === "in" ? clip.fadeIn || 0 : clip.fadeOut || 0;
       const idx = this.FADE_PRESETS.indexOf(current);
       // Off-preset values (e.g. 0.3) advance to the first real preset instead
       // of silently resetting to 0.
       const next =
         idx === -1
-          ? this.FADE_PRESETS[1] ?? 0
+          ? (this.FADE_PRESETS[1] ?? 0)
           : this.FADE_PRESETS[(idx + 1) % this.FADE_PRESETS.length];
       if (changed === 0) nextVal = next;
       this.musicManager.updateClip(track.id, id, {
-        [side === 'in' ? 'fadeIn' : 'fadeOut']: next,
+        [side === "in" ? "fadeIn" : "fadeOut"]: next,
       });
       changed++;
     });
@@ -752,26 +774,26 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       this.haptic.medium();
       this.markDirty();
       this.snackbar.show(
-        `🎚 Fade-${side === 'in' ? 'in' : 'out'} → ${this.formatFade(
-          nextVal
-        )} on ${changed} clip${changed === 1 ? '' : 's'}`
+        `🎚 Fade-${side === "in" ? "in" : "out"} → ${this.formatFade(
+          nextVal,
+        )} on ${changed} clip${changed === 1 ? "" : "s"}`,
       );
     } else if (skipped > 0) {
-      this.snackbar.info('Fades apply to audio clips only');
+      this.snackbar.info("Fades apply to audio clips only");
     }
   }
 
   /** Fade value (bars) of the first selected clip, 0 when none. */
-  firstSelectedFade(side: 'in' | 'out'): number {
+  firstSelectedFade(side: "in" | "out"): number {
     const clip = this.findFirstSelectedClip();
-    if (!clip || clip.type !== 'audio') return 0;
-    return side === 'in' ? clip.fadeIn || 0 : clip.fadeOut || 0;
+    if (!clip || clip.type !== "audio") return 0;
+    return side === "in" ? clip.fadeIn || 0 : clip.fadeOut || 0;
   }
 
   /** Human label for a fade length in bars (0 = none). */
   formatFade(bars: number): string {
-    if (!bars || bars <= 0) return 'none';
-    return bars === 0.5 ? '½ bar' : `${bars} bar${bars === 1 ? '' : 's'}`;
+    if (!bars || bars <= 0) return "none";
+    return bars === 0.5 ? "½ bar" : `${bars} bar${bars === 1 ? "" : "s"}`;
   }
 
   /** Delete all selected clips (history-aware). */
@@ -789,7 +811,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     if (removed > 0) {
       this.haptic.medium();
       this.markDirty();
-      this.snackbar.show(`🗑 Deleted ${removed} clip${removed === 1 ? '' : 's'}`);
+      this.snackbar.show(
+        `🗑 Deleted ${removed} clip${removed === 1 ? "" : "s"}`,
+      );
     }
   }
 
@@ -798,7 +822,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   /** A MIDI/drum clip can reference a pattern; audio clips cannot. */
   selectedClipIsPatternable(): boolean {
     const clip = this.findFirstSelectedClip();
-    return !!clip && clip.type !== 'audio';
+    return !!clip && clip.type !== "audio";
   }
 
   /** Pattern slot id the selected clip references (null = live pattern). */
@@ -814,7 +838,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   patternOptionsForSelectedClip(): { id: string; label: string }[] {
     const track = this.findFirstSelectedTrack();
     const options: { id: string; label: string }[] = [
-      { id: '', label: '◆ Live pattern' },
+      { id: "", label: "◆ Live pattern" },
     ];
     (track?.patternSlots ?? []).forEach((slot) => {
       options.push({ id: slot.id, label: slot.name });
@@ -826,9 +850,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   patternSlotLabel(slotId: string | null): string | null {
     if (!slotId) return null;
     const track = this.findFirstSelectedTrack();
-    return (
-      track?.patternSlots?.find((s) => s.id === slotId)?.name ?? slotId
-    );
+    return track?.patternSlots?.find((s) => s.id === slotId)?.name ?? slotId;
   }
 
   /** Re-point the selected clip at another pattern (empty = live). */
@@ -839,7 +861,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.musicManager.setClipPattern(
       track.id,
       clip.id,
-      slotId === '' ? null : slotId,
+      slotId === "" ? null : slotId,
     );
     this.haptic.light();
     this.markDirty();
@@ -853,13 +875,13 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   newPatternFromSelection(): void {
     const track = this.findFirstSelectedTrack();
     if (!track) {
-      this.snackbar.info('Select a clip first');
+      this.snackbar.info("Select a clip first");
       return;
     }
     const slotId = this.musicManager.createPatternSlot(track.id);
     if (!slotId) return;
     const clip = this.findFirstSelectedClip();
-    if (clip && clip.type !== 'audio') {
+    if (clip && clip.type !== "audio") {
       this.musicManager.setClipPattern(track.id, clip.id, slotId);
     }
     this.haptic.medium();
@@ -877,10 +899,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const startStep = Math.max(0, Math.floor((clip.start || 0) * 16));
     const endStep = Math.max(
       startStep + 1,
-      Math.floor(((clip.start || 0) + (clip.length || 4)) * 16)
+      Math.floor(((clip.start || 0) + (clip.length || 4)) * 16),
     );
     this.musicManager.requestCrossLink({
-      view: 'piano-roll',
+      view: "piano-roll",
       trackId: track.id,
       noteRange: { startStep, endStep },
       label: clip.name || track.name,
@@ -900,25 +922,25 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   aiVariation() {
-    this.haptic.impact('heavy');
+    this.haptic.impact("heavy");
     const track = this.tracks().find(
-      (t) => t.id === this.musicManager.selectedTrackId()
+      (t) => t.id === this.musicManager.selectedTrackId(),
     );
     if (track && track.notes.length > 0) {
       this.musicManager.humanizeTrack(track.id);
-      this.musicManager.addAutomationLane(track.id, 'cutoff');
+      this.musicManager.addAutomationLane(track.id, "cutoff");
     }
   }
 
   aiSuggestArrangement() {
-    this.haptic.impact('heavy');
+    this.haptic.impact("heavy");
     this.duplicateSelected();
-    this.musicManager.addTrack('AI Pad', 'glass-pad', 'midi');
+    this.musicManager.addTrack("AI Pad", "glass-pad", "midi");
     this.markDirty();
   }
 
   aiMixTransition() {
-    this.haptic.impact('heavy');
+    this.haptic.impact("heavy");
     const tid = this.musicManager.selectedTrackId();
     if (tid) {
       this.musicManager.updateVolume(tid, 0);
@@ -938,7 +960,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
           return { ...t, collapsed: !t.collapsed };
         }
         return t;
-      })
+      }),
     );
     this.markDirty();
   }
@@ -963,23 +985,25 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.stemBusy.set(true);
     this.stemFileName.set(file.name);
     this.stemProgress.set(15);
-    this.snackbar.show('🎚 Stem Split · decoding ' + file.name);
+    this.snackbar.show("🎚 Stem Split · decoding " + file.name);
     try {
       const arrayBuffer = await file.arrayBuffer();
       const ctx = this.musicManager.engine.ctx;
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
       this.stemProgress.set(45);
-      this.snackbar.show('🎚 Stem Split · spectral decomposition');
+      this.snackbar.show("🎚 Stem Split · spectral decomposition");
       const stems = await this.stemSvc.separate(audioBuffer);
       this.stemStems.set(stems);
       this.stemProgress.set(100);
-      this.snackbar.show('🎚 Stem Split · 4 stems ready');
+      this.snackbar.show("🎚 Stem Split · 4 stems ready");
     } catch (err: any) {
-      console.error('Stem split failed', err);
-      this.snackbar.show('🎚 Stem Split failed: ' + (err?.message ?? 'unknown'));
+      console.error("Stem split failed", err);
+      this.snackbar.show(
+        "🎚 Stem Split failed: " + (err?.message ?? "unknown"),
+      );
     } finally {
       this.stemBusy.set(false);
-      input.value = '';
+      input.value = "";
     }
   }
 
@@ -987,7 +1011,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const stems = this.stemStems();
     if (!stems) return;
     this.musicManager.addStemsAsAudioTracks(stems as any);
-    this.snackbar.show('🎚 4 Stem Tracks added');
+    this.snackbar.show("🎚 4 Stem Tracks added");
     this.closeStemSplit();
   }
 

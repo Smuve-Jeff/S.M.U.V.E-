@@ -1,10 +1,17 @@
-import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { AudioSessionService } from '../audio-session.service';
-import { MusicManagerService } from '../../services/music-manager.service';
-import { HapticService } from '../../services/haptic.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { StudioBottomSheetComponent } from '../shared/studio-bottom-sheet/studio-bottom-sheet.component';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  OnInit,
+  OnDestroy,
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { AudioSessionService } from "../audio-session.service";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { HapticService } from "../../services/haptic.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
 
 interface SessionScene {
   id: string;
@@ -13,7 +20,7 @@ interface SessionScene {
   index: number;
 }
 
-type AutomationCurveType = 'linear' | 'exponential' | 'step';
+type AutomationCurveType = "linear" | "exponential" | "step";
 
 interface AutomationPoint {
   /** Bar position (e.g. 0.0, 1.5, 3.0) */
@@ -41,11 +48,11 @@ interface SessionClip {
 }
 
 @Component({
-  selector: 'app-session-view',
+  selector: "app-session-view",
   standalone: true,
   imports: [CommonModule, StudioBottomSheetComponent],
-  templateUrl: './session-view.component.html',
-  styleUrls: ['./session-view.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./session-view.component.html",
+  styleUrls: ["./session-view.component.css", "../shared/platform-ux.css"],
 })
 export class SessionViewComponent implements OnInit, OnDestroy {
   private audioSession = inject(AudioSessionService);
@@ -55,8 +62,8 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   // ── Song-mode transport ────────────────────────────────
   /** Launch quantization: snap scene/clip starts to the next bar boundary. */
-  launchQuantize = signal<'none' | '1bar' | '2bar' | '4bar'>('none');
-  quantizeOptions = ['none', '1bar', '2bar', '4bar'] as const;
+  launchQuantize = signal<"none" | "1bar" | "2bar" | "4bar">("none");
+  quantizeOptions = ["none", "1bar", "2bar", "4bar"] as const;
 
   /** Follow-on: auto-advance to the next scene after the active one ends. */
   followOnEnabled = signal(false);
@@ -72,14 +79,14 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   /** Mobile scene actions are deliberately separate from the clip grid. */
   sceneActionSceneId = signal<string | null>(null);
-  sceneNameInput = signal('');
+  sceneNameInput = signal("");
   launchSettingsOpen = signal(false);
   nextLaunchBoundaryLabel = computed(() => {
     const quantize = this.launchQuantize();
-    if (!this.audioSession.isPlaying() || quantize === 'none') {
-      return 'Immediate launch';
+    if (!this.audioSession.isPlaying() || quantize === "none") {
+      return "Immediate launch";
     }
-    const bars = quantize === '1bar' ? 1 : quantize === '2bar' ? 2 : 4;
+    const bars = quantize === "1bar" ? 1 : quantize === "2bar" ? 2 : 4;
     const tempo = this.audioSession.engine.tempo() || 120;
     const secondsPerBar = (60 / tempo) * 4;
     const step = this.audioSession.engine.visualStep?.() ?? 0;
@@ -88,7 +95,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     const totalSteps = bars * stepsPerBar;
     const stepsToNext = (totalSteps - stepsIntoBar) % totalSteps || totalSteps;
     const seconds = Math.max(0, (stepsToNext / stepsPerBar) * secondsPerBar);
-    return `Next ${bars === 1 ? 'bar' : `${bars} bars`} · ${seconds.toFixed(1)}s`;
+    return `Next ${bars === 1 ? "bar" : `${bars} bars`} · ${seconds.toFixed(1)}s`;
   });
 
   readonly transportPlaying = this.audioSession.isPlaying;
@@ -96,7 +103,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadPresetList();
     if (!this.restoreAutoSave()) {
-      this.snackbar.info('New session — no auto-save found');
+      this.snackbar.info("New session — no auto-save found");
     }
   }
 
@@ -109,16 +116,23 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   /** Seconds until the next quantized bar boundary (0 when off/stopped). */
   private nextBarDelay(): number {
-    if (this.launchQuantize() === 'none' || !this.audioSession.isPlaying()) {
+    if (this.launchQuantize() === "none" || !this.audioSession.isPlaying()) {
       return 0;
     }
-    const bars = this.launchQuantize() === '1bar' ? 1 : this.launchQuantize() === '2bar' ? 2 : 4;
+    const bars =
+      this.launchQuantize() === "1bar"
+        ? 1
+        : this.launchQuantize() === "2bar"
+          ? 2
+          : 4;
     const tempo = this.audioSession.engine.tempo() || 120;
     const secondsPerBar = (60 / tempo) * 4;
     const step = this.audioSession.engine.visualStep?.() ?? 0;
     const stepsPerBar = 16;
     const stepsIntoBar = step % stepsPerBar;
-    const stepsToNext = (bars * stepsPerBar - stepsIntoBar) % (bars * stepsPerBar) || bars * stepsPerBar;
+    const stepsToNext =
+      (bars * stepsPerBar - stepsIntoBar) % (bars * stepsPerBar) ||
+      bars * stepsPerBar;
     return Math.max(0.05, (stepsToNext / stepsPerBar) * secondsPerBar);
   }
 
@@ -138,7 +152,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     if (this.audioSession.isPlaying()) {
       this.audioSession.togglePlay();
     }
-    this.snackbar.info('Session stopped');
+    this.snackbar.info("Session stopped");
   }
 
   micChannels = this.audioSession.micChannels;
@@ -149,20 +163,20 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   isSceneQueued(scene: SessionScene): boolean {
     return this.getClipsForScene(scene.id).some((clip) =>
-      this.queuedClipIds().has(clip.id)
+      this.queuedClipIds().has(clip.id),
     );
   }
 
   sceneStateLabel(scene: SessionScene): string {
-    if (this.isSceneQueued(scene)) return 'Queued';
-    if (this.isSceneActive(scene)) return 'Playing';
-    return 'Ready';
+    if (this.isSceneQueued(scene)) return "Queued";
+    if (this.isSceneActive(scene)) return "Playing";
+    return "Ready";
   }
 
   sceneLaunchLabel(scene: SessionScene): string {
-    if (this.isSceneQueued(scene)) return 'Queued';
-    if (this.isSceneActive(scene)) return 'Stop';
-    return 'Launch';
+    if (this.isSceneQueued(scene)) return "Queued";
+    if (this.isSceneActive(scene)) return "Stop";
+    return "Launch";
   }
 
   onSceneHeaderClick(scene: SessionScene): void {
@@ -190,7 +204,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   setLaunchQuantize(value: string): void {
-    if (this.quantizeOptions.includes(value as (typeof this.quantizeOptions)[number])) {
+    if (
+      this.quantizeOptions.includes(
+        value as (typeof this.quantizeOptions)[number],
+      )
+    ) {
       this.launchQuantize.set(value as (typeof this.quantizeOptions)[number]);
     }
   }
@@ -200,11 +218,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     if (!sceneId) return;
     const name = this.sceneNameInput().trim();
     if (!name) {
-      this.snackbar.warning('Scene name cannot be empty');
+      this.snackbar.warning("Scene name cannot be empty");
       return;
     }
     this.scenes.update((list) =>
-      list.map((scene) => (scene.id === sceneId ? { ...scene, name } : scene))
+      list.map((scene) => (scene.id === sceneId ? { ...scene, name } : scene)),
     );
     this.scheduleAutoSave();
     this.closeSceneActions();
@@ -249,7 +267,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   }
 
   startSceneLongPress(event: PointerEvent, scene: SessionScene): void {
-    if (event.pointerType === 'mouse') return;
+    if (event.pointerType === "mouse") return;
     this.cancelSceneLongPress();
     this.sceneLongPressStart = { x: event.clientX, y: event.clientY };
     this.sceneLongPressTimer = setTimeout(() => {
@@ -279,11 +297,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   // ── Scenes ───────────────────────────────────────────
   scenes = signal<SessionScene[]>([
-    { id: 'intro', name: 'Intro', color: '#0E7C7B', index: 0 },
-    { id: 'verse', name: 'Verse', color: '#2BA09C', index: 1 },
-    { id: 'chorus', name: 'Chorus', color: '#5DC4C2', index: 2 },
-    { id: 'bridge', name: 'Bridge', color: '#8B5CF6', index: 3 },
-    { id: 'outro', name: 'Outro', color: '#FF1A8C', index: 4 },
+    { id: "intro", name: "Intro", color: "#0E7C7B", index: 0 },
+    { id: "verse", name: "Verse", color: "#2BA09C", index: 1 },
+    { id: "chorus", name: "Chorus", color: "#5DC4C2", index: 2 },
+    { id: "bridge", name: "Bridge", color: "#8B5CF6", index: 3 },
+    { id: "outro", name: "Outro", color: "#FF1A8C", index: 4 },
   ]);
 
   activeSceneId = signal<string | null>(null);
@@ -292,143 +310,143 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   clips = signal<SessionClip[]>([
     // Row: Intro
     {
-      id: 'c1',
-      name: 'Kick Loop',
-      trackId: 't1',
-      sceneId: 'intro',
+      id: "c1",
+      name: "Kick Loop",
+      trackId: "t1",
+      sceneId: "intro",
       isPlaying: false,
-      color: '#FFB627',
-      duration: '4 bars',
+      color: "#FFB627",
+      duration: "4 bars",
     },
     {
-      id: 'c2',
-      name: 'Bass Line',
-      trackId: 't2',
-      sceneId: 'intro',
+      id: "c2",
+      name: "Bass Line",
+      trackId: "t2",
+      sceneId: "intro",
       isPlaying: false,
-      color: '#00E5FF',
-      duration: '8 bars',
+      color: "#00E5FF",
+      duration: "8 bars",
     },
     {
-      id: 'c3',
-      name: 'Pad Swell',
-      trackId: 't3',
-      sceneId: 'intro',
+      id: "c3",
+      name: "Pad Swell",
+      trackId: "t3",
+      sceneId: "intro",
       isPlaying: false,
-      color: '#A5F8FF',
-      duration: '8 bars',
+      color: "#A5F8FF",
+      duration: "8 bars",
     },
     // Row: Verse
     {
-      id: 'c4',
-      name: 'Kick Loop',
-      trackId: 't1',
-      sceneId: 'verse',
+      id: "c4",
+      name: "Kick Loop",
+      trackId: "t1",
+      sceneId: "verse",
       isPlaying: false,
-      color: '#FFB627',
-      duration: '4 bars',
+      color: "#FFB627",
+      duration: "4 bars",
     },
     {
-      id: 'c5',
-      name: 'Snare Roll',
-      trackId: 't4',
-      sceneId: 'verse',
+      id: "c5",
+      name: "Snare Roll",
+      trackId: "t4",
+      sceneId: "verse",
       isPlaying: false,
-      color: '#FF8A3D',
-      duration: '2 bars',
+      color: "#FF8A3D",
+      duration: "2 bars",
     },
     {
-      id: 'c6',
-      name: 'Bass Line',
-      trackId: 't2',
-      sceneId: 'verse',
+      id: "c6",
+      name: "Bass Line",
+      trackId: "t2",
+      sceneId: "verse",
       isPlaying: false,
-      color: '#00E5FF',
-      duration: '8 bars',
+      color: "#00E5FF",
+      duration: "8 bars",
     },
     {
-      id: 'c7',
-      name: 'Vocal Chops',
-      trackId: 't5',
-      sceneId: 'verse',
+      id: "c7",
+      name: "Vocal Chops",
+      trackId: "t5",
+      sceneId: "verse",
       isPlaying: false,
-      color: '#EC4899',
-      duration: '4 bars',
+      color: "#EC4899",
+      duration: "4 bars",
     },
     // Row: Chorus
     {
-      id: 'c8',
-      name: 'Full Beat',
-      trackId: 't1',
-      sceneId: 'chorus',
+      id: "c8",
+      name: "Full Beat",
+      trackId: "t1",
+      sceneId: "chorus",
       isPlaying: false,
-      color: '#FFB627',
-      duration: '8 bars',
+      color: "#FFB627",
+      duration: "8 bars",
     },
     {
-      id: 'c9',
-      name: 'Bass Drop',
-      trackId: 't2',
-      sceneId: 'chorus',
+      id: "c9",
+      name: "Bass Drop",
+      trackId: "t2",
+      sceneId: "chorus",
       isPlaying: false,
-      color: '#00E5FF',
-      duration: '8 bars',
+      color: "#00E5FF",
+      duration: "8 bars",
     },
     {
-      id: 'c10',
-      name: 'Lead Synth',
-      trackId: 't6',
-      sceneId: 'chorus',
+      id: "c10",
+      name: "Lead Synth",
+      trackId: "t6",
+      sceneId: "chorus",
       isPlaying: false,
-      color: '#FF1A4D',
-      duration: '8 bars',
+      color: "#FF1A4D",
+      duration: "8 bars",
     },
     {
-      id: 'c11',
-      name: 'FX Rise',
-      trackId: 't7',
-      sceneId: 'chorus',
+      id: "c11",
+      name: "FX Rise",
+      trackId: "t7",
+      sceneId: "chorus",
       isPlaying: false,
-      color: '#8B5CF6',
-      duration: '1 bar',
+      color: "#8B5CF6",
+      duration: "1 bar",
     },
     // Row: Bridge
     {
-      id: 'c12',
-      name: 'Ambient Pad',
-      trackId: 't3',
-      sceneId: 'bridge',
+      id: "c12",
+      name: "Ambient Pad",
+      trackId: "t3",
+      sceneId: "bridge",
       isPlaying: false,
-      color: '#A5F8FF',
-      duration: '8 bars',
+      color: "#A5F8FF",
+      duration: "8 bars",
     },
     {
-      id: 'c13',
-      name: 'FX Wash',
-      trackId: 't7',
-      sceneId: 'bridge',
+      id: "c13",
+      name: "FX Wash",
+      trackId: "t7",
+      sceneId: "bridge",
       isPlaying: false,
-      color: '#8B5CF6',
-      duration: '4 bars',
+      color: "#8B5CF6",
+      duration: "4 bars",
     },
     // Row: Outro
     {
-      id: 'c14',
-      name: 'Fade Loop',
-      trackId: 't1',
-      sceneId: 'outro',
+      id: "c14",
+      name: "Fade Loop",
+      trackId: "t1",
+      sceneId: "outro",
       isPlaying: false,
-      color: '#FFB627',
-      duration: '8 bars',
+      color: "#FFB627",
+      duration: "8 bars",
     },
     {
-      id: 'c15',
-      name: 'End Pad',
-      trackId: 't3',
-      sceneId: 'outro',
+      id: "c15",
+      name: "End Pad",
+      trackId: "t3",
+      sceneId: "outro",
       isPlaying: false,
-      color: '#A5F8FF',
-      duration: '16 bars',
+      color: "#A5F8FF",
+      duration: "16 bars",
     },
   ]);
 
@@ -443,7 +461,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       return {
         id: tid,
         name: t?.name ?? tid.toUpperCase(),
-        type: t?.instrumentId ?? 'audio',
+        type: t?.instrumentId ?? "audio",
         isMuted: false,
       };
     });
@@ -466,8 +484,8 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       this.activeSceneId.set(null);
       this.clips.update((list) =>
         list.map((c) =>
-          c.sceneId === scene.id ? { ...c, isPlaying: false } : c
-        )
+          c.sceneId === scene.id ? { ...c, isPlaying: false } : c,
+        ),
       );
       this.scheduleAutoSave();
       this.snackbar.info(`Scene "${scene.name}" stopped`);
@@ -480,11 +498,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       const queued = new Set(
         this.clips()
           .filter((c) => c.sceneId === scene.id)
-          .map((c) => c.id)
+          .map((c) => c.id),
       );
       this.queuedClipIds.set(queued);
       this.snackbar.info(
-        `Scene "${scene.name}" queued — starts in ${delay.toFixed(2)}s`
+        `Scene "${scene.name}" queued — starts in ${delay.toFixed(2)}s`,
       );
       this.quantizeTimer = setTimeout(() => {
         this.queuedClipIds.set(new Set());
@@ -505,7 +523,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       list.map((c) => ({
         ...c,
         isPlaying: c.sceneId === scene.id,
-      }))
+      })),
     );
     this.scheduleAutoSave();
     this.snackbar.info(`Scene "${scene.name}" launched`);
@@ -520,7 +538,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     if (sceneClips.length === 0) return;
     const longestBars = Math.max(
       1,
-      ...sceneClips.map((c) => parseFloat(c.duration ?? '1') || 1)
+      ...sceneClips.map((c) => parseFloat(c.duration ?? "1") || 1),
     );
     const tempo = this.audioSession.engine.tempo() || 120;
     const ms = longestBars * (60 / tempo) * 4 * 1000;
@@ -544,12 +562,12 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       list.map((c) =>
         c.id === clip.id
           ? { ...c, isPlaying: !c.isPlaying, velocity: clampedVel }
-          : c
-      )
+          : c,
+      ),
     );
     this.scheduleAutoSave();
     this.snackbar.info(
-      `${clip.name} ${clip.isPlaying ? 'playing' : 'paused'} · vel ${Math.round(clampedVel * 100)}%`
+      `${clip.name} ${clip.isPlaying ? "playing" : "paused"} · vel ${Math.round(clampedVel * 100)}%`,
     );
   }
 
@@ -565,8 +583,8 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   // ── Automation Lanes ────────────────────────────────
   selectedClipId = signal<string | null>(null);
-  automationEditTarget = signal<string>('volume');
-  automationTargets = ['volume', 'filter', 'pan', 'pitch', 'reverb', 'delay'];
+  automationEditTarget = signal<string>("volume");
+  automationTargets = ["volume", "filter", "pan", "pitch", "reverb", "delay"];
 
   toggleAutomation(clipId: string): void {
     this.haptic.light();
@@ -577,21 +595,21 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       // Ensure clip has automation array
       this.clips.update((list) =>
         list.map((c) =>
-          c.id === clipId && !c.automation ? { ...c, automation: [] } : c
-        )
+          c.id === clipId && !c.automation ? { ...c, automation: [] } : c,
+        ),
       );
     }
   }
 
   /** Default curve type when adding a new point */
-  defaultCurveType = signal<AutomationCurveType>('linear');
+  defaultCurveType = signal<AutomationCurveType>("linear");
 
   addAutomationPoint(clipId: string): void {
     const clip = this.clips().find((c) => c.id === clipId);
     if (!clip) return;
     const points =
       clip.automation?.filter(
-        (a) => a.target === this.automationEditTarget()
+        (a) => a.target === this.automationEditTarget(),
       ) ?? [];
     const nextPos =
       points.length > 0
@@ -607,20 +625,20 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       list.map((c) =>
         c.id === clipId
           ? { ...c, automation: [...(c.automation ?? []), newPoint] }
-          : c
-      )
+          : c,
+      ),
     );
     this.haptic.light();
     this.scheduleAutoSave();
     this.snackbar.info(
-      `Automation point added at ${nextPos} bars (${this.defaultCurveType()})`
+      `Automation point added at ${nextPos} bars (${this.defaultCurveType()})`,
     );
   }
 
   updateAutomationCurve(
     clipId: string,
     pointIdx: number,
-    curve: AutomationCurveType
+    curve: AutomationCurveType,
   ): void {
     this.updateAutomationPoint(clipId, pointIdx, (point) => ({
       ...point,
@@ -631,12 +649,12 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   /** Visual icon for curve type */
   curveIcon(curve?: AutomationCurveType): string {
     switch (curve) {
-      case 'exponential':
-        return '↗';
-      case 'step':
-        return '⏐';
+      case "exponential":
+        return "↗";
+      case "step":
+        return "⏐";
       default:
-        return '╱';
+        return "╱";
     }
   }
 
@@ -645,7 +663,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     if (!clip?.automation) return;
 
     const target = this.visibleAutomationPoints(clip).find(
-      (entry) => entry.index === pointIdx
+      (entry) => entry.index === pointIdx,
     );
     if (!target) return;
 
@@ -655,11 +673,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
           ? {
               ...candidate,
               automation: candidate.automation.filter(
-                (_, index) => index !== target.index
+                (_, index) => index !== target.index,
               ),
             }
-          : candidate
-      )
+          : candidate,
+      ),
     );
     this.haptic.light();
     this.scheduleAutoSave();
@@ -668,7 +686,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   updateAutomationValue(
     clipId: string,
     pointIdx: number,
-    newValue: number
+    newValue: number,
   ): void {
     const clamped = Math.max(0, Math.min(1, Math.round(newValue * 100) / 100));
     this.updateAutomationPoint(clipId, pointIdx, (point) => ({
@@ -680,7 +698,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   updateAutomationPosition(
     clipId: string,
     pointIdx: number,
-    newPos: number
+    newPos: number,
   ): void {
     const clamped = Math.max(0, Math.round(newPos * 10) / 10);
     this.updateAutomationPoint(clipId, pointIdx, (point) => ({
@@ -692,7 +710,9 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   /** Return visible automation points with their source-array index.
    * Keeping the index explicit prevents filtered lanes from editing the
    * wrong point when multiple targets share one clip. */
-  visibleAutomationPoints(clip: SessionClip): Array<{ point: AutomationPoint; index: number }> {
+  visibleAutomationPoints(
+    clip: SessionClip,
+  ): Array<{ point: AutomationPoint; index: number }> {
     const target = this.automationEditTarget();
     return (clip.automation ?? [])
       .map((point, index) => ({ point, index }))
@@ -702,7 +722,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   private updateAutomationPoint(
     clipId: string,
     visiblePointIndex: number,
-    update: (point: AutomationPoint) => AutomationPoint
+    update: (point: AutomationPoint) => AutomationPoint,
   ): void {
     const clip = this.clips().find((candidate) => candidate.id === clipId);
     if (!clip?.automation) return;
@@ -715,11 +735,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
           ? {
               ...candidate,
               automation: candidate.automation.map((point, index) =>
-                index === target.index ? update(point) : point
+                index === target.index ? update(point) : point,
               ),
             }
-          : candidate
-      )
+          : candidate,
+      ),
     );
     this.scheduleAutoSave();
   }
@@ -728,12 +748,12 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     this.haptic.light();
     const idx = this.scenes().length;
     const colors = [
-      '#0E7C7B',
-      '#2BA09C',
-      '#8B5CF6',
-      '#FF1A8C',
-      '#FFB627',
-      '#00E5FF',
+      "#0E7C7B",
+      "#2BA09C",
+      "#8B5CF6",
+      "#FF1A8C",
+      "#FFB627",
+      "#00E5FF",
     ];
     this.scenes.update((list) => [
       ...list,
@@ -745,7 +765,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       },
     ]);
     this.scheduleAutoSave();
-    this.snackbar.success('New scene added');
+    this.snackbar.success("New scene added");
   }
 
   // ── Drag-to-track drop zone ──────────────────────────
@@ -754,7 +774,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
 
   onDragOver(event: DragEvent, trackId: string): void {
     event.preventDefault();
-    event.dataTransfer!.dropEffect = 'copy';
+    event.dataTransfer!.dropEffect = "copy";
     this.dragOverTrackId.set(trackId);
   }
 
@@ -765,7 +785,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   onDrop(event: DragEvent, trackId: string): void {
     event.preventDefault();
     this.dragOverTrackId.set(null);
-    const raw = event.dataTransfer?.getData('application/smuve-sample');
+    const raw = event.dataTransfer?.getData("application/smuve-sample");
     if (!raw) return;
     try {
       const { id, name } = JSON.parse(raw);
@@ -781,7 +801,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   onSlotDragOver(event: DragEvent, sceneId: string, trackId: string): void {
     event.preventDefault();
     event.stopPropagation();
-    event.dataTransfer!.dropEffect = 'copy';
+    event.dataTransfer!.dropEffect = "copy";
     this.dragOverSlotKey.set(`${sceneId}|${trackId}`);
   }
 
@@ -793,7 +813,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     this.dragOverSlotKey.set(null);
-    const raw = event.dataTransfer?.getData('application/smuve-sample');
+    const raw = event.dataTransfer?.getData("application/smuve-sample");
     if (!raw) return;
     try {
       const { id, name } = JSON.parse(raw);
@@ -807,8 +827,8 @@ export class SessionViewComponent implements OnInit, OnDestroy {
           trackId,
           sceneId,
           isPlaying: false,
-          color: '#5DC4C2',
-          duration: '4 bars',
+          color: "#5DC4C2",
+          duration: "4 bars",
           velocity: 0.8,
         },
       ]);
@@ -823,12 +843,12 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   savedPresets = signal<
     Array<{ name: string; scenes: SessionScene[]; clips: SessionClip[] }>
   >([]);
-  presetNameInput = signal('');
+  presetNameInput = signal("");
   presetLoadOpen = signal(false);
 
   private loadPresetList(): void {
     try {
-      const raw = localStorage.getItem('smuve_session_presets');
+      const raw = localStorage.getItem("smuve_session_presets");
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) this.savedPresets.set(parsed);
@@ -839,8 +859,8 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   private savePresetList(): void {
     try {
       localStorage.setItem(
-        'smuve_session_presets',
-        JSON.stringify(this.savedPresets())
+        "smuve_session_presets",
+        JSON.stringify(this.savedPresets()),
       );
     } catch {}
   }
@@ -859,7 +879,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       return [...filtered, preset];
     });
     this.savePresetList();
-    this.presetNameInput.set('');
+    this.presetNameInput.set("");
     this.haptic.medium();
     this.snackbar.success(`Preset "${name}" saved`);
   }
@@ -895,12 +915,12 @@ export class SessionViewComponent implements OnInit, OnDestroy {
     });
     this.scheduleAutoSave();
     const muted = this.mutedTrackIds().has(trackId);
-    this.snackbar.info(`Track ${trackId} ${muted ? 'muted' : 'unmuted'}`);
+    this.snackbar.info(`Track ${trackId} ${muted ? "muted" : "unmuted"}`);
   }
 
   // ── Auto-Save on Reload ────────────────────────────
   private autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly AUTO_SAVE_KEY = 'smuve_session_autosave';
+  private readonly AUTO_SAVE_KEY = "smuve_session_autosave";
   private readonly AUTO_SAVE_DELAY = 2000; // 2s debounce
 
   /** Schedule an auto-save after scenes/clips change */
@@ -955,7 +975,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
           name: s.name,
           color: s.color,
           index: i,
-        }))
+        })),
       );
       this.clips.set(
         data.clips.map((c: any) => ({
@@ -966,11 +986,11 @@ export class SessionViewComponent implements OnInit, OnDestroy {
               position: a.position,
               value: a.value,
               target: a.target,
-              curveType: a.curveType || 'linear',
+              curveType: a.curveType || "linear",
             })) || [],
-        }))
+        })),
       );
-      this.snackbar.info('Session restored from auto-save');
+      this.snackbar.info("Session restored from auto-save");
       return true;
     } catch {
       localStorage.removeItem(this.AUTO_SAVE_KEY);
@@ -982,9 +1002,9 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   exportProject(): void {
     this.haptic.medium();
     const bundle = {
-      version: '1.0',
+      version: "1.0",
       exportedAt: new Date().toISOString(),
-      app: 'S.M.U.V.E. Composer',
+      app: "S.M.U.V.E. Composer",
       scenes: this.scenes().map((s) => ({
         id: s.id,
         name: s.name,
@@ -1003,14 +1023,14 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       })),
     };
     const json = JSON.stringify(bundle, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `smuve-project-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    this.snackbar.success('Project exported');
+    this.snackbar.success("Project exported");
   }
 
   importProject(event: Event): void {
@@ -1023,7 +1043,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
       try {
         const bundle = JSON.parse(reader.result as string);
         if (!bundle.scenes || !bundle.clips) {
-          this.snackbar.error('Invalid project file');
+          this.snackbar.error("Invalid project file");
           return;
         }
         this.scenes.set(
@@ -1032,7 +1052,7 @@ export class SessionViewComponent implements OnInit, OnDestroy {
             name: s.name,
             color: s.color,
             index: i,
-          }))
+          })),
         );
         this.clips.set(
           bundle.clips.map((c: any) => ({
@@ -1045,26 +1065,26 @@ export class SessionViewComponent implements OnInit, OnDestroy {
             duration: c.duration,
             velocity: c.velocity,
             automation: c.automation || [],
-          }))
+          })),
         );
         this.activeSceneId.set(null);
         this.snackbar.success(
-          `Project imported: ${bundle.scenes.length} scenes, ${bundle.clips.length} clips`
+          `Project imported: ${bundle.scenes.length} scenes, ${bundle.clips.length} clips`,
         );
       } catch {
-        this.snackbar.error('Failed to parse project file');
+        this.snackbar.error("Failed to parse project file");
       }
     };
     reader.readAsText(file);
     // Reset input so re-importing the same file triggers change
-    input.value = '';
+    input.value = "";
   }
 
   /** Override ngOnInit_ to add auto-save restore */
   ngOnInit_(): void {
     this.loadPresetList();
     if (!this.restoreAutoSave()) {
-      this.snackbar.info('New session — no auto-save found');
+      this.snackbar.info("New session — no auto-save found");
     }
   }
 
@@ -1078,6 +1098,8 @@ export class SessionViewComponent implements OnInit, OnDestroy {
   trackByScene = (_i: number, s: SessionScene) => s.id;
   trackByClip = (_i: number, c: SessionClip) => c.id;
   trackByTrackId = (_i: number, t: { id: string }) => t.id;
-  trackByPoint = (i: number, entry: { point: AutomationPoint; index: number }) =>
-    `${entry.point.target}-${entry.index}-${i}`;
+  trackByPoint = (
+    i: number,
+    entry: { point: AutomationPoint; index: number },
+  ) => `${entry.point.target}-${entry.index}-${i}`;
 }

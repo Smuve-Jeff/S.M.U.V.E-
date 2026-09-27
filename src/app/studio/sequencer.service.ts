@@ -1,9 +1,9 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { MusicManagerService } from '../services/music-manager.service';
-import { AudioEngineService } from '../services/audio-engine.service';
+import { Injectable, inject, signal } from "@angular/core";
+import { MusicManagerService } from "../services/music-manager.service";
+import { AudioEngineService } from "../services/audio-engine.service";
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class SequencerService {
   private musicManager = inject(MusicManagerService);

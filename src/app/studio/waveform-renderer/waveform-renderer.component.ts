@@ -9,22 +9,24 @@ import {
   OnChanges,
   OnDestroy,
   SimpleChanges,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
 
 @Component({
-  selector: 'app-waveform-renderer',
+  selector: "app-waveform-renderer",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './waveform-renderer.component.html',
-  styleUrls: ['./waveform-renderer.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./waveform-renderer.component.html",
+  styleUrls: ["./waveform-renderer.component.css", "../shared/platform-ux.css"],
   host: {
     // Only an interactive waveform may claim the gesture; a display-only
     // waveform must stay scrollable on a phone.
-    '[class.wr-interactive]': 'loopInteractive',
+    "[class.wr-interactive]": "loopInteractive",
   },
 })
-export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDestroy {
+export class WaveformRendererComponent
+  implements AfterViewInit, OnChanges, OnDestroy
+{
   /** Raw PCM data (Float32Array, -1..1). Null = placeholder / empty. */
   @Input() audioData: Float32Array | null = null;
   /** Duration in seconds. Used for playhead positioning. */
@@ -32,11 +34,11 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
   /** Playback progress 0..1. Draws the playhead line. */
   @Input() progress = 0;
   /** Waveform fill colour. Falls back to teal CSS variable. */
-  @Input() color = 'var(--teal-500, #0E7C7B)';
+  @Input() color = "var(--teal-500, #0E7C7B)";
   /** Whether a recording is in progress (shows live overlays). */
   @Input() isRecording = false;
   /** Display mode: 'bars' | 'envelope' | 'mirrored' */
-  @Input() mode: 'bars' | 'envelope' | 'mirrored' = 'envelope';
+  @Input() mode: "bars" | "envelope" | "mirrored" = "envelope";
   /** Optional non-destructive selection range, expressed as 0..1 fractions. */
   @Input() selectionStart: number | null = null;
   @Input() selectionEnd: number | null = null;
@@ -52,12 +54,12 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
   /** Emitted when loopEnd changes via drag interaction */
   @Output() loopEndChange = new EventEmitter<number>();
 
-  @ViewChild('waveCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild("waveCanvas") canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private ctx: CanvasRenderingContext2D | null = null;
 
   // ── Draggable loop handle state ───────────────────
-  private draggingHandle: 'start' | 'end' | null = null;
+  private draggingHandle: "start" | "end" | null = null;
 
   // Stored bound handlers so they can be removed in ngOnDestroy
   private readonly _onMouseDown = this.onCanvasMouseDown.bind(this);
@@ -81,29 +83,29 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
 
   ngAfterViewInit() {
     const canvas = this.canvasRef.nativeElement;
-    this.ctx = canvas.getContext('2d');
+    this.ctx = canvas.getContext("2d");
     this.draw();
 
-    if (typeof ResizeObserver !== 'undefined') {
+    if (typeof ResizeObserver !== "undefined") {
       this.resizeObserver = new ResizeObserver(() => this.draw());
       this.resizeObserver.observe(canvas);
     }
 
     if (this.loopInteractive) {
       this.usesPointerEvents =
-        typeof window !== 'undefined' && 'PointerEvent' in window;
+        typeof window !== "undefined" && "PointerEvent" in window;
 
       if (this.usesPointerEvents) {
-        canvas.addEventListener('pointerdown', this._onPointerDown);
-        canvas.addEventListener('pointermove', this._onPointerMove);
-        canvas.addEventListener('pointerup', this._onPointerUp);
-        canvas.addEventListener('pointercancel', this._onPointerUp);
-        canvas.addEventListener('lostpointercapture', this._onPointerUp);
+        canvas.addEventListener("pointerdown", this._onPointerDown);
+        canvas.addEventListener("pointermove", this._onPointerMove);
+        canvas.addEventListener("pointerup", this._onPointerUp);
+        canvas.addEventListener("pointercancel", this._onPointerUp);
+        canvas.addEventListener("lostpointercapture", this._onPointerUp);
       } else {
-        canvas.addEventListener('mousedown', this._onMouseDown);
-        canvas.addEventListener('mousemove', this._onMouseMove);
-        canvas.addEventListener('mouseup', this._onMouseUp);
-        canvas.addEventListener('mouseleave', this._onMouseUp);
+        canvas.addEventListener("mousedown", this._onMouseDown);
+        canvas.addEventListener("mousemove", this._onMouseMove);
+        canvas.addEventListener("mouseup", this._onMouseUp);
+        canvas.addEventListener("mouseleave", this._onMouseUp);
       }
     }
   }
@@ -118,15 +120,15 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     if (this.loopInteractive) {
       const canvas = this.canvasRef?.nativeElement;
       if (canvas) {
-        canvas.removeEventListener('pointerdown', this._onPointerDown);
-        canvas.removeEventListener('pointermove', this._onPointerMove);
-        canvas.removeEventListener('pointerup', this._onPointerUp);
-        canvas.removeEventListener('pointercancel', this._onPointerUp);
-        canvas.removeEventListener('lostpointercapture', this._onPointerUp);
-        canvas.removeEventListener('mousedown', this._onMouseDown);
-        canvas.removeEventListener('mousemove', this._onMouseMove);
-        canvas.removeEventListener('mouseup', this._onMouseUp);
-        canvas.removeEventListener('mouseleave', this._onMouseUp);
+        canvas.removeEventListener("pointerdown", this._onPointerDown);
+        canvas.removeEventListener("pointermove", this._onPointerMove);
+        canvas.removeEventListener("pointerup", this._onPointerUp);
+        canvas.removeEventListener("pointercancel", this._onPointerUp);
+        canvas.removeEventListener("lostpointercapture", this._onPointerUp);
+        canvas.removeEventListener("mousedown", this._onMouseDown);
+        canvas.removeEventListener("mousemove", this._onMouseMove);
+        canvas.removeEventListener("mouseup", this._onMouseUp);
+        canvas.removeEventListener("mouseleave", this._onMouseUp);
       }
     }
   }
@@ -141,7 +143,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
    */
   private onCanvasPointerDown(event: PointerEvent): void {
     const radius =
-      event.pointerType === 'touch' || event.pointerType === 'pen'
+      event.pointerType === "touch" || event.pointerType === "pen"
         ? WaveformRendererComponent.TOUCH_HANDLE_RADIUS
         : WaveformRendererComponent.MOUSE_HANDLE_RADIUS;
     const handle = this.hitTestLoopHandle(event.clientX, radius);
@@ -193,7 +195,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
   private hitTestLoopHandle(
     clientX: number,
     radiusCss: number,
-  ): 'start' | 'end' | null {
+  ): "start" | "end" | null {
     if (this.loopStart === null || this.loopEnd === null) return null;
 
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
@@ -203,8 +205,8 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     const distToStart = Math.abs(x - this.loopStart * rect.width);
     const distToEnd = Math.abs(x - this.loopEnd * rect.width);
 
-    if (distToStart <= radiusCss && distToStart <= distToEnd) return 'start';
-    if (distToEnd <= radiusCss) return 'end';
+    if (distToStart <= radiusCss && distToStart <= distToEnd) return "start";
+    if (distToEnd <= radiusCss) return "end";
     return null;
   }
 
@@ -214,16 +216,13 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     const rect = canvas.getBoundingClientRect();
     if (!rect.width) return;
 
-    const ratio = Math.max(
-      0,
-      Math.min(1, (clientX - rect.left) / rect.width),
-    );
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
 
-    if (this.draggingHandle === 'start') {
+    if (this.draggingHandle === "start") {
       if (ratio < (this.loopEnd ?? 1) - 0.01) {
         this.loopStartChange.emit(ratio);
       }
-    } else if (this.draggingHandle === 'end') {
+    } else if (this.draggingHandle === "end") {
       if (ratio > (this.loopStart ?? 0) + 0.01) {
         this.loopEndChange.emit(ratio);
       }
@@ -268,9 +267,9 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     ctx.clearRect(0, 0, w, h);
 
     // Background
-    ctx.fillStyle = 'var(--espresso-text, #1F1A12)';
+    ctx.fillStyle = "var(--espresso-text, #1F1A12)";
     // Fallback for CSS variable in canvas
-    ctx.fillStyle = '#1A1814';
+    ctx.fillStyle = "#1A1814";
     ctx.fillRect(0, 0, w, h);
 
     const peaks = this.computePeaks(w);
@@ -280,9 +279,9 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
 
     ctx.save();
 
-    if (this.mode === 'bars') {
+    if (this.mode === "bars") {
       this.drawBars(ctx, peaks, w, h, midY);
-    } else if (this.mode === 'mirrored') {
+    } else if (this.mode === "mirrored") {
       this.drawMirrored(ctx, peaks, w, h, midY);
     } else {
       this.drawEnvelope(ctx, peaks, w, h, midY);
@@ -311,9 +310,9 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     if (this.selectionStart !== null && this.selectionEnd !== null) {
       const sx = Math.min(this.selectionStart, this.selectionEnd) * w;
       const ex = Math.max(this.selectionStart, this.selectionEnd) * w;
-      ctx.fillStyle = 'rgba(14, 124, 123, 0.18)';
+      ctx.fillStyle = "rgba(14, 124, 123, 0.18)";
       ctx.fillRect(sx, 0, Math.max(1, ex - sx), h);
-      ctx.strokeStyle = 'rgba(14, 124, 123, 0.9)';
+      ctx.strokeStyle = "rgba(14, 124, 123, 0.9)";
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       ctx.strokeRect(sx, 0, Math.max(1, ex - sx), h);
@@ -326,11 +325,11 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
       const rx = Math.round(this.loopEnd * w);
 
       // Translucent highlight for loop region
-      ctx.fillStyle = 'rgba(43, 160, 156, 0.08)';
+      ctx.fillStyle = "rgba(43, 160, 156, 0.08)";
       ctx.fillRect(lx, 0, rx - lx, h);
 
       // Loop start marker
-      ctx.strokeStyle = '#2BA09C';
+      ctx.strokeStyle = "#2BA09C";
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
@@ -339,7 +338,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
       ctx.stroke();
 
       // Loop end marker
-      ctx.strokeStyle = '#E8A838';
+      ctx.strokeStyle = "#E8A838";
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
@@ -349,8 +348,8 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
 
       // Loop label
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(43, 160, 156, 0.6)';
-      ctx.font = '9px monospace';
+      ctx.fillStyle = "rgba(43, 160, 156, 0.6)";
+      ctx.font = "9px monospace";
       ctx.fillText(`⟳ ${(this.loopEnd - this.loopStart) * 100}%`, lx + 4, 14);
 
       // Interactive handle markers. Sized against the real display scale so a
@@ -366,7 +365,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
         const halfH = Math.round(halfW * 1.3);
 
         // Start handle diamond
-        ctx.fillStyle = '#2BA09C';
+        ctx.fillStyle = "#2BA09C";
         ctx.beginPath();
         ctx.moveTo(lx, h / 2 - halfH);
         ctx.lineTo(lx + halfW, h / 2);
@@ -376,7 +375,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
         ctx.fill();
 
         // End handle diamond
-        ctx.fillStyle = '#E8A838';
+        ctx.fillStyle = "#E8A838";
         ctx.beginPath();
         ctx.moveTo(rx, h / 2 - halfH);
         ctx.lineTo(rx + halfW, h / 2);
@@ -389,13 +388,13 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
 
     // Recording pulse overlay
     if (this.isRecording) {
-      ctx.fillStyle = 'rgba(185,28,28,0.12)';
+      ctx.fillStyle = "rgba(185,28,28,0.12)";
       ctx.fillRect(0, 0, w, h);
 
       // Right-edge recording glow
       const grad = ctx.createLinearGradient(w - 60, 0, w, 0);
-      grad.addColorStop(0, 'rgba(185,28,28,0)');
-      grad.addColorStop(1, 'rgba(185,28,28,0.25)');
+      grad.addColorStop(0, "rgba(185,28,28,0)");
+      grad.addColorStop(1, "rgba(185,28,28,0.25)");
       ctx.fillStyle = grad;
       ctx.fillRect(w - 60, 0, 60, h);
     }
@@ -409,7 +408,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     peaks: { min: number; max: number }[],
     w: number,
     h: number,
-    midY: number
+    midY: number,
   ) {
     const barW = Math.max(1, w / peaks.length);
     ctx.fillStyle = this.color;
@@ -426,7 +425,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     peaks: { min: number; max: number }[],
     w: number,
     h: number,
-    midY: number
+    midY: number,
   ) {
     const barW = Math.max(1, w / peaks.length);
 
@@ -466,7 +465,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     ctx.stroke();
 
     // Center line
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.moveTo(0, midY);
@@ -480,7 +479,7 @@ export class WaveformRendererComponent implements AfterViewInit, OnChanges, OnDe
     peaks: { min: number; max: number }[],
     w: number,
     h: number,
-    midY: number
+    midY: number,
   ) {
     const barW = Math.max(1, w / peaks.length);
     for (let i = 0; i < peaks.length; i++) {

@@ -7,21 +7,17 @@ import {
   signal,
   ViewChild,
   ElementRef,
-  effect,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AudioSessionService } from '../audio-session.service';
-import { KnobComponent } from '../shared/knob/knob.component';
-import {
-  MusicManagerService,
-  TrackNote,
-} from '../../services/music-manager.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { AiService } from '../../services/ai.service';
-import { HapticService } from '../../services/haptic.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { StudioBottomSheetComponent } from '../shared/studio-bottom-sheet/studio-bottom-sheet.component';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { AudioSessionService } from "../audio-session.service";
+import { KnobComponent } from "../shared/knob/knob.component";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { AiService } from "../../services/ai.service";
+import { HapticService } from "../../services/haptic.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
 
 interface DrumPad {
   id: string;
@@ -44,11 +40,16 @@ interface DrumStyle {
 }
 
 @Component({
-  selector: 'app-drum-machine',
+  selector: "app-drum-machine",
   standalone: true,
-  imports: [CommonModule, FormsModule, KnobComponent, StudioBottomSheetComponent],
-  templateUrl: './drum-machine.component.html',
-  styleUrls: ['./drum-machine.component.css', '../shared/platform-ux.css'],
+  imports: [
+    CommonModule,
+    FormsModule,
+    KnobComponent,
+    StudioBottomSheetComponent,
+  ],
+  templateUrl: "./drum-machine.component.html",
+  styleUrls: ["./drum-machine.component.css", "../shared/platform-ux.css"],
 })
 export class DrumMachineComponent implements OnInit, OnDestroy {
   public musicManager = inject(MusicManagerService);
@@ -57,23 +58,29 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public aiService = inject(AiService);
   private haptic = inject(HapticService);
   private snack = inject(SnackbarService);
-  private stepClipboard: Array<{ midi: number; step: number; velocity: number; probability: number; params: any }> = [];
+  private stepClipboard: Array<{
+    midi: number;
+    step: number;
+    velocity: number;
+    probability: number;
+    params: any;
+  }> = [];
   private stepLongPressTimer: ReturnType<typeof setTimeout> | null = null;
   private suppressStepClick = false;
 
-  @ViewChild('sampleInput') sampleInput!: ElementRef<HTMLInputElement>;
+  @ViewChild("sampleInput") sampleInput!: ElementRef<HTMLInputElement>;
 
   public pads = signal<DrumPad[]>([]);
-  public viewMode = signal<'sequencer' | 'knobs'>('sequencer');
+  public viewMode = signal<"sequencer" | "knobs">("sequencer");
   public currentBar = signal(0);
   public barRange = [0, 1, 2, 3];
   public barStepRange = Array.from({ length: 16 }, (_, i) => i);
   public fullStepRange = Array.from({ length: 64 }, (_, i) => i);
-  public selectedPadId = signal<string>('pad-36');
+  public selectedPadId = signal<string>("pad-36");
   public selectedPad = computed(() =>
-    this.pads().find((p) => p.id === this.selectedPadId())
+    this.pads().find((p) => p.id === this.selectedPadId()),
   );
-  public graphTarget = signal<'velocity' | 'probability'>('velocity');
+  public graphTarget = signal<"velocity" | "probability">("velocity");
   public polymeter = signal<number>(16);
   public stepSheetOpen = signal(false);
   public selectedStepPadId = signal<string | null>(null);
@@ -83,17 +90,20 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public inspectorCollapsed = signal(false);
   public padsCollapsed = signal(false);
   public highDensity = computed(
-    () => this.padsCollapsed() && this.inspectorCollapsed()
+    () => this.padsCollapsed() && this.inspectorCollapsed(),
   );
   public readonly metronomeEnabled = this.audioEngine.metronomeEnabled;
-  public readonly tempoPresets = [80, 90, 100, 110, 120, 124, 128, 140, 150, 160];
+  public readonly tempoPresets = [
+    80, 90, 100, 110, 120, 124, 128, 140, 150, 160,
+  ];
   public showTempoMenu = signal(false);
   private readonly tapTempoBuffer = signal<number[]>([]);
   public tapBpmGuess = computed(() => {
     const taps = this.tapTempoBuffer();
     if (taps.length < 2) return null;
     const intervals = taps.slice(1).map((tap, index) => tap - taps[index]);
-    const average = intervals.reduce((sum, value) => sum + value, 0) / intervals.length;
+    const average =
+      intervals.reduce((sum, value) => sum + value, 0) / intervals.length;
     return Math.max(20, Math.min(300, Math.round(60000 / average)));
   });
 
@@ -107,9 +117,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   /** 6 curated generative styles, each with characteristic patterns */
   drumStyles: DrumStyle[] = [
     {
-      id: 'trap',
-      label: 'Trap',
-      emoji: '🔥',
+      id: "trap",
+      label: "Trap",
+      emoji: "🔥",
       // 808 long-tail kick at 1, snare on 5/13, hat rolls on 1/16
       patterns: {
         36: [0, 6, 8, 11],
@@ -122,9 +132,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       velocity: 0.9,
     },
     {
-      id: 'house',
-      label: 'House',
-      emoji: '🪩',
+      id: "house",
+      label: "House",
+      emoji: "🪩",
       // Four-on-floor kick, off-beat clap, hat on every 8th
       patterns: {
         36: [0, 4, 8, 12],
@@ -136,9 +146,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       velocity: 0.85,
     },
     {
-      id: 'boombap',
-      label: 'Boom Bap',
-      emoji: '🎤',
+      id: "boombap",
+      label: "Boom Bap",
+      emoji: "🎤",
       patterns: {
         36: [0, 8],
         38: [4, 12],
@@ -150,9 +160,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       velocity: 0.78,
     },
     {
-      id: 'drill',
-      label: 'Drill',
-      emoji: '🧊',
+      id: "drill",
+      label: "Drill",
+      emoji: "🧊",
       // Slides + sliding 808 + snare rolls
       patterns: {
         36: [0, 3, 7, 11, 15],
@@ -165,9 +175,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       velocity: 0.92,
     },
     {
-      id: 'techno',
-      label: 'Techno',
-      emoji: '⚡',
+      id: "techno",
+      label: "Techno",
+      emoji: "⚡",
       patterns: {
         36: [0, 4, 8, 12],
         42: Array.from({ length: 16 }, (_, i) => i),
@@ -178,9 +188,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       velocity: 0.88,
     },
     {
-      id: 'lofi',
-      label: 'Lo-Fi',
-      emoji: '☕',
+      id: "lofi",
+      label: "Lo-Fi",
+      emoji: "☕",
       // Soft swing-friendly pattern with ghosts and ride
       patterns: {
         36: [0, 10],
@@ -205,50 +215,50 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
    *  Surpasses the single swing slider FL Mobile ships. */
   grooveTemplates = [
     {
-      id: 'straight',
-      label: 'Straight',
-      glyph: '▮',
-      hint: 'Tight · no swing · quantized grid',
+      id: "straight",
+      label: "Straight",
+      glyph: "▮",
+      hint: "Tight · no swing · quantized grid",
       swing: 0,
       velocityVariance: 0.03,
     },
     {
-      id: 'mpc54',
-      label: 'MPC 54',
-      glyph: '🥁',
-      hint: 'Classic Akai MPC 54% — the hip-hop staple',
+      id: "mpc54",
+      label: "MPC 54",
+      glyph: "🥁",
+      hint: "Classic Akai MPC 54% — the hip-hop staple",
       swing: 54,
       velocityVariance: 0.08,
     },
     {
-      id: 'mpc58',
-      label: 'MPC 58',
-      glyph: '🔥',
-      hint: 'Heavier MPC swing · boom-bap bounce',
+      id: "mpc58",
+      label: "MPC 58",
+      glyph: "🔥",
+      hint: "Heavier MPC swing · boom-bap bounce",
       swing: 58,
       velocityVariance: 0.1,
     },
     {
-      id: 'dilla',
-      label: 'Dilla',
-      glyph: '🎧',
-      hint: 'J Dilla-style 62% — loose, behind the beat',
+      id: "dilla",
+      label: "Dilla",
+      glyph: "🎧",
+      hint: "J Dilla-style 62% — loose, behind the beat",
       swing: 62,
       velocityVariance: 0.16,
     },
     {
-      id: 'shuffle',
-      label: 'Shuffle',
-      glyph: '♠',
-      hint: '66% triplet shuffle · blues & rock',
+      id: "shuffle",
+      label: "Shuffle",
+      glyph: "♠",
+      hint: "66% triplet shuffle · blues & rock",
       swing: 66,
       velocityVariance: 0.05,
     },
     {
-      id: 'house',
-      label: 'House',
-      glyph: '🪩',
-      hint: 'Straight 4/4 · driving · minimal humanize',
+      id: "house",
+      label: "House",
+      glyph: "🪩",
+      hint: "Straight 4/4 · driving · minimal humanize",
       swing: 8,
       velocityVariance: 0.04,
     },
@@ -266,15 +276,12 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         // Skip on-beat accents — keep groove subtle on strong hits
         if (n.step % 4 === 0 && groove.swing > 40) return;
         const variance = (Math.random() - 0.5) * 2 * groove.velocityVariance;
-        const velocity = Math.max(
-          0.12,
-          Math.min(1, n.velocity + variance)
-        );
+        const velocity = Math.max(0.12, Math.min(1, n.velocity + variance));
         this.musicManager.updateNote(track.id, n.id, { velocity });
       });
     }
     this.snack.success(
-      `${groove.glyph} ${groove.label} · ${groove.swing}% swing · ${groove.hint}`
+      `${groove.glyph} ${groove.label} · ${groove.swing}% swing · ${groove.hint}`,
     );
   }
 
@@ -282,18 +289,18 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   clearGroove(): void {
     this.activeGrooveId.set(null);
     this.haptic.light();
-    this.snack.info('Groove template cleared');
+    this.snack.info("Groove template cleared");
   }
 
   private blueprints = [
-    { name: 'KICK', midi: 36, color: '#ff4444', type: 'kick' },
-    { name: 'SNARE', midi: 38, color: '#44ff44', type: 'snare' },
-    { name: 'CLAP', midi: 39, color: '#ffbb33', type: 'perc' },
-    { name: 'HAT CL', midi: 42, color: '#33b5e5', type: 'hihat' },
-    { name: 'HAT OP', midi: 46, color: '#33b5e5', type: 'hihat' },
-    { name: 'TOM LO', midi: 41, color: '#aa66cc', type: 'tom' },
-    { name: 'TOM HI', midi: 43, color: '#aa66cc', type: 'tom' },
-    { name: 'CRASH', midi: 49, color: '#ffbb33', type: 'perc' },
+    { name: "KICK", midi: 36, color: "#ff4444", type: "kick" },
+    { name: "SNARE", midi: 38, color: "#44ff44", type: "snare" },
+    { name: "CLAP", midi: 39, color: "#ffbb33", type: "perc" },
+    { name: "HAT CL", midi: 42, color: "#33b5e5", type: "hihat" },
+    { name: "HAT OP", midi: 46, color: "#33b5e5", type: "hihat" },
+    { name: "TOM LO", midi: 41, color: "#aa66cc", type: "tom" },
+    { name: "TOM HI", midi: 43, color: "#aa66cc", type: "tom" },
+    { name: "CRASH", midi: 49, color: "#ffbb33", type: "perc" },
   ];
 
   // ── Pro: Drum Kit Swap ─────────────────────────────────────────
@@ -301,10 +308,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
    *  to fit the kit flavor. Inspired by Roland TR-808/909, LinnDrum, etc. */
   drumKits = [
     {
-      id: 'tr808',
-      label: 'TR-808',
-      glyph: '🔊',
-      hint: 'Hip-hop · long-tail 808s · warm sub',
+      id: "tr808",
+      label: "TR-808",
+      glyph: "🔊",
+      hint: "Hip-hop · long-tail 808s · warm sub",
       params: {
         36: {
           decay: 0.55,
@@ -365,10 +372,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       },
     },
     {
-      id: 'tr909',
-      label: 'TR-909',
-      glyph: '⚡',
-      hint: 'House/techno · punchy · bright attack',
+      id: "tr909",
+      label: "TR-909",
+      glyph: "⚡",
+      hint: "House/techno · punchy · bright attack",
       params: {
         36: {
           decay: 0.3,
@@ -429,10 +436,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       },
     },
     {
-      id: 'linn',
-      label: 'LinnDrum',
-      glyph: '🎹',
-      hint: '80s pop · tight · realistic samples feel',
+      id: "linn",
+      label: "LinnDrum",
+      glyph: "🎹",
+      hint: "80s pop · tight · realistic samples feel",
       params: {
         36: {
           decay: 0.18,
@@ -493,10 +500,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       },
     },
     {
-      id: 'sp1200',
-      label: 'SP-1200',
-      glyph: '🥁',
-      hint: 'Boom-bap · gritty · bit-crushed warmth',
+      id: "sp1200",
+      label: "SP-1200",
+      glyph: "🥁",
+      hint: "Boom-bap · gritty · bit-crushed warmth",
       params: {
         36: {
           decay: 0.4,
@@ -557,10 +564,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       },
     },
     {
-      id: 'acoustic',
-      label: 'Acoustic',
-      glyph: '🎶',
-      hint: 'Live kit · natural · room ambience',
+      id: "acoustic",
+      label: "Acoustic",
+      glyph: "🎶",
+      hint: "Live kit · natural · room ambience",
       params: {
         36: {
           decay: 0.28,
@@ -621,10 +628,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       },
     },
     {
-      id: 'lofi_kit',
-      label: 'Lo-Fi',
-      glyph: '☕',
-      hint: 'Dusty · warm · nostalgic',
+      id: "lofi_kit",
+      label: "Lo-Fi",
+      glyph: "☕",
+      hint: "Dusty · warm · nostalgic",
       params: {
         36: {
           decay: 0.45,
@@ -685,7 +692,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       },
     },
   ];
-  selectedKitId = signal<string>('tr808');
+  selectedKitId = signal<string>("tr808");
 
   // ── Pro: Take Manager — multi-take comping ─────────────────────
   /** Active take id currently selected in the recorder. */
@@ -696,7 +703,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     kits: string[];
     takes: { id: string; createdAt: number; kitId: string }[];
   }>({
-    patternSignature: 'default',
+    patternSignature: "default",
     kits: [],
     takes: [],
   });
@@ -704,7 +711,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   constructor() {
     this.initPads();
     // Apply default kit on init
-    this.applyKit('tr808');
+    this.applyKit("tr808");
   }
 
   ngOnInit() {}
@@ -771,13 +778,13 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   pastePattern(): void {
     const track = this.getDrumTrack();
     if (!track || this.stepClipboard.length === 0) {
-      this.snack.info('Copy a pattern before pasting');
+      this.snack.info("Copy a pattern before pasting");
       return;
     }
     this.clearDrumPattern();
     this.stepClipboard.forEach((n) => {
       this.musicManager.addNoteToTrack(track.id, {
-        id: 'drum_' + Date.now() + Math.random(),
+        id: "drum_" + Date.now() + Math.random(),
         midi: n.midi,
         step: n.step,
         length: 1,
@@ -795,7 +802,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const pad = this.selectedPad();
     const track = this.getDrumTrack();
     if (!pad || !track) return;
-    const note = track.notes.find((n) => n.midi === pad.midi && n.step === this.selectedStepIndex());
+    const note = track.notes.find(
+      (n) => n.midi === pad.midi && n.step === this.selectedStepIndex(),
+    );
     if (note) this.musicManager.updateNote(track.id, note.id, { probability });
   }
 
@@ -805,8 +814,13 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const pad = this.selectedPad();
     const track = this.getDrumTrack();
     if (!pad || !track) return;
-    const note = track.notes.find((n) => n.midi === pad.midi && n.step === this.selectedStepIndex());
-    if (note) this.musicManager.updateNote(track.id, note.id, { params: { ...(note.params ?? {}), ratchet } });
+    const note = track.notes.find(
+      (n) => n.midi === pad.midi && n.step === this.selectedStepIndex(),
+    );
+    if (note)
+      this.musicManager.updateNote(track.id, note.id, {
+        params: { ...(note.params ?? {}), ratchet },
+      });
   }
 
   private initPads() {
@@ -838,7 +852,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (track)
       this.musicManager.removeNotes(
         track.id,
-        track.notes.map((n) => n.id)
+        track.notes.map((n) => n.id),
       );
   }
 
@@ -851,14 +865,14 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (!drumTrack) return;
 
     const existingNote = drumTrack.notes.find(
-      (n) => n.midi === pad.midi && n.step === stepIndex
+      (n) => n.midi === pad.midi && n.step === stepIndex,
     );
     if (existingNote) {
       this.musicManager.removeNotes(drumTrack.id, [existingNote.id]);
     } else {
       const swing = this.applySwing(stepIndex);
       this.musicManager.addNoteToTrack(drumTrack.id, {
-        id: 'drum_' + Date.now() + Math.random(),
+        id: "drum_" + Date.now() + Math.random(),
         midi: pad.midi,
         step: stepIndex,
         length: 1,
@@ -888,20 +902,20 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const padNotes = track?.notes.filter((n) => n.midi === pad.midi) ?? [];
     if (padNotes.length === 0) {
       this.musicManager.requestCrossLink({
-        view: 'piano-roll',
+        view: "piano-roll",
         trackId: MusicManagerService.DRUM_TRACK_ID,
-        label: pad.name + ' pad',
+        label: pad.name + " pad",
       });
     } else {
       const steps = padNotes.map((n) => n.step);
       this.musicManager.requestCrossLink({
-        view: 'piano-roll',
+        view: "piano-roll",
         trackId: MusicManagerService.DRUM_TRACK_ID,
         noteRange: {
           startStep: Math.max(0, Math.floor(Math.min(...steps))),
           endStep: Math.ceil(Math.max(...steps)) + 1,
         },
-        label: pad.name + ' pad',
+        label: pad.name + " pad",
       });
     }
     this.haptic.medium();
@@ -912,7 +926,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (!pad) return { active: false, velocity: 0.8, probability: 1 };
 
     const note = this.getDrumTrack()?.notes.find(
-      (n) => n.midi === pad.midi && n.step === stepIdx
+      (n) => n.midi === pad.midi && n.step === stepIdx,
     );
     return {
       active: !!note,
@@ -927,7 +941,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     return (
       this.audioSession.isPlaying() &&
       !!this.getDrumTrack()?.notes.find(
-        (n) => n.midi === pad.midi && n.step === currentStep
+        (n) => n.midi === pad.midi && n.step === currentStep,
       )
     );
   }
@@ -977,7 +991,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   evolveRhythm() {
-    this.haptic.impact('heavy');
+    this.haptic.impact("heavy");
     const pad = this.selectedPad();
     if (!pad) return;
     for (let i = 0; i < 64; i++) {
@@ -1016,7 +1030,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       offsetSteps.forEach((off) => {
         source.forEach((n) => {
           this.musicManager.addNoteToTrack(track.id, {
-            id: 'drum_' + Date.now() + Math.random(),
+            id: "drum_" + Date.now() + Math.random(),
             midi: n.midi,
             step: n.step + off,
             length: n.length,
@@ -1028,7 +1042,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       });
     }
     this.snack.success(
-      `${style.emoji} ${style.label} pattern loaded · swing ${this.swingPercent()}%`
+      `${style.emoji} ${style.label} pattern loaded · swing ${this.swingPercent()}%`,
     );
   }
 
@@ -1050,7 +1064,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const steps = style.patterns[pad.midi] ?? [];
     if (steps.length === 0) {
       this.snack.info(
-        `${style.label} recipe has no ${pad.name} · try Generate Style`
+        `${style.label} recipe has no ${pad.name} · try Generate Style`,
       );
       return;
     }
@@ -1060,7 +1074,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       const existing = track.notes.filter((n) => n.midi === pad.midi);
       this.musicManager.removeNotes(
         track.id,
-        existing.map((n) => n.id)
+        existing.map((n) => n.id),
       );
     }
     steps.forEach((s) => this.toggleStep(pad.id, s, style.velocity));
@@ -1076,7 +1090,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       const notes = track.notes.filter((n) => n.midi === pad.midi);
       this.musicManager.removeNotes(
         track.id,
-        notes.map((n) => n.id)
+        notes.map((n) => n.id),
       );
     }
   }
@@ -1087,11 +1101,11 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const sourceNotes = track.notes.filter((n) => n.step < 32);
     sourceNotes.forEach((n) => {
       const exists = track.notes.find(
-        (e) => e.midi === n.midi && e.step === n.step + 32
+        (e) => e.midi === n.midi && e.step === n.step + 32,
       );
       if (!exists) {
         this.musicManager.addNoteToTrack(track.id, {
-          id: 'drum_' + Date.now() + Math.random(),
+          id: "drum_" + Date.now() + Math.random(),
           midi: n.midi,
           step: n.step + 32,
           length: n.length,
@@ -1109,7 +1123,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     track.notes.forEach((n) => {
       const velocity = Math.min(
         1,
-        Math.max(0.1, n.velocity + (Math.random() - 0.5) * 0.2)
+        Math.max(0.1, n.velocity + (Math.random() - 0.5) * 0.2),
       );
       this.musicManager.updateNote(track.id, n.id, { velocity });
     });
@@ -1121,11 +1135,11 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const track = this.getDrumTrack();
     if (!track) return;
     const existing = track.notes.filter(
-      (n) => n.midi === pad.midi && n.step < steps
+      (n) => n.midi === pad.midi && n.step < steps,
     );
     this.musicManager.removeNotes(
       track.id,
-      existing.map((n) => n.id)
+      existing.map((n) => n.id),
     );
     const pattern: boolean[] = Array(steps).fill(false);
     let bucket = 0;
@@ -1139,7 +1153,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     pattern.forEach((active, i) => {
       if (active) {
         this.musicManager.addNoteToTrack(track.id, {
-          id: 'drum_' + Date.now() + Math.random(),
+          id: "drum_" + Date.now() + Math.random(),
           midi: pad.midi,
           step: i,
           length: 1,
@@ -1183,7 +1197,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
             compression: k.compression,
           },
         };
-      })
+      }),
     );
     this.snack.success(`${kit.glyph} ${kit.label} kit loaded · ${kit.hint}`);
   }
@@ -1192,7 +1206,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   /** Create a new take with the current kit. Stores the take slot. */
   createTake(): string {
     const id =
-      'take-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+      "take-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
     this.takeSlots.update((s) => ({
       ...s,
       takes: [
@@ -1202,7 +1216,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     }));
     this.activeTakeId.set(id);
     this.haptic.heavy();
-    this.snack.success('New take armed · record pattern variations to comp');
+    this.snack.success("New take armed · record pattern variations to comp");
     return id;
   }
 
@@ -1237,10 +1251,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (!track || !pad) return;
     const actualStep = this.resolveStepIdx(stepIdx);
     const note = track.notes.find(
-      (n) => n.midi === pad.midi && n.step === actualStep
+      (n) => n.midi === pad.midi && n.step === actualStep,
     );
     if (note) {
-      if (this.graphTarget() === 'velocity') {
+      if (this.graphTarget() === "velocity") {
         this.musicManager.updateNote(track.id, note.id, { velocity: value });
       } else {
         this.musicManager.updateNote(track.id, note.id, { probability: value });
@@ -1270,11 +1284,11 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     this.haptic.heavy();
     // Clear existing last-bar hits for this pad
     const existing = track.notes.filter(
-      (n) => n.midi === pad.midi && n.step >= 48
+      (n) => n.midi === pad.midi && n.step >= 48,
     );
     this.musicManager.removeNotes(
       track.id,
-      existing.map((n) => n.id)
+      existing.map((n) => n.id),
     );
     // Generate a snare/hi-hat fill with increasing density
     for (let s = 48; s < 64; s++) {
@@ -1283,7 +1297,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       if (Math.random() < hitChance) {
         const vel = 0.6 + density * 0.35 + Math.random() * 0.1;
         this.musicManager.addNoteToTrack(track.id, {
-          id: 'fill_' + Date.now() + Math.random(),
+          id: "fill_" + Date.now() + Math.random(),
           midi: pad.midi,
           step: s,
           length: 1,
@@ -1310,7 +1324,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         this.musicManager.updateNote(track.id, n.id, {
           velocity: Math.max(
             0.1,
-            Math.min(1, n.velocity + (Math.random() - 0.5) * 0.3)
+            Math.min(1, n.velocity + (Math.random() - 0.5) * 0.3),
           ),
         });
       }
@@ -1320,11 +1334,11 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       for (let i = 0; i < 3; i++) {
         const s = Math.floor(Math.random() * 64);
         const exists = track.notes.find(
-          (n) => n.midi === p.midi && n.step === s
+          (n) => n.midi === p.midi && n.step === s,
         );
         if (!exists && Math.random() > 0.6) {
           this.musicManager.addNoteToTrack(track.id, {
-            id: 'var_' + Date.now() + Math.random(),
+            id: "var_" + Date.now() + Math.random(),
             midi: p.midi,
             step: s,
             length: 1,
@@ -1335,14 +1349,14 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         }
       }
     });
-    this.snack.success('Variation applied — 20% mutation + random accents');
+    this.snack.success("Variation applied — 20% mutation + random accents");
   }
 
   updatePadParam(padId: string, param: string, value: number) {
     this.pads.update((ps) =>
       ps.map((p) =>
-        p.id === padId ? { ...p, params: { ...p.params, [param]: value } } : p
-      )
+        p.id === padId ? { ...p, params: { ...p.params, [param]: value } } : p,
+      ),
     );
     this.haptic.light();
   }
@@ -1389,7 +1403,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   triggerPad(pad: DrumPad, velocity = 1) {
-    this.haptic.impact('light');
+    this.haptic.impact("light");
     const freq = 440 * Math.pow(2, (pad.midi - 69) / 12);
     if (pad.sampleBuffer) {
       this.audioEngine.triggerSampler(
@@ -1398,7 +1412,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         this.audioEngine.ctx.currentTime,
         velocity,
         pad.params.pan,
-        pad.params.decay || 0.3
+        pad.params.decay || 0.3,
       );
     } else {
       this.audioEngine.triggerAttack(
@@ -1411,7 +1425,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         pad.params.pan,
         0,
         0,
-        pad.params
+        pad.params,
       );
     }
   }
@@ -1432,10 +1446,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
             ? {
                 ...p,
                 sampleBuffer: audioBuffer,
-                name: file.name.split('.')[0].toUpperCase().substring(0, 8),
+                name: file.name.split(".")[0].toUpperCase().substring(0, 8),
               }
-            : p
-        )
+            : p,
+        ),
       );
       this.haptic.medium();
     }

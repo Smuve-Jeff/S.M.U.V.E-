@@ -1,16 +1,16 @@
-import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
-import { AudioSessionService } from './audio-session.service';
-import { LoggingService } from '../services/logging.service';
-import { InstrumentService } from './instrument.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { MicrophoneService } from '../services/microphone.service';
-import { StudioRecordingEngineService } from './studio-recording-engine.service';
-import { MusicManagerService } from '../services/music-manager.service';
-import { RecordingStatusService } from './recording-status.service';
-import { ScreenWakeLockService } from '../services/screen-wake-lock.service';
+import { TestBed } from "@angular/core/testing";
+import { signal } from "@angular/core";
+import { AudioSessionService } from "./audio-session.service";
+import { LoggingService } from "../services/logging.service";
+import { InstrumentService } from "./instrument.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { MicrophoneService } from "../services/microphone.service";
+import { StudioRecordingEngineService } from "./studio-recording-engine.service";
+import { MusicManagerService } from "../services/music-manager.service";
+import { RecordingStatusService } from "./recording-status.service";
+import { ScreenWakeLockService } from "../services/screen-wake-lock.service";
 
-describe('AudioSessionService', () => {
+describe("AudioSessionService", () => {
   let service: AudioSessionService;
 
   const engineMock = {
@@ -31,12 +31,12 @@ describe('AudioSessionService', () => {
     release: jest.fn(),
   };
 
-  const setVisibility = (state: 'visible' | 'hidden') => {
-    Object.defineProperty(document, 'visibilityState', {
+  const setVisibility = (state: "visible" | "hidden") => {
+    Object.defineProperty(document, "visibilityState", {
       value: state,
       configurable: true,
     });
-    document.dispatchEvent(new Event('visibilitychange'));
+    document.dispatchEvent(new Event("visibilitychange"));
   };
 
   beforeEach(() => {
@@ -48,12 +48,18 @@ describe('AudioSessionService', () => {
         },
         { provide: InstrumentService, useValue: { play: jest.fn() } },
         { provide: AudioEngineService, useValue: engineMock },
-        { provide: MicrophoneService, useValue: { availableDevices: signal([]) } },
-        { provide: StudioRecordingEngineService, useValue: recordingEngineMock },
+        {
+          provide: MicrophoneService,
+          useValue: { availableDevices: signal([]) },
+        },
+        {
+          provide: StudioRecordingEngineService,
+          useValue: recordingEngineMock,
+        },
         {
           provide: MusicManagerService,
           useValue: {
-            selectedTrackId: jest.fn(() => ''),
+            selectedTrackId: jest.fn(() => ""),
             startRecording: jest.fn(),
             stopRecording: jest.fn(),
             tracks: jest.fn(() => []),
@@ -61,7 +67,10 @@ describe('AudioSessionService', () => {
         },
         {
           provide: RecordingStatusService,
-          useValue: { clearRecordingSource: jest.fn(), setRecordingSource: jest.fn() },
+          useValue: {
+            clearRecordingSource: jest.fn(),
+            setRecordingSource: jest.fn(),
+          },
         },
         { provide: ScreenWakeLockService, useValue: wakeLockMock },
       ],
@@ -72,34 +81,34 @@ describe('AudioSessionService', () => {
     wakeLockMock.release.mockClear();
   });
 
-  it('stops playback when the tab/app is hidden mid-transport', () => {
-    service.playbackState.set('playing');
+  it("stops playback when the tab/app is hidden mid-transport", () => {
+    service.playbackState.set("playing");
 
-    setVisibility('hidden');
+    setVisibility("hidden");
 
     expect(engineMock.stop).toHaveBeenCalled();
-    expect(service.playbackState()).toBe('stopped');
+    expect(service.playbackState()).toBe("stopped");
   });
 
-  it('does not stop the transport when the tab stays visible', () => {
-    service.playbackState.set('playing');
+  it("does not stop the transport when the tab stays visible", () => {
+    service.playbackState.set("playing");
 
-    setVisibility('visible');
+    setVisibility("visible");
 
     expect(engineMock.stop).not.toHaveBeenCalled();
-    expect(service.playbackState()).toBe('playing');
+    expect(service.playbackState()).toBe("playing");
   });
 
-  it('does not stop the transport for a hidden tab when already stopped', () => {
-    service.playbackState.set('stopped');
+  it("does not stop the transport for a hidden tab when already stopped", () => {
+    service.playbackState.set("stopped");
 
-    setVisibility('hidden');
+    setVisibility("hidden");
 
     expect(engineMock.stop).not.toHaveBeenCalled();
   });
 
-  it('holds the screen awake while playing and releases it on stop', () => {
-    service.playbackState.set('playing');
+  it("holds the screen awake while playing and releases it on stop", () => {
+    service.playbackState.set("playing");
     TestBed.flushEffects();
 
     expect(wakeLockMock.request).toHaveBeenCalled();
@@ -112,8 +121,8 @@ describe('AudioSessionService', () => {
     expect(wakeLockMock.release).toHaveBeenCalled();
   });
 
-  it('holds the screen awake while recording', () => {
-    service.playbackState.set('recording');
+  it("holds the screen awake while recording", () => {
+    service.playbackState.set("recording");
     TestBed.flushEffects();
 
     expect(wakeLockMock.request).toHaveBeenCalled();

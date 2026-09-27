@@ -1,12 +1,10 @@
-import { Injectable } from '@angular/core';
-
 export class NodePool<T extends AudioNode> {
   private pool: T[] = [];
 
   constructor(
     private readonly context: BaseAudioContext,
     private readonly factory: (ctx: BaseAudioContext) => T,
-    private readonly initialSize: number = 0
+    private readonly initialSize: number = 0,
   ) {
     for (let i = 0; i < initialSize; i++) {
       this.pool.push(this.factory(this.context));

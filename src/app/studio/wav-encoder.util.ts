@@ -1,17 +1,23 @@
 export type WavBitDepth = 16 | 24 | 32;
-export type WavFormat = 'wav-16' | 'wav-32' | 'wav-32-float';
+export type WavFormat = "wav-16" | "wav-32" | "wav-32-float";
 
 export class WavEncoder {
   static encode(
     buffer: Float32Array[],
     numChannels: number,
-    sampleRate: number
+    sampleRate: number,
   ): Blob {
     if (buffer.length !== numChannels) {
-      throw new Error('WAV channel count does not match the provided buffer');
+      throw new Error("WAV channel count does not match the provided buffer");
     }
     WavEncoder.validateChannels(buffer);
-    return WavEncoder.encodeInternal(buffer, numChannels, sampleRate, 16, false);
+    return WavEncoder.encodeInternal(
+      buffer,
+      numChannels,
+      sampleRate,
+      16,
+      false,
+    );
   }
 
   /**
@@ -21,36 +27,57 @@ export class WavEncoder {
   static encodeMultiChannel(
     channels: Float32Array[],
     format: WavFormat,
-    sampleRate: number
+    sampleRate: number,
   ): Blob {
     const numChannels = channels.length;
     WavEncoder.validateChannels(channels);
     switch (format) {
-      case 'wav-16':
-        return WavEncoder.encodeInternal(channels, numChannels, sampleRate, 16, false);
-      case 'wav-32':
-        return WavEncoder.encodeInternal(channels, numChannels, sampleRate, 32, false);
-      case 'wav-32-float':
-        return WavEncoder.encodeInternal(channels, numChannels, sampleRate, 32, true);
+      case "wav-16":
+        return WavEncoder.encodeInternal(
+          channels,
+          numChannels,
+          sampleRate,
+          16,
+          false,
+        );
+      case "wav-32":
+        return WavEncoder.encodeInternal(
+          channels,
+          numChannels,
+          sampleRate,
+          32,
+          false,
+        );
+      case "wav-32-float":
+        return WavEncoder.encodeInternal(
+          channels,
+          numChannels,
+          sampleRate,
+          32,
+          true,
+        );
     }
   }
 
   /** Encode 32-bit float WAV (professional mastering format) */
-  static encode32BitFloat(
-    channels: Float32Array[],
-    sampleRate: number
-  ): Blob {
+  static encode32BitFloat(channels: Float32Array[], sampleRate: number): Blob {
     WavEncoder.validateChannels(channels);
-    return WavEncoder.encodeInternal(channels, channels.length, sampleRate, 32, true);
+    return WavEncoder.encodeInternal(
+      channels,
+      channels.length,
+      sampleRate,
+      32,
+      true,
+    );
   }
 
   private static validateChannels(channels: Float32Array[]): void {
     if (channels.length === 0 || channels.some((channel) => !channel?.length)) {
-      throw new Error('Cannot encode an empty WAV channel set');
+      throw new Error("Cannot encode an empty WAV channel set");
     }
     const frameCount = channels[0].length;
     if (channels.some((channel) => channel.length !== frameCount)) {
-      throw new Error('WAV channels must contain the same number of frames');
+      throw new Error("WAV channels must contain the same number of frames");
     }
   }
 
@@ -59,7 +86,7 @@ export class WavEncoder {
     numChannels: number,
     sampleRate: number,
     bitDepth: WavBitDepth,
-    isFloat: boolean
+    isFloat: boolean,
   ): Blob {
     const bytesPerSample = bitDepth / 8;
     const numFrames = channels[0].length;
@@ -74,12 +101,12 @@ export class WavEncoder {
     const view = new DataView(arrayBuffer);
 
     // RIFF
-    this.writeString(view, 0, 'RIFF');
+    this.writeString(view, 0, "RIFF");
     view.setUint32(4, totalLength - 8, true);
-    this.writeString(view, 8, 'WAVE');
+    this.writeString(view, 8, "WAVE");
 
     // fmt chunk
-    this.writeString(view, 12, 'fmt ');
+    this.writeString(view, 12, "fmt ");
     view.setUint32(16, fmtChunkSize, true); // chunk size
 
     if (isFloat) {
@@ -98,7 +125,7 @@ export class WavEncoder {
       // write a second four-byte tag over its first bytes.
       this.writeGuid(view, 44);
       // data chunk follows the 40-byte fmt chunk at offset 60.
-      this.writeString(view, 60, 'data');
+      this.writeString(view, 60, "data");
       view.setUint32(64, dataLength, true);
 
       let offset = 68;
@@ -116,7 +143,7 @@ export class WavEncoder {
       view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
       view.setUint16(32, numChannels * bytesPerSample, true);
       view.setUint16(34, bitDepth, true);
-      this.writeString(view, 36, 'data');
+      this.writeString(view, 36, "data");
       view.setUint32(40, dataLength, true);
 
       let offset = 44;
@@ -124,7 +151,7 @@ export class WavEncoder {
         for (let ch = 0; ch < numChannels; ch++) {
           const sample = Math.max(-1, Math.min(1, channels[ch][f]));
           const intSample = Math.round(
-            sample < 0 ? sample * 0x800000 : sample * 0x7fffff
+            sample < 0 ? sample * 0x800000 : sample * 0x7fffff,
           );
           view.setUint8(offset, intSample & 0xff);
           view.setUint8(offset + 1, (intSample >> 8) & 0xff);
@@ -140,7 +167,7 @@ export class WavEncoder {
       view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
       view.setUint16(32, numChannels * bytesPerSample, true);
       view.setUint16(34, bitDepth, true);
-      this.writeString(view, 36, 'data');
+      this.writeString(view, 36, "data");
       view.setUint32(40, dataLength, true);
 
       let offset = 44;
@@ -159,7 +186,7 @@ export class WavEncoder {
       view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
       view.setUint16(32, numChannels * bytesPerSample, true);
       view.setUint16(34, bitDepth, true);
-      this.writeString(view, 36, 'data');
+      this.writeString(view, 36, "data");
       view.setUint32(40, dataLength, true);
 
       let offset = 44;
@@ -173,7 +200,7 @@ export class WavEncoder {
       }
     }
 
-    return new Blob([view], { type: 'audio/wav' });
+    return new Blob([view], { type: "audio/wav" });
   }
 
   private static writeString(view: DataView, offset: number, string: string) {
@@ -185,8 +212,8 @@ export class WavEncoder {
   private static writeGuid(view: DataView, offset: number) {
     // KSDATAFORMAT_SUBTYPE_IEEE_FLOAT: 00000003-0000-0010-8000-00aa00389b71
     const guid = new Uint8Array([
-      0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
-      0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71,
+      0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0xaa,
+      0x00, 0x38, 0x9b, 0x71,
     ]);
     for (let i = 0; i < 16; i++) {
       view.setUint8(offset + i, guid[i]);

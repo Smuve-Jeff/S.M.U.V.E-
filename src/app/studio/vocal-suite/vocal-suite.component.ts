@@ -8,36 +8,36 @@ import {
   OnDestroy,
   computed,
   effect,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { UIService } from '../../services/ui.service';
-import { MicrophoneService } from '../../services/microphone.service';
-import { StudioRecordingEngineService } from '../studio-recording-engine.service';
-import { PitchCorrectionService } from '../pitch-correction.service';
-import { VocalMasteringService } from '../../services/vocal-mastering.service';
-import { VocalAiService } from '../../services/vocal-ai.service';
-import { AiService } from '../../services/ai.service';
-import { UplinkService } from '../../services/uplink.service';
-import { UserProfileService } from '../../services/user-profile.service';
-import { HardwareService } from '../../services/hardware.service';
-import { HapticService } from '../../services/haptic.service';
-import { UplinkConsoleComponent } from '../../components/uplink-console/uplink-console.component';
-import { FormsModule } from '@angular/forms';
-import { MicrophoneInterfaceComponent } from '../microphone-interface/microphone-interface.component';
-import { MusicManagerService } from '../../services/music-manager.service';
-import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
-import { LoggingService } from '../../services/logging.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { WavEncoder } from '../wav-encoder.util';
-import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
-import { peakNormalizeInPlace, trimSilenceEdges } from '../take-edit.util';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { UIService } from "../../services/ui.service";
+import { MicrophoneService } from "../../services/microphone.service";
+import { StudioRecordingEngineService } from "../studio-recording-engine.service";
+import { PitchCorrectionService } from "../pitch-correction.service";
+import { VocalMasteringService } from "../../services/vocal-mastering.service";
+import { VocalAiService } from "../../services/vocal-ai.service";
+import { AiService } from "../../services/ai.service";
+import { UplinkService } from "../../services/uplink.service";
+import { UserProfileService } from "../../services/user-profile.service";
+import { HardwareService } from "../../services/hardware.service";
+import { HapticService } from "../../services/haptic.service";
+import { UplinkConsoleComponent } from "../../components/uplink-console/uplink-console.component";
+import { FormsModule } from "@angular/forms";
+import { MicrophoneInterfaceComponent } from "../microphone-interface/microphone-interface.component";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
+import { LoggingService } from "../../services/logging.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { WavEncoder } from "../wav-encoder.util";
+import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
+import { peakNormalizeInPlace, trimSilenceEdges } from "../take-edit.util";
 
-type ViewMode = 'pipeline' | 'console';
-type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
+type ViewMode = "pipeline" | "console";
+type PipelineStep = "setup" | "record" | "edit" | "master";
 
 @Component({
-  selector: 'app-vocal-suite',
+  selector: "app-vocal-suite",
   standalone: true,
   imports: [
     CommonModule,
@@ -45,8 +45,8 @@ type PipelineStep = 'setup' | 'record' | 'edit' | 'master';
     MicrophoneInterfaceComponent,
     UplinkConsoleComponent,
   ],
-  templateUrl: './vocal-suite.component.html',
-  styleUrls: ['./vocal-suite.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./vocal-suite.component.html",
+  styleUrls: ["./vocal-suite.component.css", "../shared/platform-ux.css"],
 })
 export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   public readonly uiService = inject(UIService);
@@ -82,14 +82,14 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   /** Working (edited) take buffer; null until a take has been decoded. */
   private editedTake: AudioBuffer | null = null;
 
-  @ViewChild('spectrograph') spectrographRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('waveformCanvas') waveformRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild("spectrograph") spectrographRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild("waveformCanvas") waveformRef!: ElementRef<HTMLCanvasElement>;
 
-  viewMode = signal<ViewMode>('pipeline');
-  currentStep = signal<PipelineStep>('setup');
+  viewMode = signal<ViewMode>("pipeline");
+  currentStep = signal<PipelineStep>("setup");
 
   isBypassed = signal(false);
-  activeMasteringTab = signal<'eq' | 'comp' | 'exciter' | 'limiter'>('eq');
+  activeMasteringTab = signal<"eq" | "comp" | "exciter" | "limiter">("eq");
 
   // ── Monitor + De-Esser ──────────────────────────────────
   /**
@@ -100,34 +100,34 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   monitorEnabled = signal(true);
   captureError = signal<string | null>(null);
   captureState = computed(() => {
-    if (this.captureError()) return 'error' as const;
-    if (this.micService.isRecording()) return 'recording' as const;
-    if (this.micService.isPaused()) return 'paused' as const;
-    if (this.micService.isInitialized()) return 'ready' as const;
-    return 'idle' as const;
+    if (this.captureError()) return "error" as const;
+    if (this.micService.isRecording()) return "recording" as const;
+    if (this.micService.isPaused()) return "paused" as const;
+    if (this.micService.isInitialized()) return "ready" as const;
+    return "idle" as const;
   });
   capturePathLabel = computed(() => {
     const label = (this.micService as any).capturePathLabel;
-    if (typeof label === 'function') return label();
+    if (typeof label === "function") return label();
     return (this.micService as any).usingProcessedCapture?.()
-      ? 'Processed vocal chain'
-      : 'Raw microphone input';
+      ? "Processed vocal chain"
+      : "Raw microphone input";
   });
   deviceSwitchLocked = computed(() => {
     const canSwitch = (this.micService as any).canSwitchDevice;
-    return typeof canSwitch === 'function' ? !canSwitch() : this.micService.isRecording();
+    return typeof canSwitch === "function"
+      ? !canSwitch()
+      : this.micService.isRecording();
   });
   latencyWarning = computed(() => {
     const snapshot = (this.engineLatency as any).snapshot;
-    if (typeof snapshot !== 'function') return null;
+    if (typeof snapshot !== "function") return null;
     const total = snapshot()?.totalLatencyMs ?? 0;
-    return total > 60 ? 'Bluetooth or wireless latency may be audible' : null;
+    return total > 60 ? "Bluetooth or wireless latency may be audible" : null;
   });
 
   /** De-Esser state, read straight off the live mastering parameters. */
-  deEsserEnabled = computed(
-    () => !this.mastering.params().deesser.bypass
-  );
+  deEsserEnabled = computed(() => !this.mastering.params().deesser.bypass);
 
   toggleMonitor(): void {
     this.haptic.light();
@@ -139,12 +139,14 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
         this.mastering.getOutputNode().disconnect(this.audioEngine.masterGain);
       }
       this.monitorEnabled.set(next);
-      this.snackbar.info(next ? 'Input monitoring ON' : 'Input monitoring muted');
+      this.snackbar.info(
+        next ? "Input monitoring ON" : "Input monitoring muted",
+      );
     } catch (err) {
       // disconnect() throws when the node was not connected — keep the UI in
       // sync with the graph rather than leaving a lying toggle.
       this.monitorEnabled.set(!next);
-      this.logger.warn('VocalSuite: monitor toggle failed', err);
+      this.logger.warn("VocalSuite: monitor toggle failed", err);
     }
   }
 
@@ -156,11 +158,9 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
       deesser: { ...current, bypass: !current.bypass },
     });
     this.snackbar.info(
-      current.bypass ? 'Neural De-Esser engaged' : 'Neural De-Esser bypassed'
+      current.bypass ? "Neural De-Esser engaged" : "Neural De-Esser bypassed",
     );
   }
-
-
 
   private visualTaskCleanup: (() => void) | null = null;
   private ctx2d?: CanvasRenderingContext2D;
@@ -173,7 +173,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     const m = Math.floor(s / 60);
     const secs = s % 60;
     const ms = Math.floor((this.micService.recordingTime() % 1) * 10);
-    return `${m.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms}`;
+    return `${m.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}.${ms}`;
   });
 
   constructor() {
@@ -195,16 +195,16 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   private initCanvases() {
     if (this.spectrographRef) {
-      this.ctx2d = this.spectrographRef.nativeElement.getContext('2d')!;
+      this.ctx2d = this.spectrographRef.nativeElement.getContext("2d")!;
     }
     if (this.waveformRef) {
-      this.waveformCtx = this.waveformRef.nativeElement.getContext('2d')!;
+      this.waveformCtx = this.waveformRef.nativeElement.getContext("2d")!;
     }
   }
 
   setStep(step: PipelineStep) {
     this.currentStep.set(step);
-    if (step === 'record' && !this.micService.isInitialized()) {
+    if (step === "record" && !this.micService.isInitialized()) {
       this.initializeMic();
     }
   }
@@ -216,7 +216,8 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     if (!ready) {
       const lastError = (this.micService as any).lastError;
       this.captureError.set(
-        (typeof lastError === 'function' ? lastError() : null) || 'Microphone unavailable'
+        (typeof lastError === "function" ? lastError() : null) ||
+          "Microphone unavailable",
       );
       return;
     }
@@ -256,7 +257,8 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     if (!this.micService.isRecording()) {
       const lastError = (this.micService as any).lastError;
       this.captureError.set(
-        (typeof lastError === 'function' ? lastError() : null) || 'Could not start capture'
+        (typeof lastError === "function" ? lastError() : null) ||
+          "Could not start capture",
       );
     }
   }
@@ -278,8 +280,8 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
       this.editedTake = buffer;
       return buffer;
     } catch (error) {
-      this.logger.error('VocalSuite: could not decode the take', error);
-      this.snackbar.error('Could not read the take — try recording again');
+      this.logger.error("VocalSuite: could not decode the take", error);
+      this.snackbar.error("Could not read the take — try recording again");
       return null;
     }
   }
@@ -287,7 +289,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   /** Load the take, run one edit and report the outcome. */
   private async editTake(
     label: string,
-    edit: (buffer: AudioBuffer) => string
+    edit: (buffer: AudioBuffer) => string,
   ): Promise<string | null> {
     if (this.isProcessingTake()) return null;
     this.isProcessingTake.set(true);
@@ -295,8 +297,8 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     try {
       const buffer = await this.resolveTakeBuffer();
       if (!buffer) {
-        this.takeStatus.set('Record a take first');
-        this.snackbar.error('Record a take first');
+        this.takeStatus.set("Record a take first");
+        this.snackbar.error("Record a take first");
         return null;
       }
       const status = edit(buffer);
@@ -305,9 +307,9 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
       this.snackbar.success(status);
       return status;
     } catch (error) {
-      this.logger.error('VocalSuite: take edit failed', error);
-      this.takeStatus.set('Take edit failed');
-      this.snackbar.error('Could not process the take');
+      this.logger.error("VocalSuite: take edit failed", error);
+      this.takeStatus.set("Take edit failed");
+      this.snackbar.error("Could not process the take");
       return null;
     } finally {
       this.isProcessingTake.set(false);
@@ -316,25 +318,20 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   /** Peak-normalize the take to -1 dBFS. */
   async normalizeTake(): Promise<string | null> {
-    return this.editTake('Normalizing take…', (buffer) => {
+    return this.editTake("Normalizing take…", (buffer) => {
       const gain = peakNormalizeInPlace(buffer, -1);
       return gain === 1
-        ? 'Take is silent — nothing to normalize'
+        ? "Take is silent — nothing to normalize"
         : `Normalized to -1 dBFS (×${gain.toFixed(2)})`;
     });
   }
 
   /** Trim silent head/tail from the take, keeping 20 ms of room tone. */
   async trimTakeSilence(): Promise<string | null> {
-    return this.editTake('Trimming silence…', (buffer) => {
+    return this.editTake("Trimming silence…", (buffer) => {
       const before = buffer.duration;
-      const trimmed = trimSilenceEdges(
-        buffer,
-        this.audioEngine.ctx,
-        -50,
-        20
-      );
-      if (trimmed === buffer) return 'No silent edges to trim';
+      const trimmed = trimSilenceEdges(buffer, this.audioEngine.ctx, -50, 20);
+      if (trimmed === buffer) return "No silent edges to trim";
       this.editedTake = trimmed;
       return `Trimmed ${(before - trimmed.duration).toFixed(2)}s of silence`;
     });
@@ -346,7 +343,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   async routeTakeToArrangement(): Promise<void> {
     const buffer = await this.resolveTakeBuffer();
     if (!buffer) {
-      this.snackbar.error('Record a take first');
+      this.snackbar.error("Record a take first");
       return;
     }
 
@@ -357,7 +354,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     this.musicManager.addAudioTrack({
       id: `vocal_take_${Date.now()}`,
       name: `Vocal Take ${take}`,
-      color: '#a855f7',
+      color: "#a855f7",
       buffer: compensated,
       offset: 0,
     });
@@ -390,20 +387,27 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
       channels.push(buffer.getChannelData(ch));
     }
-    return WavEncoder.encodeMultiChannel(channels, 'wav-16', buffer.sampleRate);
+    return WavEncoder.encodeMultiChannel(channels, "wav-16", buffer.sampleRate);
   }
 
   private startVisualization() {
     this.visualTaskCleanup?.();
-    this.visualTaskCleanup = this.visualScheduler.register(() => {
-      // Static take envelopes do not need a second redraw every frame. Live
-      // spectrograph/waveform sampling is shared and throttled with the rest of
-      // Studio instead of owning an unrestricted requestAnimationFrame loop.
-      if (this.micService.isRecording() || this.micService.isInitialized() || this.takeEnvelope().length > 0) {
-        this.drawSpectrograph();
-        this.drawWaveform();
-      }
-    }, { fps: 24, immediate: true });
+    this.visualTaskCleanup = this.visualScheduler.register(
+      () => {
+        // Static take envelopes do not need a second redraw every frame. Live
+        // spectrograph/waveform sampling is shared and throttled with the rest of
+        // Studio instead of owning an unrestricted requestAnimationFrame loop.
+        if (
+          this.micService.isRecording() ||
+          this.micService.isInitialized() ||
+          this.takeEnvelope().length > 0
+        ) {
+          this.drawSpectrograph();
+          this.drawWaveform();
+        }
+      },
+      { fps: 24, immediate: true },
+    );
   }
 
   private drawSpectrograph() {
@@ -427,10 +431,10 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     for (let i = 0; i < bufferLength; i++) {
       const barHeight = (dataArray[i] / 255) * height;
       const gradient = this.ctx2d.createLinearGradient(0, height, 0, 0);
-      gradient.addColorStop(0, '#07060d');
-      gradient.addColorStop(0.25, '#ff007f');
-      gradient.addColorStop(0.55, '#8b5cf6');
-      gradient.addColorStop(1, '#00e5ff');
+      gradient.addColorStop(0, "#07060d");
+      gradient.addColorStop(0.25, "#ff007f");
+      gradient.addColorStop(0.55, "#8b5cf6");
+      gradient.addColorStop(1, "#00e5ff");
 
       this.ctx2d.fillStyle = gradient;
       this.ctx2d.fillRect(x, height - barHeight, barWidth, barHeight);
@@ -470,19 +474,19 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     this.waveformCtx.clearRect(0, 0, width, height);
 
     this.waveformCtx.beginPath();
-    this.waveformCtx.strokeStyle = '#a855f7';
+    this.waveformCtx.strokeStyle = "#a855f7";
     this.waveformCtx.lineWidth = 2;
 
     const step = width / 500;
     for (let i = 0; i < this.waveformData.length; i++) {
       const x = i * step;
       const barH = this.waveformData[i] * height * 2;
-      this.waveformCtx.fillStyle = '#a855f7';
+      this.waveformCtx.fillStyle = "#a855f7";
       this.waveformCtx.fillRect(
         x,
         (height - barH) / 2,
         step - 1,
-        Math.max(2, barH)
+        Math.max(2, barH),
       );
     }
     this.waveformCtx.stroke();
@@ -491,7 +495,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   /** Envelope view of the loaded take for the Edit step. */
   private drawTakeEnvelope(
     canvas: HTMLCanvasElement,
-    envelope: number[]
+    envelope: number[],
   ): void {
     const ctx = this.waveformCtx;
     if (!ctx) return;
@@ -502,13 +506,13 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     const step = width / Math.max(1, envelope.length);
 
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = '#a855f7';
+    ctx.fillStyle = "#a855f7";
     for (let i = 0; i < envelope.length; i++) {
       const barH = Math.max(2, envelope[i] * mid * 1.8);
       ctx.fillRect(i * step, mid - barH / 2, Math.max(1, step - 1), barH);
     }
 
-    ctx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
+    ctx.strokeStyle = "rgba(168, 85, 247, 0.35)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, mid);
@@ -527,14 +531,14 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
     this.showUplink.set(true);
     const success = await this.uplinkService.initiateUplink(
-      this.profileService.profile()
+      this.profileService.profile(),
     );
     if (!success) return;
 
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `SMUVE_Vocal_${Date.now()}${buffer ? '.wav' : '.webm'}`;
+    a.download = `SMUVE_Vocal_${Date.now()}${buffer ? ".wav" : ".webm"}`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }

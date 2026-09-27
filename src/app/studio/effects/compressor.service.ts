@@ -1,17 +1,17 @@
-import { Injectable, inject } from '@angular/core';
-import { AudioEngineService } from '../../services/audio-engine.service';
+import { Injectable, inject } from "@angular/core";
+import { AudioEngineService } from "../../services/audio-engine.service";
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class CompressorService {
   private readonly audioEngine = inject(AudioEngineService);
 
-  createCompressor(type: 'vca' | 'fet' | 'optical' = 'vca') {
+  createCompressor(type: "vca" | "fet" | "optical" = "vca") {
     switch (type) {
-      case 'fet':
+      case "fet":
         return new FetCompressor(this.audioEngine.ctx);
-      case 'optical':
+      case "optical":
         return new OpticalCompressor(this.audioEngine.ctx);
       default:
         return new VcaCompressor(this.audioEngine.ctx);

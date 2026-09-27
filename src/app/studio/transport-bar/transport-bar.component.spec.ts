@@ -1,32 +1,32 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { computed, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { computed, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 
-import { TransportBarComponent } from './transport-bar.component';
-import { AudioSessionService } from '../audio-session.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { ExportService } from '../../services/export.service';
-import { RecordingStatusService } from '../recording-status.service';
-import { IdeasGeneratorService } from '../../services/ideas-generator.service';
-import { MusicManagerService } from '../../services/music-manager.service';
-import { TakeManagerService } from '../../services/take-manager.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { ProjectService } from '../../services/project.service';
-import { HapticService } from '../../services/haptic.service';
-import { HistoryService } from '../../services/history.service';
-import { createMockHapticService } from '../../testing/mocks/hardware.mock';
+import { TransportBarComponent } from "./transport-bar.component";
+import { AudioSessionService } from "../audio-session.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { ExportService } from "../../services/export.service";
+import { RecordingStatusService } from "../recording-status.service";
+import { IdeasGeneratorService } from "../../services/ideas-generator.service";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { TakeManagerService } from "../../services/take-manager.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { ProjectService } from "../../services/project.service";
+import { HapticService } from "../../services/haptic.service";
+import { HistoryService } from "../../services/history.service";
+import { createMockHapticService } from "../../testing/mocks/hardware.mock";
 
-describe('TransportBarComponent', () => {
+describe("TransportBarComponent", () => {
   let component: TransportBarComponent;
   let fixture: ComponentFixture<TransportBarComponent>;
 
-  const playbackState = signal<'stopped' | 'playing' | 'recording'>('stopped');
+  const playbackState = signal<"stopped" | "playing" | "recording">("stopped");
   const mockAudioSession = {
     playbackState,
-    isPlaying: computed(() => playbackState() === 'playing'),
-    isRecording: computed(() => playbackState() === 'recording'),
-    isStopped: computed(() => playbackState() === 'stopped'),
+    isPlaying: computed(() => playbackState() === "playing"),
+    isRecording: computed(() => playbackState() === "recording"),
+    isStopped: computed(() => playbackState() === "stopped"),
     masterVolume: signal(80),
     togglePlay: jest.fn(),
     toggleRecord: jest.fn(),
@@ -41,14 +41,14 @@ describe('TransportBarComponent', () => {
     outputPeak: signal(0),
     outputRms: signal(0),
     outputLevelDb: () => -60,
-    outputProfileLabel: signal('FLAT'),
+    outputProfileLabel: signal("FLAT"),
     monitorBlend: signal(0.5),
-    playMode: () => 'pattern',
+    playMode: () => "pattern",
     externalOutputActive: () => false,
-    outputDeviceName: () => 'Default',
+    outputDeviceName: () => "Default",
     supportsSinkId: () => false,
     outputDevices: () => [] as { deviceId: string; label: string }[],
-    selectedOutputDeviceId: () => '',
+    selectedOutputDeviceId: () => "",
     setOutputDevice: jest.fn(async () => true),
     resume: jest.fn(),
     startCountIn: jest.fn(),
@@ -61,7 +61,7 @@ describe('TransportBarComponent', () => {
   const mockRecordingStatus = {
     masterLevelLinear: signal(0),
     masterPeakHoldLinear: signal(0),
-    recordingLabel: signal(''),
+    recordingLabel: signal(""),
   };
 
   const mockIdeas = {
@@ -73,7 +73,7 @@ describe('TransportBarComponent', () => {
     selectedTrackId: () => null,
     selectedTrack: () => null,
     applyGeneratedRecipe: jest.fn(),
-    projectName: 'Test Project',
+    projectName: "Test Project",
     tracks: () => [] as unknown[],
     snapshotProject: jest.fn(() => ({})),
   };
@@ -97,7 +97,7 @@ describe('TransportBarComponent', () => {
     canRedo: signal(false),
     undoCount: signal(0),
     redoCount: signal(0),
-    lastActionName: signal(''),
+    lastActionName: signal(""),
     undo: jest.fn(),
     redo: jest.fn(),
   };
@@ -108,7 +108,16 @@ describe('TransportBarComponent', () => {
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: AudioEngineService, useValue: mockAudioEngine },
-        { provide: ExportService, useValue: { exportProjectWav: jest.fn(), exportProjectMidi: jest.fn(), downloadBlob: jest.fn(), exportAndShare: jest.fn(), shareMidi: jest.fn() } },
+        {
+          provide: ExportService,
+          useValue: {
+            exportProjectWav: jest.fn(),
+            exportProjectMidi: jest.fn(),
+            downloadBlob: jest.fn(),
+            exportAndShare: jest.fn(),
+            shareMidi: jest.fn(),
+          },
+        },
         { provide: RecordingStatusService, useValue: mockRecordingStatus },
         { provide: IdeasGeneratorService, useValue: mockIdeas },
         { provide: MusicManagerService, useValue: mockMusicManager },
@@ -122,7 +131,7 @@ describe('TransportBarComponent', () => {
 
     // Reset module-level mock signals so tests stay isolated (the pulse test
     // flips playbackState to 'playing' and must not leak into later tests).
-    playbackState.set('stopped');
+    playbackState.set("stopped");
     mockAudioEngine.tempo.set(120);
     mockAudioEngine.visualStep.set(0);
     jest.clearAllMocks();
@@ -132,59 +141,65 @@ describe('TransportBarComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 
-  describe('primary and secondary control hierarchy', () => {
-    it('keeps only playback, tempo and position controls in the primary row', () => {
-      const primary = fixture.nativeElement.querySelector('.ctb-primary-row') as HTMLElement;
-      expect(primary.querySelector('.ctb-play')).toBeTruthy();
-      expect(primary.querySelector('.ctb-stop')).toBeTruthy();
-      expect(primary.querySelector('.ctb-rec')).toBeTruthy();
-      expect(primary.querySelector('.ctb-tempo')).toBeTruthy();
-      expect(primary.querySelector('.ctb-position')).toBeTruthy();
-      expect(primary.querySelector('.ctb-tap')).toBeNull();
-      expect(primary.querySelector('.ctb-countin')).toBeNull();
-      expect(primary.querySelector('.ctb-loop-ab')).toBeNull();
+  describe("primary and secondary control hierarchy", () => {
+    it("keeps only playback, tempo and position controls in the primary row", () => {
+      const primary = fixture.nativeElement.querySelector(
+        ".ctb-primary-row",
+      ) as HTMLElement;
+      expect(primary.querySelector(".ctb-play")).toBeTruthy();
+      expect(primary.querySelector(".ctb-stop")).toBeTruthy();
+      expect(primary.querySelector(".ctb-rec")).toBeTruthy();
+      expect(primary.querySelector(".ctb-tempo")).toBeTruthy();
+      expect(primary.querySelector(".ctb-position")).toBeTruthy();
+      expect(primary.querySelector(".ctb-tap")).toBeNull();
+      expect(primary.querySelector(".ctb-countin")).toBeNull();
+      expect(primary.querySelector(".ctb-loop-ab")).toBeNull();
     });
 
-    it('opens a compact secondary-controls panel for advanced actions', () => {
-      const details = fixture.nativeElement.querySelector('.ctb-secondary') as HTMLDetailsElement;
+    it("opens a compact secondary-controls panel for advanced actions", () => {
+      const details = fixture.nativeElement.querySelector(
+        ".ctb-secondary",
+      ) as HTMLDetailsElement;
       expect(details.open).toBe(false);
-      details.querySelector('summary')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      details
+        .querySelector("summary")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       fixture.detectChanges();
       expect(details.open).toBe(true);
-      expect(details.querySelector('.ctb-countin')).toBeTruthy();
-      expect(details.querySelector('.ctb-loop-ab')).toBeTruthy();
-      expect(details.querySelector('.ctb-undo')).toBeTruthy();
-      expect(details.querySelector('.ctb-test-sound')).toBeTruthy();
-      expect(details.querySelector('.ctb-volume-slider')).toBeTruthy();
-      expect(details.querySelector('.ctb-output-group')).toBeTruthy();
-      expect(details.querySelector('.ctb-ideas')).toBeTruthy();
+      expect(details.querySelector(".ctb-countin")).toBeTruthy();
+      expect(details.querySelector(".ctb-loop-ab")).toBeTruthy();
+      expect(details.querySelector(".ctb-undo")).toBeTruthy();
+      expect(details.querySelector(".ctb-test-sound")).toBeTruthy();
+      expect(details.querySelector(".ctb-volume-slider")).toBeTruthy();
+      expect(details.querySelector(".ctb-output-group")).toBeTruthy();
+      expect(details.querySelector(".ctb-ideas")).toBeTruthy();
     });
   });
 
-  describe('core transport smoke test', () => {
-    it('keeps Play/Pause, Stop, Record and tempo controls functional', () => {
+  describe("core transport smoke test", () => {
+    it("keeps Play/Pause, Stop, Record and tempo controls functional", () => {
       const root: HTMLElement = fixture.nativeElement;
-      root.querySelector<HTMLButtonElement>('.ctb-play')!.click();
+      root.querySelector<HTMLButtonElement>(".ctb-play")!.click();
       expect(mockAudioEngine.resume).toHaveBeenCalled();
       expect(mockAudioSession.togglePlay).toHaveBeenCalled();
 
-      root.querySelector<HTMLButtonElement>('.ctb-stop')!.click();
+      root.querySelector<HTMLButtonElement>(".ctb-stop")!.click();
       expect(mockAudioSession.stop).toHaveBeenCalled();
 
-      root.querySelector<HTMLButtonElement>('.ctb-rec')!.click();
+      root.querySelector<HTMLButtonElement>(".ctb-rec")!.click();
       expect(mockAudioSession.toggleRecord).toHaveBeenCalled();
 
-      root.querySelectorAll<HTMLButtonElement>('.ctb-nudge')[1].click();
+      root.querySelectorAll<HTMLButtonElement>(".ctb-nudge")[1].click();
       expect(mockAudioEngine.tempo()).toBe(121);
     });
   });
 
-  describe('Stage 2.0 position readout', () => {
-    it('maps the engine step to Bar : Beat : Sixteenth in 4/4', () => {
+  describe("Stage 2.0 position readout", () => {
+    it("maps the engine step to Bar : Beat : Sixteenth in 4/4", () => {
       // Step 25 → bar 2 (16 steps/bar), beat 3, sixteenth 2.
       mockAudioEngine.visualStep.set(25);
       expect(component.positionReadout()).toEqual({
@@ -194,7 +209,7 @@ describe('TransportBarComponent', () => {
       });
     });
 
-    it('starts at bar 1, beat 1, sixteenth 1', () => {
+    it("starts at bar 1, beat 1, sixteenth 1", () => {
       mockAudioEngine.visualStep.set(0);
       expect(component.positionReadout()).toEqual({
         bar: 1,
@@ -203,7 +218,7 @@ describe('TransportBarComponent', () => {
       });
     });
 
-    it('clamps negative playhead values to the start of the bar', () => {
+    it("clamps negative playhead values to the start of the bar", () => {
       mockAudioEngine.visualStep.set(-4);
       expect(component.positionReadout()).toEqual({
         bar: 1,
@@ -212,27 +227,27 @@ describe('TransportBarComponent', () => {
       });
     });
 
-    it('exposes the 4/4 time signature chip', () => {
-      expect(component.timeSignature).toBe('4/4');
+    it("exposes the 4/4 time signature chip", () => {
+      expect(component.timeSignature).toBe("4/4");
     });
   });
 
-  describe('pulse state', () => {
-    it('adds the is-playing class to the shell while transport rolls', () => {
+  describe("pulse state", () => {
+    it("adds the is-playing class to the shell while transport rolls", () => {
       const shell: HTMLElement =
-        fixture.nativeElement.querySelector('.ctb-shell');
-      expect(shell.classList.contains('is-playing')).toBe(false);
+        fixture.nativeElement.querySelector(".ctb-shell");
+      expect(shell.classList.contains("is-playing")).toBe(false);
 
-      playbackState.set('playing');
+      playbackState.set("playing");
       fixture.detectChanges();
 
-      expect(shell.classList.contains('is-playing')).toBe(true);
+      expect(shell.classList.contains("is-playing")).toBe(true);
     });
   });
 
-  describe('tap tempo', () => {
-    it('sets the tempo from measured tap intervals', () => {
-      const nowSpy = jest.spyOn(performance, 'now');
+  describe("tap tempo", () => {
+    it("sets the tempo from measured tap intervals", () => {
+      const nowSpy = jest.spyOn(performance, "now");
       nowSpy.mockReturnValueOnce(1_000);
       component.tapTempo();
       nowSpy.mockReturnValueOnce(1_500); // 500 ms → 120 BPM
@@ -242,8 +257,8 @@ describe('TransportBarComponent', () => {
       nowSpy.mockRestore();
     });
 
-    it('clamps wild guesses to 40–240 BPM', () => {
-      const nowSpy = jest.spyOn(performance, 'now');
+    it("clamps wild guesses to 40–240 BPM", () => {
+      const nowSpy = jest.spyOn(performance, "now");
       nowSpy.mockReturnValueOnce(1_000);
       component.tapTempo();
       nowSpy.mockReturnValueOnce(1_010); // 10 ms → 6000 BPM → clamped to 240
@@ -254,22 +269,22 @@ describe('TransportBarComponent', () => {
     });
   });
 
-  describe('count-in', () => {
-    it('starts an audible count-in instead of instant play when armed', () => {
+  describe("count-in", () => {
+    it("starts an audible count-in instead of instant play when armed", () => {
       component.countInBars.set(1);
       component.togglePlay();
 
       expect(mockAudioEngine.resume).toHaveBeenCalled();
       expect(mockAudioEngine.startCountIn).toHaveBeenCalledWith(1);
-      expect(playbackState()).toBe('playing');
+      expect(playbackState()).toBe("playing");
     });
   });
 
-  describe('dB readouts', () => {
-    it('formats negative infinity, unity and over-zero levels', () => {
-      expect(component.formatDb(-Infinity)).toBe('−∞');
-      expect(component.formatDb(0)).toBe('0.0');
-      expect(component.formatDb(1.5)).toBe('+1.5');
+  describe("dB readouts", () => {
+    it("formats negative infinity, unity and over-zero levels", () => {
+      expect(component.formatDb(-Infinity)).toBe("−∞");
+      expect(component.formatDb(0)).toBe("0.0");
+      expect(component.formatDb(1.5)).toBe("+1.5");
     });
   });
 });

@@ -43,7 +43,7 @@ export class Delay {
     this.delayNode.delayTime.setTargetAtTime(
       time,
       this.context.currentTime,
-      0.01
+      0.01,
     );
   }
 
@@ -52,7 +52,7 @@ export class Delay {
     this.feedbackGain.gain.setTargetAtTime(
       feedback,
       this.context.currentTime,
-      0.01
+      0.01,
     );
   }
 

@@ -1,5 +1,5 @@
-import { Instrument } from './instrument';
-import { NodePool } from './performance-utils';
+import { Instrument } from "./instrument";
+import { NodePool } from "./performance-utils";
 
 interface OperatorParams {
   ratio: number;
@@ -22,10 +22,30 @@ export interface FMSynthParams {
  */
 export class FMSynth extends Instrument {
   private operators: OperatorParams[] = [
-    { ratio: 1, modIndex: 0, envelope: { attack: 0.01, decay: 0.3, sustain: 0.8, release: 0.4 }, waveform: 'sine' },
-    { ratio: 2, modIndex: 3, envelope: { attack: 0.01, decay: 0.2, sustain: 0.6, release: 0.3 }, waveform: 'sine' },
-    { ratio: 4, modIndex: 2, envelope: { attack: 0.01, decay: 0.15, sustain: 0.5, release: 0.2 }, waveform: 'sine' },
-    { ratio: 0.5, modIndex: 1, envelope: { attack: 0.02, decay: 0.4, sustain: 0.7, release: 0.5 }, waveform: 'sine' },
+    {
+      ratio: 1,
+      modIndex: 0,
+      envelope: { attack: 0.01, decay: 0.3, sustain: 0.8, release: 0.4 },
+      waveform: "sine",
+    },
+    {
+      ratio: 2,
+      modIndex: 3,
+      envelope: { attack: 0.01, decay: 0.2, sustain: 0.6, release: 0.3 },
+      waveform: "sine",
+    },
+    {
+      ratio: 4,
+      modIndex: 2,
+      envelope: { attack: 0.01, decay: 0.15, sustain: 0.5, release: 0.2 },
+      waveform: "sine",
+    },
+    {
+      ratio: 0.5,
+      modIndex: 1,
+      envelope: { attack: 0.02, decay: 0.4, sustain: 0.7, release: 0.5 },
+      waveform: "sine",
+    },
   ];
 
   // Default algorithm: op4 → op3 → op2 → op1 → output (classic FM chain)
@@ -44,14 +64,17 @@ export class FMSynth extends Instrument {
 
   constructor(audioContext: AudioContext) {
     super(audioContext, 8);
-    this.oscPool = new NodePool(this.audioContext, (ctx) => ctx.createOscillator());
+    this.oscPool = new NodePool(this.audioContext, (ctx) =>
+      ctx.createOscillator(),
+    );
     this.gainPool = new NodePool(this.audioContext, (ctx) => ctx.createGain());
   }
 
   setParams(params: Partial<FMSynthParams>): void {
     if (params.operators) this.operators = params.operators;
     if (params.algorithm) this.algorithm = params.algorithm;
-    if (params.masterVolume !== undefined) this.masterVolume = params.masterVolume;
+    if (params.masterVolume !== undefined)
+      this.masterVolume = params.masterVolume;
   }
 
   play(note: number, velocity: number): void {
@@ -75,7 +98,10 @@ export class FMSynth extends Instrument {
       const env = op.envelope;
       ampEnv.gain.setValueAtTime(0, now);
       ampEnv.gain.linearRampToValueAtTime(normVel, now + env.attack);
-      ampEnv.gain.linearRampToValueAtTime(normVel * env.sustain, now + env.attack + env.decay);
+      ampEnv.gain.linearRampToValueAtTime(
+        normVel * env.sustain,
+        now + env.attack + env.decay,
+      );
 
       voiceNodes.push({ osc, modGain, ampEnv, opIdx });
       osc.start(now);
@@ -90,7 +116,7 @@ export class FMSynth extends Instrument {
           voiceNodes[src].osc.connect(voiceNodes[tgt].modGain);
           voiceNodes[tgt].modGain.gain.setValueAtTime(
             this.operators[tgt].modIndex * depth * freq,
-            now
+            now,
           );
           voiceNodes[tgt].modGain.connect(voiceNodes[tgt].osc.frequency);
         }
@@ -138,12 +164,17 @@ export class FMSynth extends Instrument {
         node.ampEnv.gain.setValueAtTime(node.ampEnv.gain.value, now);
         node.ampEnv.gain.exponentialRampToValueAtTime(0.001, now + env.release);
       }
-      setTimeout(() => {
-        try { node.osc.stop(); } catch (e) {}
-        this.oscPool.release(node.osc);
-        this.gainPool.release(node.modGain);
-        this.gainPool.release(node.ampEnv);
-      }, (env?.release ?? 0.3) * 1000 + 50);
+      setTimeout(
+        () => {
+          try {
+            node.osc.stop();
+          } catch (e) {}
+          this.oscPool.release(node.osc);
+          this.gainPool.release(node.modGain);
+          this.gainPool.release(node.ampEnv);
+        },
+        (env?.release ?? 0.3) * 1000 + 50,
+      );
     }
   }
 }

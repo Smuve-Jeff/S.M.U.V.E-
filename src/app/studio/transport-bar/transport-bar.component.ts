@@ -6,30 +6,30 @@ import {
   effect,
   untracked,
   HostListener,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AudioSessionService } from '../audio-session.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { ExportService } from '../../services/export.service';
-import { RecordingStatusService } from '../recording-status.service';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { AudioSessionService } from "../audio-session.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { ExportService } from "../../services/export.service";
+import { RecordingStatusService } from "../recording-status.service";
 import {
   IdeasGeneratorService,
   IdeaRecipe,
-} from '../../services/ideas-generator.service';
-import { MusicManagerService } from '../../services/music-manager.service';
-import { TakeManagerService } from '../../services/take-manager.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { ProjectService } from '../../services/project.service';
-import { HapticService } from '../../services/haptic.service';
-import { HistoryService } from '../../services/history.service';
+} from "../../services/ideas-generator.service";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { TakeManagerService } from "../../services/take-manager.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { ProjectService } from "../../services/project.service";
+import { HapticService } from "../../services/haptic.service";
+import { HistoryService } from "../../services/history.service";
 
 @Component({
-  selector: 'app-transport-bar',
+  selector: "app-transport-bar",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './transport-bar.component.html',
-  styleUrls: ['./transport-bar.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./transport-bar.component.html",
+  styleUrls: ["./transport-bar.component.css", "../shared/platform-ux.css"],
 })
 export class TransportBarComponent {
   private readonly audioSession = inject(AudioSessionService);
@@ -90,10 +90,10 @@ export class TransportBarComponent {
   });
 
   /** Stage 2.0 — time signature chip (editable future, display now). */
-  timeSignature = '4/4';
+  timeSignature = "4/4";
   /** Active monitor blend readout */
   monitorBlendPct = computed(() =>
-    Math.round(this.audioEngine.monitorBlend() * 100)
+    Math.round(this.audioEngine.monitorBlend() * 100),
   );
 
   showBpmDropdown = signal(false);
@@ -108,10 +108,10 @@ export class TransportBarComponent {
     this.showOutputDeviceDropdown.set(false);
     if (deviceId) {
       this.haptic.light();
-      this.snack[ok ? 'success' : 'info'](
+      this.snack[ok ? "success" : "info"](
         ok
-          ? 'Audio routed to: ' + this.audioEngine.outputDeviceName()
-          : 'Audio device saved (browser lacks setSinkId support)'
+          ? "Audio routed to: " + this.audioEngine.outputDeviceName()
+          : "Audio device saved (browser lacks setSinkId support)",
       );
     }
   }
@@ -119,8 +119,8 @@ export class TransportBarComponent {
   outputDeviceTooltip = computed(() => {
     const name = this.audioEngine.outputDeviceName();
     return this.audioEngine.supportsSinkId()
-      ? 'Tap to change audio output — currently: ' + name
-      : 'Audio output: ' + name + ' (browser cannot switch sinks)';
+      ? "Tap to change audio output — currently: " + name
+      : "Audio output: " + name + " (browser cannot switch sinks)";
   });
 
   // ── Pro: Tap tempo ─────────────────────────────────────
@@ -217,25 +217,25 @@ export class TransportBarComponent {
   /** Label of the most recent take for the selected track (chip readout). */
   lastTakeLabel = computed(() => {
     const id = this.musicManager.selectedTrackId();
-    if (!id) return '';
+    if (!id) return "";
     const takes = this.takeManager.getTakes(id)();
-    return takes.length ? takes[takes.length - 1].label : '';
+    return takes.length ? takes[takes.length - 1].label : "";
   });
 
   /** Toggle punch-in recording on/off for the selected track. */
   togglePunchIn(): void {
     const id = this.musicManager.selectedTrackId();
     if (!id) {
-      this.snack.info('Select a track first — punch-in arms the selected track');
+      this.snack.info(
+        "Select a track first — punch-in arms the selected track",
+      );
       return;
     }
     const next = !this.takeManager.isPunchIn(id)();
     this.takeManager.setPunchIn(id, next);
     this.haptic.light();
-    this.snack[next ? 'success' : 'info'](
-      next
-        ? 'Punch-in armed — next record stop stamps a take'
-        : 'Punch-in off'
+    this.snack[next ? "success" : "info"](
+      next ? "Punch-in armed — next record stop stamps a take" : "Punch-in off",
     );
   }
 
@@ -253,13 +253,13 @@ export class TransportBarComponent {
       track.id,
       `Take ${count}`,
       notes,
-      this.audioEngine.visualStep()
+      this.audioEngine.visualStep(),
     );
     this.haptic.medium();
     this.snack.success(
       `Take ${count} stamped · ${notes.length} note${
-        notes.length === 1 ? '' : 's'
-      } · steps ${take.startStep}–${take.endStep}`
+        notes.length === 1 ? "" : "s"
+      } · steps ${take.startStep}–${take.endStep}`,
     );
   }
 
@@ -274,11 +274,11 @@ export class TransportBarComponent {
       this.audioEngine.startCountIn(this.countInBars());
       // Count-in sets the engine rolling immediately; mirror that state so
       // the transport cannot be pressed repeatedly during the count-in.
-      this.audioSession.playbackState.set('playing');
+      this.audioSession.playbackState.set("playing");
       this.snack.info(
         `Count-in: ${this.countInBars()} bar${
-          this.countInBars() > 1 ? 's' : ''
-        } before play`
+          this.countInBars() > 1 ? "s" : ""
+        } before play`,
       );
       this.haptic.medium();
       return;
@@ -298,7 +298,7 @@ export class TransportBarComponent {
   nudgeTempo(delta: number): void {
     const clamped = Math.min(
       300,
-      Math.max(20, this.audioEngine.tempo() + delta)
+      Math.max(20, this.audioEngine.tempo() + delta),
     );
     this.audioEngine.tempo.set(clamped);
   }
@@ -333,7 +333,7 @@ export class TransportBarComponent {
   /** Trigger generation of a curated 4-bar starter. */
   useRecipe(r: IdeaRecipe): void {
     this.audioEngine.resume();
-    this.snack.show('✨ Generating · ' + r.name);
+    this.snack.show("✨ Generating · " + r.name);
     this.musicManager.applyGeneratedRecipe(r);
     this.ideasOpen.set(false);
   }
@@ -367,9 +367,9 @@ export class TransportBarComponent {
   }
 
   // ── Pro: A/B loop region ───────────────────────────────
-  setLoopMarker(which: 'start' | 'end'): void {
+  setLoopMarker(which: "start" | "end"): void {
     const step = this.audioEngine.visualStep();
-    if (which === 'start') {
+    if (which === "start") {
       this.loopStartStep.set(step);
     } else {
       this.loopEndStep.set(step);
@@ -387,7 +387,7 @@ export class TransportBarComponent {
   loopRegionLabel(): string {
     const s = this.loopStartStep();
     const e = this.loopEndStep();
-    if (s === null || e === null) return '—';
+    if (s === null || e === null) return "—";
     return `${s} → ${e}`;
   }
 
@@ -403,8 +403,8 @@ export class TransportBarComponent {
     return 20 * Math.log10(lin);
   });
   formatDb(db: number): string {
-    if (!isFinite(db)) return '−∞';
-    if (db > 0) return '+' + db.toFixed(1);
+    if (!isFinite(db)) return "−∞";
+    if (db > 0) return "+" + db.toFixed(1);
     return db.toFixed(1);
   }
 
@@ -414,14 +414,14 @@ export class TransportBarComponent {
     this.history.undo();
     this.haptic.light();
     const last = this.lastActionName();
-    this.snack.info(`Undo · ${last || 'last action'}`);
+    this.snack.info(`Undo · ${last || "last action"}`);
   }
 
   redo(): void {
     if (!this.canRedo()) return;
     this.history.redo();
     this.haptic.light();
-    this.snack.info(`Redo · ${this.lastActionName() || 'next action'}`);
+    this.snack.info(`Redo · ${this.lastActionName() || "next action"}`);
   }
 
   /**
@@ -444,7 +444,7 @@ export class TransportBarComponent {
       }
       const osc = ctx.createOscillator();
       const env = ctx.createGain();
-      osc.type = 'sine';
+      osc.type = "sine";
       osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
       osc.frequency.linearRampToValueAtTime(783.99, ctx.currentTime + 0.35); // sweep up to G5
       env.gain.setValueAtTime(0, ctx.currentTime);
@@ -457,12 +457,12 @@ export class TransportBarComponent {
       this.testSoundOsc = osc;
       this.testSoundFiredAt.set(Date.now());
       this.testSoundFired.set(true);
-      this.snack.success('Audio path armed ✓ — 0.6s probe sent');
+      this.snack.success("Audio path armed ✓ — 0.6s probe sent");
       this.haptic.light();
       // Auto-clear the badge after 4s
       setTimeout(() => this.testSoundFired.set(false), 4000);
     } catch (err) {
-      this.snack.error('Audio probe failed: ' + (err as Error)?.message);
+      this.snack.error("Audio probe failed: " + (err as Error)?.message);
     }
   }
 
@@ -485,23 +485,25 @@ export class TransportBarComponent {
     const blob = this.exportService.exportProjectMidi();
     this.exportService.downloadBlob(
       blob,
-      `${this.musicManager.projectName || 'Elite_Session'}_${Date.now()}.mid`
+      `${this.musicManager.projectName || "Elite_Session"}_${Date.now()}.mid`,
     );
     this.haptic.medium();
-    this.snack.success('MIDI exported · .mid (Standard MIDI File)' );
+    this.snack.success("MIDI exported · .mid (Standard MIDI File)");
   }
 
   /** Sprint A6.5 — render offline (real synth voices) + open share sheet. */
   async shareExport(): Promise<void> {
     this.isExporting.set(true);
     try {
-      const used = await this.exportService.exportAndShare('wav');
+      const used = await this.exportService.exportAndShare("wav");
       this.haptic.medium();
-      this.snack[
-        used ? 'success' : 'info'
-      ](used ? 'Share sheet opened · WAV attached' : 'Downloaded WAV + share link copied');
+      this.snack[used ? "success" : "info"](
+        used
+          ? "Share sheet opened · WAV attached"
+          : "Downloaded WAV + share link copied",
+      );
     } catch (err: any) {
-      this.snack.error('Share failed · ' + (err?.message ?? 'unknown error'));
+      this.snack.error("Share failed · " + (err?.message ?? "unknown error"));
     } finally {
       this.isExporting.set(false);
     }
@@ -511,9 +513,11 @@ export class TransportBarComponent {
   async shareMidi(): Promise<void> {
     const used = await this.exportService.shareMidi();
     this.haptic.light();
-    this.snack[
-      used ? 'success' : 'info'
-    ](used ? 'Share sheet opened · .mid attached' : 'Downloaded .mid + share link copied');
+    this.snack[used ? "success" : "info"](
+      used
+        ? "Share sheet opened · .mid attached"
+        : "Downloaded .mid + share link copied",
+    );
   }
 
   toggleMetronome(): void {
@@ -547,15 +551,15 @@ export class TransportBarComponent {
    *    keydown handler stay untouched (piano roll's d/s/e/c edit modes are
    *    also unaffected).
    */
-  @HostListener('document:keydown', ['$event'])
+  @HostListener("document:keydown", ["$event"])
   onGlobalKeydown(event: KeyboardEvent): void {
     const target = event.target as HTMLElement | null;
     if (!target) return;
     const tag = target.tagName;
     if (
-      tag === 'INPUT' ||
-      tag === 'TEXTAREA' ||
-      tag === 'SELECT' ||
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT" ||
       target.isContentEditable
     ) {
       return;
@@ -568,14 +572,14 @@ export class TransportBarComponent {
     // The Studio shell's root (keydown) handler fires first in the bubble
     // phase and owns the same combos. If it already prevented the default,
     // skip here so a single press never double-fires history.undo()/redo().
-    if (mod && (event.key === 'z' || event.key === 'Z')) {
+    if (mod && (event.key === "z" || event.key === "Z")) {
       if (event.defaultPrevented) return;
       event.preventDefault();
       if (event.shiftKey) this.redo();
       else this.undo();
       return;
     }
-    if (mod && (event.key === 'y' || event.key === 'Y')) {
+    if (mod && (event.key === "y" || event.key === "Y")) {
       if (event.defaultPrevented) return;
       event.preventDefault();
       this.redo();
@@ -586,30 +590,30 @@ export class TransportBarComponent {
     if (mod || event.altKey) return;
 
     switch (event.key) {
-      case ' ':
+      case " ":
         // Space natively activates a focused control — let that win so the
         // focused button (e.g. Play itself) isn't double-fired. Also yield
         // for role=button / [tabindex] elements (e.g. the comp-brand div,
         // which handles Space itself) — preventDefault does not stop
         // propagation, so without this both actions would run.
         if (
-          tag === 'BUTTON' ||
-          tag === 'A' ||
-          tag === 'SELECT' ||
-          target.hasAttribute('tabindex') ||
-          target.getAttribute('role') === 'button'
+          tag === "BUTTON" ||
+          tag === "A" ||
+          tag === "SELECT" ||
+          target.hasAttribute("tabindex") ||
+          target.getAttribute("role") === "button"
         ) {
           return;
         }
         event.preventDefault();
         this.togglePlay();
         break;
-      case 'r':
-      case 'R':
+      case "r":
+      case "R":
         this.toggleRecord();
         break;
-      case 'm':
-      case 'M':
+      case "m":
+      case "M":
         this.toggleMetronome();
         break;
       default:

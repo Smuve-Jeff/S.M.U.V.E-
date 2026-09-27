@@ -10,12 +10,12 @@ import {
   OnInit,
   computed,
   inject,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { HapticService } from '../../../services/haptic.service';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { HapticService } from "../../../services/haptic.service";
 
 @Component({
-  selector: 'app-knob',
+  selector: "app-knob",
   standalone: true,
   imports: [CommonModule],
   template: `
@@ -153,7 +153,7 @@ import { HapticService } from '../../../services/haptic.service';
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
       }
       .knob-value {
-        font-family: 'Geist Mono', monospace;
+        font-family: "Geist Mono", monospace;
         font-size: 9px;
         font-weight: 700;
         color: #00e5ff;
@@ -211,21 +211,21 @@ import { HapticService } from '../../../services/haptic.service';
 export class KnobComponent implements OnInit, OnChanges, OnDestroy {
   private readonly haptic = inject(HapticService);
 
-  @Input() label = '';
+  @Input() label = "";
   @Input() min = 0;
   @Input() max = 100;
   @Input() step = 1;
   @Input() value = 0;
   @Input() defaultValue = 0;
   @Input() showValue = true;
-  @Input() unit = '';
+  @Input() unit = "";
   /** Haptic detent positions (normalized 0..1). Default: [0, 0.5, 1] */
   @Input() detents: number[] = [0, 0.5, 1];
 
   @Output() valueChange = new EventEmitter<number>();
 
   rotation = signal(-135);
-  displayValue = signal('0');
+  displayValue = signal("0");
   isFineMode = signal(false);
   isAtLimit = signal(false);
 
@@ -242,9 +242,9 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
 
   ringColor = computed(() => {
     const p = this.percent();
-    if (p > 0.8) return '#ff4d4d'; // Warning
-    if (p > 0.5) return '#ec5b13'; // Active
-    return '#00e5ff'; // Normal
+    if (p > 0.8) return "#ff4d4d"; // Warning
+    if (p > 0.5) return "#ec5b13"; // Active
+    return "#00e5ff"; // Normal
   });
 
   private isDragging = false;
@@ -294,17 +294,15 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   /** True when the gesture has more than one contact point. */
-  private isMultiTouch(
-    event: MouseEvent | TouchEvent | PointerEvent
-  ): boolean {
+  private isMultiTouch(event: MouseEvent | TouchEvent | PointerEvent): boolean {
     const touches = (event as TouchEvent)?.touches;
     return !!touches && touches.length > 1;
   }
 
   private isPointerEvent(
-    event: MouseEvent | TouchEvent | PointerEvent
+    event: MouseEvent | TouchEvent | PointerEvent,
   ): event is PointerEvent {
-    return typeof PointerEvent !== 'undefined' && event instanceof PointerEvent;
+    return typeof PointerEvent !== "undefined" && event instanceof PointerEvent;
   }
 
   startDrag(event: MouseEvent | TouchEvent | PointerEvent) {
@@ -358,19 +356,19 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    this.haptic.preset('snap');
+    this.haptic.preset("snap");
   }
 
-  @HostListener('window:pointermove', ['$event'])
-  @HostListener('window:mousemove', ['$event'])
-  @HostListener('window:touchmove', ['$event'])
+  @HostListener("window:pointermove", ["$event"])
+  @HostListener("window:mousemove", ["$event"])
+  @HostListener("window:touchmove", ["$event"])
   onDrag(event: MouseEvent | TouchEvent | PointerEvent) {
     if (!this.isDragging) return;
 
     const currentY = this.clientYOf(event);
     const deltaY = this.startY - currentY;
     const range = this.max - this.min;
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+    const isMobile = typeof window !== "undefined" && window.innerWidth <= 1024;
 
     // Precision mode: two-finger, shift key, or the fine-mode detent
     const isFine =
@@ -404,20 +402,20 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
         !this.isAtLimit()
       ) {
         this.isAtLimit.set(true);
-        this.haptic.preset('knobLimit');
+        this.haptic.preset("knobLimit");
       } else if (newValue !== this.min && newValue !== this.max) {
         this.isAtLimit.set(false);
       }
     }
   }
 
-  @HostListener('window:pointerup')
-  @HostListener('window:pointercancel')
-  @HostListener('window:lostpointercapture')
-  @HostListener('window:blur')
-  @HostListener('window:mouseup')
-  @HostListener('window:touchend')
-  @HostListener('window:touchcancel')
+  @HostListener("window:pointerup")
+  @HostListener("window:pointercancel")
+  @HostListener("window:lostpointercapture")
+  @HostListener("window:blur")
+  @HostListener("window:mouseup")
+  @HostListener("window:touchend")
+  @HostListener("window:touchcancel")
   stopDrag() {
     if (this.capturedPointerId !== null) {
       try {
@@ -452,27 +450,27 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
     let next = this.value;
 
     switch (event.key) {
-      case 'ArrowUp':
-      case 'ArrowRight':
+      case "ArrowUp":
+      case "ArrowRight":
         next = this.value + this.step * (event.shiftKey ? 10 : 1);
         break;
-      case 'ArrowDown':
-      case 'ArrowLeft':
+      case "ArrowDown":
+      case "ArrowLeft":
         next = this.value - this.step * (event.shiftKey ? 10 : 1);
         break;
-      case 'PageUp':
+      case "PageUp":
         next = this.value + bigStep;
         break;
-      case 'PageDown':
+      case "PageDown":
         next = this.value - bigStep;
         break;
-      case 'Home':
+      case "Home":
         next = this.min;
         break;
-      case 'End':
+      case "End":
         next = this.max;
         break;
-      case 'Escape':
+      case "Escape":
         event.preventDefault();
         this.resetToDefault();
         return;
@@ -488,7 +486,7 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
       this.updateFromValue(next);
       this.valueChange.emit(next);
       this.checkDetents();
-      this.haptic.preset('detent');
+      this.haptic.preset("detent");
     }
   }
 
@@ -500,7 +498,7 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
       const detent = this.detents[i];
       if (Math.abs(p - detent) < detentThreshold && this.lastDetentHit !== i) {
         this.lastDetentHit = i;
-        this.haptic.preset('detent');
+        this.haptic.preset("detent");
         break;
       }
     }
@@ -526,7 +524,7 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
           this.value = rounded;
           this.updateFromValue(rounded);
           this.valueChange.emit(rounded);
-          this.haptic.preset('detent');
+          this.haptic.preset("detent");
         }
         break;
       }
@@ -543,7 +541,7 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
     this.displayValue.set(formatted + this.unit);
   }
 
-  @HostListener('dblclick')
+  @HostListener("dblclick")
   resetToDefault() {
     this.value = this.defaultValue;
     this.updateFromValue(this.value);

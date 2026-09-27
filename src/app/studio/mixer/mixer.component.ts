@@ -6,42 +6,42 @@ import {
   computed,
   OnInit,
   OnDestroy,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AudioSessionService } from '../audio-session.service';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { AudioSessionService } from "../audio-session.service";
 import {
   MusicManagerService,
   TrackModel,
-} from '../../services/music-manager.service';
-import { NeuralMixerService } from '../../services/neural-mixer.service';
-import { MixerService } from '../mixer.service';
-import { VcaBusService } from '../vca-bus.service';
-import { HapticService } from '../../services/haptic.service';
-import { AiService } from '../../services/ai.service';
-import { Clip } from '../instrument.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { RecordingStatusService } from '../recording-status.service';
-import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
-import { StudioMeterComponent } from '../shared/studio-meter/studio-meter.component';
+} from "../../services/music-manager.service";
+import { NeuralMixerService } from "../../services/neural-mixer.service";
+import { MixerService } from "../mixer.service";
+import { VcaBusService } from "../vca-bus.service";
+import { HapticService } from "../../services/haptic.service";
+import { AiService } from "../../services/ai.service";
+import { Clip } from "../instrument.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { RecordingStatusService } from "../recording-status.service";
+import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
+import { StudioMeterComponent } from "../shared/studio-meter/studio-meter.component";
 
 interface MeterReadings {
   [trackId: string]: number;
 }
 
 @Component({
-  selector: 'app-mixer',
+  selector: "app-mixer",
   standalone: true,
   imports: [CommonModule, FormsModule, StudioMeterComponent],
-  templateUrl: './mixer.component.html',
+  templateUrl: "./mixer.component.html",
   styleUrls: [
-    './mixer.component.css',
+    "./mixer.component.css",
     /* Console-grade mixer polish shared with the DJ booth. Registered
        here (not in studio.component.css): emulated encapsulation keeps
        parent styles out of child templates, so the old shell-level
        import never reached these elements. */
-    '../subcomponent-refinement.css',
-    '../shared/platform-ux.css',
+    "../subcomponent-refinement.css",
+    "../shared/platform-ux.css",
   ],
 })
 export class MixerComponent implements OnInit, OnDestroy {
@@ -73,20 +73,22 @@ export class MixerComponent implements OnInit, OnDestroy {
    * labelled SND A/B faders for Sends) instead of rendering both at once, and
    * Routing focuses the sidechain path.
    */
-  mixerView = signal<'strips' | 'sends' | 'routing'>('strips');
+  mixerView = signal<"strips" | "sends" | "routing">("strips");
   mobileInspectorOpen = signal(true);
 
-  setMixerView(view: 'strips' | 'sends' | 'routing'): void {
+  setMixerView(view: "strips" | "sends" | "routing"): void {
     if (this.mixerView() === view) return;
     this.mixerView.set(view);
     this.haptic.light();
   }
 
   selectedTrack = computed(() =>
-    this.tracks().find((t) => t.id === this.selectedTrackId())
+    this.tracks().find((t) => t.id === this.selectedTrackId()),
   );
 
-  selectedTrackForMobile = computed(() => this.selectedTrack() ?? this.tracks()[0] ?? null);
+  selectedTrackForMobile = computed(
+    () => this.selectedTrack() ?? this.tracks()[0] ?? null,
+  );
 
   toggleMobileInspector(): void {
     this.mobileInspectorOpen.update((open) => !open);
@@ -273,7 +275,7 @@ export class MixerComponent implements OnInit, OnDestroy {
       const ratio = isFine ? 1 / 600 : 1 / 200;
       if (isFine && !this.faderFineMode) {
         this.faderFineMode = true;
-        this.haptic.preset('detent');
+        this.haptic.preset("detent");
       } else if (!isFine && this.faderFineMode) {
         this.faderFineMode = false;
       }
@@ -291,24 +293,24 @@ export class MixerComponent implements OnInit, OnDestroy {
       const current = this.gainPercent(trackId) / 100;
       if (Math.abs(current - 1.0) < 0.03) {
         this.musicManager.updateVolume(trackId, 1.0);
-        this.haptic.preset('faderUnity');
+        this.haptic.preset("faderUnity");
       }
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
     };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   }
 
   private checkFaderHaptics(trackId: string, v: number) {
     const prev = this.faderPrevGain[trackId] ?? v;
     // Unity crossing (1.0)
     if ((prev < 1.0 && v >= 1.0) || (prev > 1.0 && v <= 1.0)) {
-      this.haptic.preset('faderUnity');
+      this.haptic.preset("faderUnity");
     }
     // Zero crossing
     if (prev > 0.02 && v <= 0.02) {
-      this.haptic.preset('faderZero');
+      this.haptic.preset("faderZero");
     }
     this.faderPrevGain[trackId] = v;
   }
@@ -334,11 +336,11 @@ export class MixerComponent implements OnInit, OnDestroy {
       this.audioSession.updateMasterVolume(v);
     };
     const onUp = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
     };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   }
 
   // ---- Pan ----
@@ -365,11 +367,11 @@ export class MixerComponent implements OnInit, OnDestroy {
       this.musicManager.updateTrackPan(track.id, newPan * 100);
     };
     const onUp = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
     };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   }
 
   // ---- Long-press for quick-solo ----
@@ -381,7 +383,7 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.longPressTimer = setTimeout(() => {
       // Long press = quick solo
       this.toggleSolo(trackId);
-      this.haptic.preset('soloFlash');
+      this.haptic.preset("soloFlash");
       this.longPressTrackId = null;
     }, 450);
   }
@@ -397,7 +399,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   // ---- Selection / standard ops ----
   selectTrack(id: string): void {
     this.musicManager.selectedTrackId.set(id);
-    this.haptic.preset('snap');
+    this.haptic.preset("snap");
   }
 
   // ── VCA bus handlers (Sprint 2 starter) ───────────────────────────────
@@ -411,7 +413,7 @@ export class MixerComponent implements OnInit, OnDestroy {
     if (!this.vcaBuses) return;
     const buses = this.vcaBuses.buses();
     const fn = this.engineApi?.setVcaMultiplier;
-    if (typeof fn !== 'function') return;
+    if (typeof fn !== "function") return;
     for (const bus of buses) {
       const value = bus.muted ? 0 : bus.faderValue;
       const trackIds = this.vcaBuses.trackIdsForBus(bus.id);
@@ -452,22 +454,22 @@ export class MixerComponent implements OnInit, OnDestroy {
   onAssignTrackToVca(trackId: string, busId: string): void {
     if (!this.vcaBuses) return;
     const fn = this.engineApi?.setVcaMultiplier;
-    if (busId === '' || busId === 'none') {
+    if (busId === "" || busId === "none") {
       this.vcaBuses.unassignTrack(trackId);
-      if (typeof fn === 'function') fn.call(this.engineApi, trackId, 1);
+      if (typeof fn === "function") fn.call(this.engineApi, trackId, 1);
     } else {
       this.vcaBuses.assignTrack(trackId, busId);
       const bus = this.vcaBuses.buses().find((b) => b.id === busId);
       const value = bus ? (bus.muted ? 0 : bus.faderValue) : 1;
-      if (typeof fn === 'function') fn.call(this.engineApi, trackId, value);
+      if (typeof fn === "function") fn.call(this.engineApi, trackId, value);
     }
   }
   toggleMute(id: string): void {
-    this.haptic.preset('muteFlash');
+    this.haptic.preset("muteFlash");
     this.musicManager.toggleMute(id);
   }
   toggleSolo(id: string): void {
-    this.haptic.preset('soloFlash');
+    this.haptic.preset("soloFlash");
     this.musicManager.toggleSolo(id);
   }
   togglePhase(id: string): void {
@@ -495,7 +497,7 @@ export class MixerComponent implements OnInit, OnDestroy {
       this.recordingStatus.armTrack(id);
       if (this.isRecording()) {
         this.recordingStatus.setRecordingSource({
-          type: 'mixer-strip',
+          type: "mixer-strip",
           trackId: id,
           trackName,
         });
@@ -504,7 +506,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
   removeTrack(id: string, event: Event): void {
     event.stopPropagation();
-    if (confirm('Permanently remove this mixer track?')) {
+    if (confirm("Permanently remove this mixer track?")) {
       this.musicManager.removeTrack(id);
     }
   }
@@ -519,13 +521,12 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.musicManager.updateVolume(id as any, gain);
   }
 
-  updateSend(id: string, send: 'A' | 'B', value: number) {
+  updateSend(id: string, send: "A" | "B", value: number) {
     const normalized = Math.max(0, Math.min(1.5, value / 100));
     this.musicManager.updateSend(id, send, normalized);
     // Also drive the AudioContext so the aux level is audible immediately.
     // Uses optional chaining — no-op in test environments without the method.
-    (this.musicManager as any).engine
-      ?.setSendLevel?.(id, send, normalized);
+    (this.musicManager as any).engine?.setSendLevel?.(id, send, normalized);
   }
 
   // ── Pro: Sidechain routing ─────────────────────────────────
@@ -538,9 +539,14 @@ export class MixerComponent implements OnInit, OnDestroy {
    */
   toggleSidechain(trackId: string, sourceTrackId: string | null): void {
     this.haptic.medium();
-    const engine = (this.musicManager as any).engine ?? this.audioSession.engine;
+    const engine =
+      (this.musicManager as any).engine ?? this.audioSession.engine;
     const trigger = sourceTrackId;
-    if (trigger == null || trigger === '' || this.sidechainMap()[trackId] === trigger) {
+    if (
+      trigger == null ||
+      trigger === "" ||
+      this.sidechainMap()[trackId] === trigger
+    ) {
       const prev = this.sidechainMap()[trackId];
       if (prev) {
         try {
@@ -573,14 +579,14 @@ export class MixerComponent implements OnInit, OnDestroy {
     }
     this.sidechainMap.update((m) => ({ ...m, [trackId]: trigger }));
     this.snack.success(
-      `Sidechain: ${this.findTrackName(trigger)} → ${this.findTrackName(trackId)}`
+      `Sidechain: ${this.findTrackName(trigger)} → ${this.findTrackName(trackId)}`,
     );
   }
   hasSidechain(trackId: string): boolean {
     return !!this.sidechainMap()[trackId];
   }
   sidechainSourceFor(trackId: string): string {
-    return this.sidechainMap()[trackId] ?? '';
+    return this.sidechainMap()[trackId] ?? "";
   }
   sidechainSourceNameFor(trackId: string): string {
     const sourceId = this.sidechainMap()[trackId];
@@ -591,8 +597,8 @@ export class MixerComponent implements OnInit, OnDestroy {
     return this.tracks().filter((t) => t.id !== trackId);
   }
   private findTrackName(id: string | null | undefined): string {
-    if (!id) return '';
-    return this.tracks().find((t) => t.id === id)?.name ?? '';
+    if (!id) return "";
+    return this.tracks().find((t) => t.id === id)?.name ?? "";
   }
 
   // ---- AI / Master strip ----
@@ -601,43 +607,43 @@ export class MixerComponent implements OnInit, OnDestroy {
    * console can tell the artist whether the routing page is worth opening.
    */
   sidechainCount = computed(
-    () => this.tracks().filter((t) => this.hasSidechain(t.id)).length
+    () => this.tracks().filter((t) => this.hasSidechain(t.id)).length,
   );
 
   applyNeuralMix(): void {
     this.neuralMixer.applyNeuralMix();
     this.haptic.medium();
-    this.snack.success('Neural mix applied');
+    this.snack.success("Neural mix applied");
   }
 
   toggleMasterMute(): void {
     this.masterMuted.update((v) => !v);
     this.audioSession.updateMasterVolume(
-      this.masterMuted() ? 0 : this.masterVolume() || 80
+      this.masterMuted() ? 0 : this.masterVolume() || 80,
     );
   }
   resetMaster(): void {
     this.masterMuted.set(false);
     this.audioSession.updateMasterVolume(80);
     this.haptic.medium();
-    this.snack.info('Master reset to 80%');
+    this.snack.info("Master reset to 80%");
   }
   openSmartEq(): void {
     this.aiService.getSmartMixAdvice(this.tracks());
-    this.snack.info('Smart EQ suggestions are in the AI Assistant');
+    this.snack.info("Smart EQ suggestions are in the AI Assistant");
   }
 
   // Color classifier for phase correlation readout
   phaseCorrelationColor(): string {
     const p = this.phaseCorrelation();
-    if (p < 0) return '#ff3d6e'; // red – out of phase
-    if (p < 0.3) return '#ffb627'; // amber – wide
-    return '#34f5c5'; // mint – mono-safe
+    if (p < 0) return "#ff3d6e"; // red – out of phase
+    if (p < 0.3) return "#ffb627"; // amber – wide
+    return "#34f5c5"; // mint – mono-safe
   }
   phaseCorrelationLabel(): string {
     const p = this.phaseCorrelation();
-    if (p < 0) return 'OUT OF PHASE';
-    if (p < 0.3) return 'WIDE';
-    return 'MONO SAFE';
+    if (p < 0) return "OUT OF PHASE";
+    if (p < 0.3) return "WIDE";
+    return "MONO SAFE";
   }
 }

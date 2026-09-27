@@ -1,4 +1,4 @@
-import { WebGLRenderer, Camera2D, GLColor } from './webgl-renderer';
+import { WebGLRenderer, Camera2D, GLColor } from "./webgl-renderer";
 
 export interface PianoRollNote {
   id: string;
@@ -18,8 +18,8 @@ export interface PianoRollNote {
 
 const GRID_BAR: GLColor = { r: 0.18, g: 0.22, b: 0.35, a: 0.5 };
 const GRID_BEAT: GLColor = { r: 0.12, g: 0.15, b: 0.25, a: 0.3 };
-const GRID_STEP: GLColor = { r: 0.08, g: 0.10, b: 0.18, a: 0.15 };
-const BLACK_KEY_BG: GLColor = { r: 0.04, g: 0.05, b: 0.10, a: 1.0 };
+const GRID_STEP: GLColor = { r: 0.08, g: 0.1, b: 0.18, a: 0.15 };
+const BLACK_KEY_BG: GLColor = { r: 0.04, g: 0.05, b: 0.1, a: 1.0 };
 const WHITE_KEY_BG: GLColor = { r: 0.06, g: 0.08, b: 0.14, a: 1.0 };
 const OCTAVE_LINE: GLColor = { r: 0.14, g: 0.17, b: 0.28, a: 0.4 };
 const PLAYHEAD_COLOR: GLColor = { r: 1.0, g: 0.85, b: 0.1, a: 0.9 };
@@ -30,9 +30,7 @@ const VELOCITY_GRID_BG: GLColor = { r: 0.04, g: 0.06, b: 0.11, a: 1.0 };
 const VELOCITY_BAR_COLOR: GLColor = { r: 0.4, g: 0.75, b: 0.5, a: 0.8 };
 
 /** C note MIDI numbers per octave (for octave line positioning) */
-const C_NOTES = new Set([
-  0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120,
-]);
+const C_NOTES = new Set([0, 12, 24, 36, 48, 60, 72, 84, 96, 108, 120]);
 
 /** Black key MIDI numbers within each octave */
 const BLACK_KEYS = new Set([1, 3, 6, 8, 10]);
@@ -100,11 +98,10 @@ export class PianoRollRenderer {
     playheadStep: number,
     totalSteps: number,
     camera: Camera2D,
-    totalMidiRange: number = 96
+    totalMidiRange: number = 96,
   ): void {
     const renderer = this.renderer;
     const bounds = renderer.visibleBounds;
-    const gridHeight = totalMidiRange * this.rowHeight;
 
     // Frustum cull notes
     const visibleNotes = notes.filter((n) => {
@@ -126,9 +123,23 @@ export class PianoRollRenderer {
       if (y + this.rowHeight < bounds.top || y > bounds.bottom) continue;
 
       if (isBlackKeyMidi(midi)) {
-        renderer.drawQuad(0, y, totalSteps * this.pixelsPerStep, this.rowHeight, BLACK_KEY_BG, 0);
+        renderer.drawQuad(
+          0,
+          y,
+          totalSteps * this.pixelsPerStep,
+          this.rowHeight,
+          BLACK_KEY_BG,
+          0,
+        );
       } else {
-        renderer.drawQuad(0, y, totalSteps * this.pixelsPerStep, this.rowHeight, WHITE_KEY_BG, 0);
+        renderer.drawQuad(
+          0,
+          y,
+          totalSteps * this.pixelsPerStep,
+          this.rowHeight,
+          WHITE_KEY_BG,
+          0,
+        );
       }
 
       // Octave separator lines (C notes)
@@ -141,7 +152,7 @@ export class PianoRollRenderer {
     const firstStep = Math.max(0, Math.floor(bounds.left / this.pixelsPerStep));
     const lastStep = Math.min(
       totalSteps,
-      Math.ceil(bounds.right / this.pixelsPerStep)
+      Math.ceil(bounds.right / this.pixelsPerStep),
     );
 
     for (let s = firstStep; s <= lastStep; s++) {
@@ -205,7 +216,7 @@ export class PianoRollRenderer {
     totalSteps: number,
     camera: Camera2D,
     laneHeight: number,
-    laneTop: number
+    laneTop: number,
   ): void {
     const renderer = this.renderer;
     renderer.beginFrame(camera);
@@ -217,17 +228,22 @@ export class PianoRollRenderer {
       totalSteps * this.pixelsPerStep,
       laneHeight,
       VELOCITY_GRID_BG,
-      0
+      0,
     );
 
     // Grid lines
     const firstStep = Math.max(
       0,
-      Math.floor(camera.scrollX / this.pixelsPerStep)
+      Math.floor(camera.scrollX / this.pixelsPerStep),
     );
     const lastStep = Math.min(
       totalSteps,
-      Math.ceil((camera.scrollX + renderer.visibleBounds.right - renderer.visibleBounds.left) / this.pixelsPerStep)
+      Math.ceil(
+        (camera.scrollX +
+          renderer.visibleBounds.right -
+          renderer.visibleBounds.left) /
+          this.pixelsPerStep,
+      ),
     );
 
     for (let s = firstStep; s <= lastStep; s++) {
@@ -240,7 +256,14 @@ export class PianoRollRenderer {
     // Velocity bars for each note at its step position
     for (const note of notes) {
       const nx = this.stepToX(note.step);
-      if (nx < camera.scrollX - 100 || nx > camera.scrollX + (renderer.visibleBounds.right - renderer.visibleBounds.left) + 100) continue;
+      if (
+        nx < camera.scrollX - 100 ||
+        nx >
+          camera.scrollX +
+            (renderer.visibleBounds.right - renderer.visibleBounds.left) +
+            100
+      )
+        continue;
 
       const x = nx;
       const w = Math.max(3, note.length * this.pixelsPerStep - 1);
@@ -270,7 +293,7 @@ export class PianoRollRenderer {
   private drawNoteQuad(
     renderer: WebGLRenderer,
     note: PianoRollNote,
-    color: GLColor
+    color: GLColor,
   ): void {
     const x = this.stepToX(note.step);
     const y = this.midiToY(note.midi);
@@ -292,10 +315,7 @@ export class PianoRollRenderer {
   }
 
   /** Draw an FL-style slide arrow across the note body. */
-  private drawSlideArrow(
-    renderer: WebGLRenderer,
-    note: PianoRollNote
-  ): void {
+  private drawSlideArrow(renderer: WebGLRenderer, note: PianoRollNote): void {
     const x = this.stepToX(note.step);
     const y = this.midiToY(note.midi);
     const w = Math.max(6, note.length * this.pixelsPerStep - 2);

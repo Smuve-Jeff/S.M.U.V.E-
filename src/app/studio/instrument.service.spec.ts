@@ -1,9 +1,9 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed } from "@angular/core/testing";
 
-import { AudioEngineService } from '../services/audio-engine.service';
-import { InstrumentService } from './instrument.service';
+import { AudioEngineService } from "../services/audio-engine.service";
+import { InstrumentService } from "./instrument.service";
 
-describe('InstrumentService', () => {
+describe("InstrumentService", () => {
   let service: InstrumentService;
   let engineMock: {
     compressor: object;
@@ -34,11 +34,11 @@ describe('InstrumentService', () => {
     service = TestBed.inject(InstrumentService);
   });
 
-  it('creates without requiring the music manager service', () => {
+  it("creates without requiring the music manager service", () => {
     expect(service).toBeTruthy();
   });
 
-  it('converts MIDI notes to frequency when triggering playback', () => {
+  it("converts MIDI notes to frequency when triggering playback", () => {
     service.play(7, 69, 0.5);
 
     expect(engineMock.triggerAttack).toHaveBeenCalledWith(
@@ -51,11 +51,11 @@ describe('InstrumentService', () => {
       0,
       0,
       0,
-      { type: 'sine' }
+      { type: "sine" },
     );
   });
 
-  it('drives the master reverb return from the reverb mix control', () => {
+  it("drives the master reverb return from the reverb mix control", () => {
     service.setMasterVolume(80);
     expect(engineMock.setMasterOutputLevel).toHaveBeenCalledWith(0.8);
 

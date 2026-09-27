@@ -1,10 +1,10 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
-import { AudioEngineService } from '../../services/audio-engine.service';
+import { Injectable, inject } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { firstValueFrom } from "rxjs";
+import { AudioEngineService } from "../../services/audio-engine.service";
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class ConvolutionReverbService {
   private readonly http = inject(HttpClient);
@@ -12,7 +12,7 @@ export class ConvolutionReverbService {
 
   async loadImpulseResponse(url: string): Promise<AudioBuffer> {
     const response = await firstValueFrom(
-      this.http.get(url, { responseType: 'arraybuffer' })
+      this.http.get(url, { responseType: "arraybuffer" }),
     );
     return this.audioEngine.ctx.decodeAudioData(response);
   }
@@ -29,7 +29,7 @@ class ConvolutionReverb {
 
   constructor(
     private readonly context: AudioContext,
-    impulseResponse: AudioBuffer
+    impulseResponse: AudioBuffer,
   ) {
     this.convolver = this.context.createConvolver();
     this.convolver.buffer = impulseResponse;
@@ -57,14 +57,14 @@ class ConvolutionReverb {
       this.wetGain.gain.setTargetAtTime(
         options.wet,
         this.context.currentTime,
-        0.01
+        0.01,
       );
     }
     if (options.dry !== undefined) {
       this.dryGain.gain.setTargetAtTime(
         options.dry,
         this.context.currentTime,
-        0.01
+        0.01,
       );
     }
   }

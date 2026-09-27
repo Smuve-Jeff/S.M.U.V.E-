@@ -1,16 +1,10 @@
-import { Component, inject, signal, computed, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { HardwareService } from '../../services/hardware.service';
-import { MusicManagerService } from '../../services/music-manager.service';
-
-interface MidiDevice {
-  id: string;
-  name: string;
-  manufacturer: string;
-}
+import { Component, inject, signal, computed, OnDestroy } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { HardwareService } from "../../services/hardware.service";
+import { MusicManagerService } from "../../services/music-manager.service";
 
 @Component({
-  selector: 'app-midi-input-widget',
+  selector: "app-midi-input-widget",
   standalone: true,
   imports: [CommonModule],
   template: `
@@ -18,7 +12,10 @@ interface MidiDevice {
       <div class="midi-widget-header">
         <span class="material-symbols-outlined">piano</span>
         <span class="midi-widget-title">MIDI IN</span>
-        <span class="midi-widget-dot" [class.midi-active]="lastNote() !== null"></span>
+        <span
+          class="midi-widget-dot"
+          [class.midi-active]="lastNote() !== null"
+        ></span>
       </div>
 
       <div class="midi-widget-list" *ngIf="devices().length > 0">
@@ -42,7 +39,7 @@ interface MidiDevice {
       </div>
     </div>
   `,
-  styleUrls: ['./midi-input-widget.component.css'],
+  styleUrls: ["./midi-input-widget.component.css"],
 })
 export class MidiInputWidgetComponent implements OnDestroy {
   private hardware = inject(HardwareService);
@@ -58,8 +55,21 @@ export class MidiInputWidgetComponent implements OnDestroy {
   /** Convert MIDI note number to human-readable label */
   lastNoteLabel = computed(() => {
     const n = this.lastNote();
-    if (n === null) return '—';
-    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    if (n === null) return "—";
+    const names = [
+      "C",
+      "C#",
+      "D",
+      "D#",
+      "E",
+      "F",
+      "F#",
+      "G",
+      "G#",
+      "A",
+      "A#",
+      "B",
+    ];
     const octave = Math.floor(n / 12) - 1;
     return `${names[n % 12]}${octave}`;
   });

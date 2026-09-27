@@ -6,18 +6,15 @@ import {
   signal,
   computed,
   type OnDestroy,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { HapticService } from '../../../services/haptic.service';
-import {
-  IdeasGeneratorService,
-  type IdeaRecipe,
-} from '../../../services/ideas-generator.service';
-import { MusicManagerService } from '../../../services/music-manager.service';
-import { AudioEngineService } from '../../../services/audio-engine.service';
-import { SnackbarService } from '../../../services/snackbar.service';
-import { UserProfileService } from '../../../services/user-profile.service';
-import type { SmartSheetMemory } from '../../../types/profile.types';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { HapticService } from "../../../services/haptic.service";
+import { IdeasGeneratorService } from "../../../services/ideas-generator.service";
+import { MusicManagerService } from "../../../services/music-manager.service";
+import { AudioEngineService } from "../../../services/audio-engine.service";
+import { SnackbarService } from "../../../services/snackbar.service";
+import { UserProfileService } from "../../../services/user-profile.service";
+import type { SmartSheetMemory } from "../../../types/profile.types";
 
 export interface GenreStarter {
   id: string;
@@ -32,22 +29,22 @@ export interface GenreStarter {
 
 /** Smart-sheet recall is mirrored to localStorage — not IndexedDB — so it is
  *  readable synchronously while the sheet paints, and before any session exists. */
-const MEMORY_KEY = 'smuve_smart_sheet_memory';
+const MEMORY_KEY = "smuve_smart_sheet_memory";
 /** Coalesce account pushes: a tab tap must not upload the whole profile. */
 const ACCOUNT_SYNC_DEBOUNCE_MS = 900;
 /** Chips kept in the combined Recently Used row. */
 const MAX_RECENT_ITEMS = 4;
 
-type SmartSheetTab = 'beats' | 'vocals' | 'chords' | 'ai';
+type SmartSheetTab = "beats" | "vocals" | "chords" | "ai";
 
-export type RecentKind = 'Pack' | 'Vocal' | 'Chords';
+export type RecentKind = "Pack" | "Vocal" | "Chords";
 
 /** Recency-map key prefix per category, so ids from the three catalogues can
  *  share one map without colliding. */
 const RECENT_PREFIX: Record<RecentKind, string> = {
-  Pack: 'starter:',
-  Vocal: 'vocal:',
-  Chords: 'chord:',
+  Pack: "starter:",
+  Vocal: "vocal:",
+  Chords: "chord:",
 };
 
 /** One entry of the combined Recently Used row. */
@@ -60,7 +57,7 @@ export interface RecentItem {
   usedAt: number;
 }
 
-const SHEET_TABS: SmartSheetTab[] = ['beats', 'vocals', 'chords', 'ai'];
+const SHEET_TABS: SmartSheetTab[] = ["beats", "vocals", "chords", "ai"];
 
 const isSmartSheetTab = (value: string | undefined): value is SmartSheetTab =>
   !!value && (SHEET_TABS as string[]).includes(value);
@@ -87,11 +84,11 @@ export interface VocalPreset {
 }
 
 @Component({
-  selector: 'app-smart-creation-sheet',
+  selector: "app-smart-creation-sheet",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './smart-creation-sheet.component.html',
-  styleUrls: ['./smart-creation-sheet.component.css', '../platform-ux.css'],
+  templateUrl: "./smart-creation-sheet.component.html",
+  styleUrls: ["./smart-creation-sheet.component.css", "../platform-ux.css"],
 })
 export class SmartCreationSheetComponent implements OnDestroy {
   private haptic = inject(HapticService);
@@ -104,7 +101,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   @Output() closeSheet = new EventEmitter<void>();
   @Output() navigateToView = new EventEmitter<string>();
 
-  activeTab = signal<SmartSheetTab>('beats');
+  activeTab = signal<SmartSheetTab>("beats");
 
   /** Live drag offset (px) of the bottom sheet while the chrome is pulled. */
   sheetDragOffset = signal(0);
@@ -127,26 +124,27 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly lastStarterId = signal<string | null>(null);
   readonly lastVocalPresetId = signal<string | null>(null);
   readonly lastStarter = computed(
-    () => this.genreStarters.find((s) => s.id === this.lastStarterId()) ?? null
+    () => this.genreStarters.find((s) => s.id === this.lastStarterId()) ?? null,
   );
   readonly lastVocalPreset = computed(
-    () => this.vocalPresets.find((p) => p.id === this.lastVocalPresetId()) ?? null
+    () =>
+      this.vocalPresets.find((p) => p.id === this.lastVocalPresetId()) ?? null,
   );
 
   readonly lastChordMoodId = signal<string | null>(null);
   readonly lastChordMood = computed(
-    () => this.chordMoods.find((m) => m.id === this.lastChordMoodId()) ?? null
+    () => this.chordMoods.find((m) => m.id === this.lastChordMoodId()) ?? null,
   );
 
   /** The last-used pack/preset/mood floats to the front of its grid. */
   readonly orderedStarters = computed(() =>
-    this.recencyFirst(this.genreStarters, this.lastStarterId())
+    this.recencyFirst(this.genreStarters, this.lastStarterId()),
   );
   readonly orderedVocalPresets = computed(() =>
-    this.recencyFirst(this.vocalPresets, this.lastVocalPresetId())
+    this.recencyFirst(this.vocalPresets, this.lastVocalPresetId()),
   );
   readonly orderedChordMoods = computed(() =>
-    this.recencyFirst(this.chordMoods, this.lastChordMoodId())
+    this.recencyFirst(this.chordMoods, this.lastChordMoodId()),
   );
 
   /** Per-item use stamps (`starter:trap`) behind the Recently Used row. */
@@ -158,22 +156,29 @@ export class SmartCreationSheetComponent implements OnDestroy {
     const items: RecentItem[] = [];
     const collect = (
       kind: RecentKind,
-      entries: Array<{ id: string; name: string; emoji: string }>
+      entries: Array<{ id: string; name: string; emoji: string }>,
     ) => {
       for (const entry of entries) {
         const key = RECENT_PREFIX[kind] + entry.id;
         const usedAt = usage[key];
         if (usedAt) {
-          items.push({ key, kind, id: entry.id, name: entry.name, emoji: entry.emoji, usedAt });
+          items.push({
+            key,
+            kind,
+            id: entry.id,
+            name: entry.name,
+            emoji: entry.emoji,
+            usedAt,
+          });
         }
       }
     };
 
-    collect('Pack', this.genreStarters);
-    collect('Vocal', this.vocalPresets);
+    collect("Pack", this.genreStarters);
+    collect("Vocal", this.vocalPresets);
     collect(
-      'Chords',
-      this.chordMoods.map((m) => ({ id: m.id, name: m.label, emoji: m.emoji }))
+      "Chords",
+      this.chordMoods.map((m) => ({ id: m.id, name: m.label, emoji: m.emoji })),
     );
 
     return items.sort((a, b) => b.usedAt - a.usedAt).slice(0, MAX_RECENT_ITEMS);
@@ -212,15 +217,21 @@ export class SmartCreationSheetComponent implements OnDestroy {
     const newest = accountIsNewer ? account : local;
     // Per-item stamps are merged by max rather than picked: a device that used a
     // pack yesterday and one that used a preset today both feed the Recent row.
-    return { ...newest, recent: this.mergeRecent(local.recent, account.recent) };
+    return {
+      ...newest,
+      recent: this.mergeRecent(local.recent, account.recent),
+    };
   }
 
-  private mergeRecent(...maps: Array<Record<string, number> | undefined>): Record<string, number> {
+  private mergeRecent(
+    ...maps: Array<Record<string, number> | undefined>
+  ): Record<string, number> {
     const merged: Record<string, number> = {};
     for (const map of maps) {
       if (!map) continue;
       for (const [key, usedAt] of Object.entries(map)) {
-        if (typeof usedAt === 'number') merged[key] = Math.max(merged[key] ?? 0, usedAt);
+        if (typeof usedAt === "number")
+          merged[key] = Math.max(merged[key] ?? 0, usedAt);
       }
     }
     return merged;
@@ -249,7 +260,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
   private readLocalMemory(): SmartSheetMemory | null {
     try {
       const raw =
-        typeof window === 'undefined' ? null : window.localStorage.getItem(MEMORY_KEY);
+        typeof window === "undefined"
+          ? null
+          : window.localStorage.getItem(MEMORY_KEY);
       return raw ? (JSON.parse(raw) as SmartSheetMemory) : null;
     } catch {
       // Storage disabled (private mode) or a corrupt blob — the sheet still
@@ -262,7 +275,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   private remember(patch: Partial<SmartSheetMemory>): void {
     this.memory = { ...this.memory, ...patch, updatedAt: Date.now() };
     try {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         window.localStorage.setItem(MEMORY_KEY, JSON.stringify(this.memory));
       }
     } catch {
@@ -270,7 +283,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
     }
     this.memorySyncPending = true;
     if (this.syncTimer) clearTimeout(this.syncTimer);
-    this.syncTimer = setTimeout(() => this.flushMemorySync(), ACCOUNT_SYNC_DEBOUNCE_MS);
+    this.syncTimer = setTimeout(
+      () => this.flushMemorySync(),
+      ACCOUNT_SYNC_DEBOUNCE_MS,
+    );
   }
 
   /** Push the recall payload into the profile, which syncs it to the account. */
@@ -292,9 +308,14 @@ export class SmartCreationSheetComponent implements OnDestroy {
     });
   }
 
-  private recencyFirst<T extends { id: string }>(items: T[], lastId: string | null): T[] {
+  private recencyFirst<T extends { id: string }>(
+    items: T[],
+    lastId: string | null,
+  ): T[] {
     const last = lastId ? items.find((item) => item.id === lastId) : undefined;
-    return last ? [last, ...items.filter((item) => item.id !== last.id)] : items;
+    return last
+      ? [last, ...items.filter((item) => item.id !== last.id)]
+      : items;
   }
 
   /** Stamp a use for the Recently Used row and mirror it into the payload. */
@@ -306,12 +327,12 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   /** Re-run a Recently Used entry — the same path as tapping its own card. */
   useRecent(item: RecentItem): void {
-    if (item.kind === 'Pack') {
+    if (item.kind === "Pack") {
       const starter = this.genreStarters.find((s) => s.id === item.id);
       if (starter) this.loadStarter(starter);
       return;
     }
-    if (item.kind === 'Vocal') {
+    if (item.kind === "Vocal") {
       const preset = this.vocalPresets.find((p) => p.id === item.id);
       if (preset) this.applyVocalPreset(preset);
       return;
@@ -322,211 +343,226 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   readonly genreStarters: GenreStarter[] = [
     {
-      id: 'trap',
-      name: 'Trap Elite',
-      genre: 'Trap / Hip-Hop',
+      id: "trap",
+      name: "Trap Elite",
+      genre: "Trap / Hip-Hop",
       bpm: 140,
-      emoji: '🔥',
-      tagline: 'Heavy 808 sub, hi-hat rolls & dark keys',
-      instruments: ['808 Sub', 'Dark Piano', 'Trap Kit', 'Hi-Hats'],
-      gradient: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(15, 23, 42, 0.95))',
+      emoji: "🔥",
+      tagline: "Heavy 808 sub, hi-hat rolls & dark keys",
+      instruments: ["808 Sub", "Dark Piano", "Trap Kit", "Hi-Hats"],
+      gradient:
+        "linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'rnb',
-      name: 'Smooth R&B',
-      genre: 'R&B / Soul',
+      id: "rnb",
+      name: "Smooth R&B",
+      genre: "R&B / Soul",
       bpm: 92,
-      emoji: '🌊',
-      tagline: 'Warm electric piano, deep P-bass & velvet claps',
-      instruments: ['Ethereal Rhodes', 'P-Bass', 'Finger Snap', 'Lead'],
-      gradient: 'linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(15, 23, 42, 0.95))',
+      emoji: "🌊",
+      tagline: "Warm electric piano, deep P-bass & velvet claps",
+      instruments: ["Ethereal Rhodes", "P-Bass", "Finger Snap", "Lead"],
+      gradient:
+        "linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'lofi',
-      name: 'Lo-Fi Chill',
-      genre: 'Lo-Fi / Beats',
+      id: "lofi",
+      name: "Lo-Fi Chill",
+      genre: "Lo-Fi / Beats",
       bpm: 80,
-      emoji: '☕',
-      tagline: 'Dusty vinyl chords, muffled drums & cozy warmth',
-      instruments: ['Muted Keys', 'Vinyl Beats', 'Warm Sub', 'Ambient FX'],
-      gradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(15, 23, 42, 0.95))',
+      emoji: "☕",
+      tagline: "Dusty vinyl chords, muffled drums & cozy warmth",
+      instruments: ["Muted Keys", "Vinyl Beats", "Warm Sub", "Ambient FX"],
+      gradient:
+        "linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'drill',
-      name: 'Drill Heat',
-      genre: 'UK / NY Drill',
+      id: "drill",
+      name: "Drill Heat",
+      genre: "UK / NY Drill",
       bpm: 142,
-      emoji: '⚡',
-      tagline: 'Sliding 808 glides, syncopated snares & bell accents',
-      instruments: ['Glide 808', 'Ghost Snare', 'Dark Bells', 'Percs'],
-      gradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(15, 23, 42, 0.95))',
+      emoji: "⚡",
+      tagline: "Sliding 808 glides, syncopated snares & bell accents",
+      instruments: ["Glide 808", "Ghost Snare", "Dark Bells", "Percs"],
+      gradient:
+        "linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'house',
-      name: 'Club House',
-      genre: 'House / Dance',
+      id: "house",
+      name: "Club House",
+      genre: "House / Dance",
       bpm: 128,
-      emoji: '🪩',
-      tagline: 'Pumping four-on-the-floor kick, rolling bass & stabs',
-      instruments: ['Punch Kick', 'Organ Bass', 'Off-Beat Hat', 'Stab Synth'],
-      gradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(15, 23, 42, 0.95))',
+      emoji: "🪩",
+      tagline: "Pumping four-on-the-floor kick, rolling bass & stabs",
+      instruments: ["Punch Kick", "Organ Bass", "Off-Beat Hat", "Stab Synth"],
+      gradient:
+        "linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'pop',
-      name: 'Radio Pop',
-      genre: 'Pop / Modern',
+      id: "pop",
+      name: "Radio Pop",
+      genre: "Pop / Modern",
       bpm: 120,
-      emoji: '✨',
-      tagline: 'Anthem guitar chords, driving bass & melodic punch',
-      instruments: ['Pop Keys', 'Punch Bass', 'Modern Kit', 'Arp Synth'],
-      gradient: 'linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(15, 23, 42, 0.95))',
+      emoji: "✨",
+      tagline: "Anthem guitar chords, driving bass & melodic punch",
+      instruments: ["Pop Keys", "Punch Bass", "Modern Kit", "Arp Synth"],
+      gradient:
+        "linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'afrobeats',
-      name: 'Lagos Sunset',
-      genre: 'Afrobeats / Afro-Fusion',
+      id: "afrobeats",
+      name: "Lagos Sunset",
+      genre: "Afrobeats / Afro-Fusion",
       bpm: 104,
-      emoji: '🌴',
-      tagline: 'Bouncing log-drum sub, bright plucks & shaker groove',
-      instruments: ['Log Drum', 'Island Pluck', 'Shaker', 'Bright Sub'],
-      gradient: 'linear-gradient(135deg, rgba(250, 204, 21, 0.25), rgba(15, 23, 42, 0.95))',
+      emoji: "🌴",
+      tagline: "Bouncing log-drum sub, bright plucks & shaker groove",
+      instruments: ["Log Drum", "Island Pluck", "Shaker", "Bright Sub"],
+      gradient:
+        "linear-gradient(135deg, rgba(250, 204, 21, 0.25), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'synthwave',
-      name: 'Neon Highway',
-      genre: 'Synthwave / Retrowave',
+      id: "synthwave",
+      name: "Neon Highway",
+      genre: "Synthwave / Retrowave",
       bpm: 112,
-      emoji: '🌆',
-      tagline: 'Analog arps, gated pads & pulsing retro drive',
-      instruments: ['Analog Arp', 'Gated Pad', 'Pulse 808', 'Retro Kit'],
-      gradient: 'linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(15, 23, 42, 0.95))',
+      emoji: "🌆",
+      tagline: "Analog arps, gated pads & pulsing retro drive",
+      instruments: ["Analog Arp", "Gated Pad", "Pulse 808", "Retro Kit"],
+      gradient:
+        "linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'boombap',
-      name: 'Golden Era',
-      genre: 'Boom Bap / Hip-Hop',
+      id: "boombap",
+      name: "Golden Era",
+      genre: "Boom Bap / Hip-Hop",
       bpm: 90,
-      emoji: '🥁',
-      tagline: 'Dusty swung breaks, chopped Rhodes & upright bass',
-      instruments: ['Chopped Rhodes', 'Upright Bass', 'Dusty Breaks'],
-      gradient: 'linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(15, 23, 42, 0.95))',
+      emoji: "🥁",
+      tagline: "Dusty swung breaks, chopped Rhodes & upright bass",
+      instruments: ["Chopped Rhodes", "Upright Bass", "Dusty Breaks"],
+      gradient:
+        "linear-gradient(135deg, rgba(217, 119, 6, 0.25), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'reggaeton',
-      name: 'Perreo Heat',
-      genre: 'Reggaeton / Latin',
+      id: "reggaeton",
+      name: "Perreo Heat",
+      genre: "Reggaeton / Latin",
       bpm: 94,
-      emoji: '💃',
-      tagline: 'Dembow riddim, marimba plucks & deep perreo sub',
-      instruments: ['Dembow Kit', 'Marimba Pluck', 'Perreo Sub'],
-      gradient: 'linear-gradient(135deg, rgba(244, 63, 94, 0.25), rgba(15, 23, 42, 0.95))',
+      emoji: "💃",
+      tagline: "Dembow riddim, marimba plucks & deep perreo sub",
+      instruments: ["Dembow Kit", "Marimba Pluck", "Perreo Sub"],
+      gradient:
+        "linear-gradient(135deg, rgba(244, 63, 94, 0.25), rgba(15, 23, 42, 0.95))",
     },
   ];
 
   readonly chordMoods: QuickChordMood[] = [
     {
-      id: 'dark',
-      label: 'Dark & Emotional',
-      mood: 'Melancholic / Trap',
-      key: 'C Minor',
-      progression: ['i', 'VI', 'III', 'VII'],
-      emoji: '🌑',
+      id: "dark",
+      label: "Dark & Emotional",
+      mood: "Melancholic / Trap",
+      key: "C Minor",
+      progression: ["i", "VI", "III", "VII"],
+      emoji: "🌑",
     },
     {
-      id: 'uplifting',
-      label: 'Uplifting Anthem',
-      mood: 'Hopeful / Pop',
-      key: 'G Major',
-      progression: ['I', 'V', 'vi', 'IV'],
-      emoji: '☀️',
+      id: "uplifting",
+      label: "Uplifting Anthem",
+      mood: "Hopeful / Pop",
+      key: "G Major",
+      progression: ["I", "V", "vi", "IV"],
+      emoji: "☀️",
     },
     {
-      id: 'neo-soul',
-      label: 'Neo-Soul & Jazz',
-      mood: 'Smooth / Complex',
-      key: 'F Minor',
-      progression: ['i7', 'iv7', 'v7', 'VImaj7'],
-      emoji: '🎷',
+      id: "neo-soul",
+      label: "Neo-Soul & Jazz",
+      mood: "Smooth / Complex",
+      key: "F Minor",
+      progression: ["i7", "iv7", "v7", "VImaj7"],
+      emoji: "🎷",
     },
     {
-      id: 'nostalgia',
-      label: 'Late Night Chill',
-      mood: 'Dreamy / Lo-Fi',
-      key: 'Eb Major',
-      progression: ['IVmaj7', 'iii7', 'ii7', 'Imaj7'],
-      emoji: '🌌',
+      id: "nostalgia",
+      label: "Late Night Chill",
+      mood: "Dreamy / Lo-Fi",
+      key: "Eb Major",
+      progression: ["IVmaj7", "iii7", "ii7", "Imaj7"],
+      emoji: "🌌",
     },
     {
-      id: 'cinematic',
-      label: 'Cinematic Drama',
-      mood: 'Epic / Score',
-      key: 'D Minor',
-      progression: ['i', 'VI', 'iv', 'V'],
-      emoji: '🎬',
+      id: "cinematic",
+      label: "Cinematic Drama",
+      mood: "Epic / Score",
+      key: "D Minor",
+      progression: ["i", "VI", "iv", "V"],
+      emoji: "🎬",
     },
     {
-      id: 'gospel',
-      label: 'Gospel & Soul',
-      mood: 'Uplifting / Church',
-      key: 'Ab Major',
-      progression: ['I', 'vi', 'ii7', 'V7'],
-      emoji: '🙌',
+      id: "gospel",
+      label: "Gospel & Soul",
+      mood: "Uplifting / Church",
+      key: "Ab Major",
+      progression: ["I", "vi", "ii7", "V7"],
+      emoji: "🙌",
     },
     {
-      id: 'cyberpunk',
-      label: 'Cyberpunk Grit',
-      mood: 'Dystopian / Dark Synth',
-      key: 'F# Minor',
-      progression: ['i', 'VI', 'III', 'iv'],
-      emoji: '🤖',
+      id: "cyberpunk",
+      label: "Cyberpunk Grit",
+      mood: "Dystopian / Dark Synth",
+      key: "F# Minor",
+      progression: ["i", "VI", "III", "iv"],
+      emoji: "🤖",
     },
   ];
 
   readonly vocalPresets: VocalPreset[] = [
     {
-      id: 'modern-autopitch',
-      name: 'Modern Auto-Pitch',
-      category: 'Trap / Pop',
-      emoji: '🎯',
-      tagline: 'Hard-tuned, snappy doubles for hooks and ad-libs',
-      chain: ['Hard Auto-Pitch', 'Fast Retune', 'Air EQ', 'Doubler'],
-      gradient: 'linear-gradient(135deg, rgba(0, 240, 255, 0.22), rgba(15, 23, 42, 0.95))',
+      id: "modern-autopitch",
+      name: "Modern Auto-Pitch",
+      category: "Trap / Pop",
+      emoji: "🎯",
+      tagline: "Hard-tuned, snappy doubles for hooks and ad-libs",
+      chain: ["Hard Auto-Pitch", "Fast Retune", "Air EQ", "Doubler"],
+      gradient:
+        "linear-gradient(135deg, rgba(0, 240, 255, 0.22), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'vintage-tube',
-      name: 'Warm Vintage Tube',
-      category: 'Soul / R&B',
-      emoji: '🎛️',
-      tagline: 'Tube saturation, tape warmth & silky compression',
-      chain: ['Tube Pre', 'Tape Saturation', 'Opto Comp', 'Soft De-Esser'],
-      gradient: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(15, 23, 42, 0.95))',
+      id: "vintage-tube",
+      name: "Warm Vintage Tube",
+      category: "Soul / R&B",
+      emoji: "🎛️",
+      tagline: "Tube saturation, tape warmth & silky compression",
+      chain: ["Tube Pre", "Tape Saturation", "Opto Comp", "Soft De-Esser"],
+      gradient:
+        "linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'crisp-radio',
-      name: 'Crisp Radio Lead',
-      category: 'Pop / Radio',
-      emoji: '📻',
-      tagline: 'Polished lead vocal, bright top end & upfront presence',
-      chain: ['Clean Pre', 'Presence EQ', 'Fast Comp', 'Plate Reverb'],
-      gradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(15, 23, 42, 0.95))',
+      id: "crisp-radio",
+      name: "Crisp Radio Lead",
+      category: "Pop / Radio",
+      emoji: "📻",
+      tagline: "Polished lead vocal, bright top end & upfront presence",
+      chain: ["Clean Pre", "Presence EQ", "Fast Comp", "Plate Reverb"],
+      gradient:
+        "linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'lofi-telephone',
-      name: 'Lo-Fi Telephone',
-      category: 'Lo-Fi / Texture',
-      emoji: '☎️',
-      tagline: 'Band-limited phone tone with vinyl grit and wobble',
-      chain: ['Band-Pass Filter', 'Bit Crush', 'Vinyl Noise', 'Tape Wow'],
-      gradient: 'linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(15, 23, 42, 0.95))',
+      id: "lofi-telephone",
+      name: "Lo-Fi Telephone",
+      category: "Lo-Fi / Texture",
+      emoji: "☎️",
+      tagline: "Band-limited phone tone with vinyl grit and wobble",
+      chain: ["Band-Pass Filter", "Bit Crush", "Vinyl Noise", "Tape Wow"],
+      gradient:
+        "linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(15, 23, 42, 0.95))",
     },
     {
-      id: 'ethereal-space',
-      name: 'Ethereal Space Reverb',
-      category: 'Ambient / Dream',
-      emoji: '🌫️',
-      tagline: 'Huge shimmer tails and floating stereo expanse',
-      chain: ['Shimmer Verb', 'Wide Chorus', 'Long Delay', 'Duck Bed'],
-      gradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(15, 23, 42, 0.95))',
+      id: "ethereal-space",
+      name: "Ethereal Space Reverb",
+      category: "Ambient / Dream",
+      emoji: "🌫️",
+      tagline: "Huge shimmer tails and floating stereo expanse",
+      chain: ["Shimmer Verb", "Wide Chorus", "Long Delay", "Duck Bed"],
+      gradient:
+        "linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(15, 23, 42, 0.95))",
     },
   ];
 
@@ -555,7 +591,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
     const dx = touch.clientX - this.swipeStartX;
     const dy = touch.clientY - this.swipeStartY;
     // Horizontal intent only: a vertical flick belongs to the scroller, not the tabs.
-    if (Math.abs(dx) < this.swipeThreshold || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (Math.abs(dx) < this.swipeThreshold || Math.abs(dx) < Math.abs(dy) * 1.5)
+      return;
     this.stepTab(dx < 0 ? 1 : -1);
   }
 
@@ -607,7 +644,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
    */
   private dragDismisses(distance: number, elapsedMs: number): boolean {
     if (distance >= this.dragDismissThreshold) return true;
-    if (elapsedMs < this.flickMinDurationMs || distance < this.flickMinDistance) return false;
+    if (elapsedMs < this.flickMinDurationMs || distance < this.flickMinDistance)
+      return false;
     return distance / elapsedMs >= this.flickVelocity;
   }
 
@@ -621,12 +659,15 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.haptic.medium();
     this.audioEngine.resume();
     this.lastStarterId.set(starter.id);
-    this.rememberUse(RECENT_PREFIX.Pack + starter.id, { lastStarterId: starter.id });
+    this.rememberUse(RECENT_PREFIX.Pack + starter.id, {
+      lastStarterId: starter.id,
+    });
 
     // Match starter id or bpm to curated recipes in IdeasGeneratorService
     const recipe =
-      this.ideas.recipes.find((r) => r.id === starter.id || r.name.toLowerCase().includes(starter.id)) ||
-      this.ideas.recommend(starter.bpm);
+      this.ideas.recipes.find(
+        (r) => r.id === starter.id || r.name.toLowerCase().includes(starter.id),
+      ) || this.ideas.recommend(starter.bpm);
 
     this.musicManager.applyGeneratedRecipe(recipe);
     this.audioEngine.tempo.set(starter.bpm);
@@ -638,8 +679,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
       // AudioContext resumed, playback triggered
     }
 
-    this.snackbar.success(`Loaded ${starter.name} (${starter.bpm} BPM) — Ready to Jam!`);
-    this.navigateToView.emit('arrangement');
+    this.snackbar.success(
+      `Loaded ${starter.name} (${starter.bpm} BPM) — Ready to Jam!`,
+    );
+    this.navigateToView.emit("arrangement");
     this.closeSheet.emit();
   }
 
@@ -648,21 +691,23 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.audioEngine.resume();
 
     // Ensure a vocal track exists
-    const hasVocalTrack = this.musicManager.tracks().some((t) => t.name.toLowerCase().includes('vocal'));
+    const hasVocalTrack = this.musicManager
+      .tracks()
+      .some((t) => t.name.toLowerCase().includes("vocal"));
     if (!hasVocalTrack) {
-      this.musicManager.addTrack('Lead Vocals', 'grand-piano');
+      this.musicManager.addTrack("Lead Vocals", "grand-piano");
     }
 
-    this.snackbar.info('Vocal Booth Armed — Mic check ready!');
-    this.navigateToView.emit('vocal-suite');
+    this.snackbar.info("Vocal Booth Armed — Mic check ready!");
+    this.navigateToView.emit("vocal-suite");
     this.closeSheet.emit();
   }
 
   setupAudioRecorder(): void {
     this.haptic.light();
     this.audioEngine.resume();
-    this.snackbar.info('Voice Recorder Ready — Tap record to capture ideas');
-    this.navigateToView.emit('audio-recorder');
+    this.snackbar.info("Voice Recorder Ready — Tap record to capture ideas");
+    this.navigateToView.emit("audio-recorder");
     this.closeSheet.emit();
   }
 
@@ -671,17 +716,19 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.haptic.medium();
     this.audioEngine.resume();
     this.lastVocalPresetId.set(preset.id);
-    this.rememberUse(RECENT_PREFIX.Vocal + preset.id, { lastVocalPresetId: preset.id });
+    this.rememberUse(RECENT_PREFIX.Vocal + preset.id, {
+      lastVocalPresetId: preset.id,
+    });
 
     const hasVocalTrack = this.musicManager
       .tracks()
-      .some((t) => t.name.toLowerCase().includes('vocal'));
+      .some((t) => t.name.toLowerCase().includes("vocal"));
     if (!hasVocalTrack) {
-      this.musicManager.addTrack('Lead Vocals', 'grand-piano');
+      this.musicManager.addTrack("Lead Vocals", "grand-piano");
     }
 
-    this.snackbar.success(`${preset.name} armed — ${preset.chain.join(' · ')}`);
-    this.navigateToView.emit('vocal-suite');
+    this.snackbar.success(`${preset.name} armed — ${preset.chain.join(" · ")}`);
+    this.navigateToView.emit("vocal-suite");
     this.closeSheet.emit();
   }
 
@@ -689,25 +736,30 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.haptic.medium();
     this.audioEngine.resume();
     this.lastChordMoodId.set(mood.id);
-    this.rememberUse(RECENT_PREFIX.Chords + mood.id, { lastChordMoodId: mood.id });
+    this.rememberUse(RECENT_PREFIX.Chords + mood.id, {
+      lastChordMoodId: mood.id,
+    });
 
     // Generate predictive chord progression notes
     const { notes } = this.ideas.generatePredictiveNotes({
-      key: mood.key.split(' ')[0],
-      scale: mood.key.toLowerCase().includes('minor') ? 'minor' : 'major',
+      key: mood.key.split(" ")[0],
+      scale: mood.key.toLowerCase().includes("minor") ? "minor" : "major",
       genre: mood.id,
       barCount: 4,
     });
 
     if (notes.length > 0) {
       // Find or add a keys track
-      let keysTrack = this.musicManager.tracks().find((t) =>
-        t.name.toLowerCase().includes('keys') ||
-        t.name.toLowerCase().includes('piano') ||
-        t.name.toLowerCase().includes('chord')
-      );
+      let keysTrack = this.musicManager
+        .tracks()
+        .find(
+          (t) =>
+            t.name.toLowerCase().includes("keys") ||
+            t.name.toLowerCase().includes("piano") ||
+            t.name.toLowerCase().includes("chord"),
+        );
       if (!keysTrack) {
-        const trackId = this.musicManager.addTrack('Chords', 'grand-piano');
+        const trackId = this.musicManager.addTrack("Chords", "grand-piano");
         keysTrack = this.musicManager.tracks().find((t) => t.id === trackId);
       }
 
@@ -720,35 +772,37 @@ export class SmartCreationSheetComponent implements OnDestroy {
           velocity: n.velocity,
         }));
         this.musicManager.replaceTrackNotes(keysTrack.id, trackNotes);
-        this.snackbar.success(`Injected ${mood.label} chords into ${keysTrack.name}!`);
+        this.snackbar.success(
+          `Injected ${mood.label} chords into ${keysTrack.name}!`,
+        );
       }
     }
 
-    this.navigateToView.emit('piano-roll');
+    this.navigateToView.emit("piano-roll");
     this.closeSheet.emit();
   }
 
   openChordEditor(): void {
     this.haptic.light();
-    this.navigateToView.emit('chord-editor');
+    this.navigateToView.emit("chord-editor");
     this.closeSheet.emit();
   }
 
   openAiProduce(): void {
     this.haptic.light();
-    this.navigateToView.emit('ai-produce');
+    this.navigateToView.emit("ai-produce");
     this.closeSheet.emit();
   }
 
   openDrumMachine(): void {
     this.haptic.light();
-    this.navigateToView.emit('drum-machine');
+    this.navigateToView.emit("drum-machine");
     this.closeSheet.emit();
   }
 
   openPianoRoll(): void {
     this.haptic.light();
-    this.navigateToView.emit('piano-roll');
+    this.navigateToView.emit("piano-roll");
     this.closeSheet.emit();
   }
 }

@@ -51,7 +51,9 @@ export function buildZip(entries: ZipEntry[]): Blob {
 
   const now = new Date();
   const dosTime =
-    ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) &
+    ((now.getHours() << 11) |
+      (now.getMinutes() << 5) |
+      (now.getSeconds() >> 1)) &
     0xffff;
   const dosDate =
     (((now.getFullYear() - 1980) << 9) |
@@ -121,5 +123,5 @@ export function buildZip(entries: ZipEntry[]): Blob {
   const all = concatBytes([...localParts, centralDir, eocd]);
   // concatBytes allocates an exact-size buffer, so .buffer is the full archive
   // (cast through ArrayBuffer for TS 5.9's generic typed-array types).
-  return new Blob([all.buffer as ArrayBuffer], { type: 'application/zip' });
+  return new Blob([all.buffer as ArrayBuffer], { type: "application/zip" });
 }

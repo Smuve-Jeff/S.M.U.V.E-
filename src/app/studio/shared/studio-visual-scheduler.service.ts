@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy } from "@angular/core";
 
 export interface StudioVisualTaskOptions {
   /** Maximum refresh rate for this task. Values are clamped to 8–60 Hz. */
@@ -21,7 +21,7 @@ type VisualTask = {
  * unsubscribe function. The loop stops when the final task is removed, which
  * keeps hidden/lazy workspaces from burning frames in the background.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class StudioVisualSchedulerService implements OnDestroy {
   private readonly tasks = new Map<number, VisualTask>();
   private nextId = 1;
@@ -74,7 +74,7 @@ export class StudioVisualSchedulerService implements OnDestroy {
   private ensureLoop(): void {
     if (this.frame !== null || this.tasks.size === 0) return;
     const raf = globalThis.requestAnimationFrame;
-    if (typeof raf !== 'function') return;
+    if (typeof raf !== "function") return;
     this.frame = raf.call(globalThis, (timestamp: number) => {
       this.frame = null;
       this.runDueTasks(timestamp);
@@ -97,12 +97,12 @@ export class StudioVisualSchedulerService implements OnDestroy {
   private stopLoop(): void {
     if (this.frame === null) return;
     const cancel = globalThis.cancelAnimationFrame;
-    if (typeof cancel === 'function') cancel.call(globalThis, this.frame);
+    if (typeof cancel === "function") cancel.call(globalThis, this.frame);
     this.frame = null;
   }
 
   private now(): number {
-    return typeof performance !== 'undefined' && performance.now
+    return typeof performance !== "undefined" && performance.now
       ? performance.now()
       : Date.now();
   }

@@ -63,7 +63,7 @@ function noteOn(channel: number, note: number, velocity: number): number[] {
 function noteOff(
   channel: number,
   note: number,
-  velocity: number = 64
+  velocity: number = 64,
 ): number[] {
   return [0x80 | (channel & 0x0f), note & 0x7f, velocity & 0x7f];
 }
@@ -71,15 +71,6 @@ function noteOff(
 /** Program Change: status 0xC0 + channel */
 function programChange(channel: number, program: number): number[] {
   return [0xc0 | (channel & 0x0f), program & 0x7f];
-}
-
-/** Controller Change: status 0xB0 + channel */
-function controllerChange(
-  channel: number,
-  controller: number,
-  value: number
-): number[] {
-  return [0xb0 | (channel & 0x0f), controller & 0x7f, value & 0x7f];
 }
 
 // ─── Meta Event Builders ─────────────────────────────────────
@@ -122,7 +113,7 @@ function metaTempo(bpm: number): number[] {
 
 function metaTimeSignature(
   numerator: number,
-  denominatorPowerOf2: number = 2
+  denominatorPowerOf2: number = 2,
 ): number[] {
   // denominatorPowerOf2: 2 = quarter note (since 2^2=4)
   return [
@@ -150,7 +141,7 @@ function buildTrackEvents(
   name: string,
   notes: MidiNoteEvent[],
   channel: number,
-  program?: number
+  program?: number,
 ): number[] {
   const events: number[] = [];
 
@@ -174,7 +165,7 @@ function buildTrackEvents(
   // Build a timeline of events.
   interface TimedEvent {
     tick: number;
-    type: 'on' | 'off';
+    type: "on" | "off";
     note: number;
     velocity: number;
   }
@@ -185,20 +176,20 @@ function buildTrackEvents(
     if (n.velocity > 0) {
       timeline.push({
         tick: n.startTick,
-        type: 'on',
+        type: "on",
         note: n.note,
         velocity: n.velocity,
       });
     }
     const endTick = n.startTick + Math.max(1, n.durationTicks);
-    timeline.push({ tick: endTick, type: 'off', note: n.note, velocity: 64 });
+    timeline.push({ tick: endTick, type: "off", note: n.note, velocity: 64 });
   }
 
   // Sort by tick, then off before on at same tick
   timeline.sort((a, b) => {
     if (a.tick !== b.tick) return a.tick - b.tick;
     // off before on at same tick
-    if (a.type !== b.type) return a.type === 'off' ? -1 : 1;
+    if (a.type !== b.type) return a.type === "off" ? -1 : 1;
     return 0;
   });
 
@@ -207,7 +198,7 @@ function buildTrackEvents(
   for (const evt of timeline) {
     const delta = evt.tick - lastTick;
     writeVLQToArray(events, delta);
-    if (evt.type === 'on') {
+    if (evt.type === "on") {
       events.push(...noteOn(channel, evt.note, evt.velocity));
     } else {
       events.push(...noteOff(channel, evt.note, 64));
@@ -227,7 +218,7 @@ function buildTrackEvents(
  */
 function buildConductorTrackEvents(
   sequenceName: string,
-  bpm: number
+  bpm: number,
 ): number[] {
   const events: number[] = [];
 
@@ -264,7 +255,7 @@ export class MidiWriter {
   static toArrayBuffer(
     tracks: MidiTrackData[],
     bpm: number = 120,
-    sequenceName: string = 'S.M.U.V.E Project'
+    sequenceName: string = "S.M.U.V.E Project",
   ): ArrayBuffer {
     const numTracks = tracks.length + 1; // +1 for conductor track
     const format = 1;
@@ -281,7 +272,7 @@ export class MidiWriter {
         track.name,
         track.notes,
         channel,
-        track.program
+        track.program,
       );
       trackChunks.push(buildTrackChunkBytes(evts));
     });
@@ -310,7 +301,7 @@ export class MidiWriter {
   static tickToSeconds(
     tick: number,
     bpm: number,
-    ticksPerBeat: number = TICKS_PER_BEAT
+    ticksPerBeat: number = TICKS_PER_BEAT,
   ): number {
     const beatsPerSecond = bpm / 60;
     const ticksPerSecond = beatsPerSecond * ticksPerBeat;
@@ -323,7 +314,7 @@ export class MidiWriter {
 function buildHeaderBytes(
   format: number,
   numTracks: number,
-  division: number
+  division: number,
 ): Uint8Array {
   const buf = new ArrayBuffer(14);
   const view = new DataView(buf);

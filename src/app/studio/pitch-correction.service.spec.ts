@@ -1,9 +1,9 @@
-import { TestBed } from '@angular/core/testing';
-import { PitchCorrectionService } from './pitch-correction.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { LoggingService } from '../services/logging.service';
+import { TestBed } from "@angular/core/testing";
+import { PitchCorrectionService } from "./pitch-correction.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { LoggingService } from "../services/logging.service";
 
-describe('PitchCorrectionService', () => {
+describe("PitchCorrectionService", () => {
   let service: PitchCorrectionService;
   let audioCtxMock: any;
 
@@ -36,61 +36,61 @@ describe('PitchCorrectionService', () => {
     service = TestBed.inject(PitchCorrectionService);
   });
 
-  it('should create with default state', () => {
+  it("should create with default state", () => {
     expect(service.enabled()).toBe(false);
     expect(service.amount()).toBe(0.5);
     expect(service.retuneSpeed()).toBe(0.1);
-    expect(service.scale()).toBe('C Major');
+    expect(service.scale()).toBe("C Major");
   });
 
   it('should parse "C Major" correctly', () => {
     const params = service.getProcessingParams();
-    expect(params.scale).toBe('C Major');
+    expect(params.scale).toBe("C Major");
   });
 
   it('should parse "D Minor" scale', () => {
-    service.scale.set('D Minor');
+    service.scale.set("D Minor");
     const params = service.getProcessingParams();
-    expect(params.scale).toBe('D Minor');
+    expect(params.scale).toBe("D Minor");
   });
 
   it('should parse "F# Major" scale', () => {
-    service.scale.set('F# Major');
+    service.scale.set("F# Major");
     const params = service.getProcessingParams();
-    expect(params.scale).toBe('F# Major');
+    expect(params.scale).toBe("F# Major");
   });
 
   it('should parse "Bb Harmonic Minor" scale', () => {
-    service.scale.set('Bb Harmonic Minor');
+    service.scale.set("Bb Harmonic Minor");
     const params = service.getProcessingParams();
-    expect(params.scale).toBe('Bb Harmonic Minor');
+    expect(params.scale).toBe("Bb Harmonic Minor");
   });
 
   it('should parse "Gb Dorian" scale', () => {
-    service.scale.set('Gb Dorian');
+    service.scale.set("Gb Dorian");
     const params = service.getProcessingParams();
-    expect(params.scale).toBe('Gb Dorian');
+    expect(params.scale).toBe("Gb Dorian");
   });
 
-  it('should fall back to C Major on garbage scale', () => {
-    service.scale.set('GARBAGE');
+  it("should fall back to C Major on garbage scale", () => {
+    service.scale.set("GARBAGE");
     const params = service.getProcessingParams();
     // scale signal holds the raw value, but processing defaults to Major
-    expect(params.scale).toBe('GARBAGE');
+    expect(params.scale).toBe("GARBAGE");
   });
 
-  it('should fall back to C Major on empty scale', () => {
-    service.scale.set('');
+  it("should fall back to C Major on empty scale", () => {
+    service.scale.set("");
     const params = service.getProcessingParams();
-    expect(params.scale).toBe('');
+    expect(params.scale).toBe("");
   });
 
-  it('should return null from insertIntoChain on invalid source', async () => {
+  it("should return null from insertIntoChain on invalid source", async () => {
     const result = await service.insertIntoChain(null as any);
     expect(result).toBeNull();
   });
 
-  it('should insert into a valid AudioNode chain', async () => {
+  it("should insert into a valid AudioNode chain", async () => {
     const mockSrc = {
       connect: jest.fn(),
       disconnect: jest.fn(),

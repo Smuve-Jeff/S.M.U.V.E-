@@ -1,5 +1,5 @@
-import { DjMidiService } from '../../services/dj-midi.service';
-import { HapticService } from '../../services/haptic.service';
+import { DjMidiService } from "../../services/dj-midi.service";
+import { HapticService } from "../../services/haptic.service";
 import {
   Component,
   ChangeDetectionStrategy,
@@ -14,21 +14,21 @@ import {
   ElementRef,
   AfterViewInit,
   HostListener,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { AppTheme, Stems } from '../../services/user-context.service';
-import { FileLoaderService } from '../../services/file-loader.service';
-import { ExportService } from '../../services/export.service';
-import { LibraryService } from '../../services/library.service';
-import { FormsModule } from '@angular/forms';
-import { DeckService } from '../../services/deck.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { DatabaseService } from '../../services/database.service';
-import { UIService } from '../../services/ui.service';
-import { UserProfileService } from '../../services/user-profile.service';
-import { AiService } from '../../services/ai.service';
-import { RecordingStatusService } from '../recording-status.service';
-import { SwipeContainerComponent } from '../shared/swipe-container/swipe-container.component';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { AppTheme, Stems } from "../../services/user-context.service";
+import { FileLoaderService } from "../../services/file-loader.service";
+import { ExportService } from "../../services/export.service";
+import { LibraryService } from "../../services/library.service";
+import { FormsModule } from "@angular/forms";
+import { DeckService } from "../../services/deck.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { DatabaseService } from "../../services/database.service";
+import { UIService } from "../../services/ui.service";
+import { UserProfileService } from "../../services/user-profile.service";
+import { AiService } from "../../services/ai.service";
+import { RecordingStatusService } from "../recording-status.service";
+import { SwipeContainerComponent } from "../shared/swipe-container/swipe-container.component";
 
 const RECORDING_TIMER_UPDATE_INTERVAL_MILLIS = 250;
 const MIN_ROLL_INTERVAL_MILLIS = 50;
@@ -90,69 +90,69 @@ const TONEARM_TRAVEL_START = 0.05;
 const TONEARM_TRAVEL_END = 0.95;
 /** Rotary controls backed by the deck/key lock-free parameter set. */
 export type DjKnobParam =
-  | 'eqHigh'
-  | 'eqMid'
-  | 'eqLow'
-  | 'filter'
-  | 'gain'
-  | 'fxAmount'
-  | 'master'
-  | 'drive';
+  | "eqHigh"
+  | "eqMid"
+  | "eqLow"
+  | "filter"
+  | "gain"
+  | "fxAmount"
+  | "master"
+  | "drive";
 
 type KnobDrag = {
   param: DjKnobParam;
-  deck: 'A' | 'B';
+  deck: "A" | "B";
   startY: number;
   startNormalized: number;
   fine: boolean;
 };
 
 @Component({
-  selector: 'app-dj-deck',
-  templateUrl: './dj-deck.component.html',
+  selector: "app-dj-deck",
+  templateUrl: "./dj-deck.component.html",
   styleUrls: [
-    './dj-deck.component.css',
+    "./dj-deck.component.css",
     /* Console-grade DJ booth + mixer polish shared with app-mixer.
        Registered here (not in studio.component.css) because Angular's
        emulated encapsulation scopes each stylesheet to its own
        component's template — a parent stylesheet can never reach
        these elements. Component-specific booth layer stays last so it
        wins styling ties. */
-    '../subcomponent-refinement.css',
-    './dj-booth-refinement.css',
-    '../shared/platform-ux.css',
+    "../subcomponent-refinement.css",
+    "./dj-booth-refinement.css",
+    "../shared/platform-ux.css",
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [CommonModule, FormsModule, SwipeContainerComponent],
 })
 export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
-  samplerCategory = signal<'drums' | 'fx' | 'vocals'>('drums');
+  samplerCategory = signal<"drums" | "fx" | "vocals">("drums");
   fxMode = signal<
-    'autowah' | 'echo' | 'damp' | 'reverb' | 'chorus' | 'phaser' | 'rotate'
-  >('echo');
+    "autowah" | "echo" | "damp" | "reverb" | "chorus" | "phaser" | "rotate"
+  >("echo");
   readonly fxModes: Array<{
-    id: 'autowah' | 'echo' | 'damp' | 'reverb' | 'chorus' | 'phaser' | 'rotate';
+    id: "autowah" | "echo" | "damp" | "reverb" | "chorus" | "phaser" | "rotate";
     label: string;
   }> = [
-    { id: 'autowah', label: 'AUTO WAH' },
-    { id: 'echo', label: 'ECHO' },
-    { id: 'damp', label: 'DAMP' },
-    { id: 'reverb', label: 'REVERB' },
-    { id: 'chorus', label: 'CHORUS' },
-    { id: 'phaser', label: 'PHASER' },
-    { id: 'rotate', label: 'ROTATE' },
+    { id: "autowah", label: "AUTO WAH" },
+    { id: "echo", label: "ECHO" },
+    { id: "damp", label: "DAMP" },
+    { id: "reverb", label: "REVERB" },
+    { id: "chorus", label: "CHORUS" },
+    { id: "phaser", label: "PHASER" },
+    { id: "rotate", label: "ROTATE" },
   ];
   readonly samplePackOptions = Array.from({ length: 27 }, (_, index) => ({
     id: `pack-${index + 1}`,
     label: `Pack ${index + 1}`,
   }));
-  activeSamplePack = signal('pack-1');
+  activeSamplePack = signal("pack-1");
   private djMidiService = inject(DjMidiService);
-  @ViewChild('waveformA') waveformA!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('waveformB') waveformB!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('meterA') meterA!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('meterB') meterB!: ElementRef<HTMLCanvasElement>;
+  @ViewChild("waveformA") waveformA!: ElementRef<HTMLCanvasElement>;
+  @ViewChild("waveformB") waveformB!: ElementRef<HTMLCanvasElement>;
+  @ViewChild("meterA") meterA!: ElementRef<HTMLCanvasElement>;
+  @ViewChild("meterB") meterB!: ElementRef<HTMLCanvasElement>;
 
   private neuralOrchestrator = inject(AiService);
   theme = input<AppTheme>(inject(UIService).activeTheme());
@@ -163,9 +163,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   isMobile = signal(false);
 
   hasNeuralStemSplitter = computed(() =>
-    this.neuralOrchestrator.isUnlocked('upg-neural-stem-splitter')
+    this.neuralOrchestrator.isUnlocked("upg-neural-stem-splitter"),
   );
-  stems = ['vocals', 'drums', 'bass', 'instrumental'];
+  stems = ["vocals", "drums", "bass", "instrumental"];
 
   rotationA = signal(0);
   rotationB = signal(0);
@@ -177,27 +177,29 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Master tube-drive amount (the DRIVE knob owns this; the engine mirrors it). */
   saturation = signal(0.1);
   /** Motor speed per deck — a real turntable runs at 33⅓ or 45 RPM. */
-  platterRpm = signal<Record<'A' | 'B', 33 | 45>>({ A: 33, B: 45 });
+  platterRpm = signal<Record<"A" | "B", 33 | 45>>({ A: 33, B: 45 });
   /** Visual record momentum (deg/s) carried out of a scratch release. */
-  platterSpin = signal<Record<'A' | 'B', number>>({ A: 0, B: 0 });
+  platterSpin = signal<Record<"A" | "B", number>>({ A: 0, B: 0 });
   /** Deck whose tonearm is currently being dragged to the groove. */
-  tonearmDragging = signal<'A' | 'B' | null>(null);
+  tonearmDragging = signal<"A" | "B" | null>(null);
   /** Rotary knob under the finger — drives the "engaged" highlight. */
-  activeKnob = signal<{ deck: 'A' | 'B'; param: DjKnobParam } | null>(null);
+  activeKnob = signal<{ deck: "A" | "B"; param: DjKnobParam } | null>(null);
   /**
    * Analog filter select per channel (HPF/LPF), mirroring a hardware switch.
    * Derived from the deck state rather than kept in a second signal, so the
    * switch can never disagree with the engine about which filter is engaged.
    */
-  filterMode = computed<Record<'A' | 'B', 'lowpass' | 'highpass'>>(() => {
-    const mode = (deck: 'A' | 'B') =>
-      this.getDeckState(deck).filterMode === 'highpass' ? 'highpass' : 'lowpass';
-    return { A: mode('A'), B: mode('B') };
+  filterMode = computed<Record<"A" | "B", "lowpass" | "highpass">>(() => {
+    const mode = (deck: "A" | "B") =>
+      this.getDeckState(deck).filterMode === "highpass"
+        ? "highpass"
+        : "lowpass";
+    return { A: mode("A"), B: mode("B") };
   });
   /** Beat-quantized loop bounds, mirrored from the engine region for the UI. */
-  loopRegion = signal<
-    Record<'A' | 'B', { start: number; end: number } | null>
-  >({ A: null, B: null });
+  loopRegion = signal<Record<"A" | "B", { start: number; end: number } | null>>(
+    { A: null, B: null },
+  );
   precisionEqA = signal<number[]>(new Array(10).fill(1));
   precisionEqB = signal<number[]>(new Array(10).fill(1));
   currentBeat = this.engine.currentBeat;
@@ -210,9 +212,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   recording = signal(false);
   recordingElapsedMs = signal(0);
   recordingDurationLabel = computed(() =>
-    this.formatDuration(this.recordingElapsedMs())
+    this.formatDuration(this.recordingElapsedMs()),
   );
-  sessionNotice = signal('Ready to scratch, save, and export.');
+  sessionNotice = signal("Ready to scratch, save, and export.");
 
   private animFrame: number | null = null;
   private syncInterval: any = null;
@@ -225,25 +227,25 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private resizeHandle: ReturnType<typeof setTimeout> | null = null;
   private knobDrag: KnobDrag | null = null;
   private tonearmBounds: Record<
-    'A' | 'B',
+    "A" | "B",
     { left: number; width: number } | null
   > = { A: null, B: null };
   /** Off-screen whole-track peak strip, rebuilt once per loaded track. */
-  private waveformOverview: Record<'A' | 'B', HTMLCanvasElement | null> = {
+  private waveformOverview: Record<"A" | "B", HTMLCanvasElement | null> = {
     A: null,
     B: null,
   };
-  private waveformOverviewSource: Record<'A' | 'B', Float32Array | null> = {
+  private waveformOverviewSource: Record<"A" | "B", Float32Array | null> = {
     A: null,
     B: null,
   };
-  private meterPeak: Record<'A' | 'B', number> = { A: 0, B: 0 };
+  private meterPeak: Record<"A" | "B", number> = { A: 0, B: 0 };
   private cuePalette: string[] | null = null;
   private hostElement = inject(ElementRef<HTMLElement>);
   private haptics = inject(HapticService);
-  performanceMode = signal<'cue' | 'roll' | 'sampler'>('cue');
+  performanceMode = signal<"cue" | "roll" | "sampler">("cue");
   private tapTimes: { [key: string]: number[] } = { A: [], B: [] };
-  readonly rollPadLabels = ['1/8', '1/4', '1/2', '1', '2', '4', '8', '16'];
+  readonly rollPadLabels = ["1/8", "1/4", "1/2", "1", "2", "4", "8", "16"];
   readonly rollPadBeats = [0.125, 0.25, 0.5, 1, 2, 4, 8, 16];
   readonly samplerPadBeats = [0.25, 0.5, 1, 1, 2, 2, 4, 4];
 
@@ -268,13 +270,13 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   isFlatView = signal(false);
   private lastAngleA = 0;
   private lastAngleB = 0;
-  private platterCenters: Record<'A' | 'B', { x: number; y: number } | null> = {
+  private platterCenters: Record<"A" | "B", { x: number; y: number } | null> = {
     A: null,
     B: null,
   };
-  private wasPlaying: Record<'A' | 'B', boolean> = { A: false, B: false };
+  private wasPlaying: Record<"A" | "B", boolean> = { A: false, B: false };
   private rollState: Record<
-    'A' | 'B',
+    "A" | "B",
     {
       padIndex: number;
       origin: number;
@@ -285,10 +287,10 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       wasPlaying: boolean;
     } | null
   > = { A: null, B: null };
-  private rollIntervals: Record<'A' | 'B', any> = { A: null, B: null };
-  private samplerReturnTimers: Record<'A' | 'B', any> = { A: null, B: null };
+  private rollIntervals: Record<"A" | "B", any> = { A: null, B: null };
+  private samplerReturnTimers: Record<"A" | "B", any> = { A: null, B: null };
   /** Silence timers for a hand that has stopped moving the vinyl. */
-  private platterIdleTimers: Record<'A' | 'B', any> = { A: null, B: null };
+  private platterIdleTimers: Record<"A" | "B", any> = { A: null, B: null };
 
   public uiService = inject(UIService);
   private recordingStatus = inject(RecordingStatusService);
@@ -302,24 +304,24 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private applyDjSettings = effect(() => {
     const dj = this.profileService.profile().settings?.dj;
     if (!dj) return;
-    this.deckService.setXfCurve(dj.crossfaderCurve || 'power');
+    this.deckService.setXfCurve(dj.crossfaderCurve || "power");
     this.deckService.setHamster(!!dj.hamsterMode);
   });
   private databaseService = inject(DatabaseService);
 
   pitchAPercentage = computed(
-    () => `${(this.deckService.deckA().playbackRate * 100).toFixed(1)}%`
+    () => `${(this.deckService.deckA().playbackRate * 100).toFixed(1)}%`,
   );
   pitchBPercentage = computed(
-    () => `${(this.deckService.deckB().playbackRate * 100).toFixed(1)}%`
+    () => `${(this.deckService.deckB().playbackRate * 100).toFixed(1)}%`,
   );
-  deckATempo = computed(() => this.getEffectiveDeckBpm('A'));
-  deckBTempo = computed(() => this.getEffectiveDeckBpm('B'));
+  deckATempo = computed(() => this.getEffectiveDeckBpm("A"));
+  deckBTempo = computed(() => this.getEffectiveDeckBpm("B"));
   crossfadeMixA = computed(() =>
-    Math.round(((1 - this.deckService.crossfade()) / 2) * 100)
+    Math.round(((1 - this.deckService.crossfade()) / 2) * 100),
   );
   crossfadeMixB = computed(() =>
-    Math.round(((1 + this.deckService.crossfade()) / 2) * 100)
+    Math.round(((1 + this.deckService.crossfade()) / 2) * 100),
   );
 
   constructor(
@@ -327,7 +329,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     private exportService: ExportService,
     public library: LibraryService,
     public deckService: DeckService,
-    public engine: AudioEngineService
+    public engine: AudioEngineService,
   ) {}
 
   ngOnInit() {
@@ -346,12 +348,12 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.syncInterval) clearInterval(this.syncInterval);
     if (this.recordingInterval) clearInterval(this.recordingInterval);
     if (this.resizeHandle) clearTimeout(this.resizeHandle);
-    this.clearRollInterval('A');
-    this.clearRollInterval('B');
-    this.clearSamplerReturnTimer('A');
-    this.clearSamplerReturnTimer('B');
-    this.clearPlatterIdleTimer('A');
-    this.clearPlatterIdleTimer('B');
+    this.clearRollInterval("A");
+    this.clearRollInterval("B");
+    this.clearSamplerReturnTimer("A");
+    this.clearSamplerReturnTimer("B");
+    this.clearPlatterIdleTimer("A");
+    this.clearPlatterIdleTimer("B");
   }
 
   /**
@@ -360,7 +362,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * used to thrash timers and canvases mid-performance, so the work is
    * coalesced into a single trailing layout pass.
    */
-  @HostListener('window:resize')
+  @HostListener("window:resize")
   onResize() {
     if (this.resizeHandle) return;
     this.resizeHandle = setTimeout(() => {
@@ -373,7 +375,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private checkMobile() {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       this.isMobile.set(window.innerWidth < 1024);
     }
   }
@@ -410,7 +412,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * mid-range Android hardware.
    */
   private resizeCanvases() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
     const size = (canvas?: HTMLCanvasElement) => {
       if (!canvas) return;
@@ -488,19 +490,19 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const stateB = this.deckService.deckB();
     const rpm = this.platterRpm();
 
-    const motorSpeed = (deck: 'A' | 'B', rate: number) => {
+    const motorSpeed = (deck: "A" | "B", rate: number) => {
       if (rpm[deck] === 45) return PLATTER_DEG_PER_SEC_45;
       return PLATTER_DEG_PER_SEC_33 * Math.max(0.5, Math.min(2, rate || 1));
     };
 
     if (stateA.isPlaying && !this.isScratchingA()) {
       this.rotationA.update(
-        (r) => (r + motorSpeed('A', stateA.playbackRate) * seconds) % 360
+        (r) => (r + motorSpeed("A", stateA.playbackRate) * seconds) % 360,
       );
     }
     if (stateB.isPlaying && !this.isScratchingB()) {
       this.rotationB.update(
-        (r) => (r + motorSpeed('B', stateB.playbackRate) * seconds) % 360
+        (r) => (r + motorSpeed("B", stateB.playbackRate) * seconds) % 360,
       );
     }
     this.decayPlatterSpin(seconds);
@@ -525,8 +527,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private drawWaveforms() {
-    this.drawDeckWaveform('A', this.waveformA?.nativeElement);
-    this.drawDeckWaveform('B', this.waveformB?.nativeElement);
+    this.drawDeckWaveform("A", this.waveformA?.nativeElement);
+    this.drawDeckWaveform("B", this.waveformB?.nativeElement);
   }
 
   /**
@@ -536,10 +538,12 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private boothColor(name: string, fallback: string) {
     try {
       const host = this.hostElement?.nativeElement as HTMLElement | undefined;
-      if (!host || typeof window === 'undefined' || !window.getComputedStyle) {
+      if (!host || typeof window === "undefined" || !window.getComputedStyle) {
         return fallback;
       }
-      return window.getComputedStyle(host).getPropertyValue(name).trim() || fallback;
+      return (
+        window.getComputedStyle(host).getPropertyValue(name).trim() || fallback
+      );
     } catch {
       return fallback;
     }
@@ -549,17 +553,17 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private cueColors(): string[] {
     if (this.cuePalette) return this.cuePalette;
     const fallbacks = [
-      '#e5453c',
-      '#e08a34',
-      '#d9b23a',
-      '#7ab648',
-      '#3f9bd6',
-      '#8a6ad6',
-      '#d0529f',
-      '#9dbf46',
+      "#e5453c",
+      "#e08a34",
+      "#d9b23a",
+      "#7ab648",
+      "#3f9bd6",
+      "#8a6ad6",
+      "#d0529f",
+      "#9dbf46",
     ];
     this.cuePalette = fallbacks.map((fallback, index) =>
-      this.boothColor(`--cue-${index}`, fallback)
+      this.boothColor(`--cue-${index}`, fallback),
     );
     return this.cuePalette;
   }
@@ -570,8 +574,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * instead of scanning ~10⁵ raw samples every frame — the difference between a
    * smooth booth and a stuttering one on Android.
    */
-  private ensureWaveformOverview(deck: 'A' | 'B', data: Float32Array) {
-    if (!data.length || typeof document === 'undefined') return;
+  private ensureWaveformOverview(deck: "A" | "B", data: Float32Array) {
+    if (!data.length || typeof document === "undefined") return;
     if (
       this.waveformOverview[deck] &&
       this.waveformOverviewSource[deck] === data
@@ -580,18 +584,18 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     const columns = Math.max(
       1,
-      Math.min(WAVEFORM_OVERVIEW_COLUMNS, data.length)
+      Math.min(WAVEFORM_OVERVIEW_COLUMNS, data.length),
     );
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = columns;
     canvas.height = WAVEFORM_OVERVIEW_HEIGHT;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const mid = WAVEFORM_OVERVIEW_HEIGHT / 2;
     ctx.fillStyle = this.boothColor(
-      deck === 'A' ? '--vv-a' : '--vv-b',
-      deck === 'A' ? '#f0a24a' : '#3fae9c'
+      deck === "A" ? "--vv-a" : "--vv-b",
+      deck === "A" ? "#f0a24a" : "#3fae9c",
     );
     const step = data.length / columns;
     for (let col = 0; col < columns; col++) {
@@ -610,14 +614,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.waveformOverviewSource[deck] = data;
   }
 
-  private deckDuration(id: 'A' | 'B') {
+  private deckDuration(id: "A" | "B") {
     const progress = this.engine.getDeckProgress(id);
     return progress.duration || this.getDeckState(id).duration || 0;
   }
 
-  private drawDeckWaveform(id: 'A' | 'B', canvas: HTMLCanvasElement) {
+  private drawDeckWaveform(id: "A" | "B", canvas: HTMLCanvasElement) {
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const deck = this.getDeckState(id);
@@ -634,7 +638,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const position = progress.position;
 
     if (!data.length || !duration) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
       ctx.fillRect(0, mid - hairline / 2, width, hairline);
       return;
     }
@@ -657,7 +661,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
         0,
         0,
         width,
-        height
+        height,
       );
     }
 
@@ -666,7 +670,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (bpm > 0) {
       const beat = 60 / bpm;
       if (beat * pxPerSecond >= 12) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
         ctx.lineWidth = hairline;
         ctx.beginPath();
         const first = Math.ceil(windowStart / beat) * beat;
@@ -689,9 +693,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       const left = Math.max(0, xOf(loop.start));
       const right = Math.min(width, xOf(loop.end));
       if (right > left) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+        ctx.fillStyle = "rgba(255, 255, 255, 0.07)";
         ctx.fillRect(left, 0, right - left, height);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
         ctx.fillRect(left, 0, hairline, height);
         ctx.fillRect(right - hairline, 0, hairline, height);
       }
@@ -699,7 +703,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // 4. Played portion sink — keeps the upcoming groove the bright part.
     const playheadX = Math.max(0, Math.min(width, xOf(position)));
-    ctx.fillStyle = 'rgba(8, 7, 5, 0.5)';
+    ctx.fillStyle = "rgba(8, 7, 5, 0.5)";
     ctx.fillRect(0, 0, playheadX, height);
 
     // 5. Hot-cue pennants, coloured per slot like a Rekordbox strip.
@@ -717,7 +721,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (progress.slipPosition !== progress.position) {
       const slipX = xOf(progress.slipPosition);
       if (slipX > -8 && slipX < width + 8) {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.42)';
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
         ctx.lineWidth = hairline;
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
@@ -729,17 +733,17 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     // 7. Stylus position.
-    ctx.fillStyle = this.boothColor('--vv-ink', '#f3ead9');
+    ctx.fillStyle = this.boothColor("--vv-ink", "#f3ead9");
     ctx.fillRect(playheadX - hairline, 0, hairline * 2, height);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.fillStyle = "rgba(255, 255, 255, 0.22)";
     ctx.fillRect(playheadX - hairline * 3, 0, hairline * 6, height);
-    ctx.fillStyle = this.boothColor('--vv-ink', '#f3ead9');
+    ctx.fillStyle = this.boothColor("--vv-ink", "#f3ead9");
     ctx.fillRect(playheadX - hairline, 0, hairline * 2, height);
   }
 
   private drawMeters() {
-    this.drawMeter('A', this.meterA?.nativeElement);
-    this.drawMeter('B', this.meterB?.nativeElement);
+    this.drawMeter("A", this.meterA?.nativeElement);
+    this.drawMeter("B", this.meterB?.nativeElement);
   }
 
   /**
@@ -748,9 +752,9 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * 1970s mixer. Deliberately bar-based rather than a needle so the same
    * canvas reads correctly as a narrow channel strip on Android.
    */
-  private drawMeter(id: 'A' | 'B', canvas: HTMLCanvasElement) {
+  private drawMeter(id: "A" | "B", canvas: HTMLCanvasElement) {
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const width = canvas.width;
@@ -760,7 +764,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.meterPeak[id] = held;
 
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = this.boothColor('--vv-meter-well', '#0b0906');
+    ctx.fillStyle = this.boothColor("--vv-meter-well", "#0b0906");
     ctx.fillRect(0, 0, width, height);
 
     const segments = 22;
@@ -768,54 +772,54 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const segmentHeight = (height - gap * (segments - 1)) / segments;
     const lamp = (position: number) =>
       position > 0.86
-        ? '#c0392b'
+        ? "#c0392b"
         : position > 0.68
-          ? '#e0a13a'
-          : this.boothColor('--vv-lamp', '#7bb648');
+          ? "#e0a13a"
+          : this.boothColor("--vv-lamp", "#7bb648");
 
     for (let index = 0; index < segments; index++) {
       const position = (index + 1) / segments;
       const y = height - (index + 1) * segmentHeight - index * gap;
       const lit = position <= level + 0.0001;
-      ctx.fillStyle = lit ? lamp(position) : 'rgba(255, 255, 255, 0.05)';
+      ctx.fillStyle = lit ? lamp(position) : "rgba(255, 255, 255, 0.05)";
       ctx.fillRect(0, y, width, Math.max(1, segmentHeight));
     }
 
     // Peak-hold hairline falls slowly so transients stay readable.
     const peakY = height - held * height;
     ctx.fillStyle =
-      held > 0.95 ? '#ff5a45' : this.boothColor('--vv-ink', '#f3ead9');
+      held > 0.95 ? "#ff5a45" : this.boothColor("--vv-ink", "#f3ead9");
     ctx.fillRect(0, Math.max(0, peakY - 1), width, Math.max(1, width * 0.12));
   }
 
-  getDeckLevel(id: 'A' | 'B') {
+  getDeckLevel(id: "A" | "B") {
     return this.engine.getDeckLevel(id);
   }
 
-  deckProgressPercent(deck: 'A' | 'B') {
+  deckProgressPercent(deck: "A" | "B") {
     const d =
-      deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+      deck === "A" ? this.deckService.deckA() : this.deckService.deckB();
     if (!d.duration) return 0;
     return Math.max(0, Math.min(1, d.progress / d.duration));
   }
 
-  progressRingStyle(deck: 'A' | 'B') {
+  progressRingStyle(deck: "A" | "B") {
     const pct = this.deckProgressPercent(deck);
     const accent =
-      deck === 'A'
-        ? 'var(--color-primary, #10b981)'
-        : 'var(--color-accent, #f59e0b)';
+      deck === "A"
+        ? "var(--color-primary, #10b981)"
+        : "var(--color-accent, #f59e0b)";
     const deg = pct * 360;
     return `conic-gradient(${accent} ${deg}deg, rgba(148,163,184,0.2) ${deg}deg 360deg)`;
   }
 
-  async loadTrackFor(deckId: 'A' | 'B') {
-    const files = await this.fileLoader.pickLocalFiles('.mp3,.wav');
+  async loadTrackFor(deckId: "A" | "B") {
+    const files = await this.fileLoader.pickLocalFiles(".mp3,.wav");
     if (!files?.length) return;
     const file = files[0];
     const buffer = await this.fileLoader.decodeToAudioBuffer(
       this.engine.getContext(),
-      file
+      file,
     );
     this.deckService.loadDeckBuffer(deckId, buffer, file.name);
     // A new record: drop the cached peak strip and any stale loop marks, then
@@ -828,7 +832,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.sessionNotice.set(`Deck ${deckId}: ${file.name} on the platter.`);
   }
 
-  tapBpm(deck: 'A' | 'B') {
+  tapBpm(deck: "A" | "B") {
     const now = Date.now();
     if (!this.tapTimes[deck]) this.tapTimes[deck] = [];
     this.tapTimes[deck].push(now);
@@ -852,56 +856,63 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * while the UI already shows the new mode.
    */
   selectFxMode(
-    mode: 'autowah' | 'echo' | 'damp' | 'reverb' | 'chorus' | 'phaser' | 'rotate'
+    mode:
+      | "autowah"
+      | "echo"
+      | "damp"
+      | "reverb"
+      | "chorus"
+      | "phaser"
+      | "rotate",
   ) {
     this.fxMode.set(mode);
-    const engage = (deck: 'A' | 'B') => {
+    const engage = (deck: "A" | "B") => {
       const state = this.getDeckState(deck);
       if (!state.track) return;
       this.deckService.setFx(deck, mode, this.clampFxAmount(state.fxAmount));
     };
-    engage('A');
-    engage('B');
+    engage("A");
+    engage("B");
   }
 
   handlePadDown(
-    deck: 'A' | 'B',
+    deck: "A" | "B",
     index: number,
-    event?: MouseEvent | TouchEvent
+    event?: MouseEvent | TouchEvent,
   ) {
-    if (this.performanceMode() !== 'roll') return;
+    if (this.performanceMode() !== "roll") return;
     event?.preventDefault();
-    this.haptics.impact('medium');
+    this.haptics.impact("medium");
     this.startRoll(deck, index);
   }
 
-  handlePadRelease(deck: 'A' | 'B', index: number) {
-    if (this.performanceMode() !== 'roll') return;
+  handlePadRelease(deck: "A" | "B", index: number) {
+    if (this.performanceMode() !== "roll") return;
     const activePad =
-      deck === 'A' ? this.activeRollPadA() : this.activeRollPadB();
+      deck === "A" ? this.activeRollPadA() : this.activeRollPadB();
     if (activePad !== index) return;
     this.stopRoll(deck);
   }
 
-  handlePadPress(deck: 'A' | 'B', index: number) {
+  handlePadPress(deck: "A" | "B", index: number) {
     const mode = this.performanceMode();
     const d =
-      deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
-    this.haptics.preset(d.hotCues[index] === null ? 'noteOn' : 'noteOff');
+      deck === "A" ? this.deckService.deckA() : this.deckService.deckB();
+    this.haptics.preset(d.hotCues[index] === null ? "noteOn" : "noteOff");
     this.requestRepaint();
 
-    if (mode === 'cue') {
+    if (mode === "cue") {
       if (d.hotCues[index] === null) this.deckService.setHotCue(deck, index);
       else this.deckService.jumpToHotCue(deck, index);
       this.sessionNotice.set(
         d.hotCues[index] === null
           ? `Deck ${deck} hot cue ${index + 1} captured.`
-          : `Deck ${deck} jumped to hot cue ${index + 1}.`
+          : `Deck ${deck} jumped to hot cue ${index + 1}.`,
       );
       return;
     }
 
-    if (mode === 'roll') return;
+    if (mode === "roll") return;
 
     if (d.samplerPads[this.samplerCategory()][index] === null) {
       this.deckService.setSamplerPad(deck, index, this.samplerCategory());
@@ -912,22 +923,22 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.triggerSamplerPad(deck, index);
   }
 
-  clearHotCue(deck: 'A' | 'B', index: number, event: MouseEvent) {
+  clearHotCue(deck: "A" | "B", index: number, event: MouseEvent) {
     event.preventDefault();
     this.deckService.clearHotCue(deck, index);
     this.sessionNotice.set(`Deck ${deck} hot cue ${index + 1} cleared.`);
   }
 
-  clearPad(deck: 'A' | 'B', index: number, event: MouseEvent) {
+  clearPad(deck: "A" | "B", index: number, event: MouseEvent) {
     event.preventDefault();
-    if (this.performanceMode() === 'roll') {
+    if (this.performanceMode() === "roll") {
       this.sessionNotice.set(
-        'Roll pads cannot be cleared - they are live performance triggers without stored state.'
+        "Roll pads cannot be cleared - they are live performance triggers without stored state.",
       );
       return;
     }
 
-    if (this.performanceMode() === 'sampler') {
+    if (this.performanceMode() === "sampler") {
       this.deckService.clearSamplerPad(deck, index, this.samplerCategory());
       this.clearSamplerActivePad(deck);
       this.sessionNotice.set(`Deck ${deck} sample pad ${index + 1} cleared.`);
@@ -939,44 +950,44 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   getPadLabel(index: number) {
     const mode = this.performanceMode();
-    if (mode === 'cue') return `Cue ${index + 1}`;
-    if (mode === 'roll') return `${this.rollPadLabels[index] || '1'} Roll`;
+    if (mode === "cue") return `Cue ${index + 1}`;
+    if (mode === "roll") return `${this.rollPadLabels[index] || "1"} Roll`;
     return this.getSamplePadLabel(index);
   }
 
-  isCuePadSet(deck: 'A' | 'B', index: number) {
+  isCuePadSet(deck: "A" | "B", index: number) {
     return this.getDeckState(deck).hotCues[index] !== null;
   }
 
-  isSamplerPadSet(deck: 'A' | 'B', index: number) {
+  isSamplerPadSet(deck: "A" | "B", index: number) {
     return (
       this.getDeckState(deck).samplerPads[this.samplerCategory()][index] !==
       null
     );
   }
 
-  isRollPadActive(deck: 'A' | 'B', index: number) {
+  isRollPadActive(deck: "A" | "B", index: number) {
     return (
-      (deck === 'A' ? this.activeRollPadA() : this.activeRollPadB()) === index
+      (deck === "A" ? this.activeRollPadA() : this.activeRollPadB()) === index
     );
   }
 
   isSamplerPadActive(
-    deck: 'A' | 'B',
+    deck: "A" | "B",
     index: number,
-    category?: 'drums' | 'fx' | 'vocals'
+    category?: "drums" | "fx" | "vocals",
   ) {
     if (category && category !== this.samplerCategory()) return false;
     return (
-      (deck === 'A' ? this.activeSamplerPadA() : this.activeSamplerPadB()) ===
+      (deck === "A" ? this.activeSamplerPadA() : this.activeSamplerPadB()) ===
       index
     );
   }
 
   private toFiniteNumber(value: unknown, fallback = 0): number {
-    if (value === null || value === undefined || value === '') return fallback;
+    if (value === null || value === undefined || value === "") return fallback;
     const numeric =
-      typeof value === 'number' ? value : Number(value as unknown);
+      typeof value === "number" ? value : Number(value as unknown);
     return Number.isFinite(numeric) ? numeric : fallback;
   }
 
@@ -1036,48 +1047,48 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private validateStem(stem: string): keyof Stems | null {
     const allowed: Array<keyof Stems> = [
-      'vocals',
-      'drums',
-      'bass',
-      'instrumental',
-      'other',
+      "vocals",
+      "drums",
+      "bass",
+      "instrumental",
+      "other",
     ];
     return (allowed as string[]).includes(stem) ? (stem as keyof Stems) : null;
   }
 
-  setPlaybackRate(deck: 'A' | 'B', rate: any) {
+  setPlaybackRate(deck: "A" | "B", rate: any) {
     const r = this.toFiniteNumber(rate);
     this.deckService.setPlaybackRate(deck, this.clampPlaybackRate(r));
   }
 
-  toggleKeyLock(deck: 'A' | 'B') {
+  toggleKeyLock(deck: "A" | "B") {
     const state = this.getDeckState(deck);
     this.deckService.setKeyLock(deck, !state.keyLock);
     this.sessionNotice.set(
-      `Deck ${deck} key lock ${!state.keyLock ? 'enabled' : 'disabled'} (best-effort).`
+      `Deck ${deck} key lock ${!state.keyLock ? "enabled" : "disabled"} (best-effort).`,
     );
   }
 
-  setBassBoost(deck: 'A' | 'B', value: any) {
+  setBassBoost(deck: "A" | "B", value: any) {
     const amount = this.toFiniteNumber(value);
     this.deckService.setBassBoost(deck, this.clampBassBoost(amount));
   }
 
-  setQuickEq(deck: 'A' | 'B', band: 'high' | 'mid' | 'low') {
+  setQuickEq(deck: "A" | "B", band: "high" | "mid" | "low") {
     const state = this.getDeckState(deck);
     const currentValue =
-      band === 'high'
+      band === "high"
         ? state.eqHigh
-        : band === 'mid'
+        : band === "mid"
           ? state.eqMid
           : state.eqLow;
     const nextValue = currentValue > 0.2 ? 0 : 1;
     this.updateEq(deck, band, nextValue);
   }
 
-  setPrecisionEqBand(deck: 'A' | 'B', index: number, value: any) {
+  setPrecisionEqBand(deck: "A" | "B", index: number, value: any) {
     const raw = this.toFiniteNumber(value, 1);
-    const precision = deck === 'A' ? this.precisionEqA : this.precisionEqB;
+    const precision = deck === "A" ? this.precisionEqA : this.precisionEqB;
     const current = precision();
     if (index < 0 || index >= current.length) return;
     const updated = [...current];
@@ -1090,29 +1101,29 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.deckService.setDeckEq(deck, high, mid, low);
   }
 
-  updateEq(deck: 'A' | 'B', band: 'high' | 'mid' | 'low', val: any) {
+  updateEq(deck: "A" | "B", band: "high" | "mid" | "low", val: any) {
     const v = this.toFiniteNumber(val);
     const d =
-      deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+      deck === "A" ? this.deckService.deckA() : this.deckService.deckB();
     let { eqHigh, eqMid, eqLow } = d;
     const clamped = this.clampEqBand(v);
-    if (band === 'high') eqHigh = clamped;
-    if (band === 'mid') eqMid = clamped;
-    if (band === 'low') eqLow = clamped;
+    if (band === "high") eqHigh = clamped;
+    if (band === "mid") eqMid = clamped;
+    if (band === "low") eqLow = clamped;
     this.deckService.setDeckEq(deck, eqHigh, eqMid, eqLow);
   }
 
-  updateFilter(deck: 'A' | 'B', val: any) {
+  updateFilter(deck: "A" | "B", val: any) {
     const freq = this.toFiniteNumber(val);
     this.deckService.setDeckFilter(deck, this.clampFilterFreq(freq));
   }
 
-  setGain(deck: 'A' | 'B', val: any) {
+  setGain(deck: "A" | "B", val: any) {
     const gain = this.toFiniteNumber(val);
     this.deckService.setDeckGain(deck, this.clampDeckGain(gain));
   }
 
-  setSend(deck: 'A' | 'B', send: 'A' | 'B', val: any) {
+  setSend(deck: "A" | "B", send: "A" | "B", val: any) {
     const gain = this.toFiniteNumber(val);
     this.deckService.setDeckSend(deck, send, this.clampSendGain(gain));
   }
@@ -1126,7 +1137,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   toggleRecording() {
     if (this.recording()) {
-      this.sessionNotice.set('Finalizing live mix capture...');
+      this.sessionNotice.set("Finalizing live mix capture...");
       this.recorder?.stop();
       return;
     }
@@ -1135,36 +1146,36 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.recorder = recorder;
     this.recording.set(true);
     this.startRecordingTimer();
-    this.sessionNotice.set('Recording live mix...');
+    this.sessionNotice.set("Recording live mix...");
     this.recordingStatus.setRecordingSource({
-      type: 'dj-deck',
-      deckId: 'master',
+      type: "dj-deck",
+      deckId: "master",
     });
 
     recorder.onerror = () => {
-      this.sessionNotice.set('Recording failed to complete.');
+      this.sessionNotice.set("Recording failed to complete.");
       this.recordingStatus.clearRecordingSource();
       this.cleanupRecordingState();
     };
 
     result
       .then((blob) => {
-        const extension = blob.type.includes('ogg')
-          ? 'ogg'
-          : blob.type.includes('wav')
-            ? 'wav'
-            : 'webm';
+        const extension = blob.type.includes("ogg")
+          ? "ogg"
+          : blob.type.includes("wav")
+            ? "wav"
+            : "webm";
         return this.exportService.downloadBlob(
           blob,
-          `mix-${Date.now()}.${extension}`
+          `mix-${Date.now()}.${extension}`,
         );
       })
       .then(() => {
-        this.sessionNotice.set('Live mix exported successfully.');
+        this.sessionNotice.set("Live mix exported successfully.");
         this.recordingStatus.clearRecordingSource();
       })
       .catch(() => {
-        this.sessionNotice.set('Live mix export failed.');
+        this.sessionNotice.set("Live mix export failed.");
         this.recordingStatus.clearRecordingSource();
       })
       .finally(() => {
@@ -1172,18 +1183,18 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
-  toggleLoop(deck: 'A' | 'B') {
+  toggleLoop(deck: "A" | "B") {
     this.deckService.toggleLoop(deck);
     const engaged = this.getDeckState(deck).loop;
     if (!engaged) this.resetLoopMarkers(deck);
-    this.haptics.preset('loopMarker');
+    this.haptics.preset("loopMarker");
     this.requestRepaint();
     this.sessionNotice.set(
-      `Deck ${deck} loop ${engaged ? 'engaged' : 'released'}.`
+      `Deck ${deck} loop ${engaged ? "engaged" : "released"}.`,
     );
   }
 
-  sync(deck: 'A' | 'B') {
+  sync(deck: "A" | "B") {
     this.deckService.sync(deck);
   }
 
@@ -1192,32 +1203,32 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * The in-point stays put, so the loop tightens or opens from its head like
    * the hardware loop controls the booth models.
    */
-  halveLoop(deck: 'A' | 'B') {
-    this.scaleLoop(deck, 0.5, 'halved');
+  halveLoop(deck: "A" | "B") {
+    this.scaleLoop(deck, 0.5, "halved");
   }
 
-  doubleLoop(deck: 'A' | 'B') {
-    this.scaleLoop(deck, 2, 'doubled');
+  doubleLoop(deck: "A" | "B") {
+    this.scaleLoop(deck, 2, "doubled");
   }
 
-  private scaleLoop(deck: 'A' | 'B', factor: number, label: string) {
+  private scaleLoop(deck: "A" | "B", factor: number, label: string) {
     if (!this.engine.scaleDeckLoop(deck, factor)) {
       this.sessionNotice.set(
-        `Engage a loop on deck ${deck} before scaling it.`
+        `Engage a loop on deck ${deck} before scaling it.`,
       );
       return;
     }
     const deckSignal =
-      deck === 'A' ? this.deckService.deckA : this.deckService.deckB;
-    if (typeof deckSignal?.update === 'function') {
+      deck === "A" ? this.deckService.deckA : this.deckService.deckB;
+    if (typeof deckSignal?.update === "function") {
       deckSignal.update((d: any) => ({ ...d, loop: true }));
     }
-    this.haptics.preset('loopMarker');
+    this.haptics.preset("loopMarker");
     this.requestRepaint();
     this.sessionNotice.set(`Deck ${deck} loop ${label}.`);
   }
 
-  setStemGain(deck: 'A' | 'B', stem: string, event: Event) {
+  setStemGain(deck: "A" | "B", stem: string, event: Event) {
     const target = event.target as HTMLInputElement | null;
     const gain = target?.valueAsNumber ?? 0;
     const safeStem = this.validateStem(stem);
@@ -1233,12 +1244,12 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.deckService.crossfade.set(this.clampCrossfade(cf));
   }
 
-  onPlatterDown(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
+  onPlatterDown(deck: "A" | "B", event: MouseEvent | TouchEvent) {
     event.preventDefault();
-    const isA = deck === 'A';
+    const isA = deck === "A";
 
     let touchId: number | null = null;
-    if ('touches' in event && (event as TouchEvent).touches.length) {
+    if ("touches" in event && (event as TouchEvent).touches.length) {
       const touch =
         (event as TouchEvent).changedTouches[0] ||
         (event as TouchEvent).touches[0];
@@ -1267,16 +1278,16 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.engine.beginScratchMonitor(deck);
     // Catching a spinning record cancels the free-wheel of a previous flick.
     this.setPlatterSpin(deck, 0);
-    this.haptics.preset('tick');
+    this.haptics.preset("tick");
     this.requestRepaint();
   }
 
-  @HostListener('window:mousemove', ['$event'])
+  @HostListener("window:mousemove", ["$event"])
   onPlatterMove(event: MouseEvent) {
     this.handlePlatterMove(event);
   }
 
-  @HostListener('window:touchmove', ['$event'])
+  @HostListener("window:touchmove", ["$event"])
   onPlatterTouchMove(event: TouchEvent) {
     this.handlePlatterMove(event);
   }
@@ -1284,22 +1295,22 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   private handlePlatterMove(event: MouseEvent | TouchEvent) {
     if (this.knobDrag) this.handleKnobMove(event);
     if (this.tonearmDragging()) this.handleTonearmMove(event);
-    if (this.isScratchingA()) this.processScratch('A', event);
-    if (this.isScratchingB()) this.processScratch('B', event);
+    if (this.isScratchingA()) this.processScratch("A", event);
+    if (this.isScratchingB()) this.processScratch("B", event);
   }
 
-  @HostListener('window:mouseup', ['$event'])
+  @HostListener("window:mouseup", ["$event"])
   onPlatterMouseUp(_event: MouseEvent) {
     this.endKnobDrag();
     this.tonearmDragging.set(null);
     // Mouse pointers carry no identifier: a `mouseup` releases every deck that
     // was grabbed with the mouse, and never a deck held by a finger.
-    if (this.activeTouchA === null) this.finishScratch('A');
-    if (this.activeTouchB === null) this.finishScratch('B');
+    if (this.activeTouchA === null) this.finishScratch("A");
+    if (this.activeTouchB === null) this.finishScratch("B");
   }
 
-  @HostListener('window:touchend', ['$event'])
-  @HostListener('window:touchcancel', ['$event'])
+  @HostListener("window:touchend", ["$event"])
+  @HostListener("window:touchcancel", ["$event"])
   onPlatterTouchEnd(event: TouchEvent) {
     this.endKnobDrag();
     this.tonearmDragging.set(null);
@@ -1308,8 +1319,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (changed) {
       for (const touch of Array.from(changed)) ended.add(touch.identifier);
     }
-    this.releaseTouchGrab('A', ended);
-    this.releaseTouchGrab('B', ended);
+    this.releaseTouchGrab("A", ended);
+    this.releaseTouchGrab("B", ended);
   }
 
   /**
@@ -1321,8 +1332,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * live scratch died the moment the other hand touched a performance pad.
    * A deck now only lets go when its own captured touch point ends.
    */
-  private releaseTouchGrab(deck: 'A' | 'B', ended: Set<number>) {
-    const isA = deck === 'A';
+  private releaseTouchGrab(deck: "A" | "B", ended: Set<number>) {
+    const isA = deck === "A";
     if (!(isA ? this.isScratchingA() : this.isScratchingB())) return;
     const touchId = isA ? this.activeTouchA : this.activeTouchB;
     if (touchId === null) return;
@@ -1332,12 +1343,12 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Release every grab regardless of pointer type (used by tests + resets). */
   onPlatterUp() {
-    this.finishScratch('A');
-    this.finishScratch('B');
+    this.finishScratch("A");
+    this.finishScratch("B");
   }
 
-  private finishScratch(deck: 'A' | 'B') {
-    const isA = deck === 'A';
+  private finishScratch(deck: "A" | "B") {
+    const isA = deck === "A";
     if (!(isA ? this.isScratchingA() : this.isScratchingB())) return;
 
     this.clearPlatterIdleTimer(deck);
@@ -1368,27 +1379,27 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /** Silence the platter once the hand has been still for a moment. */
-  private armPlatterIdleTimer(deck: 'A' | 'B') {
+  private armPlatterIdleTimer(deck: "A" | "B") {
     this.clearPlatterIdleTimer(deck);
     this.platterIdleTimers[deck] = setTimeout(() => {
       this.platterIdleTimers[deck] = null;
       const stillHeld =
-        deck === 'A' ? this.isScratchingA() : this.isScratchingB();
+        deck === "A" ? this.isScratchingA() : this.isScratchingB();
       if (!stillHeld) return;
       this.engine.setDeckRate(deck, 0, false);
     }, PLATTER_IDLE_SILENCE_MILLIS);
   }
 
-  private clearPlatterIdleTimer(deck: 'A' | 'B') {
+  private clearPlatterIdleTimer(deck: "A" | "B") {
     const timer = this.platterIdleTimers[deck];
     if (timer !== null) clearTimeout(timer);
     this.platterIdleTimers[deck] = null;
   }
 
-  private setPlatterSpin(deck: 'A' | 'B', value: number) {
+  private setPlatterSpin(deck: "A" | "B", value: number) {
     const clamped = Math.max(
       -MAX_PLATTER_SPIN_DEG_PER_SEC,
-      Math.min(MAX_PLATTER_SPIN_DEG_PER_SEC, value)
+      Math.min(MAX_PLATTER_SPIN_DEG_PER_SEC, value),
     );
     const next = { ...this.platterSpin() };
     next[deck] = clamped;
@@ -1403,18 +1414,18 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * roll. No-op when nothing is held, so double-firing with the pad's own
    * handlers is harmless.
    */
-  @HostListener('window:mouseup')
-  @HostListener('window:touchend')
-  @HostListener('window:touchcancel')
+  @HostListener("window:mouseup")
+  @HostListener("window:touchend")
+  @HostListener("window:touchcancel")
   onGlobalPointerRelease() {
-    if (this.activeRollPadA() !== null) this.stopRoll('A');
-    if (this.activeRollPadB() !== null) this.stopRoll('B');
+    if (this.activeRollPadA() !== null) this.stopRoll("A");
+    if (this.activeRollPadB() !== null) this.stopRoll("B");
   }
 
-  private processScratch(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
+  private processScratch(deck: "A" | "B", event: MouseEvent | TouchEvent) {
     event.preventDefault();
     const angle = this.getAngle(event, deck);
-    const lastAngle = deck === 'A' ? this.lastAngleA : this.lastAngleB;
+    const lastAngle = deck === "A" ? this.lastAngleA : this.lastAngleB;
     let delta = angle - lastAngle;
 
     // Normalise delta into the principal range [-π, π] so we never feed
@@ -1445,13 +1456,13 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.armPlatterIdleTimer(deck);
     const velocityValue = Math.max(
       -1,
-      Math.min(1, velocity / SCRATCH_VELOCITY_NORMALIZER)
+      Math.min(1, velocity / SCRATCH_VELOCITY_NORMALIZER),
     );
-    if (deck === 'A') this.scratchVelocityA.set(velocityValue);
+    if (deck === "A") this.scratchVelocityA.set(velocityValue);
     else this.scratchVelocityB.set(velocityValue);
 
     const degreeDelta = delta * (180 / Math.PI);
-    if (deck === 'A') {
+    if (deck === "A") {
       this.rotationA.update((r) => r + degreeDelta);
       this.lastAngleA = angle;
     } else {
@@ -1464,7 +1475,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.requestRepaint();
   }
 
-  private getAngle(event: MouseEvent | TouchEvent, deck?: 'A' | 'B'): number {
+  private getAngle(event: MouseEvent | TouchEvent, deck?: "A" | "B"): number {
     const { x, y } = this.getPointerPosition(event, deck);
     const fallbackCenter = {
       x: window.innerWidth / 2,
@@ -1476,11 +1487,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     return Math.atan2(y - center.y, x - center.x);
   }
 
-  private getPointerPosition(event: MouseEvent | TouchEvent, deck?: 'A' | 'B') {
-    if ('touches' in event && (event as TouchEvent).touches.length) {
-      const targetId = deck === 'A' ? this.activeTouchA : this.activeTouchB;
+  private getPointerPosition(event: MouseEvent | TouchEvent, deck?: "A" | "B") {
+    if ("touches" in event && (event as TouchEvent).touches.length) {
+      const targetId = deck === "A" ? this.activeTouchA : this.activeTouchB;
       let touch = Array.from((event as TouchEvent).touches).find(
-        (t) => t.identifier === targetId
+        (t) => t.identifier === targetId,
       );
       if (!touch) touch = (event as TouchEvent).touches[0];
       return { x: touch.clientX, y: touch.clientY };
@@ -1517,27 +1528,27 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   // ───────────────────────────────────────────────────────────────
 
   /** 0 = first groove, 1 = run-out groove. Mirrors the cue position. */
-  tonearmRatio(deck: 'A' | 'B') {
+  tonearmRatio(deck: "A" | "B") {
     const duration = this.deckDuration(deck);
     if (!duration) return 0;
     return this.clampRange(
       this.engine.getDeckProgress(deck).position / duration,
       0,
-      1
+      1,
     );
   }
 
   /** Degrees the arm swings around its rear-right pivot. */
-  tonearmAngle(deck: 'A' | 'B') {
+  tonearmAngle(deck: "A" | "B") {
     return -22 + this.tonearmRatio(deck) * 44;
   }
 
-  tonearmCueLabel(deck: 'A' | 'B') {
-    if (!this.deckDuration(deck)) return '--:--';
+  tonearmCueLabel(deck: "A" | "B") {
+    if (!this.deckDuration(deck)) return "--:--";
     return this.formatTimecode(this.engine.getDeckProgress(deck).position);
   }
 
-  onTonearmDown(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
+  onTonearmDown(deck: "A" | "B", event: MouseEvent | TouchEvent) {
     event.preventDefault();
     const target = event.currentTarget as HTMLElement | null;
     const box = target?.getBoundingClientRect?.();
@@ -1545,7 +1556,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       this.tonearmBounds[deck] = { left: box.left, width: box.width };
     }
     this.tonearmDragging.set(deck);
-    this.haptics.impact('light');
+    this.haptics.impact("light");
     this.seekFromTonearm(deck, event);
   }
 
@@ -1563,7 +1574,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * straight onto track time. A real arm cannot reach the label or the lead-in
    * rim, which is why the travel is inset instead of a flat 0..1.
    */
-  private seekFromTonearm(deck: 'A' | 'B', event: MouseEvent | TouchEvent) {
+  private seekFromTonearm(deck: "A" | "B", event: MouseEvent | TouchEvent) {
     let box = this.tonearmBounds[deck];
     if (!box) {
       const target = event.currentTarget as HTMLElement | null;
@@ -1580,7 +1591,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       (ratio - TONEARM_TRAVEL_START) /
         (TONEARM_TRAVEL_END - TONEARM_TRAVEL_START),
       0,
-      1
+      1,
     );
     this.engine.seekDeck(deck, travel * duration);
     this.deckService.syncProgress();
@@ -1597,36 +1608,36 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /** Motor speed lever: 33 or 45 RPM, exactly like the hardware. */
-  togglePlatterRpm(deck: 'A' | 'B') {
+  togglePlatterRpm(deck: "A" | "B") {
     const next: 33 | 45 = this.platterRpm()[deck] === 33 ? 45 : 33;
     const state = { ...this.platterRpm() };
     state[deck] = next;
     this.platterRpm.set(state);
-    this.haptics.preset('snap');
+    this.haptics.preset("snap");
     this.sessionNotice.set(`Deck ${deck} motor set to ${next} RPM.`);
   }
 
-  toggleSlip(deck: 'A' | 'B') {
+  toggleSlip(deck: "A" | "B") {
     this.deckService.toggleSlip(deck);
     this.sessionNotice.set(
       `Deck ${deck} slip mode ${
-        this.getDeckState(deck).slip ? 'engaged' : 'released'
-      }.`
+        this.getDeckState(deck).slip ? "engaged" : "released"
+      }.`,
     );
   }
 
   /** Drop the painted loop marks for a deck (loop released or new record). */
-  private resetLoopMarkers(deck: 'A' | 'B') {
+  private resetLoopMarkers(deck: "A" | "B") {
     const next = { ...this.loopRegion() };
     next[deck] = null;
     this.loopRegion.set(next);
   }
 
   /** Analog filter select: the physical HPF/LPF switch on a mixer channel. */
-  setFilterMode(deck: 'A' | 'B', mode: 'lowpass' | 'highpass') {
+  setFilterMode(deck: "A" | "B", mode: "lowpass" | "highpass") {
     this.deckService.setDeckFilterMode(deck, mode);
     this.sessionNotice.set(
-      `Deck ${deck} filter set to ${mode === 'highpass' ? 'HPF' : 'LPF'}.`
+      `Deck ${deck} filter set to ${mode === "highpass" ? "HPF" : "LPF"}.`,
     );
   }
 
@@ -1635,29 +1646,29 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * sweep model, so the drag gesture, the engraved pointer and the readout can
    * never disagree about where a control sits.
    */
-  knobNormalized(param: DjKnobParam, deck: 'A' | 'B') {
+  knobNormalized(param: DjKnobParam, deck: "A" | "B") {
     const state = this.getDeckState(deck);
     switch (param) {
-      case 'eqHigh':
+      case "eqHigh":
         return this.clampRange(state.eqHigh / 2, 0, 1);
-      case 'eqMid':
+      case "eqMid":
         return this.clampRange(state.eqMid / 2, 0, 1);
-      case 'eqLow':
+      case "eqLow":
         return this.clampRange(state.eqLow / 2, 0, 1);
-      case 'filter':
+      case "filter":
         return this.clampRange(
           Math.log(state.filterFreq / FILTER_FREQ_MIN) /
             Math.log(FILTER_FREQ_MAX / FILTER_FREQ_MIN),
           0,
-          1
+          1,
         );
-      case 'gain':
+      case "gain":
         return this.clampRange(state.gain / 2, 0, 1);
-      case 'fxAmount':
+      case "fxAmount":
         return this.clampRange(state.fxAmount, 0, 1);
-      case 'master':
+      case "master":
         return this.clampRange(this.masterVolume() / MASTER_VOLUME_MAX, 0, 1);
-      case 'drive':
+      case "drive":
         return this.clampRange(this.saturation(), 0, 1);
       default:
         return 0;
@@ -1665,44 +1676,44 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /** Engraved-scale angle for a knob (7 o'clock to 5 o'clock). */
-  knobRotation(param: DjKnobParam, deck: 'A' | 'B') {
+  knobRotation(param: DjKnobParam, deck: "A" | "B") {
     return -135 + this.knobNormalized(param, deck) * 270;
   }
 
-  knobReadout(param: DjKnobParam, deck: 'A' | 'B') {
+  knobReadout(param: DjKnobParam, deck: "A" | "B") {
     const value = this.knobNormalized(param, deck);
     switch (param) {
-      case 'eqHigh':
-      case 'eqMid':
-      case 'eqLow': {
+      case "eqHigh":
+      case "eqMid":
+      case "eqLow": {
         const db = (value * 2 - 1) * 12;
-        return `${db >= 0 ? '+' : ''}${db.toFixed(1)} dB`;
+        return `${db >= 0 ? "+" : ""}${db.toFixed(1)} dB`;
       }
-      case 'filter': {
+      case "filter": {
         const hz =
           FILTER_FREQ_MIN * Math.pow(FILTER_FREQ_MAX / FILTER_FREQ_MIN, value);
         return hz >= 1000
           ? `${(hz / 1000).toFixed(1)} kHz`
           : `${Math.round(hz)} Hz`;
       }
-      case 'gain': {
+      case "gain": {
         const db = value <= 0 ? -60 : 20 * Math.log10(value * 2);
-        return `${db >= 0 ? '+' : ''}${Math.max(-60, db).toFixed(1)} dB`;
+        return `${db >= 0 ? "+" : ""}${Math.max(-60, db).toFixed(1)} dB`;
       }
       default:
         return `${Math.round(value * 100)}%`;
     }
   }
 
-  isKnobActive(param: DjKnobParam, deck: 'A' | 'B') {
+  isKnobActive(param: DjKnobParam, deck: "A" | "B") {
     const active = this.activeKnob();
     return !!active && active.param === param && active.deck === deck;
   }
 
   onKnobDown(
     param: DjKnobParam,
-    deck: 'A' | 'B',
-    event: MouseEvent | TouchEvent
+    deck: "A" | "B",
+    event: MouseEvent | TouchEvent,
   ) {
     event.preventDefault();
     const point = this.pointerPoint(event);
@@ -1714,7 +1725,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       fine: !!(event as MouseEvent).shiftKey,
     };
     this.activeKnob.set({ deck, param });
-    this.haptics.preset('detent');
+    this.haptics.preset("detent");
   }
 
   private handleKnobMove(event: MouseEvent | TouchEvent) {
@@ -1726,7 +1737,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const next = this.clampRange(
       drag.startNormalized + (drag.startY - point.y) / range,
       0,
-      1
+      1,
     );
     this.applyKnobNormalized(drag.param, drag.deck, next);
   }
@@ -1735,11 +1746,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!this.knobDrag) return;
     this.knobDrag = null;
     this.activeKnob.set(null);
-    this.haptics.preset('tick');
+    this.haptics.preset("tick");
   }
 
   /** Snap a rotary control back to its hardware detent (neutral) position. */
-  resetKnob(param: DjKnobParam, deck: 'A' | 'B') {
+  resetKnob(param: DjKnobParam, deck: "A" | "B") {
     const neutral: Record<DjKnobParam, number> = {
       eqHigh: 0.5,
       eqMid: 0.5,
@@ -1751,20 +1762,20 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       drive: 0.1,
     };
     this.applyKnobNormalized(param, deck, neutral[param]);
-    this.haptics.preset('faderUnity');
+    this.haptics.preset("faderUnity");
     this.sessionNotice.set(`${this.knobName(param)} on deck ${deck} reset.`);
   }
 
   knobName(param: DjKnobParam) {
     const names: Record<DjKnobParam, string> = {
-      eqHigh: 'HIGH',
-      eqMid: 'MID',
-      eqLow: 'LOW',
-      filter: 'FILTER',
-      gain: 'CHANNEL LEVEL',
-      fxAmount: 'FX DEPTH',
-      master: 'MASTER OUTPUT',
-      drive: 'DRIVE',
+      eqHigh: "HIGH",
+      eqMid: "MID",
+      eqLow: "LOW",
+      filter: "FILTER",
+      gain: "CHANNEL LEVEL",
+      fxAmount: "FX DEPTH",
+      master: "MASTER OUTPUT",
+      drive: "DRIVE",
     };
     return names[param];
   }
@@ -1776,37 +1787,37 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   private applyKnobNormalized(
     param: DjKnobParam,
-    deck: 'A' | 'B',
-    value: number
+    deck: "A" | "B",
+    value: number,
   ) {
     const normalized = this.clampRange(value, 0, 1);
     switch (param) {
-      case 'eqHigh':
-        this.updateEq(deck, 'high', normalized * 2);
+      case "eqHigh":
+        this.updateEq(deck, "high", normalized * 2);
         return;
-      case 'eqMid':
-        this.updateEq(deck, 'mid', normalized * 2);
+      case "eqMid":
+        this.updateEq(deck, "mid", normalized * 2);
         return;
-      case 'eqLow':
-        this.updateEq(deck, 'low', normalized * 2);
+      case "eqLow":
+        this.updateEq(deck, "low", normalized * 2);
         return;
-      case 'filter':
+      case "filter":
         this.updateFilter(
           deck,
           FILTER_FREQ_MIN *
-            Math.pow(FILTER_FREQ_MAX / FILTER_FREQ_MIN, normalized)
+            Math.pow(FILTER_FREQ_MAX / FILTER_FREQ_MIN, normalized),
         );
         return;
-      case 'gain':
+      case "gain":
         this.setGain(deck, normalized * 2);
         return;
-      case 'fxAmount':
+      case "fxAmount":
         this.setFxAmount(deck, normalized);
         return;
-      case 'master':
+      case "master":
         this.setMasterVolume(normalized * MASTER_VOLUME_MAX);
         return;
-      case 'drive':
+      case "drive":
         this.setSaturation(normalized);
         return;
       default:
@@ -1814,7 +1825,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  seekTo(deck: 'A' | 'B', seconds: number) {
+  seekTo(deck: "A" | "B", seconds: number) {
     const duration = this.deckDuration(deck);
     if (!duration) return;
     const target = this.clampRange(this.toFiniteNumber(seconds), 0, duration);
@@ -1823,33 +1834,33 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.requestRepaint();
   }
 
-  nudgePosition(deck: 'A' | 'B', deltaSeconds: number) {
+  nudgePosition(deck: "A" | "B", deltaSeconds: number) {
     const position = this.engine.getDeckProgress(deck).position;
     this.seekTo(deck, position + deltaSeconds);
   }
 
   /** Keyboard transport on the platter: a deck you can work without a pointer. */
-  onPlatterKeydown(deck: 'A' | 'B', event: KeyboardEvent) {
+  onPlatterKeydown(deck: "A" | "B", event: KeyboardEvent) {
     const step = event.shiftKey ? 5 : 0.5;
     switch (event.key) {
-      case 'ArrowLeft':
+      case "ArrowLeft":
         event.preventDefault();
         this.nudgePosition(deck, -step);
         return;
-      case 'ArrowRight':
+      case "ArrowRight":
         event.preventDefault();
         this.nudgePosition(deck, step);
         return;
-      case 'Home':
+      case "Home":
         event.preventDefault();
         this.seekTo(deck, 0);
         return;
-      case 'End':
+      case "End":
         event.preventDefault();
         this.seekTo(deck, this.deckDuration(deck));
         return;
-      case ' ':
-      case 'Enter':
+      case " ":
+      case "Enter":
         event.preventDefault();
         this.deckService.togglePlay(deck);
         return;
@@ -1864,12 +1875,12 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const minutes = Math.floor(total / 60);
     const secs = Math.floor(total % 60);
     const tenths = Math.floor((total % 1) * 10);
-    return `${minutes}:${secs.toString().padStart(2, '0')}.${tenths}`;
+    return `${minutes}:${secs.toString().padStart(2, "0")}.${tenths}`;
   }
 
   /** Which side of the crossfader is on air — drives the live-master rail. */
-  isDeckLeading(deck: 'A' | 'B') {
-    const mix = deck === 'A' ? this.crossfadeMixA() : this.crossfadeMixB();
+  isDeckLeading(deck: "A" | "B") {
+    const mix = deck === "A" ? this.crossfadeMixA() : this.crossfadeMixB();
     return mix > 52;
   }
 
@@ -1881,7 +1892,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     return Math.abs(this.deckATempo() - this.deckBTempo()) < 0.5;
   });
 
-  trackLoaded(deck: 'A' | 'B') {
+  trackLoaded(deck: "A" | "B") {
     return !!this.getDeckState(deck).track?.name;
   }
 
@@ -1890,7 +1901,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    * engaged by a preset chip paints its region even though the preset path does
    * not round-trip through the signal state.
    */
-  private loopRegionOf(deck: 'A' | 'B') {
+  private loopRegionOf(deck: "A" | "B") {
     try {
       const runtime = this.engine.getDeck(deck) as
         | { loopEnabled?: boolean; loopStart?: number; loopEnd?: number }
@@ -1904,51 +1915,51 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  applyScratchFx(deck: 'A' | 'B', type: 'brake' | 'spinback' | 'transform') {
-    if (type === 'brake') this.engine.brakeDeck(deck);
-    else if (type === 'spinback') this.engine.spinbackDeck(deck);
-    else if (type === 'transform') this.engine.transformDeck(deck);
+  applyScratchFx(deck: "A" | "B", type: "brake" | "spinback" | "transform") {
+    if (type === "brake") this.engine.brakeDeck(deck);
+    else if (type === "spinback") this.engine.spinbackDeck(deck);
+    else if (type === "transform") this.engine.transformDeck(deck);
   }
 
   async saveSessionSnapshot() {
     const now = new Date();
     const title = `DJ Session ${now.toLocaleString()}`;
     const projectId = `dj-session-${now.getTime()}`;
-    const userId = this.profileService.profile().id || 'anonymous';
+    const userId = this.profileService.profile().id || "anonymous";
 
     try {
       await this.databaseService.saveProject(
         projectId,
         title,
         this.buildSessionSnapshot(),
-        userId
+        userId,
       );
       this.sessionNotice.set(`${title} saved.`);
     } catch {
-      this.sessionNotice.set('Session save failed.');
+      this.sessionNotice.set("Session save failed.");
     }
   }
 
   async exportSessionSnapshot() {
     const snapshot = this.buildSessionSnapshot();
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
-      type: 'application/json',
+      type: "application/json",
     });
 
     try {
       await this.exportService.downloadBlob(
         blob,
-        `dj-session-${Date.now()}.json`
+        `dj-session-${Date.now()}.json`,
       );
-      this.sessionNotice.set('Session snapshot exported.');
+      this.sessionNotice.set("Session snapshot exported.");
     } catch {
-      this.sessionNotice.set('Session export failed.');
+      this.sessionNotice.set("Session export failed.");
     }
   }
 
   private buildSessionSnapshot() {
     const deckSnapshot = (deck: ReturnType<typeof this.deckService.deckA>) => ({
-      trackName: deck.track?.name || 'No Track Loaded',
+      trackName: deck.track?.name || "No Track Loaded",
       bpm: deck.bpm,
       playbackRate: deck.playbackRate,
       progress: deck.progress,
@@ -1964,7 +1975,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     return {
-      type: 'dj-session-snapshot',
+      type: "dj-session-snapshot",
       exportedAt: new Date().toISOString(),
       performanceMode: this.performanceMode(),
       crossfade: this.deckService.crossfade(),
@@ -2000,8 +2011,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const totalSeconds = Math.max(0, Math.floor(durationMs / 1000));
     const minutes = Math.floor(totalSeconds / 60)
       .toString()
-      .padStart(2, '0');
-    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+      .padStart(2, "0");
+    const seconds = (totalSeconds % 60).toString().padStart(2, "0");
     return `${minutes}:${seconds}`;
   }
 
@@ -2011,7 +2022,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       : `${durationSeconds.toFixed(1)}s`;
   }
 
-  private startRoll(deck: 'A' | 'B', index: number) {
+  private startRoll(deck: "A" | "B", index: number) {
     const progress = this.engine.getDeckProgress(deck);
     const deckState = this.getDeckState(deck);
     const duration = progress.duration || deckState.duration;
@@ -2024,7 +2035,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const playbackRate = Math.max(0.25, Math.abs(deckState.playbackRate || 1));
     const loopDuration = this.getBeatWindowSeconds(
       deck,
-      this.rollPadBeats[index] || 1
+      this.rollPadBeats[index] || 1,
     );
     const origin = progress.position;
     const loopStart = this.getLoopStart(origin, loopDuration);
@@ -2049,19 +2060,19 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
         if (!state) return;
         this.engine.seekDeck(
           deck,
-          this.getLoopStart(state.origin, state.loopDuration)
+          this.getLoopStart(state.origin, state.loopDuration),
         );
         this.engine.playDeck(deck);
       },
-      Math.max(MIN_ROLL_INTERVAL_MILLIS, loopDuration * 1000)
+      Math.max(MIN_ROLL_INTERVAL_MILLIS, loopDuration * 1000),
     );
     this.deckService.syncProgress();
     this.sessionNotice.set(
-      `Deck ${deck} ${this.rollPadLabels[index]} beat slip roll engaged.`
+      `Deck ${deck} ${this.rollPadLabels[index]} beat slip roll engaged.`,
     );
   }
 
-  private stopRoll(deck: 'A' | 'B', announce = true) {
+  private stopRoll(deck: "A" | "B", announce = true) {
     const state = this.rollState[deck];
     this.clearRollInterval(deck);
     this.setActiveRollPad(deck, null);
@@ -2073,7 +2084,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
         ((Date.now() - state.startedAt) / 1000) * state.playbackRate;
       const resumePosition = Math.max(
         0,
-        Math.min(state.duration, state.origin + elapsed)
+        Math.min(state.duration, state.origin + elapsed),
       );
       this.engine.seekDeck(deck, resumePosition);
       this.engine.playDeck(deck);
@@ -2088,7 +2099,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  private triggerSamplerPad(deck: 'A' | 'B', index: number) {
+  private triggerSamplerPad(deck: "A" | "B", index: number) {
     const deckState = this.getDeckState(deck);
     const cuePosition = deckState.samplerPads[this.samplerCategory()][index];
     if (cuePosition === null) return;
@@ -2099,7 +2110,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     const wasPlaying = progress.isPlaying || deckState.isPlaying;
     const shotDuration = Math.min(
       this.getBeatWindowSeconds(deck, this.samplerPadBeats[index] || 1),
-      Math.max(0.05, duration - cuePosition)
+      Math.max(0.05, duration - cuePosition),
     );
     const origin = progress.position;
 
@@ -2112,7 +2123,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
         if (wasPlaying) {
           const resumePosition = Math.max(
             0,
-            Math.min(duration, origin + shotDuration * playbackRate)
+            Math.min(duration, origin + shotDuration * playbackRate),
           );
           this.engine.seekDeck(deck, resumePosition);
           this.engine.playDeck(deck);
@@ -2123,19 +2134,19 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
         this.clearSamplerActivePad(deck);
         this.deckService.syncProgress();
       },
-      Math.max(MIN_SAMPLER_RETURN_MILLIS, shotDuration * 1000)
+      Math.max(MIN_SAMPLER_RETURN_MILLIS, shotDuration * 1000),
     );
     this.deckService.syncProgress();
     this.sessionNotice.set(
-      `Deck ${deck} sampler pad ${index + 1} fired for ${this.formatPadWindow(shotDuration)}.`
+      `Deck ${deck} sampler pad ${index + 1} fired for ${this.formatPadWindow(shotDuration)}.`,
     );
   }
 
-  private getDeckState(deck: 'A' | 'B') {
-    return deck === 'A' ? this.deckService.deckA() : this.deckService.deckB();
+  private getDeckState(deck: "A" | "B") {
+    return deck === "A" ? this.deckService.deckA() : this.deckService.deckB();
   }
 
-  private getBeatWindowSeconds(deck: 'A' | 'B', beats: number) {
+  private getBeatWindowSeconds(deck: "A" | "B", beats: number) {
     const deckState = this.getDeckState(deck);
     const bpm = Math.max(1, deckState.bpm || 128);
     const playbackRate = Math.max(0.25, Math.abs(deckState.playbackRate || 1));
@@ -2146,39 +2157,39 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     return Math.max(0, origin - loopDuration);
   }
 
-  private setActiveRollPad(deck: 'A' | 'B', index: number | null) {
-    if (deck === 'A') this.activeRollPadA.set(index);
+  private setActiveRollPad(deck: "A" | "B", index: number | null) {
+    if (deck === "A") this.activeRollPadA.set(index);
     else this.activeRollPadB.set(index);
   }
 
-  private setActiveSamplerPad(deck: 'A' | 'B', index: number | null) {
-    if (deck === 'A') this.activeSamplerPadA.set(index);
+  private setActiveSamplerPad(deck: "A" | "B", index: number | null) {
+    if (deck === "A") this.activeSamplerPadA.set(index);
     else this.activeSamplerPadB.set(index);
   }
 
-  private clearRollInterval(deck: 'A' | 'B') {
+  private clearRollInterval(deck: "A" | "B") {
     if (this.rollIntervals[deck]) {
       clearInterval(this.rollIntervals[deck]);
       this.rollIntervals[deck] = null;
     }
   }
 
-  private clearSamplerReturnTimer(deck: 'A' | 'B') {
+  private clearSamplerReturnTimer(deck: "A" | "B") {
     if (this.samplerReturnTimers[deck]) {
       clearTimeout(this.samplerReturnTimers[deck]);
       this.samplerReturnTimers[deck] = null;
     }
   }
 
-  private clearSamplerActivePad(deck: 'A' | 'B') {
+  private clearSamplerActivePad(deck: "A" | "B") {
     this.clearSamplerReturnTimer(deck);
     this.setActiveSamplerPad(deck, null);
   }
 
-  updateGain(deck: 'A' | 'B', value: any) {
+  updateGain(deck: "A" | "B", value: any) {
     const raw = this.toFiniteNumber(value);
     const gain = this.clampDeckGain(raw);
-    if (deck === 'A') {
+    if (deck === "A") {
       this.deckService.deckA.update((d) => ({ ...d, gain }));
     } else {
       this.deckService.deckB.update((d) => ({ ...d, gain }));
@@ -2193,25 +2204,25 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.engine.setCrossfader(cf);
   }
 
-  setSamplerCategory(cat: 'drums' | 'fx' | 'vocals') {
-    if (cat !== 'drums' && cat !== 'fx' && cat !== 'vocals') return;
+  setSamplerCategory(cat: "drums" | "fx" | "vocals") {
+    if (cat !== "drums" && cat !== "fx" && cat !== "vocals") return;
     this.samplerCategory.set(cat);
   }
 
   getSamplePadLabel(index: number) {
     const parsed = Number.parseInt(
-      this.activeSamplePack().replace(/\D+/g, ''),
-      10
+      this.activeSamplePack().replace(/\D+/g, ""),
+      10,
     );
-    const packLabel = Number.isFinite(parsed) ? `P${parsed}` : 'P1';
+    const packLabel = Number.isFinite(parsed) ? `P${parsed}` : "P1";
     return `${packLabel}-${index + 1}`;
   }
 
-  toggleCue(deck: 'A' | 'B') {
+  toggleCue(deck: "A" | "B") {
     this.deckService.toggleCue(deck);
   }
 
-  setFxAmount(deck: 'A' | 'B', amount: any) {
+  setFxAmount(deck: "A" | "B", amount: any) {
     const val = this.toFiniteNumber(amount);
     this.deckService.setFx(deck, this.fxMode(), this.clampFxAmount(val));
   }
@@ -2222,16 +2233,16 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   getCrossfaderStatus() {
     const cf = this.deckService.crossfade();
-    if (cf < -0.25) return 'Deck A Lead';
-    if (cf > 0.25) return 'Deck B Lead';
-    return 'Balanced Mix';
+    if (cf < -0.25) return "Deck A Lead";
+    if (cf > 0.25) return "Deck B Lead";
+    return "Balanced Mix";
   }
 
   toggleAutomix() {
     this.deckService.toggleAutomix();
   }
 
-  syncDeck(deck: 'A' | 'B') {
+  syncDeck(deck: "A" | "B") {
     this.deckService.autoSync(deck);
   }
 
@@ -2242,18 +2253,18 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   /** DiscDj-style large + / − pitch bend buttons. Each tap nudges
    * the playbackRate by ±0.01 (≈ ±1%). Holding the button speeds
    * the nudge trivially so the user can slew. */
-  nudgePitch(deck: 'A' | 'B', direction: 'up' | 'down' | 'reset') {
+  nudgePitch(deck: "A" | "B", direction: "up" | "down" | "reset") {
     const state = this.getDeckState(deck);
-    const delta = direction === 'up' ? 0.01 : direction === 'down' ? -0.01 : 0;
-    const raw = direction === 'reset' ? 1 : state.playbackRate + delta;
+    const delta = direction === "up" ? 0.01 : direction === "down" ? -0.01 : 0;
+    const raw = direction === "reset" ? 1 : state.playbackRate + delta;
     const next = this.clampPlaybackRate(raw);
     this.deckService.setPlaybackRate(deck, next);
     this.sessionNotice.set(
       `Deck ${deck} pitch ${
-        direction === 'reset'
-          ? 'reset to 100%'
+        direction === "reset"
+          ? "reset to 100%"
           : `bumped to ${this.formatPct(next)}`
-      }`
+      }`,
     );
   }
 
@@ -2269,7 +2280,7 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
    *  Engages a real beat-quantized loop region on the engine: the loop
    *  snaps to the beat grid behind the playhead and spans exactly the
    *  requested beat count (clamped to the track duration). */
-  setLoopLengthPreset(deck: 'A' | 'B', beats: number) {
+  setLoopLengthPreset(deck: "A" | "B", beats: number) {
     const state = this.getDeckState(deck);
     if (!Number.isFinite(beats)) {
       this.sessionNotice.set(`Loop length must be a finite number.`);
@@ -2288,47 +2299,49 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     // Snap the loop start to the beat grid behind the playhead.
     const start =
       duration > 0
-        ? Math.max(0, Math.min(
-            Math.floor(progress.position / beatSec) * beatSec,
-            Math.max(0, duration - 0.01)
-          ))
+        ? Math.max(
+            0,
+            Math.min(
+              Math.floor(progress.position / beatSec) * beatSec,
+              Math.max(0, duration - 0.01),
+            ),
+          )
         : Math.max(0, Math.floor(progress.position / beatSec) * beatSec);
-    const end = duration > 0
-      ? Math.min(duration, start + seconds)
-      : start + seconds;
+    const end =
+      duration > 0 ? Math.min(duration, start + seconds) : start + seconds;
     this.engine.setDeckLoopRegion(deck, start, end);
     // Keep the booth's loop indicator in sync with the engine region.
     const deckSignal =
-      deck === 'A' ? this.deckService.deckA : this.deckService.deckB;
-    if (typeof deckSignal?.update === 'function') {
+      deck === "A" ? this.deckService.deckA : this.deckService.deckB;
+    if (typeof deckSignal?.update === "function") {
       deckSignal.update((d: any) => ({ ...d, loop: true }));
     }
     this.sessionNotice.set(
-      `Deck ${deck} ${safeBeats}-beat loop engaged (${seconds.toFixed(2)}s).`
+      `Deck ${deck} ${safeBeats}-beat loop engaged (${seconds.toFixed(2)}s).`,
     );
   }
 
   readonly loopLengthPresets: Array<{ beats: number; label: string }> = [
-    { beats: 0.125, label: '1/8' },
-    { beats: 0.25, label: '1/4' },
-    { beats: 0.5, label: '1/2' },
-    { beats: 1, label: '1' },
-    { beats: 2, label: '2' },
-    { beats: 4, label: '4' },
-    { beats: 8, label: '8' },
+    { beats: 0.125, label: "1/8" },
+    { beats: 0.25, label: "1/4" },
+    { beats: 0.5, label: "1/2" },
+    { beats: 1, label: "1" },
+    { beats: 2, label: "2" },
+    { beats: 4, label: "4" },
+    { beats: 8, label: "8" },
   ];
 
   /** Deck size mode – changes platter + panel density for ergonomics. */
-  deckSize = computed<'compact' | 'normal' | 'xl'>(() => {
-    if (typeof window === 'undefined') return 'normal';
+  deckSize = computed<"compact" | "normal" | "xl">(() => {
+    if (typeof window === "undefined") return "normal";
     const w = window.innerWidth;
-    if (w < 768) return 'compact';
-    if (w < 1280) return 'normal';
-    if (w < 1600) return 'normal';
-    return 'xl';
+    if (w < 768) return "compact";
+    if (w < 1280) return "normal";
+    if (w < 1600) return "normal";
+    return "xl";
   });
 
-  private getEffectiveDeckBpm(deck: 'A' | 'B') {
+  private getEffectiveDeckBpm(deck: "A" | "B") {
     const state = this.getDeckState(deck);
     if (!state.track || !state.bpm) return 0;
     return state.bpm * Math.abs(state.playbackRate || 1);

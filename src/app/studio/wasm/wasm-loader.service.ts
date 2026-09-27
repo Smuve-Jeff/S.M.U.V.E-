@@ -1,32 +1,32 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal } from "@angular/core";
 import {
   WasmDspModule,
   WasmDspConfig,
   DspKernelFn,
-} from './wasm-dsp-interface';
+} from "./wasm-dsp-interface";
 
 /**
  * S.M.U.V.E. 2.0 — Wasm DSP Loader Service
- * 
+ *
  * Loads WebAssembly DSP modules with automatic JS fallback.
  * Handles memory management, module caching, and feature detection.
- * 
+ *
  * Architecture:
  *   1. Try to fetch and instantiate the .wasm binary
  *   2. If Wasm is unavailable or fails, use the provided JS fallback
  *   3. Expose kernel functions through a unified interface
  *   4. Track which modules are loaded and their performance
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class WasmLoaderService {
   /** Currently loaded modules (id → module) */
   private modules = new Map<string, WasmDspModule>();
 
   /** Whether WebAssembly is supported in this browser */
   readonly wasmSupported = signal(
-    typeof WebAssembly !== 'undefined' &&
-    typeof WebAssembly.instantiate === 'function' &&
-    typeof WebAssembly.Memory === 'function'
+    typeof WebAssembly !== "undefined" &&
+      typeof WebAssembly.instantiate === "function" &&
+      typeof WebAssembly.Memory === "function",
   );
 
   /** Loading state: true while a module is being fetched */
@@ -37,14 +37,14 @@ export class WasmLoaderService {
 
   /**
    * Load a Wasm DSP module with JS fallback.
-   * 
+   *
    * @param moduleId Unique identifier for caching
    * @param config Module configuration
    * @returns The loaded module (Wasm or JS fallback)
    */
   async loadModule(
     moduleId: string,
-    config: WasmDspConfig
+    config: WasmDspConfig,
   ): Promise<WasmDspModule | null> {
     // Return cached module if already loaded
     if (this.modules.has(moduleId)) {
@@ -64,7 +64,7 @@ export class WasmLoaderService {
         } catch (err: any) {
           console.warn(
             `WasmLoader: Wasm load failed for '${moduleId}', falling back to JS.`,
-            err?.message
+            err?.message,
           );
         }
       }
@@ -85,7 +85,7 @@ export class WasmLoaderService {
       this.isLoading.set(false);
       return null;
     } catch (err: any) {
-      this.loadError.set(err?.message ?? 'Unknown load error');
+      this.loadError.set(err?.message ?? "Unknown load error");
       this.isLoading.set(false);
       return null;
     }
@@ -95,10 +95,7 @@ export class WasmLoaderService {
    * Get a kernel function from a loaded module.
    * Shortcut for: loader.getModule(id)?.getKernel(name)
    */
-  getKernel(
-    moduleId: string,
-    kernelName: string
-  ): DspKernelFn | null {
+  getKernel(moduleId: string, kernelName: string): DspKernelFn | null {
     const module = this.modules.get(moduleId);
     return module?.getKernel(kernelName) ?? null;
   }
@@ -139,10 +136,10 @@ export class WasmLoaderService {
 
   private async loadWasmModule(
     moduleId: string,
-    config: WasmDspConfig
+    config: WasmDspConfig,
   ): Promise<WasmDspModule> {
     if (!config.wasmUrl) {
-      throw new Error('No wasmUrl provided');
+      throw new Error("No wasmUrl provided");
     }
 
     const imports: WebAssembly.Imports = {
@@ -172,20 +169,20 @@ export class WasmLoaderService {
     return {
       id: moduleId,
       name: moduleId,
-      version: '1.0.0',
+      version: "1.0.0",
       isWasm: true,
       heapBytes,
 
       getKernel(name: string): DspKernelFn | null {
         const fn = exports[name];
-        if (typeof fn !== 'function') return null;
+        if (typeof fn !== "function") return null;
 
         // Wrap Wasm function as DspKernelFn
         return (
           input: Float32Array,
           output: Float32Array,
           params: Float32Array,
-          sampleRate: number
+          sampleRate: number,
         ) => {
           // Copy input to Wasm memory, call function, copy output back
           // (implementation depends on specific Wasm module ABI)
@@ -195,7 +192,7 @@ export class WasmLoaderService {
 
       listKernels(): string[] {
         return Object.keys(exports).filter(
-          (k) => typeof exports[k] === 'function'
+          (k) => typeof exports[k] === "function",
         );
       },
 

@@ -1,17 +1,17 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { StudioRecordingEngineService } from './studio-recording-engine.service';
-import { LoggingService } from '../services/logging.service';
-import { SnackbarService } from '../services/snackbar.service';
+import { Injectable, inject, signal } from "@angular/core";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { StudioRecordingEngineService } from "./studio-recording-engine.service";
+import { LoggingService } from "../services/logging.service";
+import { SnackbarService } from "../services/snackbar.service";
 
 export type RecordableComponent =
-  | 'arrangement'
-  | 'drum-machine'
-  | 'sampler'
-  | 'vocal-suite'
-  | 'audio-recorder'
-  | 'performer'
-  | 'mixer';
+  | "arrangement"
+  | "drum-machine"
+  | "sampler"
+  | "vocal-suite"
+  | "audio-recorder"
+  | "performer"
+  | "mixer";
 
 export interface ComponentRecordingConfig {
   componentId: RecordableComponent;
@@ -23,7 +23,7 @@ export interface ComponentRecordingConfig {
   usesInput: boolean;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class ComponentRecordingService {
   private audioEngine = inject(AudioEngineService);
   private recordingEngine = inject(StudioRecordingEngineService);
@@ -44,51 +44,51 @@ export class ComponentRecordingService {
   /** Available recordable components with their configs */
   readonly componentConfigs: ComponentRecordingConfig[] = [
     {
-      componentId: 'arrangement',
-      label: 'Arrangement',
-      icon: 'view_quilt',
+      componentId: "arrangement",
+      label: "Arrangement",
+      icon: "view_quilt",
       supportsMidi: true,
       usesInput: false,
     },
     {
-      componentId: 'drum-machine',
-      label: 'Drum Machine',
-      icon: 'grid_view',
+      componentId: "drum-machine",
+      label: "Drum Machine",
+      icon: "grid_view",
       supportsMidi: true,
       usesInput: false,
     },
     {
-      componentId: 'sampler',
-      label: 'Sampler',
-      icon: 'library_music',
+      componentId: "sampler",
+      label: "Sampler",
+      icon: "library_music",
       supportsMidi: false,
       usesInput: true,
     },
     {
-      componentId: 'vocal-suite',
-      label: 'Vocal Suite',
-      icon: 'mic',
+      componentId: "vocal-suite",
+      label: "Vocal Suite",
+      icon: "mic",
       supportsMidi: false,
       usesInput: true,
     },
     {
-      componentId: 'audio-recorder',
-      label: 'Audio Recorder',
-      icon: 'mic_external_on',
+      componentId: "audio-recorder",
+      label: "Audio Recorder",
+      icon: "mic_external_on",
       supportsMidi: false,
       usesInput: true,
     },
     {
-      componentId: 'performer',
-      label: 'Performer',
-      icon: 'interpreter_mode',
+      componentId: "performer",
+      label: "Performer",
+      icon: "interpreter_mode",
       supportsMidi: true,
       usesInput: true,
     },
     {
-      componentId: 'mixer',
-      label: 'Mixer',
-      icon: 'tune',
+      componentId: "mixer",
+      label: "Mixer",
+      icon: "tune",
       supportsMidi: false,
       usesInput: true,
     },
@@ -111,7 +111,7 @@ export class ComponentRecordingService {
 
     const source = this.activeSource();
     if (!source) {
-      this.snackbar.warning('Select a recording source first');
+      this.snackbar.warning("Select a recording source first");
       return false;
     }
 
@@ -123,7 +123,7 @@ export class ComponentRecordingService {
       if (config.usesInput) {
         const ok = await this.recordingEngine.initialize();
         if (!ok) {
-          this.snackbar.error('Could not access microphone');
+          this.snackbar.error("Could not access microphone");
           return false;
         }
       }
@@ -140,8 +140,8 @@ export class ComponentRecordingService {
       this.snackbar.info(`Recording ${config.label}...`);
       return true;
     } catch (e) {
-      this.logger.error('Component recording start failed', e);
-      this.snackbar.error('Recording failed to start');
+      this.logger.error("Component recording start failed", e);
+      this.snackbar.error("Recording failed to start");
       return false;
     }
   }
@@ -158,13 +158,13 @@ export class ComponentRecordingService {
     try {
       await this.recordingEngine.stopRecording();
     } catch (e) {
-      this.logger.warn('Recording stop warning', e);
+      this.logger.warn("Recording stop warning", e);
     }
 
     this.isRecording.set(false);
     this.audioEngine.isRecording.set(false);
     this.snackbar.success(
-      `Recording finished (${this.formatDuration(this.recordingDuration())})`
+      `Recording finished (${this.formatDuration(this.recordingDuration())})`,
     );
   }
 
@@ -181,6 +181,6 @@ export class ComponentRecordingService {
   private formatDuration(seconds: number): string {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   }
 }

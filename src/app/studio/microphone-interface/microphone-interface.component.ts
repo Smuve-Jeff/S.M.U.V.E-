@@ -9,15 +9,15 @@ import {
   signal,
   AfterViewInit,
   OnDestroy,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AudioSessionService } from '../audio-session.service';
-import { MicrophoneService } from '../../services/microphone.service';
-import { VocalMasteringService } from '../../services/vocal-mastering.service';
-import { StudioRecordingEngineService } from '../studio-recording-engine.service';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { AudioSessionService } from "../audio-session.service";
+import { MicrophoneService } from "../../services/microphone.service";
+import { VocalMasteringService } from "../../services/vocal-mastering.service";
+import { StudioRecordingEngineService } from "../studio-recording-engine.service";
 
-type VocalProfile = 'crystal' | 'broadcast' | 'warmth';
+type VocalProfile = "crystal" | "broadcast" | "warmth";
 
 /** Log-spaced bars in the spectrum view. */
 const SPECTRUM_BARS = 48;
@@ -26,11 +26,14 @@ const SPECTRUM_MIN_HZ = 40;
 const SPECTRUM_MAX_HZ = 16000;
 
 @Component({
-  selector: 'app-microphone-interface',
+  selector: "app-microphone-interface",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './microphone-interface.component.html',
-  styleUrls: ['./microphone-interface.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./microphone-interface.component.html",
+  styleUrls: [
+    "./microphone-interface.component.css",
+    "../shared/platform-ux.css",
+  ],
 })
 export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
   private readonly audioSession = inject(AudioSessionService);
@@ -38,10 +41,10 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
   public readonly recordingEngine = inject(StudioRecordingEngineService);
   public readonly mastering = inject(VocalMasteringService);
 
-  @Input() mode: 'compact' | 'full' = 'full';
+  @Input() mode: "compact" | "full" = "full";
 
   selectedChannelId = signal<string | null>(null);
-  vocalProfile = signal<VocalProfile>('crystal');
+  vocalProfile = signal<VocalProfile>("crystal");
 
   channels = this.audioSession.micChannels;
   devices = this.micService.availableDevices;
@@ -59,7 +62,7 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
   isScanning = signal(false);
 
   // ── Spectrum analyzer ────────────────────────────────────
-  @ViewChild('micSpectrum') spectrumRef?: ElementRef<HTMLCanvasElement>;
+  @ViewChild("micSpectrum") spectrumRef?: ElementRef<HTMLCanvasElement>;
   private spectrumCtx: CanvasRenderingContext2D | null = null;
   private spectrumFrame: number | null = null;
   private spectrumBins: Uint8Array<ArrayBuffer> | null = null;
@@ -68,22 +71,22 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
 
   /** Actionable readout under the spectrum — never a dead graph. */
   spectrumHint = computed(() => {
-    if (this.lastError()) return 'Input error — check the device above';
+    if (this.lastError()) return "Input error — check the device above";
     if (!this.micService.isInitialized()) {
-      return 'Press Connect chain to see the live spectrum';
+      return "Press Connect chain to see the live spectrum";
     }
     return this.inputLevel() > 2
-      ? 'Live signal — interface is feeding the Studio'
-      : 'Waiting for signal — raise the gain or move closer';
+      ? "Live signal — interface is feeding the Studio"
+      : "Waiting for signal — raise the gain or move closer";
   });
 
   currentChannel = computed(
     () =>
       this.channels().find(
-        (channel) => channel.id === this.selectedChannelId()
+        (channel) => channel.id === this.selectedChannelId(),
       ) ??
       this.channels()[0] ??
-      null
+      null,
   );
 
   deviceSummary = computed(() => {
@@ -97,9 +100,9 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
   });
 
   signalReadiness = computed(() => {
-    if (this.isRecording()) return 'recording';
-    if (this.micService.isInitialized()) return 'ready';
-    return 'offline';
+    if (this.isRecording()) return "recording";
+    if (this.micService.isInitialized()) return "ready";
+    return "offline";
   });
 
   clarityScore = computed(() => {
@@ -109,7 +112,7 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
     const exciter = params.exciter.amount * 100;
     const deesser = Math.max(0, (-params.deesser.threshold - 10) * 2);
     return Math.round(
-      Math.min(100, 45 + airLift + presence + exciter + deesser)
+      Math.min(100, 45 + airLift + presence + exciter + deesser),
     );
   });
 
@@ -142,7 +145,7 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
   private startSpectrum(): void {
     const canvas = this.spectrumRef?.nativeElement;
     if (!canvas) return;
-    this.spectrumCtx = canvas.getContext('2d');
+    this.spectrumCtx = canvas.getContext("2d");
     if (!this.spectrumCtx) return;
 
     const draw = () => {
@@ -158,7 +161,7 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
     if (!canvas || !ctx) return;
 
     const analyser = this.micService.getAnalyserNode();
-    if (!analyser || typeof analyser.getByteFrequencyData !== 'function') {
+    if (!analyser || typeof analyser.getByteFrequencyData !== "function") {
       return;
     }
 
@@ -180,8 +183,7 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
     const height = canvas.height;
     if (width <= 0 || height <= 0) return;
 
-    const sampleRate =
-      (analyser as any).context?.sampleRate ?? 48000;
+    const sampleRate = (analyser as any).context?.sampleRate ?? 48000;
     const binHz = sampleRate / Math.max(1, analyser.fftSize);
     const lastBin = this.spectrumBins.length - 1;
     const fMax = Math.min(SPECTRUM_MAX_HZ, sampleRate / 2);
@@ -193,7 +195,7 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
       const b0 = Math.max(0, Math.min(lastBin, Math.floor(f0 / binHz)));
       const b1 = Math.max(
         b0 + 1,
-        Math.min(this.spectrumBins.length, Math.floor(f1 / binHz))
+        Math.min(this.spectrumBins.length, Math.floor(f1 / binHz)),
       );
 
       let sum = 0;
@@ -208,7 +210,7 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
     ctx.clearRect(0, 0, width, height);
 
     // dB gridlines give the trace a reference instead of floating bars.
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.16)";
     ctx.lineWidth = 1;
     for (const line of [0.25, 0.5, 0.75]) {
       const y = height * line;
@@ -220,9 +222,9 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
 
     const barWidth = width / SPECTRUM_BARS;
     const gradient = ctx.createLinearGradient(0, height, 0, 0);
-    gradient.addColorStop(0, '#0e7490');
-    gradient.addColorStop(0.55, '#22d3ee');
-    gradient.addColorStop(1, '#c026d3');
+    gradient.addColorStop(0, "#0e7490");
+    gradient.addColorStop(0.55, "#22d3ee");
+    gradient.addColorStop(1, "#c026d3");
 
     for (let bar = 0; bar < SPECTRUM_BARS; bar++) {
       const x = bar * barWidth;
@@ -234,13 +236,13 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
 
       // Peak-hold cap so transients stay readable.
       const peakY = height - this.spectrumPeaks[bar] * height;
-      ctx.fillStyle = 'rgba(244, 114, 182, 0.9)';
+      ctx.fillStyle = "rgba(244, 114, 182, 0.9)";
       ctx.fillRect(x, Math.max(0, peakY - 1.5), w, 1.5);
     }
 
     // Frequency landmarks on the log scale.
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
-    ctx.font = '9px monospace';
+    ctx.fillStyle = "rgba(148, 163, 184, 0.6)";
+    ctx.font = "9px monospace";
     for (const hz of [100, 1000, 10000]) {
       const x = (Math.log(hz / SPECTRUM_MIN_HZ) / Math.log(ratio)) * width;
       if (x <= 0 || x >= width - 18) continue;
@@ -345,7 +347,7 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
   applyVocalProfile(profile: VocalProfile): void {
     this.vocalProfile.set(profile);
 
-    if (profile === 'broadcast') {
+    if (profile === "broadcast") {
       this.mastering.updateParams({
         deesser: { ...this.params().deesser, threshold: -20, frequency: 6200 },
         eq: { ...this.params().eq, low: -2, mid: 3, high: 4 },
@@ -359,7 +361,7 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    if (profile === 'warmth') {
+    if (profile === "warmth") {
       this.mastering.updateParams({
         deesser: { ...this.params().deesser, threshold: -25, frequency: 5800 },
         eq: { ...this.params().eq, low: 2, mid: 1.5, high: 1.5 },
@@ -410,6 +412,6 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
   }
 
   capabilityLabel(value: string): string {
-    return value.replace(/-/g, ' ');
+    return value.replace(/-/g, " ");
   }
 }

@@ -8,19 +8,19 @@ import {
   ViewChild,
   ElementRef,
   AfterViewInit,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AudioRecorderService, RecordingItem } from '../audio-recorder.service';
-import { HapticService } from '../../services/haptic.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { LoggingService } from '../../services/logging.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { MusicManagerService } from '../../services/music-manager.service';
-import { InteractionDialogService } from '../../services/interaction-dialog.service';
-import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
-import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
-import { Subscription } from 'rxjs';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { AudioRecorderService, RecordingItem } from "../audio-recorder.service";
+import { HapticService } from "../../services/haptic.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { LoggingService } from "../../services/logging.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { InteractionDialogService } from "../../services/interaction-dialog.service";
+import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
+import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
+import { Subscription } from "rxjs";
 
 interface RecordingListEntry {
   id: string;
@@ -31,11 +31,14 @@ interface RecordingListEntry {
 }
 
 @Component({
-  selector: 'app-audio-recorder-view',
+  selector: "app-audio-recorder-view",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './audio-recorder-view.component.html',
-  styleUrls: ['./audio-recorder-view.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./audio-recorder-view.component.html",
+  styleUrls: [
+    "./audio-recorder-view.component.css",
+    "../shared/platform-ux.css",
+  ],
 })
 export class AudioRecorderViewComponent
   implements OnInit, OnDestroy, AfterViewInit
@@ -48,7 +51,7 @@ export class AudioRecorderViewComponent
   private engineLatency = inject(AudioEngineLatencyService);
   private readonly visualScheduler = inject(StudioVisualSchedulerService);
 
-  @ViewChild('waveformCanvas')
+  @ViewChild("waveformCanvas")
   waveformCanvasRef!: ElementRef<HTMLCanvasElement>;
 
   /** UI state */
@@ -71,31 +74,35 @@ export class AudioRecorderViewComponent
   /** Live state bindings from service */
   isRecording = this.recorder.isRecording;
   recordingCount = computed(() => this.recordings().length);
-  captureState = signal<'idle' | 'requesting' | 'recording' | 'stopping' | 'error'>('idle');
+  captureState = signal<
+    "idle" | "requesting" | "recording" | "stopping" | "error"
+  >("idle");
   captureError = signal<string | null>(null);
   inputDevices = signal<Array<{ deviceId: string; label: string }>>([]);
   selectedInputId = signal<string | null>(null);
-  inputDeviceName = computed(() =>
-    this.inputDevices().find((device) => device.deviceId === this.selectedInputId())?.label ||
-    'Default microphone'
+  inputDeviceName = computed(
+    () =>
+      this.inputDevices().find(
+        (device) => device.deviceId === this.selectedInputId(),
+      )?.label || "Default microphone",
   );
   deviceSwitchLocked = computed(
-    () => this.captureState() === 'recording' || this.isRecording()
+    () => this.captureState() === "recording" || this.isRecording(),
   );
-  capturePathLabel = signal('Raw microphone input');
+  capturePathLabel = signal("Raw microphone input");
   latestRecording = computed(() => this.recordings()[0] ?? null);
   captureStatusLabel = computed(() => {
     switch (this.captureState()) {
-      case 'requesting':
-        return 'Requesting microphone';
-      case 'recording':
-        return 'Recording raw input';
-      case 'stopping':
-        return 'Finalizing take';
-      case 'error':
-        return 'Capture error';
+      case "requesting":
+        return "Requesting microphone";
+      case "recording":
+        return "Recording raw input";
+      case "stopping":
+        return "Finalizing take";
+      case "error":
+        return "Capture error";
       default:
-        return 'Ready to record';
+        return "Ready to record";
     }
   });
 
@@ -116,14 +123,14 @@ export class AudioRecorderViewComponent
     if (this.monitoringEnabled() && this.currentStream && this.audioContext) {
       try {
         this.micSourceNode = this.audioContext.createMediaStreamSource(
-          this.currentStream
+          this.currentStream,
         );
         this.monitorGainNode = this.audioContext.createGain();
         this.monitorGainNode.gain.value = 1.0;
         this.micSourceNode.connect(this.monitorGainNode);
         this.monitorGainNode.connect(this.audioContext.destination);
       } catch (err) {
-        this.logger.warn('Could not enable monitoring', err);
+        this.logger.warn("Could not enable monitoring", err);
         this.monitoringEnabled.set(false);
       }
     } else if (this.micSourceNode && this.monitorGainNode) {
@@ -138,8 +145,8 @@ export class AudioRecorderViewComponent
     }
     this.snackbar.info(
       this.monitoringEnabled()
-        ? 'Monitoring ON — hear yourself live'
-        : 'Monitoring OFF'
+        ? "Monitoring ON — hear yourself live"
+        : "Monitoring OFF",
     );
   }
 
@@ -155,7 +162,7 @@ export class AudioRecorderViewComponent
         this.gateNode.gain.setTargetAtTime(
           this.noiseGateEnabled() ? 0 : 1,
           this.audioContext.currentTime,
-          0.01
+          0.01,
         );
       } catch {
         /* context closed */
@@ -164,7 +171,7 @@ export class AudioRecorderViewComponent
     this.snackbar.info(
       this.noiseGateEnabled()
         ? `Noise gate ON (threshold: ${this.noiseGateThreshold()} dB)`
-        : 'Noise gate OFF'
+        : "Noise gate OFF",
     );
   }
 
@@ -179,34 +186,33 @@ export class AudioRecorderViewComponent
     try {
       // Fetch the recording blob and decode it
       if (!rec.url) {
-        this.snackbar.error('Recording has no audio data to export');
+        this.snackbar.error("Recording has no audio data to export");
         return;
       }
       const response = await fetch(rec.url);
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer =
         await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
-      const compensatedBuffer =
-        this.engineLatency.trimAudioBuffer(audioBuffer);
+      const compensatedBuffer = this.engineLatency.trimAudioBuffer(audioBuffer);
       // Create a new audio track in the music manager
       const trackName = rec.name || `Take ${rec.id.slice(-4)}`;
       this.musicManager.addAudioTrack({
-        id: 'audio_' + Date.now(),
+        id: "audio_" + Date.now(),
         name: trackName,
-        color: '#E11D48',
+        color: "#E11D48",
         buffer: compensatedBuffer,
         offset: 0,
       });
       this.snackbar.success(`"${trackName}" added to arrangement`);
     } catch (err) {
-      this.logger.error('Failed to export recording to arrangement', err);
-      this.snackbar.error('Could not export — try re-recording');
+      this.logger.error("Failed to export recording to arrangement", err);
+      this.snackbar.error("Could not export — try re-recording");
     }
   }
 
   // ── Take Naming ─────────────────────────────────────────
   renamingId = signal<string | null>(null);
-  renameValue = signal('');
+  renameValue = signal("");
 
   startRename(rec: RecordingListEntry): void {
     this.renamingId.set(rec.id);
@@ -218,8 +224,8 @@ export class AudioRecorderViewComponent
     if (!id) return;
     this.recordings.update((list) =>
       list.map((r) =>
-        r.id === id ? { ...r, name: this.renameValue() || r.name } : r
-      )
+        r.id === id ? { ...r, name: this.renameValue() || r.name } : r,
+      ),
     );
     this.renamingId.set(null);
     this.haptic.light();
@@ -237,7 +243,7 @@ export class AudioRecorderViewComponent
     const finished$ = (this.recorder as any).recordingFinished$;
     if (finished$?.subscribe) {
       this.recordingFinishedSubscription = finished$.subscribe((event: any) =>
-        this.handleRecordingFinished(event)
+        this.handleRecordingFinished(event),
       );
     }
     void this.refreshInputDevices();
@@ -260,7 +266,7 @@ export class AudioRecorderViewComponent
       this.currentStream.getTracks().forEach((t) => t.stop());
       this.currentStream = null;
     }
-    if (this.audioContext && this.audioContext.state !== 'closed') {
+    if (this.audioContext && this.audioContext.state !== "closed") {
       this.audioContext.close().catch(() => {});
       this.audioContext = null;
     }
@@ -291,10 +297,10 @@ export class AudioRecorderViewComponent
   promoteToTake(): void {
     this.haptic.heavy();
     const takeId =
-      'take-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+      "take-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6);
     const lastRecording = this.recordings()[this.recordings().length - 1];
     if (!lastRecording) {
-      this.snackbar.error('Record something first to promote a take');
+      this.snackbar.error("Record something first to promote a take");
       return;
     }
     const num = this.takes().length + 1;
@@ -309,18 +315,18 @@ export class AudioRecorderViewComponent
             isActive: true,
             durationSec: lastRecording.durationSec || 0,
           },
-        ])
+        ]),
     );
     // Unmute prior takes by default (comping)
     this.snackbar.success(
-      `Take ${num} armed · ${this.takes().length} takes available`
+      `Take ${num} armed · ${this.takes().length} takes available`,
     );
   }
 
   selectTake(takeId: string): void {
     this.haptic.light();
     this.takes.update((list) =>
-      list.map((t) => ({ ...t, isActive: t.id === takeId }))
+      list.map((t) => ({ ...t, isActive: t.id === takeId })),
     );
   }
 
@@ -343,17 +349,17 @@ export class AudioRecorderViewComponent
   async clearAllTakes(): Promise<void> {
     if (this.takes().length === 0) return;
     const confirmed = await this.dialog.confirm({
-      title: 'Clear All Takes',
+      title: "Clear All Takes",
       message: `Delete all ${this.takes().length} takes? This cannot be undone.`,
-      confirmLabel: 'Clear',
-      cancelLabel: 'Cancel',
-      tone: 'danger',
+      confirmLabel: "Clear",
+      cancelLabel: "Cancel",
+      tone: "danger",
     });
     if (!confirmed) return;
     this.takes.set([]);
     this.takeMuted.set({});
     this.haptic.heavy();
-    this.snackbar.info('All takes cleared');
+    this.snackbar.info("All takes cleared");
   }
 
   formatTakeAge(created: number): string {
@@ -364,9 +370,14 @@ export class AudioRecorderViewComponent
     return `${min}m ago`;
   }
 
-  private handleRecordingFinished(event: { id: string; blob: Blob; url: string }): void {
-    if (this.recordings().some((recording) => recording.id === event.id)) return;
-    const name = `Take ${String(this.recordings().length + 1).padStart(2, '0')}`;
+  private handleRecordingFinished(event: {
+    id: string;
+    blob: Blob;
+    url: string;
+  }): void {
+    if (this.recordings().some((recording) => recording.id === event.id))
+      return;
+    const name = `Take ${String(this.recordings().length + 1).padStart(2, "0")}`;
     const entry: RecordingListEntry = {
       id: event.id,
       name,
@@ -375,7 +386,7 @@ export class AudioRecorderViewComponent
       url: event.url,
     };
     this.recordings.update((list) => [entry, ...list]);
-    this.captureState.set('idle');
+    this.captureState.set("idle");
     this.captureError.set(null);
     this.clearElapsedTimer();
     this.stopLevelMeter();
@@ -398,17 +409,21 @@ export class AudioRecorderViewComponent
     }
     this.monitorGainNode = null;
     this.monitoringEnabled.set(false);
-    if (this.audioContext && this.audioContext.state !== 'closed') {
+    if (this.audioContext && this.audioContext.state !== "closed") {
       this.audioContext.close().catch(() => {});
     }
     this.audioContext = null;
   }
 
   async refreshInputDevices(): Promise<void> {
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return;
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices?.enumerateDevices
+    )
+      return;
     try {
       const devices = (await navigator.mediaDevices.enumerateDevices())
-        .filter((device) => device.kind === 'audioinput')
+        .filter((device) => device.kind === "audioinput")
         .map((device, index) => ({
           deviceId: device.deviceId,
           label: device.label || `Microphone ${index + 1}`,
@@ -418,13 +433,13 @@ export class AudioRecorderViewComponent
         this.selectedInputId.set(devices[0].deviceId);
       }
     } catch (error) {
-      this.logger.warn('Could not enumerate recorder inputs', error);
+      this.logger.warn("Could not enumerate recorder inputs", error);
     }
   }
 
   async setInputDevice(deviceId: string): Promise<void> {
     if (this.deviceSwitchLocked()) {
-      this.snackbar.warning('Stop recording before switching input');
+      this.snackbar.warning("Stop recording before switching input");
       return;
     }
     this.selectedInputId.set(deviceId);
@@ -453,18 +468,18 @@ export class AudioRecorderViewComponent
   // ── Toggle record on/off ────────────────────────────────
   async toggleRecord(): Promise<void> {
     this.haptic.medium();
-    if (this.isRecording() || this.captureState() === 'recording') {
-      this.captureState.set('stopping');
+    if (this.isRecording() || this.captureState() === "recording") {
+      this.captureState.set("stopping");
       this.recorder.stopRecording();
       this.clearElapsedTimer();
       this.stopLevelMeter();
       this.stopWaveform();
       this.stopFallbackTimer = setTimeout(() => {
-        this.captureState.set('idle');
+        this.captureState.set("idle");
         this.closeAudioGraph();
         this.loadOfflineRecordings();
       }, 1000);
-      this.snackbar.info('Recording stopped');
+      this.snackbar.info("Recording stopped");
       return;
     }
     await this.startRecording();
@@ -472,7 +487,7 @@ export class AudioRecorderViewComponent
 
   private async startRecording(): Promise<void> {
     this.isRequestingMic.set(true);
-    this.captureState.set('requesting');
+    this.captureState.set("requesting");
     this.captureError.set(null);
     this.permissionsDenied.set(false);
     try {
@@ -497,23 +512,23 @@ export class AudioRecorderViewComponent
         this.captureDestination?.stream ?? this.currentStream;
       await this.recorder.startRecording(captureStream);
       this.startedAt = Date.now();
-      this.captureState.set('recording');
+      this.captureState.set("recording");
       this.startElapsedTimer();
       this.startWaveform();
-      this.snackbar.success('Recording armed — capture live input');
+      this.snackbar.success("Recording armed — capture live input");
     } catch (err: any) {
-      this.captureState.set('error');
+      this.captureState.set("error");
       this.captureError.set(
-        err?.name === 'NotAllowedError'
-          ? 'Microphone permission denied'
-          : 'Could not access microphone'
+        err?.name === "NotAllowedError"
+          ? "Microphone permission denied"
+          : "Could not access microphone",
       );
       this.permissionsDenied.set(true);
-      this.logger.error('Mic permission denied or unavailable', err);
+      this.logger.error("Mic permission denied or unavailable", err);
       this.snackbar.error(
-        err?.name === 'NotAllowedError'
-          ? 'Microphone permission denied'
-          : 'Could not access microphone'
+        err?.name === "NotAllowedError"
+          ? "Microphone permission denied"
+          : "Could not access microphone",
       );
     } finally {
       this.isRequestingMic.set(false);
@@ -541,18 +556,21 @@ export class AudioRecorderViewComponent
 
       const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
       this.levelTaskCleanup?.();
-      this.levelTaskCleanup = this.visualScheduler.register(() => {
-        if (!this.analyserNode) return;
-        this.analyserNode.getByteFrequencyData(dataArray);
-        const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-        // Map 0-255 to -60..0 dB roughly
-        const db =
-          avg === 0 ? -60 : Math.round(20 * Math.log10(avg / 255) * 10) / 10;
-        this.inputLevel.set(Math.max(-60, Math.min(0, db)));
-        this.applyNoiseGate(db);
-      }, { fps: 24 });
+      this.levelTaskCleanup = this.visualScheduler.register(
+        () => {
+          if (!this.analyserNode) return;
+          this.analyserNode.getByteFrequencyData(dataArray);
+          const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          // Map 0-255 to -60..0 dB roughly
+          const db =
+            avg === 0 ? -60 : Math.round(20 * Math.log10(avg / 255) * 10) / 10;
+          this.inputLevel.set(Math.max(-60, Math.min(0, db)));
+          this.applyNoiseGate(db);
+        },
+        { fps: 24 },
+      );
     } catch (err) {
-      this.logger.warn('Could not start level meter', err);
+      this.logger.warn("Could not start level meter", err);
     }
   }
 
@@ -564,7 +582,7 @@ export class AudioRecorderViewComponent
       this.gateNode.gain.setTargetAtTime(
         open ? 1 : 0,
         this.audioContext.currentTime,
-        open ? 0.005 : 0.08
+        open ? 0.005 : 0.08,
       );
     } catch {
       /* context closed mid-take */
@@ -599,42 +617,51 @@ export class AudioRecorderViewComponent
   private startWaveform(): void {
     if (!this.waveformCanvasRef) return;
     const canvas = this.waveformCanvasRef.nativeElement;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const buffer: number[] = new Array(200).fill(0);
     this.waveformTaskCleanup?.();
-    this.waveformTaskCleanup = this.visualScheduler.register(() => {
-      if (this.captureState() !== 'recording') return;
-      const rect = canvas.getBoundingClientRect();
-      const pixelRatio = Math.min(2, globalThis.devicePixelRatio || 1);
-      const width = Math.max(1, Math.round((rect.width || canvas.width) * pixelRatio));
-      const height = Math.max(1, Math.round((rect.height || canvas.height) * pixelRatio));
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-      }
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.fillStyle = '#06091a';
-      ctx.fillRect(0, 0, w, h);
+    this.waveformTaskCleanup = this.visualScheduler.register(
+      () => {
+        if (this.captureState() !== "recording") return;
+        const rect = canvas.getBoundingClientRect();
+        const pixelRatio = Math.min(2, globalThis.devicePixelRatio || 1);
+        const width = Math.max(
+          1,
+          Math.round((rect.width || canvas.width) * pixelRatio),
+        );
+        const height = Math.max(
+          1,
+          Math.round((rect.height || canvas.height) * pixelRatio),
+        );
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+        }
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.fillStyle = "#06091a";
+        ctx.fillRect(0, 0, w, h);
 
-      const val = this.inputLevel();
-      const normalized = Math.max(0, Math.min(1, (val + 60) / 60));
-      buffer.push(normalized);
-      buffer.shift();
+        const val = this.inputLevel();
+        const normalized = Math.max(0, Math.min(1, (val + 60) / 60));
+        buffer.push(normalized);
+        buffer.shift();
 
-      ctx.beginPath();
-      ctx.strokeStyle = '#00e5ff';
-      ctx.lineWidth = Math.max(1, pixelRatio);
-      for (let i = 0; i < buffer.length; i++) {
-        const x = (i / buffer.length) * w;
-        const y = (1 - buffer[i]) * h;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }, { fps: 30 });
+        ctx.beginPath();
+        ctx.strokeStyle = "#00e5ff";
+        ctx.lineWidth = Math.max(1, pixelRatio);
+        for (let i = 0; i < buffer.length; i++) {
+          const x = (i / buffer.length) * w;
+          const y = (1 - buffer[i]) * h;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      },
+      { fps: 30 },
+    );
   }
 
   private stopWaveform(): void {
@@ -646,10 +673,13 @@ export class AudioRecorderViewComponent
   private startElapsedTimer(): void {
     this.elapsedSec.set(0);
     this.clearElapsedTimer();
-    this.elapsedTaskCleanup = this.visualScheduler.register(() => {
-      const sec = Math.floor((Date.now() - this.startedAt) / 1000);
-      this.elapsedSec.set(sec);
-    }, { fps: 4 });
+    this.elapsedTaskCleanup = this.visualScheduler.register(
+      () => {
+        const sec = Math.floor((Date.now() - this.startedAt) / 1000);
+        this.elapsedSec.set(sec);
+      },
+      { fps: 4 },
+    );
   }
 
   private clearElapsedTimer(): void {
@@ -661,10 +691,10 @@ export class AudioRecorderViewComponent
   formatTime(sec: number): string {
     const m = Math.floor(sec / 60)
       .toString()
-      .padStart(2, '0');
+      .padStart(2, "0");
     const s = Math.floor(sec % 60)
       .toString()
-      .padStart(2, '0');
+      .padStart(2, "0");
     return `${m}:${s}`;
   }
 
@@ -679,7 +709,7 @@ export class AudioRecorderViewComponent
     const remove = (this.recorder as any).deleteOfflineRecording;
     if (remove) void remove.call(this.recorder, id);
     this.recordings.update((list) => list.filter((r) => r.id !== id));
-    this.snackbar.info('Recording removed from list');
+    this.snackbar.info("Recording removed from list");
   }
 
   private async loadOfflineRecordings(): Promise<void> {
@@ -692,13 +722,14 @@ export class AudioRecorderViewComponent
         timestamp: it.timestamp || Date.now(),
         durationSec: Number(it.settings?.durationSec ?? 0) || 0,
         url:
-          it.blob && typeof (this.recorder as any).createRecordingUrl === 'function'
+          it.blob &&
+          typeof (this.recorder as any).createRecordingUrl === "function"
             ? (this.recorder as any).createRecordingUrl(it.blob)
-            : '',
+            : "",
       }));
       this.recordings.set(built);
     } catch (err) {
-      this.logger.warn('No offline recordings available', err);
+      this.logger.warn("No offline recordings available", err);
     }
   }
 }

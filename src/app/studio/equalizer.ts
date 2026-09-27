@@ -22,11 +22,11 @@ export class Equalizer {
     frequencies.forEach((freq, i) => {
       const filter = this.context.createBiquadFilter();
       if (i === 0) {
-        filter.type = 'lowshelf';
+        filter.type = "lowshelf";
       } else if (i === frequencies.length - 1) {
-        filter.type = 'highshelf';
+        filter.type = "highshelf";
       } else {
-        filter.type = 'peaking';
+        filter.type = "peaking";
       }
       filter.frequency.value = freq;
       filter.Q.value = 1.0;
@@ -47,7 +47,7 @@ export class Equalizer {
       this.filters[bandIndex].gain.setTargetAtTime(
         gain,
         this.context.currentTime,
-        0.01
+        0.01,
       );
     }
   }

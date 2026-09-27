@@ -1,15 +1,18 @@
-import { Injectable, signal, inject } from '@angular/core';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { bezierInterpolate, BezierPresets } from './automation/bezier-utils';
+import { Injectable, signal, inject } from "@angular/core";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { bezierInterpolate, BezierPresets } from "./automation/bezier-utils";
 
 export interface AutomationPoint {
   time: number;
   value: number;
   /** Bezier control handles (only used when interpolation is 'bezier') */
-  bezierHandles?: { cpIn: { t: number; value: number }; cpOut: { t: number; value: number } };
+  bezierHandles?: {
+    cpIn: { t: number; value: number };
+    cpOut: { t: number; value: number };
+  };
 }
 
-export type AutomationInterpolation = 'linear' | 'step' | 'smooth' | 'bezier';
+export type AutomationInterpolation = "linear" | "step" | "smooth" | "bezier";
 
 export interface AutomationTarget {
   trackId: string;
@@ -29,7 +32,7 @@ export interface AutomationLane {
   macroId?: string;
 }
 
-export type ModulationType = 'lfo' | 'envelope-follower';
+export type ModulationType = "lfo" | "envelope-follower";
 
 export interface ModulationSource {
   id: string;
@@ -54,7 +57,7 @@ export interface PerformanceMacro {
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class AutomationService {
   private readonly engine = inject(AudioEngineService);
@@ -78,10 +81,10 @@ export class AutomationService {
       max?: number;
       modulationDepth?: number;
       macroId?: string;
-    }
+    },
   ) {
     const lane: AutomationLane = {
-      id: this.nextId('auto-lane'),
+      id: this.nextId("auto-lane"),
       target: {
         trackId,
         parameter,
@@ -90,7 +93,7 @@ export class AutomationService {
       },
       points: [],
       enabled: true,
-      interpolation: options?.interpolation ?? 'linear',
+      interpolation: options?.interpolation ?? "linear",
       modulationDepth: options?.modulationDepth ?? 0,
       macroId: options?.macroId,
     };
@@ -111,11 +114,11 @@ export class AutomationService {
       max?: number;
       modulationDepth?: number;
       macroId?: string;
-    }
+    },
   ): AutomationLane {
     const existing = this.lanes().find(
       (lane) =>
-        lane.target.trackId === trackId && lane.target.parameter === parameter
+        lane.target.trackId === trackId && lane.target.parameter === parameter,
     );
     if (existing) return existing;
     return this.addLane(trackId, parameter, options);
@@ -127,27 +130,27 @@ export class AutomationService {
       sources.map((source) => ({
         ...source,
         mappedLaneIds: source.mappedLaneIds.filter((id) => id !== laneId),
-      }))
+      })),
     );
     this.macros.update((macros) =>
       macros.map((macro) => ({
         ...macro,
         mappings: macro.mappings.filter((mapping) => mapping.laneId !== laneId),
-      }))
+      })),
     );
   }
 
   setLaneEnabled(laneId: string, enabled: boolean) {
     this.lanes.update((lanes) =>
-      lanes.map((lane) => (lane.id === laneId ? { ...lane, enabled } : lane))
+      lanes.map((lane) => (lane.id === laneId ? { ...lane, enabled } : lane)),
     );
   }
 
   setLaneInterpolation(laneId: string, interpolation: AutomationInterpolation) {
     this.lanes.update((lanes) =>
       lanes.map((lane) =>
-        lane.id === laneId ? { ...lane, interpolation } : lane
-      )
+        lane.id === laneId ? { ...lane, interpolation } : lane,
+      ),
     );
   }
 
@@ -181,15 +184,15 @@ export class AutomationService {
               ...lane,
               points: [...points].sort((a, b) => a.time - b.time),
             }
-          : lane
-      )
+          : lane,
+      ),
     );
   }
 
   updatePoint(
     laneId: string,
     pointIndex: number,
-    patch: Partial<AutomationPoint>
+    patch: Partial<AutomationPoint>,
   ) {
     this.lanes.update((lanes) => {
       const lane = lanes.find((l) => l.id === laneId);
@@ -223,7 +226,7 @@ export class AutomationService {
             lane.interpolation,
             points[i].time,
             points[i + 1].time,
-            points[i].bezierHandles
+            points[i].bezierHandles,
           );
           break;
         }
@@ -233,10 +236,10 @@ export class AutomationService {
     if (base === null) return null;
     const modulation = this.getModulationContribution(lane, time);
     let value = base + modulation + macroBias * lane.modulationDepth;
-    if (typeof lane.target.min === 'number') {
+    if (typeof lane.target.min === "number") {
       value = Math.max(lane.target.min, value);
     }
-    if (typeof lane.target.max === 'number') {
+    if (typeof lane.target.max === "number") {
       value = Math.min(lane.target.max, value);
     }
     return value;
@@ -249,22 +252,26 @@ export class AutomationService {
     interpolation: AutomationInterpolation,
     startTime?: number,
     endTime?: number,
-    bezierHandles?: AutomationPoint['bezierHandles']
+    bezierHandles?: AutomationPoint["bezierHandles"],
   ): number {
-    if (interpolation === 'step') {
+    if (interpolation === "step") {
       return start;
     }
-    if (interpolation === 'bezier' && startTime !== undefined && endTime !== undefined) {
+    if (
+      interpolation === "bezier" &&
+      startTime !== undefined &&
+      endTime !== undefined
+    ) {
       return bezierInterpolate(
         startTime,
         start,
         endTime,
         end,
         ratio,
-        bezierHandles ?? BezierPresets.easeInOut
+        bezierHandles ?? BezierPresets.easeInOut,
       );
     }
-    if (interpolation === 'smooth') {
+    if (interpolation === "smooth") {
       const t = ratio * ratio * (3 - 2 * ratio);
       return start + t * (end - start);
     }
@@ -273,10 +280,10 @@ export class AutomationService {
 
   createModulationSource(
     type: ModulationType,
-    config?: Partial<ModulationSource>
+    config?: Partial<ModulationSource>,
   ): ModulationSource {
     const source: ModulationSource = {
-      id: this.nextId('auto-mod'),
+      id: this.nextId("auto-mod"),
       type,
       enabled: true,
       amount: config?.amount ?? 0.25,
@@ -295,8 +302,8 @@ export class AutomationService {
       sources.map((source) =>
         source.id !== sourceId || source.mappedLaneIds.includes(laneId)
           ? source
-          : { ...source, mappedLaneIds: [...source.mappedLaneIds, laneId] }
-      )
+          : { ...source, mappedLaneIds: [...source.mappedLaneIds, laneId] },
+      ),
     );
   }
 
@@ -308,14 +315,14 @@ export class AutomationService {
               ...source,
               mappedLaneIds: source.mappedLaneIds.filter((id) => id !== laneId),
             }
-          : source
-      )
+          : source,
+      ),
     );
   }
 
   createMacro(name: string): PerformanceMacro {
     const macro: PerformanceMacro = {
-      id: this.nextId('auto-macro'),
+      id: this.nextId("auto-macro"),
       name,
       value: 0,
       mappings: [],
@@ -332,8 +339,8 @@ export class AutomationService {
           : {
               ...macro,
               mappings: [...macro.mappings, { laneId, depth }],
-            }
-      )
+            },
+      ),
     );
   }
 
@@ -341,8 +348,8 @@ export class AutomationService {
     const clamped = Math.max(-1, Math.min(1, value));
     this.macros.update((macros) =>
       macros.map((macro) =>
-        macro.id === macroId ? { ...macro, value: clamped } : macro
-      )
+        macro.id === macroId ? { ...macro, value: clamped } : macro,
+      ),
     );
   }
 
@@ -357,17 +364,17 @@ export class AutomationService {
 
   private getModulationContribution(
     lane: AutomationLane,
-    time: number
+    time: number,
   ): number {
     let total = 0;
     for (const source of this.modulationSources()) {
       if (!source.enabled || !source.mappedLaneIds.includes(lane.id)) continue;
-      if (source.type === 'lfo') {
+      if (source.type === "lfo") {
         const phase = (source.phaseOffset ?? 0) + time * (source.rateHz ?? 1);
         total += Math.sin(phase * Math.PI * 2) * source.amount;
         continue;
       }
-      if (source.type === 'envelope-follower') {
+      if (source.type === "envelope-follower") {
         const atk = Math.max(0.001, source.attack ?? 0.01);
         const rel = Math.max(0.001, source.release ?? 0.2);
         const pulse = ((time % (atk + rel)) / (atk + rel)) * 2 - 1;
@@ -384,14 +391,14 @@ export class AutomationService {
       const value = this.getValueAtTime(
         lane.id,
         time,
-        this.getMacroBiasForLane(lane)
+        this.getMacroBiasForLane(lane),
       );
       if (value !== null) {
         this.engine.applyProductionParameter(
           lane.target.trackId,
           lane.target.parameter,
           value,
-          duration
+          duration,
         );
       }
     });

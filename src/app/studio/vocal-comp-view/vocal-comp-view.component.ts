@@ -1,27 +1,23 @@
-import { Component, signal, inject, computed, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import {
-  SmartRecordingService,
-  CompGroup,
-  CompTake,
-} from '../smart-recording.service';
+import { Component, signal, inject, computed } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { SmartRecordingService } from "../smart-recording.service";
 import {
   VocalCompSuggesterService,
   CompSuggestion,
-} from '../vocal-comp-suggester.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { LoggingService } from '../../services/logging.service';
+} from "../vocal-comp-suggester.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { LoggingService } from "../../services/logging.service";
 
-type CompareMode = 'off' | 'a-b' | 'all';
+type CompareMode = "off" | "a-b" | "all";
 
 @Component({
-  selector: 'app-vocal-comp-view',
+  selector: "app-vocal-comp-view",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './vocal-comp-view.component.html',
-  styleUrls: ['./vocal-comp-view.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./vocal-comp-view.component.html",
+  styleUrls: ["./vocal-comp-view.component.css", "../shared/platform-ux.css"],
 })
 export class VocalCompViewComponent {
   private smartRecording = inject(SmartRecordingService);
@@ -32,11 +28,11 @@ export class VocalCompViewComponent {
 
   // ── State ──────────────────────────────────────────────
   selectedGroupId = signal<string | null>(null);
-  compareMode = signal<CompareMode>('off');
+  compareMode = signal<CompareMode>("off");
   abReferenceTakeId = signal<string | null>(null);
   playingTakeId = signal<string | null>(null);
   isExporting = signal(false);
-  searchQuery = signal('');
+  searchQuery = signal("");
 
   /** Suggested "best" take from the AI comp suggester for the selected group. */
   suggestion = signal<CompSuggestion | null>(null);
@@ -76,7 +72,7 @@ export class VocalCompViewComponent {
     return this.compGroups().filter(
       (g) =>
         g.sectionLabel.toLowerCase().includes(q) ||
-        g.trackName.toLowerCase().includes(q)
+        g.trackName.toLowerCase().includes(q),
     );
   });
 
@@ -86,18 +82,18 @@ export class VocalCompViewComponent {
   // ── Group management ───────────────────────────────────
   selectGroup(groupId: string) {
     this.selectedGroupId.set(groupId);
-    this.compareMode.set('off');
+    this.compareMode.set("off");
     this.playingTakeId.set(null);
   }
 
   createNewGroup() {
     this.smartRecording.startNewCompGroup(
-      'vocal-track',
-      'Vocal Track',
-      `Section ${this.compGroups().length + 1}`
+      "vocal-track",
+      "Vocal Track",
+      `Section ${this.compGroups().length + 1}`,
     );
     this.selectedGroupId.set(this.smartRecording.activeCompGroupId());
-    this.snackbar.info('New comp group created');
+    this.snackbar.info("New comp group created");
   }
 
   deleteGroup(groupId: string) {
@@ -113,8 +109,8 @@ export class VocalCompViewComponent {
   renameGroup(groupId: string, newLabel: string) {
     this.smartRecording.compGroups.update((groups) =>
       groups.map((g) =>
-        g.id === groupId ? { ...g, sectionLabel: newLabel } : g
-      )
+        g.id === groupId ? { ...g, sectionLabel: newLabel } : g,
+      ),
     );
   }
 
@@ -123,7 +119,7 @@ export class VocalCompViewComponent {
     const group = this.selectedGroup();
     if (!group) return;
     this.smartRecording.selectCompTake(group.id, takeId);
-    this.compareMode.set('off');
+    this.compareMode.set("off");
   }
 
   toggleMute(groupId: string, takeId: string) {
@@ -132,7 +128,7 @@ export class VocalCompViewComponent {
 
   deleteTake(groupId: string, takeId: string) {
     this.smartRecording.deleteTake(groupId, takeId);
-    this.snackbar.info('Take deleted');
+    this.snackbar.info("Take deleted");
   }
 
   playTake(takeId: string) {
@@ -163,14 +159,14 @@ export class VocalCompViewComponent {
 
   // ── A/B Comparison ────────────────────────────────────
   toggleCompare() {
-    const modes: CompareMode[] = ['off', 'a-b', 'all'];
+    const modes: CompareMode[] = ["off", "a-b", "all"];
     const currentIndex = modes.indexOf(this.compareMode());
     const nextIndex = (currentIndex + 1) % modes.length;
     this.compareMode.set(modes[nextIndex]);
 
-    if (modes[nextIndex] === 'off') {
+    if (modes[nextIndex] === "off") {
       this.abReferenceTakeId.set(null);
-    } else if (modes[nextIndex] === 'a-b' && this.compTake()) {
+    } else if (modes[nextIndex] === "a-b" && this.compTake()) {
       // Set reference to the current comp selection
       this.abReferenceTakeId.set(this.compTake()?.id || null);
     }
@@ -178,23 +174,23 @@ export class VocalCompViewComponent {
 
   setReferenceTake(takeId: string) {
     this.abReferenceTakeId.set(takeId);
-    this.snackbar.info('Reference take set for A/B comparison');
+    this.snackbar.info("Reference take set for A/B comparison");
   }
 
   // ── Comp assembly ─────────────────────────────────────
   assembleComp(): string {
     // Collect all non-muted takes and play them in sequence
     const group = this.selectedGroup();
-    if (!group) return '';
+    if (!group) return "";
 
     const activeTakes = group.takes.filter((t) => !t.isMuted);
-    if (activeTakes.length === 0) return '';
+    if (activeTakes.length === 0) return "";
 
     // Return the URL of the comp-selected take
     const compTake = group.takes.find((t) => t.isCompSelection);
     if (compTake?.url) return compTake.url;
 
-    return activeTakes[activeTakes.length - 1]?.url || '';
+    return activeTakes[activeTakes.length - 1]?.url || "";
   }
 
   // ── AI comp suggestion ─────────────────────────────────
@@ -207,10 +203,12 @@ export class VocalCompViewComponent {
     this.searchingSuggestion.set(false);
     if (found) {
       this.snackbar.info(
-        `AI suggests Take ${found.takeNumber} (${found.score}/100)`
+        `AI suggests Take ${found.takeNumber} (${found.score}/100)`,
       );
     } else {
-      this.snackbar.warning('No usable takes to suggest from — record at least one');
+      this.snackbar.warning(
+        "No usable takes to suggest from — record at least one",
+      );
     }
   }
 
@@ -240,20 +238,20 @@ export class VocalCompViewComponent {
         group.takes[group.takes.length - 1];
 
       if (!compTake?.blob) {
-        this.snackbar.warning('No comp selection to export');
+        this.snackbar.warning("No comp selection to export");
         return;
       }
 
       // Trigger download
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = compTake.url;
-      a.download = `SMUVE_Comp_${group.sectionLabel.replace(/\s+/g, '_')}_${Date.now()}.wav`;
+      a.download = `SMUVE_Comp_${group.sectionLabel.replace(/\s+/g, "_")}_${Date.now()}.wav`;
       a.click();
 
       this.snackbar.success(`Comp "${group.sectionLabel}" exported as WAV`);
     } catch (e) {
-      this.logger.error('Export failed', e);
-      this.snackbar.error('Export failed');
+      this.logger.error("Export failed", e);
+      this.snackbar.error("Export failed");
     } finally {
       this.isExporting.set(false);
     }
@@ -268,17 +266,17 @@ export class VocalCompViewComponent {
     try {
       for (const take of group.takes) {
         if (!take.url) continue;
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = take.url;
-        a.download = `SMUVE_Take${take.takeNumber}_${group.sectionLabel.replace(/\s+/g, '_')}.wav`;
+        a.download = `SMUVE_Take${take.takeNumber}_${group.sectionLabel.replace(/\s+/g, "_")}.wav`;
         a.click();
         // Small delay between downloads
         await new Promise((r) => setTimeout(r, 200));
       }
       this.snackbar.success(`${group.takes.length} takes exported`);
     } catch (e) {
-      this.logger.error('Export all failed', e);
-      this.snackbar.error('Export failed');
+      this.logger.error("Export all failed", e);
+      this.snackbar.error("Export failed");
     } finally {
       this.isExporting.set(false);
     }
@@ -289,19 +287,19 @@ export class VocalCompViewComponent {
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);
     const secs = s % 60;
-    return `${m}:${secs.toString().padStart(2, '0')}`;
+    return `${m}:${secs.toString().padStart(2, "0")}`;
   }
 
   getTakeColor(takeNumber: number): string {
     const colors = [
-      '#10b981',
-      '#a855f7',
-      '#f59e0b',
-      '#ec4899',
-      '#3b82f6',
-      '#ef4444',
-      '#14b8a6',
-      '#f97316',
+      "#10b981",
+      "#a855f7",
+      "#f59e0b",
+      "#ec4899",
+      "#3b82f6",
+      "#ef4444",
+      "#14b8a6",
+      "#f97316",
     ];
     return colors[(takeNumber - 1) % colors.length];
   }
@@ -314,7 +312,7 @@ export class VocalCompViewComponent {
       // Use a seeded pattern based on the selected group id for consistency
       const seed =
         this.selectedGroupId()?.charCodeAt(
-          i % (this.selectedGroupId()?.length || 1)
+          i % (this.selectedGroupId()?.length || 1),
         ) || 50;
       const base = (Math.sin(i * 0.5 + seed) + 1) / 2; // 0-1
       const variation = Math.sin(i * 1.3 + seed * 0.7) * 0.3;

@@ -1,17 +1,22 @@
-import { IAudioPlugin, PluginRegistry, PluginCategory, PluginParam } from './plugin-interface';
-import { Equalizer } from '../equalizer';
-import { Delay } from '../delay';
-import { Saturation } from '../saturation';
-import { SidechainCompressor } from '../sidechain-compressor';
-import { Reverb } from '../reverb';
-import { Compressor } from '../compressor';
+import {
+  IAudioPlugin,
+  PluginRegistry,
+  PluginCategory,
+  PluginParam,
+} from "./plugin-interface";
+import { Equalizer } from "../equalizer";
+import { Delay } from "../delay";
+import { Saturation } from "../saturation";
+import { SidechainCompressor } from "../sidechain-compressor";
+import { Reverb } from "../reverb";
+import { Compressor } from "../compressor";
 
 /** A single slot in the effects rack — insert or send */
 export interface PluginSlot {
   id: string;
   plugin: IAudioPlugin;
   /** insert = inline processing, send = parallel aux */
-  mode: 'insert' | 'send';
+  mode: "insert" | "send";
   /** Send level (0-1) — only relevant for send mode */
   sendLevel: number;
   /** Which aux bus this send routes to */
@@ -19,11 +24,11 @@ export interface PluginSlot {
 }
 
 /** Signal chain insert point — pre-fader, post-fader, or on an aux bus */
-export type InsertPoint = 'pre-fader' | 'post-fader' | 'master';
+export type InsertPoint = "pre-fader" | "post-fader" | "master";
 
 /**
  * Professional Dynamic Effects Rack
- * 
+ *
  * Supports unlimited insert plugins in series, parallel aux sends to
  * named buses, master bus processing, and dynamic slot reordering.
  * Each plugin adheres to IAudioPlugin for VST-style interoperability.
@@ -39,7 +44,10 @@ export class DynamicEffectsRack {
   private _masterSlots: PluginSlot[] = [];
 
   /** Named aux buses: busName → { gainNode, slots } */
-  private _auxBuses = new Map<string, { gain: GainNode; slots: PluginSlot[] }>();
+  private _auxBuses = new Map<
+    string,
+    { gain: GainNode; slots: PluginSlot[] }
+  >();
 
   /** Per-send-slot GainNode for level control — reused across rebuildChain calls to prevent leaks. */
   private _sendGainMap = new Map<string, GainNode>();
@@ -85,7 +93,7 @@ export class DynamicEffectsRack {
     const slot: PluginSlot = {
       id: `ins_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
       plugin,
-      mode: 'insert',
+      mode: "insert",
       sendLevel: 0,
     };
 
@@ -109,7 +117,11 @@ export class DynamicEffectsRack {
     const idx = this._inserts.findIndex((s) => s.id === slotId);
     if (idx < 0) return;
     const [slot] = this._inserts.splice(idx, 1);
-    this._inserts.splice(Math.max(0, Math.min(newIndex, this._inserts.length)), 0, slot);
+    this._inserts.splice(
+      Math.max(0, Math.min(newIndex, this._inserts.length)),
+      0,
+      slot,
+    );
     this.rebuildChain();
   }
 
@@ -129,7 +141,11 @@ export class DynamicEffectsRack {
   }
 
   /** Add a parallel send to an aux bus */
-  addSend(pluginId: string, auxBus: string, sendLevel = 0.5): PluginSlot | null {
+  addSend(
+    pluginId: string,
+    auxBus: string,
+    sendLevel = 0.5,
+  ): PluginSlot | null {
     const plugin = PluginRegistry.create(pluginId, this.ctx);
     if (!plugin) return null;
 
@@ -145,7 +161,7 @@ export class DynamicEffectsRack {
     const slot: PluginSlot = {
       id: `snd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
       plugin,
-      mode: 'send',
+      mode: "send",
       sendLevel: Math.max(0, Math.min(1, sendLevel)),
       auxBus,
     };
@@ -194,7 +210,7 @@ export class DynamicEffectsRack {
     const slot: PluginSlot = {
       id: `mst_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
       plugin,
-      mode: 'insert',
+      mode: "insert",
       sendLevel: 0,
     };
 
@@ -302,7 +318,11 @@ export class DynamicEffectsRack {
     masterCurrent.connect(this._output);
 
     // Dry bypass: if no inserts and no sends, sendBus → output directly
-    if (this._inserts.length === 0 && this._sends.length === 0 && this._masterSlots.length === 0) {
+    if (
+      this._inserts.length === 0 &&
+      this._sends.length === 0 &&
+      this._masterSlots.length === 0
+    ) {
       this._input.connect(this._output);
     }
   }
@@ -328,22 +348,25 @@ export class DynamicEffectsRack {
 
     try {
       await this.ctx.audioWorklet.addModule(
-        'assets/worklets/effects-processor.worklet.js'
+        "assets/worklets/effects-processor.worklet.js",
       );
     } catch (err: any) {
-      if (!err?.message?.includes('already')) {
-        console.warn('DynamicEffectsRack: Worklet load failed, using main-thread fallback.', err?.message);
+      if (!err?.message?.includes("already")) {
+        console.warn(
+          "DynamicEffectsRack: Worklet load failed, using main-thread fallback.",
+          err?.message,
+        );
         return false;
       }
     }
 
     try {
-      this._workletNode = new AudioWorkletNode(this.ctx, 'effects-processor', {
+      this._workletNode = new AudioWorkletNode(this.ctx, "effects-processor", {
         numberOfInputs: 1,
         numberOfOutputs: 1,
         channelCount: 2,
-        channelCountMode: 'explicit',
-        channelInterpretation: 'speakers',
+        channelCountMode: "explicit",
+        channelInterpretation: "speakers",
       });
       this._workletLoaded = true;
       this._useWorklet = true;
@@ -351,7 +374,10 @@ export class DynamicEffectsRack {
       this.rebuildChain();
       return true;
     } catch (err: any) {
-      console.warn('DynamicEffectsRack: Worklet node creation failed.', err?.message);
+      console.warn(
+        "DynamicEffectsRack: Worklet node creation failed.",
+        err?.message,
+      );
       return false;
     }
   }
@@ -360,7 +386,7 @@ export class DynamicEffectsRack {
   disableWorklet(): void {
     this._useWorklet = false;
     this._workletNode?.disconnect();
-    this._workletNode?.port.postMessage({ slot: 'reset' });
+    this._workletNode?.port.postMessage({ slot: "reset" });
     this._workletNode = null;
     this._workletLoaded = false;
     this.rebuildChain();
@@ -385,21 +411,25 @@ export class DynamicEffectsRack {
 
   private _syncSlotToWorklet(port: MessagePort, slot: PluginSlot): void {
     const pid = slot.plugin.id;
-    if (pid === 'smuve.eq.v1') {
-      port.postMessage({ slot: 'eq', action: 'enable', payload: true });
+    if (pid === "smuve.eq.v1") {
+      port.postMessage({ slot: "eq", action: "enable", payload: true });
       const bands = (slot.plugin as any)._eq?.getBands?.();
       if (bands) {
         bands.forEach((b: any, i: number) => {
-          port.postMessage({ slot: 'eq', action: 'configure', payload: { band: i, gain: b.gain || 0 } });
+          port.postMessage({
+            slot: "eq",
+            action: "configure",
+            payload: { band: i, gain: b.gain || 0 },
+          });
         });
       }
-    } else if (pid === 'smuve.compressor.v1') {
-      port.postMessage({ slot: 'compressor', action: 'enable', payload: true });
+    } else if (pid === "smuve.compressor.v1") {
+      port.postMessage({ slot: "compressor", action: "enable", payload: true });
       const comp = (slot.plugin as any)._comp;
       if (comp) {
         port.postMessage({
-          slot: 'compressor',
-          action: 'configure',
+          slot: "compressor",
+          action: "configure",
           payload: {
             thresholdDb: comp.compressor?.threshold?.value ?? -24,
             ratio: comp.compressor?.ratio?.value ?? 4,
@@ -408,29 +438,29 @@ export class DynamicEffectsRack {
           },
         });
       }
-    } else if (pid === 'smuve.distortion.v1') {
-      port.postMessage({ slot: 'saturation', action: 'enable', payload: true });
+    } else if (pid === "smuve.distortion.v1") {
+      port.postMessage({ slot: "saturation", action: "enable", payload: true });
       port.postMessage({
-        slot: 'saturation',
-        action: 'configure',
-        payload: { amount: slot.plugin.getParam('amount') },
+        slot: "saturation",
+        action: "configure",
+        payload: { amount: slot.plugin.getParam("amount") },
       });
-    } else if (pid === 'smuve.delay.v1') {
-      port.postMessage({ slot: 'delay', action: 'enable', payload: true });
+    } else if (pid === "smuve.delay.v1") {
+      port.postMessage({ slot: "delay", action: "enable", payload: true });
       port.postMessage({
-        slot: 'delay',
-        action: 'configure',
+        slot: "delay",
+        action: "configure",
         payload: {
-          time: slot.plugin.getParam('time'),
-          feedback: slot.plugin.getParam('feedback'),
+          time: slot.plugin.getParam("time"),
+          feedback: slot.plugin.getParam("feedback"),
         },
       });
-    } else if (pid === 'smuve.reverb.v1') {
-      port.postMessage({ slot: 'reverb', action: 'enable', payload: true });
+    } else if (pid === "smuve.reverb.v1") {
+      port.postMessage({ slot: "reverb", action: "enable", payload: true });
       port.postMessage({
-        slot: 'reverb',
-        action: 'configure',
-        payload: { mix: slot.plugin.getParam('mix') },
+        slot: "reverb",
+        action: "configure",
+        payload: { mix: slot.plugin.getParam("mix") },
       });
     }
   }
@@ -455,7 +485,7 @@ export class DynamicEffectsRack {
     this._dryBus.disconnect();
     this._masterInput.disconnect();
     this._workletNode?.disconnect();
-    this._workletNode?.port.postMessage({ slot: 'reset' });
+    this._workletNode?.port.postMessage({ slot: "reset" });
     this._workletNode = null;
     this._useWorklet = false;
   }
@@ -480,7 +510,7 @@ export class DynamicEffectsRack {
       })),
       sends: this._sends.map((s) => ({
         pluginId: s.plugin.id,
-        auxBus: s.auxBus ?? 'A',
+        auxBus: s.auxBus ?? "A",
         sendLevel: s.sendLevel,
         enabled: s.plugin.enabled,
       })),
@@ -541,7 +571,11 @@ export class DynamicEffectsRack {
  * that enumerates `plugin.params` (a params-driven UI, automation, the plugin
  * store) otherwise reads the registration-time default forever.
  */
-function syncParamValue(params: PluginParam[], id: string, value: number): void {
+function syncParamValue(
+  params: PluginParam[],
+  id: string,
+  value: number,
+): void {
   const param = params.find((p) => p.id === id);
   if (param) param.value = value;
 }
@@ -552,233 +586,319 @@ function resetParamValues(params: PluginParam[]): void {
 }
 
 function registerBuiltins(): void {
-  PluginRegistry.register('smuve.eq.v1', class EqPlugin implements IAudioPlugin {
-    readonly id = 'smuve.eq.v1';
-    readonly name = '7-Band EQ';
-    readonly category: PluginCategory = 'eq';
-    /**
-     * One automatable band per filter. This list used to be empty, which made
-     * the EQ expose zero parameters while advertising seven bands — anything
-     * driving the rack from `plugin.params` (automation, the plugin store, the
-     * WASM worklet sync) saw a plugin with no controls at all.
-     */
-    readonly params: PluginParam[];
-    enabled = true;
-    private readonly _eq: Equalizer;
-    readonly input: AudioNode;
-    readonly output: AudioNode;
-    constructor(ctx: AudioContext) {
-      this._eq = new Equalizer(ctx);
-      this.input = this._eq.input;
-      this.output = this._eq.output;
-      this.params = this._eq.getBands().map((band, index) => ({
-        id: `band${index}`,
-        name: `${Math.round(band.frequency)} Hz`,
-        value: 0,
-        defaultValue: 0,
-        min: -18,
-        max: 18,
-        step: 0.5,
-        unit: 'dB',
-      }));
-    }
-    getParam(paramId: string): number {
-      const band = parseInt(paramId.replace('band', ''), 10);
-      return this._eq.getGain(band) ?? 0;
-    }
-    setParam(paramId: string, value: number): void {
-      const band = parseInt(paramId.replace('band', ''), 10);
-      this._eq.setGain(band, value);
-      syncParamValue(this.params, paramId, this._eq.getGain(band) ?? value);
-    }
-    reset(): void {
-      this.params.forEach((param, index) => {
-        this._eq.setGain(index, param.defaultValue);
-      });
-      resetParamValues(this.params);
-    }
-    dispose(): void {
-      this._eq.disconnect();
-    }
-  });
+  PluginRegistry.register(
+    "smuve.eq.v1",
+    class EqPlugin implements IAudioPlugin {
+      readonly id = "smuve.eq.v1";
+      readonly name = "7-Band EQ";
+      readonly category: PluginCategory = "eq";
+      /**
+       * One automatable band per filter. This list used to be empty, which made
+       * the EQ expose zero parameters while advertising seven bands — anything
+       * driving the rack from `plugin.params` (automation, the plugin store, the
+       * WASM worklet sync) saw a plugin with no controls at all.
+       */
+      readonly params: PluginParam[];
+      enabled = true;
+      private readonly _eq: Equalizer;
+      readonly input: AudioNode;
+      readonly output: AudioNode;
+      constructor(ctx: AudioContext) {
+        this._eq = new Equalizer(ctx);
+        this.input = this._eq.input;
+        this.output = this._eq.output;
+        this.params = this._eq.getBands().map((band, index) => ({
+          id: `band${index}`,
+          name: `${Math.round(band.frequency)} Hz`,
+          value: 0,
+          defaultValue: 0,
+          min: -18,
+          max: 18,
+          step: 0.5,
+          unit: "dB",
+        }));
+      }
+      getParam(paramId: string): number {
+        const band = parseInt(paramId.replace("band", ""), 10);
+        return this._eq.getGain(band) ?? 0;
+      }
+      setParam(paramId: string, value: number): void {
+        const band = parseInt(paramId.replace("band", ""), 10);
+        this._eq.setGain(band, value);
+        syncParamValue(this.params, paramId, this._eq.getGain(band) ?? value);
+      }
+      reset(): void {
+        this.params.forEach((param, index) => {
+          this._eq.setGain(index, param.defaultValue);
+        });
+        resetParamValues(this.params);
+      }
+      dispose(): void {
+        this._eq.disconnect();
+      }
+    },
+  );
 
-  PluginRegistry.register('smuve.compressor.v1', class CompPlugin implements IAudioPlugin {
-    readonly id = 'smuve.compressor.v1';
-    readonly name = 'Compressor';
-    readonly category: PluginCategory = 'dynamics';
-    readonly params: PluginParam[] = [
-      { id: 'threshold', name: 'Threshold', value: -24, defaultValue: -24, min: -60, max: 0, unit: 'dB' },
-      { id: 'ratio', name: 'Ratio', value: 12, defaultValue: 12, min: 1, max: 20, step: 0.5, unit: ':1' },
-    ];
-    enabled = true;
-    input: AudioNode;
-    output: AudioNode;
-    private readonly _comp: Compressor;
-    constructor(ctx: AudioContext) {
-      this._comp = new Compressor(ctx);
-      this.input = this._comp.input;
-      this.output = this._comp.output;
-    }
-    getParam(id: string): number {
-      if (id === 'threshold') return this._comp.compressor.threshold.value;
-      if (id === 'ratio') return this._comp.compressor.ratio.value;
-      return 0;
-    }
-    setParam(id: string, value: number): void {
-      if (id === 'threshold') this._comp.setThreshold(value);
-      if (id === 'ratio') this._comp.setRatio(value);
-      syncParamValue(this.params, id, this.getParam(id));
-    }
-    reset(): void {
-      this.params.forEach((param) => {
-        if (param.id === 'threshold') this._comp.setThreshold(param.defaultValue);
-        if (param.id === 'ratio') this._comp.setRatio(param.defaultValue);
-      });
-      resetParamValues(this.params);
-    }
-    dispose(): void {
-      this._comp.disconnect();
-    }
-  });
+  PluginRegistry.register(
+    "smuve.compressor.v1",
+    class CompPlugin implements IAudioPlugin {
+      readonly id = "smuve.compressor.v1";
+      readonly name = "Compressor";
+      readonly category: PluginCategory = "dynamics";
+      readonly params: PluginParam[] = [
+        {
+          id: "threshold",
+          name: "Threshold",
+          value: -24,
+          defaultValue: -24,
+          min: -60,
+          max: 0,
+          unit: "dB",
+        },
+        {
+          id: "ratio",
+          name: "Ratio",
+          value: 12,
+          defaultValue: 12,
+          min: 1,
+          max: 20,
+          step: 0.5,
+          unit: ":1",
+        },
+      ];
+      enabled = true;
+      input: AudioNode;
+      output: AudioNode;
+      private readonly _comp: Compressor;
+      constructor(ctx: AudioContext) {
+        this._comp = new Compressor(ctx);
+        this.input = this._comp.input;
+        this.output = this._comp.output;
+      }
+      getParam(id: string): number {
+        if (id === "threshold") return this._comp.compressor.threshold.value;
+        if (id === "ratio") return this._comp.compressor.ratio.value;
+        return 0;
+      }
+      setParam(id: string, value: number): void {
+        if (id === "threshold") this._comp.setThreshold(value);
+        if (id === "ratio") this._comp.setRatio(value);
+        syncParamValue(this.params, id, this.getParam(id));
+      }
+      reset(): void {
+        this.params.forEach((param) => {
+          if (param.id === "threshold")
+            this._comp.setThreshold(param.defaultValue);
+          if (param.id === "ratio") this._comp.setRatio(param.defaultValue);
+        });
+        resetParamValues(this.params);
+      }
+      dispose(): void {
+        this._comp.disconnect();
+      }
+    },
+  );
 
-  PluginRegistry.register('smuve.reverb.v1', class ReverbPlugin implements IAudioPlugin {
-    readonly id = 'smuve.reverb.v1';
-    readonly name = 'Reverb';
-    readonly category: PluginCategory = 'delay-reverb';
-    readonly params: PluginParam[] = [
-      { id: 'mix', name: 'Mix', value: 0.5, defaultValue: 0.5, min: 0, max: 1 },
-    ];
-    enabled = true;
-    input: AudioNode;
-    output: AudioNode;
-    private readonly _rev: Reverb;
-    constructor(ctx: AudioContext) {
-      this._rev = new Reverb(ctx);
-      this.input = this._rev.input;
-      this.output = this._rev.output;
-    }
-    getParam(id: string): number {
-      return id === 'mix' ? this._rev.mix : 0;
-    }
-    setParam(id: string, value: number): void {
-      if (id === 'mix') this._rev.setMix(value);
-      syncParamValue(this.params, id, this.getParam(id));
-    }
-    reset(): void {
-      this._rev.setMix(this.params[0].defaultValue);
-      resetParamValues(this.params);
-    }
-    dispose(): void {
-      this._rev.disconnect();
-    }
-  });
+  PluginRegistry.register(
+    "smuve.reverb.v1",
+    class ReverbPlugin implements IAudioPlugin {
+      readonly id = "smuve.reverb.v1";
+      readonly name = "Reverb";
+      readonly category: PluginCategory = "delay-reverb";
+      readonly params: PluginParam[] = [
+        {
+          id: "mix",
+          name: "Mix",
+          value: 0.5,
+          defaultValue: 0.5,
+          min: 0,
+          max: 1,
+        },
+      ];
+      enabled = true;
+      input: AudioNode;
+      output: AudioNode;
+      private readonly _rev: Reverb;
+      constructor(ctx: AudioContext) {
+        this._rev = new Reverb(ctx);
+        this.input = this._rev.input;
+        this.output = this._rev.output;
+      }
+      getParam(id: string): number {
+        return id === "mix" ? this._rev.mix : 0;
+      }
+      setParam(id: string, value: number): void {
+        if (id === "mix") this._rev.setMix(value);
+        syncParamValue(this.params, id, this.getParam(id));
+      }
+      reset(): void {
+        this._rev.setMix(this.params[0].defaultValue);
+        resetParamValues(this.params);
+      }
+      dispose(): void {
+        this._rev.disconnect();
+      }
+    },
+  );
 
-  PluginRegistry.register('smuve.delay.v1', class DelayPlugin implements IAudioPlugin {
-    readonly id = 'smuve.delay.v1';
-    readonly name = 'Delay';
-    readonly category: PluginCategory = 'delay-reverb';
-    readonly params: PluginParam[] = [
-      { id: 'time', name: 'Time', value: 0.5, defaultValue: 0.5, min: 0.01, max: 2, unit: 's' },
-      { id: 'feedback', name: 'Feedback', value: 0.5, defaultValue: 0.5, min: 0, max: 0.95 },
-    ];
-    enabled = true;
-    input: AudioNode;
-    output: AudioNode;
-    private readonly _dly: Delay;
-    constructor(ctx: AudioContext) {
-      this._dly = new Delay(ctx);
-      this.input = this._dly.input;
-      this.output = this._dly.output;
-    }
-    getParam(id: string): number {
-      if (id === 'time') return this._dly.time;
-      if (id === 'feedback') return this._dly.feedback;
-      return 0;
-    }
-    setParam(id: string, value: number): void {
-      if (id === 'time') this._dly.setDelayTime(value);
-      if (id === 'feedback') this._dly.setFeedback(value);
-      syncParamValue(this.params, id, this.getParam(id));
-    }
-    reset(): void {
-      this._dly.setDelayTime(this.params[0].defaultValue);
-      this._dly.setFeedback(this.params[1].defaultValue);
-      resetParamValues(this.params);
-    }
-    dispose(): void {
-      this._dly.disconnect();
-    }
-  });
+  PluginRegistry.register(
+    "smuve.delay.v1",
+    class DelayPlugin implements IAudioPlugin {
+      readonly id = "smuve.delay.v1";
+      readonly name = "Delay";
+      readonly category: PluginCategory = "delay-reverb";
+      readonly params: PluginParam[] = [
+        {
+          id: "time",
+          name: "Time",
+          value: 0.5,
+          defaultValue: 0.5,
+          min: 0.01,
+          max: 2,
+          unit: "s",
+        },
+        {
+          id: "feedback",
+          name: "Feedback",
+          value: 0.5,
+          defaultValue: 0.5,
+          min: 0,
+          max: 0.95,
+        },
+      ];
+      enabled = true;
+      input: AudioNode;
+      output: AudioNode;
+      private readonly _dly: Delay;
+      constructor(ctx: AudioContext) {
+        this._dly = new Delay(ctx);
+        this.input = this._dly.input;
+        this.output = this._dly.output;
+      }
+      getParam(id: string): number {
+        if (id === "time") return this._dly.time;
+        if (id === "feedback") return this._dly.feedback;
+        return 0;
+      }
+      setParam(id: string, value: number): void {
+        if (id === "time") this._dly.setDelayTime(value);
+        if (id === "feedback") this._dly.setFeedback(value);
+        syncParamValue(this.params, id, this.getParam(id));
+      }
+      reset(): void {
+        this._dly.setDelayTime(this.params[0].defaultValue);
+        this._dly.setFeedback(this.params[1].defaultValue);
+        resetParamValues(this.params);
+      }
+      dispose(): void {
+        this._dly.disconnect();
+      }
+    },
+  );
 
-  PluginRegistry.register('smuve.distortion.v1', class DistPlugin implements IAudioPlugin {
-    readonly id = 'smuve.distortion.v1';
-    readonly name = 'Distortion';
-    readonly category: PluginCategory = 'distortion';
-    enabled = true;
-    input: AudioNode;
-    output: AudioNode;
-    private readonly _sat: Saturation;
-    constructor(ctx: AudioContext) {
-      this._sat = new Saturation(ctx);
-      this.input = this._sat.input;
-      this.output = this._sat.output;
-    }
-    getParam(id: string): number {
-      return id === 'amount' ? this._sat.amount : 0;
-    }
-    setParam(id: string, value: number): void {
-      if (id !== 'amount') return;
-      this._sat.setAmount(value);
-      syncParamValue(this.params, id, this._sat.amount);
-    }
-    reset(): void {
-      this._sat.setAmount(this.params[0].defaultValue);
-      resetParamValues(this.params);
-    }
-    dispose(): void { this._sat.disconnect(); }
-    params: PluginParam[] = [
-      { id: 'amount', name: 'Amount', value: 0.5, defaultValue: 0.5, min: 0, max: 1 },
-    ];
-  });
+  PluginRegistry.register(
+    "smuve.distortion.v1",
+    class DistPlugin implements IAudioPlugin {
+      readonly id = "smuve.distortion.v1";
+      readonly name = "Distortion";
+      readonly category: PluginCategory = "distortion";
+      enabled = true;
+      input: AudioNode;
+      output: AudioNode;
+      private readonly _sat: Saturation;
+      constructor(ctx: AudioContext) {
+        this._sat = new Saturation(ctx);
+        this.input = this._sat.input;
+        this.output = this._sat.output;
+      }
+      getParam(id: string): number {
+        return id === "amount" ? this._sat.amount : 0;
+      }
+      setParam(id: string, value: number): void {
+        if (id !== "amount") return;
+        this._sat.setAmount(value);
+        syncParamValue(this.params, id, this._sat.amount);
+      }
+      reset(): void {
+        this._sat.setAmount(this.params[0].defaultValue);
+        resetParamValues(this.params);
+      }
+      dispose(): void {
+        this._sat.disconnect();
+      }
+      params: PluginParam[] = [
+        {
+          id: "amount",
+          name: "Amount",
+          value: 0.5,
+          defaultValue: 0.5,
+          min: 0,
+          max: 1,
+        },
+      ];
+    },
+  );
 
-  PluginRegistry.register('smuve.sidechain.v1', class SidechainPlugin implements IAudioPlugin {
-    readonly id = 'smuve.sidechain.v1';
-    readonly name = 'Sidechain Comp';
-    readonly category: PluginCategory = 'dynamics';
-    enabled = true;
-    input: AudioNode;
-    output: AudioNode;
-    private readonly _sc: SidechainCompressor;
-    constructor(ctx: AudioContext) {
-      this._sc = new SidechainCompressor(ctx);
-      this.input = this._sc.input;
-      this.output = this._sc.output;
-    }
-    getParam(id: string): number {
-      if (id === 'threshold') return this._sc.threshold;
-      if (id === 'ratio') return this._sc.ratio;
-      return 0;
-    }
-    setParam(id: string, value: number): void {
-      // Only touch the parameter being moved — routing the other one back to
-      // its hard-coded default rewound it every time this knob was nudged.
-      if (id === 'threshold') this._sc.setThreshold(value);
-      if (id === 'ratio') this._sc.setRatio(value);
-      syncParamValue(this.params, id, this.getParam(id));
-    }
-    reset(): void {
-      this.params.forEach((param) => {
-        if (param.id === 'threshold') this._sc.setThreshold(param.defaultValue);
-        if (param.id === 'ratio') this._sc.setRatio(param.defaultValue);
-      });
-      resetParamValues(this.params);
-    }
-    dispose(): void { this._sc.disconnect(); }
-    params: PluginParam[] = [
-      { id: 'threshold', name: 'Threshold', value: -30, defaultValue: -30, min: -60, max: 0, unit: 'dB' },
-      { id: 'ratio', name: 'Ratio', value: 12, defaultValue: 12, min: 1, max: 20, unit: ':1' },
-    ];
-  });
+  PluginRegistry.register(
+    "smuve.sidechain.v1",
+    class SidechainPlugin implements IAudioPlugin {
+      readonly id = "smuve.sidechain.v1";
+      readonly name = "Sidechain Comp";
+      readonly category: PluginCategory = "dynamics";
+      enabled = true;
+      input: AudioNode;
+      output: AudioNode;
+      private readonly _sc: SidechainCompressor;
+      constructor(ctx: AudioContext) {
+        this._sc = new SidechainCompressor(ctx);
+        this.input = this._sc.input;
+        this.output = this._sc.output;
+      }
+      getParam(id: string): number {
+        if (id === "threshold") return this._sc.threshold;
+        if (id === "ratio") return this._sc.ratio;
+        return 0;
+      }
+      setParam(id: string, value: number): void {
+        // Only touch the parameter being moved — routing the other one back to
+        // its hard-coded default rewound it every time this knob was nudged.
+        if (id === "threshold") this._sc.setThreshold(value);
+        if (id === "ratio") this._sc.setRatio(value);
+        syncParamValue(this.params, id, this.getParam(id));
+      }
+      reset(): void {
+        this.params.forEach((param) => {
+          if (param.id === "threshold")
+            this._sc.setThreshold(param.defaultValue);
+          if (param.id === "ratio") this._sc.setRatio(param.defaultValue);
+        });
+        resetParamValues(this.params);
+      }
+      dispose(): void {
+        this._sc.disconnect();
+      }
+      params: PluginParam[] = [
+        {
+          id: "threshold",
+          name: "Threshold",
+          value: -30,
+          defaultValue: -30,
+          min: -60,
+          max: 0,
+          unit: "dB",
+        },
+        {
+          id: "ratio",
+          name: "Ratio",
+          value: 12,
+          defaultValue: 12,
+          min: 1,
+          max: 20,
+          unit: ":1",
+        },
+      ];
+    },
+  );
 }
 
 registerBuiltins();

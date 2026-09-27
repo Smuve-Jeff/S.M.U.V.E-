@@ -1,11 +1,11 @@
-import { TestBed } from '@angular/core/testing';
-import { StudioRecordingEngineService } from './studio-recording-engine.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { AudioEngineLatencyService } from '../services/audio-engine-latency.service';
-import { LoggingService } from '../services/logging.service';
-import { LocalStorageService } from '../services/local-storage.service';
+import { TestBed } from "@angular/core/testing";
+import { StudioRecordingEngineService } from "./studio-recording-engine.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { AudioEngineLatencyService } from "../services/audio-engine-latency.service";
+import { LoggingService } from "../services/logging.service";
+import { LocalStorageService } from "../services/local-storage.service";
 
-describe('StudioRecordingEngineService', () => {
+describe("StudioRecordingEngineService", () => {
   let service: StudioRecordingEngineService;
   let audioCtxMock: any;
   let mediaStreamMock: MediaStream;
@@ -38,15 +38,19 @@ describe('StudioRecordingEngineService', () => {
     };
 
     mediaStreamMock = {
-      getAudioTracks: () => [{ kind: 'audio', stop: jest.fn() } as unknown as MediaStreamTrack],
-      getTracks: () => [{ kind: 'audio', stop: jest.fn() } as unknown as MediaStreamTrack],
+      getAudioTracks: () => [
+        { kind: "audio", stop: jest.fn() } as unknown as MediaStreamTrack,
+      ],
+      getTracks: () => [
+        { kind: "audio", stop: jest.fn() } as unknown as MediaStreamTrack,
+      ],
     } as unknown as MediaStream;
     latencyMock = {
       getAppliedCompensationMs: jest.fn(() => 0),
     };
 
     // Mock getUserMedia
-    Object.defineProperty(navigator, 'mediaDevices', {
+    Object.defineProperty(navigator, "mediaDevices", {
       value: { getUserMedia: jest.fn().mockResolvedValue(mediaStreamMock) },
       writable: true,
       configurable: true,
@@ -57,14 +61,20 @@ describe('StudioRecordingEngineService', () => {
         StudioRecordingEngineService,
         { provide: AudioEngineService, useValue: { ctx: audioCtxMock } },
         { provide: AudioEngineLatencyService, useValue: latencyMock },
-        { provide: LoggingService, useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } },
-        { provide: LocalStorageService, useValue: { saveItem: jest.fn(), getItem: jest.fn() } },
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+        {
+          provide: LocalStorageService,
+          useValue: { saveItem: jest.fn(), getItem: jest.fn() },
+        },
       ],
     });
     service = TestBed.inject(StudioRecordingEngineService);
   });
 
-  it('should create with default state', () => {
+  it("should create with default state", () => {
     expect(service.isInitialized()).toBe(false);
     expect(service.isRecording()).toBe(false);
     expect(service.isPaused()).toBe(false);
@@ -72,13 +82,13 @@ describe('StudioRecordingEngineService', () => {
     expect(service.takes().length).toBe(0);
   });
 
-  it('should return empty buffers when not recording', () => {
+  it("should return empty buffers when not recording", () => {
     const buffers = service.getRecordedBuffers();
     expect(buffers.left).toEqual([]);
     expect(buffers.right).toEqual([]);
   });
 
-  it('should fully trim recorded buffers when compensation exceeds the take length', () => {
+  it("should fully trim recorded buffers when compensation exceeds the take length", () => {
     latencyMock.getAppliedCompensationMs.mockReturnValue(1000);
     (service as any).leftChannel = [Float32Array.from([1, 2])];
     (service as any).rightChannel = [Float32Array.from([3, 4])];
@@ -89,16 +99,16 @@ describe('StudioRecordingEngineService', () => {
     expect(buffers.right).toEqual([]);
   });
 
-  it('should return null analyser when not initialized', () => {
+  it("should return null analyser when not initialized", () => {
     expect(service.getAnalyserNode()).toBeNull();
   });
 
-  it('should refuse to start recording without initialization', () => {
+  it("should refuse to start recording without initialization", () => {
     service.startRecording();
     expect(service.isRecording()).toBe(false);
   });
 
-  it('should not double-start recording', () => {
+  it("should not double-start recording", () => {
     // Force internal state
     (service as any).isRecording.set(true);
     service.startRecording();
@@ -106,7 +116,7 @@ describe('StudioRecordingEngineService', () => {
     expect(service.isRecording()).toBe(true);
   });
 
-  it('should pause and resume recording', () => {
+  it("should pause and resume recording", () => {
     // Simulate recording state
     (service as any).isRecording.set(true);
     (service as any).recordingWorkletReady = true;
@@ -118,12 +128,12 @@ describe('StudioRecordingEngineService', () => {
     expect(service.isPaused()).toBe(false);
   });
 
-  it('should not stop when not recording', async () => {
+  it("should not stop when not recording", async () => {
     await service.stopRecording();
     expect(service.isRecording()).toBe(false);
   });
 
-  it('should clean up on destroy', () => {
+  it("should clean up on destroy", () => {
     // Set some internal state to verify cleanup
     (service as any).isInitialized.set(true);
     service.ngOnDestroy();
@@ -131,9 +141,9 @@ describe('StudioRecordingEngineService', () => {
     expect(service.isRecording()).toBe(false);
   });
 
-  it('should return recorded blob when set', () => {
+  it("should return recorded blob when set", () => {
     expect(service.recordedBlob()).toBeNull();
-    const blob = new Blob(['test'], { type: 'audio/wav' });
+    const blob = new Blob(["test"], { type: "audio/wav" });
     service.recordedBlob.set(blob);
     expect(service.recordedBlob()).toBe(blob);
   });

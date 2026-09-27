@@ -1,21 +1,18 @@
-import {
-  Component,
-  inject,
-  signal,
-  computed,
-  OnDestroy,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { StudioRecordingEngineService } from '../studio-recording-engine.service';
-import { RecordingLimiterService } from '../recording-limiter.service';
-import { WaveformRendererComponent } from '../waveform-renderer/waveform-renderer.component';
+import { Component, inject, signal, computed, OnDestroy } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { StudioRecordingEngineService } from "../studio-recording-engine.service";
+import { RecordingLimiterService } from "../recording-limiter.service";
+import { WaveformRendererComponent } from "../waveform-renderer/waveform-renderer.component";
 
 @Component({
-  selector: 'app-recording-waveform',
+  selector: "app-recording-waveform",
   standalone: true,
   imports: [CommonModule, WaveformRendererComponent],
-  templateUrl: './recording-waveform.component.html',
-  styleUrls: ['./recording-waveform.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./recording-waveform.component.html",
+  styleUrls: [
+    "./recording-waveform.component.css",
+    "../shared/platform-ux.css",
+  ],
 })
 export class RecordingWaveformComponent implements OnDestroy {
   private readonly recordingEngine = inject(StudioRecordingEngineService);
@@ -41,9 +38,9 @@ export class RecordingWaveformComponent implements OnDestroy {
     const m = Math.floor(totalSeconds / 60);
     const s = totalSeconds % 60;
     const tenths = Math.floor((this.recordingTime() % 1) * 10);
-    return `${m.toString().padStart(2, '0')}:${s
+    return `${m.toString().padStart(2, "0")}:${s
       .toString()
-      .padStart(2, '0')}.${tenths}`;
+      .padStart(2, "0")}.${tenths}`;
   });
 
   private raf: number | null = null;
@@ -73,12 +70,18 @@ export class RecordingWaveformComponent implements OnDestroy {
     if (this.raf !== null) return;
     const frame = new Float32Array(2048);
     const tick = (timestamp: number) => {
-      if (timestamp - this.lastUpdate >= RecordingWaveformComponent.FRAME_BUDGET_MS) {
+      if (
+        timestamp - this.lastUpdate >=
+        RecordingWaveformComponent.FRAME_BUDGET_MS
+      ) {
         const analyser = this.recordingEngine.getAnalyserNode();
         if (this.recordingEngine.isRecording() && analyser) {
           analyser.getFloatTimeDomainData(frame);
           this.appendSamples(frame);
-        } else if (!this.recordingEngine.isRecording() && this.sampleBuf.length > 0) {
+        } else if (
+          !this.recordingEngine.isRecording() &&
+          this.sampleBuf.length > 0
+        ) {
           // Keep the final captured waveform visible after stopping.
           this.waveformData.set(this.sampleBuf);
         }
@@ -103,7 +106,10 @@ export class RecordingWaveformComponent implements OnDestroy {
     }
     const next = new Float32Array(newLen);
     const from = Math.max(0, this.sampleBuf.length - (newLen - frame.length));
-    const copied = Math.min(this.sampleBuf.length - from, newLen - frame.length);
+    const copied = Math.min(
+      this.sampleBuf.length - from,
+      newLen - frame.length,
+    );
     if (copied > 0) next.set(this.sampleBuf.subarray(from, from + copied));
     next.set(frame, copied);
     this.sampleBuf = next;

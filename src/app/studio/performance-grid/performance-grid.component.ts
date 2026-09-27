@@ -1,19 +1,19 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
-import { AudioSessionService } from '../audio-session.service';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, OnInit, OnDestroy } from "@angular/core";
+import { AudioSessionService } from "../audio-session.service";
+import { CommonModule } from "@angular/common";
 import {
   MusicManagerService,
   TrackModel,
-} from '../../services/music-manager.service';
-import { HapticService } from '../../services/haptic.service';
-import { StudioVisualSchedulerService } from '../shared/studio-visual-scheduler.service';
+} from "../../services/music-manager.service";
+import { HapticService } from "../../services/haptic.service";
+import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
 
 @Component({
-  selector: 'app-performance-grid',
+  selector: "app-performance-grid",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './performance-grid.component.html',
-  styleUrls: ['./performance-grid.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./performance-grid.component.html",
+  styleUrls: ["./performance-grid.component.css", "../shared/platform-ux.css"],
 })
 export class PerformanceGridComponent implements OnInit, OnDestroy {
   private musicManager = inject(MusicManagerService);
@@ -103,7 +103,7 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
       this.musicManager.capturePatternSlot(
         trackId,
         slotId,
-        `Scene ${clipIndex + 1}`
+        `Scene ${clipIndex + 1}`,
       );
     }
   }
@@ -114,7 +114,7 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
     this.musicManager.capturePatternSlot(
       track.id,
       this.slotId(clipIndex),
-      `Scene ${clipIndex + 1}`
+      `Scene ${clipIndex + 1}`,
     );
   }
 

@@ -1,17 +1,17 @@
-import { Injectable, inject } from '@angular/core';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { SubtractiveSynth } from './subtractive-synth';
-import { AdvancedSynth } from './advanced-synth';
-import { FMSynth } from './fm-synth';
-import { WavetableSynth } from './wavetable-synth';
-import { PhysicalModelingSynth } from './physical-modeling-synth';
-import { GranularSynth } from './granular-synth';
-import { DrumMachine } from './drum-machine';
-import { SamplerEngine } from './sampler-engine';
-import { FileLoaderService } from '../services/file-loader.service';
-import { MusicManagerService } from '../services/music-manager.service';
+import { Injectable, inject } from "@angular/core";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { SubtractiveSynth } from "./subtractive-synth";
+import { AdvancedSynth } from "./advanced-synth";
+import { FMSynth } from "./fm-synth";
+import { WavetableSynth } from "./wavetable-synth";
+import { PhysicalModelingSynth } from "./physical-modeling-synth";
+import { GranularSynth } from "./granular-synth";
+import { DrumMachine } from "./drum-machine";
+import { SamplerEngine } from "./sampler-engine";
+import { FileLoaderService } from "../services/file-loader.service";
+import { MusicManagerService } from "../services/music-manager.service";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class InstrumentRegistryService {
   private engine = inject(AudioEngineService);
   private fileLoader = inject(FileLoaderService);
@@ -19,23 +19,23 @@ export class InstrumentRegistryService {
 
   private instruments = new Map<string, any>();
 
-  getInstrument(trackId: string, type: string = 'midi'): any {
+  getInstrument(trackId: string, type: string = "midi"): any {
     if (this.instruments.has(trackId)) {
       return this.instruments.get(trackId);
     }
 
     let inst: any;
-    if (trackId === MusicManagerService.DRUM_TRACK_ID || type === 'drum') {
+    if (trackId === MusicManagerService.DRUM_TRACK_ID || type === "drum") {
       inst = new DrumMachine(this.engine.ctx);
-    } else if (type === 'advanced') {
+    } else if (type === "advanced") {
       inst = new AdvancedSynth(this.engine.ctx, this.samplerEngine);
-    } else if (type === 'fm') {
+    } else if (type === "fm") {
       inst = new FMSynth(this.engine.ctx);
-    } else if (type === 'wavetable') {
+    } else if (type === "wavetable") {
       inst = new WavetableSynth(this.engine.ctx);
-    } else if (type === 'physical') {
+    } else if (type === "physical") {
       inst = new PhysicalModelingSynth(this.engine.ctx);
-    } else if (type === 'granular') {
+    } else if (type === "granular") {
       inst = new GranularSynth(this.engine.ctx);
     } else {
       inst = new SubtractiveSynth(this.engine.ctx, this.samplerEngine);
@@ -53,7 +53,7 @@ export class InstrumentRegistryService {
   stopAllInstruments(): void {
     this.instruments.forEach((inst) => {
       try {
-        if (typeof inst.stopAll === 'function') {
+        if (typeof inst.stopAll === "function") {
           inst.stopAll();
         }
       } catch (e) {
@@ -66,7 +66,9 @@ export class InstrumentRegistryService {
   clearAll(): void {
     this.stopAllInstruments();
     this.instruments.forEach((inst) => {
-      try { inst.disconnect(); } catch (e) {}
+      try {
+        inst.disconnect();
+      } catch (e) {}
     });
     this.instruments.clear();
   }

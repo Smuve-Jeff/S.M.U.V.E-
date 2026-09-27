@@ -1,6 +1,6 @@
 /**
  * Professional Plugin Architecture for S.M.U.V.E. 2.0
- * 
+ *
  * Every effect plugin implements IAudioPlugin, making the effects rack
  * dynamically extensible — unlimited inserts, aux sends, and master bus
  * processing without hardcoded switch statements.
@@ -25,13 +25,13 @@ export interface PluginParam {
 
 /** Plugin category for UI organization */
 export type PluginCategory =
-  | 'dynamics'
-  | 'eq'
-  | 'modulation'
-  | 'delay-reverb'
-  | 'distortion'
-  | 'utility'
-  | 'spatial';
+  | "dynamics"
+  | "eq"
+  | "modulation"
+  | "delay-reverb"
+  | "distortion"
+  | "utility"
+  | "spatial";
 
 /** Every audio effect implements this interface */
 export interface IAudioPlugin {
@@ -90,7 +90,9 @@ export class PluginRegistry {
   }
 
   /** Get metadata for all registered plugins (for UI) */
-  static getCatalog(ctx: AudioContext): Array<{ id: string; name: string; category: PluginCategory }> {
+  static getCatalog(
+    ctx: AudioContext,
+  ): Array<{ id: string; name: string; category: PluginCategory }> {
     return Array.from(this.plugins.entries()).map(([id, ctor]) => {
       const instance = new ctor(ctx);
       const result = { id, name: instance.name, category: instance.category };
@@ -105,7 +107,14 @@ export function adaptEffectToPlugin(
   id: string,
   name: string,
   category: PluginCategory,
-  factory: (ctx: AudioContext) => { input: AudioNode; output: AudioNode; dispose?: () => void; params?: PluginParam[]; getParam?: (p: string) => number; setParam?: (p: string, v: number) => void }
+  factory: (ctx: AudioContext) => {
+    input: AudioNode;
+    output: AudioNode;
+    dispose?: () => void;
+    params?: PluginParam[];
+    getParam?: (p: string) => number;
+    setParam?: (p: string, v: number) => void;
+  },
 ): PluginConstructor {
   return class AdaptedPlugin implements IAudioPlugin {
     readonly id = id;

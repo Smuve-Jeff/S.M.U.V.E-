@@ -1,19 +1,19 @@
-import { TestBed } from '@angular/core/testing';
-import { AudioImportService } from './audio-import.service';
-import { FileLoaderService } from '../services/file-loader.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { MusicManagerService } from '../services/music-manager.service';
-import { LoggingService } from '../services/logging.service';
-import { SnackbarService } from '../services/snackbar.service';
+import { TestBed } from "@angular/core/testing";
+import { AudioImportService } from "./audio-import.service";
+import { FileLoaderService } from "../services/file-loader.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { MusicManagerService } from "../services/music-manager.service";
+import { LoggingService } from "../services/logging.service";
+import { SnackbarService } from "../services/snackbar.service";
 
-describe('AudioImportService (stretch engine)', () => {
+describe("AudioImportService (stretch engine)", () => {
   let service: AudioImportService;
 
   function makeBuffer(
     ctx: any,
     samples: number,
     freq = 440,
-    sampleRate = 44100
+    sampleRate = 44100,
   ): AudioBuffer {
     const buf = ctx.createBuffer(1, samples, sampleRate);
     const data = buf.getChannelData(0);
@@ -24,7 +24,7 @@ describe('AudioImportService (stretch engine)', () => {
   }
 
   beforeEach(() => {
-    (globalThis.URL as any).createObjectURL ??= jest.fn(() => 'blob:mock');
+    (globalThis.URL as any).createObjectURL ??= jest.fn(() => "blob:mock");
     (globalThis.URL as any).revokeObjectURL ??= jest.fn();
     const ctx = {
       sampleRate: 44100,
@@ -40,11 +40,7 @@ describe('AudioImportService (stretch engine)', () => {
           sampleRate: sr,
           duration: length / sr,
           getChannelData: (c: number) => channelData[c],
-          copyToChannel: (
-            data: Float32Array,
-            c: number,
-            offset = 0
-          ) => {
+          copyToChannel: (data: Float32Array, c: number, offset = 0) => {
             channelData[c].set(data, offset);
           },
         };
@@ -61,7 +57,10 @@ describe('AudioImportService (stretch engine)', () => {
         { provide: FileLoaderService, useValue: { pickLocalFiles: jest.fn() } },
         { provide: AudioEngineService, useValue: audioEngineMock },
         { provide: MusicManagerService, useValue: {} },
-        { provide: LoggingService, useValue: { warn: jest.fn(), error: jest.fn() } },
+        {
+          provide: LoggingService,
+          useValue: { warn: jest.fn(), error: jest.fn() },
+        },
         {
           provide: SnackbarService,
           useValue: {
@@ -76,11 +75,11 @@ describe('AudioImportService (stretch engine)', () => {
     service = TestBed.inject(AudioImportService);
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(service).toBeTruthy();
   });
 
-  it('should time-stretch a buffer by 2x (slower)', () => {
+  it("should time-stretch a buffer by 2x (slower)", () => {
     const buf = makeBuffer(service.audioEngine.ctx, 44100);
     const out = service.stretchBuffer(buf, 2);
     expect(out.length).toBeGreaterThan(buf.length * 1.85);
@@ -88,46 +87,46 @@ describe('AudioImportService (stretch engine)', () => {
     expect(out.sampleRate).toBe(44100);
   });
 
-  it('should time-stretch a buffer by 0.5x (faster)', () => {
+  it("should time-stretch a buffer by 0.5x (faster)", () => {
     const buf = makeBuffer(service.audioEngine.ctx, 44100);
     const out = service.stretchBuffer(buf, 0.5);
     expect(out.length).toBeLessThan(buf.length * 0.6);
     expect(out.length).toBeGreaterThan(buf.length * 0.4);
   });
 
-  it('should pitch-shift by semitones preserving duration', () => {
+  it("should pitch-shift by semitones preserving duration", () => {
     const buf = makeBuffer(service.audioEngine.ctx, 44100);
     const out = service.pitchShiftBuffer(buf, 12);
     expect(out.length).toBeGreaterThan(buf.length * 0.8);
     expect(out.length).toBeLessThan(buf.length * 1.2);
   });
 
-  it('should tempo-match a faster source to a slower target (lengthen)', () => {
+  it("should tempo-match a faster source to a slower target (lengthen)", () => {
     const buf = makeBuffer(service.audioEngine.ctx, 44100);
     const out = service.tempoMatchBuffer(buf, 140, 70);
     expect(out.length).toBeGreaterThan(buf.length * 1.85);
   });
 
-  it('should tempo-match a slower source to a faster target (shorten)', () => {
+  it("should tempo-match a slower source to a faster target (shorten)", () => {
     const buf = makeBuffer(service.audioEngine.ctx, 44100);
     const out = service.tempoMatchBuffer(buf, 60, 120);
     expect(out.length).toBeLessThan(buf.length * 0.6);
   });
 
-  it('should keep imported-audio state empty by default', () => {
+  it("should keep imported-audio state empty by default", () => {
     expect(service.importedAudio().length).toBe(0);
     expect(service.totalDuration()).toBe(0);
     expect(service.isLoading()).toBe(false);
   });
 
-  it('applies stretch/pitch/fade metadata when rendering edits', async () => {
+  it("applies stretch/pitch/fade metadata when rendering edits", async () => {
     const buf = makeBuffer(service.audioEngine.ctx, 22050);
     const imported: any = {
-      id: 'a1',
-      name: 'clip',
+      id: "a1",
+      name: "clip",
       buffer: buf,
       blob: new Blob(),
-      url: 'blob:raw',
+      url: "blob:raw",
       duration: buf.duration,
       sampleRate: buf.sampleRate,
       channels: buf.numberOfChannels,
@@ -151,14 +150,14 @@ describe('AudioImportService (stretch engine)', () => {
     expect(service.selectedAudio()?.editedBlob).toBeTruthy();
   });
 
-  it('cancelEdits restores the last applied settings', async () => {
+  it("cancelEdits restores the last applied settings", async () => {
     const buf = makeBuffer(service.audioEngine.ctx, 4096);
     const imported: any = {
-      id: 'a2',
-      name: 'clip',
+      id: "a2",
+      name: "clip",
       buffer: buf,
       blob: new Blob(),
-      url: 'blob:raw2',
+      url: "blob:raw2",
       duration: buf.duration,
       sampleRate: buf.sampleRate,
       channels: buf.numberOfChannels,
@@ -184,14 +183,14 @@ describe('AudioImportService (stretch engine)', () => {
     expect(service.selectedAudio()?.gain).toBeCloseTo(1);
   });
 
-  it('removeAudio revokes urls for cleanup', () => {
-    const revokeSpy = jest.spyOn(URL, 'revokeObjectURL');
+  it("removeAudio revokes urls for cleanup", () => {
+    const revokeSpy = jest.spyOn(URL, "revokeObjectURL");
     const imported: any = {
-      id: 'a3',
-      name: 'clip',
+      id: "a3",
+      name: "clip",
       buffer: makeBuffer(service.audioEngine.ctx, 1024),
       blob: new Blob(),
-      url: 'blob:raw3',
+      url: "blob:raw3",
       duration: 1,
       sampleRate: 44100,
       channels: 1,
@@ -206,36 +205,36 @@ describe('AudioImportService (stretch engine)', () => {
       loopEnd: 1,
       normalize: false,
       editedBlob: null,
-      editedUrl: 'blob:edited3',
+      editedUrl: "blob:edited3",
     };
     service.importedAudio.set([imported]);
     service.selectedAudio.set(imported);
-    service.removeAudio('a3');
-    expect(revokeSpy).toHaveBeenCalledWith('blob:raw3');
-    expect(revokeSpy).toHaveBeenCalledWith('blob:edited3');
+    service.removeAudio("a3");
+    expect(revokeSpy).toHaveBeenCalledWith("blob:raw3");
+    expect(revokeSpy).toHaveBeenCalledWith("blob:edited3");
   });
 
-  it('exposes a validated catalogue of enhancement presets', () => {
+  it("exposes a validated catalogue of enhancement presets", () => {
     const ids = service.enhancePresets.map((preset) => preset.id);
     expect(ids.length).toBeGreaterThanOrEqual(4);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(service.enhancePreset()).toBe('clean');
+    expect(service.enhancePreset()).toBe("clean");
 
-    service.setEnhancePreset('master');
-    expect(service.enhancePreset()).toBe('master');
+    service.setEnhancePreset("master");
+    expect(service.enhancePreset()).toBe("master");
 
-    service.setEnhancePreset('not-a-preset' as any);
-    expect(service.enhancePreset()).toBe('master');
+    service.setEnhancePreset("not-a-preset" as any);
+    expect(service.enhancePreset()).toBe("master");
   });
 
-  it('enhances an imported file non-destructively and restores the original', async () => {
+  it("enhances an imported file non-destructively and restores the original", async () => {
     const buf = makeBuffer(service.audioEngine.ctx, 4096);
     const imported: any = {
-      id: 'enh1',
-      name: 'instrumental',
+      id: "enh1",
+      name: "instrumental",
       buffer: buf,
       blob: new Blob(),
-      url: 'blob:instrumental',
+      url: "blob:instrumental",
       duration: buf.duration,
       sampleRate: buf.sampleRate,
       channels: buf.numberOfChannels,
@@ -257,11 +256,11 @@ describe('AudioImportService (stretch engine)', () => {
     service.importedAudio.set([imported]);
     service.selectedAudio.set(imported);
 
-    const blob = await service.enhanceQuality('vocal');
+    const blob = await service.enhanceQuality("vocal");
 
     expect(blob).toBeInstanceOf(Blob);
     const enhanced = service.selectedAudio()!;
-    expect(enhanced.enhancedPreset).toBe('vocal');
+    expect(enhanced.enhancedPreset).toBe("vocal");
     expect(enhanced.enhancedBuffer).toBeTruthy();
     expect(enhanced.editedBlob).toBeInstanceOf(Blob);
     expect(enhanced.editedUrl).toBeTruthy();
@@ -281,8 +280,8 @@ describe('AudioImportService (stretch engine)', () => {
     expect(restored.buffer).toBe(buf);
   });
 
-  it('does not enhance without a selected import', async () => {
+  it("does not enhance without a selected import", async () => {
     service.selectedAudio.set(null);
-    await expect(service.enhanceQuality('clean')).resolves.toBeNull();
+    await expect(service.enhanceQuality("clean")).resolves.toBeNull();
   });
 });

@@ -1,7 +1,7 @@
-import { TestBed } from '@angular/core/testing';
-import { ReverbService } from './reverb.service';
+import { TestBed } from "@angular/core/testing";
+import { ReverbService } from "./reverb.service";
 
-describe('ReverbService', () => {
+describe("ReverbService", () => {
   let service: ReverbService;
 
   beforeEach(() => {
@@ -11,16 +11,16 @@ describe('ReverbService', () => {
     service = TestBed.inject(ReverbService);
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(service).toBeTruthy();
   });
 
-  it('creates a reverb instance', () => {
+  it("creates a reverb instance", () => {
     const reverb = service.createReverb();
     expect(reverb).toBeTruthy();
   });
 
-  it('exposes connect / disconnect / set API without throwing', () => {
+  it("exposes connect / disconnect / set API without throwing", () => {
     const reverb = service.createReverb();
     const node = {} as AudioNode;
 

@@ -5,13 +5,12 @@ import {
   computed,
   Output,
   EventEmitter,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AudioSessionService } from '../audio-session.service'; // Re-use for tempo
-import { HapticService } from '../../services/haptic.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { MusicManagerService } from '../../services/music-manager.service';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { HapticService } from "../../services/haptic.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { MusicManagerService } from "../../services/music-manager.service";
 
 export interface ChordProgressionItem {
   /** Chord root as scale degree, e.g. 'I', 'ii', 'IV', 'V7' */
@@ -25,7 +24,7 @@ export interface ChordProgressionItem {
 }
 
 @Component({
-  selector: 'app-chord-editor',
+  selector: "app-chord-editor",
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
@@ -456,7 +455,11 @@ export interface ChordProgressionItem {
         border-radius: 16px;
         box-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
         background:
-          radial-gradient(80% 30% at 96% 0%, color-mix(in srgb, var(--ce-teal) 8%, transparent), transparent 72%),
+          radial-gradient(
+            80% 30% at 96% 0%,
+            color-mix(in srgb, var(--ce-teal) 8%, transparent),
+            transparent 72%
+          ),
           var(--ce-canvas);
       }
       .ce-header {
@@ -476,7 +479,11 @@ export interface ChordProgressionItem {
         display: inline-flex;
         align-items: center;
         border: 1px solid color-mix(in srgb, var(--ce-teal) 28%, var(--ce-line));
-        background: color-mix(in srgb, var(--ce-teal) 10%, var(--ce-panel)) !important;
+        background: color-mix(
+          in srgb,
+          var(--ce-teal) 10%,
+          var(--ce-panel)
+        ) !important;
         color: var(--ce-teal) !important;
       }
       .ce-section {
@@ -683,45 +690,45 @@ export class ChordEditorComponent {
   @Output() navigateToPianoRoll = new EventEmitter<void>();
 
   // ── State ──────────────────────────────────────────────
-  selectedRoot = 'C';
-  selectedMode = 'major';
+  selectedRoot = "C";
+  selectedMode = "major";
   selectedType = signal<
-    'maj' | 'min' | 'dom7' | 'maj7' | 'min7' | 'sus4' | 'dim' | 'aug'
-  >('maj');
-  voicing = signal<'close' | 'open' | 'wide'>('close');
+    "maj" | "min" | "dom7" | "maj7" | "min7" | "sus4" | "dim" | "aug"
+  >("maj");
+  voicing = signal<"close" | "open" | "wide">("close");
 
   progression = signal<ChordProgressionItem[]>([]);
 
-  roots = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-  modes = ['major', 'minor', 'dorian', 'mixolydian', 'blues'];
+  roots = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+  modes = ["major", "minor", "dorian", "mixolydian", "blues"];
 
   chordTypes = [
-    { label: 'Maj', value: 'maj' as const, intervals: [0, 4, 7] },
-    { label: 'Min', value: 'min' as const, intervals: [0, 3, 7] },
-    { label: '7', value: 'dom7' as const, intervals: [0, 4, 7, 10] },
-    { label: 'M7', value: 'maj7' as const, intervals: [0, 4, 7, 11] },
-    { label: 'm7', value: 'min7' as const, intervals: [0, 3, 7, 10] },
-    { label: 'sus4', value: 'sus4' as const, intervals: [0, 5, 7] },
-    { label: 'dim', value: 'dim' as const, intervals: [0, 3, 6] },
-    { label: 'aug', value: 'aug' as const, intervals: [0, 4, 8] },
+    { label: "Maj", value: "maj" as const, intervals: [0, 4, 7] },
+    { label: "Min", value: "min" as const, intervals: [0, 3, 7] },
+    { label: "7", value: "dom7" as const, intervals: [0, 4, 7, 10] },
+    { label: "M7", value: "maj7" as const, intervals: [0, 4, 7, 11] },
+    { label: "m7", value: "min7" as const, intervals: [0, 3, 7, 10] },
+    { label: "sus4", value: "sus4" as const, intervals: [0, 5, 7] },
+    { label: "dim", value: "dim" as const, intervals: [0, 3, 6] },
+    { label: "aug", value: "aug" as const, intervals: [0, 4, 8] },
   ];
 
   voicings = [
-    { label: 'Close', value: 'close' as const },
-    { label: 'Open', value: 'open' as const },
-    { label: 'Wide', value: 'wide' as const },
+    { label: "Close", value: "close" as const },
+    { label: "Open", value: "open" as const },
+    { label: "Wide", value: "wide" as const },
   ];
 
   presets = [
-    { label: 'Pop I–V–vi–IV', chords: ['C', 'G', 'Am', 'F'] },
-    { label: '50s I–vi–IV–V', chords: ['C', 'Am', 'F', 'G'] },
-    { label: 'Rock I–IV–V', chords: ['C', 'F', 'G'] },
-    { label: 'Neo-Soul i–VII–VI–V', chords: ['Am', 'G', 'F', 'E'] },
-    { label: 'Minor i–iv–VII–III', chords: ['Am', 'Dm', 'G', 'C'] },
-    { label: 'Lofi i–III–VII–VI', chords: ['Am', 'C', 'G', 'F'] },
-    { label: 'Jazz ii–V–I', chords: ['Dm', 'G', 'C'] },
-    { label: 'Trap i–VII–VI', chords: ['Am', 'G', 'F'] },
-    { label: 'Deep House I–IV–V–IV', chords: ['C', 'F', 'G', 'F'] },
+    { label: "Pop I–V–vi–IV", chords: ["C", "G", "Am", "F"] },
+    { label: "50s I–vi–IV–V", chords: ["C", "Am", "F", "G"] },
+    { label: "Rock I–IV–V", chords: ["C", "F", "G"] },
+    { label: "Neo-Soul i–VII–VI–V", chords: ["Am", "G", "F", "E"] },
+    { label: "Minor i–iv–VII–III", chords: ["Am", "Dm", "G", "C"] },
+    { label: "Lofi i–III–VII–VI", chords: ["Am", "C", "G", "F"] },
+    { label: "Jazz ii–V–I", chords: ["Dm", "G", "C"] },
+    { label: "Trap i–VII–VI", chords: ["Am", "G", "F"] },
+    { label: "Deep House I–IV–V–IV", chords: ["C", "F", "G", "F"] },
   ];
 
   // ── Computed preview notes from progression ────────────
@@ -734,18 +741,18 @@ export class ChordEditorComponent {
 
   // ── MIDI helpers ───────────────────────────────────────
   private MIDI_NAMES = [
-    'C',
-    'C#',
-    'D',
-    'D#',
-    'E',
-    'F',
-    'F#',
-    'G',
-    'G#',
-    'A',
-    'A#',
-    'B',
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B",
   ];
 
   midiToNoteName(midi: number): string {
@@ -756,32 +763,32 @@ export class ChordEditorComponent {
   noteColor(midi: number): string {
     const note = midi % 12;
     const colors = [
-      '#E11D48',
-      '#F97316',
-      '#EAB308',
-      '#84CC16',
-      '#10B981',
-      '#14B8A6',
-      '#0E7C7B',
-      '#2BA09C',
-      '#5DC4C2',
-      '#8B5CF6',
-      '#A855F7',
-      '#EC4899',
+      "#E11D48",
+      "#F97316",
+      "#EAB308",
+      "#84CC16",
+      "#10B981",
+      "#14B8A6",
+      "#0E7C7B",
+      "#2BA09C",
+      "#5DC4C2",
+      "#8B5CF6",
+      "#A855F7",
+      "#EC4899",
     ];
     return colors[note];
   }
 
   chordColor(index: number): string {
     const colors = [
-      '#0E7C7B',
-      '#5DC4C2',
-      '#EAB308',
-      '#F97316',
-      '#A855F7',
-      '#EC4899',
-      '#10B981',
-      '#8B5CF6',
+      "#0E7C7B",
+      "#5DC4C2",
+      "#EAB308",
+      "#F97316",
+      "#A855F7",
+      "#EC4899",
+      "#10B981",
+      "#8B5CF6",
     ];
     return colors[index % colors.length];
   }
@@ -796,16 +803,16 @@ export class ChordEditorComponent {
   private applyVoicing(intervals: number[], rootMidi: number): number[] {
     const base = intervals.map((i) => rootMidi + i);
     switch (this.voicing()) {
-      case 'close':
+      case "close":
         return base;
-      case 'open':
+      case "open":
         if (base.length < 3) return base;
         return [
           base[0],
           ...base.slice(1, -1).map((n) => n + 12),
           base[base.length - 1],
         ];
-      case 'wide':
+      case "wide":
         if (base.length < 3) return base;
         return [
           base[0],
@@ -865,11 +872,11 @@ export class ChordEditorComponent {
         const match = ch.match(/^([A-G][b#]?)(.*)$/);
         if (!match) return null;
         const rootName = match[1];
-        const qual = match[2] || '';
+        const qual = match[2] || "";
         const rootMidi = this.rootToMidi(rootName);
         const type = this.chordTypes.find((t) => {
-          if (!qual) return t.value === 'maj';
-          const q = qual.replace('m', 'min').replace('dim', 'dim');
+          if (!qual) return t.value === "maj";
+          const q = qual.replace("m", "min").replace("dim", "dim");
           return t.label.toLowerCase() === q.toLowerCase() || t.value === q;
         });
         const intervals = type?.intervals || [0, 4, 7];
@@ -877,7 +884,7 @@ export class ChordEditorComponent {
           label: ch,
           rootMidi,
           intervals,
-          quality: qual || 'maj',
+          quality: qual || "maj",
         };
       })
       .filter((x): x is ChordProgressionItem => x !== null);
@@ -889,7 +896,7 @@ export class ChordEditorComponent {
 
   getChordNoteNames(chord: ChordProgressionItem): string[] {
     return this.applyVoicing(chord.intervals, chord.rootMidi).map((n) =>
-      this.midiToNoteName(n)
+      this.midiToNoteName(n),
     );
   }
 
@@ -897,7 +904,7 @@ export class ChordEditorComponent {
     this.haptic.light();
     const trackId = this.musicManager.selectedTrackId();
     if (!trackId) {
-      this.snackbar.info('Select a track in Piano Roll first');
+      this.snackbar.info("Select a track in Piano Roll first");
       this.navigateToPianoRoll.emit();
       return;
     }

@@ -1,4 +1,4 @@
-import { LoggingService } from '../../services/logging.service';
+import { LoggingService } from "../../services/logging.service";
 import {
   Component,
   Input,
@@ -7,15 +7,14 @@ import {
   OnDestroy,
   inject,
   signal,
-  computed,
   ViewChild,
   ElementRef,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Clip } from '../instrument.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { HapticService } from '../../services/haptic.service';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { Clip } from "../instrument.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { HapticService } from "../../services/haptic.service";
 
 interface SynthPatch {
   id: string;
@@ -39,14 +38,14 @@ interface ParamTooltip {
   icon: string;
 }
 
-type MobileTab = 'osc' | 'env' | 'filter' | 'fx';
+type MobileTab = "osc" | "env" | "filter" | "fx";
 
 @Component({
-  selector: 'app-synthesizer',
+  selector: "app-synthesizer",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './synthesizer.component.html',
-  styleUrls: ['./synthesizer.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./synthesizer.component.html",
+  styleUrls: ["./synthesizer.component.css", "../shared/platform-ux.css"],
 })
 export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
   private logger = inject(LoggingService);
@@ -55,9 +54,9 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @Input() clip: Clip | null = null;
 
-  @ViewChild('waveformCanvas', { static: false })
+  @ViewChild("waveformCanvas", { static: false })
   waveformCanvas?: ElementRef<HTMLCanvasElement>;
-  @ViewChild('adsrCanvas', { static: false })
+  @ViewChild("adsrCanvas", { static: false })
   adsrCanvas?: ElementRef<HTMLCanvasElement>;
 
   private waveformRaf: number | null = null;
@@ -65,120 +64,120 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Beginner mode toggle ──────────────────────────────
   isBeginner = signal<boolean>(
-    localStorage.getItem('synth_beginner') !== 'false'
+    localStorage.getItem("synth_beginner") !== "false",
   );
 
   toggleBeginner() {
     this.isBeginner.update((v) => !v);
     try {
-      localStorage.setItem('synth_beginner', String(this.isBeginner()));
+      localStorage.setItem("synth_beginner", String(this.isBeginner()));
     } catch {}
     this.haptic.light();
   }
 
   // ── Mobile tabs ───────────────────────────────────────
-  activeTab = signal<MobileTab>('osc');
+  activeTab = signal<MobileTab>("osc");
 
   setTab(tab: MobileTab) {
     this.activeTab.set(tab);
     this.haptic.light();
     // Redraw canvases when switching to relevant tabs
     requestAnimationFrame(() => {
-      if (tab === 'osc') this.drawWaveform();
-      if (tab === 'env') this.drawAdsr();
+      if (tab === "osc") this.drawWaveform();
+      if (tab === "env") this.drawAdsr();
     });
   }
 
   mobileTabs: { key: MobileTab; label: string; icon: string }[] = [
-    { key: 'osc', label: 'Oscillator', icon: 'waves' },
-    { key: 'env', label: 'Envelope', icon: 'equalizer' },
-    { key: 'filter', label: 'Filter', icon: 'tune' },
-    { key: 'fx', label: 'Effects', icon: 'magic_button' },
+    { key: "osc", label: "Oscillator", icon: "waves" },
+    { key: "env", label: "Envelope", icon: "equalizer" },
+    { key: "filter", label: "Filter", icon: "tune" },
+    { key: "fx", label: "Effects", icon: "magic_button" },
   ];
 
   // ── ADSR stages ──────────────────────────────────────
   adStages = [
-    { key: 'attack' as const, label: 'Attack', abbr: 'ATK', icon: '⚡' },
-    { key: 'decay' as const, label: 'Decay', abbr: 'DEC', icon: '📉' },
-    { key: 'sustain' as const, label: 'Sustain', abbr: 'SUS', icon: '📏' },
-    { key: 'release' as const, label: 'Release', abbr: 'REL', icon: '🌊' },
+    { key: "attack" as const, label: "Attack", abbr: "ATK", icon: "⚡" },
+    { key: "decay" as const, label: "Decay", abbr: "DEC", icon: "📉" },
+    { key: "sustain" as const, label: "Sustain", abbr: "SUS", icon: "📏" },
+    { key: "release" as const, label: "Release", abbr: "REL", icon: "🌊" },
   ];
 
   // ── LFO waveforms ────────────────────────────────────
   lfoWaves = [
-    { value: 'sine', label: 'Smooth', icon: '∿' },
-    { value: 'triangle', label: 'Ramp', icon: '△' },
-    { value: 'square', label: 'Chop', icon: '⊓' },
-    { value: 'sawtooth', label: 'Buzz', icon: '⋋' },
+    { value: "sine", label: "Smooth", icon: "∿" },
+    { value: "triangle", label: "Ramp", icon: "△" },
+    { value: "square", label: "Chop", icon: "⊓" },
+    { value: "sawtooth", label: "Buzz", icon: "⋋" },
   ];
 
   // ── Param tooltips (beginner-friendly) ───────────────
   tooltips: Record<string, ParamTooltip> = {
     oscillator: {
-      label: 'Wave Shape',
+      label: "Wave Shape",
       plain:
-        'This changes the basic character of your sound — from smooth and round to buzzy and sharp.',
-      icon: '🎵',
+        "This changes the basic character of your sound — from smooth and round to buzzy and sharp.",
+      icon: "🎵",
     },
     cutoff: {
-      label: 'Brightness',
+      label: "Brightness",
       plain:
-        'Turn up to make the sound brighter and sharper. Turn down for a muffled, dark tone.',
-      icon: '🔆',
+        "Turn up to make the sound brighter and sharper. Turn down for a muffled, dark tone.",
+      icon: "🔆",
     },
     q: {
-      label: 'Sharpness',
+      label: "Sharpness",
       plain:
-        'Adds a nasal, whistling quality at higher values. Great for funky filter sweeps!',
-      icon: '🎯',
+        "Adds a nasal, whistling quality at higher values. Great for funky filter sweeps!",
+      icon: "🎯",
     },
     attack: {
-      label: 'Fade In',
+      label: "Fade In",
       plain:
-        'How fast the sound reaches full volume when you press a key. Low = instant, High = slow swell.',
-      icon: '⚡',
+        "How fast the sound reaches full volume when you press a key. Low = instant, High = slow swell.",
+      icon: "⚡",
     },
     decay: {
-      label: 'Drop Off',
+      label: "Drop Off",
       plain:
-        'How quickly the sound fades after the initial hit, before it holds steady.',
-      icon: '📉',
+        "How quickly the sound fades after the initial hit, before it holds steady.",
+      icon: "📉",
     },
     sustain: {
-      label: 'Hold Level',
-      plain: 'The volume level the sound stays at while you hold the key down.',
-      icon: '📏',
+      label: "Hold Level",
+      plain: "The volume level the sound stays at while you hold the key down.",
+      icon: "📏",
     },
     release: {
-      label: 'Fade Out',
-      plain: 'How long the sound rings out after you let go of the key.',
-      icon: '🌊',
+      label: "Fade Out",
+      plain: "How long the sound rings out after you let go of the key.",
+      icon: "🌊",
     },
     distortion: {
-      label: 'Drive / Grit',
+      label: "Drive / Grit",
       plain:
-        'Adds crunch and warmth. Low = clean, High = overdriven and aggressive.',
-      icon: '🔥',
+        "Adds crunch and warmth. Low = clean, High = overdriven and aggressive.",
+      icon: "🔥",
     },
     subOsc: {
-      label: 'Sub Bass',
+      label: "Sub Bass",
       plain:
-        'Adds deep low-end power underneath your sound. Great for bass and pads.',
-      icon: '💪',
+        "Adds deep low-end power underneath your sound. Great for bass and pads.",
+      icon: "💪",
     },
     subGain: {
-      label: 'Sub Volume',
+      label: "Sub Volume",
       plain:
-        'How loud the deep sub bass is. Be careful — too much can shake the speakers!',
-      icon: '🔊',
+        "How loud the deep sub bass is. Be careful — too much can shake the speakers!",
+      icon: "🔊",
     },
   };
 
   // ── Synth parameters ─────────────────────────────────
   synthParams: any = {
-    oscillator: 'sawtooth' as OscillatorType,
+    oscillator: "sawtooth" as OscillatorType,
     subOsc: true,
-    subType: 'sine' as OscillatorType,
+    subType: "sine" as OscillatorType,
     subGain: 0.3,
     attack: 0.01,
     decay: 0.2,
@@ -191,21 +190,21 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── LFO parameters ───────────────────────────────────
   lfoParams: LfoParams = {
-    wave: 'sine',
+    wave: "sine",
     rate: 1.0,
     depth: 0.3,
-    target: 'cutoff',
+    target: "cutoff",
   };
 
   // ── Patch system with beginner descriptions ──────────
   patches: SynthPatch[] = [
     {
-      id: 'init',
-      name: 'INIT',
-      description: 'Default starting point',
-      beginnerTip: 'Start here and tweak to make your own sound!',
+      id: "init",
+      name: "INIT",
+      description: "Default starting point",
+      beginnerTip: "Start here and tweak to make your own sound!",
       params: {
-        oscillator: 'sawtooth',
+        oscillator: "sawtooth",
         subOsc: true,
         subGain: 0.3,
         attack: 0.01,
@@ -218,12 +217,12 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     },
     {
-      id: 'bass',
-      name: 'BASS',
-      description: 'Deep, rumbling low-end',
-      beginnerTip: 'Perfect for hip-hop, trap, and electronic bass lines.',
+      id: "bass",
+      name: "BASS",
+      description: "Deep, rumbling low-end",
+      beginnerTip: "Perfect for hip-hop, trap, and electronic bass lines.",
       params: {
-        oscillator: 'sawtooth',
+        oscillator: "sawtooth",
         subOsc: true,
         subGain: 0.7,
         attack: 0.01,
@@ -236,12 +235,12 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     },
     {
-      id: 'lead',
-      name: 'LEAD',
-      description: 'Bright, cutting melody',
-      beginnerTip: 'Use this for catchy melodies that stand out in the mix.',
+      id: "lead",
+      name: "LEAD",
+      description: "Bright, cutting melody",
+      beginnerTip: "Use this for catchy melodies that stand out in the mix.",
       params: {
-        oscillator: 'square',
+        oscillator: "square",
         subOsc: false,
         subGain: 0,
         attack: 0.02,
@@ -254,13 +253,13 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     },
     {
-      id: 'pad',
-      name: 'PAD',
-      description: 'Warm, flowing background',
+      id: "pad",
+      name: "PAD",
+      description: "Warm, flowing background",
       beginnerTip:
-        'Great for filling space behind your voice. Hold chords for a lush bed of sound.',
+        "Great for filling space behind your voice. Hold chords for a lush bed of sound.",
       params: {
-        oscillator: 'sine',
+        oscillator: "sine",
         subOsc: true,
         subGain: 0.4,
         attack: 0.3,
@@ -273,13 +272,13 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     },
     {
-      id: 'pluck',
-      name: 'PLUCK',
-      description: 'Quick, snappy hits',
+      id: "pluck",
+      name: "PLUCK",
+      description: "Quick, snappy hits",
       beginnerTip:
-        'Perfect for arpeggios and fast rhythmic patterns. Think harp or guitar.',
+        "Perfect for arpeggios and fast rhythmic patterns. Think harp or guitar.",
       params: {
-        oscillator: 'triangle',
+        oscillator: "triangle",
         subOsc: false,
         subGain: 0,
         attack: 0.001,
@@ -292,13 +291,13 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     },
     {
-      id: 'warm-keys',
-      name: 'KEYS',
-      description: 'Classic electric piano',
+      id: "warm-keys",
+      name: "KEYS",
+      description: "Classic electric piano",
       beginnerTip:
-        'Sounds like a Rhodes or Wurlitzer. Great for R&B, soul, and lo-fi.',
+        "Sounds like a Rhodes or Wurlitzer. Great for R&B, soul, and lo-fi.",
       params: {
-        oscillator: 'triangle',
+        oscillator: "triangle",
         subOsc: true,
         subGain: 0.2,
         attack: 0.005,
@@ -311,13 +310,13 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     },
     {
-      id: 'strings',
-      name: 'STRINGS',
-      description: 'Orchestral string section',
+      id: "strings",
+      name: "STRINGS",
+      description: "Orchestral string section",
       beginnerTip:
-        'Adds cinematic drama. Layer with pads for a movie-soundtrack feel.',
+        "Adds cinematic drama. Layer with pads for a movie-soundtrack feel.",
       params: {
-        oscillator: 'sawtooth',
+        oscillator: "sawtooth",
         subOsc: true,
         subGain: 0.15,
         attack: 0.4,
@@ -330,13 +329,13 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
       },
     },
     {
-      id: 'wobble',
-      name: 'WOBBLE',
-      description: 'Dubstep wobble bass',
+      id: "wobble",
+      name: "WOBBLE",
+      description: "Dubstep wobble bass",
       beginnerTip:
         'The classic "wub wub" sound. Turn up the LFO rate for faster wobbles!',
       params: {
-        oscillator: 'sawtooth',
+        oscillator: "sawtooth",
         subOsc: true,
         subGain: 0.5,
         attack: 0.01,
@@ -350,7 +349,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     },
   ];
 
-  activePatchId = signal<string>('init');
+  activePatchId = signal<string>("init");
   activePatch = signal<SynthPatch | null>(this.patches[0]);
 
   // ── Active tooltip (for mobile tap-to-learn) ─────────
@@ -362,10 +361,10 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Oscillator type descriptions ─────────────────────
   oscDescriptions: Record<string, string> = {
-    sine: 'Pure & smooth — like a flute',
-    square: 'Retro & hollow — like old video games',
-    sawtooth: 'Bright & buzzy — most versatile',
-    triangle: 'Soft & mellow — between sine and saw',
+    sine: "Pure & smooth — like a flute",
+    square: "Retro & hollow — like old video games",
+    sawtooth: "Bright & buzzy — most versatile",
+    triangle: "Soft & mellow — between sine and saw",
   };
 
   constructor() {}
@@ -410,15 +409,15 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.clip) {
       this.clip.synthParams = { ...this.synthParams };
     }
-    if (param === 'distortion') {
+    if (param === "distortion") {
       this.audioEngine.setSaturation(value);
     }
-    this.activePatchId.set('init');
+    this.activePatchId.set("init");
     // Redraw affected visualizations
-    if (['attack', 'decay', 'sustain', 'release'].includes(param)) {
+    if (["attack", "decay", "sustain", "release"].includes(param)) {
       this.drawAdsr();
     }
-    if (['oscillator'].includes(param)) {
+    if (["oscillator"].includes(param)) {
       this.drawWaveform();
     }
   }
@@ -435,7 +434,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     const canvas = this.waveformCanvas?.nativeElement;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const w = canvas.width;
@@ -447,7 +446,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     const amp = h * 0.35;
 
     // Grid lines
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, mid);
@@ -455,9 +454,9 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     ctx.stroke();
 
     // Draw waveform
-    ctx.strokeStyle = '#0E7C7B';
+    ctx.strokeStyle = "#0E7C7B";
     ctx.lineWidth = 2.5;
-    ctx.shadowColor = 'rgba(14, 124, 123, 0.5)';
+    ctx.shadowColor = "rgba(14, 124, 123, 0.5)";
     ctx.shadowBlur = 8;
     ctx.beginPath();
 
@@ -466,16 +465,16 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
       let y = 0;
 
       switch (type) {
-        case 'sine':
+        case "sine":
           y = Math.sin(t);
           break;
-        case 'square':
+        case "square":
           y = Math.sin(t) >= 0 ? 1 : -1;
           break;
-        case 'sawtooth':
+        case "sawtooth":
           y = 2 * ((t / (2 * Math.PI)) % 1) - 1;
           break;
-        case 'triangle':
+        case "triangle":
           y = Math.abs(4 * ((t / (2 * Math.PI)) % 1) - 2) - 1;
           break;
         default:
@@ -492,7 +491,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Sub oscillator preview (dimmer)
     if (this.synthParams.subOsc) {
-      ctx.strokeStyle = 'rgba(14, 124, 123, 0.25)';
+      ctx.strokeStyle = "rgba(14, 124, 123, 0.25)";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       for (let x = 0; x < w; x++) {
@@ -506,9 +505,9 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     // Oscillator type label
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    ctx.font = '900 10px system-ui';
-    ctx.textAlign = 'right';
+    ctx.fillStyle = "rgba(255,255,255,0.15)";
+    ctx.font = "900 10px system-ui";
+    ctx.textAlign = "right";
     ctx.fillText(type.toUpperCase(), w - 8, 16);
   }
 
@@ -517,7 +516,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     const canvas = this.adsrCanvas?.nativeElement;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const w = canvas.width;
@@ -542,7 +541,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     const sustainY = bottom - s * (bottom - top);
 
     // Fill area under curve
-    ctx.fillStyle = 'rgba(14, 124, 123, 0.12)';
+    ctx.fillStyle = "rgba(14, 124, 123, 0.12)";
     ctx.beginPath();
     ctx.moveTo(startX, bottom);
     ctx.lineTo(startX + ax, top);
@@ -553,9 +552,9 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     ctx.fill();
 
     // Draw curve
-    ctx.strokeStyle = '#0E7C7B';
+    ctx.strokeStyle = "#0E7C7B";
     ctx.lineWidth = 2.5;
-    ctx.shadowColor = 'rgba(14, 124, 123, 0.5)';
+    ctx.shadowColor = "rgba(14, 124, 123, 0.5)";
     ctx.shadowBlur = 6;
     ctx.beginPath();
     ctx.moveTo(startX, bottom);
@@ -567,10 +566,10 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     ctx.shadowBlur = 0;
 
     // Stage labels
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.font = '700 8px system-ui';
-    ctx.textAlign = 'center';
-    const labels = ['A', 'D', 'S', 'R'];
+    ctx.fillStyle = "rgba(255,255,255,0.2)";
+    ctx.font = "700 8px system-ui";
+    ctx.textAlign = "center";
+    const labels = ["A", "D", "S", "R"];
     const labelXs = [
       startX + ax / 2,
       startX + ax + dx / 2,
@@ -582,7 +581,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Helper: format Hz for display ────────────────────
   formatHz(val: number): string {
-    if (val >= 1000) return (val / 1000).toFixed(1) + ' kHz';
-    return val.toFixed(0) + ' Hz';
+    if (val >= 1000) return (val / 1000).toFixed(1) + " kHz";
+    return val.toFixed(0) + " Hz";
   }
 }

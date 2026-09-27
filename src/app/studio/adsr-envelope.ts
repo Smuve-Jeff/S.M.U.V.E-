@@ -5,7 +5,7 @@ export class AdsrEnvelope {
     public decay: number = 0.1,
     public sustain: number = 0.5,
     public release: number = 0.5,
-    private exponential: boolean = true
+    private exponential: boolean = true,
   ) {}
 
   apply(gainNode: GainNode, velocity: number) {
@@ -20,14 +20,14 @@ export class AdsrEnvelope {
       if (gainNode.gain.exponentialRampToValueAtTime) {
         gainNode.gain.exponentialRampToValueAtTime(
           Math.max(0.0001, this.sustain * velocity),
-          now + this.attack + this.decay
+          now + this.attack + this.decay,
         );
       }
     } else {
       if (gainNode.gain.linearRampToValueAtTime) {
         gainNode.gain.linearRampToValueAtTime(
           this.sustain * velocity,
-          now + this.attack + this.decay
+          now + this.attack + this.decay,
         );
       }
     }
@@ -42,7 +42,7 @@ export class AdsrEnvelope {
     if (param.exponentialRampToValueAtTime) {
       param.exponentialRampToValueAtTime(
         Math.max(0.0001, min + (max - min) * this.sustain),
-        now + this.attack + this.decay
+        now + this.attack + this.decay,
       );
     }
   }
@@ -65,7 +65,7 @@ export class AdsrEnvelope {
     if (param.exponentialRampToValueAtTime) {
       param.exponentialRampToValueAtTime(
         Math.max(0.0001, min),
-        now + this.release
+        now + this.release,
       );
     }
   }

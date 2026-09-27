@@ -1,32 +1,32 @@
-import { Component, output, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Component, output, signal, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 
 export interface SearchResult {
   id: string;
   title: string;
   subtitle?: string;
-  type: 'preset' | 'track' | 'effect' | 'action';
+  type: "preset" | "track" | "effect" | "action";
   icon: string;
 }
 
 @Component({
-  selector: 'app-search-overlay',
+  selector: "app-search-overlay",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './search-overlay.component.html',
-  styleUrls: ['./search-overlay.component.css', '../platform-ux.css'],
+  templateUrl: "./search-overlay.component.html",
+  styleUrls: ["./search-overlay.component.css", "../platform-ux.css"],
 })
 export class SearchOverlayComponent implements OnInit {
   visible = signal(false);
-  query = signal('');
+  query = signal("");
   results = signal<SearchResult[]>([]);
   recentSearches = signal<string[]>([]);
 
   close = output<void>();
   select = output<SearchResult>();
 
-  private readonly RECENT_SEARCHES_KEY = 'smuve_recent_searches';
+  private readonly RECENT_SEARCHES_KEY = "smuve_recent_searches";
 
   ngOnInit() {
     this.loadRecentSearches();
@@ -34,7 +34,7 @@ export class SearchOverlayComponent implements OnInit {
 
   show() {
     this.visible.set(true);
-    this.query.set('');
+    this.query.set("");
     this.results.set([]);
   }
 
@@ -53,25 +53,25 @@ export class SearchOverlayComponent implements OnInit {
 
     const mockResults: SearchResult[] = [
       {
-        id: '1',
-        title: 'Deep Bass Synth',
-        subtitle: 'Synth Preset',
-        type: 'preset' as const,
-        icon: 'settings_input_component',
+        id: "1",
+        title: "Deep Bass Synth",
+        subtitle: "Synth Preset",
+        type: "preset" as const,
+        icon: "settings_input_component",
       },
       {
-        id: '2',
-        title: 'Reverb Hall',
-        subtitle: 'Effect',
-        type: 'effect' as const,
-        icon: 'graphic_eq',
+        id: "2",
+        title: "Reverb Hall",
+        subtitle: "Effect",
+        type: "effect" as const,
+        icon: "graphic_eq",
       },
       {
-        id: '3',
-        title: 'Add New Track',
-        subtitle: 'Action',
-        type: 'action' as const,
-        icon: 'add',
+        id: "3",
+        title: "Add New Track",
+        subtitle: "Action",
+        type: "action" as const,
+        icon: "add",
       },
     ].filter((r) => r.title.toLowerCase().includes(value.toLowerCase()));
 
@@ -91,13 +91,13 @@ export class SearchOverlayComponent implements OnInit {
 
   clearRecentSearches() {
     this.recentSearches.set([]);
-    if (typeof localStorage !== 'undefined') {
+    if (typeof localStorage !== "undefined") {
       localStorage.removeItem(this.RECENT_SEARCHES_KEY);
     }
   }
 
   private loadRecentSearches() {
-    if (typeof localStorage !== 'undefined') {
+    if (typeof localStorage !== "undefined") {
       const stored = localStorage.getItem(this.RECENT_SEARCHES_KEY);
       if (stored) {
         try {
@@ -111,11 +111,11 @@ export class SearchOverlayComponent implements OnInit {
     const current = this.recentSearches();
     const updated = [search, ...current.filter((s) => s !== search)].slice(
       0,
-      5
+      5,
     );
     this.recentSearches.set(updated);
 
-    if (typeof localStorage !== 'undefined') {
+    if (typeof localStorage !== "undefined") {
       localStorage.setItem(this.RECENT_SEARCHES_KEY, JSON.stringify(updated));
     }
   }

@@ -1,4 +1,4 @@
-import { WebGLRenderer, Camera2D, GLColor } from './webgl-renderer';
+import { WebGLRenderer, Camera2D, GLColor } from "./webgl-renderer";
 
 export interface TimelineClip {
   id: string;
@@ -11,7 +11,7 @@ export interface TimelineClip {
   selected: boolean;
   isCrosslinked: boolean;
   /** Clip type drives visual treatment */
-  type: 'midi' | 'audio' | 'drum';
+  type: "midi" | "audio" | "drum";
   /** Phase F2 — fade-in length as fraction of clip width (0..1). */
   fadeIn?: number;
   /** Phase F2 — fade-out length as fraction of clip width (0..1). */
@@ -34,8 +34,7 @@ const SELECTION_BORDER: GLColor = { r: 0.68, g: 0.15, b: 0.95, a: 1.0 };
 const CROSSLINK_BORDER: GLColor = { r: 0.15, g: 0.85, b: 0.95, a: 1.0 };
 const LANE_BG_ODD: GLColor = { r: 0.04, g: 0.06, b: 0.11, a: 1.0 };
 const LANE_BG_EVEN: GLColor = { r: 0.05, g: 0.07, b: 0.13, a: 1.0 };
-const RULER_BG: GLColor = { r: 0.03, g: 0.05, b: 0.10, a: 1.0 };
-const RULER_TEXT_COLOR: GLColor = { r: 0.45, g: 0.50, b: 0.65, a: 1.0 };
+const RULER_BG: GLColor = { r: 0.03, g: 0.05, b: 0.1, a: 1.0 };
 
 export class TimelineRenderer {
   private readonly renderer: WebGLRenderer;
@@ -55,7 +54,7 @@ export class TimelineRenderer {
     playheadBar: number,
     totalBars: number,
     camera: Camera2D,
-    rulerHeight: number
+    rulerHeight: number,
   ): void {
     const renderer = this.renderer;
     const bounds = renderer.visibleBounds;
@@ -66,7 +65,7 @@ export class TimelineRenderer {
         c.x + c.width >= bounds.left &&
         c.x <= bounds.right &&
         c.y + c.height >= bounds.top &&
-        c.y <= bounds.bottom
+        c.y <= bounds.bottom,
     );
 
     renderer.beginFrame(camera);
@@ -81,15 +80,26 @@ export class TimelineRenderer {
         totalBars * this.pixelsPerBar,
         track.height,
         i % 2 === 0 ? LANE_BG_EVEN : LANE_BG_ODD,
-        0
+        0,
       );
     });
 
     // -- Ruler background --
-    renderer.drawQuad(0, 0, totalBars * this.pixelsPerBar, rulerHeight, RULER_BG, 0);
+    renderer.drawQuad(
+      0,
+      0,
+      totalBars * this.pixelsPerBar,
+      rulerHeight,
+      RULER_BG,
+      0,
+    );
 
     // -- Grid lines --
-    for (let bar = Math.floor(bounds.left); bar <= Math.ceil(bounds.right); bar++) {
+    for (
+      let bar = Math.floor(bounds.left);
+      bar <= Math.ceil(bounds.right);
+      bar++
+    ) {
       const x = bar * this.pixelsPerBar;
       // Bar line
       renderer.drawVLine(x, rulerHeight, bounds.bottom, GRID_BAR);
@@ -101,7 +111,11 @@ export class TimelineRenderer {
     }
 
     // -- Ruler grid (top half only) --
-    for (let bar = Math.floor(bounds.left); bar <= Math.ceil(bounds.right); bar++) {
+    for (
+      let bar = Math.floor(bounds.left);
+      bar <= Math.ceil(bounds.right);
+      bar++
+    ) {
       const x = bar * this.pixelsPerBar;
       renderer.drawVLine(x, 0, rulerHeight, GRID_BAR);
     }
@@ -119,7 +133,7 @@ export class TimelineRenderer {
         cw,
         clip.height,
         { r: 0, g: 0, b: 0, a: 0.35 },
-        borderRadius
+        borderRadius,
       );
 
       // Main clip body
@@ -133,7 +147,7 @@ export class TimelineRenderer {
           cw,
           clip.height,
           { ...SELECTION_BORDER, a: 0.8 },
-          borderRadius
+          borderRadius,
         );
       } else if (clip.isCrosslinked) {
         renderer.drawQuad(
@@ -142,7 +156,7 @@ export class TimelineRenderer {
           cw,
           clip.height,
           { ...CROSSLINK_BORDER, a: 0.6 },
-          borderRadius
+          borderRadius,
         );
       }
 
@@ -151,7 +165,7 @@ export class TimelineRenderer {
       renderer.drawQuad(cx, clip.y, 3, clip.height, typeColor, 1);
 
       // ── Phase F2: fade wedges (audio clips) ─────────────────────
-      if (clip.type === 'audio') {
+      if (clip.type === "audio") {
         this.drawClipFades(renderer, clip, cx, cw);
       }
 
@@ -164,19 +178,12 @@ export class TimelineRenderer {
     // -- Playhead --
     const px = playheadBar * this.pixelsPerBar;
     // Glow
-    renderer.drawVLine(
-      px,
-      rulerHeight,
-      bounds.bottom,
-      { ...PLAYHEAD_COLOR, a: 0.3 }
-    );
+    renderer.drawVLine(px, rulerHeight, bounds.bottom, {
+      ...PLAYHEAD_COLOR,
+      a: 0.3,
+    });
     // Core
-    renderer.drawVLine(
-      px,
-      rulerHeight,
-      bounds.bottom,
-      PLAYHEAD_COLOR
-    );
+    renderer.drawVLine(px, rulerHeight, bounds.bottom, PLAYHEAD_COLOR);
     // Ruler marker
     renderer.drawQuad(px - 4, 4, 8, rulerHeight - 8, PLAYHEAD_COLOR, 3);
 
@@ -197,13 +204,13 @@ export class TimelineRenderer {
     return px / this.pixelsPerBar;
   }
 
-  private typeIndicatorColor(type: TimelineClip['type']): GLColor {
+  private typeIndicatorColor(type: TimelineClip["type"]): GLColor {
     switch (type) {
-      case 'midi':
+      case "midi":
         return { r: 0.3, g: 0.8, b: 0.5, a: 1.0 };
-      case 'audio':
+      case "audio":
         return { r: 0.3, g: 0.5, b: 0.9, a: 1.0 };
-      case 'drum':
+      case "drum":
         return { r: 0.9, g: 0.5, b: 0.3, a: 1.0 };
     }
   }
@@ -218,7 +225,7 @@ export class TimelineRenderer {
     renderer: WebGLRenderer,
     clip: TimelineClip,
     cx: number,
-    cw: number
+    cw: number,
   ): void {
     const h = clip.height;
     const fadeIn = Math.max(0, Math.min(1, clip.fadeIn ?? 0));
@@ -261,7 +268,7 @@ export class TimelineRenderer {
     renderer: WebGLRenderer,
     clip: TimelineClip,
     cx: number,
-    cw: number
+    cw: number,
   ): void {
     const h = clip.height;
     const handleW = Math.min(6, Math.max(3, cw * 0.04));
@@ -272,14 +279,7 @@ export class TimelineRenderer {
     // Left (start) handle — slightly inset so the edge stays visible
     renderer.drawQuad(cx, clip.y, handleW, h, handleColor, 1);
     // Right (end) handle
-    renderer.drawQuad(
-      cx + cw - handleW,
-      clip.y,
-      handleW,
-      h,
-      handleColor,
-      1
-    );
+    renderer.drawQuad(cx + cw - handleW, clip.y, handleW, h, handleColor, 1);
   }
 }
 
@@ -300,11 +300,24 @@ function hslToGL(h: number, s: number, l: number): GLColor {
   let r = 0,
     g = 0,
     b = 0;
-  if (h < 60) { r = c; g = x; }
-  else if (h < 120) { r = x; g = c; }
-  else if (h < 180) { g = c; b = x; }
-  else if (h < 240) { g = x; b = c; }
-  else if (h < 300) { r = x; b = c; }
-  else { r = c; b = x; }
+  if (h < 60) {
+    r = c;
+    g = x;
+  } else if (h < 120) {
+    r = x;
+    g = c;
+  } else if (h < 180) {
+    g = c;
+    b = x;
+  } else if (h < 240) {
+    g = x;
+    b = c;
+  } else if (h < 300) {
+    r = x;
+    b = c;
+  } else {
+    r = c;
+    b = x;
+  }
   return { r: r + m, g: g + m, b: b + m, a: 1.0 };
 }

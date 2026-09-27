@@ -1,12 +1,6 @@
-import {
-  Injectable,
-  inject,
-  signal,
-  computed,
-  OnDestroy,
-} from '@angular/core';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { LoggingService } from '../services/logging.service';
+import { Injectable, inject, signal, computed, OnDestroy } from "@angular/core";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { LoggingService } from "../services/logging.service";
 
 /**
  * RecordingLimiterService — headroom detection & clipping prevention.
@@ -19,7 +13,7 @@ import { LoggingService } from '../services/logging.service';
  * called with the capture source node, so simply being injected (as it is by
  * the recording engine) has no side effects.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class RecordingLimiterService implements OnDestroy {
   private readonly audioEngine = inject(AudioEngineService);
   private readonly logger = inject(LoggingService);
@@ -44,7 +38,7 @@ export class RecordingLimiterService implements OnDestroy {
 
   /** Whether the limiter is engaged AND currently reducing gain. */
   isLimitingActive = computed(
-    () => this.enabled() && this.peakInputDb() > this.thresholdDb()
+    () => this.enabled() && this.peakInputDb() > this.thresholdDb(),
   );
 
   /** Perceptual fill percentage (0-100) for a headroom meter. */
@@ -99,15 +93,15 @@ export class RecordingLimiterService implements OnDestroy {
       this.startMetering();
 
       this.logger.info(
-        'RecordingLimiter: engaged in capture chain ' +
-          `(threshold ${this.thresholdDb()} dB, ratio ${this.ratio()}:1)`
+        "RecordingLimiter: engaged in capture chain " +
+          `(threshold ${this.thresholdDb()} dB, ratio ${this.ratio()}:1)`,
       );
       return comp;
     } catch (e) {
       // Never break the capture path — fall back to a direct connection.
       this.logger.warn(
-        'RecordingLimiter: could not engage limiter; recording without it.',
-        e
+        "RecordingLimiter: could not engage limiter; recording without it.",
+        e,
       );
       this.disconnect();
       return sourceNode;
@@ -117,7 +111,7 @@ export class RecordingLimiterService implements OnDestroy {
   /** Route a source into the limiter chain up to a downstream node. */
   connectToRecordingChainWith(
     sourceNode: AudioNode,
-    downstream: AudioNode
+    downstream: AudioNode,
   ): void {
     const tail = this.connectToRecordingChain(sourceNode);
     tail.connect(downstream);

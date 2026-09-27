@@ -1,18 +1,18 @@
-import { Injectable, inject, signal, computed, OnDestroy } from '@angular/core';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { LoggingService } from '../services/logging.service';
+import { Injectable, inject, signal, computed, OnDestroy } from "@angular/core";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { LoggingService } from "../services/logging.service";
 
 /**
  * Who/what initiated recording — displayed prominently so the user
  * always knows precisely what is being captured.
  */
 export type RecordingSource =
-  | { type: 'transport'; trackId?: string; trackName?: string }
-  | { type: 'mixer-strip'; trackId: string; trackName: string }
-  | { type: 'performer'; takeNumber: number }
-  | { type: 'mic'; channelId: string; channelLabel: string }
-  | { type: 'dj-deck'; deckId: string }
-  | { type: 'none' };
+  | { type: "transport"; trackId?: string; trackName?: string }
+  | { type: "mixer-strip"; trackId: string; trackName: string }
+  | { type: "performer"; takeNumber: number }
+  | { type: "mic"; channelId: string; channelLabel: string }
+  | { type: "dj-deck"; deckId: string }
+  | { type: "none" };
 
 /**
  * RecordingStatusService — the single source of truth for:
@@ -23,7 +23,7 @@ export type RecordingSource =
  * Injected at root so TransportBar, Mixer, Performer, and
  * StudioComponent all read the same live state.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class RecordingStatusService implements OnDestroy {
   private readonly audioEngine = inject(AudioEngineService);
   private readonly logger = inject(LoggingService);
@@ -49,36 +49,36 @@ export class RecordingStatusService implements OnDestroy {
   masterPeakHoldR = signal(0);
   /** 0–1 peak-hold position for the higher channel */
   masterPeakHoldLinear = computed(() =>
-    Math.max(this.masterPeakHoldL(), this.masterPeakHoldR())
+    Math.max(this.masterPeakHoldL(), this.masterPeakHoldR()),
   );
 
   // ── Recording source ────────────────────────────────────────
   /** What precisely is being recorded right now */
-  recordingSource = signal<RecordingSource>({ type: 'none' });
+  recordingSource = signal<RecordingSource>({ type: "none" });
 
   /** Human-readable label for TransportBar / snackbar */
   recordingLabel = computed(() => {
     const src = this.recordingSource();
     switch (src.type) {
-      case 'transport':
+      case "transport":
         return src.trackName
           ? `Rec: ${src.trackName}`
-          : 'Recording to selected track';
-      case 'mixer-strip':
+          : "Recording to selected track";
+      case "mixer-strip":
         return `Rec: Strip "${src.trackName}"`;
-      case 'performer':
+      case "performer":
         return `Rec: Performance Take ${src.takeNumber}`;
-      case 'mic':
+      case "mic":
         return `Rec: ${src.channelLabel}`;
-      case 'dj-deck':
+      case "dj-deck":
         return `Rec: Deck ${src.deckId.toUpperCase()}`;
       default:
-        return '';
+        return "";
     }
   });
 
   /** Whether anything is being recorded */
-  isRecording = computed(() => this.recordingSource().type !== 'none');
+  isRecording = computed(() => this.recordingSource().type !== "none");
 
   // ── Per-track record arm (drives mixer strip R buttons) ─────
   /** Set of track IDs that are armed for recording */
@@ -125,7 +125,7 @@ export class RecordingStatusService implements OnDestroy {
    * Called when recording stops from any component.
    */
   clearRecordingSource() {
-    this.recordingSource.set({ type: 'none' });
+    this.recordingSource.set({ type: "none" });
   }
 
   // ── Internal meter loop ─────────────────────────────────────
@@ -195,7 +195,8 @@ export class RecordingStatusService implements OnDestroy {
     const DECAY_PER_FRAME = 0.012; // ~2.2s from full to zero at 60fps
     const tick = () => {
       try {
-        const masterAnalyser = this.audioEngine.masterAnalyser as AnalyserNode | null;
+        const masterAnalyser = this.audioEngine
+          .masterAnalyser as AnalyserNode | null;
         if (masterAnalyser) {
           this.ensureStereoAnalysers(masterAnalyser);
           const aL = this.analyserL!;
@@ -220,10 +221,10 @@ export class RecordingStatusService implements OnDestroy {
 
           // Peak-hold: latch up instantly, decay slowly
           this.masterPeakHoldL.update((v) =>
-            Math.max(peakL, v - DECAY_PER_FRAME)
+            Math.max(peakL, v - DECAY_PER_FRAME),
           );
           this.masterPeakHoldR.update((v) =>
-            Math.max(peakR, v - DECAY_PER_FRAME)
+            Math.max(peakR, v - DECAY_PER_FRAME),
           );
         } else {
           // No master analyser available — decay to silence

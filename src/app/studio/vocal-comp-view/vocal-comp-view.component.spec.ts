@@ -1,12 +1,16 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { VocalCompViewComponent } from './vocal-comp-view.component';
-import { SmartRecordingService, CompGroup, CompTake } from '../smart-recording.service';
-import { VocalCompSuggesterService } from '../vocal-comp-suggester.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { LoggingService } from '../../services/logging.service';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { VocalCompViewComponent } from "./vocal-comp-view.component";
+import {
+  SmartRecordingService,
+  CompGroup,
+  CompTake,
+} from "../smart-recording.service";
+import { VocalCompSuggesterService } from "../vocal-comp-suggester.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { LoggingService } from "../../services/logging.service";
 
-describe('VocalCompViewComponent', () => {
+describe("VocalCompViewComponent", () => {
   let component: VocalCompViewComponent;
   let fixture: ComponentFixture<VocalCompViewComponent>;
   let smartRecording: jest.Mocked<SmartRecordingService>;
@@ -15,11 +19,11 @@ describe('VocalCompViewComponent', () => {
 
   const mockTakes: CompTake[] = [
     {
-      id: 'take-1',
+      id: "take-1",
       takeNumber: 1,
-      label: 'Take 1',
-      blob: new Blob(['test-audio-1']),
-      url: 'blob:mock-url-1',
+      label: "Take 1",
+      blob: new Blob(["test-audio-1"]),
+      url: "blob:mock-url-1",
       durationMs: 5000,
       peakDbL: -6,
       peakDbR: -7,
@@ -28,11 +32,11 @@ describe('VocalCompViewComponent', () => {
       regions: [],
     },
     {
-      id: 'take-2',
+      id: "take-2",
       takeNumber: 2,
-      label: 'Take 2',
-      blob: new Blob(['test-audio-2']),
-      url: 'blob:mock-url-2',
+      label: "Take 2",
+      blob: new Blob(["test-audio-2"]),
+      url: "blob:mock-url-2",
       durationMs: 4200,
       peakDbL: -8,
       peakDbR: -9,
@@ -43,13 +47,13 @@ describe('VocalCompViewComponent', () => {
   ];
 
   const mockGroup: CompGroup = {
-    id: 'group-1',
-    sectionLabel: 'Verse 1',
-    trackName: 'Vocal Track',
-    trackId: 'vocal-track',
+    id: "group-1",
+    sectionLabel: "Verse 1",
+    trackName: "Vocal Track",
+    trackId: "vocal-track",
     takes: mockTakes,
     createdAt: Date.now() - 60000,
-    selectedTakeId: 'take-2',
+    selectedTakeId: "take-2",
     fxSlots: [],
     activeRegionId: null,
     baseStartBeat: 0,
@@ -59,12 +63,12 @@ describe('VocalCompViewComponent', () => {
   beforeEach(async () => {
     const mockCompGroups = Object.assign(
       jest.fn().mockReturnValue([mockGroup]),
-      { update: jest.fn(), set: jest.fn() }
+      { update: jest.fn(), set: jest.fn() },
     );
 
     smartRecording = {
       compGroups: mockCompGroups,
-      activeCompGroupId: jest.fn().mockReturnValue('group-1'),
+      activeCompGroupId: jest.fn().mockReturnValue("group-1"),
       startNewCompGroup: jest.fn(),
       deleteCompGroup: jest.fn(),
       selectCompTake: jest.fn(),
@@ -113,109 +117,117 @@ describe('VocalCompViewComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 
-  it('should auto-select first group on init', () => {
+  it("should auto-select first group on init", () => {
     expect(component.selectedGroup()).toBeDefined();
-    expect(component.selectedGroup()?.sectionLabel).toBe('Verse 1');
+    expect(component.selectedGroup()?.sectionLabel).toBe("Verse 1");
   });
 
-  it('should return takes from the selected group', () => {
+  it("should return takes from the selected group", () => {
     expect(component.takes()).toHaveLength(2);
   });
 
-  it('should find the comp-selected take', () => {
+  it("should find the comp-selected take", () => {
     const comp = component.compTake();
     expect(comp).toBeDefined();
-    expect(comp?.id).toBe('take-2');
+    expect(comp?.id).toBe("take-2");
   });
 
-  it('should report correct take count', () => {
+  it("should report correct take count", () => {
     expect(component.takeCount()).toBe(2);
     expect(component.hasTakes()).toBe(true);
   });
 
-  it('should set selectedGroupId when selecting a group', () => {
-    component.selectGroup('group-1');
-    expect(component.selectedGroupId()).toBe('group-1');
-    expect(component.compareMode()).toBe('off');
+  it("should set selectedGroupId when selecting a group", () => {
+    component.selectGroup("group-1");
+    expect(component.selectedGroupId()).toBe("group-1");
+    expect(component.compareMode()).toBe("off");
   });
 
-  it('should create new comp group', () => {
+  it("should create new comp group", () => {
     component.createNewGroup();
     expect(smartRecording.startNewCompGroup).toHaveBeenCalledWith(
-      'vocal-track',
-      'Vocal Track',
-      'Section 2'
+      "vocal-track",
+      "Vocal Track",
+      "Section 2",
     );
-    expect(snackbar.info).toHaveBeenCalledWith('New comp group created');
+    expect(snackbar.info).toHaveBeenCalledWith("New comp group created");
   });
 
-  it('should delete a group', () => {
-    component.deleteGroup('group-1');
-    expect(smartRecording.deleteCompGroup).toHaveBeenCalledWith('group-1');
+  it("should delete a group", () => {
+    component.deleteGroup("group-1");
+    expect(smartRecording.deleteCompGroup).toHaveBeenCalledWith("group-1");
     expect(snackbar.info).toHaveBeenCalledWith('Group "Verse 1" deleted');
   });
 
-  it('should rename a group', () => {
-    component.renameGroup('group-1', 'Chorus 1');
+  it("should rename a group", () => {
+    component.renameGroup("group-1", "Chorus 1");
     expect(smartRecording.compGroups).toHaveBeenCalled();
   });
 
-  it('should select a take as comp', () => {
-    component.selectTake('take-1');
-    expect(smartRecording.selectCompTake).toHaveBeenCalledWith('group-1', 'take-1');
-    expect(component.compareMode()).toBe('off');
+  it("should select a take as comp", () => {
+    component.selectTake("take-1");
+    expect(smartRecording.selectCompTake).toHaveBeenCalledWith(
+      "group-1",
+      "take-1",
+    );
+    expect(component.compareMode()).toBe("off");
   });
 
-  it('should toggle mute on a take', () => {
-    component.toggleMute('group-1', 'take-1');
-    expect(smartRecording.toggleTakeMute).toHaveBeenCalledWith('group-1', 'take-1');
+  it("should toggle mute on a take", () => {
+    component.toggleMute("group-1", "take-1");
+    expect(smartRecording.toggleTakeMute).toHaveBeenCalledWith(
+      "group-1",
+      "take-1",
+    );
   });
 
-  it('should delete a take', () => {
-    component.deleteTake('group-1', 'take-1');
-    expect(smartRecording.deleteTake).toHaveBeenCalledWith('group-1', 'take-1');
-    expect(snackbar.info).toHaveBeenCalledWith('Take deleted');
+  it("should delete a take", () => {
+    component.deleteTake("group-1", "take-1");
+    expect(smartRecording.deleteTake).toHaveBeenCalledWith("group-1", "take-1");
+    expect(snackbar.info).toHaveBeenCalledWith("Take deleted");
   });
 
-  it('should cycle through compare modes', () => {
-    expect(component.compareMode()).toBe('off');
+  it("should cycle through compare modes", () => {
+    expect(component.compareMode()).toBe("off");
     component.toggleCompare();
-    expect(component.compareMode()).toBe('a-b');
+    expect(component.compareMode()).toBe("a-b");
     component.toggleCompare();
-    expect(component.compareMode()).toBe('all');
+    expect(component.compareMode()).toBe("all");
     component.toggleCompare();
-    expect(component.compareMode()).toBe('off');
+    expect(component.compareMode()).toBe("off");
   });
 
-  it('should set reference take for A/B comparison', () => {
-    component.setReferenceTake('take-1');
-    expect(component.abReferenceTakeId()).toBe('take-1');
-    expect(snackbar.info).toHaveBeenCalledWith('Reference take set for A/B comparison');
+  it("should set reference take for A/B comparison", () => {
+    component.setReferenceTake("take-1");
+    expect(component.abReferenceTakeId()).toBe("take-1");
+    expect(snackbar.info).toHaveBeenCalledWith(
+      "Reference take set for A/B comparison",
+    );
   });
 
-  it('should assemble comp URL from selected take', () => {
+  it("should assemble comp URL from selected take", () => {
     const url = component.assembleComp();
-    expect(url).toBe('blob:mock-url-2'); // comp-selected take
+    expect(url).toBe("blob:mock-url-2"); // comp-selected take
   });
 
-  it('should return empty string if no comp group selected', () => {
-    component.selectGroup('nonexistent');
-    const url = component['_currentAudio'] = null;
+  it("should return empty string if no comp group selected", () => {
+    component.selectGroup("nonexistent");
+    const url = (component["_currentAudio"] = null);
     const result = component.assembleComp();
-    expect(result).toBe('');
+    expect(result).toBe("");
   });
 
-  it('should format duration in M:SS format', () => {
-    expect(component.formatDuration(5000)).toBe('0:05');
-    expect(component.formatDuration(65000)).toBe('1:05');
-    expect(component.formatDuration(120000)).toBe('2:00');
+  it("should format duration in M:SS format", () => {
+    expect(component.formatDuration(5000)).toBe("0:05");
+    expect(component.formatDuration(65000)).toBe("1:05");
+    expect(component.formatDuration(120000)).toBe("2:00");
   });
 
-  it('should return distinct colors for take numbers', () => {
+  it("should return distinct colors for take numbers", () => {
     const color1 = component.getTakeColor(1);
     const color2 = component.getTakeColor(2);
     expect(color1).toBeDefined();
@@ -223,7 +235,7 @@ describe('VocalCompViewComponent', () => {
     expect(color1).not.toBe(color2);
   });
 
-  it('should generate waveform bars of length 48', () => {
+  it("should generate waveform bars of length 48", () => {
     const bars = component.generateWaveformBars();
     expect(bars).toHaveLength(48);
     bars.forEach((b) => {
@@ -232,14 +244,14 @@ describe('VocalCompViewComponent', () => {
     });
   });
 
-  it('should filter groups by search query', () => {
-    component.searchQuery.set('Verse');
+  it("should filter groups by search query", () => {
+    component.searchQuery.set("Verse");
     expect(component.filteredGroups()).toHaveLength(1);
-    component.searchQuery.set('Nonexistent');
+    component.searchQuery.set("Nonexistent");
     expect(component.filteredGroups()).toHaveLength(0);
   });
 
-  it('should stop playback when stopPlayback is called', () => {
+  it("should stop playback when stopPlayback is called", () => {
     const audioMock = { pause: jest.fn() } as any;
     (component as any)._currentAudio = audioMock;
     component.stopPlayback();
@@ -248,52 +260,55 @@ describe('VocalCompViewComponent', () => {
     expect(component.playingTakeId()).toBeNull();
   });
 
-  it('should run a suggestion and populate the suggestion signal', () => {
+  it("should run a suggestion and populate the suggestion signal", () => {
     suggester.suggestBestTake.mockReturnValue({
-      takeId: 'take-1',
+      takeId: "take-1",
       takeNumber: 1,
       score: 88,
-      reasons: ['Clean headroom', 'Length matches median'],
+      reasons: ["Clean headroom", "Length matches median"],
       excludedMuted: 0,
     });
     component.suggestBestTake();
-    expect(suggester.suggestBestTake).toHaveBeenCalledWith('group-1');
+    expect(suggester.suggestBestTake).toHaveBeenCalledWith("group-1");
     expect(component.suggestion()?.takeNumber).toBe(1);
     expect(component.suggestion()?.score).toBe(88);
     expect(snackbar.info).toHaveBeenCalled();
   });
 
-  it('should warn when nothing usable to suggest from', () => {
+  it("should warn when nothing usable to suggest from", () => {
     component.suggestBestTake();
     expect(component.suggestion()).toBeNull();
     expect(snackbar.warning).toHaveBeenCalled();
   });
 
-  it('should apply the suggested take to the comp selection', () => {
+  it("should apply the suggested take to the comp selection", () => {
     component.suggestion.set({
-      takeId: 'take-2',
+      takeId: "take-2",
       takeNumber: 2,
       score: 90,
-      reasons: ['x'],
+      reasons: ["x"],
       excludedMuted: 0,
     });
     component.applySuggestedTake();
-    expect(smartRecording.selectCompTake).toHaveBeenCalledWith('group-1', 'take-2');
+    expect(smartRecording.selectCompTake).toHaveBeenCalledWith(
+      "group-1",
+      "take-2",
+    );
     expect(snackbar.success).toHaveBeenCalled();
   });
 
-  it('should not apply without a suggestion', () => {
+  it("should not apply without a suggestion", () => {
     component.suggestion.set(null);
     component.applySuggestedTake();
     expect(smartRecording.selectCompTake).not.toHaveBeenCalled();
   });
 
-  it('should clear a suggestion', () => {
+  it("should clear a suggestion", () => {
     component.suggestion.set({
-      takeId: 'take-2',
+      takeId: "take-2",
       takeNumber: 2,
       score: 90,
-      reasons: ['x'],
+      reasons: ["x"],
       excludedMuted: 0,
     });
     component.clearSuggestion();

@@ -1,6 +1,6 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { LoggingService } from '../services/logging.service';
-import type { TrackNote } from '../services/music-manager.service';
+import { Injectable, inject, signal } from "@angular/core";
+import { LoggingService } from "../services/logging.service";
+import type { TrackNote } from "../services/music-manager.service";
 
 export interface QuantizePreset {
   id: string;
@@ -9,7 +9,7 @@ export interface QuantizePreset {
   swing?: number; // 0-100% swing amount (affects every 2nd note)
   humanize?: number; // 0-100% randomization
   groove?: string; // optional groove template name
-  category: 'straight' | 'swing' | 'triplet' | 'dotted' | 'custom';
+  category: "straight" | "swing" | "triplet" | "dotted" | "custom";
 }
 
 export interface QuantizeResult {
@@ -31,7 +31,7 @@ export interface QuantizeOptions {
   grooveOffsets?: number[];
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class QuantizationService {
   private logger = inject(LoggingService);
   private readonly grooveTemplates: Record<string, number[]> = {
@@ -44,51 +44,198 @@ export class QuantizationService {
   // Predefined quantization presets (competitive with FL Studio Mobile, Cubasis)
   readonly presets: QuantizePreset[] = [
     // Straight presets
-    { id: 'straight_1_4', name: 'Straight 1/4 Note', grid: 0.25, swing: 0, humanize: 0, category: 'straight' },
-    { id: 'straight_1_8', name: 'Straight 1/8 Note', grid: 0.125, swing: 0, humanize: 0, category: 'straight' },
-    { id: 'straight_1_16', name: 'Straight 1/16 Note', grid: 0.0625, swing: 0, humanize: 0, category: 'straight' },
-    { id: 'straight_1_32', name: 'Straight 1/32 Note', grid: 0.03125, swing: 0, humanize: 0, category: 'straight' },
-    { id: 'straight_1_64', name: 'Straight 1/64 Note', grid: 0.015625, swing: 0, humanize: 0, category: 'straight' },
+    {
+      id: "straight_1_4",
+      name: "Straight 1/4 Note",
+      grid: 0.25,
+      swing: 0,
+      humanize: 0,
+      category: "straight",
+    },
+    {
+      id: "straight_1_8",
+      name: "Straight 1/8 Note",
+      grid: 0.125,
+      swing: 0,
+      humanize: 0,
+      category: "straight",
+    },
+    {
+      id: "straight_1_16",
+      name: "Straight 1/16 Note",
+      grid: 0.0625,
+      swing: 0,
+      humanize: 0,
+      category: "straight",
+    },
+    {
+      id: "straight_1_32",
+      name: "Straight 1/32 Note",
+      grid: 0.03125,
+      swing: 0,
+      humanize: 0,
+      category: "straight",
+    },
+    {
+      id: "straight_1_64",
+      name: "Straight 1/64 Note",
+      grid: 0.015625,
+      swing: 0,
+      humanize: 0,
+      category: "straight",
+    },
 
     // Swing presets
-    { id: 'swing_1_8_50', name: 'Swing 1/8 (50%)', grid: 0.125, swing: 50, humanize: 0, category: 'swing' },
-    { id: 'swing_1_8_66', name: 'Swing 1/8 (66%)', grid: 0.125, swing: 66, humanize: 0, category: 'swing' },
-    { id: 'swing_1_8_75', name: 'Swing 1/8 (75%)', grid: 0.125, swing: 75, humanize: 0, category: 'swing' },
-    { id: 'swing_1_16_50', name: 'Swing 1/16 (50%)', grid: 0.0625, swing: 50, humanize: 0, category: 'swing' },
-    { id: 'swing_1_16_66', name: 'Swing 1/16 (66%)', grid: 0.0625, swing: 66, humanize: 0, category: 'swing' },
-    { id: 'swing_1_16_75', name: 'Swing 1/16 (75%)', grid: 0.0625, swing: 75, humanize: 0, category: 'swing' },
+    {
+      id: "swing_1_8_50",
+      name: "Swing 1/8 (50%)",
+      grid: 0.125,
+      swing: 50,
+      humanize: 0,
+      category: "swing",
+    },
+    {
+      id: "swing_1_8_66",
+      name: "Swing 1/8 (66%)",
+      grid: 0.125,
+      swing: 66,
+      humanize: 0,
+      category: "swing",
+    },
+    {
+      id: "swing_1_8_75",
+      name: "Swing 1/8 (75%)",
+      grid: 0.125,
+      swing: 75,
+      humanize: 0,
+      category: "swing",
+    },
+    {
+      id: "swing_1_16_50",
+      name: "Swing 1/16 (50%)",
+      grid: 0.0625,
+      swing: 50,
+      humanize: 0,
+      category: "swing",
+    },
+    {
+      id: "swing_1_16_66",
+      name: "Swing 1/16 (66%)",
+      grid: 0.0625,
+      swing: 66,
+      humanize: 0,
+      category: "swing",
+    },
+    {
+      id: "swing_1_16_75",
+      name: "Swing 1/16 (75%)",
+      grid: 0.0625,
+      swing: 75,
+      humanize: 0,
+      category: "swing",
+    },
 
     // Shuffle (triplet-based swing)
-    { id: 'shuffle_1_16', name: 'Shuffle 1/16', grid: 0.0625, swing: 33, humanize: 0, category: 'swing' },
-    { id: 'shuffle_1_8', name: 'Shuffle 1/8', grid: 0.125, swing: 33, humanize: 0, category: 'swing' },
+    {
+      id: "shuffle_1_16",
+      name: "Shuffle 1/16",
+      grid: 0.0625,
+      swing: 33,
+      humanize: 0,
+      category: "swing",
+    },
+    {
+      id: "shuffle_1_8",
+      name: "Shuffle 1/8",
+      grid: 0.125,
+      swing: 33,
+      humanize: 0,
+      category: "swing",
+    },
 
     // Triplet presets
-    { id: 'triplet_1_4', name: 'Triplet 1/4', grid: 0.333, swing: 0, humanize: 0, category: 'triplet' },
-    { id: 'triplet_1_8', name: 'Triplet 1/8', grid: 0.1665, swing: 0, humanize: 0, category: 'triplet' },
-    { id: 'triplet_1_16', name: 'Triplet 1/16', grid: 0.08325, swing: 0, humanize: 0, category: 'triplet' },
+    {
+      id: "triplet_1_4",
+      name: "Triplet 1/4",
+      grid: 0.333,
+      swing: 0,
+      humanize: 0,
+      category: "triplet",
+    },
+    {
+      id: "triplet_1_8",
+      name: "Triplet 1/8",
+      grid: 0.1665,
+      swing: 0,
+      humanize: 0,
+      category: "triplet",
+    },
+    {
+      id: "triplet_1_16",
+      name: "Triplet 1/16",
+      grid: 0.08325,
+      swing: 0,
+      humanize: 0,
+      category: "triplet",
+    },
 
     // Dotted presets
-    { id: 'dotted_1_8', name: 'Dotted 1/8', grid: 0.1875, swing: 0, humanize: 0, category: 'dotted' },
-    { id: 'dotted_1_16', name: 'Dotted 1/16', grid: 0.09375, swing: 0, humanize: 0, category: 'dotted' },
+    {
+      id: "dotted_1_8",
+      name: "Dotted 1/8",
+      grid: 0.1875,
+      swing: 0,
+      humanize: 0,
+      category: "dotted",
+    },
+    {
+      id: "dotted_1_16",
+      name: "Dotted 1/16",
+      grid: 0.09375,
+      swing: 0,
+      humanize: 0,
+      category: "dotted",
+    },
 
     // Humanized presets (add randomization)
-    { id: 'human_tight', name: 'Humanized (Tight)', grid: 0.0625, swing: 0, humanize: 5, category: 'custom' },
-    { id: 'human_medium', name: 'Humanized (Medium)', grid: 0.0625, swing: 0, humanize: 15, category: 'custom' },
-    { id: 'human_loose', name: 'Humanized (Loose)', grid: 0.0625, swing: 0, humanize: 30, category: 'custom' },
+    {
+      id: "human_tight",
+      name: "Humanized (Tight)",
+      grid: 0.0625,
+      swing: 0,
+      humanize: 5,
+      category: "custom",
+    },
+    {
+      id: "human_medium",
+      name: "Humanized (Medium)",
+      grid: 0.0625,
+      swing: 0,
+      humanize: 15,
+      category: "custom",
+    },
+    {
+      id: "human_loose",
+      name: "Humanized (Loose)",
+      grid: 0.0625,
+      swing: 0,
+      humanize: 30,
+      category: "custom",
+    },
   ];
 
   // User-selected preset (stored in UI)
-  selectedPresetId = signal<string>('straight_1_16');
+  selectedPresetId = signal<string>("straight_1_16");
 
   constructor() {
-    this.logger.info('QuantizationService initialized with 20+ presets');
+    this.logger.info("QuantizationService initialized with 20+ presets");
   }
 
   /**
    * Get a preset by ID
    */
   getPreset(id: string): QuantizePreset | undefined {
-    return this.presets.find(p => p.id === id);
+    return this.presets.find((p) => p.id === id);
   }
 
   /**
@@ -98,7 +245,7 @@ export class QuantizationService {
   quantizeNotes(
     notes: TrackNote[],
     presetId: string,
-    options: QuantizeOptions = {}
+    options: QuantizeOptions = {},
   ): QuantizeResult {
     const preset = this.getPreset(presetId);
     if (!preset) {
@@ -136,7 +283,8 @@ export class QuantizationService {
         options.grooveOffsets ??
         (preset.groove ? this.grooveTemplates[preset.groove] : undefined);
       if (groovePattern && groovePattern.length > 0) {
-        const groove = groovePattern[Math.abs(gridIndex) % groovePattern.length] ?? 0;
+        const groove =
+          groovePattern[Math.abs(gridIndex) % groovePattern.length] ?? 0;
         snappedStep += groove * preset.grid;
       }
 
@@ -165,7 +313,7 @@ export class QuantizationService {
     const averageOffset = changedCount > 0 ? totalOffset / changedCount : 0;
 
     this.logger.info(
-      `Quantized ${quantized.length} notes (${changedCount} moved) with preset "${preset.name}", avg offset: ${averageOffset.toFixed(4)} steps`
+      `Quantized ${quantized.length} notes (${changedCount} moved) with preset "${preset.name}", avg offset: ${averageOffset.toFixed(4)} steps`,
     );
 
     return { quantized, changedCount, averageOffset };
@@ -181,12 +329,14 @@ export class QuantizationService {
   /**
    * Create a custom preset (user-defined)
    */
-  createCustomPreset(config: Omit<QuantizePreset, 'id' | 'category'>): QuantizePreset {
+  createCustomPreset(
+    config: Omit<QuantizePreset, "id" | "category">,
+  ): QuantizePreset {
     const id = `custom_${Date.now()}`;
     const preset: QuantizePreset = {
       ...config,
       id,
-      category: 'custom',
+      category: "custom",
     };
     this.presets.push(preset);
     this.logger.info(`Created custom preset: ${config.name}`);
@@ -196,8 +346,8 @@ export class QuantizationService {
   /**
    * Get presets by category
    */
-  getPresetsByCategory(category: QuantizePreset['category']): QuantizePreset[] {
-    return this.presets.filter(p => p.category === category);
+  getPresetsByCategory(category: QuantizePreset["category"]): QuantizePreset[] {
+    return this.presets.filter((p) => p.category === category);
   }
 
   /**
@@ -207,12 +357,12 @@ export class QuantizationService {
   retroactiveQuantize(
     notes: TrackNote[],
     presetId: string,
-    options: QuantizeOptions = {}
+    options: QuantizeOptions = {},
   ): QuantizeResult {
     // Same as quantizeNotes, but with extra logging
     const result = this.quantizeNotes(notes, presetId, options);
     this.logger.info(
-      `Retroactive quantize: ${result.changedCount}/${notes.length} notes adjusted`
+      `Retroactive quantize: ${result.changedCount}/${notes.length} notes adjusted`,
     );
     return result;
   }

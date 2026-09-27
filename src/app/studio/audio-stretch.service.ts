@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable } from "@angular/core";
 
 /**
  * Time-stretch / pitch-shift / tempo-match engine (Sprint A1 of the
@@ -19,7 +19,7 @@ import { Injectable } from '@angular/core';
  * Pure TS, no Web Audio dependency — works in workers, WASM fallbacks and
  * offline render contexts.
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AudioStretchService {
   /**
    * Time-stretch a mono float buffer.
@@ -29,7 +29,7 @@ export class AudioStretchService {
   timeStretch(
     input: Float32Array,
     ratio: number,
-    options: TimeStretchOptions = {}
+    options: TimeStretchOptions = {},
   ): Float32Array {
     if (input.length === 0 || !Number.isFinite(ratio) || ratio <= 0.0001) {
       return new Float32Array(input);
@@ -72,7 +72,7 @@ export class AudioStretchService {
             cand,
             out,
             synthesisPos - synthHop,
-            synthHop
+            synthHop,
           );
           if (score > bestScore) {
             bestScore = score;
@@ -84,7 +84,7 @@ export class AudioStretchService {
 
       const start = Math.max(
         0,
-        Math.min(input.length - windowSize, expected + offset)
+        Math.min(input.length - windowSize, expected + offset),
       );
 
       // Overlap-add the windowed frame into the output
@@ -114,7 +114,7 @@ export class AudioStretchService {
   pitchShift(
     input: Float32Array,
     semitones: number,
-    options: TimeStretchOptions = {}
+    options: TimeStretchOptions = {},
   ): Float32Array {
     if (input.length === 0 || !Number.isFinite(semitones)) {
       return new Float32Array(input);
@@ -153,7 +153,7 @@ export class AudioStretchService {
     input: Float32Array,
     sourceBpm: number,
     targetBpm: number,
-    options: TimeStretchOptions = {}
+    options: TimeStretchOptions = {},
   ): Float32Array {
     if (
       input.length === 0 ||
@@ -175,7 +175,7 @@ export class AudioStretchService {
     aOffset: number,
     b: Float32Array,
     bOffset: number,
-    len: number
+    len: number,
   ): number {
     let sum = 0;
     let aEnergy = 0;

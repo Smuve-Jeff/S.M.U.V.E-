@@ -1,21 +1,21 @@
-import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Component, inject, signal, computed } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 import {
   InstrumentsService,
   InstrumentPreset,
-} from '../../services/instruments.service';
-import { MusicManagerService } from '../../services/music-manager.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { SmartSoundService } from '../smart-sound.service';
-import { AiMixAssistantService } from '../effects/ai-mix-assistant.service';
+} from "../../services/instruments.service";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { SmartSoundService } from "../smart-sound.service";
+import { AiMixAssistantService } from "../effects/ai-mix-assistant.service";
 
 @Component({
-  selector: 'app-sound-browser',
+  selector: "app-sound-browser",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './sound-browser.component.html',
-  styleUrls: ['./sound-browser.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./sound-browser.component.html",
+  styleUrls: ["./sound-browser.component.css", "../shared/platform-ux.css"],
 })
 export class SoundBrowserComponent {
   private static readonly TOUCH_HOLD_MS = 420;
@@ -26,8 +26,8 @@ export class SoundBrowserComponent {
   public smartSound = inject(SmartSoundService);
   private aiMix = inject(AiMixAssistantService);
 
-  searchQuery = signal('');
-  selectedCategory = signal<string>('all');
+  searchQuery = signal("");
+  selectedCategory = signal<string>("all");
   selectedTag = signal<string | null>(null);
   previewingId = signal<string | null>(null);
   showFavs = signal(false);
@@ -51,20 +51,20 @@ export class SoundBrowserComponent {
   /** Genre-based instrument recommendations */
   genreRecs = computed(() => {
     const meta = this.smartSound;
-    if (meta.activeGenre() && meta.activeGenre() !== 'all') {
+    if (meta.activeGenre() && meta.activeGenre() !== "all") {
       return this.aiMix.recommendInstruments(meta.activeGenre()!);
     }
     return [];
   });
 
   categories = [
-    { id: 'all', label: 'All', icon: 'grid_view' },
-    { id: 'drum', label: 'Drums', icon: 'drum' },
-    { id: 'bass', label: 'Bass', icon: 'speaker' },
-    { id: 'keys', label: 'Keys', icon: 'piano' },
-    { id: 'lead', label: 'Leads', icon: 'graphic_eq' },
-    { id: 'pad', label: 'Pads', icon: 'layers' },
-    { id: 'vfx', label: 'FX', icon: 'auto_awesome' },
+    { id: "all", label: "All", icon: "grid_view" },
+    { id: "drum", label: "Drums", icon: "drum" },
+    { id: "bass", label: "Bass", icon: "speaker" },
+    { id: "keys", label: "Keys", icon: "piano" },
+    { id: "lead", label: "Leads", icon: "graphic_eq" },
+    { id: "pad", label: "Pads", icon: "layers" },
+    { id: "vfx", label: "FX", icon: "auto_awesome" },
   ];
 
   allTags = computed(() => {
@@ -88,7 +88,7 @@ export class SoundBrowserComponent {
         p.id.toLowerCase().includes(query) ||
         p.tags?.some((t) => t.toLowerCase().includes(query));
 
-      const matchesCat = cat === 'all' || p.category === cat;
+      const matchesCat = cat === "all" || p.category === cat;
       const matchesTag = !tag || p.tags?.includes(tag);
       const matchesInstalled =
         !this.showOnlyInstalledPacks() || installedIds.has(p.id);
@@ -142,11 +142,11 @@ export class SoundBrowserComponent {
 
   onDragStart(event: DragEvent, preset: InstrumentPreset) {
     event.dataTransfer?.setData(
-      'application/json',
+      "application/json",
       JSON.stringify({
-        type: 'instrument-preset',
+        type: "instrument-preset",
         presetId: preset.id,
-      })
+      }),
     );
   }
 
@@ -213,12 +213,12 @@ export class SoundBrowserComponent {
 
   /** Select a genre filter */
   selectGenre(genre: string) {
-    this.smartSound.activeGenre.set(genre === 'all' ? null : genre);
+    this.smartSound.activeGenre.set(genre === "all" ? null : genre);
   }
 
   /** Select a mood filter */
   selectMood(mood: string) {
-    this.smartSound.activeMood.set(mood === 'all' ? null : mood);
+    this.smartSound.activeMood.set(mood === "all" ? null : mood);
   }
 
   /** Get recently used sounds */
@@ -242,12 +242,14 @@ export class SoundBrowserComponent {
   }
 
   private isTouchCardGesture(event: PointerEvent): boolean {
-    return event.pointerType !== 'mouse' && !this.isInteractiveTarget(event.target);
+    return (
+      event.pointerType !== "mouse" && !this.isInteractiveTarget(event.target)
+    );
   }
 
   private isInteractiveTarget(target: EventTarget | null): boolean {
     return target instanceof Element
-      ? !!target.closest('button,input,select,textarea,a')
+      ? !!target.closest("button,input,select,textarea,a")
       : false;
   }
 }

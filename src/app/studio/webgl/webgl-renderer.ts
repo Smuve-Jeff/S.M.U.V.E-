@@ -3,7 +3,7 @@ import {
   FRAGMENT_SHADER_2D,
   VERTEX_SHADER_LINE,
   FRAGMENT_SHADER_LINE,
-} from './shaders';
+} from "./shaders";
 
 /** 2D camera controlling pan offset and zoom level */
 export interface Camera2D {
@@ -34,7 +34,7 @@ const FLOATS_PER_LINE_VERT = 6; // pos(2) + color(4)
 function compileShader(
   gl: WebGL2RenderingContext,
   type: number,
-  source: string
+  source: string,
 ): WebGLShader {
   const shader = gl.createShader(type)!;
   gl.shaderSource(shader, source);
@@ -42,7 +42,7 @@ function compileShader(
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     const log = gl.getShaderInfoLog(shader);
     gl.deleteShader(shader);
-    throw new Error('Shader compile error: ' + log);
+    throw new Error("Shader compile error: " + log);
   }
   return shader;
 }
@@ -50,7 +50,7 @@ function compileShader(
 function linkProgram(
   gl: WebGL2RenderingContext,
   vert: WebGLShader,
-  frag: WebGLShader
+  frag: WebGLShader,
 ): WebGLProgram {
   const program = gl.createProgram()!;
   gl.attachShader(program, vert);
@@ -59,7 +59,7 @@ function linkProgram(
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     const log = gl.getProgramInfoLog(program);
     gl.deleteProgram(program);
-    throw new Error('Program link error: ' + log);
+    throw new Error("Program link error: " + log);
   }
   return program;
 }
@@ -68,7 +68,7 @@ function orthoMatrix(
   left: number,
   right: number,
   bottom: number,
-  top: number
+  top: number,
 ): Float32Array {
   return new Float32Array([
     2 / (right - left),
@@ -114,19 +114,6 @@ function cameraMatrix(cam: Camera2D): Float32Array {
 
 // ---- Quad Batcher ----
 
-interface QuadVertex {
-  x: number;
-  y: number;
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-  u: number;
-  v: number;
-  borderRadius: number;
-  borderWidth: number;
-}
-
 // ---- Main Renderer ----
 
 export class WebGLRenderer {
@@ -169,33 +156,39 @@ export class WebGLRenderer {
 
   initialize(canvas: HTMLCanvasElement): void {
     this.canvas = canvas;
-    const gl = canvas.getContext('webgl2', {
+    const gl = canvas.getContext("webgl2", {
       alpha: false,
       antialias: true,
       premultipliedAlpha: false,
       preserveDrawingBuffer: false,
-      powerPreference: 'high-performance',
+      powerPreference: "high-performance",
     });
-    if (!gl) throw new Error('WebGL2 not available');
+    if (!gl) throw new Error("WebGL2 not available");
     this.gl = gl;
 
     // Compile programs
     this.quadProgram = linkProgram(
       gl,
       compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_2D),
-      compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER_2D)
+      compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER_2D),
     );
     this.lineProgram = linkProgram(
       gl,
       compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_LINE),
-      compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER_LINE)
+      compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER_LINE),
     );
 
     // Uniforms
-    this.uQuadProjection = gl.getUniformLocation(this.quadProgram, 'uProjection')!;
-    this.uQuadCamera = gl.getUniformLocation(this.quadProgram, 'uCamera')!;
-    this.uLineProjection = gl.getUniformLocation(this.lineProgram, 'uProjection')!;
-    this.uLineCamera = gl.getUniformLocation(this.lineProgram, 'uCamera')!;
+    this.uQuadProjection = gl.getUniformLocation(
+      this.quadProgram,
+      "uProjection",
+    )!;
+    this.uQuadCamera = gl.getUniformLocation(this.quadProgram, "uCamera")!;
+    this.uLineProjection = gl.getUniformLocation(
+      this.lineProgram,
+      "uProjection",
+    )!;
+    this.uLineCamera = gl.getUniformLocation(this.lineProgram, "uCamera")!;
 
     // Quad VAO
     this.quadVao = gl.createVertexArray()!;
@@ -329,7 +322,7 @@ export class WebGLRenderer {
       gl.bufferSubData(
         gl.ARRAY_BUFFER,
         0,
-        this.quadData.subarray(0, this.quadCount * 6 * FLOATS_PER_QUAD_VERT)
+        this.quadData.subarray(0, this.quadCount * 6 * FLOATS_PER_QUAD_VERT),
       );
       gl.drawArrays(gl.TRIANGLES, 0, this.quadCount * 6);
     }
@@ -344,7 +337,7 @@ export class WebGLRenderer {
       gl.bufferSubData(
         gl.ARRAY_BUFFER,
         0,
-        this.lineData.subarray(0, this.lineCount * 2 * FLOATS_PER_LINE_VERT)
+        this.lineData.subarray(0, this.lineCount * 2 * FLOATS_PER_LINE_VERT),
       );
       gl.drawArrays(gl.LINES, 0, this.lineCount * 2);
     }
@@ -369,7 +362,7 @@ export class WebGLRenderer {
     height: number,
     color: GLColor,
     borderRadius = 0,
-    borderWidth = 0
+    borderWidth = 0,
   ): void {
     if (this.quadCount >= MAX_QUADS) this.flushAndRestart();
 
@@ -383,12 +376,60 @@ export class WebGLRenderer {
     // Triangle 1: top-left, top-right, bottom-right
     // Triangle 2: top-left, bottom-right, bottom-left
     const verts = [
-      x, y, r, g, b, a, 0, 0, br, // TL
-      x2, y, r, g, b, a, 1, 0, br, // TR
-      x2, y2, r, g, b, a, 1, 1, br, // BR
-      x, y, r, g, b, a, 0, 0, br, // TL
-      x2, y2, r, g, b, a, 1, 1, br, // BR
-      x, y2, r, g, b, a, 0, 1, br, // BL
+      x,
+      y,
+      r,
+      g,
+      b,
+      a,
+      0,
+      0,
+      br, // TL
+      x2,
+      y,
+      r,
+      g,
+      b,
+      a,
+      1,
+      0,
+      br, // TR
+      x2,
+      y2,
+      r,
+      g,
+      b,
+      a,
+      1,
+      1,
+      br, // BR
+      x,
+      y,
+      r,
+      g,
+      b,
+      a,
+      0,
+      0,
+      br, // TL
+      x2,
+      y2,
+      r,
+      g,
+      b,
+      a,
+      1,
+      1,
+      br, // BR
+      x,
+      y2,
+      r,
+      g,
+      b,
+      a,
+      0,
+      1,
+      br, // BL
     ];
 
     this.quadData.set(verts, idx);
@@ -401,16 +442,13 @@ export class WebGLRenderer {
     y1: number,
     x2: number,
     y2: number,
-    color: GLColor
+    color: GLColor,
   ): void {
     if (this.lineCount >= MAX_LINES) this.flushAndRestart();
 
     const idx = this.lineCount * 2 * FLOATS_PER_LINE_VERT;
     const { r, g, b, a } = color;
-    this.lineData.set(
-      [x1, y1, r, g, b, a, x2, y2, r, g, b, a],
-      idx
-    );
+    this.lineData.set([x1, y1, r, g, b, a, x2, y2, r, g, b, a], idx);
     this.lineCount++;
   }
 
@@ -430,7 +468,7 @@ export class WebGLRenderer {
   screenToWorld(
     screenX: number,
     screenY: number,
-    canvasRect: DOMRect
+    canvasRect: DOMRect,
   ): { x: number; y: number } {
     const cam = this.currentCamera;
     return {
@@ -443,7 +481,7 @@ export class WebGLRenderer {
   worldToScreen(
     worldX: number,
     worldY: number,
-    canvasRect: DOMRect
+    canvasRect: DOMRect,
   ): { x: number; y: number } {
     const cam = this.currentCamera;
     return {

@@ -1,16 +1,16 @@
-import { TestBed } from '@angular/core/testing';
-import { RecordingLimiterService } from './recording-limiter.service';
-import { AudioEngineService } from '../services/audio-engine.service';
-import { LoggingService } from '../services/logging.service';
+import { TestBed } from "@angular/core/testing";
+import { RecordingLimiterService } from "./recording-limiter.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { LoggingService } from "../services/logging.service";
 
-describe('RecordingLimiterService', () => {
+describe("RecordingLimiterService", () => {
   let service: RecordingLimiterService;
   let ctxMock: any;
   let rafSpy: jest.SpyInstance;
   let cafSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    let connectCalls: string[] = [];
+    const connectCalls: string[] = [];
     ctxMock = {
       createDynamicsCompressor: jest.fn(() => ({
         threshold: { value: 0 },
@@ -29,14 +29,26 @@ describe('RecordingLimiterService', () => {
       })),
     };
 
-    rafSpy = jest.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1);
-    cafSpy = jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
+    rafSpy = jest
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation(() => 1);
+    cafSpy = jest
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => undefined);
 
     TestBed.configureTestingModule({
       providers: [
         RecordingLimiterService,
         { provide: AudioEngineService, useValue: { ctx: ctxMock } },
-        { provide: LoggingService, useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() } },
+        {
+          provide: LoggingService,
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
       ],
     });
     service = TestBed.inject(RecordingLimiterService);
@@ -48,7 +60,7 @@ describe('RecordingLimiterService', () => {
     cafSpy.mockRestore();
   });
 
-  it('starts with sensible defaults', () => {
+  it("starts with sensible defaults", () => {
     expect(service.enabled()).toBe(true);
     expect(service.thresholdDb()).toBe(-6);
     expect(service.ratio()).toBe(20);
@@ -56,7 +68,7 @@ describe('RecordingLimiterService', () => {
     expect(service.isLimitingActive()).toBe(false);
   });
 
-  it('passes through untouched when disabled', () => {
+  it("passes through untouched when disabled", () => {
     service.setEnabled(false);
     const source = { foo: 1 } as any;
     const result = service.connectToRecordingChain(source);
@@ -64,7 +76,7 @@ describe('RecordingLimiterService', () => {
     expect(ctxMock.createDynamicsCompressor).not.toHaveBeenCalled();
   });
 
-  it('engages a compressor and returns it as downstream when enabled', () => {
+  it("engages a compressor and returns it as downstream when enabled", () => {
     const source = { connect: jest.fn() } as any;
     const result = service.connectToRecordingChain(source);
     expect(ctxMock.createDynamicsCompressor).toHaveBeenCalledTimes(1);
@@ -74,7 +86,7 @@ describe('RecordingLimiterService', () => {
     expect(service.isLimitingActive()).toBe(false);
   });
 
-  it('updates an engaged compressor parameters reactively', () => {
+  it("updates an engaged compressor parameters reactively", () => {
     const source = { connect: jest.fn() } as any;
     const comp = service.connectToRecordingChain(source) as any;
     service.setThresholdDb(-10);
@@ -87,14 +99,14 @@ describe('RecordingLimiterService', () => {
     expect(comp.release.value).toBe(0.25);
   });
 
-  it('reports limiting active when input exceeds threshold', () => {
+  it("reports limiting active when input exceeds threshold", () => {
     service.peakInputDb.set(-3);
     expect(service.isLimitingActive()).toBe(true);
     service.peakInputDb.set(-30);
     expect(service.isLimitingActive()).toBe(false);
   });
 
-  it('maps headroom percent to a 0-100 perceptual scale', () => {
+  it("maps headroom percent to a 0-100 perceptual scale", () => {
     service.peakInputDb.set(-60);
     expect(service.headroomPercent()).toBe(0);
     service.peakInputDb.set(0);
@@ -103,12 +115,12 @@ describe('RecordingLimiterService', () => {
     expect(service.headroomPercent()).toBeCloseTo(70, 4);
   });
 
-  it('disconnects and resets the graph', () => {
+  it("disconnects and resets the graph", () => {
     const source = { connect: jest.fn() } as any;
     service.connectToRecordingChain(source);
-    const comp = service['compressor'];
+    const comp = service["compressor"];
     service.disconnect();
-    expect(service['compressor']).toBeNull();
+    expect(service["compressor"]).toBeNull();
     expect(comp.disconnect).toHaveBeenCalled();
   });
 });

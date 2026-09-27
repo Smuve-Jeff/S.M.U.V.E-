@@ -5,39 +5,39 @@ import {
   computed,
   OnDestroy,
   OnInit,
-} from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AudioSessionService } from '../audio-session.service';
-import { KnobComponent } from '../shared/knob/knob.component';
+} from "@angular/core";
+import { CommonModule, DecimalPipe } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { AudioSessionService } from "../audio-session.service";
+import { KnobComponent } from "../shared/knob/knob.component";
 import {
   MusicManagerService,
   PerformerScene,
-} from '../../services/music-manager.service';
-import { LiveEngineService } from '../../services/live-engine.service';
-import { HapticService } from '../../services/haptic.service';
+} from "../../services/music-manager.service";
+import { LiveEngineService } from "../../services/live-engine.service";
+import { HapticService } from "../../services/haptic.service";
 import {
   InstrumentsService,
   InstrumentPreset,
-} from '../../services/instruments.service';
-import { PerformanceGridComponent } from '../performance-grid/performance-grid.component';
-import { PerformanceRecordingService } from '../performance-recording.service';
-import { RecordingStatusService } from '../recording-status.service';
-import { RecordingWaveformComponent } from '../recording-waveform/recording-waveform.component';
-import { FxMacrosService } from '../../services/fx-macros.service';
-import { DjMidiService } from '../../services/dj-midi.service';
-import { Subscription } from 'rxjs';
+} from "../../services/instruments.service";
+import { PerformanceGridComponent } from "../performance-grid/performance-grid.component";
+import { PerformanceRecordingService } from "../performance-recording.service";
+import { RecordingStatusService } from "../recording-status.service";
+import { RecordingWaveformComponent } from "../recording-waveform/recording-waveform.component";
+import { FxMacrosService } from "../../services/fx-macros.service";
+import { DjMidiService } from "../../services/dj-midi.service";
+import { Subscription } from "rxjs";
 
 /** Coerce an unknown value (e.g. slider input) into a finite number, falling
  * back to `fallback` for null/NaN/Infinity inputs. Defined as a module-level
  * helper so it can be reused by any future strip/slider binding without `this` plumbing. */
 function toFiniteNumber(value: unknown, fallback: number): number {
-  const n = typeof value === 'number' ? value : Number(value);
+  const n = typeof value === "number" ? value : Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
 
 @Component({
-  selector: 'app-performer',
+  selector: "app-performer",
   standalone: true,
   imports: [
     CommonModule,
@@ -47,8 +47,8 @@ function toFiniteNumber(value: unknown, fallback: number): number {
     RecordingWaveformComponent,
     DecimalPipe,
   ],
-  templateUrl: './performer.component.html',
-  styleUrls: ['./performer.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./performer.component.html",
+  styleUrls: ["./performer.component.css", "../shared/platform-ux.css"],
 })
 export class PerformerComponent implements OnDestroy, OnInit {
   public readonly audioSession = inject(AudioSessionService);
@@ -60,7 +60,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
   private readonly instrumentsService = inject(InstrumentsService);
   public readonly midiService = inject(DjMidiService);
 
-  layout = signal<'keyboard' | 'pads' | 'matrix' | 'macros'>('keyboard');
+  layout = signal<"keyboard" | "pads" | "matrix" | "macros">("keyboard");
   scenes = this.musicManager.performerScenes;
   smartChords = signal(false);
   /** Note-on velocity in MIDI units (0–127). Standard default is 100.
@@ -74,7 +74,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
   selectedTrack = computed(() =>
     this.musicManager
       .tracks()
-      .find((t) => t.id === this.musicManager.selectedTrackId())
+      .find((t) => t.id === this.musicManager.selectedTrackId()),
   );
   modWheel = signal(0);
   spectrumData = signal<number[]>(new Array(64).fill(0));
@@ -129,7 +129,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
             return next;
           });
         });
-      })
+      }),
     );
 
     // Subscribe to MIDI note off
@@ -142,7 +142,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
           next.delete(midiNote);
           return next;
         });
-      })
+      }),
     );
 
     // Subscribe to MIDI CC → performer controls (uses performerCCMap for custom mappings)
@@ -152,11 +152,11 @@ export class PerformerComponent implements OnDestroy, OnInit {
         const customMap = this.midiService
           .performerCCMap()
           .find(
-            (m) => m.controller === ev.controller && m.channel === ev.channel
+            (m) => m.controller === ev.controller && m.channel === ev.channel,
           );
         const target = customMap?.target ?? this.defaultCCTarget(ev.controller);
         this.applyCCTarget(target, ev.value);
-      })
+      }),
     );
   }
 
@@ -189,7 +189,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
         this.perfRecording.startRecording(track?.id, track?.name);
         this.haptic.medium();
         this.recordingStatus.setRecordingSource({
-          type: 'performer',
+          type: "performer",
           takeNumber: this.perfRecording.armedTakeNumber(),
         });
       }, 120);
@@ -209,12 +209,12 @@ export class PerformerComponent implements OnDestroy, OnInit {
 
   /** Format a duration in ms as M:SS.s */
   formatTakeDuration(ms: number): string {
-    if (!ms || !isFinite(ms)) return '0:00.0';
+    if (!ms || !isFinite(ms)) return "0:00.0";
     const total = Math.floor(ms / 1000);
     const minutes = Math.floor(total / 60);
     const seconds = total % 60;
     const tenths = Math.floor((ms % 1000) / 100);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}.${tenths}`;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}.${tenths}`;
   }
 
   private startVisualizer() {
@@ -245,24 +245,24 @@ export class PerformerComponent implements OnDestroy, OnInit {
   generateKeyboardKeys() {
     const keys = [];
     const names = [
-      'C',
-      'C#',
-      'D',
-      'D#',
-      'E',
-      'F',
-      'F#',
-      'G',
-      'G#',
-      'A',
-      'A#',
-      'B',
+      "C",
+      "C#",
+      "D",
+      "D#",
+      "E",
+      "F",
+      "F#",
+      "G",
+      "G#",
+      "A",
+      "A#",
+      "B",
     ];
     for (let i = 0; i < 25; i++) {
       const midi = 48 + i;
       keys.push({
         midi,
-        name: '' + names[midi % 12] + (Math.floor(midi / 12) - 1),
+        name: "" + names[midi % 12] + (Math.floor(midi / 12) - 1),
       });
     }
     return keys;
@@ -271,19 +271,19 @@ export class PerformerComponent implements OnDestroy, OnInit {
   generatePads() {
     const pads = [];
     const colors = [
-      '#f43f5e',
-      '#ec4899',
-      '#d946ef',
-      '#a855f7',
-      '#8b5cf6',
-      '#6366f1',
-      '#3b82f6',
-      '#0ea5e9',
+      "#f43f5e",
+      "#ec4899",
+      "#d946ef",
+      "#a855f7",
+      "#8b5cf6",
+      "#6366f1",
+      "#3b82f6",
+      "#0ea5e9",
     ];
     for (let i = 0; i < 16; i++) {
       pads.push({
         midi: 36 + i,
-        name: 'Pad ' + (i + 1),
+        name: "Pad " + (i + 1),
         color: colors[i % colors.length],
       });
     }
@@ -297,7 +297,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
     return this.activeKeys().has(midi);
   }
 
-  setLayout(mode: 'keyboard' | 'pads' | 'matrix' | 'macros') {
+  setLayout(mode: "keyboard" | "pads" | "matrix" | "macros") {
     this.layout.set(mode);
   }
 
@@ -332,7 +332,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
     };
     const x = Math.max(
       0,
-      Math.min(1, (event.clientX - rect.left) / safeRect.w)
+      Math.min(1, (event.clientX - rect.left) / safeRect.w),
     );
     const yRaw = (event.clientY - rect.top) / safeRect.h;
     // Y on-screen = (clientY - top) / h → 0 at top, 1 at bottom.
@@ -352,7 +352,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
     const trackId = this.musicManager.selectedTrackId();
     if (trackId !== null) {
       this.musicManager.tracks.update((ts) =>
-        ts.map((t) => (t.id === trackId ? { ...t, gain: val / 100 } : t))
+        ts.map((t) => (t.id === trackId ? { ...t, gain: val / 100 } : t)),
       );
       this.musicManager.engine.updateTrack(trackId, { gain: val / 100 });
     }
@@ -362,7 +362,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
     const trackId = this.musicManager.selectedTrackId();
     if (trackId !== null) {
       this.musicManager.tracks.update((ts) =>
-        ts.map((t) => (t.id === trackId ? { ...t, pan: val / 100 } : t))
+        ts.map((t) => (t.id === trackId ? { ...t, pan: val / 100 } : t)),
       );
       this.musicManager.engine.updateTrack(trackId, { pan: val / 100 });
     }
@@ -375,7 +375,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
   }
 
   async onKeyDown(midi: number, event?: PointerEvent) {
-    if (event && event.pointerType === 'touch') {
+    if (event && event.pointerType === "touch") {
       const prevMidi = this.activePointers.get(event.pointerId);
       if (prevMidi !== undefined && prevMidi !== midi) {
         this.onKeyUp(prevMidi, event);
@@ -419,7 +419,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
       return next;
     });
     // Release pointer tracking
-    if (event && event.pointerType === 'touch') {
+    if (event && event.pointerType === "touch") {
       this.activePointers.delete(event.pointerId);
     }
   }
@@ -472,14 +472,14 @@ export class PerformerComponent implements OnDestroy, OnInit {
    * so the slider label reads musically rather than as a raw integer. */
   velocityLevelLabel = computed(() => {
     const v = this.velocity();
-    if (v < 16) return 'ppp';
-    if (v < 32) return 'pp';
-    if (v < 48) return 'p';
-    if (v < 64) return 'mp';
-    if (v < 80) return 'mf';
-    if (v < 96) return 'f';
-    if (v < 112) return 'ff';
-    return 'fff';
+    if (v < 16) return "ppp";
+    if (v < 32) return "pp";
+    if (v < 48) return "p";
+    if (v < 64) return "mp";
+    if (v < 80) return "mf";
+    if (v < 96) return "f";
+    if (v < 112) return "ff";
+    return "fff";
   });
 
   launchScene(scene: PerformerScene) {
@@ -495,26 +495,26 @@ export class PerformerComponent implements OnDestroy, OnInit {
   private defaultCCTarget(controller: number): string {
     switch (controller) {
       case 1:
-        return 'modulation';
+        return "modulation";
       case 7:
-        return 'volume';
+        return "volume";
       case 10:
-        return 'pan';
+        return "pan";
       default:
-        return 'none';
+        return "none";
     }
   }
 
   private applyCCTarget(target: string, value: number): void {
     switch (target) {
-      case 'modulation':
+      case "modulation":
         this.modWheel.set(value);
         this.liveEngine.setModWheel(value);
         break;
-      case 'volume':
+      case "volume":
         this.updateTrackVolume(value * 100);
         break;
-      case 'pan':
+      case "pan":
         this.updateTrackPan((value - 0.5) * 200);
         break;
     }
@@ -534,7 +534,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
     const mapping = this.midiService
       .performerCCMap()
       .find((m) => m.target === target);
-    return mapping ? `CH${mapping.channel} CC${mapping.controller}` : '—';
+    return mapping ? `CH${mapping.channel} CC${mapping.controller}` : "—";
   }
 
   // ── MIDI mapping editor ───────────────────────────────
@@ -544,7 +544,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
 
   deletePerformerMapping(target: string): void {
     this.midiService.performerCCMap.update((m) =>
-      m.filter((x) => x.target !== target)
+      m.filter((x) => x.target !== target),
     );
     this.midiService.savePerformerCCMappings();
   }
@@ -557,22 +557,22 @@ export class PerformerComponent implements OnDestroy, OnInit {
   /** MIDI log helper */
   logTypeIcon(type: string): string {
     switch (type) {
-      case 'note_on':
-        return '♪';
-      case 'note_off':
-        return '♩';
-      case 'cc':
-        return '🎛';
-      case 'clock':
-        return '⏱';
-      case 'start':
-        return '▶';
-      case 'stop':
-        return '⏹';
-      case 'continue':
-        return '⏩';
+      case "note_on":
+        return "♪";
+      case "note_off":
+        return "♩";
+      case "cc":
+        return "🎛";
+      case "clock":
+        return "⏱";
+      case "start":
+        return "▶";
+      case "stop":
+        return "⏹";
+      case "continue":
+        return "⏩";
       default:
-        return '•';
+        return "•";
     }
   }
 

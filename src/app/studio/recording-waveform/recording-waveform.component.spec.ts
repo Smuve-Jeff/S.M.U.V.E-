@@ -1,11 +1,11 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
-import { RecordingWaveformComponent } from './recording-waveform.component';
-import { WaveformRendererComponent } from '../waveform-renderer/waveform-renderer.component';
-import { StudioRecordingEngineService } from '../studio-recording-engine.service';
-import { RecordingLimiterService } from '../recording-limiter.service';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { signal } from "@angular/core";
+import { RecordingWaveformComponent } from "./recording-waveform.component";
+import { WaveformRendererComponent } from "../waveform-renderer/waveform-renderer.component";
+import { StudioRecordingEngineService } from "../studio-recording-engine.service";
+import { RecordingLimiterService } from "../recording-limiter.service";
 
-describe('RecordingWaveformComponent', () => {
+describe("RecordingWaveformComponent", () => {
   let component: RecordingWaveformComponent;
   let fixture: ComponentFixture<RecordingWaveformComponent>;
   let engineMock: any;
@@ -19,12 +19,14 @@ describe('RecordingWaveformComponent', () => {
     rafCallbacks = [];
     mockTime = 0;
     rafSpy = jest
-      .spyOn(window, 'requestAnimationFrame')
+      .spyOn(window, "requestAnimationFrame")
       .mockImplementation((cb) => {
         rafCallbacks.push(cb);
         return rafCallbacks.length;
       });
-    cafSpy = jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
+    cafSpy = jest
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation(() => undefined);
 
     engineMock = {
       isRecording: signal(false),
@@ -49,7 +51,7 @@ describe('RecordingWaveformComponent', () => {
     }).compileComponents();
 
     // Stub any rendered child canvas context so the waveform child is inert.
-    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+    Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
       value: jest.fn().mockReturnValue(null),
       writable: true,
       configurable: true,
@@ -75,17 +77,17 @@ describe('RecordingWaveformComponent', () => {
     }
   }
 
-  it('creates and formats zero time', () => {
+  it("creates and formats zero time", () => {
     expect(component).toBeTruthy();
-    expect(component.recordingTimeFormatted()).toBe('00:00.0');
+    expect(component.recordingTimeFormatted()).toBe("00:00.0");
   });
 
-  it('formats elapsed recording time', () => {
+  it("formats elapsed recording time", () => {
     engineMock.recordingTime.set(65.4);
-    expect(component.recordingTimeFormatted()).toBe('01:05.4');
+    expect(component.recordingTimeFormatted()).toBe("01:05.4");
   });
 
-  it('accumulates live analyser frames into a growing waveform buffer', () => {
+  it("accumulates live analyser frames into a growing waveform buffer", () => {
     const frame = new Float32Array(2048).fill(0.3);
     // Simulate incoming capture frames feeding the sampling accumulator.
     (component as any).appendSamples(frame);
@@ -95,7 +97,7 @@ describe('RecordingWaveformComponent', () => {
     expect(component.waveformData()!.length).toBe(4096);
   });
 
-  it('caps the rolling waveform buffer while recording', () => {
+  it("caps the rolling waveform buffer while recording", () => {
     const buffer = new Float32Array(2048);
     engineMock.getAnalyserNode.mockReturnValue({
       getFloatTimeDomainData: (b: Float32Array) => b.set(buffer),
@@ -109,13 +111,13 @@ describe('RecordingWaveformComponent', () => {
     expect(component.waveformData()!.length).toBeLessThanOrEqual(48000 * 20);
   });
 
-  it('resetWaveform clears captured data', () => {
+  it("resetWaveform clears captured data", () => {
     component.waveformData.set(new Float32Array(10));
     component.resetWaveform();
     expect(component.waveformData()).toBeNull();
   });
 
-  it('toggleLimiter delegates to the limiter service', () => {
+  it("toggleLimiter delegates to the limiter service", () => {
     component.toggleLimiter();
     expect(limiterMock.setEnabled).toHaveBeenCalledWith(false);
     component.toggleLimiter();

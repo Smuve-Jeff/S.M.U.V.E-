@@ -1,10 +1,10 @@
 /**
  * S.M.U.V.E. 2.0 — Wasm DSP Interface
- * 
+ *
  * Defines the TypeScript interface that all Wasm DSP modules implement.
  * This allows the audio engine to load either a WebAssembly module
  * (for native performance) or a pure-JS fallback with identical behavior.
- * 
+ *
  * Each module follows a "kernel" pattern: stateless pure functions
  * that operate on numeric arrays, making them trivially portable to Wasm.
  */
@@ -14,7 +14,7 @@ export type DspKernelFn = (
   input: Float32Array,
   output: Float32Array,
   params: Float32Array,
-  sampleRate: number
+  sampleRate: number,
 ) => void;
 
 /** Module descriptor returned after loading a Wasm DSP module */

@@ -11,27 +11,34 @@ import {
   HostListener,
   Output,
   EventEmitter,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { AutomationService, AutomationLane, AutomationPoint } from '../automation.service';
-import { BezierPresets, BezierSegment, buildBezierSegment, evaluateCubicBezier } from './bezier-utils';
-import { WebGLRenderer, GLColor } from '../webgl/webgl-renderer';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { AutomationService } from "../automation.service";
+import {
+  BezierPresets,
+  BezierSegment,
+  evaluateCubicBezier,
+} from "./bezier-utils";
+import { WebGLRenderer, GLColor } from "../webgl/webgl-renderer";
 
 /** Pre-built bezier curve presets exposed to the UI */
 interface BezierPresetEntry {
   id: string;
   label: string;
-  handles: { cpIn: { t: number; value: number }; cpOut: { t: number; value: number } };
+  handles: {
+    cpIn: { t: number; value: number };
+    cpOut: { t: number; value: number };
+  };
 }
 
 const PRESET_ENTRIES: BezierPresetEntry[] = [
-  { id: 'linear', label: 'Linear', handles: BezierPresets.linear },
-  { id: 'easeIn', label: 'Ease In', handles: BezierPresets.easeIn },
-  { id: 'easeOut', label: 'Ease Out', handles: BezierPresets.easeOut },
-  { id: 'easeInOut', label: 'Ease In-Out', handles: BezierPresets.easeInOut },
-  { id: 'quick', label: 'Quick Jump', handles: BezierPresets.quick },
-  { id: 'expoRise', label: 'Expo Rise', handles: BezierPresets.expoRise },
-  { id: 'expoFall', label: 'Expo Fall', handles: BezierPresets.expoFall },
+  { id: "linear", label: "Linear", handles: BezierPresets.linear },
+  { id: "easeIn", label: "Ease In", handles: BezierPresets.easeIn },
+  { id: "easeOut", label: "Ease Out", handles: BezierPresets.easeOut },
+  { id: "easeInOut", label: "Ease In-Out", handles: BezierPresets.easeInOut },
+  { id: "quick", label: "Quick Jump", handles: BezierPresets.quick },
+  { id: "expoRise", label: "Expo Rise", handles: BezierPresets.expoRise },
+  { id: "expoFall", label: "Expo Fall", handles: BezierPresets.expoFall },
 ];
 
 const CURVE_COLOR: GLColor = { r: 0.15, g: 0.85, b: 0.95, a: 0.9 };
@@ -42,7 +49,7 @@ const BG_COLOR: GLColor = { r: 0.04, g: 0.06, b: 0.11, a: 1.0 };
 const READOUT_COLOR: GLColor = { r: 0.95, g: 0.3, b: 0.45, a: 0.95 };
 
 @Component({
-  selector: 'app-bezier-editor',
+  selector: "app-bezier-editor",
   standalone: true,
   imports: [CommonModule],
   template: `
@@ -56,7 +63,9 @@ const READOUT_COLOR: GLColor = { r: 0.95, g: 0.3, b: 0.45, a: 0.95 };
             class="bezier-preset-btn"
             [class.active]="activePreset() === preset.id"
             (click)="applyPreset(preset.id)"
-          >{{ preset.label }}</button>
+          >
+            {{ preset.label }}
+          </button>
         </div>
       </div>
       <div class="bezier-canvas-wrap" #canvasWrap>
@@ -76,12 +85,16 @@ const READOUT_COLOR: GLColor = { r: 0.95, g: 0.3, b: 0.45, a: 0.95 };
           <span class="bezier-readout-dot"></span>
           {{ readoutDots().length }} recorded keyframes
         </div>
-        <button type="button" class="bezier-reset-btn" (click)="resetHandles()">Reset</button>
-        <button type="button" class="bezier-apply-btn" (click)="commitCurve()">Apply to Lane</button>
+        <button type="button" class="bezier-reset-btn" (click)="resetHandles()">
+          Reset
+        </button>
+        <button type="button" class="bezier-apply-btn" (click)="commitCurve()">
+          Apply to Lane
+        </button>
       </div>
     </div>
   `,
-  styleUrls: ['./bezier-editor.component.css'],
+  styleUrls: ["./bezier-editor.component.css"],
 })
 export class BezierEditorComponent implements AfterViewInit, OnDestroy {
   @Input() laneId!: string;
@@ -99,17 +112,17 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
   private isGlReady = false;
   private renderRaf: number | null = null;
 
-  @ViewChild('bezierCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('canvasWrap') wrapRef!: ElementRef<HTMLDivElement>;
+  @ViewChild("bezierCanvas") canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild("canvasWrap") wrapRef!: ElementRef<HTMLDivElement>;
 
   presets = PRESET_ENTRIES;
-  activePreset = signal('easeInOut');
+  activePreset = signal("easeInOut");
 
   /** Current control handles (0..1 in both t and value dimensions) */
   cpIn = signal({ t: 0.33, value: 0 });
   cpOut = signal({ t: 0.67, value: 0 });
 
-  draggingHandle = signal<'in' | 'out' | null>(null);
+  draggingHandle = signal<"in" | "out" | null>(null);
 
   handlePositions = computed(() => {
     const i = this.cpIn();
@@ -155,7 +168,7 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
       this.gl.initialize(this.canvasRef.nativeElement);
       this.isGlReady = true;
     } catch (e) {
-      console.warn('WebGL init failed for the bezier editor', e);
+      console.warn("WebGL init failed for the bezier editor", e);
     }
   }
 
@@ -175,7 +188,10 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    if (
+      canvas.width !== Math.round(w * dpr) ||
+      canvas.height !== Math.round(h * dpr)
+    ) {
       this.gl.resize();
     }
 
@@ -220,7 +236,8 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
       p3: { t: 1, value: 0 },
     };
 
-    let prevX = 0, prevY = h;
+    let prevX = 0,
+      prevY = h;
     for (let i = 1; i <= 64; i++) {
       const t = i / 64;
       const val = evaluateCubicBezier(segment, t);
@@ -252,7 +269,7 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
 
   // ── Interaction ─────────────────────────────────────────
 
-  @HostListener('pointerdown', ['$event'])
+  @HostListener("pointerdown", ["$event"])
   onPointerDown(e: PointerEvent): void {
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
@@ -262,34 +279,35 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
     const cpOut = this.cpOut();
 
     // Hit test: within 20px of a control point
-    const distIn = Math.hypot(x - cpIn.t, (1 - y) - cpIn.value);
-    const distOut = Math.hypot(x - cpOut.t, (1 - y) - cpOut.value);
+    const distIn = Math.hypot(x - cpIn.t, 1 - y - cpIn.value);
+    const distOut = Math.hypot(x - cpOut.t, 1 - y - cpOut.value);
 
     if (distIn < 0.06) {
-      this.draggingHandle.set('in');
+      this.draggingHandle.set("in");
     } else if (distOut < 0.06) {
-      this.draggingHandle.set('out');
+      this.draggingHandle.set("out");
     }
   }
 
-  @HostListener('pointermove', ['$event'])
+  @HostListener("pointermove", ["$event"])
   onPointerMove(e: PointerEvent): void {
     const handle = this.draggingHandle();
     if (!handle) return;
 
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
     const t = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const value = 1 - Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    const value =
+      1 - Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
 
-    if (handle === 'in') {
+    if (handle === "in") {
       this.cpIn.set({ t, value });
     } else {
       this.cpOut.set({ t, value });
     }
-    this.activePreset.set(''); // custom
+    this.activePreset.set(""); // custom
   }
 
-  @HostListener('pointerup')
+  @HostListener("pointerup")
   onPointerUp(): void {
     this.draggingHandle.set(null);
   }
@@ -307,7 +325,7 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
   resetHandles(): void {
     this.cpIn.set({ t: 0.33, value: 0 });
     this.cpOut.set({ t: 0.67, value: 0 });
-    this.activePreset.set('easeInOut');
+    this.activePreset.set("easeInOut");
   }
 
   commitCurve(): void {
@@ -320,8 +338,10 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
       const lane = this.autoSvc.lanes().find((l) => l.id === this.laneId);
       if (lane && lane.points.length >= 2) {
         // Apply to the first segment
-        this.autoSvc.updatePoint(this.laneId, 0, { bezierHandles: { cpIn, cpOut } });
-        this.autoSvc.setLaneInterpolation(this.laneId, 'bezier');
+        this.autoSvc.updatePoint(this.laneId, 0, {
+          bezierHandles: { cpIn, cpOut },
+        });
+        this.autoSvc.setLaneInterpolation(this.laneId, "bezier");
       }
     }
   }

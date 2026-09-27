@@ -1,7 +1,7 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { AiService } from '../../services/ai.service';
-import { AiMusiciansService } from '../ai-musicians.service';
+import { Component, inject } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { AiService } from "../../services/ai.service";
+import { AiMusiciansService } from "../ai-musicians.service";
 
 /**
  * The AI band strip — three one-tap toggles for the virtual session players.
@@ -12,23 +12,23 @@ import { AiMusiciansService } from '../ai-musicians.service';
  * reachable in every workspace and never inherits a restricted `touch-action`.
  */
 @Component({
-  selector: 'app-ai-band',
+  selector: "app-ai-band",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './ai-band.component.html',
-  styleUrls: ['./ai-band.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./ai-band.component.html",
+  styleUrls: ["./ai-band.component.css", "../shared/platform-ux.css"],
 })
 export class AiBandComponent {
   ai = inject(AiService);
   band = inject(AiMusiciansService);
 
-  toggle(who: 'drummer' | 'bassist' | 'keyboardist'): void {
+  toggle(who: "drummer" | "bassist" | "keyboardist"): void {
     this.ai.toggleAIMusician(who);
   }
 
   engagedCount(): number {
     return this.ai.sessionMusicians.filter((m) =>
-      this.ai.isMusicianActive(m.id)
+      this.ai.isMusicianActive(m.id),
     ).length;
   }
 }

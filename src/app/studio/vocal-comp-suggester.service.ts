@@ -1,6 +1,6 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { SmartRecordingService, CompTake } from './smart-recording.service';
-import { LoggingService } from '../services/logging.service';
+import { Injectable, inject, signal } from "@angular/core";
+import { SmartRecordingService, CompTake } from "./smart-recording.service";
+import { LoggingService } from "../services/logging.service";
 
 /** A ranked recommendation for the "best" take in a comp group. */
 export interface CompSuggestion {
@@ -26,7 +26,7 @@ export interface CompSuggestion {
  * applies the pick straight to the comp's selection
  * ({@link applySuggestion}).
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class VocalCompSuggesterService {
   private readonly smartRecording = inject(SmartRecordingService);
   private readonly logger = inject(LoggingService);
@@ -43,7 +43,9 @@ export class VocalCompSuggesterService {
    * Returns null when the group is missing or has no usable (non-muted) takes.
    */
   suggestBestTake(groupId: string): CompSuggestion | null {
-    const group = this.smartRecording.compGroups().find((g) => g.id === groupId);
+    const group = this.smartRecording
+      .compGroups()
+      .find((g) => g.id === groupId);
     if (!group || group.takes.length === 0) return null;
 
     const usable = group.takes.filter((t) => !t.isMuted && t.blob !== null);
@@ -83,14 +85,14 @@ export class VocalCompSuggesterService {
     this.smartRecording.selectCompTake(groupId, suggestion.takeId);
     this.logger.debug(
       `VocalCompSuggester: applied take ${suggestion.takeNumber} ` +
-        `(score ${suggestion.score}) to ${groupId}`
+        `(score ${suggestion.score}) to ${groupId}`,
     );
     return suggestion;
   }
 
   private scoreTake(
     take: CompTake,
-    medianDurationMs: number
+    medianDurationMs: number,
   ): { take: CompTake; score: number; reasons: string[] } {
     const reasons: string[] = [];
 
@@ -124,20 +126,21 @@ export class VocalCompSuggesterService {
     const timingDrift = Math.abs(durationMs - median) / median;
     const timingScore = this.clamp(100 - timingDrift * 100, 0, 100);
     if (timingDrift <= 0.05) {
-      reasons.push('Length matches the median take');
+      reasons.push("Length matches the median take");
     } else if (timingDrift > 0.3) {
-      reasons.push(`Much ${take.durationMs > median ? 'longer' : 'shorter'} than the median`);
+      reasons.push(
+        `Much ${take.durationMs > median ? "longer" : "shorter"} than the median`,
+      );
     }
 
     // ── Region coverage — prefer takes spanning the whole comp region ──
     const regionSpan = Math.max(0, regionEnd - regionStart);
     const regionScore = this.clamp(regionSpan * 10, 0, 100);
     if (regionSpan >= 4) {
-      reasons.push('Covers the full section');
+      reasons.push("Covers the full section");
     }
 
-    const score =
-      dynamicsScore * 0.5 + timingScore * 0.35 + regionScore * 0.15;
+    const score = dynamicsScore * 0.5 + timingScore * 0.35 + regionScore * 0.15;
 
     return { take, score: Math.round(score), reasons };
   }

@@ -1,22 +1,22 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, Input, Output, EventEmitter } from "@angular/core";
+import { CommonModule } from "@angular/common";
 
 @Component({
-  selector: 'app-sound-pad',
+  selector: "app-sound-pad",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './sound-pad.component.html',
-  styleUrls: ['./sound-pad.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./sound-pad.component.html",
+  styleUrls: ["./sound-pad.component.css", "../shared/platform-ux.css"],
 })
 export class SoundPadComponent {
-  @Input() name: string = '';
+  @Input() name: string = "";
   @Input() active: boolean = false;
   /**
    * Optional per-pad tint — applied as --pad-color CSS variable so
    * the surrounding grid can color each pad independently while
    * this component stays color-agnostic.
    */
-  @Input() color: string = '#00E5FF';
+  @Input() color: string = "#00E5FF";
   @Output() padTriggered = new EventEmitter<void>();
   /** Fired when the pad is held (long-press) — used to open the assign menu. */
   @Output() padLongPressed = new EventEmitter<void>();

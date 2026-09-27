@@ -1,4 +1,4 @@
-import { EffectsRack } from './effects-rack';
+import { EffectsRack } from "./effects-rack";
 
 export class MixerStrip {
   private input: GainNode;
@@ -28,7 +28,7 @@ export class MixerStrip {
   setVolume(volume: number) {
     this.output.gain.setValueAtTime(
       volume / 100,
-      this.audioContext.currentTime
+      this.audioContext.currentTime,
     );
   }
 

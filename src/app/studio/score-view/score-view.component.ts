@@ -1,6 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MusicManagerService, TrackNote } from '../../services/music-manager.service';
+import { Component, computed, inject } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import {
+  MusicManagerService,
+  TrackNote,
+} from "../../services/music-manager.service";
 
 export interface ScoreNote {
   id: string;
@@ -40,17 +43,30 @@ export interface ScoreStaff {
   range: string;
 }
 
-const NOTE_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+const NOTE_NAMES = [
+  "C",
+  "C♯",
+  "D",
+  "D♯",
+  "E",
+  "F",
+  "F♯",
+  "G",
+  "G♯",
+  "A",
+  "A♯",
+  "B",
+];
 const ACCIDENTALS = new Set([1, 3, 6, 8, 10]);
 const STEP_WIDTH = 5.5;
 const STAFF_TOP_BY_SEMITONE = 4.5;
 
 @Component({
-  selector: 'app-score-view',
+  selector: "app-score-view",
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './score-view.component.html',
-  styleUrls: ['./score-view.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./score-view.component.html",
+  styleUrls: ["./score-view.component.css", "../shared/platform-ux.css"],
 })
 export class ScoreViewComponent {
   readonly musicManager = inject(MusicManagerService);
@@ -58,26 +74,24 @@ export class ScoreViewComponent {
   readonly beatsPerBar = 4;
   readonly stepsPerBeat = 4;
   readonly bars = computed(() => {
-    const furthestStep = this.musicManager
-      .tracks()
-      .reduce(
-        (furthest, track) =>
-          Math.max(
-            furthest,
-            (track.notes ?? []).reduce(
-              (maxStep, note) => Math.max(maxStep, note.step + note.length),
-              0
-            )
+    const furthestStep = this.musicManager.tracks().reduce(
+      (furthest, track) =>
+        Math.max(
+          furthest,
+          (track.notes ?? []).reduce(
+            (maxStep, note) => Math.max(maxStep, note.step + note.length),
+            0,
           ),
-        0
-      );
+        ),
+      0,
+    );
     return Math.max(4, Math.ceil(furthestStep / 16));
   });
 
   readonly staves = computed<ScoreStaff[]>(() =>
     this.musicManager
       .tracks()
-      .filter((track) => track.type !== 'audio' && track.type !== 'bus')
+      .filter((track) => track.type !== "audio" && track.type !== "bus")
       .map((track) => {
         const notes = [...(track.notes ?? [])]
           .sort((a, b) => a.step - b.step || b.midi - a.midi)
@@ -86,17 +100,17 @@ export class ScoreViewComponent {
         const highest = notes[0];
         return {
           id: track.id,
-          name: track.name || 'Untitled track',
-          color: track.color || '#2ba09c',
+          name: track.name || "Untitled track",
+          color: track.color || "#2ba09c",
           notes,
           rests: this.computeRests(notes),
           noteCount: notes.length,
           range:
             notes.length > 0
               ? `${highest?.name}${highest?.octave} – ${lowest?.name}${lowest?.octave}`
-              : 'Empty staff',
+              : "Empty staff",
         };
-      })
+      }),
   );
 
   /**
@@ -131,11 +145,11 @@ export class ScoreViewComponent {
   }
 
   readonly totalNotes = computed(() =>
-    this.staves().reduce((total, staff) => total + staff.noteCount, 0)
+    this.staves().reduce((total, staff) => total + staff.noteCount, 0),
   );
 
   readonly barColumns = computed(() =>
-    Array.from({ length: this.bars() }, (_, index) => index + 1)
+    Array.from({ length: this.bars() }, (_, index) => index + 1),
   );
 
   noteName(midi: number): string {
@@ -151,11 +165,11 @@ export class ScoreViewComponent {
   }
 
   durationLabel(length: number): string {
-    if (length >= 16) return 'whole';
-    if (length >= 8) return 'half';
-    if (length >= 4) return 'quarter';
-    if (length >= 2) return 'eighth';
-    return 'sixteenth';
+    if (length >= 16) return "whole";
+    if (length >= 8) return "half";
+    if (length >= 4) return "quarter";
+    if (length >= 2) return "eighth";
+    return "sixteenth";
   }
 
   private toScoreNote(note: TrackNote): ScoreNote {
@@ -165,7 +179,7 @@ export class ScoreViewComponent {
       id: note.id,
       midi,
       name: NOTE_NAMES[pitchClass],
-      accidental: ACCIDENTALS.has(pitchClass) ? '♯' : '',
+      accidental: ACCIDENTALS.has(pitchClass) ? "♯" : "",
       octave: this.octave(midi),
       duration: this.durationLabel(note.length),
       step: note.step,
@@ -175,7 +189,8 @@ export class ScoreViewComponent {
       // The staff is a visual pitch guide; middle C sits in the center.
       staffTop: 50 - (midi - 60) * STAFF_TOP_BY_SEMITONE,
       velocity: Math.round((note.velocity ?? 0.8) * 127),
-      velocityOpacity: 0.45 + Math.min(1, Math.max(0, note.velocity ?? 0.8)) * 0.55,
+      velocityOpacity:
+        0.45 + Math.min(1, Math.max(0, note.velocity ?? 0.8)) * 0.55,
     };
   }
 }

@@ -32,7 +32,13 @@ export interface SampleZone {
 }
 
 interface BufferedMessage {
-  type: 'LOAD' | 'PLAY' | 'STOP_NOTE' | 'STOP_ALL' | 'PITCH_BEND' | 'MODULATION';
+  type:
+    | "LOAD"
+    | "PLAY"
+    | "STOP_NOTE"
+    | "STOP_ALL"
+    | "PITCH_BEND"
+    | "MODULATION";
   data: any;
 }
 
@@ -71,13 +77,13 @@ export class Sampler {
 
     try {
       await this.context.audioWorklet.addModule(
-        'assets/worklets/sampler-processor.worklet.js'
+        "assets/worklets/sampler-processor.worklet.js",
       );
     } catch (e) {
       // May already be loaded by another Sampler instance
     }
 
-    this.workletNode = new AudioWorkletNode(this.context, 'sampler-processor');
+    this.workletNode = new AudioWorkletNode(this.context, "sampler-processor");
     this.workletNode.connect(this.output);
     this.workletReady = true;
 
@@ -92,7 +98,11 @@ export class Sampler {
    * Send an AudioBuffer to the worklet so it can be played later.
    * Supports round-robin: multiple buffers per pitch.
    */
-  loadSample(pitch: number, buffer: AudioBuffer, threshold: number = 127): void {
+  loadSample(
+    pitch: number,
+    buffer: AudioBuffer,
+    threshold: number = 127,
+  ): void {
     let zone = this.zones.get(pitch);
     if (!zone) {
       zone = {
@@ -118,7 +128,7 @@ export class Sampler {
     this.loadedKeys.add(key);
     const channelData = buffer.getChannelData(0);
     this.sendToWorklet({
-      type: 'LOAD',
+      type: "LOAD",
       key,
       buffer: channelData,
       sampleRate: buffer.sampleRate,
@@ -128,7 +138,11 @@ export class Sampler {
   /**
    * Load a sample buffer into a specific round-robin slot.
    */
-  loadSampleToSlot(pitch: number, buffer: AudioBuffer, slotIndex: number): void {
+  loadSampleToSlot(
+    pitch: number,
+    buffer: AudioBuffer,
+    slotIndex: number,
+  ): void {
     let zone = this.zones.get(pitch);
     if (!zone) {
       zone = {
@@ -152,7 +166,7 @@ export class Sampler {
     this.loadedKeys.add(key);
     const channelData = buffer.getChannelData(0);
     this.sendToWorklet({
-      type: 'LOAD',
+      type: "LOAD",
       key,
       buffer: channelData,
       sampleRate: buffer.sampleRate,
@@ -180,7 +194,7 @@ export class Sampler {
     pitch: number,
     loopStart: number,
     loopEnd: number,
-    crossfade: number = 0.02
+    crossfade: number = 0.02,
   ): void {
     const zone = this.zones.get(pitch);
     if (zone) {
@@ -191,7 +205,7 @@ export class Sampler {
   /** Set ADSR envelope per pitch zone */
   setAdsr(
     pitch: number,
-    adsr: { attack: number; decay: number; sustain: number; release: number }
+    adsr: { attack: number; decay: number; sustain: number; release: number },
   ): void {
     const zone = this.zones.get(pitch);
     if (zone) {
@@ -206,7 +220,7 @@ export class Sampler {
   play(
     pitch: number,
     velocity: number,
-    when: number = this.context.currentTime
+    when: number = this.context.currentTime,
   ): void {
     const zone = this.zones.get(pitch);
     if (!zone || zone.sampleBuffers.length === 0) return;
@@ -215,7 +229,8 @@ export class Sampler {
     let slotIndex = 0;
     if (zone.roundRobin && zone.sampleBuffers.length > 1) {
       slotIndex = zone.roundRobinIndex % zone.sampleBuffers.length;
-      zone.roundRobinIndex = (zone.roundRobinIndex + 1) % zone.sampleBuffers.length;
+      zone.roundRobinIndex =
+        (zone.roundRobinIndex + 1) % zone.sampleBuffers.length;
     }
 
     const key = `sample_${pitch}_${slotIndex}`;
@@ -224,7 +239,7 @@ export class Sampler {
     const adsr = zone.adsr;
 
     this.sendToWorklet({
-      type: 'PLAY',
+      type: "PLAY",
       key,
       note: pitch,
       rootNote,
@@ -239,7 +254,7 @@ export class Sampler {
   /** Stop an individual note (MIDI note-off) */
   stop(pitch: number, _when?: number): void {
     this.sendToWorklet({
-      type: 'STOP_NOTE',
+      type: "STOP_NOTE",
       note: pitch,
     });
   }
@@ -247,7 +262,7 @@ export class Sampler {
   /** Apply pitch bend (-1 to +1, semitones range) */
   setPitchBend(value: number, semitones: number = 2): void {
     this.sendToWorklet({
-      type: 'PITCH_BEND',
+      type: "PITCH_BEND",
       value: Math.max(-1, Math.min(1, value)),
       semitones,
     });
@@ -256,14 +271,14 @@ export class Sampler {
   /** Apply modulation (0 to 1) */
   setModulation(value: number): void {
     this.sendToWorklet({
-      type: 'MODULATION',
+      type: "MODULATION",
       value: Math.max(0, Math.min(1, value)),
     });
   }
 
   /** Stop all active voices (panic) */
   stopAll(): void {
-    this.sendToWorklet({ type: 'STOP_ALL' });
+    this.sendToWorklet({ type: "STOP_ALL" });
   }
 
   /** Get the number of sample buffers loaded for a pitch */

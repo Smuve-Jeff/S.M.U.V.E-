@@ -1,7 +1,7 @@
-import { Subject } from 'rxjs';
-import { Injectable, inject, signal, OnDestroy } from '@angular/core';
-import { LocalStorageService } from '../services/local-storage.service';
-import { LoggingService } from '../services/logging.service';
+import { Subject } from "rxjs";
+import { Injectable, inject, signal, OnDestroy } from "@angular/core";
+import { LocalStorageService } from "../services/local-storage.service";
+import { LoggingService } from "../services/logging.service";
 
 export interface RecordingSettings {
   gain?: number;
@@ -18,7 +18,7 @@ export interface RecordingItem {
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class AudioRecorderService implements OnDestroy {
   private localStorageService = inject(LocalStorageService);
@@ -65,26 +65,26 @@ export class AudioRecorderService implements OnDestroy {
 
   async startRecording(stream: MediaStream) {
     if (!stream || stream.getAudioTracks().length === 0) {
-      throw new Error('No audio tracks found in stream');
+      throw new Error("No audio tracks found in stream");
     }
 
     this.recordedBlobs = [];
-    const mimeType = 'audio/webm;codecs=opus';
+    const mimeType = "audio/webm;codecs=opus";
 
-    if (typeof MediaRecorder === 'undefined') {
-      throw new Error('MediaRecorder is not supported in this environment');
+    if (typeof MediaRecorder === "undefined") {
+      throw new Error("MediaRecorder is not supported in this environment");
     }
 
     const options = MediaRecorder.isTypeSupported(mimeType)
       ? { mimeType }
-      : MediaRecorder.isTypeSupported('audio/webm')
-        ? { mimeType: 'audio/webm' }
+      : MediaRecorder.isTypeSupported("audio/webm")
+        ? { mimeType: "audio/webm" }
         : {};
 
     try {
       this.mediaRecorder = new MediaRecorder(stream, options);
     } catch (recorderError) {
-      this.logger.error('Failed to instantiate MediaRecorder', recorderError);
+      this.logger.error("Failed to instantiate MediaRecorder", recorderError);
       throw recorderError;
     }
 
@@ -97,12 +97,12 @@ export class AudioRecorderService implements OnDestroy {
     this.mediaRecorder.onstop = async () => {
       try {
         const blob = new Blob(this.recordedBlobs, {
-          type: 'audio/webm;codecs=opus',
+          type: "audio/webm;codecs=opus",
         });
         const id = `rec_${Date.now()}`;
 
         try {
-          await this.localStorageService.saveItem('audio_blobs', {
+          await this.localStorageService.saveItem("audio_blobs", {
             id,
             blob,
             name: `Recording ${new Date().toLocaleTimeString()}`,
@@ -112,8 +112,8 @@ export class AudioRecorderService implements OnDestroy {
           this.logger.info(`Recording ${id} saved.`);
         } catch (saveError) {
           this.logger.error(
-            'Failed to persist recording to storage',
-            saveError
+            "Failed to persist recording to storage",
+            saveError,
           );
         }
 
@@ -126,7 +126,7 @@ export class AudioRecorderService implements OnDestroy {
           midi: [...this.pendingMidi],
         });
       } catch (error) {
-        this.logger.error('Failed to process recording stop', error);
+        this.logger.error("Failed to process recording stop", error);
       } finally {
         this.isRecording.set(false);
         this.pendingMidi = [];
@@ -140,33 +140,33 @@ export class AudioRecorderService implements OnDestroy {
   stopRecording() {
     if (this.mediaRecorder) {
       try {
-        if (this.mediaRecorder.state !== 'inactive') {
+        if (this.mediaRecorder.state !== "inactive") {
           this.mediaRecorder.stop();
         }
       } catch (error) {
-        this.logger.error('Error stopping MediaRecorder', error);
+        this.logger.error("Error stopping MediaRecorder", error);
         this.isRecording.set(false);
       }
     }
   }
 
   async getOfflineRecordings() {
-    return await this.localStorageService.getAllItems('audio_blobs');
+    return await this.localStorageService.getAllItems("audio_blobs");
   }
 
   async deleteOfflineRecording(id: string): Promise<void> {
     const remove = (this.localStorageService as any).removeItem;
-    if (typeof remove === 'function') {
-      await remove.call(this.localStorageService, 'audio_blobs', id);
+    if (typeof remove === "function") {
+      await remove.call(this.localStorageService, "audio_blobs", id);
       return;
     }
     // Older storage adapters expose only save/get; retain compatibility by
     // replacing the collection without the deleted item when possible.
     const items = (await this.getOfflineRecordings()) as RecordingItem[];
-    if (typeof (this.localStorageService as any).saveItems === 'function') {
+    if (typeof (this.localStorageService as any).saveItems === "function") {
       await (this.localStorageService as any).saveItems(
-        'audio_blobs',
-        items.filter((item) => item.id !== id)
+        "audio_blobs",
+        items.filter((item) => item.id !== id),
       );
     }
   }
@@ -174,12 +174,12 @@ export class AudioRecorderService implements OnDestroy {
   async applyOfflineEdit(id: string, edits: Partial<RecordingSettings>) {
     try {
       const item = (await this.localStorageService.getItem(
-        'audio_blobs',
-        id
+        "audio_blobs",
+        id,
       )) as RecordingItem | null;
       if (item) {
         item.settings = { ...item.settings, ...edits };
-        await this.localStorageService.saveItem('audio_blobs', item);
+        await this.localStorageService.saveItem("audio_blobs", item);
         this.logger.info(`Offline edits applied to recording ${id}.`);
       } else {
         this.logger.warn(`Recording ${id} not found for editing`);

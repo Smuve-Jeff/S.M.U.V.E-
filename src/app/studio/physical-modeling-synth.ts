@@ -1,4 +1,4 @@
-import { Instrument } from './instrument';
+import { Instrument } from "./instrument";
 
 interface ModalResonator {
   freq: number;
@@ -31,7 +31,7 @@ export class PhysicalModelingSynth extends Instrument {
   // Modal body resonators (guitar-body-like)
   private modalResonators: ModalResonator[] = [
     { freq: 120, gain: 0.15, decay: 2.0 },
-    { freq: 240, gain: 0.10, decay: 1.5 },
+    { freq: 240, gain: 0.1, decay: 1.5 },
     { freq: 360, gain: 0.06, decay: 1.0 },
     { freq: 520, gain: 0.04, decay: 0.8 },
     { freq: 800, gain: 0.02, decay: 0.5 },
@@ -55,13 +55,16 @@ export class PhysicalModelingSynth extends Instrument {
     // ── Karplus-Strong string ──
     const delayLen = Math.round(this.audioContext.sampleRate / freq);
     const delay = this.audioContext.createDelay(2);
-    delay.delayTime.setValueAtTime(delayLen / this.audioContext.sampleRate, now);
+    delay.delayTime.setValueAtTime(
+      delayLen / this.audioContext.sampleRate,
+      now,
+    );
 
     const stringLp = this.audioContext.createBiquadFilter();
-    stringLp.type = 'lowpass';
+    stringLp.type = "lowpass";
     stringLp.frequency.setValueAtTime(
       freq * 4 * (1 - this.params.damping * 0.9),
-      now
+      now,
     );
 
     const feedback = this.audioContext.createGain();
@@ -69,7 +72,11 @@ export class PhysicalModelingSynth extends Instrument {
 
     // Excitation: short noise burst
     const burstLen = Math.ceil(this.audioContext.sampleRate * 0.003);
-    const noiseBuffer = this.audioContext.createBuffer(1, burstLen, this.audioContext.sampleRate);
+    const noiseBuffer = this.audioContext.createBuffer(
+      1,
+      burstLen,
+      this.audioContext.sampleRate,
+    );
     const data = noiseBuffer.getChannelData(0);
     for (let i = 0; i < burstLen; i++) {
       data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / burstLen, 3);
@@ -93,7 +100,7 @@ export class PhysicalModelingSynth extends Instrument {
     const bodyNodes: { filter: BiquadFilterNode; gain: GainNode }[] = [];
     for (const res of this.modalResonators) {
       const bp = this.audioContext.createBiquadFilter();
-      bp.type = 'bandpass';
+      bp.type = "bandpass";
       bp.frequency.setValueAtTime(res.freq, now);
       bp.Q.setValueAtTime(5, now);
 
@@ -124,7 +131,15 @@ export class PhysicalModelingSynth extends Instrument {
     exciter.start(now);
     exciter.stop(now + 0.005);
 
-    const voice = { exciter, delay, stringLp, feedback, stringGain, bodyGain, bodyNodes };
+    const voice = {
+      exciter,
+      delay,
+      stringLp,
+      feedback,
+      stringGain,
+      bodyGain,
+      bodyNodes,
+    };
     this.voiceManager.addVoice({
       note,
       startTime: now,
@@ -156,20 +171,31 @@ export class PhysicalModelingSynth extends Instrument {
     voice.feedback.gain.setTargetAtTime(0.001, now, 0.1);
     voice.stringGain.gain.cancelScheduledValues(now);
     voice.stringGain.gain.setValueAtTime(voice.stringGain.gain.value, now);
-    voice.stringGain.gain.exponentialRampToValueAtTime(0.001, now + this.params.release);
-    voice.bodyGain.gain.exponentialRampToValueAtTime(0.001, now + this.params.release);
+    voice.stringGain.gain.exponentialRampToValueAtTime(
+      0.001,
+      now + this.params.release,
+    );
+    voice.bodyGain.gain.exponentialRampToValueAtTime(
+      0.001,
+      now + this.params.release,
+    );
 
-    setTimeout(() => {
-      try { voice.exciter.stop(); } catch (e) {}
-      voice.delay.disconnect();
-      voice.stringLp.disconnect();
-      voice.feedback.disconnect();
-      voice.stringGain.disconnect();
-      voice.bodyGain.disconnect();
-      for (const bn of voice.bodyNodes) {
-        bn.filter.disconnect();
-        bn.gain.disconnect();
-      }
-    }, this.params.release * 1000 + 100);
+    setTimeout(
+      () => {
+        try {
+          voice.exciter.stop();
+        } catch (e) {}
+        voice.delay.disconnect();
+        voice.stringLp.disconnect();
+        voice.feedback.disconnect();
+        voice.stringGain.disconnect();
+        voice.bodyGain.disconnect();
+        for (const bn of voice.bodyNodes) {
+          bn.filter.disconnect();
+          bn.gain.disconnect();
+        }
+      },
+      this.params.release * 1000 + 100,
+    );
   }
 }

@@ -1,10 +1,16 @@
-import { Component, inject, computed, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MusicManagerService, FxSlot } from '../../services/music-manager.service';
-import { AudioEngineService } from '../../services/audio-engine.service';
-import { PluginStoreService, DspPluginManifest } from '../../services/plugin-store.service';
-import { KnobComponent } from '../shared/knob/knob.component';
+import { Component, inject, computed, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import {
+  MusicManagerService,
+  FxSlot,
+} from "../../services/music-manager.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import {
+  PluginStoreService,
+  DspPluginManifest,
+} from "../../services/plugin-store.service";
+import { KnobComponent } from "../shared/knob/knob.component";
 
 /** One editable parameter of a macro FX slot. */
 export interface FxParamSpec {
@@ -27,74 +33,233 @@ export interface FxParamSpec {
  */
 export const FX_PARAM_SPECS: Record<string, FxParamSpec[]> = {
   Reverb: [
-    { id: 'wet', label: 'Wet', min: 0, max: 100, unit: '%', default: 60 },
-    { id: 'dry', label: 'Dry', min: 0, max: 100, unit: '%', default: 40 },
-    { id: 'decay', label: 'Decay', min: 0.1, max: 10, step: 0.1, unit: 's', default: 2.5 },
-    { id: 'size', label: 'Size', min: 0, max: 100, unit: '%', default: 50 },
-    { id: 'preDelay', label: 'Pre-Delay', min: 0, max: 200, unit: 'ms', default: 20 },
-    { id: 'damping', label: 'Damping', min: 0, max: 100, unit: '%', default: 30 },
+    { id: "wet", label: "Wet", min: 0, max: 100, unit: "%", default: 60 },
+    { id: "dry", label: "Dry", min: 0, max: 100, unit: "%", default: 40 },
+    {
+      id: "decay",
+      label: "Decay",
+      min: 0.1,
+      max: 10,
+      step: 0.1,
+      unit: "s",
+      default: 2.5,
+    },
+    { id: "size", label: "Size", min: 0, max: 100, unit: "%", default: 50 },
+    {
+      id: "preDelay",
+      label: "Pre-Delay",
+      min: 0,
+      max: 200,
+      unit: "ms",
+      default: 20,
+    },
+    {
+      id: "damping",
+      label: "Damping",
+      min: 0,
+      max: 100,
+      unit: "%",
+      default: 30,
+    },
   ],
   Delay: [
-    { id: 'wet', label: 'Wet', min: 0, max: 100, unit: '%', default: 40 },
-    { id: 'dry', label: 'Dry', min: 0, max: 100, unit: '%', default: 60 },
-    { id: 'time', label: 'Time', min: 0, max: 2000, unit: 'ms', default: 250 },
-    { id: 'feedback', label: 'Feedback', min: 0, max: 95, unit: '%', default: 35 },
-    { id: 'tone', label: 'Tone', min: 0, max: 100, unit: '%', default: 50 },
-    { id: 'pingPong', label: 'Ping-Pong', min: 0, max: 100, unit: '%', default: 0 },
+    { id: "wet", label: "Wet", min: 0, max: 100, unit: "%", default: 40 },
+    { id: "dry", label: "Dry", min: 0, max: 100, unit: "%", default: 60 },
+    { id: "time", label: "Time", min: 0, max: 2000, unit: "ms", default: 250 },
+    {
+      id: "feedback",
+      label: "Feedback",
+      min: 0,
+      max: 95,
+      unit: "%",
+      default: 35,
+    },
+    { id: "tone", label: "Tone", min: 0, max: 100, unit: "%", default: 50 },
+    {
+      id: "pingPong",
+      label: "Ping-Pong",
+      min: 0,
+      max: 100,
+      unit: "%",
+      default: 0,
+    },
   ],
   Compressor: [
-    { id: 'threshold', label: 'Threshold', min: -60, max: 0, step: 0.5, unit: 'dB', default: -24 },
-    { id: 'ratio', label: 'Ratio', min: 1, max: 20, step: 0.5, default: 4 },
-    { id: 'attack', label: 'Attack', min: 1, max: 200, unit: 'ms', default: 10 },
-    { id: 'release', label: 'Release', min: 20, max: 1000, unit: 'ms', default: 120 },
-    { id: 'makeup', label: 'Makeup', min: 0, max: 24, step: 0.5, unit: 'dB', default: 0 },
-    { id: 'mix', label: 'Mix', min: 0, max: 100, unit: '%', default: 100 },
+    {
+      id: "threshold",
+      label: "Threshold",
+      min: -60,
+      max: 0,
+      step: 0.5,
+      unit: "dB",
+      default: -24,
+    },
+    { id: "ratio", label: "Ratio", min: 1, max: 20, step: 0.5, default: 4 },
+    {
+      id: "attack",
+      label: "Attack",
+      min: 1,
+      max: 200,
+      unit: "ms",
+      default: 10,
+    },
+    {
+      id: "release",
+      label: "Release",
+      min: 20,
+      max: 1000,
+      unit: "ms",
+      default: 120,
+    },
+    {
+      id: "makeup",
+      label: "Makeup",
+      min: 0,
+      max: 24,
+      step: 0.5,
+      unit: "dB",
+      default: 0,
+    },
+    { id: "mix", label: "Mix", min: 0, max: 100, unit: "%", default: 100 },
   ],
   EQ: [
-    { id: 'sub', label: 'Sub 40', min: -18, max: 18, step: 0.5, unit: 'dB', default: 0 },
-    { id: 'low', label: 'Low 120', min: -18, max: 18, step: 0.5, unit: 'dB', default: 0 },
-    { id: 'mid', label: 'Mid 800', min: -18, max: 18, step: 0.5, unit: 'dB', default: 0 },
-    { id: 'high', label: 'High 4k', min: -18, max: 18, step: 0.5, unit: 'dB', default: 0 },
-    { id: 'air', label: 'Air 12k', min: -18, max: 18, step: 0.5, unit: 'dB', default: 0 },
-    { id: 'q', label: 'Q', min: 0.2, max: 8, step: 0.1, default: 1 },
+    {
+      id: "sub",
+      label: "Sub 40",
+      min: -18,
+      max: 18,
+      step: 0.5,
+      unit: "dB",
+      default: 0,
+    },
+    {
+      id: "low",
+      label: "Low 120",
+      min: -18,
+      max: 18,
+      step: 0.5,
+      unit: "dB",
+      default: 0,
+    },
+    {
+      id: "mid",
+      label: "Mid 800",
+      min: -18,
+      max: 18,
+      step: 0.5,
+      unit: "dB",
+      default: 0,
+    },
+    {
+      id: "high",
+      label: "High 4k",
+      min: -18,
+      max: 18,
+      step: 0.5,
+      unit: "dB",
+      default: 0,
+    },
+    {
+      id: "air",
+      label: "Air 12k",
+      min: -18,
+      max: 18,
+      step: 0.5,
+      unit: "dB",
+      default: 0,
+    },
+    { id: "q", label: "Q", min: 0.2, max: 8, step: 0.1, default: 1 },
   ],
   Saturation: [
-    { id: 'drive', label: 'Drive', min: 0, max: 100, unit: '%', default: 20 },
-    { id: 'tone', label: 'Tone', min: 0, max: 100, unit: '%', default: 50 },
-    { id: 'mix', label: 'Mix', min: 0, max: 100, unit: '%', default: 100 },
-    { id: 'output', label: 'Output', min: -12, max: 12, step: 0.5, unit: 'dB', default: 0 },
+    { id: "drive", label: "Drive", min: 0, max: 100, unit: "%", default: 20 },
+    { id: "tone", label: "Tone", min: 0, max: 100, unit: "%", default: 50 },
+    { id: "mix", label: "Mix", min: 0, max: 100, unit: "%", default: 100 },
+    {
+      id: "output",
+      label: "Output",
+      min: -12,
+      max: 12,
+      step: 0.5,
+      unit: "dB",
+      default: 0,
+    },
   ],
   Chorus: [
-    { id: 'rate', label: 'Rate', min: 0.05, max: 8, step: 0.05, unit: 'Hz', default: 0.8 },
-    { id: 'depth', label: 'Depth', min: 0, max: 100, unit: '%', default: 40 },
-    { id: 'mix', label: 'Mix', min: 0, max: 100, unit: '%', default: 35 },
-    { id: 'spread', label: 'Spread', min: 0, max: 100, unit: '%', default: 50 },
+    {
+      id: "rate",
+      label: "Rate",
+      min: 0.05,
+      max: 8,
+      step: 0.05,
+      unit: "Hz",
+      default: 0.8,
+    },
+    { id: "depth", label: "Depth", min: 0, max: 100, unit: "%", default: 40 },
+    { id: "mix", label: "Mix", min: 0, max: 100, unit: "%", default: 35 },
+    { id: "spread", label: "Spread", min: 0, max: 100, unit: "%", default: 50 },
   ],
-  'Filter': [
-    { id: 'cutoff', label: 'Cutoff', min: 20, max: 20000, unit: 'Hz', default: 12000 },
-    { id: 'resonance', label: 'Reso', min: 0, max: 100, unit: '%', default: 10 },
-    { id: 'drive', label: 'Drive', min: 0, max: 100, unit: '%', default: 0 },
+  Filter: [
+    {
+      id: "cutoff",
+      label: "Cutoff",
+      min: 20,
+      max: 20000,
+      unit: "Hz",
+      default: 12000,
+    },
+    {
+      id: "resonance",
+      label: "Reso",
+      min: 0,
+      max: 100,
+      unit: "%",
+      default: 10,
+    },
+    { id: "drive", label: "Drive", min: 0, max: 100, unit: "%", default: 0 },
   ],
   Limiter: [
-    { id: 'ceiling', label: 'Ceiling', min: -12, max: 0, step: 0.1, unit: 'dB', default: -0.3 },
-    { id: 'release', label: 'Release', min: 10, max: 500, unit: 'ms', default: 80 },
-    { id: 'gain', label: 'Input Gain', min: -12, max: 24, step: 0.5, unit: 'dB', default: 0 },
+    {
+      id: "ceiling",
+      label: "Ceiling",
+      min: -12,
+      max: 0,
+      step: 0.1,
+      unit: "dB",
+      default: -0.3,
+    },
+    {
+      id: "release",
+      label: "Release",
+      min: 10,
+      max: 500,
+      unit: "ms",
+      default: 80,
+    },
+    {
+      id: "gain",
+      label: "Input Gain",
+      min: -12,
+      max: 24,
+      step: 0.5,
+      unit: "dB",
+      default: 0,
+    },
   ],
 };
 
 /** Generic wet/dry fallback for slot types without a bespoke spec. */
 const FALLBACK_SPEC: FxParamSpec[] = [
-  { id: 'wet', label: 'Wet', min: 0, max: 100, unit: '%', default: 60 },
-  { id: 'dry', label: 'Dry', min: 0, max: 100, unit: '%', default: 40 },
-  { id: 'amount', label: 'Amount', min: 0, max: 100, unit: '%', default: 50 },
+  { id: "wet", label: "Wet", min: 0, max: 100, unit: "%", default: 60 },
+  { id: "dry", label: "Dry", min: 0, max: 100, unit: "%", default: 40 },
+  { id: "amount", label: "Amount", min: 0, max: 100, unit: "%", default: 50 },
 ];
 
 @Component({
-  selector: 'app-effects-rack-ui',
+  selector: "app-effects-rack-ui",
   standalone: true,
   imports: [CommonModule, FormsModule, KnobComponent],
-  templateUrl: './effects-rack-ui.component.html',
-  styleUrls: ['./effects-rack-ui.component.css', '../shared/platform-ux.css'],
+  templateUrl: "./effects-rack-ui.component.html",
+  styleUrls: ["./effects-rack-ui.component.css", "../shared/platform-ux.css"],
 })
 export class EffectsRackUiComponent {
   private musicManager = inject(MusicManagerService);
@@ -150,9 +315,17 @@ export class EffectsRackUiComponent {
    *  so the M/S master-width stage stays in the signal path. */
   installMasterChain(ids: string[]): void {
     this.audioEngine.installMasterPluginInsertAfterWidth(ids, (pluginIds) => {
-      const kernels: Array<((input: Float32Array, output: Float32Array, params: Float32Array, sr: number) => void) | null> = [];
+      const kernels: Array<
+        | ((
+            input: Float32Array,
+            output: Float32Array,
+            params: Float32Array,
+            sr: number,
+          ) => void)
+        | null
+      > = [];
       for (const id of pluginIds) {
-        const mod = this.pluginStore['loader']?.getModule?.(id);
+        const mod = this.pluginStore["loader"]?.getModule?.(id);
         const kernel = mod?.getKernel?.(this.kernelNameForManifest(id)) ?? null;
         kernels.push(kernel);
       }
@@ -163,7 +336,7 @@ export class EffectsRackUiComponent {
 
   /** Reverse-lookup for the kernel name from a plugin id (manifest catalog). */
   private kernelNameForManifest(id: string): string {
-    return this.pluginStore.manifestFor(id)?.kernelName ?? 'process';
+    return this.pluginStore.manifestFor(id)?.kernelName ?? "process";
   }
 
   fxSlots = computed(() => {
@@ -188,14 +361,14 @@ export class EffectsRackUiComponent {
   // ── Macro FX slot management ─────────────────────────────────────
   /** Types offered by the Add Effect menu. */
   readonly fxTypes: string[] = [
-    'Reverb',
-    'Delay',
-    'Compressor',
-    'EQ',
-    'Saturation',
-    'Chorus',
-    'Filter',
-    'Limiter',
+    "Reverb",
+    "Delay",
+    "Compressor",
+    "EQ",
+    "Saturation",
+    "Chorus",
+    "Filter",
+    "Limiter",
   ];
 
   /** Add Effect fly-out state. */
@@ -236,13 +409,13 @@ export class EffectsRackUiComponent {
 
   /** Parameter spec list for a slot type (never empty). */
   paramSpecs(type: string | undefined): FxParamSpec[] {
-    return FX_PARAM_SPECS[type ?? ''] ?? FALLBACK_SPEC;
+    return FX_PARAM_SPECS[type ?? ""] ?? FALLBACK_SPEC;
   }
 
   /** Current value of a slot parameter, falling back to the spec default. */
   paramValue(slot: FxSlot | null, spec: FxParamSpec): number {
     const raw = slot?.params?.[spec.id];
-    return typeof raw === 'number' && Number.isFinite(raw) ? raw : spec.default;
+    return typeof raw === "number" && Number.isFinite(raw) ? raw : spec.default;
   }
 
   /** Persist a knob move onto the slot (coalesced in history). */
@@ -258,7 +431,12 @@ export class EffectsRackUiComponent {
     const slot = this.activeFxSlot();
     if (!track || !slot) return;
     for (const spec of this.paramSpecs(slot.type)) {
-      this.musicManager.setFxSlotParam(track.id, slot.id, spec.id, spec.default);
+      this.musicManager.setFxSlotParam(
+        track.id,
+        slot.id,
+        spec.id,
+        spec.default,
+      );
     }
   }
 
@@ -268,15 +446,15 @@ export class EffectsRackUiComponent {
    * no kernel corresponds to the type.
    */
   private liveManifestFor(type: string | undefined): string | null {
-    switch ((type ?? '').toLowerCase()) {
-      case 'compressor':
-        return 'smuve.dynamics.v2';
-      case 'eq':
-        return 'smuve.eq.mastering.v2';
-      case 'reverb':
-        return 'smuve.reverb.v2';
-      case 'saturation':
-        return 'smuve.saturation.v2';
+    switch ((type ?? "").toLowerCase()) {
+      case "compressor":
+        return "smuve.dynamics.v2";
+      case "eq":
+        return "smuve.eq.mastering.v2";
+      case "reverb":
+        return "smuve.reverb.v2";
+      case "saturation":
+        return "smuve.saturation.v2";
       default:
         return null;
     }
@@ -284,7 +462,7 @@ export class EffectsRackUiComponent {
 
   /** True when the active slot has a corresponding live WASM kernel. */
   canSendToLiveChain = computed(
-    () => this.liveManifestFor(this.activeFxSlot()?.type) !== null
+    () => this.liveManifestFor(this.activeFxSlot()?.type) !== null,
   );
 
   /**
@@ -294,10 +472,10 @@ export class EffectsRackUiComponent {
    */
   mixPercentFor(slot: FxSlot | null): number {
     if (!slot) return 50;
-    const spec = this.paramSpecs(slot.type).find((s) => s.id === 'wet');
+    const spec = this.paramSpecs(slot.type).find((s) => s.id === "wet");
     if (!spec) return 50;
     const raw = slot.params?.[spec.id];
-    if (typeof raw !== 'number' || !Number.isFinite(raw)) return spec.default;
+    if (typeof raw !== "number" || !Number.isFinite(raw)) return spec.default;
     const pct = ((raw - spec.min) / (spec.max - spec.min)) * 100;
     return Math.max(0, Math.min(100, Math.round(pct)));
   }

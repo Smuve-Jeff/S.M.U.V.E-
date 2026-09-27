@@ -1,22 +1,22 @@
-import { DynamicEffectsRack, PluginSlot } from './effects/dynamic-effects-rack';
+import { DynamicEffectsRack, PluginSlot } from "./effects/dynamic-effects-rack";
 
 export type { PluginSlot };
 
 export interface EffectNode {
   id: string;
   name: string;
-  type: 'eq' | 'delay' | 'reverb' | 'distortion' | 'compressor' | 'sidechain';
+  type: "eq" | "delay" | "reverb" | "distortion" | "compressor" | "sidechain";
   instance: any;
   enabled: boolean;
 }
 
 const TYPE_TO_PLUGIN: Record<string, string> = {
-  eq: 'smuve.eq.v1',
-  delay: 'smuve.delay.v1',
-  reverb: 'smuve.reverb.v1',
-  distortion: 'smuve.distortion.v1',
-  compressor: 'smuve.compressor.v1',
-  sidechain: 'smuve.sidechain.v1',
+  eq: "smuve.eq.v1",
+  delay: "smuve.delay.v1",
+  reverb: "smuve.reverb.v1",
+  distortion: "smuve.distortion.v1",
+  compressor: "smuve.compressor.v1",
+  sidechain: "smuve.sidechain.v1",
 };
 
 /**
@@ -32,8 +32,12 @@ export class EffectsRack {
     this._rack = new DynamicEffectsRack(audioContext);
   }
 
-  get input(): AudioNode { return this._rack.input; }
-  get output(): AudioNode { return this._rack.output; }
+  get input(): AudioNode {
+    return this._rack.input;
+  }
+  get output(): AudioNode {
+    return this._rack.output;
+  }
 
   getInput(): GainNode {
     return this._rack.input as GainNode;
@@ -43,7 +47,7 @@ export class EffectsRack {
     return this._rack.output as GainNode;
   }
 
-  addEffect(type: EffectNode['type'], name: string): EffectNode {
+  addEffect(type: EffectNode["type"], name: string): EffectNode {
     const pluginId = TYPE_TO_PLUGIN[type];
     if (!pluginId) throw new Error(`Unknown effect type: ${type}`);
 
@@ -74,12 +78,12 @@ export class EffectsRack {
     return this._rack.inserts.map((slot) => {
       // Reverse-map plugin id to EffectNode type
       const typeEntry = Object.entries(TYPE_TO_PLUGIN).find(
-        ([, pid]) => pid === slot.plugin.id
+        ([, pid]) => pid === slot.plugin.id,
       );
       return {
         id: slot.id,
         name: slot.plugin.name,
-        type: (typeEntry?.[0] ?? 'eq') as EffectNode['type'],
+        type: (typeEntry?.[0] ?? "eq") as EffectNode["type"],
         instance: slot.plugin,
         enabled: slot.plugin.enabled,
       };

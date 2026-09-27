@@ -1,18 +1,18 @@
-import { WasmDspModule, DspKernelFn } from './wasm-dsp-interface';
+import { WasmDspModule, DspKernelFn } from "./wasm-dsp-interface";
 
 /**
  * S.M.U.V.E. 2.0 — Algorithmic Reverb (Wasm-Ready)
- * 
+ *
  * Professional-grade algorithmic reverb using nested all-pass
  * filters and feedback delay networks (FDN). Designed with
  * isolated DSP kernels that map 1:1 to Wasm functions.
- * 
+ *
  * Algorithm: Schroeder-Moorer with 4-channel FDN
  *   - 8 nested all-pass diffusers for early reflections
  *   - 4-channel feedback delay network for late reverb
  *   - Low-pass damping in the feedback path
  *   - Stereo decorrelation for wide output
- * 
+ *
  * When compiled to Wasm, all kernels become native-speed
  * functions operating on shared linear memory.
  */
@@ -30,7 +30,7 @@ function allpassDiffuser(
   delayLine: Float32Array,
   delaySamples: number,
   feedback: number,
-  writePtr: number
+  writePtr: number,
 ): number {
   const len = input.length;
   let wp = writePtr;
@@ -62,7 +62,7 @@ function fdnChannel(
   prevLowpass: number,
   modRate: number,
   modDepth: number,
-  t: number
+  t: number,
 ): { writePtr: number; prevLowpass: number } {
   const len = input.length;
   let wp = writePtr;
@@ -71,7 +71,7 @@ function fdnChannel(
 
   for (let i = 0; i < len; i++) {
     // Modulated delay read
-    const mod = Math.sin(2 * Math.PI * modRate * (t + i) / 48000) * modDepth;
+    const mod = Math.sin((2 * Math.PI * modRate * (t + i)) / 48000) * modDepth;
     const readSamples = delaySamples + mod;
     const readIdx = (wp - Math.round(readSamples) + size) % size;
 
@@ -102,7 +102,7 @@ function stereoDecorrelation(
   delayL: number,
   delayR: number,
   width: number,
-  writePtr: number
+  writePtr: number,
 ): number {
   const len = input.length;
   let wp = writePtr;
@@ -160,9 +160,9 @@ const DEFAULT_PARAMS: ReverbParams = {
  * a native Wasm binary with identical kernels.
  */
 export class AlgorithmicReverbModule implements WasmDspModule {
-  readonly id = 'smuve.reverb.alg.v1';
-  readonly name = 'Algorithmic Reverb';
-  readonly version = '1.0.0';
+  readonly id = "smuve.reverb.alg.v1";
+  readonly name = "Algorithmic Reverb";
+  readonly version = "1.0.0";
   readonly isWasm = false;
   readonly heapBytes = 0;
 
@@ -213,13 +213,15 @@ export class AlgorithmicReverbModule implements WasmDspModule {
 
   getKernel(name: string): DspKernelFn | null {
     switch (name) {
-      case 'process': return this.kernelProcess.bind(this);
-      default: return null;
+      case "process":
+        return this.kernelProcess.bind(this);
+      default:
+        return null;
     }
   }
 
   listKernels(): string[] {
-    return ['process'];
+    return ["process"];
   }
 
   dispose(): void {
@@ -249,14 +251,15 @@ export class AlgorithmicReverbModule implements WasmDspModule {
     input: Float32Array,
     output: Float32Array,
     params: Float32Array,
-    sampleRate: number
+    sampleRate: number,
   ) => {
     if (sampleRate !== this.sampleRate) {
       this.reset(sampleRate);
     }
 
     const len = input.length;
-    const { mix, decay, preDelay, damping, width, modRate, modDepth } = this.params;
+    const { mix, decay, preDelay, damping, width, modRate, modDepth } =
+      this.params;
 
     // Early reflections via cascaded all-pass diffusers
     let earlyReflections = new Float32Array(input);
@@ -269,7 +272,7 @@ export class AlgorithmicReverbModule implements WasmDspModule {
         this.earlyDiffusers[apIdx],
         apIdx < 4 ? 29 + apIdx * 8 : 53 + apIdx * 6,
         fb,
-        this.writePtrs[apIdx]
+        this.writePtrs[apIdx],
       );
       earlyReflections = outputAp;
     }
@@ -288,7 +291,7 @@ export class AlgorithmicReverbModule implements WasmDspModule {
         this.lpStates[ch],
         modRate * (1 + ch * 0.12),
         modDepth * (1 + ch * 0.15),
-        0
+        0,
       );
       fdnOutputs.push(fdnOut);
     }
@@ -315,7 +318,7 @@ export class AlgorithmicReverbModule implements WasmDspModule {
       37,
       41,
       width,
-      this.writePtrs[this.writePtrs.length - 1] || 0
+      this.writePtrs[this.writePtrs.length - 1] || 0,
     );
 
     // Mix dry + wet
@@ -343,7 +346,7 @@ export const wasmReadyReverbKernel: DspKernelFn = (
   input: Float32Array,
   output: Float32Array,
   params: Float32Array,
-  sampleRate: number
+  sampleRate: number,
 ) => {
   // This is the exact kernel that would be compiled to Wasm.
   // The implementation is identical to kernelProcess above,
