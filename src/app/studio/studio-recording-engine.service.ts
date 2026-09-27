@@ -109,7 +109,21 @@ export class StudioRecordingEngineService implements OnDestroy {
       );
       return true;
     } catch (error) {
-      this.logger.error("StudioRecordingEngine: Initialization failed", error);
+      // NotFoundError = this machine has no microphone at all (headless CI,
+      // desktops without a mic). That is an expected environment, not a
+      // broken engine — warn so it does not read as a boot-time fault.
+      const name = (error as DOMException)?.name;
+      if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+        this.logger.warn(
+          'StudioRecordingEngine: no audio input device available; capture stays idle.',
+          error,
+        );
+      } else {
+        this.logger.error(
+          'StudioRecordingEngine: Initialization failed',
+          error,
+        );
+      }
       this.cleanup();
       return false;
     }

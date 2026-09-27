@@ -127,4 +127,56 @@ describe("AudioSessionService", () => {
 
     expect(wakeLockMock.request).toHaveBeenCalled();
   });
+
+  // ── Pre-armed mic init is gesture-gated, not boot-time ──
+  describe("pre-armed microphone", () => {
+    it("does NOT call getUserMedia during service construction", () => {
+      // A fresh TestBed instance: construction must not touch the engine.
+      recordingEngineMock.initialize.mockClear();
+      TestBed.inject(AudioSessionService);
+
+      expect(recordingEngineMock.initialize).not.toHaveBeenCalled();
+    });
+
+    it("initializes the armed channel after the first user gesture", async () => {
+      recordingEngineMock.initialize.mockClear();
+      TestBed.inject(AudioSessionService);
+
+      document.body.dispatchEvent(new Event("click"));
+      // The arm handler awaits initializeMic asynchronously.
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(recordingEngineMock.initialize).toHaveBeenCalledTimes(1);
+    });
+
+    it("initializes at most once even after several gestures", async () => {
+      recordingEngineMock.initialize.mockClear();
+      TestBed.inject(AudioSessionService);
+
+      for (let i = 0; i < 5; i += 1) {
+        document.body.dispatchEvent(new Event("click"));
+      }
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(recordingEngineMock.initialize).toHaveBeenCalledTimes(1);
+    });
+
+    it("degrades to a warning when the armed channel has no device", async () => {
+      recordingEngineMock.initialize.mockClear();
+      recordingEngineMock.initialize.mockRejectedValueOnce(
+        Object.assign(new Error("Requested device not found"), {
+          name: "NotFoundError",
+        }),
+      );
+      TestBed.inject(AudioSessionService);
+
+      document.body.dispatchEvent(new Event("click"));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(recordingEngineMock.initialize).toHaveBeenCalledTimes(1);
+    });
+  });
 });

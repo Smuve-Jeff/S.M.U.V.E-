@@ -71,10 +71,16 @@ export class AudioSessionService {
     // AudioEngineService already owns the instrument/master bus routing.
     // Connecting the master gain directly to destination here would bypass
     // the compressor, limiter, metering, and worklet chain.
-    const armed = this.micChannels().find((ch) => ch.armed);
-    if (armed) {
-      this.initializeMic(armed.id);
-    }
+    //
+    // The pre-armed "Lead Vocals" channel is NOT initialized here. Calling
+    // getUserMedia() from a constructor fires before any user gesture — which
+    // browsers reject or which hard-fails with NotFoundError on machines with
+    // no microphone (headless CI, desktops without a mic, some Android TV).
+    // That used to surface as "StudioRecordingEngine: Initialization failed:
+    // Requested device not found" on every Studio boot. Arm on the first
+    // real interaction instead (armOnFirstUserGesture), mirroring how the
+    // AudioContext itself is armed.
+    this.armOnFirstUserGesture();
 
     // Keep the display awake for the whole of a playing/recording session.
     // Android's screen timeout fires `visibilitychange`, which the listener
@@ -206,6 +212,47 @@ export class AudioSessionService {
   updateChannelDevice(id: string, deviceId: string): void {
     this.micChannels.update((channels) =>
       channels.map((ch) => (ch.id === id ? { ...ch, deviceId } : ch)),
+    );
+  }
+
+  /**
+   * Initialize the pre-armed mic channel on the first genuine user gesture.
+   * Browsers only expose real capture devices after a gesture, and devices
+   * without any microphone must degrade to "channel armed but idle" instead
+   * of spraying a boot-time NotFoundError.
+   */
+  private armOnFirstUserGesture(): void {
+    if (typeof document === 'undefined' || !document.body) return;
+    const events = ['click', 'touchstart', 'keydown'] as const;
+    let armed = false;
+    const arm = async () => {
+      if (armed) return;
+      const channel = this.micChannels().find((ch) => ch.armed);
+      if (!channel || this.recordingEngine.isInitialized()) {
+        cleanup();
+        return;
+      }
+      // One gesture is enough; the listener is removed either way.
+      cleanup();
+      armed = true;
+      try {
+        await this.initializeMic(channel.id);
+      } catch (error) {
+        // No mic / denied permission: the channel stays armed-but-idle and
+        // the Vocal Suite can retry with an explicit device pick.
+        this.logger.warn(
+          'AudioSession: pre-armed microphone unavailable; channel stays idle.',
+          error,
+        );
+      }
+    };
+    const cleanup = () =>
+      events.forEach((event) =>
+        document.body.removeEventListener(event, arm, { capture: true }),
+      );
+    this.destroyRef.onDestroy(cleanup);
+    events.forEach((event) =>
+      document.body.addEventListener(event, arm, { capture: true }),
     );
   }
 
