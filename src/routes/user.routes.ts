@@ -1,10 +1,32 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { AppError, parseIdParam } from "@/lib";
 import { authenticate, requireRole } from "@/middleware/auth";
-import { deleteUser, getUserById, listUsers, updateUser } from "@/services";
+import {
+  deleteUser,
+  getUserById,
+  listUsers,
+  updateUser,
+  verifyUserPassword,
+} from "@/services";
 import { userSchemas, validateBody } from "@/validators";
 
 const router = Router();
+
+/**
+ * Password rotation is a sensitive write guarded by a credential check, so the
+ * check itself needs a budget: keyed per account (not per IP) because the
+ * attacker already holds a session. Successful writes are not counted.
+ */
+const passwordChangeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => `password-change:${req.user?.userId ?? "unknown"}`,
+  message: { error: "Too many password change attempts. Try again in 15 minutes." },
+});
 
 // All user routes require authentication.
 router.use(authenticate);
@@ -34,20 +56,42 @@ router.get("/:id", async (req, res) => {
 });
 
 // PUT /api/user/:id — update own profile (admins may update anyone / roles)
-router.put("/:id", validateBody(userSchemas.update), async (req, res) => {
-  const id = parseIdParam(req.params.id);
-  const me = req.user;
-  if (!me) throw new AppError(401, "Authentication required");
+router.put(
+  "/:id",
+  passwordChangeLimiter,
+  validateBody(userSchemas.update),
+  async (req, res) => {
+    const id = parseIdParam(req.params.id);
+    const me = req.user;
+    if (!me) throw new AppError(401, "Authentication required");
 
-  if (me.role !== "admin" && id !== me.userId) {
-    throw new AppError(403, "You can only update your own profile");
-  }
-  if (req.body.role !== undefined && me.role !== "admin") {
-    throw new AppError(403, "Only admins can change roles");
-  }
+    if (me.role !== "admin" && id !== me.userId) {
+      throw new AppError(403, "You can only update your own profile");
+    }
+    if (req.body.role !== undefined && me.role !== "admin") {
+      throw new AppError(403, "Only admins can change roles");
+    }
 
-  res.json(await updateUser(id, req.body));
-});
+    const { currentPassword, ...patch } = req.body;
+
+    // Re-authenticate before a self-service password change. Admins resetting
+    // someone else's password are exempt: they never knew it to begin with.
+    if (patch.password !== undefined && id === me.userId) {
+      const proven =
+        typeof currentPassword === "string" &&
+        currentPassword.length > 0 &&
+        (await verifyUserPassword(id, currentPassword));
+      if (!proven) {
+        throw new AppError(
+          403,
+          "Your current password is required to set a new password",
+        );
+      }
+    }
+
+    res.json(await updateUser(id, patch));
+  },
+);
 
 // DELETE /api/user/:id — delete own profile (admins may delete anyone)
 router.delete("/:id", async (req, res) => {

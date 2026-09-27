@@ -456,6 +456,19 @@ export class AuthService {
         // Storage may be readable but refuse removal in restricted contexts.
       }
     }
+    // Terminating a session must also release the security state the account
+    // left in memory (CSRF token, rate-limit cache, enrollment artifacts), so
+    // the next sign-in cannot read anything that belonged to the previous one.
+    // Feature-detected: lightweight/embedded hosts provide the base service only.
+    try {
+      (
+        this.securityService as unknown as {
+          zeroizeSensitiveData?: () => unknown;
+        }
+      ).zeroizeSensitiveData?.();
+    } catch {
+      // Never let cleanup failure abort the logout itself.
+    }
     this.logger.info('AUTH_LOG: SESSION TERMINATED.');
   }
 

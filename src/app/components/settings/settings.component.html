@@ -1164,6 +1164,350 @@
           </div>
         </div>
 
+        <!-- 2FA Recovery Codes -->
+        <div class="security-module">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-1 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-primary mr-2"></span>
+            Recovery_Codes
+          </h4>
+          <p class="text-xs text-text-dim mb-4">
+            Single-use codes that restore access if the authenticator is lost.
+            <span class="text-brand-primary font-bold"
+              >{{ backupCodesRemaining() }}</span
+            >
+            unused.
+          </p>
+
+          <!-- One-time display: these exact codes never render twice. -->
+          <div
+            *ngIf="backupCodes().length"
+            class="bg-background/40 border border-brand-primary/30 rounded-2xl p-4"
+          >
+            <p class="text-[10px] font-black uppercase tracking-widest text-brand-primary mb-3">
+              Save these now — they will not be shown again
+            </p>
+            <div class="grid grid-cols-2 gap-2">
+              <code
+                *ngFor="let code of backupCodes()"
+                class="text-xs font-mono tracking-wider text-text-main bg-background-alt/40 rounded-lg px-2 py-1"
+                >{{ code }}</code
+              >
+            </div>
+            <div class="flex flex-wrap gap-2 mt-4">
+              <button
+                type="button"
+                (click)="copyBackupCodes()"
+                class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+              >
+                Copy_all
+              </button>
+              <button
+                type="button"
+                (click)="downloadBackupCodes()"
+                class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+              >
+                Download_txt
+              </button>
+              <button
+                type="button"
+                (click)="dismissBackupCodes()"
+                class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+              >
+                I_saved_them
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="!backupCodes().length" class="flex flex-col gap-3">
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                (click)="generateBackupCodes()"
+                class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+              >
+                Generate_codes
+              </button>
+              <button
+                *ngIf="backupCodesRemaining() > 0"
+                type="button"
+                (click)="revokeBackupCodes()"
+                class="px-4 py-2 glass-v42 border border-red-500/40 rounded-xl text-[10px] font-bold uppercase tracking-widest text-red-400 hover:border-red-500 transition-colors"
+              >
+                Revoke_all
+              </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <input
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="XXXXX-XXXXX"
+                [ngModel]="backupCodeInput()"
+                (ngModelChange)="backupCodeInput.set($event)"
+                class="smuve-input flex-1 min-w-[9rem] font-mono uppercase"
+                aria-label="Recovery code"
+              />
+              <button
+                type="button"
+                (click)="redeemBackupCode()"
+                class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+              >
+                Redeem
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Credential Rotation -->
+        <div class="security-module">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-1 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-secondary mr-2"></span>
+            Credential_Rotation
+          </h4>
+          <p class="text-xs text-text-dim mb-4">
+            Rotate the account password. Your current password is required, so a
+            hijacked session cannot silently take the account over.
+            <span *ngIf="settings().security.passwordUpdatedAt" class="block mt-1">
+              Last rotated
+              {{ settings().security.passwordUpdatedAt | date: 'mediumDate' }}.
+            </span>
+          </p>
+
+          <button
+            type="button"
+            (click)="togglePasswordChange()"
+            class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+          >
+            {{ passwordChangeOpen() ? 'Cancel_rotation' : 'Change_password' }}
+          </button>
+
+          <div *ngIf="passwordChangeOpen()" class="flex flex-col gap-3 mt-4">
+            <input
+              type="password"
+              autocomplete="current-password"
+              placeholder="Current password"
+              [ngModel]="passwordCurrent()"
+              (ngModelChange)="passwordCurrent.set($event)"
+              class="smuve-input w-full"
+              aria-label="Current password"
+            />
+            <input
+              type="password"
+              autocomplete="new-password"
+              placeholder="New password"
+              [ngModel]="passwordNew()"
+              (ngModelChange)="passwordNew.set($event)"
+              class="smuve-input w-full"
+              aria-label="New password"
+            />
+            <input
+              type="password"
+              autocomplete="new-password"
+              placeholder="Confirm new password"
+              [ngModel]="passwordConfirm()"
+              (ngModelChange)="passwordConfirm.set($event)"
+              class="smuve-input w-full"
+              aria-label="Confirm new password"
+            />
+
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2">
+                <div
+                  class="flex-1 h-1.5 rounded-full bg-background-alt/60 overflow-hidden"
+                >
+                  <div
+                    class="h-full transition-all duration-300"
+                    [ngClass]="
+                      passwordPolicy().valid
+                        ? 'bg-brand-primary'
+                        : 'bg-yellow-500'
+                    "
+                    [style.width.%]="passwordPolicy().score"
+                  ></div>
+                </div>
+                <span class="text-[9px] font-black text-text-dim uppercase tracking-widest"
+                  >{{ passwordPolicy().score }}%</span
+                >
+              </div>
+              <div
+                *ngFor="let failure of passwordPolicy().failures"
+                class="text-[10px] font-bold uppercase tracking-tight text-yellow-500"
+              >
+                • {{ failure }}
+              </div>
+              <div
+                *ngIf="passwordPolicy().valid"
+                class="text-[10px] font-bold uppercase tracking-tight text-brand-primary"
+              >
+                • Policy satisfied
+              </div>
+            </div>
+
+            <button
+              type="button"
+              (click)="changePassword()"
+              [disabled]="passwordBusy()"
+              class="px-4 py-2 glass-v42 border border-brand-primary/40 rounded-xl text-[10px] font-bold uppercase tracking-widest text-brand-primary hover:border-brand-primary transition-colors disabled:opacity-50"
+            >
+              {{ passwordBusy() ? 'Rotating…' : 'Update_password' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Idle Auto-Lock -->
+        <div class="security-module">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h4
+                class="text-sm font-black text-text-main uppercase tracking-widest mb-1 flex items-center"
+              >
+                <span class="w-1 h-4 bg-brand-primary mr-2"></span>
+                Idle_Auto_Lock
+              </h4>
+              <p class="text-xs text-text-dim">
+                Locks the shell and drops volatile secrets after inactivity.
+                Countdown:
+                <span class="text-brand-primary font-bold">{{ autoLockLabel() }}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              (click)="
+                updateSetting(
+                  'security',
+                  'autoLockEnabled',
+                  !settings().security.autoLockEnabled
+                )
+              "
+              class="toggle-btn"
+              [class.on]="settings().security.autoLockEnabled"
+            >
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+
+          <div class="mt-4">
+            <label class="setting-label">Idle window (minutes)</label>
+            <input
+              type="number"
+              min="1"
+              max="240"
+              [ngModel]="settings().security.autoLockMinutes"
+              (ngModelChange)="updateSetting('security', 'autoLockMinutes', $event)"
+              class="smuve-input w-full mt-2"
+            />
+          </div>
+
+          <div class="flex flex-wrap gap-2 mt-4">
+            <button
+              type="button"
+              (click)="lockSessionNow()"
+              class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+            >
+              Lock_now
+            </button>
+            <button
+              type="button"
+              (click)="unlockSession()"
+              class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+            >
+              Unlock_after_verification
+            </button>
+          </div>
+        </div>
+
+        <!-- Privacy / leak controls -->
+        <div class="security-module">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-1 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-secondary mr-2"></span>
+            Privacy_Leak_Controls
+          </h4>
+          <p class="text-xs text-text-dim mb-4">
+            Decide what leaves this device and this account. Off is the private
+            setting and the default.
+          </p>
+          <div class="permissions-grid">
+            <div
+              class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+            >
+              <div>
+                <h3 class="setting-title">Activity Status</h3>
+                <p class="text-xs text-text-dim">
+                  Broadcast live presence and what you are working on.
+                </p>
+              </div>
+              <button
+                type="button"
+                (click)="
+                  updateSetting(
+                    'security',
+                    'shareActivityStatus',
+                    !settings().security.shareActivityStatus
+                  )
+                "
+                class="toggle-btn"
+                [class.on]="settings().security.shareActivityStatus"
+              >
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+            <div
+              class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+            >
+              <div>
+                <h3 class="setting-title">Artist Discovery</h3>
+                <p class="text-xs text-text-dim">
+                  Let other artists find and contact this account.
+                </p>
+              </div>
+              <button
+                type="button"
+                (click)="
+                  updateSetting(
+                    'security',
+                    'allowCollaboratorDiscovery',
+                    !settings().security.allowCollaboratorDiscovery
+                  )
+                "
+                class="toggle-btn"
+                [class.on]="settings().security.allowCollaboratorDiscovery"
+              >
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+            <div
+              class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+            >
+              <div>
+                <h3 class="setting-title">Anonymous Diagnostics</h3>
+                <p class="text-xs text-text-dim">
+                  Share crash and performance data. Off keeps it on-device.
+                </p>
+              </div>
+              <button
+                type="button"
+                (click)="
+                  updateSetting(
+                    'security',
+                    'anonymousTelemetry',
+                    !settings().security.anonymousTelemetry
+                  )
+                "
+                class="toggle-btn"
+                [class.on]="settings().security.anonymousTelemetry"
+              >
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="setting-group">
           <label class="setting-label">Session Timeout (Seconds)</label>
           <input

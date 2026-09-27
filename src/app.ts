@@ -54,6 +54,28 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+/**
+ * Credential endpoints need a budget of their own. The global limiter (200
+ * requests / 15 min) is far too generous to stop password spraying or
+ * credential stuffing against /login, and it never sees the difference
+ * between a read and an authentication attempt.
+ *
+ * 10 attempts per IP per 15 minutes; successful sign-ins are not counted so a
+ * legitimate artist is never locked out by their own logins.
+ */
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: "Too many authentication attempts. Try again in 15 minutes." },
+});
+// Mounted before the auth router so the strict budget applies to credential
+// writes only — /api/auth/me and the OAuth popup keep the normal budget.
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+
 // Parse JSON bodies
 app.use(express.json());
 

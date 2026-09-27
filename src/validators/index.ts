@@ -80,8 +80,17 @@ export const userSchemas = {
         .optional(),
       email: emailField().optional(),
       password: passwordField().optional(),
+      // Proof of the *current* password. Required by the route for a
+      // self-service password change; optional so an admin can still reset a
+      // password they do not know.
+      currentPassword: z.string().min(1).max(100).optional(),
       role: z.enum(["user", "admin"]).optional(),
     })
+    // Strict: an update must name known fields only. Silently stripping extra
+    // keys lets a client smuggle fields (e.g. `id`, `createdAt`) into the patch
+    // and trusts the service layer to ignore them; refusing them outright keeps
+    // the write surface exactly as wide as this schema.
+    .strict()
     .refine((data) => Object.keys(data).length > 0, {
       message: "At least one field must be provided",
     }),

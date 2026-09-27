@@ -50,4 +50,74 @@ describe('SecurityService', () => {
     expect(audit.status).not.toBe('FORTIFIED');
     expect(audit.alerts).toEqual(expect.arrayContaining(['2FA is not enrolled']));
   });
+
+  it('enforces the same password policy the API enforces', () => {
+    expect(service.evaluatePasswordPolicy('Sup3rSecret!').valid).toBe(true);
+    expect(service.evaluatePasswordPolicy('weakpass1').valid).toBe(false);
+    expect(service.evaluatePasswordPolicy('Password1!').valid).toBe(false);
+    const short = service.evaluatePasswordPolicy('Ab1!');
+    expect(short.valid).toBe(false);
+    expect(short.failures).toEqual(
+      expect.arrayContaining(['Use at least 8 characters'])
+    );
+    // A stronger secret must score higher than a merely acceptable one.
+    expect(service.evaluatePasswordPolicy('Sup3rSecret!').score).toBeGreaterThan(
+      service.evaluatePasswordPolicy('Abcdef1!').score
+    );
+  });
+
+  it('issues single-use recovery codes and proves they cannot be replayed', async () => {
+    const codes = await service.generateBackupCodes(4);
+    expect(codes).toHaveLength(4);
+    expect(service.backupCodesRemaining()).toBe(4);
+
+    expect(await service.verifyBackupCode(codes[0])).toBe(true);
+    expect(service.backupCodesRemaining()).toBe(3);
+    // The same code must never be accepted twice.
+    expect(await service.verifyBackupCode(codes[0])).toBe(false);
+    expect(await service.verifyBackupCode('AAAAA-BBBBB')).toBe(false);
+    expect(service.backupCodesRemaining()).toBe(3);
+
+    service.clearBackupCodes();
+    expect(service.backupCodesRemaining()).toBe(0);
+    expect(await service.verifyBackupCode(codes[1])).toBe(false);
+  });
+
+  it('zeroizes every secret it holds when a session terminates', async () => {
+    await service.generateBackupCodes(2);
+    service.setCSRFToken('0123456789abcdef0123456789abcdef');
+    service.recordAttempt('login');
+    await service.logEvent('TEST', 'a logged event');
+
+    const report = service.zeroizeSensitiveData();
+
+    expect(report.wiped).toEqual(
+      expect.arrayContaining(['csrf_token', 'backup_code_hashes'])
+    );
+    expect(service.getCSRFToken()).not.toBe('0123456789abcdef0123456789abcdef');
+    expect(service.backupCodesRemaining()).toBe(0);
+    expect(service.logs()).toHaveLength(0);
+    expect(service.validateSession()).toBe(false);
+  });
+
+  it('locks the session once the idle window elapses and unlocks on demand', async () => {
+    service.configureAutoLock(true, 60_000);
+    const csrfBeforeLock = service.getCSRFToken();
+    // Move the activity marker past the configured idle window.
+    service.lastActivity.set(Date.now() - 61_000);
+
+    expect(service.autoLockRemainingMs()).toBe(0);
+    expect(service.lockNow('inactivity')).toBe(true);
+    expect(service.isLocked()).toBe(true);
+    expect(service.lockNow('inactivity')).toBe(false);
+
+    // Locking drops the volatile secret a locked shell must not keep using.
+    expect(service.validateSession()).toBe(false);
+    expect(service.getCSRFToken()).not.toBe(csrfBeforeLock);
+
+    expect(service.unlock()).toBe(true);
+    expect(service.isLocked()).toBe(false);
+    expect(service.validateSession()).toBe(true);
+    service.configureAutoLock(false);
+  });
 });

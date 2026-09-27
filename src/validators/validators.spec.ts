@@ -66,6 +66,23 @@ describe("userSchemas.update", () => {
     const result = userSchemas.update.safeParse({ name: "New Name" });
     expect(result.success).toBe(true);
   });
+
+  it("accepts a password change paired with proof of the current password", () => {
+    const result = userSchemas.update.safeParse({
+      currentPassword: "0ldSecret!",
+      password: "N3wSecret!",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("still rejects an unknown field alongside a password change", () => {
+    const result = userSchemas.update.safeParse({
+      password: "N3wSecret!",
+      currentPassword: "0ldSecret!",
+      isAdmin: true,
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("productSchemas.create", () => {

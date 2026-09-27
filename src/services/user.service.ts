@@ -100,6 +100,23 @@ export const updateUser = async (
   return toPublicUser(updated);
 };
 
+/**
+ * Compare a candidate password against the stored hash for `id`.
+ *
+ * Used to require proof of the current credential before a self-service
+ * password change: without it, anyone holding a live session (stolen token,
+ * unlocked device) could lock the real owner out by writing a new password.
+ */
+export const verifyUserPassword = async (
+  id: number,
+  candidate: string,
+): Promise<boolean> => {
+  if (typeof candidate !== "string" || candidate.length === 0) return false;
+  const user = await repo().findOneBy({ id });
+  if (!user || !user.password) return false;
+  return bcrypt.compare(candidate, user.password);
+};
+
 export const deleteUser = async (id: number): Promise<void> => {
   const result = await repo().delete({ id });
   if (!result.affected) throw new AppError(404, "User not found");

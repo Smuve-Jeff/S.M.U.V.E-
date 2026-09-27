@@ -1,5 +1,12 @@
 import { DatabaseService } from '../../services/database.service';
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import {
+  Component,
+  OnDestroy,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -13,6 +20,7 @@ import {
 import { UIService } from '../../services/ui.service';
 import { NotificationService } from '../../services/notification.service';
 import { SecurityService } from '../../services/security.service';
+import type { PasswordPolicyResult } from '../../services/security.service';
 import { MicrophoneService } from '../../services/microphone.service';
 import { AudioEngineService } from '../../services/audio-engine.service';
 import { AuthService } from '../../services/auth.service';
@@ -35,7 +43,7 @@ import {
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.css'],
 })
-export class SettingsComponent implements OnInit {
+export class SettingsComponent implements OnInit, OnDestroy {
   profileService = inject(UserProfileService);
   uiService = inject(UIService);
   notificationService = inject(NotificationService);
@@ -55,6 +63,22 @@ export class SettingsComponent implements OnInit {
   latencyCalibrationRunning = signal(false);
   twoFactorSetup = signal<{ secret: string; qrCodeUri: string } | null>(null);
   twoFactorCode = signal('');
+  /** One-time recovery codes, handed to the artist exactly once. */
+  backupCodes = signal<string[]>([]);
+  backupCodesRemaining = signal(0);
+  backupCodeInput = signal('');
+  /** Password rotation form + state. */
+  passwordChangeOpen = signal(false);
+  passwordCurrent = signal('');
+  passwordNew = signal('');
+  passwordConfirm = signal('');
+  passwordBusy = signal(false);
+  /** Auto-lock countdown mirror (ms); -1 means this host cannot track it. */
+  autoLockRemainingMs = signal(-1);
+  private autoLockTicker: ReturnType<typeof setInterval> | null = null;
+  private activityHandler: (() => void) | null = null;
+  /** Live policy readout so the form can never submit a rejected secret. */
+  passwordPolicy = computed(() => this.evaluatePassword(this.passwordNew()));
 
   settings = computed(() => {
     return this.withSettingsDefaults(this.profileService.profile().settings);
@@ -187,7 +211,12 @@ export class SettingsComponent implements OnInit {
     }
     this.securityService.fetchLogs();
     this.securityService.fetchSessions();
+    this.refreshSecurityControls();
     this.updateStorageStats();
+  }
+
+  ngOnDestroy() {
+    this.stopAutoLockTicker();
   }
 
   /** Consolidated write path — settings write through profile service immediately.
@@ -229,6 +258,11 @@ export class SettingsComponent implements OnInit {
     if (!enabled) {
       this.twoFactorSetup.set(null);
       this.twoFactorCode.set('');
+      // Disabling 2FA must also retire the artifacts that could bypass it:
+      // the enrolled TOTP secret and every outstanding recovery code.
+      this.securityCapability<() => boolean>('destroyTwoFactor')?.();
+      this.backupCodes.set([]);
+      this.backupCodesRemaining.set(0);
       this.updateSetting('security', 'twoFactorEnabled', false);
       return;
     }
@@ -248,14 +282,371 @@ export class SettingsComponent implements OnInit {
 
   async confirmTwoFactor() {
     const code = this.twoFactorCode().trim();
-    if (!/^\\d{6}$/.test(code) || !(await this.securityService.verify2FA(code))) {
+    if (!/^\d{6}$/.test(code) || !(await this.securityService.verify2FA(code))) {
       this.notificationService.show('That authenticator code could not be verified.', 'error');
       return;
     }
     this.updateSetting('security', 'twoFactorEnabled', true);
     this.twoFactorSetup.set(null);
     this.twoFactorCode.set('');
-    this.notificationService.show('Two-factor authentication is now active.', 'success');
+    await this.securityService.logEvent(
+      '2FA_ENABLED',
+      'Two-factor authentication was activated after a verified authenticator response.'
+    );
+    this.notificationService.show(
+      'Two-factor authentication is active. Issue recovery codes before you lose the device.',
+      'success'
+    );
+  }
+
+  // ─── Security capability wiring ───────────────────────────────────────────
+
+  /**
+   * Security helpers are feature-detected so embedded hosts — and lightweight
+   * test doubles — that only implement the base service still render.
+   */
+  private securityCapability<F extends (...args: any[]) => any>(
+    name: string
+  ): F | undefined {
+    const candidate = (this.securityService as unknown as Record<string, unknown>)[
+      name
+    ];
+    return typeof candidate === 'function'
+      ? (candidate.bind(this.securityService) as F)
+      : undefined;
+  }
+
+  /** Mirror the profile-backed auto-lock policy into the security service. */
+  private refreshSecurityControls() {
+    this.syncBackupCodeCount();
+    const security = this.settings().security;
+    const enabled = security.autoLockEnabled !== false;
+    const configure = this.securityCapability<
+      (enabled: boolean, timeoutMs?: number) => void
+    >('configureAutoLock');
+    if (!configure) return;
+    const minutes = Number(security.autoLockMinutes);
+    const window = Number.isFinite(minutes) && minutes > 0 ? minutes : 15;
+    configure(enabled, window * 60_000);
+    if (enabled) this.startAutoLockTicker();
+    else this.stopAutoLockTicker();
+  }
+
+  private syncBackupCodeCount() {
+    const read = this.securityCapability<() => number>('backupCodesRemaining');
+    const remaining = read?.();
+    if (typeof remaining === 'number') this.backupCodesRemaining.set(remaining);
+  }
+
+  /**
+   * Poll the idle countdown and reset it whenever the artist interacts. Without
+   * the activity listener the app would lock out an artist who never stopped
+   * working, so both halves ship together.
+   */
+  private startAutoLockTicker() {
+    if (this.autoLockTicker || typeof setInterval !== 'function') return;
+    this.autoLockTicker = setInterval(() => this.updateAutoLockCountdown(), 1000);
+    const noteActivity = this.securityCapability<() => void>('registerActivity');
+    if (noteActivity && !this.activityHandler && typeof window !== 'undefined') {
+      this.activityHandler = () => noteActivity();
+      for (const event of ['pointerdown', 'keydown', 'touchstart']) {
+        window.addEventListener(event, this.activityHandler, { passive: true });
+      }
+    }
+    this.updateAutoLockCountdown();
+  }
+
+  private stopAutoLockTicker() {
+    if (this.autoLockTicker) {
+      clearInterval(this.autoLockTicker);
+      this.autoLockTicker = null;
+    }
+    if (this.activityHandler && typeof window !== 'undefined') {
+      for (const event of ['pointerdown', 'keydown', 'touchstart']) {
+        window.removeEventListener(event, this.activityHandler);
+      }
+    }
+    this.activityHandler = null;
+  }
+
+  private updateAutoLockCountdown() {
+    const read = this.securityCapability<(now?: number) => number>(
+      'autoLockRemainingMs'
+    );
+    if (!read) {
+      this.autoLockRemainingMs.set(-1);
+      return;
+    }
+    const remaining = read();
+    this.autoLockRemainingMs.set(typeof remaining === 'number' ? remaining : -1);
+  }
+
+  /** Readable idle countdown for the auto-lock card. */
+  autoLockLabel(): string {
+    if (this.settings().security.autoLockEnabled === false) return 'Disabled';
+    const ms = this.autoLockRemainingMs();
+    if (ms < 0) return 'Tracking unavailable';
+    if (ms === 0) return 'Locked';
+    const total = Math.ceil(ms / 1000);
+    return `${Math.floor(total / 60)}m ${String(total % 60).padStart(2, '0')}s`;
+  }
+
+  /** Lock the session immediately; volatile secrets are dropped with it. */
+  lockSessionNow() {
+    const locked = this.securityCapability<(reason?: string) => boolean>('lockNow')?.(
+      'manual'
+    );
+    this.stopAutoLockTicker();
+    this.updateAutoLockCountdown();
+    this.notificationService.show(
+      locked
+        ? 'Session locked. Re-verify your identity to continue.'
+        : 'This build cannot lock the session.',
+      locked ? 'success' : 'error'
+    );
+  }
+
+  /** Release the lock after the artist has re-verified their credentials. */
+  unlockSession() {
+    const unlocked = this.securityCapability<() => boolean>('unlock')?.();
+    if (this.settings().security.autoLockEnabled !== false) {
+      this.startAutoLockTicker();
+    }
+    this.updateAutoLockCountdown();
+    this.notificationService.show(
+      unlocked ? 'Session unlocked.' : 'Session was not locked.',
+      unlocked ? 'success' : 'error'
+    );
+  }
+
+  // ─── Two-factor recovery codes ────────────────────────────────────────────
+
+  /** Issue fresh single-use recovery codes; the plaintext is shown once. */
+  async generateBackupCodes() {
+    if (!this.settings().security.twoFactorEnabled) {
+      this.notificationService.show(
+        'Enable two-factor authentication before issuing recovery codes.',
+        'error'
+      );
+      return;
+    }
+    const issue = this.securityCapability<(count?: number) => Promise<string[]>>(
+      'generateBackupCodes'
+    );
+    if (!issue) {
+      this.notificationService.show(
+        'Recovery codes are unavailable in this browser.',
+        'error'
+      );
+      return;
+    }
+    try {
+      const codes = await issue(10);
+      if (!codes?.length) throw new Error('empty');
+      this.backupCodes.set(codes);
+      this.backupCodesRemaining.set(codes.length);
+      this.backupCodeInput.set('');
+      await this.securityService.logEvent(
+        '2FA_RECOVERY_CODES_ISSUED',
+        'Recovery codes were generated and displayed in Settings.'
+      );
+      this.notificationService.show(
+        'Recovery codes ready. Store them offline — they are shown once.',
+        'success'
+      );
+    } catch {
+      this.notificationService.show('Recovery codes could not be generated.', 'error');
+    }
+  }
+
+  async copyBackupCodes() {
+    const codes = this.backupCodes();
+    if (!codes.length) return;
+    try {
+      await navigator.clipboard.writeText(codes.join('\n'));
+      this.notificationService.show('Recovery codes copied to the clipboard.', 'success');
+    } catch {
+      this.notificationService.show(
+        'Clipboard access was blocked — download the file instead.',
+        'error'
+      );
+    }
+  }
+
+  downloadBackupCodes() {
+    const codes = this.backupCodes();
+    if (!codes.length) return;
+    const report = this.securityCapability<(codes: string[]) => string>(
+      'buildBackupCodeExport'
+    );
+    const body = report?.(codes) ?? codes.join('\n');
+    try {
+      const url = URL.createObjectURL(new Blob([body], { type: 'text/plain' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'smuve-2fa-recovery-codes.txt';
+      link.rel = 'noopener';
+      link.click();
+      URL.revokeObjectURL(url);
+      this.notificationService.show('Recovery codes downloaded.', 'success');
+    } catch {
+      this.notificationService.show('Download blocked by the browser.', 'error');
+    }
+  }
+
+  /** Clear the one-time display; the service keeps only hashes. */
+  dismissBackupCodes() {
+    this.backupCodes.set([]);
+    this.backupCodeInput.set('');
+  }
+
+  /** Consume a saved recovery code (lost or wiped authenticator). */
+  async redeemBackupCode() {
+    const code = this.backupCodeInput().trim();
+    if (!code) {
+      this.notificationService.show('Enter one of your saved recovery codes.', 'error');
+      return;
+    }
+    const verify = this.securityCapability<(code: string) => Promise<boolean>>(
+      'verifyBackupCode'
+    );
+    const accepted = await verify?.(code);
+    if (!accepted) {
+      this.notificationService.show(
+        'That recovery code is not valid for this account.',
+        'error'
+      );
+      return;
+    }
+    this.syncBackupCodeCount();
+    this.backupCodeInput.set('');
+    this.notificationService.show(
+      'Recovery code accepted. Re-enroll your authenticator now.',
+      'success'
+    );
+  }
+
+  /** Revoke every outstanding recovery code after a suspected leak. */
+  async revokeBackupCodes() {
+    this.securityCapability<(reason?: string) => boolean>('clearBackupCodes')?.(
+      'Artist revoked all recovery codes from Settings.'
+    );
+    this.backupCodes.set([]);
+    this.backupCodeInput.set('');
+    this.syncBackupCodeCount();
+    this.notificationService.show('All recovery codes revoked.', 'success');
+  }
+
+  // ─── Password rotation ────────────────────────────────────────────────────
+
+  togglePasswordChange() {
+    const open = !this.passwordChangeOpen();
+    this.passwordChangeOpen.set(open);
+    if (!open) this.resetPasswordForm();
+  }
+
+  private resetPasswordForm() {
+    this.passwordCurrent.set('');
+    this.passwordNew.set('');
+    this.passwordConfirm.set('');
+  }
+
+  private evaluatePassword(value: string): PasswordPolicyResult {
+    const evaluate = this.securityCapability<
+      (password: string) => PasswordPolicyResult
+    >('evaluatePasswordPolicy');
+    return (
+      evaluate?.(value) ?? {
+        valid: false,
+        score: 0,
+        failures: ['Password policy check is unavailable'],
+      }
+    );
+  }
+
+  /**
+   * Rotate the account password. The API requires the current password for a
+   * self-service change, so a hijacked session cannot silently take over the
+   * account by writing a new secret.
+   */
+  async changePassword() {
+    if (this.passwordBusy()) return;
+    const current = this.passwordCurrent();
+    const next = this.passwordNew();
+
+    if (!current) {
+      this.notificationService.show(
+        'Enter your current password to confirm the change.',
+        'error'
+      );
+      return;
+    }
+    if (next !== this.passwordConfirm()) {
+      this.notificationService.show(
+        'The new password and its confirmation do not match.',
+        'error'
+      );
+      return;
+    }
+    if (next === current) {
+      this.notificationService.show(
+        'Choose a password you have not used on this account.',
+        'error'
+      );
+      return;
+    }
+    const policy = this.evaluatePassword(next);
+    if (!policy.valid) {
+      this.notificationService.show(
+        `Password rejected: ${policy.failures[0] ?? 'insufficient strength'}.`,
+        'error'
+      );
+      return;
+    }
+
+    const accountId = this.profileService.profile().id;
+    if (!accountId || accountId === 'current') {
+      this.notificationService.show(
+        'Password changes require a signed-in synced account.',
+        'error'
+      );
+      return;
+    }
+
+    this.passwordBusy.set(true);
+    try {
+      const token = this.tokenService.jwtToken();
+      await firstValueFrom(
+        this.http.put(
+          `${APP_SECURITY_CONFIG.api_url}/user/${accountId}`,
+          { currentPassword: current, password: next },
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        )
+      );
+      this.updateSetting('security', 'passwordUpdatedAt', Date.now());
+      await this.securityService.logEvent(
+        'PASSWORD_ROTATED',
+        'Account password was rotated from Settings.'
+      );
+      // Any grant riding the retired credential must not survive the rotation.
+      this.securityCapability<() => string[]>('invalidateVolatileSecrets')?.();
+      this.resetPasswordForm();
+      this.passwordChangeOpen.set(false);
+      this.notificationService.show(
+        'Password updated. Revoke any session you do not recognize below.',
+        'success'
+      );
+    } catch (error: any) {
+      const status = error?.status;
+      this.notificationService.show(
+        status === 401 || status === 403
+          ? 'Current password was rejected.'
+          : 'Password change failed. Please try again.',
+        'error'
+      );
+    } finally {
+      this.passwordBusy.set(false);
+    }
   }
 
   async requestPermission(name: string) {
@@ -359,6 +750,14 @@ export class SettingsComponent implements OnInit {
       const parsed = Number(value);
       value = Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
     }
+    // The idle auto-lock window is a bounded control: an empty or absurd value
+    // must fall back to a sane lock window rather than disable the guard.
+    if (key === 'autoLockMinutes') {
+      const parsed = Number(value);
+      value = Number.isFinite(parsed)
+        ? Math.min(240, Math.max(1, Math.round(parsed)))
+        : 15;
+    }
     // S.M.U.V.E. voice morph is permanently locked on — core identity feature
     if (category === 'ai' && key === 'aiVoiceShapeShiftEnabled') {
       value = true;
@@ -427,6 +826,7 @@ export class SettingsComponent implements OnInit {
     if (tab === 'security') {
       this.securityService.fetchLogs();
       this.securityService.fetchSessions();
+      this.refreshSecurityControls();
     }
     if (tab === 'storage') {
       this.updateStorageStats();

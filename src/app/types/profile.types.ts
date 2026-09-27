@@ -61,6 +61,18 @@ export interface AppSettings {
     biometricLock: boolean;
     auditLogEnabled: boolean;
     sessionTimeout: number;
+    /** Lock the shell automatically after a stretch of inactivity. */
+    autoLockEnabled: boolean;
+    /** Inactivity window in minutes before the auto-lock fires. */
+    autoLockMinutes: number;
+    /** Epoch (ms) of the last known password change; drives rotation nudges. */
+    passwordUpdatedAt: number;
+    /** Privacy: broadcast live activity/presence to other accounts. */
+    shareActivityStatus: boolean;
+    /** Privacy: let other artists find and message this account. */
+    allowCollaboratorDiscovery: boolean;
+    /** Privacy: send anonymous diagnostics/telemetry off the device. */
+    anonymousTelemetry: boolean;
   };
 }
 
@@ -497,6 +509,14 @@ export const initialProfile: UserProfile = {
       biometricLock: false,
       auditLogEnabled: true,
       sessionTimeout: 3600,
+      autoLockEnabled: true,
+      autoLockMinutes: 15,
+      passwordUpdatedAt: 0,
+      // Privacy-safe defaults: nothing leaves the device or the account
+      // unless the artist opts in explicitly.
+      shareActivityStatus: false,
+      allowCollaboratorDiscovery: true,
+      anonymousTelemetry: false,
     },
   },
   artistName: 'New Artist',
