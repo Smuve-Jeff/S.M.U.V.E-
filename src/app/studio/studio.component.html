@@ -676,19 +676,47 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'performance'">
-        <app-performance-mode
-          [pads]="performancePads()"
-          (padClicked)="onPerformancePadClicked($event)"
-        ></app-performance-mode>
+        @defer (on viewport) {
+          <app-performance-mode
+            [pads]="performancePads()"
+            (padClicked)="onPerformancePadClicked($event)"
+          ></app-performance-mode>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">interpreter_mode</span>
+            Setting the stage…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'performer'">
-        <app-performer></app-performer>
+        @defer (on viewport) {
+          <app-performer></app-performer>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">piano_off</span>
+            Tuning the performer…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'mastering'">
-        <app-mastering-suite></app-mastering-suite>
+        @defer (on viewport) {
+          <app-mastering-suite></app-mastering-suite>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">graphic_eq</span>
+            Cueing the mastering chain…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'ai-produce'">
-        <app-ai-produce></app-ai-produce>
+        @defer (on viewport) {
+          <app-ai-produce></app-ai-produce>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">psychology</span>
+            Waking the AI producer…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'dj'">
         @defer (on viewport) {
@@ -711,39 +739,116 @@
         }
       </div>
       <div class="comp-view" *ngSwitchCase="'channel-rack'">
-        <app-channel-rack></app-channel-rack>
+        @defer (on viewport) {
+          <app-channel-rack></app-channel-rack>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">inventory_2</span>
+            Opening the channel rack…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'effects-rack'">
-        <app-effects-rack-ui></app-effects-rack-ui>
+        @defer (on viewport) {
+          <app-effects-rack-ui></app-effects-rack-ui>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">magic_button</span>
+            Patching the rack…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'audio-recorder'">
-        <app-audio-recorder-view></app-audio-recorder-view>
+        @defer (on viewport) {
+          <app-audio-recorder-view></app-audio-recorder-view>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">mic_external_on</span>
+            Opening the recorder…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'sampler'">
-        <app-sampler></app-sampler>
+        @defer (on viewport) {
+          <app-sampler></app-sampler>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">graphic_eq</span>
+            Slicing samples…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'score'">
-        <app-score-view></app-score-view>
+        @defer (on viewport) {
+          <app-score-view></app-score-view>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">music_note</span>
+            Engraving the score…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'plugins'">
-        <app-plugin-store></app-plugin-store>
+        @defer (on viewport) {
+          <app-plugin-store></app-plugin-store>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">extension</span>
+            Stocking the plugin shelf…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'sample-library'">
-        <app-sample-library></app-sample-library>
+        @defer (on viewport) {
+          <app-sample-library></app-sample-library>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">library_music</span>
+            Opening the sample library…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'sound-browser'">
-        <app-sound-browser></app-sound-browser>
+        @defer (on viewport) {
+          <app-sound-browser></app-sound-browser>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">queue_music</span>
+            Browsing sounds…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'sound-pad'">
-        <app-sound-pad-grid></app-sound-pad-grid>
+        @defer (on viewport) {
+          <app-sound-pad-grid></app-sound-pad-grid>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">grid_on</span>
+            Warming the pads…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'synthesizer'">
-        <app-synthesizer [clip]="null"></app-synthesizer>
+        @defer (on viewport) {
+          <app-synthesizer [clip]="null"></app-synthesizer>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">waves</span>
+            Patching the synth…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchCase="'chord-editor'">
-        <app-chord-editor
-          (navigateToPianoRoll)="setActiveView('piano-roll')"
-        ></app-chord-editor>
+        @defer (on viewport) {
+          <app-chord-editor
+            (navigateToPianoRoll)="setActiveView('piano-roll')"
+          ></app-chord-editor>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">music_note</span>
+            Voicing chords…
+          </div>
+        }
       </div>
       <div class="comp-view" *ngSwitchDefault>
         <app-arrangement-view></app-arrangement-view>
@@ -962,7 +1067,7 @@
     <button
       type="button"
       role="tab"
-      class="comp-tab comp-tab-home"
+      class="comp-tab"
       (click)="navigateHome()"
       aria-label="Return to Home Hub"
     >

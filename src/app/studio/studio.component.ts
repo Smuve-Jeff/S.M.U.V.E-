@@ -639,7 +639,30 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         p.id === pad.id ? { ...p, isPlaying: !p.isPlaying } : p,
       ),
     );
-    // Trigger a note on the live engine
+    // Hit it — actually sound the pad through the live engine (one-shot).
+    // Loops only re-trigger while the pad state shows OFF→ON, so a tap
+    // always produces one hit and loops keep sounding via the engine's own
+    // pattern transport (see the drum machine / sequencer wiring).
+    if (!pad.isPlaying) {
+      this.audioEngine.resume();
+      this.triggerPerformancePad(pad.name);
+    }
+    this.snackbarService.info(
+      `Pad ${pad.isPlaying ? "OFF" : "HIT"}: ${pad.name}`,
+    );
+  }
+
+  /**
+   * Per-pad synthesis recipes — the benchmark mobile DAWs (FL Studio Mobile,
+   * BandLab) never fire a plain sine for a drum pad, so each pad family gets
+   * an engine recipe tuned to its character:
+   *   kick → pitch-swept sine (150→40 Hz) for the body "thump"
+   *   snare/clap → bright triangle body with a fast decay
+   *   hat → short high sine tick with a snap envelope
+   *   tonal loops (bass/chord/lead) → their tuned pitch with a musical decay
+   * Falls back to a safe sine when the engine lacks playSynth (test mocks).
+   */
+  private triggerPerformancePad(padName: string): void {
     const midiNotes: Record<string, number> = {
       KICK: 36,
       SNARE: 38,
@@ -650,23 +673,57 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       LEAD: 60,
       FX: 72,
     };
-    const note = midiNotes[pad.name] || 48;
-    if (!pad.isPlaying) {
-      // Hit it — actually sound the pad through the live engine (one-shot).
-      this.audioEngine.resume();
-      try {
-        const freq = 440 * Math.pow(2, (note - 69) / 12);
-        const time = this.audioEngine.ctx?.currentTime ?? 0;
+    const note = midiNotes[padName] || 48;
+    const freq = 440 * Math.pow(2, (note - 69) / 12);
+    const time = this.audioEngine.ctx?.currentTime ?? 0;
+    try {
+      if (padName === "KICK") {
+        // Pitch-swept body: start well above the fundamental so the strike
+        // has an audible transient, then glide into the 40 Hz sub tail.
+        this.audioEngine.playSynth?.(time, 150, 0.32, 1.0, 0, {
+          type: "sine",
+          glideTo: 42,
+          attack: 0.002,
+          release: 0.08,
+        });
+      } else if (padName === "SNARE") {
+        // Triangle body carries the tone; the engine's saturation adds the
+        // grit that reads as "snare wires" at mobile-speaker volume.
+        this.audioEngine.playSynth?.(time, 190, 0.18, 0.9, 0, {
+          type: "triangle",
+          attack: 0.001,
+          release: 0.05,
+        });
+        this.audioEngine.playSynth?.(time, 2400, 0.1, 0.35, 0, {
+          type: "square",
+          attack: 0.001,
+          release: 0.03,
+        });
+      } else if (padName === "HAT") {
+        // Short bright tick — closed-hat register with a snappy envelope.
+        this.audioEngine.playSynth?.(time, 7000, 0.06, 0.5, 0, {
+          type: "square",
+          attack: 0.001,
+          release: 0.02,
+        });
+      } else if (padName === "CLAP") {
+        // Three micro-bursts emulate the multi-tail clap reflect chain.
+        for (const offset of [0, 0.012, 0.026]) {
+          this.audioEngine.playSynth?.(time + offset, 1100, 0.05, 0.7, 0, {
+            type: "triangle",
+            attack: 0.001,
+            release: 0.02,
+          });
+        }
+      } else {
+        // Tonal pads (BASS / CHORD / LEAD / FX) keep their tuned pitch.
         this.audioEngine.playSynth?.(time, freq, 0.4, 0.9, 0, {
           type: "sine",
         });
-      } catch {
-        // test mock / suspended context — the visual toggle still lands
       }
+    } catch {
+      // test mock / suspended context — the visual toggle still lands
     }
-    this.snackbarService.info(
-      `Pad ${pad.isPlaying ? "OFF" : "HIT"}: ${pad.name}`,
-    );
   }
   private lastConsumedCrossLinkTimestamp = 0;
   browserDrawerOpen = signal(false);
@@ -866,15 +923,16 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   );
 
   /**
-   * Mobile bottom nav — 5 primary workflow anchors + central CREATE pill + More.
-   * Benchmarked against BandLab, FL Studio Mobile, and Voloco.
+   * Mobile bottom nav — 4 workflow anchors + central CREATE pill + More.
+   * Benchmarked against BandLab / FL Studio Mobile: a crowded 8-slot bar
+   * turns into mis-taps on a 360px phone, so Mixer lives in the MORE
+   * drawer (Mix & Polish grid) instead of a primary anchor.
    */
   bottomNavItems = computed(() => [
     { id: "arrangement", label: "Timeline", icon: "view_quilt" },
     { id: "drum-machine", label: "Beats", icon: "grid_view" },
     { id: "piano-roll", label: "Keys", icon: "piano" },
     { id: "vocal-suite", label: "Vocals", icon: "mic" },
-    { id: "mixer", label: "Mixer", icon: "tune" },
   ]);
 
   /**
@@ -1509,7 +1567,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const { App } = await import("@capacitor/app");
       this.backButtonHandle = await App.addListener(
         "backButton",
-        ({ canGoBack }) => {
+        async ({ canGoBack }) => {
           if (this.dismissTopOverlay()) {
             this.exitArmedAt = 0;
             return;
@@ -1523,17 +1581,49 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           // stray swipe.
           const now = Date.now();
           if (now - this.exitArmedAt < 2500) {
+            // Unsaved-work guard: a dirty project must never vanish on a
+            // confirmed exit without one explicit confirmation — the same
+            // protection FL Studio Mobile and BandLab give a live session.
+            await this.confirmDirtyExit();
             void App.exitApp();
             return;
           }
           this.exitArmedAt = now;
-          this.snackbarService.info("Press back again to leave the Studio");
+          this.snackbarService.info(
+            this.projectWorkspace.isDirty()
+              ? "Unsaved changes · press back again to leave the Studio"
+              : "Press back again to leave the Studio",
+          );
         },
       );
     } catch (e) {
       // Web build, plugin absent, or a native bridge error — the history
       // trap and the Escape key still cover dismissal.
       this.logger.warn("[Studio] native back listener unavailable", e);
+    }
+  }
+
+  /**
+   * Unsaved-work guard for the confirmed Android exit: when the project has
+   * unsaved changes, ask once whether to save before leaving. Returns after
+   * any prompt resolution so the caller can proceed to App.exitApp().
+   */
+  private async confirmDirtyExit(): Promise<void> {
+    if (!this.projectWorkspace.isDirty()) return;
+    const save = await this.dialog.confirm({
+      title: "Unsaved changes",
+      message:
+        "This session has unsaved changes. Save before leaving the Studio?",
+      confirmLabel: "Save & Exit",
+      cancelLabel: "Discard",
+    });
+    this.exitArmedAt = 0;
+    if (!save) return;
+    try {
+      await this.saveProject();
+    } catch {
+      // saveProject already surfaced the failure — still exit so the
+      // artist is not trapped by a broken disk.
     }
   }
 

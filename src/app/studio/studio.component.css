@@ -3071,14 +3071,8 @@
   overflow-y: auto; overflow-x: hidden;
 }
 
-/* ═══ MOBILE HOME TAB ═════════════════════════════════════ */
-.comp-tab-home {
-  border-right: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
-}
-
-.comp-tab-home .material-symbols-outlined {
-  color: var(--teal-500, #0e7c7b);
-}
+/* Mobile home tab now shares the standard .comp-tab look — the bespoke
+   accent was retired with the 6-slot bottom-bar redesign. */
 
 /* ═══ MOBILE RESPONSIVE ADJUSTMENTS ═══════════════════════ */
 @media (max-width: 768px) {
