@@ -1222,7 +1222,9 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   'smuve-classics': 'electricnow',
   'mastering-suite': 'documentary-plus',
   'live-stage-88': 'red-bull-tv',
-  'news-desk': 'france24-en',
+  // The industry's own channel, not world headlines: this desk reports the
+  // business, and the world desks are where world news belongs.
+  'news-desk': 'et-live',
   // Serialized drama, not a food channel.
   'story-mode': 'emotion-l',
   'the-making-of': 'red-bull-tv',
