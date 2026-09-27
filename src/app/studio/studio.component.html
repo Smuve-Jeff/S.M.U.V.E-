@@ -373,6 +373,19 @@
   >
     <button
       type="button"
+      class="comp-tool-btn comp-tool-create"
+      (click)="toggleSmartCreation()"
+      [class.comp-tool-active]="showSmartCreationSheet()"
+      title="1-Tap Smart Creation — genre starters, chord moods, vocal booth"
+      aria-label="Open 1-Tap Smart Creation Assistant"
+    >
+      <span class="material-symbols-outlined">bolt</span>
+      <span class="comp-tool-label">CREATE</span>
+      <span class="comp-tool-badge comp-tool-badge-smart">1-TAP</span>
+    </button>
+    
+    <button
+      type="button"
       class="comp-tool-btn"
       (click)="toggleAiMixAssistant()"
       [class.comp-tool-active]="showAiMixAssistant()"
@@ -517,11 +530,23 @@
       aria-labelledby="mobile-start-title"
     >
       <div class="comp-mobile-start-copy">
-        <span class="comp-mobile-start-kicker">QUICK START</span>
+        <div class="comp-mobile-start-kicker-row">
+          <span class="comp-mobile-start-kicker">1-TAP CREATION</span>
+          <span class="comp-mobile-start-badge">EASY MODE</span>
+        </div>
         <h2 id="mobile-start-title">Make something in 30 seconds.</h2>
-        <p>Pick a starting point. S.M.U.V.E. keeps the controls simple until you ask for more.</p>
+        <p>Pick a vibe or instant starter. S.M.U.V.E. loads the tracks, sounds and grooves automatically.</p>
       </div>
       <div class="comp-mobile-start-actions" role="group" aria-label="Quick create actions">
+        <button
+          type="button"
+          class="comp-mobile-start-action comp-mobile-start-hero"
+          (click)="toggleSmartCreation(true)"
+          aria-label="Open 1-Tap Smart Creation Assistant"
+        >
+          <span class="material-symbols-outlined">bolt</span>
+          <span><strong>1-Tap Starter</strong><small>Instant Beats &amp; Vocals</small></span>
+        </button>
         <button
           type="button"
           class="comp-mobile-start-action comp-mobile-start-primary"
@@ -543,20 +568,11 @@
         <button
           type="button"
           class="comp-mobile-start-action"
-          (click)="setActiveView('audio-recorder')"
+          (click)="toggleSmartCreation(true); setCreationTabVocals()"
           aria-label="Record a vocal idea"
         >
           <span class="material-symbols-outlined">mic</span>
-          <span><strong>Capture a take</strong><small>Voice Recorder</small></span>
-        </button>
-        <button
-          type="button"
-          class="comp-mobile-start-action"
-          (click)="setActiveView('ai-produce')"
-          aria-label="Open AI Produce for guided creation"
-        >
-          <span class="material-symbols-outlined">auto_awesome</span>
-          <span><strong>Ask S.M.U.V.E.</strong><small>AI Produce</small></span>
+          <span><strong>Capture a take</strong><small>Vocal Suite</small></span>
         </button>
       </div>
     </section>
@@ -906,7 +922,7 @@
     </div>
   </footer>
 
-  <!-- ====================== BOTTOM TAB BAR (Mobile FL pattern) ====================== -->
+  <!-- ====================== BOTTOM TAB BAR (Mobile Touch Optimized BandLab/FL pattern) ====================== -->
   <nav
     class="comp-bottombar"
     *ngIf="uiService.showMobileNav()"
@@ -921,12 +937,27 @@
       [class.comp-tab-active]="activeView() === item.id"
       (click)="setActiveView(item.id)"
       [attr.aria-selected]="activeView() === item.id"
-      [attr.aria-label]="'Switch to ' + item.label + ' view'"
+      [attr.aria-label]="item.label"
     >
       <span class="material-symbols-outlined">{{ item.icon }}</span>
       <span class="comp-tab-label">{{ item.label }}</span>
       <span class="comp-tab-indicator" aria-hidden="true"></span>
     </button>
+
+    <!-- Center 1-Tap CREATE Action Pill (BandLab / FL Studio Mobile prominent center trigger) -->
+    <button
+      type="button"
+      role="button"
+      class="comp-tab comp-tab-create-hero"
+      (click)="toggleSmartCreation()"
+      aria-label="1-Tap Smart Music Creation Assistant"
+      title="Open 1-Tap Smart Creation Assistant"
+    >
+      <div class="comp-create-pill-glow"></div>
+      <span class="material-symbols-outlined comp-create-hero-icon">bolt</span>
+      <span class="comp-tab-label">CREATE</span>
+    </button>
+
     <!-- Home tab (mobile) -->
     <button
       type="button"
@@ -939,20 +970,17 @@
       <span class="comp-tab-label">Home</span>
       <span class="comp-tab-indicator" aria-hidden="true"></span>
     </button>
-    <!-- "+" overflow button opens the full mobile drawer with all 10 views -->
+
+    <!-- "+" overflow button opens the categorized mobile drawer -->
     <button
       type="button"
       role="tab"
       class="comp-tab comp-tab-more"
       (click)="toggleMobileDrawer()"
-      [attr.aria-label]="
-        'Open full navigation (' +
-        (allStudioViews().length - bottomNavItems().length) +
-        ' more)'
-      "
+      aria-label="Open Studio view drawer and tools"
       [attr.aria-expanded]="mobileDrawerOpen()"
     >
-      <span class="material-symbols-outlined">more_horiz</span>
+      <span class="material-symbols-outlined">grid_view</span>
       <span class="comp-tab-label">MORE</span>
       <span class="comp-tab-indicator" aria-hidden="true"></span>
     </button>
@@ -981,16 +1009,42 @@
       </button>
     </header>
     <nav class="comp-drawer-nav" aria-label="Mobile navigation">
+      <!-- 1-Tap Smart Creation hero card inside drawer -->
       <button
-        *ngFor="let item of allStudioViews()"
-        (click)="setActiveView(item.id)"
-        [class.comp-drawer-active]="activeView() === item.id"
-        [class.comp-drawer-hidden]="item.hidden"
-        class="comp-drawer-item"
+        type="button"
+        class="comp-drawer-create-hero"
+        (click)="toggleSmartCreation(); toggleMobileDrawer()"
       >
-        <span class="material-symbols-outlined">{{ item.icon }}</span>
-        <span>{{ item.label }}</span>
+        <div class="comp-drawer-create-badge">⚡ 1-TAP STARTER</div>
+        <div class="comp-drawer-create-title">Smart Creation Assistant</div>
+        <div class="comp-drawer-create-desc">Instant Trap, R&amp;B, Lo-Fi, Chords &amp; Vocal Chain</div>
       </button>
+
+      <!-- 4 Intuitive Workflow Stages (Google Play Blueprint) -->
+      <div class="comp-drawer-categories">
+        <div
+          *ngFor="let cat of studioWorkflowCategories()"
+          class="comp-drawer-category-group"
+        >
+          <div class="comp-drawer-category-header">
+            <span class="material-symbols-outlined comp-drawer-cat-icon">{{ cat.icon }}</span>
+            <span class="comp-drawer-category-title">{{ cat.label }}</span>
+          </div>
+          <div class="comp-drawer-category-grid">
+            <button
+              *ngFor="let view of cat.views"
+              (click)="setActiveView(view.id); toggleMobileDrawer()"
+              [class.comp-drawer-active]="activeView() === view.id"
+              class="comp-drawer-grid-btn"
+              [title]="view.description"
+            >
+              <span class="material-symbols-outlined">{{ view.icon }}</span>
+              <span class="comp-drawer-grid-label">{{ view.label }}</span>
+              <span *ngIf="view.primary" class="comp-drawer-grid-pill">MAIN</span>
+            </button>
+          </div>
+        </div>
+      </div>
       <!-- ARM AUDIO + Theme in mobile drawer -->
       <button
         *ngIf="showArmAudioPip()"
@@ -2442,6 +2496,13 @@
   </aside>
 
   <!-- ====================== GLOBAL OVERLAYS (legacy) ====================== -->
+  <!-- ====================== SMART CREATION SHEET (Google Play 1-Tap Starter) ====================== -->
+  <app-smart-creation-sheet
+    *ngIf="showSmartCreationSheet()"
+    (closeSheet)="showSmartCreationSheet.set(false)"
+    (navigateToView)="setActiveView($any($event))"
+  ></app-smart-creation-sheet>
+
   <app-search-overlay></app-search-overlay>
   <app-snackbar></app-snackbar>
 

@@ -93,6 +93,7 @@ import { PluginStoreComponent } from './plugin-store/plugin-store.component';
 import { WaveformRendererComponent } from './waveform-renderer/waveform-renderer.component';
 import { StudioTransportShellComponent } from './shared/studio-transport-shell/studio-transport-shell.component';
 import { SessionViewComponent } from './session-view/session-view.component';
+import { SmartCreationSheetComponent } from './shared/smart-creation-sheet/smart-creation-sheet.component';
 import {
   StudioCoachAction,
   StudioCoachActionId,
@@ -210,6 +211,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     WaveformRendererComponent,
     StudioTransportShellComponent,
     SessionViewComponent,
+    SmartCreationSheetComponent,
   ],
   templateUrl: './studio.component.html',
   styleUrls: [
@@ -308,11 +310,29 @@ const THEME_LABEL: Record<AppTheme, string> = {
           display: grid;
           gap: 4px;
         }
+        .comp-mobile-start-kicker-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
         .comp-mobile-start-kicker {
           color: var(--stage-teal, #0e7c7b);
           font-size: 9px;
           font-weight: 900;
           letter-spacing: 0.14em;
+        }
+        .comp-mobile-start-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 7px;
+          border-radius: 9999px;
+          background: linear-gradient(135deg, rgba(14, 124, 123, 0.2), rgba(20, 184, 166, 0.3));
+          border: 1px solid rgba(14, 124, 123, 0.35);
+          color: #0e7c7b;
+          font-size: 8px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
         }
         .comp-mobile-start h2 {
           margin: 0;
@@ -349,9 +369,11 @@ const THEME_LABEL: Record<AppTheme, string> = {
           text-align: left;
           cursor: pointer;
           transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
         .comp-mobile-start-action:active {
-          transform: scale(0.98);
+          transform: scale(0.97);
         }
         .comp-mobile-start-action:hover,
         .comp-mobile-start-action:focus-visible {
@@ -387,6 +409,20 @@ const THEME_LABEL: Record<AppTheme, string> = {
         .comp-mobile-start-action small {
           color: var(--stage-muted, #7e7259);
           font-size: 9px;
+        }
+        .comp-mobile-start-hero {
+          background: linear-gradient(135deg, rgba(20, 184, 166, 0.22), rgba(14, 124, 123, 0.12), rgba(255, 255, 255, 0.9));
+          border: 1.5px solid rgba(20, 184, 166, 0.55);
+          box-shadow: 0 4px 14px rgba(20, 184, 166, 0.18);
+        }
+        .comp-mobile-start-hero .material-symbols-outlined {
+          background: linear-gradient(135deg, #14b8a6, #0e7c7b);
+          color: #ffffff;
+          box-shadow: 0 2px 8px rgba(20, 184, 166, 0.35);
+        }
+        .comp-mobile-start-hero strong {
+          color: #0d6e6d;
+          font-weight: 800;
         }
         .comp-mobile-start-primary {
           border-color: rgba(14, 124, 123, 0.32);
@@ -504,6 +540,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // ---- State ----
   activeView = signal<StudioView>('arrangement');
+  showSmartCreationSheet = signal(false);
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showAiAssistant = signal(false);
   showNeuralFoundry = signal(false);
@@ -800,15 +837,99 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   );
 
   /**
-   * Mobile bottom nav — capped at 4 main views + a "More" button.
-   * "More" toggles the existing mobileDrawer which lists all 11 views.
+   * Mobile bottom nav — 5 primary workflow anchors + central CREATE pill + More.
+   * Benchmarked against BandLab, FL Studio Mobile, and Voloco.
    */
   bottomNavItems = computed(() => [
-    { id: 'arrangement', label: 'Arrange', icon: 'view_quilt' },
-    { id: 'session', label: 'Session', icon: 'grid_view' },
-    { id: 'piano-roll', label: 'Piano', icon: 'piano' },
-    { id: 'mixer', label: 'Mix', icon: 'tune' },
+    { id: 'arrangement', label: 'Timeline', icon: 'view_quilt' },
+    { id: 'drum-machine', label: 'Beats', icon: 'grid_view' },
+    { id: 'piano-roll', label: 'Keys', icon: 'piano' },
+    { id: 'vocal-suite', label: 'Vocals', icon: 'mic' },
+    { id: 'mixer', label: 'Mixer', icon: 'tune' },
   ]);
+
+  /**
+   * Logical workflow domains for Google Play inspired DAW layout.
+   * Replaces the flat 22-item list with 4 clear stages.
+   */
+  studioWorkflowCategories = computed(() => [
+    {
+      id: 'create',
+      label: 'Create & Jam',
+      icon: 'auto_awesome',
+      description: 'Record takes, program drums, play synths & chords',
+      views: [
+        { id: 'drum-machine' as StudioView, label: 'Drum Machine', icon: 'grid_view', description: 'Step sequencer & beat builder', primary: true },
+        { id: 'piano-roll' as StudioView, label: 'Piano Roll', icon: 'piano', description: 'Keys, melody & note editing', primary: true },
+        { id: 'vocal-suite' as StudioView, label: 'Vocal Suite', icon: 'mic', description: 'Auto-pitch & real-time vocal chain', primary: true },
+        { id: 'audio-recorder' as StudioView, label: 'Quick Recorder', icon: 'mic_external_on', description: 'Instant voice memo & mic capture' },
+        { id: 'chord-editor' as StudioView, label: 'Chords', icon: 'music_note', description: '1-tap progressions & voicings' },
+        { id: 'sound-pad' as StudioView, label: 'Sound Pads', icon: 'grid_on', description: 'MPC-style touch finger drumming' },
+        { id: 'synthesizer' as StudioView, label: 'Synthesizer', icon: 'waves', description: 'Analog & wavetable synth voices' },
+        { id: 'ai-produce' as StudioView, label: 'AI Producer', icon: 'psychology', description: 'Prompt-guided beat generation' },
+      ],
+    },
+    {
+      id: 'arrange',
+      label: 'Song Builder',
+      icon: 'view_quilt',
+      description: 'Timeline arrangement, loops, patterns & score',
+      views: [
+        { id: 'arrangement' as StudioView, label: 'Arrangement', icon: 'view_quilt', description: 'Full song timeline & tracks', primary: true },
+        { id: 'session' as StudioView, label: 'Session View', icon: 'dashboard', description: 'Non-linear clip & loop launcher' },
+        { id: 'channel-rack' as StudioView, label: 'Channel Rack', icon: 'inventory_2', description: 'Instruments & pattern overview' },
+        { id: 'score' as StudioView, label: 'Score View', icon: 'music_note', description: 'Musical notation & sheet export' },
+      ],
+    },
+    {
+      id: 'mix',
+      label: 'Mix & Polish',
+      icon: 'tune',
+      description: '12-track console, dynamic FX, DJ & mastering',
+      views: [
+        { id: 'mixer' as StudioView, label: 'Mixer', icon: 'tune', description: '12-track fader console & routing', primary: true },
+        { id: 'effects-rack' as StudioView, label: 'Effects Rack', icon: 'magic_button', description: 'Dynamic VST audio inserts' },
+        { id: 'dj' as StudioView, label: 'DJ Booth', icon: 'album', description: 'Live platter decks & crossfader' },
+        { id: 'mastering' as StudioView, label: 'Mastering', icon: 'graphic_eq', description: 'Loudness maximizer & bus limiters' },
+        { id: 'performance' as StudioView, label: 'Performance', icon: 'interpreter_mode', description: 'Live performance scene triggers' },
+      ],
+    },
+    {
+      id: 'library',
+      label: 'Sounds & Packs',
+      icon: 'library_music',
+      description: 'Sample packs, instrument presets & audio tools',
+      views: [
+        { id: 'sound-browser' as StudioView, label: 'Sound Browser', icon: 'queue_music', description: 'Curated kits, bass & instruments' },
+        { id: 'sample-library' as StudioView, label: 'Sample Library', icon: 'library_music', description: 'Imported audio & loop storage' },
+        { id: 'sampler' as StudioView, label: 'Sampler', icon: 'graphic_eq', description: 'Sample slicing & key mapping' },
+        { id: 'plugins' as StudioView, label: 'Plugin Store', icon: 'extension', description: 'Pro studio effects & synthesizers' },
+      ],
+    },
+  ]);
+
+  /** Active category derived from the active view */
+  activeCategory = computed(() => {
+    const view = this.activeView();
+    for (const cat of this.studioWorkflowCategories()) {
+      if (cat.views.some((v) => v.id === view)) return cat.id;
+    }
+    return 'arrange';
+  });
+
+  /** Open or toggle the Smart Creation assistant */
+  toggleSmartCreation(open?: boolean): void {
+    this.haptic.light();
+    this.showSmartCreationSheet.update((curr) => (open !== undefined ? open : !curr));
+    if (this.showSmartCreationSheet()) {
+      this.studioTelemetry.trackEvent('smart_creation_opened', {}, true);
+    }
+  }
+
+  /** Quick helper to jump straight into vocal booth via smart sheet */
+  setCreationTabVocals(): void {
+    this.toggleSmartCreation(true);
+  }
 
   /**
    * Every studio view — rendered in the mobile side drawer.
@@ -862,6 +983,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // effect — no signal writes, so no effect-loop hazard.
     effect(() => {
       const openCount = [
+        this.showSmartCreationSheet(),
         this.showShortcuts(),
         this.showProjectMenu(),
         this.showAiAssistant(),
@@ -1169,6 +1291,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** True when any dismissible surface is open. Mirrors dismissTopOverlay(). */
   hasOpenOverlay(): boolean {
     return !!(
+      this.showSmartCreationSheet() ||
       this.showShortcuts() ||
       this.showProjectMenu() ||
       this.showAiAssistant() ||
@@ -1444,6 +1567,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * popovers/menus first, then right-slide panels, then the mobile drawer.
    */
   dismissTopOverlay(): boolean {
+    if (this.showSmartCreationSheet()) {
+      this.showSmartCreationSheet.set(false);
+      return true;
+    }
     if (this.showShortcuts()) {
       this.showShortcuts.set(false);
       return true;

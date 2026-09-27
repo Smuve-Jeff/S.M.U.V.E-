@@ -3615,3 +3615,219 @@
   z-index: 9998;
   background: transparent;
 }
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   GOOGLE PLAY BENCHMARK: 1-TAP CREATE BUTTON & CATEGORIZED DRAWER
+   BandLab / FL Studio Mobile ergonomic touch design
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* Topbar 1-Tap CREATE Button */
+.comp-tool-create {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.22) 0%, rgba(14, 124, 123, 0.35) 100%) !important;
+  border-color: rgba(45, 212, 191, 0.45) !important;
+  color: #5eead4 !important;
+  box-shadow: 0 0 12px rgba(20, 184, 166, 0.2);
+}
+
+.comp-tool-create:hover,
+.comp-tool-create:active {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.35) 0%, rgba(14, 124, 123, 0.5) 100%) !important;
+  border-color: rgba(94, 234, 212, 0.7) !important;
+  box-shadow: 0 0 18px rgba(20, 184, 166, 0.4);
+}
+
+.comp-tool-badge-smart {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  color: #031317;
+  font-weight: 800;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* Bottombar Center CREATE Hero Button (Mobile Touch) */
+.comp-tab-create-hero {
+  flex: 1.2 1 0;
+  background: linear-gradient(135deg, #0e7c7b 0%, #14b8a6 100%) !important;
+  color: #ffffff !important;
+  border-radius: 14px !important;
+  margin: 4px 6px !important;
+  box-shadow: 0 4px 16px rgba(20, 184, 166, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  position: relative;
+  overflow: hidden;
+  transform: translateY(-2px);
+  min-height: 48px;
+  font-weight: 800;
+}
+
+.comp-tab-create-hero:active {
+  transform: translateY(1px) scale(0.96) !important;
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
+}
+
+.comp-create-hero-icon {
+  font-size: 24px !important;
+  color: #ffffff;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+}
+
+.comp-tab-create-hero .comp-tab-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ffffff;
+}
+
+.comp-create-pill-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Categorized Drawer Navigation */
+.comp-drawer-create-hero {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.18) 0%, rgba(14, 124, 123, 0.25) 100%);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  text-align: left;
+  margin-bottom: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.comp-drawer-create-hero:active {
+  transform: scale(0.98);
+}
+
+.comp-drawer-create-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #5eead4;
+  background: rgba(20, 184, 166, 0.2);
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.comp-drawer-create-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin-bottom: 2px;
+}
+
+.comp-drawer-create-desc {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.comp-drawer-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.comp-drawer-category-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comp-drawer-category-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.comp-drawer-cat-icon {
+  font-size: 16px !important;
+  color: var(--teal-400, #2dd4bf);
+}
+
+.comp-drawer-category-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal-400, #2dd4bf);
+}
+
+.comp-drawer-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.comp-drawer-grid-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  min-height: 48px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--espresso-text, #cbd5e1);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.comp-drawer-grid-btn:hover,
+.comp-drawer-grid-btn:focus-visible {
+  background: rgba(20, 184, 166, 0.12);
+  border-color: rgba(45, 212, 191, 0.3);
+  color: #f1f5f9;
+}
+
+.comp-drawer-grid-btn:active {
+  transform: scale(0.97);
+}
+
+.comp-drawer-grid-btn.comp-drawer-active {
+  background: rgba(20, 184, 166, 0.22);
+  border-color: var(--teal-400, #2dd4bf);
+  color: #5eead4;
+  font-weight: 700;
+}
+
+.comp-drawer-grid-btn .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--teal-400, #2dd4bf);
+  flex-shrink: 0;
+}
+
+.comp-drawer-grid-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.comp-drawer-grid-pill {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(20, 184, 166, 0.25);
+  color: #5eead4;
+}

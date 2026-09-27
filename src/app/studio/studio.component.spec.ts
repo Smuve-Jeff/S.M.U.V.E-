@@ -615,6 +615,56 @@ describe('StudioComponent', () => {
     expect(stopPreview).toHaveBeenCalledTimes(1);
   });
 
+  // ── Smart Creation sheet host wiring ──
+  describe('smart creation sheet', () => {
+    it('opens and closes from the 1-Tap triggers', () => {
+      expect(component.showSmartCreationSheet()).toBe(false);
+
+      component.toggleSmartCreation();
+      expect(component.showSmartCreationSheet()).toBe(true);
+      expect(mockHaptic.light).toHaveBeenCalled();
+      expect(mockStudioTelemetry.trackEvent).toHaveBeenCalledWith(
+        'smart_creation_opened',
+        {},
+        true
+      );
+
+      component.toggleSmartCreation();
+      expect(component.showSmartCreationSheet()).toBe(false);
+
+      // The vocal shortcut and an explicit open both mount the sheet.
+      component.setCreationTabVocals();
+      expect(component.showSmartCreationSheet()).toBe(true);
+      component.toggleSmartCreation(false);
+      expect(component.showSmartCreationSheet()).toBe(false);
+    });
+
+    it('is the topmost dismissible surface for back/Escape', () => {
+      component.showShortcuts.set(true);
+      component.setCreationTabVocals();
+
+      expect(component.hasOpenOverlay()).toBe(true);
+      expect(component.dismissTopOverlay()).toBe(true);
+      expect(component.showSmartCreationSheet()).toBe(false);
+      // Dismissing the sheet must not also close what sits beneath it.
+      expect(component.showShortcuts()).toBe(true);
+
+      component.dismissTopOverlay();
+      expect(component.showShortcuts()).toBe(false);
+      expect(component.dismissTopOverlay()).toBe(false);
+    });
+
+    it('arms one history entry so the system back button unwinds it', () => {
+      const push = jest.spyOn(window.history, 'pushState');
+
+      component.toggleSmartCreation(true);
+      TestBed.flushEffects();
+      expect(push).toHaveBeenCalledTimes(1);
+
+      push.mockRestore();
+    });
+  });
+
   // ── Back navigation (Android system back / browser back) ──
   describe('back navigation', () => {
     it('treats the AI assistant as a dismissible surface', () => {

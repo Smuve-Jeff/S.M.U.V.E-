@@ -4,6 +4,7 @@ export type StudioTelemetryEventName =
   | 'studio_session_start'
   | 'studio_session_end'
   | 'view_changed'
+  | 'smart_creation_opened'
   | 'starter_recipe_seeded'
   | 'new_project_created'
   | 'template_applied'
