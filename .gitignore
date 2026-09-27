@@ -41,6 +41,7 @@ test-results/
 Build/
 dist/
 coverage/
+tsconfig.tsbuildinfo
 
 # Test and tooling caches/reports
 .playwright/
