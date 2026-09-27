@@ -1282,6 +1282,154 @@ export const SMUVE_TV_CHANNELS: readonly SmuveTvChannel[] = [
       show('rc-4', 'THE AFTER-SCHOOL RUN', 'Homework, postponed', 90, 'episode'),
     ],
   },
+
+  // ── Entertainment ──────────────────────────────────────
+  {
+    id: 'stunt-arena',
+    number: 166,
+    name: 'STUNT ARENA',
+    callSign: 'SA',
+    tagline: 'Wipeouts, fails, and spectacular recoveries.',
+    category: 'entertainment',
+    accent: '#F43F5E',
+    scene: 'neon-grid',
+    icon: 'bolt',
+    shows: [
+      show('sa-1', 'THE WIPEOUT BLOCK', 'Obstacle courses, no mercy', 60, 'episode'),
+      show('sa-2', 'EPIC FAILS', 'The ones that went wrong on camera', 30, 'episode'),
+      show('sa-3', 'FULL SEND', 'Big jumps, bigger consequences', 60, 'match'),
+      show('sa-4', 'THE RESCUE', 'Getting down was the hard part', 45, 'documentary'),
+    ],
+  },
+  {
+    id: 'kitchen-battle',
+    number: 167,
+    name: 'KITCHEN BATTLE',
+    callSign: 'KB',
+    tagline: 'Sharp knives, sharper judges.',
+    category: 'entertainment',
+    accent: '#FB923C',
+    scene: 'pulse',
+    icon: 'restaurant',
+    shows: [
+      show('kb-1', 'THE SERVICE', 'Order in, plates out', 60, 'live'),
+      show('kb-2', 'ELIMINATION', 'One dish decided it', 60, 'episode'),
+      show('kb-3', 'THE PANTRY RAID', 'Cook with what is left', 45, 'episode'),
+      show('kb-4', 'MASTERCLASS', 'Technique, demonstrated', 30, 'documentary'),
+    ],
+  },
+
+  // ── Movies ─────────────────────────────────────────────
+  {
+    id: 'movie-matinee',
+    number: 168,
+    name: 'MOVIE MATINEE',
+    callSign: 'MMT',
+    tagline: 'Daylight films, drawn curtains optional.',
+    category: 'movies',
+    accent: '#FACC15',
+    scene: 'skyline',
+    icon: 'movie',
+    shows: [
+      show('mt-1', 'THE MATINEE FEATURE', 'Afternoon cinema, start to finish', 120, 'feature'),
+      show('mt-2', 'THE SERIAL', 'Episodic cliffhangers, restored', 60, 'feature'),
+      show('mt-3', 'THE FAMILY PICK', 'The one everybody can watch', 90, 'feature'),
+      show('mt-4', 'THE CLOSING SHOW', 'One last film before dusk', 120, 'feature'),
+    ],
+  },
+
+  // ── Drama ──────────────────────────────────────────────
+  {
+    id: 'premiere-drama',
+    number: 169,
+    name: 'PREMIERE DRAMA',
+    callSign: 'PRD',
+    tagline: 'High stakes, long arcs, no easy endings.',
+    category: 'series',
+    accent: '#8B5CF6',
+    scene: 'orbit',
+    icon: 'drama',
+    shows: [
+      show('pdm-1', 'THE PREMIERE', 'Where the season commits', 60, 'episode'),
+      show('pdm-2', 'THE TURN', 'The episode everything hinged on', 60, 'episode'),
+      show('pdm-3', 'THE FINALE', 'Threads pulled, cards down', 90, 'episode'),
+      show('pdm-4', 'AFTERMATH', 'The consequences, uninterrupted', 60, 'episode'),
+    ],
+  },
+
+  // ── Sci-Fi ─────────────────────────────────────────────
+  {
+    id: 'deep-space',
+    number: 170,
+    name: 'DEEP SPACE',
+    callSign: 'DS',
+    tagline: 'Strange signals from very far away.',
+    category: 'series',
+    accent: '#4F46E5',
+    scene: 'orbit',
+    icon: 'rocket_launch',
+    shows: [
+      show('ds-1', 'FIRST CONTACT', 'Somebody answers back', 60, 'episode'),
+      show('ds-2', 'THE ANOMALY', 'Physics, politely ignored', 60, 'episode'),
+      show('ds-3', 'COLONY ONE', 'Everything that went wrong off-world', 90, 'feature'),
+      show('ds-4', 'THE LONG DARK', 'Deep-cold sleep, interrupted', 60, 'feature'),
+    ],
+  },
+
+  // ── Sitcoms ────────────────────────────────────────────
+  {
+    id: 'throwback-sitcoms',
+    number: 171,
+    name: 'THROWBACK SITCOMS',
+    callSign: 'TSN',
+    tagline: 'The laughs that ruled the reruns.',
+    category: 'comedy',
+    accent: '#A855F7',
+    scene: 'skyline',
+    icon: 'sentiment_satisfied',
+    shows: [
+      show('tbs-1', 'THE NINETIES BLOCK', 'When the laugh track was law', 60, 'episode'),
+      show('tbs-2', 'THE 2000s SLATE', 'Multicams before the streamers', 60, 'episode'),
+      show('tbs-3', 'THE COLD OPEN', 'The bit before the theme song', 45, 'episode'),
+      show('tbs-4', 'THE ALL-NIGHT MARATHON', 'Reruns until the sun wins', 120, 'episode'),
+    ],
+  },
+
+  // ── Cartoons ───────────────────────────────────────────
+  {
+    id: 'anime-action',
+    number: 172,
+    name: 'ANIME ACTION',
+    callSign: 'ANX',
+    tagline: 'Subbed fury, dubbed spectacle.',
+    category: 'cartoons',
+    accent: '#EC4899',
+    scene: 'neon-grid',
+    icon: 'auto_awesome',
+    shows: [
+      show('aa-1', 'THE SHONEN BLOCK', 'Power levels, endlessly raised', 60, 'episode'),
+      show('aa-2', 'MECHA HOUR', 'Metal bigger than buildings', 60, 'episode'),
+      show('aa-3', 'THE ARC', 'Twelve episodes, one setup', 90, 'episode'),
+      show('aa-4', 'THE MOVIE', 'One feature, fully animated', 120, 'feature'),
+    ],
+  },
+  {
+    id: 'kids-world',
+    number: 173,
+    name: 'KIDS WORLD',
+    callSign: 'KW',
+    tagline: 'Bright, kind, and always on.',
+    category: 'cartoons',
+    accent: '#22C55E',
+    scene: 'pulse',
+    icon: 'child_care',
+    shows: [
+      show('kw-1', 'THE MORNING CLUB', 'Songs, colors, and counting', 60, 'episode'),
+      show('kw-2', 'ADVENTURE BUDDIES', 'Small heroes, big days', 60, 'episode'),
+      show('kw-3', 'STORY TIME', 'The book, read out loud', 30, 'episode'),
+      show('kw-4', 'THE WIND-DOWN', 'Gentle shapes for the end of the day', 45, 'episode'),
+    ],
+  },
 ];
 
 /** Total minutes in one rotation of a station's schedule. */

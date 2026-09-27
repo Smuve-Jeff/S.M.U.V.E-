@@ -1042,6 +1042,159 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
     operator: 'Dhar Mann',
     source: 'Free ad-supported (FAST)',
   },
+  // ── Popular licensed channels ─────────────────────────
+  // Big-brand operator channels, held to the same bar as everything above:
+  // master manifest fetched, variant playlist followed, and real media bytes
+  // downloaded before any of them was added.
+  {
+    id: 'nbc-comedy-vault',
+    name: 'NBC COMEDY VAULT',
+    url: 'https://xumo-xumoent-vc-105-z0vpm.fast.nbcuni.com/live/master.m3u8',
+    genre: 'comedy',
+    operator: 'NBCUniversal',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'nbc-lx',
+    name: 'NBC LX',
+    url: 'https://nbculocallive.akamaized.net/hls/live/2037096/lx/use1.m3u8',
+    genre: 'entertainment',
+    operator: 'NBCUniversal',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'et-live',
+    name: 'ET LIVE',
+    url: 'https://dai.google.com/linear/hls/event/xrVrJYTmTfitfXBQfeZByQ/master.m3u8',
+    genre: 'entertainment',
+    operator: 'Paramount Global',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'tmz',
+    name: 'TMZ',
+    url: 'https://pb-ryciga1q62u8o.akamaized.net/TMZ.m3u8',
+    genre: 'entertainment',
+    operator: 'TMZ',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'buzzr',
+    name: 'BUZZR',
+    url: 'https://buzzrota-ono.amagi.tv/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Fremantle',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'gsn',
+    name: 'GAME SHOW NETWORK',
+    url: 'https://a-cdn.klowdtv.com/live2/gsn_720p/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Game Show Network',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'absolute-reality',
+    name: 'ABSOLUTE REALITY BY WE TV',
+    url: 'https://amc-absolutereality-1-us.plex.wurl.tv/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'AMC Networks',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'tvs-comedy',
+    name: 'TVS COMEDY NETWORK',
+    url: 'https://rpn.bozztv.com/gusa/gusa-tvscomedy/index.m3u8',
+    genre: 'comedy',
+    operator: 'TVS Network',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'afhv',
+    name: "AMERICA'S FUNNIEST HOME VIDEOS",
+    url: 'https://d1mp1kdk5zi1ie.cloudfront.net/playlist.m3u8',
+    genre: 'comedy',
+    operator: "America's Funniest Home Videos",
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'hallmark-movies-more',
+    name: 'HALLMARK MOVIES & MORE',
+    url: 'https://pb-clwlfvkqpn19r.akamaized.net/Hallmark_Movies_&_More.m3u8',
+    genre: 'movies',
+    operator: 'Hallmark Media',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'asiancrush',
+    name: 'ASIANCRUSH',
+    url: 'https://linear-900.frequency.stream/dist/cineverse/900/hls/master/playlist.m3u8',
+    genre: 'movies',
+    operator: 'Cineverse',
+    source: 'Free ad-supported (FAST)',
+  },
+  // ── Popular licensed channels, second pass ─────────────
+  // Sci-fi, drama, and court channels found across four independent public
+  // channel lists, then verified the same way: manifest, variant playlist, and
+  // real media bytes. Candidates that only parsed, or whose segments answered
+  // 403, were left out.
+  {
+    id: 'doctor-who-classic',
+    name: 'BBC DOCTOR WHO CLASSIC',
+    url: 'https://bbc-classicdrwho-1-us.roku.wurl.tv/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'BBC Studios',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'rakuten-scifi',
+    name: 'RAKUTEN TV SCI-FI',
+    url: 'https://sci-fi-rakuten-tv-uk.fast.rakuten.tv/v1/master/0547f18649bd788bec7b67b746e47670f558b6b2/production-LiveChannel-6241/master.m3u8',
+    genre: 'entertainment',
+    operator: 'Rakuten TV',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'bbc-drama',
+    name: 'BBC DRAMA',
+    url: 'https://amg00793-amg00793c40-rakuten-es-5444.playouts.now.amagi.tv/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'BBC Studios',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'law-and-crime',
+    name: 'LAW & CRIME',
+    url: 'https://a-cdn.klowdtv.com/live3/law_720p/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Law&Crime TV',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'divorce-court',
+    name: 'DIVORCE COURT',
+    url: 'https://d2ydcdd81wyosr.cloudfront.net/playlist.m3u8',
+    genre: 'entertainment',
+    operator: ' Divorce Court',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'cuttings-court',
+    name: "CUTTING COURT",
+    url: 'https://d19h40d1rxo1la.cloudfront.net/playlist.m3u8',
+    genre: 'entertainment',
+    operator: 'Cutting Court',
+    source: 'Free ad-supported (FAST)',
+  },
+  {
+    id: 'cinevault-classics',
+    name: 'CINEVAULT CLASSICS',
+    url: 'https://gsn-cinevault-classics-1-us.roku.wurl.tv/playlist.m3u8',
+    genre: 'movies',
+    operator: 'Game Show Network',
+    source: 'Free ad-supported (FAST)',
+  },
 ];
 
 /**
@@ -1051,21 +1204,27 @@ export const SMUVE_TV_LIVE_FEEDS: readonly SmuveTvLiveFeed[] = [
  */
 const STATION_FEEDS: Readonly<Record<string, string>> = {
   'smuve-one': 'cw-forever',
-  'producers-desk': 'bet-tyler-perry-comedy',
-  'neural-uplink': 'degrassi',
-  'sample-vault': '21-jump-street',
+  // Music-culture documentaries rather than whatever happened to be nearest:
+  // a production desk fed a sitcom channel is a channel nobody believes.
+  'producers-desk': 'vice',
+  // Ideas on air: TED fits a station about model telemetry.
+  'neural-uplink': 'ted',
+  // The vault tells the stories behind the legends.
+  'sample-vault': 'biography-icons',
   'beat-battle-arena': 'bbc-comedy',
   'arcade-after-dark': 'mst3k',
   'tha-spot-live': 'red-bull-tv',
   'cinema-engine-one': 'great-movies',
   // Rain, neon, and a bad decision: the noir desk is fed film, not music.
   'noir-channel': 'midnight-pulp',
-  'deep-focus': 'antiques-roadshow-uk',
+  // Calm, wordless nature is the closest verified feed to an ambient bed.
+  'deep-focus': 'pbs-nature',
   'smuve-classics': 'electricnow',
   'mastering-suite': 'documentary-plus',
   'live-stage-88': 'red-bull-tv',
   'news-desk': 'france24-en',
-  'story-mode': 'tastemade',
+  // Serialized drama, not a food channel.
+  'story-mode': 'emotion-l',
   'the-making-of': 'red-bull-tv',
   // ── Sports ─────────────────────────────────────────────
   'smuve-sports': 'bein-sports-xtra',
@@ -1087,7 +1246,7 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   'the-weather-desk': 'accuweather-now',
   // ── Documentary ────────────────────────────────────────
   'history-vault': 'history-hit',
-  'wild-earth': 'inwild',
+  'wild-earth': 'wildearth',
   'the-blue-planet': 'love-the-planet',
   'wonder-lab': 'inwonder',
   'expedition': 'magellantv-now',
@@ -1095,20 +1254,26 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   'the-courtroom': 'court-tv',
   'true-crime-archive': 'inside-crime',
   // ── Television, Entertainment & Movies ─────────────────
-  'prime-sitcoms': 'bet-tyler-perry-comedy',
-  'family-sitcoms': 'dry-bar-comedy',
+  // TVS airs the classic sitcom library; the Tyler Perry channel carries the
+  // family sitcoms, so neither station is fed a stand-up channel any more.
+  'prime-sitcoms': 'tvs-comedy',
+  'family-sitcoms': 'bet-tyler-perry-comedy',
   'workplace-sitcoms': 'portlandia',
   'standup-spotlight': 'jfl-gags',
-  'modern-movies': 'the-asylum',
+  // Hallmark's own channel rather than mockbuster fare.
+  'modern-movies': 'hallmark-movies-more',
   'feelgood-movies': 'lifetime-love-and-drama',
   'movie-marathon': 'gravitas-movies',
   'classic-drama': 'electricnow',
   'teen-drama': 'degrassi',
-  'crime-series': 'acorn-mysteries',
-  'reality-roundup': 'americas-got-talent',
-  'game-night': 'deal-or-no-deal',
+  'crime-series': 'law-and-crime',
+  // A whole reality network rather than a single reality show.
+  'reality-roundup': 'absolute-reality',
+  // BUZZR is the Family Feud / Match Game channel — the classic rounds.
+  'game-night': 'buzzr',
   'talent-stage': 'americas-got-talent',
-  'pop-lifestyle': 'bon-appetit',
+  // NBC's lifestyle & entertainment channel.
+  'pop-lifestyle': 'nbc-lx',
   // ── Movies & Cinema ────────────────────────────────────
   'movies-classic': 'shout-tv',
   // ── Comedy ─────────────────────────────────────────────
@@ -1122,10 +1287,21 @@ const STATION_FEEDS: Readonly<Record<string, string>> = {
   // ── Black Cinema ───────────────────────────────────────
   'black-cinema-classics': 'maverick-black-cinema',
   // ── Series ─────────────────────────────────────────────
-  'star-trek-tng': 'electricnow',
+  'star-trek-tng': 'rakuten-scifi',
   // ── Vintage ────────────────────────────────────────────
   'vintage-classics': 'cw-gold',
   'game-show-classics': 'lets-make-a-deal-classic',
+  // ── The Pluto-style expansion: Entertainment, Movies, Drama,
+  // ── Sci-Fi, Sitcoms, and Cartoons ───────────────────────
+  'stunt-arena': 'wipeout-xtra',
+  'kitchen-battle': 'hells-kitchen',
+  'movie-matinee': 'dove-channel',
+  'premiere-drama': 'bbc-drama',
+  // A real sci-fi channel, rather than horror films standing in for science.
+  'deep-space': 'doctor-who-classic',
+  'throwback-sitcoms': 'nbc-comedy-vault',
+  'anime-action': 'filmrise-anime',
+  'kids-world': 'toon-goggles',
 };
 
 /**
