@@ -158,6 +158,10 @@ interface Evidence {
   /** Release-record facts. */
   documentedReleaseCount: number;
   deliveredReleaseCount: number;
+  /** Collector uplinks — where digital and mechanical money is claimed. */
+  hasSoundExchange: boolean;
+  hasMlc: boolean;
+  hasPublishingAdmin: boolean;
   /** PRO / legal facts. */
   proAffiliation: string;
   proIdentity: string;
@@ -455,6 +459,46 @@ const STEPS: Array<
           ...(Array.isArray(item.platforms) && item.platforms.length
             ? []
             : ['the platforms the work is live on']),
+        ]
+      );
+    },
+  },
+
+  {
+    id: 'release-identifiers',
+    area: 'release',
+    order: 4,
+    title: 'Give every work its official identifiers',
+    outcome: 'An ISRC on the recording, an ISWC on the composition, and a UPC on the release \u2014 all recorded in the catalog uplink.',
+    why: 'Identifiers are the address of the work: stores, PROs, SoundExchange, The MLC, and Content ID all match money to a release through them. A work without them cannot be paid, matched, or tracked.',
+    actions: [
+      'Take the ISRC the distributor assigns to each recording, or register one through a rights body.',
+      'Register the composition with the PRO and keep the ISWC it issues.',
+      'Record the release UPC and store all three codes against the work.',
+    ],
+    evidence: 'At least one work carrying an ISRC, an ISWC, and a UPC.',
+    // Identifiers live on each work in the catalog, edited in the profile's
+    // release-history editor — not in the hub.
+    recordedWith: 'profile',
+    effort: 'days',
+    cost: 'free',
+    requires: ['release-delivery'],
+    evaluate: (e) => {
+      const hasAll = (item: any) => item.isrc && item.iswc && item.upc;
+      const hasAny = (item: any) => item.isrc || item.iswc || item.upc;
+      return check(
+        e.catalog.some(hasAll),
+        e.catalog.some(hasAny),
+        [
+          ...(e.catalog.some((item) => item.isrc)
+            ? []
+            : ['an ISRC on a recording']),
+          ...(e.catalog.some((item) => item.iswc)
+            ? []
+            : ['an ISWC on the composition']),
+          ...(e.catalog.some((item) => item.upc)
+            ? []
+            : ['a UPC on the release']),
         ]
       );
     },
@@ -829,6 +873,39 @@ const STEPS: Array<
         ]
       ),
   },
+  {
+    id: 'money-collectors',
+    area: 'money',
+    order: 4,
+    title: 'Register with the digital and mechanical collectors',
+    outcome: 'SoundExchange and The MLC claimed, so non-interactive streams and mechanical royalties stop going uncollected.',
+    why: 'A PRO pays performance royalties only. Digital radio pays through SoundExchange, and US mechanicals pay through The MLC. Money from both sits in a pool unclaimed until the artist registers.',
+    actions: [
+      'Register the master recordings with SoundExchange (free, US).',
+      'Claim the account with The MLC and confirm the compositions are matched.',
+      'Add a publishing administrator such as Songtrust for worldwide collection.',
+    ],
+    evidence: 'A SoundExchange link and a The MLC link recorded on the official profiles.',
+    destinationId: 'soundexchange',
+    // Collector uplinks are official-profile links, added in the profile's
+    // online-fingerprint pane — not in the hub.
+    recordedWith: 'profile',
+    effort: 'days',
+    cost: 'free',
+    requires: ['rights-pro', 'release-first-work'],
+    evaluate: (e) =>
+      check(
+        e.hasSoundExchange && e.hasMlc,
+        e.hasSoundExchange || e.hasMlc || e.hasPublishingAdmin,
+        [
+          ...(e.hasSoundExchange ? [] : ['a SoundExchange registration']),
+          ...(e.hasMlc ? [] : ['a The MLC account']),
+          ...(e.hasPublishingAdmin
+            ? []
+            : ['a publishing administrator for worldwide mechanicals']),
+        ]
+      ),
+  },
 
   // ── Audience & Live ─────────────────────────────────────────────────────
   {
@@ -1198,6 +1275,13 @@ export class ArtistPathwayService {
       deliveredReleaseCount: catalog.filter(
         (item) => item.distributor && item.releaseDate
       ).length,
+      hasSoundExchange: links.some(
+        (link) => String(link?.destinationId || '') === 'soundexchange'
+      ),
+      hasMlc: links.some((link) => String(link?.destinationId || '') === 'the-mlc'),
+      hasPublishingAdmin: links.some((link) =>
+        ['songtrust', 'harry-fox'].includes(String(link?.destinationId || ''))
+      ),
       proAffiliation: str(legal.proAffiliation),
       proIdentity: [str(p.proName), str(p.proIpi)].filter(Boolean).join(' / '),
       registeredWorks: legal.hasRegisteredWorks === true,

@@ -1275,6 +1275,58 @@
             </div>
           </div>
 
+          <!-- Official catalog uplink: identifiers, delivery, monitoring -->
+          <div class="identity-panel p-8 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-6">
+              <div>
+                <div
+                  class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]"
+                >
+                  Catalog uplink
+                </div>
+                <div class="text-4xl font-black text-white mt-2">
+                  {{ catalogUplink().score }}%
+                </div>
+                <div
+                  class="text-[9px] uppercase font-bold tracking-widest text-slate-500 mt-2"
+                >
+                  {{ catalogUplink().totals.withIsrc }}/{{ catalogUplink().totals.works }} ISRC ·
+                  {{ catalogUplink().totals.withIswc }}/{{ catalogUplink().totals.works }} ISWC ·
+                  {{ catalogUplink().totals.withUpc }}/{{ catalogUplink().totals.works }} UPC
+                </div>
+                <div
+                  class="text-[9px] uppercase font-bold tracking-widest mt-1"
+                  [class.text-emerald-400]="
+                    catalogUplink().totals.monitored === catalogUplink().totals.live
+                  "
+                  [class.text-amber-400]="
+                    catalogUplink().totals.monitored !== catalogUplink().totals.live
+                  "
+                >
+                  {{ catalogUplink().totals.monitored }}/{{ catalogUplink().totals.live }} live works monitored
+                </div>
+              </div>
+              <div class="flex-1 min-w-[16rem] space-y-2">
+                <div
+                  *ngFor="let priority of catalogUplink().priorities"
+                  class="text-[10px] text-amber-400/90 flex gap-2"
+                >
+                  <i class="fas fa-satellite-dish text-[8px] mt-1"></i>
+                  <span>{{ priority }}</span>
+                </div>
+                <div
+                  *ngIf="!catalogUplink().priorities.length"
+                  class="text-[10px] text-brand-primary flex gap-2"
+                >
+                  <i class="fas fa-check text-[8px] mt-1"></i>
+                  <span
+                    >Every work is identified, delivered, and monitorable.</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div
             *ngIf="!historyReleases().length"
             class="identity-panel p-10 text-center"
@@ -1341,6 +1393,13 @@
                   [ngModel]="releaseField(release.id, 'isrc') || ''"
                   (ngModelChange)="updateReleaseField(release.id, 'isrc', $event)"
                   placeholder="ISRC"
+                  class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
+                />
+                <input
+                  type="text"
+                  [ngModel]="releaseField(release.id, 'iswc') || ''"
+                  (ngModelChange)="updateReleaseField(release.id, 'iswc', $event)"
+                  placeholder="ISWC"
                   class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
                 />
                 <input

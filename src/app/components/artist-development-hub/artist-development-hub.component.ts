@@ -20,6 +20,10 @@ import {
   PathwayStepProgress,
   AREA_ORDER,
 } from '../../services/artist-pathway.service';
+import {
+  ArtistRegistryPathwayService,
+  RegistryPhase,
+} from '../../services/artist-registry-pathway.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import {
   ReleaseProject,
@@ -63,6 +67,7 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   private router = inject(Router);
   private dialog = inject(InteractionDialogService);
   private pathwayService = inject(ArtistPathwayService);
+  private registryPathwayService = inject(ArtistRegistryPathwayService);
   private userProfile = inject(UserProfileService);
 
   /**
@@ -71,6 +76,19 @@ export class ArtistDevelopmentHubComponent implements OnInit {
    * ticked in this hub.
    */
   pathway = computed(() => this.pathwayService.readout(this.userProfile.profile()));
+
+  /**
+   * The genre- and journey-tuned registry pathway: the concrete moves from a
+   * new musical journey to an official online music fingerprint.
+   */
+  registryPathway = computed(() =>
+    this.registryPathwayService.registryPathway(this.userProfile.profile())
+  );
+
+  /** How many moves in a registry phase are already done. */
+  phaseDone(phase: RegistryPhase): number {
+    return phase.steps.filter((step) => step.done).length;
+  }
 
   readonly pathwayAreas = AREA_ORDER;
 

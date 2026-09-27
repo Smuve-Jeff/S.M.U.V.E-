@@ -325,6 +325,14 @@ export class ProfileEditorComponent implements OnInit {
 
   historyReport = computed(() => this.fingerprint.history(this.editableProfile()));
 
+  /**
+   * The official catalog uplink: identifiers (ISRC / ISWC / UPC), delivery,
+   * and which works can actually be monitored — organised for S.M.U.V.E.
+   */
+  catalogUplink = computed(() =>
+    this.fingerprint.catalogUplink(this.editableProfile())
+  );
+
   /** Chronological works, newest first, with per-release documentation state. */
   historyReleases = computed(() => this.historyReport().releases);
 

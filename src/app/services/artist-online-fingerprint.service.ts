@@ -80,6 +80,52 @@ export interface ReleaseHistoryReport {
 }
 
 /**
+ * One work's official catalog uplink: the identifiers that make it findable
+ * (ISRC for the recording, ISWC for the composition, UPC for the release),
+ * where it is live, and whether anyone can actually measure it.
+ */
+export interface CatalogUplinkEntry {
+  id: string;
+  title: string;
+  releaseType?: string;
+  releaseDate?: string;
+  /** Official identifiers recorded for the work. */
+  isrc?: string;
+  iswc?: string;
+  upc?: string;
+  identifiers: string[];
+  missingIdentifiers: string[];
+  distributor?: string;
+  platforms: string[];
+  splitSheetRef?: string;
+  /** Identified, live, and ownership-documented — the work's fingerprint is complete. */
+  fingerprinted: boolean;
+  /** The work is live on at least one platform. */
+  live: boolean;
+  /** Live somewhere the artist can actually read numbers back from. */
+  monitored: boolean;
+  gaps: string[];
+}
+
+export interface CatalogUplinkReport {
+  works: CatalogUplinkEntry[];
+  totals: {
+    works: number;
+    withIsrc: number;
+    withIswc: number;
+    withUpc: number;
+    delivered: number;
+    live: number;
+    fingerprinted: number;
+    monitored: number;
+  };
+  /** 0-100 — how much of the official catalog fingerprint is recorded. */
+  score: number;
+  /** Organised next moves, most valuable first. */
+  priorities: string[];
+}
+
+/**
  * Destination id → family. Exported so other services can classify a recorded
  * link without duplicating the registry or going through dependency injection.
  */
@@ -102,12 +148,18 @@ export const FINGERPRINT_CATEGORY_BY_ID: Record<string, FingerprintCategory> = {
   audiomack: 'for-artists',
   ascap: 'pro',
   bmi: 'pro',
+  alltrack: 'pro',
+  gmr: 'pro',
   sesac: 'pro',
   prs: 'pro',
   gema: 'pro',
   socan: 'pro',
   sacem: 'pro',
   jasrac: 'pro',
+  soundexchange: 'pro',
+  'the-mlc': 'pro',
+  songtrust: 'pro',
+  'harry-fox': 'pro',
   chartmetric: 'analytics',
   soundcharts: 'analytics',
   viberate: 'analytics',
@@ -117,7 +169,7 @@ export const FINGERPRINT_CATEGORY_BY_ID: Record<string, FingerprintCategory> = {
 const CATEGORY_LABEL: Record<FingerprintCategory, string> = {
   delivery: 'Delivery & Distribution',
   'for-artists': 'For Artists Dashboards',
-  pro: 'Rights Organisations',
+  pro: 'Rights & Royalty Organisations',
   analytics: 'Analytics & Proof',
 };
 
@@ -145,12 +197,20 @@ const REGISTRY: FingerprintDestination[] = [
   // ── Rights organisations ─────────────────────────────────────────────
   { id: 'ascap', category: 'pro', label: 'ASCAP', entity: 'ASCAP', url: 'https://www.ascap.com', why: 'Collect performance royalties for writer and publisher shares.', stage: 'first-release', region: 'US' },
   { id: 'bmi', category: 'pro', label: 'BMI', entity: 'BMI', url: 'https://www.bmi.com', why: 'Performance royalties with a straightforward writer sign-up.', stage: 'first-release', region: 'US' },
+  { id: 'alltrack', category: 'pro', label: 'AllTrack', entity: 'AllTrack', url: 'https://www.alltrack.com', why: 'A newer US performance-rights organisation with transparent writer splits.', stage: 'first-release', region: 'US' },
+  { id: 'gmr', category: 'pro', label: 'Global Music Rights', entity: 'GMR', url: 'https://www.globalmusicrights.com', why: 'Invitation-based US PRO with boutique performance collection.', stage: 'growth', region: 'US' },
   { id: 'sesac', category: 'pro', label: 'SESAC', entity: 'SESAC', url: 'https://www.sesac.com', why: 'Invitation-based PRO with boutique writer support.', stage: 'growth', region: 'US' },
   { id: 'prs', category: 'pro', label: 'PRS for Music', entity: 'PRS', url: 'https://www.prsformusic.com', why: 'UK performance and mechanical royalties collection.', stage: 'early', region: 'UK' },
   { id: 'gema', category: 'pro', label: 'GEMA', entity: 'GEMA', url: 'https://www.gema.de', why: 'German writers and publishers royalty collection.', stage: 'early', region: 'DE' },
   { id: 'socan', category: 'pro', label: 'SOCAN', entity: 'SOCAN', url: 'https://www.socan.ca', why: 'Canadian performance, reproduction, and sync royalties.', stage: 'early', region: 'CA' },
   { id: 'sacem', category: 'pro', label: 'SACEM', entity: 'SACEM', url: 'https://www.sacem.fr', why: 'French authors, composers, and publishers collection.', stage: 'early', region: 'FR' },
   { id: 'jasrac', category: 'pro', label: 'JASRAC', entity: 'JASRAC', url: 'https://www.jasrac.or.jp', why: 'Japanese rights collection and licensing.', stage: 'growth', region: 'JP' },
+
+  // ── Digital & mechanical collections ─────────────────────────────────
+  { id: 'soundexchange', category: 'pro', label: 'SoundExchange', entity: 'SoundExchange', url: 'https://www.soundexchange.com', why: 'Collects digital performance royalties for the master recording — non-interactive streams (SiriusXM, web radio) pay here, not through the PRO.', stage: 'first-release', region: 'US' },
+  { id: 'the-mlc', category: 'pro', label: 'The MLC', entity: 'The MLC', url: 'https://www.themlc.com', why: 'Collects mechanical royalties for song compositions in the US — every stream owes them, and unclaimed money stays in the pool.', stage: 'first-release', region: 'US' },
+  { id: 'songtrust', category: 'pro', label: 'Songtrust', entity: 'Songtrust', url: 'https://www.songtrust.com', why: 'Publishing administration that registers compositions worldwide and collects mechanical and performance shares.', stage: 'early' },
+  { id: 'harry-fox', category: 'pro', label: 'Harry Fox Agency', entity: 'HFA', url: 'https://www.harryfox.com', why: 'US mechanical licensing and royalty collection for publishers and self-released writers.', stage: 'growth', region: 'US' },
 
   // ── Analytics & proof ────────────────────────────────────────────────
   { id: 'chartmetric', category: 'analytics', label: 'Chartmetric', entity: 'Chartmetric', url: 'https://chartmetric.com', why: 'Cross-platform artist and playlist tracking in one place.', stage: 'growth' },
@@ -478,6 +538,175 @@ export class ArtistOnlineFingerprintService {
     }
 
     return { releases: sorted, undated, averageCompleteness, gaps, timelineIssues };
+  }
+
+  /**
+   * The official catalog uplink: every work's identifiers (ISRC for the
+   * recording, ISWC for the composition, UPC for the release), where it is
+   * live, and whether anything can actually monitor it — organised so
+   * S.M.U.V.E. can act on the gaps instead of the artist keeping a spreadsheet.
+   */
+  catalogUplink(profile: UserProfile | null | undefined): CatalogUplinkReport {
+    const p: any = profile || {};
+    const catalog: any[] = Array.isArray(p.catalog) ? p.catalog : [];
+    const readout = this.readout(profile);
+    const coverageOf = (category: FingerprintCategory) =>
+      readout.coverage.find((entry) => entry.category === category)?.present ?? 0;
+    // Monitoring is only real when the artist has somewhere to read numbers
+    // back from: an analytics service or a claimed For Artists dashboard.
+    const canMonitor =
+      coverageOf('analytics') > 0 || coverageOf('for-artists') > 0;
+
+    const works: CatalogUplinkEntry[] = catalog.map((item) => {
+      const isrc = this.cleanCode(item?.isrc);
+      const iswc = this.cleanCode(item?.iswc);
+      const upc = this.cleanCode(item?.upc);
+      const distributor = this.cleanCode(item?.distributor);
+      const splitSheetRef = this.cleanCode(item?.splitSheetRef);
+      const platforms = Array.isArray(item?.platforms)
+        ? item.platforms
+            .map((entry: any) => this.cleanCode(entry))
+            .filter(Boolean)
+        : [];
+
+      const identifiers = [
+        isrc ? 'ISRC' : '',
+        iswc ? 'ISWC' : '',
+        upc ? 'UPC' : '',
+      ].filter(Boolean);
+      const missingIdentifiers = [
+        isrc ? '' : 'ISRC',
+        iswc ? '' : 'ISWC',
+        upc ? '' : 'UPC',
+      ].filter(Boolean);
+
+      const live = platforms.length > 0;
+      const monitored = live && canMonitor;
+      const fingerprinted = Boolean(isrc) && live && Boolean(splitSheetRef);
+
+      const gaps: string[] = [];
+      if (!isrc) gaps.push('no ISRC — the recording has no official identity');
+      if (!iswc) gaps.push('no ISWC — the composition behind it is unregistered');
+      if (!upc) gaps.push('no UPC — the release has no barcode identity');
+      if (!distributor) gaps.push('no distributor recorded');
+      if (!live) gaps.push('not live on any platform yet');
+      if (!splitSheetRef) gaps.push('no ownership reference');
+      if (live && !canMonitor) {
+        gaps.push('live but unmonitored — no analytics source is linked');
+      }
+
+      return {
+        id: this.cleanCode(item?.id),
+        title: this.cleanCode(item?.title),
+        releaseType: item?.releaseType,
+        releaseDate: item?.releaseDate,
+        isrc,
+        iswc,
+        upc,
+        identifiers,
+        missingIdentifiers,
+        distributor,
+        platforms,
+        splitSheetRef,
+        fingerprinted,
+        live,
+        monitored,
+        gaps,
+      };
+    });
+
+    const count = (match: (work: CatalogUplinkEntry) => boolean) =>
+      works.filter(match).length;
+    const totals = {
+      works: works.length,
+      withIsrc: count((work) => Boolean(work.isrc)),
+      withIswc: count((work) => Boolean(work.iswc)),
+      withUpc: count((work) => Boolean(work.upc)),
+      delivered: count((work) => Boolean(work.distributor)),
+      live: count((work) => work.live),
+      fingerprinted: count((work) => work.fingerprinted),
+      monitored: count((work) => work.monitored),
+    };
+
+    // Five facts make a work official: ISRC, ISWC, UPC, live delivery, and a
+    // documented ownership reference.
+    const earned = works.reduce(
+      (sum, work) =>
+        sum +
+        (work.isrc ? 1 : 0) +
+        (work.iswc ? 1 : 0) +
+        (work.upc ? 1 : 0) +
+        (work.live ? 1 : 0) +
+        (work.splitSheetRef ? 1 : 0),
+      0
+    );
+    const score = works.length
+      ? Math.round((earned / (works.length * 5)) * 100)
+      : 0;
+
+    const priorities = this.catalogPriorities(totals, readout);
+    return { works, totals, score, priorities };
+  }
+
+  private catalogPriorities(
+    totals: CatalogUplinkReport['totals'],
+    readout: FingerprintReadout
+  ): string[] {
+    const priorities: string[] = [];
+    const plural = (n: number, one: string, many: string) =>
+      `${n} ${n === 1 ? one : many}`;
+
+    const noIsrc = totals.works - totals.withIsrc;
+    if (noIsrc) {
+      priorities.push(
+        `${plural(noIsrc, 'work has', 'works have')} no ISRC — assign one per recording before the next delivery.`
+      );
+    }
+    const noIswc = totals.works - totals.withIswc;
+    if (noIswc) {
+      priorities.push(
+        `${plural(noIswc, 'composition is', 'compositions are')} missing ISWC codes — register the works with your PRO or a publishing administrator.`
+      );
+    }
+    const noUpc = totals.works - totals.withUpc;
+    if (noUpc) {
+      priorities.push(`${plural(noUpc, 'release is', 'releases are')} missing a UPC.`);
+    }
+    const undelivered = totals.works - totals.delivered;
+    if (undelivered) {
+      priorities.push(
+        `Record the distributor for ${plural(undelivered, 'work', 'works')} so the delivery trail is documented.`
+      );
+    }
+    const unmonitored = totals.live - totals.monitored;
+    if (unmonitored) {
+      priorities.push(
+        `${plural(unmonitored, 'live work is', 'live works are')} invisible to analytics — link one measurement source to monitor ${unmonitored === 1 ? 'it' : 'them'}.`
+      );
+    }
+
+    // The two US collection bodies money actually flows through.
+    const missingCollections = ['soundexchange', 'the-mlc']
+      .filter(
+        (id) => !readout.linked.some((entry) => entry.destination?.id === id)
+      )
+      .map((id) => this.destination(id)?.label ?? id);
+    if (missingCollections.length && totals.live) {
+      priorities.push(
+        `Not collecting everywhere yet: register with ${missingCollections.join(' and ')} so digital performance and mechanical royalties are claimed.`
+      );
+    }
+
+    if (!totals.works) {
+      priorities.push(
+        'Record the first work in the catalog — the uplink starts the moment one official identifier exists.'
+      );
+    }
+    return priorities;
+  }
+
+  private cleanCode(value: unknown): string {
+    return String(value ?? '').trim();
   }
 
   private toTimestamp(value?: string): number {

@@ -364,4 +364,117 @@ describe('ArtistOnlineFingerprintService', () => {
       expect(report.timelineIssues).toEqual([]);
     });
   });
+
+  /**
+   * The catalog uplink is what turns a list of tracks into an official record:
+   * per-work identifiers (ISRC / ISWC / UPC), delivery, ownership, and whether
+   * anything can actually monitor it — plus the gaps S.M.U.V.E. should act on.
+   */
+  describe('catalog uplink', () => {
+    /** A work carrying every official identifier, live and documented. */
+    const fullWork = () => ({
+      id: 'w1',
+      title: 'Full',
+      isrc: 'USABC2100001',
+      iswc: 'T-123.456.789-0',
+      upc: '00123456789012',
+      distributor: 'DistroKid',
+      platforms: ['Spotify', 'Apple Music'],
+      splitSheetRef: 'SPLIT-01',
+    });
+
+    it('reports an empty uplink and points at the first work for a beginner', () => {
+      const uplink = service.catalogUplink(emergingArtist());
+      expect(uplink.works).toEqual([]);
+      expect(uplink.totals.works).toBe(0);
+      expect(uplink.score).toBe(0);
+      expect(uplink.priorities.join(' ')).toMatch(/record the first work/i);
+    });
+
+    it('names which identifiers a work carries and which are missing', () => {
+      const uplink = service.catalogUplink({
+        ...emergingArtist(),
+        catalog: [{ id: 'w1', title: 'Bare', isrc: 'USABC2100001' }],
+      } as any);
+      const work = uplink.works[0];
+      expect(work.identifiers).toEqual(['ISRC']);
+      expect(work.missingIdentifiers).toEqual(['ISWC', 'UPC']);
+      expect(work.gaps.join(' ')).toMatch(/no ISWC/);
+      expect(work.gaps.join(' ')).toMatch(/no UPC/);
+    });
+
+    it('scores a fully documented live work at 100 and flags it as fingerprinted', () => {
+      const uplink = service.catalogUplink({
+        ...emergingArtist(),
+        catalog: [fullWork()],
+      } as any);
+      expect(uplink.score).toBe(100);
+      expect(uplink.totals.fingerprinted).toBe(1);
+      expect(uplink.totals.live).toBe(1);
+    });
+
+    it('treats a live work as monitored only once a measurement source is linked', () => {
+      const liveOnly = service.catalogUplink({
+        ...emergingArtist(),
+        catalog: [fullWork()],
+      } as any);
+      expect(liveOnly.works[0].monitored).toBe(false);
+      expect(liveOnly.totals.monitored).toBe(0);
+      expect(liveOnly.works[0].gaps.join(' ')).toMatch(/unmonitored/i);
+
+      const measured = service.catalogUplink({
+        ...emergingArtist(),
+        catalog: [fullWork()],
+        officialArtistProfiles: [
+          {
+            id: 'l1',
+            destinationId: 'chartmetric',
+            label: 'Chartmetric',
+            url: 'https://chartmetric.com',
+          },
+        ],
+      } as any);
+      expect(measured.works[0].monitored).toBe(true);
+      expect(measured.totals.monitored).toBe(1);
+    });
+
+    it('urges the unclaimed US collectors when works are live but money is left', () => {
+      const uplink = service.catalogUplink({
+        ...emergingArtist(),
+        catalog: [fullWork()],
+      } as any);
+      expect(uplink.priorities.join(' ')).toMatch(/SoundExchange/);
+      expect(uplink.priorities.join(' ')).toMatch(/The MLC/);
+    });
+
+    it('drops the collector priority once SoundExchange and The MLC are linked', () => {
+      const uplink = service.catalogUplink({
+        ...emergingArtist(),
+        catalog: [fullWork()],
+        officialArtistProfiles: [
+          {
+            id: 'l1',
+            destinationId: 'soundexchange',
+            label: 'SoundExchange',
+            url: 'https://www.soundexchange.com',
+          },
+          {
+            id: 'l2',
+            destinationId: 'the-mlc',
+            label: 'The MLC',
+            url: 'https://www.themlc.com',
+          },
+        ],
+      } as any);
+      expect(uplink.priorities.join(' ')).not.toMatch(/SoundExchange|The MLC/);
+    });
+
+    it('survives hostile catalog shapes without throwing', () => {
+      const uplink = service.catalogUplink({
+        ...emergingArtist(),
+        catalog: [null, {}, { isrc: 123, platforms: 'nope' }],
+      } as any);
+      expect(uplink.works.length).toBe(3);
+    });
+  });
 });

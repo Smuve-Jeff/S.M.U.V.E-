@@ -163,6 +163,75 @@
             </div>
           </div>
 
+          <!-- Registry pathway: the genre-tuned route to an official fingerprint -->
+          <div class="bg-brand-dark/40 border border-white/5 rounded-2xl p-5">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex-1 min-w-[14rem]">
+                <div
+                  class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-primary"
+                >
+                  Registry pathway · {{ registryPathway().genre }}
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                  {{ registryPathway().journeyNote }}
+                </p>
+                <p class="text-[9px] text-slate-500 mt-1 leading-relaxed">
+                  {{ registryPathway().lens.rightsNote }}
+                </p>
+              </div>
+              <div class="text-right max-w-[16rem]">
+                <div
+                  class="text-[8px] font-black uppercase tracking-widest text-slate-500"
+                >
+                  First move
+                </div>
+                <div class="text-[11px] font-black text-white mt-1">
+                  {{ registryPathway().nextMove }}
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+              @for (phase of registryPathway().phases; track phase.id) {
+                <div class="bg-black/30 border border-white/5 rounded-2xl p-4">
+                  <div class="flex items-center justify-between gap-2">
+                    <h3
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-200"
+                    >
+                      {{ phase.title }}
+                    </h3>
+                    <span
+                      class="text-[8px] font-black uppercase tracking-widest"
+                      [class.text-emerald-400]="
+                        phaseDone(phase) === phase.steps.length
+                      "
+                      [class.text-amber-400]="
+                        phaseDone(phase) !== phase.steps.length
+                      "
+                    >
+                      {{ phaseDone(phase) }}/{{ phase.steps.length }}
+                    </span>
+                  </div>
+                  <p class="text-[9px] text-slate-500 mt-2 leading-relaxed">
+                    {{ phase.summary }}
+                  </p>
+                  <ul class="mt-3 space-y-1">
+                    @for (step of phase.steps; track step.title) {
+                      <li
+                        class="flex gap-2 text-[9px] leading-relaxed"
+                        [class.text-emerald-300]="step.done"
+                        [class.text-slate-400]="!step.done"
+                      >
+                        <span>{{ step.done ? '✓' : '○' }}</span>
+                        <span>{{ step.title }}</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+          </div>
+
           <!-- The single next move -->
           @if (nextAction(); as next) {
             <div

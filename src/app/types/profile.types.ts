@@ -81,7 +81,11 @@ export interface CatalogItem {
   /** Official release history fields — how the work exists in the world. */
   releaseDate?: string;
   releaseType?: 'Single' | 'EP' | 'Album' | 'Mixtape' | 'Live' | 'Remix';
+  /** ISRC — official identity of the recording. */
   isrc?: string;
+  /** ISWC — official identity of the composition behind the recording. */
+  iswc?: string;
+  /** UPC — barcode identity of the release the work ships on. */
   upc?: string;
   distributor?: string;
   /** Where the release is live (Spotify, Apple Music, YouTube, Bandcamp...). */
