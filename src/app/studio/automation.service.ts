@@ -189,6 +189,33 @@ export class AutomationService {
     );
   }
 
+  /**
+   * Move a keyframe in one update (drag edits). Re-sorts the lane and returns
+   * the point's new index so the caller can keep dragging it after crossings.
+   */
+  movePoint(
+    laneId: string,
+    pointIndex: number,
+    time: number,
+    value: number,
+  ): number {
+    let newIndex = -1;
+    this.lanes.update((lanes) =>
+      lanes.map((lane) => {
+        if (lane.id !== laneId) return lane;
+        const existing = lane.points[pointIndex];
+        if (!existing) return lane;
+        const moved = { ...existing, time, value };
+        const points = lane.points.filter((_, index) => index !== pointIndex);
+        points.push(moved);
+        points.sort((a, b) => a.time - b.time);
+        newIndex = points.indexOf(moved);
+        return { ...lane, points };
+      }),
+    );
+    return newIndex;
+  }
+
   updatePoint(
     laneId: string,
     pointIndex: number,

@@ -90,8 +90,14 @@
         <button type="button" class="comp-project-menu-item" (click)="triggerLoadProject(); toggleProjectMenu()">
           <span class="material-symbols-outlined">folder_open</span> Load Project
         </button>
+        <button type="button" class="comp-project-menu-item" (click)="importMidi(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">piano</span> Import MIDI
+        </button>
         <button type="button" class="comp-project-menu-item" [disabled]="projectWorkspace.isSaving()" (click)="saveProject(); toggleProjectMenu()">
           <span class="material-symbols-outlined">save</span> Save Project
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="toggleVersionHistory(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">history</span> Version History
         </button>
         <button type="button" class="comp-project-menu-item" (click)="toggleProjectMetadata(); toggleProjectMenu()">
           <span class="material-symbols-outlined">edit_document</span> Project Details
@@ -655,6 +661,7 @@
         <div class="comp-view" *ngIf="!isBeginnerMode()">
           <app-arrangement-view
             (requestViewChange)="onWizardNavigate($event)"
+            (openBezierEditor)="toggleBezierEditor($event)"
           ></app-arrangement-view>
         </div>
       </ng-container>
@@ -862,7 +869,9 @@
         }
       </div>
       <div class="comp-view" *ngSwitchDefault>
-        <app-arrangement-view></app-arrangement-view>
+        <app-arrangement-view
+          (openBezierEditor)="toggleBezierEditor($event)"
+        ></app-arrangement-view>
       </div>
     </section>
   </main>
@@ -1215,6 +1224,14 @@
       <button (click)="exportMidi(); toggleMobileDrawer()" class="comp-drawer-item">
         <span class="material-symbols-outlined">music_note</span>
         <span>Export MIDI</span>
+      </button>
+      <button (click)="importMidi(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">piano</span>
+        <span>Import MIDI</span>
+      </button>
+      <button (click)="toggleVersionHistory(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">history</span>
+        <span>Version History</span>
       </button>
       <div class="comp-drawer-divider" style="height: 1px; background: var(--espresso-line); margin: 8px 0;"></div>
 
@@ -2395,6 +2412,27 @@
           <span class="comp-import-slider-val">{{ selAudio.stretchRatio.toFixed(2) }}x</span>
         </div>
         <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Match BPM</label>
+          <input
+            type="number"
+            min="20"
+            max="300"
+            step="1"
+            [value]="importSourceBpm()"
+            (input)="setImportSourceBpm($event)"
+            class="comp-import-number"
+            aria-label="Source tempo of the imported audio"
+          />
+          <button
+            type="button"
+            class="comp-meta-action-btn comp-import-match-btn"
+            (click)="matchImportTempo()"
+            aria-label="Stretch the import to the project tempo"
+          >
+            → {{ audioEngine.tempo() }} BPM
+          </button>
+        </div>
+        <div class="comp-import-slider-row">
           <label class="comp-import-slider-label">Pitch</label>
           <input
             type="range"
@@ -2608,6 +2646,79 @@
         [laneId]="bezierLaneId()"
         (curveChanged)="onBezierCurveChanged($event)"
       ></app-bezier-editor>
+    </div>
+  </aside>
+
+  <!-- ====================== CLOUD VERSION HISTORY PANEL ====================== -->
+  <aside
+    class="comp-panel comp-versions-panel"
+    [class.comp-panel-open]="showVersionHistory()"
+    role="dialog"
+    aria-label="Cloud version history"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">history</span>
+        VERSION HISTORY
+      </span>
+      <div class="comp-versions-header-actions">
+        <button
+          type="button"
+          class="comp-icon-btn"
+          [disabled]="versionHistoryBusy()"
+          (click)="pushVersionSnapshot()"
+          aria-label="Save a new cloud version"
+        >
+          <span class="material-symbols-outlined">cloud_upload</span>
+        </button>
+        <button
+          type="button"
+          class="comp-icon-btn"
+          (click)="toggleVersionHistory()"
+          aria-label="Close version history"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </header>
+    <div class="comp-panel-body comp-versions-body">
+      <p class="comp-versions-hint">
+        Every manual save stores a restorable version. Restoring keeps the current
+        state as a new version, so nothing is lost.
+      </p>
+      <p class="comp-versions-empty" *ngIf="versionHistoryBusy()">
+        Loading versions…
+      </p>
+      <p
+        class="comp-versions-empty"
+        *ngIf="!versionHistoryBusy() && versionHistory().length === 0"
+      >
+        No cloud versions yet — save the project to create the first one.
+      </p>
+      <ul class="comp-versions-list" *ngIf="versionHistory().length > 0">
+        <li
+          class="comp-versions-row"
+          *ngFor="let snapshot of versionHistory(); trackBy: versionTrack"
+        >
+          <div class="comp-versions-meta">
+            <span class="comp-versions-title">
+              v{{ snapshot.version }} · {{ snapshot.title }}
+            </span>
+            <span class="comp-versions-sub">
+              {{ versionDeviceLabel(snapshot) }} ·
+              {{ snapshot.timestamp | date: 'MMM d, HH:mm' }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="studio-secondary-button comp-versions-restore"
+            [disabled]="versionHistoryBusy()"
+            (click)="restoreVersion(snapshot)"
+          >
+            Restore
+          </button>
+        </li>
+      </ul>
     </div>
   </aside>
 

@@ -42,6 +42,8 @@ export interface ProjectManifest {
   version: number;
   lastModified: number;
   authorDeviceId: string;
+  /** Human-readable device label at push time (shown in version history). */
+  deviceName?: string;
   title: string;
   byteSize: number;
 }
@@ -64,6 +66,8 @@ export interface SyncEnvelope {
 export interface RemoteSnapshot {
   projectId: string;
   deviceId: string;
+  /** Human-readable device label at push time (older snapshots omit it). */
+  deviceName?: string;
   version: number;
   data: unknown;
   timestamp: number;

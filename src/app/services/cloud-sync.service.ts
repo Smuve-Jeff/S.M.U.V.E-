@@ -214,6 +214,7 @@ export class CloudSyncService {
       version: nextVersion,
       lastModified: Date.now(),
       authorDeviceId: this.deviceId(),
+      deviceName: this.deviceName(),
       title: title || existingManifest?.title || 'Untitled Project',
       byteSize: this.byteSize(payload),
     };
@@ -388,6 +389,7 @@ export class CloudSyncService {
       version: Math.max(targetVersion - 1, 0),
       lastModified: Date.now(),
       authorDeviceId: this.deviceId(),
+      deviceName: this.deviceName(),
       title: conflict.remoteSnapshot.title,
       byteSize: this.byteSize(resolvedPayload),
     });
@@ -477,6 +479,7 @@ export class CloudSyncService {
       version: snapshot.version + 1,
       lastModified: Date.now(),
       authorDeviceId: this.deviceId(),
+      deviceName: this.deviceName(),
       title: snapshot.title,
       byteSize: snapshot.byteSize,
     };

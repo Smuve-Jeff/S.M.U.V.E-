@@ -113,6 +113,27 @@ describe("AudioImportService (stretch engine)", () => {
     expect(out.length).toBeLessThan(buf.length * 0.6);
   });
 
+  it("tempo-matches the selected import to the project tempo and reports the ratio", () => {
+    const imported: any = {
+      id: "bpm1",
+      name: "loop",
+      stretchRatio: 1,
+      buffer: makeBuffer(service.audioEngine.ctx, 4096),
+    };
+    service.importedAudio.set([imported]);
+    service.selectedAudio.set(imported);
+
+    // Mock engine reports no tempo → the 120 BPM default is used.
+    const ratio = service.matchSelectedToProjectTempo(140);
+    expect(ratio).toBeCloseTo(140 / 120, 3);
+    expect(service.selectedAudio()?.stretchRatio).toBeCloseTo(1.167, 3);
+
+    // Invalid source BPM or no selection → no-op.
+    expect(service.matchSelectedToProjectTempo(0)).toBeNull();
+    service.selectedAudio.set(null);
+    expect(service.matchSelectedToProjectTempo(120)).toBeNull();
+  });
+
   it("should keep imported-audio state empty by default", () => {
     expect(service.importedAudio().length).toBe(0);
     expect(service.totalDuration()).toBe(0);

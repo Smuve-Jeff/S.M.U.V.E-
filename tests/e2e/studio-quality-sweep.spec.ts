@@ -166,3 +166,187 @@ test('engine loop schedules the selected region and meter sweep reports represen
   expect(results.remainingMeters).toBe(results.tracks);
   console.log('32-track mixer / 1,000 updates in ms:', results.rounds);
 });
+
+test('automation curves add, edit, and delete arrangement keyframes', async ({ page }) => {
+  await page.goto('/studio?view=arrangement');
+  await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', 'arrangement');
+  // The seeded session opens in beginner mode, which swaps the arrangement
+  // view for the wizard — switch to pro mode first.
+  await page.evaluate(() => {
+    const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
+    studio.uiService.beginnerMode.set(false);
+  });
+
+  const arrangementHandle = await page
+    .locator('app-arrangement-view:visible')
+    .first()
+    .elementHandle();
+  await arrangementHandle!.evaluate((element) => {
+    const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
+    const manager = studio.musicManager;
+    if (manager.tracks().length === 0) manager.addTrack('QA Automation', 'grand-piano');
+    manager.selectedTrackId.set(manager.tracks()[0].id);
+    (window as any).ng.getComponent(element).showAutomation.set(true);
+  });
+
+  await expect(page.locator('.automation-editor:visible')).toBeVisible();
+  await page.locator('.automation-add-btn:visible').click();
+  await expect(page.locator('.automation-lane:visible')).toHaveCount(1);
+
+  // Clicking the lane canvas adds a keyframe through the real pointer path.
+  await page.evaluate(() => {
+    const svg = document.querySelector('.automation-canvas') as SVGSVGElement;
+    const rect = svg.getBoundingClientRect();
+    svg.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        clientX: rect.left + 120,
+        clientY: rect.top + rect.height / 2,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  });
+  await expect(page.locator('.automation-point')).toHaveCount(1);
+
+  const state = await page.evaluate(() => {
+    const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
+    return studio.projectWorkspace.automationService.lanes();
+  });
+  expect(state).toHaveLength(1);
+  expect(state[0].points).toHaveLength(1);
+  expect(state[0].points[0].time).toBeGreaterThan(0);
+
+  // Right-click deletes the keyframe.
+  await page.evaluate(() => {
+    document
+      .querySelector('.automation-point')!
+      .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  });
+  await expect(page.locator('.automation-point')).toHaveCount(0);
+});
+
+test('MIDI import creates a Studio track from a Standard MIDI File', async ({ page }) => {
+  await page.goto('/studio?view=arrangement');
+  await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', 'arrangement');
+  const before = await page.evaluate(
+    () => (window as any).ng.getComponent(document.querySelector('app-studio')).musicManager.tracks().length,
+  );
+
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'S.M.U.V.E. Stage — tap to open project menu' }).click();
+  await page.locator('.comp-project-menu-item', { hasText: 'Import MIDI' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: 'qa-sweep.mid', mimeType: 'audio/midi', buffer: midiFixture() });
+
+  await expect(
+    page.locator('app-snackbar').filter({ hasText: 'Imported 1 MIDI track' }),
+  ).toBeVisible();
+  const after = await page.evaluate(() => {
+    const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
+    const tracks = studio.musicManager.tracks();
+    const imported = tracks[tracks.length - 1];
+    return { count: tracks.length, name: imported.name, notes: imported.notes.length, firstStep: imported.notes[0]?.step };
+  });
+  expect(after.count).toBe(before + 1);
+  expect(after.name).toBe('QA Sweep');
+  expect(after.notes).toBe(2);
+  expect(after.firstStep).toBe(0);
+});
+
+test('cloud version history lists saved versions for the current project', async ({ page }) => {
+  await page.goto('/studio?view=arrangement');
+  await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', 'arrangement');
+  await page.evaluate(() => {
+    const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
+    studio.projectWorkspace.updateMetadata({ name: 'Version QA Session' });
+  });
+
+  await page.getByRole('button', { name: 'S.M.U.V.E. Stage — tap to open project menu' }).click();
+  await page.locator('.comp-project-menu-item', { hasText: 'Version History' }).click();
+  await expect(page.locator('.comp-versions-panel')).toHaveClass(/comp-panel-open/);
+  await expect(page.locator('.comp-versions-hint')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Save a new cloud version' }).click();
+  await expect(page.locator('.comp-versions-row').first()).toBeVisible({ timeout: 15000 });
+  const rows = await page.locator('.comp-versions-meta').allTextContents();
+  expect(rows.join(' ')).toContain('Version QA Session');
+  expect(rows[0]).toContain('v');
+});
+
+test('audio import tempo-match stretches the clip to the project tempo', async ({ page }) => {
+  await page.goto('/studio?view=arrangement');
+  await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', 'arrangement');
+  await page.evaluate(() => {
+    const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
+    studio.uiService.beginnerMode.set(false);
+    studio.audioEngine.tempo.set(100);
+    studio.showImportPanel.set(true);
+  });
+
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Import audio files' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: 'qa-loop.wav', mimeType: 'audio/wav', buffer: wavFixture() });
+
+  const matchRow = page
+    .locator('.comp-import-slider-row')
+    .filter({ hasText: 'Match BPM' });
+  await expect(matchRow).toBeVisible();
+  await page.getByLabel('Source tempo of the imported audio').fill('80');
+  await page.getByRole('button', { name: 'Stretch the import to the project tempo' }).click();
+
+  await expect(
+    page.locator('app-snackbar').filter({ hasText: 'Stretch set to' }),
+  ).toBeVisible();
+  const ratio = await page.evaluate(() => {
+    const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
+    return studio.audioImport.selectedAudio().stretchRatio;
+  });
+  expect(ratio).toBeCloseTo(0.8, 2); // 80 BPM source into a 100 BPM project
+});
+
+/** Minimal 16-bit PCM WAV (8000 frames of a sine at 44.1 kHz). */
+function wavFixture(): Buffer {
+  const samples = 8000;
+  const rate = 44100;
+  const data = Buffer.alloc(samples * 2);
+  for (let i = 0; i < samples; i++) {
+    data.writeInt16LE(Math.round(Math.sin(i / 20) * 8000), i * 2);
+  }
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + data.length, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20); // PCM
+  header.writeUInt16LE(1, 22); // mono
+  header.writeUInt32LE(rate, 24);
+  header.writeUInt32LE(rate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(data.length, 40);
+  return Buffer.concat([header, data]);
+}
+
+/** Minimal valid SMF: conductor-free, one named track with two notes. */
+function midiFixture(): Buffer {
+  const events = [
+    0x00, 0xff, 0x03, 0x08, ...'QA Sweep'.split('').map((c) => c.charCodeAt(0)),
+    0x00, 0x90, 0x3c, 0x64, // note on 60
+    0x83, 0x60, 0x80, 0x3c, 0x40, // delta 480, note off 60
+    0x00, 0x90, 0x40, 0x64, // note on 64
+    0x83, 0x60, 0x80, 0x40, 0x40, // delta 480, note off 64
+    0x00, 0xff, 0x2f, 0x00, // end of track
+  ];
+  const trackHeader = [
+    0x4d, 0x54, 0x72, 0x6b,
+    (events.length >> 24) & 0xff,
+    (events.length >> 16) & 0xff,
+    (events.length >> 8) & 0xff,
+    events.length & 0xff,
+  ];
+  const header = [0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, 1, 0x01, 0xe0]; // TPQN 480
+  return Buffer.from([...header, ...trackHeader, ...events]);
+}

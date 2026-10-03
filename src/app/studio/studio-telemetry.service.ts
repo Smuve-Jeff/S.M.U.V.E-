@@ -17,6 +17,8 @@ export type StudioTelemetryEventName =
   | "project_recovered"
   | "project_exported"
   | "midi_exported"
+  | "midi_imported"
+  | "cloud_version_restored"
   | "comp_takes_exported"
   | "ai_mix_panel_opened"
   | "ai_mix_analysis_run"

@@ -21,9 +21,13 @@ import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
 
 import { MidiWriter, MidiTrackData } from "./midi-writer.util";
+import { MidiImportService } from "./midi-import.service";
 
 import { AudioSessionService } from "./audio-session.service";
 import { AudioEngineService } from "../services/audio-engine.service";
+import { CloudSyncService } from "../services/cloud-sync.service";
+import { FileLoaderService } from "../services/file-loader.service";
+import type { RemoteSnapshot } from "../types/cloud-sync.types";
 import { HardwareService } from "../services/hardware.service";
 import { AiService } from "../services/ai.service";
 import { UIService } from "../services/ui.service";
@@ -546,6 +550,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly projectWorkspace = inject(ProjectWorkspaceService);
   public readonly smartSound = inject(SmartSoundService);
   public readonly audioImport = inject(AudioImportService);
+  public readonly midiImport = inject(MidiImportService);
+  private readonly fileLoader = inject(FileLoaderService);
   public readonly smartProduction = inject(SmartProductionFoundationsService);
   public readonly componentRecording = inject(ComponentRecordingService);
   public readonly studioTelemetry = inject(StudioTelemetryService);
@@ -572,6 +578,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showImportPanel = signal(false);
   importSnapEnabled = signal(true);
   importWaveformZoom = signal(1);
+  /** Tempo the selected import was recorded at (for Match BPM). */
+  importSourceBpm = signal(120);
   showComponentRecording = signal(false);
   showStudioInsights = signal(false);
   showProjectMenu = signal(false);
@@ -584,6 +592,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   // ── Bezier editor state ──────────────────────────────────
   showBezierEditor = signal(false);
   bezierLaneId = signal<string>("");
+
+  // ── Cloud version history ────────────────────────────────
+  showVersionHistory = signal(false);
+  versionHistory = signal<RemoteSnapshot[]>([]);
+  versionHistoryBusy = signal(false);
+  /** Lazy so specs that never touch version history don't build the cloud. */
+  private get cloudSync(): CloudSyncService {
+    return this.injector.get(CloudSyncService);
+  }
 
   toggleBezierEditor(laneId?: string): void {
     this.haptic.light();
@@ -602,6 +619,28 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleImportSnap(): void {
     this.importSnapEnabled.update((v) => !v);
     this.haptic.light();
+  }
+
+  setImportSourceBpm(event: Event): void {
+    const value = Number((event.target as HTMLInputElement).value);
+    if (Number.isFinite(value)) {
+      this.importSourceBpm.set(Math.max(20, Math.min(300, Math.round(value))));
+    }
+  }
+
+  /** Stretch the selected import so it plays at the project tempo. */
+  matchImportTempo(): void {
+    const ratio = this.audioImport.matchSelectedToProjectTempo(
+      this.importSourceBpm(),
+    );
+    if (ratio === null) {
+      this.snackbarService.warning("Import an audio file first");
+      return;
+    }
+    this.haptic.light();
+    this.snackbarService.info(
+      `Stretch set to ${ratio.toFixed(2)}× to match ${this.audioEngine.tempo()} BPM`,
+    );
   }
 
   selectedImportWaveform(): Float32Array | null {
@@ -2348,7 +2387,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.projectWorkspace.isSaving()) return false;
     this.haptic.medium();
     try {
-      await this.projectWorkspace.manualSave();
+      const bundle = await this.projectWorkspace.manualSave();
+      // Every manual save becomes a restorable cloud version.
+      void this.pushVersionSnapshot(bundle, true);
       this.snackbarService.success("Project saved");
       this.studioTelemetry.trackEvent("project_saved", undefined, true);
       return true;
@@ -2419,6 +2460,161 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       input.value = "";
     }
   }
+
+  // ── MIDI import (.mid / .midi) ─────────────────────────
+
+  async importMidi(): Promise<void> {
+    this.haptic.light();
+    try {
+      const files = await this.fileLoader.pickLocalFiles(".mid,.midi");
+      if (files.length === 0) return;
+
+      let trackCount = 0;
+      let noteCount = 0;
+      let tempoBpm: number | undefined;
+      let failed = 0;
+      for (const file of files) {
+        try {
+          const parsed = await this.midiImport.parseFile(file);
+          const summary = this.midiImport.importParsed(parsed);
+          trackCount += summary.trackCount;
+          noteCount += summary.noteCount;
+          tempoBpm ??= summary.tempoBpm;
+        } catch (error) {
+          failed++;
+          this.logger.warn(`MIDI import failed for ${file.name}`, error);
+        }
+      }
+
+      if (trackCount > 0) {
+        this.history.clear();
+        this.snackbarService.success(
+          `Imported ${trackCount} MIDI track(s) · ${noteCount} note(s)` +
+            (tempoBpm ? ` · ${tempoBpm} BPM` : ""),
+        );
+        this.studioTelemetry.trackEvent(
+          "midi_imported",
+          { trackCount, noteCount, tempoBpm: tempoBpm ?? 0 },
+          true,
+        );
+      }
+      if (failed > 0) {
+        this.snackbarService.warning(
+          `Skipped ${failed} MIDI file(s) that could not be parsed`,
+        );
+      }
+    } catch (error) {
+      this.logger.error("MIDI import failed", error);
+      this.snackbarService.error("MIDI import failed");
+    }
+  }
+
+  // ── Cloud version history ───────────────────────────────
+
+  toggleVersionHistory(): void {
+    this.haptic.light();
+    const next = !this.showVersionHistory();
+    this.showVersionHistory.set(next);
+    if (next) void this.refreshVersionHistory();
+    this.syncPanelFocus(".comp-versions-panel", next);
+  }
+
+  async refreshVersionHistory(): Promise<void> {
+    const projectId = this.projectWorkspace.metadata()?.id;
+    if (!projectId) {
+      this.versionHistory.set([]);
+      return;
+    }
+    this.versionHistoryBusy.set(true);
+    try {
+      this.cloudSync.refresh();
+      this.versionHistory.set(this.cloudSync.listSnapshots(projectId));
+    } catch (error) {
+      this.logger.warn("Could not read cloud version history", error);
+      this.versionHistory.set([]);
+    } finally {
+      this.versionHistoryBusy.set(false);
+    }
+  }
+
+  /**
+   * Store the current project state as a cloud version. Called after every
+   * manual save (quiet) and by the history panel's explicit button.
+   */
+  async pushVersionSnapshot(
+    bundle?: ProjectBundle,
+    quiet = false,
+  ): Promise<void> {
+    const snapshot =
+      bundle ??
+      (typeof this.projectWorkspace.createSnapshot === "function"
+        ? this.projectWorkspace.createSnapshot()
+        : undefined);
+    const projectId = snapshot?.metadata?.id;
+    if (!snapshot || !projectId) return;
+    bundle = snapshot;
+    try {
+      await this.cloudSync.push(
+        projectId,
+        bundle.metadata.name || "Untitled Set",
+        bundle,
+      );
+      this.versionHistory.set(this.cloudSync.listSnapshots(projectId));
+      if (!quiet) this.snackbarService.success("Version saved to cloud history");
+    } catch (error) {
+      this.logger.warn("Cloud version push failed", error);
+      if (!quiet) this.snackbarService.error("Could not save a cloud version");
+    }
+  }
+
+  async restoreVersion(snapshot: RemoteSnapshot): Promise<void> {
+    const projectId = this.projectWorkspace.metadata()?.id;
+    const data = snapshot.data as ProjectBundle | undefined;
+    if (!projectId || !data?.metadata?.id) {
+      this.snackbarService.error("That version has no restorable project data.");
+      return;
+    }
+    const confirmed = await this.dialog.confirm({
+      title: "Restore cloud version?",
+      message:
+        `Replace the current session with v${snapshot.version} from ` +
+        `${this.versionDeviceLabel(snapshot)}? This is also saved as a new version, so nothing is lost.`,
+      confirmLabel: "Restore version",
+      cancelLabel: "Keep current",
+      tone: "danger",
+    });
+    if (!confirmed) return;
+
+    this.versionHistoryBusy.set(true);
+    try {
+      await this.cloudSync.restoreFromBackup(projectId, snapshot);
+      const restored = await this.projectWorkspace.importProjectBundle(data);
+      if (!restored) {
+        this.snackbarService.error("The version could not be restored.");
+        return;
+      }
+      this.history.clear();
+      this.versionHistory.set(this.cloudSync.listSnapshots(projectId));
+      this.snackbarService.success(`Restored cloud version v${snapshot.version}`);
+      this.studioTelemetry.trackEvent(
+        "cloud_version_restored",
+        { version: snapshot.version },
+        true,
+      );
+    } catch (error) {
+      this.logger.warn("Cloud version restore failed", error);
+      this.snackbarService.error("Cloud version restore failed");
+    } finally {
+      this.versionHistoryBusy.set(false);
+    }
+  }
+
+  versionDeviceLabel(snapshot: RemoteSnapshot): string {
+    return snapshot.deviceName?.trim() || snapshot.deviceId;
+  }
+
+  versionTrack = (_: number, snapshot: RemoteSnapshot): string =>
+    `${snapshot.deviceId}:${snapshot.version}:${snapshot.timestamp}`;
 
   async exportProject() {
     this.haptic.light();

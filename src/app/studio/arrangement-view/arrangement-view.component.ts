@@ -37,6 +37,7 @@ import {
 } from "../webgl/timeline-renderer";
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
 import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
+import { AutomationCurveEditorComponent } from "../automation/automation-curve-editor.component";
 
 export type ArrangementTool =
   | "select"
@@ -55,6 +56,7 @@ export type ArrangementTool =
     FormsModule,
     TakeLaneComponent,
     StudioBottomSheetComponent,
+    AutomationCurveEditorComponent,
   ],
   templateUrl: "./arrangement-view.component.html",
   styleUrls: ["./arrangement-view.component.css", "../shared/platform-ux.css"],
@@ -77,6 +79,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
    * shell's navigation mechanics.
    */
   @Output() requestViewChange = new EventEmitter<string>();
+
+  /** Forwarded from the automation curve editor so Studio can open the
+   *  full bezier panel for the selected lane. */
+  @Output() openBezierEditor = new EventEmitter<string>();
 
   // ── WebGL renderer ───────────────────────────────────────
   private glRenderer!: WebGLRenderer;

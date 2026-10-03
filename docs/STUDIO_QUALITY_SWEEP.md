@@ -139,9 +139,9 @@ Google Play's leading mobile DAWs:
 | Check | Result |
 | --- | --- |
 | `bun tsc -b --noEmit` | pass |
-| Studio-pattern unit suites (studio + engine/music-manager/project/export specs) | **882 tests / 59 suites passed** |
+| Studio-pattern unit suites (studio + engine/music-manager/project/export + cloud specs) | **926 tests / 65 suites passed** |
 | `npm run build` (repo AGENTS.md submission gate) | pass, 26.3 s; `studio-component` lazy chunk 797 kB raw / 129 kB transfer |
-| `tests/e2e/studio-quality-sweep.spec.ts` (managed preview) | **25/25 passed** |
+| `tests/e2e/studio-quality-sweep.spec.ts` (managed preview) | **29/29 passed** |
 | `tests/e2e/studio_mobile_check.spec.ts --grep "desktop landscape"` | **22/22 passed** (baseline preserved) |
 
 ### E2E assertions worth naming
@@ -190,3 +190,61 @@ numbers are noisy in a CI browser — **no specific speedup is claimed**.
 4. Project templates and media-pool management.
 5. Tablet-specific layout pass with e2e coverage.
 6. Subscription-free export promise explicitly surfaced in-app (n-Track lesson).
+
+---
+
+## 7. Follow-up features (built on the sweep)
+
+### 7.1 Automation curves in the arrangement
+
+- `automation/automation-curve-editor.component.ts` renders every lane of the
+  selected track as an SVG curve at the arrangement's pixel-per-bar scale, so
+  curves line up with clips.
+- Click to add keyframes, drag to move them (time **and** value, with live
+  re-sorting), double-click / right-click to delete. Per-lane controls:
+  enable toggle, interpolation (linear/step/smooth/bezier), clear, remove, and
+  a **Curve** button that opens the full WebGL bezier editor.
+- `automation/automation-curve.util.ts` maps volume (0–1), pan (-1–1), CC lanes
+  (0–127) and filter cutoffs (20 Hz–20 kHz, log) onto the 0–1 drawing axis.
+- `AutomationService.movePoint` moves a keyframe in a single update and returns
+  its new index, so a drag keeps following the point when it crosses others.
+- The editor is reachable from the clip-actions sheet's **Show automation**
+  toggle and the arrangement↔Studio wiring forwards **Curve** to the bezier
+  panel.
+
+### 7.2 MIDI import
+
+- `midi-reader.util.ts` parses Standard MIDI Files (format 0 and 1) including
+  running status, velocity-0 note-offs, sysex/unknown-chunk skips, tempo /
+  track-name / program meta events, and hanging voices closed at end-of-track.
+  Malformed data throws descriptive `MidiParseError`s.
+- `midi-import.service.ts` materializes tracks + notes onto the 16th-note grid
+  (`tick × 4 / TPQN`), clamps note/velocity/step, caps imports at 32 tracks and
+  20,000 notes, de-duplicates names, and applies a plausible file tempo.
+- The project menu and mobile drawer expose **Import MIDI** (`.mid`, `.midi`)
+  through the same file picker as audio import.
+
+### 7.3 Audio tempo-match (stretch)
+
+- The audio import editor gained a **Match BPM** row: enter the tempo the file
+  was recorded at and `AudioImportService.matchSelectedToProjectTempo` sets the
+  stretch ratio to `source / project` (clamped 0.25–4×). The existing WSOLA
+  pipeline renders it when the clip is applied, and the Stretch slider stays in
+  sync for fine-tuning.
+
+### 7.4 Cloud version history
+
+- Every manual save now stores a versioned snapshot through `CloudSyncService`;
+  the history panel also has an explicit **Save a new cloud version** button.
+- `MockCloudServer` history is durable (IndexedDB via `LocalStorageService`),
+  labelled with the device name, and bounded (20 versions/device, 120 global)
+  so storage cannot grow without limit.
+- The Studio **Version History** panel lists versions (title, version, device,
+  timestamp) and restores them; a restore re-imports the bundle locally and
+  pushes a new version so other devices converge instead of diverging.
+- The shipping cloud transport is still the in-app mock backend by design; the
+  push/pull contract is the swap point for a real hosted service.
+
+**Evidence for the follow-up features:** 926 unit tests / 65 suites, e2e
+29/29 (automation add + delete, MIDI file-chooser import, version save/list,
+and tempo-match all run in Chromium), `bun tsc -b --noEmit` and `npm run build`.

@@ -445,6 +445,19 @@
       ></canvas>
     </div>
 
+    <section
+      class="arrangement-automation"
+      *ngIf="showAutomation()"
+      aria-label="Automation curves"
+    >
+      <app-automation-curve-editor
+        [barWidth]="barWidth()"
+        [totalBars]="effectiveBars()"
+        [trackId]="musicManager.selectedTrackId()"
+        (openBezierEditor)="openBezierEditor.emit($event)"
+      ></app-automation-curve-editor>
+    </section>
+
     <section class="arrangement-overview" aria-label="Arrangement overview">
       <div class="arrangement-overview-head">
         <span class="arrangement-overview-title">OVERVIEW</span>

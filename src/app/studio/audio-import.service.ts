@@ -343,6 +343,21 @@ export class AudioImportService {
     this.updateCurrentAudio({ stretchRatio: Math.max(0.25, Math.min(4, num)) });
   }
 
+  /**
+   * Tempo-match the selected import to the project tempo. `sourceBpm` is the
+   * tempo the file was recorded at (typed by the user); the resulting stretch
+   * ratio is stored on the clip and applied by the offline edit render.
+   */
+  matchSelectedToProjectTempo(sourceBpm: number): number | null {
+    const audio = this.selectedAudio();
+    if (!audio || !Number.isFinite(sourceBpm) || sourceBpm <= 0) return null;
+    const targetBpm = this.audioEngine.tempo?.() ?? 120;
+    if (!Number.isFinite(targetBpm) || targetBpm <= 0) return null;
+    const ratio = Math.max(0.25, Math.min(4, sourceBpm / targetBpm));
+    this.setStretchRatio(ratio);
+    return Math.round(ratio * 1000) / 1000;
+  }
+
   setPitchSemitones(value: number | string) {
     const num = typeof value === "string" ? parseFloat(value) : value;
     this.updateCurrentAudio({
