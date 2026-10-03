@@ -317,10 +317,10 @@ export class AppComponent {
   private updateFullPageMode(url: string) {
     const path = this.getPrimaryRoute(url);
     this.activeRoutePath.set(url.split(/[?#]/)[0].replace(/^\/+/, ''));
-    this.isAuthRoute.set(path === 'login');
+    this.isAuthRoute.set(path === 'login' || path === 'reset-password');
     // Do not carry an invisible open drawer through login and then unexpectedly
     // reveal it after authentication returns to the Hub.
-    if (path === 'login') this.uiService.closeChatbot();
+    if (this.isAuthRoute()) this.uiService.closeChatbot();
     this.isFullPageMode.set(
       this.isAuthRoute() ||
         [
@@ -476,8 +476,21 @@ export class AppComponent {
     this.isSidebarOpen.update((v) => !v);
   }
 
+  /** A direct/deep-linked workspace must never send Home outside the app. */
+  navigateHome(): void {
+    this.isSidebarOpen.set(!this.isMobile());
+    this.isMobileWorkspaceTrayOpen.set(false);
+    this.isSyncCenterOpen.set(false);
+    this.uiService.closeChatbot();
+    void this.router.navigateByUrl('/hub');
+  }
+
   goBack() {
-    this.location.back();
+    if (window.history.state?.navigationId > 1) {
+      this.location.back();
+    } else {
+      this.navigateHome();
+    }
   }
 
   toggleChatbot() {

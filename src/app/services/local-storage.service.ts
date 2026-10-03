@@ -254,6 +254,21 @@ export class LocalStorageService {
     });
   }
 
+  /** Atomic project/version deletion, resolved only after the transaction commits. */
+  async deleteItems(storeName: string, ids: string[]): Promise<void> {
+    if (!(await this.ensureReady()) || !this.db) {
+      throw new Error('Local storage is unavailable. Nothing was deleted.');
+    }
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([storeName], 'readwrite');
+      const store = transaction.objectStore(storeName);
+      ids.forEach((id) => store.delete(id));
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error || new Error('Deletion failed.'));
+      transaction.onabort = () => reject(transaction.error || new Error('Deletion was aborted.'));
+    });
+  }
+
   async deleteItem(storeName: string, id: string): Promise<void> {
     const ready = await this.ensureReady();
     if (!ready || !this.db) return;
