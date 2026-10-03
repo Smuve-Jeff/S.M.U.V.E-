@@ -32,10 +32,13 @@ export class AudioRecorderService implements OnDestroy {
     blob: Blob;
     url: string;
     midi?: any[];
+    /** Wall-clock length of the take, persisted with the blob. */
+    durationSec?: number;
   }>();
 
   mediaRecorder: MediaRecorder | null = null;
   private activeUrls = new Set<string>();
+  private startedAtMs = 0;
 
   /** Create a URL owned by the recorder so views can release it predictably. */
   createRecordingUrl(blob: Blob): string {
@@ -100,6 +103,12 @@ export class AudioRecorderService implements OnDestroy {
           type: "audio/webm;codecs=opus",
         });
         const id = `rec_${Date.now()}`;
+        // Persist the real take length: the recorder view reads it back from
+        // `settings.durationSec`, so without it every restored take showed 0:00.
+        const durationSec = Math.max(
+          0,
+          Math.round((Date.now() - this.startedAtMs) / 1000),
+        );
 
         try {
           await this.localStorageService.saveItem("audio_blobs", {
@@ -107,7 +116,7 @@ export class AudioRecorderService implements OnDestroy {
             blob,
             name: `Recording ${new Date().toLocaleTimeString()}`,
             timestamp: Date.now(),
-            settings: { gain: 1.0, trimmed: false },
+            settings: { gain: 1.0, trimmed: false, durationSec },
           });
           this.logger.info(`Recording ${id} saved.`);
         } catch (saveError) {
@@ -124,6 +133,7 @@ export class AudioRecorderService implements OnDestroy {
           blob,
           url,
           midi: [...this.pendingMidi],
+          durationSec,
         });
       } catch (error) {
         this.logger.error("Failed to process recording stop", error);
@@ -133,6 +143,7 @@ export class AudioRecorderService implements OnDestroy {
       }
     };
 
+    this.startedAtMs = Date.now();
     this.mediaRecorder.start();
     this.isRecording.set(true);
   }

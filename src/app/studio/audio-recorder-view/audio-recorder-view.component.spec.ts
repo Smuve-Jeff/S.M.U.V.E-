@@ -120,6 +120,47 @@ describe("AudioRecorderViewComponent", () => {
     expect(component.recordingCount()).toBe(1);
   });
 
+  it("restores the take duration persisted with the blob", async () => {
+    mockRecorder.getOfflineRecordings.mockResolvedValue([
+      {
+        id: "r2",
+        name: "Kept take",
+        timestamp: 7,
+        settings: { durationSec: 42 },
+      },
+    ]);
+    component.ngOnInit();
+    await fixture.whenStable();
+    // The bank row must show the real take length, not 0:00.
+    expect(component.recordings()[0].durationSec).toBe(42);
+  });
+
+  it("banks the duration measured by the recorder service", () => {
+    (component as any).handleRecordingFinished({
+      id: "rec_9",
+      blob: new Blob(),
+      url: "blob:rec_9",
+      durationSec: 12,
+    });
+    expect(component.recordings()[0].durationSec).toBe(12);
+  });
+
+  it("releases the microphone once a take is banked", () => {
+    const stop = jest.fn();
+    component.currentStream = {
+      getTracks: () => [{ stop }],
+      getAudioTracks: () => [{ stop }],
+    } as unknown as MediaStream;
+    (component as any).handleRecordingFinished({
+      id: "rec_10",
+      blob: new Blob(),
+      url: "blob:rec_10",
+      durationSec: 3,
+    });
+    expect(stop).toHaveBeenCalled();
+    expect(component.currentStream).toBeNull();
+  });
+
   it("deletes a recording and revokes its object URL", () => {
     component.recordings.set([rec()]);
     component.deleteRecording("rec_1");

@@ -120,19 +120,8 @@ export class AudioRecorderViewComponent
   toggleMonitoring(): void {
     this.haptic.light();
     this.monitoringEnabled.update((v) => !v);
-    if (this.monitoringEnabled() && this.currentStream && this.audioContext) {
-      try {
-        this.micSourceNode = this.audioContext.createMediaStreamSource(
-          this.currentStream,
-        );
-        this.monitorGainNode = this.audioContext.createGain();
-        this.monitorGainNode.gain.value = 1.0;
-        this.micSourceNode.connect(this.monitorGainNode);
-        this.monitorGainNode.connect(this.audioContext.destination);
-      } catch (err) {
-        this.logger.warn("Could not enable monitoring", err);
-        this.monitoringEnabled.set(false);
-      }
+    if (this.monitoringEnabled()) {
+      this.ensureMonitorNodes();
     } else if (this.micSourceNode && this.monitorGainNode) {
       try {
         this.micSourceNode.disconnect(this.monitorGainNode);
@@ -148,6 +137,28 @@ export class AudioRecorderViewComponent
         ? "Monitoring ON — hear yourself live"
         : "Monitoring OFF",
     );
+  }
+
+  /**
+   * Monitoring without a capture graph (e.g. armed but not recording yet) has
+   * no source node — build one so the toggle is truthful whenever the mic is
+   * open, instead of silently doing nothing.
+   */
+  private ensureMonitorNodes(): void {
+    if (!this.currentStream || !this.audioContext) return;
+    if (this.micSourceNode || this.monitorGainNode) return;
+    try {
+      this.micSourceNode = this.audioContext.createMediaStreamSource(
+        this.currentStream,
+      );
+      this.monitorGainNode = this.audioContext.createGain();
+      this.monitorGainNode.gain.value = 1.0;
+      this.micSourceNode.connect(this.monitorGainNode);
+      this.monitorGainNode.connect(this.audioContext.destination);
+    } catch (err) {
+      this.logger.warn("Could not enable monitoring", err);
+      this.monitoringEnabled.set(false);
+    }
   }
 
   toggleNoiseGate(): void {
@@ -262,10 +273,7 @@ export class AudioRecorderViewComponent
     if (this.stopFallbackTimer) clearTimeout(this.stopFallbackTimer);
     this.stopFallbackTimer = null;
     this.closeAudioGraph();
-    if (this.currentStream) {
-      this.currentStream.getTracks().forEach((t) => t.stop());
-      this.currentStream = null;
-    }
+    this.releaseInputStream();
     if (this.audioContext && this.audioContext.state !== "closed") {
       this.audioContext.close().catch(() => {});
       this.audioContext = null;
@@ -374,6 +382,7 @@ export class AudioRecorderViewComponent
     id: string;
     blob: Blob;
     url: string;
+    durationSec?: number;
   }): void {
     if (this.recordings().some((recording) => recording.id === event.id))
       return;
@@ -382,17 +391,32 @@ export class AudioRecorderViewComponent
       id: event.id,
       name,
       timestamp: Date.now(),
-      durationSec: Math.max(0, this.elapsedSec()),
+      // The service measures the take itself; the 4fps elapsed timer can be
+      // up to 250ms stale and is cleared before this handler runs.
+      durationSec: Math.max(0, Math.round(event.durationSec ?? this.elapsedSec())),
       url: event.url,
     };
     this.recordings.update((list) => [entry, ...list]);
     this.captureState.set("idle");
     this.captureError.set(null);
+    // The stop path arms a 1s fallback in case the recorder never fires; once
+    // the take lands, that timer must not run a second idle transition.
+    if (this.stopFallbackTimer) clearTimeout(this.stopFallbackTimer);
+    this.stopFallbackTimer = null;
     this.clearElapsedTimer();
     this.stopLevelMeter();
     this.stopWaveform();
     this.closeAudioGraph();
+    // Close the microphone as soon as the take is banked so the browser shows
+    // after the capture, and let the next REC re-acquire it.
+    this.releaseInputStream();
     this.snackbar.success(`${name} captured — ready to keep or add`);
+  }
+
+  /** Stop and forget the microphone stream. */
+  private releaseInputStream(): void {
+    this.currentStream?.getTracks().forEach((track) => track.stop());
+    this.currentStream = null;
   }
 
   private closeAudioGraph(): void {
@@ -477,6 +501,7 @@ export class AudioRecorderViewComponent
       this.stopFallbackTimer = setTimeout(() => {
         this.captureState.set("idle");
         this.closeAudioGraph();
+        this.releaseInputStream();
         this.loadOfflineRecordings();
       }, 1000);
       this.snackbar.info("Recording stopped");

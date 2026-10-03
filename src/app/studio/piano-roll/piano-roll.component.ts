@@ -36,6 +36,8 @@ import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.
 
 const VELOCITY_LANE_HEIGHT = 80;
 const MAX_MIDI = 96;
+/** Movement (px) before a touch on a note becomes a drag instead of a tap. */
+const TOUCH_DRAG_SLOP_PX = 6;
 
 /** Explicit editor tools; gestures refine a tool but never define it. */
 export type PianoTool = "draw" | "select" | "erase" | "velocity" | "chord";
@@ -232,6 +234,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private draggingNotes: {
     startX: number;
     startY: number;
+    /** Step of the note the drag started on — the snap reference. */
+    anchorStep: number;
     originalPositions: Map<string, { step: number; midi: number }>;
   } | null = null;
 
@@ -1024,20 +1028,66 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private isSwiping = false;
   private lastPinchZoom = 1;
   private drawFromTouch = false;
+  /** True from the moment a second finger lands until the last one lifts. */
+  private pinchActive = false;
 
   onGridTouchStart(event: TouchEvent) {
     this.touchStartTime = Date.now();
     if (event.touches.length === 1) {
-      this.touchStartX = event.touches[0].clientX;
-      this.touchStartY = event.touches[0].clientY;
+      const touch = event.touches[0];
+      this.touchStartX = touch.clientX;
+      this.touchStartY = touch.clientY;
       this.isSwiping = false;
       this.drawFromTouch = false;
+      this.pinchActive = false;
+      this.armTouchNoteGesture(touch);
     }
     if (event.touches.length === 2) {
+      // A second finger turns the gesture into a pinch — drop any note drag
+      // armed by the first so the two paths never fight.
+      this.pinchActive = true;
+      this.draggingNotes = null;
+      this.resizingNote = null;
+      this.resizePreview.set(null);
       this.lastPinchZoom = this.touchGestures.zoomLevel();
       try {
         this.touchGestures.handlePinch(event);
       } catch {}
+    }
+  }
+
+  /**
+   * Touch screens cannot use the pointer path (it deliberately yields to the
+   * touch handlers), so a press that lands on a note arms the same drag /
+   * resize state the mouse path uses. A tap that never moves still falls
+   * through to the touchend selection/create logic.
+   */
+  private armTouchNoteGesture(touch: Touch): void {
+    const container = this.scrollContainer?.nativeElement;
+    if (!container) return;
+    const { step, midi } = this.getGridPosition(
+      container,
+      touch.clientX,
+      touch.clientY,
+    );
+    const hit = this.findNoteAt(step, midi);
+    if (!hit || this.editMode() === "erase") return;
+    const offsetPx = (step - hit.step) * this.cellWidth();
+    if (this.isNoteResizeEdge(hit, offsetPx)) {
+      this.resizingNote = {
+        id: hit.id,
+        startClientX: touch.clientX,
+        originalLength: Math.max(0.125, hit.length),
+        originalStep: hit.step,
+      };
+      this.resizePreview.set({ id: hit.id, length: hit.length });
+      return;
+    }
+    if (this.editMode() === "select") {
+      if (!this.selectedNoteIds().has(hit.id)) {
+        this.selectedNoteIds.set(new Set([hit.id]));
+      }
+      this.startDraggingSelection(touch.clientX, touch.clientY);
     }
   }
 
@@ -1052,10 +1102,30 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
           this.lastPinchZoom = newZoom;
         }
       } catch {}
+      return;
     }
-    if (event.touches.length === 1 && this.editMode() === "draw") {
-      const dx = event.touches[0].clientX - this.touchStartX;
-      const dy = event.touches[0].clientY - this.touchStartY;
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+
+    if (this.resizingNote) {
+      event.preventDefault();
+      this.applyNoteResize(touch.clientX);
+      this.isSwiping = true;
+      return;
+    }
+    if (this.draggingNotes) {
+      const dx = touch.clientX - this.draggingNotes.startX;
+      const dy = touch.clientY - this.draggingNotes.startY;
+      if (!this.isSwiping && Math.hypot(dx, dy) < TOUCH_DRAG_SLOP_PX) return;
+      event.preventDefault();
+      this.applyNoteDrag(touch.clientX, touch.clientY);
+      this.isSwiping = true;
+      return;
+    }
+
+    if (this.editMode() === "draw") {
+      const dx = touch.clientX - this.touchStartX;
+      const dy = touch.clientY - this.touchStartY;
       if (Math.hypot(dx, dy) > 15 && !this.drawFromTouch) {
         this.isSwiping = true;
       }
@@ -1063,11 +1133,40 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onGridTouchEnd(event: TouchEvent) {
+    // A pinch stays active until the LAST finger lifts. The previous code only
+    // noticed a pinch when both fingers were lifted in the same frame, so a
+    // finger-by-finger release fell through to the tap path and created a
+    // stray note after every zoom gesture.
+    if (this.pinchActive) {
+      if (event.touches.length === 0) {
+        this.pinchActive = false;
+        this.touchGestures.resetPinch();
+      }
+      this.isSwiping = false;
+      return;
+    }
     // Two-finger gesture finished: drop the pinch reference span so the next
     // pinch measures from scratch instead of against the previous span.
     if (event.changedTouches.length === 2) {
       this.touchGestures.resetPinch();
       return;
+    }
+    if (this.resizingNote) {
+      this.resizingNote = null;
+      this.resizePreview.set(null);
+      this.isSwiping = false;
+      this.haptic.light();
+      return;
+    }
+    if (this.draggingNotes) {
+      const dragged = this.isSwiping;
+      this.draggingNotes = null;
+      this.isSwiping = false;
+      if (dragged) {
+        this.haptic.light();
+        return;
+      }
+      // No movement — fall through so a plain tap still selects/previews.
     }
     if (event.changedTouches.length === 1 && !this.isSwiping) {
       const touch = event.changedTouches[0];
@@ -1151,22 +1250,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @HostListener("pointermove", ["$event"])
   onPointerMove(e: PointerEvent) {
+    // Touch screens dispatch compatibility pointer events for the same
+    // gesture. The touch handlers own touch editing, so acting here too would
+    // move notes twice and fight the pinch.
+    if (e.pointerType === "touch") return;
     if (this.resizingNote) {
-      const track = this.musicManager.selectedTrack();
-      if (!track) return;
-      const dSteps =
-        (e.clientX - this.resizingNote.startClientX) / this.cellWidth();
-      // Snap the dragged edge so resize lands on the current grid — unsnapped
-      // resize fights the quantize button and produces unusable micro-lengths.
-      const snapped = Math.max(
-        0.125,
-        this.applySnap(this.resizingNote.originalLength + dSteps),
-      );
-      this.resizePreview.set({ id: this.resizingNote.id, length: snapped });
-      this.musicManager.updateNote(track.id, this.resizingNote.id, {
-        length: snapped,
-      });
-      this.markDirty();
+      this.applyNoteResize(e.clientX);
       return;
     }
 
@@ -1181,24 +1270,62 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     if (this.draggingNotes) {
-      const dx = e.clientX - this.draggingNotes.startX;
-      const dy = e.clientY - this.draggingNotes.startY;
-      const dSteps = dx / this.cellWidth();
-      const dMidi = -Math.round(dy / this.rowHeight());
-      const track = this.musicManager.selectedTrack();
-      if (!track) return;
-      this.draggingNotes.originalPositions.forEach((pos, id) => {
-        this.musicManager.updateNote(track.id, id, {
-          step: Math.max(0, pos.step + dSteps),
-          midi: Math.max(0, Math.min(127, pos.midi + dMidi)),
-        });
-      });
-      this.markDirty();
+      this.applyNoteDrag(e.clientX, e.clientY);
     }
   }
 
-  @HostListener("pointerup")
-  onPointerUp() {
+  /**
+   * Live resize of the note's right edge, snapped to the grid. Shared by the
+   * mouse pointer path and the touch path.
+   */
+  private applyNoteResize(clientX: number): void {
+    if (!this.resizingNote) return;
+    const track = this.musicManager.selectedTrack();
+    if (!track) return;
+    const dSteps =
+      (clientX - this.resizingNote.startClientX) / this.cellWidth();
+    // Snap the dragged edge so resize lands on the current grid — unsnapped
+    // resize fights the quantize button and produces unusable micro-lengths.
+    const snapped = Math.max(
+      0.125,
+      this.applySnap(this.resizingNote.originalLength + dSteps),
+    );
+    this.resizePreview.set({ id: this.resizingNote.id, length: snapped });
+    this.musicManager.updateNote(track.id, this.resizingNote.id, {
+      length: snapped,
+    });
+    this.markDirty();
+  }
+
+  /**
+   * Move the dragged note selection. The drag DELTA is snapped against the
+   * anchor note's original step, so the anchor lands on the active grid while
+   * relative timing inside a multi-note selection is preserved. (The old code
+   * ignored the grid entirely and dropped notes on fractional steps.)
+   */
+  private applyNoteDrag(clientX: number, clientY: number): void {
+    const drag = this.draggingNotes;
+    if (!drag) return;
+    const track = this.musicManager.selectedTrack();
+    if (!track) return;
+    const rawDSteps = (clientX - drag.startX) / this.cellWidth();
+    const dMidi = -Math.round((clientY - drag.startY) / this.rowHeight());
+    const dSteps =
+      this.applySnap(drag.anchorStep + rawDSteps) - drag.anchorStep;
+    drag.originalPositions.forEach((pos, id) => {
+      this.musicManager.updateNote(track.id, id, {
+        step: Math.max(0, pos.step + dSteps),
+        midi: Math.max(0, Math.min(127, pos.midi + dMidi)),
+      });
+    });
+    this.markDirty();
+  }
+
+  @HostListener("pointerup", ["$event"])
+  onPointerUp(e?: PointerEvent) {
+    // Touch gestures finalize in onGridTouchEnd — pointerup also fires for
+    // touch and would clear the drag state before the touch path reads it.
+    if (e && e.pointerType === "touch") return;
     if (this.resizingNote) {
       this.resizingNote = null;
       this.resizePreview.set(null);
@@ -1283,9 +1410,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       );
       if (note) originalPositions.set(id, { step: note.step, midi: note.midi });
     });
+    const anchor = this.selectedTrack()?.notes.find((candidate) =>
+      originalPositions.has(candidate.id),
+    );
     this.draggingNotes = {
       startX: clientX,
       startY: clientY,
+      anchorStep: anchor?.step ?? 0,
       originalPositions,
     };
   }
@@ -1329,8 +1460,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       if (this.editMode() === "erase") {
         this.musicManager.removeNotes(track.id, [existing.id]);
       } else if (options.resizeEdge) {
-        // Edge press selects (if needed) then resizes; touch keeps editing
-        // length through the precision panel's Length slider instead.
+        // Edge press selects (if needed) then resizes. Touch screens arm the
+        // same state from onGridTouchStart, so length is draggable there too.
         if (!this.selectedNoteIds().has(existing.id)) {
           this.selectedNoteIds.set(new Set([existing.id]));
         }
@@ -1753,7 +1884,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     { label: "Chromatic", value: "chromatic" },
   ];
 
-  setSnap(snap: "1/4" | "1/8" | "1/16" | "1/32" | "off") {
+  setSnap(snap: "1/4" | "1/8" | "1/8T" | "1/16" | "1/32" | "off") {
     this.snap.set(snap);
     this.haptic.light();
   }
