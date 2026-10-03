@@ -624,8 +624,18 @@
       [class.full-page]="isFullPageMode()"
       [class.auth-page]="isAuthRoute()"
     >
+      <!--
+        No z-index on the scroll container on purpose. It used to carry
+        `z-10`, which created a stacking context that capped every modal a
+        workspace renders inside the routed view: the questionnaire overlay's
+        own `z-index: 1000` was resolved *within* that context, so the app top
+        bar (`z-40`) and sidebar (`z-50`) painted over the dialog and
+        intercepted its clicks. `position: relative` on its own creates no
+        stacking context, so dropping the z-index lets each overlay's own
+        stacking context compete against the chrome directly.
+      -->
       <div
-        class="content-scroll-container relative z-10 p-0 h-full overflow-y-auto"
+        class="content-scroll-container relative p-0 h-full overflow-y-auto"
         [class.mobile-content-offset]="isMobile() && !isFullPageMode()"
         [class.mobile-scroll-smooth]="isMobile()"
         [class.scroll-smooth]="!uiService.performanceMode()"

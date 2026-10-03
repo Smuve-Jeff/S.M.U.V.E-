@@ -1952,14 +1952,23 @@
         </div>
       </div>
 
-      <app-artist-questionnaire
-        *ngIf="showQuestionnaire()"
-        (close)="showQuestionnaire.set(false)"
-        (complete)="editableProfile.set($event)"
-      >
-      </app-artist-questionnaire>
     </main>
   </div>
+
+  <!--
+    Overlays live outside the `<main>` panel on purpose. That panel carries
+    `backdrop-blur-md`, and `backdrop-filter` makes an element the containing
+    block for its `position: fixed` descendants — nesting the questionnaire
+    here trapped its full-screen overlay inside the panel (it rendered at the
+    panel's offset and width instead of covering the viewport), leaving the
+    top of the modal behind the app shell where it could not be clicked.
+  -->
+  <app-artist-questionnaire
+    *ngIf="showQuestionnaire()"
+    (close)="showQuestionnaire.set(false)"
+    (complete)="editableProfile.set($event)"
+  >
+  </app-artist-questionnaire>
   <app-uplink-console
     *ngIf="showUplink()"
     [retryPayload]="editableProfile()"

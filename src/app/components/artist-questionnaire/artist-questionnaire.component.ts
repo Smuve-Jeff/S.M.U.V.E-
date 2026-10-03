@@ -87,6 +87,8 @@ export class ArtistQuestionnaireComponent {
   analysisResult = signal<any>(null);
   readonly intelligenceReport = computed(() => this.artistIntelligence.analyze(this.profileDraft()));
   showUplink = signal(false);
+  /** Set once the uplink has persisted the interview. */
+  committed = signal(false);
   isGlitching = signal(false);
   showPersonaCard = signal(false);
   completedPhases = signal<Set<QuestionnairePhase>>(new Set());
@@ -590,6 +592,7 @@ export class ArtistQuestionnaireComponent {
 
     const success = await this.uplinkService.initiateUplink(completedProfile);
     if (success) {
+      this.committed.set(true);
       this.complete.emit(completedProfile);
     }
   }
@@ -689,7 +692,21 @@ export class ArtistQuestionnaireComponent {
    * asks first.
    */
   async requestClose(): Promise<void> {
-    if (this.totalProgress() === 0 || this.isAnalyzing()) {
+    // A committed interview has nothing left to lose. The uplink console's
+    // RETURN_TO_COMMAND button routes here, and telling an artist their
+    // committed answers are "not committed yet" would be a lie.
+    //
+    // The console offers that button the moment its stage reaches `complete`,
+    // but `committed` only flips when the uplink promise resolves one stage
+    // later — so clicking in that window must still count as committed. The
+    // uplink's own stage is the source of truth: by then the profile has
+    // already been written during the `profile_commit` stage.
+    if (
+      this.committed() ||
+      this.uplinkService.status().stage === 'complete' ||
+      this.totalProgress() === 0 ||
+      this.isAnalyzing()
+    ) {
       this.close.emit();
       return;
     }
