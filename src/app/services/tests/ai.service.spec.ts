@@ -632,4 +632,61 @@ describe('AiService', () => {
       );
     });
   });
+
+  describe('strategic intelligence briefs', () => {
+    it('populates the brief signal that three panels render', () => {
+      // The signal shipped permanently empty: consumers existed, writers did not.
+      expect(service.intelligenceBriefs()).toEqual([]);
+
+      const briefs = service.refreshIntelligenceBriefs();
+
+      expect(briefs.length).toBeGreaterThan(0);
+      expect(service.intelligenceBriefs()).toEqual(briefs);
+      for (const brief of briefs) {
+        expect(typeof brief.title).toBe('string');
+        expect(brief.title.length).toBeGreaterThan(0);
+        expect(typeof brief.content).toBe('string');
+        // Fields rendered by the Strategy Hub and Command Center consumers.
+        expect(typeof brief.category).toBe('string');
+        expect(['HIGH', 'MEDIUM', 'LOW']).toContain(brief.impact);
+      }
+    });
+
+    it('names the strongest and weakest vectors from the audit', () => {
+      const report = service.performExecutiveAudit();
+      const briefs = service.intelligenceBriefs();
+      // The briefs rank all four vectors the audit reports.
+      const dimensions = [
+        { key: 'Sonic Cohesion', score: report.sonicCohesion },
+        { key: 'Arrangement Depth', score: report.arrangementDepth },
+        { key: 'Market Viability', score: report.marketViability },
+        { key: 'Technical Authority', score: report.technicalAuthority! },
+      ];
+      const maxScore = Math.max(...dimensions.map((d) => d.score));
+      const minScore = Math.min(...dimensions.map((d) => d.score));
+      // Ties are legitimate, so match any dimension holding the extreme score.
+      const keysAt = (score: number) =>
+        dimensions.filter((d) => d.score === score).map((d) => d.key);
+
+      const strengthTitle = briefs.find((b) => b.id === 'brief-strength').title;
+      const gapTitle = briefs.find((b) => b.id === 'brief-gap').title;
+
+      expect(keysAt(maxScore).some((k) => strengthTitle.includes(k))).toBe(true);
+      expect(keysAt(minScore).some((k) => gapTitle.includes(k))).toBe(true);
+      expect(strengthTitle).toContain(`${maxScore}%`);
+      expect(gapTitle).toContain(`${minScore}%`);
+    });
+
+    it('reports an empty catalogue as the highest-priority deficit', () => {
+      const report = service.performExecutiveAudit();
+      expect(report.criticalDeficits).toContain(
+        'The catalogue is empty — no release history to analyse.'
+      );
+      const deficitBrief = service
+        .intelligenceBriefs()
+        .find((b) => b.id === 'brief-next-action');
+      expect(deficitBrief.content).toBe(report.criticalDeficits[0]);
+      expect(deficitBrief.impact).toBe('HIGH');
+    });
+  });
 });

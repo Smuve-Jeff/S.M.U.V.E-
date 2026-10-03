@@ -87,7 +87,9 @@
       >
         {{
           status().stage === 'failed'
-            ? 'RETRY_UPLINK'
+            ? retryPayload()
+              ? 'RETRY_UPLINK'
+              : 'CLOSE'
             : status().stage === 'complete'
               ? 'RETURN_TO_COMMAND'
               : 'TRANSMITTING...'

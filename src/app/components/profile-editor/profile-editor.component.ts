@@ -31,7 +31,11 @@ import { FormFieldComponent } from './form-field.component';
 import { CatalogManagerComponent } from '../catalog-manager/catalog-manager.component';
 import { AiService } from '../../services/ai.service';
 import { ArtistQuestionnaireComponent } from '../artist-questionnaire/artist-questionnaire.component';
-import { ALL_GENRES } from '../../services/enhanced-artist-questionnaire-engine';
+import {
+  ALL_GENRES,
+  SYNC_READINESS_OPTIONS,
+  STEMS_OPTIONS,
+} from '../../services/enhanced-artist-questionnaire-engine';
 import { ArtistIdentityService } from '../../services/artist-identity.service';
 import { ConnectorPlatform } from '../../types/artist-identity.types';
 import { OnboardingService } from '../../services/onboarding.service';
@@ -461,18 +465,38 @@ export class ProfileEditorComponent implements OnInit {
 
   // ── Sync & licensing pane ─────────────────────────────────────────────
 
+  // Both catalogs are shared with the Artist DNA questionnaire, which writes
+  // the same fields. They used to differ ('Preparing'/'Ready'/'Actively
+  // Pitching' here vs 'Basics Ready'/'Full Stem Mastery'/'One-Stop Qualified'
+  // there), so an answer given in one surface read as unset in the other.
   readonly syncToggles = [
     {
       label: 'Sync readiness',
       field: 'isSyncReady',
-      options: ['Not Started', 'Preparing', 'Ready', 'Actively Pitching'],
+      options: SYNC_READINESS_OPTIONS,
     },
     {
       label: 'Stems',
       field: 'hasStems',
-      options: ['No', 'Partial', 'Full Multitrack'],
+      options: STEMS_OPTIONS,
     },
   ];
+
+  /**
+   * Legacy values from the retired editor vocabulary. They are still on saved
+   * profiles, so the select keeps showing the artist's real answer instead of
+   * silently resetting to the first option until they re-pick.
+   */
+  private static readonly LEGACY_SYNC_READINESS: Record<string, string> = {
+    Preparing: 'Basics Ready',
+    Ready: 'Full Stem Mastery',
+    'Actively Pitching': 'One-Stop Qualified',
+  };
+
+  syncReadinessValue(): string {
+    const raw = String(this.syncValue('isSyncReady') ?? '');
+    return ProfileEditorComponent.LEGACY_SYNC_READINESS[raw] ?? raw;
+  }
 
   readonly syncFlags = [
     { label: 'Clean versions', field: 'hasCleanVersions' },
@@ -568,6 +592,19 @@ export class ProfileEditorComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // The Strategic Intel panel renders `intelligenceBriefs`, which nothing
+    // populated before — it showed as an empty box on every visit. Deriving
+    // them here (from the local audit) means the panel has content on arrival
+    // rather than only after a manual audit run.
+    if (this.intelligenceBriefs().length === 0) {
+      try {
+        this.aiService.refreshIntelligenceBriefs();
+      } catch (err) {
+        // Briefs are advisory; never block the editor from opening.
+        console.warn('Strategic intel unavailable:', err);
+      }
+    }
+
     const syncQuestionnaireQuery = (questionnaire: string | null) => {
       this.showQuestionnaire.set(questionnaire === '1');
     };

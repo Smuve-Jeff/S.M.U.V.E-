@@ -15,6 +15,7 @@ import {
 import { AiService } from '../../services/ai.service';
 import { UplinkService } from '../../services/uplink.service';
 import { ArtistIntelligenceService } from '../../services/artist-intelligence.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { animate, style, transition, trigger } from '@angular/animations';
 import type { StrategicSignals } from '../../types/profile.types';
@@ -71,6 +72,7 @@ export class ArtistQuestionnaireComponent {
   private uplinkService = inject(UplinkService);
   private engine = inject(EnhancedArtistQuestionnaireEngine);
   private artistIntelligence = inject(ArtistIntelligenceService);
+  private dialog = inject(InteractionDialogService);
 
   close = output<void>();
   complete = output<UserProfile>();
@@ -632,23 +634,74 @@ export class ArtistQuestionnaireComponent {
     if ((p.musicalJourney?.incomeStreams?.length || 0) >= 3)
       s.careerMomentum += 10;
 
-    if (p.syncDetails?.hasStems === 'Everything Archived')
-      s.syncViability += 25;
-    if (p.syncDetails?.isSyncReady === 'Full Stem Mastery')
-      s.syncViability += 50;
+    // Sync readiness is a graded scale (q30): 'Not Started' → 'One-Stop
+    // Qualified'. Award by rank so a lower answer cannot outscore a higher one,
+    // and so the top two tiers are actually reachable.
+    const syncRank: Record<string, number> = {
+      'Basics Ready': 25,
+      'Full Stem Mastery': 40,
+      'One-Stop Qualified': 50,
+    };
+    s.syncViability += syncRank[String(p.syncDetails?.isSyncReady)] ?? 0;
+    // Stems availability is graded too ('No' | 'Partial' | 'Full Multitrack',
+    // the profile editor's catalog). The old check looked for 'Everything
+    // Archived', which nothing writes, so stem prep never scored.
+    const stems = String(p.syncDetails?.hasStems ?? '');
+    if (stems === 'Full Multitrack') s.syncViability += 25;
+    else if (stems === 'Partial') s.syncViability += 12;
 
-    if (p.touringDetails?.isTourReady === 'Global Ready')
-      s.touringStability += 40;
-    if (p.touringDetails?.hasBackline === 'Full Self-Sustained')
-      s.touringStability += 30;
+    // Touring readiness is a graded scale too (q29): 'Studio Only' → 'Global
+    // Ready'. Ranked so 'Global Ready' is the ceiling rather than the only
+    // scoring answer.
+    const tourRank: Record<string, number> = {
+      'Local Gigs': 15,
+      'Regional Ready': 30,
+      'Global Ready': 40,
+    };
+    s.touringStability += tourRank[String(p.touringDetails?.isTourReady)] ?? 0;
+    // Backline readiness was previously compared against 'Full Self-Sustained',
+    // which no writer ever stores — the branch was dead. The profile editor
+    // stores the yes/no answer, so score that.
+    if (p.touringDetails?.hasBackline === 'Yes') s.touringStability += 30;
 
-    if (p.legalInfrastructure?.hasRegisteredWorks) s.identityTrust += 30;
-    if (p.legalInfrastructure?.proAffiliation !== 'None') s.identityTrust += 30;
+    // q28 stores a tri-state string ('No' | 'Partial' | 'Yes'), and the bare
+    // truthiness test scored 'No' as registered works — awarding 30 trust for
+    // explicitly owning nothing. Score the actual answer.
+    const works = String(p.legalInfrastructure?.hasRegisteredWorks ?? '');
+    if (works === 'Yes') s.identityTrust += 30;
+    else if (works === 'Partial') s.identityTrust += 15;
+    else if (works === 'true') s.identityTrust += 30;
+
+    if (p.legalInfrastructure?.proAffiliation && p.legalInfrastructure.proAffiliation !== 'None')
+      s.identityTrust += 30;
 
     Object.keys(s).forEach((k) => {
       (s as any)[k] = Math.min(100, (s as any)[k]);
     });
     return s;
+  }
+
+  /**
+   * Guarded exit. The X button (and the close action in the results footer)
+   * dropped every uncommitted answer with no warning, while the commit button
+   * sat right next to it — one mis-tap silently erased a full interview.
+   * Committing is the only path that persists, so an exit with real progress
+   * asks first.
+   */
+  async requestClose(): Promise<void> {
+    if (this.totalProgress() === 0 || this.isAnalyzing()) {
+      this.close.emit();
+      return;
+    }
+    const confirmed = await this.dialog.confirm({
+      title: 'Discard your answers?',
+      message:
+        'This interview is not committed yet. Leaving now discards everything you answered. Commit Neural Realignment to keep it.',
+      confirmLabel: 'Discard & exit',
+      cancelLabel: 'Keep answering',
+      tone: 'danger',
+    });
+    if (confirmed) this.close.emit();
   }
 
   private triggerGlitch() {
