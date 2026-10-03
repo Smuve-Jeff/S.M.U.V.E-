@@ -150,6 +150,31 @@ export const GENRE_OPTIONS: QuestionOption[] = [
 
 export const ALL_GENRES: string[] = GENRE_OPTIONS.map((g) => String(g.value));
 
+/**
+ * Shared graded catalogs for the business-infrastructure answers.
+ *
+ * The questionnaire (q29/q30) and the Profile editor's Sync & Licensing pane
+ * write the *same* `profile.syncDetails` / `profile.touringDetails` fields, so
+ * they must offer the same vocabulary — a value the other surface does not
+ * recognize reads as an unset answer everywhere downstream (scoring, the
+ * fine-tune knowledge block, coverage). Ordered weakest → strongest.
+ */
+export const SYNC_READINESS_OPTIONS: string[] = [
+  'Not Started',
+  'Basics Ready',
+  'Full Stem Mastery',
+  'One-Stop Qualified',
+];
+
+export const TOUR_READINESS_OPTIONS: string[] = [
+  'Studio Only',
+  'Local Gigs',
+  'Regional Ready',
+  'Global Ready',
+];
+
+export const STEMS_OPTIONS: string[] = ['No', 'Partial', 'Full Multitrack'];
+
 /* ── Phase definitions ───────────────────────────────────────── */
 
 export const PHASES: PhaseInfo[] = [
@@ -1884,10 +1909,10 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
       'Is your live show ready for deployment? This calibrates your touring strategy.',
     field: 'touringDetails.isTourReady',
     options: [
-      { label: 'Studio Only', value: 'Studio Only', icon: '🎧' },
-      { label: 'Local Gigs', value: 'Local Gigs', icon: '🏠' },
-      { label: 'Regional Ready', value: 'Regional Ready', icon: '🚐' },
-      { label: 'Global Ready', value: 'Global Ready', icon: '✈️' },
+      { label: 'Studio Only', value: TOUR_READINESS_OPTIONS[0], icon: '🎧' },
+      { label: 'Local Gigs', value: TOUR_READINESS_OPTIONS[1], icon: '🏠' },
+      { label: 'Regional Ready', value: TOUR_READINESS_OPTIONS[2], icon: '🚐' },
+      { label: 'Global Ready', value: TOUR_READINESS_OPTIONS[3], icon: '✈️' },
     ],
   },
   {
@@ -1899,10 +1924,10 @@ const ALL_QUESTIONS: QuestionnaireQuestion[] = [
     description: 'Is your catalog prepared for film, TV, and game licensing?',
     field: 'syncDetails.isSyncReady',
     options: [
-      { label: 'Not Started', value: 'Not Started', icon: '❌' },
-      { label: 'Basics Ready', value: 'Basics Ready', icon: '📋' },
-      { label: 'Full Stem Mastery', value: 'Full Stem Mastery', icon: '🎛️' },
-      { label: 'One-Stop Qualified', value: 'One-Stop Qualified', icon: '✅' },
+      { label: 'Not Started', value: SYNC_READINESS_OPTIONS[0], icon: '❌' },
+      { label: 'Basics Ready', value: SYNC_READINESS_OPTIONS[1], icon: '📋' },
+      { label: 'Full Stem Mastery', value: SYNC_READINESS_OPTIONS[2], icon: '🎛️' },
+      { label: 'One-Stop Qualified', value: SYNC_READINESS_OPTIONS[3], icon: '✅' },
     ],
   },
   {

@@ -20,6 +20,7 @@ import { OnboardingService } from '../../services/onboarding.service';
 import { UplinkService } from '../../services/uplink.service';
 import { LoggingService } from '../../services/logging.service';
 import { initialProfile, TeamMember, UserProfile } from '../../types/profile.types';
+import { SYNC_READINESS_OPTIONS } from '../../services/enhanced-artist-questionnaire-engine';
 
 /**
  * Child surfaces are stubbed so the REAL profile template renders without
@@ -288,17 +289,47 @@ describe('ProfileEditorComponent', () => {
       expect(component.coverageFor('production-tools').missing).not.toContain('DAW');
     });
 
+    it('offers the same sync vocabulary as the Artist DNA questionnaire', async () => {
+      const { component } = await createComponent();
+      const sync = component.syncToggles.find(
+        (t: any) => t.field === 'isSyncReady'
+      );
+
+      // Both surfaces write `syncDetails.isSyncReady`; a value only one of them
+      // understands reads as unset downstream.
+      expect(sync.options).toEqual(SYNC_READINESS_OPTIONS);
+      expect(SYNC_READINESS_OPTIONS).toContain('One-Stop Qualified');
+      expect(SYNC_READINESS_OPTIONS).not.toContain('Actively Pitching');
+    });
+
+    it('maps retired sync values onto the shared catalog', async () => {
+      const { component } = await createComponent();
+
+      // Saved profiles still carry the old vocabulary; the select must show a
+      // real option instead of silently resetting to the first entry.
+      component.setSyncField('isSyncReady', 'Preparing');
+      expect(component.syncReadinessValue()).toBe('Basics Ready');
+      component.setSyncField('isSyncReady', 'Ready');
+      expect(component.syncReadinessValue()).toBe('Full Stem Mastery');
+      component.setSyncField('isSyncReady', 'Actively Pitching');
+      expect(component.syncReadinessValue()).toBe('One-Stop Qualified');
+
+      // A current value passes through untouched.
+      component.setSyncField('isSyncReady', 'Not Started');
+      expect(component.syncReadinessValue()).toBe('Not Started');
+    });
+
     it('captures sync readiness and legal infrastructure', async () => {
       const { fixture, component } = await createComponent();
 
       component.activeSection.set('sync-licensing');
-      component.setSyncField('isSyncReady', 'Actively Pitching');
+      component.setSyncField('isSyncReady', 'One-Stop Qualified');
       component.setSyncField('catalogSize', 9);
       component.setSyncFlag('oneStopClearance', true);
       component.setSyncKeywords('late-night drive, hopeful resolve');
       fixture.detectChanges();
 
-      expect(component.syncValue('isSyncReady')).toBe('Actively Pitching');
+      expect(component.syncValue('isSyncReady')).toBe('One-Stop Qualified');
       expect(component.syncKeywordsText()).toBe('late-night drive, hopeful resolve');
       expect(component.coverageFor('sync-licensing').missing).not.toContain('one-stop clearance');
 

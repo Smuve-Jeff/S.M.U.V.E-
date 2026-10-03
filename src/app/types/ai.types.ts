@@ -104,6 +104,8 @@ export interface ExecutiveAuditReport {
   sonicCohesion: number;
   arrangementDepth: number;
   marketViability: number;
+  /** The same value the deep audit reports as `categories.technical`. */
+  technicalAuthority?: number;
   criticalDeficits: string[];
   technicalRecommendations: string[];
   catalogAnalysis?: {

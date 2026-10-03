@@ -54,7 +54,7 @@
           </div>
         </div>
         <button
-          (click)="close.emit()"
+          (click)="requestClose()"
           class="eq-close-btn"
           aria-label="Close questionnaire"
         >
@@ -307,7 +307,7 @@
             <button (click)="applyChanges()" class="eq-btn-primary">
               <span>✓</span> COMMIT NEURAL REALIGNMENT
             </button>
-            <button (click)="close.emit()" class="eq-btn-ghost">
+            <button (click)="requestClose()" class="eq-btn-ghost">
               DISCARD & EXIT
             </button>
           </footer>
@@ -647,6 +647,7 @@
   <!-- Uplink Console Overlay -->
   <app-uplink-console
     *ngIf="showUplink()"
-    (close)="close.emit()"
+    [retryPayload]="profileDraft()"
+    (close)="requestClose()"
   ></app-uplink-console>
 </div>

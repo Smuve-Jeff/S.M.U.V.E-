@@ -1,4 +1,4 @@
-import { Component, inject, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UplinkService } from '../../services/uplink.service';
 import { animate, style, transition, trigger } from '@angular/animations';
@@ -33,11 +33,32 @@ export class UplinkConsoleComponent {
 
   status = this.uplink.status;
 
-  onComplete() {
-    if (
-      this.status().stage === 'complete' ||
-      this.status().stage === 'failed'
-    ) {
+  /**
+   * The profile to retry with. Hosts pass the exact draft they submitted, so a
+   * retry re-sends the artist's real answers rather than whatever happens to be
+   * in the store at that moment.
+   */
+  retryPayload = input<any | null>(null);
+
+  retrying = false;
+
+  /**
+   * The failure button said RETRY_UPLINK but only closed the overlay, so a
+   * rejected commit looked like it retried and silently stopped. It now
+   * re-runs the uplink against the same payload when the host supplied one.
+   */
+  async onComplete(): Promise<void> {
+    const stage = this.status().stage;
+    if (stage === 'failed' && this.retryPayload() && !this.retrying) {
+      this.retrying = true;
+      try {
+        await this.uplink.initiateUplink(this.retryPayload());
+      } finally {
+        this.retrying = false;
+      }
+      return;
+    }
+    if (stage === 'complete' || stage === 'failed') {
       this.close.emit();
     }
   }

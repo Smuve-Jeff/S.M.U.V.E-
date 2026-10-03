@@ -905,17 +905,11 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       )
     );
     const security = profile.settings?.security;
-    const technicalAuthority = Math.max(
-      0,
-      Math.min(
-        100,
-        40 +
-          (security?.twoFactorEnabled ? 20 : 0) +
-          (security?.auditLogEnabled ? 15 : 0) +
-          (profile.settings?.audio?.sampleRate >= 48000 ? 15 : 0) +
-          (profile.profileSetupCompleted ? 10 : 0)
-      )
-    );
+    // Single source of truth. This used to compute its own inline formula that
+    // disagreed with `technicalScore()`, so the audit's TECHNICAL AUTHORITY and
+    // the deep audit's `categories.technical` reported different numbers for
+    // the same profile.
+    const technicalAuthority = this.technicalScore();
 
     const overallScore = Math.round(
       (sonicCohesion + arrangementDepth + marketViability + technicalAuthority) / 4
@@ -961,6 +955,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       sonicCohesion,
       arrangementDepth,
       marketViability,
+      technicalAuthority,
       criticalDeficits,
       technicalRecommendations,
       catalogAnalysis: {
@@ -984,6 +979,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     try {
       const report = this.buildExecutiveAuditReport();
       this.executiveAudit.set(report);
+      this.refreshIntelligenceBriefs(report);
       this.notification.show(
         `EXECUTIVE AUDIT COMPLETE — ${report.overallScore}/100`,
         'info',
@@ -993,6 +989,83 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     } finally {
       this.isScanning.set(false);
     }
+  }
+
+  /**
+   * Derive the Strategic Intel briefs from an audit report.
+   *
+   * `intelligenceBriefs` is rendered by the Profile editor, Strategy Hub and
+   * Command Center, but nothing ever wrote to it — every one of those panels
+   * shipped permanently empty. The briefs are built from the same local audit
+   * the rest of the app already trusts, so they never require a network call
+   * and never invent numbers the artist cannot trace back to the report.
+   */
+  refreshIntelligenceBriefs(
+    report: ExecutiveAuditReport = this.buildExecutiveAuditReport(),
+  ): any[] {
+    const briefs: any[] = [];
+    // `category` (Strategy Hub) and `impact` (Command Center) are rendered by
+    // the other two consumers of this signal, so every brief carries them.
+    const push = (
+      id: string,
+      title: string,
+      content: string,
+      category: string,
+      impact: 'HIGH' | 'MEDIUM' | 'LOW',
+    ) => briefs.push({ id, title, content, category, impact, timestamp: Date.now() });
+
+    // Strongest dimension first: an artist should see what is already working
+    // before the deficit list.
+    const dimensions = [
+      { key: 'Sonic Cohesion', score: report.sonicCohesion },
+      { key: 'Arrangement Depth', score: report.arrangementDepth },
+      { key: 'Market Viability', score: report.marketViability },
+      { key: 'Technical Authority', score: report.technicalAuthority ?? this.technicalScore() },
+    ].sort((a, b) => b.score - a.score);
+
+    const strongest = dimensions[0];
+    push(
+      'brief-strength',
+      `${strongest.key} leads at ${strongest.score}%`,
+      `Your strongest vector is ${strongest.key.toLowerCase()}. Build the next release decision on it instead of splitting attention across all four.`,
+      'STRENGTH',
+      'MEDIUM',
+    );
+
+    const weakest = dimensions[dimensions.length - 1];
+    push(
+      'brief-gap',
+      `${weakest.key} is the bottleneck (${weakest.score}%)`,
+      weakest.score >= 75
+        ? `Every vector is above 75% — ${weakest.key.toLowerCase()} is the narrowest margin, not a deficiency. Keep it monitored.`
+        : `Raise ${weakest.key.toLowerCase()} before adding scope elsewhere. It is the cheapest score to move right now.`,
+      'GAP',
+      weakest.score >= 75 ? 'LOW' : 'HIGH',
+    );
+
+    const deficit = report.criticalDeficits[0];
+    push(
+      'brief-next-action',
+      deficit ? 'Highest-priority deficit' : 'No critical deficits detected',
+      deficit
+        ? deficit
+        : `Overall strength ${report.overallScore}/100 with no blocking issues. Advance the catalogue rather than reworking what passes.`,
+      'DEFICIT',
+      deficit ? 'HIGH' : 'LOW',
+    );
+
+    if (report.technicalRecommendations.length) {
+      push(
+        'brief-recommendation',
+        'Recommended next move',
+        report.technicalRecommendations[0],
+        'ACTION',
+        'MEDIUM',
+      );
+    }
+
+    this.intelligenceBriefs.set(briefs.slice(0, 4));
+    return this.intelligenceBriefs();
   }
 
   async performDeepAudit() {
@@ -1037,16 +1110,24 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     }
   }
 
-  private technicalScore(): number {
-    const security = this.userProfileService.profile().settings?.security;
+  /**
+   * Technical authority, shared by the executive audit and the deep audit.
+   * Every input is a real profile/security signal; the result is clamped so the
+   * additive weights can never exceed the 0-100 scale.
+   */
+  technicalScore(): number {
+    const profile = this.userProfileService.profile();
+    const security = profile.settings?.security;
     return Math.max(
       0,
       Math.min(
         100,
         40 +
-          (security?.twoFactorEnabled ? 25 : 0) +
-          (security?.auditLogEnabled ? 20 : 0) +
-          (security?.endToEndEncryption ? 15 : 0)
+          (security?.twoFactorEnabled ? 20 : 0) +
+          (security?.auditLogEnabled ? 15 : 0) +
+          (security?.endToEndEncryption ? 15 : 0) +
+          (profile.settings?.audio?.sampleRate >= 48000 ? 15 : 0) +
+          (profile.profileSetupCompleted ? 10 : 0)
       )
     );
   }
