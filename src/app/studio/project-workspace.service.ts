@@ -347,6 +347,13 @@ export class ProjectWorkspaceService {
     if (this.isSaving()) throw new Error('A project save is already in progress.');
     this.isSaving.set(true);
     this.persistenceError.set('');
+    // Bump the revision on every explicit save. The metadata version used to
+    // stay at 1 forever, so exported bundles were always named `_v1` and the
+    // saved record could not distinguish one save from the next.
+    const previousVersion = this.metadata()?.version ?? 1;
+    this.metadata.update((m) =>
+      m ? { ...m, version: previousVersion + 1, updatedAt: Date.now() } : m,
+    );
     try {
       const bundle = this.createStoredSnapshot();
       const stored = this.toStoredBundle(bundle, "manual");
@@ -368,6 +375,9 @@ export class ProjectWorkspaceService {
       this.logger.info("ProjectWorkspace: Saved " + bundle.metadata.name);
       return bundle;
     } catch (error) {
+      // A failed save must not leave the in-memory revision ahead of what is
+      // actually stored (roll back only the version, never other edits).
+      this.metadata.update((m) => (m ? { ...m, version: previousVersion } : m));
       this.persistenceError.set(error instanceof Error ? error.message : 'Project could not be saved.');
       this.logger.warn("ProjectWorkspace: Manual save failed", error);
       throw error;

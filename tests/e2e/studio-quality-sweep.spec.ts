@@ -305,6 +305,82 @@ test('audio import tempo-match stretches the clip to the project tempo', async (
   expect(ratio).toBeCloseTo(0.8, 2); // 80 BPM source into a 100 BPM project
 });
 
+test('piano-roll drag snaps to the grid instead of leaving fractional steps', async ({ page }) => {
+  await page.goto('/studio?view=piano-roll');
+  await expect(page.locator('.piano-roll-surface')).toBeVisible();
+  // The piano roll is @defer-loaded; wait for the real component instance.
+  const handle = await page
+    .locator('app-piano-roll')
+    .first()
+    .elementHandle({ timeout: 15000 });
+
+  const result = await handle!.evaluate((element) => {
+    const roll = (window as any).ng.getComponent(element);
+    const manager = roll.musicManager;
+    const trackId = manager.selectedTrackId() ?? manager.addTrack('QA Roll', 'grand-piano');
+    manager.tracks.update((tracks: any[]) =>
+      tracks.map((t) =>
+        t.id === trackId
+          ? { ...t, notes: [{ id: 'qa-drag', midi: 60, step: 4, length: 1, velocity: 0.8 }] }
+          : t,
+      ),
+    );
+    manager.selectedTrackId.set(trackId);
+    roll.setSnap('1/16');
+    roll.selectedNoteIds.set(new Set(['qa-drag']));
+    roll.startDraggingSelection(0, 0);
+    roll.onPointerMove({ clientX: roll.cellWidth() * 1.6, clientY: -roll.rowHeight(), pointerType: 'mouse' });
+    const dragged = roll.selectedTrack().notes[0];
+    roll.onPointerUp({ pointerType: 'mouse' });
+    return { step: dragged.step, midi: dragged.midi };
+  });
+  // 4 + 1.6 steps snaps to 6 on the 1/16 grid; the row moves up one semitone.
+  expect(result.step).toBe(6);
+  expect(result.midi).toBe(61);
+});
+
+test('phone piano roll keeps note utilities reachable and usable', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/studio?view=piano-roll');
+  const handle = await page
+    .locator('app-piano-roll')
+    .first()
+    .elementHandle({ timeout: 15000 });
+
+  await handle!.evaluate((element) => {
+    const roll = (window as any).ng.getComponent(element);
+    const manager = roll.musicManager;
+    const trackId = manager.selectedTrackId() ?? manager.addTrack('QA Phone Roll', 'grand-piano');
+    manager.tracks.update((tracks: any[]) =>
+      tracks.map((t) =>
+        t.id === trackId
+          ? { ...t, notes: [{ id: 'qa-phone', midi: 60, step: 0, length: 1, velocity: 0.8 }] }
+          : t,
+      ),
+    );
+    manager.selectedTrackId.set(trackId);
+    roll.selectedNoteIds.set(new Set(['qa-phone']));
+  });
+
+  const inspector = page.locator('.pr-inspector');
+  await expect(inspector).toBeVisible();
+  // Icon ligature text prefixes the accessible name, so match on visible text.
+  await expect(inspector.locator('.pr-inspector-toggle').filter({ hasText: 'Duplicate' })).toBeVisible();
+  await expect(inspector.locator('.pr-inspector-toggle').filter({ hasText: 'Delete' })).toBeVisible();
+  // The phone strip must not push the page wider than the viewport.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+
+  const notes = await handle!.evaluate((element) => {
+    const roll = (window as any).ng.getComponent(element);
+    roll.duplicateSelection();
+    const afterDuplicate = roll.selectedTrack().notes.length;
+    roll.deleteSelection();
+    return { afterDuplicate, afterDelete: roll.selectedTrack().notes.length };
+  });
+  expect(notes.afterDuplicate).toBe(2);
+  expect(notes.afterDelete).toBe(1);
+});
+
 /** Minimal 16-bit PCM WAV (8000 frames of a sine at 44.1 kHz). */
 function wavFixture(): Buffer {
   const samples = 8000;

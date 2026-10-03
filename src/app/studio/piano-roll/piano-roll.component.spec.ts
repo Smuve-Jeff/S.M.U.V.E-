@@ -105,6 +105,7 @@ describe("PianoRollComponent", () => {
     handlePinch: jest.fn(),
     adjustZoom: jest.fn(),
     resetZoom: jest.fn(),
+    resetPinch: jest.fn(),
   };
 
   const mockHaptic = {
@@ -572,6 +573,166 @@ describe("PianoRollComponent", () => {
         pitchBend: 5,
       }),
     ).toBe(5);
+  });
+
+  it("snaps a dragged note to the active grid instead of leaving fractions", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: "drag-note", midi: 60, step: 4, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(["drag-note"]));
+    component.setSnap("1/16");
+
+    // Arm the drag the same way a note press does, then move 1.6 steps right
+    // and 1 row up (cell 32px, row 22px at default zoom).
+    (component as any).startDraggingSelection(0, 0);
+    component.onPointerMove({
+      clientX: 32 * 1.6,
+      clientY: -22,
+      pointerType: "mouse",
+    } as PointerEvent);
+
+    const note = mockMusicManager.tracks()[0].notes[0];
+    // 4 + 1.6 snaps to 6 (1/16 grid), not 5.6; midi moves up one row.
+    expect(note.step).toBe(6);
+    expect(note.midi).toBe(61);
+    component.onPointerUp({ pointerType: "mouse" } as PointerEvent);
+  });
+
+  it("preserves relative spacing inside a multi-note drag", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: "a", midi: 60, step: 0, length: 1, velocity: 0.8 },
+          { id: "b", midi: 64, step: 3, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(["a", "b"]));
+    component.setSnap("1/16");
+
+    (component as any).startDraggingSelection(0, 0);
+    component.onPointerMove({
+      clientX: 32 * 2.4,
+      clientY: 0,
+      pointerType: "mouse",
+    } as PointerEvent);
+
+    const notes = mockMusicManager.tracks()[0].notes;
+    const a = notes.find((n) => n.id === "a")!;
+    const b = notes.find((n) => n.id === "b")!;
+    // Anchor snaps 0 + 2.4 → 2, and the 3-step gap between the notes survives.
+    expect(a.step).toBe(2);
+    expect(b.step).toBe(5);
+    component.onPointerUp({ pointerType: "mouse" } as PointerEvent);
+  });
+
+  it("drag/resize touch gestures are owned by the touch path, not pointermove", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: "touch-note", midi: 60, step: 4, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(["touch-note"]));
+    component.setSnap("1/16");
+    (component as any).startDraggingSelection(0, 0);
+
+    // A compatibility pointermove from a touch screen must not double-apply
+    // the drag on top of the touch handlers.
+    component.onPointerMove({
+      clientX: 32 * 3,
+      clientY: 0,
+      pointerType: "touch",
+    } as PointerEvent);
+    expect(mockMusicManager.tracks()[0].notes[0].step).toBe(4);
+
+    component.onPointerUp({ pointerType: "touch" } as PointerEvent);
+    // The touch pointerup must NOT clear the drag either — touchend owns it.
+    expect((component as any).draggingNotes).not.toBeNull();
+    (component as any).draggingNotes = null;
+  });
+
+  it("arms a note drag from a touch press and moves it on touchmove", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: "touch-move", midi: 60, step: 4, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    component.setEditMode("select");
+    component.setSnap("1/16");
+    // Point the ViewChild at a real container so getGridPosition resolves.
+    const container = document.createElement("div");
+    container.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 400, height: 400, bottom: 400, right: 400, x: 0, y: 0 }) as DOMRect;
+    Object.defineProperty(container, "scrollLeft", { value: 0, writable: true });
+    Object.defineProperty(container, "scrollTop", { value: 0, writable: true });
+    (component as any).scrollContainer = { nativeElement: container };
+
+    // Press on the note at step 4 / row for midi 60 (32px per cell, 22px rows).
+    const rowFor60 = (96 - 1 - (60 - 24)) * 22;
+    component.onGridTouchStart({
+      touches: [{ clientX: 4 * 32 + 4, clientY: rowFor60 + 4 }],
+    } as any);
+    expect((component as any).draggingNotes).not.toBeNull();
+
+    // Drag right by two cells and up one row.
+    component.onGridTouchMove({
+      preventDefault: jest.fn(),
+      touches: [
+        { clientX: 4 * 32 + 4 + 64, clientY: rowFor60 + 4 - 22 },
+      ],
+    } as any);
+    const note = mockMusicManager.tracks()[0].notes[0];
+    expect(note.step).toBe(6);
+    expect(note.midi).toBe(61);
+
+    component.onGridTouchEnd({
+      changedTouches: [{ clientX: 0, clientY: 0 }],
+      touches: [],
+    } as any);
+    expect((component as any).draggingNotes).toBeNull();
+  });
+
+  it("does not create a stray note after a pinch released one finger at a time", () => {
+    mockMusicManager.tracks.update((t) => [{ ...t[0], notes: [] }]);
+    component.setEditMode("draw");
+    const container = document.createElement("div");
+    container.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 400, height: 400, bottom: 400, right: 400, x: 0, y: 0 }) as DOMRect;
+    Object.defineProperty(container, "scrollLeft", { value: 0, writable: true });
+    Object.defineProperty(container, "scrollTop", { value: 0, writable: true });
+    (component as any).scrollContainer = { nativeElement: container };
+
+    component.onGridTouchStart({
+      touches: [
+        { clientX: 100, clientY: 100 },
+        { clientX: 200, clientY: 100 },
+      ],
+    } as any);
+    // First finger lifts while the second stays down.
+    component.onGridTouchEnd({
+      changedTouches: [{ clientX: 100, clientY: 100 }],
+      touches: [{ clientX: 200, clientY: 100 }],
+    } as any);
+    expect(mockMusicManager.addNoteToTrack).not.toHaveBeenCalled();
+
+    // Second finger lifts last — still no note.
+    component.onGridTouchEnd({
+      changedTouches: [{ clientX: 200, clientY: 100 }],
+      touches: [],
+    } as any);
+    expect(mockMusicManager.addNoteToTrack).not.toHaveBeenCalled();
   });
 
   it("selectedNoteIsSlide stays true after re-selecting the same notes", () => {

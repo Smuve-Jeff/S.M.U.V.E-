@@ -52,6 +52,8 @@ describe("MixerComponent", () => {
       disconnectSidechain,
     },
     updateVolume: jest.fn(),
+    updateTrackPan: jest.fn(),
+    updateSend: jest.fn(),
     toggleMute: jest.fn(),
     toggleSolo: jest.fn(),
     removeTrack: jest.fn(),
@@ -102,6 +104,115 @@ describe("MixerComponent", () => {
     window.dispatchEvent(new MouseEvent('pointermove', { clientY: 50 }));
     expect(mockMusicManager.updateVolume).not.toHaveBeenCalled();
     expect((component as any).dragCleanup).toBeNull();
+  });
+
+  it('keeps fader movement continuous when precision mode engages mid-drag', () => {
+    // Control the clock so pointer velocity is deterministic: each frame
+    // advances 100ms, which makes 40px "fast" (0.4 px/ms) and 2px "slow"
+    // (0.02 px/ms, below the 0.3 threshold → precision mode).
+    let now = 1_000;
+    const clock = jest.spyOn(Date, 'now').mockImplementation(() => now);
+    try {
+      // Track 1 starts at unity (100%); no rect → keep the current value.
+      component.startFaderDrag({ clientY: 300 } as PointerEvent, '1');
+      // Fast frame: 40px up at 1/200 per px → +0.2.
+      now += 100;
+      window.dispatchEvent(
+        new MouseEvent('pointermove', { clientY: 260, bubbles: true }),
+      );
+      const afterFast = mockMusicManager.updateVolume.mock.calls.at(-1)![1];
+      expect(afterFast).toBeCloseTo(1.2, 5);
+      // Slow frame: 2px up at 1/600 per px → +0.00333. The old code rescaled
+      // the whole 40px accumulated delta by 1/600 and dropped the value to
+      // ~0.93 (a visible jump); delta-based movement must keep rising.
+      now += 100;
+      window.dispatchEvent(
+        new MouseEvent('pointermove', { clientY: 258, bubbles: true }),
+      );
+      const afterSlow = mockMusicManager.updateVolume.mock.calls.at(-1)![1];
+      expect(afterSlow).toBeCloseTo(1.2 + 2 / 600, 4);
+      expect(afterSlow).toBeGreaterThan(afterFast);
+      window.dispatchEvent(new Event('pointerup'));
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it('moves the pan from the pressed position instead of snapping back', () => {
+    // Press on the right half: pan is set to +1 immediately...
+    component.onPanPointerDown(
+      {
+        clientX: 60,
+        stopPropagation: jest.fn(),
+        currentTarget: {
+          getBoundingClientRect: () => ({ left: 0, width: 40 }),
+        },
+      } as any,
+      { id: '1', name: 'Track 1', pan: -0.5 } as any,
+    );
+    expect(mockMusicManager.updateTrackPan).toHaveBeenLastCalledWith('1', 100);
+    // ...and the first move continues from +1, not from the stale -0.5.
+    // 10px left across the (min 80px) sweep is -0.25 pan → +75, whereas the
+    // old stale-anchor code jumped to -70.
+    window.dispatchEvent(
+      new MouseEvent('pointermove', { clientX: 50, bubbles: true }),
+    );
+    const pan = mockMusicManager.updateTrackPan.mock.calls.at(-1)![1];
+    expect(pan).toBeCloseTo(75, 5);
+    window.dispatchEvent(new Event('pointerup'));
+  });
+
+  it('restores the pre-mute master level when unmuting', () => {
+    mockAudioSession.masterVolume.set(63);
+    component.toggleMasterMute();
+    expect(mockAudioSession.updateMasterVolume).toHaveBeenLastCalledWith(0);
+    expect(component.masterMuted()).toBe(true);
+    component.toggleMasterMute();
+    expect(mockAudioSession.updateMasterVolume).toHaveBeenLastCalledWith(63);
+    expect(component.masterMuted()).toBe(false);
+  });
+
+  it('supports keyboard control on the track and master faders', () => {
+    const key = (k: string) =>
+      ({ key: k, shiftKey: false, preventDefault: jest.fn() }) as any;
+    component.onFaderKeydown(key('ArrowUp'), '1');
+    expect(mockMusicManager.updateVolume).toHaveBeenLastCalledWith('1', 1.01);
+    component.onFaderKeydown(key('End'), '1');
+    expect(mockMusicManager.updateVolume).toHaveBeenLastCalledWith('1', 1.5);
+
+    mockAudioSession.masterVolume.set(50);
+    component.onMasterFaderKeydown(key('ArrowDown'));
+    expect(mockAudioSession.updateMasterVolume).toHaveBeenLastCalledWith(49);
+  });
+
+  it('does not solo a strip when the touch turns into a bank scroll', () => {
+    jest.useFakeTimers();
+    try {
+      component.onStripTouchStart(
+        { touches: [{ clientX: 10, clientY: 10 }] } as any,
+        '1',
+      );
+      component.onStripTouchMove({
+        touches: [{ clientX: 60, clientY: 12 }],
+      } as any);
+      jest.advanceTimersByTime(600);
+      expect(mockMusicManager.toggleSolo).not.toHaveBeenCalled();
+
+      // A stationary hold still solos.
+      component.onStripTouchStart(
+        { touches: [{ clientX: 10, clientY: 10 }] } as any,
+        '1',
+      );
+      jest.advanceTimersByTime(600);
+      expect(mockMusicManager.toggleSolo).toHaveBeenCalledWith('1');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('clamps sends to the range MusicManagerService actually stores', () => {
+    component.updateSend('1', 'A', 150);
+    expect(mockMusicManager.updateSend).toHaveBeenLastCalledWith('1', 'A', 1);
   });
 
   it("updates track volume", () => {

@@ -274,18 +274,30 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.startFaderDrag(ev, trackId);
   }
   startFaderDrag(event: PointerEvent, trackId: string) {
-    const startY = event.clientY;
-    const initialVol = this.gainPercent(trackId) / 100;
-    this.faderPrevGain[trackId] = initialVol;
-    let lastY = startY;
+    // Tap-to-position: pressing anywhere on the fader track jumps the fader
+    // there (standard DAW behaviour) and the drag continues from that value.
+    const rect = (event.currentTarget as HTMLElement)?.getBoundingClientRect?.();
+    const fromPosition =
+      rect && rect.height > 0
+        ? Math.max(0, Math.min(1.5, ((rect.bottom - event.clientY) / rect.height) * 1.5))
+        : null;
+    let value = fromPosition ?? this.gainPercent(trackId) / 100;
+    if (fromPosition !== null) this.musicManager.updateVolume(trackId, value);
+
+    this.faderPrevGain[trackId] = value;
+    let lastY = event.clientY;
     let lastTime = Date.now();
-    let velocity = 0;
     this.faderFineMode = false;
 
     const onMove = (moveEvent: PointerEvent) => {
       const now = Date.now();
       const dt = Math.max(1, now - lastTime);
-      velocity = Math.abs(moveEvent.clientY - lastY) / dt;
+      const velocity = Math.abs(moveEvent.clientY - lastY) / dt;
+      // Move by the DELTA since the last frame at the ratio active for that
+      // frame. (The old code re-scaled the whole accumulated dy whenever
+      // pointer velocity crossed the threshold, so a slow→fast transition
+      // made the fader jump.)
+      const dy = lastY - moveEvent.clientY;
       lastY = moveEvent.clientY;
       lastTime = now;
 
@@ -299,12 +311,11 @@ export class MixerComponent implements OnInit, OnDestroy {
         this.faderFineMode = false;
       }
 
-      const dy = startY - moveEvent.clientY;
-      const v = Math.max(0, Math.min(1.5, initialVol + dy * ratio));
-      this.musicManager.updateVolume(trackId, v);
+      value = Math.max(0, Math.min(1.5, value + dy * ratio));
+      this.musicManager.updateVolume(trackId, value);
 
       // Haptic feedback at key levels
-      this.checkFaderHaptics(trackId, v);
+      this.checkFaderHaptics(trackId, value);
     };
     const onUp = () => {
       this.faderFineMode = false;
@@ -314,10 +325,38 @@ export class MixerComponent implements OnInit, OnDestroy {
         this.musicManager.updateVolume(trackId, 1.0);
         this.haptic.preset("faderUnity");
       }
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
     };
     this.installDrag(onMove, onUp);
+  }
+
+  /**
+   * Keyboard control for the track fader. A `role="slider"` with tabindex but
+   * no key handler is unreachable for keyboard users on desktop.
+   */
+  onFaderKeydown(event: KeyboardEvent, trackId: string): void {
+    const step = event.shiftKey ? 5 : 1;
+    const current = this.gainPercent(trackId);
+    let next: number | null = null;
+    switch (event.key) {
+      case "ArrowUp":
+      case "ArrowRight":
+        next = current + step;
+        break;
+      case "ArrowDown":
+      case "ArrowLeft":
+        next = current - step;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = 150;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    this.updateTrackVolume(trackId, next);
   }
 
   private installDrag(onMove: (event: PointerEvent) => void, onUp: () => void): void {
@@ -352,29 +391,66 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   onMasterFaderPointerDown(event: PointerEvent) {
     event.stopPropagation();
-    const startY = event.clientY;
-    const initialVol = this.masterVolume();
-    let lastY = startY;
+    const rect = (event.currentTarget as HTMLElement)?.getBoundingClientRect?.();
+    let value =
+      rect && rect.height > 0
+        ? Math.max(
+            0,
+            Math.min(100, ((rect.bottom - event.clientY) / rect.height) * 100),
+          )
+        : this.masterVolume();
+    if (rect && rect.height > 0) this.audioSession.updateMasterVolume(value);
+
+    let lastY = event.clientY;
     let lastTime = Date.now();
 
     const onMove = (moveEvent: PointerEvent) => {
       const now = Date.now();
       const dt = Math.max(1, now - lastTime);
       const velocity = Math.abs(moveEvent.clientY - lastY) / dt;
+      // Delta-based like the track fader: switching into precision mode must
+      // not re-scale movement that already happened.
+      const dy = lastY - moveEvent.clientY;
       lastY = moveEvent.clientY;
       lastTime = now;
 
       const isFine = velocity < 0.3 || moveEvent.shiftKey;
       const scale = isFine ? 0.3 : 1.0;
-      const dy = startY - moveEvent.clientY;
-      const v = Math.max(0, Math.min(100, initialVol + dy * scale));
-      this.audioSession.updateMasterVolume(v);
+      value = Math.max(0, Math.min(100, value + dy * scale));
+      this.audioSession.updateMasterVolume(value);
     };
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
     this.installDrag(onMove, onUp);
+  }
+
+  /** Keyboard control for the master fader (role=slider reachability). */
+  onMasterFaderKeydown(event: KeyboardEvent): void {
+    const step = event.shiftKey ? 5 : 1;
+    const current = this.masterVolume();
+    let next: number | null = null;
+    switch (event.key) {
+      case "ArrowUp":
+      case "ArrowRight":
+        next = current + step;
+        break;
+      case "ArrowDown":
+      case "ArrowLeft":
+        next = current - step;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = 100;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    this.audioSession.updateMasterVolume(Math.max(0, Math.min(100, next)));
   }
 
   // ---- Pan ----
@@ -384,7 +460,10 @@ export class MixerComponent implements OnInit, OnDestroy {
     const ratio = (ev.clientX - rect.left) / rect.width;
     const pan = Math.max(-1, Math.min(1, (ratio - 0.5) * 2));
     this.musicManager.updateTrackPan(track.id, pan * 100);
-    this.startPanDrag(ev, track);
+    // Pass the pan we just set: reading track.pan inside the drag used the
+    // pre-press value, so the first pointermove snapped the pan back to where
+    // it was before the press.
+    this.startPanDrag(ev, track, pan, rect.width);
   }
   onPanClick(ev: MouseEvent, track: TrackModel) {
     const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
@@ -392,33 +471,82 @@ export class MixerComponent implements OnInit, OnDestroy {
     const pan = Math.max(-1, Math.min(1, (ratio - 0.5) * 2));
     this.musicManager.updateTrackPan(track.id, pan * 100);
   }
-  private startPanDrag(event: PointerEvent, track: TrackModel) {
+  /** Keyboard control for the pan slider (role=slider reachability). */
+  onPanKeydown(event: KeyboardEvent, track: TrackModel): void {
+    const step = event.shiftKey ? 10 : 2;
+    const current = this.panPercent(track.id);
+    let next: number | null = null;
+    switch (event.key) {
+      case "ArrowLeft":
+      case "ArrowDown":
+        next = current - step;
+        break;
+      case "ArrowRight":
+      case "ArrowUp":
+        next = current + step;
+        break;
+      case "Home":
+        next = -100;
+        break;
+      case "End":
+        next = 100;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    this.updatePanPercent(track.id, next);
+  }
+  private startPanDrag(
+    event: PointerEvent,
+    track: TrackModel,
+    initialPan: number = track.pan ?? 0,
+    trackWidth: number = 100,
+  ) {
     const initialX = event.clientX;
-    const initialPan = track.pan ?? 0;
+    // Dragging across the slider's own width sweeps the full L↔R range; the
+    // floor keeps the gesture usable on the narrow 84px strip.
+    const span = Math.max(80, trackWidth);
+    const perPx = 2 / span;
     const onMove = (moveEvent: PointerEvent) => {
       const dx = moveEvent.clientX - initialX;
-      const newPan = Math.max(-1, Math.min(1, initialPan + dx / 100));
+      const newPan = Math.max(-1, Math.min(1, initialPan + dx * perPx));
       this.musicManager.updateTrackPan(track.id, newPan * 100);
     };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-    this.installDrag(onMove, onUp);
+    this.installDrag(onMove, () => {});
   }
 
   // ---- Long-press for quick-solo ----
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
   private longPressTrackId: string | null = null;
+  private longPressStart: { x: number; y: number } | null = null;
 
   onStripTouchStart(event: TouchEvent, trackId: string): void {
     this.longPressTrackId = trackId;
+    const touch = event.touches[0];
+    this.longPressStart = touch
+      ? { x: touch.clientX, y: touch.clientY }
+      : null;
     this.longPressTimer = setTimeout(() => {
       // Long press = quick solo
       this.toggleSolo(trackId);
       this.haptic.preset("soloFlash");
       this.longPressTrackId = null;
+      this.longPressStart = null;
     }, 450);
+  }
+
+  /**
+   * Scrolling the strip bank is a horizontal drag; without this the 450ms solo
+   * timer kept running and a scroll gesture soloed whichever strip was held.
+   */
+  onStripTouchMove(event: TouchEvent): void {
+    if (!this.longPressTimer || !this.longPressStart) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    const dx = touch.clientX - this.longPressStart.x;
+    const dy = touch.clientY - this.longPressStart.y;
+    if (Math.hypot(dx, dy) > 10) this.onStripTouchEnd();
   }
 
   onStripTouchEnd(): void {
@@ -427,6 +555,7 @@ export class MixerComponent implements OnInit, OnDestroy {
       this.longPressTimer = null;
     }
     this.longPressTrackId = null;
+    this.longPressStart = null;
   }
 
   // ---- Selection / standard ops ----
@@ -555,7 +684,10 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   updateSend(id: string, send: "A" | "B", value: number) {
-    const normalized = Math.max(0, Math.min(1.5, value / 100));
+    // MusicManagerService.updateSend clamps at 1.0 (100%), so the UI must not
+    // offer 150%: at 150 the engine would get 1.5 while the store held 1.0,
+    // leaving the readout and the audible level permanently out of sync.
+    const normalized = Math.max(0, Math.min(1, value / 100));
     this.musicManager.updateSend(id, send, normalized);
     // Also drive the AudioContext so the aux level is audible immediately.
     // Uses optional chaining — no-op in test environments without the method.
@@ -649,14 +781,26 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.snack.success("Neural mix applied");
   }
 
+  /** Master level captured when mute engaged, so unmute restores it exactly. */
+  private masterVolumeBeforeMute: number | null = null;
+
   toggleMasterMute(): void {
-    this.masterMuted.update((v) => !v);
-    this.audioSession.updateMasterVolume(
-      this.masterMuted() ? 0 : this.masterVolume() || 80,
-    );
+    if (!this.masterMuted()) {
+      this.masterVolumeBeforeMute = this.masterVolume();
+      this.masterMuted.set(true);
+      this.audioSession.updateMasterVolume(0);
+      return;
+    }
+    // Restore the pre-mute level — `masterVolume() || 80` always unmuted at
+    // 80% because muting had just zeroed the stored value.
+    const restore = this.masterVolumeBeforeMute ?? 80;
+    this.masterVolumeBeforeMute = null;
+    this.masterMuted.set(false);
+    this.audioSession.updateMasterVolume(restore);
   }
   resetMaster(): void {
     this.masterMuted.set(false);
+    this.masterVolumeBeforeMute = null;
     this.audioSession.updateMasterVolume(80);
     this.haptic.medium();
     this.snack.info("Master reset to 80%");

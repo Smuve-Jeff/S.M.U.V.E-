@@ -248,3 +248,66 @@ numbers are noisy in a CI browser — **no specific speedup is claimed**.
 **Evidence for the follow-up features:** 926 unit tests / 65 suites, e2e
 29/29 (automation add + delete, MIDI file-chooser import, version save/list,
 and tempo-match all run in Chromium), `bun tsc -b --noEmit` and `npm run build`.
+
+---
+
+## 8. Second sweep — recording, mixing, note editing, touch & orientation
+
+Scope: audio recording, mixing, note-editing utility design, component-to-
+component interaction, project-management accuracy, portrait/landscape, mobile
+touch and Chrome desktop.
+
+### 8.1 Note editing (piano roll)
+
+| Defect | Evidence | Fix |
+| --- | --- | --- |
+| Mouse drag ignored snap — notes landed on fractional steps | e2e `piano-roll drag snaps to the grid` | Drag now anchors on the grabbed note and snaps `anchorStep + Δsteps`, so multi-note selections keep their relative spacing |
+| Touch users had **no** note drag/resize path | code audit + unit tests | `armTouchNoteGesture` arms edge-resize or selection-drag from `onGridTouchStart`; move/end share `applyNoteResize`/`applyNoteDrag` with the mouse path |
+| Pinch zoom released one finger at a time left stray notes | unit test `pinch finger-by-finger` | `pinchActive` latch suppresses note creation until all fingers lift |
+| Selected-note utilities unreachable on phones (`.pr-inspector { display: none }` at ≤768 px) | new e2e `phone piano roll keeps note utilities reachable` | Removed the hiding rule; the existing narrow-screen block already renders the inspector as a full-width, scrollable strip under the grid |
+
+### 8.2 Mixing
+
+- **Fader precision mode**: mid-drag value jump removed — drags are delta-based
+  from the pointer-down location instead of re-deriving from a rescaling track.
+- **Pan**: drag now starts from the pan set on pointer-down (previously read a
+  stale `track.pan`, so the first move snapped the pan back).
+  `onPanClick` still recomputes the same value from the same `clientX`, so it is
+  redundant but idempotent — left as-is rather than churning the click path.
+- **Sends**: UI maximum corrected 150 → 100 to match `MusicManagerService`'s
+  0..1 clamp, so the slider can no longer request a value the store rejects.
+- **Master mute**: restores the pre-mute level instead of always 80%.
+- **Long-press solo**: cancelled once a bank scroll moves > 10 px, so scrolling
+  no longer toggles solo.
+- **Keyboard**: pan/fader/master sliders gained arrow/Home/End handlers
+  (shift = coarse step) to match their `role="slider" tabindex="0"` markup.
+
+### 8.3 Recording
+
+- Takes persist and restore their **duration** (previously every restored take
+  displayed 0:00 because duration was never stored).
+- The **microphone stream is released** when a take is banked, when the stop
+  fallback timer fires, and on destroy — it used to stay open.
+- **Input monitoring** works when armed outside an active capture graph via
+  `ensureMonitorNodes()`.
+- **Landscape phones**: the recorder transport no longer stacks below the fold
+  (compact two-column rule for ≤932 px landscape).
+
+### 8.4 Project management
+
+- `manualSave()` bumps `metadata.version` per explicit save (exports were
+  permanently `_v1`), rolling the revision back if the save fails so the
+  in-memory version never runs ahead of what is stored.
+
+### 8.5 Evidence for this sweep
+
+| Check | Result |
+| --- | --- |
+| `npx tsc -b --noEmit` | pass |
+| Scoped unit suites (piano-roll, mixer, recorder view/service, project workspace) | **134 tests / 6 suites passed** |
+| `src/app/studio` unit pattern | **828 tests / 59 suites passed** |
+| `tests/e2e/studio-quality-sweep.spec.ts` (managed preview) | **31/31 passed** |
+| `npm run build` (repo AGENTS.md submission gate) | pass, 23.7 s |
+
+Mixer benchmark in the same run (32 tracks × 1,000 updates): 97.1, 53.5, 70.9,
+73.1, 48.5 ms — noisy in a CI browser, so again **no speedup is claimed**.

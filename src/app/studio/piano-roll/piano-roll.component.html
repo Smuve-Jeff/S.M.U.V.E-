@@ -343,6 +343,7 @@
       (touchstart)="onGridTouchStart($event)"
       (touchmove)="onGridTouchMove($event)"
       (touchend)="onGridTouchEnd($event)"
+      (touchcancel)="onGridTouchEnd($event)"
       (keydown)="onGridKeydown($event)"
       (focus)="gridHasFocus.set(true)"
       (blur)="gridHasFocus.set(false)"

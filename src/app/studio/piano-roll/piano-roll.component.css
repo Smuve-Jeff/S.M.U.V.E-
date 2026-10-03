@@ -1250,9 +1250,9 @@
   .pr-snap-label {
     display: none;
   }
-  .pr-inspector {
-    display: none;
-  }
+  /* The inspector carries the only duplicate / delete / slide / precision
+     controls, so it must stay reachable on phones. The dedicated narrow-screen
+     block below turns it into a full-width, scrollable strip under the grid. */
   .pr-tool {
     width: 36px;
     height: 36px;
