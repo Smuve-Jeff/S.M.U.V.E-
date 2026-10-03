@@ -292,14 +292,22 @@
   height: 100%;
   min-height: 0;
   min-width: 0;
-  /* `will-change: transform` makes this element the containing block for every
+  /* No standing `will-change` here.
+
+     `will-change: transform` made this element the containing block for every
      `position: fixed` descendant, and this host spans the whole scroll column.
      Workspaces that slide panels in from the edge (the Studio's AI assistant,
      mix/metadata panels, search overlay) were therefore anchored to a ~4200px
      tall box instead of the viewport: the assistant rendered ~4200px tall with
-     its composer far below the fold. The route animation still drives
-     `transform` while it runs; it just no longer needs the standing hint. */
-  will-change: opacity;
+     its composer far below the fold.
+
+     `will-change: opacity` (the follow-up fix) avoided the containing-block
+     trap but still created a stacking context. That capped every modal a
+     workspace renders inside the routed view: the questionnaire overlay's own
+     `z-index: 1000` resolved *within* this context, so the app top bar
+     (`z-40`) and sidebar (`z-50`) painted over the dialog and swallowed its
+     clicks. The route animation still drives its own transform/opacity while
+     it runs, so neither hint needs to be declared permanently. */
   overflow: auto;
   overscroll-behavior: contain;
 }

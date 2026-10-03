@@ -31,7 +31,15 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
       providers: [
         { provide: UserProfileService, useValue: { profile: signal(profile) } },
         { provide: AiService, useValue: aiService },
-        { provide: UplinkService, useValue: { initiateUplink: jest.fn() } },
+        {
+          provide: UplinkService,
+          useValue: {
+            initiateUplink: jest.fn(),
+            // `requestClose` consults the uplink stage so a just-finished
+            // commit never prompts as "not committed yet".
+            status: signal({ stage: 'idle', progress: 0, message: '', logs: [] }),
+          },
+        },
         {
           provide: InteractionDialogService,
           useValue: { confirm: jest.fn().mockResolvedValue(false) },
@@ -193,6 +201,24 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
     dialog.confirm.mockResolvedValue(true);
     await component.requestClose();
     expect(closed).toHaveBeenCalledTimes(2);
+  });
+
+  it('closes a committed interview without claiming it is uncommitted', async () => {
+    const dialog = TestBed.inject(InteractionDialogService) as any;
+    const closed = jest.fn();
+    component.close.subscribe(closed);
+
+    // A successful commit persists the answers, so the uplink console's
+    // RETURN_TO_COMMAND button must exit without a "not committed yet" prompt.
+    const uplink = TestBed.inject(UplinkService) as any;
+    uplink.initiateUplink.mockResolvedValue(true);
+    component.profileDraft.set({ ...profile } as any);
+    await component.applyChanges();
+    expect(component.committed()).toBe(true);
+
+    await component.requestClose();
+    expect(dialog.confirm).not.toHaveBeenCalled();
+    expect(closed).toHaveBeenCalledTimes(1);
   });
 
   it('does not issue duplicate requests while the copilot is busy', async () => {

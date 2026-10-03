@@ -25,7 +25,16 @@
 
 .eq-container {
   width: 100%;
-  min-height: 100%;
+  /*
+   * Bound the container to the overlay instead of letting it grow with its
+   * content. With `min-height: 100%` a tall question (the 40+ genre grid is
+   * ~2300px) made the container taller than the viewport, and the overlay's
+   * `align-items: center` + `overflow: hidden` pushed the top off-screen where
+   * it could never be scrolled to — the close button and the first genre
+   * options were unreachable. A definite height lets `.eq-main` scroll.
+   */
+  height: 100%;
+  min-height: 0;
   max-width: 1440px;
   display: flex;
   flex-direction: column;
@@ -290,11 +299,22 @@
 .eq-main {
   flex: 1;
   display: flex;
-  align-items: center;
+  /*
+   * `align-items: center` on a scroll container clips the top of any child
+   * taller than the viewport and makes it unreachable: the overflow above the
+   * centred box can never be scrolled to. The children centre themselves with
+   * `margin: auto` instead, which behaves the same for short content but keeps
+   * tall content (the 40+ genre grid) fully scrollable.
+   */
+  align-items: flex-start;
   justify-content: center;
   padding: 24px;
   overflow-y: auto;
   min-width: 0;
+}
+
+.eq-main > * {
+  margin: auto 0;
 }
 
 .eq-flow {
