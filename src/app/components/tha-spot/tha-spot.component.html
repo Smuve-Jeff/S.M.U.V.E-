@@ -545,7 +545,7 @@
             </div>
             <h1 class="hero-title">HIGH-FIDELITY RERUNS</h1>
             <p class="hero-subtitle">
-              Access the Absolute gaming catalog with zero-latency emulation.
+              Discover modern browser games, community arenas, and classic cabinets.
               Dive into {{ games().length }} cabinets across every era.
             </p>
             <div class="hero-actions">
@@ -653,23 +653,13 @@
               >
                 <div class="card-media">
                   <img
-                    *ngIf="hasRealGameArt(game)"
                     [src]="getGameImage(game)"
-                    (error)="onGameImageError($event)"
+                    decoding="async"
+                    (error)="onGameImageError($event, game)"
                     [alt]="game.name"
                     loading="lazy"
                   />
-                  <div
-                    class="card-art-tile"
-                    *ngIf="!hasRealGameArt(game)"
-                    [style.--tile-start]="game.art?.accentStart || '#0E7C7B'"
-                    [style.--tile-end]="game.art?.accentEnd || '#04302F'"
-                  >
-                    <span class="card-monogram">{{
-                      game.name.charAt(0)
-                    }}</span>
-                    <span class="card-tile-genre">{{ game.genre }}</span>
-                  </div>
+
                   <div class="card-overlay">
                     <span class="material-symbols-outlined">play_circle</span>
                   </div>
@@ -958,7 +948,7 @@
             >
               <img
                 [src]="getGameImage(recent)"
-                (error)="onGameImageError($event)"
+                (error)="onGameImageError($event, recent)"
                 [alt]="recent.name"
                 class="recent-thumb"
                 loading="lazy"
@@ -1008,23 +998,13 @@
               >
                 <div class="card-media">
                   <img
-                    *ngIf="hasRealGameArt(game)"
                     [src]="getGameImage(game)"
-                    (error)="onGameImageError($event)"
+                    decoding="async"
+                    (error)="onGameImageError($event, game)"
                     [alt]="game.name"
                     loading="lazy"
                   />
-                  <div
-                    class="card-art-tile"
-                    *ngIf="!hasRealGameArt(game)"
-                    [style.--tile-start]="game.art?.accentStart || '#0E7C7B'"
-                    [style.--tile-end]="game.art?.accentEnd || '#04302F'"
-                  >
-                    <span class="card-monogram">{{
-                      game.name.charAt(0)
-                    }}</span>
-                    <span class="card-tile-genre">{{ game.genre }}</span>
-                  </div>
+
                   <div class="card-overlay">
                     <span class="material-symbols-outlined">play_circle</span>
                   </div>
@@ -1135,21 +1115,12 @@
             >
               <div class="card-media">
                 <img
-                  *ngIf="hasRealGameArt(game)"
                   [src]="getGameImage(game)"
-                  (error)="onGameImageError($event)"
+                  decoding="async"
+                  (error)="onGameImageError($event, game)"
                   [alt]="game.name"
                   loading="lazy"
                 />
-                <div
-                  class="card-art-tile"
-                  *ngIf="!hasRealGameArt(game)"
-                  [style.--tile-start]="game.art?.accentStart || '#0E7C7B'"
-                  [style.--tile-end]="game.art?.accentEnd || '#04302F'"
-                >
-                  <span class="card-monogram">{{ game.name.charAt(0) }}</span>
-                  <span class="card-tile-genre">{{ game.genre }}</span>
-                </div>
                 <div class="card-overlay">
                   <span class="material-symbols-outlined">play_circle</span>
                 </div>
@@ -3026,6 +2997,7 @@
           <div class="hero-frame-compact glass-v42-pro">
             <img
               [src]="getGameImage(selected)"
+              (error)="onGameImageError($event, selected)"
               [alt]="selected.name"
             />
             <div class="scan-overlay"></div>

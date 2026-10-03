@@ -14,7 +14,8 @@ import {
 } from './game.service';
 import { ThaSpotFeed } from './game';
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
-import { CURATED_POKI_GAMES } from './tha-spot-curated-games';
+import { CURATED_POKI_GAMES, MODERN_BROWSER_GAMES } from './tha-spot-curated-games';
+import { PREMIUM_RECOMMENDATION_RAILS } from './tha-spot-premium-catalog';
 import { PREMIUM_ACTIVE_GAME_IDS } from './tha-spot-premium-catalog';
 
 const mockFeed: ThaSpotFeed = {
@@ -383,6 +384,9 @@ describe('GameService', () => {
       'cg-voxiom-io',
       'cg-winter-clash-3d',
       'fps-engine',
+      'modern-hazmob',
+      'modern-skillwarz',
+      'modern-veck-io',
       'shmup',
       'shoot-arcade',
     ]);
@@ -482,7 +486,7 @@ describe('GameService', () => {
       .error(new ProgressEvent('network-error'));
     const games = await pending;
 
-    expect(games).toHaveLength(931);
+    expect(games).toHaveLength(940);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('rocket-league');
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
@@ -520,12 +524,12 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(931);
+    expect(games).toHaveLength(940);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'rocket-league')).toBe(true);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'gta-online')).toBe(true);
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
-    expect(new Set(games.map((game) => game.id)).size).toBe(931);
+    expect(new Set(games.map((game) => game.id)).size).toBe(940);
   });
 
   it('keeps every premium launch target explicit and truthful', async () => {
@@ -620,7 +624,7 @@ describe('GameService', () => {
     const games = await pending;
 
     // Production-sized feeds retain the archive with the reviewed premium shelf first.
-    expect(games).toHaveLength(931);
+    expect(games).toHaveLength(940);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('gta-online');
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('poki-temple-run-2');
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('battlefield');
@@ -663,6 +667,47 @@ describe('GameService', () => {
     );
   });
 
+  it('adds the modern spotlight to live and offline feeds with truthful publisher launches', async () => {
+    const livePending = firstValueFrom(service.getThaSpotFeed());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(THA_SPOT_FALLBACK_FEED);
+    const live = await livePending;
+    const fallbackPending = firstValueFrom(service.getThaSpotFeed(true));
+    httpMock.expectOne('assets/data/tha-spot-feed.json').error(new ProgressEvent('offline'));
+    const offline = await fallbackPending;
+    for (const feed of [live, offline]) {
+      const modern = feed.games.filter((game) => game.id.startsWith('modern-'));
+      expect(modern.map((game) => game.id)).toEqual(MODERN_BROWSER_GAMES.map((game) => game.id));
+      expect(modern).toHaveLength(9);
+      expect(feed.games.slice(0, 9)).toEqual(modern);
+      expect(feed.recommendationRails.find((rail) => rail.id === 'premium-modern-browser')?.gameIds).toEqual(modern.map((game) => game.id));
+      for (const game of modern) {
+        expect(game.launchConfig.embedMode).toBe('external-only');
+        expect(game.launchConfig.approvedExternalUrl).toBe(game.url);
+        expect(game.launchConfig.approvedEmbedUrl).toBeUndefined();
+        expect(canEmbedGameInline(game)).toBe(false);
+        expect(game.playersOnline).toBe(0);
+        expect(game.image).toMatch(/^https:/);
+        expect(game.sessionObjectives.length).toBeGreaterThan(0);
+        expect(game.controlHints.length).toBeGreaterThan(0);
+      }
+    }
+    expect(live.games.find((game) => game.id === 'modern-level-devil')?.multiplayerType).toBe('None');
+  });
+
+  it('resolves title-specific images for the entire archive instead of unrelated backdrop art', async () => {
+    const pending = firstValueFrom(service.getThaSpotFeed());
+    httpMock.expectOne('assets/data/tha-spot-feed.json').flush(THA_SPOT_FALLBACK_FEED);
+    const feed = await pending;
+    for (const game of feed.games) {
+      expect(game.image).toBeTruthy();
+      expect(game.image).not.toContain('home-backdrop-command.png');
+      if (game.image.startsWith('data:image/svg+xml')) {
+        expect(decodeURIComponent(game.image)).toContain('<title>');
+      }
+    }
+    expect(feed.games.find((game) => game.id === 'cg-run-3')?.image).toContain('imgs.crazygames.com/run3b.png');
+  });
+
   it('gives every premium shelf game real cover art', async () => {
     const pending = firstValueFrom(service.listGames());
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(
@@ -694,7 +739,11 @@ describe('GameService', () => {
 
     // Premium rails are merged with the original feed rails (11 + 16) so the
     // premium shelf never erases the archive's curated discovery surfaces.
-    expect(feed.recommendationRails.length).toBe(28);
+    expect(feed.recommendationRails.length).toBe(
+      PREMIUM_RECOMMENDATION_RAILS.length + THA_SPOT_FALLBACK_FEED.recommendationRails.filter(
+        (rail) => !PREMIUM_RECOMMENDATION_RAILS.some((premium) => premium.id === rail.id)
+      ).length
+    );
     expect(feed.recommendationRails.some((rail) => rail.id === 'premium-versus')).toBe(true);
     expect(feed.recommendationRails.some((rail) => rail.id === 'rail-golden-era')).toBe(true);
     for (const rail of feed.recommendationRails) {
@@ -825,7 +874,7 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(931);
+    expect(games).toHaveLength(940);
     expect(new Set(games.map((game) => game.id)).size).toBe(games.length);
     // Only premium ids that are actually present in the feed must occupy the
     // premium-first prefix; the premium allowlist is larger than the feed, so

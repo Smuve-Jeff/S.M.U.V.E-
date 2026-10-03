@@ -13,7 +13,9 @@ import {
   ThaSpotFeed,
 } from './game';
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
-import { CURATED_POKI_GAMES } from './tha-spot-curated-games';
+import { CURATED_POKI_GAMES, MODERN_BROWSER_GAMES } from './tha-spot-curated-games';
+import { gameArtFallback, resolveGameArt } from './game-art';
+import { REVIEWED_GAME_COVERS } from './tha-spot-game-covers';
 import { CURATED_CRAZYGAMES_GAMES } from './tha-spot-crazygames-catalog';
 import {
   PREMIUM_ACTIVE_GAME_IDS,
@@ -438,13 +440,6 @@ function matchingGenresForFacet(
   return matches;
 }
 
-const CATALOG_IMAGE_FALLBACK = 'assets/hub/home-backdrop-command.png';
-
-function normalizeCatalogImage(val: any): string {
-  const image = asString(val).trim();
-  return image || CATALOG_IMAGE_FALLBACK;
-}
-
 /**
  * Feed titles must describe the actual cabinet opened by their launch URL.
  * Keep this small canonical map as a last line of defense when a cached or
@@ -607,7 +602,7 @@ const PREMIUM_GAME_ART: Record<string, string> = {
   'slow-roads-webgl': 'assets/games/slow-roads-webgl.svg',
   'venge-io-webgl': 'assets/games/venge-io-webgl.svg',
   'zombsroyale-io-multiplayer': 'assets/games/zombsroyale-io-multiplayer.svg',
-  'minecraft-classic': 'assets/games/minecraft.svg',
+  'minecraft-classic': gameArtFallback({ id: 'minecraft-classic', name: 'Minecraft Classic', genre: 'Sandbox' }),
   // GamePix cover CDN — real box art for the premium GamePix titles.
   'smash-karts-web-elite':
     'https://img.gamepix.com/games/smash-karts/cover/smash-karts.png?w=1200&ar=16:10',
@@ -778,7 +773,11 @@ function normalizeGame(game: Game): Game {
     launchConfig: Object.keys(launchConfig).length ? launchConfig : undefined,
     name,
     url: cgUpgradeUrl || mirrorUrl || canonicalUrl || asString(game.url),
-    image: PREMIUM_GAME_ART[id] || normalizeCatalogImage(game.image),
+    image: resolveGameArt({
+      ...game,
+      name,
+      image: REVIEWED_GAME_COVERS[id]?.image || PREMIUM_GAME_ART[id] || game.image,
+    }),
     description: asString(game.description),
     genre: asString(game.genre, 'Unknown'),
     tags: asStringArray(game.tags),
@@ -925,7 +924,7 @@ function normalizeRecommendationRail(
 
 function mergeCuratedGames(feed: ThaSpotFeed): ThaSpotFeed {
   const existingIds = new Set((feed.games || []).map((game) => game.id));
-  const curated = [...CURATED_POKI_GAMES, ...CURATED_CRAZYGAMES_GAMES].filter(
+  const curated = [...MODERN_BROWSER_GAMES, ...CURATED_POKI_GAMES, ...CURATED_CRAZYGAMES_GAMES].filter(
     (game) => {
       if (existingIds.has(game.id)) return false;
       existingIds.add(game.id);

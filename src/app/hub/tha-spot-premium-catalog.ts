@@ -7,7 +7,10 @@
  * owned cabinets, modern browser-native games, official current titles, and
  * polished popular web destinations with truthful external launch contracts.
  */
+import { MODERN_BROWSER_GAMES } from './tha-spot-curated-games';
+
 export const PREMIUM_ACTIVE_GAME_IDS = [
+  ...MODERN_BROWSER_GAMES.map((game) => game.id),
   // Owned S.M.U.V.E. cabinets
   'battlefield',
   'remix-arena',
@@ -138,6 +141,13 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
 ] as const;
 
 export const PREMIUM_RECOMMENDATION_RAILS = [
+  {
+    id: 'premium-modern-browser',
+    title: 'Modern browser spotlight',
+    subtitle: '3D arenas, racing, sandbox worlds, and precision platforming — opens on the publisher site.',
+    gameIds: MODERN_BROWSER_GAMES.map((game) => game.id),
+    maxItems: 9,
+  },
   {
     id: 'premium-studio-warmup',
     title: 'Studio warm-up',

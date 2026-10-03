@@ -25,6 +25,7 @@ import {
   EMBED_BLOCKED_DOMAINS as CANONICAL_EMBED_BLOCKED_DOMAINS,
 } from '../../hub/game.service';
 import { Game } from '../../hub/game';
+import { gameArtFallback, resolveGameArt } from '../../hub/game-art';
 import { GameSortMode } from '../../hub/game.service';
 import { RecommendationRail, LiveEvent } from '../../hub/game';
 import { UserProfileService } from '../../services/user-profile.service';
@@ -1228,41 +1229,19 @@ const FEED_REFRESH_INTERVAL_MS = 300000;
 /* S.M.U.V.E. v4.2 Enhanced Catalog Access */
 export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   private gameService = inject(GameService);
-  private readonly catalogImageFallback = 'assets/hub/home-backdrop-command.png';
-
-  /** Return usable catalog art and avoid stale local image paths in old feed rows. */
+  /** Covers and title artwork share one resolver across cards and launch previews. */
   getGameImage(game: Game | null | undefined): string {
-    const image = game?.image?.trim();
-    if (!image) return this.catalogImageFallback;
-    const isAssetPath =
-      image.startsWith('/assets/games/') || image.startsWith('assets/games/');
-    // Local SVG banners are shipped as catalog artwork and render directly.
-    // Other local /assets/games/ paths are stale screenshots from old feed
-    // rows and fall back to the themed backdrop.
-    if (isAssetPath && !image.toLowerCase().endsWith('.svg')) {
-      return this.catalogImageFallback;
-    }
-    return image;
+    return resolveGameArt(game);
   }
 
-  /**
-   * True when a catalog row carries a usable remote or verified local asset.
-   * The shared backdrop remains a themed tile so it does not repeat across
-   * every card, while the premium catalog's SVG artwork is shown directly.
-   */
-  hasRealGameArt(game: Game | null | undefined): boolean {
-    const image = game?.image?.trim();
-    if (!image || image === this.catalogImageFallback) return false;
-    return image.startsWith('http') ||
-      image.startsWith('/assets/') ||
-      image.startsWith('assets/');
-  }
-
-  onGameImageError(event: Event): void {
+  onGameImageError(event: Event, game?: Game): void {
     const image = event.target as HTMLImageElement | null;
-    if (!image || image.dataset['catalogFallbackApplied'] === 'true') return;
-    image.dataset['catalogFallbackApplied'] = 'true';
-    image.src = this.catalogImageFallback;
+    if (!image) return;
+    const fallback = gameArtFallback(game);
+    // Compare the current source instead of a permanent flag: Angular may reuse
+    // this image element for another game after a filter/feed refresh.
+    if (image.getAttribute('src') === fallback) return;
+    image.src = fallback;
   }
   public profileService = inject(UserProfileService);
   private uiService = inject(UIService);

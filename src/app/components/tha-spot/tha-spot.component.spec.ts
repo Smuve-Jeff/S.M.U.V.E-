@@ -642,48 +642,34 @@ describe('ThaSpotComponent', () => {
     expect(component.showIntelPanel()).toBe(false);
   });
 
-  it('uses an existing fallback asset for stale local catalog art', () => {
-    expect(
-      component.getGameImage({
-        id: 'missing-art',
-        name: 'Missing Art',
-        genre: 'Arcade',
-        url: 'https://example.test/game',
-        image: '/assets/games/missing-art.png',
-      })
-    ).toBe('assets/hub/home-backdrop-command.png');
-
+  it('preserves raster art and falls back to the correct title when loading fails', () => {
+    const game = {
+      id: 'missing-art', name: 'Missing Art', genre: 'Arcade',
+      url: 'https://example.test/game', image: '/assets/games/missing-art.png',
+    };
+    expect(component.getGameImage(game)).toBe('/assets/games/missing-art.png');
     const image = document.createElement('img');
-    component.onGameImageError({ target: image } as unknown as Event);
-    expect(image.src).toContain('/assets/hub/home-backdrop-command.png');
+    component.onGameImageError({ target: image } as unknown as Event, game);
+    expect(image.src).toMatch(/^data:image\/svg\+xml/);
+    expect(decodeURIComponent(image.src)).toContain('<title>Missing Art</title>');
+    const fallback = image.src;
+    component.onGameImageError({ target: image } as unknown as Event, game);
+    expect(image.src).toBe(fallback);
+
+    // A reused card must still recover when its new source fails.
+    image.src = '/assets/games/another-missing.png';
+    component.onGameImageError({ target: image } as unknown as Event, { ...game, name: 'Next Game' });
+    expect(decodeURIComponent(image.src)).toContain('<title>Next Game</title>');
   });
 
-  it('treats verified local and remote art as real card art while rejecting the shared fallback', () => {
-    const base = {
-      id: 'art-check',
-      name: 'Art Check',
-      genre: 'Arcade',
-      url: 'https://example.test/game',
-    };
-    expect(component.hasRealGameArt({ ...base, image: undefined })).toBe(false);
-    expect(
-      component.hasRealGameArt({
-        ...base,
-        image: '/assets/games/art-check.png',
-      })
-    ).toBe(true);
-    expect(
-      component.hasRealGameArt({
-        ...base,
-        image: 'assets/hub/home-backdrop-command.png',
-      })
-    ).toBe(false);
-    expect(
-      component.hasRealGameArt({
-        ...base,
-        image: 'https://cdn.example.test/art-check.png',
-      })
-    ).toBe(true);
+  it('replaces missing/shared art with title-specific artwork and preserves cover URLs', () => {
+    const base = { id: 'art-check', name: 'Art Check', genre: 'Arcade', url: 'https://example.test/game' };
+    const fallback = component.getGameImage(base);
+    expect(fallback).toMatch(/^data:image\/svg\+xml/);
+    expect(decodeURIComponent(fallback)).toContain('<title>Art Check</title>');
+    expect(component.getGameImage({ ...base, image: 'assets/hub/home-backdrop-command.png' })).toBe(fallback);
+    expect(component.getGameImage({ ...base, image: 'https://cdn.example.test/art-check.png' })).toBe('https://cdn.example.test/art-check.png');
+    expect(component.getGameImage({ ...base, image: '/assets/games/art-check.jpg' })).toBe('/assets/games/art-check.jpg');
   });
 
   it('routes untrusted and X-Frame-blocked embed hosts to external launch', () => {
