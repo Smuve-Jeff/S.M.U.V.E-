@@ -70,7 +70,7 @@
         Stereo Phase Correlation
       </div>
       <div class="mix-phase-readout" [style.color]="phaseCorrelationColor()">
-        {{ phaseCorrelation().toFixed(2) | number: '1.2-2' }}
+        {{ phaseCorrelationAvailable ? (phaseCorrelation() | number: '1.2-2') : '—' }}
       </div>
       <span
         class="mix-phase-label"
@@ -78,7 +78,7 @@
         >{{ phaseCorrelationLabel() }}</span
       >
     </div>
-    <div class="mix-phase-meter" aria-hidden="true">
+    <div *ngIf="phaseCorrelationAvailable" class="mix-phase-meter" aria-hidden="true">
       <div class="mix-phase-meter-axis"></div>
       <div class="mix-phase-meter-zero"></div>
       <div
@@ -95,17 +95,18 @@
       </div>
     </div>
     <p class="mix-phase-help">
-      <span *ngIf="phaseCorrelation() < 0" class="mix-phase-help-warn">
+      <span *ngIf="!phaseCorrelationAvailable">Stereo correlation requires separate left/right analysis. No phase judgement is available.</span>
+      <span *ngIf="phaseCorrelationAvailable && phaseCorrelation() < 0" class="mix-phase-help-warn">
         ⚠ Out of phase content detected · check stereo mic placement on bass /
         kick
       </span>
       <span
-        *ngIf="phaseCorrelation() >= 0 && phaseCorrelation() < 0.3"
+        *ngIf="phaseCorrelationAvailable && phaseCorrelation() >= 0 && phaseCorrelation() < 0.3"
         class="mix-phase-help-warn"
       >
         ⚠ Very wide mix · consider mono check for club translation
       </span>
-      <span *ngIf="phaseCorrelation() >= 0.3" class="mix-phase-help-ok">
+      <span *ngIf="phaseCorrelationAvailable && phaseCorrelation() >= 0.3" class="mix-phase-help-ok">
         ✓ Mono-compatible · safe for club + broadcast translation
       </span>
     </p>

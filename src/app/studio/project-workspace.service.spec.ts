@@ -1,6 +1,7 @@
 import { signal } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { Subject } from 'rxjs';
+import { AutomationService } from './automation.service';
 import { AuthService } from "../services/auth.service";
 import { LocalStorageService } from "../services/local-storage.service";
 import { LoggingService } from "../services/logging.service";
@@ -81,6 +82,7 @@ describe("ProjectWorkspaceService", () => {
     TestBed.configureTestingModule({
       providers: [
         ProjectWorkspaceService,
+        { provide: AutomationService, useValue: { lanes: signal([]), macros: signal([]), modulationSources: signal([]) } },
         {
           provide: AuthService,
           useValue: { currentUser: signal(null) },
@@ -89,8 +91,11 @@ describe("ProjectWorkspaceService", () => {
           provide: MusicManagerService,
           useValue: {
             tracks,
+            structure: signal([]),
+            selectedTrackId: signal(null),
             stemAudioCache,
             engine: {
+              stop: jest.fn(),
               tempo: { set: tempoSet },
               masterGain: { gain: { value: 0.8 } },
               ctx: {
@@ -127,6 +132,7 @@ describe("ProjectWorkspaceService", () => {
           provide: LocalStorageService,
           useValue: {
             saveItem,
+            persistenceStatus: jest.fn().mockResolvedValue('ready'),
             getItem,
             getAllItems,
           },
@@ -244,6 +250,56 @@ describe("ProjectWorkspaceService", () => {
     expect(restored[2]).toBeCloseTo(0.35, 5);
   });
 
+  it('rejects failed local saves without clearing dirty state or reporting a saved timestamp', async () => {
+    service.isDirty.set(true);
+    saveItem.mockRejectedValueOnce(new Error('Quota exceeded'));
+    await expect(service.manualSave()).rejects.toThrow('Quota exceeded');
+    expect(service.isDirty()).toBe(true);
+    expect(service.lastPersistedAt()).toBe(0);
+    expect(service.persistenceError()).toBe('Quota exceeded');
+    expect(service.isSaving()).toBe(false);
+  });
+
+  it('preserves edits made while a save is in flight', async () => {
+    let finish!: () => void;
+    saveItem.mockImplementationOnce(() => new Promise<void>((resolve) => { finish = resolve; }));
+    const saving = service.manualSave();
+    await Promise.resolve();
+    await Promise.resolve();
+    service.updateMetadata({ name: 'Newer edit' });
+    finish();
+    await saving;
+    expect(service.metadata()?.name).toBe('Newer edit');
+    expect(service.isDirty()).toBe(true);
+  });
+
+  it('rejects malformed imports before writing or replacing the active session', async () => {
+    const before = tracks();
+    await expect(service.importProjectBundle({ metadata: {}, tracks: [] } as any)).resolves.toBe(false);
+    expect(tracks()).toBe(before);
+    expect(saveItem).not.toHaveBeenCalled();
+    const duplicate = makeBundle();
+    duplicate.tracks.push({ ...duplicate.tracks[0] });
+    await expect(service.importProjectBundle(duplicate)).resolves.toBe(false);
+    expect(saveItem).not.toHaveBeenCalled();
+  });
+
+  it('round-trips automation, arrangement sections, master gain and take state', () => {
+    const automation = TestBed.inject(AutomationService);
+    const manager = TestBed.inject(MusicManagerService);
+    manager.structure.set([{ id: 'verse', name: 'Verse', start: 0, length: 8, color: '#0e7c7b' }]);
+    automation.lanes.set([{ id: 'lane-1', target: { trackId: 'track-1', parameter: 'volume' }, points: [{ time: 0, value: 0.3 }], enabled: true, interpolation: 'linear', modulationDepth: 0 }]);
+    manager.engine.masterGain.gain.value = 0.4;
+    const snapshot = service.createSnapshot();
+    automation.lanes.set([]);
+    manager.engine.masterGain.gain.value = 0.9;
+    service.restoreFromSnapshot(snapshot);
+    expect(automation.lanes()).toEqual(snapshot.automation.lanes);
+    expect(manager.structure()).toEqual(snapshot.structure);
+    expect(manager.engine.masterGain.gain.value).toBe(0.4);
+    expect(manager.selectedTrackId()).toBe('track-1');
+  });
+
   it("persists manual saves locally before returning the bundle", async () => {
     const bundle = await service.manualSave();
 
@@ -286,15 +342,16 @@ describe("ProjectWorkspaceService", () => {
     TestBed.configureTestingModule({
       providers: [
         ProjectWorkspaceService,
+        { provide: AutomationService, useValue: { lanes: signal([]), macros: signal([]), modulationSources: signal([]) } },
         { provide: AuthService, useValue: { currentUser: signal(user) } },
         {
           provide: MusicManagerService,
-          useValue: { tracks, engine: { tempo: { set: tempoSet } } },
+          useValue: { tracks, structure: signal([]), selectedTrackId: signal(null), engine: { stop: jest.fn(), tempo: { set: tempoSet } } },
         },
         { provide: ProjectService, useValue: { currentProject: signal(null), projectDeleted$: new Subject<string>(), refresh: jest.fn().mockResolvedValue(undefined) } },
         {
           provide: LocalStorageService,
-          useValue: { saveItem, getItem: jest.fn(), getAllItems: jest.fn() },
+          useValue: { saveItem, persistenceStatus: jest.fn().mockResolvedValue('ready'), getItem: jest.fn(), getAllItems: jest.fn() },
         },
         {
           provide: OfflineSyncService,

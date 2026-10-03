@@ -6,11 +6,23 @@
   [class.comp-footer-collapsed]="footerCollapsed()"
   [class.comp-stage-live]="isLivePerforming()"
   [class.comp-stage-fx-off]="!stageFxEnabled()"
-  [attr.aria-label]="'S.M.U.V.E. Stage workspace — Now Performing'"
+  [attr.aria-label]="'S.M.U.V.E. Studio workspace'"
   (keydown)="onShellKeydown($event)"
   (contextmenu)="onShellContextMenu($event)"
 >
   <input type="file" #fileInput style="display: none;" accept=".smuve" (change)="loadProjectFile($event)">
+
+  <div *ngIf="projectWorkspace.persistenceError()" class="studio-save-warning" role="alert">
+    <span class="material-symbols-outlined" aria-hidden="true">warning</span>
+    <span>{{ projectWorkspace.persistenceError() }}</span>
+    <button type="button" (click)="saveProject()" [disabled]="projectWorkspace.isSaving()">Retry save</button>
+    <button type="button" (click)="exportProject()">Export backup</button>
+  </div>
+
+  <div class="studio-project-status" role="status" aria-live="polite" [class.studio-project-status-dirty]="projectWorkspace.isDirty()">
+    <span class="material-symbols-outlined" aria-hidden="true">{{ projectWorkspace.isDirty() ? 'edit' : 'check_circle' }}</span>
+    <span>{{ projectWorkspace.isSaving() ? 'Saving…' : projectWorkspace.isDirty() ? 'Unsaved changes' : projectWorkspace.lastPersistedAt() > 0 ? 'Saved locally' : 'New session' }}</span>
+  </div>
 
   <!-- Stage 2.0 ambient aurora field (pure decoration) -->
   <div class="comp-aurora" aria-hidden="true">
@@ -78,7 +90,7 @@
         <button type="button" class="comp-project-menu-item" (click)="triggerLoadProject(); toggleProjectMenu()">
           <span class="material-symbols-outlined">folder_open</span> Load Project
         </button>
-        <button type="button" class="comp-project-menu-item" (click)="saveProject(); toggleProjectMenu()">
+        <button type="button" class="comp-project-menu-item" [disabled]="projectWorkspace.isSaving()" (click)="saveProject(); toggleProjectMenu()">
           <span class="material-symbols-outlined">save</span> Save Project
         </button>
         <button type="button" class="comp-project-menu-item" (click)="toggleProjectMetadata(); toggleProjectMenu()">
@@ -99,12 +111,9 @@
 
     <div class="comp-topbar-right">
       <!-- Stage status pip -->
-      <span
-        class="comp-now-performing"
-        aria-label="Studio session is live and ready to play"
-      >
-        <span>●</span>
-        <span>NOW PERFORMING</span>
+      <span class="comp-now-performing" [attr.aria-label]="isLivePerforming() ? 'Session playing' : 'Production workspace'">
+        <span aria-hidden="true">●</span>
+        <span>{{ isLivePerforming() ? 'PLAYING' : 'PRODUCTION' }}</span>
       </span>
 
       <!-- External hardware badge — visible only when an external device
@@ -438,6 +447,8 @@
       (click)="saveProject()"
       title="Save project  ·  Ctrl+S"
       aria-label="Save project"
+      [disabled]="projectWorkspace.isSaving()"
+      [attr.aria-busy]="projectWorkspace.isSaving()"
     >
       <span class="material-symbols-outlined">save</span>
       <span
@@ -446,7 +457,7 @@
         title="Unsaved changes"
         >!</span
       >
-      <span class="comp-tool-label">SAVE</span>
+      <span class="comp-tool-label">{{ projectWorkspace.isSaving() ? 'SAVING' : 'SAVE' }}</span>
       <span class="comp-kbd">Ctrl+S</span>
     </button>
     <button

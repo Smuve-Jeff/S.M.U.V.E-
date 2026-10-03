@@ -67,6 +67,23 @@ describe('ExportService (Sprint A6)', () => {
     svc = TestBed.inject(ExportService);
   });
 
+  it('exports real PCM WAV bytes through the offline path without rolling the live transport', async () => {
+    jest.spyOn(svc, 'renderProjectOffline').mockResolvedValueOnce(fakeBuffer);
+    const download = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
+    const blob = await svc.exportProjectWav();
+    expect(blob.type).toBe('audio/wav');
+    expect(blob.size).toBeGreaterThan(44);
+    expect(download).toHaveBeenCalledWith(blob, expect.stringMatching(/\.wav$/));
+  });
+
+  it('uses a WAV extension when the requested share codec falls back to PCM', async () => {
+    jest.spyOn(svc, 'renderProjectOffline').mockResolvedValueOnce(fakeBuffer);
+    jest.spyOn(svc, 'applySmuvePolish').mockResolvedValueOnce(fakeBuffer);
+    const share = jest.spyOn(svc, 'shareBlob').mockResolvedValueOnce(false);
+    await svc.exportAndShare('mp3');
+    expect(share).toHaveBeenCalledWith(expect.objectContaining({ type: 'audio/wav' }), expect.stringMatching(/\.wav$/));
+  });
+
   it('EXPORT_FORMATS covers wav/mp3/m4a/opus with extensions and mimes', () => {
     expect(EXPORT_FORMATS.map((f) => f.id)).toEqual([
       'wav',
@@ -129,6 +146,36 @@ describe('ExportService (Sprint A6)', () => {
     const buf = await svc.audioBufferToWav(fakeBuffer);
     const view = new Uint8Array(buf);
     expect(String.fromCharCode(view[0], view[1], view[2], view[3])).toBe('RIFF');
+  });
+
+  it('audioBufferToWav encodes stereo as two interleaved channels', async () => {
+    // Regression: the mono fakeBuffer hid a channel-count mismatch that threw
+    // for every stereo offline render (“WAV channel count does not match”).
+    const stereo: any = {
+      numberOfChannels: 2,
+      sampleRate: 44100,
+      length: 100,
+      getChannelData: (c: number) =>
+        c === 0 ? new Float32Array(100).fill(0.5) : new Float32Array(100).fill(-0.5),
+    };
+    const buf = await svc.audioBufferToWav(stereo);
+    const view = new DataView(buf);
+    const magic = (offset: number) =>
+      String.fromCharCode(
+        view.getUint8(offset),
+        view.getUint8(offset + 1),
+        view.getUint8(offset + 2),
+        view.getUint8(offset + 3)
+      );
+    expect(magic(0)).toBe('RIFF');
+    expect(magic(8)).toBe('WAVE');
+    expect(view.getUint16(22, true)).toBe(2); // channel count
+    expect(view.getUint32(24, true)).toBe(44100); // sample rate
+    expect(view.getUint32(40, true)).toBe(100 * 2 * 2); // data chunk bytes
+    // Interleaved frames: L = +0.5 (~16383), R = -0.5 (-16384), then L again.
+    expect(view.getInt16(44, true)).toBeGreaterThan(16000);
+    expect(view.getInt16(46, true)).toBeLessThan(-16000);
+    expect(view.getInt16(48, true)).toBeGreaterThan(16000);
   });
 
   describe('mastering analysis (Phase 2)', () => {

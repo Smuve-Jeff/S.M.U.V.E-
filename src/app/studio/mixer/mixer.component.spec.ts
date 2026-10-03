@@ -88,6 +88,22 @@ describe("MixerComponent", () => {
     expect(component).toBeTruthy();
   });
 
+  it('reuses per-track meter buffers across visual updates', () => {
+    (component as any).updateMeters();
+    const first = (component as any).analyserBuffers.get('1');
+    (component as any).updateMeters();
+    expect((component as any).analyserBuffers.get('1')).toBe(first);
+  });
+
+  it('ends an in-flight fader gesture on pointer cancellation', () => {
+    component.startFaderDrag({ clientY: 100 } as PointerEvent, '1');
+    window.dispatchEvent(new Event('pointercancel'));
+    mockMusicManager.updateVolume.mockClear();
+    window.dispatchEvent(new MouseEvent('pointermove', { clientY: 50 }));
+    expect(mockMusicManager.updateVolume).not.toHaveBeenCalled();
+    expect((component as any).dragCleanup).toBeNull();
+  });
+
   it("updates track volume", () => {
     component.updateTrackVolume("1", 120);
     expect(mockMusicManager.engine.updateTrack).toHaveBeenCalledWith("1", {

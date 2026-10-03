@@ -63,14 +63,12 @@ export class ExportService {
    */
   private transportWasRolling = false;
 
-  async exportProjectWav() {
-    this.logger.info('Starting Professional Offline Export...');
-    const tempo = this.engine.tempo();
-    const bars = this.musicManager.activeLoopBars();
-    const secondsPerBar = (60 / tempo) * 4;
-    const totalDuration = bars * secondsPerBar;
-
-    return this.realTimeBounce(totalDuration);
+  async exportProjectWav(): Promise<Blob> {
+    this.logger.info('Starting offline PCM WAV export...');
+    const buffer = await this.renderProjectOffline();
+    const blob = await this.exportToFormat(buffer, 'wav');
+    this.downloadBlob(blob, `${(this.musicManager.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_')}_${Date.now()}.wav`);
+    return blob;
   }
 
   startLiveRecording() {
@@ -95,31 +93,50 @@ export class ExportService {
    * for every note; results are mixed to stereo at the project tempo.
    */
   async renderProjectOffline(): Promise<AudioBuffer> {
-    const tempo = Math.max(20, this.engine.tempo());
-    const bars = Math.max(1, this.musicManager.activeLoopBars());
+    const tempo = Math.max(20, Math.min(300, this.engine.tempo()));
+    const tracks = this.musicManager.tracks();
+    const lastEventStep = tracks.reduce((end, track) => Math.max(end,
+      ...(track.notes ?? []).map((note) => note.step + note.length),
+      ...(track.clips ?? []).map((clip) => (clip.start + clip.length) * 16),
+    ), 0);
+    const bars = Math.max(1, this.musicManager.activeLoopBars(), Math.ceil(lastEventStep / 16));
     const secondsPerBar = (60 / tempo) * 4;
     const totalSeconds = Math.max(1, bars * secondsPerBar + 1);
+    if (!Number.isFinite(totalSeconds) || totalSeconds > 600) throw new Error('Offline export supports up to 10 minutes per render. Shorten the arrangement first.');
     const sampleRate = 44100;
 
     const offline = new OfflineAudioContext(2, Math.ceil(totalSeconds * sampleRate), sampleRate);
     const master = offline.createGain();
-    master.gain.value = 0.85;
+    master.gain.value = this.engine.masterGain.gain.value;
     master.connect(offline.destination);
 
     const secondsPerStep = (60 / tempo) / STEPS_PER_BEAT;
 
-    for (const track of this.musicManager.tracks()) {
-      if (track.muted || track.type === 'audio' || track.type === 'bus') continue;
-      const notes = track.notes ?? [];
-      if (notes.length === 0) continue;
-      this.scheduleTrackNotes(
-        offline,
-        master,
-        notes,
-        track.synthParams ?? { type: 'sine' },
-        secondsPerStep,
-        track.pan ?? 0
-      );
+    const hasSolo = tracks.some((track) => track.soloed);
+    for (const track of tracks) {
+      if (track.muted || (hasSolo && !track.soloed) || track.type === 'bus') continue;
+      const channel = offline.createGain();
+      channel.gain.value = Math.max(0, Math.min(1.5, track.gain ?? track.volume ?? 0.8));
+      channel.connect(master);
+      if (track.type !== 'audio') {
+        this.scheduleTrackNotes(offline, channel, track.notes ?? [],
+          track.synthParams ?? { type: 'sine' }, secondsPerStep, track.pan ?? 0);
+      }
+      const pan = offline.createStereoPanner();
+      pan.pan.value = Math.max(-1, Math.min(1, track.pan ?? 0));
+      pan.connect(channel);
+      for (const clip of track.clips ?? []) {
+        if (clip.type !== 'audio') continue;
+        const buffer = clip.audioData || (clip.audioRefId && this.musicManager.stemAudioCache.get(clip.audioRefId));
+        if (!buffer) throw new Error(`Audio for “${track.name}” is unavailable. Restore or re-import the clip before export.`);
+        const source = offline.createBufferSource();
+        source.buffer = buffer;
+        source.connect(pan);
+        const start = Math.max(0, clip.start * secondsPerBar);
+        const offset = Math.max(0, clip.offset ?? 0);
+        const duration = Math.min(clip.length * secondsPerBar, buffer.duration - offset);
+        if (duration > 0) source.start(start, offset, duration);
+      }
     }
 
     return offline.startRendering();
@@ -143,9 +160,7 @@ export class ExportService {
       // Probability gate — matches live playStep behavior
       if (n.probability !== undefined && Math.random() >= n.probability) continue;
 
-      const start =
-        Math.max(0, (n.step ?? 0) * secondsPerStep) +
-        (n.microOffset ?? 0) * secondsPerStep;
+      const start = Math.max(0, ((n.step ?? 0) + (n.microOffset ?? 0)) * secondsPerStep);
       const baseFreq = 440 * Math.pow(2, ((n.midi ?? 60) - 69) / 12);
       const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
 
@@ -243,12 +258,15 @@ export class ExportService {
       Math.floor((buffer.length / buffer.sampleRate) * 48000)
     );
     const pcm = new Float32Array(Math.max(1, frames) * channelData.length);
-    // Resample stereo/mono to 48k float planar-ish interleaved for the encoder.
+    // Resample to 48k in PLANAR layout (all of channel 0, then channel 1, …),
+    // which is what AudioData with format 'f32-planar' requires. Interleaving
+    // here would scramble stereo channels in the encoded output.
     const ratio = buffer.sampleRate / 48000;
-    for (let i = 0; i < frames; i++) {
-      const srcIdx = Math.min(buffer.length - 1, Math.floor(i * ratio));
-      for (let c = 0; c < channelData.length; c++) {
-        pcm[i * channelData.length + c] = channelData[c][srcIdx];
+    for (let c = 0; c < channelData.length; c++) {
+      const src = channelData[c];
+      const base = c * frames;
+      for (let i = 0; i < frames; i++) {
+        pcm[base + i] = src[Math.min(buffer.length - 1, Math.floor(i * ratio))];
       }
     }
 
@@ -277,31 +295,24 @@ export class ExportService {
     encoder.configure(config);
 
     const frameSize = 1024;
-    for (let offset = 0; offset < pcm.length; offset += frameSize * channelData.length) {
-      const end = Math.min(offset + frameSize * channelData.length, pcm.length);
-      const framePcm = pcm.subarray(offset, end);
-      // Pad to a full frame when the tail is short.
-      if (end - offset < frameSize * channelData.length) {
-        const padded = new Float32Array(frameSize * channelData.length);
-        padded.set(framePcm);
-        encoder.encode(new AudioData({
-          format: 'f32-planar',
-          sampleRate: 48000,
-          numberOfFrames: frameSize,
-          numberOfChannels: channelData.length,
-          timestamp: (offset / channelData.length / 48000) * 1_000_000,
-          data: padded,
-        }));
-      } else {
-        encoder.encode(new AudioData({
-          format: 'f32-planar',
-          sampleRate: 48000,
-          numberOfFrames: frameSize,
-          numberOfChannels: channelData.length,
-          timestamp: (offset / channelData.length / 48000) * 1_000_000,
-          data: framePcm,
-        }));
+    for (let frameStart = 0; frameStart < frames; frameStart += frameSize) {
+      const blockFrames = Math.min(frameSize, frames - frameStart);
+      // Re-assemble each 1024-frame block as C planar runs, padding the tail.
+      const block = new Float32Array(frameSize * channelData.length);
+      for (let c = 0; c < channelData.length; c++) {
+        block.set(
+          pcm.subarray(c * frames + frameStart, c * frames + frameStart + blockFrames),
+          c * frameSize
+        );
       }
+      encoder.encode(new AudioData({
+        format: 'f32-planar',
+        sampleRate: 48000,
+        numberOfFrames: frameSize,
+        numberOfChannels: channelData.length,
+        timestamp: (frameStart / 48000) * 1_000_000,
+        data: block,
+      }));
     }
     await encoder.flush();
     encoder.close();
@@ -311,29 +322,19 @@ export class ExportService {
   }
 
   async audioBufferToWav(buffer: AudioBuffer): Promise<ArrayBuffer> {
-    const channels = [];
+    const channels: Float32Array[] = [];
     for (let i = 0; i < buffer.numberOfChannels; i++) {
       channels.push(buffer.getChannelData(i));
     }
-    const interleaved = this.interleave(channels);
+    // WavEncoder takes one planar Float32Array per channel and interleaves
+    // internally; handing it a pre-interleaved buffer alongside a channel
+    // count > 1 throws for stereo renders.
     const blob = WavEncoder.encode(
-      [interleaved],
-      buffer.numberOfChannels,
+      channels,
+      channels.length,
       buffer.sampleRate
     );
     return await blob.arrayBuffer();
-  }
-
-  private interleave(channels: Float32Array[]): Float32Array {
-    if (channels.length === 1) return channels[0];
-    const length = channels[0].length * channels.length;
-    const result = new Float32Array(length);
-    for (let i = 0; i < channels[0].length; i++) {
-      for (let j = 0; j < channels.length; j++) {
-        result[i * channels.length + j] = channels[j][i];
-      }
-    }
-    return result;
   }
 
   // ── Sprint A6 — MIDI export ─────────────────────────────────────────
@@ -559,7 +560,9 @@ export class ExportService {
     const polished = await this.applySmuvePolish(buffer);
     const blob = await this.exportToFormat(polished, format, 16);
     const info = EXPORT_FORMATS.find((f) => f.id === format) ?? EXPORT_FORMATS[0];
-    const filename = `${(this.musicManager.projectName || 'Elite_Session').replace(/\s+/g, '_')}_${Date.now()}.${info.ext}`;
+    // Codec fallback returns PCM WAV, so the filename must follow the bytes.
+    const extension = blob.type === 'audio/wav' ? 'wav' : info.ext;
+    const filename = `${(this.musicManager.projectName || 'Elite_Session').replace(/\s+/g, '_')}_${Date.now()}.${extension}`;
     return this.shareBlob(blob, filename);
   }
 
@@ -610,26 +613,4 @@ export class ExportService {
     };
   }
 
-  private async realTimeBounce(duration: number) {
-    if (this.engine.isPlaying()) {
-      throw new Error(
-        'WAV export requires playback to be stopped before starting the bounce.'
-      );
-    }
-
-    const { recorder, result } = this.startLiveRecording();
-    this.engine.start();
-
-    setTimeout(
-      () => {
-        this.engine.stop();
-        recorder.stop();
-      },
-      duration * 1000 + 500
-    );
-
-    const blob = await result;
-    this.downloadBlob(blob, `Elite_Session_${Date.now()}.wav`);
-    return blob;
-  }
 }

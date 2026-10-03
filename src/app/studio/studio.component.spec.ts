@@ -67,6 +67,8 @@ describe("StudioComponent", () => {
     startFreshProject: jest.fn(),
     updateMetadata: jest.fn(),
     isDirty: signal(false),
+    isSaving: signal(false),
+    persistenceError: signal(''),
     metadata: signal(null),
     lastAutoSave: signal(0),
     lastPersistedAt: signal(0),
@@ -571,7 +573,7 @@ describe("StudioComponent", () => {
       .fn()
       .mockRejectedValue(new Error("disk full"));
 
-    await expect(component.saveProject()).resolves.toBeUndefined();
+    await expect(component.saveProject()).resolves.toBe(false);
 
     expect(mockSnackbar.error).toHaveBeenCalledWith("Could not save project");
     expect(mockStudioTelemetry.trackEvent).toHaveBeenCalledWith(
@@ -843,6 +845,14 @@ describe("StudioComponent", () => {
         expect.objectContaining({ title: "Unsaved changes" }),
       );
       expect(mockProjectWorkspace.manualSave).toHaveBeenCalled();
+    });
+
+    it('refuses Save & Exit if local persistence fails', async () => {
+      mockProjectWorkspace.isDirty.set(true);
+      mockDialog.confirm.mockResolvedValue(true);
+      mockProjectWorkspace.manualSave = jest.fn().mockRejectedValue(new Error('Disk failure'));
+      await expect((component as any).confirmDirtyExit()).resolves.toBe(false);
+      expect(mockSnackbar.error).toHaveBeenCalledWith('Could not save project');
     });
 
     it("skips the save prompt when the project is clean", async () => {

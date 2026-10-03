@@ -145,6 +145,10 @@ function makeSongBareEngine(): AudioEngineService {
   (svc as any).songLengthSteps = signal(64);
   (svc as any).songEnded = signal(false);
   (svc as any).loopLengthSteps = signal(64);
+  svc.playbackLoopEnabled = signal(false);
+  svc.playbackLoopStart = signal(null);
+  svc.playbackLoopEnd = signal(null);
+  (svc as any).transportGeneration = 0;
   (svc as any).currentBeat = signal(0);
   (svc as any).visualStep = signal(0);
   (svc as any).isPlaying = signal(false);
@@ -225,6 +229,36 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       expect(svc.songLengthSteps()).toBe(1);
       svc.setSongLengthSteps(-50);
       expect(svc.songLengthSteps()).toBe(1);
+    });
+  });
+
+  describe('transport loop and stale playhead safety', () => {
+    it('loops only the selected end-exclusive A/B range without ending the song', () => {
+      svc.isPlaying.set(true);
+      expect(svc.setPlaybackLoop(16, 20)).toBe(true);
+      svc.playbackLoopEnabled.set(true);
+      const scheduled: number[] = [];
+      svc.onScheduleStep = (step) => scheduled.push(step);
+      for (const tick of [0, 1, 2, 3, 4, 65]) (svc as any).handleTick(tick, 0, 0.1);
+      expect(scheduled).toEqual([16, 17, 18, 19, 16, 17]);
+      expect(svc.songEnded()).toBe(false);
+    });
+
+    it('rejects reversed and out-of-song markers', () => {
+      expect(svc.setPlaybackLoop(20, 16)).toBe(false);
+      expect(svc.setPlaybackLoop(0, 1000)).toBe(false);
+      expect(svc.playbackLoopStart()).toBeNull();
+    });
+
+    it('does not move the playhead after Stop when a queued visual callback arrives', () => {
+      jest.useFakeTimers();
+      try {
+        svc.isPlaying.set(true);
+        (svc as any).handleTick(8, 1, 0.1);
+        svc.stop();
+        jest.runOnlyPendingTimers();
+        expect(svc.visualStep()).toBe(0);
+      } finally { jest.useRealTimers(); }
     });
   });
 

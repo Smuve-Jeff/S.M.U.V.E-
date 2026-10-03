@@ -99,12 +99,18 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   private analyserMap = new Map<string, AnalyserNode>();
+  private analyserBuffers = new Map<string, Uint8Array<ArrayBuffer>>();
+  private analyserSources = new Map<string, AudioNode>();
+  private masterBuffer: Uint8Array<ArrayBuffer> | null = null;
+  private dragCleanup: (() => void) | null = null;
   trackLevels = signal<MeterReadings>({});
   trackPeakHolds = signal<MeterReadings>({});
   masterPeakHold = signal(0);
   private masterAnalyser?: AnalyserNode;
   /** Pro: Phase correlation computed at runtime from master analyser */
   phaseCorrelation = signal(0);
+  /** Current engine exposes one downmixed analyser, not L/R phase vectors. */
+  readonly phaseCorrelationAvailable = false;
   outputLufs = this.audioSession.engine.outputLufs;
   private stopMeteringTask: (() => void) | null = null;
 
@@ -117,22 +123,24 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.dragCleanup?.();
+    this.onStripTouchEnd();
     this.stopMeteringTask?.();
     this.stopMeteringTask = null;
-    for (const analyser of this.analyserMap.values()) {
+    for (const [id, analyser] of this.analyserMap) {
       try {
+        this.analyserSources.get(id)?.disconnect(analyser);
         analyser.disconnect();
       } catch {
         // AnalyserNode may already be disconnected by the audio graph owner.
       }
     }
     this.analyserMap.clear();
-    try {
-      this.masterAnalyser?.disconnect();
-    } catch {
-      // Best-effort cleanup for test doubles and already-closed graphs.
-    }
+    this.analyserSources.clear();
+    this.analyserBuffers.clear();
+    // The master analyser belongs to AudioEngineService, not this view.
     this.masterAnalyser = undefined;
+    this.masterBuffer = null;
   }
 
   trackById = (_: number, t: TrackModel) => t.id;
@@ -147,7 +155,17 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   private updateMeters(): void {
     const levels: MeterReadings = {};
-    this.tracks().forEach((track) => {
+    const tracks = this.tracks();
+    const activeIds = new Set(tracks.map((track) => track.id));
+    for (const [id, analyser] of this.analyserMap) {
+      if (activeIds.has(id)) continue;
+      this.analyserSources.get(id)?.disconnect(analyser);
+      analyser.disconnect();
+      this.analyserMap.delete(id);
+      this.analyserSources.delete(id);
+      this.analyserBuffers.delete(id);
+    }
+    tracks.forEach((track) => {
       let analyser = this.analyserMap.get(track.id);
       if (!analyser) {
         analyser = this.audioSession.engine.ctx.createAnalyser();
@@ -156,13 +174,18 @@ export class MixerComponent implements OnInit, OnDestroy {
         if (out) {
           try {
             out.connect(analyser);
+            this.analyserSources.set(track.id, out);
           } catch {
             /* already connected */
           }
         }
         this.analyserMap.set(track.id, analyser);
       }
-      const data = new Uint8Array(analyser.frequencyBinCount);
+      let data = this.analyserBuffers.get(track.id);
+      if (!data || data.length !== analyser.frequencyBinCount) {
+        data = new Uint8Array(analyser.frequencyBinCount);
+        this.analyserBuffers.set(track.id, data);
+      }
       analyser.getByteFrequencyData(data);
       const avg = data.length
         ? data.reduce((a, b) => a + b, 0) / data.length / 255
@@ -173,9 +196,9 @@ export class MixerComponent implements OnInit, OnDestroy {
 
     const DECAY = 0.015;
     this.trackPeakHolds.update((holds) => {
-      const next: MeterReadings = { ...holds };
+      const next: MeterReadings = {};
       for (const [id, lvl] of Object.entries(levels)) {
-        next[id] = Math.max(lvl, (next[id] ?? 0) - DECAY);
+        next[id] = Math.max(lvl, (holds[id] ?? 0) - DECAY);
       }
       return next;
     });
@@ -196,16 +219,9 @@ export class MixerComponent implements OnInit, OnDestroy {
    */
   private computePhaseCorrelation(): number {
     if (!this.masterAnalyser) return 0;
-    try {
-      const data = new Uint8Array(this.masterAnalyser.frequencyBinCount);
-      this.masterAnalyser.getByteTimeDomainData?.(data as any);
-      // A single analyser exposes a mono/downmixed buffer in most browsers.
-      // Report an honest neutral value when stereo vectors are unavailable;
-      // never animate a fabricated correlation reading.
-      return 0;
-    } catch {
-      return 0.7;
-    }
+    // A single analyser supplies mono/downmixed data, not stereo vectors.
+    // Do not spend a read/allocation on a fabricated correlation estimate.
+    return 0;
   }
 
   // ---- Meter helpers ----
@@ -217,7 +233,10 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
   masterLevel(): number {
     if (!this.masterAnalyser) return 0;
-    const data = new Uint8Array(this.masterAnalyser.frequencyBinCount);
+    if (!this.masterBuffer || this.masterBuffer.length !== this.masterAnalyser.frequencyBinCount) {
+      this.masterBuffer = new Uint8Array(this.masterAnalyser.frequencyBinCount);
+    }
+    const data = this.masterBuffer;
     this.masterAnalyser.getByteFrequencyData(data);
     const avg = data.reduce((a, b) => a + b, 0) / data.length || 0;
     return Math.min(1, avg / 200);
@@ -298,8 +317,24 @@ export class MixerComponent implements OnInit, OnDestroy {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    this.installDrag(onMove, onUp);
+  }
+
+  private installDrag(onMove: (event: PointerEvent) => void, onUp: () => void): void {
+    this.dragCleanup?.();
+    const finish = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+      window.removeEventListener('blur', finish);
+      this.dragCleanup = null;
+      onUp();
+    };
+    this.dragCleanup = finish;
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+    window.addEventListener('blur', finish);
   }
 
   private checkFaderHaptics(trackId: string, v: number) {
@@ -339,8 +374,7 @@ export class MixerComponent implements OnInit, OnDestroy {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    this.installDrag(onMove, onUp);
   }
 
   // ---- Pan ----
@@ -370,8 +404,7 @@ export class MixerComponent implements OnInit, OnDestroy {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    this.installDrag(onMove, onUp);
   }
 
   // ---- Long-press for quick-solo ----
@@ -635,12 +668,14 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   // Color classifier for phase correlation readout
   phaseCorrelationColor(): string {
+    if (!this.phaseCorrelationAvailable) return '#94a3b8';
     const p = this.phaseCorrelation();
     if (p < 0) return "#ff3d6e"; // red – out of phase
     if (p < 0.3) return "#ffb627"; // amber – wide
     return "#34f5c5"; // mint – mono-safe
   }
   phaseCorrelationLabel(): string {
+    if (!this.phaseCorrelationAvailable) return 'UNAVAILABLE';
     const p = this.phaseCorrelation();
     if (p < 0) return "OUT OF PHASE";
     if (p < 0.3) return "WIDE";

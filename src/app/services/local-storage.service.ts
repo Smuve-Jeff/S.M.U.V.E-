@@ -173,13 +173,14 @@ export class LocalStorageService {
         const store = transaction.objectStore(storeName);
         const request = store.put(item);
 
-        request.onsuccess = () => {
-          // Track cache metadata for expiration
-          if (expiresInMs) {
-            void this.updateCacheMetadata(storeName, item, expiresInMs);
-          }
+        // A successful put request can still be rolled back. Only report a
+        // durable save after the enclosing transaction commits.
+        transaction.oncomplete = () => {
+          if (expiresInMs) void this.updateCacheMetadata(storeName, item, expiresInMs);
           resolve();
         };
+        transaction.onerror = () => reject(transaction.error || new Error('Local save failed.'));
+        transaction.onabort = () => reject(transaction.error || new Error('Local save was aborted.'));
         request.onerror = (event: any) => reject(event.target.error);
       } catch (e) {
         reject(e);

@@ -500,10 +500,10 @@
 
   <!-- Export and Ideas actions -->
   <div class="ctb-group ctb-export-actions" role="group" aria-label="Export and share">
-    <button type="button" class="ctb-dropdown-action" (click)="exportWav()" [disabled]="isExporting()">
+    <button type="button" class="ctb-dropdown-action" aria-label="Export WAV" (click)="exportWav()" [disabled]="isExporting()">
       <span class="material-symbols-outlined">download</span> Export WAV
     </button>
-    <button type="button" class="ctb-dropdown-action" (click)="exportMidi()">
+    <button type="button" class="ctb-dropdown-action" aria-label="Export MIDI" (click)="exportMidi()">
       <span class="material-symbols-outlined">music_note</span> Export MIDI
     </button>
     <button type="button" class="ctb-dropdown-action" (click)="shareExport()" [disabled]="isExporting()">

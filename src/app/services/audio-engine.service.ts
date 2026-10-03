@@ -465,6 +465,25 @@ export class AudioEngineService {
   public metronomeVolume = signal(0.5);
 
   public loopLengthSteps = signal(64);
+  /** Transport A/B loop, end-exclusive in sixteenth-note steps. */
+  public playbackLoopEnabled = signal(false);
+  public playbackLoopStart = signal<number | null>(null);
+  public playbackLoopEnd = signal<number | null>(null);
+  private transportGeneration = 0;
+
+  setPlaybackLoop(start: number | null, end: number | null): boolean {
+    if (start === null || end === null) {
+      this.playbackLoopStart.set(start);
+      this.playbackLoopEnd.set(end);
+      this.playbackLoopEnabled.set(false);
+      return false;
+    }
+    const length = this.playMode() === 'song' ? this.songLengthSteps() : this.loopLengthSteps();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > length) return false;
+    this.playbackLoopStart.set(Math.floor(start));
+    this.playbackLoopEnd.set(Math.floor(end));
+    return true;
+  }
   /**
    * Sprint A4 — total song length in steps. Defaults to 64 (= 4 bars),
    * MusicManagerService listens to `structure()` and pushes the real
@@ -869,6 +888,7 @@ export class AudioEngineService {
   }
 
   stop() {
+    this.transportGeneration++;
     this.isPlaying.set(false);
     this.sendMidiStop();
     if (this.workletNode) {
@@ -942,7 +962,7 @@ export class AudioEngineService {
     // Sprint A4 — guard against re-entrant ticks after the song has ended.
     // The worklet may emit one or two trailing TICKs after STOP is queued;
     // we drop them so they cannot re-schedule audio past the boundary.
-    if (this.songEnded()) return;
+    if (this.songEnded() || !this.isPlaying()) return;
 
     if (this.isCountIn()) {
       if (step % this.stepsPerBeat() === 0) {
@@ -965,7 +985,14 @@ export class AudioEngineService {
     // length. displayStep is the in-range step we hand to downstream
     // consumers (no modulo in song mode so clip gating sees the right index).
     let displayStep: number;
-    if (this.playMode() === 'song') {
+    const loopStart = this.playbackLoopStart();
+    const loopEnd = this.playbackLoopEnd();
+    const hasRegion = loopStart !== null && loopEnd !== null && loopEnd > loopStart;
+    if (this.playbackLoopEnabled()) {
+      const start = hasRegion ? loopStart : 0;
+      const end = hasRegion ? loopEnd : (this.playMode() === 'song' ? this.songLengthSteps() : this.loopLengthSteps());
+      displayStep = start + (step % Math.max(1, end - start));
+    } else if (this.playMode() === 'song') {
       const length = Math.max(1, this.songLengthSteps());
       if (step >= length) {
         this.songEnded.set(true);
@@ -993,8 +1020,10 @@ export class AudioEngineService {
     }
 
     const visualDelay = (time - this.ctx.currentTime) * 1000;
+    const generation = this.transportGeneration;
     setTimeout(
       () => {
+        if (!this.isPlaying() || generation !== this.transportGeneration) return;
         this.visualStep.set(loopedStep);
         this.currentBeat.set(loopedStep / this.stepsPerBeat());
       },
@@ -1009,13 +1038,14 @@ export class AudioEngineService {
       this.ctx.currentTime + AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS
     ) {
       this.handleTick(this.currentStep, this.nextNoteTime, stepDuration);
+      if (!this.isPlaying()) break;
       this.nextNoteTime += stepDuration;
       if (!this.isCountIn()) {
         // Sprint A4: in song mode the counter goes straight — handleTick
         // detects the boundary and calls stop() (which clears the
         // schedulerHandle on its next tick). In pattern mode we wrap to
         // the existing loopLengthSteps to preserve the original behaviour.
-        if (this.playMode() === 'song') {
+        if (this.playMode() === 'song' || this.playbackLoopEnabled()) {
           this.currentStep++;
         } else {
           this.currentStep =

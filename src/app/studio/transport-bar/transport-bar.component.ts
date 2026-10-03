@@ -56,10 +56,10 @@ export class TransportBarComponent {
   isStopped = this.audioSession.isStopped;
   masterVolume = this.audioSession.masterVolume;
   metronomeEnabled = this.audioEngine.metronomeEnabled;
-  loopEnabled = signal(false);
+  loopEnabled = this.audioEngine.playbackLoopEnabled;
   /** A/B loop region (steps 0..loopLength) */
-  loopStartStep = signal<number | null>(null);
-  loopEndStep = signal<number | null>(null);
+  loopStartStep = this.audioEngine.playbackLoopStart;
+  loopEndStep = this.audioEngine.playbackLoopEnd;
 
   /** Real master level from RecordingStatusService (drives meter bars) */
   masterLevelVisual = this.recordingStatus.masterLevelLinear;
@@ -303,7 +303,8 @@ export class TransportBarComponent {
     this.audioEngine.tempo.set(clamped);
   }
   setTempo(bpm: number): void {
-    this.audioEngine.tempo.set(bpm);
+    if (!Number.isFinite(bpm)) return;
+    this.audioEngine.tempo.set(Math.max(20, Math.min(300, Math.round(bpm))));
     this.showBpmDropdown.set(false);
   }
   toggleBpmDropdown(): void {
@@ -370,15 +371,15 @@ export class TransportBarComponent {
   setLoopMarker(which: "start" | "end"): void {
     const step = this.audioEngine.visualStep();
     if (which === "start") {
-      this.loopStartStep.set(step);
-    } else {
-      this.loopEndStep.set(step);
+      this.audioEngine.setPlaybackLoop(step, null);
+    } else if (!this.audioEngine.setPlaybackLoop(this.loopStartStep() ?? 0, step)) {
+      this.snack.info('Loop end must be after the start. Move the playhead forward first.');
+      return;
     }
     this.haptic.medium();
   }
   clearLoopRegion(): void {
-    this.loopStartStep.set(null);
-    this.loopEndStep.set(null);
+    this.audioEngine.setPlaybackLoop(null, null);
     this.haptic.light();
   }
   hasLoopRegion(): boolean {
@@ -472,9 +473,12 @@ export class TransportBarComponent {
   }
 
   async exportWav() {
+    if (this.isExporting()) return;
     this.isExporting.set(true);
     try {
       await this.exportService.exportProjectWav();
+    } catch (error) {
+      this.snack.error('WAV export failed · ' + (error instanceof Error ? error.message : 'unknown error'));
     } finally {
       this.isExporting.set(false);
     }
@@ -493,6 +497,7 @@ export class TransportBarComponent {
 
   /** Sprint A6.5 — render offline (real synth voices) + open share sheet. */
   async shareExport(): Promise<void> {
+    if (this.isExporting()) return;
     this.isExporting.set(true);
     try {
       const used = await this.exportService.exportAndShare("wav");
@@ -564,7 +569,7 @@ export class TransportBarComponent {
     ) {
       return;
     }
-    if (event.repeat) return;
+    if (event.repeat || event.isComposing || event.defaultPrevented || target.closest('[role="dialog"], app-interaction-dialog')) return;
 
     const mod = event.ctrlKey || event.metaKey;
 

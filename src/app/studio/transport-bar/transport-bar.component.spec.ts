@@ -36,6 +36,15 @@ describe("TransportBarComponent", () => {
 
   const mockAudioEngine = {
     visualStep: signal(0),
+    playbackLoopEnabled: signal(false),
+    playbackLoopStart: signal<number | null>(null),
+    playbackLoopEnd: signal<number | null>(null),
+    setPlaybackLoop: jest.fn((start: number | null, end: number | null) => {
+      mockAudioEngine.playbackLoopStart.set(start);
+      mockAudioEngine.playbackLoopEnd.set(end);
+      if (start === null || end === null) mockAudioEngine.playbackLoopEnabled.set(false);
+      return end !== null && start !== null && end > start;
+    }),
     tempo: signal(120),
     metronomeEnabled: signal(false),
     outputPeak: signal(0),
@@ -178,6 +187,26 @@ describe("TransportBarComponent", () => {
       expect(details.querySelector(".ctb-output-group")).toBeTruthy();
       expect(details.querySelector(".ctb-ideas")).toBeTruthy();
     });
+  });
+
+  it('wires A/B markers and loop enabled state to the audio engine', () => {
+    mockAudioEngine.visualStep.set(16);
+    component.setLoopMarker('start');
+    expect(mockAudioEngine.setPlaybackLoop).toHaveBeenCalledWith(16, null);
+    mockAudioEngine.visualStep.set(32);
+    component.setLoopMarker('end');
+    expect(mockAudioEngine.setPlaybackLoop).toHaveBeenCalledWith(16, 32);
+    component.toggleLoop();
+    expect(mockAudioEngine.playbackLoopEnabled()).toBe(true);
+    component.clearLoopRegion();
+    expect(mockAudioEngine.playbackLoopEnabled()).toBe(false);
+  });
+
+  it('surfaces render failures and clears the exporting busy state', async () => {
+    jest.spyOn(TestBed.inject(ExportService), 'exportProjectWav').mockRejectedValueOnce(new Error('Render failed'));
+    await component.exportWav();
+    expect(mockSnackbar.error).toHaveBeenCalledWith('WAV export failed · Render failed');
+    expect(component.isExporting()).toBe(false);
   });
 
   describe("core transport smoke test", () => {

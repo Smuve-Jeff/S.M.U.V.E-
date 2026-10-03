@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   OnInit,
   OnDestroy,
   AfterViewInit,
@@ -15,6 +16,7 @@ import {
   HostListener,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
 
@@ -1166,8 +1168,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     },
   ]);
 
+  private readonly destroyRef = inject(DestroyRef);
+
   constructor() {
-    this.route.queryParamMap.subscribe((params) => {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const view = params.get("view");
       if (view && isStudioView(view)) this.activeView.set(view);
     });
@@ -1384,7 +1388,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     }
 
-    this.route.queryParamMap.subscribe((params) => {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const sessionId = params.get("sessionId");
       if (sessionId && !this.collaboration.currentSession()) {
         const user = this.authService.currentUser();
@@ -1456,8 +1460,6 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit() {
     this.activeView();
-    // Start spectrum analyzer rendering when AI Mix panel is visible
-    this.startSpectrumAnalyzer();
   }
 
   ngOnDestroy() {
@@ -1584,8 +1586,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
             // Unsaved-work guard: a dirty project must never vanish on a
             // confirmed exit without one explicit confirmation — the same
             // protection FL Studio Mobile and BandLab give a live session.
-            await this.confirmDirtyExit();
-            void App.exitApp();
+            if (await this.confirmDirtyExit()) void App.exitApp();
             return;
           }
           this.exitArmedAt = now;
@@ -1608,8 +1609,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * unsaved changes, ask once whether to save before leaving. Returns after
    * any prompt resolution so the caller can proceed to App.exitApp().
    */
-  private async confirmDirtyExit(): Promise<void> {
-    if (!this.projectWorkspace.isDirty()) return;
+  private async confirmDirtyExit(): Promise<boolean> {
+    if (!this.projectWorkspace.isDirty()) return true;
     const save = await this.dialog.confirm({
       title: "Unsaved changes",
       message:
@@ -1618,13 +1619,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       cancelLabel: "Discard",
     });
     this.exitArmedAt = 0;
-    if (!save) return;
-    try {
-      await this.saveProject();
-    } catch {
-      // saveProject already surfaced the failure — still exit so the
-      // artist is not trapped by a broken disk.
-    }
+    if (!save) return true;
+    // Save & Exit must never discard work when local persistence failed.
+    return (await this.saveProject()) && !this.projectWorkspace.isDirty();
   }
 
   // ── Theme cycle: Light → Focus → Dark → Light ─────────────────
@@ -1745,6 +1742,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * export, or the AI Mix panel, then delegates to the Ctrl+ shortcut handler.
    */
   onShellKeydown(event: KeyboardEvent): void {
+    if (event.defaultPrevented || event.isComposing || event.repeat) return;
     // Escape closes the nearest open surface, one layer per press — desktop
     // Chrome and tablet keyboards both route it here. Runs before the text
     // target bail-out so Escape also works while a panel input has focus
@@ -2079,6 +2077,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   toggleAiMixAssistant() {
     this.haptic.light();
     this.showAiMixAssistant.update((v) => !v);
+    if (this.showAiMixAssistant()) this.startSpectrumAnalyzer();
+    else this.stopSpectrumAnalyzer();
     this.syncPanelFocus(".comp-aimix-panel", this.showAiMixAssistant());
     if (this.showAiMixAssistant()) {
       this.studioTelemetry.trackEvent("ai_mix_panel_opened", undefined, true);
@@ -2344,12 +2344,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.syncPanelFocus(".comp-meta-panel", this.showProjectMetadata());
   }
 
-  async saveProject() {
+  async saveProject(): Promise<boolean> {
+    if (this.projectWorkspace.isSaving()) return false;
     this.haptic.medium();
     try {
       await this.projectWorkspace.manualSave();
       this.snackbarService.success("Project saved");
       this.studioTelemetry.trackEvent("project_saved", undefined, true);
+      return true;
     } catch (error) {
       this.studioTelemetry.trackEvent(
         "studio_error",
@@ -2360,6 +2362,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         false,
       );
       this.snackbarService.error("Could not save project");
+      return false;
     }
   }
 
@@ -2374,10 +2377,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!file) return;
 
     try {
+      if (file.size > 64 * 1024 * 1024) throw new Error('Project file exceeds the 64 MiB JSON import limit.');
+      if (this.projectWorkspace.isDirty()) {
+        const replace = await this.dialog.confirm({
+          title: 'Replace current project?', message: 'Loading this file replaces your unsaved session. Save or export a backup first.',
+          confirmLabel: 'Load project', cancelLabel: 'Keep session', tone: 'danger',
+        });
+        if (!replace) return;
+      }
       const text = await file.text();
       const bundle = JSON.parse(text) as ProjectBundle;
       const success = await this.projectWorkspace.importProjectBundle(bundle);
       if (success) {
+        this.history.clear();
         this.snackbarService.success("Project loaded successfully");
         this.studioTelemetry.trackEvent(
           "project_imported",
@@ -2432,7 +2444,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         },
         false,
       );
-      throw e;
+      this.snackbarService.error('Project export failed. Please try again.');
     }
   }
 
@@ -2885,6 +2897,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const dataArray = new Uint8Array(bufferLength);
 
     const render = () => {
+      if (!this.showAiMixAssistant()) { this.spectrumRafId = null; return; }
       const canvas = this.spectrumCanvas?.nativeElement;
       if (!canvas) {
         this.spectrumRafId = requestAnimationFrame(render);

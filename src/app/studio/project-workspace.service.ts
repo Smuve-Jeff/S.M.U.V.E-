@@ -2,12 +2,15 @@ import { DestroyRef, Injectable, effect, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { AuthService } from "../services/auth.service";
 import { Project } from "../types";
-import { MusicManagerService } from "../services/music-manager.service";
+import { MusicManagerService, type SongSection } from "../services/music-manager.service";
+import { TakeManagerService, type TakeStateBundle } from "../services/take-manager.service";
+import { HistoryService } from "../services/history.service";
 import { ProjectService } from "../services/project.service";
 import { LocalStorageService } from "../services/local-storage.service";
 import { OfflineSyncService } from "../services/offline-sync.service";
 import { LoggingService } from "../services/logging.service";
 import { APP_SECURITY_CONFIG } from "../app.security";
+import { AutomationService } from "./automation.service";
 
 export interface ProjectMetadata {
   id: string;
@@ -36,6 +39,8 @@ export interface ProjectBundle {
   metadata: ProjectMetadata;
   tracks: any[];
   audioAssets?: SerializedAudioAsset[];
+  structure?: SongSection[];
+  takeState?: TakeStateBundle;
   automation: any;
   mixState: any;
   notes: string;
@@ -65,6 +70,13 @@ export class ProjectWorkspaceService {
   private readonly storage = inject(LocalStorageService);
   private readonly offlineSync = inject(OfflineSyncService);
   private readonly logger = inject(LoggingService);
+  private readonly automationService = inject(AutomationService);
+  private readonly takeManager = inject(TakeManagerService);
+  private readonly history = inject(HistoryService);
+  private readonly destroyRef = inject(DestroyRef);
+  readonly isSaving = signal(false);
+  readonly persistenceError = signal('');
+  readonly projectNotes = signal('');
 
   /** Current project metadata */
   metadata = signal<ProjectMetadata | null>(null);
@@ -178,6 +190,7 @@ export class ProjectWorkspaceService {
     this.watchWorkspaceChanges();
     this.startAutoSave();
     this.installLifecyclePersistence();
+    this.destroyRef.onDestroy(() => this.stopAutoSave());
     this.projectService.projectDeleted$
       .pipe(takeUntilDestroyed(inject(DestroyRef)))
       .subscribe((id) => {
@@ -250,6 +263,12 @@ export class ProjectWorkspaceService {
     this.cloudSyncQueued.set(false);
     this.lastRecoveredAt.set(null);
     this.lastRecoveredSource.set(null);
+    this.persistenceError.set('');
+    this.projectNotes.set('');
+    this.takeManager.restore({ takes: {}, active: {}, punchIn: {}, compStack: {}, sections: {} });
+    this.automationService.lanes.set([]);
+    this.automationService.macros.set([]);
+    this.automationService.modulationSources.set([]);
     this.isDirty.set(this.musicManager.tracks().length > 0);
     return meta;
   }
@@ -303,11 +322,13 @@ export class ProjectWorkspaceService {
   }
 
   async autoSave() {
+    if (this.isSaving()) return;
     try {
       const snapshot = this.createStoredSnapshot();
       const stored = this.toStoredBundle(snapshot, "autosave");
+      await this.requirePersistence();
       await this.storage.saveItem("projects", stored);
-      await this.queueCurrentSnapshotCloudSync(snapshot.metadata);
+      await this.tryQueueCloudSync(snapshot.metadata);
       this.lastAutoSave.set(stored.savedAt);
       this.markPersistenceClean(snapshot, "autosave", stored.savedAt);
       this.versionCount.update((v) => v + 1);
@@ -315,35 +336,58 @@ export class ProjectWorkspaceService {
         "ProjectWorkspace: Auto-saved " + snapshot.metadata.name,
       );
 
-      // Keep last 5 versions
-      await this.pruneOldVersions(snapshot.metadata.id, 5);
+      this.persistenceError.set('');
     } catch (e) {
+      this.persistenceError.set(e instanceof Error ? e.message : 'Auto-save failed. Save or export a backup.');
       this.logger.warn("ProjectWorkspace: Auto-save failed", e);
     }
   }
 
   async manualSave(): Promise<ProjectBundle> {
-    const bundle = this.createStoredSnapshot();
+    if (this.isSaving()) throw new Error('A project save is already in progress.');
+    this.isSaving.set(true);
+    this.persistenceError.set('');
     try {
+      const bundle = this.createStoredSnapshot();
       const stored = this.toStoredBundle(bundle, "manual");
-      // Persist the complete bundle locally before attempting any network work.
+      await this.requirePersistence();
       await this.storage.saveItem("projects", stored);
-      await this.projectService.refresh();
-      await this.storage.saveItem("offline_local_cache", {
-        id: "last_saved_project_id",
-        payload: bundle.metadata.id,
-        savedAt: stored.savedAt,
-      });
-      await this.queueCurrentSnapshotCloudSync(bundle.metadata);
       this.markPersistenceClean(bundle, "manual", stored.savedAt);
       this.versionCount.update((v) => v + 1);
+      await this.projectService.refresh();
+      // The bundle is already durable. Optional pointers/cloud failures must
+      // not misreport that local save as lost.
+      try {
+        await this.storage.saveItem("offline_local_cache", {
+          id: "last_saved_project_id", payload: bundle.metadata.id, savedAt: stored.savedAt,
+        });
+      } catch (error) {
+        this.logger.warn('ProjectWorkspace: Latest-project pointer failed', error);
+      }
+      await this.tryQueueCloudSync(bundle.metadata);
       this.logger.info("ProjectWorkspace: Saved " + bundle.metadata.name);
-    } catch (e) {
-      // A local save should never be reported as lost if optional cloud
-      // persistence is unavailable. The next save can retry the queue.
-      this.logger.warn("ProjectWorkspace: Manual save failed", e);
+      return bundle;
+    } catch (error) {
+      this.persistenceError.set(error instanceof Error ? error.message : 'Project could not be saved.');
+      this.logger.warn("ProjectWorkspace: Manual save failed", error);
+      throw error;
+    } finally {
+      this.isSaving.set(false);
     }
-    return bundle;
+  }
+
+  private async requirePersistence(): Promise<void> {
+    const status = await this.storage.persistenceStatus();
+    if (status !== 'ready') throw new Error(`Project storage is ${status}. Export a backup before leaving.`);
+  }
+
+  private async tryQueueCloudSync(metadata: ProjectMetadata): Promise<void> {
+    try {
+      await this.queueCurrentSnapshotCloudSync(metadata);
+    } catch (error) {
+      this.cloudSyncQueued.set(false);
+      this.logger.warn('ProjectWorkspace: Saved locally; cloud queue unavailable', error);
+    }
   }
 
   async loadProject(projectId: string): Promise<ProjectBundle | null> {
@@ -353,6 +397,7 @@ export class ProjectWorkspaceService {
         `project_${projectId}`,
       );
       if (bundle) {
+        this.validateBundle(bundle);
         this.restoreFromSnapshot(bundle as ProjectBundle);
         this.markPersistenceClean(
           bundle as ProjectBundle,
@@ -380,6 +425,8 @@ export class ProjectWorkspaceService {
 
   async importProjectBundle(bundle: ProjectBundle): Promise<boolean> {
     try {
+      this.validateBundle(bundle);
+      await this.requirePersistence();
       const stored = this.toStoredBundle(bundle, "import");
       await this.storage.saveItem("projects", stored);
       await this.projectService.refresh();
@@ -389,11 +436,13 @@ export class ProjectWorkspaceService {
         savedAt: stored.savedAt,
       });
       this.restoreFromSnapshot(bundle);
-      await this.queueCloudSync(bundle);
+      await this.tryQueueCloudSync(bundle.metadata);
       this.markPersistenceClean(bundle, "import", stored.savedAt);
+      this.persistenceError.set('');
       this.logger.info("ProjectWorkspace: Imported " + bundle.metadata.name);
       return true;
     } catch (e) {
+      this.persistenceError.set(e instanceof Error ? e.message : 'Invalid project bundle.');
       this.logger.warn("ProjectWorkspace: Import failed", e);
       return false;
     }
@@ -433,7 +482,10 @@ export class ProjectWorkspaceService {
             this.storedSavedAt(a as StoredProjectBundle),
         ) as StoredProjectBundle[];
 
-      const freshest = stored.find((bundle) => bundle.tracks?.length > 0);
+      const freshest = stored.find((bundle) => {
+        try { this.validateBundle(bundle); return bundle.tracks.length > 0; }
+        catch (error) { this.logger.warn('ProjectWorkspace: Skipping invalid recovery bundle', error); return false; }
+      });
       if (!freshest) return false;
 
       const source =
@@ -512,21 +564,37 @@ export class ProjectWorkspaceService {
       metadata: meta,
       tracks,
       audioAssets,
-      automation: {},
+      structure: JSON.parse(JSON.stringify(this.musicManager.structure())),
+      takeState: JSON.parse(JSON.stringify(this.takeManager.serialize())),
+      automation: {
+        lanes: JSON.parse(JSON.stringify(this.automationService.lanes())),
+        macros: JSON.parse(JSON.stringify(this.automationService.macros())),
+        modulationSources: JSON.parse(JSON.stringify(this.automationService.modulationSources())),
+      },
       mixState: {
         masterGain: this.musicManager.engine?.masterGain?.gain?.value ?? 0.8,
       },
-      notes: "",
+      notes: this.projectNotes(),
       exportedAt: Date.now(),
     };
   }
 
   restoreFromSnapshot(bundle: ProjectBundle) {
+    this.validateBundle(bundle);
+    this.restoreAudioAssets(bundle);
+    this.musicManager.engine.stop();
+    this.history.clear();
+    this.musicManager.selectedTrackId.set(bundle.tracks[0]?.id ?? null);
+    this.musicManager.structure.set(bundle.structure ?? [{ id: 'section-1', name: 'Session', start: 0, length: 4, color: '#0e7c7b' }]);
+    this.takeManager.restore(bundle.takeState ?? { takes: {}, active: {}, punchIn: {}, compStack: {}, sections: {} });
+    this.projectNotes.set(bundle.notes ?? '');
+    this.automationService.lanes.set(JSON.parse(JSON.stringify(bundle.automation?.lanes ?? [])));
+    this.automationService.macros.set(JSON.parse(JSON.stringify(bundle.automation?.macros ?? [])));
+    this.automationService.modulationSources.set(JSON.parse(JSON.stringify(bundle.automation?.modulationSources ?? [])));
     this.metadata.set({
       ...bundle.metadata,
       lastOpenedAt: Date.now(),
     });
-    this.restoreAudioAssets(bundle);
     if (bundle.tracks) {
       this.musicManager.tracks.set(bundle.tracks as any);
       this.isDirty.set(false);
@@ -534,16 +602,14 @@ export class ProjectWorkspaceService {
     if (bundle.metadata?.bpm) {
       this.musicManager.engine?.tempo?.set?.(bundle.metadata.bpm);
     }
+    const gain = bundle.mixState?.masterGain;
+    if (Number.isFinite(gain) && this.musicManager.engine?.masterGain?.gain) {
+      this.musicManager.engine.masterGain.gain.value = Math.max(0, Math.min(1, gain));
+    }
     this.logger.info(
       "ProjectWorkspace: Restored project " +
         (bundle.metadata?.name ?? "Untitled"),
     );
-  }
-
-  /** Keep only the N most recent auto-saves */
-  private async pruneOldVersions(projectId: string, keep: number) {
-    // Versions are individual storage items — the latest write wins
-    // This is a placeholder for future version history
   }
 
   stopAutoSave() {
@@ -578,17 +644,16 @@ export class ProjectWorkspaceService {
   private installLifecyclePersistence() {
     if (typeof window === "undefined") return;
 
-    window.addEventListener("pagehide", () => {
-      void this.persistRecoverySnapshot();
+    const pagehide = () => { void this.persistRecoverySnapshot(); };
+    const visibility = () => {
+      if (document.visibilityState === 'hidden') void this.persistRecoverySnapshot();
+    };
+    window.addEventListener('pagehide', pagehide);
+    document.addEventListener('visibilitychange', visibility);
+    this.destroyRef.onDestroy(() => {
+      window.removeEventListener('pagehide', pagehide);
+      document.removeEventListener('visibilitychange', visibility);
     });
-
-    if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") {
-          void this.persistRecoverySnapshot();
-        }
-      });
-    }
   }
 
   private async persistRecoverySnapshot(): Promise<void> {
@@ -635,12 +700,24 @@ export class ProjectWorkspaceService {
     metadata: ProjectMetadata | null = this.metadata(),
     tracks: any[] = this.musicManager.tracks(),
     tempo: number = this.currentTempo(),
+    automation: any = {
+      lanes: this.automationService.lanes(), macros: this.automationService.macros(),
+      modulationSources: this.automationService.modulationSources(),
+    },
+    structure = this.musicManager.structure(),
+    takeState = this.takeManager.serialize(),
+    masterGain = this.musicManager.engine?.masterGain?.gain?.value ?? 0.8,
+    notes = this.projectNotes(),
   ): string {
     return JSON.stringify({
-      metadata,
+      metadata: metadata ? { ...metadata, bpm: tempo, updatedAt: undefined, lastOpenedAt: undefined } : null,
       tempo,
       tracks,
-      masterGain: this.musicManager.engine?.masterGain?.gain?.value ?? 0.8,
+      automation,
+      structure,
+      takeState,
+      notes,
+      masterGain,
     });
   }
 
@@ -665,12 +742,19 @@ export class ProjectWorkspaceService {
       bundle.metadata,
       bundle.tracks,
       bundle.metadata.bpm,
+      bundle.automation,
+      bundle.structure,
+      bundle.takeState,
+      bundle.mixState?.masterGain,
+      bundle.notes,
     );
-    this.lastObservedSignature = signature;
+    // An older in-flight save must not rename or clean a newly opened project.
+    if (this.metadata()?.id !== bundle.metadata.id) return;
+    const currentSignature = this.captureStateSignature();
     this.lastSavedSignature = signature;
-    this.metadata.set({ ...bundle.metadata });
+    this.lastObservedSignature = currentSignature;
     this.lastPersistedAt.set(savedAt);
-    this.isDirty.set(false);
+    this.isDirty.set(currentSignature !== signature);
     if (source !== "autosave") {
       this.lastRecoveredAt.set(null);
       this.lastRecoveredSource.set(null);
@@ -680,8 +764,7 @@ export class ProjectWorkspaceService {
   private isStoredProjectBundle(item: any): item is StoredProjectBundle {
     return (
       !!item &&
-      typeof item.id === "string" &&
-      item.metadata &&
+      typeof item.id === "string" &&        item.metadata &&
       Array.isArray(item.tracks) &&
       (item.id.startsWith("project_") ||
         item.id.startsWith("autosave_") ||
@@ -753,12 +836,54 @@ export class ProjectWorkspaceService {
   }
 
   private restoreAudioAssets(bundle: ProjectBundle): void {
+    // Allocate all buffers before touching the current cache so failures leave
+    // the active session's audio intact.
+    const restored = (bundle.audioAssets ?? []).map((asset) => ({ id: asset.id, buffer: this.deserializeAudioAsset(asset) }));
     this.musicManager.stemAudioCache?.clear?.();
-    for (const asset of bundle.audioAssets ?? []) {
-      const buffer = this.deserializeAudioAsset(asset);
-      if (buffer) {
-        this.musicManager.stemAudioCache?.set(asset.id, buffer);
+    for (const asset of restored) {
+      if (asset.buffer) this.musicManager.stemAudioCache?.set(asset.id, asset.buffer);
+    }
+  }
+
+  private validateBundle(bundle: ProjectBundle): void {
+    const meta = bundle?.metadata;
+    if (!meta || typeof meta.id !== 'string' || !meta.id.trim() ||
+        typeof meta.name !== 'string' || !meta.name.trim() ||
+        !Number.isFinite(meta.bpm) || meta.bpm < 20 || meta.bpm > 300 ||
+        !Array.isArray(bundle.tracks)) {
+      throw new Error('Invalid project metadata or track list.');
+    }
+    if (bundle.structure !== undefined && (!Array.isArray(bundle.structure) || bundle.structure.some((section) =>
+      !section || typeof section.id !== 'string' || typeof section.name !== 'string' || !Number.isInteger(section.length) || section.length < 1 || !Number.isFinite(section.start) || section.start < 0
+    ))) throw new Error('Invalid arrangement structure.');
+    const ids = new Set<string>();
+    for (const track of bundle.tracks) {
+      if (!track || typeof track.id !== 'string' || !track.id || ids.has(track.id) ||
+          (track.notes !== undefined && !Array.isArray(track.notes)) ||
+          (track.clips !== undefined && !Array.isArray(track.clips))) {
+        throw new Error('Invalid or duplicate project track.');
       }
+      ids.add(track.id);
+    }
+    if (bundle.audioAssets !== undefined && !Array.isArray(bundle.audioAssets)) throw new Error('Invalid audio asset list.');
+    let audioBytes = 0;
+    for (const asset of bundle.audioAssets ?? []) {
+      if (!asset || typeof asset.id !== 'string' || !Number.isInteger(asset.channelCount) ||
+          asset.channelCount < 1 || asset.channelCount > 32 || !Number.isInteger(asset.frameCount) ||
+          asset.frameCount < 1 || !Number.isFinite(asset.sampleRate) || asset.sampleRate < 3000 ||
+          asset.sampleRate > 384000 || !Array.isArray(asset.channels) ||
+          asset.channels.length !== asset.channelCount) throw new Error('Invalid project audio asset.');
+      audioBytes += asset.frameCount * asset.channelCount * 4;
+      if (audioBytes > 256 * 1024 * 1024) throw new Error('Project audio exceeds the 256 MiB import limit.');
+      for (const channel of asset.channels) {
+        if (!(Array.isArray(channel) || channel instanceof Float32Array) || channel.length !== asset.frameCount ||
+            !channel.every((sample) => typeof sample === 'number' && Number.isFinite(sample))) {
+          throw new Error('Invalid project audio samples.');
+        }
+      }
+    }
+    for (const key of ['lanes', 'macros', 'modulationSources']) {
+      if (bundle.automation?.[key] !== undefined && !Array.isArray(bundle.automation[key])) throw new Error('Invalid automation state.');
     }
   }
 

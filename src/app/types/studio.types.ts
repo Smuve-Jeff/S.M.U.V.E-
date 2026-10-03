@@ -28,6 +28,11 @@ export interface StudioClip {
   start: number;
   length: number;
   type: 'midi' | 'audio';
+  /** Runtime PCM buffer; portable bundles persist it through audioRefId. */
+  audioData?: AudioBuffer;
+  audioRefId?: string;
+  /** Source trim offset in seconds. */
+  offset?: number;
   color?: string;
   loop?: boolean;
   takes?: StudioTake[];

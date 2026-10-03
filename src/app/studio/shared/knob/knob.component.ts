@@ -229,10 +229,9 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
   isFineMode = signal(false);
   isAtLimit = signal(false);
 
-  percent = computed(() => {
-    const range = this.max - this.min;
-    return range === 0 ? 0.5 : (this.value - this.min) / range;
-  });
+  // Inputs are plain properties; a computed reading them never invalidates.
+  // Refresh this signal alongside rotation for every input/gesture update.
+  percent = signal(0);
 
   dashArray = computed(() => {
     const circumference = 2 * Math.PI * 32;
@@ -269,6 +268,8 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.isDragging = false;
+    this.stopDrag();
     if (this.tapTimer !== null) {
       clearTimeout(this.tapTimer);
       this.tapTimer = null;
@@ -364,6 +365,7 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
   @HostListener("window:touchmove", ["$event"])
   onDrag(event: MouseEvent | TouchEvent | PointerEvent) {
     if (!this.isDragging) return;
+    if (this.isPointerEvent(event) && this.capturedPointerId !== null && event.pointerId !== this.capturedPointerId) return;
 
     const currentY = this.clientYOf(event);
     const deltaY = this.startY - currentY;
@@ -386,7 +388,7 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
 
     let newValue = this.startValue + (deltaY / sensitivity) * range;
     newValue = Math.max(this.min, Math.min(this.max, newValue));
-    newValue = Math.round(newValue / this.step) * this.step;
+    newValue = this.quantize(newValue);
 
     if (newValue !== this.value) {
       this.value = newValue;
@@ -480,7 +482,7 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
 
     event.preventDefault();
     next = Math.max(this.min, Math.min(this.max, next));
-    next = Math.round(next / this.step) * this.step;
+    next = this.quantize(next);
     if (next !== this.value) {
       this.value = next;
       this.updateFromValue(next);
@@ -519,7 +521,7 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
       if (Math.abs(p - detent) < snapThreshold) {
         const range = this.max - this.min;
         const snappedValue = this.min + detent * range;
-        const rounded = Math.round(snappedValue / this.step) * this.step;
+        const rounded = this.quantize(snappedValue);
         if (rounded !== this.value) {
           this.value = rounded;
           this.updateFromValue(rounded);
@@ -535,15 +537,22 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
     const range = this.max - this.min;
     const p = range === 0 ? 0.5 : (val - this.min) / range;
     const rot = -135 + p * 270;
+    this.percent.set(Math.max(0, Math.min(1, p)));
     this.rotation.set(rot);
 
     const formatted = val % 1 === 0 ? val.toString() : val.toFixed(1);
     this.displayValue.set(formatted + this.unit);
   }
 
+  private quantize(value: number): number {
+    const step = Number.isFinite(this.step) && this.step > 0 ? this.step : 1;
+    const rounded = this.min + Math.round((value - this.min) / step) * step;
+    return Math.max(this.min, Math.min(this.max, Number(rounded.toFixed(8))));
+  }
+
   @HostListener("dblclick")
   resetToDefault() {
-    this.value = this.defaultValue;
+    this.value = this.quantize(this.defaultValue);
     this.updateFromValue(this.value);
     this.valueChange.emit(this.value);
     this.haptic.medium();

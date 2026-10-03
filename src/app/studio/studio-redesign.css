@@ -3,6 +3,56 @@
    Explicit shell layers, status language, and responsive contracts.
    ============================================================ */
 
+.studio-project-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 12px;
+  flex: 0 0 auto;
+  background: var(--espresso-paper, #f8faf8);
+  color: var(--teal-700, #0f766e);
+  border-bottom: 1px solid var(--espresso-line, #cbd5e1);
+  font-size: 11px;
+  font-weight: 700;
+}
+.studio-project-status .material-symbols-outlined { font-size: 15px; }
+.studio-project-status-dirty { color: #b45309; }
+:host-context(.dark-mode) .studio-project-status { background: #111d24; color: #a7f3d0; }
+:host-context(.dark-mode) .studio-project-status-dirty { color: #fcd34d; }
+
+.studio-save-warning {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(680px, calc(100% - 24px));
+  padding: 12px 16px;
+  border: 1px solid #b45309;
+  border-radius: 14px;
+  background: #fffbeb;
+  color: #78350f;
+  box-shadow: 0 8px 32px #0003;
+  font-size: 13px;
+}
+.studio-save-warning span:nth-child(2) { flex: 1; min-width: 0; }
+.studio-save-warning button {
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  font-weight: 700;
+}
+.studio-save-warning button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+@media (max-width: 600px) {
+  .studio-save-warning { flex-wrap: wrap; }
+  .studio-save-warning span:nth-child(2) { flex-basis: calc(100% - 40px); }
+}
+
 .studio-workspace-frame {
   width: 100%;
   min-width: 0;
@@ -64,6 +114,7 @@
   white-space: nowrap;
 }
 
+.studio-status-chip[data-state='saved'],
 .studio-status-chip[data-state='ready'],
 .studio-status-chip[data-state='playing'] {
   border-color: rgba(14, 124, 123, 0.42);

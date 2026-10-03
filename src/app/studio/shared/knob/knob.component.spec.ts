@@ -84,6 +84,27 @@ describe("KnobComponent", () => {
     expect(host.getAttribute("tabindex")).toBe("0");
   });
 
+  it('refreshes the ring percentage and warning color after every edit', () => {
+    build();
+    expect(component.percent()).toBe(0.5);
+    component.onKeydown(new KeyboardEvent('keydown', { key: 'End' }));
+    expect(component.percent()).toBe(1);
+    expect(component.ringColor()).toBe('#ff4d4d');
+    component.onKeydown(new KeyboardEvent('keydown', { key: 'Home' }));
+    expect(component.percent()).toBe(0);
+    expect(component.ringColor()).toBe('#00e5ff');
+  });
+
+  it('quantizes relative to a non-zero minimum without exceeding either bound', () => {
+    build({ min: 3, max: 10, step: 4, value: 3, defaultValue: 100 });
+    component.onKeydown(new KeyboardEvent('keydown', { key: 'ArrowUp' }));
+    expect(component.value).toBe(7);
+    component.onKeydown(new KeyboardEvent('keydown', { key: 'End' }));
+    expect(component.value).toBe(10);
+    component.resetToDefault();
+    expect(component.value).toBe(10);
+  });
+
   it("emits on arrow keys and respects the step", () => {
     const emitted: number[] = [];
     build().componentInstance.valueChange.subscribe((v) => emitted.push(v));
