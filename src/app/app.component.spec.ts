@@ -228,6 +228,35 @@ describe('AppComponent', () => {
     expect(uiService.toggleChatbot).toHaveBeenCalled();
   });
 
+  it('returns directly to the Hub and closes workspace overlays from any route', async () => {
+    const { component, router, uiService } = await createComponent('/tha-spot/game/modern-polytrack');
+    component.isMobile.set(true);
+    component.isSidebarOpen.set(true);
+    component.isMobileWorkspaceTrayOpen.set(true);
+    component.isSyncCenterOpen.set(true);
+    component.navigateHome();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/hub');
+    expect(component.isSidebarOpen()).toBe(false);
+    expect(component.isMobileWorkspaceTrayOpen()).toBe(false);
+    expect(component.isSyncCenterOpen()).toBe(false);
+    expect(uiService.closeChatbot).toHaveBeenCalled();
+  });
+
+  it('uses the Hub as a back fallback on a cold deep link', async () => {
+    const { component, router } = await createComponent('/mixer');
+    const originalState = window.history.state;
+    window.history.replaceState({ navigationId: 1 }, '');
+    component.goBack();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/hub');
+    window.history.replaceState(originalState, '');
+  });
+
+  it('treats password recovery as an auth route without workspace overlays', async () => {
+    const { component } = await createComponent('/reset-password?token=fixture');
+    expect(component.isAuthRoute()).toBe(true);
+    expect(component.isFullPageMode()).toBe(true);
+  });
+
   it('marks tha-spot as full-page mode', async () => {
     const { component } = await createComponent('/tha-spot');
 

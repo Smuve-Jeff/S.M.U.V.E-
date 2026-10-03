@@ -13,6 +13,19 @@
   <app-command-palette *ngIf="!isAuthRoute()"></app-command-palette>
   <app-interaction-dialog></app-interaction-dialog>
 
+  <!-- Full-screen workspaces intentionally hide the shell, not the way home. -->
+  <a
+    *ngIf="isFullPageMode() && !isAuthRoute()"
+    routerLink="/hub"
+    (click)="navigateHome(); $event.preventDefault()"
+    class="universal-home-link"
+    aria-label="Back to Home Hub"
+    title="Back to Home Hub"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true">home</span>
+    <span>Home</span>
+  </a>
+
   <div
     *ngIf="isMobile() && isSidebarOpen() && !isFullPageMode() && !isAuthRoute()"
     class="sidebar-backdrop"
@@ -295,6 +308,15 @@
       class="app-top-bar glass-v42 px-4 md:px-6 lg:px-10 flex items-center justify-between z-40 border-b border-border min-h-16 py-3"
     >
       <div class="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
+        <a
+          routerLink="/hub"
+          (click)="navigateHome(); $event.preventDefault()"
+          class="shell-icon-button w-10 h-10 rounded-lg hover:bg-background-alt text-text-dim hover:text-text-main flex items-center justify-center shrink-0"
+          aria-label="Back to Home Hub"
+          title="Back to Home Hub"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">home</span>
+        </a>
         <button
           type="button"
           (click)="goBack()"

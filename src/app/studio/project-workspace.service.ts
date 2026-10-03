@@ -1,5 +1,7 @@
-import { Injectable, effect, inject, signal } from "@angular/core";
+import { DestroyRef, Injectable, effect, inject, signal } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { AuthService } from "../services/auth.service";
+import { Project } from "../types";
 import { MusicManagerService } from "../services/music-manager.service";
 import { ProjectService } from "../services/project.service";
 import { LocalStorageService } from "../services/local-storage.service";
@@ -176,6 +178,16 @@ export class ProjectWorkspaceService {
     this.watchWorkspaceChanges();
     this.startAutoSave();
     this.installLifecyclePersistence();
+    this.projectService.projectDeleted$
+      .pipe(takeUntilDestroyed(inject(DestroyRef)))
+      .subscribe((id) => {
+        if (this.metadata()?.id === id) {
+          // Keep unsaved tracks available, but detach them from the deleted id.
+          // Auto-save/pagehide must not silently recreate the deleted project.
+          this.autoSaveEnabled.set(false);
+          this.startFreshProject({ name: 'Unsaved session' });
+        }
+      });
   }
 
   // ── Project Metadata ───────────────────────────────────
@@ -184,7 +196,7 @@ export class ProjectWorkspaceService {
     const existing = this.projectService.currentProject();
     if (existing) {
       this.metadata.set({
-        id: existing.id,
+        id: (existing as Project & { metadata?: ProjectMetadata }).metadata?.id || existing.id,
         name: existing.name,
         bpm: existing.bpm,
         key: existing.timeSignature ? "C" : "C",
@@ -316,6 +328,7 @@ export class ProjectWorkspaceService {
       const stored = this.toStoredBundle(bundle, "manual");
       // Persist the complete bundle locally before attempting any network work.
       await this.storage.saveItem("projects", stored);
+      await this.projectService.refresh();
       await this.storage.saveItem("offline_local_cache", {
         id: "last_saved_project_id",
         payload: bundle.metadata.id,
@@ -369,6 +382,7 @@ export class ProjectWorkspaceService {
     try {
       const stored = this.toStoredBundle(bundle, "import");
       await this.storage.saveItem("projects", stored);
+      await this.projectService.refresh();
       await this.storage.saveItem("offline_local_cache", {
         id: "last_saved_project_id",
         payload: bundle.metadata.id,

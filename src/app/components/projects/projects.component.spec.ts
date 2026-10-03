@@ -15,6 +15,7 @@ describe('ProjectsComponent', () => {
   const createComponent = async () => {
     const dialogMock = {
       prompt: jest.fn(),
+      confirm: jest.fn(),
     };
     const uplinkMock = {
       initiateUplink: jest.fn().mockResolvedValue(true),
@@ -26,6 +27,11 @@ describe('ProjectsComponent', () => {
     const listSubject = new BehaviorSubject<any[]>([]);
     const projectServiceMock = {
       list$: listSubject.asObservable(),
+      refresh: jest.fn().mockResolvedValue(undefined),
+      remove: jest.fn(async (id: string) => {
+        listSubject.next(listSubject.getValue().filter((project) => project.id !== id));
+        return true;
+      }),
       add: (project: any) => {
         listSubject.next([...listSubject.getValue(), project]);
         return Promise.resolve();
@@ -46,7 +52,7 @@ describe('ProjectsComponent', () => {
     const fixture = TestBed.createComponent(ProjectsComponent);
     const component = fixture.componentInstance;
     fixture.detectChanges();
-    return { component, fixture, dialogMock, uplinkMock };
+    return { component, fixture, dialogMock, uplinkMock, projectServiceMock, listSubject };
   };
 
   describe('addProject', () => {
@@ -86,6 +92,48 @@ describe('ProjectsComponent', () => {
       await component.addProject();
 
       expect(component.projects().length).toBe(initialCount);
+    });
+  });
+
+  describe('deleteProject', () => {
+    it('confirms deletion, removes it from the list and selects a remaining project', async () => {
+      const { component, fixture, dialogMock, projectServiceMock } = await createComponent();
+      dialogMock.prompt.mockResolvedValueOnce('First').mockResolvedValueOnce('Second');
+      await component.addProject();
+      const first = component.selectedProject()!;
+      await component.addProject();
+      const second = component.selectedProject()!;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[aria-label="Delete project Second"]')).toBeTruthy();
+      dialogMock.confirm.mockResolvedValue(true);
+      await component.deleteProject(second);
+      expect(projectServiceMock.remove).toHaveBeenCalledWith(second.id);
+      expect(component.selectedProject()?.id).toBe(first.id);
+      await component.deleteProject(first);
+      fixture.detectChanges();
+      expect(component.selectedProject()).toBeNull();
+      expect(fixture.nativeElement.textContent).toContain('No Project Selected');
+    });
+
+    it('retains a cancelled project and surfaces failures without unhandled anomalies', async () => {
+      const { component, dialogMock, projectServiceMock } = await createComponent();
+      dialogMock.prompt.mockResolvedValue('Keep me');
+      await component.addProject();
+      const project = component.selectedProject()!;
+      dialogMock.confirm.mockResolvedValue(false);
+      await component.deleteProject(project);
+      expect(projectServiceMock.remove).not.toHaveBeenCalled();
+      dialogMock.confirm.mockResolvedValue(true);
+      projectServiceMock.remove.mockRejectedValueOnce(new Error('Storage unavailable'));
+      await component.deleteProject(project);
+      expect(component.projectError()).toBe('Storage unavailable');
+      expect(component.selectedProject()).toEqual(project);
+      expect(component.deletingProjectId()).toBeNull();
+    });
+
+    it('handles taskless legacy projects without throwing', async () => {
+      const { component } = await createComponent();
+      expect(component.getPlaybookSteps({ id: 'legacy', name: 'Legacy' } as any).map((step) => step.status)).toEqual(['Queued', 'Queued', 'Queued']);
     });
   });
 

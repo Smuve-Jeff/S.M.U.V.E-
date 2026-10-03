@@ -51,6 +51,23 @@ describe('AutoSaveService', () => {
     expect(offlineSync.saveLocal).not.toHaveBeenCalled();
   });
 
+  it('does not persist a stale debounced save after the selected project was deleted', async () => {
+    const service = TestBed.inject(AutoSaveService);
+    const saveProject = TestBed.inject(DatabaseService).saveProject;
+    musicManager.snapshotProject.mockReturnValue(null);
+    await (service as any).syncProject({ id: 'deleted-id', tracks: [{ id: 'track-1' }] });
+    expect(saveProject).not.toHaveBeenCalled();
+    expect(offlineSync.queueOperation).not.toHaveBeenCalled();
+  });
+
+  it('still persists a debounced save for the current project', async () => {
+    const service = TestBed.inject(AutoSaveService);
+    const project = { id: 'selected-id', tracks: [] };
+    musicManager.snapshotProject.mockReturnValue(project);
+    await (service as any).syncProject(project);
+    expect(TestBed.inject(DatabaseService).saveProject).toHaveBeenCalled();
+  });
+
   it('does not autosave an empty project snapshot', async () => {
     musicManager.snapshotProject.mockReturnValue({ tracks: [] });
 

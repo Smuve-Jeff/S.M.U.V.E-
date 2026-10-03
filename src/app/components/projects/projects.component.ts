@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { UplinkService } from '../../services/uplink.service';
@@ -29,6 +30,9 @@ export class ProjectsComponent {
   private uplinkService = inject(UplinkService);
   private profileService = inject(UserProfileService);
   private projectService = inject(ProjectService);
+  private destroyRef = inject(DestroyRef);
+  deletingProjectId = signal<string | null>(null);
+  projectError = signal('');
   showUplink = signal(false);
   projects = signal<Project[]>([]);
   selectedProject = signal<Project | null>(null);
@@ -51,12 +55,12 @@ export class ProjectsComponent {
   ];
 
   constructor() {
-    this.projectService.list$.subscribe((projects) => {
+    this.projectService.list$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((projects) => {
       this.projects.set(projects);
-      if (projects.length > 0 && !this.selectedProject()) {
-        this.selectedProject.set(projects[0]);
-      }
+      const selectedId = this.selectedProject()?.id;
+      this.selectedProject.set(projects.find((project) => project.id === selectedId) || projects[0] || null);
     });
+    void this.projectService.refresh();
   }
 
   selectProject(project: Project): void {
@@ -80,15 +84,16 @@ export class ProjectsComponent {
       return [];
     }
 
-    if (project.tasks.length === 0) {
+    const tasks = project.tasks || [];
+    if (tasks.length === 0) {
       return this.playbookTemplate.map((phase) => ({
         ...phase,
         status: 'Queued',
       }));
     }
 
-    const totalTasks = project.tasks.length;
-    const completedTasks = project.tasks.filter(
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(
       (task) => task.completed
     ).length;
     const progress = completedTasks / totalTasks;
@@ -147,8 +152,34 @@ export class ProjectsComponent {
           ProjectsComponent.DEFAULT_DEADLINE_DAYS * 24 * 60 * 60 * 1000
       ),
     };
-    this.projectService.add(newProject);
-    this.selectedProject.set(newProject);
+    this.projectError.set('');
+    try {
+      await this.projectService.add(newProject);
+      this.selectedProject.set(newProject);
+    } catch (error) {
+      this.projectError.set(error instanceof Error ? error.message : 'Project could not be saved.');
+    }
+  }
+
+  async deleteProject(project: Project): Promise<void> {
+    if (this.deletingProjectId()) return;
+    this.deletingProjectId.set(project.id);
+    try {
+      const confirmed = await this.dialog.confirm({
+        title: 'Delete project?',
+        message: `Delete “${project.name}” and its local autosave/recovery versions? This cannot be undone. Export a backup first if needed. Cloud backups are not deleted.`,
+        confirmLabel: 'Delete project', cancelLabel: 'Cancel', tone: 'danger',
+      });
+      if (!confirmed) return;
+      this.projectError.set('');
+      if (!(await this.projectService.remove(project.id))) {
+        this.projectError.set('Project was not found. Nothing was deleted.');
+      }
+    } catch (error) {
+      this.projectError.set(error instanceof Error ? error.message : 'Project could not be deleted.');
+    } finally {
+      this.deletingProjectId.set(null);
+    }
   }
 
   exportProject(project: Project) {
@@ -170,8 +201,8 @@ export class ProjectsComponent {
       const imported = JSON.parse(text) as Project;
       await this.projectService.add(imported);
       this.selectedProject.set(imported);
-    } catch (e) {
-      console.error('Project import failed', e);
+    } catch (error) {
+      this.projectError.set(error instanceof Error ? error.message : 'Project import failed.');
     }
   }
 

@@ -123,6 +123,9 @@ export class AutoSaveService {
   private async syncProject(
     projectData: ReturnType<MusicManagerService['snapshotProject']>
   ) {
+    // A delayed save from a project that was deleted or deselected must not
+    // recreate it after the user has confirmed deletion.
+    if (!projectData || this.musicManager.snapshotProject()?.id !== projectData.id) return;
     const profile = this.profileService.profile();
     const userId = profile.id || 'anonymous';
     const projectId = 'project_v4_auto';

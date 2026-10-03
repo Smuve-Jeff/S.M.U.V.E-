@@ -1,3 +1,28 @@
+.universal-home-link {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  /* Above full-page's 2000 layer, below modal confirmations (11000). */
+  z-index: 6000;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid #10b981;
+  border-radius: 999px;
+  color: #ecfdf5;
+  background: #071b1e;
+  box-shadow: 0 4px 20px #0008;
+  text-decoration: none;
+  font-weight: 700;
+}
+.universal-home-link:hover,
+.universal-home-link:focus-visible {
+  outline: 2px solid #6ee7b7;
+  outline-offset: 3px;
+}
+
 :host {
   display: block;
   height: 100vh;

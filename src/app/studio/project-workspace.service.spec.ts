@@ -1,5 +1,6 @@
 import { signal } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
+import { Subject } from 'rxjs';
 import { AuthService } from "../services/auth.service";
 import { LocalStorageService } from "../services/local-storage.service";
 import { LoggingService } from "../services/logging.service";
@@ -56,6 +57,18 @@ describe("ProjectWorkspaceService", () => {
     exportedAt: 4,
   });
 
+  it('detaches a deleted active project so autosave cannot recreate its id', () => {
+    service.startFreshProject({ id: 'deleted-session', name: 'Old session' });
+    const beforeTracks = tracks();
+    TestBed.inject(ProjectService).projectDeleted$.next('other-session');
+    expect(service.metadata()?.id).toBe('deleted-session');
+    TestBed.inject(ProjectService).projectDeleted$.next('deleted-session');
+    expect(service.metadata()?.id).not.toBe('deleted-session');
+    expect(service.metadata()?.name).toBe('Unsaved session');
+    expect(service.autoSaveEnabled()).toBe(false);
+    expect(tracks()).toBe(beforeTracks);
+  });
+
   beforeEach(() => {
     tracks = signal([{ id: "track-1", notes: [] }]);
     stemAudioCache = new Map<string, any>();
@@ -108,7 +121,7 @@ describe("ProjectWorkspaceService", () => {
         },
         {
           provide: ProjectService,
-          useValue: { currentProject: signal(null) },
+          useValue: { currentProject: signal(null), projectDeleted$: new Subject<string>(), refresh: jest.fn().mockResolvedValue(undefined) },
         },
         {
           provide: LocalStorageService,
@@ -278,7 +291,7 @@ describe("ProjectWorkspaceService", () => {
           provide: MusicManagerService,
           useValue: { tracks, engine: { tempo: { set: tempoSet } } },
         },
-        { provide: ProjectService, useValue: { currentProject: signal(null) } },
+        { provide: ProjectService, useValue: { currentProject: signal(null), projectDeleted$: new Subject<string>(), refresh: jest.fn().mockResolvedValue(undefined) } },
         {
           provide: LocalStorageService,
           useValue: { saveItem, getItem: jest.fn(), getAllItems: jest.fn() },
