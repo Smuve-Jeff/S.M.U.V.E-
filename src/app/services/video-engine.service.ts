@@ -2,9 +2,71 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 
 export type ProductionMode = 'movie' | 'music' | 'stream' | 'vlog';
-export type ClipFilter = 'none' | 'cinematic' | 'vivid' | 'mono';
-export type ClipTransition = 'cut' | 'fade' | 'dissolve';
+
+/**
+ * Colour looks a clip can be graded with.
+ *
+ * The first four shipped with the four-look picker; the rest are the film-stock
+ * and stylisation looks a music video or a feature is actually cut with. Each
+ * look resolves to a pure `ctx.filter` string, so the preview, the recorded
+ * export and a captured still all carry exactly the same grade.
+ */
+export type ClipFilter =
+  | 'none'
+  | 'cinematic'
+  | 'vivid'
+  | 'mono'
+  | 'noir'
+  | 'bleach-bypass'
+  | 'teal-orange'
+  | 'sepia'
+  | 'dream'
+  | 'cold-steel'
+  | 'golden-hour'
+  | 'neon-pulse';
+
+/**
+ * Scene transitions.
+ *
+ * `cut`, `fade` and `dissolve` shipped first. The directional and geometric
+ * moves below are the vocabulary an editor reaches for between two shots that
+ * belong to the same scene, and each one is a real canvas pass rather than a
+ * second alpha ramp — see the renderer's transition stage.
+ */
+export type ClipTransition =
+  | 'cut'
+  | 'fade'
+  | 'dissolve'
+  | 'wipe-left'
+  | 'wipe-right'
+  | 'wipe-up'
+  | 'wipe-down'
+  | 'slide-left'
+  | 'slide-right'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'blur'
+  | 'flash';
+
+/** Slow push or pan applied to a still or a locked-off shot. */
+export type ClipMotion =
+  | 'none'
+  | 'ken-burns-in'
+  | 'ken-burns-out'
+  | 'pan-left'
+  | 'pan-right';
+
+/** How a title card is drawn on the program monitor. */
+export type TitleStyle = 'title-card' | 'lower-third' | 'caption' | 'centered';
+
+/** Where a title card sits inside the safe area. */
+export type TitlePosition = 'top' | 'center' | 'bottom';
+
 export const MIN_ACTIVE_CLIP_DURATION = 0.05;
+
+/** Playback-rate envelope for the speed control (half speed to double speed). */
+export const MIN_CLIP_SPEED = 0.25;
+export const MAX_CLIP_SPEED = 4;
 
 /** Beat-grid tick for the timeline ruler. */
 export interface BeatTick {
@@ -45,6 +107,52 @@ export interface DeliveryPreset {
   duration: number;
   target: string;
   description: string;
+}
+
+/**
+ * A title card burnt into the program feed.
+ *
+ * Cards live on the timeline as `overlay` clips whose media is the card's own
+ * text, so a title is trimmed, moved, transitioned and exported by the exact
+ * same machinery as a shot — no separate title track to keep in sync.
+ */
+export interface TitleCard {
+  text: string;
+  subtitle: string;
+  style: TitleStyle;
+  position: TitlePosition;
+}
+
+/**
+ * Narration recorded (or synthesised) onto the AI Voiceovers lane.
+ *
+ * The line is stored on the clip so the monitor can draw the spoken words as a
+ * subtitle while the voiceover lane is live, and so a project reopened without
+ * its audio bytes still knows what was said and in what voice.
+ */
+export interface VoiceoverLine {
+  text: string;
+  /** Voice archetype name the line was rendered with. */
+  voice: string;
+  /** Whether the bytes exist on the clip's url, or only the transcript does. */
+  rendered: boolean;
+}
+
+/**
+ * One non-destructive colour/FX pass over a clip, on top of its base grade.
+ * `value` is 0..1 for every effect so a rack reads as a single set of dials.
+ */
+export type ClipEffectId =
+  | 'vignette'
+  | 'film-grain'
+  | 'letterbox'
+  | 'chroma-boost'
+  | 'scanlines'
+  | 'glow';
+
+export interface ClipEffect {
+  id: ClipEffectId;
+  value: number;
 }
 
 export interface VideoClip {
@@ -88,6 +196,16 @@ export interface VideoClip {
     transitionDuration: number;
     trimStart: number;
     trimEnd: number;
+    /** Slow push/pan for stills and locked-off shots. */
+    motion: ClipMotion;
+    /** Playback rate multiplier — a 0.5× slow-mo or a 2× time-lapse. */
+    speed: number;
+    /** Non-destructive FX rack applied after the base grade. */
+    fx: ClipEffect[];
+    /** Title card burnt into the feed when this clip is an overlay title. */
+    title?: TitleCard;
+    /** Narration line when this clip is a voiceover. */
+    voiceover?: VoiceoverLine;
   };
 }
 
@@ -114,7 +232,16 @@ export interface VideoTrack {
  * of being read as if it were the current shape and silently losing whatever it
  * carried that this build does not know about.
  */
-export const CINEMA_SNAPSHOT_VERSION = 1;
+export const CINEMA_SNAPSHOT_VERSION = 2;
+
+/**
+ * Oldest snapshot format this build can still read.
+ *
+ * Bumping the written version must not orphan projects an artist already saved:
+ * v1 records are upgraded on load (the new effect fields take their defaults)
+ * rather than refused, which is what the version check used to do.
+ */
+export const CINEMA_SNAPSHOT_MIN_VERSION = 1;
 
 export interface CinemaSnapshot {
   version: typeof CINEMA_SNAPSHOT_VERSION;
@@ -144,6 +271,142 @@ export interface CinemaRestoreReport {
  */
 const isReloadableMediaUrl = (url: string): boolean =>
   /^data:/i.test(url ?? '');
+
+/**
+ * Every effect field at its neutral value, minted fresh.
+ *
+ * A factory rather than a shared constant: clip effects are mutated by the FX
+ * matrix, and handing two clips the same object would grade both at once.
+ */
+export const createDefaultEffects = (
+  overrides: Partial<VideoClip['effects']> = {}
+): VideoClip['effects'] => ({
+  upscale: false,
+  bgRemoval: false,
+  noiseReduction: false,
+  brightness: 1,
+  contrast: 1,
+  filter: 'none',
+  transition: 'cut',
+  transitionDuration: 0,
+  trimStart: 0,
+  trimEnd: 0,
+  motion: 'none',
+  speed: 1,
+  fx: [],
+  ...overrides,
+});
+
+/** Every colour look the FX matrix offers, in picker order. */
+export const CLIP_FILTERS: { id: ClipFilter; label: string }[] = [
+  { id: 'none', label: 'None' },
+  { id: 'cinematic', label: 'Cinematic' },
+  { id: 'vivid', label: 'Vivid' },
+  { id: 'mono', label: 'Mono' },
+  { id: 'noir', label: 'Noir' },
+  { id: 'bleach-bypass', label: 'Bleach Bypass' },
+  { id: 'teal-orange', label: 'Teal & Orange' },
+  { id: 'sepia', label: 'Sepia' },
+  { id: 'dream', label: 'Dream' },
+  { id: 'cold-steel', label: 'Cold Steel' },
+  { id: 'golden-hour', label: 'Golden Hour' },
+  { id: 'neon-pulse', label: 'Neon Pulse' },
+];
+
+/** Every scene transition, grouped cut-first so the common case stays at the top. */
+export const CLIP_TRANSITIONS: { id: ClipTransition; label: string }[] = [
+  { id: 'cut', label: 'Cut' },
+  { id: 'fade', label: 'Fade' },
+  { id: 'dissolve', label: 'Dissolve' },
+  { id: 'wipe-left', label: 'Wipe ←' },
+  { id: 'wipe-right', label: 'Wipe →' },
+  { id: 'wipe-up', label: 'Wipe ↑' },
+  { id: 'wipe-down', label: 'Wipe ↓' },
+  { id: 'slide-left', label: 'Slide ←' },
+  { id: 'slide-right', label: 'Slide →' },
+  { id: 'zoom-in', label: 'Zoom In' },
+  { id: 'zoom-out', label: 'Zoom Out' },
+  { id: 'blur', label: 'Blur Through' },
+  { id: 'flash', label: 'Flash' },
+];
+
+/** Camera moves offered for stills and locked-off shots. */
+export const CLIP_MOTIONS: { id: ClipMotion; label: string }[] = [
+  { id: 'none', label: 'Static' },
+  { id: 'ken-burns-in', label: 'Ken Burns In' },
+  { id: 'ken-burns-out', label: 'Ken Burns Out' },
+  { id: 'pan-left', label: 'Pan ←' },
+  { id: 'pan-right', label: 'Pan →' },
+];
+
+/** The FX rack's dials, with the neutral position each one resets to. */
+export const CLIP_EFFECTS: {
+  id: ClipEffectId;
+  label: string;
+  hint: string;
+}[] = [
+  { id: 'vignette', label: 'Vignette', hint: 'Darkens the frame edges' },
+  { id: 'film-grain', label: 'Film Grain', hint: 'Adds analogue texture' },
+  { id: 'letterbox', label: 'Letterbox', hint: 'Bars the frame to a scope ratio' },
+  { id: 'chroma-boost', label: 'Chroma Boost', hint: 'Pushes saturation and colour separation' },
+  { id: 'scanlines', label: 'Scanlines', hint: 'Broadcast CRT lines over the feed' },
+  { id: 'glow', label: 'Glow', hint: 'Blooms the highlights' },
+];
+
+/**
+ * Streaming cutdowns — the vertical, square and teaser re-cuts a finished piece
+ * is shipped as after the master exists. Each one names the platform it is for
+ * and the length a viewer actually watches to, so the picker reads as delivery
+ * instructions rather than abstract durations.
+ */
+export interface SocialCutdown {
+  id: string;
+  platform: string;
+  aspectRatio: string;
+  width: number;
+  height: number;
+  seconds: number;
+  description: string;
+}
+
+export const SOCIAL_CUTDOWNS: SocialCutdown[] = [
+  {
+    id: 'short-vertical',
+    platform: 'Shorts / Reels / TikTok',
+    aspectRatio: '9:16',
+    width: 1080,
+    height: 1920,
+    seconds: 60,
+    description: 'Hook-forward vertical teaser cut from the top of the piece.',
+  },
+  {
+    id: 'square-feed',
+    platform: 'Instagram / Facebook Feed',
+    aspectRatio: '1:1',
+    width: 1080,
+    height: 1080,
+    seconds: 30,
+    description: 'Square feed cut with the strongest frame first.',
+  },
+  {
+    id: 'teaser-hook',
+    platform: 'Pre-roll / Trailer',
+    aspectRatio: '16:9',
+    width: 1920,
+    height: 1080,
+    seconds: 15,
+    description: 'Fifteen-second hook for pre-roll and paid placement.',
+  },
+  {
+    id: 'story-vertical',
+    platform: 'Stories / Status',
+    aspectRatio: '9:16',
+    width: 1080,
+    height: 1920,
+    seconds: 15,
+    description: 'Vertical story beat sized for a single hold.',
+  },
+];
 
 /** The lanes every project starts with, minted fresh so restores never alias. */
 const createDefaultTracks = (): VideoTrack[] => [
@@ -345,6 +608,10 @@ export class VideoEngineService {
       // With the beat grid armed, a placed clip lands on the nearest beat so a
       // music-video cut stays locked to the song without manual nudging.
       startTime: this.snapTime(clip.startTime),
+      // Normalise here rather than at every call site: a caller that only knows
+      // the fields it cares about must not leave a clip with `undefined` speed
+      // or a missing FX rack for the renderer to trip over.
+      effects: createDefaultEffects(clip.effects),
       id: this.mintClipId(),
       trackId,
     };
@@ -377,9 +644,33 @@ export class VideoEngineService {
           if (clip.id !== clipId) return clip;
           const next = { ...clip, ...patch };
           const requestedStart = patch.startTime ?? clip.startTime;
+          const previousSpeed = this.clampSpeed(clip.effects.speed);
+          const nextSpeed = this.clampSpeed(next.effects.speed);
+          // Clip duration is timeline duration. Changing playback speed changes
+          // how long a video takes to play its source, so preserve the source
+          // span (duration × speed) and resize the timeline clip accordingly.
+          // Stills/title cards have no source clock and remain the same length.
+          const trimStart = Math.max(0, clip.effects.trimStart || 0);
+          const trimEnd = Math.max(0, clip.effects.trimEnd || 0);
+          const activeDuration = Math.max(
+            MIN_ACTIVE_CLIP_DURATION,
+            clip.duration - trimStart - trimEnd
+          );
+          const speedAdjustedDuration =
+            clip.type === 'video' &&
+            patch.effects?.speed !== undefined &&
+            patch.duration === undefined
+              ? trimStart + trimEnd + activeDuration * previousSpeed / nextSpeed
+              : next.duration;
+          const duration = Math.max(
+            MIN_ACTIVE_CLIP_DURATION,
+            Number.isFinite(speedAdjustedDuration)
+              ? speedAdjustedDuration
+              : clip.duration
+          );
           const maxStart = Math.max(
             0,
-            this.duration() - Math.max(MIN_ACTIVE_CLIP_DURATION, next.duration)
+            this.duration() - Math.max(MIN_ACTIVE_CLIP_DURATION, duration)
           );
           return {
             ...next,
@@ -387,10 +678,8 @@ export class VideoEngineService {
               maxStart,
               this.snapTime(Number.isFinite(requestedStart) ? requestedStart : clip.startTime)
             ),
-            duration: Math.max(
-              MIN_ACTIVE_CLIP_DURATION,
-              Number.isFinite(next.duration) ? next.duration : clip.duration
-            ),
+            duration,
+            effects: { ...next.effects, speed: nextSpeed },
           };
         }),
       }))
@@ -454,8 +743,11 @@ export class VideoEngineService {
             id: this.mintClipId(),
             startTime: time,
             duration: activeEnd - time + trimEnd,
-            offset: (clip.offset || 0) + Math.max(0, time - activeStart) + trimStart,
-            effects: { ...clip.effects, trimStart: 0 },
+            // The right half starts wherever the left half had advanced to, at
+            // the clip's own playback rate — a 2× shot must not restart its
+            // source from the middle of the timeline it just left.
+            offset: this.resolveSourceTime(clip, time - activeStart),
+            effects: { ...clip.effects, trimStart: 0, fx: (clip.effects.fx ?? []).map((entry) => ({ ...entry })) },
           };
           created.push(right.id);
           clips.push(
@@ -495,6 +787,153 @@ export class VideoEngineService {
       )
     );
     return copy.id;
+  }
+
+  /**
+   * Delete a clip and pull everything after it back by its length, so a cut
+   * does not leave a hole in the scene.
+   *
+   * `removeClip` deliberately leaves the gap (an editor may want it); this is
+   * the other half of the edit — the "ripple delete" a cut actually is. Only the
+   * clip's own lane ripples: pulling every lane would desync a score cue from
+   * the picture it was written against.
+   *
+   * @returns how many clips were pulled forward, or -1 when the lane is locked.
+   */
+  rippleDeleteClip(clipId: string): number {
+    const track = this.trackOfClip(clipId);
+    const clip = track?.clips.find((candidate) => candidate.id === clipId);
+    if (!track || !clip) return -1;
+    if (track.locked) return -1;
+
+    const cutStart = clip.startTime;
+    const cutEnd = clip.startTime + clip.duration;
+    let shifted = 0;
+
+    this.tracks.update((tracks) =>
+      tracks.map((candidate) => {
+        if (candidate.id !== track.id) return candidate;
+        const clips = candidate.clips
+          .filter((entry) => entry.id !== clipId)
+          .map((entry) => {
+            // A clip that starts inside the removed span moves back to the cut;
+            // one that starts after it moves back by the full span. Clips before
+            // the cut are untouched, so the head of the scene never shifts.
+            if (entry.startTime >= cutEnd) {
+              shifted += 1;
+              return { ...entry, startTime: entry.startTime - clip.duration };
+            }
+            if (entry.startTime > cutStart) {
+              shifted += 1;
+              return { ...entry, startTime: cutStart };
+            }
+            return entry;
+          });
+        return { ...candidate, clips };
+      })
+    );
+
+    return shifted;
+  }
+
+  /**
+   * Cut a lane into one clip per scene, using the marker map as the scene list.
+   *
+   * This is how a long-form edit actually begins: a feature is divided into
+   * acts and scenes before a single shot is placed. Every marker inside the
+   * lane's span becomes a boundary; the lane's existing clips are replaced by
+   * one card per scene so coverage can be dropped into each in turn.
+   *
+   * @returns the number of scene cards created.
+   */
+  cutLaneIntoScenes(trackId: string, kind?: MarkerKind): number {
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    if (!track || track.locked) return 0;
+
+    const boundaries = this.sortedMarkers().filter(
+      (marker) => kind === undefined || marker.kind === kind
+    );
+    if (boundaries.length === 0) return 0;
+
+    const cards: VideoClip[] = [];
+    boundaries.forEach((marker, index) => {
+      const next = boundaries[index + 1];
+      const start = Math.max(0, marker.time);
+      const end = next ? next.time : this.duration();
+      const duration = end - start;
+      if (duration < MIN_ACTIVE_CLIP_DURATION) return;
+      cards.push({
+        id: this.mintClipId(),
+        name: marker.label,
+        url: '',
+        startTime: start,
+        duration,
+        offset: 0,
+        trackId,
+        type: 'overlay',
+        source: 'ai',
+        note: `Scene card — ${marker.label}`,
+        shotType: marker.kind,
+        effects: createDefaultEffects({ filter: 'none' }),
+      });
+    });
+    if (cards.length === 0) return 0;
+
+    this.tracks.update((tracks) =>
+      tracks.map((candidate) =>
+        candidate.id === trackId ? { ...candidate, clips: cards } : candidate
+      )
+    );
+    return cards.length;
+  }
+
+  /**
+   * Grade every clip on the timeline with one look in a single pass — the
+   * "apply this film stock to the whole feature" move that is otherwise one
+   * selection per clip.
+   *
+   * @returns the number of clips graded.
+   */
+  gradeAllClips(filter: ClipFilter): number {
+    let graded = 0;
+    this.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          graded += 1;
+          return { ...clip, effects: { ...clip.effects, filter } };
+        }),
+      }))
+    );
+    return graded;
+  }
+
+  /**
+   * Set one FX-rack dial on every clip that is missing it, so a whole feature
+   * can be pushed through the same grain or vignette.
+   *
+   * @returns the number of clips updated.
+   */
+  applyEffectToAllClips(id: ClipEffectId, value: number): number {
+    const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+    let updated = 0;
+    this.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) => {
+          updated += 1;
+          const fx = (clip.effects.fx ?? []).filter((entry) => entry.id !== id);
+          return {
+            ...clip,
+            effects: {
+              ...clip.effects,
+              fx: clamped > 0 ? [...fx, { id, value: clamped }] : fx,
+            },
+          };
+        }),
+      }))
+    );
+    return updated;
   }
 
   /**
@@ -563,6 +1002,56 @@ export class VideoEngineService {
     return clip.startTime + trimStart + activeDuration;
   }
 
+  /** Playback rate a clip can actually be rendered at. */
+  clampSpeed(speed: number | undefined): number {
+    return Number.isFinite(speed)
+      ? Math.max(MIN_CLIP_SPEED, Math.min(MAX_CLIP_SPEED, speed as number))
+      : 1;
+  }
+
+  private isMotion(value: unknown): value is ClipMotion {
+    return CLIP_MOTIONS.some((motion) => motion.id === value);
+  }
+
+  /**
+   * Drop FX entries a record cannot have written meaningfully: an unknown id, a
+   * non-finite value, or the neutral 0 which is the absence of the effect.
+   */
+  private sanitizeEffects(fx: unknown): ClipEffect[] {
+    if (!Array.isArray(fx)) return [];
+    return fx.reduce<ClipEffect[]>((entries, raw) => {
+      if (!raw || typeof raw !== 'object') return entries;
+      const id = (raw as ClipEffect).id;
+      if (!CLIP_EFFECTS.some((effect) => effect.id === id)) return entries;
+      const value = Number((raw as ClipEffect).value);
+      if (!Number.isFinite(value) || value <= 0) return entries;
+      entries.push({ id, value: Math.min(1, value) });
+      return entries;
+    }, []);
+  }
+
+  /**
+   * The source-file time a clip shows `clipLocalTime` seconds into its picture.
+   *
+   * Three things have to line up here, and each was independently wrong before:
+   *  - `trimStart` is skipped, so a trimmed head does not replay the footage the
+   *    trim was meant to remove;
+   *  - the clip's own `speed` scales the advance, so a 2× shot does not replay
+   *    its first half twice;
+   *  - the result is floored at 0, because a negative source time is unseekable.
+   *
+   * `clipLocalTime` is measured from the start of the *picture*, i.e. after the
+   * head trim.
+   */
+  resolveSourceTime(clip: VideoClip, clipLocalTime: number): number {
+    const speed = this.clampSpeed(clip.effects.speed);
+    const trimStart = Math.max(0, clip.effects.trimStart || 0);
+    return Math.max(
+      0,
+      (clip.offset || 0) + trimStart + clipLocalTime * speed
+    );
+  }
+
   private mintClipId(): string {
     return Math.random().toString(36).substr(2, 9);
   }
@@ -608,9 +1097,13 @@ export class VideoEngineService {
       const dt = (now - this.lastUpdateTime) / 1000;
       this.lastUpdateTime = now;
 
+      // The transport clock remains wall-clock time. At the timeline's tail we
+      // stop exactly on duration instead of wrapping to zero: wrapping a
+      // feature creates a surprise loop and can make a full-length export begin
+      // capturing the opening frame again after reaching its end.
       const newTime = this.currentTime() + dt;
       if (newTime >= this.duration()) {
-        this.seek(0);
+        this.seek(this.duration());
         this.pause();
       } else {
         this.currentTime.set(newTime);
@@ -855,7 +1348,7 @@ export class VideoEngineService {
           // Session-scoped media is dropped rather than saved as a url that will
           // never resolve again.
           url: isReloadableMediaUrl(clip.url) ? clip.url : '',
-          effects: { ...clip.effects },
+          effects: { ...clip.effects, fx: (clip.effects.fx ?? []).map((entry) => ({ ...entry })) },
         })),
       })),
     };
@@ -913,18 +1406,7 @@ export class VideoEngineService {
           requestedDuration,
           Math.max(MIN_ACTIVE_CLIP_DURATION, this.duration() - startTime)
         );
-        const effects = clip.effects ?? {
-          upscale: false,
-          bgRemoval: false,
-          noiseReduction: false,
-          brightness: 1,
-          contrast: 1,
-          filter: 'none' as ClipFilter,
-          transition: 'cut' as ClipTransition,
-          transitionDuration: 0,
-          trimStart: 0,
-          trimEnd: 0,
-        };
+        const effects = clip.effects ?? createDefaultEffects();
         return {
           ...clip,
           trackId: track.id,
@@ -932,10 +1414,15 @@ export class VideoEngineService {
           duration,
           offset: Math.max(0, Number.isFinite(clip.offset) ? clip.offset : 0),
           effects: {
-            ...effects,
+            ...createDefaultEffects(effects),
             trimStart: Math.max(0, Number.isFinite(effects.trimStart) ? effects.trimStart : 0),
             trimEnd: Math.max(0, Number.isFinite(effects.trimEnd) ? effects.trimEnd : 0),
             transitionDuration: Math.max(0, Number.isFinite(effects.transitionDuration) ? effects.transitionDuration : 0),
+            // A record written before the FX rack existed carries no array, and
+            // a malformed one can carry entries that are not effects at all.
+            fx: this.sanitizeEffects(effects.fx),
+            speed: this.clampSpeed(effects.speed),
+            motion: this.isMotion(effects.motion) ? effects.motion : 'none',
           },
         };
       });

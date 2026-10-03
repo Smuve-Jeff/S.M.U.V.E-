@@ -2131,3 +2131,117 @@ canvas {
     display: none;
   }
 }
+
+/*
+  FX rack groups.
+
+  Each group is a bordered card of dials so the matrix reads as a rack rather
+  than as one long column of identical sliders, and every control keeps the same
+  touch floor as the rest of the module.
+*/
+.fx-rack {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 0.75rem;
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.fx-rack-title {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #10b981;
+  margin: 0;
+}
+
+.fx-dial {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.fx-dial-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-main, #e2e8f0);
+}
+
+.fx-dial-value {
+  font-variant-numeric: tabular-nums;
+  color: rgba(16, 185, 129, 0.9);
+}
+
+/* Every dial and picker holds the module's touch floor. */
+.fx-rack input[type='range'],
+.fx-rack select,
+.fx-rack input[type='text'],
+.fx-rack textarea,
+.cutdown-button {
+  min-height: 44px;
+}
+
+.fx-rack textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+/*
+  Social cutdowns read as delivery cards: platform name over its frame and
+  length, so the picker is a list of destinations rather than abstract presets.
+*/
+.cutdown-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.6rem;
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--text-main, #e2e8f0);
+  text-align: left;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.cutdown-name {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cutdown-meta {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(148, 163, 184, 0.9);
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .cutdown-button:hover {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.12);
+  }
+}
+
+.cutdown-button:active {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+.fx-rack select,
+.fx-rack input[type='text'],
+.fx-rack textarea {
+  width: 100%;
+  padding: 0 0.5rem;
+}
+
+.fx-rack textarea {
+  padding: 0.5rem;
+}

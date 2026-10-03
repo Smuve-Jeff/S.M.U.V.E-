@@ -1257,13 +1257,13 @@
               >
               <select
                 class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                aria-label="Colour look"
                 [ngModel]="selectedFilter()"
                 (ngModelChange)="selectedFilter.set($any($event))"
               >
-                <option value="none">None</option>
-                <option value="cinematic">Cinematic</option>
-                <option value="vivid">Vivid</option>
-                <option value="mono">Mono</option>
+                @for (look of clipFilters; track look.id) {
+                  <option [value]="look.id">{{ look.label }}</option>
+                }
               </select>
             </label>
 
@@ -1276,12 +1276,13 @@
               >
               <select
                 class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                aria-label="Scene transition"
                 [ngModel]="selectedTransition()"
                 (ngModelChange)="selectedTransition.set($any($event))"
               >
-                <option value="cut">Cut</option>
-                <option value="fade">Fade</option>
-                <option value="dissolve">Dissolve</option>
+                @for (move of clipTransitions; track move.id) {
+                  <option [value]="move.id">{{ move.label }}</option>
+                }
               </select>
             </label>
 
@@ -1330,6 +1331,13 @@
           >
             APPLY FX TO ACTIVE CLIPS
           </button>
+          <button
+            type="button"
+            class="btn-pro w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+            (click)="gradeWholeTimeline()"
+          >
+            GRADE WHOLE TIMELINE
+          </button>
           <div
             class="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border"
           >
@@ -1340,9 +1348,266 @@
             <input
               type="checkbox"
               class="w-4 h-4 accent-brand-primary"
+              aria-label="Upscale 4K uploads"
               [ngModel]="highQualityEnhancer()"
               (ngModelChange)="highQualityEnhancer.set(!!$event)"
             />
+          </div>
+
+          <!-- FX rack: every dial is non-destructive and composites over the frame -->
+          <div class="fx-rack" aria-labelledby="fx-rack-title">
+            <h4 id="fx-rack-title" class="fx-rack-title">FX Rack</h4>
+            @for (effect of clipEffects; track effect.id) {
+              <label class="fx-dial" [attr.title]="effect.hint">
+                <span class="fx-dial-head">
+                  <span>{{ effect.label }}</span>
+                  <span class="fx-dial-value"
+                    >{{ (fxRack()[effect.id] * 100) | number: '1.0-0' }}%</span
+                  >
+                </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  class="w-full accent-brand-primary"
+                  [attr.aria-label]="effect.label"
+                  [ngModel]="fxRack()[effect.id]"
+                  (ngModelChange)="setFxValue(effect.id, +$event)"
+                />
+              </label>
+            }
+            <button
+              type="button"
+              class="btn-pro btn-pro-primary w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+              (click)="applyFxRackToActiveClips()"
+            >
+              APPLY FX RACK
+            </button>
+          </div>
+
+          <!-- Camera moves and speed, applied to the selected clip -->
+          <div class="fx-rack" aria-labelledby="motion-title">
+            <h4 id="motion-title" class="fx-rack-title">Motion &amp; Speed</h4>
+            <label class="fx-dial">
+              <span class="fx-dial-head"><span>Camera Move</span></span>
+              <select
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                aria-label="Camera move"
+                [ngModel]="selectedMotion()"
+                (ngModelChange)="selectedMotion.set($any($event))"
+              >
+                @for (motion of clipMotions; track motion.id) {
+                  <option [value]="motion.id">{{ motion.label }}</option>
+                }
+              </select>
+            </label>
+            <label class="fx-dial">
+              <span class="fx-dial-head">
+                <span>Playback Speed</span>
+                <span class="fx-dial-value">{{ selectedSpeed() | number: '1.2-2' }}×</span>
+              </span>
+              <input
+                type="range"
+                [min]="speedEnvelope.min"
+                [max]="speedEnvelope.max"
+                step="0.05"
+                class="w-full accent-brand-primary"
+                aria-label="Playback speed"
+                [ngModel]="selectedSpeed()"
+                (ngModelChange)="selectedSpeed.set(+$event)"
+              />
+            </label>
+            <button
+              type="button"
+              class="btn-pro w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+              (click)="applyMotionToSelectedClip()"
+            >
+              APPLY TO SELECTED CLIP
+            </button>
+          </div>
+
+          <!-- Title cards: the text-editing surface -->
+          <div class="fx-rack" aria-labelledby="title-editor-title">
+            <h4 id="title-editor-title" class="fx-rack-title">Title Cards</h4>
+            <label class="fx-dial">
+              <span class="fx-dial-head"><span>Title</span></span>
+              <input
+                type="text"
+                maxlength="120"
+                placeholder="Scene title"
+                aria-label="Title text"
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                [ngModel]="titleText()"
+                (ngModelChange)="titleText.set($event)"
+              />
+            </label>
+            <label class="fx-dial">
+              <span class="fx-dial-head"><span>Subtitle</span></span>
+              <input
+                type="text"
+                maxlength="160"
+                placeholder="Optional subtitle"
+                aria-label="Title subtitle"
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                [ngModel]="titleSubtitle()"
+                (ngModelChange)="titleSubtitle.set($event)"
+              />
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="fx-dial">
+                <span class="fx-dial-head"><span>Style</span></span>
+                <select
+                  class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                  aria-label="Title style"
+                  [ngModel]="titleStyle()"
+                  (ngModelChange)="titleStyle.set($any($event))"
+                >
+                  <option value="title-card">Title Card</option>
+                  <option value="lower-third">Lower Third</option>
+                  <option value="caption">Caption</option>
+                  <option value="centered">Centered</option>
+                </select>
+              </label>
+              <label class="fx-dial">
+                <span class="fx-dial-head"><span>Position</span></span>
+                <select
+                  class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                  aria-label="Title position"
+                  [ngModel]="titlePosition()"
+                  (ngModelChange)="titlePosition.set($any($event))"
+                >
+                  <option value="top">Top</option>
+                  <option value="center">Center</option>
+                  <option value="bottom">Bottom</option>
+                </select>
+              </label>
+            </div>
+            <label class="fx-dial">
+              <span class="fx-dial-head">
+                <span>Hold</span>
+                <span class="fx-dial-value">{{ titleDuration() }}s</span>
+              </span>
+              <input
+                type="range"
+                min="1"
+                max="15"
+                step="1"
+                class="w-full accent-brand-primary"
+                aria-label="Title hold duration"
+                [ngModel]="titleDuration()"
+                (ngModelChange)="titleDuration.set(+$event)"
+              />
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest h-10"
+                (click)="addTitleCard()"
+              >
+                CUT TITLE IN
+              </button>
+              <button
+                type="button"
+                class="btn-pro text-[9px] md:text-[10px] font-black tracking-widest h-10"
+                (click)="updateSelectedTitle()"
+              >
+                UPDATE SELECTED
+              </button>
+            </div>
+            <button
+              type="button"
+              class="btn-pro w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+              (click)="loadSelectedTitleIntoEditor()"
+            >
+              LOAD SELECTED CARD
+            </button>
+          </div>
+
+          <!-- Voice overlay: narration cut onto the AI Voiceovers lane -->
+          <div class="fx-rack" aria-labelledby="narration-title">
+            <h4 id="narration-title" class="fx-rack-title">Voice Overlay</h4>
+            <label class="fx-dial">
+              <span class="fx-dial-head"><span>Narration Line</span></span>
+              <textarea
+                rows="3"
+                maxlength="600"
+                placeholder="What the narrator says over this scene…"
+                aria-label="Narration line"
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                [ngModel]="narrationText()"
+                (ngModelChange)="narrationText.set($event)"
+              ></textarea>
+            </label>
+            <label class="fx-dial">
+              <span class="fx-dial-head"><span>Voice</span></span>
+              <select
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                aria-label="Narration voice"
+                [ngModel]="narrationVoice()"
+                (ngModelChange)="narrationVoice.set($event)"
+              >
+                <option value="">S.M.U.V.E Default</option>
+                @for (voice of narrationVoices; track voice) {
+                  <option [value]="voice">{{ voice }}</option>
+                }
+              </select>
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest h-10"
+                (click)="addNarrationLine()"
+              >
+                CUT NARRATION IN
+              </button>
+              <button
+                type="button"
+                class="btn-pro text-[9px] md:text-[10px] font-black tracking-widest h-10"
+                (click)="speakSelectedVoiceover()"
+              >
+                SPEAK SELECTED
+              </button>
+            </div>
+          </div>
+
+          <!-- Long-form structure: cut the visuals lane into scene cards -->
+          <div class="fx-rack" aria-labelledby="structure-title">
+            <h4 id="structure-title" class="fx-rack-title">Long-Form Structure</h4>
+            <button
+              type="button"
+              class="btn-pro w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+              (click)="cutTimelineIntoScenes()"
+            >
+              CUT LANE INTO SCENES
+            </button>
+          </div>
+
+          <!-- Social streaming cutdowns -->
+          <div class="fx-rack" aria-labelledby="cutdown-title">
+            <h4 id="cutdown-title" class="fx-rack-title">Social Cutdowns</h4>
+            @for (cutdown of socialCutdowns; track cutdown.id) {
+              <button
+                type="button"
+                class="cutdown-button"
+                [attr.aria-label]="'Arm ' + cutdown.platform + ' cutdown'"
+                (click)="applySocialCutdown(cutdown)"
+              >
+                <span class="cutdown-name">{{ cutdown.platform }}</span>
+                <span class="cutdown-meta"
+                  >{{ cutdown.aspectRatio }} · {{ cutdown.seconds }}s</span
+                >
+              </button>
+            }
+            @if (cutdownAspect()) {
+              <button
+                type="button"
+                class="btn-pro w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+                (click)="clearSocialCutdown()"
+              >
+                RELEASE CUTDOWN
+              </button>
+            }
           </div>
         </div>
       </div>

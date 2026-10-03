@@ -18,14 +18,30 @@ import { AiService } from '../../services/ai.service';
 import { UserContextService } from '../../services/user-context.service';
 import {
   BeatTick,
+  CLIP_EFFECTS,
+  CLIP_FILTERS,
+  CLIP_MOTIONS,
+  CLIP_TRANSITIONS,
+  ClipEffect,
+  ClipEffectId,
   ClipFilter,
+  ClipMotion,
   ClipTransition,
+  createDefaultEffects,
   DeliveryPreset,
+  MAX_CLIP_SPEED,
   MIN_ACTIVE_CLIP_DURATION,
+  MIN_CLIP_SPEED,
   ProductionMode,
   SceneMarker,
+  SOCIAL_CUTDOWNS,
+  SocialCutdown,
+  TitleCard,
+  TitlePosition,
+  TitleStyle,
   VideoEngineService,
   VideoClip,
+  VoiceoverLine,
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
 import { CinemaProjectService } from '../../services/cinema-project.service';
@@ -41,6 +57,10 @@ import {
   ShotPlanShot,
 } from '../../services/cinema-director.service';
 import { SpeechRecognitionService } from '../../services/speech-recognition.service';
+import {
+  SpeechSynthesisService,
+  VoiceArchetype,
+} from '../../services/speech-synthesis.service';
 import {
   LIVE_STREAM_PLATFORMS,
   LiveStreamPlatform,
@@ -157,6 +177,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   public camera = inject(CameraCaptureService);
   public director = inject(CinemaDirectorService);
   private speechRecognition = inject(SpeechRecognitionService);
+  private speechSynthesis = inject(SpeechSynthesisService);
   public liveStream = inject(LiveStreamService);
   public cinemaProjects = inject(CinemaProjectService);
 
@@ -187,6 +208,47 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   selectedTransition = signal<ClipTransition>('fade');
   transitionDuration = signal(0.5);
   trimAmount = signal(0);
+  /** FX rack dials staged for the next apply — 0..1 per effect. */
+  fxRack = signal<Record<ClipEffectId, number>>({
+    vignette: 0,
+    'film-grain': 0,
+    letterbox: 0,
+    'chroma-boost': 0,
+    scanlines: 0,
+    glow: 0,
+  });
+  /** Camera move staged for the selected clip. */
+  selectedMotion = signal<ClipMotion>('none');
+  /** Playback speed staged for the selected clip. */
+  selectedSpeed = signal(1);
+  /** Speed envelope shared by the slider bounds. */
+  readonly speedEnvelope = { min: MIN_CLIP_SPEED, max: MAX_CLIP_SPEED };
+  /** Picker options, straight off the engine's own constants. */
+  readonly clipFilters = CLIP_FILTERS;
+  readonly clipTransitions = CLIP_TRANSITIONS;
+  readonly clipMotions = CLIP_MOTIONS;
+  readonly clipEffects = CLIP_EFFECTS;
+  readonly socialCutdowns = SOCIAL_CUTDOWNS;
+  /** Title-card editor surface. */
+  titleText = signal('');
+  titleSubtitle = signal('');
+  titleStyle = signal<TitleStyle>('title-card');
+  titlePosition = signal<TitlePosition>('center');
+  titleDuration = signal(5);
+  /** Voice-overlay editor surface. */
+  narrationText = signal('');
+  narrationVoice = signal('');
+  readonly narrationVoices: string[] =
+    this.speechSynthesis.getArchetypeNames();
+  /** Armed social cutdown, while one is holding the timeline. */
+  cutdownAspect = signal<{
+    ratio: string;
+    width: number;
+    height: number;
+  } | null>(null);
+  /** What a cutdown was armed over, so a release can hand it back. */
+  private originalDeliveryPresetId: string | null = null;
+  private originalTimelineDuration: number | null = null;
   /** Seconds of real-time timeline captured per video export. */
   exportWindow = signal(DEFAULT_EXPORT_WINDOW);
   exportProgress = signal(0);
@@ -605,10 +667,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.syncCameraElement();
     });
 
-    // Switching delivery preset changes the aspect ratio, so the program
-    // monitor's backing store has to follow it.
+    // Switching delivery preset — or arming a social cutdown — changes the
+    // aspect ratio, so the program monitor's backing store has to follow it.
     effect(() => {
       void this.activePreset();
+      void this.cutdownAspect();
       this.syncPreviewResolution();
     });
 
@@ -643,11 +706,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private syncPreviewResolution(): void {
     const canvas = this.previewCanvas?.nativeElement;
     if (!canvas) return;
+    const cutdown = this.cutdownAspect();
     const preset = this.activePreset();
-    const ratio = this.resolveAspectRatio(preset);
+    const ratio = cutdown
+      ? this.parseRatio(cutdown.ratio)
+      : this.resolveAspectRatio(preset);
+    const targetWidth = cutdown ? cutdown.width : preset.width;
     const width = Math.max(
       2,
-      Math.min(PREVIEW_MAX_EDGE, preset.width || PREVIEW_MAX_EDGE)
+      Math.min(PREVIEW_MAX_EDGE, targetWidth || PREVIEW_MAX_EDGE)
     );
     const height = Math.max(2, Math.round(width / ratio));
     if (canvas.width === width && canvas.height === height) return;
@@ -656,6 +723,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // Re-acquiring is a no-op, but keeps the reference valid on hosts that
     // return a fresh context after a resize.
     this.canvasCtx = canvas.getContext('2d');
+  }
+
+  /** Numeric width:height from a `"9:16"`-style ratio string. */
+  private parseRatio(ratio: string): number {
+    const [rawWidth, rawHeight] = (ratio ?? '').split(':');
+    const width = Number(rawWidth);
+    const height = Number(rawHeight);
+    if (width > 0 && height > 0) return width / height;
+    return 16 / 9;
   }
 
   /** Numeric width:height for a preset, falling back to its declared pixels. */
@@ -1438,7 +1514,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       source: 'ai',
       note: shot.description,
       shotType: shot.size,
-      effects: {
+      effects: createDefaultEffects({
         upscale: this.highQualityEnhancer(),
         bgRemoval: false,
         noiseReduction: false,
@@ -1449,7 +1525,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         transitionDuration: this.transitionDuration(),
         trimStart: 0,
         trimEnd: 0,
-      },
+      }),
     };
   }
 
@@ -1712,17 +1788,29 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       player.load();
     }
 
+    // The native element keeps its own clock and runs at the clip's source
+    // speed. Measure picture-local time first (the timeline may sit well
+    // into the clip), then read that through the engine's source-time
+    // mapping so a trimmed or slowed clip stays frame-accurate against the
+    // production timeline.
     const trimStart = Math.max(0, clip.effects.trimStart || 0);
-    const localTime = Math.max(0, this.videoEngine.currentTime() - clip.startTime - trimStart);
-    if (Number.isFinite(localTime) && Math.abs(player.currentTime - localTime) > PLAYING_DRIFT_TOLERANCE_SECONDS) {
+    const clipLocalTime = Math.max(
+      0,
+      this.videoEngine.currentTime() - clip.startTime - trimStart
+    );
+    const sourceTime = this.resolveClipSourceTime(clip, clipLocalTime);
+    if (sourceTime === null) return;
+
+    if (Number.isFinite(sourceTime) && Math.abs(player.currentTime - sourceTime) > PLAYING_DRIFT_TOLERANCE_SECONDS) {
       try {
-        player.currentTime = localTime;
+        player.currentTime = sourceTime;
       } catch {
         // Metadata may not be available until the first frame on mobile.
       }
     }
 
     player.playsInline = true;
+    player.playbackRate = this.selectedSpeed();
     if (this.videoEngine.isPlaying()) {
       if (player.paused) this.playQuietly(player);
     } else if (!player.paused) {
@@ -1742,8 +1830,20 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const player = this.nativePlayerElement;
     const clip = this.activeVideoClip();
     if (!player || !clip) return;
+
+    // A native seek lands inside the clip's *source* clock, so invert the
+    // engine's source-time mapping — offset, head trim and speed — to place
+    // the playhead at the matching timeline position.
+    const speed = Math.max(
+      MIN_CLIP_SPEED,
+      Math.min(MAX_CLIP_SPEED, clip.effects.speed || 1)
+    );
     const trimStart = Math.max(0, clip.effects.trimStart || 0);
-    this.videoEngine.seek(clip.startTime + trimStart + player.currentTime);
+    const clipLocalTime = Math.max(
+      0,
+      (player.currentTime - (clip.offset || 0) - trimStart) / speed
+    );
+    this.videoEngine.seek(clip.startTime + trimStart + clipLocalTime);
   }
 
   /**
@@ -1769,6 +1869,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       }
       return '16 / 9';
     }
+    // An armed cutdown reframes the program surface to the platform's own
+    // aspect rather than the delivery master's.
+    const cutdown = this.cutdownAspect();
+    if (cutdown) return cutdown.ratio.replace(':', ' / ');
     return String(this.resolveAspectRatio(this.activePreset()));
   });
 
@@ -2008,7 +2112,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       offset: 0,
       type: isPhoto ? 'image' : 'video',
       source: this.camera.sourceType(),
-      effects: {
+      effects: createDefaultEffects({
         upscale: this.highQualityEnhancer(),
         bgRemoval: false,
         noiseReduction: false,
@@ -2019,7 +2123,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         transitionDuration: this.transitionDuration(),
         trimStart: this.resolveTrimAmount(duration),
         trimEnd: this.resolveTrimAmount(duration),
-      },
+      }),
     });
 
     capture.ingested = true;
@@ -2147,23 +2251,31 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         );
         const clipStart = clip.startTime + trimStart;
         const clipLocalTime = Math.max(0, time - clipStart);
-        const alpha = this.resolveTransitionAlpha(
+
+        // The clip is painted onto a detached scratch layer first, and the
+        // layer is what gets composited through the transition. That keeps
+        // undecoded media from ever reaching the frame and makes a
+        // directional wipe a real clip region rather than an alpha guess.
+        const layer = this.renderClipLayer(
+          canvas,
+          clip,
           clipLocalTime,
-          activeDuration,
-          clip.effects.transition,
-          clip.effects.transitionDuration
+          activeDuration
         );
+        if (layer) {
+          this.compositeClipLayer(
+            ctx,
+            canvas,
+            layer,
+            clip,
+            clipLocalTime,
+            activeDuration
+          );
+        }
 
         ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.filter = this.resolveCanvasFilter(clip.effects);
-
-        const media = this.resolveMediaElement(clip);
-        const painted = media
-          ? this.drawMediaContain(ctx, canvas, media, clip, clipLocalTime)
-          : false;
-        if (!painted) this.drawSignalPlaceholder(ctx, canvas, clip);
-
+        ctx.globalAlpha = 1;
+        ctx.filter = 'none';
         ctx.font = '10px "Public Sans"';
         ctx.fillStyle = '#10b981';
         ctx.fillText(`UPLINK: ${clip.name.toUpperCase()}`, 20, 30);
@@ -2189,6 +2301,419 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.pauseIdleMedia(activeClips);
     this.drawHUD(ctx, canvas);
     this.drawCameraDiagnostic(ctx, canvas, liveFeed);
+  }
+
+  /** The detached scratch layer every clip is painted onto before compositing. */
+  private scratchLayer: HTMLCanvasElement | null = null;
+  private scratchCtx: CanvasRenderingContext2D | null = null;
+  /** Detached grain tile reused by the film-grain FX pass. */
+  private grainTile: HTMLCanvasElement | null = null;
+
+  /**
+   * Resolve (creating or resizing on demand) the scratch layer the renderer
+   * paints clips into. The layer is intentionally detached — it never reaches
+   * the document, so it cannot be mistaken for the monitor's own canvas.
+   */
+  private ensureScratchLayer(
+    width: number,
+    height: number
+  ): { layer: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null {
+    if (!this.scratchLayer || !this.scratchCtx) {
+      if (typeof document === 'undefined') return null;
+      const layer = document.createElement('canvas');
+      const ctx = layer.getContext('2d');
+      if (!ctx) return null;
+      this.scratchLayer = layer;
+      this.scratchCtx = ctx;
+    }
+    const layer = this.scratchLayer;
+    if (layer.width !== width || layer.height !== height) {
+      layer.width = width;
+      layer.height = height;
+    }
+    return { layer, ctx: this.scratchCtx as CanvasRenderingContext2D };
+  }
+
+  /**
+   * Paint one clip onto the scratch layer: the grade, the media (or the
+   * placeholder), the background key, title/narration burn-in, the denoise
+   * pass and the FX rack — everything the clip carries with it.
+   *
+   * @returns the layer to composite, or null when no 2D surface is available.
+   */
+  private renderClipLayer(
+    canvas: HTMLCanvasElement,
+    clip: VideoClip,
+    clipLocalTime: number,
+    activeDuration: number
+  ): HTMLCanvasElement | null {
+    const scratch = this.ensureScratchLayer(canvas.width, canvas.height);
+    if (!scratch) return null;
+    const { layer, ctx } = scratch;
+    void activeDuration;
+
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.filter = this.resolveCanvasFilter(clip.effects);
+    ctx.clearRect(0, 0, layer.width, layer.height);
+
+    const media = this.resolveMediaElement(clip);
+    const painted = media
+      ? this.drawMediaContain(ctx, layer, media, clip, clipLocalTime)
+      : false;
+
+    if (clip.effects.bgRemoval) {
+      this.applyBackgroundRemoval(ctx, layer);
+    }
+
+    if (clip.effects.title) {
+      this.drawTitleCard(ctx, layer, clip.effects.title);
+    } else if (!painted && !clip.effects.voiceover) {
+      this.drawSignalPlaceholder(ctx, layer, clip);
+    }
+
+    if (clip.effects.voiceover) {
+      this.drawNarrationSubtitle(ctx, layer, clip.effects.voiceover);
+    }
+
+    if (clip.effects.noiseReduction) {
+      this.applyNoiseReduction(ctx, layer);
+    }
+    this.applyFxRackPasses(ctx, layer, clip.effects.fx);
+
+    ctx.restore();
+    return layer;
+  }
+
+  /**
+   * Composite a clip's scratch layer through its transition. Directional
+   * moves are geometry on the frame — a wipe is a real clip region, a slide
+   * a real translation — while fades and dissolves ride the alpha ramp.
+   */
+  private compositeClipLayer(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    layer: HTMLCanvasElement,
+    clip: VideoClip,
+    clipLocalTime: number,
+    activeDuration: number
+  ): void {
+    const transition = clip.effects.transition;
+    const transitionDuration = clip.effects.transitionDuration;
+    const alpha = this.resolveTransitionAlpha(
+      clipLocalTime,
+      activeDuration,
+      transition,
+      transitionDuration
+    );
+    const progress =
+      transitionDuration > 0
+        ? Math.max(
+            0,
+            Math.min(
+              1,
+              clipLocalTime /
+                Math.max(0.001, Math.min(transitionDuration, activeDuration / 2))
+            )
+          )
+        : 1;
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.filter = 'none';
+    switch (transition) {
+      case 'wipe-right':
+        ctx.beginPath();
+        ctx.rect(0, 0, width * progress, height);
+        ctx.clip();
+        ctx.drawImage(layer, 0, 0);
+        break;
+      case 'wipe-left':
+        ctx.beginPath();
+        ctx.rect(width * (1 - progress), 0, width * progress, height);
+        ctx.clip();
+        ctx.drawImage(layer, 0, 0);
+        break;
+      case 'wipe-down':
+        ctx.beginPath();
+        ctx.rect(0, 0, width, height * progress);
+        ctx.clip();
+        ctx.drawImage(layer, 0, 0);
+        break;
+      case 'wipe-up':
+        ctx.beginPath();
+        ctx.rect(0, height * (1 - progress), width, height * progress);
+        ctx.clip();
+        ctx.drawImage(layer, 0, 0);
+        break;
+      case 'slide-left':
+        ctx.translate(width * (1 - progress), 0);
+        ctx.drawImage(layer, 0, 0);
+        break;
+      case 'slide-right':
+        ctx.translate(-width * (1 - progress), 0);
+        ctx.drawImage(layer, 0, 0);
+        break;
+      case 'zoom-in': {
+        const scale = 1 + (1 - progress) * 0.3;
+        ctx.translate(width / 2, height / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-width / 2, -height / 2);
+        ctx.drawImage(layer, 0, 0);
+        break;
+      }
+      case 'zoom-out': {
+        const scale = 0.7 + progress * 0.3;
+        ctx.translate(width / 2, height / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-width / 2, -height / 2);
+        ctx.drawImage(layer, 0, 0);
+        break;
+      }
+      case 'blur':
+        ctx.filter = `blur(${((1 - progress) * 12).toFixed(1)}px)`;
+        ctx.drawImage(layer, 0, 0);
+        break;
+      default:
+        // Cut, fade, dissolve and flash all land on the frame whole; the
+        // alpha ramp (and the flash's short window) carries the blend.
+        ctx.drawImage(layer, 0, 0);
+        break;
+    }
+    ctx.restore();
+  }
+
+  /**
+   * Corner-key background removal: the frame's top-left pixel is the backdrop,
+   * and every pixel close enough to it is erased. A frame the canvas refuses
+   * to hand back (cross-origin taint) simply keeps its background — the rest
+   * of the grade must still ship.
+   */
+  private applyBackgroundRemoval(
+    ctx: CanvasRenderingContext2D,
+    layer: HTMLCanvasElement
+  ): void {
+    try {
+      const frame = ctx.getImageData(0, 0, layer.width, layer.height);
+      const data = frame.data;
+      if (data.length < 4) return;
+      const keyR = data[0];
+      const keyG = data[1];
+      const keyB = data[2];
+      const tolerance = 28;
+      for (let i = 0; i < data.length; i += 4) {
+        if (
+          Math.abs(data[i] - keyR) <= tolerance &&
+          Math.abs(data[i + 1] - keyG) <= tolerance &&
+          Math.abs(data[i + 2] - keyB) <= tolerance
+        ) {
+          data[i + 3] = 0;
+        }
+      }
+      ctx.putImageData(frame, 0, 0);
+    } catch {
+      // Tainted or unreadable surface: skip the key, keep the picture.
+    }
+  }
+
+  /**
+   * Denoise pass: re-composite the layer through a light blur so grain and
+   * block noise soften without a second buffer allocation per frame.
+   */
+  private applyNoiseReduction(
+    ctx: CanvasRenderingContext2D,
+    layer: HTMLCanvasElement
+  ): void {
+    ctx.save();
+    ctx.filter = 'blur(0.5px)';
+    ctx.globalAlpha = 1;
+    ctx.drawImage(layer, 0, 0, layer.width, layer.height);
+    ctx.restore();
+  }
+
+  /** Burn a title card's scrim and type onto the clip's layer. */
+  private drawTitleCard(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    title: TitleCard
+  ): void {
+    if (!title.text.trim()) return;
+    const centerX = canvas.width / 2;
+    const baseY =
+      title.position === 'top'
+        ? canvas.height * 0.28
+        : title.position === 'bottom'
+          ? canvas.height * 0.72
+          : canvas.height / 2;
+    const isFullCard =
+      title.style === 'title-card' || title.style === 'centered';
+    const titleSize = Math.max(
+      28,
+      Math.round(canvas.height * (isFullCard ? 0.16 : 0.09))
+    );
+
+    ctx.save();
+    if (isFullCard) {
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.72)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.78)';
+      ctx.fillRect(0, baseY - titleSize, canvas.width, titleSize * 1.9);
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = `900 ${titleSize}px "Public Sans", sans-serif`;
+    ctx.fillText(title.text, centerX, baseY);
+    if (title.subtitle.trim()) {
+      ctx.font = `500 ${Math.max(12, Math.round(titleSize * 0.32))}px "Public Sans", sans-serif`;
+      ctx.fillStyle = 'rgba(248, 250, 252, 0.82)';
+      ctx.fillText(title.subtitle, centerX, baseY + titleSize * 0.8);
+    }
+    ctx.restore();
+  }
+
+  /** Draw a narration line as a subtitle, with the voice it was cut with. */
+  private drawNarrationSubtitle(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    voiceover: VoiceoverLine
+  ): void {
+    if (!voiceover.text.trim()) return;
+    const boxWidth = canvas.width * 0.7;
+    const baseline = canvas.height - Math.max(40, canvas.height * 0.08);
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.66)';
+    ctx.fillRect(
+      canvas.width * 0.15,
+      baseline - (voiceover.voice ? 48 : 30),
+      boxWidth,
+      voiceover.voice ? 66 : 44
+    );
+    ctx.textAlign = 'center';
+    if (voiceover.voice) {
+      ctx.font = '700 11px "Public Sans"';
+      ctx.fillStyle = '#10b981';
+      ctx.fillText(voiceover.voice.toUpperCase(), canvas.width / 2, baseline - 28);
+    }
+    ctx.font = '600 20px "Public Sans"';
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillText(
+      this.ellipsize(ctx, voiceover.text, boxWidth - 24),
+      canvas.width / 2,
+      baseline
+    );
+    ctx.restore();
+  }
+
+  /**
+   * Apply the clip's FX rack dials over its layer. Every entry is validated
+   * against the rack's own catalogue first, so an unknown id can never take
+   * the render down.
+   */
+  private applyFxRackPasses(
+    ctx: CanvasRenderingContext2D,
+    layer: HTMLCanvasElement,
+    fx: ClipEffect[] | undefined
+  ): void {
+    if (!fx || !fx.length) return;
+    const width = layer.width;
+    const height = layer.height;
+
+    fx.forEach((entry) => {
+      if (!CLIP_EFFECTS.some((effect) => effect.id === entry.id)) return;
+      const value = Math.max(0, Math.min(1, Number(entry.value) || 0));
+      if (value <= 0) return;
+
+      switch (entry.id) {
+        case 'vignette': {
+          const gradient = ctx.createRadialGradient(
+            width / 2,
+            height / 2,
+            Math.min(width, height) * 0.3,
+            width / 2,
+            height / 2,
+            Math.max(width, height) * 0.75
+          );
+          gradient.addColorStop(0, 'rgba(2, 6, 23, 0)');
+          gradient.addColorStop(
+            1,
+            `rgba(2, 6, 23, ${(value * 0.9).toFixed(3)})`
+          );
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, width, height);
+          break;
+        }
+        case 'film-grain': {
+          const tile = this.ensureGrainTile();
+          const pattern = tile ? ctx.createPattern(tile, 'repeat') : null;
+          if (!pattern) break;
+          ctx.save();
+          ctx.globalAlpha = value * 0.18;
+          ctx.fillStyle = pattern;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+          break;
+        }
+        case 'letterbox': {
+          const bar = Math.max(1, Math.round((height / 2) * value * 0.5));
+          ctx.save();
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(0, 0, width, bar);
+          ctx.fillRect(0, height - bar, width, bar);
+          ctx.restore();
+          break;
+        }
+        case 'scanlines': {
+          ctx.save();
+          ctx.fillStyle = `rgba(2, 6, 23, ${(value * 0.4).toFixed(3)})`;
+          for (let y = 0; y < height; y += 4) {
+            ctx.fillRect(0, y, width, 2);
+          }
+          ctx.restore();
+          break;
+        }
+        case 'chroma-boost': {
+          // Saturation is folded into the filter chain (resolveCanvasFilter)
+          // so it grades the media itself rather than a flat overlay.
+          break;
+        }
+        case 'glow': {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = value * 0.35;
+          ctx.filter = 'blur(6px)';
+          ctx.drawImage(layer, 0, 0, width, height);
+          ctx.restore();
+          break;
+        }
+      }
+    });
+  }
+
+  /** Detached noise tile the film-grain pattern repeats. */
+  private ensureGrainTile(): HTMLCanvasElement | null {
+    if (this.grainTile) return this.grainTile;
+    if (typeof document === 'undefined') return null;
+    const tile = document.createElement('canvas');
+    tile.width = 96;
+    tile.height = 96;
+    const tileCtx = tile.getContext('2d');
+    if (!tileCtx) return null;
+    const grain = tileCtx.createImageData(96, 96);
+    for (let i = 0; i < grain.data.length; i += 4) {
+      const shade = Math.floor(Math.random() * 255);
+      grain.data[i] = shade;
+      grain.data[i + 1] = shade;
+      grain.data[i + 2] = shade;
+      grain.data[i + 3] = 255;
+    }
+    tileCtx.putImageData(grain, 0, 0);
+    this.grainTile = tile;
+    return tile;
   }
 
   /**
@@ -2338,6 +2863,17 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
     }
+    // The clip's own camera move: a Ken Burns push or a pan is a transform
+    // around the frame's centre, applied only once the element has decoded —
+    // a static clip must stay completely untransformed.
+    if (clip.effects.motion && clip.effects.motion !== 'none') {
+      this.applyMotionTransform(
+        ctx,
+        clip.effects.motion,
+        this.resolveMotionProgress(clip, clipLocalTime),
+        rect
+      );
+    }
     try {
       ctx.drawImage(media, rect.x, rect.y, rect.width, rect.height);
     } catch {
@@ -2346,6 +2882,54 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
     ctx.restore();
     return true;
+  }
+
+  /** How far through the clip's picture the camera move currently is (0..1). */
+  private resolveMotionProgress(
+    clip: VideoClip,
+    clipLocalTime: number
+  ): number {
+    const trimStart = Math.max(0, clip.effects.trimStart || 0);
+    const trimEnd = Math.max(0, clip.effects.trimEnd || 0);
+    const activeDuration = Math.max(
+      MIN_ACTIVE_CLIP_DURATION,
+      clip.duration - trimStart - trimEnd
+    );
+    return Math.max(0, Math.min(1, clipLocalTime / activeDuration));
+  }
+
+  /** Apply one camera move around the centre of the clip's frame. */
+  private applyMotionTransform(
+    ctx: CanvasRenderingContext2D,
+    motion: ClipMotion,
+    progress: number,
+    rect: { x: number; y: number; width: number; height: number }
+  ): void {
+    const centerX = rect.x + rect.width / 2;
+    const centerY = rect.y + rect.height / 2;
+    const aroundCentre = (scale: number, offsetX = 0) => {
+      ctx.translate(centerX, centerY);
+      ctx.scale(scale, scale);
+      ctx.translate(-centerX, -centerY);
+      if (offsetX) ctx.translate(offsetX, 0);
+    };
+
+    switch (motion) {
+      case 'ken-burns-in':
+        aroundCentre(1 + progress * 0.16);
+        break;
+      case 'ken-burns-out':
+        aroundCentre(1.16 - progress * 0.16);
+        break;
+      case 'pan-left':
+        aroundCentre(1.12, -(1 - progress) * rect.width * 0.08);
+        break;
+      case 'pan-right':
+        aroundCentre(1.12, (1 - progress) * rect.width * 0.08);
+        break;
+      default:
+        break;
+    }
   }
 
   private mediaWidth(media: HTMLImageElement | HTMLVideoElement): number {
@@ -2390,12 +2974,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
   }
 
-  /** Map a timeline position onto the clip's source file. */
+  /** Map a clip's picture-local time onto its source file. */
   private resolveClipSourceTime(
     clip: VideoClip,
     clipLocalTime: number
   ): number | null {
-    const target = Math.max(0, (clip.offset || 0) + clipLocalTime);
+    const target = this.videoEngine.resolveSourceTime(clip, clipLocalTime);
     return Number.isFinite(target) ? target : null;
   }
 
@@ -2685,6 +3269,290 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     );
   }
 
+  /** Stage one FX rack dial (0..1) for the next apply. */
+  setFxValue(id: ClipEffectId, value: number): void {
+    const dial = Number.isFinite(value)
+      ? Math.max(0, Math.min(1, value))
+      : 0;
+    this.fxRack.update((rack) => ({ ...rack, [id]: dial }));
+  }
+
+  /** Push the staged FX rack dials onto every clip under the playhead. */
+  applyFxRackToActiveClips(): void {
+    const activeClips = this.videoEngine.getActiveClips(
+      this.videoEngine.currentTime()
+    );
+    if (!activeClips.length) {
+      this.aiFeedback.set(
+        'NO ACTIVE CLIPS ON THE PLAYHEAD. MOVE THE PLAYHEAD OVER A CLIP TO APPLY THE FX RACK.'
+      );
+      return;
+    }
+
+    const rack = this.fxRack();
+    // Zero is the absence of an effect: only dials that are actually turned
+    // up travel with the clip, so a reset rack clears the old entries.
+    const fx = CLIP_EFFECTS.map(({ id }) => ({ id, value: rack[id] }))
+      .filter((entry) => entry.value > 0)
+      .map((entry) => ({ id: entry.id, value: Math.min(1, entry.value) }));
+
+    activeClips.forEach((clip) => {
+      this.videoEngine.updateClip(clip.id, {
+        effects: { ...clip.effects, fx },
+      });
+    });
+
+    if (!fx.length) {
+      this.aiFeedback.set(
+        'FX RACK RESET — EVERY DIAL IS AT 0%, SO THE CLIPS KEEP THEIR PICTURE CLEAN.'
+      );
+      return;
+    }
+    const dials = fx
+      .map((entry) => {
+        const label = CLIP_EFFECTS.find((effect) => effect.id === entry.id)
+          ?.label ?? entry.id;
+        return `${label.toUpperCase()} ${Math.round(entry.value * 100)}%`;
+      })
+      .join(', ');
+    this.aiFeedback.set(
+      `FX RACK APPLIED TO ${activeClips.length} CLIP(S): ${dials}.`
+    );
+  }
+
+  /** Grade every clip on the timeline with the picked look in one pass. */
+  gradeWholeTimeline(): void {
+    const filter = this.selectedFilter();
+    const updated = this.videoEngine.gradeAllClips(filter);
+    this.aiFeedback.set(
+      `${updated} CLIP(S) UPDATED TO ${filter.toUpperCase()} ACROSS THE WHOLE TIMELINE.`
+    );
+  }
+
+  /** Cut the staged camera move and speed onto the selected clip. */
+  applyMotionToSelectedClip(): void {
+    const clipId = this.selectedClipId();
+    const clip = clipId ? this.videoEngine.findClip(clipId) : null;
+    if (!clip) {
+      this.aiFeedback.set(
+        'SELECT A CLIP FIRST, THEN APPLY THE CAMERA MOVE AND SPEED.'
+      );
+      return;
+    }
+    const speed = Math.max(
+      MIN_CLIP_SPEED,
+      Math.min(MAX_CLIP_SPEED, this.selectedSpeed())
+    );
+    const motion = this.selectedMotion();
+    this.videoEngine.updateClip(clip.id, {
+      effects: { ...clip.effects, motion, speed },
+    });
+    const label =
+      CLIP_MOTIONS.find((entry) => entry.id === motion)?.label ?? 'Static';
+    this.aiFeedback.set(
+      `${label.toUpperCase()} CAMERA MOVE AT ${speed.toFixed(2)}× CUT ONTO ${clip.name.toUpperCase()}.`
+    );
+  }
+
+  /** Cut a fresh title card onto the overlays lane. */
+  addTitleCard(): void {
+    const text = this.titleText().trim();
+    if (!text) {
+      this.aiFeedback.set('TYPE THE TITLE TEXT FIRST.');
+      return;
+    }
+    const duration = Math.max(1, this.titleDuration());
+    const title: TitleCard = {
+      text,
+      subtitle: this.titleSubtitle().trim(),
+      style: this.titleStyle(),
+      position: this.titlePosition(),
+    };
+    this.videoEngine.addClip('t2', {
+      name: `TITLE · ${text}`,
+      url: '',
+      startTime: this.videoEngine.currentTime(),
+      duration,
+      offset: 0,
+      type: 'overlay',
+      source: 'ai',
+      effects: createDefaultEffects({ title }),
+    });
+    this.aiFeedback.set(
+      `TITLE CARD CUT IN — "${text.toUpperCase()}" HOLDS ${duration}s ON THE OVERLAYS LANE.`
+    );
+  }
+
+  /** Re-edit the selected card in place instead of cutting a second one. */
+  updateSelectedTitle(): void {
+    const clipId = this.selectedClipId();
+    const clip = clipId ? this.videoEngine.findClip(clipId) : null;
+    if (!clip) {
+      this.aiFeedback.set(
+        'SELECT A TITLE CARD FIRST — LOAD IT INTO THE EDITOR.'
+      );
+      return;
+    }
+    const text = this.titleText().trim();
+    if (!text) {
+      this.aiFeedback.set('TYPE THE TITLE TEXT FIRST.');
+      return;
+    }
+    const title: TitleCard = {
+      text,
+      subtitle: this.titleSubtitle().trim(),
+      style: this.titleStyle(),
+      position: this.titlePosition(),
+    };
+    this.videoEngine.updateClip(clip.id, {
+      name: `TITLE · ${text}`,
+      effects: { ...clip.effects, title },
+    });
+    this.aiFeedback.set(`TITLE CARD UPDATED — "${text.toUpperCase()}".`);
+  }
+
+  /** Pull the selected card back into the editor for another pass. */
+  loadSelectedTitleIntoEditor(): void {
+    const clipId = this.selectedClipId();
+    const clip = clipId ? this.videoEngine.findClip(clipId) : null;
+    const title = clip?.effects.title;
+    if (!clip || !title) {
+      this.aiFeedback.set(
+        'SELECT A TITLE CARD ON THE OVERLAYS LANE FIRST.'
+      );
+      return;
+    }
+    this.titleText.set(title.text);
+    this.titleSubtitle.set(title.subtitle);
+    this.titleStyle.set(title.style);
+    this.titlePosition.set(title.position);
+    this.titleDuration.set(
+      Math.max(1, Math.min(15, Math.round(clip.duration)))
+    );
+    this.aiFeedback.set('TITLE CARD LOADED INTO THE EDITOR.');
+  }
+
+  /**
+   * Cut a narration line onto the AI voiceovers lane. The transcript is the
+   * deliverable — it rides the clip — and speaking it is a best-effort bonus
+   * for browsers with a speech engine.
+   */
+  addNarrationLine(): void {
+    const text = this.narrationText().trim();
+    if (!text) {
+      this.aiFeedback.set('TYPE THE NARRATION LINE FIRST.');
+      return;
+    }
+    const voice = this.narrationVoice();
+    this.videoEngine.addClip('t3', {
+      name: `NARRATION · ${text}`,
+      url: '',
+      startTime: this.videoEngine.currentTime(),
+      duration: AI_CLIP_DURATION_OTHER,
+      offset: 0,
+      type: 'overlay',
+      source: 'ai',
+      effects: createDefaultEffects({
+        voiceover: { text, voice, rendered: true },
+      }),
+    });
+    try {
+      this.speechSynthesis.speak(
+        text,
+        voice ? { forceArchetype: voice as VoiceArchetype } : undefined
+      );
+    } catch {
+      // No speech engine on this browser: the transcript still ships.
+    }
+    this.aiFeedback.set(
+      `NARRATION CUT IN — "${text.toUpperCase()}" ON THE AI VOICEOVERS LANE${voice ? ` AS ${voice.toUpperCase()}` : ''}.`
+    );
+  }
+
+  /** Read the selected voiceover back without re-cutting the clip. */
+  speakSelectedVoiceover(): void {
+    const clipId = this.selectedClipId();
+    const clip = clipId ? this.videoEngine.findClip(clipId) : null;
+    const voiceover = clip?.effects.voiceover;
+    if (!voiceover) {
+      this.aiFeedback.set('SELECT A NARRATION CLIP FIRST.');
+      return;
+    }
+    try {
+      this.speechSynthesis.speak(
+        voiceover.text,
+        voiceover.voice
+          ? { forceArchetype: voiceover.voice as VoiceArchetype }
+          : undefined
+      );
+    } catch {
+      // A refused speech engine must not block the editor.
+    }
+    this.aiFeedback.set(
+      `READING BACK: "${voiceover.text.toUpperCase()}"${voiceover.voice ? ` · ${voiceover.voice.toUpperCase()}` : ''}.`
+    );
+  }
+
+  /**
+   * Cut the visuals lane into scene cards from the act structure, falling
+   * back to whatever structure markers exist when no acts are marked.
+   */
+  cutTimelineIntoScenes(): void {
+    const acts = this.videoEngine.cutLaneIntoScenes('t1', 'act');
+    if (acts > 0) {
+      this.aiFeedback.set(
+        `${acts} ACT${acts === 1 ? '' : 'S'} CUT INTO SCENE CARDS ON THE VISUALS LANE.`
+      );
+      return;
+    }
+    const sections = this.videoEngine.cutLaneIntoScenes('t1');
+    if (sections > 0) {
+      this.aiFeedback.set(
+        `${sections} SECTION${sections === 1 ? '' : 'S'} CUT INTO SCENE CARDS ON THE VISUALS LANE.`
+      );
+      return;
+    }
+    this.aiFeedback.set(
+      'NO STRUCTURE MARKERS YET — RUN STRUCTURE ACTS (OR DROP MARKERS) FIRST.'
+    );
+  }
+
+  /** Re-target the timeline at a platform cutdown: length and framing. */
+  applySocialCutdown(cutdown: SocialCutdown): void {
+    if (this.originalDeliveryPresetId === null) {
+      this.originalDeliveryPresetId = this.activePreset().id;
+      this.originalTimelineDuration = this.videoEngine.duration();
+    }
+    this.cutdownAspect.set({
+      ratio: cutdown.aspectRatio,
+      width: cutdown.width,
+      height: cutdown.height,
+    });
+    this.videoEngine.duration.set(Math.max(1, cutdown.seconds));
+    if (this.videoEngine.currentTime() > this.videoEngine.duration()) {
+      this.videoEngine.seek(this.videoEngine.duration());
+    }
+    this.aiFeedback.set(
+      `SOCIAL CUTDOWN ARMED — ${cutdown.platform.toUpperCase()} ${cutdown.aspectRatio} AT ${cutdown.seconds}s. ${cutdown.description.toUpperCase()}`
+    );
+  }
+
+  /** Release the cutdown and hand the timeline back to its delivery preset. */
+  clearSocialCutdown(): void {
+    const presetId = this.originalDeliveryPresetId ?? 'movie-cinema-4k';
+    const duration = this.originalTimelineDuration;
+    this.originalDeliveryPresetId = null;
+    this.originalTimelineDuration = null;
+    this.cutdownAspect.set(null);
+    this.videoEngine.applyDeliveryPreset(presetId);
+    if (duration !== null && duration > 0) {
+      this.videoEngine.duration.set(duration);
+    }
+    this.aiFeedback.set(
+      `CUTDOWN RELEASED — TIMELINE BACK ONTO THE ${presetId.toUpperCase()} DELIVERY PRESET.`
+    );
+  }
+
   private drawHUD(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
     ctx.strokeStyle = '#10b98144';
     ctx.lineWidth = 1;
@@ -2906,7 +3774,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       offset: 0,
       type: clipType,
       source: 'upload',
-      effects: {
+      effects: createDefaultEffects({
         upscale: this.highQualityEnhancer(),
         bgRemoval: false,
         noiseReduction: false,
@@ -2917,7 +3785,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         transitionDuration: this.transitionDuration(),
         trimStart: this.resolveTrimAmount(duration),
         trimEnd: this.resolveTrimAmount(duration),
-      },
+      }),
     });
     this.aiFeedback.set(
       `UPLOAD SUCCESS: ${file.name} mapped into the ${this.activePreset().name} workflow.`
@@ -3030,7 +3898,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       offset: 0,
       type: 'image',
       source: isScreenShare ? 'screen' : 'camera',
-      effects: {
+      effects: createDefaultEffects({
         upscale: this.highQualityEnhancer(),
         bgRemoval: false,
         noiseReduction: false,
@@ -3041,7 +3909,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         transitionDuration: this.transitionDuration(),
         trimStart: this.resolveTrimAmount(duration),
         trimEnd: this.resolveTrimAmount(duration),
-      },
+      }),
     });
     this.aiFeedback.set(
       `${stillName.toUpperCase()} CUT INTO THE OVERLAYS LANE (${duration}s).`
@@ -3072,7 +3940,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         offset: 0,
         type: 'video',
         source: this.camera.sourceType() === 'screen' ? 'screen' : 'camera',
-        effects: {
+        effects: createDefaultEffects({
           upscale: this.highQualityEnhancer(),
           bgRemoval: false,
           noiseReduction: false,
@@ -3083,7 +3951,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           transitionDuration: this.transitionDuration(),
           trimStart: this.resolveTrimAmount(recordedSeconds),
           trimEnd: this.resolveTrimAmount(recordedSeconds),
-        },
+        }),
       });
       this.aiFeedback.set(
         `${takeName.toUpperCase()} RECORDED (${this.formatSeconds(recordedSeconds)}) INTO THE VISUALS LANE.`
@@ -3121,7 +3989,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         offset: 0,
         type: 'image',
         source: 'ai',
-        effects: {
+        effects: createDefaultEffects({
           upscale: true,
           bgRemoval: false,
           noiseReduction: false,
@@ -3132,7 +4000,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           transitionDuration: this.transitionDuration(),
           trimStart: this.resolveTrimAmount(aiClipDuration),
           trimEnd: this.resolveTrimAmount(aiClipDuration),
-        },
+        }),
       });
     } catch (error: any) {
       this.logger.error('Image Generation Error:', error);
@@ -3209,13 +4077,32 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   private resolveCanvasFilter(effects: VideoClip['effects']): string {
+    // Every look the picker offers must land in the chain — a missing entry
+    // grades the clip with an empty filter instead of the promised stock.
     const styleByFilter: Record<ClipFilter, string> = {
       none: 'saturate(1)',
       cinematic: 'saturate(0.82) contrast(1.12)',
       vivid: 'saturate(1.28) contrast(1.06)',
       mono: 'grayscale(1) contrast(1.08)',
+      noir: 'grayscale(1) contrast(1.22)',
+      'bleach-bypass': 'saturate(0.55) contrast(1.24)',
+      'teal-orange': 'saturate(1.3) hue-rotate(-8deg) contrast(1.08)',
+      sepia: 'sepia(0.62) saturate(1.08)',
+      dream: 'saturate(0.95) contrast(0.96)',
+      'cold-steel': 'saturate(0.72) hue-rotate(12deg) contrast(1.05)',
+      'golden-hour': 'sepia(0.35) saturate(1.3) contrast(1.04)',
+      'neon-pulse': 'saturate(1.6) hue-rotate(-12deg) contrast(1.1)',
     };
-    return `${styleByFilter[effects.filter]} brightness(${effects.brightness}) contrast(${effects.contrast})`;
+    const look = styleByFilter[effects.filter] ?? styleByFilter.none;
+    // Chroma boost is a dial, not a look: it rides the same chain so the
+    // saturation grades the media rather than tinting the composited frame.
+    const chroma = (effects.fx ?? []).find(
+      (entry) => entry.id === 'chroma-boost' && entry.value > 0
+    );
+    const saturation = chroma
+      ? ` saturate(${(1 + chroma.value * 0.6).toFixed(2)})`
+      : '';
+    return `${look}${saturation} brightness(${effects.brightness}) contrast(${effects.contrast})`;
   }
 
   private resolveTransitionAlpha(

@@ -93,7 +93,7 @@ test('upgrades an existing database and adds the cinema store', async ({
   // An upgrade that silently failed would still render the panel, so the panel
   // has to agree that storage works rather than showing the failure notice.
   await expect(page.locator('.project-console .camera-error')).toHaveCount(0);
-  await expect(page.locator('.project-console .camera-detail')).toContainText(
+  await expect(page.locator('.project-console .panel-detail')).toContainText(
     /no saved projects/i
   );
 });

@@ -18,6 +18,8 @@ import {
   CameraCaptureService,
 } from '../../services/camera-capture.service';
 import { CinemaProjectService } from '../../services/cinema-project.service';
+import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
+import { createDefaultEffects } from '../../services/video-engine.service';
 
 describe('ImageVideoLabComponent', () => {
   /** Shared 2D context stub so render assertions can inspect the draw calls. */
@@ -185,6 +187,17 @@ describe('ImageVideoLabComponent', () => {
       // Two seconds per bar is 120 BPM in 4/4, matching the engine's own maths.
       barsForDuration: jest.fn((seconds: number) =>
         Math.max(1, Math.round(seconds / 2))
+      ),
+      // Source-time mapping now scales by trimStart and speed, so the mock has
+      // to model the real service's arithmetic rather than a bare offset add.
+      resolveSourceTime: jest.fn(
+        (clip: { offset?: number; effects?: { trimStart?: number; speed?: number } }, localTime: number) =>
+          Math.max(
+            0,
+            (clip.offset || 0) +
+              Math.max(0, clip.effects?.trimStart || 0) +
+              localTime * (clip.effects?.speed ?? 1)
+          )
       ),
       togglePlay: jest.fn(),
       play: jest.fn(),
@@ -486,6 +499,19 @@ describe('ImageVideoLabComponent', () => {
       refresh: jest.fn(async () => []),
     };
 
+    const speechSynthesis = {
+      speak: jest.fn(),
+      cancel: jest.fn(),
+      isSpeaking: signal(false),
+      liveVoice: signal(null),
+      setArchetype: jest.fn(),
+      getArchetypeNames: jest.fn(() => [
+        'Deep Bass (Male)',
+        'Ominous Protocol',
+        'Soprano Elite (Female)',
+      ]),
+    };
+
     await TestBed.configureTestingModule({
       imports: [ImageVideoLabComponent],
       providers: [
@@ -496,6 +522,7 @@ describe('ImageVideoLabComponent', () => {
         { provide: ExportService, useValue: exportService },
         { provide: CameraCaptureService, useValue: camera },
         { provide: CinemaProjectService, useValue: cinemaProjects },
+        { provide: SpeechSynthesisService, useValue: speechSynthesis },
       ],
     })
       .overrideComponent(ImageVideoLabComponent, {
@@ -520,6 +547,7 @@ describe('ImageVideoLabComponent', () => {
       camera,
       exportService,
       cinemaProjects,
+      speechSynthesis,
       projectList,
       activeProjectId,
       fixture,
@@ -561,8 +589,24 @@ describe('ImageVideoLabComponent', () => {
     const mockGradient = { addColorStop: jest.fn() };
     ctxStub = {
       fillRect: jest.fn(),
+      clearRect: jest.fn(),
       createLinearGradient: jest.fn(() => mockGradient),
+      createRadialGradient: jest.fn(() => mockGradient),
+      createPattern: jest.fn(() => ({})),
+      createImageData: jest.fn((w: number, h: number) => ({
+        width: w,
+        height: h,
+        data: new Uint8ClampedArray(w * h * 4),
+      })),
+      getImageData: jest.fn((_x: number, _y: number, w: number, h: number) => ({
+        width: w,
+        height: h,
+        data: new Uint8ClampedArray(w * h * 4),
+      })),
+      putImageData: jest.fn(),
       beginPath: jest.fn(),
+      rect: jest.fn(),
+      clip: jest.fn(),
       moveTo: jest.fn(),
       lineTo: jest.fn(),
       stroke: jest.fn(),
@@ -575,7 +619,9 @@ describe('ImageVideoLabComponent', () => {
       drawImage: jest.fn(),
       translate: jest.fn(),
       scale: jest.fn(),
+      setTransform: jest.fn(),
       globalAlpha: 1,
+      globalCompositeOperation: 'source-over',
       filter: 'none',
       fillStyle: '',
       strokeStyle: '',
@@ -2210,7 +2256,578 @@ describe('ImageVideoLabComponent', () => {
       renderFrame();
 
       expect(ctxStub.createLinearGradient).toHaveBeenCalled();
-      expect(ctxStub.drawImage).not.toHaveBeenCalled();
+      // The layer itself is composited every frame — that draw is the renderer's
+      // own scratch canvas. What must never happen is decoded *media* reaching
+      // the frame, so the assertion names that rather than banning drawImage.
+      const drawnSources = (ctxStub.drawImage as jest.Mock).mock.calls.map(
+        (call) => call[0]
+      );
+      expect(
+        drawnSources.filter(
+          (source) =>
+            source instanceof HTMLVideoElement ||
+            source instanceof HTMLImageElement
+        )
+      ).toEqual([]);
+    });
+  });
+
+  describe('cinema engine room upgrades', () => {
+    it('composites a clip through its transition instead of drawing straight in', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: { ...createVideoClip().effects, transition: 'wipe-right', transitionDuration: 2 },
+        }),
+      ]);
+      (ctxStub.clip as jest.Mock).mockClear();
+
+      renderFrame();
+
+      // A wipe is a real clip region; an alpha ramp could never express it.
+      expect(ctxStub.clip).toHaveBeenCalled();
+    });
+
+    it('slides a clip through a slide transition', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: { ...createVideoClip().effects, transition: 'slide-left', transitionDuration: 2 },
+        }),
+      ]);
+      (ctxStub.translate as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.translate).toHaveBeenCalled();
+    });
+
+    it('carries every colour look into the canvas filter', async () => {
+      const { component } = await createComponent();
+      const resolve = (
+        component as unknown as {
+          resolveCanvasFilter: (effects: VideoClip['effects']) => string;
+        }
+      ).resolveCanvasFilter.bind(component);
+
+      const looks = [
+        'none',
+        'cinematic',
+        'vivid',
+        'mono',
+        'noir',
+        'bleach-bypass',
+        'teal-orange',
+        'sepia',
+        'dream',
+        'cold-steel',
+        'golden-hour',
+        'neon-pulse',
+      ] as const;
+
+      looks.forEach((filter) => {
+        const style = resolve(
+          createVideoClip({ effects: { ...createVideoClip().effects, filter } }).effects
+        );
+        // Every look must produce a real filter chain, and the clip's own
+        // brightness/contrast dials must survive the look being applied.
+        expect(style).toContain('brightness(');
+        expect(style).toContain('contrast(');
+        if (filter === 'mono' || filter === 'noir') {
+          expect(style).toContain('grayscale(1)');
+        }
+      });
+    });
+
+    it('erases a flat backdrop when background removal is on', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      // A uniformly white frame: every pixel matches the corner key.
+      (ctxStub.getImageData as jest.Mock).mockReturnValue({
+        width: 1920,
+        height: 803,
+        data: new Uint8ClampedArray(1920 * 803 * 4).fill(255),
+      });
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: { ...createVideoClip().effects, bgRemoval: true },
+        }),
+      ]);
+      (ctxStub.putImageData as jest.Mock).mockClear();
+
+      renderFrame();
+
+      const written = (ctxStub.putImageData as jest.Mock).mock.calls[0][0] as {
+        data: Uint8ClampedArray;
+      };
+      expect(written.data[3]).toBe(0);
+    });
+
+    it('skips background removal when the canvas cannot be read', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      (ctxStub.getImageData as jest.Mock).mockImplementation(() => {
+        throw new DOMException('tainted');
+      });
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: { ...createVideoClip().effects, bgRemoval: true },
+        }),
+      ]);
+
+      // A cross-origin frame that cannot be read must not take the whole
+      // render down — the rest of the grade still ships.
+      expect(() => renderFrame()).not.toThrow();
+    });
+
+    it('softens the frame when noise reduction is on', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: { ...createVideoClip().effects, noiseReduction: true },
+        }),
+      ]);
+
+      renderFrame();
+
+      // The denoise pass re-composites the frame through a blur.
+      const filters = (ctxStub.drawImage as jest.Mock).mock.calls.length;
+      expect(filters).toBeGreaterThan(1);
+    });
+
+    it('burns a title card into the feed', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          type: 'overlay',
+          effects: {
+            ...createVideoClip().effects,
+            title: {
+              text: 'ACT ONE',
+              subtitle: 'The Setup',
+              style: 'title-card',
+              position: 'center',
+            },
+          },
+        }),
+      ]);
+      (ctxStub.fillText as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.fillText).toHaveBeenCalledWith(
+        'ACT ONE',
+        expect.any(Number),
+        expect.any(Number)
+      );
+      expect(ctxStub.fillText).toHaveBeenCalledWith(
+        'The Setup',
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('draws a narration line as a subtitle on the monitor', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          type: 'overlay',
+          effects: {
+            ...createVideoClip().effects,
+            voiceover: { text: 'Somewhere past midnight.', voice: 'Deep Bass (Male)', rendered: true },
+          },
+        }),
+      ]);
+      (ctxStub.fillText as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.fillText).toHaveBeenCalledWith(
+        'Somewhere past midnight.',
+        expect.any(Number),
+        expect.any(Number)
+      );
+      // The voice identity is part of the readout.
+      expect(ctxStub.fillText).toHaveBeenCalledWith(
+        expect.stringContaining('DEEP BASS (MALE)'),
+        expect.any(Number),
+        expect.any(Number)
+      );
+    });
+
+    it('applies the FX rack dials over the composited frame', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: {
+            ...createVideoClip().effects,
+            fx: [
+              { id: 'vignette', value: 0.6 },
+              { id: 'scanlines', value: 0.5 },
+              { id: 'letterbox', value: 0.4 },
+            ],
+          },
+        }),
+      ]);
+      (ctxStub.createRadialGradient as jest.Mock).mockClear();
+
+      renderFrame();
+
+      // Vignette is a radial falloff; scanlines and letterbox paint bars.
+      expect(ctxStub.createRadialGradient).toHaveBeenCalled();
+      expect(ctxStub.fillRect).toHaveBeenCalled();
+    });
+
+    it('ignores FX rack entries that are not real effects', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: {
+            ...createVideoClip().effects,
+            fx: [{ id: 'bogus', value: 0.5 }] as never,
+          },
+        }),
+      ]);
+
+      expect(() => renderFrame()).not.toThrow();
+    });
+
+    // An upload never mirrors, so `scale`/`translate` in these two tests can
+    // only come from the clip's own camera move.
+    const staticSource = { source: 'upload' as const };
+
+    it('moves a clip with a Ken Burns push', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          ...staticSource,
+          effects: { ...createVideoClip().effects, motion: 'ken-burns-in' },
+        }),
+      ]);
+      renderFrame();
+      // The element has to have decoded before a camera move means anything.
+      decodeVideo(videos[0]);
+      (ctxStub.scale as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.scale).toHaveBeenCalled();
+    });
+
+    it('leaves a static clip untransformed', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      const videos = installVideoElement();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          ...staticSource,
+          effects: { ...createVideoClip().effects, motion: 'none' },
+        }),
+      ]);
+      renderFrame();
+      decodeVideo(videos[0]);
+      (ctxStub.scale as jest.Mock).mockClear();
+
+      renderFrame();
+
+      expect(ctxStub.scale).not.toHaveBeenCalled();
+    });
+
+    it('cuts a title card onto the overlays lane with its text intact', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.titleText.set('Cold Open');
+      component.titleSubtitle.set('Chapter One');
+      component.titleStyle.set('lower-third');
+      component.titleDuration.set(6);
+
+      component.addTitleCard();
+
+      expect(videoEngine.addClip).toHaveBeenCalledWith(
+        't2',
+        expect.objectContaining({
+          duration: 6,
+          effects: expect.objectContaining({
+            title: {
+              text: 'Cold Open',
+              subtitle: 'Chapter One',
+              style: 'lower-third',
+              position: 'center',
+            },
+          }),
+        })
+      );
+      expect(component.aiFeedback()).toContain('TITLE CARD CUT IN');
+    });
+
+    it('refuses an empty title card', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.titleText.set('   ');
+
+      component.addTitleCard();
+
+      expect(videoEngine.addClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('TYPE THE TITLE TEXT FIRST');
+    });
+
+    it('re-edits the selected card instead of re-cutting it', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.findClip.mockReturnValue({
+        id: 'title-1',
+        name: 'TITLE · Old',
+        duration: 4,
+        trackId: 't2',
+        effects: {
+          ...createVideoClip().effects,
+          title: {
+            text: 'Old',
+            subtitle: '',
+            style: 'title-card' as const,
+            position: 'center' as const,
+          },
+        },
+      });
+      component.selectedClipId.set('title-1');
+      component.titleText.set('New');
+
+      component.updateSelectedTitle();
+
+      expect(videoEngine.updateClip).toHaveBeenCalledWith(
+        'title-1',
+        expect.objectContaining({
+          name: 'TITLE · New',
+          effects: expect.objectContaining({
+            title: expect.objectContaining({ text: 'New' }),
+          }),
+        })
+      );
+    });
+
+    it('cuts narration onto the AI voiceovers lane and speaks it', async () => {
+      const { component, videoEngine, speechSynthesis } =
+        await createComponent();
+      component.narrationText.set('The city never sleeps.');
+      component.narrationVoice.set('Deep Bass (Male)');
+
+      component.addNarrationLine();
+
+      expect(videoEngine.addClip).toHaveBeenCalledWith(
+        't3',
+        expect.objectContaining({
+          effects: expect.objectContaining({
+            voiceover: expect.objectContaining({
+              text: 'The city never sleeps.',
+              voice: 'Deep Bass (Male)',
+            }),
+          }),
+        })
+      );
+      expect(speechSynthesis.speak).toHaveBeenCalledWith(
+        'The city never sleeps.',
+        expect.objectContaining({ forceArchetype: 'Deep Bass (Male)' })
+      );
+    });
+
+    it('still cuts the narration when the browser has no speech engine', async () => {
+      const { component, videoEngine, speechSynthesis } =
+        await createComponent();
+      speechSynthesis.speak.mockImplementation(() => {
+        throw new Error('no speech engine');
+      });
+      component.narrationText.set('Transcript only.');
+
+      component.addNarrationLine();
+
+      // The transcript is the deliverable; the audio is a bonus.
+      expect(videoEngine.addClip).toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('NARRATION CUT IN');
+    });
+
+    it('refuses an empty narration line', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.narrationText.set('  ');
+
+      component.addNarrationLine();
+
+      expect(videoEngine.addClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('TYPE THE NARRATION LINE FIRST');
+    });
+
+    it('grades the whole timeline from one look', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.gradeAllClips = jest.fn().mockReturnValue(7);
+      component.selectedFilter.set('noir');
+
+      component.gradeWholeTimeline();
+
+      expect(videoEngine.gradeAllClips).toHaveBeenCalledWith('noir');
+      expect(component.aiFeedback()).toContain('7 CLIP(S) UPDATED');
+    });
+
+    it('arms a social cutdown by re-targeting the timeline length', async () => {
+      const { component, videoEngine } = await createComponent();
+      const cutdown = component.socialCutdowns[0];
+
+      component.applySocialCutdown(cutdown);
+
+      expect(videoEngine.duration()).toBe(cutdown.seconds);
+      expect(component.cutdownAspect()?.ratio).toBe(cutdown.aspectRatio);
+      expect(component.aiFeedback()).toContain('SOCIAL CUTDOWN ARMED');
+    });
+
+    it('releases a cutdown back onto the delivery preset', async () => {
+      const { component, videoEngine } = await createComponent();
+      component.applySocialCutdown(component.socialCutdowns[0]);
+
+      component.clearSocialCutdown();
+
+      expect(component.cutdownAspect()).toBeNull();
+      expect(videoEngine.applyDeliveryPreset).toHaveBeenCalledWith(
+        'movie-cinema-4k'
+      );
+    });
+
+    it('cuts the visuals lane into scene cards from the act structure', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.cutLaneIntoScenes = jest.fn().mockReturnValue(3);
+
+      component.cutTimelineIntoScenes();
+
+      expect(videoEngine.cutLaneIntoScenes).toHaveBeenCalledWith('t1', 'act');
+      expect(component.aiFeedback()).toContain('3 ACTS');
+    });
+
+    it('falls back to any structure when no act markers exist', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.cutLaneIntoScenes = jest
+        .fn()
+        .mockReturnValueOnce(0)
+        .mockReturnValueOnce(5);
+
+      component.cutTimelineIntoScenes();
+
+      expect(videoEngine.cutLaneIntoScenes).toHaveBeenLastCalledWith('t1');
+      expect(component.aiFeedback()).toContain('5 SECTIONS');
+    });
+
+    it('says so when there is no structure to cut into scenes', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.cutLaneIntoScenes = jest.fn().mockReturnValue(0);
+
+      component.cutTimelineIntoScenes();
+
+      expect(component.aiFeedback()).toContain('NO STRUCTURE MARKERS YET');
+    });
+
+    it('pushes the rack onto every clip under the playhead', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({ id: 'clip-a' }),
+        createVideoClip({ id: 'clip-b' }),
+      ]);
+      component.setFxValue('vignette', 0.5);
+
+      component.applyFxRackToActiveClips();
+
+      expect(videoEngine.updateClip).toHaveBeenCalledWith(
+        'clip-a',
+        expect.objectContaining({
+          effects: expect.objectContaining({
+            fx: [{ id: 'vignette', value: 0.5 }],
+          }),
+        })
+      );
+      expect(component.aiFeedback()).toContain('VIGNETTE 50%');
+    });
+
+    it('reports a rack applied with no clip under the playhead', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([]);
+
+      component.applyFxRackToActiveClips();
+
+      expect(videoEngine.updateClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('NO ACTIVE CLIPS');
+    });
+
+    it('sets motion and speed on the selected clip', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.findClip.mockReturnValue(createVideoClip({ id: 'clip-m' }));
+      component.selectedClipId.set('clip-m');
+      component.selectedMotion.set('ken-burns-out');
+      component.selectedSpeed.set(2);
+
+      component.applyMotionToSelectedClip();
+
+      expect(videoEngine.updateClip).toHaveBeenCalledWith(
+        'clip-m',
+        expect.objectContaining({
+          effects: expect.objectContaining({
+            motion: 'ken-burns-out',
+            speed: 2,
+          }),
+        })
+      );
+    });
+
+    it('asks for a selection before setting motion', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.findClip.mockReturnValue(null);
+
+      component.applyMotionToSelectedClip();
+
+      expect(videoEngine.updateClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('SELECT A CLIP FIRST');
+    });
+
+    it('loads the selected card back into the editor', async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.findClip.mockReturnValue(
+        createVideoClip({
+          id: 'title-2',
+          effects: {
+            ...createVideoClip().effects,
+            title: {
+              text: 'Epilogue',
+              subtitle: 'Ten Years Later',
+              style: 'caption' as const,
+              position: 'bottom' as const,
+            },
+          },
+        })
+      );
+      component.selectedClipId.set('title-2');
+
+      component.loadSelectedTitleIntoEditor();
+
+      expect(component.titleText()).toBe('Epilogue');
+      expect(component.titleSubtitle()).toBe('Ten Years Later');
+      expect(component.titleStyle()).toBe('caption');
+      expect(component.titlePosition()).toBe('bottom');
+    });
+
+    it('speaks the selected voiceover clip without re-cutting it', async () => {
+      const { component, videoEngine, speechSynthesis } =
+        await createComponent();
+      videoEngine.findClip.mockReturnValue(
+        createVideoClip({
+          id: 'vox-1',
+          effects: {
+            ...createVideoClip().effects,
+            voiceover: {
+              text: 'Roll the tape.',
+              voice: 'Ominous Protocol',
+              rendered: true,
+            },
+          },
+        })
+      );
+      component.selectedClipId.set('vox-1');
+
+      component.speakSelectedVoiceover();
+
+      expect(speechSynthesis.speak).toHaveBeenCalledWith(
+        'Roll the tape.',
+        expect.objectContaining({ forceArchetype: 'Ominous Protocol' })
+      );
+      expect(videoEngine.updateClip).not.toHaveBeenCalled();
     });
   });
 

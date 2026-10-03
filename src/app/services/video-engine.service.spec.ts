@@ -253,8 +253,227 @@ describe('VideoEngineService project snapshot', () => {
       expect(rightIds).toHaveLength(1);
       expect(left.duration).toBe(6);
       expect(right.startTime).toBe(6);
+      // Source time at the cut: offset 4 + head trim 2 + 4s of picture elapsed.
       expect(right.offset).toBe(10);
     });
+
+    it('upgrades a v1 snapshot instead of refusing it', () => {
+      const engine = createEngine();
+      engine.addClip('t1', clip({ url: 'data:image/jpeg;base64,AAAA' }));
+      const snapshot = engine.snapshot();
+      // Rewrite the record as the previous release wrote it: no motion, no
+      // speed and no FX rack anywhere on the clip.
+      (snapshot as { version: number }).version = 1;
+      delete (snapshot.tracks[0].clips[0].effects as Record<string, unknown>)
+        .motion;
+      delete (snapshot.tracks[0].clips[0].effects as Record<string, unknown>)
+        .speed;
+      delete (snapshot.tracks[0].clips[0].effects as Record<string, unknown>).fx;
+
+      const report = engine.restore(snapshot);
+      const restored = engine.tracks()[0].clips[0];
+
+      expect(report.clips).toBe(1);
+      expect(restored.effects.motion).toBe('none');
+      expect(restored.effects.speed).toBe(1);
+      expect(restored.effects.fx).toEqual([]);
+    });
+
+    it('drops FX entries a record could not have meant', () => {
+      const engine = createEngine();
+      const snapshot = engine.snapshot();
+      snapshot.tracks[0].clips.push({
+        ...clip({ url: 'data:image/jpeg;base64,AAAA' }),
+        id: 'graded',
+        trackId: 't1',
+        effects: {
+          ...clip().effects,
+          speed: 900,
+          fx: [
+            { id: 'vignette', value: 0.5 },
+            { id: 'not-an-effect', value: 0.5 },
+            { id: 'film-grain', value: Number.NaN },
+            { id: 'glow', value: 0 },
+          ] as never,
+        },
+      });
+
+      engine.restore(snapshot);
+      const restored = engine.findClip('graded')!;
+
+      expect(restored.effects.fx).toEqual([{ id: 'vignette', value: 0.5 }]);
+      expect(restored.effects.speed).toBe(4);
+    });
+  });
+
+  describe('edit operations', () => {
+    it('ripple-deletes a clip and closes the gap on its own lane only', () => {
+      const engine = createEngine();
+      const first = engine.addClip(
+        't1',
+        clip({ url: 'data:image/jpeg;base64,AAAA', startTime: 0, duration: 4 })
+      );
+      engine.addClip(
+        't1',
+        clip({ url: 'data:image/jpeg;base64,AAAA', startTime: 4, duration: 4 })
+      );
+      const cue = engine.addClip(
+        't4',
+        clip({ url: 'data:image/jpeg;base64,AAAA', startTime: 4, duration: 4 })
+      );
+
+      const shifted = engine.rippleDeleteClip(first);
+
+      expect(shifted).toBe(1);
+      expect(engine.findClip(first)).toBeNull();
+      expect(engine.findClip(cue)!.startTime).toBe(4);
+      expect(engine.tracks()[0].clips[0].startTime).toBe(0);
+    });
+
+    it('refuses to ripple a locked lane', () => {
+      const engine = createEngine();
+      const id = engine.addClip(
+        't1',
+        clip({ url: 'data:image/jpeg;base64,AAAA', startTime: 0, duration: 4 })
+      );
+      engine.tracks.update((tracks) =>
+        tracks.map((track) =>
+          track.id === 't1' ? { ...track, locked: true } : track
+        )
+      );
+
+      expect(engine.rippleDeleteClip(id)).toBe(-1);
+      expect(engine.findClip(id)).not.toBeNull();
+    });
+
+    it('cuts a lane into one scene card per marker', () => {
+      const engine = createEngine();
+      engine.applyDeliveryPreset('movie-festival-master');
+      engine.addMarker('Act I', 0, 'act');
+      engine.addMarker('Act II', 30, 'act');
+      engine.addMarker('Act III', 60, 'act');
+
+      const created = engine.cutLaneIntoScenes('t1', 'act');
+      const cards = engine.tracks()[0].clips;
+
+      expect(created).toBe(3);
+      expect(cards.map((card) => card.name)).toEqual([
+        'Act I',
+        'Act II',
+        'Act III',
+      ]);
+      // Cards tile the timeline without a gap, so nothing is left uncovered.
+      expect(cards[0].startTime).toBe(0);
+      expect(cards[1].startTime).toBe(cards[0].startTime + cards[0].duration);
+    });
+
+    it('does not cut a lane into scenes with no markers to cut on', () => {
+      const engine = createEngine();
+
+      expect(engine.cutLaneIntoScenes('t1', 'act')).toBe(0);
+      expect(engine.tracks()[0].clips).toHaveLength(0);
+    });
+
+    it('grades every clip on the timeline in one pass', () => {
+      const engine = createEngine();
+      engine.addClip('t1', clip({ url: 'data:image/jpeg;base64,AAAA' }));
+      engine.addClip('t2', clip({ url: 'data:image/jpeg;base64,AAAA' }));
+
+      expect(engine.gradeAllClips('noir')).toBe(2);
+      expect(
+        engine
+          .tracks()
+          .flatMap((track) => track.clips)
+          .every((entry) => entry.effects.filter === 'noir')
+      ).toBe(true);
+    });
+
+    it('sets an FX dial everywhere and clears it at zero', () => {
+      const engine = createEngine();
+      engine.addClip('t1', clip({ url: 'data:image/jpeg;base64,AAAA' }));
+
+      expect(engine.applyEffectToAllClips('vignette', 0.4)).toBe(1);
+      expect(engine.tracks()[0].clips[0].effects.fx).toEqual([
+        { id: 'vignette', value: 0.4 },
+      ]);
+
+      expect(engine.applyEffectToAllClips('vignette', 0)).toBe(1);
+      expect(engine.tracks()[0].clips[0].effects.fx).toEqual([]);
+    });
+  });
+
+  describe('source-time mapping', () => {
+    it('skips the trimmed head, scales by speed and never goes negative', () => {
+      const engine = createEngine();
+      const id = engine.addClip(
+        't1',
+        clip({
+          url: 'data:image/jpeg;base64,AAAA',
+          offset: 10,
+          duration: 20,
+          effects: { ...clip().effects, trimStart: 2, speed: 2 },
+        })
+      );
+      const entry = engine.findClip(id)!;
+
+      // 3s into the picture: offset 10 + trim 2 + (3s × 2×) = 18.
+      expect(engine.resolveSourceTime(entry, 3)).toBe(18);
+      // Behind the picture the mapping runs back through the head trim, so it
+      // lands on 2 — a real source time, not the clamp.
+      expect(engine.resolveSourceTime(entry, -5)).toBe(2);
+      // Far enough back to go negative, it floors at 0 rather than seeking to a
+      // negative source time the decoder would reject.
+      expect(engine.resolveSourceTime(entry, -20)).toBe(0);
+    });
+
+    it('clamps a speed a record could not have rendered', () => {
+      const engine = createEngine();
+
+      expect(engine.clampSpeed(0.01)).toBe(0.25);
+      expect(engine.clampSpeed(100)).toBe(4);
+      expect(engine.clampSpeed(undefined)).toBe(1);
+    });
+
+    it('preserves the trimmed source span when a video speed changes', () => {
+      const engine = createEngine();
+      const id = engine.addClip(
+        't1',
+        clip({
+          url: 'data:video/webm;base64,AAAA',
+          startTime: 10,
+          duration: 12,
+          offset: 5,
+          effects: { ...clip().effects, trimStart: 2, trimEnd: 2, speed: 1 },
+        })
+      );
+
+      engine.updateClip(id, {
+        effects: { ...engine.findClip(id)!.effects, speed: 2 },
+      });
+
+      const fast = engine.findClip(id)!;
+      expect(fast.duration).toBe(8);
+      expect(fast.startTime).toBe(10);
+      expect(fast.effects.trimStart).toBe(2);
+      expect(fast.effects.trimEnd).toBe(2);
+      // The active 4s portion now spans the same 8s of source media.
+      expect(engine.resolveSourceTime(fast, fast.duration - 4)).toBe(15);
+    });
+
+    it('does not resize a still when its speed metadata changes', () => {
+      const engine = createEngine();
+      const id = engine.addClip(
+        't2',
+        clip({ type: 'image', duration: 6, effects: { ...clip().effects, speed: 1 } })
+      );
+
+      engine.updateClip(id, {
+        effects: { ...engine.findClip(id)!.effects, speed: 2 },
+      });
+
+      expect(engine.findClip(id)!.duration).toBe(6);
+    });
+
   });
 });
 
@@ -324,6 +543,36 @@ describe('VideoEngineService transport', () => {
       expect(frames.raf).toHaveBeenCalledTimes(2);
     } finally {
       frames.restore();
+    }
+  });
+
+  it('stops on the exact timeline end instead of wrapping to zero', () => {
+    const globals = globalThis as any;
+    const original = {
+      raf: globals.requestAnimationFrame,
+      caf: globals.cancelAnimationFrame,
+    };
+    let callback: FrameRequestCallback | undefined;
+    globals.requestAnimationFrame = jest.fn((next: FrameRequestCallback) => {
+      callback = next;
+      return 1;
+    });
+    globals.cancelAnimationFrame = jest.fn();
+    const now = jest.spyOn(performance, 'now').mockReturnValue(1000);
+    try {
+      const engine = createEngine();
+      engine.duration.set(1);
+      engine.seek(0.9);
+      engine.play();
+
+      callback?.(1200);
+
+      expect(engine.currentTime()).toBe(1);
+      expect(engine.isPlaying()).toBe(false);
+    } finally {
+      now.mockRestore();
+      globals.requestAnimationFrame = original.raf;
+      globals.cancelAnimationFrame = original.caf;
     }
   });
 });

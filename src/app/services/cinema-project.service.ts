@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
+  CINEMA_SNAPSHOT_MIN_VERSION,
   CINEMA_SNAPSHOT_VERSION,
   CinemaRestoreReport,
   CinemaSnapshot,
@@ -274,12 +275,20 @@ export class CinemaProjectService {
         return { ok: false, message };
       }
 
-      if (record.snapshot.version !== CINEMA_SNAPSHOT_VERSION) {
-        // Checked rather than ignored: a record from another build can carry
+      // Older-but-known formats are upgraded on load rather than refused: a
+      // project saved before the FX rack existed is still the artist's work, and
+      // the fields it does not carry take their neutral defaults.
+      const version = record.snapshot.version;
+      if (
+        typeof version !== 'number' ||
+        version < CINEMA_SNAPSHOT_MIN_VERSION ||
+        version > CINEMA_SNAPSHOT_VERSION
+      ) {
+        // Checked rather than ignored: a record from a *newer* build can carry
         // fields this one does not understand, and reading it as if it were the
         // current shape would drop them without ever saying so.
         const message = `That project was saved by a different version of the app (format ${
-          record.snapshot.version ?? 'unknown'
+          version ?? 'unknown'
         }), so it cannot be opened here.`;
         this.lastError.set(message);
         return { ok: false, message };
