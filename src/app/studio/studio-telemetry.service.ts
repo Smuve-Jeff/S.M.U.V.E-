@@ -19,6 +19,7 @@ export type StudioTelemetryEventName =
   | "set_opened"
   | "set_deleted"
   | "mobile_quick_start"
+  | "mobile_tools_opened"
   | "project_exported"
   | "midi_exported"
   | "midi_imported"

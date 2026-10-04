@@ -198,7 +198,7 @@
       <!-- Theme cycle button (Light → Focus → Dark) -->
       <button
         type="button"
-        class="comp-icon-btn"
+        class="comp-icon-btn comp-theme-btn"
         (click)="cycleTheme()"
         [attr.aria-label]="
           'Switch theme — currently ' +
@@ -273,7 +273,7 @@
       </button>
       <button
         type="button"
-        class="comp-icon-btn"
+        class="comp-icon-btn comp-share-btn"
         (click)="copyShareLink()"
         title="Copy Studio share link to clipboard"
         aria-label="Copy Studio share link to clipboard"
@@ -282,7 +282,7 @@
       </button>
       <button
         type="button"
-        class="comp-icon-btn"
+        class="comp-icon-btn comp-collab-btn"
         [class.comp-active]="collaboration.currentSession()"
         (click)="toggleCollaboration()"
         [attr.aria-label]="
@@ -398,14 +398,265 @@
     </p>
   </div>
 
+  <!-- ====================== MOBILE TOOLS SHEET ====================== -->
+  <!-- Compact-mobile progressive disclosure. The topbar keeps the AI
+       assistant one tap away; this bottom sheet owns every other secondary
+       command — the whole tools row plus the demoted topbar cluster
+       (beginner/theme/Stage FX/shortcuts/share/collab) and saved Sets.
+       Desktop never shows the MORE trigger, and `display: none` keeps this
+       surface out of the accessibility tree when closed. -->
+  <div
+    class="comp-tools-backdrop"
+    *ngIf="showMobileToolsSheet() && uiService.isCompactMobile()"
+    (click)="toggleMobileToolsSheet(false)"
+    aria-hidden="true"
+  ></div>
+  <aside
+    class="comp-tools-sheet"
+    [class.comp-tools-sheet-open]="showMobileToolsSheet()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showMobileToolsSheet()"
+    [attr.inert]="showMobileToolsSheet() ? null : ''"
+    aria-label="Studio tools"
+  >
+    <header class="comp-tools-sheet-head">
+      <span class="comp-tools-sheet-title">
+        <span class="material-symbols-outlined">tune</span>
+        STUDIO TOOLS
+      </span>
+      <button
+        type="button"
+        class="comp-tools-sheet-close"
+        (click)="toggleMobileToolsSheet(false)"
+        aria-label="Close studio tools"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+
+    <div class="comp-tools-sheet-body">
+      <section class="comp-tools-sheet-group" aria-label="Create and record">
+        <span class="comp-tools-sheet-label">CREATE &amp; RECORD</span>
+        <div class="comp-tools-sheet-grid">
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleSmartCreation(true); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">bolt</span>
+            <strong>1-Tap Starter</strong>
+            <small>Vibe → full loop</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleAiMixAssistant(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">analytics</span>
+            <strong>AI Mix</strong>
+            <small>Smart suggestions</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleSmartRecordingPanel(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">radio_button_checked</span>
+            <strong>Record</strong>
+            <small>{{ smartRecording.recordingMode() | uppercase }} mode</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="comp-tools-sheet-group" aria-label="Project actions">
+        <span class="comp-tools-sheet-label">PROJECT</span>
+        <div class="comp-tools-sheet-grid">
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleSetsBrowser(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">folder_open</span>
+            <strong>My Sets</strong>
+            <small>Saved projects</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="saveProject(); toggleMobileToolsSheet(false)"
+            [disabled]="projectWorkspace.isSaving()"
+          >
+            <span class="material-symbols-outlined">save</span>
+            <strong>{{ projectWorkspace.isSaving() ? 'Saving…' : 'Save' }}</strong>
+            <small>Back to your sets</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="exportProject(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">file_download</span>
+            <strong>Export</strong>
+            <small>.smuve bundle</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="audioImport.importFiles(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">upload_file</span>
+            <strong>Import audio</strong>
+            <small>MP3 · WAV</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="exportMidi(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">piano</span>
+            <strong>Export MIDI</strong>
+            <small>.mid file</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleProjectMetadata(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">info</span>
+            <strong>Project info</strong>
+            <small>Genre · key · mood</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleStudioInsights(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">monitoring</span>
+            <strong>Insights</strong>
+            <small>Metrics &amp; backlog</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="comp-tools-sheet-group" aria-label="Session and sharing">
+        <span class="comp-tools-sheet-label">SESSION</span>
+        <div class="comp-tools-sheet-grid">
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            [class.comp-tools-sheet-on]="isBeginnerMode()"
+            (click)="toggleBeginnerMode(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">{{
+              isBeginnerMode() ? 'school' : 'auto_awesome'
+            }}</span>
+            <strong>{{ isBeginnerMode() ? 'Beginner Mode' : 'Pro Mode' }}</strong>
+            <small>Guided ↔ full controls</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="copyShareLink(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">share</span>
+            <strong>Share</strong>
+            <small>Copy studio link</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            [class.comp-tools-sheet-on]="!!collaboration.currentSession()"
+            (click)="toggleCollaboration(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">group</span>
+            <strong>{{
+              collaboration.currentSession() ? 'Leave collab' : 'Collab'
+            }}</strong>
+            <small>{{
+              collaboration.currentSession()
+                ? 'End the live session'
+                : 'Jam in real time'
+            }}</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleShortcuts(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">keyboard</span>
+            <strong>Shortcuts</strong>
+            <small>Space · R · Ctrl+S</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="comp-tools-sheet-group" aria-label="Appearance">
+        <span class="comp-tools-sheet-label">APPEARANCE</span>
+        <div class="comp-tools-sheet-grid">
+          <button
+            *ngFor="let t of ['light', 'focus', 'dark']"
+            type="button"
+            class="comp-tools-sheet-btn"
+            [class.comp-tools-sheet-on]="themeMode() === t"
+            (click)="themeMode.set(t); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">
+              {{
+                t === 'light'
+                  ? 'light_mode'
+                  : t === 'focus'
+                    ? 'filter_drama'
+                    : 'dark_mode'
+              }}
+            </span>
+            <strong>{{
+              t === 'light' ? 'Light' : t === 'focus' ? 'Focus' : 'Dark'
+            }}</strong>
+            <small>Theme</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            [class.comp-tools-sheet-on]="stageFxEnabled()"
+            (click)="toggleStageFx(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">{{
+              stageFxEnabled() ? 'auto_fix_high' : 'auto_fix_off'
+            }}</span>
+            <strong>Stage FX</strong>
+            <small>{{ stageFxEnabled() ? 'On — ambience' : 'Off — calm' }}</small>
+          </button>
+        </div>
+      </section>
+    </div>
+  </aside>
+
   <!-- ====================== TOPBAR CONTROLS ====================== -->
-  <!-- AI Mix, Record Mode, Project Metadata topbar buttons -->
+  <!-- Desktop: the full context toolbar. Compact mobile: one MORE button →
+       the tools sheet (progressive disclosure — every tool stays one tap
+       away, but nine buttons no longer sit above the canvas). -->
   <div
     class="comp-topbar-tools studio-context-toolbar"
     role="toolbar"
     aria-label="Studio context tools"
     *ngIf="!headerCollapsed()"
   >
+    <button
+      type="button"
+      class="comp-tool-btn comp-tool-more"
+      (click)="toggleMobileToolsSheet()"
+      [class.comp-tool-active]="showMobileToolsSheet()"
+      title="All studio tools — mix, record, save, export & more"
+      aria-label="Open studio tools menu"
+      [attr.aria-expanded]="showMobileToolsSheet()"
+      [attr.aria-haspopup]="'dialog'"
+    >
+      <span class="material-symbols-outlined">{{ showMobileToolsSheet() ? 'close' : 'tune' }}</span>
+      <span class="comp-tool-label">MORE</span>
+    </button>
+
+    <div class="comp-desktop-tools">
     <button
       type="button"
       class="comp-tool-btn comp-tool-create"
@@ -531,6 +782,7 @@
       <span class="material-symbols-outlined">monitoring</span>
       <span class="comp-tool-label">INSIGHTS</span>
     </button>
+    </div>
   </div>
 
   <!-- ====================== AI SESSION BAND ====================== -->
@@ -574,44 +826,18 @@
         <h2 id="mobile-start-title">Make something in 30 seconds.</h2>
         <p>Pick a vibe or instant starter. S.M.U.V.E. loads the tracks, sounds and grooves automatically.</p>
       </div>
-      <div class="comp-mobile-start-actions" role="group" aria-label="Quick create actions">
-        <button
-          type="button"
-          class="comp-mobile-start-action comp-mobile-start-hero"
-          (click)="toggleSmartCreation(true)"
-          aria-label="Open 1-Tap Smart Creation Assistant"
-        >
-          <span class="material-symbols-outlined">bolt</span>
-          <span><strong>1-Tap Starter</strong><small>Instant Beats &amp; Vocals</small></span>
-        </button>
-        <button
-          type="button"
-          class="comp-mobile-start-action comp-mobile-start-primary"
-          (click)="audioEngine.resume(); setActiveView('drum-machine')"
-          aria-label="Start a beat in the Drum Machine"
-        >
-          <span class="material-symbols-outlined">grid_view</span>
-          <span><strong>Start a beat</strong><small>Drum Machine</small></span>
-        </button>
-        <button
-          type="button"
-          class="comp-mobile-start-action"
-          (click)="audioEngine.resume(); setActiveView('piano-roll')"
-          aria-label="Play keys in the Piano Roll"
-        >
-          <span class="material-symbols-outlined">piano</span>
-          <span><strong>Play keys</strong><small>Piano Roll</small></span>
-        </button>
-        <button
-          type="button"
-          class="comp-mobile-start-action"
-          (click)="toggleSmartCreation(true); setCreationTabVocals()"
-          aria-label="Record a vocal idea"
-        >
-          <span class="material-symbols-outlined">mic</span>
-          <span><strong>Capture a take</strong><small>Vocal Suite</small></span>
-        </button>
-      </div>
+      <!-- ONE primary create action. The old 2×2 starter grid duplicated
+           entries that already live in the CREATE sheet and the drawer,
+           and every extra button competed with the beat for attention. -->
+      <button
+        type="button"
+        class="comp-mobile-start-action comp-mobile-start-hero"
+        (click)="toggleSmartCreation(true)"
+        aria-label="Open 1-Tap Smart Creation Assistant"
+      >
+        <span class="material-symbols-outlined">bolt</span>
+        <span><strong>1-Tap Starter</strong><small>Beats · Keys · Vocals — pick a vibe, we build the loop</small></span>
+      </button>
 
       <!-- One-tap instrumentals: each chip loads drums + bass + chords +
            melody and starts the transport, so a phone artist hears a
@@ -1230,16 +1456,9 @@
       </button>
     </header>
     <nav class="comp-drawer-nav" aria-label="Mobile navigation">
-      <!-- 1-Tap Smart Creation hero card inside drawer -->
-      <button
-        type="button"
-        class="comp-drawer-create-hero"
-        (click)="toggleSmartCreation(); toggleMobileDrawer()"
-      >
-        <div class="comp-drawer-create-badge">⚡ 1-TAP STARTER</div>
-        <div class="comp-drawer-create-title">Smart Creation Assistant</div>
-        <div class="comp-drawer-create-desc">Instant Trap, R&amp;B, Lo-Fi, Chords &amp; Vocal Chain</div>
-      </button>
+      <!-- The drawer is the *complete* tool map: no CREATE hero here — the
+           bottom bar's center CREATE pill is always one thumb-tap away, and
+           a second identical card only added scroll length. -->
 
       <!-- 4 Intuitive Workflow Stages (Google Play Blueprint) -->
       <div class="comp-drawer-categories">
@@ -1266,7 +1485,7 @@
           </div>
         </div>
       </div>
-      <!-- ARM AUDIO + Theme in mobile drawer -->
+      <!-- ARM AUDIO pip in mobile drawer (first-run audio unlock) -->
       <button
         *ngIf="showArmAudioPip()"
         (click)="audioEngine.resume()"
@@ -1274,20 +1493,6 @@
       >
         <span class="material-symbols-outlined">volume_up</span>
         <span>🔊 ARM AUDIO</span>
-      </button>
-
-      <!-- Beginner / Pro toggle in mobile drawer -->
-      <button
-        (click)="toggleBeginnerMode(); toggleMobileDrawer()"
-        class="comp-drawer-item"
-        [class.comp-drawer-active]="isBeginnerMode()"
-      >
-        <span class="material-symbols-outlined">{{
-          isBeginnerMode() ? 'school' : 'auto_awesome'
-        }}</span>
-        <span>{{
-          isBeginnerMode() ? 'Beginner Mode (ON)' : 'Switch to Beginner Mode'
-        }}</span>
       </button>
 
       <!-- Home button in mobile drawer -->
@@ -1335,46 +1540,9 @@
       </button>
       <div class="comp-drawer-divider" style="height: 1px; background: var(--espresso-line); margin: 8px 0;"></div>
 
-      <!-- 3-way theme picker in drawer (more explicit than cycle) -->
-      <button
-        *ngFor="let t of ['light', 'focus', 'dark']"
-        (click)="themeMode.set(t)"
-        class="comp-drawer-item"
-        [class.comp-drawer-active]="themeMode() === t"
-      >
-        <span class="material-symbols-outlined">
-          {{
-            t === 'light'
-              ? 'light_mode'
-              : t === 'focus'
-                ? 'filter_drama'
-                : 'dark_mode'
-          }}
-        </span>
-        <span>{{
-          t === 'light'
-            ? 'Light Mode'
-            : t === 'focus'
-              ? 'Focus Mode'
-              : 'Dark Mode'
-        }}</span>
-      </button>
-
-      <!-- Stage FX ambience toggle in drawer -->
-      <button
-        (click)="toggleStageFx()"
-        class="comp-drawer-item"
-        [class.comp-drawer-active]="stageFxEnabled()"
-      >
-        <span class="material-symbols-outlined">{{
-          stageFxEnabled() ? 'auto_fix_high' : 'auto_fix_off'
-        }}</span>
-        <span>{{
-          stageFxEnabled()
-            ? 'Stage FX (ON) — ambient lighting'
-            : 'Stage FX (OFF) — calm · save battery'
-        }}</span>
-      </button>
+      <!-- Appearance + Stage FX moved to the MORE tools sheet (drawer
+           declutter): they are session preferences, not navigation, so they
+           no longer add three rows to the stage map. -->
     </nav>
     <div class="comp-drawer-footer">
       <button
