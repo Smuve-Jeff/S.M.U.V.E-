@@ -62,7 +62,8 @@
   .comp-shell .comp-topbar-left > *,
   .comp-shell .comp-topbar-center,
   .comp-shell .comp-topbar-right > *,
-  .comp-shell .comp-topbar-tools > * {
+  .comp-shell .comp-topbar-tools > *,
+  .comp-shell .comp-topbar-tools > .comp-desktop-tools > * {
     animation: none !important;
   }
 }
@@ -183,6 +184,23 @@
 .comp-topbar-tools > *:nth-child(5) { animation-delay: 580ms; }
 .comp-topbar-tools > *:nth-child(6) { animation-delay: 620ms; }
 .comp-topbar-tools > *:nth-child(7) { animation-delay: 660ms; }
+
+/* The desktop tools live inside a `display: contents` wrapper on phones
+   (see studio-shell-refinement.css). That wrapper never renders a box, so
+   the buttons carry the staggered entrance themselves — the desktop
+   entrance stays exactly as it was before the wrapper existed. */
+.comp-topbar-tools > .comp-desktop-tools > * {
+  animation: comp-pill-fade 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(1) { animation-delay: 460ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(2) { animation-delay: 500ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(3) { animation-delay: 540ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(4) { animation-delay: 580ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(5) { animation-delay: 620ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(6) { animation-delay: 660ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(7) { animation-delay: 700ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(8) { animation-delay: 740ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(9) { animation-delay: 780ms; }
 
 .comp-topbar-left {
   display: flex;
@@ -4216,11 +4234,6 @@
   line-height: 1.45;
   color: var(--espresso-muted);
 }
-.comp-mobile-start-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
 .comp-mobile-start-action {
   display: flex;
   align-items: center;
@@ -4249,7 +4262,6 @@
   color: var(--espresso-muted);
 }
 .comp-mobile-start-hero {
-  grid-column: 1 / -1;
   background: linear-gradient(140deg, var(--teal-700), var(--teal-500));
   border-color: transparent;
   color: #fff;
@@ -4364,4 +4376,196 @@
 .dark-mode .comp-mobile-start-copy p,
 .dark-mode .comp-mobile-start-action small {
   color: #9aa5b5;
+}
+
+/* ===========================================================
+   COMPACT-MOBILE TOOLS SHEET — the topbar MORE button's surface
+
+   One bottom sheet owns every command the phone chrome no longer
+   shows inline: create, mix, record, save/export, session, share and
+   appearance. It only ever displays inside the compact-mobile tier
+   (see studio-shell-refinement.css for the trigger visibility), and
+   `display: none` while closed keeps the duplicate labels out of the
+   accessibility tree, so nothing here shadows the desktop controls.
+   =========================================================== */
+.comp-tools-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: rgba(31, 26, 18, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.comp-tools-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  display: none;
+  flex-direction: column;
+  max-height: min(78vh, 560px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--ivory-paper);
+  border-top: 1px solid var(--espresso-line);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -14px 44px rgba(31, 26, 18, 0.32);
+}
+
+@media (max-width: 768px) {
+  .comp-tools-sheet.comp-tools-sheet-open {
+    display: flex;
+    animation: comp-tools-sheet-up 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+}
+
+@keyframes comp-tools-sheet-up {
+  from {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.comp-tools-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--espresso-line);
+}
+
+.comp-tools-sheet-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--teal-700);
+}
+
+.comp-tools-sheet-title .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.comp-tools-sheet-close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--espresso-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.comp-tools-sheet-close:hover,
+.comp-tools-sheet-close:active {
+  background: rgba(14, 124, 123, 0.08);
+  color: var(--teal-700);
+}
+
+.comp-tools-sheet-body {
+  display: grid;
+  gap: 14px;
+  padding: 12px 14px 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.comp-tools-sheet-group {
+  display: grid;
+  gap: 8px;
+}
+
+.comp-tools-sheet-label {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: var(--espresso-muted);
+}
+
+.comp-tools-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.comp-tools-sheet-btn {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  column-gap: 8px;
+  row-gap: 1px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--espresso-text);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease,
+    background 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.comp-tools-sheet-btn:hover,
+.comp-tools-sheet-btn:focus-visible {
+  background: rgba(14, 124, 123, 0.08);
+}
+
+.comp-tools-sheet-btn:active {
+  transform: scale(0.97);
+}
+
+.comp-tools-sheet-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+
+.comp-tools-sheet-btn .material-symbols-outlined {
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 20px;
+  color: var(--teal-700);
+}
+
+.comp-tools-sheet-btn strong {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.comp-tools-sheet-btn small {
+  font-size: 9px;
+  line-height: 1.2;
+  color: var(--espresso-muted);
+  overflow-wrap: anywhere;
+}
+
+.comp-tools-sheet-btn.comp-tools-sheet-on {
+  border-color: var(--teal-500);
+  background: var(--teal-100);
+}
+
+.comp-tools-sheet-btn:focus-visible,
+.comp-tools-sheet-close:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
 }

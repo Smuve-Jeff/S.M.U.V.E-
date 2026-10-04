@@ -362,13 +362,6 @@ const THEME_LABEL: Record<AppTheme, string> = {
           font-size: 11px;
           line-height: 1.4;
         }
-        .comp-mobile-start-actions {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          position: relative;
-          z-index: 1;
-          gap: 8px;
-        }
         .comp-mobile-start-action {
           display: flex;
           min-width: 0;
@@ -446,20 +439,12 @@ const THEME_LABEL: Record<AppTheme, string> = {
           color: #0d6e6d;
           font-weight: 800;
         }
-        .comp-mobile-start-primary {
-          border-color: rgba(14, 124, 123, 0.32);
-          background: linear-gradient(
-            135deg,
-            rgba(14, 124, 123, 0.14),
-            rgba(255, 255, 255, 0.72)
-          );
-        }
       }
       /* Landscape phones: the shell spends ~44px on the topbar, ~48px on the
          tool row and ~52px on the dock, leaving little over 250px for the
          canvas. The stacked quick-start lane costs ~240px, which would leave
          the arrangement view with almost nothing, so drop the pitch copy and
-         run the four actions as a single icon-strip. */
+         keep the one-tap starter as a single compact strip. */
       @media (max-width: 768px) and (orientation: landscape) {
         .comp-mobile-start {
           padding: 10px;
@@ -467,10 +452,6 @@ const THEME_LABEL: Record<AppTheme, string> = {
         }
         .comp-mobile-start-copy {
           display: none;
-        }
-        .comp-mobile-start-actions {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 6px;
         }
         .comp-mobile-start-action {
           min-height: 52px;
@@ -493,9 +474,6 @@ const THEME_LABEL: Record<AppTheme, string> = {
       @media (max-width: 390px) {
         .comp-mobile-start {
           padding: 12px;
-        }
-        .comp-mobile-start-actions {
-          gap: 6px;
         }
         .comp-mobile-start-action {
           min-height: 58px;
@@ -828,6 +806,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
   footerCollapsed = signal(false);
   mobileDrawerOpen = signal(false);
+  /**
+   * Compact-mobile tools sheet. The topbar's MORE button opens every
+   * secondary command (create, mix, record, save/export, appearance, share,
+   * collab) in one bottom sheet, so a phone no longer stacks nine tool
+   * buttons above the canvas. Desktop hides the trigger entirely.
+   */
+  showMobileToolsSheet = signal(false);
   browserCollapsed = signal(false);
   inspectorCollapsed = signal(false);
   railCollapsed = signal(false);
@@ -1322,6 +1307,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         this.showVocalComp(),
         this.showBezierEditor(),
         this.mobileDrawerOpen(),
+        this.showMobileToolsSheet(),
       ].filter(Boolean).length;
       untracked(() => this.syncBackHistoryTrap(openCount));
     });
@@ -1627,7 +1613,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.showImportPanel() ||
       this.showVocalComp() ||
       this.showBezierEditor() ||
-      this.mobileDrawerOpen()
+      this.mobileDrawerOpen() ||
+      this.showMobileToolsSheet()
     );
   }
 
@@ -1969,6 +1956,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.toggleBezierEditor();
       return true;
     }
+    if (this.showMobileToolsSheet()) {
+      this.toggleMobileToolsSheet(false);
+      return true;
+    }
     if (this.mobileDrawerOpen()) {
       this.mobileDrawerOpen.set(false);
       this.syncPanelFocus(".comp-drawer", false);
@@ -2141,6 +2132,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.haptic.light();
     this.mobileDrawerOpen.update((v) => !v);
     this.syncPanelFocus(".comp-drawer", this.mobileDrawerOpen());
+  }
+
+  /** Open or close the compact-mobile tools sheet (topbar MORE button). */
+  toggleMobileToolsSheet(open?: boolean) {
+    this.haptic.light();
+    this.showMobileToolsSheet.update((curr) =>
+      open !== undefined ? open : !curr,
+    );
+    this.syncPanelFocus(".comp-tools-sheet", this.showMobileToolsSheet());
+    if (this.showMobileToolsSheet()) {
+      this.studioTelemetry.trackEvent("mobile_tools_opened", {}, true);
+    }
   }
 
   toggleRail() {

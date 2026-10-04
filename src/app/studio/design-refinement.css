@@ -197,8 +197,7 @@
 }
 
 /* Primary actions glow — the "one obvious tap" cue from Groovepad */
-.btn-pro-primary,
-.comp-mobile-start-primary {
+.btn-pro-primary {
   box-shadow:
     0 4px 16px rgba(14, 124, 123, 0.28),
     0 0 0 1px rgba(255, 255, 255, 0.35) inset;

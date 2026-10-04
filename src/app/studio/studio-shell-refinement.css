@@ -765,6 +765,47 @@
   }
 }
 
+/* ============================================================
+   PHONE TOOLBAR COLLAPSE — one MORE button, one tools sheet
+
+   The nine-button context toolbar collapses into a single MORE trigger on
+   phones; every command it carried lives in the tools sheet
+   (studio.component.html → MOBILE TOOLS SHEET). Desktop and portrait
+   tablet keep the full toolbar: `.comp-desktop-tools` is `display: contents`
+   there, so its buttons stay direct flex children of `.comp-topbar-tools`
+   and the desktop layout is unchanged.
+
+   The secondary topbar cluster is already phone-demoted by the compact tier
+   in studio.component.css (`.comp-topbar-right > .comp-icon-btn:not(
+   .comp-ai-btn)`), and those commands surface in the same tools sheet.
+   ============================================================ */
+.comp-shell .comp-desktop-tools {
+  display: contents;
+}
+
+/* Desktop / tablet: the MORE trigger is compact-mobile-only chrome. Its
+   sheet is physically impossible to open from here (the trigger is gone),
+   and the sheet's own `display: none` base rule keeps it out of the way
+   even if a resize left its signal set. */
+@media (min-width: 769px) {
+  .comp-shell .comp-tool-btn.comp-tool-more {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .comp-shell .comp-desktop-tools {
+    display: none;
+  }
+
+  /* Keep the label on the MORE button: the compact tier hides tool labels,
+     but a bare tune icon on the tool row read as decoration, not as the
+     entry to every secondary command. */
+  .comp-shell .comp-tool-btn.comp-tool-more .comp-tool-label {
+    display: inline;
+  }
+}
+
 @media (max-width: 768px) and (prefers-color-scheme: dark) {
   .comp-mobile-start {
     background: linear-gradient(135deg, rgba(17, 22, 30, 0.98), rgba(10, 35, 38, 0.94));
