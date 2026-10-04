@@ -254,8 +254,19 @@ export class UserProfileService {
         [u.recommendationId]: {
           ...(p.recommendationPreferences?.[u.recommendationId] || {}),
           state: 'acquired',
+          updatedAt: Date.now(),
         },
       };
+      p.recommendationHistory = [
+        ...(p.recommendationHistory || []),
+        {
+          recommendationId: u.recommendationId,
+          title: u.title || '',
+          type: u.type || 'Gear',
+          state: 'acquired',
+          updatedAt: Date.now(),
+        },
+      ];
     }
     await this.updateProfile(p);
   }

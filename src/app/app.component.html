@@ -15,7 +15,7 @@
 
   <!-- Full-screen workspaces intentionally hide the shell, not the way home. -->
   <a
-    *ngIf="isFullPageMode() && !isAuthRoute()"
+    *ngIf="showUniversalHomeLink()"
     routerLink="/hub"
     (click)="navigateHome(); $event.preventDefault()"
     class="universal-home-link"

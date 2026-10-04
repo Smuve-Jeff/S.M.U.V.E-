@@ -270,6 +270,7 @@
             @for (rec of upgradeRecs(); track rec.id) {
               <div
                 class="glass-v42 p-8 rounded-3xl border transition-all flex flex-col gap-6 group relative overflow-hidden"
+                [attr.data-testid]="'strategy-recommendation-' + rec.id"
                 [class.border-brand-primary/40]="rec.state === 'acquired'"
                 [class.border-white/10]="rec.state !== 'acquired'"
               >
@@ -322,6 +323,12 @@
                 </div>
 
                 <div class="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    [attr.data-testid]="'strategy-dismiss-' + rec.id"
+                    (click)="dismissRecommendation(rec)"
+                    class="text-xs text-white/70 hover:text-white"
+                  >Dismiss recommendation</button>
                   @if (rec.state === 'locked' || !rec.state) {
                     <button
                       (click)="aiService.unlockUpgrade(rec.id)"
@@ -347,6 +354,17 @@
             }
           </div>
         </section>
+
+        @if (recommendationInbox().length) {
+          <section aria-label="Recommendation history" class="space-y-3">
+            <h3 class="text-sm font-bold text-white">Recommendation history</h3>
+            @for (entry of recommendationInbox(); track $index) {
+              <p data-testid="strategy-inbox-entry" class="text-xs text-white/70">
+                {{ entry.title }} · {{ entry.state }}
+              </p>
+            }
+          </section>
+        }
 
         <!-- COMMAND CENTER BRIEFS -->
         <section class="space-y-6">

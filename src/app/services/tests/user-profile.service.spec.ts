@@ -70,6 +70,16 @@ describe('UserProfileService', () => {
     service = TestBed.inject(UserProfileService);
   });
 
+  it('persists acquisition state and a matching history entry', async () => {
+    await service.acquireUpgrade({
+      title: 'Mastering Engine', type: 'Software', recommendationId: 'mastering',
+    });
+    expect(service.profile().recommendationPreferences.mastering.state).toBe('acquired');
+    expect(savedProfiles.at(-1)?.profile.recommendationHistory.at(-1)).toMatchObject({
+      recommendationId: 'mastering', title: 'Mastering Engine', state: 'acquired',
+    });
+  });
+
   describe('team roster', () => {
     it('adds a collaborator with the roster defaults and returns the stored roster', async () => {
       const stored = await service.addTeamMember({ name: '  Dana  ' });

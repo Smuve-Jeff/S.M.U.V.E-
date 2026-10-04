@@ -44,7 +44,7 @@ export interface UpgradeRecommendation {
   toolId: string;
   outcomeMetric: { label: string; value: string };
   preferredViews?: MainViewMode[];
-  state?: 'locked' | 'unlocked' | 'acquired' | 'completed';
+  state?: 'locked' | 'unlocked' | 'saved' | 'dismissed' | 'not-relevant' | 'acquired' | 'completed';
 }
 
 @Injectable({
@@ -115,7 +115,9 @@ export class AiService {
   availableUpgrades = computed(() => {
     return NEURAL_UPGRADE_BLUEPRINTS.map((u) => ({
       ...u,
-      state: this.isUnlocked(u.id) ? 'unlocked' : 'locked',
+      state:
+        this.userProfileService.profile().recommendationPreferences?.[u.id]?.state ||
+        (this.isUnlocked(u.id) ? 'unlocked' : 'locked'),
     })) as UpgradeRecommendation[];
   });
 

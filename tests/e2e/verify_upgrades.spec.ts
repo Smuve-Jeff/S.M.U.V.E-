@@ -1,23 +1,24 @@
 import { test, expect } from '@playwright/test';
+import { seedAuthenticatedSession } from './helpers';
+
+test.beforeEach(async ({ page }) => { await seedAuthenticatedSession(page); });
 
 test('verify career hub upgrades', async ({ page }) => {
   await page.goto('/career');
-  await expect(page.locator('h1')).toContainText('CAREER');
-  await page.screenshot({ path: 'career_hub_upgraded.png' });
+  await expect(page.locator('app-career-hub h1')).toContainText('EXECUTIVEHUB');
+  await page.screenshot({ path: test.info().outputPath('career_hub_upgraded.png') });
 });
 
 test('verify strategy hub upgrades', async ({ page }) => {
   await page.goto('/strategy');
-  await expect(page.locator('h1')).toContainText('STRATEGY');
-  await page.screenshot({ path: 'strategy_hub_upgraded.png' });
+  await expect(page.locator('app-strategy-hub h1')).toContainText('S.M.U.V.E. STRATEGY');
+  await page.screenshot({ path: test.info().outputPath('strategy_hub_upgraded.png') });
 });
 
-test('verify studio holographic mode', async ({ page }) => {
+test('verify Studio production workspace', async ({ page }) => {
   await page.goto('/studio');
-  // Check for holographic console activation button if available
-  const btn = page.locator('button:has-text("Activate Holographic Console")');
-  if (await btn.isVisible()) {
-    await btn.click();
-  }
-  await page.screenshot({ path: 'studio_holographic_check.png' });
+  await expect(page.locator('app-studio')).toBeVisible();
+  await expect(page.locator('.comp-brand-name')).toHaveText('S.M.U.V.E.');
+  await expect(page.locator('app-beginner-wizard')).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('studio_workspace_check.png') });
 });

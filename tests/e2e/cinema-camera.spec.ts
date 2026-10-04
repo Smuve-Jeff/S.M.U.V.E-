@@ -23,7 +23,11 @@ import { seedAuthenticatedSession } from './helpers';
 // granted, refused, or blocked by the embedding frame.
 test.use({
   channel: 'chromium',
-  launchOptions: { args: ['--use-fake-device-for-media-stream'] },
+  // Use software compositing in hosted containers without usable GPU libraries.
+  // Real media capture and the pixel assertions still run in full Chromium.
+  launchOptions: {
+    args: ['--use-fake-device-for-media-stream', '--disable-gpu'],
+  },
 });
 
 test.setTimeout(180_000);
@@ -121,7 +125,7 @@ test.describe('denied camera access', () => {
     );
     // Offered in both places an operator might be looking: the sidebar panel
     // and the program monitor showing the black frame.
-    await expect(page.locator('.camera-action.retry')).toBeVisible();
+    await expect(page.getByRole('button', { name: /start camera/i })).toBeVisible();
     await expect(page.locator('.camera-retry-chip')).toBeVisible();
     await expect(page.locator('.camera-error')).toContainText(
       /permission denied|blocked/i

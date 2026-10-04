@@ -2226,6 +2226,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   clearFilters() {
+    this.setActiveRoom('all');
     this.activeGenre.set('all');
     this.activePlatform.set('all');
     this.searchQuery.set('');

@@ -13,7 +13,7 @@ export const NEURAL_UPGRADE_BLUEPRINTS: UpgradeRecommendation[] = [
     priority: 'High',
     prerequisites: [],
     actionLabel: 'Initialize S.M.U.V.E.-Mode',
-    toolId: 'smuve-masterer',
+    toolId: 'mastering',
     outcomeMetric: { label: 'Sonic Authority', value: 'INF' },
     preferredViews: ['studio'],
     rank: ({ profile, viewMode }: any) =>

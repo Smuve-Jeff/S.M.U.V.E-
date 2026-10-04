@@ -113,6 +113,19 @@ describe('AiService', () => {
     httpMock.verify();
   });
 
+  it('reflects persisted recommendation decisions in the available cards', () => {
+    const profile = userProfileServiceMock.profile!();
+    userProfileServiceMock.profile!.set({
+      ...profile,
+      recommendationPreferences: {
+        'upg-ovr-mastering': { state: 'acquired', updatedAt: 1 },
+        'upg-legal-executioner': { state: 'not-relevant', updatedAt: 2 },
+      },
+    });
+    expect(service.availableUpgrades().find((rec) => rec.id === 'upg-ovr-mastering')?.state).toBe('acquired');
+    expect(service.availableUpgrades().find((rec) => rec.id === 'upg-legal-executioner')?.state).toBe('not-relevant');
+  });
+
   it('should be created', () => {
     expect(service).toBeTruthy();
   });

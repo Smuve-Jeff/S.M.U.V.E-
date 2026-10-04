@@ -42,7 +42,9 @@ export class StrategyHubComponent implements OnInit {
   viralHooks = this.aiService.getViralHooks();
 
   upgradeRecs = computed(() =>
-    this.aiService.getUpgradeRecommendations().slice(0, 5)
+    this.aiService.getUpgradeRecommendations()
+      .filter((rec) => !['dismissed', 'not-relevant'].includes(rec.state || ''))
+      .slice(0, 5)
   );
   recommendationInbox = computed(() =>
     [...(this.profile().recommendationHistory || [])]

@@ -280,6 +280,10 @@ describe('AudioEngineService', () => {
     (service as any).nextNoteTime = 0.01;
     service.tempo.set(240);
     mockAudioContext.currentTime = 0;
+    // handleTick only schedules while transport is playing; do not call
+    // start() here because it would overwrite nextNoteTime with
+    // currentTime + 0.05 and break the exact lookahead assertions below.
+    service.isPlaying.set(true);
 
     (service as any).scheduler();
 

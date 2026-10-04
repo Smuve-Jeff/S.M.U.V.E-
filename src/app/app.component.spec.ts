@@ -27,6 +27,7 @@ describe('AppComponent', () => {
       performanceMode: signal(false),
       showScanlines: signal(false),
       isOnline: signal(true),
+      showMobileNav: signal(false),
       isChatbotOpen: signal(false),
       openChatbot: jest.fn(() => uiService.isChatbotOpen.set(true)),
       closeChatbot: jest.fn(() => uiService.isChatbotOpen.set(false)),
@@ -380,6 +381,44 @@ describe('AppComponent', () => {
 
     expect(component.isMobile()).toBe(false);
     expect(component.isFullPageMode()).toBe(false);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalWidth,
+    });
+  });
+
+  it('hides the floating home link on the mobile Studio shell that has its own Home tab', async () => {
+    const originalWidth = window.innerWidth;
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 500,
+    });
+    const { component, uiService } = await createComponent('/studio');
+    uiService.showMobileNav.set(true);
+
+    expect(component.isFullPageMode()).toBe(true);
+    expect(component.showUniversalHomeLink()).toBe(false);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalWidth,
+    });
+  });
+
+  it('keeps the floating home link on standalone full-page workspaces', async () => {
+    const originalWidth = window.innerWidth;
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 500,
+    });
+    const { component, uiService } = await createComponent('/mixer');
+    uiService.showMobileNav.set(true);
+
+    expect(component.isFullPageMode()).toBe(true);
+    expect(component.showUniversalHomeLink()).toBe(true);
 
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,

@@ -4,7 +4,7 @@ import { seedAuthenticatedSession } from './helpers';
 test('verify dj turntable interface', async ({ page }) => {
   await seedAuthenticatedSession(page);
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto('/studio');
+  await page.goto('/studio?view=dj');
 
   await expect(page.getByText('DECK A', { exact: true })).toBeVisible();
   await expect(page.getByText('DECK B', { exact: true })).toBeVisible();

@@ -279,12 +279,15 @@ test('phone one-tap instrumental loads a full loop and exposes the finishing pat
     'mixer',
   );
 
-  // The mobile drawer still reaches the Sets browser. (The topbar opener is
-  // used instead of the bottom-bar tab, which the app-shell home link floats
-  // above in this viewport.)
+  // The bottom-bar drawer tab must be directly tappable at this viewport —
+  // the shell's floating home link used to float above it and swallow taps.
+  // On the mobile Studio shell that link is now hidden because the bottom bar
+  // already provides a Home tab.
+  await expect(page.locator('.universal-home-link')).toHaveCount(0);
   await page
-    .getByRole('button', { name: 'Open navigation menu', exact: true })
+    .getByRole('tab', { name: 'Open Studio view drawer and tools' })
     .click();
+  await expect(page.locator('.comp-drawer')).toHaveClass(/comp-drawer-open/);
   await page.getByRole('button', { name: 'My Sets (saved projects)' }).click();
   await expect(page.locator('.comp-sets-panel')).toHaveClass(/comp-panel-open/);
   await expect(

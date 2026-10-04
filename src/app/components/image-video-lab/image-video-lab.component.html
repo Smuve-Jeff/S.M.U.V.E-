@@ -488,6 +488,7 @@
               [class.active]="camera.isLive()"
               [disabled]="camera.isStarting()"
               (click)="toggleCamera()"
+              [attr.aria-label]="camera.isLive() ? 'Stop camera' : 'Start camera'"
             >
               <span class="material-symbols-outlined">{{
                 camera.isLive() ? 'videocam_off' : 'videocam'

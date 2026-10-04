@@ -476,6 +476,21 @@ export class AppComponent {
     this.isSidebarOpen.update((v) => !v);
   }
 
+  /**
+   * Whether the floating shell home link should render.
+   *
+   * Full-screen workspaces keep it because the shell is hidden — except the
+   * Studio mobile shell, which draws its own bottom bar with a Home tab. The
+   * floating link (z-index 6000 vs the bar's 20) used to sit on top of the
+   * bar's rightmost tab and swallow its taps.
+   */
+  showUniversalHomeLink(): boolean {
+    if (!this.isFullPageMode() || this.isAuthRoute()) return false;
+    const studioMobileShell =
+      this.uiService.showMobileNav() && this.routeAnimState() === 'studio';
+    return !studioMobileShell;
+  }
+
   /** A direct/deep-linked workspace must never send Home outside the app. */
   navigateHome(): void {
     this.isSidebarOpen.set(!this.isMobile());

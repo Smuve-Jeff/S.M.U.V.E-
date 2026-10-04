@@ -11,36 +11,39 @@ test('recommendation actions persist across strategy, practice, and command surf
   await page.goto('/practice');
 
   await expect(
-    page.getByTestId('practice-rec-upg-room-calibration')
+    page.getByTestId('practice-rec-upg-ovr-mastering')
   ).toBeVisible();
-  await page.getByTestId('practice-save-upg-room-calibration').click();
+  await page.getByTestId('practice-save-upg-ovr-mastering').click();
   await expect(page.getByTestId('practice-history-entry')).toContainText(
-    'Room Calibration'
+    'S.M.U.V.E.-MODE MASTERING ENGINE'
   );
 
-  await page.getByTestId('practice-focus-upg-room-calibration').click();
-  await expect(page).toHaveURL(/\/studio$/);
+  await page.getByTestId('practice-focus-upg-ovr-mastering').click();
+  await expect(page).toHaveURL(/\/mastering$/);
 
   await page.goto('/strategy');
-  await page.getByRole('button', { name: /^outreach$/i }).click();
   await expect(
-    page.getByTestId('strategy-recommendation-upg-dsp-promotion')
+    page.getByTestId('strategy-recommendation-upg-legal-executioner')
   ).toBeVisible();
-  await page.getByTestId('strategy-dismiss-upg-dsp-promotion').click();
+  await page.getByTestId('strategy-dismiss-upg-legal-executioner').click();
   await expect(
-    page.getByTestId('strategy-recommendation-upg-dsp-promotion')
+    page.getByTestId('strategy-recommendation-upg-legal-executioner')
   ).toHaveCount(0);
   await expect(page.getByTestId('strategy-inbox-entry').first()).toBeVisible();
 
-  await page.goto('/career');
+  await page.goto('/command-center');
   await expect(
-    page.getByTestId('command-rec-upg-room-calibration')
+    page.getByTestId('command-rec-upg-ovr-mastering')
   ).toBeVisible();
-  await page.getByTestId('command-acquire-upg-room-calibration').click();
+  await page.getByTestId('command-acquire-upg-ovr-mastering').click();
   await expect(page.getByTestId('command-history-entry').first()).toContainText(
-    'Room Calibration'
+    'S.M.U.V.E.-MODE MASTERING ENGINE'
   );
   await expect(page.getByTestId('command-history-entry').first()).toContainText(
     'acquired'
   );
+  await page.reload();
+  await expect(page.getByTestId('command-history-entry').first()).toContainText('acquired');
+  await page.goto('/strategy');
+  await expect(page.getByTestId('strategy-recommendation-upg-legal-executioner')).toHaveCount(0);
 });
