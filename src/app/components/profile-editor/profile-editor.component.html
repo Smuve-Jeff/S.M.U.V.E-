@@ -60,35 +60,39 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-4 w-full sm:w-auto">
       <button
         (click)="saveProfile()"
         [disabled]="saveStatus() === 'saving'"
-        class="px-5 sm:px-8 py-3 bg-brand-primary hover:bg-emerald-400 disabled:opacity-50 text-black font-black uppercase text-[10px] sm:text-xs rounded-full tracking-[0.15em] sm:tracking-[0.2em] transition-all shadow-lg shadow-brand-primary/30"
+        class="w-full sm:w-auto px-5 sm:px-8 py-3 bg-brand-primary hover:bg-emerald-400 disabled:opacity-50 text-black font-black uppercase text-[10px] sm:text-xs rounded-full tracking-[0.15em] sm:tracking-[0.2em] transition-all shadow-lg shadow-brand-primary/30"
       >
         Commit Neural Protocol
       </button>
     </div>
   </header>
 
+  <!-- p-8/gap-8 starved the phone column (244px of content inside 390px):
+       the padding steps up with the viewport instead. -->
   <div
-    class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 p-8 relative z-10"
+    class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-5 sm:gap-8 p-4 sm:p-8 relative z-10"
   >
     <aside class="w-full lg:w-72 space-y-6">
+      <!-- Under lg the pane list is a one-line scrolling chip rail: the
+           stacked full-width rows were an 874px wall above the editor. -->
       <nav
-        class="bg-white/5 border border-white/5 rounded-3xl p-4 overflow-hidden"
+        class="profile-nav bg-white/5 border border-white/5 rounded-3xl p-2 sm:p-4 flex flex-row lg:flex-col gap-2 overflow-x-auto overflow-y-hidden lg:overflow-hidden"
       >
         <button
           *ngFor="let section of sections"
           (click)="activeSection.set(section.id)"
           [class.active-nav]="activeSection() === section.id"
-          class="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+          class="flex items-center gap-2 lg:gap-4 px-4 py-2.5 lg:px-6 lg:py-4 rounded-full lg:rounded-2xl shrink-0 whitespace-nowrap lg:w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all"
         >
           <i
             class="fas {{ section.icon }} text-lg"
             [class.text-brand-primary]="activeSection() === section.id"
           ></i>
-          <span class="flex-1 text-left">{{ section.label }}</span>
+          <span class="flex-none lg:flex-1 text-left">{{ section.label }}</span>
           <span
             *ngIf="section.elements.length"
             class="text-[9px] font-black tabular-nums"
@@ -106,7 +110,7 @@
       </nav>
 
       <div
-        class="p-8 bg-brand-primary/5 border border-brand-primary/10 rounded-3xl"
+        class="profile-intel p-5 sm:p-8 bg-brand-primary/5 border border-brand-primary/10 rounded-3xl"
       >
         <h4
           class="text-[9px] font-black uppercase text-brand-primary tracking-[0.3em] mb-4"
@@ -130,7 +134,7 @@
     </aside>
 
     <main
-      class="flex-1 bg-white/5 rounded-[2.5rem] border border-white/5 p-10 backdrop-blur-md relative min-h-[70vh]"
+      class="flex-1 bg-white/5 rounded-[1.5rem] lg:rounded-[2.5rem] border border-white/5 p-5 sm:p-8 lg:p-10 backdrop-blur-md relative min-h-[70vh]"
     >
       <section
         *ngIf="onboarding.shouldShow()"

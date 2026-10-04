@@ -151,3 +151,30 @@
     align-items: flex-start;
   }
 }
+
+/* Below lg the two-column rail stacks, and the sidebar used to push the
+   editor ~1380px down the page (an 874px pane list + the intel card). The
+   aside dissolves into the column: the pane rail leads, the editor follows,
+   and Strategic Intel lands after the work surface instead of before it. */
+@media (max-width: 1023.98px) {
+  .profile-editor-view aside {
+    display: contents;
+  }
+
+  .profile-editor-view .profile-nav {
+    order: 1;
+    scrollbar-width: none;
+  }
+
+  .profile-editor-view .profile-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .profile-editor-view main {
+    order: 2;
+  }
+
+  .profile-editor-view .profile-intel {
+    order: 3;
+  }
+}
