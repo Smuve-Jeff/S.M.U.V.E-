@@ -34,6 +34,8 @@ describe("ProjectWorkspaceService", () => {
   let tempoSet: jest.Mock;
   let getItem: jest.Mock;
   let getAllItems: jest.Mock;
+  let deleteItems: jest.Mock;
+  let projectRemove: jest.Mock;
 
   const metadata = {
     id: "proj_test",
@@ -78,6 +80,8 @@ describe("ProjectWorkspaceService", () => {
     tempoSet = jest.fn();
     getItem = jest.fn().mockResolvedValue(null);
     getAllItems = jest.fn().mockResolvedValue([]);
+    deleteItems = jest.fn().mockResolvedValue(undefined);
+    projectRemove = jest.fn().mockResolvedValue(false);
 
     TestBed.configureTestingModule({
       providers: [
@@ -126,7 +130,7 @@ describe("ProjectWorkspaceService", () => {
         },
         {
           provide: ProjectService,
-          useValue: { currentProject: signal(null), projectDeleted$: new Subject<string>(), refresh: jest.fn().mockResolvedValue(undefined) },
+          useValue: { currentProject: signal(null), projectDeleted$: new Subject<string>(), refresh: jest.fn().mockResolvedValue(undefined), remove: projectRemove },
         },
         {
           provide: LocalStorageService,
@@ -135,6 +139,7 @@ describe("ProjectWorkspaceService", () => {
             persistenceStatus: jest.fn().mockResolvedValue('ready'),
             getItem,
             getAllItems,
+            deleteItems,
           },
         },
         {
@@ -406,5 +411,121 @@ describe("ProjectWorkspaceService", () => {
     expect(service.lastRecoveredAt()).toBe(200);
     expect(tracks()).toEqual(newerBundle.tracks);
     expect(tempoSet).toHaveBeenCalledWith(132);
+  });
+
+  // ── Sets browser: listing, loading and deleting local workspaces ──
+
+  it("lists one row per project built from its freshest record", async () => {
+    const olderManual = {
+      id: "project_proj_alpha",
+      ...makeBundle(),
+      metadata: { ...metadata, id: "proj_alpha", name: "Alpha", bpm: 120 },
+      savedAt: 100,
+      source: "manual",
+    };
+    const newerAutosave = {
+      id: "autosave_proj_alpha",
+      ...makeBundle(),
+      metadata: { ...metadata, id: "proj_alpha", name: "Alpha", bpm: 128 },
+      tracks: [{ id: "t1" }, { id: "t2" }, { id: "t3" }],
+      savedAt: 300,
+      source: "autosave",
+    };
+    const otherProject = {
+      id: "project_proj_beta",
+      ...makeBundle(),
+      metadata: { ...metadata, id: "proj_beta", name: "Beta" },
+      savedAt: 200,
+      source: "manual",
+    };
+    // Legacy release rows and junk must be ignored.
+    getAllItems.mockResolvedValue([
+      olderManual,
+      newerAutosave,
+      otherProject,
+      { id: "release_row", name: "Release" },
+    ]);
+
+    const sets = await service.listLocalProjects();
+
+    expect(sets.map((set) => set.projectId)).toEqual(["proj_alpha", "proj_beta"]);
+    expect(sets[0]).toEqual(
+      expect.objectContaining({
+        projectId: "proj_alpha",
+        recordId: "autosave_proj_alpha",
+        name: "Alpha",
+        bpm: 128,
+        source: "autosave",
+        trackCount: 3,
+      }),
+    );
+  });
+
+  it("loads a set whose only record is an autosave snapshot", async () => {
+    const autosaveBundle = {
+      id: "autosave_proj_solo",
+      ...makeBundle(),
+      metadata: { ...metadata, id: "proj_solo", name: "Solo Sketch" },
+      tracks: [{ id: "track-solo", notes: [] }],
+      savedAt: 500,
+      source: "autosave",
+    };
+    getItem.mockResolvedValue(null);
+    getAllItems.mockResolvedValue([autosaveBundle]);
+
+    const loaded = await service.loadProject("proj_solo");
+
+    expect(loaded?.metadata.name).toBe("Solo Sketch");
+    expect(service.metadata()?.name).toBe("Solo Sketch");
+    expect(tracks()).toEqual(autosaveBundle.tracks);
+    expect(service.lastPersistedAt()).toBe(500);
+  });
+
+  it("deletes every stored record for a set when it is not in the project list", async () => {
+    projectRemove.mockResolvedValue(false);
+    const records = [
+      {
+        id: "project_proj_gone",
+        ...makeBundle(),
+        metadata: { ...metadata, id: "proj_gone" },
+        savedAt: 10,
+        source: "manual",
+      },
+      {
+        id: "autosave_proj_gone",
+        ...makeBundle(),
+        metadata: { ...metadata, id: "proj_gone" },
+        savedAt: 20,
+        source: "autosave",
+      },
+      {
+        id: "recovery_proj_other",
+        ...makeBundle(),
+        metadata: { ...metadata, id: "proj_other" },
+        savedAt: 30,
+        source: "recovery",
+      },
+    ];
+    getAllItems.mockResolvedValue(records);
+    service.startFreshProject({ id: "proj_gone", name: "Gone" });
+
+    await expect(service.deleteLocalProject("proj_gone")).resolves.toBe(true);
+
+    expect(deleteItems).toHaveBeenCalledWith("projects", [
+      "project_proj_gone",
+      "autosave_proj_gone",
+    ]);
+    // Deleting the open set detaches the workspace so autosave cannot recreate it.
+    expect(service.metadata()?.id).not.toBe("proj_gone");
+    expect(service.autoSaveEnabled()).toBe(false);
+  });
+
+  it("reports a missing set without touching storage", async () => {
+    projectRemove.mockResolvedValue(false);
+    getAllItems.mockResolvedValue([]);
+
+    await expect(service.deleteLocalProject("proj_nope")).resolves.toBe(false);
+
+    expect(deleteItems).not.toHaveBeenCalled();
   });
 });

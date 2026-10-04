@@ -63,7 +63,7 @@ import { VocalSuiteComponent } from "./vocal-suite/vocal-suite.component";
 import { ChannelRackComponent } from "./channel-rack/channel-rack.component";
 import { EffectsRackUiComponent } from "./effects-rack-ui/effects-rack-ui.component";
 import { AiBandComponent } from "./ai-band/ai-band.component";
-import { IdeasGeneratorService } from "../services/ideas-generator.service";
+import { IdeasGeneratorService, type IdeaRecipe } from "../services/ideas-generator.service";
 import { HistoryService } from "../services/history.service";
 import { AiMixAssistantService } from "./effects/ai-mix-assistant.service";
 import {
@@ -72,6 +72,7 @@ import {
 } from "./smart-recording.service";
 import {
   ProjectWorkspaceService,
+  type LocalProjectSummary,
   type ProjectBundle,
 } from "./project-workspace.service";
 import { SmartSoundService } from "./smart-sound.service";
@@ -597,6 +598,42 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   showVersionHistory = signal(false);
   versionHistory = signal<RemoteSnapshot[]>([]);
   versionHistoryBusy = signal(false);
+
+  // ── Sets browser (local project workspaces) ──────────────
+  /** Right-slide list of every set saved on this device. */
+  showSetsBrowser = signal(false);
+  localSets = signal<LocalProjectSummary[]>([]);
+  setsBusy = signal(false);
+  setsError = signal('');
+
+  /** Labels for the mobile one-tap instrumental chips. */
+  private static readonly QUICK_START_LABELS: Record<string, string> = {
+    trap: 'Trap',
+    lofi: 'Lo-Fi',
+    house: 'House',
+    'neo-soul': 'Neo-Soul',
+    drill: 'Drill',
+    afrobeats: 'Afrobeats',
+  };
+
+  /**
+   * Six curated one-tap instrumentals for the mobile quick-start lane. Each
+   * chip loads a complete drums + bass + chords + melody arrangement, so a
+   * phone artist hears a finished-sounding loop in a single tap.
+   */
+  mobileQuickRecipes = computed(() => {
+    const recipes = this.ideasGenerator.recipes ?? [];
+    return Object.keys(StudioComponent.QUICK_START_LABELS)
+      .map((id) => recipes.find((recipe) => recipe.id === id))
+      .filter((recipe): recipe is IdeaRecipe => !!recipe)
+      .map((recipe) => ({
+        id: recipe.id,
+        label: StudioComponent.QUICK_START_LABELS[recipe.id] ?? recipe.name,
+        glyph: recipe.glyph,
+        bpm: recipe.bpm,
+        vibe: recipe.vibe,
+      }));
+  });
   /** Lazy so specs that never touch version history don't build the cloud. */
   private get cloudSync(): CloudSyncService {
     return this.injector.get(CloudSyncService);
@@ -1207,6 +1244,52 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     },
   ]);
 
+  /**
+   * Desktop rail grouped by workflow stage (Create → Build → Mix → Sounds).
+   * The previous flat 22-item list overflowed a non-scrolling rail, so on a
+   * 900px display everything below the fold was clipped and unreachable.
+   * Grouping + a scroll area keeps every view reachable and mirrors the
+   * mobile drawer's four-stage mental model.
+   */
+  railGroups = computed(
+    (): {
+      id: string;
+      label: string;
+      icon: string;
+      views: { id: StudioView; label: string; icon: string }[];
+    }[] => {
+      const groups = this.studioWorkflowCategories().map((category) => ({
+        id: category.id,
+        label: category.label,
+        icon: category.icon,
+        views: category.views.map((view) => ({
+          id: view.id,
+          label: view.label,
+          icon: view.icon,
+        })),
+      }));
+      const grouped = new Set<string>(
+        groups.flatMap((group) => group.views.map((view) => view.id)),
+      );
+      const remaining = this.allStudioViews()
+        .filter((view) => !grouped.has(view.id) && !view.hidden)
+        .map((view) => ({
+          id: view.id as StudioView,
+          label: view.label,
+          icon: view.icon,
+        }));
+      if (remaining.length) {
+        groups.push({
+          id: 'more',
+          label: 'More Tools',
+          icon: 'widgets',
+          views: remaining,
+        });
+      }
+      return groups.filter((group) => group.views.length > 0);
+    },
+  );
+
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
@@ -1233,6 +1316,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         this.showSmartRecordingPanel(),
         this.showProjectMetadata(),
         this.showStudioInsights(),
+        this.showSetsBrowser(),
         this.showComponentRecording(),
         this.showImportPanel(),
         this.showVocalComp(),
@@ -1865,6 +1949,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.toggleStudioInsights();
       return true;
     }
+    if (this.showSetsBrowser()) {
+      this.toggleSetsBrowser();
+      return true;
+    }
     if (this.showComponentRecording()) {
       this.showComponentRecording.set(false);
       return true;
@@ -1997,6 +2085,45 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.studioTelemetry.trackEvent(
       "template_applied",
       { templateId: id },
+      true,
+    );
+  }
+
+  /**
+   * One-tap instrumental for the mobile quick-start lane: load a curated
+   * recipe (drums + bass + chords + melody), set its tempo, snapshot the
+   * previous sketch to local Sets so nothing is lost, and land on the
+   * arrangement ready to play.
+   */
+  async quickStartRecipe(recipeId: string): Promise<void> {
+    const recipe = this.ideasGenerator.recipes.find((r) => r.id === recipeId);
+    if (!recipe) return;
+    this.haptic.medium();
+    // Preserve the current sketch before the recipe wipes the canvas — the
+    // mobile lane must never be the place where an idea disappears.
+    if (this.projectWorkspace.isDirty()) {
+      await this.projectWorkspace.autoSave();
+    }
+    this.audioEngine.resume();
+    this.musicManager.applyGeneratedRecipe(recipe);
+    this.audioEngine.tempo.set(recipe.bpm);
+    this.projectWorkspace.startFreshProject({
+      name: recipe.name,
+      bpm: recipe.bpm,
+      genre: recipe.id,
+    });
+    try {
+      this.audioEngine.start();
+    } catch {
+      // The AudioContext arms on the next user gesture.
+    }
+    this.setActiveView("arrangement");
+    this.snackbarService.success(
+      `${recipe.name} · ${recipe.bpm} BPM — loaded. Add your own layers.`,
+    );
+    this.studioTelemetry.trackEvent(
+      "mobile_quick_start",
+      { recipeId: recipe.id, bpm: recipe.bpm },
       true,
     );
   }
@@ -2392,6 +2519,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       void this.pushVersionSnapshot(bundle, true);
       this.snackbarService.success("Project saved");
       this.studioTelemetry.trackEvent("project_saved", undefined, true);
+      if (this.showSetsBrowser()) void this.refreshLocalSets();
       return true;
     } catch (error) {
       this.studioTelemetry.trackEvent(
@@ -2431,6 +2559,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       const success = await this.projectWorkspace.importProjectBundle(bundle);
       if (success) {
         this.history.clear();
+        if (this.showSetsBrowser()) void this.refreshLocalSets();
         this.snackbarService.success("Project loaded successfully");
         this.studioTelemetry.trackEvent(
           "project_imported",
@@ -2615,6 +2744,154 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   versionTrack = (_: number, snapshot: RemoteSnapshot): string =>
     `${snapshot.deviceId}:${snapshot.version}:${snapshot.timestamp}`;
+
+  railGroupTrack = (_: number, group: { id: string }): string => group.id;
+
+  setTrack = (_: number, set: LocalProjectSummary): string => set.projectId;
+
+  // ── Sets browser (local project workspaces) ────────────
+
+  toggleSetsBrowser(): void {
+    this.haptic.light();
+    const next = !this.showSetsBrowser();
+    this.showSetsBrowser.set(next);
+    if (next) {
+      // Opening the browser always re-reads storage — a stale shelf is worse
+      // than an empty one.
+      void this.refreshLocalSets();
+      this.studioTelemetry.trackEvent("sets_browser_opened", undefined, true);
+    }
+    this.syncPanelFocus(".comp-sets-panel", next);
+  }
+
+  async refreshLocalSets(): Promise<void> {
+    this.setsBusy.set(true);
+    this.setsError.set('');
+    try {
+      const sets = await this.projectWorkspace.listLocalProjects();
+      this.localSets.set(sets);
+    } catch (error) {
+      this.logger.warn("Studio: Could not read local sets", error);
+      this.setsError.set('Could not read this device\u2019s sets.');
+      this.localSets.set([]);
+    } finally {
+      this.setsBusy.set(false);
+    }
+  }
+
+  isCurrentSet(set: LocalProjectSummary): boolean {
+    return this.projectWorkspace.metadata()?.id === set.projectId;
+  }
+
+  /** Compact "saved 5 min ago" label for a set row. */
+  formatSetSavedAt(savedAt: number): string {
+    if (!savedAt) return "not saved yet";
+    const elapsed = Date.now() - savedAt;
+    if (elapsed < 60_000) return "just now";
+    if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)} min ago`;
+    if (elapsed < 86_400_000) return `${Math.floor(elapsed / 3_600_000)} h ago`;
+    if (elapsed < 7 * 86_400_000)
+      return `${Math.floor(elapsed / 86_400_000)} d ago`;
+    return new Date(savedAt).toLocaleDateString();
+  }
+
+  setSourceLabel(set: LocalProjectSummary): string {
+    switch (set.source) {
+      case 'manual':
+        return 'saved';
+      case 'autosave':
+        return 'autosaved';
+      case 'recovery':
+        return 'recovered';
+      default:
+        return 'imported';
+    }
+  }
+
+  /** Open a set from the browser, guarding an unsaved session. */
+  async openStoredSet(set: LocalProjectSummary): Promise<void> {
+    if (this.isCurrentSet(set)) {
+      this.snackbarService.info("That set is already open");
+      return;
+    }
+    if (this.projectWorkspace.isDirty()) {
+      const replace = await this.dialog.confirm({
+        title: 'Open another set?',
+        message:
+          'Opening this set replaces your unsaved session. Save or export a backup first.',
+        confirmLabel: 'Open set',
+        cancelLabel: 'Keep session',
+        tone: 'danger',
+      });
+      if (!replace) return;
+    }
+    this.setsBusy.set(true);
+    this.setsError.set('');
+    try {
+      const opened = await this.projectWorkspace.loadProject(set.projectId);
+      if (!opened) {
+        this.setsError.set('That set could not be opened.');
+        return;
+      }
+      // Opening is an explicit intent to keep working in this set.
+      this.projectWorkspace.autoSaveEnabled.set(true);
+      this.history.clear();
+      this.showSetsBrowser.set(false);
+      this.setActiveView("arrangement");
+      this.snackbarService.success(`Opened \u201c${opened.metadata.name}\u201d`);
+      this.studioTelemetry.trackEvent(
+        "set_opened",
+        { source: set.source, trackCount: set.trackCount },
+        true,
+      );
+      await this.refreshLocalSets();
+    } finally {
+      this.setsBusy.set(false);
+    }
+  }
+
+  /** Delete a set and every local version of it. */
+  async deleteStoredSet(set: LocalProjectSummary): Promise<void> {
+    const deletingCurrent = this.isCurrentSet(set);
+    const confirmed = await this.dialog.confirm({
+      title: 'Delete this set?',
+      message: deletingCurrent
+        ? `Delete \u201c${set.name}\u201d and its local autosave versions? This is the open set \u2014 a new unsaved set will start. This cannot be undone.`
+        : `Delete \u201c${set.name}\u201d and its local autosave versions? Cloud versions are not deleted.`,
+      confirmLabel: 'Delete set',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+    this.setsBusy.set(true);
+    this.setsError.set('');
+    try {
+      const removed = await this.projectWorkspace.deleteLocalProject(set.projectId);
+      if (!removed) {
+        this.setsError.set('That set was already gone.');
+      } else {
+        // Deleting the open set detaches autosave; keep it armed for the
+        // fresh session that replaces it.
+        if (deletingCurrent) this.projectWorkspace.autoSaveEnabled.set(true);
+        this.snackbarService.success(`Deleted \u201c${set.name}\u201d`);
+        this.studioTelemetry.trackEvent("set_deleted", undefined, true);
+      }
+      await this.refreshLocalSets();
+    } finally {
+      this.setsBusy.set(false);
+    }
+  }
+
+  /** Start a new set from the browser and keep the shelf current. */
+  async newSetFromBrowser(): Promise<void> {
+    await this.newProject();
+    await this.refreshLocalSets();
+  }
+
+  /** Import a .smuve bundle from the browser. */
+  importSetFromBrowser(): void {
+    this.triggerLoadProject();
+  }
 
   async exportProject() {
     this.haptic.light();

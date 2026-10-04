@@ -87,6 +87,9 @@
         <button type="button" class="comp-project-menu-item" (click)="newProject(); toggleProjectMenu()">
           <span class="material-symbols-outlined">add_circle</span> New Set
         </button>
+        <button type="button" class="comp-project-menu-item" (click)="toggleSetsBrowser(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">folder_special</span> Open Set…
+        </button>
         <button type="button" class="comp-project-menu-item" (click)="triggerLoadProject(); toggleProjectMenu()">
           <span class="material-symbols-outlined">folder_open</span> Load Project
         </button>
@@ -251,6 +254,23 @@
         <span class="comp-theme-chip" aria-hidden="true">?</span>
       </button>
 
+      <!-- Sets browser — every project saved on this device, one tap away -->
+      <button
+        type="button"
+        class="comp-icon-btn comp-sets-btn"
+        [class.comp-active]="showSetsBrowser()"
+        (click)="toggleSetsBrowser()"
+        [attr.aria-label]="
+          showSetsBrowser()
+            ? 'Close the Sets browser'
+            : 'Open the Sets browser — every project saved on this device'
+        "
+        [attr.aria-expanded]="showSetsBrowser()"
+        title="Sets · open, import or delete saved projects"
+      >
+        <span class="material-symbols-outlined">folder_open</span>
+        <span class="comp-theme-chip" aria-hidden="true">SETS</span>
+      </button>
       <button
         type="button"
         class="comp-icon-btn"
@@ -592,6 +612,69 @@
           <span><strong>Capture a take</strong><small>Vocal Suite</small></span>
         </button>
       </div>
+
+      <!-- One-tap instrumentals: each chip loads drums + bass + chords +
+           melody and starts the transport, so a phone artist hears a
+           finished-sounding loop in a single tap. -->
+      <div class="comp-mobile-quick" role="group" aria-label="One-tap instrumentals">
+        <span class="comp-mobile-quick-hint"
+          >TAP A VIBE — FULL INSTRUMENTAL IN ONE TAP</span
+        >
+        <div class="comp-mobile-quick-chips">
+          <button
+            *ngFor="let recipe of mobileQuickRecipes()"
+            type="button"
+            class="comp-mobile-quick-chip"
+            (click)="quickStartRecipe(recipe.id)"
+            [attr.aria-label]="
+              'Load the ' +
+              recipe.label +
+              ' instrumental at ' +
+              recipe.bpm +
+              ' BPM'
+            "
+            [title]="recipe.vibe"
+          >
+            <span class="comp-mobile-quick-glyph" aria-hidden="true">{{
+              recipe.glyph
+            }}</span>
+            <span class="comp-mobile-quick-name">{{ recipe.label }}</span>
+            <span class="comp-mobile-quick-bpm">{{ recipe.bpm }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- After a loop is loaded, keep the finishing path one tap away -->
+      <div
+        class="comp-mobile-next"
+        *ngIf="musicManager.tracks().length > 0"
+        role="group"
+        aria-label="Next steps after loading a groove"
+      >
+        <span class="comp-mobile-next-kicker">NEXT</span>
+        <button
+          type="button"
+          class="comp-mobile-next-btn"
+          (click)="setActiveView('mixer')"
+        >
+          <span class="material-symbols-outlined">tune</span> Mix it
+        </button>
+        <button
+          type="button"
+          class="comp-mobile-next-btn"
+          (click)="setActiveView('vocal-suite')"
+        >
+          <span class="material-symbols-outlined">mic</span> Add vocals
+        </button>
+        <button
+          type="button"
+          class="comp-mobile-next-btn"
+          (click)="setActiveView('mastering')"
+        >
+          <span class="material-symbols-outlined">graphic_eq</span> Master &amp;
+          export
+        </button>
+      </div>
     </section>
 
     <!-- Desktop view rail (FL Studio side rail pattern) -->
@@ -611,28 +694,41 @@
         <span class="material-symbols-outlined">home</span>
         <span class="comp-rail-label">Home</span>
       </button>
-      <button
-        *ngFor="let item of allStudioViews()"
-        type="button"
-        class="comp-rail-item"
-        [class.comp-rail-active]="activeView() === item.id"
-        [class.comp-rail-hidden]="item.hidden"
-        (click)="setActiveView(item.id)"
-        [attr.aria-label]="'Switch to ' + item.label + ' view'"
-        [attr.aria-pressed]="activeView() === item.id"
-      >
-        <span class="material-symbols-outlined">{{ item.icon }}</span>
-        <span class="comp-rail-label">{{ item.label }}</span>
-      </button>
-      <!-- MIDI Input Widget -->
-      <app-midi-input-widget
-        *ngIf="!railCollapsed()"
-        class="comp-rail-widget"
-      ></app-midi-input-widget>
+      <!-- Grouped, scrollable view list — every stage stays reachable even
+           when the window is short (the flat list used to clip below fold). -->
+      <div class="comp-rail-scroll">
+        <section
+          class="comp-rail-group"
+          *ngFor="let group of railGroups(); trackBy: railGroupTrack"
+          [attr.aria-label]="group.label"
+        >
+          <div class="comp-rail-group-head" *ngIf="!railCollapsed()" aria-hidden="true">
+            <span class="material-symbols-outlined">{{ group.icon }}</span>
+            <span class="comp-rail-group-title">{{ group.label }}</span>
+          </div>
+          <button
+            *ngFor="let item of group.views"
+            type="button"
+            class="comp-rail-item"
+            [class.comp-rail-active]="activeView() === item.id"
+            (click)="setActiveView(item.id)"
+            [attr.aria-label]="'Switch to ' + item.label + ' view'"
+            [attr.aria-pressed]="activeView() === item.id"
+          >
+            <span class="material-symbols-outlined">{{ item.icon }}</span>
+            <span class="comp-rail-label">{{ item.label }}</span>
+          </button>
+        </section>
+        <!-- MIDI Input Widget -->
+        <app-midi-input-widget
+          *ngIf="!railCollapsed()"
+          class="comp-rail-widget"
+        ></app-midi-input-widget>
+      </div>
 
       <button
         type="button"
-        class="comp-rail-item"
+        class="comp-rail-item comp-rail-collapse"
         (click)="toggleRail()"
         [attr.aria-label]="
           railCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'
@@ -1208,6 +1304,10 @@
       <button (click)="triggerLoadProject(); toggleMobileDrawer()" class="comp-drawer-item">
         <span class="material-symbols-outlined">folder_open</span>
         <span>Load Project</span>
+      </button>
+      <button (click)="toggleSetsBrowser(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">folder_special</span>
+        <span>My Sets (saved projects)</span>
       </button>
       <button (click)="saveProject(); toggleMobileDrawer()" class="comp-drawer-item">
         <span class="material-symbols-outlined">save</span>
@@ -2716,6 +2816,140 @@
             (click)="restoreVersion(snapshot)"
           >
             Restore
+          </button>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- ====================== SETS BROWSER (local project workspaces) ====================== -->
+  <aside
+    class="comp-panel comp-sets-panel"
+    [class.comp-panel-open]="showSetsBrowser()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showSetsBrowser()"
+    [attr.inert]="showSetsBrowser() ? null : ''"
+    aria-label="Sets browser"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">folder_special</span>
+        SETS
+      </span>
+      <div class="comp-sets-header-actions">
+        <button
+          type="button"
+          class="comp-icon-btn"
+          [disabled]="setsBusy()"
+          (click)="refreshLocalSets()"
+          aria-label="Refresh the set list"
+        >
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+        <button
+          type="button"
+          class="comp-icon-btn"
+          (click)="toggleSetsBrowser()"
+          aria-label="Close the Sets browser"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </header>
+    <div class="comp-panel-body comp-sets-body">
+      <div class="comp-sets-actions">
+        <button
+          type="button"
+          class="comp-sets-action comp-sets-action-primary"
+          [disabled]="setsBusy()"
+          (click)="newSetFromBrowser()"
+        >
+          <span class="material-symbols-outlined">add_circle</span>
+          <span><strong>New Set</strong><small>Start a fresh instrumental</small></span>
+        </button>
+        <button
+          type="button"
+          class="comp-sets-action"
+          [disabled]="setsBusy()"
+          (click)="importSetFromBrowser()"
+        >
+          <span class="material-symbols-outlined">upload_file</span>
+          <span><strong>Import .smuve</strong><small>Open a project file or backup</small></span>
+        </button>
+      </div>
+
+      <p class="comp-sets-hint">
+        Every set autosaves on this device. Tap a set to open it — the current
+        session is only replaced after you confirm.
+      </p>
+
+      <p class="comp-sets-empty" *ngIf="setsBusy() && localSets().length === 0">
+        Reading this device…
+      </p>
+      <p class="comp-sets-error" *ngIf="setsError()" role="alert">
+        {{ setsError() }}
+      </p>
+      <p
+        class="comp-sets-empty"
+        *ngIf="!setsBusy() && !setsError() && localSets().length === 0"
+      >
+        No saved sets yet. Save the current session (Ctrl+S) or load a starter,
+        and it appears here ready to reopen on the go.
+      </p>
+
+      <ul class="comp-sets-list" *ngIf="localSets().length > 0">
+        <li
+          class="comp-sets-row"
+          *ngFor="let set of localSets(); trackBy: setTrack"
+          [class.comp-sets-row-current]="isCurrentSet(set)"
+        >
+          <button
+            type="button"
+            class="comp-sets-open"
+            [disabled]="setsBusy()"
+            (click)="openStoredSet(set)"
+            [attr.aria-label]="'Open set ' + set.name"
+            [attr.title]="
+              isCurrentSet(set)
+                ? 'This set is currently open'
+                : 'Open ' + set.name
+            "
+          >
+            <span class="comp-sets-mark" aria-hidden="true"></span>
+            <span class="comp-sets-meta">
+              <span class="comp-sets-name">
+                {{ set.name }}
+                <span class="comp-sets-current-pill" *ngIf="isCurrentSet(set)"
+                  >OPEN</span
+                >
+              </span>
+              <span class="comp-sets-sub">
+                {{ set.bpm }} BPM · {{ set.trackCount }} track{{
+                  set.trackCount === 1 ? '' : 's'
+                }}
+                <ng-container *ngIf="set.genre">
+                  · {{ set.genre | titlecase }}</ng-container
+                >
+                <ng-container *ngIf="set.mood">
+                  · {{ set.mood | titlecase }}</ng-container
+                >
+              </span>
+              <span class="comp-sets-stamp"
+                >{{ setSourceLabel(set) }}
+                {{ formatSetSavedAt(set.savedAt) }} · v{{ set.version }}</span
+              >
+            </span>
+          </button>
+          <button
+            type="button"
+            class="comp-sets-delete"
+            [disabled]="setsBusy()"
+            (click)="deleteStoredSet(set)"
+            [attr.aria-label]="'Delete set ' + set.name"
+            title="Delete this set and its local autosave versions"
+          >
+            <span class="material-symbols-outlined">delete</span>
           </button>
         </li>
       </ul>

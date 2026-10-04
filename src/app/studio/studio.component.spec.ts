@@ -69,12 +69,16 @@ describe("StudioComponent", () => {
     isDirty: signal(false),
     isSaving: signal(false),
     persistenceError: signal(''),
-    metadata: signal(null),
+    metadata: signal<any>(null),
     lastAutoSave: signal(0),
     lastPersistedAt: signal(0),
     lastRecoveredAt: signal(null),
     lastRecoveredSource: signal(null),
     autoSaveEnabled: signal(true),
+    autoSave: jest.fn().mockResolvedValue(undefined),
+    listLocalProjects: jest.fn().mockResolvedValue([]),
+    loadProject: jest.fn().mockResolvedValue(null),
+    deleteLocalProject: jest.fn().mockResolvedValue(true),
     genres: [],
     moods: [],
     keys: [],
@@ -94,6 +98,7 @@ describe("StudioComponent", () => {
   const mockHistory = {
     undo: jest.fn(),
     redo: jest.fn(),
+    clear: jest.fn(),
     canUndo: signal(false),
     canRedo: signal(false),
   };
@@ -204,7 +209,14 @@ describe("StudioComponent", () => {
     document.body.classList.remove("stage-fx-off");
     mockAudioEngine.performanceTier.set("ultra");
     mockTemplateService.templates = [];
+    mockIdeasGenerator.recipes = [];
     mockProjectWorkspace.restoreLatestProjectState.mockResolvedValue(false);
+    mockProjectWorkspace.isDirty.set(false);
+    mockProjectWorkspace.metadata.set(null);
+    mockProjectWorkspace.autoSaveEnabled.set(true);
+    mockProjectWorkspace.listLocalProjects.mockResolvedValue([]);
+    mockProjectWorkspace.loadProject.mockResolvedValue(null);
+    mockProjectWorkspace.deleteLocalProject.mockResolvedValue(true);
     uiServiceMock = {
       isCompactMobile: () => false,
       showMobileNav: () => false,
@@ -887,6 +899,205 @@ describe("StudioComponent", () => {
       expect(
         component.bottomNavItems().some((i: any) => i.id === "mixer"),
       ).toBe(false);
+    });
+  });
+
+  // ── Desktop rail — grouped workflow stages ──
+  describe("rail groups", () => {
+    it("covers every visible studio view exactly once", () => {
+      const groupedIds = component
+        .railGroups()
+        .flatMap((group) => group.views.map((view) => view.id));
+      const expected = component
+        .allStudioViews()
+        .filter((view: any) => !view.hidden)
+        .map((view: any) => view.id);
+      expect(groupedIds.sort()).toEqual(expected.sort());
+      expect(new Set(groupedIds).size).toBe(groupedIds.length);
+    });
+
+    it("keeps the four workflow stages in order", () => {
+      expect(component.railGroups().map((group) => group.id)).toEqual([
+        "create",
+        "arrange",
+        "mix",
+        "library",
+      ]);
+    });
+
+    it("drops tier-hidden views and never yields an empty group", () => {
+      const groupedIds = component
+        .railGroups()
+        .flatMap((group) => group.views.map((view) => view.id));
+      // Performer is desktop-hidden (`hidden: !showMobileNav()`).
+      expect(groupedIds).not.toContain("performer");
+      expect(component.railGroups().every((group) => group.views.length > 0)).toBe(
+        true,
+      );
+    });
+  });
+
+  // ── Sets browser — local project workspaces ──
+  describe("sets browser", () => {
+    const storedSet = {
+      projectId: "proj_a",
+      recordId: "project_proj_a",
+      name: "Rooftop Set",
+      bpm: 124,
+      genre: "house",
+      mood: "energetic",
+      tags: [],
+      savedAt: Date.now() - 120_000,
+      updatedAt: Date.now() - 120_000,
+      source: "manual" as const,
+      version: 2,
+      trackCount: 4,
+    };
+
+    it("loads local sets when the browser opens", async () => {
+      mockProjectWorkspace.listLocalProjects.mockResolvedValue([storedSet]);
+
+      component.toggleSetsBrowser();
+
+      expect(component.showSetsBrowser()).toBe(true);
+      await Promise.resolve();
+      expect(mockProjectWorkspace.listLocalProjects).toHaveBeenCalled();
+      expect(component.localSets()).toEqual([storedSet]);
+      expect(component.setsBusy()).toBe(false);
+    });
+
+    it("opens a stored set after the dirty-session confirm", async () => {
+      mockProjectWorkspace.isDirty.set(true);
+      mockDialog.confirm.mockResolvedValue(true);
+      mockProjectWorkspace.loadProject.mockResolvedValue({
+        metadata: { ...storedSet, id: "proj_a" },
+        tracks: [],
+      });
+
+      await component.openStoredSet(storedSet as any);
+
+      expect(mockDialog.confirm).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Open another set?" }),
+      );
+      expect(mockProjectWorkspace.loadProject).toHaveBeenCalledWith("proj_a");
+      expect(mockHistory.clear).toHaveBeenCalled();
+      expect(component.activeView()).toBe("arrangement");
+      expect(component.showSetsBrowser()).toBe(false);
+      expect(mockSnackbar.success).toHaveBeenCalled();
+    });
+
+    it("keeps the session when the dirty-session confirm is declined", async () => {
+      mockProjectWorkspace.isDirty.set(true);
+      mockDialog.confirm.mockResolvedValue(false);
+
+      await component.openStoredSet(storedSet as any);
+
+      expect(mockProjectWorkspace.loadProject).not.toHaveBeenCalled();
+      expect(mockProjectWorkspace.isDirty()).toBe(true);
+    });
+
+    it("refuses to reopen the set that is already open", async () => {
+      mockProjectWorkspace.metadata.set({ id: "proj_a", name: "Rooftop Set" });
+
+      await component.openStoredSet(storedSet as any);
+
+      expect(mockProjectWorkspace.loadProject).not.toHaveBeenCalled();
+      expect(mockSnackbar.info).toHaveBeenCalledWith(
+        "That set is already open",
+      );
+    });
+
+    it("deletes a stored set and refreshes the shelf", async () => {
+      mockDialog.confirm.mockResolvedValue(true);
+      mockProjectWorkspace.listLocalProjects.mockResolvedValue([]);
+
+      await component.deleteStoredSet(storedSet as any);
+
+      expect(mockProjectWorkspace.deleteLocalProject).toHaveBeenCalledWith(
+        "proj_a",
+      );
+      expect(mockSnackbar.success).toHaveBeenCalledWith(
+        'Deleted \u201cRooftop Set\u201d',
+      );
+      expect(component.localSets()).toEqual([]);
+    });
+
+    it("labels the freshest save source per row", () => {
+      expect(component.setSourceLabel(storedSet as any)).toBe("saved");
+      expect(
+        component.setSourceLabel({ ...storedSet, source: "autosave" } as any),
+      ).toBe("autosaved");
+      expect(
+        component.formatSetSavedAt(0),
+      ).toBe("not saved yet");
+    });
+  });
+
+  // ── Mobile one-tap instrumentals ──
+  describe("mobile quick start", () => {
+    const trapRecipe = {
+      id: "trap",
+      name: "Night Drive \u00b7 Trap",
+      glyph: "\ud83c\udf03",
+      bpm: 140,
+      vibe: "Rolling hats",
+      progression: [],
+      tracks: [],
+    };
+
+    it("exposes curated chips for the quick-start lane", () => {
+      mockIdeasGenerator.recipes = [trapRecipe];
+
+      expect(component.mobileQuickRecipes()).toEqual([
+        {
+          id: "trap",
+          label: "Trap",
+          glyph: "\ud83c\udf03",
+          bpm: 140,
+          vibe: "Rolling hats",
+        },
+      ]);
+    });
+
+    it("loads the recipe, sets tempo and starts a fresh set", async () => {
+      mockIdeasGenerator.recipes = [trapRecipe];
+
+      await component.quickStartRecipe("trap");
+
+      expect(mockMusicManager.applyGeneratedRecipe).toHaveBeenCalledWith(
+        trapRecipe,
+      );
+      expect(mockAudioEngine.tempo()).toBe(140);
+      expect(mockProjectWorkspace.startFreshProject).toHaveBeenCalledWith({
+        name: "Night Drive \u00b7 Trap",
+        bpm: 140,
+        genre: "trap",
+      });
+      expect(component.activeView()).toBe("arrangement");
+    });
+
+    it("snapshots a dirty sketch before the recipe replaces it", async () => {
+      mockIdeasGenerator.recipes = [trapRecipe];
+      mockProjectWorkspace.isDirty.set(true);
+
+      await component.quickStartRecipe("trap");
+
+      expect(mockProjectWorkspace.autoSave).toHaveBeenCalled();
+      const autoSaveOrder = (
+        mockProjectWorkspace.autoSave as jest.Mock
+      ).mock.invocationCallOrder[0];
+      const applyOrder = (
+        mockMusicManager.applyGeneratedRecipe as jest.Mock
+      ).mock.invocationCallOrder[0];
+      expect(autoSaveOrder).toBeLessThan(applyOrder);
+      expect(mockAudioEngine.tempo()).toBe(140);
+    });
+
+    it("ignores unknown recipe ids", async () => {
+      await component.quickStartRecipe("not-a-recipe");
+
+      expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
+      expect(mockProjectWorkspace.startFreshProject).not.toHaveBeenCalled();
     });
   });
 });

@@ -311,3 +311,62 @@ touch and Chrome desktop.
 
 Mixer benchmark in the same run (32 tracks × 1,000 updates): 97.1, 53.5, 70.9,
 73.1, 48.5 ms — noisy in a CI browser, so again **no speedup is claimed**.
+
+---
+
+## 9. Third sweep — project workspaces, rail layout, mobile instrumental path
+
+Scope: getting into and out of a Studio session, the desktop view rail,
+and the phone "make an instrumental on the go" path.
+
+### 9.1 Defects found and repaired
+
+| Defect | Evidence | Fix |
+| --- | --- | --- |
+| The desktop rail could not scroll (`overflow: hidden`) while listing 22 views, so on a 768–900px-tall display every view below the fold was clipped and unreachable from the rail. | code audit (`studio.component.css` `.comp-rail`) + new e2e `desktop rail keeps every workflow stage reachable and scrollable` | `.comp-rail-scroll` wraps the list with `overflow-y: auto`; the rail collapse control stays pinned outside the scroll area. |
+| The mobile quick-start lane had shadow/atmosphere rules but **no base geometry** — on a phone it rendered as raw stacked blocks instead of the intended starter card. | code audit + phone e2e (`comp-mobile-start`, chips, `comp-mobile-next` sizes) | Base card layout added in `studio.component.css` (spacing, border, paper gradient, 44px chip floor, dark-mode variants). |
+| Loading a set was file-picker-only: locally saved projects could not be browsed or reopened in-app. `Load Project` opened `.smuve` files; the Projects page lists release rows only. | code audit of `studio.component.ts` + `project-workspace.service.ts` | New **Sets browser** panel: newest-first list of every local set with BPM/genre/mood/track count/save source, one-tap open, delete, New Set and Import actions. |
+| `ProjectWorkspaceService.loadProject` only read the `project_<id>` record, so a set that existed only as an autosave or recovery snapshot reported "missing". | unit `loads a set whose only record is an autosave snapshot` | Load now falls back to the freshest stored record for the project. |
+| Nothing could delete a Studio set from inside the Studio; deleting from the Projects page could not remove autosave-only sets. | unit `deletes every stored record for a set when it is not in the project list` | `deleteLocalProject()` delegates to `ProjectService.remove` (fires `projectDeleted$`, which detaches the open workspace) and falls back to a raw multi-record delete for autosave-only sets. |
+
+### 9.2 New surfaces
+
+- **Sets browser** (`comp-sets-panel`) — reachable from the topbar `SETS` button,
+the project menu (`Open Set…`) and the mobile drawer (`My Sets`). Rows show the
+freshest save per project (`autosaved` / `saved` / `recovered`), an `OPEN` pill
+for the current set, and a delete action. Opening a set while the session is
+dirty asks before replacing it; deleting the open set starts a fresh session
+with autosave re-armed.
+- **Desktop rail groups** — the flat list is now rendered under four workflow
+headers (Create & Jam · Song Builder · Mix & Polish · Sounds & Packs) with an
+automatic `More Tools` group for anything else, mirroring the mobile drawer's
+mental model.
+- **One-tap instrumentals on phones** — six curated chips (Trap, Lo-Fi, House,
+Neo-Soul, Drill, Afrobeats) load a complete drums + bass + chords + melody
+recipe at its tempo, snapshot any dirty sketch to local Sets first, start the
+transport and land on the arrangement. A `NEXT` row then keeps Mix it / Add
+vocals / Master & export one tap away.
+- **Telemetry** — `sets_browser_opened`, `set_opened`, `set_deleted` and
+`mobile_quick_start` join the Studio event union.
+
+### 9.3 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npx tsc -p tsconfig.json --noEmit` | pass |
+| `npx ng build --configuration development` (template/AOT gate) | pass |
+| `studio.component.spec.ts` + `project-workspace.service.spec.ts` + `studio-telemetry.service.spec.ts` | **94 tests / 3 suites passed** |
+| `src/app/studio` (full module pattern, 2 shards) | **845 tests / 59 suites passed** |
+| `tests/e2e/studio-sets-browser.spec.ts` (managed preview) | **3/3 passed** (sets open/delete durability incl. IndexedDB key check, phone one-tap instrumental + drawer fallback, desktop rail scroll/grouping) |
+| `tests/e2e/studio-quality-sweep.spec.ts` | **31/31 passed** |
+| `tests/e2e/studio_mobile_check.spec.ts` (all three desktop workspaces) | **66/66 passed** |
+| `tests/e2e/smart-creation-recent-row.spec.ts` | **2/2 passed** |
+
+### 9.4 Known limitations
+
+- The Sets browser reads local IndexedDB only; cloud version history remains a
+  separate panel, and its restore path still re-imports through the workspace.
+- The mobile quick-start lane is phone-only (`isCompactMobile()`); tablets and
+  desktop use the Smart Creation sheet for the same recipes.
+- The rail's `More Tools` group only renders when a tier-visible view is not in
+  the four workflow categories (currently Performer on tablets).

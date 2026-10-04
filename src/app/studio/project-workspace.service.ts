@@ -53,6 +53,29 @@ export type ProjectPersistenceSource =
   | "recovery"
   | "import";
 
+/**
+ * One row of the Studio Sets browser. Every stored record for a project
+ * (manual save, autosave, recovery snapshot) collapses into a single summary
+ * built from the freshest record, so the artist never sees three copies of
+ * the same set — just the version worth reopening.
+ */
+export interface LocalProjectSummary {
+  /** Stable project id shared by every stored record (`metadata.id`). */
+  projectId: string;
+  /** Storage key of the freshest record — the canonical row to delete. */
+  recordId: string;
+  name: string;
+  bpm: number;
+  genre: string;
+  mood: string;
+  tags: string[];
+  savedAt: number;
+  updatedAt: number;
+  source: ProjectPersistenceSource;
+  version: number;
+  trackCount: number;
+}
+
 interface StoredProjectBundle extends ProjectBundle {
   id: string;
   savedAt: number;
@@ -402,24 +425,121 @@ export class ProjectWorkspaceService {
 
   async loadProject(projectId: string): Promise<ProjectBundle | null> {
     try {
-      const bundle = await this.storage.getItem(
+      let record = await this.storage.getItem(
         "projects",
         `project_${projectId}`,
       );
-      if (bundle) {
-        this.validateBundle(bundle);
-        this.restoreFromSnapshot(bundle as ProjectBundle);
+      if (!record) {
+        // The set may only exist as an autosave or recovery snapshot (the
+        // manual record was never written, or was pruned). Fall back to the
+        // freshest record for this project instead of reporting it missing.
+        const stored = await this.storage.getAllItems("projects");
+        record =
+          stored
+            .filter(
+              (item) =>
+                this.isStoredProjectBundle(item) &&
+                item.metadata?.id === projectId,
+            )
+            .sort((a, b) => this.storedSavedAt(b) - this.storedSavedAt(a))[0] ??
+          null;
+      }
+      if (record) {
+        const storedBundle = record as StoredProjectBundle;
+        this.validateBundle(storedBundle);
+        this.restoreFromSnapshot(storedBundle);
         this.markPersistenceClean(
-          bundle as ProjectBundle,
-          "manual",
-          (bundle as StoredProjectBundle).savedAt,
+          storedBundle,
+          storedBundle.source || this.detectPersistenceSource(storedBundle.id),
+          this.storedSavedAt(storedBundle),
         );
-        return bundle as ProjectBundle;
+        return storedBundle;
       }
     } catch (e) {
       this.logger.warn(`ProjectWorkspace: Load failed for ${projectId}`, e);
     }
     return null;
+  }
+
+  /**
+   * Every locally-stored set, newest first. Manual, autosave and recovery
+   * records for one project are collapsed to a single row so the browser
+   * lists projects, not save files.
+   */
+  async listLocalProjects(): Promise<LocalProjectSummary[]> {
+    let stored: any[] = [];
+    try {
+      stored = await this.storage.getAllItems("projects");
+    } catch (e) {
+      this.logger.warn("ProjectWorkspace: Could not list local projects", e);
+      return [];
+    }
+
+    const freshest = new Map<string, StoredProjectBundle>();
+    for (const item of stored) {
+      if (!this.isStoredProjectBundle(item)) continue;
+      const projectId = item.metadata?.id;
+      if (!projectId) continue;
+      const previous = freshest.get(projectId);
+      if (!previous || this.storedSavedAt(item) >= this.storedSavedAt(previous)) {
+        freshest.set(projectId, item);
+      }
+    }
+
+    return Array.from(freshest.values())
+      .sort((a, b) => this.storedSavedAt(b) - this.storedSavedAt(a))
+      .map((record) => ({
+        projectId: record.metadata.id,
+        recordId: record.id,
+        name: record.metadata.name || "Untitled Set",
+        bpm: record.metadata.bpm,
+        genre: record.metadata.genre || "",
+        mood: record.metadata.mood || "",
+        tags: Array.isArray(record.metadata.tags)
+          ? [...record.metadata.tags]
+          : [],
+        savedAt: this.storedSavedAt(record),
+        updatedAt: record.metadata.updatedAt || this.storedSavedAt(record),
+        source: record.source || this.detectPersistenceSource(record.id),
+        version: record.metadata.version || 1,
+        trackCount: record.tracks.length,
+      }));
+  }
+
+  /**
+   * Delete a set and every stored record for it. Delegates to ProjectService
+   * so the home Projects surface stays consistent and `projectDeleted$` fires
+   * (which detaches the workspace if the deleted set was open).
+   */
+  async deleteLocalProject(projectId: string): Promise<boolean> {
+    try {
+      await this.projectService.refresh();
+      const removed = await this.projectService.remove(`project_${projectId}`);
+      if (removed) return true;
+      // Fallback: a set that only has autosave/recovery records is not in
+      // ProjectService's project list, so remove it directly.
+      const stored = await this.storage.getAllItems("projects");
+      const ids = stored
+        .filter(
+          (item) =>
+            this.isStoredProjectBundle(item) &&
+            item.metadata?.id === projectId,
+        )
+        .map((item) => item.id);
+      if (ids.length === 0) return false;
+      await this.storage.deleteItems("projects", ids);
+      // No `projectDeleted$` fires for records ProjectService never listed, so
+      // detach the workspace here to keep autosave from recreating the set.
+      if (this.metadata()?.id === projectId) {
+        this.autoSaveEnabled.set(false);
+        this.startFreshProject({ name: "Unsaved session" });
+      }
+      await this.projectService.refresh();
+      return true;
+    } catch (e) {
+      this.logger.warn(`ProjectWorkspace: Delete failed for ${projectId}`, e);
+      return false;
+    }
   }
 
   async exportProjectBundle(): Promise<ProjectBundle> {
