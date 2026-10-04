@@ -991,9 +991,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * turns into mis-taps on a 360px phone, so Mixer lives in the MORE
    * drawer (Mix & Polish grid) instead of a primary anchor.
    */
+  /**
+   * FL Studio Mobile panel bar — the four musical panels a mobile producer
+   * moves between, named the way FL names them (Playlist / steps / Piano
+   * Roll / vocal page). CREATE and MORE stay on either side of the dock;
+   * the full 22-stage list lives in the rail (desktop) and drawer (touch).
+   */
   bottomNavItems = computed(() => [
-    { id: "arrangement", label: "Timeline", icon: "view_quilt" },
-    { id: "drum-machine", label: "Beats", icon: "grid_view" },
+    { id: "arrangement", label: "Playlist", icon: "view_quilt" },
+    { id: "drum-machine", label: "Steps", icon: "grid_on" },
     { id: "piano-roll", label: "Keys", icon: "piano" },
     { id: "vocal-suite", label: "Vocals", icon: "mic" },
   ]);

@@ -85,13 +85,13 @@
       <!-- Desktop Project Menu Dropdown -->
       <div class="comp-project-menu" *ngIf="showProjectMenu()">
         <button type="button" class="comp-project-menu-item" (click)="newProject(); toggleProjectMenu()">
-          <span class="material-symbols-outlined">add_circle</span> New Set
+          <span class="material-symbols-outlined">add_circle</span> New Project
         </button>
         <button type="button" class="comp-project-menu-item" (click)="toggleSetsBrowser(); toggleProjectMenu()">
-          <span class="material-symbols-outlined">folder_special</span> Open Set…
+          <span class="material-symbols-outlined">folder_special</span> Open Project…
         </button>
         <button type="button" class="comp-project-menu-item" (click)="triggerLoadProject(); toggleProjectMenu()">
-          <span class="material-symbols-outlined">folder_open</span> Load Project
+          <span class="material-symbols-outlined">folder_open</span> Load from file
         </button>
         <button type="button" class="comp-project-menu-item" (click)="importMidi(); toggleProjectMenu()">
           <span class="material-symbols-outlined">piano</span> Import MIDI
@@ -3003,7 +3003,7 @@
     <header class="comp-panel-header">
       <span class="comp-panel-title">
         <span class="material-symbols-outlined">folder_special</span>
-        SETS
+        PROJECTS
       </span>
       <div class="comp-sets-header-actions">
         <button
@@ -3034,7 +3034,7 @@
           (click)="newSetFromBrowser()"
         >
           <span class="material-symbols-outlined">add_circle</span>
-          <span><strong>New Set</strong><small>Start a fresh instrumental</small></span>
+          <span><strong>New Project</strong><small>Empty project · 120 BPM</small></span>
         </button>
         <button
           type="button"
@@ -3043,13 +3043,13 @@
           (click)="importSetFromBrowser()"
         >
           <span class="material-symbols-outlined">upload_file</span>
-          <span><strong>Import .smuve</strong><small>Open a project file or backup</small></span>
+          <span><strong>Import project</strong><small>.smuve project file or backup</small></span>
         </button>
       </div>
 
       <p class="comp-sets-hint">
-        Every set autosaves on this device. Tap a set to open it — the current
-        session is only replaced after you confirm.
+        Every project autosaves on this device. Tap a project to open it — the
+        current session is only replaced after you confirm.
       </p>
 
       <p class="comp-sets-empty" *ngIf="setsBusy() && localSets().length === 0">
@@ -3062,8 +3062,8 @@
         class="comp-sets-empty"
         *ngIf="!setsBusy() && !setsError() && localSets().length === 0"
       >
-        No saved sets yet. Save the current session (Ctrl+S) or load a starter,
-        and it appears here ready to reopen on the go.
+        No saved projects yet. Save the current session (Ctrl+S) or load a
+        starter, and it appears here ready to reopen on the go.
       </p>
 
       <ul class="comp-sets-list" *ngIf="localSets().length > 0">

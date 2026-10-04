@@ -1,0 +1,1836 @@
+/* ============================================================================
+   S.M.U.V.E. STUDIO — FL STUDIO MOBILE MIMICRY LAYER
+   ----------------------------------------------------------------------------
+   Global stylesheet (registered in angular.json, loaded after styles.css and
+   studio-redesign-global.css). It re-skins the whole Studio — shell chrome and
+   every child panel — toward the FL Studio Mobile 4 workspace language:
+
+     · Graphite toolbars with a single orange accent (FL's #FF9A1F family)
+     · Flat panels: no glass blur, no ambient glow, hairline 1px separators
+     · Compact controls: square 6–9px radii, 32–40px control heights
+     · Mono numeric readouts (bar:beat:tick, BPM, dB) like FL's transport
+     · Panel semantics borrowed from FL: Playlist, Channel Rack, Mixer,
+       Piano Roll, Browser, Projects
+
+   Why a global sheet: Angular emulated view encapsulation keeps the shell's
+   component styles out of the child panels (mixer, drum machine, piano roll,
+   browser …). A global layer with `body .comp-shell` prefixes (specificity
+   0,2,1) reliably outranks each component's scoped `.class[_ngcontent]` rules
+   ((0,2,0)) without touching 20+ component stylesheets, and it can also remap
+   the app's design tokens *inside the Studio only* so every panel inherits the
+   FL palette at once. Every rule below is Studio-scoped; the rest of the app
+   (Home Hub, profile, auth) keeps the Stage 2.0 night-sky look.
+   ========================================================================= */
+
+/* ==========================================================================
+   1. FL TOKENS + STUDIO-SCOPED DESIGN-SYSTEM REMAP
+   ========================================================================== */
+
+body .comp-shell {
+  /* ── FL Studio Mobile palette — graphite (default) ── */
+  --fl-bg: #131418; /* workspace / canvas */
+  --fl-bg-rgb: 19, 20, 24;
+  --fl-panel: #1b1c21; /* toolbars, rails, headers */
+  --fl-panel-2: #232429; /* raised controls, cards */
+  --fl-panel-3: #2c2d34; /* hover / pressed controls */
+  --fl-inset: #0e0f12; /* numeric readouts, wells */
+  --fl-line: #34353d; /* hairline separators */
+  --fl-line-soft: rgba(255, 255, 255, 0.07);
+  --fl-text: #ececf0;
+  --fl-dim: #a0a1ab;
+  --fl-dim-2: #6c6d76;
+  --fl-accent: #ff9a1f; /* FL orange — selection / primary */
+  --fl-accent-2: #ffb454; /* lighter orange for text/icons */
+  --fl-accent-soft: rgba(255, 154, 31, 0.14);
+  --fl-accent-line: rgba(255, 154, 31, 0.44);
+  --fl-rec: #e5484d; /* record arm red */
+  --fl-play: #74c05a; /* rolling / playing LED green */
+  --fl-blue: #4b8fe8; /* secondary (automation, sends) */
+  --fl-radius-sm: 6px;
+  --fl-radius: 9px;
+  --fl-radius-lg: 14px;
+  --fl-control: 40px;
+  --fl-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+
+  /* ── Remap the app design system inside the Studio ──
+     Panels consume these tokens, so the FL palette propagates to every view
+     without editing a single component stylesheet. Custom properties resolve
+     late, so the per-theme blocks below only need to re-point --fl-*. */
+  --ivory-bg: var(--fl-bg);
+  --ivory-bg-rgb: 19, 20, 24;
+  --ivory-panel: var(--fl-panel);
+  --ivory-paper: var(--fl-panel-2);
+  --ivory-deep: #08090b;
+  --ivory-line: var(--fl-line-soft);
+
+  --espresso-text: var(--fl-text);
+  --espresso-muted: var(--fl-dim);
+  --espresso-line: var(--fl-line);
+  --espresso-soft: rgba(255, 255, 255, 0.05);
+
+  /* Neon Cyan → FL Orange (the app's accent family is the "teal" ramp) */
+  --teal-500: var(--fl-accent);
+  --teal-600: #f0870f;
+  --teal-700: #d97706;
+  --teal-800: #b45309;
+  --teal-900: #8f3d06;
+  --teal-400: var(--fl-accent-2);
+  --teal-300: #ffd6a0;
+  --teal-200: #ffe7c7;
+  --teal-100: rgba(255, 154, 31, 0.2);
+  --teal-50: rgba(255, 154, 31, 0.1);
+  --teal-glow: rgba(255, 154, 31, 0.36);
+  --teal-soft-glow: rgba(255, 154, 31, 0.2);
+
+  --orange: var(--fl-accent);
+  --orange-glow: rgba(255, 154, 31, 0.32);
+
+  --color-bg: var(--fl-bg);
+  --color-bg-alt: var(--fl-panel);
+  --color-surface: var(--fl-panel-2);
+  --color-surface-rgb: 35, 36, 41;
+  --color-surface-bright: var(--fl-panel-3);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-bright: rgba(255, 255, 255, 0.18);
+  --color-text: var(--fl-text);
+  --color-text-dim: var(--fl-dim);
+  --color-primary: var(--fl-accent);
+  --color-secondary: var(--fl-blue);
+  --color-accent: var(--fl-accent);
+
+  --glass: rgba(27, 28, 33, 0.96);
+  --glass-border: rgba(255, 255, 255, 0.09);
+
+  /* FL is flat — kill the neon halos, keep depth to 1–2px */
+  --shadow-ivory-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-ivory-md: 0 3px 10px rgba(0, 0, 0, 0.5);
+  --shadow-ivory-lg: 0 8px 22px rgba(0, 0, 0, 0.55);
+  --shadow-ivory-xl: 0 14px 34px rgba(0, 0, 0, 0.6);
+
+  /* Legacy Stage 2.0 tokens consumed by shell CSS (marquee / phone dock) */
+  --stage-paper: var(--fl-panel);
+  --stage-line: var(--fl-line);
+  --stage-ink: var(--fl-text);
+  --stage-muted: var(--fl-dim);
+  --stage-teal: var(--fl-accent);
+  --stage-teal-bright: var(--fl-accent-2);
+  --stage-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  color: var(--fl-text);
+}
+
+/* Focus mode — FL "night" graphite: panels lift a touch for long sessions */
+body.focus-mode .comp-shell {
+  --fl-bg: #17181d;
+  --fl-bg-rgb: 23, 24, 29;
+  --fl-panel: #1f2026;
+  --fl-panel-2: #26272e;
+  --fl-panel-3: #2f3038;
+  --fl-inset: #121317;
+  --fl-line: #383941;
+}
+
+/* Dark mode — FL "lights out": true black instrument panels */
+body.dark-mode .comp-shell {
+  --fl-bg: #0b0b0e;
+  --fl-bg-rgb: 11, 11, 14;
+  --fl-panel: #141418;
+  --fl-panel-2: #1c1c21;
+  --fl-panel-3: #262629;
+  --fl-inset: #08080a;
+  --fl-line: #2e2e35;
+}
+
+/* FL Studio Mobile is a flat UI: retire the Stage 2.0 aurora, marquee sheen
+   and neon glows inside the Studio frame (the Stage FX toggle still governs
+   what remains). */
+body .comp-shell .comp-aurora {
+  opacity: 0.22;
+}
+body .comp-shell .comp-aurora-blob {
+  filter: saturate(0.55) blur(48px);
+}
+body .comp-shell .comp-stage-marquee {
+  background: var(--fl-panel);
+  border-block: 1px solid var(--fl-line);
+  color: var(--fl-dim);
+  min-height: 20px;
+  padding: 2px 10px;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+}
+body .comp-shell .stage-marquee-track {
+  opacity: 0.55;
+  animation-duration: 90s;
+}
+
+/* ==========================================================================
+   2. APP BAR — FL STUDIO MOBILE TOOLBAR
+   [menu] [project ▾]            [transport]        [undo/redo/save/browser]
+   ========================================================================== */
+
+body .comp-shell .comp-topbar {
+  height: 58px;
+  min-height: 58px;
+  padding: 0 12px;
+  gap: 10px;
+  background: var(--fl-panel);
+  border-bottom: 1px solid var(--fl-line);
+  box-shadow: none;
+}
+
+body .comp-shell .comp-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 7px;
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+  box-shadow: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+body .comp-shell .comp-brand:hover,
+body .comp-shell .comp-brand:focus-visible {
+  background: var(--fl-panel-3);
+  border-color: var(--fl-accent-line);
+}
+/* Project chip caret — FL's project menu affordance */
+body .comp-shell .comp-brand::after {
+  content: '▾';
+  font-size: 9px;
+  line-height: 1;
+  color: var(--fl-dim);
+  margin-left: 1px;
+}
+
+body .comp-shell .comp-brand-mark {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border-radius: var(--fl-radius-sm);
+  background: linear-gradient(160deg, #ffb454 0%, #f0870f 100%);
+  box-shadow: none;
+}
+body .comp-shell .comp-brand-pulse {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+body .comp-shell .comp-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+body .comp-shell .comp-brand-name {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--fl-dim);
+  text-transform: uppercase;
+}
+body .comp-shell .comp-brand-tag {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--fl-text);
+  text-transform: none;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Keyboard-first desktop chrome: flat square icon buttons */
+body .comp-shell .comp-icon-btn {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border-radius: var(--fl-radius-sm);
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  color: var(--fl-text);
+  box-shadow: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+body .comp-shell .comp-icon-btn:hover,
+body .comp-shell .comp-icon-btn:focus-visible {
+  background: var(--fl-panel-3);
+  border-color: #45464f;
+  color: #fff;
+}
+body .comp-shell .comp-icon-btn .material-symbols-outlined {
+  font-size: 19px;
+}
+body .comp-shell .comp-icon-btn.comp-active,
+body .comp-shell .comp-icon-btn[aria-pressed='true'] {
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent);
+}
+
+/* FL toolbars are icon-forward: the micro-labels become tiny mono tags */
+body .comp-shell .comp-theme-chip {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--fl-dim-2);
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+/* Status pips: FL-style monochrome pills */
+body .comp-shell .comp-now-performing,
+body .comp-shell .comp-hw-badge {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: 999px;
+  color: var(--fl-dim);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  box-shadow: none;
+}
+body .comp-shell .comp-now-playing {
+  background: rgba(116, 192, 90, 0.14);
+  border: 1px solid rgba(116, 192, 90, 0.4);
+  border-radius: 999px;
+  color: var(--fl-play);
+}
+body .comp-shell .comp-arm-audio {
+  background: var(--fl-accent-soft);
+  border: 1px solid var(--fl-accent-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-accent-2);
+}
+body .comp-shell .comp-ai-btn {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  color: var(--fl-accent);
+}
+body .comp-shell .comp-ai-btn .comp-ai-pip {
+  background: var(--fl-accent);
+  box-shadow: none;
+}
+
+/* Project menu — FL's project dropdown */
+body .comp-shell .comp-project-menu {
+  background: var(--fl-panel);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+  padding: 4px;
+}
+body .comp-shell .comp-project-menu-item {
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 10px;
+}
+body .comp-shell .comp-project-menu-item:hover,
+body .comp-shell .comp-project-menu-item:focus-visible {
+  background: var(--fl-accent-soft);
+  color: var(--fl-accent-2);
+}
+
+/* ==========================================================================
+   3. TRANSPORT STRIP — FL's stop / play / record / loop / metronome cluster
+   with mono bar:beat:tick readout and BPM well
+   ========================================================================== */
+
+body .comp-shell .ctb-shell {
+  gap: 8px;
+}
+body .comp-shell .ctb-primary-row {
+  gap: 6px;
+  align-items: center;
+}
+
+body .comp-shell .ctb-group {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+  box-shadow: none;
+  padding: 3px;
+  gap: 2px;
+}
+body .comp-shell .ctb-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--fl-radius-sm);
+  background: transparent;
+  color: var(--fl-text);
+  box-shadow: none;
+}
+body .comp-shell .ctb-btn:hover,
+body .comp-shell .ctb-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+body .comp-shell .ctb-play {
+  width: 38px;
+  background: var(--fl-panel-3);
+}
+body .comp-shell .ctb-play.ctb-play-active {
+  background: var(--fl-play);
+  color: #0c120a;
+}
+body .comp-shell .ctb-play-pulse {
+  display: none; /* FL does not pulse the play glyph */
+}
+body .comp-shell .ctb-rec.ctb-rec-active {
+  background: var(--fl-rec);
+  color: #fff;
+}
+body .comp-shell .ctb-rec-source {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--fl-rec);
+}
+body .comp-shell .ctb-rec-dot {
+  background: var(--fl-rec);
+}
+
+body .comp-shell .ctb-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--fl-radius-sm);
+  background: transparent;
+  color: var(--fl-dim);
+}
+body .comp-shell .ctb-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--fl-text);
+}
+body .comp-shell .ctb-toggle.ctb-toggle-active {
+  background: var(--fl-accent-soft);
+  color: var(--fl-accent);
+  box-shadow: inset 0 0 0 1px var(--fl-accent-line);
+}
+
+body .comp-shell .ctb-tempo {
+  background: var(--fl-inset);
+  border-color: var(--fl-line);
+  padding: 2px;
+}
+body .comp-shell .ctb-bpm {
+  gap: 3px;
+  padding: 0 6px;
+}
+body .comp-shell .ctb-bpm-value {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fl-accent);
+  font-variant-numeric: tabular-nums;
+}
+body .comp-shell .ctb-bpm-unit {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--fl-dim-2);
+}
+body .comp-shell .ctb-nudge {
+  color: var(--fl-dim);
+}
+body .comp-shell .ctb-nudge:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fl-text);
+}
+
+body .comp-shell .ctb-position {
+  background: var(--fl-inset);
+  border-color: var(--fl-line);
+  padding: 2px 6px;
+}
+body .comp-shell .ctb-timesig {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--fl-dim-2);
+  letter-spacing: 0.06em;
+}
+body .comp-shell .ctb-position-readout {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--fl-text);
+  letter-spacing: 0.02em;
+}
+body .comp-shell .ctb-position-readout i {
+  color: var(--fl-dim-2);
+  font-style: normal;
+}
+body .comp-shell .ctb-pos-bar {
+  color: var(--fl-accent);
+}
+
+/* "More" drawer + its interior groups keep the same flat language */
+body .comp-shell .ctb-secondary-trigger {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+body .comp-shell .ctb-secondary-panel {
+  background: var(--fl-panel);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+}
+body .comp-shell .ctb-mode-pill,
+body .comp-shell .ctb-countin-chip,
+body .comp-shell .ctb-loop-chip,
+body .comp-shell .ctb-undo-btn,
+body .comp-shell .ctb-ideas {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-dim);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+body .comp-shell .ctb-mode-pill.ctb-mode-song,
+body .comp-shell .ctb-countin-chip.ctb-countin-active,
+body .comp-shell .ctb-loop-chip.ctb-loop-chip-on {
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent-2);
+}
+body .comp-shell .ctb-toggle.ctb-toggle-active .material-symbols-outlined,
+body .comp-shell .ctb-loop-chip-on .material-symbols-outlined {
+  color: var(--fl-accent);
+}
+
+/* ==========================================================================
+   4. CONTEXT TOOL ROW — FL's secondary toolbar under the transport
+   ========================================================================== */
+
+body .comp-shell .comp-topbar-tools {
+  min-height: 44px;
+  padding: 5px 12px;
+  gap: 6px;
+  background: var(--fl-panel);
+  border-bottom: 1px solid var(--fl-line);
+  box-shadow: none;
+}
+body .comp-shell .comp-tool-btn {
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: var(--fl-radius-sm);
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  color: var(--fl-text);
+  box-shadow: none;
+  gap: 6px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+body .comp-shell .comp-tool-btn:hover,
+body .comp-shell .comp-tool-btn:focus-visible {
+  background: var(--fl-panel-3);
+  border-color: #45464f;
+}
+body .comp-shell .comp-tool-btn.comp-tool-active {
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent-2);
+}
+body .comp-shell .comp-tool-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+body .comp-shell .comp-tool-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+body .comp-shell .comp-tool-btn .comp-kbd {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--fl-dim-2);
+  border-color: var(--fl-line);
+}
+body .comp-shell .comp-tool-badge {
+  background: var(--fl-accent);
+  color: #1c1206;
+  font-family: var(--font-mono);
+  font-weight: 800;
+}
+body .comp-shell .comp-tool-more {
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent-2);
+}
+
+/* ==========================================================================
+   5. PANEL BAR — FL's bottom panel switcher (Playlist / Rack / Keys / Vox)
+   ========================================================================== */
+
+body .comp-shell .comp-bottombar {
+  background: var(--fl-panel);
+  border-top: 1px solid var(--fl-line);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+body .comp-shell .comp-tab {
+  color: var(--fl-dim);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  letter-spacing: 0.09em;
+}
+body .comp-shell .comp-tab:hover {
+  color: var(--fl-text);
+  background: var(--fl-panel-2);
+}
+body .comp-shell .comp-tab .material-symbols-outlined {
+  font-size: 21px;
+}
+body .comp-shell .comp-tab-active {
+  color: var(--fl-accent);
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-line);
+}
+body .comp-shell .comp-tab-active .material-symbols-outlined {
+  color: var(--fl-accent);
+}
+body .comp-shell .comp-tab-indicator {
+  background: var(--fl-accent);
+}
+body .comp-shell .comp-tab-active .comp-tab-indicator {
+  box-shadow: none;
+}
+body .comp-shell .comp-tab-more {
+  color: var(--fl-accent);
+  border-color: rgba(255, 154, 31, 0.24);
+}
+body .comp-shell .comp-tab-create-hero {
+  background: linear-gradient(180deg, #ffb454 0%, #f0870f 100%);
+  color: #20150a;
+  border-color: transparent;
+}
+body .comp-shell .comp-tab-create-hero .comp-tab-label,
+body .comp-shell .comp-tab-create-hero .material-symbols-outlined {
+  color: #20150a;
+}
+body .comp-shell .comp-create-pill-glow {
+  display: none; /* FL controls don't glow */
+}
+
+/* ==========================================================================
+   6. VIEW RAIL (desktop) + DRAWER (phone/tablet) — FL's panel list
+   ========================================================================== */
+
+body .comp-shell .comp-rail {
+  background: var(--fl-panel);
+  border-right: 1px solid var(--fl-line);
+  box-shadow: none;
+}
+body .comp-shell .comp-rail-group {
+  border-bottom: 1px solid var(--fl-line-soft);
+}
+body .comp-shell .comp-rail-group-head {
+  color: var(--fl-dim-2);
+}
+body .comp-shell .comp-rail-group-title {
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--fl-dim-2);
+}
+body .comp-shell .comp-rail-item {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-dim);
+  box-shadow: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+body .comp-shell .comp-rail-item .material-symbols-outlined {
+  color: inherit;
+}
+body .comp-shell .comp-rail-item:hover,
+body .comp-shell .comp-rail-item:focus-visible {
+  background: var(--fl-panel-2);
+  color: var(--fl-text);
+}
+body .comp-shell .comp-rail-item.comp-rail-active,
+body .comp-shell .comp-rail-item[aria-pressed='true'] {
+  background: var(--fl-accent-soft);
+  color: var(--fl-accent);
+  box-shadow: inset 2px 0 0 var(--fl-accent);
+}
+body .comp-shell .comp-rail-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+body .comp-shell .comp-drawer {
+  background: var(--fl-panel);
+  border-right: 1px solid var(--fl-line);
+  box-shadow: 10px 0 36px rgba(0, 0, 0, 0.55);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+body .comp-shell .comp-drawer-header {
+  border-bottom: 1px solid var(--fl-line);
+}
+body .comp-shell .comp-drawer-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fl-accent);
+}
+body .comp-shell .comp-drawer-category-title,
+body .comp-shell .comp-drawer-category-header {
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--fl-dim-2);
+}
+body .comp-shell .comp-drawer-grid-btn,
+body .comp-shell .comp-drawer-item {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-text);
+}
+body .comp-shell .comp-drawer-grid-btn:hover,
+body .comp-shell .comp-drawer-item:hover,
+body .comp-shell .comp-drawer-grid-btn:focus-visible,
+body .comp-shell .comp-drawer-item:focus-visible {
+  background: var(--fl-panel-3);
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent-2);
+}
+body .comp-shell .comp-drawer-grid-label {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+body .comp-shell .comp-drawer-grid-pill {
+  background: var(--fl-accent);
+  color: #1c1206;
+  font-family: var(--font-mono);
+}
+
+/* ==========================================================================
+   7. STATUS BAR — FL's thin info strip
+   ========================================================================== */
+
+body .comp-shell .comp-footer {
+  background: var(--fl-panel);
+  border-top: 1px solid var(--fl-line);
+  box-shadow: none;
+}
+body .comp-shell .comp-footer-chip {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: 999px;
+  color: var(--fl-dim);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  box-shadow: none;
+}
+body .comp-shell .comp-footer-chip[data-state='playing'],
+body .comp-shell .comp-footer-chip[data-state='recording'],
+body .comp-shell .comp-footer-chip[data-state='dirty'] {
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent-2);
+}
+body .comp-shell .comp-footer-chip[data-state='recording'] {
+  border-color: rgba(229, 72, 77, 0.5);
+  color: var(--fl-rec);
+}
+body .comp-shell .comp-footer-brand {
+  color: var(--fl-dim-2);
+}
+
+/* ==========================================================================
+   8. PROJECTS SCREEN — FL's Projects browser (the Sets panel + sheet)
+   ========================================================================== */
+
+body .comp-shell .comp-panel {
+  background: var(--fl-panel);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+body .comp-shell .comp-panel-header {
+  border-bottom: 1px solid var(--fl-line);
+  background: var(--fl-panel);
+}
+body .comp-shell .comp-panel-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--fl-accent);
+}
+body .comp-shell .comp-sets-action {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+  color: var(--fl-text);
+}
+body .comp-shell .comp-sets-action:hover,
+body .comp-shell .comp-sets-action:focus-visible {
+  border-color: var(--fl-accent-line);
+  background: var(--fl-panel-3);
+}
+body .comp-shell .comp-sets-action-primary {
+  background: linear-gradient(180deg, #ffb454 0%, #f0870f 100%);
+  border-color: transparent;
+  color: #20150a;
+}
+body .comp-shell .comp-sets-action strong {
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+body .comp-shell .comp-sets-action small {
+  color: inherit;
+  opacity: 0.72;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+body .comp-shell .comp-sets-hint,
+body .comp-shell .comp-sets-empty {
+  color: var(--fl-dim);
+  font-size: 11px;
+}
+body .comp-shell .comp-sets-list {
+  border-top: 1px solid var(--fl-line);
+}
+body .comp-shell .comp-sets-row {
+  border-bottom: 1px solid var(--fl-line-soft);
+  background: transparent;
+}
+body .comp-shell .comp-sets-row:hover {
+  background: var(--fl-panel-2);
+}
+body .comp-shell .comp-sets-row-current {
+  background: var(--fl-accent-soft);
+  box-shadow: inset 2px 0 0 var(--fl-accent);
+}
+body .comp-shell .comp-sets-mark {
+  background: var(--fl-panel-3);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+}
+body .comp-shell .comp-sets-row-current .comp-sets-mark {
+  background: linear-gradient(160deg, #ffb454, #f0870f);
+  border-color: transparent;
+}
+body .comp-shell .comp-sets-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fl-text);
+}
+body .comp-shell .comp-sets-sub,
+body .comp-shell .comp-sets-stamp {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--fl-dim);
+  letter-spacing: 0.03em;
+}
+body .comp-shell .comp-sets-current-pill {
+  background: var(--fl-accent);
+  color: #1c1206;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+body .comp-shell .comp-sets-delete {
+  color: var(--fl-dim);
+}
+body .comp-shell .comp-sets-delete:hover {
+  color: var(--fl-rec);
+}
+
+/* ==========================================================================
+   9. TOOLS SHEET — FL-style menu sheet (phone progressive disclosure)
+   ========================================================================== */
+
+body .comp-shell .comp-tools-backdrop {
+  background: rgba(6, 6, 8, 0.62);
+  backdrop-filter: blur(2px);
+}
+body .comp-shell .comp-tools-sheet {
+  background: var(--fl-panel);
+  border-top: 1px solid var(--fl-line);
+  box-shadow: 0 -20px 44px rgba(0, 0, 0, 0.6);
+}
+body .comp-shell .comp-tools-sheet-head {
+  background: var(--fl-panel);
+  border-bottom: 1px solid var(--fl-line);
+}
+body .comp-shell .comp-tools-sheet-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--fl-accent);
+}
+body .comp-shell .comp-tools-sheet-label {
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--fl-dim-2);
+}
+body .comp-shell .comp-tools-sheet-btn {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+  color: var(--fl-text);
+}
+body .comp-shell .comp-tools-sheet-btn:hover,
+body .comp-shell .comp-tools-sheet-btn:focus-visible {
+  background: var(--fl-panel-3);
+  border-color: var(--fl-accent-line);
+}
+body .comp-shell .comp-tools-sheet-btn .material-symbols-outlined {
+  color: var(--fl-accent);
+}
+body .comp-shell .comp-tools-sheet-btn strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+body .comp-shell .comp-tools-sheet-btn small {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--fl-dim);
+}
+body .comp-shell .comp-tools-sheet-btn.comp-tools-sheet-on {
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent-2);
+}
+
+/* ==========================================================================
+   10. PANEL SKINS — Playlist · Channel Rack · Drum Machine · Mixer ·
+       Piano Roll · Browser · Synth
+   Structural surfaces only (flat panels, FL headers, FL controls); musical
+   state colours stay owned by each component.
+   ========================================================================== */
+
+/* ── 10.1 Shared: every panel is a flat FL window ── */
+body .comp-shell .comp-canvas {
+  background: var(--fl-bg);
+  border-radius: 10px;
+}
+body .comp-shell .comp-view {
+  padding: 0;
+}
+body .comp-shell :is(.glass-v42, .shadow-v42-xl, .shadow-v42-lg) {
+  box-shadow: none;
+}
+body .comp-shell :is(
+    .rack-container,
+    .mix-shell,
+    .pr-shell,
+    .dm-shell,
+    .sb-shell,
+    .playlist-container
+  ) {
+  background: var(--fl-panel);
+  border: 1px solid var(--fl-line);
+  border-radius: 10px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* FL panel headers: dark strip, uppercase condensed title, hairline rule,
+   small accent tab on the left edge. */
+body .comp-shell :is(
+    .rack-header,
+    .mix-header,
+    .pr-header,
+    .dm-header,
+    .playlist-header,
+    .sb-header,
+    .sound-browser-title
+  ) {
+  background: var(--fl-panel-2);
+  background-image: none;
+  border-bottom: 1px solid var(--fl-line);
+  box-shadow: none;
+}
+body .comp-shell :is(
+    .rack-title,
+    .playlist-container .view-tabs .tab-btn.active,
+    .sb-title,
+    .sound-browser-title
+  ) {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--fl-accent);
+  text-transform: uppercase;
+}
+body .comp-shell :is(.dm-header h1, .mix-header-title h1, .sb-title) {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--fl-text);
+  text-transform: uppercase;
+}
+body .comp-shell :is(.dm-header h1 small, .mix-header-title p) {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--fl-dim);
+  text-transform: uppercase;
+}
+
+/* FL button language: flat chips; the panel's own primary button is orange */
+body .comp-shell :is(
+    .btn-pro,
+    .mini-btn,
+    .tactile-v42,
+    .executive-glass,
+    .studio-primary-button,
+    .studio-ghost-button,
+    .dm-mobile-action,
+    .mix-icon-btn,
+    .pr-tool,
+    .pr-inspector-toggle
+  ) {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-text);
+  box-shadow: none;
+}
+body .comp-shell :is(
+    .btn-pro,
+    .mini-btn,
+    .tactile-v42,
+    .executive-glass,
+    .studio-primary-button,
+    .dm-mobile-action,
+    .mix-icon-btn,
+    .pr-tool,
+    .pr-inspector-toggle
+  ):hover {
+  background: var(--fl-panel-3);
+  border-color: var(--fl-accent-line);
+  color: #fff;
+}
+body .comp-shell :is(.studio-primary-button, .comp-sets-action-primary) {
+  background: linear-gradient(180deg, #ffb454 0%, #f0870f 100%);
+  border-color: transparent;
+  color: #20150a;
+}
+body .comp-shell .pr-tool.active,
+body .comp-shell .pr-tool[aria-pressed='true'],
+body .comp-shell .pr-inspector-toggle.active,
+body .comp-shell .pr-inspector-toggle[aria-pressed='true'] {
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent);
+}
+
+/* ── 10.2 Playlist (Arrangement) ── */
+body .comp-shell .playlist-container {
+  background: var(--fl-panel);
+}
+body .comp-shell .playlist-container .mini-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--fl-radius-sm);
+}
+body .comp-shell .module-transport {
+  background: var(--fl-inset);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  box-shadow: none;
+}
+body .comp-shell .module-transport-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--fl-dim-2);
+}
+
+/* ── 10.3 Channel Rack — FL channel rows + step lane ── */
+body .comp-shell .channel-rack-channel,
+body .comp-shell .channel-item {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+}
+body .comp-shell .channel-rack-channel:hover,
+body .comp-shell .channel-item:hover {
+  border-color: #45464f;
+}
+body .comp-shell .channel-name {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--fl-text);
+}
+body .comp-shell .channel-rack-instrument {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: var(--fl-dim);
+  opacity: 0.75;
+}
+body .comp-shell .channel-rack-step-grid {
+  background: var(--fl-inset);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+}
+body .comp-shell .channel-rack-step-cell {
+  border-radius: 2px;
+  background: #3a3b43;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: none;
+}
+body .comp-shell .channel-rack-step-cell:hover {
+  background: #4a4b54;
+}
+body .comp-shell .channel-rack-step-cell.active {
+  background: linear-gradient(180deg, #ffb454, #f0870f);
+  border-color: #c96f08;
+  box-shadow: 0 0 0 1px rgba(255, 154, 31, 0.35);
+}
+body .comp-shell .channel-rack-step-cell.current-step {
+  outline: 1px solid var(--fl-accent);
+  outline-offset: 1px;
+}
+body .comp-shell .rack-fader-pro {
+  accent-color: var(--fl-accent);
+}
+
+/* ── 10.4 Drum Machine — step grid + pads ── */
+body .comp-shell .dm-step-grid {
+  background: var(--fl-inset);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+  padding: 6px;
+}
+body .comp-shell .dm-step {
+  border-radius: 3px;
+  background: #34353c;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  box-shadow: none;
+}
+body .comp-shell .dm-step.beat-end {
+  background: #3d3e46;
+}
+body .comp-shell .dm-step.on {
+  background: linear-gradient(180deg, #ffb454, #f0870f);
+  border-color: #c96f08;
+}
+body .comp-shell .dm-step.current {
+  box-shadow: inset 0 0 0 1px var(--fl-accent);
+}
+body .comp-shell .dm-step-row-label {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--fl-dim);
+}
+body .comp-shell .dm-pads {
+  background: var(--fl-inset);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+}
+body .comp-shell .dm-pad {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+}
+body .comp-shell .dm-pad.selected {
+  border-color: var(--fl-accent-line);
+  box-shadow: inset 0 0 0 1px var(--fl-accent-soft);
+}
+body .comp-shell .dm-pad.playing {
+  background: var(--fl-panel-3);
+}
+body .comp-shell .dm-pad.playing .dm-pad-led {
+  background: var(--fl-accent);
+  box-shadow: none;
+}
+body .comp-shell .dm-pad-name {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+body .comp-shell .dm-pattern-context {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+}
+body .comp-shell .dm-context-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--fl-dim-2);
+}
+body .comp-shell .dm-groove-chip,
+body .comp-shell .dm-style-chip,
+body .comp-shell .dm-strip-toggle {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-dim);
+}
+body .comp-shell .dm-groove-chip.active,
+body .comp-shell .dm-style-chip.active,
+body .comp-shell .dm-strip-toggle.active {
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent-2);
+}
+body .comp-shell .dm-vel-bar {
+  background: var(--fl-accent);
+}
+
+/* ── 10.5 Mixer — FL console strips ── */
+body .comp-shell .mix-strip {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  box-shadow: none;
+}
+body .comp-shell .mix-strip-master {
+  background: var(--fl-panel-3);
+  border-color: var(--fl-accent-line);
+}
+body .comp-shell .mix-strip-name {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--fl-text);
+}
+body .comp-shell .mix-strip-num,
+body .comp-shell .mix-strip-type {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--fl-dim-2);
+}
+body .comp-shell .mix-fader-rail {
+  background: var(--fl-inset);
+  border: 1px solid var(--fl-line);
+  border-radius: 4px;
+  box-shadow: none;
+}
+body .comp-shell .mix-fader-cap {
+  background: linear-gradient(180deg, #4a4b54, #34353c);
+  border: 1px solid #1c1c21;
+  box-shadow: none;
+}
+body .comp-shell .mix-fader-cap:hover,
+body .comp-shell .mix-fader-area:active .mix-fader-cap {
+  border-color: var(--fl-accent);
+}
+body .comp-shell .mix-fader-tick {
+  background: rgba(255, 255, 255, 0.14);
+}
+body .comp-shell .mix-fader-tick.zero {
+  background: var(--fl-accent);
+}
+body .comp-shell .mix-fader-readout,
+body .comp-shell .mix-sends-readout {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--fl-dim);
+}
+body .comp-shell .mix-meter {
+  background: var(--fl-inset);
+  border: 1px solid var(--fl-line);
+}
+body .comp-shell .mix-meter-bar {
+  background: linear-gradient(180deg, var(--fl-play), #4d8a3c);
+}
+body .comp-shell .mix-meter-bar.peaking {
+  background: var(--fl-rec);
+}
+body .comp-shell .mix-meter-peak {
+  background: var(--fl-accent);
+}
+body .comp-shell .mix-msr-btn {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-dim);
+}
+body .comp-shell .mix-msr-btn.active,
+body .comp-shell .mix-msr-btn[aria-pressed='true'] {
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent);
+}
+body .comp-shell .mix-segmented {
+  background: var(--fl-inset);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+}
+body .comp-shell .mix-segmented button {
+  color: var(--fl-dim);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+body .comp-shell .mix-segmented button.active {
+  background: var(--fl-accent-soft);
+  color: var(--fl-accent);
+}
+
+/* ── 10.6 Piano Roll — FL editor chrome + keys ── */
+body .comp-shell .pr-header {
+  background: var(--fl-panel-2);
+}
+body .comp-shell .pr-tool {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-text);
+}
+body .comp-shell .pr-zoom-readout,
+body .comp-shell .pr-tool-status {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--fl-dim);
+}
+body .comp-shell .pr-track-pill {
+  background: var(--fl-panel-3);
+  border: 1px solid var(--fl-line);
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+}
+body .comp-shell .pr-inspector-pill {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+}
+body .comp-shell .pr-inspector-pill-label {
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--fl-dim-2);
+}
+body .comp-shell .pr-inspector-pill-value {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fl-accent);
+}
+body .comp-shell .pr-ks-label {
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--fl-dim-2);
+}
+body .comp-shell .pr-ks-select {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-text);
+  font-size: 10px;
+}
+body .comp-shell .pr-grid,
+body .comp-shell .pr-cc-lane {
+  background: var(--fl-inset);
+  border: 1px solid var(--fl-line);
+}
+body .comp-shell .pr-keys {
+  background: var(--fl-panel-2);
+  border-right: 1px solid var(--fl-line);
+}
+body .comp-shell .pr-velocity .pr-gl-canvas--velocity {
+  border-top: 1px solid var(--fl-line);
+}
+
+/* ── 10.7 Browser (Sound Browser / Sample Library) ── */
+body .comp-shell .sb-shell,
+body .comp-shell .sound-browser-surface {
+  background: var(--fl-panel);
+}
+body .comp-shell .sb-search,
+body .comp-shell .sound-browser-search {
+  background: var(--fl-inset);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+body .comp-shell .sb-filter-chip {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+  color: var(--fl-dim);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+body .comp-shell .sb-filter-chip.active,
+body .comp-shell .sb-filter-chip[aria-pressed='true'] {
+  background: var(--fl-accent-soft);
+  border-color: var(--fl-accent-line);
+  color: var(--fl-accent-2);
+}
+body .comp-shell .sb-pack-chip,
+body .comp-shell .sound-browser-card {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+}
+body .comp-shell .sb-pack-chip:hover,
+body .comp-shell .sound-browser-card:hover {
+  border-color: var(--fl-accent-line);
+}
+body .comp-shell .sb-pack-chip-name,
+body .comp-shell .sound-browser-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+body .comp-shell .sb-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--fl-text);
+  text-transform: uppercase;
+}
+body .comp-shell .sb-similar-item {
+  background: var(--fl-panel-2);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius-sm);
+}
+
+/* ── 10.8 Synth / instrument pages — FL knob panels ── */
+body .comp-shell .synth-shell,
+body .comp-shell .synth-panel,
+body .comp-shell .synth-module {
+  background: var(--fl-panel);
+  border: 1px solid var(--fl-line);
+  border-radius: var(--fl-radius);
+  box-shadow: none;
+}
+body .comp-shell .knob-control,
+body .comp-shell .knob-shell {
+  color: var(--fl-accent);
+}
+
+/* ==========================================================================
+   11. FL READOUTS — mono, tabular numerals everywhere numbers matter
+   ========================================================================== */
+
+body .comp-shell :is(
+    .comp-footer-chip,
+    .ctb-position-readout,
+    .ctb-bpm-value,
+    .mix-fader-readout,
+    .mix-sends-readout,
+    .dm-context-label,
+    .pr-zoom-readout,
+    .pr-inspector-pill-value
+  ) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   12. DEVICE TIERS — keep FL's placement rules on phone, tablet, desktop
+   ========================================================================== */
+
+/* Desktop: app bar and tool row stay on one compact line, canvas gets the
+   remaining height; the rail reads as FL's left panel list. */
+@media (min-width: 769px) {
+  body .comp-shell .comp-topbar {
+    height: 56px;
+    min-height: 56px;
+  }
+  body .comp-shell .comp-rail-item {
+    min-height: 40px;
+    padding: 6px 10px;
+  }
+}
+
+/* Phone: FL Mobile stacks the toolbar — project row, then a full-width
+   transport strip, with the panel switcher pinned to the bottom edge. */
+@media (max-width: 768px) {
+  body .comp-shell .comp-topbar {
+    min-height: 50px;
+    padding: 5px 8px;
+    gap: 6px;
+  }
+  /* Top-left cluster is the entry point: project chip stays full height */
+  body .comp-shell .comp-brand {
+    padding: 4px 8px 4px 6px;
+  }
+  body .comp-shell .comp-brand-tag {
+    font-size: 12px;
+  }
+  body .comp-shell .comp-icon-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
+  }
+  body .comp-shell .comp-topbar-center {
+    padding: 3px 0 1px;
+  }
+  body .comp-shell .ctb-group {
+    padding: 2px;
+  }
+  body .comp-shell .ctb-btn {
+    width: 34px;
+    height: 34px;
+  }
+  body .comp-shell .ctb-play {
+    width: 38px;
+  }
+  body .comp-shell .ctb-toggle {
+    width: 32px;
+    height: 32px;
+  }
+  body .comp-shell .comp-topbar-tools {
+    min-height: 40px;
+    padding: 4px 8px;
+  }
+  body .comp-shell .comp-tool-btn {
+    min-height: 32px;
+    padding: 6px 10px;
+  }
+  /* Bottom panel bar: 56px touch rows, FL indicator on top edge */
+  body .comp-shell .comp-bottombar {
+    min-height: 62px;
+    padding: 5px 6px max(env(safe-area-inset-bottom, 6px), 8px);
+  }
+  body .comp-shell .comp-tab {
+    min-height: 50px;
+    border-radius: 10px;
+  }
+  body .comp-shell .comp-tab-active {
+    background: var(--fl-accent-soft);
+    border-color: var(--fl-accent-line);
+    color: var(--fl-accent);
+  }
+  body .comp-shell .comp-tools-sheet {
+    background: var(--fl-panel);
+  }
+}
+
+/* Short phones: keep the transport strip single-line and scrollable */
+@media (max-width: 480px) {
+  body .comp-shell .comp-brand-tag {
+    max-width: 14ch;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   FL workspace framing
+   FL Studio Mobile puts panel content edge-to-edge between the toolbar and
+   the panel bar — no rounded floating card, no ambient gap. Desktop keeps a
+   slim inset so the rail reads as a separate docked window (FL's panel
+   layout), while phones go full-bleed.
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  body .comp-shell .comp-main {
+    padding: 0;
+    gap: 0;
+    padding-bottom: var(--transport-dock-height, 0px);
+  }
+  body .comp-shell .comp-canvas {
+    border-radius: 0;
+    box-shadow: none;
+  }
+  body .comp-shell .comp-view {
+    padding: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Panels sit flush against the toolbar: hairline instead of a soft shadow */
+  body .comp-shell .comp-canvas::before {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) {
+  /* Frame the canvas with an inset hairline instead of a real border: FL's
+     window edges are 1px rules, but adding a border box here would change the
+     panel geometry the production-view sweeps assert on. */
+  body .comp-shell .comp-canvas {
+    box-shadow: inset 0 0 0 1px var(--fl-line);
+  }
+  body .comp-shell .comp-rail {
+    border-right: 1px solid var(--fl-line);
+  }
+  /* FL window title rules: everything separated by hairlines, never glows */
+  body .comp-shell .comp-panel {
+    border-radius: 12px;
+  }
+}
+
+/* ==========================================================================
+   13. HARDENED STATE LAYER — signature FL controls
+   --------------------------------------------------------------------------
+   A handful of panels hardcode the legacy Stage cyan inside
+   `:host-context(.dark-mode)` / `.selected` / `.active` state rules whose
+   specificity outranks the token remap and the shims above (the Studio boots
+   in dark mode, so those rules are the ones actually on screen). These rules
+   re-assert the FL colour language for the controls that define the FL feel:
+   step cells, pads, fader/meter caps, panel switchers. Scoped to the Studio,
+   visual properties only — geometry stays with the components.
+   ========================================================================== */
+
+/* 13.0 Panel surfaces — dark-mode component rules paint night-sky gradients
+   and wood textures over the FL panels; flatten them back to graphite. */
+body .comp-shell :is(
+    .rack-container,
+    .mix-shell,
+    .pr-shell,
+    .dm-shell,
+    .sb-shell,
+    .playlist-container,
+    .synth-shell,
+    .synth-panel,
+    .synth-module
+  ) {
+  background: var(--fl-panel) !important;
+  background-image: none !important;
+  border-color: var(--fl-line) !important;
+  box-shadow: none !important;
+}
+body .comp-shell :is(
+    .rack-header,
+    .mix-header,
+    .pr-header,
+    .dm-header,
+    .playlist-header,
+    .sb-header,
+    .sound-browser-title,
+    .dm-pattern-context,
+    .comp-panel-header,
+    .comp-drawer-header,
+    .comp-tools-sheet-head
+  ) {
+  background: var(--fl-panel-2) !important;
+  background-image: none !important;
+  border-bottom-color: var(--fl-line) !important;
+  box-shadow: none !important;
+}
+
+/* 14. INSTANT PANELS — FL does not slide its workspace in.
+   The Stage 2.0 entrance choreography translates the main surface for
+   0.5–0.6s after mount; FL Studio Mobile swaps panels with zero motion, and a
+   translate on `.comp-main` while `.comp-canvas` clips/scrolls makes panel
+   geometry ambiguous for one animation frame (measured rects drift by ~9px).
+   Neutralising it here keeps panel geometry stable from the first frame. */
+body .comp-shell :is(
+    .comp-topbar,
+    .comp-topbar-left > *,
+    .comp-topbar-center,
+    .comp-topbar-right > *,
+    .comp-topbar-tools > *,
+    .comp-main,
+    .comp-canvas,
+    .comp-view,
+    .comp-rail,
+    .comp-rail-item,
+    .comp-drawer,
+    .comp-panel,
+    .comp-footer,
+    .comp-bottombar,
+    .comp-tab
+  ) {
+  animation: none !important;
+}
+
+/* 13.1 Panel switchers (rail, dock) */
+body .comp-shell .comp-rail .comp-rail-item.comp-rail-active,
+body .comp-shell .comp-rail .comp-rail-item.comp-rail-active .material-symbols-outlined,
+body .comp-shell .comp-rail .comp-rail-item.comp-rail-active .comp-rail-label {
+  color: var(--fl-accent) !important;
+}
+body .comp-shell .comp-rail .comp-rail-item.comp-rail-active {
+  background: var(--fl-accent-soft) !important;
+  box-shadow: inset 2px 0 0 var(--fl-accent) !important;
+}
+body .comp-shell .comp-bottombar .comp-tab.comp-tab-active,
+body .comp-shell .comp-bottombar .comp-tab.comp-tab-active .material-symbols-outlined,
+body .comp-shell .comp-bottombar .comp-tab.comp-tab-active .comp-tab-label {
+  color: var(--fl-accent) !important;
+}
+body .comp-shell .comp-bottombar .comp-tab.comp-tab-active {
+  background: var(--fl-accent-soft) !important;
+  border-color: var(--fl-accent-line) !important;
+}
+
+/* 13.2 Step sequencer (drum machine) */
+body .comp-shell .dm-step.current {
+  background: var(--fl-accent-soft) !important;
+  box-shadow: inset 0 0 0 1px var(--fl-accent-line) !important;
+}
+body .comp-shell .dm-step.on {
+  background: linear-gradient(
+    180deg,
+    #ffc06a 0%,
+    var(--fl-accent) 48%,
+    #d97706 100%
+  ) !important;
+  border-color: #c96f08 !important;
+  box-shadow: 0 0 0 1px rgba(255, 154, 31, 0.28) !important;
+}
+body .comp-shell .dm-step.bar-end {
+  border-right-color: var(--fl-accent) !important;
+}
+body .comp-shell .dm-step.beat-end {
+  border-right-color: var(--fl-line) !important;
+}
+body .comp-shell .dm-inspector {
+  background: var(--fl-panel) !important;
+  border-left-color: var(--fl-line) !important;
+}
+body .comp-shell .dm-pad.selected {
+  border-color: var(--fl-accent) !important;
+  box-shadow: inset 0 0 0 1px var(--fl-accent-line) !important;
+}
+body .comp-shell .dm-pad.playing .dm-pad-led {
+  background: var(--fl-accent) !important;
+  box-shadow: 0 0 8px var(--fl-accent-soft) !important;
+}
+
+/* 13.3 Channel rack steps */
+body .comp-shell .channel-rack-step-cell.active {
+  background: linear-gradient(
+    180deg,
+    #ffc06a 0%,
+    var(--fl-accent) 55%,
+    #d97706 100%
+  ) !important;
+  border-color: #c96f08 !important;
+  box-shadow: none !important;
+}
+body .comp-shell .channel-rack-step-cell.current-step {
+  outline-color: var(--fl-accent) !important;
+}
+body .comp-shell .channel-item.selected,
+body .comp-shell .channel-rack-channel.selected {
+  background: var(--fl-accent-soft) !important;
+  border-color: var(--fl-accent-line) !important;
+  box-shadow: inset 2px 0 0 var(--fl-accent) !important;
+}
+
+/* 13.4 Console (mixer) */
+body .comp-shell .mix-strip.mix-strip-selected {
+  border-color: var(--fl-accent-line) !important;
+}
+body .comp-shell .mix-segmented button.active,
+body .comp-shell .mix-mobile-msr button.active {
+  background: var(--fl-accent-soft) !important;
+  color: var(--fl-accent) !important;
+}
+body .comp-shell .mix-meter-bar {
+  background: linear-gradient(180deg, var(--fl-play) 0%, #4d8a3c 100%) !important;
+}
+body .comp-shell .mix-meter-bar.peaking {
+  background: var(--fl-rec) !important;
+}
+body .comp-shell .mix-fader-cap::after {
+  background: var(--fl-accent) !important;
+}
+body .comp-shell .mix-icon-btn:hover,
+body .comp-shell .mix-icon-btn:focus-visible {
+  border-color: var(--fl-accent-line) !important;
+  color: var(--fl-accent) !important;
+}
+
+/* 13.6 Shared FL controls — meters, knobs, pad LEDs */
+body .comp-shell .studio-meter-fill {
+  background: linear-gradient(
+    to top,
+    #4d8a3c 0%,
+    var(--fl-play) 62%,
+    #f0a02a 86%,
+    var(--fl-rec) 100%
+  ) !important;
+}
+body .comp-shell .studio-meter-track {
+  background: var(--fl-inset) !important;
+  border-color: var(--fl-line) !important;
+}
+body .comp-shell .studio-meter-peak {
+  background: var(--fl-accent) !important;
+  box-shadow: none !important;
+}
+body .comp-shell .studio-meter-readout {
+  font-family: var(--font-mono);
+  color: var(--fl-dim);
+}
+body .comp-shell .knob-label {
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  color: var(--fl-dim);
+}
+body .comp-shell .knob-face {
+  background: radial-gradient(
+    circle at 30% 30%,
+    #3a3b43 0%,
+    #24252b 52%,
+    #16171b 100%
+  ) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55) !important;
+}
+body .comp-shell .knob-center-cap {
+  background: var(--fl-panel) !important;
+  border-color: #0b0b0d !important;
+}
+
+/* 13.5 Piano roll toolbar */
+body .comp-shell .pr-tool.active,
+body .comp-shell .pr-tool[aria-pressed='true'],
+body .comp-shell .pr-inspector-toggle.active,
+body .comp-shell .pr-inspector-toggle[aria-pressed='true'] {
+  background: var(--fl-accent-soft) !important;
+  border-color: var(--fl-accent-line) !important;
+  color: var(--fl-accent) !important;
+}
+body .comp-shell .pr-snap.active,
+body .comp-shell .pr-precision-pill.active {
+  background: var(--fl-accent-soft) !important;
+  color: var(--fl-accent) !important;
+}
