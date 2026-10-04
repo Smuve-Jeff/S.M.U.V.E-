@@ -1834,3 +1834,342 @@ body .comp-shell .pr-precision-pill.active {
   background: var(--fl-accent-soft) !important;
   color: var(--fl-accent) !important;
 }
+
+/* ==========================================================================
+   15. PHONE FIT — landscape recovery + portrait workspace boost
+   --------------------------------------------------------------------------
+   Measured on 844×390 (landscape) and 390×844 (portrait) before this tier:
+   - Landscape fell into the ≥769px desktop tier while the generic
+     `max-height: 500px` block hid the tool row and the transport strip
+     overflowed its bar (63px of content in 56px, clipped ~4px top and
+     bottom — transport buttons carry their own 44px min floors), and the AI
+     band squashed to an unusable 15px sliver.
+   - Portrait stacked 200px of chrome (28 status + 58 topbar + 53 tools +
+     61 AI band) above the canvas, squeezed the view to 504px, rendered
+     panel-bar labels at 8px and clipped them (bar content 404px in 390px).
+   This tier gives both orientations an FL-tight chrome budget: every control
+   fits its container, tools stay reachable in landscape, panel-bar labels are
+   legible and unclipped in portrait, and the canvas reclaims the savings.
+   ========================================================================== */
+
+/* ---- 15.1 Portrait phone: shrink the chrome stack, grow the workspace ---- */
+@media (max-width: 768px) and (orientation: portrait) {
+  /* Save-status strip: 28 → 22px. Text stays visible (tests assert it).
+     flex: 0 0 auto keeps the shell's flex column from squeezing rows. */
+  body .comp-shell .studio-project-status {
+    flex: 0 0 auto;
+    min-height: 22px;
+    padding: 1px 10px;
+    gap: 5px;
+    font-size: 11px;
+  }
+  body .comp-shell .studio-project-status .material-symbols-outlined {
+    font-size: 13px;
+  }
+
+  /* Topbar 58 → 50px: tighter icon buttons and brand chip. */
+  body .comp-shell .comp-topbar {
+    flex: 0 0 auto;
+    min-height: 50px;
+    height: 50px;
+    padding: 3px 8px;
+    gap: 5px;
+  }
+  body .comp-shell .comp-icon-btn {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+  body .comp-shell .comp-brand {
+    padding: 3px 7px 3px 5px;
+  }
+
+  /* Tool row 53 → 44px with 36px chips. The chips need !important here:
+     the global touch floor pins .comp-tool-btn to 44px, which overflowed the
+     44px row (content 47px in 43px) and clipped the chip edges. */
+  body .comp-shell .comp-topbar-tools {
+    flex: 0 0 auto;
+    min-height: 0;
+    height: 44px;
+    padding: 3px 8px;
+    gap: 5px;
+  }
+  body .comp-shell .comp-tool-btn {
+    min-height: 36px !important;
+    height: 36px !important;
+    padding: 4px 10px;
+  }
+
+  /* AI band 61 → ~48px: same controls, tighter roster chips. */
+  body .comp-shell .ai-band {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    margin: 0 8px 4px;
+    gap: 8px;
+    border-radius: 12px;
+  }
+  body .comp-shell .ai-band-player {
+    min-height: 34px;
+    padding: 3px 10px;
+    gap: 6px;
+    border-radius: 9px;
+  }
+  body .comp-shell .ai-band-player .material-symbols-outlined {
+    font-size: 15px;
+  }
+  body .comp-shell .ai-band-player-text small {
+    font-size: 8px;
+  }
+}
+
+/* ---- 15.2 Panel bar labels: legible and unclipped on every phone ----
+   The tab row carried 8px labels with 4px of clipping per tab (bar content
+   404px inside a 390px viewport). FL names its panels in readable caps, so
+   the labels go to 10px with tight tracking and ellipsis as the last resort,
+   and the row stops overflowing horizontally. The 10px needs !important:
+   styles.css pins .comp-tab-label to 11px !important, which pushed
+   "PLAYLIST" to 55px inside a 45px label box and ellipsized it. The CREATE
+   hero also drops its 1.2 flex share so all 7 tabs get ~52px of label room
+   — "PLAYLIST" (the longest name) fits fully at 10px. */
+body .comp-shell .comp-bottombar {
+  padding-left: 2px;
+  padding-right: 2px;
+}
+body .comp-shell .comp-tab-create-hero {
+  flex: 1 1 0 !important;
+  margin: 4px 2px !important;
+}
+body .comp-shell .comp-tab {
+  min-width: 0;
+  padding: 4px 1px;
+}
+body .comp-shell .comp-tab .material-symbols-outlined {
+  font-size: 20px;
+}
+body .comp-shell .comp-tab-label {
+  font-family: var(--font-display);
+  font-size: 10px !important;
+  font-weight: 800;
+  letter-spacing: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body .comp-shell .comp-tab-more .comp-tab-label,
+body .comp-shell .comp-tab-create-hero .comp-tab-label {
+  font-size: 10px !important;
+}
+
+/* ---- 15.3 Phone landscape: unclip the transport, keep tools reachable ----
+   A phone on its side is the tightest axis in the app (~390px). The generic
+   `max-height: 500px` tier hid the tool row and left the transport 7px taller
+   than its bar. This budget keeps every control: 20px status + 50px topbar +
+   36px tool row + 26px AI band ≈ 132px of chrome, ~258px of canvas (the
+   header toggle still folds the whole bar away for a max-canvas view). */
+@media (max-width: 1023px) and (orientation: landscape) and (max-height: 520px) {
+  /* Save-status strip: 20px, same text contract as everywhere else.
+     flex: 0 0 auto on every chrome row — the shell is a flex column and was
+     squeezing the tool row to 13px once the budget tightened. */
+  body .comp-shell .studio-project-status {
+    flex: 0 0 auto;
+    min-height: 20px;
+    padding: 0 10px;
+    gap: 4px;
+    font-size: 10px;
+  }
+  body .comp-shell .studio-project-status .material-symbols-outlined {
+    font-size: 12px;
+  }
+
+  /* One 50px topbar whose transport strip actually fits its bar. */
+  body .comp-shell .comp-topbar {
+    flex: 0 0 auto;
+    height: 50px;
+    min-height: 50px;
+    padding: 2px 8px;
+    gap: 6px;
+  }
+  body .comp-shell .comp-topbar-center {
+    padding: 0;
+    min-height: 0;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  body .comp-shell .comp-topbar-center::-webkit-scrollbar {
+    display: none;
+  }
+  /* The landscape-phone tier hard-codes the transport chain to 63px
+     (studio-transport-shell, app-transport-bar :host, .ctb-shell) and the
+     button row to 58px, sized for the old 64px topbar. On this 50px tier
+     that fixed height — not the buttons — is what kept the strip clipped,
+     so the chain goes content-sized. */
+  body .comp-shell .studio-transport-shell,
+  body .comp-shell app-transport-bar,
+  body .comp-shell .ctb-shell {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  body .comp-shell .ctb-shell {
+    gap: 6px;
+    padding: 2px 6px;
+  }
+  body .comp-shell .ctb-primary-row {
+    gap: 4px;
+    padding: 0;
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: hidden;
+  }
+  body .comp-shell .ctb-group {
+    padding: 0 3px;
+    gap: 3px;
+    flex: 0 0 auto;
+  }
+  /* 38px transport buttons: the component's 44px touch floor (and the
+     global !important floor) is what made the strip 63px tall inside a
+     50px bar; 38px still exceeds a fingertip and fits the bar. The
+     !important is required — styles.css pins the chips/toggles/nudges to
+     44px !important, which is exactly what overflowed the bar. */
+  body .comp-shell .ctb-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    flex: 0 0 auto;
+  }
+  body .comp-shell .ctb-play {
+    width: 42px;
+  }
+  body .comp-shell .ctb-toggle,
+  body .comp-shell .ctb-nudge {
+    width: 32px;
+    height: 32px;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    flex: 0 0 auto;
+  }
+  body .comp-shell .ctb-tap,
+  body .comp-shell .ctb-undo-btn,
+  body .comp-shell .ctb-punch,
+  body .comp-shell .ctb-countin-chip,
+  body .comp-shell .ctb-loop-chip,
+  body .comp-shell .ctb-volume-slider,
+  body .comp-shell .ctb-bpm {
+    min-width: 34px !important;
+    min-height: 34px !important;
+  }
+  body .comp-shell .ctb-secondary-trigger {
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0 8px;
+  }
+  body .comp-shell .ctb-bpm-value {
+    font-size: 13px;
+  }
+  body .comp-shell .ctb-position-readout {
+    font-size: 11px;
+  }
+  body .comp-shell .comp-icon-btn {
+    width: 36px;
+    min-width: 36px !important;
+    height: 36px;
+    min-height: 36px !important;
+  }
+  body .comp-shell .comp-brand {
+    padding: 2px 7px 2px 5px;
+    min-height: 36px !important;
+  }
+  body .comp-shell .comp-brand-tag {
+    font-size: 11px;
+    max-width: 12ch;
+  }
+
+  /* Tools stay reachable: the generic max-height:500px tier hides the row
+     outright, and on this tier the rail only switches views. A 36px
+     scrollable icon row puts every tool one tap away. */
+  body .comp-shell .comp-topbar-tools {
+    display: flex;
+    flex: 0 0 auto;
+    min-height: 0;
+    height: 38px;
+    padding: 3px 8px;
+    gap: 5px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  body .comp-shell .comp-topbar-tools::-webkit-scrollbar {
+    display: none;
+  }
+  body .comp-shell .comp-tool-btn {
+    min-height: 30px !important;
+    height: 30px !important;
+    padding: 3px 9px;
+    flex: 0 0 auto;
+  }
+  body .comp-shell .comp-tool-btn .comp-tool-label {
+    font-size: 9px !important;
+    letter-spacing: 0.05em;
+  }
+  body .comp-shell .comp-tool-btn .material-symbols-outlined {
+    font-size: 14px;
+  }
+
+  /* AI band: compressed 26px strip — every musician toggle stays tappable
+     (role detail drops to the title tooltip on this axis only). */
+  body .comp-shell .ai-band {
+    flex: 0 0 auto;
+    padding: 2px 8px;
+    margin: 0 8px 3px;
+    gap: 6px;
+    border-radius: 9px;
+  }
+  body .comp-shell .ai-band-label {
+    padding: 2px 8px;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+  }
+  body .comp-shell .ai-band-player {
+    min-height: 22px;
+    padding: 2px 8px;
+    gap: 5px;
+    border-radius: 7px;
+  }
+  body .comp-shell .ai-band-player .material-symbols-outlined {
+    font-size: 13px;
+  }
+  body .comp-shell .ai-band-player-text strong {
+    font-size: 9px;
+    letter-spacing: 0.05em;
+  }
+  body .comp-shell .ai-band-player-text small {
+    display: none;
+  }
+  body .comp-shell .ai-band-state {
+    min-width: 24px;
+    padding: 1px 5px;
+    font-size: 7px;
+    letter-spacing: 0.1em;
+  }
+  body .comp-shell .ai-band-readout {
+    padding: 2px 8px;
+    font-size: 8px;
+    letter-spacing: 0.08em;
+  }
+
+  /* The AI FAB clears the compressed strip and never covers the transport. */
+  body .comp-shell .comp-fab {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    bottom: 12px;
+    right: 12px;
+  }
+}
