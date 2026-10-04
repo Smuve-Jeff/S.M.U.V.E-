@@ -92,7 +92,7 @@ describe("KnobComponent", () => {
     expect(component.ringColor()).toBe('#ff4d4d');
     component.onKeydown(new KeyboardEvent('keydown', { key: 'Home' }));
     expect(component.percent()).toBe(0);
-    expect(component.ringColor()).toBe('#00e5ff');
+    expect(component.ringColor()).toBe('#ff9a1f');
   });
 
   it('quantizes relative to a non-zero minimum without exceeding either bound', () => {

@@ -99,20 +99,20 @@ import { HapticService } from "../../../services/haptic.service";
         transition: border-color 0.2s;
       }
       .knob-outer:hover .knob-face {
-        border-color: rgba(0, 229, 255, 0.4);
+        border-color: rgba(255, 154, 31, 0.45);
       }
       .knob-indicator {
         width: 3px;
         height: 10px;
-        background: #00e5ff;
+        background: var(--fl-accent, #ff9a1f);
         position: absolute;
         top: 6px;
         left: 50%;
         transform: translateX(-50%);
         border-radius: 2px;
         box-shadow:
-          0 0 10px #00e5ff,
-          0 0 20px rgba(0, 229, 255, 0.4);
+          0 0 10px rgba(255, 154, 31, 0.7),
+          0 0 20px rgba(255, 154, 31, 0.35);
       }
       .knob-center-cap {
         position: absolute;
@@ -153,16 +153,16 @@ import { HapticService } from "../../../services/haptic.service";
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
       }
       .knob-value {
-        font-family: "Geist Mono", monospace;
+        font-family: var(--font-mono, "Geist Mono", monospace);
         font-size: 9px;
         font-weight: 700;
-        color: #00e5ff;
+        color: var(--fl-accent, #ff9a1f);
         background: rgba(0, 0, 0, 0.4);
         padding: 2px 6px;
         border-radius: 4px;
         min-width: 40px;
         text-align: center;
-        border: 1px solid rgba(0, 229, 255, 0.1);
+        border: 1px solid rgba(255, 154, 31, 0.18);
       }
       @media (max-width: 1024px) {
         .knob-outer {
@@ -239,11 +239,15 @@ export class KnobComponent implements OnInit, OnChanges, OnDestroy {
     return `${fill} ${circumference}`;
   });
 
+  /**
+   * FL-style knob ring: orange through the working range, hot orange past
+   * half, red near the top of the range. (Was cyan in the Stage 2.0 skin.)
+   */
   ringColor = computed(() => {
     const p = this.percent();
     if (p > 0.8) return "#ff4d4d"; // Warning
     if (p > 0.5) return "#ec5b13"; // Active
-    return "#00e5ff"; // Normal
+    return "#ff9a1f"; // Normal — FL orange
   });
 
   private isDragging = false;

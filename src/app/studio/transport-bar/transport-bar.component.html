@@ -70,6 +70,49 @@
 
   </div>
 
+  <!-- Loop + Metronome toggles — FL Studio Mobile keeps both on the main
+       transport strip, next to play/record, instead of behind More. -->
+  <div class="ctb-group ctb-toggles" role="group" aria-label="Toggles">
+    <button
+      type="button"
+      class="ctb-toggle"
+      [class.ctb-toggle-active]="loopEnabled()"
+      (click)="toggleLoop()"
+      [attr.aria-pressed]="loopEnabled()"
+      [attr.aria-label]="
+        (loopEnabled() ? 'Turn OFF loop region' : 'Turn ON loop region') +
+        ' — currently ' +
+        (loopEnabled() ? 'on' : 'off')
+      "
+      [attr.title]="
+        loopEnabled()
+          ? 'Loop region is ON · click to turn off'
+          : 'Loop region is OFF · click to turn on'
+      "
+    >
+      <span class="material-symbols-outlined">repeat</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-toggle"
+      [class.ctb-toggle-active]="metronomeEnabled()"
+      (click)="toggleMetronome()"
+      [attr.aria-pressed]="metronomeEnabled()"
+      [attr.aria-label]="
+        (metronomeEnabled() ? 'Turn OFF metronome' : 'Turn ON metronome') +
+        ' — currently ' +
+        (metronomeEnabled() ? 'on' : 'off')
+      "
+      [attr.title]="
+        metronomeEnabled()
+          ? 'Metronome is ON · click to mute'
+          : 'Metronome is OFF · click to enable'
+      "
+    >
+      <span class="material-symbols-outlined">metronome</span>
+    </button>
+  </div>
+
   <!-- Tempo group + Tap Tempo -->
   <div class="ctb-group ctb-tempo" role="group" aria-label="Tempo">
     <button
@@ -296,48 +339,6 @@
       <span class="ctb-undo-badge" *ngIf="redoCount() > 0">{{
         redoCount()
       }}</span>
-    </button>
-  </div>
-
-  <!-- Loop + Metronome toggles -->
-  <div class="ctb-group ctb-toggles" role="group" aria-label="Toggles">
-    <button
-      type="button"
-      class="ctb-toggle"
-      [class.ctb-toggle-active]="loopEnabled()"
-      (click)="toggleLoop()"
-      [attr.aria-pressed]="loopEnabled()"
-      [attr.aria-label]="
-        (loopEnabled() ? 'Turn OFF loop region' : 'Turn ON loop region') +
-        ' — currently ' +
-        (loopEnabled() ? 'on' : 'off')
-      "
-      [attr.title]="
-        loopEnabled()
-          ? 'Loop region is ON · click to turn off'
-          : 'Loop region is OFF · click to turn on'
-      "
-    >
-      <span class="material-symbols-outlined">repeat</span>
-    </button>
-    <button
-      type="button"
-      class="ctb-toggle"
-      [class.ctb-toggle-active]="metronomeEnabled()"
-      (click)="toggleMetronome()"
-      [attr.aria-pressed]="metronomeEnabled()"
-      [attr.aria-label]="
-        (metronomeEnabled() ? 'Turn OFF metronome' : 'Turn ON metronome') +
-        ' — currently ' +
-        (metronomeEnabled() ? 'on' : 'off')
-      "
-      [attr.title]="
-        metronomeEnabled()
-          ? 'Metronome is ON · click to mute'
-          : 'Metronome is OFF · click to enable'
-      "
-    >
-      <span class="material-symbols-outlined">metronome</span>
     </button>
   </div>
 
