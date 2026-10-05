@@ -84,6 +84,16 @@
   gap: 8px;
   flex: 1 1 auto;
   min-width: 0;
+  /* The musician roster is wider than the band on phones (681px of chips
+     in a 374px band) — without its own scroll the tail chips were clipped
+     out of reach past the band edge. */
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ai-band-players::-webkit-scrollbar {
+  display: none;
 }
 
 .ai-band-player {
