@@ -386,8 +386,12 @@ body.dark-mode::before {
   opacity: 0.6;
 }
 
-/* Material Symbols default sizing */
-.material-symbols-outlined {
+/* Material Symbols default sizing. `.material-icons` is aliased onto the
+   same loaded font: the search overlay still speaks the classic ligature
+   names (arrow_back, search, close…), and with no classic icons font in
+   the bundle those names rendered as raw text. */
+.material-symbols-outlined,
+.material-icons {
   font-family: 'Material Symbols Outlined', sans-serif;
   font-weight: normal;
   font-style: normal;

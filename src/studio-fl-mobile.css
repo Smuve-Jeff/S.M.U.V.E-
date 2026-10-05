@@ -1921,6 +1921,22 @@ body .comp-shell .pr-precision-pill.active {
   body .comp-shell .ai-band-player-text small {
     font-size: 8px;
   }
+
+  /* The dock (topbar-center) is the horizontal scroller; the transport
+     chain must hug its content so buttons are never squeezed narrower
+     than their labels (undo badge, output/ideas pills) and the scroll
+     range is exact. */
+  body .comp-shell .studio-transport-shell,
+  body .comp-shell .studio-transport-shell__primary {
+    flex: 0 0 auto;
+    width: max-content;
+  }
+  body .comp-shell .ctb-undo-btn,
+  body .comp-shell .ctb-btn.ctb-output-pill,
+  body .comp-shell .ctb-btn.ctb-ideas {
+    flex: 0 0 auto;
+    width: auto;
+  }
 }
 
 /* ---- 15.2 Panel bar labels: legible and unclipped on every phone ----
@@ -2069,6 +2085,30 @@ body .comp-shell .comp-tab-create-hero .comp-tab-label {
     min-height: 34px;
     padding: 0 8px;
   }
+  /* Text-bearing pills ("MSTR", "IDEAS") are nowrap and were clipped by
+     the 38px button box; they live inside the topbar-center scroller, so
+     they may hug their label. The undo badge bleeds the same way. */
+  body .comp-shell .ctb-btn.ctb-output-pill,
+  body .comp-shell .ctb-btn.ctb-ideas {
+    width: auto;
+    min-width: 38px;
+    padding-inline: 8px;
+  }
+  body .comp-shell .ctb-undo-btn {
+    width: auto !important;
+    flex: 0 0 auto;
+  }
+  /* The desktop rail collapses to ~64px on this tier, where its 7-8px
+     labels bled mid-word out of the 52px items. Icon-only rail (FL style)
+     keeps every view one tap away with clean glyphs. */
+  body .comp-shell .comp-rail .comp-rail-label,
+  body .comp-shell .comp-rail .comp-rail-group-title {
+    display: none;
+  }
+  body .comp-shell .comp-rail-item,
+  body .comp-shell .comp-rail-group-head {
+    justify-content: center;
+  }
   body .comp-shell .ctb-bpm-value {
     font-size: 13px;
   }
@@ -2081,13 +2121,11 @@ body .comp-shell .comp-tab-create-hero .comp-tab-label {
     height: 36px;
     min-height: 36px !important;
   }
-  body .comp-shell .comp-brand {
-    padding: 2px 7px 2px 5px;
-    min-height: 36px !important;
-  }
-  body .comp-shell .comp-brand-tag {
-    font-size: 11px;
-    max-width: 12ch;
+  /* The 42px left slot from the short-landscape refinement tier fits the
+     menu button only: the brand pill (mark + project tag) overflowed it by
+     ~60px and overlapped the transport strip's first buttons. */
+  body .comp-shell .comp-topbar-left .comp-brand {
+    display: none;
   }
 
   /* Tools stay reachable: the generic max-height:500px tier hides the row
