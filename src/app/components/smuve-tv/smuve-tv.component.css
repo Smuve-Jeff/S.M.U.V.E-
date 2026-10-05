@@ -828,10 +828,9 @@
  * carried between the two surfaces. Style it deeply here.
  *
  * The app shell appends this element to the stage, so it lands after the
- * station's own furniture in DOM order. Without an explicit layer it would
- * paint over the channel bug, the ON AIR badge, and the lower third — the
- * live picture hiding the information that explains it. It sits one layer
- * above the canvas and below every overlay.
+ * station's own furniture in DOM order. Its explicit layer keeps the compact
+ * channel bug and ON AIR badge visible above the live picture. Programme
+ * information is a separate stage row below the player.
  */
 .tv-player ::ng-deep video.smuve-tv-persistent-video {
   position: absolute;
@@ -860,7 +859,7 @@
  * The artist's record, on the station's screen.
  *
  * It sits over the canvas scene and under everything the station says about
- * itself — the channel bug, the ON AIR badge, the lower third — so the picture is
+ * itself — the channel bug and the ON AIR badge — so the picture is
  * the record while the station's own furniture stays legible on top of it.
  * `[hidden]` is spelled out because this element lays itself out as a block,
  * which would otherwise out-specify the user agent's own rule for it.
@@ -888,7 +887,7 @@
 /*
  * Feed provenance is a row of the stage, not an overlay. It carries a station
  * name, an operator, and a licence, which does not fit over a phone-sized
- * picture without colliding with the channel bug or the lower third.
+ * picture without obscuring playback.
  */
 .tv-feed-bar {
   display: flex;
@@ -1002,12 +1001,11 @@
   color: #e2e8f0;
 }
 
+/* A content-sized stage row keeps metadata off the picture at every width.
+ * It also stays outside the fullscreen player rather than covering the video. */
 .tv-lower-third {
-  position: absolute;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: 0.75rem;
-  z-index: 3;
+  flex: 0 0 auto;
+  min-width: 0;
   padding: 0.55rem 0.7rem 0.6rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;

@@ -224,32 +224,29 @@
         <span class="tv-on-air" *ngIf="isPlaying()">ON AIR</span>
         <span class="tv-on-air tv-on-air-paused" *ngIf="!isPlaying()">PAUSED</span>
 
-        <!--
-          On every other station this is the linear schedule. On Smuve Jeff
-          Radio it names the record that is audible right now, and it appears
-          only while that record is playing.
-        -->
-        <div class="tv-lower-third">
-          <p class="tv-lt-label">{{ onAirLabel() }}</p>
-          <h2 class="tv-lt-title">{{ onAirTitle() }}</h2>
-          <p class="tv-lt-subtitle">{{ onAirSubtitle() }}</p>
-          <div
-            class="tv-lt-progress"
-            role="progressbar"
-            aria-label="Programme progress"
-            [attr.aria-valuenow]="onAirProgress()"
-            aria-valuemin="0"
-            aria-valuemax="100"
-          >
-            <span [style.width.%]="onAirProgress()"></span>
-          </div>
-          <div class="tv-lt-times">
-            <span>{{ onAirStart() }}</span>
-            <span>{{ onAirEnd() }}</span>
-          </div>
-        </div>
-
         <p class="tv-swipe-hint">Swipe or use the arrows to change station</p>
+      </div>
+
+      <!-- Programme information stays below the picture, never over playback.
+           Radio names the audible record; other stations show their schedule. -->
+      <div class="tv-lower-third">
+        <p class="tv-lt-label">{{ onAirLabel() }}</p>
+        <h2 class="tv-lt-title">{{ onAirTitle() }}</h2>
+        <p class="tv-lt-subtitle">{{ onAirSubtitle() }}</p>
+        <div
+          class="tv-lt-progress"
+          role="progressbar"
+          aria-label="Programme progress"
+          [attr.aria-valuenow]="onAirProgress()"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <span [style.width.%]="onAirProgress()"></span>
+        </div>
+        <div class="tv-lt-times">
+          <span>{{ onAirStart() }}</span>
+          <span>{{ onAirEnd() }}</span>
+        </div>
       </div>
 
       <div class="tv-controls">
@@ -363,12 +360,7 @@
         </label>
       </div>
 
-      <!--
-        Feed provenance lives here rather than over the picture. Measured on a
-        412px phone: the player only has ~91px of clear space above its lower
-        third, so an overlay carrying a station name, operator, and licence
-        ended 1px from colliding with it.
-      -->
+      <!-- Feed provenance, like programme information, stays off the picture. -->
       <div class="tv-feed-bar" *ngIf="activeFeed() && feedReady()">
         <span class="tv-feed-live">LIVE FEED</span>
         <span class="tv-feed-name">{{ activeFeed()?.name }}</span>

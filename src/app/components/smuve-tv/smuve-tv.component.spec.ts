@@ -1804,6 +1804,20 @@ describe('SmuveTvComponent', () => {
       expect(template).toContain('class="tv-lower-third"');
     });
 
+    it('keeps programme information below the picture, outside fullscreen', () => {
+      const stage = fixture.nativeElement.querySelector('.tv-stage');
+      const picture = stage.querySelector('.tv-player');
+      const information = stage.querySelector('.tv-lower-third');
+
+      expect(information.parentElement).toBe(stage);
+      expect(picture.querySelector('.tv-lower-third')).toBeNull();
+      expect(picture.nextElementSibling).toBe(information);
+      expect(information.querySelector('.tv-lt-title').textContent).toContain(
+        component.onAirTitle()
+      );
+      expect(information.querySelector('[role="progressbar"]')).not.toBeNull();
+    });
+
     it('labels every icon-only control for assistive tech', () => {
       const controlButtons = template.match(/class="tv-control[^"]*"/g) ?? [];
       expect(controlButtons.length).toBeGreaterThanOrEqual(6);
