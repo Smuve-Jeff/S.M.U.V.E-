@@ -42,8 +42,9 @@
 }
 
 .btn-ghost.close {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
@@ -85,6 +86,8 @@
 
 .bar-row {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
   margin-top: 10px;
   font-size: 11px;
@@ -106,7 +109,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 18px;
 }
 
@@ -147,10 +150,13 @@
 
 .step-body {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .step-meta {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   font-size: 10px;
   font-weight: 800;
@@ -191,6 +197,7 @@
 }
 
 .btn {
+  min-height: 44px;
   padding: 10px 14px;
   border-radius: 10px;
   font-size: 10px;
@@ -209,7 +216,29 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: scale(1.03);
+  filter: brightness(1.08);
+}
+
+button:focus-visible {
+  outline: 2px solid #5dc4c2;
+  outline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+  .tour-header {
+    gap: 12px;
+  }
+  .step {
+    padding: 16px;
+    gap: 12px;
+  }
+  .step-actions {
+    flex-direction: column;
+  }
+  .step-actions .btn {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 .btn-primary:disabled {
@@ -218,6 +247,8 @@
 }
 
 .btn-ghost {
+  min-height: 44px;
+  padding: 10px 14px;
   background: rgba(255, 255, 255, 0.06);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -242,6 +273,7 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
   padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
