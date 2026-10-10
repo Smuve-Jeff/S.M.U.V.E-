@@ -42,6 +42,12 @@ import { OnboardingService } from '../../services/onboarding.service';
 import { RadarChartComponent } from '../radar-chart/radar-chart.component';
 import { DatabaseService } from '../../services/database.service';
 import {
+  LOCAL_IMAGE_MAX_BYTES,
+  LOCAL_IMAGE_MAX_EDGE,
+  LocalImageField,
+  localImageLimitKilobytes,
+} from '../../../config/payload-limits';
+import {
   PersonaSelectorComponent,
   PersonaOption,
 } from '../persona-selector/persona-selector.component';
@@ -669,13 +675,20 @@ export class ProfileEditorComponent implements OnInit {
       this.updateProfileField(target, url);
     } catch (err) {
       console.error(`Failed to upload ${target}:`, err);
-      // A 503 means this build has no object storage behind /api/upload, so
-      // "please try again" asks for a retry that can never succeed — while the
-      // profile itself still saves fine. Only a genuine transport failure is
-      // worth retrying. The field name stays out of the artist-facing copy.
-      if ((err as { status?: number })?.status === 503) {
+      // Never lose the artist's choice: keep the image on the device, bounded
+      // so the profile that carries it still saves. A 503 means this build has
+      // no object storage, so a "try again" there could never succeed.
+      const localUrl = await this.keepImageOnDevice(file, target);
+      if (localUrl) {
+        this.updateProfileField(target, localUrl);
         alert(
-          'Picture upload is not available on this build, so the image was not saved. Your profile still saves — add the image once storage is enabled.'
+          'Picture upload is not available, so this image was kept on this device. It still saves with your profile.'
+        );
+      } else if ((err as { status?: number })?.status === 503) {
+        alert(
+          `Picture upload is not available and this file is too large to keep on the device. Your profile still saves — choose an image under ${localImageLimitKilobytes(
+            target
+          )} KB.`
         );
       } else {
         alert(
@@ -685,6 +698,110 @@ export class ProfileEditorComponent implements OnInit {
     } finally {
       this.uploadingImage.set(false);
     }
+  }
+
+  /**
+   * Keeps the chosen image on the device as a data URL, or returns null when it
+   * cannot fit the profile payload budget.
+   *
+   * A phone photo is many times the budget, so the image is downscaled first
+   * whenever the browser can encode one; the raw read is the fallback for the
+   * cases where it cannot. The cap is checked on the encoded string, because
+   * that is exactly what ends up in the profile JSON.
+   */
+  private async keepImageOnDevice(
+    file: File,
+    target: LocalImageField
+  ): Promise<string | null> {
+    const cap = LOCAL_IMAGE_MAX_BYTES[target];
+
+    const downscaled = await this.downscaleLocally(file, target);
+    if (downscaled && downscaled.length <= cap) return downscaled;
+
+    // Base64 is ~1.37x the file, so a file that cannot fit is never read.
+    if (file.size * 1.37 > cap) return null;
+    const raw = await this.readAsDataUrl(file);
+    return raw && raw.length <= cap ? raw : null;
+  }
+
+  /** Encodes a downscaled JPEG data URL, or null when no canvas is available. */
+  private async downscaleLocally(
+    file: File,
+    target: LocalImageField
+  ): Promise<string | null> {
+    if (typeof document === 'undefined') return null;
+    try {
+      // Resolve the encoder before decoding: without a 2D context there is
+      // nothing to encode into, and decoding first would leave an unusable
+      // image to settle for no reason.
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) return null;
+
+      const decoded = await this.decodeImageLocally(file);
+      if (!decoded) return null;
+
+      const maxEdge = LOCAL_IMAGE_MAX_EDGE[target];
+      const width = decoded.width || maxEdge;
+      const height = decoded.height || maxEdge;
+      const scale = Math.min(1, maxEdge / Math.max(width, height));
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(decoded, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.85);
+    } catch (err) {
+      console.error(`Could not downscale ${target} locally:`, err);
+      return null;
+    }
+  }
+
+  /**
+   * Decodes the file into an image, or null when it cannot be decoded.
+   *
+   * Time-bounded on purpose: an image the browser neither loads nor rejects
+   * would otherwise leave the editor stuck reporting "Uploading…" and the
+   * artist with no way back. A timeout falls through to the raw read.
+   */
+  private decodeImageLocally(
+    file: File,
+    timeoutMs = 2000
+  ): Promise<HTMLImageElement | null> {
+    return new Promise((resolve) => {
+      if (
+        typeof Image === 'undefined' ||
+        typeof URL?.createObjectURL !== 'function'
+      ) {
+        resolve(null);
+        return;
+      }
+      const objectUrl = URL.createObjectURL(file);
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const finish = (value: HTMLImageElement | null) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        URL.revokeObjectURL(objectUrl);
+        resolve(value);
+      };
+
+      timer = setTimeout(() => finish(null), timeoutMs);
+      const image = new Image();
+      image.onload = () => finish(image);
+      image.onerror = () => finish(null);
+      image.src = objectUrl;
+    });
+  }
+
+  private readAsDataUrl(file: File): Promise<string | null> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onerror = () => resolve(null);
+      reader.onload = () => resolve(String(reader.result ?? ''));
+      reader.readAsDataURL(file);
+    });
   }
 
   async saveProfile(): Promise<void> {

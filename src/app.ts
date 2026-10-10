@@ -15,6 +15,7 @@ import socialRoutes from "@/routes/social.routes";
 import studioRoutes from "@/routes/studio.routes";
 import aiRoutes from "@/routes/ai.routes";
 import uploadRoutes from "@/routes/upload.routes";
+import { PROFILE_JSON_LIMIT } from "@/config/payload-limits";
 import musicRoutes from "@/routes/music.routes";
 import projectsRouter, { identityRouter } from "@/routes/project.routes";
 import gameInviteRoutes from "@/routes/game-invite.routes";
@@ -93,6 +94,13 @@ app.use("/api/auth/forgot-password", recoveryLimiter);
 app.use("/api/auth/reset-password", recoveryLimiter);
 
 // Parse JSON bodies
+// The profile body carries the artist's whole profile and may embed a
+// device-local image when object storage is unavailable, so it is parsed with
+// its own budget. Mounted BEFORE the global parser: body-parser skips a body
+// that is already parsed, whereas the reverse order would reject a legitimate
+// profile at the 100 kb default.
+app.use("/api/profile", express.json({ limit: PROFILE_JSON_LIMIT }));
+
 app.use(express.json());
 
 // Handle cookies

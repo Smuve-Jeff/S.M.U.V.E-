@@ -989,10 +989,10 @@ describe('ProfileEditorComponent', () => {
       await running;
     });
 
-    it('tells the artist storage is unavailable instead of asking for a retry', async () => {
+    it('keeps the image on the device when object storage is unavailable', async () => {
       const { component } = await createComponent();
       // /api/upload answers 503 whenever this build has no R2 storage behind
-      // it, so a "try again" can never succeed.
+      // it, so a "try again" there can never succeed.
       database.uploadAsset.mockRejectedValue({
         status: 503,
         message: 'Upload storage is not configured',
@@ -1004,34 +1004,92 @@ describe('ProfileEditorComponent', () => {
         'avatarImage'
       );
 
+      expect(component.editableProfile().avatarImage).toMatch(
+        /^data:image\/png;base64,/
+      );
+      const message = (
+        globalThis as unknown as { alert: jest.Mock }
+      ).alert.mock.calls.flat().join(' ');
+      expect(message).toContain('kept on this device');
+      expect(message).toContain('saves with your profile');
+      expect(message).not.toContain('avatarImage');
+    });
+
+    it('refuses an image it cannot keep, instead of promising a retry', async () => {
+      const { component } = await createComponent();
+      database.uploadAsset.mockRejectedValue({ status: 503 });
+      // 401 KB is past the point where base64 could ever fit the avatar cap.
+      const oversized = new File([new Uint8Array(401 * 1024)], 'huge.png', {
+        type: 'image/png',
+      });
+
+      await component.onImageSelected(
+        { target: { files: [oversized], value: 'huge.png' } },
+        'avatarImage'
+      );
+
       expect(component.editableProfile().avatarImage).toBeFalsy();
       const message = (
         globalThis as unknown as { alert: jest.Mock }
       ).alert.mock.calls.flat().join(' ');
       expect(message).toContain('not available');
+      expect(message).toContain('too large');
       expect(message).toContain('profile still saves');
       expect(message).not.toContain('try again');
-      // The artist should not be shown an internal field name.
-      expect(message).not.toContain('avatarImage');
     });
 
-    it('still offers a retry when the upload fails for a transport reason', async () => {
+    it('still offers a retry when the failure was not storage', async () => {
       const { component } = await createComponent();
       database.uploadAsset.mockRejectedValue({ status: 0 });
+      const oversized = new File([new Uint8Array(401 * 1024)], 'huge.png', {
+        type: 'image/png',
+      });
 
       await component.onImageSelected(
-        {
-          target: {
-            files: [new File(['bytes'], 'avatar.png', { type: 'image/png' })],
-            value: 'avatar.png',
-          },
-        },
+        { target: { files: [oversized], value: 'huge.png' } },
         'avatarImage'
       );
 
       expect(
         (globalThis as unknown as { alert: jest.Mock }).alert
       ).toHaveBeenCalledWith(expect.stringContaining('try again'));
+    });
+
+    it('downscales a device-local image so it fits the payload budget', async () => {
+      const { component } = await createComponent();
+      database.uploadAsset.mockRejectedValue({ status: 503 });
+      const toDataURL = jest.fn(() => 'data:image/jpeg;base64,tiny');
+      jest
+        .spyOn(HTMLCanvasElement.prototype, 'getContext')
+        .mockReturnValue({
+          drawImage: jest.fn(),
+        } as unknown as CanvasRenderingContext2D);
+      jest
+        .spyOn(HTMLCanvasElement.prototype, 'toDataURL')
+        .mockImplementation(toDataURL);
+      // jsdom never decodes an image, so the decode step is stubbed.
+      (
+        component as unknown as { decodeImageLocally: () => Promise<unknown> }
+      ).decodeImageLocally = jest.fn(async () => ({ width: 4000, height: 3000 }));
+
+      try {
+        // A 3 MB camera photo is many times the avatar budget.
+        const photo = new File([new Uint8Array(3 * 1024 * 1024)], 'photo.jpg', {
+          type: 'image/jpeg',
+        });
+
+        await component.onImageSelected(
+          { target: { files: [photo], value: 'photo.jpg' } },
+          'avatarImage'
+        );
+
+        expect(toDataURL).toHaveBeenCalledWith('image/jpeg', 0.85);
+        expect(component.editableProfile().avatarImage).toBe(
+          'data:image/jpeg;base64,tiny'
+        );
+      } finally {
+        jest.restoreAllMocks();
+      }
     });
 
     it('reports an import that could not be read as a profile', async () => {
