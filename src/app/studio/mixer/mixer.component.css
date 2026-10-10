@@ -1056,6 +1056,19 @@
   }
 }
 
+/* Three touch-sized controls cannot fit in a narrow strip side-by-side,
+   including landscape phones wider than the portrait breakpoint. */
+@media (max-width: 1024px), (pointer: coarse) {
+  .mix-msr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mix-msr-btn {
+    width: 100%;
+    min-height: 44px;
+    min-width: 0;
+  }
+}
+
 /* Keyboard & assistive-tech focus visibility */
 :host :focus-visible {
   outline: 2px solid var(--teal-400, #2ba09c);

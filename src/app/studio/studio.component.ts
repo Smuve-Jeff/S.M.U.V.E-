@@ -539,6 +539,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   // ── Back navigation (see the BACK NAVIGATION section below) ──
   /** Synthetic history entries currently pushed for open overlays. */
   private backTrapDepth = 0;
+  private pendingOverlayHistoryPops = 0;
   /** Timestamp of the first back press that armed the "press again" exit. */
   private exitArmedAt = 0;
   /** Native backButton listener handle (device only). */
@@ -1649,18 +1650,21 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       // by an entry that no longer represents anything on screen.
       const drop = this.backTrapDepth - openCount;
       this.backTrapDepth = openCount;
-      for (let i = 0; i < drop; i++) {
-        if (native.state && native.state.smuveStudioOverlay) {
-          native.back();
-        } else {
-          break;
-        }
+      if (native.state && native.state.smuveStudioOverlay) {
+        // One traversal removes the closed entries. Its asynchronous popstate
+        // is cleanup, not a user Back press against a newly opened panel.
+        this.pendingOverlayHistoryPops++;
+        native.go(-drop);
       }
     }
   }
 
   /** Browser/WebView history back: unwind one surface, else let the router act. */
   private readonly onStudioPopState = () => {
+    if (this.pendingOverlayHistoryPops > 0) {
+      this.pendingOverlayHistoryPops--;
+      return;
+    }
     if (this.backTrapDepth > 0) this.backTrapDepth--;
     if (!this.hasOpenOverlay()) {
       // Nothing of ours to close — the browser/router owns this press.

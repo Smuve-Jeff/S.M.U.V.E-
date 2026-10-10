@@ -1473,7 +1473,7 @@
           <div class="comp-drawer-category-grid">
             <button
               *ngFor="let view of cat.views"
-              (click)="setActiveView(view.id); toggleMobileDrawer()"
+              (click)="setActiveView(view.id)"
               [class.comp-drawer-active]="activeView() === view.id"
               class="comp-drawer-grid-btn"
               [title]="view.description"

@@ -363,6 +363,15 @@ describe("StudioComponent", () => {
     expect(mockOrchestration.setActiveStudioView).toHaveBeenCalledWith("mixer");
   });
 
+  it("closes the navigation drawer when choosing a Studio view", () => {
+    component.mobileDrawerOpen.set(true);
+
+    component.setActiveView("mixer");
+
+    expect(component.activeView()).toBe("mixer");
+    expect(component.mobileDrawerOpen()).toBe(false);
+  });
+
   it("exposes Stage FX ambience enabled by default", () => {
     expect(component.stageFxEnabled()).toBe(true);
   });
@@ -755,6 +764,25 @@ describe("StudioComponent", () => {
       expect(component.showProjectMenu()).toBe(false);
 
       back.mockRestore();
+    });
+
+    it("does not dismiss a new panel when a closed overlay's history entry is removed", () => {
+      const go = jest.spyOn(window.history, "go").mockImplementation();
+      component.showProjectMenu.set(true);
+      TestBed.flushEffects();
+      component.showProjectMenu.set(false);
+      TestBed.flushEffects();
+      expect(go).toHaveBeenCalledWith(-1);
+
+      component.showProjectMetadata.set(true);
+      TestBed.flushEffects();
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      expect(component.showProjectMetadata()).toBe(true);
+
+      // A genuine following Back press must still dismiss the panel.
+      window.dispatchEvent(new PopStateEvent("popstate"));
+      expect(component.showProjectMetadata()).toBe(false);
+      go.mockRestore();
     });
 
     it("detaches the history listener on destroy", () => {

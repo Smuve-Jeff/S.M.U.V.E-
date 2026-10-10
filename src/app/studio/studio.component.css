@@ -125,7 +125,9 @@
   isolation: isolate;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
+  /* Hidden would still scroll programmatically to offscreen closed panels,
+     shifting every open panel when focus/scrollIntoView runs. */
+  overflow: clip;
 }
 
 /* ---------- TOPBAR ---------- */
@@ -1653,8 +1655,8 @@
   }
 
   .comp-panel {
-    height: 100dvh;
-    max-height: 100dvh;
+    height: 100%;
+    max-height: 100%;
   }
 
   .comp-panel-header {
@@ -1754,11 +1756,13 @@
    Used by AI Mix, Recording, Project Metadata panels
    =========================================================== */
 .comp-panel {
-  position: fixed;
+  /* Keep workspace dialogs inside the Studio stacking context, below neither
+     the app header nor outside its clipped desktop canvas. */
+  position: absolute;
   top: 0;
   right: 0;
   width: min(92vw, 380px);
-  height: 100dvh;
+  height: 100%;
   background: var(--ivory-paper);
   border-left: 1px solid var(--espresso-line);
   z-index: 80;
@@ -1773,7 +1777,7 @@
 }
 /* Panel backdrop scrim (backdrop must render below panel z-index:80) */
 .comp-panel-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(31, 26, 18, 0.35);
   backdrop-filter: blur(3px);
@@ -1821,6 +1825,7 @@
 }
 .comp-panel-body {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 12px 16px 24px;
   -webkit-overflow-scrolling: touch;
@@ -3039,7 +3044,7 @@
   }
   .comp-panel {
     top: 0;
-    height: 100dvh;
+    height: 100%;
   }
 }
 
@@ -3660,6 +3665,10 @@
   flex-direction: column;
   gap: 4px;
   min-width: 220px;
+  max-width: calc(100vw - 80px);
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 9999;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
@@ -3920,11 +3929,10 @@
 /* ===========================================================
    CLOUD VERSION HISTORY PANEL
    =========================================================== */
-/* The app shell header (z-40) paints above the studio's stacking context, so
-   the panel starts below it or its header controls are unclickable. */
+/* Panels are bounded by the Studio shell, already below app navigation. */
 .comp-versions-panel {
-  top: var(--studio-header-height, 72px);
-  height: calc(100dvh - var(--studio-header-height, 72px));
+  top: 0;
+  height: 100%;
 }
 .comp-versions-header-actions {
   display: flex;
@@ -4000,8 +4008,8 @@
    SETS BROWSER PANEL (local project workspaces)
    =========================================================== */
 .comp-sets-panel {
-  top: var(--studio-header-height, 72px);
-  height: calc(100dvh - var(--studio-header-height, 72px));
+  top: 0;
+  height: 100%;
 }
 .comp-sets-header-actions {
   display: flex;

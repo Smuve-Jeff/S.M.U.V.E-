@@ -2121,10 +2121,19 @@ body .comp-shell .comp-tab-create-hero .comp-tab-label {
     height: 36px;
     min-height: 36px !important;
   }
-  /* The 42px left slot from the short-landscape refinement tier fits the
-     menu button only: the brand pill (mark + project tag) overflowed it by
-     ~60px and overlapped the transport strip's first buttons. */
+  /* The landscape tier has no mobile drawer. Use its left slot for the
+     project menu instead of showing a drawer button with nowhere to go. */
+  body .comp-shell .comp-topbar-left > button[class~='md:hidden'] {
+    display: none;
+  }
   body .comp-shell .comp-topbar-left .comp-brand {
+    display: flex;
+    width: 42px;
+    min-width: 42px;
+    padding: 4px;
+    gap: 0;
+  }
+  body .comp-shell .comp-topbar-left .comp-brand-text {
     display: none;
   }
 

@@ -381,6 +381,104 @@ test('phone piano roll keeps note utilities reachable and usable', async ({ page
   expect(notes.afterDelete).toBe(1);
 });
 
+for (const viewport of [
+  { width: 360, height: 640 },
+  { width: 844, height: 390 },
+  { width: 900, height: 900 },
+  { width: 1440, height: 900 },
+]) {
+  test(`Studio menus, mixer and panels remain reachable at ${viewport.width}x${viewport.height}`, async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize(viewport);
+    await page.goto('/studio?view=mixer');
+    await expect(page.locator('app-mixer')).toBeVisible();
+
+    const master = page.locator('.mix-strip-master');
+    for (const button of await master.locator('.mix-msr-btn').all()) {
+      await expect.poll(() => button.evaluate((element) => {
+        const button = element.getBoundingClientRect();
+        const strip = element.closest('.mix-strip')!.getBoundingClientRect();
+        return button.left >= strip.left && button.right <= strip.right;
+      })).toBe(true);
+      await button.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }));
+      await expect.poll(() => button.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return !!hit && element.contains(hit);
+      })).toBe(true);
+    }
+
+    // The portrait drawer must close once, not close then toggle open again.
+    const drawerOpener = page.getByRole('tab', { name: 'Open Studio view drawer and tools', exact: true });
+    if (await drawerOpener.isVisible()) {
+      await drawerOpener.click();
+      const choice = page.locator('.comp-drawer-grid-btn').filter({ hasText: 'Sampler' });
+      await choice.click();
+      await expect(page.locator('.comp-drawer')).not.toHaveClass(/comp-drawer-open/);
+      await expect(page).toHaveURL(/view=sampler/);
+      await expect(page.locator('app-sampler')).toBeVisible();
+    }
+
+    // Short landscape starts with a collapsed topbar; reveal it before using
+    // the actual project menu trigger, then reach every item by scrolling.
+    await page.evaluate(() => (window as any).ng.getComponent(document.querySelector('app-studio')).headerCollapsed.set(false));
+    const menuTrigger = page.getByRole('button', { name: 'S.M.U.V.E. Stage — tap to open project menu', exact: true });
+    await menuTrigger.click();
+    const menu = page.locator('.comp-project-menu');
+    await expect(menu).toBeVisible();
+    await expect.poll(() => menu.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.left >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight;
+    })).toBe(true);
+    for (const item of await menu.locator('button').all()) {
+      await item.evaluate((element) => element.scrollIntoView({ block: 'center', behavior: 'instant' }));
+      await expect.poll(() => item.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return !!hit && element.contains(hit);
+      })).toBe(true);
+    }
+    await menu.locator('button').filter({ hasText: 'Project Details' }).click();
+
+    const panels = [
+      { flag: 'showProjectMetadata', selector: '.comp-meta-panel', close: 'Close project metadata' },
+      { flag: 'showAiMixAssistant', selector: '.comp-aimix-panel', close: 'Close AI Mix panel' },
+      { flag: 'showSmartRecordingPanel', selector: '.comp-rec-panel', close: 'Close recording panel' },
+      { flag: 'showStudioInsights', selector: '.comp-insights-panel', close: 'Close Studio Insights panel' },
+      { flag: 'showImportPanel', selector: '.comp-import-panel', close: 'Close import panel' },
+      { flag: 'showVersionHistory', selector: '.comp-versions-panel', close: 'Close version history' },
+      { flag: 'showSetsBrowser', selector: '.comp-sets-panel', close: 'Close the Sets browser' },
+      { flag: 'showAiAssistant', selector: '.ai-shell', close: 'Close AI Assistant' },
+    ];
+    for (const { flag, selector, close } of panels) {
+      await page.evaluate((flag) => (window as any).ng.getComponent(document.querySelector('app-studio'))[flag].set(true), flag);
+      const panel = page.locator(selector);
+      await expect.poll(() => panel.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const shell = document.querySelector('.comp-shell')!.getBoundingClientRect();
+        return { panel: element.className, rect: rect.toJSON(), shell: shell.toJSON(), inside: rect.left >= shell.left - 1 && rect.right <= shell.right + 1 && rect.top >= shell.top - 1 && rect.bottom <= shell.bottom + 1 };
+      })).toMatchObject({ inside: true });
+      const closeButton = panel.getByRole('button', { name: close, exact: true });
+      await expect.poll(() => closeButton.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return !!hit && element.contains(hit);
+      })).toBe(true);
+      for (const control of await panel.locator('button:visible, input:visible:not([type="checkbox"]), select:visible, textarea:visible').all()) {
+        await control.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }));
+        await expect.poll(() => control.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+          return !!hit && element.contains(hit);
+        })).toBe(true);
+      }
+      await closeButton.click();
+      await expect.poll(() => page.evaluate((flag) => (window as any).ng.getComponent(document.querySelector('app-studio'))[flag](), flag)).toBe(false);
+    }
+    await page.screenshot({ path: testInfo.outputPath('studio-sweep.png') });
+  });
+}
+
 /** Minimal 16-bit PCM WAV (8000 frames of a sine at 44.1 kHz). */
 function wavFixture(): Buffer {
   const samples = 8000;

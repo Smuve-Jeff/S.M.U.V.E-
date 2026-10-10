@@ -1,11 +1,11 @@
 :host {
-  position: relative;
-  z-index: 70;
+  /* The Studio shell owns the containing block and overlay layer. */
+  position: static;
 }
 
 .ai-shell {
-  position: fixed;
-  top: 56px;
+  position: absolute;
+  top: 0;
   bottom: 0;
   right: 0;
   width: min(420px, 100vw);
@@ -44,14 +44,14 @@
 
 @media (min-width: 1024px) {
   .ai-shell {
-    top: 56px;
+    top: 0;
   }
 }
 
 /* Mobile (full-height panel) */
 @media (max-width: 768px) {
   .ai-shell {
-    top: 56px;
+    top: 0;
     width: 100vw;
     border-left: none;
   }
