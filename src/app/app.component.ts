@@ -480,15 +480,30 @@ export class AppComponent {
    * Whether the floating shell home link should render.
    *
    * Full-screen workspaces keep it because the shell is hidden — except the
-   * Studio mobile shell, which draws its own bottom bar with a Home tab. The
-   * floating link (z-index 6000 vs the bar's 20) used to sit on top of the
-   * bar's rightmost tab and swallow its taps.
+   * Studio, which always draws its own Home affordance: the bottom bar's Home
+   * tab in the compact tier, the workspace rail above it. The floating link
+   * (z-index 6000 vs the bar's 20) used to sit on top of the bar's rightmost
+   * tab and swallow its taps, and in the 769–1024 landscape tier — where
+   * showMobileNav() is false — it reappeared over the piano-roll's expand
+   * button and the AI-assistant FAB.
    */
   showUniversalHomeLink(): boolean {
     if (!this.isFullPageMode() || this.isAuthRoute()) return false;
-    const studioMobileShell =
-      this.uiService.showMobileNav() && this.routeAnimState() === 'studio';
-    return !studioMobileShell;
+    return this.routeAnimState() !== 'studio';
+  }
+
+  /**
+   * Whether the floating S.M.U.V.E. Advisor renders.
+   *
+   * In the Studio shell the global Advisor FAB occupied the same bottom-right
+   * slot as the Studio's own "Open AI Assistant" FAB at every viewport size;
+   * on phones it also covered the bottom bar's More tab and the piano-roll's
+   * expand button. Studio has its own AI entry points (assistant FAB, topbar
+   * AI button, AI band), so suppress the global Advisor across the Studio route
+   * and keep it available everywhere else.
+   */
+  showAdvisorFab(): boolean {
+    return this.routeAnimState() !== 'studio';
   }
 
   /** A direct/deep-linked workspace must never send Home outside the app. */

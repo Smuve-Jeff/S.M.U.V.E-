@@ -1196,6 +1196,9 @@ export class AiMixAssistantService {
       ),
     );
     this.engine.updateTrack(track.id, patch);
+    // This write bypasses the manager's FX-chain sync, so the inserts the AI
+    // just suggested (EQ / Compressor / Reverb) would stay silent without it.
+    if (patch.fxSlots) this.musicManager.syncTrackFxChain(track.id);
   }
 
   /**

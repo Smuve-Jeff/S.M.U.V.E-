@@ -2084,3 +2084,15 @@
     min-height: 28px;
   }
 }
+
+/* ---------- MOBILE FAB CLEARANCE ----------
+The studio's fixed "Open AI Assistant" FAB parks in the bottom-right corner
+(56–80px wide column depending on the tier). On short landscape phones the
+key/scale bar's last row lines up with that corner, and the FAB covered the
+expand button whole. Reserve the FAB column on mobile landscape so the bar's
+right-aligned controls stay tappable. */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .pr-key-scale-bar {
+    padding-right: 64px;
+  }
+}

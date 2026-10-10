@@ -38,6 +38,8 @@ export class NeuralMixerService {
               : t
           )
         );
+        // The write above bypasses the manager's FX-chain sync.
+        this.musicManager.syncTrackFxChain(track.id);
       }
     });
   }

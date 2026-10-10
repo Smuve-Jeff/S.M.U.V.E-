@@ -426,6 +426,61 @@ describe('AppComponent', () => {
     });
   });
 
+  it('hides the floating home link on the studio landscape tier that shows the rail', async () => {
+    const originalWidth = window.innerWidth;
+
+    // 769–1024 landscape: showMobileNav() is false, so the old gate let the
+    // floating link through — where it parked over the piano-roll's expand
+    // button and the AI-assistant FAB. The workspace rail carries Home here.
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 844,
+    });
+    const { component, uiService } = await createComponent('/studio');
+    uiService.showMobileNav.set(false);
+
+    expect(component.isFullPageMode()).toBe(true);
+    expect(component.showUniversalHomeLink()).toBe(false);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalWidth,
+    });
+  });
+
+  it('keeps the advisor FAB off the Studio shell at mobile and desktop sizes', async () => {
+    const originalWidth = window.innerWidth;
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 844,
+    });
+    const { component } = await createComponent('/studio');
+
+    expect(component.isMobile()).toBe(true);
+    expect(component.showAdvisorFab()).toBe(false);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1280,
+    });
+    component.onResize();
+
+    expect(component.isMobile()).toBe(false);
+    expect(component.showAdvisorFab()).toBe(false);
+
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: originalWidth,
+    });
+  });
+
+  it('keeps the advisor FAB on non-studio screens', async () => {
+    const { component } = await createComponent('/hub');
+
+    expect(component.showAdvisorFab()).toBe(true);
+  });
+
   /**
    * The shell's root scroll surface.
    *

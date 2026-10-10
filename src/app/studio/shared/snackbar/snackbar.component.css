@@ -7,6 +7,9 @@
 
 :host {
   position: fixed;
+  /* Fallback only — SnackbarComponent.show() sets `top` inline to sit just
+     below the Studio chrome (its height varies per tier, so no fixed value
+     clears every topbar). */
   top: 80px;
   left: 50%;
   transform: translate(-50%, -120%);
@@ -188,10 +191,9 @@
   background: #38bdf8;
 }
 
-/* Mobile: edge-to-edge under the topbar */
+/* Mobile: edge-to-edge */
 @media (max-width: 768px) {
   :host {
-    top: 64px;
     width: calc(100vw - 16px);
   }
   .snackbar-message {

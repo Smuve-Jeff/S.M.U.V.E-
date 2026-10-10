@@ -65,6 +65,23 @@ export interface FxSlot {
   enabled: boolean;
 }
 
+/**
+ * Macro FX slot type → native DSP plugin id (see the plugin registry in
+ * `studio/effects/plugin-interface`).
+ *
+ * Only types with a real implementation are listed. `Filter` and `Limiter` are
+ * offered by the rack's Add Effect menu but have no plugin behind them, so they
+ * stay data-only instead of pretending to process audio.
+ */
+const FX_TYPE_TO_PLUGIN_ID: Record<string, string> = {
+  Reverb: 'smuve.reverb.v1',
+  Delay: 'smuve.delay.v1',
+  Compressor: 'smuve.compressor.v1',
+  EQ: 'smuve.eq.v1',
+  Saturation: 'smuve.distortion.v1',
+  Chorus: 'smuve.chorus.v1',
+};
+
 export interface PatternVersion {
   id: string;
   name: string;
@@ -535,11 +552,92 @@ export class MusicManagerService {
     );
   }
 
+  /**
+   * trackId → (macro fx slot id → live insert). Lets `syncFxSlotsToRack` diff the
+   * data-only macro chain against the rack's inserts instead of tearing the whole
+   * rack down and rebuilding it on every edit.
+   */
+  private fxInsertSlots = new Map<
+    string,
+    Map<string, { insertId: string; pluginId: string }>
+  >();
+
+  /**
+   * Mirror a track's macro FX chain onto its live DynamicEffectsRack.
+   *
+   * Before this existed, the Add Effect menu only wrote a data record: `fxSlots`
+   * was counted by the AI mixer and rendered as chips, but never reached an
+   * AudioNode — so every effect the menu offered was inaudible. The inserts now
+   * follow the slot order the user sees, and a slot's bypass toggle is mirrored
+   * onto its plugin.
+   *
+   * `slot.params` stays data-only on purpose: the macro slots carry free-form
+   * keys (`wet`, `decay`, ...) with no schema in common with the plugin's own
+   * parameter ids, so guessing a mapping here would move the wrong control.
+   */
+  private syncFxSlotsToRack(trackId: string, slots: FxSlot[]): void {
+    const getRack = (this.engine as Partial<AudioEngineService>)
+      ?.getTrackEffectsRack;
+    if (typeof getRack !== 'function') return;
+    const rack = getRack.call(this.engine, trackId);
+
+    const assigned = new Map(this.fxInsertSlots.get(trackId) ?? []);
+
+    // Release inserts whose slot was removed, bypassed away, or had its type swapped.
+    for (const [fxSlotId, entry] of assigned) {
+      const slot = slots.find((s) => s.id === fxSlotId);
+      if (slot && FX_TYPE_TO_PLUGIN_ID[slot.type] === entry.pluginId) continue;
+      rack.removeInsert(entry.insertId);
+      assigned.delete(fxSlotId);
+    }
+
+    // Instantiate the plugins for any new slot.
+    for (const slot of slots) {
+      const pluginId = FX_TYPE_TO_PLUGIN_ID[slot.type];
+      if (!pluginId || assigned.has(slot.id)) continue;
+      const insert = rack.addInsert(pluginId);
+      if (insert) assigned.set(slot.id, { insertId: insert.id, pluginId });
+    }
+
+    // Inserts append on creation, so re-seat them in the displayed chain order.
+    let index = 0;
+    for (const slot of slots) {
+      const entry = assigned.get(slot.id);
+      if (!entry) continue;
+      rack.moveInsert(entry.insertId, index);
+      index += 1;
+    }
+
+    // Mirror each slot's bypass state onto its plugin.
+    for (const [fxSlotId, entry] of assigned) {
+      const slot = slots.find((s) => s.id === fxSlotId);
+      const rackSlot = rack.inserts.find((s) => s.id === entry.insertId);
+      if (!slot || !rackSlot) continue;
+      if (rackSlot.plugin.enabled !== slot.enabled) {
+        rack.toggleInsert(entry.insertId);
+      }
+    }
+
+    this.fxInsertSlots.set(trackId, assigned);
+  }
+
+  /**
+   * Re-mirror a track's FX chain onto its rack after a write that bypassed
+   * `writeFxSlots` — the AI mixer and the neural mixer patch track state
+   * directly, and their effects have to be audible too.
+   */
+  syncTrackFxChain(trackId: string): void {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return;
+    this.syncFxSlotsToRack(trackId, track.fxSlots ?? []);
+  }
+
   /** Single writer for a track's macro FX chain. */
   private writeFxSlots(trackId: string, slots: FxSlot[]): void {
     this.tracks.update((ts) =>
       ts.map((x) => (x.id === trackId ? { ...x, fxSlots: slots } : x))
     );
+    this.syncFxSlotsToRack(trackId, slots);
   }
 
   removeTrack(id: string) {

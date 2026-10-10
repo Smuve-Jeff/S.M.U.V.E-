@@ -10,6 +10,7 @@ import { Saturation } from "../saturation";
 import { SidechainCompressor } from "../sidechain-compressor";
 import { Reverb } from "../reverb";
 import { Compressor } from "../compressor";
+import { Chorus } from "../chorus";
 
 /** A single slot in the effects rack — insert or send */
 export interface PluginSlot {
@@ -897,6 +898,80 @@ function registerBuiltins(): void {
           unit: ":1",
         },
       ];
+    },
+  );
+
+  PluginRegistry.register(
+    "smuve.chorus.v1",
+    class ChorusPlugin implements IAudioPlugin {
+      readonly id = "smuve.chorus.v1";
+      readonly name = "Chorus";
+      /** The modulation category in `PluginCategory` had no plugin behind it. */
+      readonly category: PluginCategory = "modulation";
+      readonly params: PluginParam[] = [
+        {
+          id: "rate",
+          name: "Rate",
+          value: 1.2,
+          defaultValue: 1.2,
+          min: Chorus.MIN_RATE_HZ,
+          max: Chorus.MAX_RATE_HZ,
+          step: 0.05,
+          unit: "Hz",
+        },
+        {
+          id: "depth",
+          name: "Depth",
+          value: 5,
+          defaultValue: 5,
+          min: 0,
+          max: Chorus.MAX_DEPTH_MS,
+          step: 0.1,
+          unit: "ms",
+        },
+        {
+          id: "mix",
+          name: "Mix",
+          value: 0.4,
+          defaultValue: 0.4,
+          min: 0,
+          max: 1,
+          step: 0.01,
+        },
+      ];
+      enabled = true;
+      input: AudioNode;
+      output: AudioNode;
+      private readonly _chorus: Chorus;
+      constructor(ctx: AudioContext) {
+        this._chorus = new Chorus(ctx);
+        this.input = this._chorus.input;
+        this.output = this._chorus.output;
+      }
+      getParam(id: string): number {
+        if (id === "rate") return this._chorus.rate;
+        if (id === "depth") return this._chorus.depthMs;
+        if (id === "mix") return this._chorus.mix;
+        return 0;
+      }
+      setParam(id: string, value: number): void {
+        if (id === "rate") this._chorus.setRate(value);
+        if (id === "depth") this._chorus.setDepthMs(value);
+        if (id === "mix") this._chorus.setMix(value);
+        syncParamValue(this.params, id, this.getParam(id));
+      }
+      reset(): void {
+        this.params.forEach((param) => {
+          if (param.id === "rate") this._chorus.setRate(param.defaultValue);
+          if (param.id === "depth")
+            this._chorus.setDepthMs(param.defaultValue);
+          if (param.id === "mix") this._chorus.setMix(param.defaultValue);
+        });
+        resetParamValues(this.params);
+      }
+      dispose(): void {
+        this._chorus.disconnect();
+      }
     },
   );
 }

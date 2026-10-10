@@ -30,6 +30,7 @@ describe('NeuralMixerService', () => {
     musicManagerMock = {
       tracks,
       updateVolume: jest.fn(),
+      syncTrackFxChain: jest.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -85,6 +86,9 @@ describe('NeuralMixerService', () => {
     const track2 = tracks.find((t: any) => t.id === 'track-2');
     expect(track2.fxSlots.length).toBe(1);
     expect(track2.fxSlots[0].type).toBe('EQ');
+    // The auto-added slot was written past the manager's FX-chain sync, so the
+    // mixer has to re-mirror it or the compressor would never reach the rack.
+    expect(musicManagerMock.syncTrackFxChain).toHaveBeenCalledWith('track-1');
     jest.restoreAllMocks();
   });
 

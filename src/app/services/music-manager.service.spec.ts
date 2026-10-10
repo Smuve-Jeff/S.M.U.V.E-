@@ -495,3 +495,234 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
     });
   });
 });
+
+/**
+ * Mirrors the slice of DynamicEffectsRack the macro FX chain drives, including
+ * its append-on-create ordering, so the wiring can be asserted without a real
+ * (node-building) rack.
+ */
+class FakeRack {
+  inserts: Array<{ id: string; plugin: { id: string; enabled: boolean } }> = [];
+  private seq = 0;
+
+  addInsert(pluginId: string) {
+    const entry = {
+      id: `ins${++this.seq}`,
+      plugin: { id: pluginId, enabled: true },
+    };
+    this.inserts.push(entry);
+    return entry;
+  }
+
+  removeInsert(id: string) {
+    this.inserts = this.inserts.filter((s) => s.id !== id);
+  }
+
+  moveInsert(id: string, index: number) {
+    const i = this.inserts.findIndex((s) => s.id === id);
+    if (i < 0) return;
+    const [entry] = this.inserts.splice(i, 1);
+    this.inserts.splice(Math.max(0, Math.min(index, this.inserts.length)), 0, entry);
+  }
+
+  toggleInsert(id: string) {
+    const entry = this.inserts.find((s) => s.id === id);
+    if (entry) entry.plugin.enabled = !entry.plugin.enabled;
+  }
+}
+
+/**
+ * The rack's Add Effect menu wrote `fxSlots` records that never reached an
+ * AudioNode, so every effect it offered — Chorus included — was inaudible.
+ */
+describe('MusicManagerService macro FX slots (rack wiring)', () => {
+  let service: MusicManagerService;
+  let history: HistoryService;
+  let rack: FakeRack;
+
+  const makeTrack = (overrides: any = {}) => ({
+    id: 'track-1',
+    name: 'Lead',
+    type: 'midi',
+    instrumentId: 'grand-piano',
+    muted: false,
+    soloed: false,
+    volume: 0.8,
+    gain: 0.8,
+    pan: 0,
+    clips: [],
+    notes: [],
+    steps: new Array(64).fill(false),
+    fxSlots: [],
+    sendA: 0,
+    sendB: 0,
+    effects: [],
+    patternSlots: [],
+    activePatternSlotId: null,
+    ...overrides,
+  });
+
+  const pluginIds = () => rack.inserts.map((s) => s.plugin.id);
+
+  beforeEach(() => {
+    rack = new FakeRack();
+    const engineMock = {
+      tempo: signal(120),
+      visualStep: signal(0),
+      setSongLengthSteps: jest.fn(),
+      triggerAttack: jest.fn(),
+      onScheduleStep: undefined as any,
+      getTrackEffectsRack: jest.fn(() => rack),
+    };
+
+    TestBed.configureTestingModule({
+      providers: [
+        MusicManagerService,
+        HistoryService,
+        { provide: AudioEngineService, useValue: engineMock },
+        { provide: ProjectService, useValue: { currentProject: signal(null) } },
+        { provide: PluginStoreService, useValue: { preload: jest.fn() } },
+        { provide: InstrumentsService, useValue: { getPresets: () => [] } },
+        { provide: StemSeparationService, useValue: {} },
+        { provide: StudioRecordingEngineService, useValue: {} },
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+        {
+          provide: TakeManagerService,
+          useValue: { getCompNotesForStepNow: () => [] },
+        },
+      ],
+    });
+    service = TestBed.inject(MusicManagerService);
+    history = TestBed.inject(HistoryService);
+    service.tracks.set([makeTrack()]);
+  });
+
+  it('adds a Chorus from the Add Effect menu as a real insert', () => {
+    const id = service.addFxSlot('track-1', 'Chorus');
+
+    expect(id).toBeTruthy();
+    expect(pluginIds()).toEqual(['smuve.chorus.v1']);
+  });
+
+  it('maps every effect the menu offers that has a plugin behind it', () => {
+    for (const type of [
+      'Reverb',
+      'Delay',
+      'Compressor',
+      'EQ',
+      'Saturation',
+      'Chorus',
+    ]) {
+      service.addFxSlot('track-1', type);
+    }
+
+    expect(pluginIds()).toEqual([
+      'smuve.reverb.v1',
+      'smuve.delay.v1',
+      'smuve.compressor.v1',
+      'smuve.eq.v1',
+      'smuve.distortion.v1',
+      'smuve.chorus.v1',
+    ]);
+  });
+
+  it('leaves a slot with no plugin behind it data-only', () => {
+    service.addFxSlot('track-1', 'Filter');
+
+    expect(rack.inserts).toHaveLength(0);
+    expect(service.tracks()[0].fxSlots).toHaveLength(1);
+  });
+
+  it('removes the insert when its slot goes away', () => {
+    service.addFxSlot('track-1', 'Chorus');
+    const slotId = service.tracks()[0].fxSlots[0].id;
+
+    service.removeFxSlot('track-1', slotId);
+
+    expect(rack.inserts).toHaveLength(0);
+  });
+
+  it('undoing an add releases the insert too', () => {
+    service.addFxSlot('track-1', 'Chorus');
+    expect(rack.inserts).toHaveLength(1);
+
+    history.undo();
+
+    expect(rack.inserts).toHaveLength(0);
+  });
+
+  it('mirrors a slot bypass onto its plugin, and back on undo', () => {
+    service.addFxSlot('track-1', 'Chorus');
+    const slotId = service.tracks()[0].fxSlots[0].id;
+    expect(rack.inserts[0].plugin.enabled).toBe(true);
+
+    service.toggleFxSlot('track-1', slotId);
+    expect(rack.inserts[0].plugin.enabled).toBe(false);
+
+    history.undo();
+    expect(rack.inserts[0].plugin.enabled).toBe(true);
+  });
+
+  it('seats inserts in the order the slots are displayed in', () => {
+    service.tracks.set([
+      makeTrack({
+        fxSlots: [
+          { id: 'fx1', type: 'Reverb', params: {}, enabled: true },
+          { id: 'fx2', type: 'Chorus', params: {}, enabled: true },
+          { id: 'fx3', type: 'EQ', params: {}, enabled: true },
+        ],
+      }),
+    ]);
+
+    service.toggleFxSlot('track-1', 'fx3');
+
+    expect(pluginIds()).toEqual([
+      'smuve.reverb.v1',
+      'smuve.chorus.v1',
+      'smuve.eq.v1',
+    ]);
+    // Only the toggled slot is bypassed; the chain order is untouched.
+    expect(rack.inserts.map((s) => s.plugin.enabled)).toEqual([
+      true,
+      true,
+      false,
+    ]);
+  });
+
+  it('re-seats a slot an undo puts back in front of the chain', () => {
+    service.tracks.set([
+      makeTrack({
+        fxSlots: [
+          { id: 'fx1', type: 'Reverb', params: {}, enabled: true },
+          { id: 'fx2', type: 'Chorus', params: {}, enabled: true },
+        ],
+      }),
+    ]);
+    service.toggleFxSlot('track-1', 'fx1');
+    service.removeFxSlot('track-1', 'fx1');
+    expect(pluginIds()).toEqual(['smuve.chorus.v1']);
+
+    history.undo();
+
+    // Re-created inserts append, so they must be re-seated to the slot order.
+    expect(pluginIds()).toEqual(['smuve.reverb.v1', 'smuve.chorus.v1']);
+    expect(rack.inserts.map((s) => s.plugin.enabled)).toEqual([false, true]);
+  });
+
+  it('picks up a chain written outside the manager (AI / neural mixer path)', () => {
+    service.tracks.update((ts) =>
+      ts.map((t) => ({
+        ...t,
+        fxSlots: [{ id: 'ai1', type: 'Chorus', params: {}, enabled: true }],
+      })),
+    );
+    expect(rack.inserts).toHaveLength(0);
+
+    service.syncTrackFxChain('track-1');
+
+    expect(pluginIds()).toEqual(['smuve.chorus.v1']);
+  });
+});

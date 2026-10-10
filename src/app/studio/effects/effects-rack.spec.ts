@@ -210,6 +210,7 @@ describe("DynamicEffectsRack", () => {
       expect(ids).toContain("smuve.delay.v1");
       expect(ids).toContain("smuve.distortion.v1");
       expect(ids).toContain("smuve.sidechain.v1");
+      expect(ids).toContain("smuve.chorus.v1");
     });
 
     it("should create each built-in plugin", () => {
@@ -220,6 +221,7 @@ describe("DynamicEffectsRack", () => {
         "smuve.delay.v1",
         "smuve.distortion.v1",
         "smuve.sidechain.v1",
+        "smuve.chorus.v1",
       ];
       for (const id of ids) {
         const plugin = PluginRegistry.create(id, ctx);
@@ -245,6 +247,7 @@ describe("DynamicEffectsRack", () => {
       "smuve.delay.v1",
       "smuve.distortion.v1",
       "smuve.sidechain.v1",
+      "smuve.chorus.v1",
     ];
 
     it("exposes automatable parameters for every built-in plugin", () => {
@@ -278,6 +281,7 @@ describe("DynamicEffectsRack", () => {
         ["smuve.delay.v1", "feedback", 0.6],
         ["smuve.distortion.v1", "amount", 0.9],
         ["smuve.sidechain.v1", "threshold", -12],
+        ["smuve.chorus.v1", "mix", 0.75],
       ];
       for (const [id, paramId, value] of cases) {
         const plugin = PluginRegistry.create(id, ctx)!;
@@ -311,6 +315,45 @@ describe("DynamicEffectsRack", () => {
         }
         plugin.dispose();
       }
+    });
+  });
+
+  /**
+   * `modulation` was a declared PluginCategory with nothing behind it, and the
+   * rack's Add Effect menu already offered a Chorus. The plugin ported from the
+   * Python `smuve_modulation.py` engine fills that gap.
+   */
+  describe("chorus plugin", () => {
+    it("is the modulation category's first plugin", () => {
+      const catalog = PluginRegistry.getCatalog(ctx);
+      const modulation = catalog.filter((p) => p.category === "modulation");
+
+      expect(modulation.map((p) => p.id)).toContain("smuve.chorus.v1");
+      expect(modulation.find((p) => p.id === "smuve.chorus.v1")!.name).toBe(
+        "Chorus",
+      );
+    });
+
+    it("exposes the rate/depth/mix controls the engine takes", () => {
+      const plugin = PluginRegistry.create("smuve.chorus.v1", ctx)!;
+
+      expect(plugin.params.map((p) => p.id)).toEqual(["rate", "depth", "mix"]);
+      expect(plugin.getParam("rate")).toBe(1.2);
+      expect(plugin.getParam("depth")).toBe(5);
+      expect(plugin.getParam("mix")).toBe(0.4);
+      plugin.dispose();
+    });
+
+    it("inserts into a track's chain and clamps out-of-range knobs", () => {
+      const slot = rack.addInsert("smuve.chorus.v1");
+      expect(slot).toBeTruthy();
+      expect(rack.inserts[0].plugin.category).toBe("modulation");
+
+      rack.inserts[0].plugin.setParam("rate", 999);
+      expect(rack.inserts[0].plugin.getParam("rate")).toBe(10);
+
+      rack.removeInsert(slot!.id);
+      expect(rack.inserts.length).toBe(0);
     });
   });
 });
