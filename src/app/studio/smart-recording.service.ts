@@ -76,6 +76,10 @@ export class SmartRecordingService {
   activeCompGroupId = signal<string | null>(null);
   /** Whether we are currently recording a comp take */
   isCompRecording = signal(false);
+  /** Transport bar the current comp take started on (1-based). */
+  private compTakeStartBar = 1;
+  /** Last transport bar the sequencer reported, in any recording mode. */
+  private lastObservedBar: number | null = null;
   /** Current comp take number in the active group */
   currentTakeNumber = signal(1);
 
@@ -171,8 +175,12 @@ export class SmartRecordingService {
 
   /**
    * Called by the sequencer each bar — checks if we should start/stop punching.
+   *
+   * The bar is tracked in every mode: comp takes record the span they actually
+   * covered from it (they used to be stamped with a fixed 1–5 bar region).
    */
   async onBarTick(bar: number) {
+    this.lastObservedBar = bar;
     if (this.recordingMode() !== "punch" || !this.punchArmed()) return;
 
     const inBar = this.punchInBar();
@@ -277,6 +285,9 @@ export class SmartRecordingService {
     }
 
     this.isCompRecording.set(true);
+    // The take is stamped with the span it covers, so comp segments and the
+    // suggester's coverage scoring work off real bars.
+    this.compTakeStartBar = Math.max(1, this.lastObservedBar ?? 1);
     this.recordingStatus.setRecordingSource({
       type: "transport",
       trackId: "comp",
@@ -340,8 +351,11 @@ export class SmartRecordingService {
     const durationMs = Math.round((frameCount / sampleRate) * 1000);
 
     const url = URL.createObjectURL(blob);
-    const regionStartBar = 1;
-    const regionEndBar = 5;
+    const regionStartBar = this.compTakeStartBar;
+    const regionEndBar = Math.max(
+      regionStartBar + 1,
+      this.lastObservedBar ?? regionStartBar + 1,
+    );
 
     const take: CompTake = {
       id: `take_${now}_${takeNumber}`,
@@ -451,12 +465,15 @@ export class SmartRecordingService {
     this.compGroups.update((groups) =>
       groups.map((g) => {
         if (g.id !== groupId) return g;
-        const start = Math.min(...g.takes.map((t) => t.regionStartBar), 1);
-        const rawEnd = Math.max(
-          ...g.takes.map((t) => t.regionEndBar),
+        // Segment the span the takes actually cover. `Math.min(…, 1)` used to
+        // pin every segment grid to bar 1 even when the take rolled later.
+        const start = g.takes.length
+          ? Math.min(...g.takes.map((t) => t.regionStartBar))
+          : 1;
+        const end = Math.max(
           start + segBars,
+          ...g.takes.map((t) => t.regionEndBar),
         );
-        const end = Math.max(rawEnd, start + segBars);
         const segments: CompSegment[] = [];
         for (let bar = start; bar < end; bar += segBars) {
           segments.push({

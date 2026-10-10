@@ -183,6 +183,74 @@ describe("SmartRecordingService", () => {
       expect(service.captureError()).toBeTruthy();
     });
 
+    it("should stamp a comp take with the bars it actually covered", async () => {
+      recordingEngineMock.getRecordedBuffers.mockReturnValue({
+        left: [new Float32Array(48000).fill(0.3)],
+        right: [new Float32Array(48000).fill(0.3)],
+      });
+      service.startNewCompGroup("t1", "Track", "Chorus");
+
+      await service.onBarTick(3); // transport rolled up to bar 3
+      await service.startCompTake();
+      await service.onBarTick(6); // ...and three bars later
+      const take = await service.finishCompTake();
+
+      expect(take!.regionStartBar).toBe(3);
+      expect(take!.regionEndBar).toBe(6);
+    });
+
+    it("should keep a comp region one bar wide when the transport never reported", async () => {
+      recordingEngineMock.getRecordedBuffers.mockReturnValue({
+        left: [new Float32Array(48000).fill(0.3)],
+        right: [new Float32Array(48000).fill(0.3)],
+      });
+      service.startNewCompGroup("t1", "Track", "Chorus");
+      await service.startCompTake();
+
+      const take = await service.finishCompTake();
+
+      expect(take!.regionStartBar).toBe(1);
+      expect(take!.regionEndBar).toBe(2);
+    });
+
+    it("should split segments across the takes' own region", () => {
+      service.startNewCompGroup("t1", "Track", "Chorus");
+      const groupId = service.activeCompGroupId()!;
+      service.compGroups.update((groups) =>
+        groups.map((g) =>
+          g.id === groupId
+            ? {
+                ...g,
+                takes: [
+                  {
+                    id: "take-a",
+                    takeNumber: 1,
+                    label: "Take 1",
+                    url: "",
+                    blob: null,
+                    durationMs: 4000,
+                    recordedAt: 0,
+                    regionStartBar: 5,
+                    regionEndBar: 9,
+                    isMuted: false,
+                    isCompSelection: true,
+                    peakDbL: -6,
+                    peakDbR: -6,
+                  },
+                ],
+              }
+            : g,
+        ),
+      );
+
+      service.splitCompSegments(groupId, 2);
+      const segments = service.compSegmentsForGroup(groupId);
+
+      // Segments follow the recorded span instead of pinning to bar 1.
+      expect(segments.map((s) => s.startBar)).toEqual([5, 7]);
+      expect(segments[segments.length - 1].endBar).toBe(9);
+    });
+
     it("should select a comp take", () => {
       service.startNewCompGroup("t1", "Track", "Verse");
       const group = service.compGroups()[0];
