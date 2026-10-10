@@ -133,7 +133,9 @@ describe("SmartRecordingService", () => {
 
       service.startNewCompGroup("t1", "Track", "Verse");
       service.captureError.set("Input unavailable — check the microphone");
-      expect(service.setActiveCompGroup(service.activeCompGroupId()!)).toBe(true);
+      expect(service.setActiveCompGroup(service.activeCompGroupId()!)).toBe(
+        true,
+      );
       expect(service.captureError()).toBeNull();
     });
   });
@@ -397,7 +399,9 @@ describe("SmartRecordingService", () => {
     });
 
     it("ignores an empty recording and revokes the URL of a deleted take", async () => {
-      expect(await service.addTakeFromRecording({ blob: new Blob([]) })).toBeNull();
+      expect(
+        await service.addTakeFromRecording({ blob: new Blob([]) }),
+      ).toBeNull();
       expect(service.compGroups()).toHaveLength(0);
 
       const revoke = jest

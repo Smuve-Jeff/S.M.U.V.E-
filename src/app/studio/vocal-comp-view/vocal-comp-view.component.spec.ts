@@ -173,9 +173,9 @@ describe("VocalCompViewComponent", () => {
   it("should rename a group", () => {
     component.renameGroup("group-1", "Chorus 1");
 
-    expect(
-      mockCompGroups().find((g) => g.id === "group-1")?.sectionLabel,
-    ).toBe("Chorus 1");
+    expect(mockCompGroups().find((g) => g.id === "group-1")?.sectionLabel).toBe(
+      "Chorus 1",
+    );
   });
 
   it("should select a take as comp", () => {
@@ -294,7 +294,9 @@ describe("VocalCompViewComponent", () => {
   });
 
   it("clears the playback highlight when the browser blocks playback", async () => {
-    const play = jest.fn().mockReturnValue(Promise.reject(new Error("blocked")));
+    const play = jest
+      .fn()
+      .mockReturnValue(Promise.reject(new Error("blocked")));
     const original = (globalThis as any).Audio;
     (globalThis as any).Audio = class {
       onended: (() => void) | null = null;
