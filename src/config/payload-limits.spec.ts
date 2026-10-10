@@ -47,7 +47,9 @@ const postJson = (url: string, body: string): Promise<number> =>
 
 describe("profile payload budget", () => {
   it("leaves generous headroom between the worst case and the parser limit", () => {
-    expect(PROFILE_PAYLOAD_WORST_CASE_BYTES).toBeLessThan(PROFILE_JSON_LIMIT_BYTES);
+    expect(PROFILE_PAYLOAD_WORST_CASE_BYTES).toBeLessThan(
+      PROFILE_JSON_LIMIT_BYTES,
+    );
     // More than 2x, so a growing profile is not one field away from a 413.
     expect(PROFILE_JSON_LIMIT_BYTES).toBeGreaterThan(
       PROFILE_PAYLOAD_WORST_CASE_BYTES * 2,
@@ -83,7 +85,9 @@ describe("profile payload budget", () => {
 
     try {
       const body = worstCaseBody();
-      expect(body.length).toBeGreaterThanOrEqual(PROFILE_PAYLOAD_WORST_CASE_BYTES);
+      expect(body.length).toBeGreaterThanOrEqual(
+        PROFILE_PAYLOAD_WORST_CASE_BYTES,
+      );
 
       // The real body-parser, configured exactly as the API configures it.
       await expect(postJson(url, body)).resolves.toBe(200);
