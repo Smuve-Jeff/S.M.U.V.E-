@@ -940,7 +940,9 @@ describe('ProfileEditorComponent', () => {
 
     it('re-arms the file input when the upload fails, so a retry works', async () => {
       const { component } = await createComponent();
-      database.uploadAsset.mockRejectedValueOnce(new Error('offline'));
+      database.uploadAsset
+        .mockRejectedValueOnce(new Error('offline'))
+        .mockResolvedValueOnce('https://cdn/avatar.png');
       const target = {
         files: [new File(['bytes'], 'avatar.png', { type: 'image/png' })],
         value: 'avatar.png',
@@ -949,7 +951,16 @@ describe('ProfileEditorComponent', () => {
       await component.onImageSelected({ target }, 'avatarImage');
 
       expect(target.value).toBe('');
-      expect(component.editableProfile().avatarImage).toBeFalsy();
+
+      // Re-picking the same file must reach the upload path again — the
+      // browser only fires `change` when the value has been cleared.
+      await component.onImageSelected({ target }, 'avatarImage');
+
+      expect(database.uploadAsset).toHaveBeenCalledTimes(2);
+      // A later success still replaces the device-local fallback with the CDN URL.
+      expect(component.editableProfile().avatarImage).toBe(
+        'https://cdn/avatar.png'
+      );
     });
 
     it('re-arms the file input when a pick is ignored mid-upload', async () => {
@@ -976,6 +987,51 @@ describe('ProfileEditorComponent', () => {
       expect(second.value).toBe('');
       finish('https://cdn/avatar.png');
       await running;
+    });
+
+    it('tells the artist storage is unavailable instead of asking for a retry', async () => {
+      const { component } = await createComponent();
+      // /api/upload answers 503 whenever this build has no R2 storage behind
+      // it, so a "try again" can never succeed.
+      database.uploadAsset.mockRejectedValue({
+        status: 503,
+        message: 'Upload storage is not configured',
+      });
+      const file = new File(['bytes'], 'avatar.png', { type: 'image/png' });
+
+      await component.onImageSelected(
+        { target: { files: [file], value: 'avatar.png' } },
+        'avatarImage'
+      );
+
+      expect(component.editableProfile().avatarImage).toBeFalsy();
+      const message = (
+        globalThis as unknown as { alert: jest.Mock }
+      ).alert.mock.calls.flat().join(' ');
+      expect(message).toContain('not available');
+      expect(message).toContain('profile still saves');
+      expect(message).not.toContain('try again');
+      // The artist should not be shown an internal field name.
+      expect(message).not.toContain('avatarImage');
+    });
+
+    it('still offers a retry when the upload fails for a transport reason', async () => {
+      const { component } = await createComponent();
+      database.uploadAsset.mockRejectedValue({ status: 0 });
+
+      await component.onImageSelected(
+        {
+          target: {
+            files: [new File(['bytes'], 'avatar.png', { type: 'image/png' })],
+            value: 'avatar.png',
+          },
+        },
+        'avatarImage'
+      );
+
+      expect(
+        (globalThis as unknown as { alert: jest.Mock }).alert
+      ).toHaveBeenCalledWith(expect.stringContaining('try again'));
     });
 
     it('reports an import that could not be read as a profile', async () => {

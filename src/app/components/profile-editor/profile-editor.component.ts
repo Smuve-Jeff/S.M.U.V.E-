@@ -669,7 +669,19 @@ export class ProfileEditorComponent implements OnInit {
       this.updateProfileField(target, url);
     } catch (err) {
       console.error(`Failed to upload ${target}:`, err);
-      alert(`Error uploading ${target}. Please try again.`);
+      // A 503 means this build has no object storage behind /api/upload, so
+      // "please try again" asks for a retry that can never succeed — while the
+      // profile itself still saves fine. Only a genuine transport failure is
+      // worth retrying. The field name stays out of the artist-facing copy.
+      if ((err as { status?: number })?.status === 503) {
+        alert(
+          'Picture upload is not available on this build, so the image was not saved. Your profile still saves — add the image once storage is enabled.'
+        );
+      } else {
+        alert(
+          'Could not upload the image. Check your connection and try again.'
+        );
+      }
     } finally {
       this.uploadingImage.set(false);
     }
