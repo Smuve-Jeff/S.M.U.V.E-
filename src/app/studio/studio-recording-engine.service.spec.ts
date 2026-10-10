@@ -133,6 +133,26 @@ describe("StudioRecordingEngineService", () => {
     expect(service.isRecording()).toBe(false);
   });
 
+  it("should surface the take even when persistence fails", async () => {
+    const localStorage = TestBed.inject(LocalStorageService) as any;
+    localStorage.saveItem.mockRejectedValue(new Error("quota exceeded"));
+    const finished: any[] = [];
+    service.recordingFinished$.subscribe((take) => finished.push(take));
+
+    (service as any).isRecording.set(true);
+    (service as any).workletNode = {
+      port: { postMessage: jest.fn() },
+      disconnect: jest.fn(),
+    };
+
+    await expect(service.stopRecording()).resolves.toBeUndefined();
+
+    // The performance must not be lost just because the offline copy failed.
+    expect(service.recordedBlob()).not.toBeNull();
+    expect(finished).toHaveLength(1);
+    expect(finished[0].blob).toBe(service.recordedBlob());
+  });
+
   it("should clean up on destroy", () => {
     // Set some internal state to verify cleanup
     (service as any).isInitialized.set(true);

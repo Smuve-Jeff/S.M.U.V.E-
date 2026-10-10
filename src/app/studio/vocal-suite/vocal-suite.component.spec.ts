@@ -274,6 +274,36 @@ describe("VocalSuiteComponent", () => {
     expect(musicManagerMock.addAudioTrack).not.toHaveBeenCalled();
   });
 
+  it("drops the decoded take when a new pass replaces it", async () => {
+    const first = new (globalThis as any).AudioBuffer({
+      length: 1024,
+      sampleRate: 44100,
+      numberOfChannels: 1,
+    });
+    const second = new (globalThis as any).AudioBuffer({
+      length: 2048,
+      sampleRate: 44100,
+      numberOfChannels: 1,
+    });
+    microphoneServiceMock.recordedBlob.set(new Blob([new Uint8Array([1])]));
+    audioEngineMock.ctx.decodeAudioData = jest.fn().mockResolvedValue(first);
+
+    expect(await (component as any).resolveTakeBuffer()).toBe(first);
+
+    // A new pass while auto-route is off: the cache must not survive, or the
+    // next edit/route would silently reuse the previous take.
+    component.toggleAutoRoute();
+    microphoneServiceMock.isRecording.set(true);
+    microphoneServiceMock.stopRecording.mockResolvedValue(
+      microphoneServiceMock.recordedBlob(),
+    );
+    await component.toggleRecording();
+
+    expect((component as any).editedTake).toBeNull();
+    audioEngineMock.ctx.decodeAudioData = jest.fn().mockResolvedValue(second);
+    expect(await (component as any).resolveTakeBuffer()).toBe(second);
+  });
+
   it("normalizes and trims the take before routing it", async () => {
     const take = new (globalThis as any).AudioBuffer({
       length: 4800,

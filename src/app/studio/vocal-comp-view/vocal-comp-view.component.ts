@@ -1,4 +1,4 @@
-import { Component, signal, inject, computed } from "@angular/core";
+import { Component, signal, inject, computed, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { SmartRecordingService } from "../smart-recording.service";
@@ -19,7 +19,7 @@ type CompareMode = "off" | "a-b" | "all";
   templateUrl: "./vocal-comp-view.component.html",
   styleUrls: ["./vocal-comp-view.component.css", "../shared/platform-ux.css"],
 })
-export class VocalCompViewComponent {
+export class VocalCompViewComponent implements OnDestroy {
   private smartRecording = inject(SmartRecordingService);
   private audioEngine = inject(AudioEngineService);
   private snackbar = inject(SnackbarService);
@@ -131,30 +131,58 @@ export class VocalCompViewComponent {
     this.snackbar.info("Take deleted");
   }
 
+  /**
+   * Play / stop a take. The button is a toggle: tapping the take that is
+   * currently sounding stops it instead of restarting it, which is what the
+   * play/stop icon in the template promises.
+   */
   playTake(takeId: string) {
+    if (this.playingTakeId() === takeId) {
+      this.stopPlayback();
+      return;
+    }
+
     const group = this.selectedGroup();
     if (!group) return;
     const take = group.takes.find((t) => t.id === takeId);
     if (!take || !take.url) return;
 
-    // Stop current playback
+    // Stop any other take before starting this one.
     this.stopPlayback();
 
-    // Play the take blob
     const audio = new Audio(take.url);
-    audio.onended = () => this.playingTakeId.set(null);
-    audio.play();
-    this.playingTakeId.set(takeId);
-    // Store reference for stop
+    // Own the element before playback starts so a rejected start (autoplay
+    // policy, stale blob URL) still has a stop path and never leaves a
+    // dangling "playing" highlight.
     this._currentAudio = audio;
+    audio.onended = () => {
+      if (this._currentAudio === audio) this._currentAudio = null;
+      this.playingTakeId.set(null);
+    };
+    this.playingTakeId.set(takeId);
+
+    const started = audio.play();
+    if (started && typeof started.catch === "function") {
+      started.catch((error) => {
+        this.logger.warn("Take playback failed", error);
+        this.snackbar.error("Could not play this take");
+        if (this._currentAudio === audio) this.stopPlayback();
+      });
+    }
   }
 
   stopPlayback() {
     if (this._currentAudio) {
+      this._currentAudio.onended = null;
       this._currentAudio.pause();
       this._currentAudio = null;
     }
     this.playingTakeId.set(null);
+  }
+
+  /** Leaving the view must not leave a take playing in the background. */
+  ngOnDestroy(): void {
+    this.stopPlayback();
   }
 
   // ── A/B Comparison ────────────────────────────────────

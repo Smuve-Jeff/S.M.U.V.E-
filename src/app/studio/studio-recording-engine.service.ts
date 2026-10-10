@@ -264,11 +264,23 @@ export class StudioRecordingEngineService implements OnDestroy {
       bitDepth: 16,
       sampleRate,
     };
-    await this.localStorage.saveItem("audio_blobs", {
-      id,
-      blob: wavBlob,
-      ...metadata,
-    });
+    // Persistence is best-effort. A full local store (quota) or a blocked
+    // IndexedDB open used to reject `stopRecording()`, which skipped the
+    // finished-take event entirely: the artist's performance was thrown away
+    // while every caller reported "recording stopped". The take now always
+    // reaches the take lane in memory; only the offline copy is optional.
+    try {
+      await this.localStorage.saveItem("audio_blobs", {
+        id,
+        blob: wavBlob,
+        ...metadata,
+      });
+    } catch (saveError) {
+      this.logger.warn(
+        "StudioRecordingEngine: could not persist the take; it stays in memory for this session.",
+        saveError,
+      );
+    }
     const url = URL.createObjectURL(wavBlob);
     this.recordingFinished$.next({ id, blob: wavBlob, url, metadata });
   }

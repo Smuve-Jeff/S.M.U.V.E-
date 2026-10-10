@@ -771,7 +771,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
           length: n.length,
           velocity: n.velocity,
         }));
-        this.musicManager.replaceTrackNotes(keysTrack.id, trackNotes);
+        this.musicManager.replaceTrackNotes(
+          keysTrack.id,
+          trackNotes,
+          "Inject Chords",
+        );
         this.snackbar.success(
           `Injected ${mood.label} chords into ${keysTrack.name}!`,
         );

@@ -100,7 +100,7 @@ export class MidiImportService {
         DEFAULT_INSTRUMENT,
         'midi',
       );
-      this.musicManager.replaceTrackNotes(trackId, notes);
+      this.musicManager.replaceTrackNotes(trackId, notes, "Import MIDI");
 
       summary.trackCount++;
       summary.noteCount += notes.length;

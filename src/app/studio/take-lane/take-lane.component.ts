@@ -114,7 +114,7 @@ export class TakeLaneComponent {
       this.snack.info("Comp stack is empty — tap takes in order first");
       return;
     }
-    this.musicManager.replaceTrackNotes(this.trackId(), merged);
+    this.musicManager.replaceTrackNotes(this.trackId(), merged, "Apply Comp");
     this.takeManager.clearCompStack(this.trackId());
     this.compMode.set(false);
     this.haptic.medium();
@@ -201,7 +201,11 @@ export class TakeLaneComponent {
       this.trackId(),
       track.notes ?? [],
     );
-    this.musicManager.replaceTrackNotes(this.trackId(), merged);
+    this.musicManager.replaceTrackNotes(
+      this.trackId(),
+      merged,
+      "Bake Comp Sections",
+    );
     this.sectionMode.set(false);
     this.pickedTakeId.set(null);
     this.haptic.medium();

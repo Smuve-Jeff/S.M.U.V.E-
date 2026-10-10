@@ -260,6 +260,67 @@ describe("VocalCompViewComponent", () => {
     expect(component.playingTakeId()).toBeNull();
   });
 
+  it("toggles a take off when its play button is tapped while playing", () => {
+    const pause = jest.fn();
+    const play = jest.fn().mockReturnValue(Promise.resolve());
+    const original = (globalThis as any).Audio;
+    (globalThis as any).Audio = class {
+      onended: (() => void) | null = null;
+      play = play;
+      pause = pause;
+    };
+    try {
+      component.playTake("take-1");
+      expect(play).toHaveBeenCalledTimes(1);
+      expect(component.playingTakeId()).toBe("take-1");
+
+      component.playTake("take-1");
+      expect(pause).toHaveBeenCalledTimes(1);
+      expect(play).toHaveBeenCalledTimes(1);
+      expect(component.playingTakeId()).toBeNull();
+    } finally {
+      (globalThis as any).Audio = original;
+    }
+  });
+
+  it("clears the playback highlight when the browser blocks playback", async () => {
+    const play = jest.fn().mockReturnValue(Promise.reject(new Error("blocked")));
+    const original = (globalThis as any).Audio;
+    (globalThis as any).Audio = class {
+      onended: (() => void) | null = null;
+      play = play;
+      pause = jest.fn();
+    };
+    try {
+      component.playTake("take-1");
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(component.playingTakeId()).toBeNull();
+      expect((component as any)._currentAudio).toBeNull();
+      expect(snackbar.error).toHaveBeenCalled();
+    } finally {
+      (globalThis as any).Audio = original;
+    }
+  });
+
+  it("stops playback on destroy", () => {
+    const pause = jest.fn();
+    const original = (globalThis as any).Audio;
+    (globalThis as any).Audio = class {
+      onended: (() => void) | null = null;
+      play = jest.fn().mockReturnValue(Promise.resolve());
+      pause = pause;
+    };
+    try {
+      component.playTake("take-1");
+      component.ngOnDestroy();
+      expect(pause).toHaveBeenCalled();
+      expect(component.playingTakeId()).toBeNull();
+    } finally {
+      (globalThis as any).Audio = original;
+    }
+  });
+
   it("should run a suggestion and populate the suggestion signal", () => {
     suggester.suggestBestTake.mockReturnValue({
       takeId: "take-1",

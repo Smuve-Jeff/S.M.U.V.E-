@@ -17,8 +17,13 @@ describe("ComponentRecordingService", () => {
     };
 
     recordingEngineMock = {
+      isInitialized: jest.fn().mockReturnValue(false),
       initialize: jest.fn().mockResolvedValue(true),
-      startRecording: jest.fn(),
+      startRecording: jest.fn().mockImplementation(() => {
+        // The real engine flips its state signal only once capture is live.
+        recordingEngineMock.isRecording.mockReturnValue(true);
+      }),
+      isRecording: jest.fn().mockReturnValue(false),
       stopRecording: jest.fn().mockResolvedValue(undefined),
     };
 
@@ -101,6 +106,31 @@ describe("ComponentRecordingService", () => {
     expect(recordingEngineMock.initialize).toHaveBeenCalled();
   });
 
+  it("should initialize the engine for MIDI sources too", async () => {
+    service.setActiveSource("arrangement");
+    await service.startRecording();
+
+    expect(recordingEngineMock.initialize).toHaveBeenCalled();
+    expect(recordingEngineMock.startRecording).toHaveBeenCalled();
+    expect(service.isRecording()).toBe(true);
+  });
+
+  it("should report failure instead of claiming REC when capture is refused", async () => {
+    // Engine stays un-started (worklet unavailable, suspended context, …):
+    // the service must not flip to REC over silence.
+    recordingEngineMock.startRecording.mockImplementation(() => undefined);
+    recordingEngineMock.isRecording.mockReturnValue(false);
+    const snackbar = TestBed.inject(SnackbarService) as any;
+
+    service.setActiveSource("drum-machine");
+    const started = await service.startRecording();
+
+    expect(started).toBe(false);
+    expect(service.isRecording()).toBe(false);
+    expect(audioEngineMock.isRecording()).toBe(false);
+    expect(snackbar.error).toHaveBeenCalled();
+  });
+
   it("should not double-start recording", async () => {
     service.setActiveSource("drum-machine");
     await service.startRecording();
@@ -142,6 +172,17 @@ describe("ComponentRecordingService", () => {
     jest.advanceTimersByTime(3000);
     // Duration stops incrementing after stop
     expect(service.recordingDuration()).toBe(5);
+  });
+
+  it("should clear the duration timer on destroy", async () => {
+    service.setActiveSource("drum-machine");
+    await service.startRecording();
+
+    service.ngOnDestroy();
+    jest.advanceTimersByTime(5000);
+
+    // The interval was cleared, so the readout no longer advances.
+    expect(service.recordingDuration()).toBe(0);
   });
 
   it("should find all component configs by id", () => {

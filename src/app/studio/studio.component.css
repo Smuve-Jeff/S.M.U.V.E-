@@ -2188,6 +2188,12 @@
   text-align: center;
 }
 
+/* Comp-capture problems (input unavailable, take discarded) shown inline
+   instead of a silently empty take list. */
+.comp-rec-error {
+  color: var(--warning, #f59e0b);
+}
+
 .comp-rec-comp-actions {
   display: flex;
   gap: 6px;

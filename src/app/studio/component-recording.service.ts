@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from "@angular/core";
+import { Injectable, inject, signal, OnDestroy } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { StudioRecordingEngineService } from "./studio-recording-engine.service";
 import { LoggingService } from "../services/logging.service";
@@ -24,7 +24,7 @@ export interface ComponentRecordingConfig {
 }
 
 @Injectable({ providedIn: "root" })
-export class ComponentRecordingService {
+export class ComponentRecordingService implements OnDestroy {
   private audioEngine = inject(AudioEngineService);
   private recordingEngine = inject(StudioRecordingEngineService);
   private logger = inject(LoggingService);
@@ -119,20 +119,41 @@ export class ComponentRecordingService {
     if (!config) return false;
 
     try {
-      // For input-based sources, initialize with microphone
-      if (config.usesInput) {
+      // Capture needs a live input graph for every source, not just the
+      // input-based ones: an Arrangement or Drum Machine pass is still
+      // recorded through the microphone/line input. Leaving the engine
+      // uninitialized for those sources made `startRecording()` a guaranteed
+      // no-op while the UI still flipped to REC.
+      if (!this.recordingEngine.isInitialized()) {
         const ok = await this.recordingEngine.initialize();
         if (!ok) {
-          this.snackbar.error("Could not access microphone");
+          this.snackbar.error(
+            config.usesInput
+              ? "Could not access microphone"
+              : `Could not start the ${config.label} recorder`,
+          );
           return false;
         }
       }
 
       this.recordingEngine.startRecording();
+      // Trust the engine rather than the request. A refused start (worklet not
+      // loaded, suspended context, a capture already in flight in another view)
+      // must never leave the transport claiming REC over silence.
+      if (!this.recordingEngine.isRecording()) {
+        this.logger.error(
+          `Component recording refused to start for ${config.label}`,
+        );
+        this.snackbar.error(
+          "Recording could not start — check the audio input",
+        );
+        return false;
+      }
+
       this.isRecording.set(true);
       this.audioEngine.isRecording.set(true);
       this.recordingDuration.set(0);
-
+      this.clearDurationTimer();
       this.durationInterval = setInterval(() => {
         this.recordingDuration.update((d) => d + 1);
       }, 1000);
@@ -150,10 +171,7 @@ export class ComponentRecordingService {
   async stopRecording(): Promise<void> {
     if (!this.isRecording()) return;
 
-    if (this.durationInterval) {
-      clearInterval(this.durationInterval);
-      this.durationInterval = null;
-    }
+    this.clearDurationTimer();
 
     try {
       await this.recordingEngine.stopRecording();
@@ -166,6 +184,17 @@ export class ComponentRecordingService {
     this.snackbar.success(
       `Recording finished (${this.formatDuration(this.recordingDuration())})`,
     );
+  }
+
+  ngOnDestroy(): void {
+    this.clearDurationTimer();
+  }
+
+  private clearDurationTimer(): void {
+    if (this.durationInterval) {
+      clearInterval(this.durationInterval);
+      this.durationInterval = null;
+    }
   }
 
   /** Toggle recording on/off */

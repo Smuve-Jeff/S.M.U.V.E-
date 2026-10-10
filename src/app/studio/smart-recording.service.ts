@@ -70,6 +70,8 @@ export class SmartRecordingService {
 
   // ── Comp groups ───────────────────────────────────────────
   compGroups = signal<CompGroup[]>([]);
+  /** Last comp-capture problem, surfaced in the recording panel. */
+  captureError = signal<string | null>(null);
   /** Current recording comp group ID (if in comp mode) */
   activeCompGroupId = signal<string | null>(null);
   /** Whether we are currently recording a comp take */
@@ -127,6 +129,7 @@ export class SmartRecordingService {
 
   setRecordingMode(mode: "normal" | "punch" | "comp") {
     this.recordingMode.set(mode);
+    this.captureError.set(null);
     if (mode === "punch") {
       this.punchArmed.set(false);
       this.isPunching.set(false);
@@ -232,18 +235,54 @@ export class SmartRecordingService {
     );
   }
 
-  /** Start recording a new take in the active comp group */
-  startCompTake() {
+  /**
+   * Start recording a new take in the active comp group.
+   *
+   * The capture engine is started here rather than assumed: the take used to be
+   * announced while nothing was recording, so "FINISH TAKE" pulled an empty
+   * buffer and stamped a silent take with invented peak readings.
+   *
+   * @returns true only when capture is genuinely running.
+   */
+  async startCompTake(): Promise<boolean> {
+    if (this.isCompRecording()) return false;
     const groupId = this.activeCompGroupId();
     if (!groupId) {
       this.startNewCompGroup();
     }
+    this.captureError.set(null);
+
+    try {
+      if (!this.recordingEngine.isInitialized()) {
+        const ready = await this.recordingEngine.initialize();
+        if (!ready) {
+          this.captureError.set("Input unavailable — check the microphone");
+          this.logger.warn(
+            "SmartRecording: input unavailable; comp take not started.",
+          );
+          return false;
+        }
+      }
+      this.recordingEngine.startRecording();
+    } catch (error) {
+      this.logger.error("SmartRecording: comp capture failed to start", error);
+      this.captureError.set("Could not start the take");
+      return false;
+    }
+
+    if (!this.recordingEngine.isRecording()) {
+      this.captureError.set("Could not start the take");
+      this.logger.warn("SmartRecording: engine refused to start comp capture.");
+      return false;
+    }
+
     this.isCompRecording.set(true);
     this.recordingStatus.setRecordingSource({
       type: "transport",
       trackId: "comp",
       trackName: `Take ${this.currentTakeNumber()}`,
     });
+    return true;
   }
 
   /** Finish current comp take and save it */
@@ -252,32 +291,53 @@ export class SmartRecordingService {
 
     const takeNumber = this.currentTakeNumber();
     const now = Date.now();
+    const sampleRate = this.audioEngine.ctx.sampleRate;
 
-    // Pull real recorded audio from the studio recording engine
-    const { left, right } = this.recordingEngine.getRecordedBuffers();
-    let blob: Blob;
-    let durationMs = 2000;
-
-    if (left.length > 0 && right.length > 0) {
-      // The recording engine already stores separate channel chunks. Keep
-      // them separate for WAV encoding; splitting an interleaved buffer in
-      // half would turn time-order data into two corrupted channels.
-      const leftChannel = this.joinChunks(left);
-      const rightChannel = this.joinChunks(right);
-      const frameCount = Math.min(leftChannel.length, rightChannel.length);
-      const alignedLeft = leftChannel.slice(0, frameCount);
-      const alignedRight = rightChannel.slice(0, frameCount);
-      const sampleRate = this.audioEngine.ctx.sampleRate;
-      blob = WavEncoder.encodeMultiChannel(
-        [alignedLeft, alignedRight],
-        "wav-16",
-        sampleRate,
+    // Flush the engine before reading its buffers: the worklet only hands over
+    // the final render quantum on stop, so reading first truncated the take.
+    let left: Float32Array[] = [];
+    let right: Float32Array[] = [];
+    try {
+      if (this.recordingEngine.isRecording()) {
+        await this.recordingEngine.stopRecording();
+      }
+      const buffers = this.recordingEngine.getRecordedBuffers();
+      left = buffers.left;
+      right = buffers.right;
+    } catch (error) {
+      this.logger.warn(
+        "SmartRecording: comp capture did not stop cleanly",
+        error,
       );
-      durationMs = Math.round((frameCount / sampleRate) * 1000);
-    } else {
-      // Fallback: no recording was active — synthesize minimal silent WAV
-      blob = await this.synthesizeSilentWav(2000);
     }
+
+    if (left.length === 0 || right.length === 0) {
+      // No PCM means the pass captured nothing. A fabricated silent take would
+      // sit in the group looking real (and could be comped into the mix), so
+      // report it and leave the group untouched instead.
+      this.isCompRecording.set(false);
+      this.captureError.set("Take discarded — no audio was captured");
+      this.recordingStatus.clearRecordingSource();
+      this.logger.warn(
+        "SmartRecording: comp take discarded — capture produced no audio.",
+      );
+      return null;
+    }
+
+    // The recording engine already stores separate channel chunks. Keep them
+    // separate for WAV encoding; splitting an interleaved buffer in half would
+    // turn time-order data into two corrupted channels.
+    const leftChannel = this.joinChunks(left);
+    const rightChannel = this.joinChunks(right);
+    const frameCount = Math.min(leftChannel.length, rightChannel.length);
+    const alignedLeft = leftChannel.slice(0, frameCount);
+    const alignedRight = rightChannel.slice(0, frameCount);
+    const blob = WavEncoder.encodeMultiChannel(
+      [alignedLeft, alignedRight],
+      "wav-16",
+      sampleRate,
+    );
+    const durationMs = Math.round((frameCount / sampleRate) * 1000);
 
     const url = URL.createObjectURL(blob);
     const regionStartBar = 1;
@@ -295,9 +355,12 @@ export class SmartRecordingService {
       regionEndBar,
       isMuted: false,
       isCompSelection: false,
-      peakDbL: -18,
-      peakDbR: -18,
+      // Measured from the captured samples — a hard-coded readout made every
+      // take look identically levelled in the comp view.
+      peakDbL: this.peakDbOf(alignedLeft),
+      peakDbR: this.peakDbOf(alignedRight),
     };
+    this.captureError.set(null);
 
     // Add to active comp group
     this.compGroups.update((groups) =>
@@ -451,12 +514,13 @@ export class SmartRecordingService {
     if (this.recordingMode() !== "comp") return null;
     if (!this.isCompRecording()) {
       // First loop pass — start take 1
-      this.startCompTake();
+      await this.startCompTake();
       return null;
     }
     const finished = await this.finishCompTake();
     if (finished) {
-      this.startCompTake();
+      // Next take arms only after the previous one landed with real audio.
+      await this.startCompTake();
     }
     return finished;
   }
@@ -689,35 +753,14 @@ export class SmartRecordingService {
     return result;
   }
 
-  private async synthesizeSilentWav(durationMs: number): Promise<Blob> {
-    const sampleRate = 48000;
-    const numSamples = Math.max(
-      1,
-      Math.floor((durationMs / 1000) * sampleRate),
-    );
-    const buffer = new ArrayBuffer(44 + numSamples * 2);
-    const view = new DataView(buffer);
-
-    const writeStr = (offset: number, str: string) => {
-      for (let i = 0; i < str.length; i++) {
-        view.setUint8(offset + i, str.charCodeAt(i));
-      }
-    };
-
-    writeStr(0, "RIFF");
-    view.setUint32(4, 36 + numSamples * 2, true);
-    writeStr(8, "WAVE");
-    writeStr(12, "fmt ");
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeStr(36, "data");
-    view.setUint32(40, numSamples * 2, true);
-
-    return new Blob([buffer], { type: "audio/wav" });
+  /** Peak level of a captured channel in dBFS, floored at -60. */
+  private peakDbOf(samples: Float32Array): number {
+    let peak = 0;
+    for (let i = 0; i < samples.length; i++) {
+      const abs = Math.abs(samples[i]);
+      if (abs > peak) peak = abs;
+    }
+    if (!(peak > 0)) return -60;
+    return Math.max(-60, Math.round(20 * Math.log10(peak) * 10) / 10);
   }
 }

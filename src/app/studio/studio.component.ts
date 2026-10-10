@@ -3057,10 +3057,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       velocity: n.velocity,
     }));
     const existing = this.musicManager.tracks().find((t) => t.id === trackId);
-    this.musicManager.replaceTrackNotes(trackId, [
-      ...(existing?.notes ?? []),
-      ...stamped,
-    ]);
+    this.musicManager.replaceTrackNotes(
+      trackId,
+      [...(existing?.notes ?? []), ...stamped],
+      `Stamp Chord · ${chord}`,
+    );
     this.musicManager.selectedTrackId.set(trackId);
     this.snackbarService.success(
       `Applied ${chord} — ${notes.length} notes at bar ${index + 1}`,

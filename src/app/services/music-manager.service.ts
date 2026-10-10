@@ -700,10 +700,36 @@ export class MusicManagerService {
 
   /**
    * Sprint A3 Phase 4 — write a comp-merged note list back to a track. Used
-   * by the take-lane APPLY COMP action; replaces the working notes wholesale
-   * so the comp becomes the new arrangement content.
+   * by the take-lane APPLY COMP / BAKE SECTIONS actions, MIDI import and the
+   * chord stamper; replaces the working notes wholesale so the comp becomes the
+   * new arrangement content.
+   *
+   * Wholesale note replacement is the most destructive edit in the Studio, so
+   * it goes through the history stack like every other edit — it used to write
+   * the track directly, leaving comping, section baking and MIDI import
+   * impossible to undo.
    */
-  replaceTrackNotes(trackId: string, notes: TrackNote[]): void {
+  replaceTrackNotes(
+    trackId: string,
+    notes: TrackNote[],
+    actionName = "Replace Notes"
+  ): void {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return;
+
+    const before = (track.notes ?? []).map((n) => this.clone(n));
+    const after = notes.map((n) => this.clone(n));
+    if (before.length === 0 && after.length === 0) return;
+
+    this.runCommand(
+      `${actionName} · ${track.name}`,
+      () => this.applyTrackNotes(trackId, after),
+      () => this.applyTrackNotes(trackId, before)
+    );
+  }
+
+  /** Low-level note write used by `replaceTrackNotes` execute/undo. */
+  private applyTrackNotes(trackId: string, notes: TrackNote[]): void {
     this.tracks.update((ts) =>
       ts.map((t) =>
         t.id === trackId ? { ...t, notes: notes.map((n) => this.clone(n)) } : t

@@ -186,6 +186,32 @@ describe('MusicManagerService clip glue workflows', () => {
       mergedId,
     ]);
   });
+
+  it('makes wholesale note replacement undoable (comp, sections, MIDI import)', () => {
+    service.replaceTrackNotes(
+      'track-1',
+      [{ id: 'n1', midi: 60, step: 0, length: 1, velocity: 0.8 }],
+      'Apply Comp'
+    );
+
+    expect(service.tracks()[0].notes).toHaveLength(1);
+    expect(history.getUndoDescription()).toContain('Apply Comp');
+
+    history.undo();
+    expect(service.tracks()[0].notes).toHaveLength(0);
+
+    history.redo();
+    expect(service.tracks()[0].notes.map((n) => n.id)).toEqual(['n1']);
+  });
+
+  it('ignores note replacement for an unknown track', () => {
+    service.replaceTrackNotes('nope', [
+      { id: 'n1', midi: 60, step: 0, length: 1, velocity: 0.8 },
+    ]);
+
+    expect(service.tracks()[0].notes).toHaveLength(0);
+    expect(history.getUndoDescription()).toBeNull();
+  });
 });
 
 describe('MusicManagerService pattern slots (channel rack / performance grid)', () => {

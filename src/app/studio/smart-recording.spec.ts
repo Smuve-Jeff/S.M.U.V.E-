@@ -6,6 +6,23 @@ import { RecordingStatusService } from "./recording-status.service";
 import { LocalStorageService } from "../services/local-storage.service";
 import { StudioRecordingEngineService } from "./studio-recording-engine.service";
 
+function createRecordingEngineMock() {
+  const mock: any = {
+    isInitialized: jest.fn().mockReturnValue(false),
+    initialize: jest.fn().mockResolvedValue(true),
+    isRecording: jest.fn().mockReturnValue(false),
+    startRecording: jest.fn().mockImplementation(() => {
+      mock.isRecording.mockReturnValue(true);
+    }),
+    stopRecording: jest.fn().mockImplementation(() => {
+      mock.isRecording.mockReturnValue(false);
+      return Promise.resolve();
+    }),
+    getRecordedBuffers: jest.fn().mockReturnValue({ left: [], right: [] }),
+  };
+  return mock;
+}
+
 function createMockAudioEngine() {
   return {
     tempo: () => 120,
@@ -17,8 +34,10 @@ function createMockAudioEngine() {
 
 describe("SmartRecordingService", () => {
   let service: SmartRecordingService;
+  let recordingEngineMock: any;
 
   beforeEach(() => {
+    recordingEngineMock = createRecordingEngineMock();
     TestBed.configureTestingModule({
       providers: [
         SmartRecordingService,
@@ -40,15 +59,7 @@ describe("SmartRecordingService", () => {
         },
         {
           provide: StudioRecordingEngineService,
-          useValue: {
-            isInitialized: () => false,
-            initialize: jest.fn().mockResolvedValue(true),
-            startRecording: jest.fn(),
-            stopRecording: jest.fn().mockResolvedValue(undefined),
-            getRecordedBuffers: jest
-              .fn()
-              .mockReturnValue({ left: [], right: [] }),
-          },
+          useValue: recordingEngineMock,
         },
       ],
     });
@@ -117,14 +128,59 @@ describe("SmartRecordingService", () => {
       expect(service.activeCompGroupId()).toBeTruthy();
     });
 
-    it("should finish a comp take", async () => {
+    it("should start real capture for a comp take", async () => {
       service.startNewCompGroup("t1", "Track", "Chorus");
-      service.startCompTake();
+      const started = await service.startCompTake();
+
+      expect(started).toBe(true);
+      expect(recordingEngineMock.initialize).toHaveBeenCalled();
+      expect(recordingEngineMock.startRecording).toHaveBeenCalled();
       expect(service.isCompRecording()).toBe(true);
+      expect(service.captureError()).toBeNull();
+    });
+
+    it("should not arm a comp take when capture is refused", async () => {
+      recordingEngineMock.startRecording.mockImplementation(() => undefined);
+      recordingEngineMock.isRecording.mockReturnValue(false);
+      service.startNewCompGroup("t1", "Track", "Chorus");
+
+      const started = await service.startCompTake();
+
+      expect(started).toBe(false);
+      expect(service.isCompRecording()).toBe(false);
+      expect(service.captureError()).toBeTruthy();
+    });
+
+    it("should finish a comp take from the captured audio", async () => {
+      recordingEngineMock.getRecordedBuffers.mockReturnValue({
+        left: [new Float32Array(4800).fill(0.5)],
+        right: [new Float32Array(4800).fill(0.25)],
+      });
+      service.startNewCompGroup("t1", "Track", "Chorus");
+      await service.startCompTake();
+      expect(service.isCompRecording()).toBe(true);
+
       const take = await service.finishCompTake();
+
       expect(take).toBeTruthy();
       expect(take!.takeNumber).toBe(1);
+      expect(take!.blob.size).toBeGreaterThan(0);
+      expect(take!.durationMs).toBe(100);
+      // Peaks come from the captured samples, not a fixed placeholder.
+      expect(take!.peakDbL).toBeCloseTo(-6, 0);
+      expect(take!.peakDbR).toBeCloseTo(-12, 0);
       expect(service.isCompRecording()).toBe(false);
+    });
+
+    it("should discard a comp take when nothing was captured", async () => {
+      service.startNewCompGroup("t1", "Track", "Chorus");
+      await service.startCompTake();
+
+      const take = await service.finishCompTake();
+
+      expect(take).toBeNull();
+      expect(service.compGroups()[0].takes).toHaveLength(0);
+      expect(service.captureError()).toBeTruthy();
     });
 
     it("should select a comp take", () => {

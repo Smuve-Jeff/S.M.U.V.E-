@@ -147,6 +147,7 @@ describe("TakeLaneComponent (Sprint A3 Phase 3)", () => {
     expect(mockMusicManager.replaceTrackNotes).toHaveBeenCalledWith(
       "trk1",
       expect.any(Array),
+      "Apply Comp",
     );
     const merged = mockMusicManager.replaceTrackNotes.mock.calls[0][1];
     expect(merged[0].velocity).toBe(111); // later take wins
@@ -217,6 +218,7 @@ describe("TakeLaneComponent (Sprint A3 Phase 3)", () => {
     expect(mockMusicManager.replaceTrackNotes).toHaveBeenCalledWith(
       "trk1",
       expect.any(Array),
+      "Bake Comp Sections",
     );
     expect(component.sectionMode()).toBe(false);
   });

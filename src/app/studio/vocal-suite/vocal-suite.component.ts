@@ -237,11 +237,14 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     this.captureError.set(null);
     if (this.micService.isRecording()) {
       const blob = await this.micService.stopRecording();
+      // A fresh take replaces any decoded/edited buffer from the previous one.
+      // This must happen whether or not auto-route commits the take straight
+      // away: keeping the old cache made the next Normalize/Trim edit the
+      // previous take and route that stale audio to the arrangement.
+      this.editedTake = null;
+      this.takeEnvelope.set([]);
+      this.takeStatus.set(null);
       if (blob && this.autoRouteTakes()) {
-        // A fresh take replaces any edits from the previous one.
-        this.editedTake = null;
-        this.takeEnvelope.set([]);
-        this.takeStatus.set(null);
         await this.routeTakeToArrangement();
       }
       return;

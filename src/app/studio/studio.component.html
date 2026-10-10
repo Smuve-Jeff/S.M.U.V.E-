@@ -1939,7 +1939,11 @@
             (click)="smartRecording.startCompTake()"
           >
             <span class="material-symbols-outlined">fiber_manual_record</span>
-            Take {{ smartRecording.currentTakeNumber() }}
+            @if (smartRecording.isCompRecording()) {
+              RECORDING TAKE {{ smartRecording.currentTakeNumber() }}
+            } @else {
+              Take {{ smartRecording.currentTakeNumber() }}
+            }
           </button>
           <button
             type="button"
@@ -1949,6 +1953,11 @@
             FINISH TAKE
           </button>
         </div>
+        @if (smartRecording.captureError(); as captureError) {
+          <div class="comp-rec-status-label comp-rec-error">
+            {{ captureError }}
+          </div>
+        }
         <div
           class="comp-rec-takes"
           *ngIf="smartRecording.activeCompGroupTakes().length > 0"
