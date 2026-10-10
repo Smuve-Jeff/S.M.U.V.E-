@@ -920,6 +920,64 @@ describe('ProfileEditorComponent', () => {
       );
     });
 
+    it('re-arms the file input so the same image can be picked again', async () => {
+      const { component } = await createComponent();
+      database.uploadAsset.mockResolvedValue('https://cdn/avatar.png');
+      const target = {
+        files: [new File(['bytes'], 'avatar.png', { type: 'image/png' })],
+        value: 'C:\\fakepath\\avatar.png',
+      };
+
+      await component.onImageSelected({ target }, 'avatarImage');
+
+      // A file input only fires `change` when its value changes, so leaving
+      // the value in place made re-picking the same photo a silent no-op.
+      expect(target.value).toBe('');
+      expect(component.editableProfile().avatarImage).toBe(
+        'https://cdn/avatar.png'
+      );
+    });
+
+    it('re-arms the file input when the upload fails, so a retry works', async () => {
+      const { component } = await createComponent();
+      database.uploadAsset.mockRejectedValueOnce(new Error('offline'));
+      const target = {
+        files: [new File(['bytes'], 'avatar.png', { type: 'image/png' })],
+        value: 'avatar.png',
+      };
+
+      await component.onImageSelected({ target }, 'avatarImage');
+
+      expect(target.value).toBe('');
+      expect(component.editableProfile().avatarImage).toBeFalsy();
+    });
+
+    it('re-arms the file input when a pick is ignored mid-upload', async () => {
+      const { component } = await createComponent();
+      let finish: (url: string) => void = () => undefined;
+      database.uploadAsset.mockReturnValue(
+        new Promise<string>((resolve) => {
+          finish = resolve;
+        })
+      );
+      const first = {
+        files: [new File(['a'], 'avatar.png', { type: 'image/png' })],
+        value: 'avatar.png',
+      };
+      const second = {
+        files: [new File(['b'], 'header.png', { type: 'image/png' })],
+        value: 'header.png',
+      };
+
+      const running = component.onImageSelected({ target: first }, 'avatarImage');
+      await component.onImageSelected({ target: second }, 'headerImage');
+      // The ignored pick must not leave the input armed with a stale value,
+      // or the next attempt with that file is refused by the browser.
+      expect(second.value).toBe('');
+      finish('https://cdn/avatar.png');
+      await running;
+    });
+
     it('reports an import that could not be read as a profile', async () => {
       const { fixture, text } = await createComponent();
       userProfileService.importProfile.mockResolvedValue(false);

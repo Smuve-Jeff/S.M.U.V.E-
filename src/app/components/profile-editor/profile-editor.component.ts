@@ -650,7 +650,13 @@ export class ProfileEditorComponent implements OnInit {
   }
 
   async onImageSelected(event: any, target: 'avatarImage' | 'headerImage') {
-    const file = event.target.files?.[0];
+    const input = event?.target as HTMLInputElement | undefined;
+    const file = input?.files?.[0];
+    // Re-arm the picker first, and before any early return: a file input only
+    // fires `change` while its value actually changes, so keeping the value
+    // made re-picking the same image — or retrying the same file after a
+    // failed upload, or after a pick ignored mid-upload — a silent no-op.
+    if (input) input.value = '';
     if (!file) return;
     // `uploadingImage` drove nothing, so a second pick during a slow upload
     // raced two writes into the same field. The tiles are disabled while it
