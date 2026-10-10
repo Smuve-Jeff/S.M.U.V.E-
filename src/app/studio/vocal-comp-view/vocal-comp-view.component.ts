@@ -269,6 +269,24 @@ export class VocalCompViewComponent implements OnDestroy {
     this.isExporting.set(true);
 
     try {
+      const fileName = `SMUVE_Comp_${group.sectionLabel.replace(/\s+/g, "_")}_${Date.now()}.wav`;
+
+      // A split section is a bar-by-bar comp, so the export has to render the
+      // assigned takes with crossfaded joins rather than hand back one take.
+      // Unsplit groups *are* a single take, so those keep the direct copy.
+      if (group.segments?.length) {
+        const assembled = await this.smartRecording.renderCompAssembly(
+          group.id,
+        );
+        if (!assembled) {
+          this.snackbar.warning("No comp selection to export");
+          return;
+        }
+        this.downloadBlob(assembled, fileName);
+        this.snackbar.success(`Comp "${group.sectionLabel}" exported as WAV`);
+        return;
+      }
+
       // Find the comp selection or fall back to last take
       const compTake =
         group.takes.find((t) => t.isCompSelection) ||
@@ -282,7 +300,7 @@ export class VocalCompViewComponent implements OnDestroy {
       // Trigger download
       const a = document.createElement("a");
       a.href = compTake.url;
-      a.download = `SMUVE_Comp_${group.sectionLabel.replace(/\s+/g, "_")}_${Date.now()}.wav`;
+      a.download = fileName;
       a.click();
 
       this.snackbar.success(`Comp "${group.sectionLabel}" exported as WAV`);
@@ -320,6 +338,18 @@ export class VocalCompViewComponent implements OnDestroy {
   }
 
   // ── Utility ───────────────────────────────────────────
+  /** Save a generated audio blob through a temporary object URL. */
+  private downloadBlob(blob: Blob, fileName: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    // Release the URL once the browser has taken the bytes; revoking it
+    // synchronously can cancel a download that has not started yet.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
   formatDuration(ms: number): string {
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);

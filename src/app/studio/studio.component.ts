@@ -3196,6 +3196,55 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
+   * Bounce the active comp section into one WAV.
+   *
+   * "Export All Takes" hands back the raw passes; this is the finished comp —
+   * every assigned segment from the take that plays it, with crossfaded joins.
+   */
+  async exportCompAssembly(): Promise<void> {
+    this.haptic.light();
+    const groupId = this.smartRecording.activeCompGroupId();
+    if (!groupId || this.smartRecording.activeCompGroupTakes().length === 0) {
+      this.snackbarService.info("No comp takes to bounce");
+      return;
+    }
+    try {
+      const blob = await this.smartRecording.renderCompAssembly(groupId);
+      if (!blob) {
+        this.snackbarService.info("No comp takes to bounce");
+        return;
+      }
+      const section =
+        this.smartRecording.activeCompGroup()?.sectionLabel ?? "comp";
+      const projectName = (
+        this.projectWorkspace.metadata()?.name || "smuve"
+      ).replace(/[^a-zA-Z0-9_-]+/g, "_");
+      const safeSection = section.replace(/[^a-zA-Z0-9_-]+/g, "_");
+      this.downloadBlob(blob, `${projectName}_${safeSection}_comp.wav`);
+      this.snackbarService.success(`Comp "${section}" bounced · WAV`);
+      this.studioTelemetry.trackEvent(
+        "comp_assembly_exported",
+        {
+          groupId,
+          format: "wav",
+          segments: this.smartRecording.compSegmentsForGroup(groupId).length,
+        },
+        true,
+      );
+    } catch (e) {
+      this.studioTelemetry.trackEvent(
+        "studio_error",
+        {
+          action: "comp_assembly_export",
+          error: e instanceof Error ? e.message : "unknown",
+        },
+        false,
+      );
+      this.snackbarService.error("Comp export failed");
+    }
+  }
+
+  /**
    * Export all comp takes as a single .zip download. Bundling into one file
    * avoids the browser's automatic-multi-download block that silently dropped
    * every take after the first in the old per-take loop.

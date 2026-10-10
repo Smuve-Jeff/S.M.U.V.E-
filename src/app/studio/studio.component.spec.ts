@@ -173,6 +173,21 @@ describe("StudioComponent", () => {
 
   const mockSmartRecording = {
     onBarTick: jest.fn(),
+    activeCompGroupId: jest.fn(() => "comp_1"),
+    activeCompGroup: jest.fn(() => ({
+      id: "comp_1",
+      trackId: "comp-track",
+      trackName: "Comp Track",
+      sectionLabel: "Verse 1",
+      takes: [],
+      selectedTakeId: null,
+      createdAt: 0,
+    })),
+    activeCompGroupTakes: jest.fn(() => []),
+    compSegmentsForGroup: jest.fn(() => []),
+    renderCompAssembly: jest.fn(
+      async (): Promise<Blob | null> => new Blob(["comp"]),
+    ),
   };
 
   let mockDialog: any;
@@ -1126,6 +1141,62 @@ describe("StudioComponent", () => {
 
       expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
       expect(mockProjectWorkspace.startFreshProject).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("comp section bounce", () => {
+    it("bounces the active comp section to a named WAV download", async () => {
+      const blob = new Blob(["comp"]);
+      mockSmartRecording.renderCompAssembly.mockResolvedValueOnce(blob);
+      mockSmartRecording.activeCompGroupTakes.mockReturnValueOnce([
+        { id: "take_1" },
+      ] as any);
+      mockSmartRecording.compSegmentsForGroup.mockReturnValueOnce([
+        { id: "s1", startBar: 1, endBar: 3, takeId: "take_1" },
+      ] as any);
+      mockProjectWorkspace.metadata.set({ name: "Rooftop Session" });
+      const download = jest
+        .spyOn(component as any, "downloadBlob")
+        .mockImplementation(() => {});
+
+      await component.exportCompAssembly();
+
+      expect(mockSmartRecording.renderCompAssembly).toHaveBeenCalledWith(
+        "comp_1",
+      );
+      expect(download).toHaveBeenCalledWith(
+        blob,
+        "Rooftop_Session_Verse_1_comp.wav",
+      );
+      expect(mockSnackbar.success).toHaveBeenCalledWith(
+        'Comp "Verse 1" bounced · WAV',
+      );
+      expect(mockStudioTelemetry.trackEvent).toHaveBeenCalledWith(
+        "comp_assembly_exported",
+        { groupId: "comp_1", format: "wav", segments: 1 },
+        true,
+      );
+    });
+
+    it("does nothing when the active section has no takes", async () => {
+      mockSmartRecording.activeCompGroupTakes.mockReturnValueOnce([]);
+
+      await component.exportCompAssembly();
+
+      expect(mockSmartRecording.renderCompAssembly).not.toHaveBeenCalled();
+      expect(mockSnackbar.info).toHaveBeenCalledWith("No comp takes to bounce");
+    });
+
+    it("reports a section that cannot be rendered", async () => {
+      mockSmartRecording.activeCompGroupTakes.mockReturnValueOnce([
+        { id: "take_1" },
+      ] as any);
+      mockSmartRecording.renderCompAssembly.mockResolvedValueOnce(null);
+
+      await component.exportCompAssembly();
+
+      expect(mockSnackbar.info).toHaveBeenCalledWith("No comp takes to bounce");
+      expect(mockSnackbar.success).not.toHaveBeenCalled();
     });
   });
 });

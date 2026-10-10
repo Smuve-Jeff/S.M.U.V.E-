@@ -104,6 +104,12 @@ export class SmartRecordingService {
   // ── Zero-crossing crossfade settings ──────────────────────
   /** Crossfade duration in milliseconds between adjacent comp takes */
   crossfadeMs = signal(10);
+  /**
+   * Milliseconds of extra capture kept past the end of a comp take. This tail
+   * is the material a join crossfades with when the take's segment ends there,
+   * so a pass stopped right on the bar line still has audio to blend.
+   */
+  postRollMs = signal(200);
   /** Whether zero-crossing detection is enabled for seamless crossfades */
   zeroCrossingEnabled = signal(true);
   /** Lookahead window in samples for zero-crossing search */
@@ -345,13 +351,39 @@ export class SmartRecordingService {
     return true;
   }
 
-  /** Finish current comp take and save it */
-  async finishCompTake(): Promise<CompTake | null> {
+  /**
+   * Keep the input open for `postRollMs` so the take carries a crossfadeable
+   * tail. Only worth waiting for when nothing follows this take: the next take
+   * is stamped from the transport bar it starts on, so holding here would start
+   * its audio late against its own stamp.
+   */
+  private async holdPostRoll(): Promise<void> {
+    const ms = this.postRollMs();
+    if (!(ms > 0)) return;
+    try {
+      if (!this.recordingEngine.isRecording()) return;
+    } catch {
+      return;
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Finish current comp take and save it.
+   *
+   * @param holdPostRoll leave the capture running for the post-roll before
+   *   stopping. Loop passes pass false (see `holdPostRoll`).
+   */
+  async finishCompTake(holdPostRoll = true): Promise<CompTake | null> {
     if (!this.isCompRecording()) return null;
 
     const takeNumber = this.currentTakeNumber();
     const now = Date.now();
     const sampleRate = this.audioEngine.ctx.sampleRate;
+
+    if (holdPostRoll) {
+      await this.holdPostRoll();
+    }
 
     // Flush the engine before reading its buffers: the worklet only hands over
     // the final render quantum on stop, so reading first truncated the take.
@@ -621,28 +653,47 @@ export class SmartRecordingService {
     blob: Blob,
     fallbackDurationMs = 0,
   ): Promise<{ durationMs: number; peakDbL: number; peakDbR: number }> {
-    try {
-      const decoded = await this.audioEngine.ctx.decodeAudioData(
-        await blob.arrayBuffer(),
-      );
-      const left = decoded.getChannelData(0);
-      const right =
-        decoded.numberOfChannels > 1 ? decoded.getChannelData(1) : left;
-      return {
-        durationMs: Math.round(decoded.duration * 1000),
-        peakDbL: this.peakDbOf(left),
-        peakDbR: this.peakDbOf(right),
-      };
-    } catch (error) {
-      this.logger.warn(
-        "SmartRecording: could not measure the take; using the reported length.",
-        error,
-      );
+    const decoded = await this.decodeTake(blob);
+    if (!decoded) {
       return {
         durationMs: Math.max(0, Math.round(fallbackDurationMs)),
         peakDbL: -60,
         peakDbR: -60,
       };
+    }
+    return {
+      durationMs: Math.round(decoded.duration * 1000),
+      peakDbL: this.peakDbOf(decoded.left),
+      peakDbR: this.peakDbOf(decoded.right),
+    };
+  }
+
+  /**
+   * Decode a take blob into the per-channel samples a render reads from.
+   * Returns null (with a warning) when the platform cannot decode it, so
+   * callers can fall back instead of writing silence into a comp.
+   */
+  private async decodeTake(blob: Blob): Promise<{
+    left: Float32Array;
+    right: Float32Array;
+    duration: number;
+  } | null> {
+    try {
+      const decoded = await this.audioEngine.ctx.decodeAudioData(
+        await blob.arrayBuffer(),
+      );
+      const left = decoded.getChannelData(0);
+      return {
+        left,
+        right: decoded.numberOfChannels > 1 ? decoded.getChannelData(1) : left,
+        duration: decoded.duration,
+      };
+    } catch (error) {
+      this.logger.warn(
+        "SmartRecording: could not decode the take; using the reported length.",
+        error,
+      );
+      return null;
     }
   }
 
@@ -725,7 +776,9 @@ export class SmartRecordingService {
       await this.startCompTake();
       return null;
     }
-    const finished = await this.finishCompTake();
+    // No post-roll hold here: the next take starts immediately so its audio
+    // stays aligned with the bar it is stamped with.
+    const finished = await this.finishCompTake(false);
     if (finished) {
       // Next take arms only after the previous one landed with real audio.
       await this.startCompTake();
@@ -854,18 +907,19 @@ export class SmartRecordingService {
       sampleRate,
     );
 
-    // Calculate output length: A up to splice + crossfade region + remainder of B
+    // A up to the splice, then all of B. The fade is clamped to whatever room
+    // the two buffers leave (a take shorter than the crossfade, a splice close
+    // to A's end); the output length and B's remainder must follow that clamped
+    // length, or the tail of B is written past the end of the result and lost.
     const fadeStart = alignedSplice;
     const fadeEnd = Math.min(
       alignedSplice + crossfadeSamples,
       bufferA.length,
       bufferB.length + alignedSplice,
     );
-    const fadeLength = fadeEnd - fadeStart;
+    const fadeLength = Math.max(0, fadeEnd - fadeStart);
 
-    const totalLength =
-      alignedSplice + fadeLength + (bufferB.length - crossfadeSamples);
-    const result = new Float32Array(totalLength);
+    const result = new Float32Array(alignedSplice + bufferB.length);
 
     // Copy bufferA up to the splice point
     for (let i = 0; i < alignedSplice; i++) {
@@ -886,8 +940,8 @@ export class SmartRecordingService {
       result[alignedSplice + i] = sampleA * gainA + sampleB * gainB;
     }
 
-    // Copy remainder of bufferB
-    for (let i = crossfadeSamples; i < bufferB.length; i++) {
+    // Copy the rest of bufferB contiguously after the (possibly short) fade.
+    for (let i = Math.max(fadeLength, 0); i < bufferB.length; i++) {
       result[alignedSplice + i] = bufferB[i];
     }
 
@@ -940,6 +994,217 @@ export class SmartRecordingService {
     }
 
     return current;
+  }
+
+  /**
+   * Render the group's comp into one downloadable WAV.
+   *
+   * Each assigned segment is filled from the take that plays it, and every join
+   * is an equal-power crossfade rather than a butt splice — which is what
+   * "Export Comp" needs to bounce bar-by-bar comping instead of one take. The
+   * overlap is built from whatever material the takes actually carry at the
+   * join, in this order:
+   *   1. the outgoing take's post-roll past its segment (it keeps playing while
+   *      the incoming take fades up in place),
+   *   2. the incoming take's pre-roll before its segment (it fades up early),
+   *   3. a fade-out/fade-in pair in place, when neither side has any.
+   * The incoming take's content always lands on its own bar either way.
+   *
+   * @returns null when the group has no audible take or nothing to decode.
+   */
+  async renderCompAssembly(groupId?: string): Promise<Blob | null> {
+    const group = groupId
+      ? this.compGroups().find((g) => g.id === groupId)
+      : this.activeCompGroup();
+    if (!group) return null;
+
+    const audible = group.takes.filter((t) => !t.isMuted);
+    if (audible.length === 0) return null;
+
+    const plan = this.compPlanFor(group, audible);
+    if (plan.length === 0) return null;
+
+    const sampleRate = this.audioEngine.ctx.sampleRate;
+    const framesPerBar = ((4 * 60) / this.tempo()) * sampleRate;
+
+    // The render spans exactly what the plan plays: an unsplit group renders
+    // its comp take over that take's own region, a split group over the
+    // segments' span.
+    const spanStartBar = Math.min(...plan.map((s) => s.startBar));
+    const spanEndBar = Math.max(...plan.map((s) => s.endBar));
+    const totalFrames = Math.max(
+      1,
+      Math.round((spanEndBar - spanStartBar) * framesPerBar),
+    );
+
+    const spans = plan.map((span) => ({
+      span,
+      start: Math.max(
+        0,
+        Math.round((span.startBar - spanStartBar) * framesPerBar),
+      ),
+      end: Math.min(
+        totalFrames,
+        Math.round((span.endBar - spanStartBar) * framesPerBar),
+      ),
+    }));
+
+    // One fade length for every join, clamped to half the shortest segment so a
+    // narrow segment never fades over its own content.
+    const shortest = Math.max(
+      1,
+      Math.min(...spans.map((s) => s.end - s.start)),
+    );
+    const fade = Math.max(
+      1,
+      Math.min(
+        Math.floor((this.crossfadeMs() / 1000) * sampleRate),
+        Math.floor(shortest / 2),
+      ),
+    );
+
+    // Decode each take once: a comp often reuses one take across segments, and
+    // the join decision needs to know how much audio a take holds past the
+    // segment it plays.
+    const sources = new Map<
+      string,
+      { left: Float32Array; right: Float32Array }
+    >();
+    for (const span of plan) {
+      if (!span.takeId || sources.has(span.takeId)) continue;
+      const take = audible.find((t) => t.id === span.takeId);
+      if (!take?.blob) continue;
+      const decoded = await this.decodeTake(take.blob);
+      if (decoded) {
+        sources.set(take.id, { left: decoded.left, right: decoded.right });
+      }
+    }
+    if (sources.size === 0) return null;
+
+    // Resolve the playable segments and how much post-roll each one has.
+    const segments: Array<{
+      source: { left: Float32Array; right: Float32Array };
+      base: number;
+      start: number;
+      end: number;
+      postRoll: number;
+    }> = [];
+    for (const { span, start, end } of spans) {
+      if (end <= start || !span.takeId) continue;
+      const take = audible.find((t) => t.id === span.takeId);
+      const source = take ? sources.get(take.id) : undefined;
+      if (!take || !source) continue;
+
+      // Where the segment's first frame comes from inside the take.
+      const base = Math.round(
+        (span.startBar - take.regionStartBar) * framesPerBar,
+      );
+      segments.push({
+        source,
+        base,
+        start,
+        end,
+        postRoll: source.left.length - (base + (end - start)),
+      });
+    }
+    if (segments.length === 0) return null;
+
+    // Pick the join strategy between each pair: the outgoing take's post-roll
+    // if it reaches through the crossfade, else the incoming take's pre-roll,
+    // else fades in place.
+    const joins = segments.map((segment, index) => {
+      if (index === segments.length - 1) return "last" as const;
+      if (segment.postRoll >= fade) return "post" as const;
+      return segments[index + 1].base >= fade
+        ? ("pre" as const)
+        : ("none" as const);
+    });
+
+    const left = new Float32Array(totalFrames);
+    const right = new Float32Array(totalFrames);
+
+    for (let index = 0; index < segments.length; index++) {
+      const { source, base, start, end } = segments[index];
+      const join = joins[index];
+      const incoming = index > 0 ? joins[index - 1] : null;
+
+      const preRoll = incoming === "pre";
+      const headFade = preRoll ? fade : 0;
+      const inPlace = incoming !== null && !preRoll ? fade : 0;
+      const extendTail = join === "post" ? fade : 0;
+      // A post-roll join fades out past the boundary; the others fade out before
+      // it (and must not double up with the extension).
+      const tailFade = join === "pre" || join === "none" ? fade : 0;
+      const writeStart = start - headFade;
+      const writeEnd = end + extendTail;
+      const readStart = base - headFade;
+
+      for (let i = writeStart; i < writeEnd; i++) {
+        if (i < 0 || i >= totalFrames) continue;
+        const readIndex = readStart + (i - writeStart);
+        if (readIndex < 0 || readIndex >= source.left.length) continue;
+
+        let gain = 1;
+        if (headFade > 0 && i < start) {
+          gain = Math.sin(((i - writeStart) / headFade) * (Math.PI / 2));
+        } else if (inPlace > 0 && i < start + inPlace) {
+          gain = Math.sin(((i - start) / inPlace) * (Math.PI / 2));
+        } else if (extendTail > 0 && i >= end) {
+          gain = Math.cos(((i - end) / extendTail) * (Math.PI / 2));
+        } else if (tailFade > 0 && i >= end - tailFade) {
+          gain = Math.cos(((i - (end - tailFade)) / tailFade) * (Math.PI / 2));
+        }
+
+        left[i] += source.left[readIndex] * gain;
+        right[i] += source.right[readIndex] * gain;
+      }
+    }
+
+    const blob = WavEncoder.encodeMultiChannel(
+      [left, right],
+      "wav-16",
+      sampleRate,
+    );
+    this.logger.info(
+      `SmartRecording: rendered comp "${group.sectionLabel}" from ${plan.length} segment${
+        plan.length === 1 ? "" : "s"
+      } (${(totalFrames / sampleRate).toFixed(2)}s).`,
+    );
+    return blob;
+  }
+
+  /**
+   * What to render, in bar order: the group's per-segment assignments when it
+   * has them, otherwise one span across the takes' region using the comp take.
+   */
+  private compPlanFor(
+    group: CompGroup,
+    audible: CompTake[],
+  ): Array<{ startBar: number; endBar: number; takeId: string | null }> {
+    const segments = group.segments;
+    if (segments && segments.length > 0) {
+      return segments
+        .map((s) => ({
+          startBar: s.startBar,
+          endBar: s.endBar,
+          takeId: s.takeId ?? group.selectedTakeId,
+        }))
+        .filter((s) => s.endBar > s.startBar)
+        .sort((a, b) => a.startBar - b.startBar);
+    }
+
+    // Unsplit: the comp *is* the selected take, so render that take over its
+    // own recorded region.
+    const take =
+      audible.find((t) => t.id === group.selectedTakeId) ??
+      audible[audible.length - 1];
+    return [
+      {
+        startBar: take.regionStartBar,
+        endBar: take.regionEndBar,
+        takeId: take.id,
+      },
+    ];
   }
 
   // ── Utility ───────────────────────────────────────────────

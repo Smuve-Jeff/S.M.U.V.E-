@@ -25,6 +25,7 @@ export type StudioTelemetryEventName =
   | "midi_imported"
   | "cloud_version_restored"
   | "comp_takes_exported"
+  | "comp_assembly_exported"
   | "ai_mix_panel_opened"
   | "ai_mix_analysis_run"
   | "plugin_store_opened"
@@ -235,9 +236,12 @@ export class StudioTelemetryService {
         : 0;
 
     const exportEvents = events.filter((e) =>
-      ["project_exported", "midi_exported", "comp_takes_exported"].includes(
-        e.name,
-      ),
+      [
+        "project_exported",
+        "midi_exported",
+        "comp_takes_exported",
+        "comp_assembly_exported",
+      ].includes(e.name),
     );
     const exportSuccess = exportEvents.filter(
       (e) => e.success !== false,

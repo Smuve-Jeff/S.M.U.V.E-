@@ -1,5 +1,11 @@
 import { TestBed, fakeAsync, tick } from "@angular/core/testing";
-import { SmartRecordingService, CompGroup } from "./smart-recording.service";
+import {
+  SmartRecordingService,
+  CompGroup,
+  CompSegment,
+  CompTake,
+} from "./smart-recording.service";
+import { WavEncoder } from "./wav-encoder.util";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { LoggingService } from "../services/logging.service";
 import { RecordingStatusService } from "./recording-status.service";
@@ -65,6 +71,9 @@ describe("SmartRecordingService", () => {
     });
 
     service = TestBed.inject(SmartRecordingService);
+    // Recording a real post-roll costs wall-clock time; the tests that care
+    // about it set their own value (or use fake timers).
+    service.postRollMs.set(0);
   });
 
   it("should be created", () => {
@@ -232,6 +241,58 @@ describe("SmartRecordingService", () => {
       expect(take!.peakDbL).toBeCloseTo(-6, 0);
       expect(take!.peakDbR).toBeCloseTo(-12, 0);
       expect(service.isCompRecording()).toBe(false);
+    });
+
+    it("keeps the input open for the post-roll before saving a take", async () => {
+      jest.useFakeTimers();
+      try {
+        recordingEngineMock.getRecordedBuffers.mockReturnValue({
+          left: [new Float32Array(4800).fill(0.5)],
+          right: [new Float32Array(4800).fill(0.5)],
+        });
+        service.postRollMs.set(150);
+        service.startNewCompGroup("t1", "Track", "Chorus");
+        await service.startCompTake();
+
+        let saved: CompTake | null = null;
+        const finishing = service.finishCompTake().then((take) => {
+          saved = take;
+          return take;
+        });
+
+        // The capture is still running: the tail has not been collected yet.
+        expect(saved).toBeNull();
+        expect(recordingEngineMock.stopRecording).not.toHaveBeenCalled();
+
+        await jest.advanceTimersByTimeAsync(150);
+
+        expect(await finishing).toBeTruthy();
+        expect(saved).not.toBeNull();
+        expect(recordingEngineMock.stopRecording).toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it("saves a loop-pass take without holding, so the next take keeps its bar stamp", async () => {
+      jest.useFakeTimers();
+      try {
+        recordingEngineMock.getRecordedBuffers.mockReturnValue({
+          left: [new Float32Array(4800).fill(0.5)],
+          right: [new Float32Array(4800).fill(0.5)],
+        });
+        service.postRollMs.set(5000);
+        service.startNewCompGroup("t1", "Track", "Chorus");
+        await service.startCompTake();
+
+        const take = await service.finishCompTake(false);
+
+        expect(take).toBeTruthy();
+        expect(jest.getTimerCount()).toBe(0);
+        expect(recordingEngineMock.stopRecording).toHaveBeenCalled();
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it("should discard a comp take when nothing was captured", async () => {
@@ -544,6 +605,276 @@ describe("SmartRecordingService", () => {
       const result = service.compileComp(buffers, 48000);
       expect(result).toBeTruthy();
       expect(result!.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("comp assembly render", () => {
+    /** 48 kHz / 120 BPM → 2 s per bar, i.e. 96 000 frames per bar. */
+    const framesPerBar = 96000;
+
+    /**
+     * Decode mock keyed off the marker byte in each take blob. A number fills a
+     * 10 s buffer, a function generates one, and a Float32Array is used as-is so
+     * a take can be given an exact length (with or without post-roll).
+     */
+    const installDecoder = (
+      values: Record<
+        number,
+        number | ((frame: number) => number) | Float32Array
+      >,
+      failMarkers: number[] = [],
+    ) => {
+      const decode = jest.fn((buffer: ArrayBuffer) => {
+        const marker = new Uint8Array(buffer)[0];
+        if (failMarkers.includes(marker)) {
+          return Promise.reject(new Error("undecodable"));
+        }
+        const fill = values[marker] ?? 0;
+        let samples: Float32Array;
+        if (fill instanceof Float32Array) {
+          samples = fill;
+        } else {
+          samples = new Float32Array(48000 * 10);
+          if (typeof fill === "function") {
+            for (let i = 0; i < samples.length; i++) samples[i] = fill(i);
+          } else {
+            samples.fill(fill);
+          }
+        }
+        return Promise.resolve({
+          duration: samples.length / 48000,
+          numberOfChannels: 1,
+          getChannelData: () => samples,
+        });
+      });
+      (service as any).audioEngine.ctx.decodeAudioData = decode;
+      return decode;
+    };
+
+    const makeTake = (
+      id: string,
+      marker: number,
+      startBar: number,
+      endBar: number,
+      extra: Partial<CompTake> = {},
+    ): CompTake => ({
+      id,
+      takeNumber: marker,
+      label: id,
+      blob: new Blob([new Uint8Array([marker])], { type: "audio/wav" }),
+      url: `blob:${id}`,
+      durationMs: 4000,
+      recordedAt: 0,
+      regionStartBar: startBar,
+      regionEndBar: endBar,
+      isMuted: false,
+      isCompSelection: false,
+      peakDbL: -6,
+      peakDbR: -6,
+      ...extra,
+    });
+
+    const makeGroup = (
+      takes: CompTake[],
+      segments?: CompSegment[],
+      selectedTakeId = takes[0]?.id ?? null,
+    ): CompGroup => ({
+      id: "g1",
+      trackId: "t1",
+      trackName: "Vocal",
+      sectionLabel: "Verse",
+      takes,
+      selectedTakeId,
+      segments,
+      createdAt: 0,
+    });
+
+    /** Render and hand back the encoded channels plus the delivered blob. */
+    const renderChannels = async (): Promise<{
+      channels: Float32Array[];
+      blob: Blob;
+    }> => {
+      const encode = jest.spyOn(WavEncoder, "encodeMultiChannel");
+      try {
+        const blob = await service.renderCompAssembly("g1");
+        expect(blob).not.toBeNull();
+        const [channels, format, sampleRate] = encode.mock.calls[0];
+        expect(format).toBe("wav-16");
+        expect(sampleRate).toBe(48000);
+        return { channels, blob: blob as Blob };
+      } finally {
+        encode.mockRestore();
+      }
+    };
+
+    it("plays each assigned segment's own take and crossfades into its pre-roll", async () => {
+      installDecoder({
+        // Take A ends with its segment (no post-roll); take B was rolled from
+        // bar 1, so segment 2 has two bars of pre-roll to fade up from.
+        1: new Float32Array(2 * framesPerBar).fill(0.5),
+        2: new Float32Array(6 * framesPerBar).fill(0.25),
+      });
+      service.compGroups.set([
+        makeGroup(
+          [makeTake("a", 1, 1, 3), makeTake("b", 2, 1, 5)],
+          [
+            { id: "s1", startBar: 1, endBar: 3, takeId: "a" },
+            { id: "s2", startBar: 3, endBar: 5, takeId: "b" },
+          ],
+        ),
+      ]);
+
+      const { channels, blob } = await renderChannels();
+      expect(channels).toHaveLength(2);
+      const left = channels[0];
+      // Four bars of comp at bar 1 → 384 000 frames.
+      expect(left.length).toBe(4 * framesPerBar);
+
+      // The delivered file is a 16-bit stereo WAV at 48 kHz holding every frame.
+      const header = new DataView(await blob.arrayBuffer());
+      const ascii = (offset: number) =>
+        String.fromCharCode(...new Uint8Array(header.buffer, offset, 4));
+      expect(ascii(0)).toBe("RIFF");
+      expect(ascii(8)).toBe("WAVE");
+      expect(header.getUint16(22, true)).toBe(2);
+      expect(header.getUint32(24, true)).toBe(48000);
+      expect(header.getUint16(34, true)).toBe(16);
+      expect(blob.size).toBe(44 + 4 * framesPerBar * 2 * 2);
+
+      // Bar 1–2 is take A, bar 3–4 is take B.
+      expect(left[0]).toBeCloseTo(0.5, 3);
+      expect(left[framesPerBar + 1000]).toBeCloseTo(0.5, 3);
+      expect(left[3 * framesPerBar + 1000]).toBeCloseTo(0.25, 3);
+      // The outer edges keep their level (only joins are faded).
+      expect(left[left.length - 1]).toBeCloseTo(0.25, 3);
+
+      // The join is a continuous equal-power crossfade: no silence hole and no
+      // sum above the louder take.
+      const join = 2 * framesPerBar;
+      let lowest = Infinity;
+      let highest = 0;
+      for (let i = join - 480; i <= join + 480; i++) {
+        lowest = Math.min(lowest, left[i]);
+        highest = Math.max(highest, left[i]);
+      }
+      expect(lowest).toBeGreaterThan(0.15);
+      expect(highest).toBeLessThan(0.6);
+      expect(Math.abs(left[join] - left[join - 1])).toBeLessThan(0.05);
+    });
+
+    it("renders the selected comp take over its own region when the group is unsplit", async () => {
+      installDecoder({ 1: 0.5, 2: 0.25 });
+      service.compGroups.set([
+        makeGroup(
+          [makeTake("a", 1, 1, 3), makeTake("b", 2, 3, 5)],
+          undefined,
+          "b",
+        ),
+      ]);
+
+      const { channels } = await renderChannels();
+      // Take B covers bars 3–4, and that is the comp.
+      expect(channels[0].length).toBe(2 * framesPerBar);
+      expect(channels[0][0]).toBeCloseTo(0.25, 3);
+      expect(channels[0][2 * framesPerBar - 1]).toBeCloseTo(0.25, 3);
+    });
+
+    it("crossfades through the outgoing take's post-roll when the incoming has none", async () => {
+      installDecoder({
+        // Take A keeps rolling a bar past its segment (post-roll); take B starts
+        // exactly on its segment bar, so only A can carry the crossfade.
+        1: new Float32Array(3 * framesPerBar).fill(0.5),
+        2: new Float32Array(2 * framesPerBar).fill(0.25),
+      });
+      service.compGroups.set([
+        makeGroup(
+          [makeTake("a", 1, 1, 3), makeTake("b", 2, 3, 5)],
+          [
+            { id: "s1", startBar: 1, endBar: 3, takeId: "a" },
+            { id: "s2", startBar: 3, endBar: 5, takeId: "b" },
+          ],
+        ),
+      ]);
+
+      const { channels } = await renderChannels();
+      const left = channels[0];
+      const join = 2 * framesPerBar;
+
+      // A is still at full level right up to the join (nothing fades it early)
+      // and its post-roll carries the boundary, so the level never dips.
+      expect(left[join - 1]).toBeCloseTo(0.5, 3);
+      expect(left[join]).toBeCloseTo(0.5, 3);
+      let lowest = Infinity;
+      let highest = 0;
+      for (let i = join; i <= join + 480; i++) {
+        lowest = Math.min(lowest, left[i]);
+        highest = Math.max(highest, left[i]);
+      }
+      expect(lowest).toBeGreaterThan(0.2);
+      expect(highest).toBeLessThan(0.6);
+      // The incoming take lands on its own bar at full level.
+      expect(left[join + 480]).toBeCloseTo(0.25, 3);
+      expect(left[join + framesPerBar]).toBeCloseTo(0.25, 3);
+    });
+
+    it("fades a take with no pre-roll in place, without shifting its content", async () => {
+      // Sawtooth with a 10 ms period: a shift of one crossfade (480 frames)
+      // moves the value by 0.1, so this catches a drifting join. Take A stops
+      // with its segment and take B begins with its own, so neither side has
+      // anything to overlap with.
+      installDecoder({
+        1: new Float32Array(2 * framesPerBar).fill(0.5),
+        2: (frame: number) => (frame / 4800) % 1,
+      });
+      service.compGroups.set([
+        makeGroup(
+          [makeTake("a", 1, 1, 3), makeTake("b", 2, 3, 5)],
+          [
+            { id: "s1", startBar: 1, endBar: 3, takeId: "a" },
+            { id: "s2", startBar: 3, endBar: 5, takeId: "b" },
+          ],
+        ),
+      ]);
+
+      const { channels } = await renderChannels();
+      const left = channels[0];
+      const join = 2 * framesPerBar;
+      // Segment 2 plays take B from its frame 0 at the join.
+      expect(left[join + 2400]).toBeCloseTo(0.5, 2);
+      // Both sides fade through the join, so the level never jumps.
+      expect(Math.abs(left[join] - left[join - 1])).toBeLessThan(0.05);
+      expect(left[join - 480]).toBeCloseTo(0.5, 2);
+    });
+
+    it("skips a segment whose take cannot be decoded and still renders the rest", async () => {
+      installDecoder({ 1: 0.5 }, [2]);
+      service.compGroups.set([
+        makeGroup(
+          [makeTake("a", 1, 1, 3), makeTake("b", 2, 3, 5)],
+          [
+            { id: "s1", startBar: 1, endBar: 3, takeId: "a" },
+            { id: "s2", startBar: 3, endBar: 5, takeId: "b" },
+          ],
+        ),
+      ]);
+
+      const { channels } = await renderChannels();
+      expect(channels[0][framesPerBar]).toBeCloseTo(0.5, 3);
+      // The undecodable half stays silent rather than taking down the render.
+      expect(channels[0][3 * framesPerBar + 1000]).toBe(0);
+    });
+
+    it("renders nothing when there is no audible take", async () => {
+      service.compGroups.set([
+        makeGroup(
+          [makeTake("a", 1, 1, 3, { isMuted: true })],
+          [{ id: "s1", startBar: 1, endBar: 3, takeId: "a" }],
+        ),
+      ]);
+
+      expect(await service.renderCompAssembly("g1")).toBeNull();
+      expect(await service.renderCompAssembly("missing")).toBeNull();
+      expect(await service.renderCompAssembly()).toBeNull();
     });
   });
 

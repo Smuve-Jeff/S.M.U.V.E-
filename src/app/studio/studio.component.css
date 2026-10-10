@@ -2695,6 +2695,43 @@
   background: rgba(14, 124, 123, 0.15);
 }
 
+/* ── Export Comp Button (assembled bounce) ───────────────────── */
+.comp-rec-export-comp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--teal-500);
+  border: 1px solid var(--teal-500);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.comp-rec-export-comp:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.2);
+}
+.comp-rec-export-comp:active {
+  transform: scale(0.97);
+}
+.comp-rec-export-comp .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* Dark mode export comp button */
+:host-context(.dark-mode) .comp-rec-export-comp {
+  background: rgba(14, 124, 123, 0.85);
+  border-color: rgba(93, 196, 194, 0.4);
+}
+
 /* ── Chord Voicing Controls ────────────────────────── */
 .comp-chord-voicing {
   margin-top: 4px;

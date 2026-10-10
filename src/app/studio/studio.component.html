@@ -2029,6 +2029,17 @@
             <span class="material-symbols-outlined">file_download</span>
             Export All Takes (WAV)
           </button>
+
+          <!-- Export Comp button — the assembled bounce of the whole section -->
+          <button
+            type="button"
+            class="comp-rec-export-comp"
+            (click)="exportCompAssembly()"
+            *ngIf="smartRecording.activeCompGroupTakes().length > 0"
+          >
+            <span class="material-symbols-outlined">album</span>
+            Export Comp (WAV)
+          </button>
         </div>
       </div>
 

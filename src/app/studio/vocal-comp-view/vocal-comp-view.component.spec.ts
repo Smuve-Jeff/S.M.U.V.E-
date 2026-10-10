@@ -407,4 +407,80 @@ describe("VocalCompViewComponent", () => {
     component.clearSuggestion();
     expect(component.suggestion()).toBeNull();
   });
+
+  describe("comp export", () => {
+    /** Bound before any spy is installed, so re-entering a test cannot recurse. */
+    const realCreateElement = document.createElement.bind(document);
+
+    beforeEach(() => {
+      (URL as any).createObjectURL = jest.fn(() => "blob:assembled");
+      (URL as any).revokeObjectURL = jest.fn();
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    /** Capture the anchors the component clicks to start a download. */
+    const captureDownloads = (): HTMLAnchorElement[] => {
+      const anchors: HTMLAnchorElement[] = [];
+      jest
+        .spyOn(document, "createElement")
+        .mockImplementation((tag: string) => {
+          const element = realCreateElement(tag) as any;
+          if (tag === "a") {
+            element.click = jest.fn();
+            anchors.push(element);
+          }
+          return element;
+        });
+      return anchors;
+    };
+
+    const splitGroup = () => ({
+      ...mockGroup,
+      segments: [{ id: "s1", startBar: 1, endBar: 3, takeId: "take-1" }],
+    });
+
+    it("downloads a rendered comp for a split section", async () => {
+      const assemble = jest.fn().mockResolvedValue(new Blob(["comp"]));
+      (smartRecording as any).renderCompAssembly = assemble;
+      mockCompGroups.set([splitGroup()]);
+      const anchors = captureDownloads();
+
+      await component.exportComp();
+
+      expect(assemble).toHaveBeenCalledWith("group-1");
+      expect(anchors).toHaveLength(1);
+      expect(anchors[0].href).toContain("blob:assembled");
+      expect(anchors[0].download).toMatch(/^SMUVE_Comp_Verse_1_\d+\.wav$/);
+      expect(snackbar.success).toHaveBeenCalled();
+      expect(component.isExporting()).toBe(false);
+    });
+
+    it("keeps the lossless take download for an unsplit section", async () => {
+      const assemble = jest.fn();
+      (smartRecording as any).renderCompAssembly = assemble;
+      const anchors = captureDownloads();
+
+      await component.exportComp();
+
+      expect(assemble).not.toHaveBeenCalled();
+      expect(anchors[0].href).toBe("blob:mock-url-2");
+    });
+
+    it("warns when a split section has nothing to assemble", async () => {
+      const assemble = jest.fn().mockResolvedValue(null);
+      (smartRecording as any).renderCompAssembly = assemble;
+      mockCompGroups.set([splitGroup()]);
+      const anchors = captureDownloads();
+
+      await component.exportComp();
+
+      expect(anchors).toHaveLength(0);
+      expect(snackbar.warning).toHaveBeenCalledWith(
+        "No comp selection to export",
+      );
+    });
+  });
 });
