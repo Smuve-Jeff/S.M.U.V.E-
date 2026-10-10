@@ -15,6 +15,7 @@ import { MicrophoneService } from "../services/microphone.service";
 import { StudioRecordingEngineService } from "./studio-recording-engine.service";
 import { RecordingStatusService } from "./recording-status.service";
 import { ScreenWakeLockService } from "../services/screen-wake-lock.service";
+import { SnackbarService } from "../services/snackbar.service";
 
 export interface MicChannel {
   id: string;
@@ -39,6 +40,16 @@ export class AudioSessionService {
   private readonly recordingStatus = inject(RecordingStatusService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly wakeLock = inject(ScreenWakeLockService);
+  private readonly snackbar = inject(SnackbarService);
+
+  /** Shared in-flight input open, so two gestures never open the same device
+   *  twice — `StudioRecordingEngineService.initialize()` tears down the
+   *  previous graph, which would break the other caller's stream. */
+  private inputInitInFlight: Promise<void> | null = null;
+  /** Guards a double press while the record pass is being armed. */
+  private recordToggleInFlight = false;
+  /** The "no input" warning is a session-level thing, not a per-pass one. */
+  private captureWarningShown = false;
 
   readonly playbackState = signal<PlaybackState>("stopped");
   readonly isPlaying = computed(() => this.playbackState() === "playing");
@@ -131,6 +142,38 @@ export class AudioSessionService {
     }
   }
 
+  /**
+   * Open the audio input once, sharing the in-flight attempt with whoever else
+   * asked for it (the gesture arm and the record button can race).
+   */
+  private openInput(channelId: string): Promise<void> {
+    if (!this.inputInitInFlight) {
+      this.inputInitInFlight = this.initializeMic(channelId).finally(() => {
+        this.inputInitInFlight = null;
+      });
+    }
+    return this.inputInitInFlight;
+  }
+
+  /**
+   * Best-effort priming of the capture graph before a record pass. Never
+   * throws: a machine without a usable input still records MIDI.
+   */
+  private async ensureCapture(): Promise<void> {
+    if (this.recordingEngine.isInitialized()) return;
+    const channel =
+      this.micChannels().find((ch) => ch.armed) || this.micChannels()[0];
+    if (!channel) return;
+    try {
+      await this.openInput(channel.id);
+    } catch (error) {
+      this.logger.warn(
+        "AudioSession: audio input unavailable; the pass records MIDI only.",
+        error,
+      );
+    }
+  }
+
   togglePlay(): void {
     if (this.engine.isPlaying()) {
       this.engine.stop();
@@ -141,7 +184,19 @@ export class AudioSessionService {
     }
   }
 
-  toggleRecord(): void {
+  /**
+   * Toggle the transport record pass.
+   *
+   * Capture is primed *before* REC is armed. The studio engine refuses to start
+   * until its input graph exists, and the very first user gesture can be this
+   * button — the gesture-armed init is still awaiting getUserMedia at that
+   * point, so the transport used to show REC over a dead input and the pass
+   * captured nothing. An input that cannot be opened is a warning, not a
+   * blocker: the pass still records MIDI onto the armed track.
+   */
+  async toggleRecord(): Promise<void> {
+    if (this.recordToggleInFlight) return;
+
     if (this.isRecording()) {
       this.engine.stop();
       void this.musicManager.stopRecording(
@@ -149,7 +204,12 @@ export class AudioSessionService {
       );
       this.playbackState.set("stopped");
       this.recordingStatus.clearRecordingSource();
-    } else {
+      return;
+    }
+
+    this.recordToggleInFlight = true;
+    try {
+      await this.ensureCapture();
       this.engine.start();
       this.musicManager.startRecording();
       this.playbackState.set("recording");
@@ -162,6 +222,12 @@ export class AudioSessionService {
         trackId: trackId || undefined,
         trackName: track?.name,
       });
+      if (!this.recordingEngine.isRecording() && !this.captureWarningShown) {
+        this.captureWarningShown = true;
+        this.snackbar.warning("Audio input unavailable — recording MIDI only");
+      }
+    } finally {
+      this.recordToggleInFlight = false;
     }
   }
 
@@ -236,7 +302,7 @@ export class AudioSessionService {
       cleanup();
       armed = true;
       try {
-        await this.initializeMic(channel.id);
+        await this.openInput(channel.id);
       } catch (error) {
         // No mic / denied permission: the channel stays armed-but-idle and
         // the Vocal Suite can retry with an explicit device pick.

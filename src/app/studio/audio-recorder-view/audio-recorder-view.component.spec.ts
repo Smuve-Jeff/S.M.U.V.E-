@@ -9,6 +9,7 @@ import { AudioEngineService } from "../../services/audio-engine.service";
 import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
 import { MusicManagerService } from "../../services/music-manager.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
+import { SmartRecordingService } from "../smart-recording.service";
 
 describe("AudioRecorderViewComponent", () => {
   let component: AudioRecorderViewComponent;
@@ -25,6 +26,10 @@ describe("AudioRecorderViewComponent", () => {
     deleteOfflineRecording: jest.fn().mockResolvedValue(undefined),
     renameOfflineRecording: jest.fn().mockResolvedValue(undefined),
     revokeRecordingUrl: jest.fn(),
+  };
+
+  const mockSmartRecording = {
+    addTakeFromRecording: jest.fn().mockResolvedValue(null),
   };
 
   const mockHaptic = { light: jest.fn(), medium: jest.fn(), heavy: jest.fn() };
@@ -83,6 +88,7 @@ describe("AudioRecorderViewComponent", () => {
         },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: InteractionDialogService, useValue: mockDialog },
+        { provide: SmartRecordingService, useValue: mockSmartRecording },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
@@ -175,6 +181,26 @@ describe("AudioRecorderViewComponent", () => {
     });
     expect(component.recordings()[0].durationSec).toBe(12);
     expect(component.recordings()[0].name).toBe("Recorded chorus");
+  });
+
+  it("feeds the banked take into the active comp group", () => {
+    const blob = new Blob(["take"], { type: "audio/wav" });
+    (component as any).handleRecordingFinished({
+      id: "rec_comp",
+      blob,
+      url: "blob:rec_comp",
+      name: "Chorus pass",
+      durationSec: 8,
+    });
+
+    expect(mockSmartRecording.addTakeFromRecording).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blob,
+        label: "Chorus pass",
+        durationMs: 8000,
+        trackName: "Audio Recorder",
+      }),
+    );
   });
 
   it("releases the microphone once a take is banked", () => {

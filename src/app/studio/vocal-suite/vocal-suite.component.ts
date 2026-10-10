@@ -32,6 +32,7 @@ import { AudioEngineService } from "../../services/audio-engine.service";
 import { WavEncoder } from "../wav-encoder.util";
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
 import { peakNormalizeInPlace, trimSilenceEdges } from "../take-edit.util";
+import { SmartRecordingService } from "../smart-recording.service";
 
 type ViewMode = "pipeline" | "console";
 type PipelineStep = "setup" | "record" | "edit" | "master";
@@ -66,6 +67,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   public readonly hardware = inject(HardwareService);
   private readonly haptic = inject(HapticService);
   private readonly visualScheduler = inject(StudioVisualSchedulerService);
+  private readonly smartRecording = inject(SmartRecordingService);
   showUplink = signal(false);
 
   // ── Take editing / routing ──────────────────────────────
@@ -237,6 +239,16 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     this.captureError.set(null);
     if (this.micService.isRecording()) {
       const blob = await this.micService.stopRecording();
+      if (blob) {
+        // Every finished pass joins the active comp group, so the Vocal Comp
+        // view has real takes to comp without a second recording step.
+        void this.smartRecording.addTakeFromRecording({
+          blob,
+          durationMs: Math.round(this.micService.recordingTime() * 1000),
+          trackName: "Vocal Track",
+          sectionLabel: "Vocal Takes",
+        });
+      }
       // A fresh take replaces any decoded/edited buffer from the previous one.
       // This must happen whether or not auto-route commits the take straight
       // away: keeping the old cache made the next Normalize/Trim edit the

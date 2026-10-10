@@ -316,4 +316,79 @@ describe("TransportBarComponent", () => {
       expect(component.formatDb(1.5)).toBe("+1.5");
     });
   });
+
+  // ── Sprint A3 loop-recording: auto-stamped takes ──
+  describe("punch-in take stamping", () => {
+    const track = {
+      id: "track-1",
+      name: "Lead",
+      notes: [{ id: "n1", midi: 60, step: 0, length: 1, velocity: 0.8 }],
+    };
+    const original = {
+      selectedTrack: mockMusicManager.selectedTrack,
+      selectedTrackId: mockMusicManager.selectedTrackId,
+      isPunchIn: mockTakeManager.isPunchIn,
+      getTakes: mockTakeManager.getTakes,
+    };
+
+    beforeEach(() => {
+      mockMusicManager.selectedTrack = () => track as any;
+      mockMusicManager.selectedTrackId = () => track.id;
+      mockTakeManager.isPunchIn = () => signal(true);
+      mockTakeManager.getTakes = () => signal([] as unknown[]);
+    });
+
+    afterEach(() => {
+      mockMusicManager.selectedTrack = original.selectedTrack;
+      mockMusicManager.selectedTrackId = original.selectedTrackId;
+      mockTakeManager.isPunchIn = original.isPunchIn;
+      mockTakeManager.getTakes = original.getTakes;
+    });
+
+    /** Run the transport-bar effects for the current signal state. */
+    const tick = () => {
+      TestBed.flushEffects();
+      fixture.detectChanges();
+    };
+
+    it("stamps a take on each loop wrap, then the final pass on stop", () => {
+      playbackState.set("recording");
+      mockAudioEngine.visualStep.set(0);
+      tick();
+      expect(mockTakeManager.stampTake).not.toHaveBeenCalled();
+
+      mockAudioEngine.visualStep.set(16);
+      tick();
+      expect(mockTakeManager.stampTake).not.toHaveBeenCalled();
+
+      // Playhead wrapped backwards → a loop pass completed while recording.
+      mockAudioEngine.visualStep.set(4);
+      tick();
+      expect(mockTakeManager.stampTake).toHaveBeenCalledTimes(1);
+      expect(mockTakeManager.stampTake).toHaveBeenCalledWith(
+        "track-1",
+        "Take 1",
+        track.notes,
+        4,
+      );
+
+      playbackState.set("stopped");
+      tick();
+      expect(mockTakeManager.stampTake).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not stamp when punch-in was not armed for the pass", () => {
+      mockTakeManager.isPunchIn = () => signal(false);
+
+      playbackState.set("recording");
+      mockAudioEngine.visualStep.set(8);
+      tick();
+      mockAudioEngine.visualStep.set(2);
+      tick();
+      playbackState.set("stopped");
+      tick();
+
+      expect(mockTakeManager.stampTake).not.toHaveBeenCalled();
+    });
+  });
 });

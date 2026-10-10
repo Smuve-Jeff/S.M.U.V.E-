@@ -286,6 +286,76 @@ describe("SmartRecordingService", () => {
       expect(updated!.selectedTakeId).toBe(takeId);
     });
 
+    it("adds an externally recorded take to the active comp group", async () => {
+      const blob = new Blob([new Uint8Array([1, 2, 3])], { type: "audio/wav" });
+
+      const take = await service.addTakeFromRecording({
+        blob,
+        label: "Chorus pass",
+        durationMs: 5000,
+        trackName: "Audio Recorder",
+        sectionLabel: "Recorder Takes",
+      });
+
+      expect(take).toBeTruthy();
+      expect(take!.label).toBe("Chorus pass");
+      expect(take!.blob).toBe(blob);
+      expect(take!.url).toMatch(/^blob:/);
+      // A group is created on demand, so the comp view has somewhere to put it.
+      expect(service.compGroups()).toHaveLength(1);
+      expect(service.compGroups()[0].trackName).toBe("Audio Recorder");
+      expect(service.compGroups()[0].takes).toHaveLength(1);
+      expect(service.compGroups()[0].selectedTakeId).toBe(take!.id);
+      // Undecodable blob → the caller's wall-clock length and a silence floor.
+      expect(take!.durationMs).toBe(5000);
+      expect(take!.peakDbL).toBe(-60);
+      // 5 s at the session tempo (120 BPM → 2 s per bar) spans three bars.
+      expect(take!.regionStartBar).toBe(1);
+      expect(take!.regionEndBar).toBe(4);
+    });
+
+    it("measures a fed take from the decoded audio", async () => {
+      const fakeChannel = (value: number) =>
+        new Float32Array(48000).fill(value);
+      (service as any).audioEngine.ctx.decodeAudioData = jest
+        .fn()
+        .mockResolvedValue({
+          duration: 2,
+          numberOfChannels: 2,
+          getChannelData: (ch: number) =>
+            ch === 0 ? fakeChannel(0.5) : fakeChannel(0.25),
+        });
+
+      const take = await service.addTakeFromRecording({
+        blob: new Blob([new Uint8Array([1])], { type: "audio/wav" }),
+      });
+
+      expect(take!.durationMs).toBe(2000);
+      expect(take!.peakDbL).toBeCloseTo(-6, 0);
+      expect(take!.peakDbR).toBeCloseTo(-12, 0);
+      expect(take!.label).toBe(`Take ${take!.takeNumber}`);
+    });
+
+    it("ignores an empty recording and revokes the URL of a deleted take", async () => {
+      expect(await service.addTakeFromRecording({ blob: new Blob([]) })).toBeNull();
+      expect(service.compGroups()).toHaveLength(0);
+
+      const revoke = jest
+        .spyOn(URL, "revokeObjectURL")
+        .mockImplementation(() => {});
+      try {
+        const take = await service.addTakeFromRecording({
+          blob: new Blob([new Uint8Array([1])], { type: "audio/wav" }),
+        });
+        service.deleteTake(service.activeCompGroupId()!, take!.id);
+
+        expect(revoke).toHaveBeenCalledWith(take!.url);
+        expect(service.compGroups()[0].takes).toHaveLength(0);
+      } finally {
+        revoke.mockRestore();
+      }
+    });
+
     it("should toggle take mute", () => {
       service.startNewCompGroup("t1", "Track", "Solo");
       const groupId = service.activeCompGroupId()!;

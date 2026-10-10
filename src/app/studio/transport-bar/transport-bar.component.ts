@@ -286,7 +286,8 @@ export class TransportBarComponent {
     this.audioSession.togglePlay();
   }
   toggleRecord(): void {
-    this.audioSession.toggleRecord();
+    // Priming capture is async; the session owns the in-flight guard.
+    void this.audioSession.toggleRecord();
   }
   stop(): void {
     this.audioSession.stop();

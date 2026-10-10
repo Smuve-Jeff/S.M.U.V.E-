@@ -39,6 +39,24 @@ export interface CompGroup {
   createdAt: number;
 }
 
+/**
+ * A finished recording handed to a comp group from another surface (Vocal
+ * Suite, Audio Recorder, the studio recorder).
+ */
+export interface RecordingTakeInput {
+  blob: Blob;
+  /** Take name; defaults to `Take <n>` in the group's numbering. */
+  label?: string;
+  /** Wall-clock length, used when the blob cannot be decoded. */
+  durationMs?: number;
+  /** Labels for the group created when no comp group is active yet. */
+  trackId?: string;
+  trackName?: string;
+  sectionLabel?: string;
+  /** 1-based bar the take started on; defaults to bar 1. */
+  regionStartBar?: number;
+}
+
 /** A segment of the comp timeline; each segment plays its assigned take. */
 export interface CompSegment {
   id: string;
@@ -434,6 +452,19 @@ export class SmartRecordingService {
 
   /** Delete a take from its comp group */
   deleteTake(groupId: string, takeId: string) {
+    const removed = this.compGroups()
+      .find((g) => g.id === groupId)
+      ?.takes.find((t) => t.id === takeId);
+    // Release the object URL for takes this service created, otherwise every
+    // deleted take leaks its audio for the life of the session.
+    if (removed?.url && this.ownedTakeUrls.has(removed.url)) {
+      try {
+        URL.revokeObjectURL(removed.url);
+      } catch {
+        // best-effort
+      }
+      this.ownedTakeUrls.delete(removed.url);
+    }
     this.compGroups.update((groups) =>
       groups.map((g) => {
         if (g.id !== groupId) return g;
@@ -452,6 +483,135 @@ export class SmartRecordingService {
     this.compGroups.update((groups) => groups.filter((g) => g.id !== groupId));
     if (this.activeCompGroupId() === groupId) {
       this.activeCompGroupId.set(null);
+    }
+  }
+
+  // ── Feeding comp groups from other recording surfaces ──────
+
+  /** Object URLs this service created for comp takes (revoked on delete). */
+  private readonly ownedTakeUrls = new Set<string>();
+
+  /**
+   * Attach a finished recording to the active comp group as a new take.
+   *
+   * The Vocal Suite and the Audio Recorder used to drop their takes on the
+   * floor: comp groups could only ever be filled from the Comp-mode panel, so
+   * the comp view's "record takes in the vocal suite, then comp them here"
+   * promise was empty. A group is created on demand the first time a take
+   * arrives, so the flow works without a manual setup step.
+   *
+   * @returns the take that was added, or null when there is no audio to add.
+   */
+  async addTakeFromRecording(
+    input: RecordingTakeInput,
+  ): Promise<CompTake | null> {
+    if (!input.blob || input.blob.size === 0) return null;
+
+    if (!this.activeCompGroup()) {
+      this.startNewCompGroup(
+        input.trackId,
+        input.trackName,
+        input.sectionLabel,
+      );
+    }
+    const groupId = this.activeCompGroupId();
+    if (!groupId) return null;
+
+    const measured = await this.measureTake(input.blob, input.durationMs);
+    const takeNumber = this.currentTakeNumber();
+    const now = Date.now();
+    const url = URL.createObjectURL(input.blob);
+    this.ownedTakeUrls.add(url);
+
+    // Bars are derived from the measured length at the current tempo so the
+    // region is real rather than a placeholder span.
+    const beatsPerBar = 4;
+    const bpm = this.tempo() || 120;
+    const secondsPerBar = (beatsPerBar * 60) / bpm;
+    const bars = Math.max(
+      1,
+      Math.ceil(measured.durationMs / 1000 / secondsPerBar),
+    );
+    const regionStartBar = Math.max(1, input.regionStartBar ?? 1);
+
+    const take: CompTake = {
+      id: `take_${now}_${takeNumber}`,
+      takeNumber,
+      label: input.label || `Take ${takeNumber}`,
+      blob: input.blob,
+      url,
+      durationMs: measured.durationMs,
+      recordedAt: now,
+      regionStartBar,
+      regionEndBar: regionStartBar + bars,
+      isMuted: false,
+      isCompSelection: false,
+      peakDbL: measured.peakDbL,
+      peakDbR: measured.peakDbR,
+    };
+
+    this.compGroups.update((groups) =>
+      groups.map((g) =>
+        g.id === groupId
+          ? { ...g, takes: [...g.takes, take], selectedTakeId: take.id }
+          : g,
+      ),
+    );
+    this.currentTakeNumber.update((n) => n + 1);
+
+    try {
+      await this.storage.saveItem("comp_groups", this.compGroups());
+    } catch {
+      // best-effort
+    }
+
+    this.logger.info(
+      `SmartRecording: ${take.label} added to comp group "${input.sectionLabel ?? "active"}".`,
+    );
+    return take;
+  }
+
+  /** Current project tempo, defaulting to 120 when the engine cannot answer. */
+  private tempo(): number {
+    try {
+      const bpm = this.audioEngine.tempo?.();
+      return typeof bpm === "number" && isFinite(bpm) && bpm > 0 ? bpm : 120;
+    } catch {
+      return 120;
+    }
+  }
+
+  /**
+   * Measure a take's real length + peaks by decoding it once. Falls back to the
+   * caller's wall-clock length (and silence) when the blob cannot be decoded.
+   * The decoded buffer is not retained — only the derived numbers are.
+   */
+  private async measureTake(
+    blob: Blob,
+    fallbackDurationMs = 0,
+  ): Promise<{ durationMs: number; peakDbL: number; peakDbR: number }> {
+    try {
+      const decoded = await this.audioEngine.ctx.decodeAudioData(
+        await blob.arrayBuffer(),
+      );
+      const left = decoded.getChannelData(0);
+      const right =
+        decoded.numberOfChannels > 1 ? decoded.getChannelData(1) : left;
+      return {
+        durationMs: Math.round(decoded.duration * 1000),
+        peakDbL: this.peakDbOf(left),
+        peakDbR: this.peakDbOf(right),
+      };
+    } catch (error) {
+      this.logger.warn(
+        "SmartRecording: could not measure the take; using the reported length.",
+        error,
+      );
+      return {
+        durationMs: Math.max(0, Math.round(fallbackDurationMs)),
+        peakDbL: -60,
+        peakDbR: -60,
+      };
     }
   }
 

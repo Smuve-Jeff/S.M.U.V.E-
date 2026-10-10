@@ -14,6 +14,7 @@ import { AudioEngineLatencyService } from "../../services/audio-engine-latency.s
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { LoggingService } from "../../services/logging.service";
 import { SnackbarService } from "../../services/snackbar.service";
+import { SmartRecordingService } from "../smart-recording.service";
 
 describe("VocalSuiteComponent", () => {
   let component: VocalSuiteComponent;
@@ -23,6 +24,9 @@ describe("VocalSuiteComponent", () => {
   let musicManagerMock: any;
   let audioEngineMock: any;
   const masteringOutput = { id: "mastering-output" };
+  const mockSmartRecording = {
+    addTakeFromRecording: jest.fn().mockResolvedValue(null),
+  };
 
   beforeEach(async () => {
     jest
@@ -135,6 +139,7 @@ describe("VocalSuiteComponent", () => {
           },
         },
         { provide: MicrophoneService, useValue: microphoneServiceMock },
+        { provide: SmartRecordingService, useValue: mockSmartRecording },
         { provide: VocalMasteringService, useValue: masteringMock },
         {
           provide: PitchCorrectionService,
@@ -272,6 +277,24 @@ describe("VocalSuiteComponent", () => {
 
     expect(component.autoRouteTakes()).toBe(false);
     expect(musicManagerMock.addAudioTrack).not.toHaveBeenCalled();
+  });
+
+  it("feeds a finished pass into the active comp group", async () => {
+    const blob = new Blob([new Uint8Array([1, 2, 3])], { type: "audio/webm" });
+    microphoneServiceMock.recordedBlob.set(blob);
+    microphoneServiceMock.stopRecording.mockResolvedValue(blob);
+    microphoneServiceMock.recordingTime.set(7.5);
+    microphoneServiceMock.isRecording.set(true);
+
+    await component.toggleRecording();
+
+    expect(mockSmartRecording.addTakeFromRecording).toHaveBeenCalledWith(
+      expect.objectContaining({
+        blob,
+        durationMs: 7500,
+        trackName: "Vocal Track",
+      }),
+    );
   });
 
   it("drops the decoded take when a new pass replaces it", async () => {

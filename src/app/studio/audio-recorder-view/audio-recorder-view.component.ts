@@ -21,6 +21,7 @@ import { MusicManagerService } from "../../services/music-manager.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
+import { SmartRecordingService } from "../smart-recording.service";
 import { Subscription } from "rxjs";
 
 interface RecordingListEntry {
@@ -286,6 +287,7 @@ export class AudioRecorderViewComponent
 
   private audioEngine = inject(AudioEngineService);
   private musicManager = inject(MusicManagerService);
+  private smartRecording = inject(SmartRecordingService);
 
   ngOnInit(): void {
     void this.loadOfflineRecordings();
@@ -445,6 +447,16 @@ export class AudioRecorderViewComponent
         settings: { durationSec: entry.durationSec },
       });
     }
+    // The finished take joins the active comp group too, so it can be comped
+    // in the Vocal Comp view instead of only existing in this take list.
+    void this.smartRecording.addTakeFromRecording({
+      blob: event.blob,
+      label: entry.name,
+      durationMs: entry.durationSec * 1000,
+      trackName: "Audio Recorder",
+      sectionLabel: "Recorder Takes",
+    });
+
     this.captureState.set("idle");
     this.captureError.set(null);
     if (this.stopFallbackTimer) clearTimeout(this.stopFallbackTimer);

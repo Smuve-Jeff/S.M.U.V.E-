@@ -9,6 +9,7 @@ import { StudioRecordingEngineService } from "./studio-recording-engine.service"
 import { MusicManagerService } from "../services/music-manager.service";
 import { RecordingStatusService } from "./recording-status.service";
 import { ScreenWakeLockService } from "../services/screen-wake-lock.service";
+import { SnackbarService } from "../services/snackbar.service";
 
 describe("AudioSessionService", () => {
   let service: AudioSessionService;
@@ -29,6 +30,20 @@ describe("AudioSessionService", () => {
   const wakeLockMock = {
     request: jest.fn(),
     release: jest.fn(),
+  };
+
+  const snackbarMock = {
+    info: jest.fn(),
+    success: jest.fn(),
+    warning: jest.fn(),
+    error: jest.fn(),
+  };
+
+  const musicManagerMock = {
+    selectedTrackId: jest.fn(() => "track-1"),
+    startRecording: jest.fn(),
+    stopRecording: jest.fn(),
+    tracks: jest.fn(() => [{ id: "track-1", name: "Lead" }]),
   };
 
   const setVisibility = (state: "visible" | "hidden") => {
@@ -56,15 +71,8 @@ describe("AudioSessionService", () => {
           provide: StudioRecordingEngineService,
           useValue: recordingEngineMock,
         },
-        {
-          provide: MusicManagerService,
-          useValue: {
-            selectedTrackId: jest.fn(() => ""),
-            startRecording: jest.fn(),
-            stopRecording: jest.fn(),
-            tracks: jest.fn(() => []),
-          },
-        },
+        { provide: MusicManagerService, useValue: musicManagerMock },
+        { provide: SnackbarService, useValue: snackbarMock },
         {
           provide: RecordingStatusService,
           useValue: {
@@ -77,8 +85,11 @@ describe("AudioSessionService", () => {
     });
     service = TestBed.inject(AudioSessionService);
     engineMock.stop.mockClear();
+    engineMock.start.mockClear();
     wakeLockMock.request.mockClear();
     wakeLockMock.release.mockClear();
+    snackbarMock.warning.mockClear();
+    musicManagerMock.startRecording.mockClear();
   });
 
   it("stops playback when the tab/app is hidden mid-transport", () => {
@@ -177,6 +188,63 @@ describe("AudioSessionService", () => {
       await Promise.resolve();
 
       expect(recordingEngineMock.initialize).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ── A record pass must never claim REC over a dead input ──
+  describe("record pass priming", () => {
+    it("opens the input before arming REC", async () => {
+      recordingEngineMock.initialize.mockClear();
+      recordingEngineMock.isInitialized.mockReturnValue(false);
+      recordingEngineMock.initialize.mockImplementation(() => {
+        // The real engine only reports ready once the graph is live.
+        recordingEngineMock.isInitialized.mockReturnValue(true);
+        recordingEngineMock.isRecording.mockReturnValue(true);
+        return Promise.resolve(true);
+      });
+
+      await service.toggleRecord();
+
+      expect(recordingEngineMock.initialize).toHaveBeenCalledTimes(1);
+      expect(engineMock.start).toHaveBeenCalled();
+      expect(musicManagerMock.startRecording).toHaveBeenCalled();
+      expect(service.isRecording()).toBe(true);
+      expect(snackbarMock.warning).not.toHaveBeenCalled();
+    });
+
+    it("still rolls for MIDI, with a warning, when no input can be opened", async () => {
+      recordingEngineMock.initialize.mockClear();
+      recordingEngineMock.isInitialized.mockReturnValue(false);
+      recordingEngineMock.initialize.mockResolvedValue(false);
+      recordingEngineMock.isRecording.mockReturnValue(false);
+
+      await service.toggleRecord();
+
+      expect(service.isRecording()).toBe(true);
+      expect(musicManagerMock.startRecording).toHaveBeenCalled();
+      expect(snackbarMock.warning).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores a second press while the pass is still being armed", async () => {
+      let releaseInput: (ready: boolean) => void = () => {};
+      recordingEngineMock.initialize.mockClear();
+      recordingEngineMock.isInitialized.mockReturnValue(false);
+      recordingEngineMock.initialize.mockImplementation(
+        () =>
+          new Promise<boolean>((resolve) => {
+            releaseInput = resolve;
+          }),
+      );
+
+      const first = service.toggleRecord();
+      const second = service.toggleRecord();
+      releaseInput(true);
+      recordingEngineMock.isInitialized.mockReturnValue(true);
+      recordingEngineMock.isRecording.mockReturnValue(true);
+      await Promise.all([first, second]);
+
+      expect(engineMock.start).toHaveBeenCalledTimes(1);
+      expect(musicManagerMock.startRecording).toHaveBeenCalledTimes(1);
     });
   });
 });
