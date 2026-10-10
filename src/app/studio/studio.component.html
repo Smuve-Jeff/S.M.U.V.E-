@@ -1931,7 +1931,12 @@
         class="comp-rec-section"
         *ngIf="smartRecording.recordingMode() === 'comp'"
       >
-        <span class="comp-aimix-section-title">COMP TAKES</span>
+        <span class="comp-aimix-section-title">
+          COMP TAKES
+          @if (smartRecording.activeCompGroup(); as activeGroup) {
+            · {{ activeGroup.sectionLabel }}
+          }
+        </span>
         <div class="comp-rec-comp-actions">
           <button
             type="button"

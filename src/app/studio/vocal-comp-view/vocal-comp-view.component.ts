@@ -82,6 +82,10 @@ export class VocalCompViewComponent implements OnDestroy {
   // ── Group management ───────────────────────────────────
   selectGroup(groupId: string) {
     this.selectedGroupId.set(groupId);
+    // Keep the service's recording target on the section the artist is looking
+    // at, otherwise takes recorded elsewhere land in whichever section happened
+    // to be created last.
+    this.smartRecording.setActiveCompGroup(groupId);
     this.compareMode.set("off");
     this.playingTakeId.set(null);
   }
@@ -101,7 +105,12 @@ export class VocalCompViewComponent implements OnDestroy {
     if (!group) return;
     this.smartRecording.deleteCompGroup(groupId);
     if (this.selectedGroupId() === groupId) {
-      this.selectedGroupId.set(null);
+      // Fall back to the first remaining section and re-point recording at it,
+      // so the next take does not silently create a fresh group. The deleted id
+      // is excluded explicitly rather than trusting list order.
+      const next = this.compGroups().find((g) => g.id !== groupId)?.id ?? null;
+      this.selectedGroupId.set(next);
+      if (next) this.smartRecording.setActiveCompGroup(next);
     }
     this.snackbar.info(`Group "${group.sectionLabel}" deleted`);
   }

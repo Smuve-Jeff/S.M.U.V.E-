@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { signal, WritableSignal } from "@angular/core";
 import { VocalCompViewComponent } from "./vocal-comp-view.component";
 import {
   SmartRecordingService,
@@ -16,6 +17,8 @@ describe("VocalCompViewComponent", () => {
   let smartRecording: jest.Mocked<SmartRecordingService>;
   let snackbar: jest.Mocked<SnackbarService>;
   let suggester: any;
+  /** Real signal, like the service exposes, so the view's computeds update. */
+  let mockCompGroups: WritableSignal<CompGroup[]>;
 
   const mockTakes: CompTake[] = [
     {
@@ -61,15 +64,13 @@ describe("VocalCompViewComponent", () => {
   };
 
   beforeEach(async () => {
-    const mockCompGroups = Object.assign(
-      jest.fn().mockReturnValue([mockGroup]),
-      { update: jest.fn(), set: jest.fn() },
-    );
+    mockCompGroups = signal<CompGroup[]>([mockGroup]);
 
     smartRecording = {
       compGroups: mockCompGroups,
       activeCompGroupId: jest.fn().mockReturnValue("group-1"),
       startNewCompGroup: jest.fn(),
+      setActiveCompGroup: jest.fn(() => true),
       deleteCompGroup: jest.fn(),
       selectCompTake: jest.fn(),
       toggleTakeMute: jest.fn(),
@@ -158,14 +159,23 @@ describe("VocalCompViewComponent", () => {
   });
 
   it("should delete a group", () => {
+    smartRecording.deleteCompGroup.mockImplementation((id: string) => {
+      mockCompGroups.update((groups) => groups.filter((g) => g.id !== id));
+    });
+
     component.deleteGroup("group-1");
+
     expect(smartRecording.deleteCompGroup).toHaveBeenCalledWith("group-1");
+    expect(mockCompGroups()).toHaveLength(0);
     expect(snackbar.info).toHaveBeenCalledWith('Group "Verse 1" deleted');
   });
 
   it("should rename a group", () => {
     component.renameGroup("group-1", "Chorus 1");
-    expect(smartRecording.compGroups).toHaveBeenCalled();
+
+    expect(
+      mockCompGroups().find((g) => g.id === "group-1")?.sectionLabel,
+    ).toBe("Chorus 1");
   });
 
   it("should select a take as comp", () => {
@@ -319,6 +329,26 @@ describe("VocalCompViewComponent", () => {
     } finally {
       (globalThis as any).Audio = original;
     }
+  });
+
+  it("points recording at the section the artist selects", () => {
+    component.selectGroup("group-1");
+
+    expect(smartRecording.setActiveCompGroup).toHaveBeenCalledWith("group-1");
+  });
+
+  it("hands recording to the next section after a delete", () => {
+    const chorus = { ...mockGroup, id: "group-2", sectionLabel: "Chorus" };
+    mockCompGroups.set([mockGroup, chorus]);
+    smartRecording.deleteCompGroup.mockImplementation((id: string) => {
+      mockCompGroups.update((groups) => groups.filter((g) => g.id !== id));
+    });
+    component.selectedGroupId.set("group-1");
+
+    component.deleteGroup("group-1");
+
+    expect(component.selectedGroupId()).toBe("group-2");
+    expect(smartRecording.setActiveCompGroup).toHaveBeenCalledWith("group-2");
   });
 
   it("should run a suggestion and populate the suggestion signal", () => {

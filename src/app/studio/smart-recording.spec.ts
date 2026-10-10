@@ -85,6 +85,57 @@ describe("SmartRecordingService", () => {
       service.setRecordingMode("comp");
       expect(service.recordingMode()).toBe("comp");
     });
+
+    it("keeps the section in progress when comp mode is re-entered", () => {
+      service.setRecordingMode("comp");
+      const first = service.activeCompGroupId();
+
+      service.setRecordingMode("normal");
+      service.setRecordingMode("comp");
+
+      expect(service.compGroups()).toHaveLength(1);
+      expect(service.activeCompGroupId()).toBe(first);
+    });
+  });
+
+  describe("active comp group targeting", () => {
+    it("points recording at the selected section and continues its numbering", async () => {
+      service.startNewCompGroup("t1", "Track", "Verse");
+      const verse = service.activeCompGroupId()!;
+      service.startNewCompGroup("t1", "Track", "Chorus");
+      expect(service.activeCompGroupId()).not.toBe(verse);
+
+      // The chorus collected a take, so the verse keeps its own numbering.
+      recordingEngineMock.getRecordedBuffers.mockReturnValue({
+        left: [new Float32Array(4800).fill(0.4)],
+        right: [new Float32Array(4800).fill(0.4)],
+      });
+      await service.startCompTake();
+      await service.finishCompTake();
+
+      expect(service.setActiveCompGroup(verse)).toBe(true);
+      expect(service.activeCompGroupId()).toBe(verse);
+      expect(service.currentTakeNumber()).toBe(1);
+
+      await service.startCompTake();
+      const take = await service.finishCompTake();
+      expect(take!.takeNumber).toBe(1);
+      expect(
+        service.compGroups().find((g) => g.id === verse)!.takes,
+      ).toHaveLength(1);
+      expect(
+        service.compGroups().find((g) => g.id !== verse)!.takes,
+      ).toHaveLength(1);
+    });
+
+    it("rejects an unknown group and clears a stale capture error", () => {
+      expect(service.setActiveCompGroup("nope")).toBe(false);
+
+      service.startNewCompGroup("t1", "Track", "Verse");
+      service.captureError.set("Input unavailable — check the microphone");
+      expect(service.setActiveCompGroup(service.activeCompGroupId()!)).toBe(true);
+      expect(service.captureError()).toBeNull();
+    });
   });
 
   describe("punch-in/out", () => {
@@ -126,6 +177,15 @@ describe("SmartRecordingService", () => {
     it("should set active comp group", () => {
       service.startNewCompGroup("t1", "Track", "Section");
       expect(service.activeCompGroupId()).toBeTruthy();
+    });
+
+    it("gives back-to-back sections distinct ids", () => {
+      service.startNewCompGroup("t1", "Track", "Verse");
+      service.startNewCompGroup("t1", "Track", "Chorus");
+
+      const ids = service.compGroups().map((g) => g.id);
+      expect(new Set(ids).size).toBe(2);
+      expect(service.activeCompGroupId()).toBe(ids[1]);
     });
 
     it("should start real capture for a comp take", async () => {

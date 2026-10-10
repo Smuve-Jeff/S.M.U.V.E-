@@ -157,9 +157,37 @@ export class SmartRecordingService {
       this.isPunching.set(false);
     }
     if (mode === "comp") {
-      this.startNewCompGroup();
+      // Reuse the section already in progress. Entering comp mode used to
+      // spawn an empty group every time, which split the artist's takes across
+      // duplicate "Section" groups.
+      const active = this.activeCompGroup();
+      if (active) {
+        this.currentTakeNumber.set(active.takes.length + 1);
+      } else {
+        this.startNewCompGroup();
+      }
     }
     this.logger.info(`SmartRecording: Mode set to ${mode}`);
+  }
+
+  /**
+   * Point recording at an existing comp group (the section the artist selected
+   * in the comp view). Takes recorded anywhere then land in that section, and
+   * numbering continues from the group's own takes so labels never collide.
+   *
+   * @returns false when the group no longer exists.
+   */
+  setActiveCompGroup(groupId: string): boolean {
+    const group = this.compGroups().find((g) => g.id === groupId);
+    if (!group) return false;
+
+    this.activeCompGroupId.set(groupId);
+    this.currentTakeNumber.set(group.takes.length + 1);
+    this.captureError.set(null);
+    this.logger.info(
+      `SmartRecording: "${group.sectionLabel}" is the active comp group.`,
+    );
+    return true;
   }
 
   // ── Punch-in/out controls ─────────────────────────────────
@@ -245,7 +273,10 @@ export class SmartRecordingService {
     sectionLabel?: string,
   ) {
     const group: CompGroup = {
-      id: `comp_${Date.now()}`,
+      // Timestamp + random suffix: two sections created in the same millisecond
+      // (double-tapped "New Group", a mode switch right after) used to share an
+      // id, which merged their takes and made lookups return the wrong section.
+      id: `comp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       trackId: trackId || "comp-track",
       trackName: trackName || "Comp Track",
       sectionLabel: sectionLabel || "Section",
