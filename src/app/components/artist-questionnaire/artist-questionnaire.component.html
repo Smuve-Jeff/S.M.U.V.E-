@@ -163,7 +163,8 @@
       </aside>
 
       <!-- ─── CENTER: Main content ───────────────────────────── -->
-      <main class="eq-main">
+      <div class="eq-workspace">
+      <main #mainContent class="eq-main">
         <!-- Loading: AI Analysis -->
         <div *ngIf="isAnalyzing()" class="eq-loading" @fadeSlide>
           <div class="eq-loading-spinner">
@@ -302,15 +303,7 @@
             </div>
           </div>
 
-          <!-- Action buttons -->
-          <footer class="eq-results-actions">
-            <button (click)="applyChanges()" class="eq-btn-primary">
-              <span>✓</span> COMMIT NEURAL REALIGNMENT
-            </button>
-            <button (click)="requestClose()" class="eq-btn-ghost">
-              DISCARD & EXIT
-            </button>
-          </footer>
+
         </div>
 
         <!-- ─── QUESTION FLOW ──────────────────────────────────── -->
@@ -521,25 +514,7 @@
               </label>
             </div>
 
-            <!-- Navigation -->
-            <div class="eq-nav">
-              <button
-                (click)="back()"
-                class="eq-nav-back"
-                [disabled]="
-                  currentPhaseIndex() === 0 && currentQuestionIndex() === 0
-                "
-              >
-                ← Back
-              </button>
-              <button
-                (click)="next()"
-                class="eq-nav-next"
-                [style.background]="currentPhaseInfo().color"
-              >
-                {{ isLastQuestion ? '✨ Complete Profile' : 'Next →' }}
-              </button>
-            </div>
+
           </div>
 
           <!-- Empty state (no questions for phase) -->
@@ -547,10 +522,36 @@
             <p>
               All questions in this phase are answered. Ready to move forward?
             </p>
-            <button (click)="next()" class="eq-nav-next">Next Phase →</button>
+
           </div>
         </div>
       </main>
+
+      <!-- Actions are outside the answer scroll area: even the full genre
+           catalogue and a short keyboard viewport leave a visible way forward. -->
+      <nav class="eq-nav" *ngIf="!isAnalyzing() && !analysisResult()" aria-label="Question navigation">
+        <button
+          type="button"
+          (click)="back()"
+          class="eq-nav-back"
+          [disabled]="currentPhaseIndex() === 0 && currentQuestionIndex() === 0"
+        >← Back</button>
+        <button
+          type="button"
+          (click)="next()"
+          class="eq-nav-next"
+          [style.background]="currentPhaseInfo().color"
+        >{{ isLastQuestion() ? '✨ Complete Profile' : currentQuestion() ? 'Next →' : 'Next Phase →' }}</button>
+      </nav>
+      <footer class="eq-results-actions" *ngIf="analysisResult() && !isAnalyzing()">
+        <button type="button" (click)="applyChanges()" class="eq-btn-primary">
+          <span>✓</span> COMMIT NEURAL REALIGNMENT
+        </button>
+        <button type="button" (click)="requestClose()" class="eq-btn-ghost">
+          DISCARD & EXIT
+        </button>
+      </footer>
+      </div>
 
       <!-- ─── RIGHT: AI Chat Console ─────────────────────────── -->
       <aside class="eq-chat-panel" *ngIf="!isAnalyzing() && !analysisResult()">

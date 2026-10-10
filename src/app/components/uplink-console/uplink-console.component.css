@@ -1,3 +1,19 @@
+/* Short screens must scroll the commit/return action, not clip it below
+ * a vertically centered, taller-than-viewport card. */
+.uplink-overlay {
+  /* Cover shell navigation when hosted directly by the profile editor. */
+  z-index: 7001;
+  height: 100dvh;
+  padding: 12px;
+}
+
+.uplink-panel {
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+}
+
 .transmission-glow {
   box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
   animation: beacon 2s infinite ease-in-out;

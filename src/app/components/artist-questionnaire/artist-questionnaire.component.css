@@ -2,7 +2,9 @@
 .eq-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  height: 100dvh;
+  /* Above shell navigation/home shortcuts, below confirmation dialogs. */
+  z-index: 7000;
   background: #0a0a0d;
   display: flex;
   align-items: center;
@@ -59,6 +61,7 @@
 }
 
 .eq-header-left {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -93,6 +96,7 @@
 }
 
 .eq-header-right {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -128,8 +132,9 @@
 }
 
 .eq-close-btn {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
@@ -149,6 +154,7 @@
 
 /* ── BODY ────────────────────────────────────────────────────── */
 .eq-body {
+  min-height: 0;
   flex: 1;
   display: flex;
   overflow: hidden;
@@ -295,6 +301,15 @@
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* The answer scrolls independently; navigation never scrolls out of view. */
+.eq-workspace {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
 /* ── MAIN ────────────────────────────────────────────────────── */
 .eq-main {
   flex: 1;
@@ -310,7 +325,10 @@
   justify-content: center;
   padding: 24px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   min-width: 0;
+  min-height: 0;
+  overflow-wrap: anywhere;
 }
 
 .eq-main > * {
@@ -642,10 +660,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 28px;
+  flex-shrink: 0;
+  gap: 12px;
+  padding: 12px 24px max(12px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #101014;
 }
 
 .eq-nav-back {
+  min-height: 44px;
   padding: 10px 20px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -669,6 +692,8 @@
 }
 
 .eq-nav-next {
+  min-height: 44px;
+  background: #0e7c7b;
   padding: 12px 28px;
   border-radius: 10px;
   border: none;
@@ -1211,6 +1236,10 @@
 
 /* Results actions */
 .eq-results-actions {
+  flex-shrink: 0;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: #101014;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1244,9 +1273,11 @@
 }
 
 .eq-btn-ghost {
+  min-height: 44px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.65);
   font-size: 10px;
   font-weight: 700;
   cursor: pointer;
@@ -1339,6 +1370,31 @@
   .eq-subtitle {
     display: none;
   }
+  .eq-header {
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .eq-header-left,
+  .eq-header-right {
+    gap: 8px;
+  }
+  .eq-logo-icon {
+    display: none;
+  }
+  .eq-nav {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .eq-nav-next {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .eq-intelligence-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .eq-persona-header {
+    flex-wrap: wrap;
+  }
 }
 
 /* ── Genre catalog search (v2.1) ─────────────────────────────── */
@@ -1361,6 +1417,7 @@
   opacity: 0.7;
 }
 .eq-genre-search-input {
+  min-width: 0;
   flex: 1;
   background: transparent;
   border: none;

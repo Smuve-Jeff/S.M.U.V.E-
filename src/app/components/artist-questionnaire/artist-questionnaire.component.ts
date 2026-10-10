@@ -5,6 +5,8 @@ import {
   output,
   computed,
   effect,
+  ElementRef,
+  viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -73,6 +75,19 @@ export class ArtistQuestionnaireComponent {
   private engine = inject(EnhancedArtistQuestionnaireEngine);
   private artistIntelligence = inject(ArtistIntelligenceService);
   private dialog = inject(InteractionDialogService);
+
+  private readonly mainContent = viewChild<ElementRef<HTMLElement>>('mainContent');
+
+  constructor() {
+    effect(() => {
+      // A long answer list must not leave the next question or results scrolled
+      // to the bottom. Do not reset while the artist is editing an answer.
+      this.currentQuestion()?.id;
+      this.analysisResult();
+      const content = this.mainContent()?.nativeElement;
+      if (content) content.scrollTop = 0;
+    });
+  }
 
   close = output<void>();
   complete = output<UserProfile>();

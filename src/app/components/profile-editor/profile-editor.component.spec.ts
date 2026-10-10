@@ -60,6 +60,7 @@ class PersonaSelectorStub {
 
 @Component({ selector: 'app-uplink-console', standalone: true, template: '' })
 class UplinkConsoleStub {
+  @Input() retryPayload: UserProfile | null = null;
   @Output() close = new EventEmitter<void>();
 }
 
