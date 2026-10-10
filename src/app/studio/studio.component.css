@@ -110,6 +110,9 @@
 
 .comp-shell {
   --studio-header-height: 72px;
+  /* Project status bar that sits above the topbar. Shell chrome is
+     status + header, so anything anchored below the chrome can read both. */
+  --studio-status-height: 28px;
   --studio-rail-width: 200px;
   --studio-rail-collapsed-width: 56px;
   --studio-footer-height: 48px;
@@ -1268,6 +1271,11 @@
        4px over the nav — or a 4px gap once a safe-area inset applied. At 68px
        both read the same value and the seam is exact on any inset. */
     --mobile-nav-height: 68px;
+    /* The phone topbar is 48px (set below). Keep the shell variable honest so
+       anything anchored to the header — the save-failure alert in
+       studio-redesign.css — lands under the real chrome, not the 72px
+       desktop value. */
+    --studio-header-height: 48px;
     /* Height of the thumb-zone transport dock (68px transport bar + 2px of
        dock padding top and bottom), used both to size the dock and to reserve
        exactly the space it occupies above the bottom nav — if these two ever
@@ -4412,7 +4420,12 @@
   z-index: 70;
   display: none;
   flex-direction: column;
+  /* `dvh`, not `vh`: with the mobile URL bar showing, `78vh` measures the
+     LARGE viewport and pushed the sheet's last row (and its safe-area
+     padding) under the browser chrome. The vh line is the older-browser
+     fallback, matching the shell's own 100svh/100dvh pattern. */
   max-height: min(78vh, 560px);
+  max-height: min(78dvh, 560px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--ivory-paper);
   border-top: 1px solid var(--espresso-line);

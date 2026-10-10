@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
+  min-height: var(--studio-status-height, 28px);
   padding: 4px 12px;
   flex: 0 0 auto;
   background: var(--espresso-paper, #f8faf8);
@@ -23,7 +23,13 @@
 
 .studio-save-warning {
   position: absolute;
-  top: 12px;
+  /* Sit below the project status bar + studio header. At top: 12px this alert
+     covered the status bar and the topbar, hiding the project menu / save /
+     export controls it is asking the artist to use. Both heights are shell
+     variables, so it also tracks the compact desktop tiers (56px / 52px). */
+  top: calc(
+    var(--studio-status-height, 28px) + var(--studio-header-height, 72px) + 8px
+  );
   left: 50%;
   transform: translateX(-50%);
   z-index: 9000;
@@ -49,7 +55,14 @@
 }
 .studio-save-warning button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 @media (max-width: 600px) {
-  .studio-save-warning { flex-wrap: wrap; }
+  .studio-save-warning {
+    flex-wrap: wrap;
+    /* Phones: narrower than the desktop 680px cap so the alert stays clear of
+       the transport dock and the floating action button. */
+    width: calc(100% - 20px);
+    max-width: none;
+    padding: 10px 12px;
+  }
   .studio-save-warning span:nth-child(2) { flex-basis: calc(100% - 40px); }
 }
 
