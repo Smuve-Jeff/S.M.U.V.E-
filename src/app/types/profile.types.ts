@@ -5,8 +5,15 @@ import {
   UpgradeRecommendation,
 } from './ai.types';
 import { MarketingCampaign } from './marketing.types';
+import {
+  buildMusicalDnaContext,
+  buildMusicalDnaTeachingContext,
+  type MusicalDnaReading,
+  type MusicalDnaState,
+} from './musical-dna.types';
 
 export type { RecommendationHistoryEntry, UpgradeRecommendation };
+export type { MusicalDnaReading, MusicalDnaState };
 
 export interface AppSettings {
   ui: {
@@ -362,6 +369,16 @@ export function buildArtistMusicContext(
   push('Sonic non-negotiables', cap(bp.sonicNonNegotiables));
   push('Recognition cue', cap(bp.recognitionCue));
 
+  // Learned fingerprint: declared answers reconciled against works, settings
+  // and decisions. Appended last so the explicit profile still leads.
+  const dna = buildMusicalDnaContext(profile);
+  if (dna) lines.push('', dna);
+
+  // The ordered lesson plan for the weakest axes — S.M.U.V.E. leads with
+  // these instead of defaulting to generic advice.
+  const teaching = buildMusicalDnaTeachingContext(profile);
+  if (teaching) lines.push('', teaching);
+
   return lines.join('\n');
 }
 
@@ -472,6 +489,15 @@ export interface UserProfile {
   squadCount?: number;
   /** Official For Artists dashboards, PROs, analytics, and distributor links. */
   officialArtistProfiles?: OfficialArtistProfileLink[];
+  /**
+   * S.M.U.V.E. Musical DNA — the learned fingerprint.
+   *
+   * Persisted on the profile (so it survives devices via the profile's own
+   * backup/cloud sync) and recomputed from declared answers plus observed
+   * work, settings, decisions and live behaviour. See
+   * `MusicalDnaService` and `MusicalDna` in `musical-dna.types.ts`.
+   */
+  musicalDna?: MusicalDnaState;
 }
 
 import { createInitialArtistIdentity } from './artist-identity.types';
