@@ -2021,3 +2021,35 @@
     font-size: 7px;
   }
 }
+
+/* ================================================================
+   MOBILE PASS — mixer console on touchscreens & phones
+   Console buttons stop waiting out the double-tap-zoom delay, the
+   strip scroller stops fighting the browser back-gesture, and every
+   console control clears the 44px thumb floor.
+   ================================================================ */
+
+.mix-msr-btn,
+.mix-phase-btn,
+.mix-vca-row {
+  touch-action: manipulation;
+}
+
+/* The channel strip is the primary horizontal scroller: containing its
+   overscroll keeps a swipe past the last strip from firing the
+   browser's back gesture mid-session. */
+.mix-strips {
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 6px;
+}
+
+@media (pointer: coarse) {
+  .mix-msr-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .mix-phase-btn,
+  .mix-vca-row {
+    min-height: 44px;
+  }
+}

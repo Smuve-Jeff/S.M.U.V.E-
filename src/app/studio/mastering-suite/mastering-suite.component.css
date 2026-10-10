@@ -992,3 +992,29 @@
     padding: 10px;
   }
 }
+
+/* ================================================================
+   MOBILE PASS — mastering suite on touchscreens & phones
+   The suite had no touch contract at all: taps paid the double-tap
+   zoom delay and the surface fling bounced the whole shell.
+   ================================================================ */
+
+.mastering-header button,
+.genre-chip,
+.mastering-preset-card {
+  touch-action: manipulation;
+}
+
+/* The suite surface is the page scroller — contain its overscroll so a
+   fling at either end does not bounce the entire studio shell. */
+.mastering-surface {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Genre chips render ~29px tall, well under the 44px thumb floor. */
+@media (pointer: coarse) {
+  .genre-chip {
+    min-height: 44px;
+  }
+}

@@ -1156,19 +1156,10 @@
 
 /* ----- Swipe feedback hint (mobile) ----- */
 .ctb-shell {
-  touch-action: auto;
+  /* `manipulation` keeps the horizontal strip pannable/pinchable but drops
+     the 300ms double-tap-zoom wait, so transport taps land instantly. */
+  touch-action: manipulation;
   position: relative;
-}
-.ctb-shell::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: transparent;
-  pointer-events: none;
-  transition: background 0.2s ease;
 }
 
 /* ----- Enhanced touch targets on mobile ----- */
@@ -1398,5 +1389,92 @@
   .ctb-tap-group,
   .ctb-playmode {
     border-color: CanvasText;
+  }
+}
+
+/* ================================================================
+   MOBILE PASS — the transport on touchscreens & phones
+   One consolidated contract: every control is a 44px tap target on
+   coarse pointers, taps never wait on the double-tap-zoom delay,
+   and the horizontal strip drives like a native scroller.
+   ================================================================ */
+
+/* No control should wait out the ~300ms double-tap-zoom window. */
+.ctb-btn,
+.ctb-toggle,
+.ctb-bpm,
+.ctb-nudge,
+.ctb-tap,
+.ctb-punch,
+.ctb-take-stamp,
+.ctb-countin-chip,
+.ctb-loop-chip,
+.ctb-loop-clear,
+.ctb-undo-btn,
+.ctb-test-sound,
+.ctb-secondary-trigger,
+.ctb-dropdown-action,
+.ctb-dropdown-item,
+.ctb-output-pill,
+.ctb-output-item {
+  touch-action: manipulation;
+}
+
+/* Coarse pointers (any phone or tablet): a single 44px floor, so no
+   transport control is ever a sub-thumb target — the 32px take-lane
+   and 30px nudge buttons included. */
+@media (pointer: coarse) {
+  .ctb-btn,
+  .ctb-toggles .ctb-toggle,
+  .ctb-toggle,
+  .ctb-nudge,
+  .ctb-bpm,
+  .ctb-tap,
+  .ctb-punch,
+  .ctb-take-stamp,
+  .ctb-countin-chip,
+  .ctb-loop-chip,
+  .ctb-loop-clear,
+  .ctb-undo-btn,
+  .ctb-test-sound {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* The primary action is reachable with a thumb even mid-session. */
+  .ctb-play {
+    width: 52px;
+    height: 52px;
+  }
+
+  /* Master volume: taller track plus a fatter grab handle. */
+  .ctb-volume-slider {
+    height: 44px;
+  }
+  .ctb-volume-slider::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    margin-top: -8px;
+  }
+  .ctb-volume-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Phone strip: behave like a native scroller. `overscroll-behavior`
+   stops a swipe past the end from firing the browser's back gesture,
+   and the padding keeps the first/last group clear of the screen edge. */
+@media (max-width: 768px), (max-width: 932px) and (orientation: landscape) {
+  .ctb-primary-row {
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 6px;
+  }
+
+  /* The "recording from…" chip must never shove the transport offscreen. */
+  .ctb-rec-source {
+    max-width: 34vw;
+    min-width: 0;
+    overflow: hidden;
   }
 }

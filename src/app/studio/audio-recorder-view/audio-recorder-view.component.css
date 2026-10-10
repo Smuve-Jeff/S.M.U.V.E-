@@ -289,9 +289,25 @@
 }
 
 .arv-row-name {
-  font-weight: 600;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
   font-size: 13px;
+  line-height: 1.35;
   color: var(--espresso-text);
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.arv-row-name:focus-visible {
+  outline: 2px solid var(--teal-400, #66f0ff);
+  outline-offset: 3px;
+  border-radius: 3px;
 }
 
 .arv-row-meta {
@@ -1079,17 +1095,173 @@
 
   .arv-latest-actions {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .arv-latest-actions button {
     min-width: 0;
     padding: 0 5px;
+    font-size: 9px;
+  }
+  .arv-latest-actions button:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .arv-meter-strip {
+    gap: 8px;
+    padding-inline: 9px;
+  }
+
+  .arv-meter-channel {
+    gap: 5px;
+  }
+
+  .arv-meter-label {
+    min-width: 24px;
+    font-size: 7px;
+  }
+
+  .arv-meter-db {
+    min-width: 32px;
+    font-size: 9px;
+  }
+
+  .arv-row {
+    grid-template-columns: 28px minmax(0, 1fr) 44px;
+    grid-template-rows: auto auto;
+    gap: 6px 8px;
+    padding: 9px;
+  }
+
+  .arv-row-icon {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .arv-row-main {
+    grid-column: 2 / -1;
+    grid-row: 1;
+  }
+
+  .arv-row-action {
+    grid-column: 2;
+    grid-row: 2;
+    width: 100%;
+    justify-self: start;
+  }
+
+  .arv-row-save {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .arv-row-del {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .arv-row:has(.arv-row-save) .arv-row-action {
+    grid-column: 2;
+    width: 44px;
+  }
+
+  .arv-row:has(.arv-row-save) .arv-row-del {
+    grid-column: 4;
+  }
+
+  .arv-row:has(.arv-row-save) {
+    grid-template-columns: 28px minmax(0, 1fr) 44px 44px;
+  }
+
+  .arv-bank {
+    min-width: 0;
+  }
+
+  .arv-takes-header {
+    align-items: flex-start;
+    padding-inline: 8px;
+    gap: 6px;
+  }
+  .arv-take-meta {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .arv-take-name {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .arv-takes-title {
+    flex: 1 1 auto;
+  }
+
+  .arv-takes-count {
+    margin-left: auto;
+  }
+
+  .arv-foot {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .arv-bank,
   .arv-takes-manager {
     padding: 12px;
+  }
+
+  .arv-row {
+    grid-template-columns: 32px minmax(0, 1fr) repeat(3, 44px);
+    gap: 6px;
+    padding: 9px;
+  }
+
+  .arv-row-icon .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  .arv-row-audio {
+    display: none;
+  }
+
+  .arv-row-action,
+  .arv-row-save,
+  .arv-row-del {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+  }
+  .arv-row-del:disabled,
+  .arv-row-save:disabled {
+    opacity: 0.5;
+    cursor: progress;
+  }
+
+  .arv-row-meta {
+    font-size: 9px;
+    line-height: 1.4;
+  }
+
+  .arv-controls-row {
+    gap: 7px;
+  }
+
+  .arv-control-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+    padding-inline: 10px;
+  }
+
+  .arv-takes-manager {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .arv-take-row {
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
+    gap: 6px;
   }
 }
 
@@ -1360,6 +1532,18 @@
   border-color: color-mix(in srgb, var(--teal-500) 45%, transparent);
 }
 
+.arv-row-save {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--teal-500) 55%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--teal-500) 12%, transparent);
+  color: var(--teal-500);
+  cursor: pointer;
+}
+
 .arv-rename-input {
   min-width: 140px;
   padding: 6px 10px;
@@ -1389,6 +1573,25 @@
 }
 
 @media (max-width: 640px) {
+  .arv-takes-list {
+    overflow-x: visible;
+    padding-inline: 0;
+  }
+
+  .arv-take-row {
+    min-width: 0;
+    grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
+    gap: 6px;
+    padding-inline: 4px;
+  }
+
+  .arv-take-select-dot,
+  .arv-take-mute,
+  .arv-take-remove {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
   .arv-takes-controls {
     width: 100%;
     margin-left: 0;

@@ -15,10 +15,15 @@ describe("AudioRecorderViewComponent", () => {
   let fixture: ComponentFixture<AudioRecorderViewComponent>;
 
   const mockRecorder = {
+
     isRecording: signal(false),
+    recordingFinished$: { subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })) },
+    createRecordingUrl: jest.fn(() => "blob:restored"),
     getOfflineRecordings: jest.fn().mockResolvedValue([]),
     startRecording: jest.fn().mockResolvedValue(undefined),
     stopRecording: jest.fn(),
+    deleteOfflineRecording: jest.fn().mockResolvedValue(undefined),
+    renameOfflineRecording: jest.fn().mockResolvedValue(undefined),
     revokeRecordingUrl: jest.fn(),
   };
 
@@ -26,6 +31,7 @@ describe("AudioRecorderViewComponent", () => {
   const mockSnackbar = {
     success: jest.fn(),
     info: jest.fn(),
+    warning: jest.fn(),
     error: jest.fn(),
   };
   const mockLogger = {
@@ -111,7 +117,7 @@ describe("AudioRecorderViewComponent", () => {
 
   it("loads offline recordings from the recorder service", async () => {
     mockRecorder.getOfflineRecordings.mockResolvedValue([
-      { id: "r1", name: "Rough", timestamp: 42, settings: {} },
+      { id: "r1", blob: new Blob(["audio"]), name: "Rough", timestamp: 42, settings: {} },
     ]);
     component.ngOnInit();
     await fixture.whenStable();
@@ -124,6 +130,7 @@ describe("AudioRecorderViewComponent", () => {
     mockRecorder.getOfflineRecordings.mockResolvedValue([
       {
         id: "r2",
+        blob: new Blob(["audio"]),
         name: "Kept take",
         timestamp: 7,
         settings: { durationSec: 42 },
@@ -135,14 +142,39 @@ describe("AudioRecorderViewComponent", () => {
     expect(component.recordings()[0].durationSec).toBe(42);
   });
 
+  it("re-reads offline takes when the app regains focus", async () => {
+    mockRecorder.getOfflineRecordings.mockResolvedValue([
+      {
+        id: "r_focus",
+        blob: new Blob(["audio"]),
+        name: "Saved elsewhere",
+        timestamp: 5,
+        settings: { durationSec: 3 },
+      },
+    ]);
+    component.onAppFocus();
+    await fixture.whenStable();
+    expect(component.recordings().map(({ id }) => id)).toContain("r_focus");
+  });
+
+  it("does not refresh takes while a capture is armed", () => {
+    mockRecorder.isRecording.set(true);
+    mockRecorder.getOfflineRecordings.mockClear();
+    component.onAppFocus();
+    expect(mockRecorder.getOfflineRecordings).not.toHaveBeenCalled();
+    mockRecorder.isRecording.set(false);
+  });
+
   it("banks the duration measured by the recorder service", () => {
     (component as any).handleRecordingFinished({
       id: "rec_9",
       blob: new Blob(),
       url: "blob:rec_9",
+      name: "Recorded chorus",
       durationSec: 12,
     });
     expect(component.recordings()[0].durationSec).toBe(12);
+    expect(component.recordings()[0].name).toBe("Recorded chorus");
   });
 
   it("releases the microphone once a take is banked", () => {
@@ -161,9 +193,19 @@ describe("AudioRecorderViewComponent", () => {
     expect(component.currentStream).toBeNull();
   });
 
-  it("deletes a recording and revokes its object URL", () => {
+  it("promotes the latest recording even when the offline list is newest-first", () => {
+    component.recordings.set([
+      rec({ id: "rec_latest", name: "Latest", durationSec: 7 }),
+      rec({ id: "rec_old", name: "Older", durationSec: 3 }),
+    ]);
+    component.promoteToTake();
+    expect(component.takes()[0].durationSec).toBe(7);
+  });
+
+  it("deletes a recording from persistence before revoking its object URL", async () => {
     component.recordings.set([rec()]);
-    component.deleteRecording("rec_1");
+    await component.deleteRecording("rec_1");
+    expect(mockRecorder.deleteOfflineRecording).toHaveBeenCalledWith("rec_1");
     expect(mockRecorder.revokeRecordingUrl).toHaveBeenCalledWith("blob:rec_1");
     expect(component.recordings()).toHaveLength(0);
     expect(mockSnackbar.info).toHaveBeenCalledWith(
@@ -171,12 +213,119 @@ describe("AudioRecorderViewComponent", () => {
     );
   });
 
-  it("renames a recording in place", () => {
+  it("keeps the recording and URL when persistent deletion fails", async () => {
+    mockRecorder.deleteOfflineRecording.mockRejectedValueOnce(new Error("disk full"));
+    component.recordings.set([rec()]);
+    await component.deleteRecording("rec_1");
+    expect(component.recordings()).toHaveLength(1);
+    expect(mockRecorder.revokeRecordingUrl).not.toHaveBeenCalled();
+    expect(mockSnackbar.error).toHaveBeenCalledWith(
+      "Could not delete recording — try again",
+    );
+  });
+
+  it("persists a renamed take and ignores whitespace-only names", async () => {
+    component.recordings.set([rec()]);
+    component.startRename(component.recordings()[0]);
+    component.renameValue.set("  Verse comp  ");
+    await component.confirmRename();
+    expect(mockRecorder.renameOfflineRecording).toHaveBeenCalledWith("rec_1", "Verse comp");
+    expect(component.recordings()[0].name).toBe("Verse comp");
+    expect(component.renamingId()).toBeNull();
+
+    component.startRename(component.recordings()[0]);
+    component.renameValue.set("  ");
+    await component.confirmRename();
+    expect(component.recordings()[0].name).toBe("Verse comp");
+    expect(component.renamingId()).toBe("rec_1");
+  });
+
+  it("rolls back an in-memory rename if persistence fails", async () => {
+    mockRecorder.renameOfflineRecording.mockRejectedValueOnce(new Error("disk full"));
+    component.recordings.set([rec()]);
+    component.startRename(component.recordings()[0]);
+    component.renameValue.set("New name");
+    await component.confirmRename();
+    expect(component.recordings()[0].name).toBe("Take One");
+    expect(component.renamingId()).toBe("rec_1");
+  });
+
+  it("does not allow concurrent microphone acquisition from repeated taps", async () => {
+    let finishRequest!: (stream: MediaStream) => void;
+    const getUserMedia = jest.fn(() => new Promise<MediaStream>((resolve) => {
+      finishRequest = resolve;
+    }));
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia },
+      configurable: true,
+    });
+
+    const firstTap = component.toggleRecord();
+    await component.toggleRecord();
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    finishRequest({ getAudioTracks: () => [], getTracks: () => [] } as unknown as MediaStream);
+    await firstTap;
+    expect(mockRecorder.startRecording).toHaveBeenCalledTimes(1);
+    component.ngOnDestroy();
+  });
+
+  it("preserves an in-memory take if offline persistence fails", () => {
+    (component as any).handleRecordingFinished({
+      id: "rec_ephemeral",
+      blob: new Blob(["audio"]),
+      url: "blob:ephemeral",
+      name: "Ephemeral take",
+      durationSec: 6,
+      persisted: false,
+    });
+    expect(component.recordings()[0]).toEqual(expect.objectContaining({
+      id: "rec_ephemeral",
+      savedOffline: false,
+    }));
+    expect((component as any).pendingRecordingSaves.get("rec_ephemeral").blob).toBeInstanceOf(Blob);
+    expect(mockSnackbar.warning).toHaveBeenCalledWith(expect.stringContaining("could not be saved offline"));
+  });
+
+  it("saves an ephemeral take when storage becomes available", async () => {
+    const item = { id: "rec_ephemeral", blob: new Blob(["audio"]), name: "Take", timestamp: 1, settings: {} };
+    (component as any).pendingRecordingSaves.set(item.id, item);
+    (mockRecorder as any).saveOfflineRecording = jest.fn().mockResolvedValue(undefined);
+    component.recordings.set([rec({ id: item.id, name: "New name", savedOffline: false })]);
+    await component.saveRecordingOffline(item.id);
+    expect((mockRecorder as any).saveOfflineRecording).toHaveBeenCalledWith({ ...item, name: "New name" });
+    expect(component.recordings()[0].savedOffline).toBe(true);
+  });
+
+  it("shows recorder format based on the active MediaRecorder codec", () => {
+    (mockRecorder as any).mediaRecorder = { mimeType: "audio/mp4;codecs=mp4a.40.2" };
+    expect(component.recordingFormatLabel()).toBe("MP4 / MP4A.40.2");
+  });
+
+  it("does not replace fresh recordings with a late storage refresh", async () => {
+    let finishLoad!: (items: any[]) => void;
+    mockRecorder.getOfflineRecordings.mockReturnValueOnce(new Promise((resolve) => {
+      finishLoad = resolve;
+    }));
+    const pendingLoad = (component as any).loadOfflineRecordings();
+    (component as any).handleRecordingFinished({
+      id: "rec_live",
+      blob: new Blob(),
+      url: "blob:rec_live",
+      name: "Live take",
+      durationSec: 8,
+      persisted: false,
+    });
+    finishLoad([]);
+    await pendingLoad;
+    expect(component.recordings().map(({ id }) => id)).toContain("rec_live");
+  });
+
+  it("renames a recording in place", async () => {
     component.recordings.set([rec()]);
     component.startRename(component.recordings()[0]);
     expect(component.renamingId()).toBe("rec_1");
     component.renameValue.set("Final Take");
-    component.confirmRename();
+    await component.confirmRename();
     expect(component.recordings()[0].name).toBe("Final Take");
     expect(component.renamingId()).toBeNull();
   });
@@ -184,6 +333,9 @@ describe("AudioRecorderViewComponent", () => {
   it("toggles the noise gate and notifies via snackbar", () => {
     component.toggleNoiseGate();
     expect(component.noiseGateEnabled()).toBe(true);
+    expect(mockSnackbar.warning).toHaveBeenCalledWith(
+      "Arm the microphone first to use the noise gate",
+    );
     expect(mockSnackbar.info).toHaveBeenCalledWith(
       "Noise gate ON (threshold: -50 dB)",
     );

@@ -34,6 +34,8 @@ export class AudioRecorderService implements OnDestroy {
     midi?: any[];
     /** Wall-clock length of the take, persisted with the blob. */
     durationSec?: number;
+    persisted?: boolean;
+    name?: string;
   }>();
 
   mediaRecorder: MediaRecorder | null = null;
@@ -71,18 +73,25 @@ export class AudioRecorderService implements OnDestroy {
       throw new Error("No audio tracks found in stream");
     }
 
+    if (this.isRecording()) {
+      throw new Error("A recording is already in progress");
+    }
     this.recordedBlobs = [];
-    const mimeType = "audio/webm;codecs=opus";
 
     if (typeof MediaRecorder === "undefined") {
       throw new Error("MediaRecorder is not supported in this environment");
     }
 
-    const options = MediaRecorder.isTypeSupported(mimeType)
-      ? { mimeType }
-      : MediaRecorder.isTypeSupported("audio/webm")
-        ? { mimeType: "audio/webm" }
-        : {};
+    const isTypeSupported =
+      typeof MediaRecorder.isTypeSupported === "function"
+        ? (type: string) => MediaRecorder.isTypeSupported(type)
+        : () => false;
+    const supportedMimeType = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+    ].find(isTypeSupported);
+    const options = supportedMimeType ? { mimeType: supportedMimeType } : {};
 
     try {
       this.mediaRecorder = new MediaRecorder(stream, options);
@@ -99,10 +108,12 @@ export class AudioRecorderService implements OnDestroy {
 
     this.mediaRecorder.onstop = async () => {
       try {
-        const blob = new Blob(this.recordedBlobs, {
-          type: "audio/webm;codecs=opus",
-        });
-        const id = `rec_${Date.now()}`;
+        const mimeType =
+          this.mediaRecorder?.mimeType ||
+          this.recordedBlobs.find((part) => part.type)?.type ||
+          "application/octet-stream";
+        const blob = new Blob(this.recordedBlobs, { type: mimeType });
+        const id = `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         // Persist the real take length: the recorder view reads it back from
         // `settings.durationSec`, so without it every restored take showed 0:00.
         const durationSec = Math.max(
@@ -110,14 +121,20 @@ export class AudioRecorderService implements OnDestroy {
           Math.round((Date.now() - this.startedAtMs) / 1000),
         );
 
+        const name = `Recording ${new Date().toLocaleTimeString()}`;
+        let persisted = false;
         try {
+          if ((await this.localStorageService.persistenceStatus()) !== "ready") {
+            throw new Error("Local recording storage is unavailable");
+          }
           await this.localStorageService.saveItem("audio_blobs", {
             id,
             blob,
-            name: `Recording ${new Date().toLocaleTimeString()}`,
+            name,
             timestamp: Date.now(),
             settings: { gain: 1.0, trimmed: false, durationSec },
           });
+          persisted = true;
           this.logger.info(`Recording ${id} saved.`);
         } catch (saveError) {
           this.logger.error(
@@ -131,9 +148,11 @@ export class AudioRecorderService implements OnDestroy {
         this.recordingFinished$.next({
           id,
           blob,
+          name,
           url,
           midi: [...this.pendingMidi],
           durationSec,
+          persisted,
         });
       } catch (error) {
         this.logger.error("Failed to process recording stop", error);
@@ -149,15 +168,16 @@ export class AudioRecorderService implements OnDestroy {
   }
 
   stopRecording() {
-    if (this.mediaRecorder) {
-      try {
-        if (this.mediaRecorder.state !== "inactive") {
-          this.mediaRecorder.stop();
-        }
-      } catch (error) {
-        this.logger.error("Error stopping MediaRecorder", error);
-        this.isRecording.set(false);
+    if (!this.mediaRecorder) return;
+    try {
+      if (this.mediaRecorder.state !== "inactive") {
+        this.mediaRecorder.stop();
+        return;
       }
+      this.isRecording.set(false);
+    } catch (error) {
+      this.logger.error("Error stopping MediaRecorder", error);
+      this.isRecording.set(false);
     }
   }
 
@@ -165,8 +185,32 @@ export class AudioRecorderService implements OnDestroy {
     return await this.localStorageService.getAllItems("audio_blobs");
   }
 
+  async renameOfflineRecording(id: string, name: string): Promise<void> {
+    const normalizedName = name.trim();
+    if (!normalizedName) throw new Error("Recording name cannot be empty");
+
+    const item = (await this.localStorageService.getItem(
+      "audio_blobs",
+      id,
+    )) as RecordingItem | null;
+    if (!item) throw new Error(`Recording ${id} was not found`);
+
+    await this.localStorageService.saveItem("audio_blobs", {
+      ...item,
+      name: normalizedName,
+    });
+  }
+
+  async saveOfflineRecording(item: RecordingItem): Promise<void> {
+    if ((await this.localStorageService.persistenceStatus()) !== "ready") {
+      throw new Error("Local recording storage is unavailable");
+    }
+    await this.localStorageService.saveItem("audio_blobs", item);
+  }
+
   async deleteOfflineRecording(id: string): Promise<void> {
-    const remove = (this.localStorageService as any).removeItem;
+    const storage = this.localStorageService as any;
+    const remove = storage.deleteItem || storage.removeItem;
     if (typeof remove === "function") {
       await remove.call(this.localStorageService, "audio_blobs", id);
       return;
@@ -174,12 +218,14 @@ export class AudioRecorderService implements OnDestroy {
     // Older storage adapters expose only save/get; retain compatibility by
     // replacing the collection without the deleted item when possible.
     const items = (await this.getOfflineRecordings()) as RecordingItem[];
-    if (typeof (this.localStorageService as any).saveItems === "function") {
-      await (this.localStorageService as any).saveItems(
+    if (typeof storage.saveItems === "function") {
+      await storage.saveItems(
         "audio_blobs",
         items.filter((item) => item.id !== id),
       );
+      return;
     }
+    throw new Error("Recording storage does not support deletion");
   }
 
   async applyOfflineEdit(id: string, edits: Partial<RecordingSettings>) {

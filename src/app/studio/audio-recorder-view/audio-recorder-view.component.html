@@ -73,7 +73,7 @@
   <!-- INPUT LEVEL METER -->
   <div class="arv-meter-strip" aria-label="Input level">
     <div class="arv-meter-channel">
-      <span class="arv-meter-label">IN L</span>
+      <span class="arv-meter-label">{{ inputChannelLabel().startsWith('1 CH') ? 'IN' : 'IN L' }}</span>
       <div
         class="arv-meter-bar"
         role="meter"
@@ -88,7 +88,7 @@
       </div>
       <span class="arv-meter-db">{{ inputLevel() }} dB</span>
     </div>
-    <div class="arv-meter-channel">
+    <div class="arv-meter-channel" *ngIf="!inputChannelLabel().startsWith('1 CH')">
       <span class="arv-meter-label">IN R</span>
       <div
         class="arv-meter-bar"
@@ -129,6 +129,7 @@
       [class.arv-record-btn-armed]="isRequestingMic()"
       [class.arv-record-btn-live]="captureState() === 'recording' || isRecording()"
       [class.arv-record-btn-stopping]="captureState() === 'stopping'"
+      [disabled]="captureState() === 'requesting' || captureState() === 'stopping'"
       (click)="toggleRecord()"
       [attr.aria-pressed]="captureState() === 'recording' || isRecording()"
       [attr.aria-label]="captureState() === 'recording' || isRecording() ? 'Stop recording' : 'Start recording'"
@@ -147,11 +148,11 @@
     <div class="arv-transport-meta">
       <div class="arv-meta-row">
         <span class="arv-meta-label">CHANNELS</span>
-        <span class="arv-meta-value">1 · MONO</span>
+        <span class="arv-meta-value">{{ inputChannelLabel() }}</span>
       </div>
       <div class="arv-meta-row">
         <span class="arv-meta-label">FORMAT</span>
-        <span class="arv-meta-value">WEBM / OPUS</span>
+        <span class="arv-meta-value">{{ recordingFormatLabel() }}</span>
       </div>
     </div>
 
@@ -268,10 +269,16 @@
         <span>
           <small>LAST TAKE</small>
           <strong>{{ lastTake.name }}</strong>
-          <small>{{ formatTime(lastTake.durationSec) }} · {{ capturePathLabel() }}</small>
+          <small>{{ formatTime(lastTake.durationSec) }} · {{ lastTake.savedOffline === false ? 'session only' : 'saved on device' }}</small>
         </span>
       </div>
       <div class="arv-latest-actions">
+        <button
+          *ngIf="lastTake.savedOffline === false"
+          type="button"
+          class="is-primary"
+          (click)="saveRecordingOffline(lastTake.id)"
+        >{{ isRecordingSaving(lastTake.id) ? 'SAVING…' : 'Save on Device' }}</button>
         <button type="button" (click)="keepLatestTake()" [disabled]="deviceSwitchLocked()">Keep</button>
         <button type="button" (click)="retryLatestTake()" [disabled]="deviceSwitchLocked()">Retry</button>
         <button type="button" class="is-primary" (click)="addLatestToArrangement()" [disabled]="!lastTake.url">Add to Song</button>
@@ -311,13 +318,15 @@
         </div>
         <div class="arv-row-main">
           <!-- Renameable name -->
-          <div
+          <button
             *ngIf="renamingId() !== rec.id"
+            type="button"
             class="arv-row-name"
-            (dblclick)="startRename(rec)"
+            (click)="startRename(rec)"
+            [attr.aria-label]="'Rename ' + rec.name"
           >
             {{ rec.name }}
-          </div>
+          </button>
           <div
             *ngIf="renamingId() === rec.id"
             style="display: flex; gap: 4px; align-items: center"
@@ -357,7 +366,7 @@
             </button>
           </div>
           <div class="arv-row-meta">
-            {{ formatRecordedAt(rec.timestamp) }} · double-click name to rename
+            {{ formatRecordedAt(rec.timestamp) }} · {{ formatTime(rec.durationSec) }} · {{ rec.savedOffline === false ? 'session only' : 'saved on device' }}
           </div>
         </div>
         <audio
@@ -372,6 +381,7 @@
           type="button"
           class="arv-row-action"
           (click)="exportToArrangement(rec)"
+          [disabled]="!rec.url"
           [attr.aria-label]="'Export ' + rec.name + ' to arrangement'"
           title="Add to arrangement as audio track"
           style="
@@ -393,9 +403,20 @@
           >
         </button>
         <button
+          *ngIf="rec.savedOffline === false"
+          type="button"
+          class="arv-row-save"
+          (click)="saveRecordingOffline(rec.id)"
+          [disabled]="isRecordingSaving(rec.id)"
+          [attr.aria-label]="'Save ' + rec.name + ' on this device'"
+        >
+          <span class="material-symbols-outlined">{{ isRecordingSaving(rec.id) ? 'hourglass_top' : 'save' }}</span>
+        </button>
+        <button
           type="button"
           class="arv-row-del"
           (click)="deleteRecording(rec.id)"
+          [disabled]="deletingRecordingIds().has(rec.id)"
           [attr.aria-label]="'Delete ' + rec.name"
         >
           <span class="material-symbols-outlined">delete</span>
