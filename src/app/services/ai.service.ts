@@ -313,6 +313,9 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
           `Separate verified facts from informed hypotheses, and do not invent citations. ` +
           `Query: ${normalizedQuery}`,
       );
+      if (!intel.trim()) {
+        throw new Error('The AI research service returned an empty brief.');
+      }
       const endedAt =
         typeof performance !== 'undefined' ? performance.now() : Date.now();
       const timestamp = Date.now();

@@ -106,6 +106,7 @@ describe('StrategyHubComponent', () => {
       },
     ]),
     createCampaign: jest.fn().mockResolvedValue(undefined),
+    updateCampaign: jest.fn().mockResolvedValue(undefined),
     deleteCampaign: jest.fn().mockResolvedValue(undefined),
     hasAudienceData: signal(true),
     getProjections: jest
@@ -122,6 +123,13 @@ describe('StrategyHubComponent', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    mockMarketingService.campaigns.set([]);
+    mockMarketingService.createCampaign.mockResolvedValue(undefined);
+    mockMarketingService.deleteCampaign.mockResolvedValue(undefined);
+    mockMarketingService.updateCampaign.mockResolvedValue(undefined);
+    mockProfileService.profile.set(mockProfile);
+
     await TestBed.configureTestingModule({
       imports: [StrategyHubComponent, NoopAnimationsModule],
       providers: [
@@ -237,14 +245,126 @@ describe('StrategyHubComponent', () => {
     expect(component.showCampaignForm()).toBe(true);
   });
 
-  it('should call deleteCampaign on service', async () => {
+  it('confirms before deleting a saved campaign', async () => {
+    const campaign = {
+      id: 'camp-123',
+      name: 'Test campaign',
+      status: 'Active',
+      startDate: new Date().toISOString(),
+      budget: 100,
+      targetAudience: 'Local fans',
+      goals: ['Pre-saves'],
+      platforms: ['Instagram'],
+      strategyLevel: 'Modern Professional',
+      metrics: {
+        reach: 0, impressions: 0, engagement: 0, conversions: 0,
+        spend: 0, roi: 0, ctr: 0, cpc: 0,
+      },
+    };
+    mockMarketingService.campaigns.set([campaign]);
+    const confirm = jest.spyOn(window, 'confirm').mockReturnValue(false);
+
     await component.deleteCampaign('camp-123');
-    expect(mockMarketingService.deleteCampaign).toHaveBeenCalledWith(
-      'camp-123'
-    );
+    expect(mockMarketingService.deleteCampaign).not.toHaveBeenCalled();
+
+    confirm.mockReturnValue(true);
+    await component.deleteCampaign('camp-123');
+    expect(mockMarketingService.deleteCampaign).toHaveBeenCalledWith('camp-123');
+    confirm.mockRestore();
+  });
+
+  it('renders real linked social and streaming metrics on the Social tab', () => {
+    component.setTab('social');
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(fixture.nativeElement.querySelector('[data-testid="strategy-social"]')).not.toBeNull();
+    expect(text).toContain('Reported followers');
+    expect(text).toContain('Monthly listeners');
+    expect(text).toContain('Spotify');
+    expect(text).not.toContain('SYSTEM MODULE RESTRICTED');
+  });
+
+  it('shows profile-link instructions when no social or streaming accounts exist', async () => {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [StrategyHubComponent, NoopAnimationsModule],
+      providers: [
+        provideRouter([]),
+        { provide: AiService, useValue: mockAiService },
+        {
+          provide: MarketingService,
+          useValue: { ...mockMarketingService, socialData: signal([]), streamingData: signal([]) },
+        },
+        { provide: UserProfileService, useValue: mockProfileService },
+        { provide: API_KEY_TOKEN, useValue: 'TEST_KEY' },
+      ],
+    }).compileComponents();
+
+    const emptyFixture = TestBed.createComponent(StrategyHubComponent);
+    emptyFixture.componentInstance.setTab('social');
+    emptyFixture.detectChanges();
+    const text = (emptyFixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('No social accounts linked');
+    expect(text).toContain('No streaming accounts linked');
+    expect(emptyFixture.nativeElement.querySelector('a[routerLink="/profile"]')).not.toBeNull();
+  });
+
+  it('renders the campaign view and creates a profile-backed draft from validated inputs', async () => {
+    mockMarketingService.campaigns.set([]);
+    component.setTab('campaigns');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="strategy-campaigns"]')).not.toBeNull();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('No campaigns yet');
+
+    component.newCampaign.set({ name: '  Spring single  ', budget: 250, platforms: ['TikTok'], targetAudience: '  Existing fans ', goals: ['Pre-saves', ''], strategyLevel: 'Modern Professional' });
+    component.showCampaignForm.set(true);
+    fixture.detectChanges();
+    await component.saveCampaign();
+
+    expect(mockMarketingService.createCampaign).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Spring single', budget: 250, status: 'Draft', platforms: ['TikTok'],
+      targetAudience: 'Existing fans', goals: ['Pre-saves'],
+    }));
+    expect(component.showCampaignForm()).toBe(false);
+    expect(component.newCampaign().name).toBe('');
+  });
+
+  it('rejects invalid campaign budgets without mutating the profile', async () => {
+    component.newCampaign.set({ name: 'Campaign', budget: -1, platforms: ['Instagram'] });
+    await component.saveCampaign();
+    expect(mockMarketingService.createCampaign).not.toHaveBeenCalled();
+  });
+
+  it('keeps a failed campaign draft and shows a retryable error', async () => {
+    mockMarketingService.createCampaign.mockRejectedValueOnce(new Error('disk full'));
+    component.newCampaign.set({ name: 'Keep this draft', budget: 10, platforms: ['Instagram'] });
+    component.showCampaignForm.set(true);
+
+    await component.saveCampaign();
+
+    expect(component.newCampaign().name).toBe('Keep this draft');
+    expect(component.showCampaignForm()).toBe(true);
+    expect(component.campaignError()).toContain('try again');
+    expect(component.isSavingCampaign()).toBe(false);
+  });
+
+  it('toggles only active/paused campaigns and leaves terminal statuses untouched', async () => {
+    const campaign = {
+      id: 'camp-state', name: 'Release', status: 'Active', startDate: new Date().toISOString(),
+      budget: 50, targetAudience: 'Fans', goals: [], platforms: ['Instagram'],
+      strategyLevel: 'Modern Professional',
+      metrics: { reach: 0, impressions: 0, engagement: 0, conversions: 0, spend: 0, roi: 0, ctr: 0, cpc: 0 },
+    };
+    await component.toggleCampaignStatus(campaign as any);
+    expect(mockMarketingService.updateCampaign).toHaveBeenCalledWith(expect.objectContaining({ status: 'Paused' }));
+    mockMarketingService.updateCampaign.mockClear();
+    await component.toggleCampaignStatus({ ...campaign, status: 'Completed' } as any);
+    expect(mockMarketingService.updateCampaign).not.toHaveBeenCalled();
   });
 
   it('should not save campaign if name is empty', async () => {
+    mockMarketingService.createCampaign.mockClear();
     component.newCampaign.set({
       name: '',
       budget: 0,
@@ -286,7 +406,7 @@ describe('StrategyHubComponent', () => {
   });
 
   it('should load viral hooks from AI service', () => {
-    expect(component.viralHooks).toEqual(['Hook 1', 'Hook 2']);
+    expect(component.viralHooks()).toEqual(['Hook 1', 'Hook 2']);
   });
 
   it('should load upgrade recommendations from AI service', () => {

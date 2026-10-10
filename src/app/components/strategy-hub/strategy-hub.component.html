@@ -41,6 +41,7 @@
         </button>
         <div class="h-10 w-px bg-white/10 hidden md:block"></div>
         <nav
+          aria-label="Strategy views"
           class="flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10"
         >
           @for (
@@ -48,11 +49,13 @@
             track tab
           ) {
             <button
+              type="button"
+              [attr.aria-pressed]="activeHubTab() === tab"
               (click)="setTab(tab)"
               [class.bg-white]="activeHubTab() === tab"
               [class.text-black]="activeHubTab() === tab"
               [class.text-white]="activeHubTab() !== tab"
-              class="px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all"
+              class="px-3 md:px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all"
             >
               {{ tab }}
             </button>
@@ -133,6 +136,14 @@
                 </div>
               }
             </div>
+            <section class="space-y-3" aria-label="Artist-specific campaign hooks">
+              <h3 class="text-[10px] font-black text-brand-primary uppercase tracking-[0.5em]">VIRAL HOOK STARTERS</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @for (hook of viralHooks(); track hook) {
+                  <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-xs text-silver-dim leading-relaxed" data-testid="strategy-viral-hook">{{ hook }}</article>
+                }
+              </div>
+            </section>
 
             <!-- INDUSTRY INTEL SEARCH -->
             <div
@@ -143,27 +154,25 @@
               >
                 INDUSTRY DEEP-SEARCH
               </h3>
-              <div class="flex gap-2">
+              <div class="flex flex-col sm:flex-row gap-2">
                 <input
                   #searchInput
                   type="text"
                   placeholder="EXACT INTEL REQUIRED (e.g. 'Spotify Algorithmic Triggers')..."
                   class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-brand-primary/50"
-                  (keyup.enter)="
-                    aiService.industryDeepSearch(searchInput.value);
-                    searchInput.value = ''
-                  "
+                  [disabled]="isSearchingIndustry()"
+                  (keyup.enter)="submitIndustrySearch(searchInput)"
                 />
                 <button
-                  (click)="
-                    aiService.industryDeepSearch(searchInput.value);
-                    searchInput.value = ''
-                  "
-                  class="bg-brand-primary text-black px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all"
+                  type="button"
+                  [disabled]="!searchInput.value.trim() || isSearchingIndustry()"
+                  (click)="submitIndustrySearch(searchInput)"
+                  class="bg-brand-primary disabled:opacity-40 disabled:cursor-not-allowed text-black px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all"
                 >
-                  SEARCH
+                  {{ isSearchingIndustry() ? 'SEARCHING…' : 'SEARCH' }}
                 </button>
               </div>
+              @if (industrySearchError()) { <p role="alert" class="text-xs text-amber-300">{{ industrySearchError() }}</p> }
 
               @if (aiService.industryIntelligence().length) {
                 <div
@@ -292,7 +301,7 @@
                   >
                     {{ rec.title }}
                   </h4>
-                  <p class="text-11px] text-silver-dim leading-relaxed">
+                  <p class="text-[11px] text-silver-dim leading-relaxed">
                     {{ rec.description }}
                   </p>
                 </div>
@@ -325,12 +334,14 @@
                 <div class="flex flex-col gap-3">
                   <button
                     type="button"
+                    [disabled]="isRecommendationPending(rec.id)"
                     [attr.data-testid]="'strategy-dismiss-' + rec.id"
                     (click)="dismissRecommendation(rec)"
                     class="text-xs text-white/70 hover:text-white"
                   >Dismiss recommendation</button>
                   @if (rec.state === 'locked' || !rec.state) {
                     <button
+                      type="button"
                       (click)="aiService.unlockUpgrade(rec.id)"
                       [disabled]="aiService.isProcessing()"
                       class="w-full py-4 bg-brand-primary text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all shadow-[0_0_20px_rgba(255,62,62,0.2)]"
@@ -343,6 +354,7 @@
                     </button>
                   } @else {
                     <button
+                      type="button"
                       (click)="focusRecommendation(rec)"
                       class="w-full py-4 bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-black transition-all border border-white/10"
                     >
@@ -350,6 +362,7 @@
                     </button>
                   }
                 </div>
+                @if (recommendationError()) { <p role="alert" class="text-xs text-amber-300">{{ recommendationError() }}</p> }
               </div>
             }
           </div>
@@ -401,6 +414,90 @@
           </div>
         </section>
       </div>
+
+      <!-- CAMPAIGNS TAB -->
+      <section *ngSwitchCase="'campaigns'" class="space-y-8" data-testid="strategy-campaigns">
+        <header class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <p class="text-[9px] text-brand-primary uppercase tracking-[0.35em] font-black">Campaign operations</p>
+            <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter">Campaigns</h2>
+            <p class="mt-2 text-xs text-silver-dim">Plans are saved to your artist profile. Performance metrics remain zero until reported by a real source.</p>
+          </div>
+          <button
+            type="button"
+            data-testid="strategy-new-campaign"
+            (click)="showCampaignForm.update((open) => !open)"
+            class="min-h-11 px-5 py-3 rounded-xl bg-brand-primary text-black text-[10px] font-black uppercase tracking-widest hover:bg-white transition-colors"
+          >{{ showCampaignForm() ? 'Close form' : 'New campaign' }}</button>
+        </header>
+
+        @if (showCampaignForm()) {
+          <form class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/[0.04] border border-white/10 rounded-3xl p-5 md:p-7" (ngSubmit)="saveCampaign()">
+            <label class="space-y-2 text-[9px] text-silver-dim uppercase tracking-widest font-black">
+              Campaign name
+              <input required maxlength="100" [ngModel]="newCampaign().name || ''" (ngModelChange)="setCampaignName($event)" name="campaignName" data-testid="strategy-campaign-name" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white normal-case tracking-normal" placeholder="Single release rollout" />
+            </label>
+            <label class="space-y-2 text-[9px] text-silver-dim uppercase tracking-widest font-black">
+              Budget
+              <input type="number" min="0" step="0.01" [ngModel]="newCampaign().budget ?? 0" (ngModelChange)="setCampaignBudget($event)" name="campaignBudget" data-testid="strategy-campaign-budget" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white normal-case tracking-normal" />
+            </label>
+            <label class="space-y-2 text-[9px] text-silver-dim uppercase tracking-widest font-black">
+              Platform
+              <select [ngModel]="newCampaign().platforms?.[0] || 'Instagram'" (ngModelChange)="setCampaignPlatform($event)" name="campaignPlatform" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white normal-case tracking-normal">
+                @for (platform of campaignPlatforms; track platform) { <option [value]="platform">{{ platform }}</option> }
+              </select>
+            </label>
+            <label class="space-y-2 text-[9px] text-silver-dim uppercase tracking-widest font-black">
+              Target audience
+              <input maxlength="160" [ngModel]="newCampaign().targetAudience || ''" (ngModelChange)="setCampaignAudience($event)" name="campaignAudience" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white normal-case tracking-normal" placeholder="Who is this for?" />
+            </label>
+            <label class="md:col-span-2 space-y-2 text-[9px] text-silver-dim uppercase tracking-widest font-black">
+              Goals (comma-separated)
+              <input [ngModel]="newCampaign().goals?.join(', ') || ''" (ngModelChange)="setCampaignGoals($event)" name="campaignGoals" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white normal-case tracking-normal" placeholder="Pre-saves, show attendance, video views" />
+            </label>
+            @if (campaignError()) { <p role="alert" class="md:col-span-2 text-sm text-amber-300">{{ campaignError() }}</p> }
+            <div class="md:col-span-2 flex justify-end">
+              <button type="submit" data-testid="strategy-save-campaign" [disabled]="!canSaveCampaign() || isSavingCampaign()" class="min-h-11 px-6 py-3 rounded-xl bg-brand-primary text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed">{{ isSavingCampaign() ? 'Saving…' : 'Save campaign' }}</button>
+            </div>
+          </form>
+        }
+
+        @if (!campaigns().length) {
+          <div class="rounded-3xl border border-dashed border-white/15 bg-white/[0.02] p-8 md:p-12 text-center">
+            <p class="text-sm font-black text-white uppercase">No campaigns yet</p>
+            <p class="mt-2 text-xs text-silver-dim">Create a plan when you have a release, audience, and goal in mind. No results are projected as actual performance.</p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            @for (campaign of campaigns(); track campaign.id) {
+              <article class="rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6 space-y-5" [attr.data-testid]="'strategy-campaign-' + campaign.id">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div class="min-w-0"><p class="text-[9px] text-brand-primary uppercase tracking-widest font-black">{{ campaign.platforms?.join(' · ') || 'No platform' }}</p><h3 class="mt-1 text-lg text-white font-black">{{ campaign.name }}</h3></div>
+                  <span class="px-3 py-1 rounded-full text-[9px] uppercase tracking-widest border" [class.border-brand-primary/40]="campaign.status === 'Active'" [class.text-brand-primary]="campaign.status === 'Active'" [class.border-amber-400/30]="campaign.status === 'Paused'" [class.text-amber-300]="campaign.status === 'Paused'" [class.border-white/15]="campaign.status !== 'Active' && campaign.status !== 'Paused'" [class.text-silver-dim]="campaign.status !== 'Active' && campaign.status !== 'Paused'">{{ campaign.status }}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                  <div><span class="block text-[8px] text-silver-dim uppercase">Budget</span><span class="text-white">{{ campaign.budget | currency }}</span></div>
+                  <div><span class="block text-[8px] text-silver-dim uppercase">Audience</span><span class="text-white">{{ campaign.targetAudience || 'Not specified' }}</span></div>
+                  <div class="col-span-2"><span class="block text-[8px] text-silver-dim uppercase">Goals</span><span class="text-white">{{ campaign.goals?.length ? campaign.goals.join(' · ') : 'No goals recorded' }}</span></div>
+                </div>
+                @if (hasReportedCampaignMetrics(campaign)) {
+                  <div class="grid grid-cols-2 gap-3 border-t border-white/10 pt-4 text-xs">
+                    <span>Reach <b class="text-white">{{ formatReportedMetric(campaign.metrics?.reach ?? 0) }}</b></span><span>Conversions <b class="text-white">{{ formatReportedMetric(campaign.metrics?.conversions ?? 0) }}</b></span>
+                  </div>
+                } @else {
+                  <p class="border-t border-white/10 pt-4 text-[10px] text-silver-dim">No reported performance metrics yet.</p>
+                }
+                <div class="flex flex-wrap gap-2">
+                  @if (campaign.status === 'Active' || campaign.status === 'Paused') {
+                    <button type="button" (click)="toggleCampaignStatus(campaign)" class="min-h-10 px-3 rounded-lg border border-white/10 text-[9px] text-white uppercase tracking-widest">{{ campaign.status === 'Active' ? 'Pause' : 'Resume' }}</button>
+                  }
+                  <button type="button" (click)="deleteCampaign(campaign.id)" class="min-h-10 px-3 rounded-lg border border-red-400/20 text-[9px] text-red-200 uppercase tracking-widest">Delete</button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
 
       <!-- ANALYTICS TAB -->
       <div *ngSwitchCase="'analytics'" class="space-y-10">
@@ -531,6 +628,47 @@
           </div>
         </section>
       </div>
+
+      <!-- SOCIAL TAB -->
+      <section *ngSwitchCase="'social'" class="space-y-8" data-testid="strategy-social">
+        <header>
+          <p class="text-[9px] text-brand-primary uppercase tracking-[0.35em] font-black">Artist accounts</p>
+          <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter">Social & streaming</h2>
+          <p class="mt-2 max-w-2xl text-xs text-silver-dim">Only linked account data is shown. Connect or refresh accounts from the Online Fingerprint pane; this dashboard does not estimate missing metrics.</p>
+        </header>
+        <section aria-labelledby="strategy-social-heading" class="space-y-4">
+          <h3 id="strategy-social-heading" class="text-sm font-black text-white uppercase tracking-widest">Social platforms</h3>
+          @if (!socialStats().length) {
+            <div class="rounded-3xl border border-dashed border-white/15 p-8 text-center"><p class="text-sm text-white font-bold">No social accounts linked</p><p class="mt-2 text-xs text-silver-dim">Link Instagram, TikTok, or YouTube in your profile to show audience data here.</p><a routerLink="/profile" class="inline-flex mt-4 text-xs text-brand-primary underline">Open artist profile</a></div>
+          } @else {
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              @for (platform of socialStats(); track platform.platform) {
+                <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-5" [attr.data-testid]="'strategy-social-' + platform.platform">
+                  <div class="flex items-start justify-between gap-3"><h4 class="text-sm font-black text-white">{{ platform.platform }}</h4><span class="text-[8px] text-silver-dim">{{ formatPlatformDate(platform.lastUpdated) }}</span></div>
+                  <p class="mt-5 text-2xl font-black text-white">{{ formatNumber(platform.followers) }}</p><p class="text-[8px] text-silver-dim uppercase tracking-widest">Reported followers</p>
+                  <p class="mt-3 text-xs text-brand-primary">{{ platform.engagementRate > 0 ? platform.engagementRate + '% reported engagement' : 'No engagement data reported' }}</p>
+                </article>
+              }
+            </div>
+          }
+        </section>
+        <section aria-labelledby="strategy-streaming-heading" class="space-y-4">
+          <h3 id="strategy-streaming-heading" class="text-sm font-black text-white uppercase tracking-widest">Streaming platforms</h3>
+          @if (!streamingStats().length) {
+            <div class="rounded-3xl border border-dashed border-white/15 p-8 text-center"><p class="text-sm text-white font-bold">No streaming accounts linked</p><p class="mt-2 text-xs text-silver-dim">Link Spotify, Apple Music, or SoundCloud in your profile to report listening metrics.</p><a routerLink="/profile" class="inline-flex mt-4 text-xs text-brand-primary underline">Open artist profile</a></div>
+          } @else {
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              @for (platform of streamingStats(); track platform.platform) {
+                <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-5" [attr.data-testid]="'strategy-streaming-' + platform.platform">
+                  <div class="flex items-start justify-between gap-3"><h4 class="text-sm font-black text-white">{{ platform.platform }}</h4><span class="text-[8px] text-silver-dim">{{ formatPlatformDate(platform.lastUpdated) }}</span></div>
+                  <div class="mt-5 grid grid-cols-2 gap-3"><div><p class="text-xl font-black text-white">{{ formatNumber(platform.monthlyListeners) }}</p><p class="text-[8px] text-silver-dim uppercase">Monthly listeners</p></div><div><p class="text-xl font-black text-white">{{ formatNumber(platform.totalStreams) }}</p><p class="text-[8px] text-silver-dim uppercase">Total streams</p></div></div>
+                  <p class="mt-3 text-[10px] text-silver-dim">{{ platform.playlistAdds > 0 ? formatNumber(platform.playlistAdds) + ' reported playlist adds' : 'No playlist-add data reported' }}</p>
+                </article>
+              }
+            </div>
+          }
+        </section>
+      </section>
 
       <!-- FALLBACK -->
       <div

@@ -9,12 +9,16 @@ import { UIService } from '../../services/ui.service';
 import { MarketingCampaign } from '../../types/marketing.types';
 import { StrategicTask, UpgradeRecommendation } from '../../types/ai.types';
 
-type StrategyTab =
-  | 'overview'
-  | 'campaigns'
-  | 'analytics'
-  | 'outreach'
-  | 'social';
+type StrategyTab = 'overview' | 'campaigns' | 'analytics' | 'social';
+type CampaignPlatform = MarketingCampaign['platforms'][number];
+
+const CAMPAIGN_PLATFORMS: CampaignPlatform[] = [
+  'Instagram',
+  'TikTok',
+  'Facebook',
+  'Spotify',
+  'YouTube',
+];
 
 @Component({
   selector: 'app-strategy-hub',
@@ -39,7 +43,7 @@ export class StrategyHubComponent implements OnInit {
   intelligenceBriefs = this.aiService.intelligenceBriefs;
   marketAlerts = this.aiService.marketAlerts;
 
-  viralHooks = this.aiService.getViralHooks();
+  viralHooks = computed(() => this.aiService.getViralHooks());
 
   upgradeRecs = computed(() =>
     this.aiService.getUpgradeRecommendations()
@@ -75,11 +79,25 @@ export class StrategyHubComponent implements OnInit {
     name: '',
     budget: 0,
     status: 'Draft',
+    targetAudience: '',
+    goals: [],
     platforms: ['Instagram'],
     strategyLevel: 'Modern Professional',
   });
+  readonly campaignPlatforms = CAMPAIGN_PLATFORMS;
+  isSavingCampaign = signal(false);
+  campaignError = signal('');
+  recommendationError = signal('');
+  pendingRecommendationIds = signal<string[]>([]);
+  canSaveCampaign = computed(() => {
+    const draft = this.newCampaign();
+    const budget = Number(draft.budget ?? 0);
+    return Boolean(draft.name?.trim()) && Number.isFinite(budget) && budget >= 0;
+  });
 
   showCampaignForm = signal(false);
+  isSearchingIndustry = signal(false);
+  industrySearchError = signal('');
 
   adSpend = signal(100);
 
@@ -94,8 +112,23 @@ export class StrategyHubComponent implements OnInit {
     this.refreshStrategicIntelligence();
   }
 
-  refreshStrategicIntelligence() {
+  refreshStrategicIntelligence(): void {
     this.strategicTasks.set(this.aiService.getDynamicChecklist());
+  }
+
+  async submitIndustrySearch(input: HTMLInputElement): Promise<void> {
+    const query = input.value.trim();
+    if (!query || this.isSearchingIndustry()) return;
+    this.industrySearchError.set('');
+    this.isSearchingIndustry.set(true);
+    try {
+      await this.aiService.industryDeepSearch(query);
+      input.value = '';
+    } catch {
+      this.industrySearchError.set('Search could not be completed. Your query is still here; try again.');
+    } finally {
+      this.isSearchingIndustry.set(false);
+    }
   }
 
   toggleTask(id: string) {
@@ -104,18 +137,90 @@ export class StrategyHubComponent implements OnInit {
     );
   }
 
-  async saveCampaign() {
-    if (this.newCampaign().name) {
+  setCampaignName(name: string): void {
+    this.newCampaign.update((campaign) => ({ ...campaign, name }));
+  }
+
+  setCampaignBudget(budget: number): void {
+    this.newCampaign.update((campaign) => ({ ...campaign, budget }));
+  }
+
+  setCampaignPlatform(platform: string): void {
+    if (!CAMPAIGN_PLATFORMS.includes(platform as CampaignPlatform)) return;
+    this.newCampaign.update((campaign) => ({
+      ...campaign,
+      platforms: [platform as CampaignPlatform],
+    }));
+  }
+
+  setCampaignAudience(targetAudience: string): void {
+    this.newCampaign.update((campaign) => ({ ...campaign, targetAudience }));
+  }
+
+  setCampaignGoals(goals: string): void {
+    this.newCampaign.update((campaign) => ({
+      ...campaign,
+      goals: goals.split(',').map((goal) => goal.trim()).filter(Boolean),
+    }));
+  }
+
+  hasReportedCampaignMetrics(campaign: MarketingCampaign): boolean {
+    return Object.values(campaign.metrics ?? {}).some(
+      (value) => Number.isFinite(value) && value !== 0
+    );
+  }
+
+  formatReportedMetric(value: number): string {
+    return Number.isFinite(value) && value > 0 ? this.formatNumber(value) : 'Not reported';
+  }
+
+  formatReportedPercent(value: number): string {
+    return Number.isFinite(value) && value > 0 ? `${value}%` : 'Not reported';
+  }
+
+  formatMetricsDate(timestamp: number): string {
+    return Number.isFinite(timestamp) && timestamp > 0
+      ? new Date(timestamp).toLocaleDateString()
+      : 'Awaiting metrics';
+  }
+
+  formatPlatformDate(timestamp: number): string {
+    return Number.isFinite(timestamp) && timestamp > 0
+      ? new Date(timestamp).toLocaleDateString()
+      : 'Date not reported';
+  }
+
+  formatEngagementRate(rate: number): string {
+    return Number.isFinite(rate) && rate > 0 ? `${rate}% reported engagement` : 'No engagement data reported';
+  }
+
+  formatPlaylistAdds(adds: number): string {
+    return Number.isFinite(adds) && adds > 0
+      ? `${this.formatNumber(adds)} reported playlist adds`
+      : 'No playlist-add data reported';
+  }
+
+  async saveCampaign(): Promise<void> {
+    const draft = this.newCampaign();
+    const name = draft.name?.trim() ?? '';
+    const budget = Number(draft.budget ?? 0);
+    const platforms = (draft.platforms || []).filter((platform) =>
+      CAMPAIGN_PLATFORMS.includes(platform)
+    );
+    if (!name || !Number.isFinite(budget) || budget < 0 || !platforms.length || this.isSavingCampaign()) return;
+
+    this.campaignError.set('');
+    this.isSavingCampaign.set(true);
+    try {
       await this.marketingService.createCampaign({
-        name: this.newCampaign().name!,
-        budget: this.newCampaign().budget || 0,
-        status: 'Active',
+        name,
+        budget,
+        status: 'Draft',
         startDate: new Date().toISOString(),
-        targetAudience: 'Global Listeners',
-        goals: ['Brand Awareness'],
-        platforms: this.newCampaign().platforms || ['Instagram'],
-        strategyLevel:
-          this.newCampaign().strategyLevel || 'Modern Professional',
+        targetAudience: draft.targetAudience?.trim() || 'Not specified',
+        goals: draft.goals?.filter(Boolean) ?? [],
+        platforms,
+        strategyLevel: draft.strategyLevel || 'Modern Professional',
         metrics: {
           reach: 0,
           impressions: 0,
@@ -131,43 +236,91 @@ export class StrategyHubComponent implements OnInit {
         name: '',
         budget: 0,
         status: 'Draft',
+        targetAudience: '',
+        goals: [],
         platforms: ['Instagram'],
         strategyLevel: 'Modern Professional',
       });
       this.showCampaignForm.set(false);
+    } catch {
+      this.campaignError.set('Campaign could not be saved. Your draft is still here; try again.');
+    } finally {
+      this.isSavingCampaign.set(false);
     }
   }
 
-  async deleteCampaign(id: string) {
-    await this.marketingService.deleteCampaign(id);
+  async toggleCampaignStatus(campaign: MarketingCampaign): Promise<void> {
+    if (campaign.status === 'Completed') return;
+    const status = campaign.status === 'Active' ? 'Paused' : 'Active';
+    try {
+      await this.marketingService.updateCampaign({ ...campaign, status });
+    } catch {
+      this.campaignError.set('Campaign status could not be updated. Try again.');
+    }
   }
 
-  async acquireUpgrade(rec: UpgradeRecommendation) {
-    await this.profileService.acquireUpgrade({
-      title: rec.title,
-      type: rec.type,
-      recommendationId: rec.id,
-    });
+  async deleteCampaign(id: string): Promise<void> {
+    const campaign = this.campaigns().find((entry) => entry.id === id);
+    if (!campaign || typeof window === 'undefined') return;
+    if (!window.confirm(`Delete campaign “${campaign.name}”? This cannot be undone.`)) return;
+    this.campaignError.set('');
+    try {
+      await this.marketingService.deleteCampaign(id);
+    } catch {
+      this.campaignError.set('Campaign could not be deleted. Try again.');
+    }
   }
 
-  async saveRecommendation(rec: UpgradeRecommendation) {
-    await this.profileService.setRecommendationState(rec.id, 'saved', rec);
+  private async runRecommendationAction(
+    rec: UpgradeRecommendation,
+    action: () => Promise<void>,
+  ): Promise<void> {
+    if (this.pendingRecommendationIds().includes(rec.id)) return;
+    this.recommendationError.set('');
+    this.pendingRecommendationIds.update((ids) => [...ids, rec.id]);
+    try {
+      await action();
+    } catch {
+      this.recommendationError.set(`Could not update “${rec.title}”. Try again.`);
+    } finally {
+      this.pendingRecommendationIds.update((ids) => ids.filter((id) => id !== rec.id));
+    }
   }
 
-  async dismissRecommendation(rec: UpgradeRecommendation) {
-    await this.profileService.setRecommendationState(
-      rec.id,
-      'not-relevant',
-      rec
+  isRecommendationPending(id: string): boolean {
+    return this.pendingRecommendationIds().includes(id);
+  }
+
+  async acquireUpgrade(rec: UpgradeRecommendation): Promise<void> {
+    await this.runRecommendationAction(rec, () =>
+      this.profileService.acquireUpgrade({
+        title: rec.title,
+        type: rec.type,
+        recommendationId: rec.id,
+      }),
     );
   }
 
-  async completeRecommendation(rec: UpgradeRecommendation) {
-    await this.profileService.completeUpgrade({
-      title: rec.title,
-      type: rec.type,
-      recommendationId: rec.id,
-    });
+  async saveRecommendation(rec: UpgradeRecommendation): Promise<void> {
+    await this.runRecommendationAction(rec, () =>
+      this.profileService.setRecommendationState(rec.id, 'saved', rec),
+    );
+  }
+
+  async dismissRecommendation(rec: UpgradeRecommendation): Promise<void> {
+    await this.runRecommendationAction(rec, () =>
+      this.profileService.setRecommendationState(rec.id, 'not-relevant', rec),
+    );
+  }
+
+  async completeRecommendation(rec: UpgradeRecommendation): Promise<void> {
+    await this.runRecommendationAction(rec, () =>
+      this.profileService.completeUpgrade({
+        title: rec.title,
+        type: rec.type,
+        recommendationId: rec.id,
+      }),
+    );
   }
 
   focusRecommendation(rec: UpgradeRecommendation) {
@@ -247,16 +400,9 @@ export class StrategyHubComponent implements OnInit {
     return n.toString();
   }
 
-  setTab(tab: string) {
-    const validTabs: StrategyTab[] = [
-      'overview',
-      'campaigns',
-      'analytics',
-      'outreach',
-      'social',
-    ];
-    if (validTabs.includes(tab as StrategyTab)) {
-      this.activeHubTab.set(tab as StrategyTab);
+  setTab(tab: string): void {
+    if (tab === 'overview' || tab === 'campaigns' || tab === 'analytics' || tab === 'social') {
+      this.activeHubTab.set(tab);
     }
   }
 }
