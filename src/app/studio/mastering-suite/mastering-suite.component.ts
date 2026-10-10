@@ -63,7 +63,10 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   public uiService = inject(UIService);
 
   // ── Sprint B1 Phase 2 — real-render mastering meters ────────────
-  renderedPeak = signal<number | null>(null);
+  /** Rendered true peak in dBFS (4x oversampled), not the sample peak. */
+  renderedTruePeak = signal<number | null>(null);
+  renderedLra = signal<number | null>(null);
+  renderedCorrelation = signal<number | null>(null);
   renderedLufs = signal<number | null>(null);
   renderedRms = signal<number | null>(null);
   renderedDuration = signal<number | null>(null);
@@ -107,16 +110,18 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       const polished = await this.exportService.applySmuvePolish(raw);
       this.renderedBufferRef = polished;
       const stats = this.exportService.analyzeBuffer(polished);
-      this.renderedPeak.set(stats.peakDb);
+      this.renderedTruePeak.set(stats.truePeakDb);
       this.renderedLufs.set(stats.lufs);
       this.renderedRms.set(stats.rmsDb);
+      this.renderedLra.set(stats.lra);
+      this.renderedCorrelation.set(stats.correlation);
       this.renderedDuration.set(stats.durationSec);
       const enabled = this.pluginStore.catalog
         .filter((p) => this.pluginStore.isEnabled(p.id))
         .map((p) => p.name);
       this.renderedPluginCount.set(enabled.length);
       this.masteringRoast.set(
-        `Real render done · ${stats.durationSec}s · peak ${stats.peakDb} dBFS · ${stats.lufs} LUFS${enabled.length ? " · chain: " + enabled.join(" → ") : ""}`,
+        `Real render done · ${stats.durationSec}s · true peak ${stats.truePeakDb} dBFS · ${stats.lufs} LUFS · LRA ${stats.lra} LU · correlation ${stats.correlation}${enabled.length ? " · chain: " + enabled.join(" → ") : ""}`,
       );
       this.smartAssistSuggestion.set(
         enabled.length
@@ -199,15 +204,32 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     },
   ]);
 
+  // Every reading below is measured by the shared BS.1770 meter. They used to
+  // be a fake pair of constants (LRA 6.2, correlation 0.82) and a sample peak
+  // labelled "True Peak", which told the artist nothing about their master.
   lufsIntegrated = this.audioEngine.outputLufs;
-  truePeak = this.audioEngine.outputPeak;
-  lra = signal(6.2);
-  correlation = signal(0.82); // This could be wired to a real phase correlation node if added
+  truePeak = this.audioEngine.outputTruePeak;
+  lra = this.audioEngine.outputLra;
+  correlation = this.audioEngine.outputCorrelation;
   targetLufs = signal(-14);
   safeCeiling = signal(-0.1);
   isProcessing = signal(false);
   smartAssistSuggestion = signal<string>("");
   eqMaskingHint = signal<string>("");
+
+  /**
+   * Meter-bar fills on a fixed scale, so the bar reflects the reading instead
+   * of a hard-coded 70 / 90 that never moved.
+   */
+  lufsBarPercent = (lufs: number): number =>
+    Number.isFinite(lufs)
+      ? Math.max(0, Math.min(100, ((lufs + 40) / 40) * 100))
+      : 0;
+
+  peakBarPercent = (db: number): number =>
+    Number.isFinite(db)
+      ? Math.max(0, Math.min(100, ((db + 30) / 30) * 100))
+      : 0;
   /** Track which preset is currently selected (for visual highlight). */
   activePresetId = signal<string | null>(null);
 

@@ -32,6 +32,8 @@ describe("MixerComponent", () => {
         }),
       },
       outputLufs: signal(-14),
+      /** Real L/R correlation from the engine's stereo metering tap. */
+      outputCorrelation: signal(0),
       getTrackOutput: () => ({ connect: () => {} }),
       connectSidechain,
       disconnectSidechain,
@@ -88,6 +90,24 @@ describe("MixerComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it('reads the live phase correlation from the engine instead of faking it', () => {
+    // It used to be a permanent "UNAVAILABLE" with a hard-coded 0.
+    expect(component.phaseCorrelationAvailable).toBe(true);
+    mockAudioSession.engine.outputCorrelation.set(-0.4);
+    expect(component.phaseCorrelation()).toBe(-0.4);
+    // -0.4 reads as out of phase, with the red classifier colour.
+    expect(component.phaseCorrelationLabel()).toBe("OUT OF PHASE");
+    expect(component.phaseCorrelationColor()).toBe("#ff3d6e");
+  });
+
+  it('shows each AUX send as a real dB readout', () => {
+    // The Sends view has always claimed dB readouts; now it has them.
+    expect(component.sendDb(1)).toBe("0.0 dB");
+    expect(component.sendDb(0.5)).toBe("−6.0 dB");
+    expect(component.sendDb(0)).toBe("−∞ dB");
+    expect(component.sendDb(1.5)).toBe("+3.5 dB");
   });
 
   it('reuses per-track meter buffers across visual updates', () => {

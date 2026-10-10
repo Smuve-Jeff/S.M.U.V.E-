@@ -12,6 +12,11 @@ import { firstValueFrom } from 'rxjs';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { StemSeparationService, Stems } from './stem-separation.service';
 import { DynamicEffectsRack } from '../studio/effects/dynamic-effects-rack';
+import {
+  LoudnessMeter,
+  phaseCorrelation,
+  truePeakDb,
+} from './loudness-meter';
 
 export type DeckId = 'A' | 'B';
 
@@ -350,14 +355,26 @@ export class AudioEngineService {
   public quantumSaturation = this.ctx.createWaveShaper();
   public spectralExciter = this.ctx.createBiquadFilter();
   public subAtomicEnhancer = this.ctx.createGain();
-  public lufsFilter1 = this.ctx.createBiquadFilter(); // K-weighting Stage 1
-  public lufsFilter2 = this.ctx.createBiquadFilter(); // K-weighting Stage 2
-  public lufsAnalyzer = this.ctx.createAnalyser();
+
+  /**
+   * The single master output node. Everything the artist hears passes through
+   * it exactly once, and every meter reads it as a parallel dead-end tap, so
+   * measurement can never change the sound.
+   */
+  public masterOutput = this.ctx.createGain();
+
+  /**
+   * Stereo metering tap. Left and right are kept separate because BS.1770
+   * sums the weighted energy of real channels; a single AnalyserNode would
+   * downmix to mono and lose that ~3 LU of channel sum.
+   */
+  public lufsSplitter = this.ctx.createChannelSplitter(2);
+  public lufsAnalyserLeft = this.ctx.createAnalyser();
+  public lufsAnalyserRight = this.ctx.createAnalyser();
 
   public masterAnalyser = this.ctx.createAnalyser();
   public masterEQ = this.ctx.createBiquadFilter();
   public masterShelf = this.ctx.createBiquadFilter();
-  public masterWidener = this.ctx.createStereoPanner();
 
   // ── Pro: Master stereo-width (M/S) network ────────────────
   // Everything that feeds masterGain (tracks, decks, reverb, sends) funnels
@@ -568,14 +585,19 @@ export class AudioEngineService {
     this.subAtomicEnhancer.connect(this.limiter);
     this.limiter.connect(this.masterEQ);
     this.masterEQ.connect(this.masterShelf);
-    this.masterShelf.connect(this.masterWidener);
+    this.masterShelf.connect(this.masterOutput);
 
-    // Metering Chain (K-Weighting for LUFS) — after the mastering stage
-    this.masterWidener.connect(this.lufsFilter1);
-    this.lufsFilter1.connect(this.lufsFilter2);
-    this.lufsFilter2.connect(this.lufsAnalyzer);
-    this.lufsAnalyzer.connect(this.masterAnalyser);
-    this.masterAnalyser.connect(this.ctx.destination);
+    // The master output feeds the speakers directly, and the meters observe it
+    // through parallel taps. The BS.1770 K-weighting used to be wired in series
+    // right here, which meant everything the artist heard was high-passed at
+    // 100 Hz and lifted +4 dB above 1.5 kHz while the bounced file was not —
+    // the mix being judged was not the mix being exported. K-weighting now
+    // lives inside the shared meter, where it cannot touch the audio path.
+    this.masterOutput.connect(this.ctx.destination);
+    this.masterOutput.connect(this.masterAnalyser);
+    this.masterOutput.connect(this.lufsSplitter);
+    this.lufsSplitter.connect(this.lufsAnalyserLeft, 0);
+    this.lufsSplitter.connect(this.lufsAnalyserRight, 1);
 
     // ── Master FX returns (Send A = reverb, Send B = tempo-synced echo) ──
     // The returns used to loop straight back into masterGain with nothing on
@@ -620,13 +642,13 @@ export class AudioEngineService {
       }
     });
 
-    // K-Weighting Filter Setup (ITU-R BS.1770-4)
-    this.lufsFilter1.type = 'highshelf';
-    this.lufsFilter1.frequency.value = 1500;
-    this.lufsFilter1.gain.value = 4;
-    this.lufsFilter2.type = 'highpass';
-    this.lufsFilter2.frequency.value = 100;
-    this.lufsFilter2.Q.value = 1;
+    // Metering tap sizing: an 85 ms analyser window at 48 kHz, so a 50 ms poll
+    // always holds a fresh contiguous hop for the loudness meter. A shorter
+    // window than the poll would silently miss frames.
+    for (const analyser of [this.lufsAnalyserLeft, this.lufsAnalyserRight]) {
+      analyser.fftSize = 4096;
+      analyser.smoothingTimeConstant = 0;
+    }
 
     this.limiter.threshold.setValueAtTime(-0.1, this.ctx.currentTime);
     this.limiter.ratio.setValueAtTime(20, this.ctx.currentTime);
@@ -783,7 +805,9 @@ export class AudioEngineService {
         // Wire the replacement first, then remove only the fallback edge.
         // A bare disconnect() can also sever future inserts or parallel taps.
         this._preMasterGain.connect(workletNode);
-        workletNode.connect(this.lufsFilter1);
+        // The worklet carries its own EQ/compression/limiting, so it feeds the
+        // master output directly — never a metering filter.
+        workletNode.connect(this.masterOutput);
         this._preMasterGain.disconnect(this.compressor);
 
         workletNode.port.postMessage({ slot: 'preset', payload: 'smuve' });
@@ -846,6 +870,9 @@ export class AudioEngineService {
     if (this.isPlaying()) return;
     this.isCountIn.set(true);
     this.isPlaying.set(true);
+    // Integrated loudness describes a program from where it began, so the
+    // measurement window restarts with the transport.
+    this.resetLoudnessMeasurement();
     const safeBars = Math.max(1, Math.floor(bars));
     this.countInRemainingSteps = this.stepsPerBeat() * 4 * safeBars;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
@@ -868,6 +895,7 @@ export class AudioEngineService {
     this.resume();
     if (this.isPlaying()) return;
     this.isPlaying.set(true);
+    this.resetLoudnessMeasurement();
     this.sendMidiStart();
     // Sprint A4 — fresh start resets the song-ended latching signal.
     this.songEnded.set(false);
@@ -2196,7 +2224,8 @@ export class AudioEngineService {
           }
         };
         sp.connect(this.ditherNode);
-        this.ditherNode!.connect(this.masterAnalyser);
+        // Dither belongs in the signal the listener hears, not in a meter tap.
+        this.ditherNode!.connect(this.masterOutput);
       } catch {
         /* ScriptProcessor deprecated in some contexts */
       }
@@ -3039,6 +3068,16 @@ export class AudioEngineService {
   readonly outputPeak = signal<number>(0);
   readonly outputRms = signal<number>(0);
   readonly outputLufs = signal<number>(-70);
+  /** Live L/R phase correlation in [-1, 1], measured from the metering tap. */
+  readonly outputCorrelation = signal<number>(0);
+  /** Live loudness range in LU, refreshed once a second (a slow statistic). */
+  readonly outputLra = signal<number>(0);
+  /**
+   * Live true peak in dBFS (4x oversampled, peak-hold since the transport
+   * started). The plain `outputPeak` is a sample peak and sits up to ~3 dB
+   * below this, so a ceiling checked against it can still clip on transcode.
+   */
+  readonly outputTruePeak = signal<number>(-120);
 
   readonly outputLevelDb = computed(() => {
     const p = Math.max(this.outputPeak(), 1e-6);
@@ -3167,9 +3206,36 @@ export class AudioEngineService {
 
   private _meteringBuffer = new Float32Array(1024);
   private _meteringRAF: number | null = null;
+
+  /**
+   * Live integrated loudness, measured by the same BS.1770 meter the offline
+   * render analysis uses — so the panel and the bounce cannot disagree.
+   * "Integrated" means since the transport started, so it resets on play.
+   */
+  private loudnessMeter: LoudnessMeter | null = null;
+  // Hoisted: allocating these per poll churned the GC on every frame.
+  private _lufsLeftBuffer = new Float32Array(0);
+  private _lufsRightBuffer = new Float32Array(0);
+  private _meterPollsSinceLra = 0;
+  private _liveTruePeakDb = -120;
+
+  /** Restart the integrated loudness window (call whenever playback starts). */
+  resetLoudnessMeasurement(): void {
+    this.loudnessMeter?.reset();
+    this._meterPollsSinceLra = 0;
+    this._liveTruePeakDb = -120;
+    this.outputLufs.set(-70);
+    this.outputCorrelation.set(0);
+    this.outputLra.set(0);
+    this.outputTruePeak.set(-120);
+  }
+
   private startOutputMetering(): void {
     if (typeof window === 'undefined') return;
     this._meteringBuffer = new Float32Array(this.masterAnalyser.fftSize);
+    this._lufsLeftBuffer = new Float32Array(this.lufsAnalyserLeft.fftSize);
+    this._lufsRightBuffer = new Float32Array(this.lufsAnalyserRight.fftSize);
+    this.loudnessMeter = new LoudnessMeter(this.ctx.sampleRate, 2);
     const FRAME_MS = 50;
     let last = 0;
     const tick = (now: number) => {
@@ -3177,7 +3243,8 @@ export class AudioEngineService {
         this._meteringRAF = requestAnimationFrame(tick);
         return;
       }
-      if (now - last < FRAME_MS) {
+      const elapsedMs = now - last;
+      if (elapsedMs < FRAME_MS) {
         this._meteringRAF = requestAnimationFrame(tick);
         return;
       }
@@ -3197,16 +3264,53 @@ export class AudioEngineService {
       this.outputPeak.set(Math.min(1.5, peak));
       this.outputRms.set(Math.min(1.5, rms));
 
-      // LUFS from K-weighted Analyser
-      const lufsData = new Float32Array(this.lufsAnalyzer.fftSize);
-      this.lufsAnalyzer.getFloatTimeDomainData(lufsData);
-      let lufsSumSq = 0;
-      for (let i = 0; i < lufsData.length; i++) {
-        lufsSumSq += lufsData[i] * lufsData[i];
+      // Loudness: hand the frames that actually arrived since the last poll to
+      // the shared meter, which applies K-weighting and the BS.1770 gates
+      // itself. The previous code read one K-weighted analyser frame and
+      // reported the momentary value as "integrated", with no gating at all.
+      //
+      // The span is measured from the clock rather than assumed: animation
+      // frames land 50-67 ms apart, so a fixed 50 ms slice would leave the
+      // remainder of every slower frame unmeasured and read persistently low.
+      // The analyser window (85 ms at 48 kHz) is longer than the poll, so a
+      // full span is always available; a stalled tab just measures less.
+      this.lufsAnalyserLeft.getFloatTimeDomainData(this._lufsLeftBuffer);
+      this.lufsAnalyserRight.getFloatTimeDomainData(this._lufsRightBuffer);
+      const span = Math.max(
+        1,
+        Math.min(
+          this._lufsLeftBuffer.length,
+          Math.round(this.ctx.sampleRate * (elapsedMs / 1000)),
+        ),
+      );
+      const from = this._lufsLeftBuffer.length - span;
+      const left = this._lufsLeftBuffer.subarray(from);
+      const right = this._lufsRightBuffer.subarray(from);
+      this.loudnessMeter?.push([left, right], left.length);
+
+      const integrated = this.loudnessMeter?.integratedLufs();
+      this.outputLufs.set(
+        integrated !== undefined && Number.isFinite(integrated)
+          ? Math.max(-70, Math.round(integrated * 10) / 10)
+          : -70,
+      );
+      this.outputCorrelation.set(
+        Math.round(phaseCorrelation(left, right) * 100) / 100,
+      );
+      // True peak is a peak-hold for the program, so it only ever grows until
+      // the transport restarts.
+      const hopTruePeak = truePeakDb([left, right]);
+      if (hopTruePeak > this._liveTruePeakDb) {
+        this._liveTruePeakDb = hopTruePeak;
+        this.outputTruePeak.set(Math.round(hopTruePeak * 10) / 10);
       }
-      const lufsMs = lufsSumSq / lufsData.length;
-      const lufs = 10 * Math.log10(lufsMs + 1e-10) - 0.691;
-      this.outputLufs.set(Math.max(-70, lufs));
+      // Loudness range is a slow statistic; once a second is plenty and keeps
+      // the percentile pass off the animation frame.
+      if (++this._meterPollsSinceLra >= 20) {
+        this._meterPollsSinceLra = 0;
+        const lra = this.loudnessMeter?.loudnessRangeLu() ?? 0;
+        this.outputLra.set(Math.round(lra * 10) / 10);
+      }
 
       this._meteringRAF = requestAnimationFrame(tick);
     };

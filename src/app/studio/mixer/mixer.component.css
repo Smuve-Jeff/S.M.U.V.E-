@@ -977,6 +977,14 @@
 /* send B uses amber tint to distinguish from A's teal */
 .mix-send-knob-wrap:last-child { color: rgba(217, 119, 6, 0.9); }
 
+/* Real dB readout beside each AUX send (the tooltip has always promised one) */
+.mix-send-db {
+  font-size: 0.5rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
 .mix-send-range {
   appearance: none;
   -webkit-appearance: none;

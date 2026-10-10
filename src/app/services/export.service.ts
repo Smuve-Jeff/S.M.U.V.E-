@@ -3,6 +3,12 @@ import { AudioEngineService } from './audio-engine.service';
 import { MusicManagerService, TrackNote } from './music-manager.service';
 import { VideoEngineService } from './video-engine.service';
 import { WavEncoder } from '../studio/wav-encoder.util';
+import {
+  ABSOLUTE_GATE_LUFS,
+  analyseChannels,
+  phaseCorrelation,
+  toDecibels,
+} from './loudness-meter';
 import { LoggingService } from './logging.service';
 import { PluginStoreService } from './plugin-store.service';
 import {
@@ -573,44 +579,74 @@ export class ExportService {
     return this.shareBlob(blob, filename);
   }
 
-  // ── Mastering: real-render analysis meters ─────────────────────────
-
   /**
-   * Analyze a rendered buffer for the mastering suite: true peak (dBFS),
-   * RMS (dBFS), an integrated LUFS estimate (K-weighting approximated via
-   * simple mean-square with a 4dB high-shelf tilt), and duration.
+   * Analyze a rendered buffer for the mastering suite.
+   *
+   * Every number here is measured by the shared BS.1770-4 meter, over ALL
+   * channels. It used to report `20·log10(rms) + 4` of channel 0 and call it
+   * "Integrated LUFS", which ignored the right channel, ignored the standard's
+   * gating, and disagreed with the live meter under the same label.
+   *
+   * `peaks` are dBFS: `peakDb` is the sample peak and `truePeakDb` the
+   * 4x-over-sampled estimate, so a mastering ceiling can be checked against
+   * the figure that actually matters for lossy transcodes.
    */
-  analyzeBuffer(
-    buffer: AudioBuffer
-  ): {
+  analyzeBuffer(buffer: AudioBuffer): {
     peakDb: number;
+    truePeakDb: number;
     rmsDb: number;
     lufs: number;
+    lra: number;
+    correlation: number;
     durationSec: number;
     sampleCount: number;
   } {
-    const ch = buffer.numberOfChannels > 0 ? buffer.getChannelData(0) : new Float32Array(0);
-    const length = ch.length;
-    let peak = 0;
-    let sumSq = 0;
-    for (let i = 0; i < length; i++) {
-      const s = ch[i];
-      const abs = Math.abs(s);
-      if (abs > peak) peak = abs;
-      sumSq += s * s;
+    const channelCount = Math.max(0, buffer.numberOfChannels ?? 0);
+    const channels: Float32Array[] = [];
+    for (let channel = 0; channel < channelCount; channel++) {
+      channels.push(buffer.getChannelData(channel));
     }
-    const rms = length > 0 ? Math.sqrt(sumSq / length) : 0;
-    const peakDb = 20 * Math.log10(Math.max(peak, 1e-6));
-    const rmsDb = 20 * Math.log10(Math.max(rms, 1e-6));
-    // K-weighting approximation: +4dB high-shelf tilt + mean-square.
-    const lufs = rmsDb + 4;
+
+    const sampleCount = channels[0]?.length ?? 0;
+    let sumSq = 0;
+    let samples = 0;
+    for (const channel of channels) {
+      for (let i = 0; i < channel.length; i++) {
+        sumSq += channel[i] * channel[i];
+      }
+      samples += channel.length;
+    }
+    const rms = samples > 0 ? Math.sqrt(sumSq / samples) : 0;
+
+    const measured = analyseChannels(channels, buffer.sampleRate || 44100);
+
     return {
-      peakDb: Math.round(peakDb * 10) / 10,
-      rmsDb: Math.round(rmsDb * 10) / 10,
-      lufs: Math.round(lufs * 10) / 10,
-      durationSec: Math.round((length / (buffer.sampleRate || 44100)) * 100) / 100,
-      sampleCount: length,
+      peakDb: round1(measured.samplePeakDb),
+      truePeakDb: round1(measured.truePeakDb),
+      rmsDb: round1(toDecibels(rms)),
+      // Floored at the standard's absolute gate so a silent render reads -70
+      // rather than "-Infinity" in the panel.
+      lufs: round1(Math.max(measured.lufs, ABSOLUTE_GATE_LUFS)),
+      lra: round1(measured.lra),
+      // Mono has nothing to correlate; a single channel is perfectly coherent
+      // with itself, which is the honest answer rather than a fabricated 0.82.
+      correlation:
+        channels.length >= 2
+          ? roundTo(phaseCorrelation(channels[0], channels[1]), 0.01)
+          : 1,
+      durationSec:
+        Math.round((sampleCount / (buffer.sampleRate || 44100)) * 100) / 100,
+      sampleCount,
     };
   }
+}
 
+/** One decimal place — the resolution these meters are read at. */
+function round1(value: number): number {
+  return Number.isFinite(value) ? Math.round(value * 10) / 10 : value;
+}
+
+/** Round to the nearest `step`, used for the correlation in [-1, 1]. */
+function roundTo(value: number, step: number): number {
+  return Math.round(value / step) * step;
 }

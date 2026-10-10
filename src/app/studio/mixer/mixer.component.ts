@@ -107,10 +107,15 @@ export class MixerComponent implements OnInit, OnDestroy {
   trackPeakHolds = signal<MeterReadings>({});
   masterPeakHold = signal(0);
   private masterAnalyser?: AnalyserNode;
-  /** Pro: Phase correlation computed at runtime from master analyser */
-  phaseCorrelation = signal(0);
-  /** Current engine exposes one downmixed analyser, not L/R phase vectors. */
-  readonly phaseCorrelationAvailable = false;
+  /**
+   * Live L/R phase correlation in [-1, 1], measured by the engine's stereo
+   * metering tap. This read "UNAVAILABLE" permanently because the engine used
+   * to expose a single downmixed analyser — there were no L/R vectors to
+   * compare. The metering tap now keeps the channels separate, so the meter is
+   * real; the mastering suite reads the same signal.
+   */
+  phaseCorrelation = this.audioSession.engine.outputCorrelation;
+  readonly phaseCorrelationAvailable = true;
   outputLufs = this.audioSession.engine.outputLufs;
   private stopMeteringTask: (() => void) | null = null;
 
@@ -209,19 +214,6 @@ export class MixerComponent implements OnInit, OnDestroy {
     }
     const masterLvl = this.masterLevel();
     this.masterPeakHold.update((v) => Math.max(masterLvl, v - 0.015));
-    this.phaseCorrelation.set(this.computePhaseCorrelation());
-  }
-
-  /**
-   * Compute a coarse phase correlation proxy in [-1, 1].
-   * 1 = perfectly mono-compatible, 0 = wide, -1 = out of phase.
-   * Uses weighted sum of frequency-bin magnitude differences.
-   */
-  private computePhaseCorrelation(): number {
-    if (!this.masterAnalyser) return 0;
-    // A single analyser supplies mono/downmixed data, not stereo vectors.
-    // Do not spend a read/allocation on a fabricated correlation estimate.
-    return 0;
   }
 
   // ---- Meter helpers ----
@@ -681,6 +673,21 @@ export class MixerComponent implements OnInit, OnDestroy {
     // so the UI keeps the new fader position.
     (this.musicManager as any).engine?.updateTrack?.(id, { gain });
     this.musicManager.updateVolume(id as any, gain);
+  }
+
+  /**
+   * Send level as a dB readout, so the Sends view shows what its tooltip
+   * promises. The value is the real gain relationship — 1.0 is unity (0.0 dB),
+   * 0 is silence — not an invented scale.
+   */
+  sendDb(value: number): string {
+    const linear = Math.max(0, Number(value) || 0);
+    if (linear <= 0) return "−∞ dB";
+    const db = 20 * Math.log10(linear);
+    // Typographic minus and explicit sign, matching the pan/fader scales that
+    // already read "−0.5 / 0 / +1" elsewhere in the mixer.
+    const sign = db > 0 ? "+" : db < 0 ? "−" : "";
+    return `${sign}${Math.abs(db).toFixed(1)} dB`;
   }
 
   updateSend(id: string, send: "A" | "B", value: number) {

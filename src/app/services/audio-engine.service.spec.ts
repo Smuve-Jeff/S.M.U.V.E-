@@ -161,6 +161,13 @@ function makeSongBareEngine(): AudioEngineService {
   (svc as any).workletNode = null;
   (svc as any).schedulerHandle = null;
   (svc as any).ctx = { currentTime: 0 };
+  // start() restarts the integrated loudness window, so the metering signals
+  // it writes have to exist on a bare instance too.
+  (svc as any).outputLufs = signal(-70);
+  (svc as any).outputCorrelation = signal(0);
+  (svc as any).outputLra = signal(0);
+  (svc as any).outputTruePeak = signal(-120);
+  (svc as any).loudnessMeter = null;
   return svc;
 }
 

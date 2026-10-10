@@ -85,6 +85,87 @@ interface StoredProjectBundle extends ProjectBundle {
 type AudioAssetSerializationMode = "binary" | "json";
 type SerializedAudioChannel = Float32Array | number[];
 
+/**
+ * Starting tempo and mood per genre, keyed by {@link normalizeGenre}.
+ *
+ * Every genre the questionnaire and Profile editor offer is covered, including
+ * the hyphenated and ampersanded ones ("Hip Hop", "R&B", "Drum & Bass",
+ * "K-Pop", "Lo-Fi"), because the old table was matched with a raw object
+ * lookup and silently missed all of them — picking "Hip Hop" or "R&B" in Studio
+ * left the previous tempo in place.
+ *
+ * These are starting points for a new session, not prescriptions.
+ */
+const GENRE_PROFILES: Record<string, { bpm: number; mood?: string }> = {
+  // Hip hop family
+  hiphop: { bpm: 90, mood: "dark" },
+  rap: { bpm: 90, mood: "dark" },
+  trap: { bpm: 140, mood: "dark" },
+  drill: { bpm: 142, mood: "aggressive" },
+  phonk: { bpm: 130, mood: "dark" },
+  // Soul / R&B family
+  rnb: { bpm: 90, mood: "smooth" },
+  rb: { bpm: 90, mood: "smooth" },
+  soul: { bpm: 95, mood: "smooth" },
+  neosoul: { bpm: 92, mood: "dreamy" },
+  gospel: { bpm: 90, mood: "uplifting" },
+  blues: { bpm: 90, mood: "soulful" },
+  // Pop / rock / indie
+  pop: { bpm: 120, mood: "bright" },
+  kpop: { bpm: 120, mood: "bright" },
+  jpop: { bpm: 128, mood: "bright" },
+  hyperpop: { bpm: 160, mood: "chaotic" },
+  rock: { bpm: 120, mood: "driving" },
+  indie: { bpm: 120, mood: "warm" },
+  grunge: { bpm: 120, mood: "gritty" },
+  punk: { bpm: 170, mood: "aggressive" },
+  emo: { bpm: 150, mood: "melancholy" },
+  metal: { bpm: 160, mood: "aggressive" },
+  // Electronic / club
+  electronic: { bpm: 128, mood: "energetic" },
+  house: { bpm: 124, mood: "energetic" },
+  techno: { bpm: 128, mood: "dark" },
+  garage: { bpm: 130, mood: "energetic" },
+  drumbass: { bpm: 174, mood: "aggressive" },
+  dnb: { bpm: 174, mood: "aggressive" },
+  drumandbass: { bpm: 174, mood: "aggressive" },
+  dubstep: { bpm: 140, mood: "dark" },
+  disco: { bpm: 120, mood: "funky" },
+  funk: { bpm: 100, mood: "funky" },
+  // Latin / Caribbean / African
+  latin: { bpm: 96, mood: "warm" },
+  reggaeton: { bpm: 96, mood: "warm" },
+  cumbia: { bpm: 95, mood: "warm" },
+  sambabossanova: { bpm: 100, mood: "warm" },
+  dancehall: { bpm: 100, mood: "bright" },
+  reggae: { bpm: 75, mood: "chill" },
+  afrobeats: { bpm: 105, mood: "uplifting" },
+  amapiano: { bpm: 112, mood: "hypnotic" },
+  // Acoustic / roots / classical / screen
+  country: { bpm: 120, mood: "warm" },
+  folk: { bpm: 100, mood: "warm" },
+  bluegrass: { bpm: 130, mood: "uplifting" },
+  jazz: { bpm: 110, mood: "chill" },
+  classical: { bpm: 90, mood: "cinematic" },
+  opera: { bpm: 90, mood: "cinematic" },
+  filmscore: { bpm: 90, mood: "cinematic" },
+  videogamemusic: { bpm: 120, mood: "playful" },
+  newage: { bpm: 60, mood: "dreamy" },
+  ambient: { bpm: 70, mood: "dreamy" },
+  lofi: { bpm: 78, mood: "chill" },
+  childrens: { bpm: 110, mood: "playful" },
+};
+
+/**
+ * Lowercase, punctuation-free genre key, so "R&B", "R&B / Soul" and "rnb" all
+ * resolve to the same profile instead of three different silent misses.
+ */
+export function normalizeGenre(genre: string): string {
+  return String(genre ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
 @Injectable({ providedIn: "root" })
 export class ProjectWorkspaceService {
   private readonly auth = inject(AuthService);
@@ -184,23 +265,6 @@ export class ProjectWorkspaceService {
     "romantic",
   ];
   /** Common tempo profiles per genre */
-  genreBpmMap: Record<string, number> = {
-    pop: 120,
-    trap: 140,
-    house: 124,
-    "lo-fi": 78,
-    "neo-soul": 92,
-    drill: 142,
-    rnb: 90,
-    jazz: 110,
-    funk: 100,
-    ambient: 70,
-    techno: 128,
-    dnb: 174,
-    garage: 130,
-    reggaeton: 100,
-  };
-
   /** Auto-save timer ref */
   private autoSaveTimer: ReturnType<typeof setInterval> | null = null;
   private lastObservedSignature = "";
@@ -305,30 +369,21 @@ export class ProjectWorkspaceService {
     this.isDirty.set(true);
   }
 
+  /**
+   * Apply a genre's starting tempo and mood. An unknown genre still records the
+   * genre itself and leaves the tempo alone, which is the honest outcome — the
+   * point of the earlier bug was that *known* genres behaved that way too.
+   */
   setGenre(genre: string) {
-    const bpm = this.genreBpmMap[genre];
-    const moodMap: Record<string, string> = {
-      trap: "dark",
-      "lo-fi": "chill",
-      house: "energetic",
-      "neo-soul": "dreamy",
-      drill: "aggressive",
-      pop: "bright",
-      rnb: "chill",
-      jazz: "chill",
-      funk: "funky",
-      ambient: "dreamy",
-      techno: "dark",
-      dnb: "aggressive",
-    };
+    const profile = GENRE_PROFILES[normalizeGenre(genre)];
     this.updateMetadata({
       genre,
-      ...(bpm ? { bpm } : {}),
-      ...(moodMap[genre] ? { mood: moodMap[genre] } : {}),
+      ...(profile ? { bpm: profile.bpm } : {}),
+      ...(profile?.mood ? { mood: profile.mood } : {}),
     });
     // Update engine tempo too
-    if (bpm) {
-      this.musicManager.engine?.tempo?.set?.(bpm);
+    if (profile) {
+      this.musicManager.engine?.tempo?.set?.(profile.bpm);
     }
   }
 

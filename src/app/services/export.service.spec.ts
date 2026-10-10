@@ -179,33 +179,121 @@ describe('ExportService (Sprint A6)', () => {
   });
 
   describe('mastering analysis (Phase 2)', () => {
-    it('analyzeBuffer reports peak, RMS, LUFS and duration', () => {
-      // 1s of 0.5 amplitude → peak -6 dBFS, RMS -6 dBFS, LUFS ≈ -2.
-      const data = new Float32Array(44100).fill(0.5);
-      const buffer: any = {
-        numberOfChannels: 1,
-        sampleRate: 44100,
-        length: 44100,
-        getChannelData: () => data,
-      };
-      const stats = svc.analyzeBuffer(buffer);
-      expect(stats.peakDb).toBeCloseTo(-6.02, 0);
-      expect(stats.rmsDb).toBeCloseTo(-6.02, 0);
-      expect(stats.lufs).toBeCloseTo(-2.02, 0);
-      expect(stats.durationSec).toBeCloseTo(1, 1);
-      expect(stats.sampleCount).toBe(44100);
+    const SAMPLE_RATE = 48000;
+
+    const sine = (
+      frequencyHz: number,
+      amplitude: number,
+      seconds: number,
+      phase = 0,
+    ): Float32Array => {
+      const data = new Float32Array(Math.round(SAMPLE_RATE * seconds));
+      for (let n = 0; n < data.length; n++) {
+        data[n] =
+          amplitude *
+          Math.sin((2 * Math.PI * frequencyHz * n) / SAMPLE_RATE + phase);
+      }
+      return data;
+    };
+
+    const concat = (first: Float32Array, second: Float32Array): Float32Array => {
+      const joined = new Float32Array(first.length + second.length);
+      joined.set(first, 0);
+      joined.set(second, first.length);
+      return joined;
+    };
+
+    const makeBuffer = (channels: Float32Array[]): AudioBuffer =>
+      ({
+        numberOfChannels: channels.length,
+        sampleRate: SAMPLE_RATE,
+        length: channels[0]?.length ?? 0,
+        getChannelData: (index: number) => channels[index],
+      }) as unknown as AudioBuffer;
+
+    it('measures a stereo 1 kHz tone against the standard, not rms + 4 dB', () => {
+      // Two channels of a 1 kHz tone at 0.1 amplitude: the K-weighting at
+      // 1 kHz is +0.654 dB, so the gated integrated loudness is
+      // -0.691 + 10log10(2·(0.1/√2)²·10^0.0654) ≈ -20.0 LUFS.
+      const tone = sine(1000, 0.1, 2);
+      const stats = svc.analyzeBuffer(makeBuffer([tone, tone]));
+
+      expect(stats.lufs).toBeCloseTo(-20, 0);
+      // RMS of a 0.1-amplitude sine is -23 dBFS, and the stereo loudness sits
+      // 3.01 LU above it (channel sum) plus the 1 kHz K-weighting (+0.654).
+      expect(stats.rmsDb).toBeCloseTo(-23, 0);
+      expect(stats.peakDb).toBeCloseTo(-20, 0);
+      expect(stats.truePeakDb).toBeCloseTo(-20, 0);
+      expect(stats.durationSec).toBeCloseTo(2, 1);
+      expect(stats.sampleCount).toBe(96000);
+      // Identical channels are perfectly correlated.
+      expect(stats.correlation).toBeCloseTo(1, 2);
+      // A steady tone has no loudness range.
+      expect(stats.lra).toBeLessThan(1);
+      // The old model reported rms + 4 here, which was ~7 LU optimistic.
+      expect(stats.lufs).toBeLessThan(stats.rmsDb + 4);
     });
 
-    it('analyzeBuffer handles silence without NaN', () => {
-      const buffer: any = {
-        numberOfChannels: 1,
-        sampleRate: 44100,
-        length: 10,
-        getChannelData: () => new Float32Array(10),
-      };
+    it('reports a true peak above the sample peak for inter-sample peaks', () => {
+      // fs/4 at 45°: every sample sits at ±A/√2 while the reconstructed
+      // waveform reaches A, so a sample-peak reading under-reports by ~3 dB.
+      const tone = sine(SAMPLE_RATE / 4, 0.5, 0.5, Math.PI / 4);
+      const stats = svc.analyzeBuffer(makeBuffer([tone]));
+
+      expect(stats.truePeakDb).toBeCloseTo(-6, 0);
+      expect(stats.peakDb).toBeCloseTo(-9, 0);
+      expect(stats.truePeakDb).toBeGreaterThan(stats.peakDb);
+    });
+
+    it('measures every channel, not just the first', () => {
+      // A hard-right master used to look like silence: channel 0 only.
+      const left = new Float32Array(SAMPLE_RATE);
+      const right = sine(300, 0.9, 1);
+      const stats = svc.analyzeBuffer(makeBuffer([left, right]));
+
+      expect(stats.truePeakDb).toBeCloseTo(-1, 0);
+      expect(stats.peakDb).toBeCloseTo(-1, 0);
+      // A 300 Hz tone at 0.9 peak is around -4.6 LUFS; the old channel-0 read
+      // would have reported the silence floor instead.
+      expect(stats.lufs).toBeGreaterThan(-10);
+    });
+
+    it('reports no integrated loudness for a render shorter than one block', () => {
+      // BS.1770 needs a 400 ms block before there is anything to integrate;
+      // the panel floors that at the absolute gate rather than showing NaN.
+      const brief = sine(1000, 0.1, 0.1);
+      const stats = svc.analyzeBuffer(makeBuffer([brief, brief]));
+
+      expect(stats.lufs).toBe(-70);
+      expect(Number.isNaN(stats.lufs)).toBe(false);
+    });
+
+    it('reports the loudness range of quiet and loud sections', () => {
+      const quiet = sine(1000, 0.02, 4);
+      const loud = sine(1000, 0.2, 4);
+
+      const steady = svc.analyzeBuffer(makeBuffer([quiet, quiet]));
+      expect(steady.lra).toBeLessThan(1);
+
+      const joined = concat(quiet, loud);
+      const mixed = svc.analyzeBuffer(makeBuffer([joined, joined]));
+      expect(mixed.lra).toBeGreaterThan(5);
+    });
+
+    it('analyzeBuffer handles silence without NaN and without a fake floor', () => {
+      const buffer = makeBuffer([
+        new Float32Array(SAMPLE_RATE),
+        new Float32Array(SAMPLE_RATE),
+      ]);
       const stats = svc.analyzeBuffer(buffer);
+
       expect(stats.peakDb).toBeCloseTo(-120, 0);
+      expect(stats.truePeakDb).toBeCloseTo(-120, 0);
       expect(Number.isNaN(stats.rmsDb)).toBe(false);
+      // Floored at the standard's absolute gate, never -Infinity in the panel.
+      expect(stats.lufs).toBe(-70);
+      expect(Number.isFinite(stats.lra)).toBe(true);
+      expect(Number.isNaN(stats.correlation)).toBe(false);
     });
   });
 

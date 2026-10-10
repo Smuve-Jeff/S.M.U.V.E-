@@ -29,7 +29,7 @@
         [class.active]="mixerView() === 'sends'"
         (click)="setMixerView('sends')"
         [attr.aria-pressed]="mixerView() === 'sends'"
-        title="Sends — full AUX A/B faders with dB readouts"
+        title="Sends — full AUX A/B faders (0-100 %) with dB readouts"
       >
         Sends
       </button>
@@ -292,6 +292,7 @@
           <span class="mix-sends-label">AUX</span>
           <label class="mix-send-knob-wrap" title="Send A · master reverb">
             A
+            <span class="mix-send-db">{{ sendDb(track.sendA || 0) }}</span>
             <input
               type="range"
               class="mix-send-range"
@@ -306,6 +307,7 @@
           </label>
           <label class="mix-send-knob-wrap" title="Send B · tempo-synced echo">
             B
+            <span class="mix-send-db">{{ sendDb(track.sendB || 0) }}</span>
             <input
               type="range"
               class="mix-send-range mix-send-range-b"

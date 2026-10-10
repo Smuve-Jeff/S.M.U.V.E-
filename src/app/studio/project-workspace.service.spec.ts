@@ -172,6 +172,47 @@ describe("ProjectWorkspaceService", () => {
     expect(tempoSet).toHaveBeenCalledWith(124);
   });
 
+  it("applies the genre vocabulary the app actually offers", () => {
+    // These are the questionnaire's own values; the old map keyed on lowercase
+    // hyphenated names, so every one of them silently kept the previous tempo.
+    const cases: Array<[string, number]> = [
+      ["Hip Hop", 90],
+      ["R&B", 90],
+      ["Drum & Bass", 174],
+      ["K-Pop", 120],
+      ["Lo-Fi", 78],
+      ["Neo-Soul", 92],
+      ["Rock", 120],
+      ["House", 124],
+    ];
+
+    for (const [genre, bpm] of cases) {
+      tempoSet.mockClear();
+      service.setGenre(genre);
+      expect(service.metadata()?.bpm).toBe(bpm);
+      expect(tempoSet).toHaveBeenCalledWith(bpm);
+    }
+  });
+
+  it("records an unknown genre without inventing a tempo for it", () => {
+    service.setGenre("house");
+    const houseTempo = service.metadata()?.bpm;
+
+    tempoSet.mockClear();
+    service.setGenre("Gregorian Throat Singing");
+
+    expect(service.metadata()?.genre).toBe("Gregorian Throat Singing");
+    expect(service.metadata()?.bpm).toBe(houseTempo);
+    expect(tempoSet).not.toHaveBeenCalled();
+  });
+
+  it("sets a mood alongside the tempo for a known genre", () => {
+    service.setGenre("Trap");
+    expect(service.metadata()?.mood).toBe("dark");
+    service.setGenre("Reggae");
+    expect(service.metadata()?.mood).toBe("chill");
+  });
+
   it("serializes cached audio clips and restores them into the stem cache", () => {
     const clipId = "clip-audio-1";
     const buffer = createFakeAudioBuffer([

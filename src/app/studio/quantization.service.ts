@@ -153,11 +153,14 @@ export class QuantizationService {
       category: "swing",
     },
 
-    // Triplet presets
+    // Triplet presets. A triplet fits three notes where two straight ones go,
+    // so its grid is 2/3 of the matching straight value. These were 4/3 — twice
+    // as wide as their label — which made "Triplet 1/16" quantize to eighth-note
+    // triplets and pushed every hi-hat threelet off the intended grid.
     {
       id: "triplet_1_4",
       name: "Triplet 1/4",
-      grid: 0.333,
+      grid: 0.25 * (2 / 3),
       swing: 0,
       humanize: 0,
       category: "triplet",
@@ -165,7 +168,7 @@ export class QuantizationService {
     {
       id: "triplet_1_8",
       name: "Triplet 1/8",
-      grid: 0.1665,
+      grid: 0.125 * (2 / 3),
       swing: 0,
       humanize: 0,
       category: "triplet",
@@ -173,7 +176,7 @@ export class QuantizationService {
     {
       id: "triplet_1_16",
       name: "Triplet 1/16",
-      grid: 0.08325,
+      grid: 0.0625 * (2 / 3),
       swing: 0,
       humanize: 0,
       category: "triplet",
