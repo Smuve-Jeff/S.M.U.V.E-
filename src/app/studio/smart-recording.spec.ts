@@ -927,6 +927,103 @@ describe("SmartRecordingService", () => {
       expect(left[2 * framesPerBar + 1 * framesPerBar]).toBe(0);
       expect(left[2 * framesPerBar + 1 * framesPerBar + 1000]).toBe(0);
     });
+
+    it("splices a short incoming take in at full level instead of fading it in", async () => {
+      // Same shape as the crossfading post-roll case below, except the incoming
+      // take holds only half of the segment it plays. A fade-in would spend the
+      // first 480 frames of a take that cannot spare them, and letting the
+      // outgoing post-roll play over it would sum two takes that should not be
+      // heard together — so the join has to be a plain splice.
+      installDecoder({
+        1: new Float32Array(3 * framesPerBar).fill(0.5),
+        2: new Float32Array(1 * framesPerBar).fill(0.25),
+      });
+      service.compGroups.set([
+        makeGroup(
+          [
+            makeTake("a", 1, 1, 3),
+            makeTake("b", 2, 3, 5, {
+              durationMs: 2000,
+              regionStartBar: 3,
+              regionEndBar: 5,
+            }),
+          ],
+          [
+            { id: "s1", startBar: 1, endBar: 3, takeId: "a" },
+            { id: "s2", startBar: 3, endBar: 5, takeId: "b" },
+          ],
+        ),
+      ]);
+
+      const { channels, blob } = await renderChannels();
+      const left = channels[0];
+      const join = 2 * framesPerBar;
+
+      expect(left.length).toBe(4 * framesPerBar);
+      expect(blob.size).toBe(44 + 4 * framesPerBar * 2 * 2);
+
+      // The outgoing take is not faded out and not extended past its own bar.
+      expect(left[join - 1]).toBeCloseTo(0.5, 3);
+
+      // The incoming take is at its own level on the first frame it plays: no
+      // fade-in ramp (that would read 0 here) and no post-roll summed over it
+      // (that would read 0.75).
+      expect(left[join]).toBeCloseTo(0.25, 7);
+      expect(left[3 * framesPerBar - 1]).toBeCloseTo(0.25, 7);
+
+      // Only the frames the short take really holds carry audio; the second bar
+      // of its segment stays silent instead of being back-filled.
+      expect(left[3 * framesPerBar]).toBe(0);
+      expect(left[4 * framesPerBar - 1]).toBe(0);
+    });
+
+    it("keeps crossfading the joins on either side of a spliced take", async () => {
+      // Take B is short (one bar assigned two) so its join with A is a splice,
+      // but that must not turn the *next* join into a splice as well: take C was
+      // rolled from bar 1, so it still fades up early from its own pre-roll.
+      installDecoder({
+        1: new Float32Array(3 * framesPerBar).fill(0.5),
+        2: new Float32Array(1 * framesPerBar).fill(0.25),
+        3: new Float32Array(6 * framesPerBar).fill(0.75),
+      });
+      service.compGroups.set([
+        makeGroup(
+          [makeTake("a", 1, 1, 3), makeTake("b", 2, 3, 5), makeTake("c", 3, 1, 7)],
+          [
+            { id: "s1", startBar: 1, endBar: 3, takeId: "a" },
+            { id: "s2", startBar: 3, endBar: 5, takeId: "b" },
+            { id: "s3", startBar: 5, endBar: 7, takeId: "c" },
+          ],
+        ),
+      ]);
+
+      const { channels } = await renderChannels();
+      const left = channels[0];
+      const splice = 2 * framesPerBar;
+      const preRollJoin = 4 * framesPerBar;
+
+      expect(left.length).toBe(6 * framesPerBar);
+
+      // The splice: A at full level through its last frame, B full from its bar.
+      expect(left[splice - 1]).toBeCloseTo(0.5, 3);
+      expect(left[splice]).toBeCloseTo(0.25, 7);
+      // B's missing second bar is silent right up to C's pre-roll (480 frames
+      // at the default 10 ms crossfade), rather than being back-filled.
+      expect(left[3 * framesPerBar]).toBe(0);
+      expect(left[preRollJoin - 481]).toBe(0);
+
+      // C still fades up early through the join: mid-fade it is below its own
+      // level, and it reaches full level exactly on its own bar.
+      expect(left[preRollJoin - 240]).toBeLessThan(0.6);
+      expect(left[preRollJoin - 240]).toBeGreaterThan(0.4);
+      expect(left[preRollJoin - 1]).toBeCloseTo(0.75, 2);
+      expect(Math.abs(left[preRollJoin] - left[preRollJoin - 1])).toBeLessThan(
+        0.05,
+      );
+      expect(left[preRollJoin]).toBeCloseTo(0.75, 3);
+      // The outer edge keeps its level (only joins are faded).
+      expect(left[left.length - 1]).toBeCloseTo(0.75, 3);
+    });
   });
 
   describe("auto-split", () => {

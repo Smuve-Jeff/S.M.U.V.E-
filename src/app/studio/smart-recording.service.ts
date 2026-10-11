@@ -1000,14 +1000,17 @@ export class SmartRecordingService {
    * Render the group's comp into one downloadable WAV.
    *
    * Each assigned segment is filled from the take that plays it, and every join
-   * is an equal-power crossfade rather than a butt splice — which is what
-   * "Export Comp" needs to bounce bar-by-bar comping instead of one take. The
-   * overlap is built from whatever material the takes actually carry at the
-   * join, in this order:
+   * is an equal-power crossfade wherever the takes carry material for one —
+   * which is what "Export Comp" needs to bounce bar-by-bar comping instead of
+   * one take. The overlap is built from whatever material the takes actually
+   * carry at the join, in this order:
    *   1. the outgoing take's post-roll past its segment (it keeps playing while
    *      the incoming take fades up in place),
    *   2. the incoming take's pre-roll before its segment (it fades up early),
-   *   3. a fade-out/fade-in pair in place, when neither side has any.
+   *   3. a fade-out/fade-in pair in place, when neither side has any,
+   *   4. a plain splice into the incoming take at full level when that take is
+   *      shorter than its own segment — it has no frames to spare for a fade,
+   *      so nothing of it is swallowed and the rest of the segment stays silent.
    * The incoming take's content always lands on its own bar either way.
    *
    * @returns null when the group has no audible take or nothing to decode.
@@ -1079,188 +1082,103 @@ export class SmartRecordingService {
         sources.set(take.id, { left: decoded.left, right: decoded.right });
       }
     }
-    if (sources.size === 0) return null;      // Resolve the playable segments and how much post-roll each one has.
-      const segments: Array<{
-        source: { left: Float32Array; right: Float32Array };
-        base: number;
-        start: number;
-        end: number;
-        playableOutStart: number;
-        playableOutEnd: number;
-        playableSourceStart: number;
-        postRoll: number;
-      }> = [];
-      for (const { span, start, end } of spans) {
-        if (end <= start || !span.takeId) continue;
-        const take = audible.find((t) => t.id === span.takeId);
-        const source = take ? sources.get(take.id) : undefined;
-        if (!take || !source) continue;
+    if (sources.size === 0) return null;
+
+    // Resolve the playable segments: where each one starts inside its take, how
+    // much of its bar range that take really holds, and how much it keeps
+    // rolling past the segment (its post-roll).
+    const segments: Array<{
+      source: { left: Float32Array; right: Float32Array };
+      base: number;
+      start: number;
+      end: number;
+      playableOutStart: number;
+      playableOutEnd: number;
+      postRoll: number;
+      coversSegment: boolean;
+    }> = [];
+    for (const { span, start, end } of spans) {
+      if (end <= start || !span.takeId) continue;
+      const take = audible.find((t) => t.id === span.takeId);
+      const source = take ? sources.get(take.id) : undefined;
+      if (!take || !source) continue;
 
       // Where the segment's first frame comes from inside the take.
       const base = Math.round(
         (span.startBar - take.regionStartBar) * framesPerBar,
       );
-      // A take can be assigned a segment longer than its decoded buffer. In that
-      // case the segment still plays the material that exists; anything beyond the
-      // source is left silent instead of the loop walking past it. Compute the
-      // usable output range (the part of the segment that actually has source
-      // material) so the render loop stays inside the source.
+      // A take can be shorter than the segment it plays, or start after that
+      // segment does. Only the frames it actually holds are written: the rest
+      // of the segment stays silent instead of the render loop reading past the
+      // buffer or leaving the tail of the comp under-filled.
       const sourceLength = source.left.length;
-      // The playable output range is the part of [start, end) whose mapped sample
-      // lies inside the decoded take. Anything outside that range is left at zero
-      // rather than the loop walking past the source.
-      const srcStart = base;
-      const srcEnd = base + (end - start);
-      // Map the segment's frame range into the take's sample space.
-      const srcRangeStart = Math.max(0, srcStart);
-      const srcRangeEnd = Math.min(sourceLength, srcEnd);
-      const playableOutStart = start + (srcRangeStart - srcStart);
-      const playableOutEnd = start + (srcRangeEnd - srcStart);
-      const playableSourceStart = srcRangeStart;
+      const srcRangeStart = Math.max(0, base);
+      const srcRangeEnd = Math.min(sourceLength, base + (end - start));
+      if (srcRangeEnd <= srcRangeStart) continue;
       segments.push({
         source,
         base,
         start,
         end,
-        playableOutStart,
-        playableOutEnd,
-        playableSourceStart,
-        postRoll: sourceLength - srcEnd,
+        playableOutStart: start + (srcRangeStart - base),
+        playableOutEnd: start + (srcRangeEnd - base),
+        postRoll: sourceLength - (base + (end - start)),
+        coversSegment:
+          base >= 0 && srcRangeEnd - srcRangeStart >= end - start,
       });
     }
-      if (segments.length === 0) return null;
+    if (segments.length === 0) return null;
 
-    // Pick the join strategy between each pair: the outgoing take's post-roll
-    // if it reaches through the crossfade, else the incoming take's pre-roll,
-    // else fades in place.
+    // Pick the join strategy between each pair from the material the two takes
+    // really carry at the boundary:
+    //   post   - the outgoing take keeps rolling while the incoming fades up in
+    //            place (needs post-roll on the outgoing and an incoming take
+    //            that covers its own segment, so the fade-in costs it nothing),
+    //   pre    - the incoming take fades up early from its own pre-roll,
+    //   none   - neither side has material, so both fade in place,
+    //   splice - the incoming take is shorter than its segment and cannot spare
+    //            frames for a fade, so it is dropped in at full level.
     const joins = segments.map((segment, index) => {
       if (index === segments.length - 1) return "last" as const;
-      if (segment.postRoll >= fade) return "post" as const;
-      return segments[index + 1].base >= fade
-        ? ("pre" as const)
-        : ("none" as const);
+      const incoming = segments[index + 1];
+      if (segment.postRoll >= fade) {
+        return incoming.coversSegment
+          ? ("post" as const)
+          : ("splice" as const);
+      }
+      return incoming.base >= fade ? ("pre" as const) : ("none" as const);
     });
 
     const left = new Float32Array(totalFrames);
     const right = new Float32Array(totalFrames);
 
     for (let index = 0; index < segments.length; index++) {
-      const { source, base, start, end, playableOutStart, playableOutEnd, playableSourceStart, postRoll } = segments[index];
+      const {
+        source,
+        base,
+        start,
+        end,
+        playableOutStart,
+        playableOutEnd,
+      } = segments[index];
       const join = joins[index];
       const incoming = index > 0 ? joins[index - 1] : null;
 
+      // A take fades up early only when the previous join handed it a pre-roll;
+      // a take spliced in at full level never fades.
       const preRoll = incoming === "pre";
       const headFade = preRoll ? fade : 0;
-      const inPlace = incoming !== null && !preRoll ? fade : 0;
+      const inPlace =
+        incoming !== null && !preRoll && incoming !== "splice" ? fade : 0;
       const extendTail = join === "post" ? fade : 0;
       // A post-roll join fades out past the boundary; the others fade out before
       // it (and must not double up with the extension).
       const tailFade = join === "pre" || join === "none" ? fade : 0;
-      const writeStart = playableOutStart - headFade;
-      const writeEnd = playableOutEnd + extendTail;
-
-      for (let i = writeStart; i < writeEnd; i++) {
-        const readIndex = playableSourceStart + (i - playableOutStart);
-        if (readIndex < 0 || readIndex >= source.left.length) continue;
-        if (i < playableOutStart || i >= playableOutEnd) continue;
-
-        let gain = 1;
-        if (headFade > 0 && i < start) {
-          gain = Math.sin(((i - writeStart) / headFade) * (Math.PI / 2));
-        } else if (inPlace > 0 && i < start + inPlace) {
-          gain = Math.sin(((i - start) / inPlace) * (Math.PI / 2));
-        } else if (extendTail > 0 && i >= end) {
-          gain = Math.cos(((i - end) / extendTail) * (Math.PI / 2));
-        } else if (tailFade > 0 && i >= end - tailFade) {
-          gain = Math.cos(((i - (end - tailFade)) / tailFade) * (Math.PI / 2));
-        }
-
-        left[i] += source.left[readIndex] * gain;
-        right[i] += source.right[readIndex] * gain;
-      }
-          const p = (i - writeStart) / headFade;
-          if (p < 0 || p > 1) continue;
-          const g = Math.sin(p * (Math.PI / 2));
-          left[i] += source.left[readIndex] * g;
-          right[i] += source.right[readIndex] * g;
-          continue;
-        }
-        if (inPlace > 0 && i < start + inPlace) {
-          const p = (i - start) / inPlace;
-          if (p < 0 || p > 1) continue;
-          const g = Math.sin(p * (Math.PI / 2));
-          left[i] += source.left[readIndex] * g;
-          right[i] += source.right[readIndex] * g;
-          continue;
-        }
-        if (extendTail > 0 && i >= end) {
-          const p = (i - end) / extendTail;
-          if (p < 0 || p > 1) continue;
-          const g = Math.cos(p * (Math.PI / 2));
-          left[i] += source.left[readIndex] * g;
-          right[i] += source.right[readIndex] * g;
-          continue;
-        }
-        if (tailFade > 0 && i >= end - tailFade) {
-          const p = (i - (end - tailFade)) / tailFade;
-          if (p < 0 || p > 1) continue;            const g = Math.cos(p * (Math.PI / 2));
-          left[i] += source.left[readIndex] * g;
-          right[i] += source.right[readIndex] * g;
-          continue;
-        }
-        left[i] += source.left[readIndex];
-        right[i] += source.right[readIndex];
-      }
-    }
-  }
-
-  // ── Utility ────────────────────────────────────────────────
-    }
-
-        let gain = 1;
-        if (headFade > 0 && i < start) {
-          gain = Math.sin(((i - writeStart) / headFade) * (Math.PI / 2));
-        } else if (inPlace > 0 && i < start + inPlace) {
-          gain = Math.sin(((i - start) / inPlace) * (Math.PI / 2));
-        } else if (extendTail > 0 && i >= end) {
-          gain = Math.cos(((i - end) / extendTail) * (Math.PI / 2));
-        } else if (tailFade > 0 && i >= end - tailFade) {
-          gain = Math.cos(((i - (end - tailFade)) / tailFade) * (Math.PI / 2));
-        }
-
-        left[i] += source.left[readIndex] * gain;
-        right[i] += source.right[readIndex] * gain;
-      }
-
-        let gain = 1;
-        if (headFade > 0 && i < start) {
-          gain = Math.sin(((i - writeStart) / headFade) * (Math.PI / 2));
-        } else if (inPlace > 0 && i < start + inPlace) {
-          gain = Math.sin(((i - start) / inPlace) * (Math.PI / 2));
-        } else if (extendTail > 0 && i >= end) {
-          gain = Math.cos(((i - end) / extendTail) * (Math.PI / 2));
-        } else if (tailFade > 0 && i >= end - tailFade) {
-          gain = Math.cos(((i - (end - tailFade)) / tailFade) * (Math.PI / 2));
-        }
-
-        left[i] += source.left[readIndex] * gain;
-        right[i] += source.right[readIndex] * gain;
-      }
-
-        let gain = 1;
-        if (headFade > 0 && i < start) {
-          gain = Math.sin(((i - writeStart) / headFade) * (Math.PI / 2));
-        } else if (inPlace > 0 && i < start + inPlace) {
-          gain = Math.sin(((i - start) / inPlace) * (Math.PI / 2));
-        } else if (extendTail > 0 && i >= end) {
-          gain = Math.cos(((i - end) / extendTail) * (Math.PI / 2));
-        } else if (tailFade > 0 && i >= end - tailFade) {
-          gain = Math.cos(((i - (end - tailFade)) / tailFade) * (Math.PI / 2));
-        }
-
-        left[i] += source.left[readIndex] * gain;
-        right[i] += source.right[readIndex] * gain;
-      }
+      // Write only the frames this take holds: a take shorter than its segment
+      // leaves the rest of that segment silent rather than reading past the end
+      // of its buffer.
+      const writeStart = Math.max(0, playableOutStart - headFade);
+      const writeEnd = Math.min(totalFrames, playableOutEnd + extendTail);
 
       for (let i = writeStart; i < writeEnd; i++) {
         const readIndex = base + (i - start);
@@ -1268,7 +1186,9 @@ export class SmartRecordingService {
 
         let gain = 1;
         if (headFade > 0 && i < start) {
-          gain = Math.sin(((i - writeStart) / headFade) * (Math.PI / 2));
+          gain = Math.sin(
+            ((i - (start - headFade)) / headFade) * (Math.PI / 2),
+          );
         } else if (inPlace > 0 && i < start + inPlace) {
           gain = Math.sin(((i - start) / inPlace) * (Math.PI / 2));
         } else if (extendTail > 0 && i >= end) {
