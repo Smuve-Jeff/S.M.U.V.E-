@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import {
   AudioEngineService,
   computeCrossfaderGains,
@@ -890,5 +891,91 @@ describe('AudioEngineService.createDeck send defaults', () => {
     expect(deckA.sendB.gain.value).toBe(0);
     expect(deckB.sendA.gain.value).toBe(0);
     expect(deckB.sendB.gain.value).toBe(0);
+  });
+});
+
+describe('AudioEngineService.setMasterToneEq (idempotent master tone stage)', () => {
+  function makeToneEngine(workletActive: boolean) {
+    const svc = makeBareEngine();
+    (svc as any).masterWorkletActive = signal(workletActive);
+    (svc as any).masterToneLowShelf = {
+      gain: { setTargetAtTime: jest.fn(), value: 0 },
+    };
+    (svc as any).masterToneLowMid = {
+      gain: { setTargetAtTime: jest.fn(), value: 0 },
+    };
+    (svc as any).masterShelf = { gain: { setTargetAtTime: jest.fn(), value: 0 } };
+    (svc as any).masterToneEqState = {
+      lowShelfDb: 0,
+      lowMidDb: 0,
+      highShelfDb: 0,
+    };
+    (svc as any).configureMasterWorklet = jest.fn();
+    return svc;
+  }
+
+  it('moves the persistent biquads on the fallback path', () => {
+    const svc = makeToneEngine(false);
+
+    svc.setMasterToneEq({ lowShelfDb: 3, lowMidDb: -1.5, highShelfDb: 2.5 });
+
+    expect(
+      (svc as any).masterToneLowShelf.gain.setTargetAtTime
+    ).toHaveBeenCalledWith(3, 1.234, 0.05);
+    expect(
+      (svc as any).masterToneLowMid.gain.setTargetAtTime
+    ).toHaveBeenCalledWith(-1.5, 1.234, 0.05);
+    expect(
+      (svc as any).masterShelf.gain.setTargetAtTime
+    ).toHaveBeenCalledWith(2.5, 1.234, 0.05);
+    expect((svc as any).configureMasterWorklet).not.toHaveBeenCalled();
+    expect(svc.getMasterToneEq()).toEqual({
+      lowShelfDb: 3,
+      lowMidDb: -1.5,
+      highShelfDb: 2.5,
+    });
+  });
+
+  it('forwards to the worklet bands when the worklet owns the output', () => {
+    const svc = makeToneEngine(true);
+
+    svc.setMasterToneEq({ lowShelfDb: 3, lowMidDb: -1.5, highShelfDb: 2.5 });
+
+    expect((svc as any).configureMasterWorklet).toHaveBeenCalledWith(
+      'eq',
+      'configure',
+      { band: 0, gain: 3 }
+    );
+    expect((svc as any).configureMasterWorklet).toHaveBeenCalledWith(
+      'eq',
+      'configure',
+      { band: 2, gain: -1.5 }
+    );
+    expect((svc as any).configureMasterWorklet).toHaveBeenCalledWith(
+      'eq',
+      'configure',
+      { band: 3, gain: 2.5 }
+    );
+    expect(
+      (svc as any).masterToneLowShelf.gain.setTargetAtTime
+    ).not.toHaveBeenCalled();
+  });
+
+  it('clamps out-of-range values and preserves the last value on partial calls', () => {
+    const svc = makeToneEngine(false);
+
+    svc.setMasterToneEq({ lowShelfDb: 99 });
+    expect(svc.getMasterToneEq()).toEqual({
+      lowShelfDb: 18,
+      lowMidDb: 0,
+      highShelfDb: 0,
+    });
+
+    svc.setMasterToneEq({ lowMidDb: Number.NaN });
+    expect(svc.getMasterToneEq()).toEqual({
+      lowShelfDb: 18,
+      lowMidDb: 0,
+      highShelfDb: 0,
+    });
   });
 });

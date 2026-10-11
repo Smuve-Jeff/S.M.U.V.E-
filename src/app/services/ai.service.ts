@@ -51,6 +51,12 @@ export interface UpgradeRecommendation {
   providedIn: 'root',
 })
 export class AiService {
+  /**
+   * Marker the backend proxy returns when the live model link is severed
+   * (offline, unauthenticated, or a provider outage). It must never be treated
+   * as real content — see `industryDeepSearch`.
+   */
+  private static readonly OFFLINE_SENTINEL = 'Strategic Link Severed';
   private logger = inject(LoggingService);
   private artistFinetune = inject(ArtistProfileFinetuneService);
   private userProfileService = inject(UserProfileService);
@@ -313,8 +319,16 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
           `Separate verified facts from informed hypotheses, and do not invent citations. ` +
           `Query: ${normalizedQuery}`,
       );
+      // A severed link still resolves to a string (the offline sentinel). It is
+      // not a research brief, so reject it instead of caching the outage text
+      // in the industry-intelligence feed.
       if (!intel.trim()) {
         throw new Error('The AI research service returned an empty brief.');
+      }
+      if (intel.includes(AiService.OFFLINE_SENTINEL)) {
+        throw new Error(
+          'The AI research service is offline (strategic link severed). Reconnect and try again.',
+        );
       }
       const endedAt =
         typeof performance !== 'undefined' ? performance.now() : Date.now();

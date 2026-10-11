@@ -1324,33 +1324,19 @@ export class AiMixAssistantService {
       ratio: limiterRatio,
     });
 
-    // 4. Configure master EQ via the worklet or fallback shelf filters
-    const now = this.engine.ctx.currentTime;
-    this.engine.masterShelf.gain.setTargetAtTime(eqHighShelf, now, 0.05);
-
-    // Low-shelf (sub/bass) and low-mid EQ via biquads
-    try {
-      // Insert sub-bass low-shelf filter
-      const lowShelf = this.engine.ctx.createBiquadFilter();
-      lowShelf.type = "lowshelf";
-      lowShelf.frequency.value = 60;
-      lowShelf.gain.setTargetAtTime(eqLowShelf, now, 0.05);
-
-      // Insert low-mid parametric EQ
-      const lowMid = this.engine.ctx.createBiquadFilter();
-      lowMid.type = "peaking";
-      lowMid.frequency.value = 300;
-      lowMid.Q.value = 0.7;
-      lowMid.gain.setTargetAtTime(eqLowMid, now, 0.05);
-
-      // Chain: preMasterGain → lowShelf → lowMid → compressor
-      this.engine["_preMasterGain"].disconnect();
-      this.engine["_preMasterGain"].connect(lowShelf);
-      lowShelf.connect(lowMid);
-      lowMid.connect(this.engine.compressor);
-    } catch {
-      /* fallback chain already connected */
-    }
+    // 4. Configure master tone EQ through the engine's persistent stage.
+    //
+    // This used to allocate a fresh low-shelf/low-mid biquad pair on every run
+    // and call `_preMasterGain.disconnect()`, which (a) left the orphaned
+    // biquads feeding the compressor in parallel — each mastering pass added
+    // another path and the mix crept louder/brighter — and (b) severed the
+    // active master worklet, silently swapping the artist onto the fallback
+    // chain. The engine now owns one idempotent, worklet-aware tone stage.
+    this.engine.setMasterToneEq({
+      lowShelfDb: eqLowShelf,
+      lowMidDb: eqLowMid,
+      highShelfDb: eqHighShelf,
+    });
 
     // 5. Update suggestions to reflect applied changes
     this.suggestions.update((sugs) => [

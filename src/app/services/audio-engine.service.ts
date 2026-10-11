@@ -557,6 +557,19 @@ export class AudioEngineService {
   /** Raw master bus node BEFORE the worklet (for metronome, reverb sends, etc.) */
   private _preMasterGain = this.ctx.createGain();
 
+  /**
+   * Persistent master tone-shaping EQ. The AI mastering pass used to allocate a
+   * fresh low-shelf/low-mid biquad pair on every run and disconnect
+   * `_preMasterGain`, which left the orphaned biquads feeding the compressor in
+   * parallel and cut the active master worklet out of the graph. These nodes
+   * are created once and spliced into the fallback chain exactly once;
+   * `setMasterToneEq()` only ever moves their gains (or forwards to the worklet
+   * when it owns the output).
+   */
+  private readonly masterToneLowShelf = this.ctx.createBiquadFilter();
+  private readonly masterToneLowMid = this.ctx.createBiquadFilter();
+  private masterToneEqState = { lowShelfDb: 0, lowMidDb: 0, highShelfDb: 0 };
+
   constructor() {
     this.deckA = this.createDeck('A');
     this.deckB = this.createDeck('B');
@@ -577,7 +590,16 @@ export class AudioEngineService {
 
     // Build the fallback chain but don't connect it yet —
     // the worklet will be preferred if it loads successfully
-    this._preMasterGain.connect(this.compressor);
+    this.masterToneLowShelf.type = 'lowshelf';
+    this.masterToneLowShelf.frequency.value = 60;
+    this.masterToneLowMid.type = 'peaking';
+    this.masterToneLowMid.frequency.value = 300;
+    this.masterToneLowMid.Q.value = 0.7;
+    this.masterToneLowShelf.gain.value = 0;
+    this.masterToneLowMid.gain.value = 0;
+    this._preMasterGain.connect(this.masterToneLowShelf);
+    this.masterToneLowShelf.connect(this.masterToneLowMid);
+    this.masterToneLowMid.connect(this.compressor);
     this.compressor.connect(this.saturationNode);
     this.saturationNode.connect(this.quantumSaturation);
     this.quantumSaturation.connect(this.spectralExciter);
@@ -808,7 +830,7 @@ export class AudioEngineService {
         // The worklet carries its own EQ/compression/limiting, so it feeds the
         // master output directly — never a metering filter.
         workletNode.connect(this.masterOutput);
-        this._preMasterGain.disconnect(this.compressor);
+        this._preMasterGain.disconnect(this.masterToneLowShelf);
 
         workletNode.port.postMessage({ slot: 'preset', payload: 'smuve' });
         this.masterWorkletNode = workletNode;
@@ -838,6 +860,67 @@ export class AudioEngineService {
   configureMasterWorklet(slot: string, action: string, payload?: any): void {
     if (!this.masterWorkletNode) return;
     this.masterWorkletNode.port.postMessage({ slot, action, payload });
+  }
+
+  /**
+   * Apply the master tone-shaping stage. Idempotent by design: repeated calls
+   * only move gains on the persistent biquads (fallback chain) or update the
+   * worklet's 5-band EQ, so a second AI mastering pass can never stack parallel
+   * paths into the master compressor or sever the active worklet.
+   *
+   * @param tone Low-shelf (~60 Hz), low-mid (~300 Hz) and high-shelf (~5 kHz)
+   *   gains in dB. Each is clamped to +/-18 and defaults to the last applied
+   *   value so a partial call never resets the stage.
+   */
+  setMasterToneEq(tone: {
+    lowShelfDb?: number;
+    lowMidDb?: number;
+    highShelfDb?: number;
+  }): void {
+    const clamp = (value: number | undefined, fallback: number): number =>
+      typeof value === 'number' && Number.isFinite(value)
+        ? Math.max(-18, Math.min(18, value))
+        : fallback;
+    const lowShelfDb = clamp(tone.lowShelfDb, this.masterToneEqState.lowShelfDb);
+    const lowMidDb = clamp(tone.lowMidDb, this.masterToneEqState.lowMidDb);
+    const highShelfDb = clamp(
+      tone.highShelfDb,
+      this.masterToneEqState.highShelfDb,
+    );
+    const now = this.ctx.currentTime;
+
+    if (this.masterWorkletActive()) {
+      // Worklet bands: 0 sub(40) · 1 low(120) · 2 mid(800) · 3 high(4000) · 4 air(12000)
+      this.configureMasterWorklet('eq', 'configure', {
+        band: 0,
+        gain: lowShelfDb,
+      });
+      this.configureMasterWorklet('eq', 'configure', {
+        band: 2,
+        gain: lowMidDb,
+      });
+      this.configureMasterWorklet('eq', 'configure', {
+        band: 3,
+        gain: highShelfDb,
+      });
+    } else {
+      this.masterToneLowShelf.gain.setTargetAtTime(lowShelfDb, now, 0.05);
+      this.masterToneLowMid.gain.setTargetAtTime(lowMidDb, now, 0.05);
+    }
+    // The shared high-shelf node lives on the fallback path only; updating it
+    // while the worklet owns the output is harmless and keeps the two paths in
+    // agreement for the moment the worklet is torn down.
+    this.masterShelf.gain.setTargetAtTime(highShelfDb, now, 0.05);
+    this.masterToneEqState = { lowShelfDb, lowMidDb, highShelfDb };
+  }
+
+  /** Read-back of the last applied master tone EQ (idempotency + UI). */
+  getMasterToneEq(): {
+    lowShelfDb: number;
+    lowMidDb: number;
+    highShelfDb: number;
+  } {
+    return { ...this.masterToneEqState };
   }
 
   resume(): Promise<void> {

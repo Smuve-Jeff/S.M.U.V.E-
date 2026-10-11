@@ -1,6 +1,9 @@
 import { AppError } from "@/lib";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// Overridable so an operator can pin a model without a code change. Defaults
+// to the current Flash tier used across the product.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 const FALLBACK_TEXT =
   "Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.";
@@ -13,13 +16,6 @@ export class AiProviderUnavailableError extends Error {
     this.name = "AiProviderUnavailableError";
   }
 }
-
-type GenAiModel = {
-  generateContent: (opts: {
-    model?: string;
-    contents: string;
-  }) => Promise<{ text?: string; response?: { text?: () => string } }>;
-};
 
 /**
  * Proxy for the frontend's POST /api/ai/analyze. Uses the Gemini API when a
@@ -34,28 +30,18 @@ export const analyzePrompt = async (
   }
 
   try {
-    // Lazy require so the API boots without @google/genai installed.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const genAIMod = await import("@google/genai");
-    const GoogleGenAI = (genAIMod as { GoogleGenAI: new (opts: { apiKey: string }) => unknown })
-      .GoogleGenAI;
+    // Dynamic import keeps boot cheap and avoids loading the SDK until a
+    // request actually needs it.
+    const { GoogleGenAI } = await import("@google/genai");
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-    // The modern SDK exposes `ai.models.generateContent(...)`.
-    const models = (ai as { models?: { generateContent?: GenAiModel["generateContent"] } }).models;
-    if (!models?.generateContent) {
-      return { text: FALLBACK_TEXT };
-    }
-    const result = await models.generateContent({
-      model: "gemini-2.5-flash",
+    const result = await ai.models.generateContent({
+      model: GEMINI_MODEL,
       contents: prompt,
     });
-    const text =
-      (result?.text as string | undefined) ||
-      (typeof result?.response?.text === "function"
-        ? result.response.text()
-        : undefined);
-    return { text: text || FALLBACK_TEXT };
+    // `GenerateContentResponse.text` is a getter that concatenates the first
+    // candidate's text parts (and is undefined when the model returns none).
+    return { text: result.text || FALLBACK_TEXT };
   } catch (error) {
     console.error("AI proxy error:", error);
     throw new AppError(502, "AI service unavailable");

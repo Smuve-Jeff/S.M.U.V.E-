@@ -175,6 +175,30 @@ describe('AiService', () => {
     expect(service.systemStatus().activeProcesses).toBe(0);
   });
 
+  it('rejects the severed-link sentinel instead of caching it as research intel', async () => {
+    jest
+      .spyOn(service, 'getAIResponse')
+      .mockResolvedValue(
+        'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.',
+      );
+
+    await expect(
+      service.industryDeepSearch('playlist pitching strategy'),
+    ).rejects.toThrow(/offline/i);
+
+    expect(service.industryIntelligence()).toEqual([]);
+    expect(service.systemStatus().activeProcesses).toBe(0);
+  });
+
+  it('rejects an empty research brief', async () => {
+    jest.spyOn(service, 'getAIResponse').mockResolvedValue('   ');
+
+    await expect(service.industryDeepSearch('label economics')).rejects.toThrow(
+      /empty/i,
+    );
+    expect(service.industryIntelligence()).toEqual([]);
+  });
+
   it('should unlock an upgrade', (done) => {
     expect(service.isUnlocked('test-upgrade')).toBe(false);
     service.unlockUpgrade('test-upgrade');
