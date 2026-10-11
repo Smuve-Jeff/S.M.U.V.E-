@@ -1362,7 +1362,12 @@
 
 @media (max-width: 768px) and (orientation: landscape) {
   .comp-shell {
-    --mobile-nav-height: 52px;
+    /* 62px, not 52: the tab bar's own padding (6px top + 8px bottom) plus its
+       48px tab row makes the nav 62px tall regardless of the variable, so a
+       52px value left anything anchored to --mobile-nav-height (the FAB, the
+       drawer) sitting flush against the nav with no clearance. Matches the
+       portrait tier's own accounting. */
+    --mobile-nav-height: 62px;
   }
 
   .comp-topbar {
@@ -3096,6 +3101,28 @@
   .comp-panel {
     top: 0;
     height: 100%;
+  }
+}
+
+/* Short *phone* viewports (landscape phones, and any phone with the keyboard
+   open) still need the tools row: on the compact tier that row owns the only
+   MORE trigger for the STUDIO TOOLS sheet, so the block above — which hides
+   the row outright — also removed the entry point to save/export, AI Mix,
+   recording, project info, Insights and appearance. Collapse the row to just
+   that one trigger instead of hiding it. Scoped to <=768px so the desktop
+   tier keeps its original behaviour. */
+@media (max-height: 500px) and (max-width: 768px) {
+  .comp-shell .comp-topbar-tools {
+    display: flex;
+    min-height: 32px;
+    padding: 2px 6px;
+  }
+
+  .comp-shell .comp-topbar-tools .comp-tool-btn.comp-tool-more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 3px 9px;
   }
 }
 

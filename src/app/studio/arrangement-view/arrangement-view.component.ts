@@ -253,8 +253,6 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const dpr = window.devicePixelRatio || 1;
     const vpW = viewport.clientWidth;
     const vpH = viewport.clientHeight;
-    const scrollX = viewport.scrollLeft;
-    const scrollY = viewport.scrollTop;
 
     // Resize if needed
     if (
@@ -267,9 +265,15 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const ppb = this.barWidth();
     this.timelineRenderer.setPixelsPerBar(ppb);
 
+    // The canvas is CSS-width gridWidth() and lives inside this scrolling
+    // viewport, so native scrolling already positions it. The renderer camera
+    // must NOT pan by the scroll offset as well: doing so double-counted the
+    // scroll, so scrolled timelines drew every clip/beat at ~2x the scroll
+    // distance and `screenToWorld` resolved taps to the wrong bar. The offset
+    // stays at zero (only zoom is meaningful here).
     const camera = {
-      scrollX: scrollX / dpr,
-      scrollY: scrollY / dpr,
+      scrollX: 0,
+      scrollY: 0,
       zoom: 1.0,
     };
 
@@ -520,14 +524,36 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.markDirty();
   }
 
+  /**
+   * Zoom level the pinch started from, used to convert the gesture service's
+   * accumulated zoom into a delta on the timeline's own barWidth.
+   */
+  private pinchZoomRef = 1;
+
   onGridTouchStart(event: TouchEvent) {
-    if (event.touches.length === 2) this.enhancedGestures.handlePinch(event);
+    if (event.touches.length === 2) {
+      this.pinchZoomRef = this.enhancedGestures.zoomLevel();
+      this.enhancedGestures.handlePinch(event);
+    }
   }
 
   onGridTouchMove(event: TouchEvent) {
     if (event.touches.length === 2) {
       event.preventDefault();
       this.enhancedGestures.handlePinch(event);
+      // The gesture service tracked the pinch, but the timeline is laid out
+      // from barWidth — so a pinch used to zoom nothing at all on touch
+      // devices. Fold the accumulated pinch zoom into barWidth between the
+      // same 40-600px clamps the wheel zoom uses.
+      const zoom = this.enhancedGestures.zoomLevel();
+      const ratio = this.pinchZoomRef > 0 ? zoom / this.pinchZoomRef : 1;
+      if (ratio !== 1) {
+        this.barWidth.update((v) =>
+          Math.max(40, Math.min(600, Math.round(v * ratio))),
+        );
+        this.pinchZoomRef = zoom;
+        this.markDirty();
+      }
     }
   }
 
@@ -538,6 +564,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
    */
   onGridTouchEnd() {
     this.enhancedGestures.resetPinch();
+    this.pinchZoomRef = this.enhancedGestures.zoomLevel();
   }
 
   duplicateSelected() {

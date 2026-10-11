@@ -52,6 +52,7 @@ describe("ArrangementViewComponent", () => {
 
   const mockEnhancedGestures = {
     handlePinch: jest.fn(),
+    resetPinch: jest.fn(),
     zoomLevel: signal(1.0),
     verticalZoomLevel: signal(1.0),
   };
@@ -104,6 +105,54 @@ describe("ArrangementViewComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it("does not pan the render camera by the scroll offset (native scroll owns the pan)", () => {
+    const renderSpy = jest.fn();
+    (component as any).isGlInitialized = true;
+    (component as any).glRenderer = {
+      resize: jest.fn(),
+      clear: jest.fn(),
+      screenToWorld: jest.fn(),
+      destroy: jest.fn(),
+    };
+    (component as any).timelineRenderer = {
+      setPixelsPerBar: jest.fn(),
+      render: renderSpy,
+    };
+    (component as any).gridViewport = {
+      nativeElement: {
+        clientWidth: 400,
+        clientHeight: 300,
+        scrollLeft: 480,
+        scrollTop: 64,
+      },
+    };
+
+    (component as any).renderTimeline();
+
+    const camera = renderSpy.mock.calls[0][4];
+    expect(camera).toEqual({ scrollX: 0, scrollY: 0, zoom: 1 });
+    (component as any).isGlInitialized = false;
+  });
+
+  it("applies a two-finger pinch to the timeline zoom", () => {
+    const preventDefault = jest.fn();
+    const barWidthBefore = component.barWidth();
+    mockEnhancedGestures.zoomLevel.set(1);
+
+    (component as any).onGridTouchStart({ touches: [{}, {}] } as any);
+    // The gesture service accumulates the zoom; the view must fold it into
+    // barWidth or the pinch zooms nothing.
+    mockEnhancedGestures.zoomLevel.set(1.5);
+    (component as any).onGridTouchMove({
+      touches: [{}, {}],
+      preventDefault,
+    } as any);
+
+    expect(component.barWidth()).toBe(Math.round(barWidthBefore * 1.5));
+    expect(preventDefault).toHaveBeenCalled();
+    (component as any).onGridTouchEnd();
   });
 
   it("should call removeTrack", () => {

@@ -103,6 +103,9 @@ describe("PianoRollComponent", () => {
     zoomLevel: signal(1),
     verticalZoomLevel: signal(1),
     handlePinch: jest.fn(),
+    setZoom: jest.fn((level: number) =>
+      mockEnhancedTouchGestures.zoomLevel.set(level),
+    ),
     adjustZoom: jest.fn(),
     resetZoom: jest.fn(),
     resetPinch: jest.fn(),
@@ -111,6 +114,9 @@ describe("PianoRollComponent", () => {
   const mockHaptic = {
     light: jest.fn(),
     medium: jest.fn(),
+    drumHit: jest.fn(),
+    preset: jest.fn(),
+    velocity: jest.fn(),
   };
 
   const performerCC = new Subject<{
@@ -221,6 +227,8 @@ describe("PianoRollComponent", () => {
     mockHardware.sustainHalfPedal.set(false);
     mockHardware.sustainAmount.set(127);
     mockHardware.lastSustainReleaseCount.set(0);
+    mockEnhancedTouchGestures.zoomLevel.set(1);
+    mockEnhancedTouchGestures.verticalZoomLevel.set(1);
     component.ccRecordArmed.set(false);
     component.ccLaneLearnTarget.set(null);
   });
@@ -733,6 +741,80 @@ describe("PianoRollComponent", () => {
       touches: [],
     } as any);
     expect(mockMusicManager.addNoteToTrack).not.toHaveBeenCalled();
+  });
+
+  it("maps a velocity-lane drag against the lane's real height", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [{ id: "v1", midi: 60, step: 0, length: 1, velocity: 0.8 }],
+      },
+    ]);
+    // 90px lane: a press at the vertical midpoint must read ~0.5. The old
+    // hardcoded /60 mapping turned that same press into 0.25.
+    const lane = {
+      scrollLeft: 0,
+      getBoundingClientRect: () =>
+        ({ left: 0, top: 0, width: 1024, height: 90, right: 1024, bottom: 90 }) as DOMRect,
+    };
+    component.onVelocityPointerDown({
+      clientX: 5,
+      clientY: 45,
+      currentTarget: lane,
+    } as any);
+
+    const velocity = mockMusicManager.updateNote.mock.calls[0][2].velocity;
+    expect(velocity).toBeGreaterThan(0.45);
+    expect(velocity).toBeLessThan(0.55);
+  });
+
+  it("does not pan the render camera by the scroll offset (native scroll owns the pan)", () => {
+    const renderSpy = jest.fn();
+    (component as any).isGlInitialized = true;
+    (component as any).glRenderer = {
+      resize: jest.fn(),
+      clear: jest.fn(),
+      markDirty: jest.fn(),
+      destroy: jest.fn(),
+    };
+    (component as any).prRenderer = {
+      setPixelsPerStep: jest.fn(),
+      setRowHeight: jest.fn(),
+      setMidiRange: jest.fn(),
+      render: renderSpy,
+      renderVelocityLane: jest.fn(),
+    };
+    (component as any).glVelRenderer = {
+      resize: jest.fn(),
+      clear: jest.fn(),
+      destroy: jest.fn(),
+    };
+    (component as any).scrollContainer = {
+      nativeElement: {
+        clientWidth: 400,
+        clientHeight: 300,
+        scrollLeft: 512,
+        scrollTop: 128,
+      },
+    };
+
+    (component as any).renderPianoRoll();
+
+    const camera = renderSpy.mock.calls[0][3];
+    expect(camera).toEqual({ scrollX: 0, scrollY: 0, zoom: 1 });
+    (component as any).isGlInitialized = false;
+  });
+
+  it("zoom buttons actually resize the grid (single zoom source)", () => {
+    const before = component.cellWidth();
+    component.zoomIn();
+    expect(component.cellWidth()).toBeGreaterThan(before);
+    expect(component.zoomPercent()).toBe(125);
+    expect(mockEnhancedTouchGestures.setZoom).toHaveBeenCalled();
+
+    component.zoomOut();
+    expect(component.cellWidth()).toBe(before);
+    expect(component.zoomPercent()).toBe(100);
   });
 
   it("selectedNoteIsSlide stays true after re-selecting the same notes", () => {

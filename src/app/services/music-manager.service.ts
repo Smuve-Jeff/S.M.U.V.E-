@@ -2376,7 +2376,17 @@ export class MusicManagerService {
               if (n.probability !== undefined && Math.random() >= n.probability)
                 return; // Skip based on probability
 
-              const microTime = swungTime + (n.microOffset ?? 0) * duration;
+              // Sub-grid placement: the 1/32 and 1/8T snaps store a
+              // FRACTIONAL `step` (x.5 / x.333). The step gate above floors
+              // that to the surrounding step, so without carrying the
+              // fraction into the schedule time every sub-grid note played a
+              // half/third of a step early — the on-screen grid and what you
+              // heard disagreed. microOffset stays additive on top.
+              const stepFraction = n.step - Math.floor(n.step);
+              const microTime =
+                swungTime +
+                (n.microOffset ?? 0) * duration +
+                stepFraction * duration;
               const baseFreq = 440 * Math.pow(2, (n.midi - 69) / 12);
               const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
               // Slide notes: glide from the base pitch to the pitch-bend target

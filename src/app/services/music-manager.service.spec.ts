@@ -520,6 +520,61 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
       expect(second).toHaveBeenCalledWith(4, 2, 0.25);
     });
   });
+
+  describe('sub-grid note timing (1/32 and 1/8T snaps)', () => {
+    const scheduledTimeOf = (call: unknown[] | undefined) => call?.[2] as number;
+
+    it('plays a half-step (1/32) note half a step late, not a step early', () => {
+      // The 1/32 instrument snap stores step = x.5. The step gate floors that
+      // to the surrounding step, so the fraction must be carried into the
+      // schedule time or the note sounds on the wrong side of the grid.
+      service.tracks.set([
+        makeTrack({
+          notes: [{ id: 'half', midi: 60, step: 4.5, length: 0.5, velocity: 0.8 }],
+        }),
+      ]);
+      engineMock.triggerAttack.mockClear();
+
+      service.playStep(4, 10, 0.25);
+
+      expect(engineMock.triggerAttack).toHaveBeenCalledTimes(1);
+      expect(scheduledTimeOf(engineMock.triggerAttack.mock.calls[0])).toBeCloseTo(
+        10.125,
+        6,
+      );
+    });
+
+    it('plays a 1/8T triplet note a third of a step late', () => {
+      service.tracks.set([
+        makeTrack({
+          notes: [{ id: 'trip', midi: 62, step: 4 + 4 / 3, length: 4 / 3, velocity: 0.8 }],
+        }),
+      ]);
+      engineMock.triggerAttack.mockClear();
+
+      service.playStep(5, 20, 0.3);
+
+      expect(engineMock.triggerAttack).toHaveBeenCalledTimes(1);
+      expect(scheduledTimeOf(engineMock.triggerAttack.mock.calls[0])).toBeCloseTo(
+        20 + (4 / 3 - 1) * 0.3,
+        6,
+      );
+    });
+
+    it('still schedules an on-grid note exactly on its step', () => {
+      service.tracks.set([
+        makeTrack({
+          notes: [{ id: 'grid', midi: 64, step: 8, length: 1, velocity: 0.8 }],
+        }),
+      ]);
+      engineMock.triggerAttack.mockClear();
+
+      service.playStep(8, 30, 0.25);
+
+      expect(engineMock.triggerAttack).toHaveBeenCalledTimes(1);
+      expect(scheduledTimeOf(engineMock.triggerAttack.mock.calls[0])).toBe(30);
+    });
+  });
 });
 
 /**

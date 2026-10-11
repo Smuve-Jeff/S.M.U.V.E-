@@ -38,6 +38,12 @@ const VELOCITY_LANE_HEIGHT = 80;
 const MAX_MIDI = 96;
 /** Movement (px) before a touch on a note becomes a drag instead of a tap. */
 const TOUCH_DRAG_SLOP_PX = 6;
+/**
+ * Resize grab zone. A mouse can hit an 8px edge, but a fingertip is ~9mm
+ * (~34px). Touch gets a wider band so the right edge of a note is actually
+ * grabbable on a phone instead of only selectable.
+ */
+const TOUCH_RESIZE_SLOP_PX = 20;
 
 /** Explicit editor tools; gestures refine a tool but never define it. */
 export type PianoTool = "draw" | "select" | "erase" | "velocity" | "chord";
@@ -908,9 +914,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.prRenderer.setRowHeight(rh);
     this.prRenderer.setMidiRange(24, 24 + MAX_MIDI - 1);
 
+    // The canvas is CSS-width gridWidth()/canvasHeight() and lives INSIDE this
+    // scroll container, so native scrolling already positions it — the scroll
+    // container owns the pan. On top of that, every hit test
+    // (getGridPosition) converts a touch/click with `clientX - rect.left +
+    // container.scrollLeft`, i.e. straight content coordinates. Panning the
+    // renderer camera by the scroll offset as well double-counted the scroll:
+    // the WebGL notes were drawn at ~2x the scroll distance, so scrolled past
+    // the first screen the notes you saw were not the notes you tapped.
+    // The camera offset must therefore stay at zero; only zoom belongs here.
     const camera = {
-      scrollX: container.scrollLeft / dpr,
-      scrollY: container.scrollTop / dpr,
+      scrollX: 0,
+      scrollY: 0,
       zoom: 1.0,
     };
 
@@ -967,8 +982,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
         this.glVelRenderer.resize();
       }
 
+      // Velocity bars are in-flow content of the lane's own scroll viewport,
+      // so native scrolling owns the pan here too (same double-count as the
+      // grid above).
       const velCamera = {
-        scrollX: velViewport.scrollLeft / dpr,
+        scrollX: 0,
         scrollY: 0,
         zoom: 1.0,
       };
@@ -1017,8 +1035,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.2 : 0.2;
-    this.zoomLevel.update((v) => Math.max(0.25, Math.min(3.0, v + delta)));
-    this.markDirty();
+    this.applyZoom(this.touchGestures.zoomLevel() + delta);
   }
 
   // ── Touch interactions ───────────────────────────────────
@@ -1052,6 +1069,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       this.lastPinchZoom = this.touchGestures.zoomLevel();
       try {
         this.touchGestures.handlePinch(event);
+        this.syncZoomFromGesture();
       } catch {}
     }
   }
@@ -1073,7 +1091,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const hit = this.findNoteAt(step, midi);
     if (!hit || this.editMode() === "erase") return;
     const offsetPx = (step - hit.step) * this.cellWidth();
-    if (this.isNoteResizeEdge(hit, offsetPx)) {
+    if (this.isNoteResizeEdge(hit, offsetPx, TOUCH_RESIZE_SLOP_PX)) {
       this.resizingNote = {
         id: hit.id,
         startClientX: touch.clientX,
@@ -1096,6 +1114,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       event.preventDefault();
       try {
         this.touchGestures.handlePinch(event);
+        this.syncZoomFromGesture();
         const newZoom = this.touchGestures.zoomLevel();
         if (Math.abs(newZoom - this.lastPinchZoom) > 0.15) {
           this.haptic.preset("tick");
@@ -1353,7 +1372,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       (event.currentTarget as HTMLElement).scrollLeft;
     const y = event.clientY - rect.top;
     const step = Math.max(0, Math.floor(x / this.cellWidth()));
-    const velocity = Math.max(0.1, Math.min(1.5, 1 - y / 60));
+    // Use the lane's measured height: it is 80px on desktop, 90px on phones
+    // and 58px on landscape phones. The old hardcoded 60px made the top of the
+    // lane unreachable on mobile and overshot on desktop, so the velocity you
+    // dragged was not the velocity you got.
+    const laneHeight = rect.height > 0 ? rect.height : VELOCITY_LANE_HEIGHT;
+    const velocity = Math.max(0.1, Math.min(1.5, 1 - y / laneHeight));
     const track = this.selectedTrack();
     if (!track) return;
     const note = track.notes.find((n) => Math.floor(n.step) === step);
@@ -1674,15 +1698,35 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   zoomPercent = computed(() => Math.round(this.zoomLevel() * 100));
-  zoomIn() {
-    this.zoomLevel.update((v) => Math.min(3.0, v + 0.25));
-    this.haptic.light();
+
+  /**
+   * Single writer for the grid zoom. `cellWidth()` (and therefore the WebGL
+   * grid, the hit tests and the canvas size) reads the gesture service's
+   * `zoomLevel`, while the toolbar buttons, wheel and Fit used to write a
+   * *separate* component signal — so every button-driven zoom changed the
+   * readout but not the grid. Route all of them through here so the buttons,
+   * the wheel, Fit and pinch all move the same value.
+   */
+  private applyZoom(level: number): void {
+    const clamped = Math.max(0.25, Math.min(3.0, level));
+    this.touchGestures.setZoom(clamped);
+    this.zoomLevel.set(clamped);
     this.markDirty();
   }
-  zoomOut() {
-    this.zoomLevel.update((v) => Math.max(0.25, v - 0.25));
+
+  /** Adopt a pinch-driven zoom (the gesture service owns that accumulation). */
+  private syncZoomFromGesture(): void {
+    const level = Math.max(0.25, Math.min(3.0, this.touchGestures.zoomLevel()));
+    if (level !== this.zoomLevel()) this.zoomLevel.set(level);
+  }
+
+  zoomIn() {
+    this.applyZoom(this.touchGestures.zoomLevel() + 0.25);
     this.haptic.light();
-    this.markDirty();
+  }
+  zoomOut() {
+    this.applyZoom(this.touchGestures.zoomLevel() - 0.25);
+    this.haptic.light();
   }
 
   fitToPage(): void {
@@ -1703,8 +1747,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       0.25,
       Math.min(3, 96 / Math.max(1, totalSteps)),
     );
-    this.zoomLevel.set(targetZoom);
-    this.markDirty();
+    this.applyZoom(targetZoom);
   }
 
   expandGrid() {
