@@ -876,6 +876,57 @@ describe("SmartRecordingService", () => {
       expect(await service.renderCompAssembly("missing")).toBeNull();
       expect(await service.renderCompAssembly()).toBeNull();
     });
+
+    it("renders a short final take without silently losing the tail", async () => {
+      // Two equal-length segments with a crossfade, but the last take is shorter
+      // than the segment it plays. Without a usable-source guard, the render loop
+      // can iterate past the last take's source and leave the end of the output
+      // under-filled for the final segment.
+      installDecoder({
+        1: new Float32Array(3 * framesPerBar).fill(0.4),
+        2: new Float32Array(1 * framesPerBar).fill(0.8),
+      });
+      service.compGroups.set([
+        makeGroup(
+          [
+            makeTake("a", 1, 1, 3),
+            makeTake("b", 2, 3, 5, {
+              durationMs: 2000,
+              regionStartBar: 3,
+              regionEndBar: 5,
+            }),
+          ],
+          [
+            { id: "s1", startBar: 1, endBar: 3, takeId: "a" },
+            { id: "s2", startBar: 3, endBar: 5, takeId: "b" },
+          ],
+        ),
+      ]);
+
+      const { channels, blob } = await renderChannels();
+      const left = channels[0];
+
+      // The delivered file must still span exactly the planned section (bars 1–5).
+      expect(channels).toHaveLength(2);
+      expect(left.length).toBe(4 * framesPerBar);
+      expect(blob.size).toBe(44 + 4 * framesPerBar * 2 * 2);
+
+      // The first segment keeps its source material intact across the join.
+      expect(left[framesPerBar + 1000]).toBeCloseTo(0.4, 3);
+
+      // The short final take's samples must land in frame with its segment start,
+      // and the only silence in the output must be where the short source actually
+      // ends — not beyond the planned span.
+      const shortSourceEnd = 2 * framesPerBar + 1 * framesPerBar - 1;
+      expect(left[2 * framesPerBar]).toBeCloseTo(0.8, 7);
+      expect(left[shortSourceEnd]).toBeCloseTo(0.8, 7);
+      // Anything after the short source should be silent for the final segment.
+      expect(left[shortSourceEnd + 1]).toBe(0);
+      // The earlier segment still ends exactly where the short final segment begins.
+      expect(left[2 * framesPerBar - 1]).toBeCloseTo(0.4, 3);
+      expect(left[2 * framesPerBar + 1 * framesPerBar]).toBe(0);
+      expect(left[2 * framesPerBar + 1 * framesPerBar + 1000]).toBe(0);
+    });
   });
 
   describe("auto-split", () => {
