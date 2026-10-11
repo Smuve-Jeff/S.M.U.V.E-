@@ -2,12 +2,21 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { MusicalDnaService } from './musical-dna.service';
 import { UserProfileService } from './user-profile.service';
-import { SmuveKnowledgeEngine } from './smuve-knowledge-engine';
-import { LoggingService } from './logging.service';
-import { DNA_EVENT_CAP, createInitialMusicalDnaState } from '../types/musical-dna.types';
+import { DNA_EVENT_CAP, DNA_VERSION } from '../types/musical-dna.types';
 import type { UserProfile } from '../types/profile.types';
 
-const NOW = Date.UTC(2026, 0, 15);
+/*
+ * This file pins the *facade* contract only — reading the live profile, storing
+ * one learned signal, and clearing the stored log.
+ *
+ * The engine itself (axis scoring, drift, adaptations/protections, lesson
+ * planning, the prompt context and the recency-weighted cap) is pure logic in
+ * `types/musical-dna.types.ts` and is covered there in
+ * `musical-dna.types.spec.ts`. Testing it again through this facade duplicated
+ * coverage for methods the facade no longer exposes (`record`, `refresh`,
+ * `promptBlock`, `lessons`, `protections`, `explain`) and left the suite stale
+ * after the engine was moved down into the types module.
+ */
 
 const baseProfile = (): UserProfile =>
   ({
@@ -32,8 +41,6 @@ const baseProfile = (): UserProfile =>
 describe('MusicalDnaService', () => {
   let profileSignal: ReturnType<typeof signal<UserProfile>>;
   let updateProfile: jest.Mock;
-  let getByCategory: jest.Mock;
-  let warn: jest.Mock;
   let service: MusicalDnaService;
 
   const build = () => {
@@ -41,8 +48,6 @@ describe('MusicalDnaService', () => {
       providers: [
         MusicalDnaService,
         { provide: UserProfileService, useValue: { profile: profileSignal, updateProfile } },
-        { provide: SmuveKnowledgeEngine, useValue: { getByCategory } },
-        { provide: LoggingService, useValue: { warn } },
       ],
     });
     service = TestBed.inject(MusicalDnaService);
@@ -54,8 +59,6 @@ describe('MusicalDnaService', () => {
       profileSignal.set({ ...profileSignal(), ...patch });
       return profileSignal();
     });
-    getByCategory = jest.fn(() => []);
-    warn = jest.fn();
     build();
   });
 
@@ -76,116 +79,59 @@ describe('MusicalDnaService', () => {
     expect(rhythm.observed).toBeGreaterThan(0);
   });
 
-  it('learns a recorded signal and remembers it on the profile', async () => {
-    const reading = await service.record({
+  it('exposes the fingerprint the AI surfaces read straight from the reading', () => {
+    const reading = service.reading();
+
+    expect(service.signature()).toBe(reading.signature);
+    expect(service.strengths()).toEqual(reading.strengths);
+    expect(service.gaps()).toEqual(reading.gaps);
+    expect(service.fidelity()).toBe(reading.fidelity);
+    // An axis cannot be both a strength and a gap.
+    expect(reading.strengths.filter((id) => reading.gaps.includes(id))).toEqual([]);
+  });
+
+  it('records a live signal and remembers it on the profile', async () => {
+    await service.recordSignal({
       dimension: 'arrangement',
       summary: 'Section map approved',
       weight: 0.5,
     });
 
-    expect(reading.dimensions.find((d) => d.id === 'arrangement')!.observed).toBeGreaterThan(0);
+    const arrangement = service.reading().dimensions.find((d) => d.id === 'arrangement')!;
+    expect(arrangement.observed).toBeGreaterThan(0);
     expect(updateProfile).toHaveBeenCalledTimes(1);
 
     const persisted = updateProfile.mock.calls[0][0].musicalDna;
+    expect(persisted.version).toBe(DNA_VERSION);
     expect(persisted.events).toHaveLength(1);
     expect(persisted.events[0].summary).toBe('Section map approved');
-    expect(persisted.lastReading).toBeDefined();
-    expect(persisted.version).toBe(1);
-    // The stored snapshot is available to any surface that wants it.
+    // The reading is recomputed from the live profile, so the record path
+    // stores evidence only — there is no snapshot to go stale.
+    expect(service.state().version).toBe(DNA_VERSION);
     expect(service.state().events).toHaveLength(1);
-  });
-
-  it('surfaces the learned signal through the prompt block', async () => {
-    await service.record({ dimension: 'audience', summary: 'first 100 listeners mapped', weight: 0.4 });
-
-    expect(service.promptBlock()).toContain('Live signal: first 100 listeners mapped');
-  });
-
-  it('never lets a persistence failure break the reporting surface', async () => {
-    updateProfile.mockRejectedValueOnce(new Error('offline'));
-
-    await expect(
-      service.record({ dimension: 'sonics', summary: 'tone locked' }),
-    ).resolves.toBeDefined();
-    expect(warn).toHaveBeenCalled();
-  });
-
-  it('refreshes a snapshot from the current profile', async () => {
-    await service.refresh();
-
-    const persisted = updateProfile.mock.calls[0][0].musicalDna;
-    expect(persisted.version).toBe(1);
-    expect(persisted.lastReading.dimensions).toHaveLength(8);
-    // Refreshing must not invent evidence.
-    expect(persisted.events).toEqual([]);
-  });
-
-  it('resets the learned log', async () => {
-    await service.record({ dimension: 'harmony', summary: 'modal drift' });
-    await service.reset();
-
-    const persisted = updateProfile.mock.calls.at(-1)![0].musicalDna;
-    expect(persisted.version).toBe(createInitialMusicalDnaState().version);
-    expect(persisted.events).toEqual([]);
-    expect(persisted.lastReading).toBeUndefined();
-    expect(service.state().events).toEqual([]);
-  });
-
-  it('teaches from the app knowledge base when an entry matches the weak axis', async () => {
-    getByCategory.mockReturnValue([
-      { id: 'prod-01', title: 'Gain Staging Fundamentals', actionRequired: 'Set all faders to -6dB.' },
-    ]);
-
-    const lessons = service.lessons();
-
-    expect(lessons.length).toBeGreaterThan(0);
-    expect(lessons[0].action).toBe('Set all faders to -6dB.');
-  });
-
-  it('falls back to the axis coach when the knowledge base has nothing', () => {
-    const lessons = service.lessons();
-
-    expect(lessons.length).toBeGreaterThan(0);
-    expect(lessons.every((l) => l.action.length > 0)).toBe(true);
-  });
-
-  it('still teaches when the knowledge base throws', () => {
-    getByCategory.mockImplementation(() => {
-      throw new Error('kb offline');
-    });
-
-    expect(service.lessons().length).toBeGreaterThan(0);
-  });
-
-  it('exposes the rules it must not break and explains any axis', async () => {
-    profileSignal.set({
-      ...profileSignal(),
-      musicalJourney: {
-        ...profileSignal().musicalJourney,
-        musicBlueprint: {
-          rhythmicFeel: 'Slow and untethered',
-          sonicNonNegotiables: 'No bright digital top end',
-        },
-      },
-      settings: {
-        ...profileSignal().settings,
-        studio: { ...profileSignal().settings.studio, autoMixEnabled: true },
-      },
-    } as unknown as UserProfile);
-
-    expect(service.protections().map((p) => p.id)).toContain('protect-sonic-non-negotiables');
-
-    const rhythm = service.explain('rhythm');
-    expect(rhythm?.label).toBe('Rhythm & Groove');
-    expect(rhythm?.evidence.length).toBeGreaterThan(0);
-    expect(service.explain('melody')).not.toBeNull();
   });
 
   it('keeps the evidence log bounded across a long session', async () => {
     for (let i = 0; i < DNA_EVENT_CAP + 5; i++) {
-      await service.record({ dimension: 'production', summary: `rep ${i}` });
+      await service.recordSignal({ dimension: 'production', summary: `rep ${i}` });
     }
 
     expect(service.state().events).toHaveLength(DNA_EVENT_CAP);
+  });
+
+  it('clears the learned log without inventing new evidence', async () => {
+    await service.recordSignal({ dimension: 'harmony', summary: 'modal drift' });
+    await service.resetBehaviorLog();
+
+    const persisted = updateProfile.mock.calls.at(-1)![0].musicalDna;
+    expect(persisted.version).toBe(DNA_VERSION);
+    expect(persisted.events).toEqual([]);
+    expect(service.state().events).toEqual([]);
+  });
+
+  it('does nothing when the profile never carried a learned log', async () => {
+    await service.resetBehaviorLog();
+
+    expect(updateProfile).not.toHaveBeenCalled();
   });
 });

@@ -93,6 +93,9 @@ describe('AppComponent', () => {
       handleGlobalKey: jest.fn(),
       togglePalette: jest.fn(),
       openGuide: jest.fn(),
+      // AppComponent now injects ArtistCoachCommandIntegrationService, whose
+      // constructor publishes coach actions through this palette method.
+      setExtensionActions: jest.fn(),
       activeTips: signal([
         {
           id: 'global-guide',
