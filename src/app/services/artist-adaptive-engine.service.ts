@@ -234,9 +234,7 @@ export class ArtistAdaptiveEngineService {
   private profileService = inject(UserProfileService);
   private finetune = inject(ArtistProfileFinetuneService);
 
-  readonly adaptationState = computed(() =>
-    this.buildAdaptationState(this.profileService.profile())
-  );
+  readonly adaptationState = computed(() => this.buildAdaptationState(this.profileService.profile()));
 
   buildAdaptationState(profile: UserProfile | null | undefined): ArtistAdaptationState {
     const knowledge = this.finetune.compileProfile(profile);
@@ -271,13 +269,8 @@ export class ArtistAdaptiveEngineService {
     return match || GENRE_PROFILES[0];
   }
 
-  private buildProductionDirective(
-    profile: UserProfile | null | undefined,
-    knowledge: ArtistProfileKnowledge,
-    genre: GenreAdaptationProfile
-  ): string {
+  private buildProductionDirective(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string {
     if (!profile) return '';
-
     const daw = profile.daw?.[0] || genre.productionDefaults.recommendedDaw[0] || 'your DAW';
     const bpm = profile.musicalJourney?.preferredBpmRange || `${genre.productionDefaults.typicalBpmRange[0]}-${genre.productionDefaults.typicalBpmRange[1]}`;
     const sonicRule = knowledge.sonic.nonNegotiables || `Protect the ${genre.productionDefaults.sonicSignatures[0] || 'signature sound'}`;
@@ -293,13 +286,8 @@ export class ArtistAdaptiveEngineService {
     ].filter(Boolean).join('\n');
   }
 
-  private buildBusinessStrategy(
-    profile: UserProfile | null | undefined,
-    knowledge: ArtistProfileKnowledge,
-    genre: GenreAdaptationProfile
-  ): string {
+  private buildBusinessStrategy(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string {
     if (!profile) return '';
-
     const velocity = profile.musicalJourney?.releaseVelocity || genre.businessPlaybook.typicalVelocity;
     const focus = profile.musicalJourney?.currentFocus || genre.businessPlaybook.marketPosition;
     const metric = profile.musicalJourney?.primarySuccessMetric || 'Monthly listeners';
@@ -316,30 +304,21 @@ export class ArtistAdaptiveEngineService {
     ].join('\n');
   }
 
-  private assessLiveReadiness(
-    profile: UserProfile | null | undefined,
-    knowledge: ArtistProfileKnowledge,
-    genre: GenreAdaptationProfile
-  ): { score: number; gaps: string[]; nextMove: string } {
+  private assessLiveReadiness(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): { score: number; gaps: string[]; nextMove: string } {
     if (!profile) return { score: 0, gaps: [], nextMove: '' };
-
     const readiness = profile.touringDetails?.isTourReady || 'Studio Only';
     const hasBackline = profile.touringDetails?.hasBackline === 'Yes';
     const regions = profile.touringDetails?.regions || [];
     const catalogSize = profile.catalog?.length || 0;
-
     let score = 0;
     const gaps: string[] = [];
 
     if (readiness === 'Ready to Tour') score += 40;
     else if (readiness === 'Can Perform') score += 20;
-
     if (hasBackline) score += 20;
     else gaps.push(`Backline: genre-typical needs are ${genre.livePerformance.typicalBacklineNeeds.join(', ')}`);
-
     if (regions.length > 0) score += 20;
     else gaps.push(`Regional routing: not set (genre hotspots: ${genre.livePerformance.regionalStrength.join(', ')})`);
-
     if (catalogSize >= 3) score += 20;
     else gaps.push('Catalog size: need at least 3 works before booking tours');
 
@@ -353,34 +332,24 @@ export class ArtistAdaptiveEngineService {
     return { score, gaps, nextMove };
   }
 
-  private assessSyncReadiness(
-    profile: UserProfile | null | undefined,
-    knowledge: ArtistProfileKnowledge,
-    genre: GenreAdaptationProfile
-  ): { score: number; clearanceModel: string; missingAssets: string[] } {
+  private assessSyncReadiness(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): { score: number; clearanceModel: string; missingAssets: string[] } {
     if (!profile) return { score: 0, clearanceModel: '', missingAssets: [] };
-
     const syncReady = profile.syncDetails?.isSyncReady || 'Not Started';
     const hasClean = profile.syncDetails?.hasCleanVersions || false;
     const hasInstrumentals = profile.syncDetails?.hasInstrumentals || false;
     const hasStems = profile.syncDetails?.hasStems || 'No';
     const oneStop = profile.syncDetails?.oneStopClearance || false;
-
     let score = 0;
     const missingAssets: string[] = [];
 
     if (syncReady === 'Ready') score += 25;
     else if (syncReady === 'In Progress') score += 12;
-
     if (hasClean) score += 15;
     else missingAssets.push('Clean versions (no profanity)');
-
     if (hasInstrumentals) score += 15;
     else missingAssets.push('Instrumental versions');
-
     if (hasStems && hasStems !== 'No') score += 20;
     else missingAssets.push('Stems (individual tracks)');
-
     if (oneStop) score += 25;
     else missingAssets.push('One-stop clearance (sample resolution)');
 
@@ -391,11 +360,7 @@ export class ArtistAdaptiveEngineService {
     };
   }
 
-  private buildAiPersonaDirectives(
-    profile: UserProfile | null | undefined,
-    knowledge: ArtistProfileKnowledge,
-    genre: GenreAdaptationProfile
-  ): { producer: string; songwriter: string; manager: string; ar: string } {
+  private buildAiPersonaDirectives(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): { producer: string; songwriter: string; manager: string; ar: string } {
     return {
       producer: `Produce ${genre.label} using the artist's actual chain (${(profile?.equipment || []).join(', ') || 'undefined'}). Protect: ${genre.productionDefaults.mixPriorities.join(', ')}.`,
       songwriter: `Write inside ${knowledge.identity.livedWorld || "the artist's lived world"}. Structure: ${genre.songwritingRules.typicalStructures[0]}. Theme: ${knowledge.craft.lyricalThemes.join(', ') || genre.songwritingRules.lyricalThemePatterns[0]}.`,
@@ -404,49 +369,33 @@ export class ArtistAdaptiveEngineService {
     };
   }
 
-  private derivePrioritizedAction(
-    profile: UserProfile | null | undefined,
-    knowledge: ArtistProfileKnowledge,
-    genre: GenreAdaptationProfile
-  ): string {
+  private derivePrioritizedAction(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string {
     if (!profile) return '';
-
     if (knowledge.pathway.nextStep) return knowledge.pathway.nextStep;
-
     const live = this.assessLiveReadiness(profile, knowledge, genre);
     if (live.score < 40 && (profile.catalog?.length || 0) > 0) {
       return `Build live readiness for ${genre.label}: ${live.gaps[0] || 'define the touring plan'}.`;
     }
-
     const sync = this.assessSyncReadiness(profile, knowledge, genre);
     if (sync.score < 60) {
       return `Prepare sync assets: ${sync.missingAssets[0] || 'complete versions'}.`;
     }
-
     return knowledge.pathway.nextStep || `Keep building: next release should prove ${knowledge.business.successMetric || "the artist's intent"}.`;
   }
 
-  private deriveWarningsAndProtections(
-    profile: UserProfile | null | undefined,
-    knowledge: ArtistProfileKnowledge,
-    genre: GenreAdaptationProfile
-  ): string[] {
+  private deriveWarningsAndProtections(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string[] {
     const warnings: string[] = [];
-
     if (genre.id === 'hip-hop' && genre.legalSpecifics.sampleClearanceApproach === 'Master + publishing rights dual clearance') {
       if ((profile?.catalog || []).some((item) => !item.credits)) {
         warnings.push('⚠️ Hip hop with unclear sample sources — every sample needs master + publishing clearance.');
       }
     }
-
     if (knowledge.sonic.nonNegotiables && profile?.settings.studio.autoMixEnabled) {
       warnings.push(`⚠️ Auto-mix is on but "${knowledge.sonic.nonNegotiables}" is declared non-negotiable — review auto decisions.`);
     }
-
     if (knowledge.presence.catalogAverageCompleteness < 60) {
       warnings.push('⚠️ Release record is incomplete — fill ISRC/UPC/credits before syncing or licensing.');
     }
-
     return warnings;
   }
 }

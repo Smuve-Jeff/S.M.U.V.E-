@@ -1,11 +1,6 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
-import {
-  readMusicalDna,
-  recordDnaEvidence,
-  DnaEvidenceInput,
-  DNA_VERSION,
-} from '../types/musical-dna.types';
+import { readMusicalDna, recordDnaEvidence, DnaEvidenceInput, DNA_VERSION } from '../types/musical-dna.types';
 
 @Injectable({ providedIn: 'root' })
 export class MusicalDnaService {
@@ -17,7 +12,6 @@ export class MusicalDnaService {
   });
 
   readonly state = computed(() => this.profileService.profile()?.musicalDna);
-
   readonly signature = computed(() => this.reading().signature);
   readonly strengths = computed(() => this.reading().strengths);
   readonly gaps = computed(() => this.reading().gaps);
@@ -26,16 +20,12 @@ export class MusicalDnaService {
   async recordSignal(input: DnaEvidenceInput) {
     const profile = this.profileService.profile();
     const newState = recordDnaEvidence(profile?.musicalDna, input, Date.now());
-
-    await this.profileService.updateProfile({
-      musicalDna: newState,
-    });
+    await this.profileService.updateProfile({ musicalDna: newState });
   }
 
   async resetBehaviorLog() {
     const profile = this.profileService.profile();
     if (!profile?.musicalDna) return;
-
     await this.profileService.updateProfile({
       musicalDna: {
         version: DNA_VERSION,
