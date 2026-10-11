@@ -5,7 +5,8 @@ export type WorkspaceCategory =
   | 'STRATEGY'
   | 'CREATIVE'
   | 'COMMUNITY'
-  | 'UTILITY';
+  | 'UTILITY'
+  | 'ARTIST';
 
 export interface ViewConfig {
   mode: MainViewMode;
@@ -33,6 +34,26 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
     category: 'CORE',
     mobilePrimary: true,
     related: ['profile', 'projects', 'release-pipeline', 'analytics'],
+  },
+  {
+    mode: 'adaptive-profile',
+    routePath: '/adaptive-profile',
+    label: 'Adaptive Profile',
+    description: 'See how S.M.U.V.E. understands and adapts to your music.',
+    icon: 'fingerprint',
+    category: 'ARTIST',
+    mobilePrimary: true,
+    related: ['profile', 'artist-coach', 'strategy'],
+  },
+  {
+    mode: 'artist-coach',
+    routePath: '/artist-coach',
+    label: 'Artist Coach',
+    description: 'Personalized guidance based on your profile, genre, and stage.',
+    icon: 'school',
+    category: 'ARTIST',
+    mobilePrimary: true,
+    related: ['adaptive-profile', 'profile', 'strategy'],
   },
   {
     mode: 'studio',
@@ -78,7 +99,6 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
       'Sketch notes on a lightweight canvas grid with direct velocity editing.',
     icon: 'piano',
     category: 'CREATIVE',
-    // Reached from the Piano Roll's related views; no separate hub tile.
     hidden: true,
     related: ['piano-roll', 'studio', 'drum-machine'],
   },
@@ -145,7 +165,7 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
     icon: 'person',
     category: 'CORE',
     mobilePrimary: true,
-    related: ['hub', 'strategy', 'career', 'settings'],
+    related: ['hub', 'strategy', 'career', 'settings', 'adaptive-profile'],
   },
   {
     mode: 'projects',
@@ -174,7 +194,7 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
     icon: 'analytics',
     category: 'STRATEGY',
     mobilePrimary: true,
-    related: ['career', 'analytics', 'knowledge-base', 'release-pipeline'],
+    related: ['career', 'analytics', 'knowledge-base', 'release-pipeline', 'artist-coach'],
   },
   {
     mode: 'career',
@@ -184,7 +204,7 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
       'Track opportunities, growth priorities, and business momentum.',
     icon: 'business_center',
     category: 'STRATEGY',
-    related: ['strategy', 'analytics', 'profile'],
+    related: ['strategy', 'analytics', 'profile', 'adaptive-profile'],
   },
   {
     mode: 'analytics',
