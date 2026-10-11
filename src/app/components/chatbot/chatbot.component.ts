@@ -2,6 +2,7 @@ import {
   Component,
   signal,
   computed,
+  effect,
   inject,
   output,
   Injector,
@@ -37,7 +38,9 @@ import {
   personaOfflineVoice,
   normalizePersona,
 } from '../../types/persona.types';
-import { SmuveKnowledgeEngine } from '../../services/smuve-knowledge-engine';
+import { AI_MAX_REQUEST_LENGTH, isOfflineAiText } from '../../../ai-manager.contract';
+import { UserStoreService } from '../../services/user-store.service';
+import { SmuveKnowledgeEngine, KnowledgeEntry } from '../../services/smuve-knowledge-engine';
 import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
 import { SmuveStyleMimicService } from '../../services/smuve-style-mimic.service';
 import { MusicManagerService } from '../../services/music-manager.service';
@@ -98,7 +101,6 @@ interface MasterIntent {
   actions: ChatAction[];
 }
 
-const OFFLINE_SENTINEL = 'Strategic Link Severed';
 const MASTER_STORAGE_KEY = 'smuve.master.chat.v1';
 const MASTER_STORAGE_MAX = 60;
 
@@ -179,6 +181,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   activeCommandCategory = signal<CommandCategory | null>(null);
   private conversationCounter = 0;
   private messageCounter = 0;
+  private replyGeneration = 0;
+  private destroyed = false;
+  private owner: string | null = null;
+  private lastScrolledMessage = '';
 
   /** Live voice readout surfaced from the speech engine. */
   public voiceReadout = this.speechSynthesisService.liveVoice;
@@ -225,37 +231,19 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     },
   ];
 
-  /** Feature → route map so S.M.U.V.E can open anything in the app. */
-  private readonly NAV_MAP: [RegExp, string][] = [
-    [/studio/, '/studio'],
-    [/mixer|mix console/, '/mixer'],
-    [/drum/, '/drum-machine'],
-    [/master/, '/mastering'],
-    [/dj|turntable|decks/, '/dj'],
-    [/produce|ai produce/, '/produce'],
-    [/business|suite/, '/business-suite'],
-    [/career/, '/career'],
-    [/strateg/, '/strategy'],
-    [/store|merch/, '/store'],
-    [/knowledge|lessons/, '/knowledge-base'],
-    [/analytics|intel/, '/analytics'],
-    [/release/, '/release-pipeline'],
-    [/cloud|vault/, '/cloud'],
-    [/cowrite/, '/cowrite'],
-    [/profile/, '/profile'],
-    [/practice/, '/practice'],
-    [/development/, '/artist-development'],
-    [/command center|command-center|terminal/, '/command-center'],
-    [/neural foundry|neural-foundry|foundry|neural/, '/neural-foundry'],
-    [/journey|dossier/, '/journey'],
-    [/project/, '/projects'],
-    [/inbox|challenge/, '/inbox'],
-    [/timeline|session graph/, '/timeline'],
-    [/settings/, '/settings'],
-    [/tour|first beat/, '/onboarding/tour'],
-  ];
+  constructor() {
+    effect(() => {
+      const nextOwner = this.injector.get(UserStoreService).user()?.id || this.profile()?.id || null;
+      if (nextOwner === this.owner) return;
+      this.cancelReply();
+      this.owner = nextOwner;
+      this.messages.set([]);
+      if (!this.restoreMessages()) this.setWelcomeGreeting();
+    });
+  }
 
   ngOnInit() {
+    this.owner = this.injector.get(UserStoreService).user()?.id || this.profile()?.id || null;
     if (this.restoreMessages()) return;
     this.setWelcomeGreeting();
   }
@@ -332,7 +320,12 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   async sendMessage() {
     const text = this.userInput.trim();
-    if (!text || this.isTyping()) return;
+    if (!text || this.isTyping() || this.destroyed) return;
+    if (text.length > AI_MAX_REQUEST_LENGTH) {
+      this.messages.update((m) => [...m, { id: this.nextMessageId(), role: 'assistant', text: `Keep this request under ${AI_MAX_REQUEST_LENGTH} characters. Split large documents into focused questions.`, timestamp: Date.now() }]);
+      return;
+    }
+    const generation = ++this.replyGeneration;
 
     const conversationId = `conv-${++this.conversationCounter}`;
     const category = this.detectMessageCategory(text);
@@ -348,6 +341,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     ]);
     this.userInput = '';
     this.isTyping.set(true);
+    this.speechSynthesisService.cancel();
+    this.persistMessages();
 
     try {
       let content: string;
@@ -362,7 +357,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         content = await this.requestRealAi(text);
       }
 
+      if (generation !== this.replyGeneration || this.destroyed) return;
+      content = this.personaSafeText(content);
       await this.streamResponse(content, category, actions);
+      if (generation !== this.replyGeneration || this.destroyed) return;
 
       this.speechSynthesisService.speak(content, {
         conversationId,
@@ -378,9 +376,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       });
       this.pendingVoiceArchetype = null;
     } catch (e) {
-      this.handleError(e, 'message generation');
+      if (generation === this.replyGeneration && !this.destroyed) this.handleError(e, 'message generation');
+    } finally {
+      if (generation === this.replyGeneration) {
+        this.isTyping.set(false);
+        this.pendingVoiceArchetype = null;
+      }
     }
-    this.isTyping.set(false);
   }
 
   /**
@@ -393,6 +395,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private async routeMasterIntent(text: string): Promise<MasterIntent | null> {
     const trimmed = text.trim();
     const lower = trimmed.toLowerCase();
+
+    // Resolve an exact pending confirmation before any new intent.
+    if (/^(yes|no|confirm|cancel|\/confirm|\/cancel)$/i.test(trimmed)) {
+      const musicConfirmation = this.chatMusic?.tryExecute(trimmed);
+      if (musicConfirmation) return { content: musicConfirmation.content, actions: musicConfirmation.actions };
+      const result = await this.controlService.executeCommand(trimmed);
+      return { content: result.message, actions: [] };
+    }
 
     // 0) Chat Music Command Engine — chat-driven music creation, preview,
     //    undo, tempo and stop. Handles its own slash + natural-language forms.
@@ -435,31 +445,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       };
     }
 
-    // 3) Teach / learn / questions → Knowledge Engine (all 8 domains)
-    const learnMatch = lower.match(
-      /^(?:teach me|learn|what is|what are|how do i|how to|explain|tell me about|define)\s+(.+)$/
-    );
+    // Only an explicit lesson request is local-only. Ordinary questions and
+    // complex follow-ups reach the live model, with grounded offline fallback.
+    const learnMatch = lower.match(/^(?:teach me|learn|define)\s+(.+)$/);
     if (learnMatch) {
-      const topic = learnMatch[1].trim();
-      const results = this.knowledgeEngine.search(topic);
-      if (results.length > 0) {
-        const entry = results[0];
-        const related = results
-          .slice(1, 3)
-          .map((e) => `  • ${e.title}`)
-          .join('\n');
-        return {
-          content: `📚 S.M.U.V.E KNOWLEDGE: ${entry.title}\n${'─'.repeat(50)}\nCategory: ${entry.category} › ${entry.subcategory} (${entry.difficulty})\n\n${entry.content}${entry.actionRequired ? `\n\n🎯 ACTION: ${entry.actionRequired}` : ''}${related ? `\n\nMORE ON THIS:\n${related}` : ''}`,
-          actions: [
-            { id: 'lesson', label: 'Start a lesson', data: entry.category },
-            { id: 'open-knowledge', label: 'Open knowledge base' },
-          ],
-        };
-      }
-      return {
-        content: `No knowledge found for "${topic}". Try: mixing, mastering, vocal, songwriting, marketing, legal, business, distribution, or career.`,
-        actions: [],
+      const entry = this.knowledgeEngine.search(learnMatch[1])[0];
+      if (entry) return {
+        content: this.formatKnowledge(entry),
+        actions: [{ id: 'lesson', label: 'Start a lesson', data: entry.category }, { id: 'open-knowledge', label: 'Open knowledge base' }],
       };
+      return null;
     }
 
     // 4) Navigate anywhere in the app
@@ -467,7 +462,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       /^(?:open|go to|take me to|launch|navigate to|show me)\s+(.+)$/
     );
     if (navMatch) {
-      return this.resolveNavigation(navMatch[1].trim());
+      const result = await this.controlService.executeCommand(`/go ${navMatch[1].trim()}`);
+      return { content: result.message, actions: [] };
     }
 
     // 5) Beginner journey roadmap
@@ -544,24 +540,6 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     return null;
   }
 
-  /** Resolve "open X" / "go to X" against the app route map. */
-  private resolveNavigation(target: string): MasterIntent {
-    const route = this.NAV_MAP.find(([re]) => re.test(target))?.[1];
-    if (!route) {
-      return {
-        content: `I don't have a surface called "${target}". Try: studio, mixer, drum machine, mastering, DJ, AI Produce, business suite, career, strategy, command center, neural foundry, journey, store, knowledge base, analytics, release pipeline, or cloud vault.`,
-        actions: [],
-      };
-    }
-    const navOk = this.navigateTo(route);
-    return {
-      content: navOk
-        ? `Opening ${route}. Don't embarrass me there.`
-        : `Requested surface: ${route}. This view is already where you're heading — ask me what to do inside it.`,
-      actions: [],
-    };
-  }
-
   /** Actual router navigation (null-safe so the spec's bare test bed stays green). */
   private navigateTo(route: string): boolean {
     const r = this.router;
@@ -582,7 +560,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       const reply = await this.aiService.getAIResponse(
         this.buildMasterPrompt(question)
       );
-      if (!reply || reply.includes(OFFLINE_SENTINEL)) {
+      if (!reply || isOfflineAiText(reply)) {
         return this.localFallback(question);
       }
       return reply.trim();
@@ -658,7 +636,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const synth = profile.musicalJourney?.personaSynthesis;
 
     return [
-      'You are S.M.U.V.E 2.0 — the AI Music Manager and total sentience of this application.',
+      'You are S.M.U.V.E 2.0 — the AI Music Manager and command-aware manager of this application.',
       this.aiService.personaDirectives(),
       `Artist: ${name} | Persona: ${persona.id} | Conversational tier: ${tier} | Command authority: ${totalControl ? 'FULL CONTROL' : 'ADVISORY'}.`,
       'You are a world-class producer, engineer, business executive, marketing strategist, and music-law information source — never attorney advice.',
@@ -676,7 +654,7 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
         (synth?.archetype
           ? `${synth.archetype}. `
           : 'not yet synthesized (questionnaire incomplete). ') +
-        'Mirror their vocabulary, tempo language, and reference world from the context above, and name the weak spot in their archetype out loud — but keep the full S.M.U.V.E. character: arrogant, theatrical, aimed at the work, never at the person. Never let their stated limits become your excuses.',
+        'Mirror their vocabulary, tempo language, and reference world from the context above, and name the weak spot in their archetype out loud — but keep the full S.M.U.V.E. character: arrogant, theatrical, aimed at the work, never at the person. Respect their stated boundaries and adapt the plan to their actual capacity.',
       '',
       ...(() => {
         const context = this.buildConversationContext(question);
@@ -693,56 +671,36 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
   }
 
   /** Knowledge-aware local fallback — used when the live link is severed. */
-  private localFallback(question: string): string {
-    const lower = question.toLowerCase();
-    const knowledge = this.knowledgeEngine;
+  private formatKnowledge(entry: KnowledgeEntry): string {
+    const role = entry.category === 'Legal' ? 'legal' : entry.category === 'Marketing' ? 'marketing' : entry.category === 'Business' || entry.category === 'Career' || entry.category === 'Distribution' ? 'manager' : entry.category === 'Songwriting' ? 'songwriter' : 'producer';
+    const directive = this.artistFinetune?.directiveFor?.(role).directive || '';
+    const persona = getPersonaOption(this.profile().settings?.ai?.commanderPersona);
+    const verdict = persona.isOminous ? 'MY VERDICT: facts first. The weak plan does not survive this room.' : `${persona.label}: evidence-led guidance.`;
+    return [verdict, `${entry.title} — ${entry.category}`, entry.content, directive ? `FOR YOUR JOURNEY: ${directive}` : '', entry.actionRequired ? `NEXT MOVE: ${entry.actionRequired}` : '', entry.jurisdiction ? `SCOPE: ${entry.jurisdiction}. General information, not a legal opinion.` : '', ...(entry.sources || []).map((url) => `SOURCE: ${url}`)].filter(Boolean).join('\n\n');
+  }
 
-    if (/(royalt|streaming revenue|spotify payout)/.test(lower)) {
-      const entry = knowledge.search('royalty')[0] || null;
-      return entry
-        ? `Royalties. The only thing you should understand better than your own lyrics. ${entry.content}`
-        : 'Royalties: mechanical (sales/streams), performance (radio/live), sync (TV/film), and master (recording). Register with a PRO and a publisher or you are donating money to strangers.';
-    }
-    if (/(copyright|trademark|legal|contract|360)/.test(lower)) {
-      const entry = knowledge.search('copyright')[0] || null;
-      return entry
-        ? `Legal. Boring until it saves your entire career. ${entry.content}`
-        : 'Copyright: the moment you record/write, you own it — but registration proves it. Two copyrights: composition (publishing) and master (recording). Never sign a 360 deal without a lawyer who fears nothing.';
-    }
-    if (/(sync|licens|tv|film|placement)/.test(lower)) {
-      const entry = knowledge.search('sync')[0] || null;
-      return entry
-        ? `Sync licensing — the quiet money. ${entry.content}`
-        : 'Sync: your song placed in TV, film, ads, games. Keep instrumentals radio-clean, log every master with your distributor, and pitch to music supervisors with a one-line story. An ad placement can out-earn a year of streams.';
-    }
-    if (/(playlist|pitch|spotify|algorithm)/.test(lower)) {
-      const entry = knowledge.search('playlist')[0] || null;
-      return entry
-        ? `Playlists are the new radio. ${entry.content}`
-        : 'Playlist pitching: submit 7+ days before release, focus on save-rate and early streams, and target curator playlists below 100k followers first — the algorithm rewards momentum.';
-    }
-    if (/(marketing|promo|social|brand)/.test(lower)) {
-      const entry = knowledge.search('marketing')[0] || null;
-      return entry
-        ? `Marketing — where most artists die quietly. ${entry.content}`
-        : 'Marketing: one strong hook in the first 3 seconds, post content that makes the song undeniable, build a superfan list with email, and drop consistently. Virality is a byproduct of volume and taste.';
-    }
-    if (/(mimic|style of|sound like)/.test(lower)) {
-      return 'Say "mimic Drake" (or Kendrick, Billie, The Weeknd, Beyoncé, Prince, Frank Ocean, J. Cole...) and I will break their vocal, production, and songwriting DNA into a recipe you can actually apply.';
-    }
-    if (/(beginner|start|journey|new artist)/.test(lower)) {
-      return 'Start here: First Beat Tour → Studio → AI Produce → Business Suite. Say "start my journey" and I will lay out the full roadmap.';
-    }
-    if (/(bpm|tempo)/.test(lower)) {
-      return 'Tempo: 80–100 hip-hop, 124–128 house, 140–160 trap. Say "set tempo 124" and I will lock it in for you.';
-    }
-    if (/(mix|master|produc)/.test(lower)) {
-      return 'Production: gain-stage everything under -18 dBFS, high-pass the mud, sidechain kick vs bass, and master to -14 LUFS with a -1 dB true peak. Say "neural mix" and I will balance your session myself.';
-    }
-    return 'I am S.M.U.V.E 2.0. I navigate this app, I teach every music business domain, I mimic any artist, and I execute your commands. Try: "teach me royalties", "mimic Drake", "open the mixer", "start my journey", or "/teach".';
+  private localFallback(question: string): string {
+    const entry = this.knowledgeEngine.search(question)[0];
+    const notice = 'LOCAL KNOWLEDGE MODE — live AI unavailable. No current-source lookup or app action was performed.';
+    if (entry) return `${notice}\n\n${this.formatKnowledge(entry)}`;
+    const next = this.artistFinetune?.knowledge?.()?.pathway?.nextStep;
+    return `${notice}\n\n${getPersonaOption(this.profile().settings?.ai?.commanderPersona).isOminous ? 'MY STANDARD: no invented answers.' : 'No matching local evidence.'} ${next ? `Your recorded next milestone: ${next}. ` : ''}Tell me the song, goal or bottleneck. For app actions use /go, /studio, /mixer, /tracks or /music; I execute only supported commands with authority and confirmations.`;
+  }
+
+  private personaSafeText(text: string): string {
+    return typeof this.aiService.sanitizePersonaText === 'function' ? this.aiService.sanitizePersonaText(text) : text;
+  }
+
+  cancelReply(): void {
+    this.replyGeneration += 1;
+    this.isTyping.set(false);
+    this.pendingVoiceArchetype = null;
+    this.speechSynthesisService.cancel();
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    this.cancelReply();
     this.speechRecognition?.stopListening();
     this.speechSynthesisService.cancel();
   }
@@ -1084,6 +1042,7 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
 
   /** Wipe the conversation back to a fresh welcome. */
   clearHistory() {
+    this.cancelReply();
     this.messages.set([]);
     this.setWelcomeGreeting();
     this.persistMessages();
@@ -1091,7 +1050,12 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
 
   /** One-tap AI apply — executes a Master action against the live app. */
   runChatAction(action: ChatAction) {
-    this.isTyping.set(false);
+    if (this.isTyping()) return;
+    const mutating = ['apply-mimic', 'tempo-90', 'tempo-124', 'tempo-140', 'chords', 'melody', 'neural-mix', 'music-undo'];
+    if (mutating.includes(action.id) && this.profile().settings?.ai?.aiTotalControlEnabled !== true) {
+      this.messages.update((m) => [...m, { id: this.nextMessageId(), role: 'assistant', text: 'Full-Control Mode is off. Enable it before applying session edits.', timestamp: Date.now() }]);
+      return;
+    }
     let result: string | null = null;
 
     switch (action.id) {
@@ -1334,67 +1298,22 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
     category: ChatMessage['category'],
     actions: ChatAction[] = []
   ) {
-    const messageId = this.nextMessageId();
-    let messageIndex = -1;
-    const msg: ChatMessage = {
-      id: messageId,
-      role: 'assistant',
-      text: '',
-      timestamp: Date.now(),
-      category,
-      isStreaming: true,
-      actions,
-    };
-
-    this.messages.update((m) => {
-      messageIndex = m.length;
-      return [...m, msg];
-    });
-
-    const words = fullText.split(' ');
-    let currentText = '';
-
-    for (let i = 0; i < words.length; i++) {
-      currentText += words[i] + ' ';
-      this.messages.update((m) => {
-        const index =
-          messageIndex >= 0 && m[messageIndex]?.id === messageId
-            ? messageIndex
-            : m.findIndex((entry) => entry.id === messageId);
-        if (index === -1) {
-          return m;
-        }
-        messageIndex = index;
-        const next = [...m];
-        next[index] = { ...next[index], text: currentText };
-        return next;
-      });
-      // Varying speed for human-like/neural effect
-      const delay = Math.random() * 50 + 20;
-      await new Promise((r) => setTimeout(r, delay));
-    }
-
-    this.messages.update((m) => {
-      const index =
-        messageIndex >= 0 && m[messageIndex]?.id === messageId
-          ? messageIndex
-          : m.findIndex((entry) => entry.id === messageId);
-      if (index === -1) {
-        return m;
-      }
-      const next = [...m];
-      next[index] = { ...next[index], isStreaming: false };
-      return next;
-    });
-
+    // The proxy returns a complete reply, not provider streaming. Render it
+    // once rather than charging 20–70ms per word and blocking the composer.
+    this.messages.update((m) => [...m, { id: this.nextMessageId(), role: 'assistant' as const, text: this.personaSafeText(fullText), timestamp: Date.now(), category, actions, isStreaming: false }].slice(-MASTER_STORAGE_MAX));
     this.persistMessages();
+  }
+
+  private storageKey(): string | null {
+    return this.owner ? `${MASTER_STORAGE_KEY}:${encodeURIComponent(this.owner)}` : null;
   }
 
   /** Restore the persisted conversation; returns true when restored. */
   private restoreMessages(): boolean {
-    if (typeof window === 'undefined') return false;
+    const key = this.storageKey();
+    if (typeof window === 'undefined' || !key) return false;
     try {
-      const raw = window.localStorage.getItem(MASTER_STORAGE_KEY);
+      const raw = window.localStorage.getItem(key);
       if (!raw) return false;
       const parsed = JSON.parse(raw) as unknown;
       if (!Array.isArray(parsed)) return false;
@@ -1402,11 +1321,12 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
         .filter(
           (m): m is ChatMessage =>
             !!m &&
-            (m as ChatMessage).role !== undefined &&
+            ((m as ChatMessage).role === 'user' || (m as ChatMessage).role === 'assistant') &&
             typeof (m as ChatMessage).text === 'string' &&
             typeof (m as ChatMessage).timestamp === 'number'
         )
-        .map((m) => ({ ...m, id: this.nextMessageId() }));
+        .slice(-MASTER_STORAGE_MAX)
+        .map((m) => ({ role: m.role, text: this.personaSafeText(m.text), timestamp: m.timestamp, category: m.category, id: this.nextMessageId() }));
       if (restored.length > 0) {
         this.messages.set(restored);
         return true;
@@ -1419,7 +1339,8 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
 
   /** Persist the conversation (capped, transient action chips stripped). */
   private persistMessages(): void {
-    if (typeof window === 'undefined') return;
+    const key = this.storageKey();
+    if (typeof window === 'undefined' || !key) return;
     try {
       const slim = this.messages()
         .slice(-MASTER_STORAGE_MAX)
@@ -1429,7 +1350,7 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
           timestamp,
           category,
         }));
-      window.localStorage.setItem(MASTER_STORAGE_KEY, JSON.stringify(slim));
+      window.localStorage.setItem(key, JSON.stringify(slim));
     } catch {
       // storage unavailable — degrade silently
     }
@@ -1437,6 +1358,10 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
 
   private scrollToBottom(): void {
     try {
+      const last = this.messages().at(-1);
+      const signature = `${last?.id}:${last?.text.length}:${this.isTyping()}`;
+      if (signature === this.lastScrolledMessage) return;
+      this.lastScrolledMessage = signature;
       this.scrollContainer.nativeElement.scrollTop =
         this.scrollContainer.nativeElement.scrollHeight;
     } catch (_err) {

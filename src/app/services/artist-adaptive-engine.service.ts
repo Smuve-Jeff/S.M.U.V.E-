@@ -257,7 +257,7 @@ export class ArtistAdaptiveEngineService {
   }
 
   private detectGenreProfile(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge): GenreAdaptationProfile {
-    const genreQuery = (profile?.primaryGenre || 'Hip Hop').toLowerCase();
+    const genreQuery = (profile?.primaryGenre || '').trim().toLowerCase();
     let match = GENRE_PROFILES.find((g) =>
       g.primaryGenres.some((pg) => pg.toLowerCase() === genreQuery)
     );
@@ -266,7 +266,23 @@ export class ArtistAdaptiveEngineService {
         g.primaryGenres.some((pg) => genreQuery.includes(pg.toLowerCase()) || pg.toLowerCase().includes(genreQuery))
       );
     }
-    return match || GENRE_PROFILES[0];
+    const base: GenreAdaptationProfile = match || {
+      id: 'artist-defined', label: profile?.primaryGenre || 'Artist-defined', primaryGenres: [],
+      productionDefaults: { recommendedDaw: ['your existing DAW'], typicalBpmRange: [40, 240], mixPriorities: ['Artist intent', 'Translation and dynamics'], recordingFocus: ['Capture the intended performance'], sonicSignatures: ['Artist-defined sonic signature'] },
+      songwritingRules: { typicalStructures: ['Artist-selected structure'], harmonyApproaches: ['Artist-defined harmony'], vocalDeliveryStyles: ['Declared delivery'], lyricalThemePatterns: ['Artist-owned themes'], arrangementPatterns: ['Artist-defined arrangement'] },
+      businessPlaybook: { releaseStrategy: 'Readiness-led release plan within capacity and budget', typicalVelocity: 'Artist-selected sustainable cadence', incomeStreamPriority: ['Evaluate rights, direct support and live/sync fit'], targetAudience: 'Not declared — validate with listener evidence', marketPosition: 'Not declared', syncOpportunities: ['Assess catalog and clearance before pitching'] },
+      livePerformance: { isTourReady: false, tourReadinessRequirements: ['Rehearsed set', 'Budget', 'Verified audience draw'], typicalBacklineNeeds: ['Verify requirements with the artist and venue'], regionalStrength: ['Use declared regions and demand evidence'] },
+      legalSpecifics: { clearanceModel: 'Assess actual usage and jurisdiction, not genre', sampleClearanceApproach: 'Check recording and composition permissions when applicable', proAffiliation: 'Territory-dependent', splitSheetRequirement: 'Negotiate separate composition and master pools' },
+    };
+    // Explicit answers override suggestions, including hybrid/unlisted genres.
+    const range = knowledge.sonic.tempoZone.match(/(\d{2,3})\s*[-–]\s*(\d{2,3})/);
+    const bpm: [number, number] = range && Number(range[1]) >= 40 && Number(range[2]) <= 240 && Number(range[2]) >= Number(range[1]) ? [Number(range[1]), Number(range[2])] : base.productionDefaults.typicalBpmRange;
+    return {
+      ...base, label: profile?.primaryGenre || base.label,
+      productionDefaults: { ...base.productionDefaults, recommendedDaw: profile?.daw?.length ? profile.daw : base.productionDefaults.recommendedDaw, typicalBpmRange: bpm, mixPriorities: knowledge.craft.mixingPriorities.length ? knowledge.craft.mixingPriorities : base.productionDefaults.mixPriorities, recordingFocus: knowledge.craft.recordingPriorities.length ? knowledge.craft.recordingPriorities : base.productionDefaults.recordingFocus, sonicSignatures: knowledge.sonic.signatureSound ? [knowledge.sonic.signatureSound] : base.productionDefaults.sonicSignatures },
+      songwritingRules: { ...base.songwritingRules, typicalStructures: knowledge.sonic.arrangement ? [knowledge.sonic.arrangement] : base.songwritingRules.typicalStructures, harmonyApproaches: knowledge.sonic.harmony ? [knowledge.sonic.harmony] : base.songwritingRules.harmonyApproaches, vocalDeliveryStyles: knowledge.sonic.delivery ? [knowledge.sonic.delivery] : base.songwritingRules.vocalDeliveryStyles, lyricalThemePatterns: knowledge.craft.lyricalThemes.length ? knowledge.craft.lyricalThemes : base.songwritingRules.lyricalThemePatterns },
+      businessPlaybook: { ...base.businessPlaybook, typicalVelocity: knowledge.business.velocity || base.businessPlaybook.typicalVelocity, incomeStreamPriority: knowledge.business.streams.length ? knowledge.business.streams : base.businessPlaybook.incomeStreamPriority, targetAudience: knowledge.audience.profile || base.businessPlaybook.targetAudience, marketPosition: knowledge.audience.marketPosition || base.businessPlaybook.marketPosition },
+    };
   }
 
   private buildProductionDirective(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string {
@@ -291,7 +307,7 @@ export class ArtistAdaptiveEngineService {
     const velocity = profile.musicalJourney?.releaseVelocity || genre.businessPlaybook.typicalVelocity;
     const focus = profile.musicalJourney?.currentFocus || genre.businessPlaybook.marketPosition;
     const metric = profile.musicalJourney?.primarySuccessMetric || 'Monthly listeners';
-    const streams = profile.musicalJourney?.incomeStreams || genre.businessPlaybook.incomeStreamPriority;
+    const streams = knowledge.business.streams.length ? knowledge.business.streams : genre.businessPlaybook.incomeStreamPriority;
 
     return [
       `BUSINESS STRATEGY FOR ${genre.label.toUpperCase()}`,
@@ -313,8 +329,8 @@ export class ArtistAdaptiveEngineService {
     let score = 0;
     const gaps: string[] = [];
 
-    if (readiness === 'Ready to Tour') score += 40;
-    else if (readiness === 'Can Perform') score += 20;
+    if (/^(ready to tour|tour ready)$/i.test(readiness)) score += 40;
+    else if (/^(can perform|performance ready)$/i.test(readiness)) score += 20;
     if (hasBackline) score += 20;
     else gaps.push(`Backline: genre-typical needs are ${genre.livePerformance.typicalBacklineNeeds.join(', ')}`);
     if (regions.length > 0) score += 20;
@@ -324,7 +340,7 @@ export class ArtistAdaptiveEngineService {
 
     const nextMove =
       score >= 80
-        ? 'Ready for touring — focus on booking strategy and marketing the live experience.'
+        ? 'Declared live-preparation checklist is strong; verify rehearsals, audience draw, safety and tour budget before booking.'
         : score >= 40
           ? `Half-ready: ${gaps[0] || 'add live elements'}. Fix this before heavy promotion.`
           : `Early stage for live — secure the basics first: ${gaps[0] || 'recorded catalog + backline clarity'}.`;
@@ -342,15 +358,15 @@ export class ArtistAdaptiveEngineService {
     let score = 0;
     const missingAssets: string[] = [];
 
-    if (syncReady === 'Ready') score += 25;
+    if (/^(ready|sync ready|ready to pitch)$/i.test(syncReady)) score += 25;
     else if (syncReady === 'In Progress') score += 12;
-    if (hasClean) score += 15;
+    if (hasClean === true) score += 15;
     else missingAssets.push('Clean versions (no profanity)');
-    if (hasInstrumentals) score += 15;
+    if (hasInstrumentals === true) score += 15;
     else missingAssets.push('Instrumental versions');
-    if (hasStems && hasStems !== 'No') score += 20;
+    if (hasStems === true || /^(yes|all|full stems)$/i.test(String(hasStems))) score += 20;
     else missingAssets.push('Stems (individual tracks)');
-    if (oneStop) score += 25;
+    if (oneStop === true) score += 25;
     else missingAssets.push('One-stop clearance (sample resolution)');
 
     return {
@@ -385,12 +401,10 @@ export class ArtistAdaptiveEngineService {
 
   private deriveWarningsAndProtections(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string[] {
     const warnings: string[] = [];
-    if (genre.id === 'hip-hop' && genre.legalSpecifics.sampleClearanceApproach === 'Master + publishing rights dual clearance') {
-      if ((profile?.catalog || []).some((item) => !item.credits)) {
-        warnings.push('⚠️ Hip hop with unclear sample sources — every sample needs master + publishing clearance.');
-      }
+    if ((profile?.catalog || []).some((item) => !item.credits)) {
+      warnings.push('Rights evidence incomplete: verify contributors and any samples/interpolations. Missing credits do not prove sampling; genre never proves clearance.');
     }
-    if (knowledge.sonic.nonNegotiables && profile?.settings.studio.autoMixEnabled) {
+    if (knowledge.sonic.nonNegotiables && profile?.settings?.studio?.autoMixEnabled) {
       warnings.push(`⚠️ Auto-mix is on but "${knowledge.sonic.nonNegotiables}" is declared non-negotiable — review auto decisions.`);
     }
     if (knowledge.presence.catalogAverageCompleteness < 60) {

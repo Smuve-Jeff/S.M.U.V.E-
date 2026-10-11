@@ -72,7 +72,7 @@ describe('ChatMusicCommandEngineService', () => {
     playAudition = jest.fn();
     stopAudition = jest.fn();
     speak = jest.fn();
-    profile = signal<UserProfile>(initialProfile);
+    profile = signal<UserProfile>({ ...initialProfile, settings: { ...initialProfile.settings, ai: { ...initialProfile.settings.ai, aiTotalControlEnabled: true } } });
 
     const audioMock = {
       tempo,
@@ -170,6 +170,7 @@ describe('ChatMusicCommandEngineService', () => {
   it('builds a beat from natural language with the artist profile as its default', () => {
     profile.set({
       ...initialProfile,
+      settings: { ...initialProfile.settings, ai: { ...initialProfile.settings.ai, aiTotalControlEnabled: true } },
       primaryGenre: 'Ambient',
       genreSpecificData: { tempo: 82, key: 'D major' },
       musicalJourney: {
@@ -228,6 +229,7 @@ describe('ChatMusicCommandEngineService', () => {
   it('uses an explicit tempo and key instead of profile defaults', () => {
     profile.set({
       ...initialProfile,
+      settings: { ...initialProfile.settings, ai: { ...initialProfile.settings.ai, aiTotalControlEnabled: true } },
       primaryGenre: 'Ambient',
       musicalJourney: {
         ...initialProfile.musicalJourney,
@@ -309,7 +311,9 @@ describe('ChatMusicCommandEngineService', () => {
     expect(noteCount()).toBeGreaterThan(20);
 
     const clearResult = service.tryExecute('clear the music');
-    expect(clearResult).not.toBeNull();
+    expect(clearResult!.content).toContain('/confirm');
+    expect(noteCount()).toBeGreaterThan(20);
+    service.tryExecute('/confirm');
     expect(noteCount()).toBe(0);
 
     service.tryExecute('undo');
@@ -388,4 +392,45 @@ describe('ChatMusicCommandEngineService', () => {
       expect.objectContaining({ forceArchetype: 'Ominous Protocol' })
     );
   });
+  it.each(['How do I mix bass?', 'Explain chord progressions', 'What is melody?', 'Should I add drums?', "Don't add bass", 'My bass sounds muddy', 'play bowling'])('never mutates for discussion: %s', (question) => {
+    expect(service.tryExecute(question)).toBeNull();
+    expect(noteCount()).toBe(0);
+    expect(tempo()).toBe(120);
+  });
+
+  it('blocks music mutations when full control is off and permits help', () => {
+    profile.set(initialProfile);
+    expect(service.tryExecute('make a beat')!.content).toContain('Full-Control Mode is off');
+    expect(service.tryExecute('/chords C - Am')!.content).toContain('Full-Control Mode is off');
+    expect(service.tryExecute('/music')!.content).toContain('CHAT MUSIC ENGINE');
+    expect(tracks()).toHaveLength(0);
+  });
+
+  it('invalidates a clear confirmation when notes change or the artist cancels', () => {
+    service.tryExecute('make a beat');
+    const before = noteCount();
+    service.tryExecute('clear the music');
+    addNoteToTrack(tracks()[0].id, { id: 'new', midi: 60, step: 0, length: 1, velocity: 1 });
+    expect(service.tryExecute('/confirm')!.content).toContain('changed');
+    expect(noteCount()).toBe(before + 1);
+    service.tryExecute('clear the music');
+    expect(service.tryExecute('/cancel')!.content).toContain('Cancelled');
+    expect(service.tryExecute('/confirm')).toBeNull();
+    expect(noteCount()).toBe(before + 1);
+  });
+
+  it('expires clear confirmations', () => {
+    service.tryExecute('make a beat');
+    service.tryExecute('clear the music');
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 61_000);
+    expect(service.tryExecute('/confirm')!.content).toContain('expired');
+    expect(noteCount()).toBeGreaterThan(0);
+    clock.mockRestore();
+  });
+
+  it('preserves flat and sharp key names without doubled accidentals', () => {
+    expect(service.tryExecute('make a beat in Bb minor')!.content).toContain('Bb minor');
+    expect(service.tryExecute('play Dbmaj7 - Ebm7')!.content).toContain('Dbmaj7');
+  });
+
 });

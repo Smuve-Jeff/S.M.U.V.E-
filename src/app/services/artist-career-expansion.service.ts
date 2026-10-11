@@ -48,7 +48,7 @@ const CAREER_STAGES: Record<'foundational' | 'emerging' | 'established' | 'elite
     description: 'Building the first songs and establishing identity',
     priority: ['Complete first catalog', 'Define sonic identity', 'Record demo quality', 'Build initial audience'],
     bookingReach: 'Local open mics, friend networks, small venues',
-    typicalGigRate: 'Free to $50',
+    typicalGigRate: 'Unquoted — price from draw, costs, venue terms and local market',
     syncValue: 'Non-professional, music bed for friends',
     merchandiseStrategy: 'Not yet, focus on music first',
   },
@@ -58,7 +58,7 @@ const CAREER_STAGES: Record<'foundational' | 'emerging' | 'established' | 'elite
     description: 'Small releases gaining traction, local touring',
     priority: ['Release singles regularly', 'Build fanbase beyond local', 'Secure booking agent', 'Prepare for touring'],
     bookingReach: 'Regional venues, college circuit, festivals',
-    typicalGigRate: '$100-$500',
+    typicalGigRate: 'Unquoted — price from draw, costs, venue terms and local market',
     syncValue: 'Local TV/web series, indie films',
     merchandiseStrategy: 'T-shirts, hoodies at shows',
   },
@@ -68,7 +68,7 @@ const CAREER_STAGES: Record<'foundational' | 'emerging' | 'established' | 'elite
     description: 'National presence, regular touring, radio/streaming',
     priority: ['Album cycles', 'Major label consideration', 'International touring', 'Licensing deals'],
     bookingReach: 'National theaters, major festivals, touring headliner',
-    typicalGigRate: '$1K-$10K',
+    typicalGigRate: 'Unquoted — price from draw, costs, venue terms and local market',
     syncValue: 'Film/TV placements, advertising',
     merchandiseStrategy: 'Full merchandise line, artist shop',
   },
@@ -78,7 +78,7 @@ const CAREER_STAGES: Record<'foundational' | 'emerging' | 'established' | 'elite
     description: 'Charts, award consideration, global recognition',
     priority: ['Cultural relevance', 'Superstardom', 'Licensing empire', 'Legacy building'],
     bookingReach: 'International arenas, festivals, residencies',
-    typicalGigRate: '$10K-$100K+',
+    typicalGigRate: 'Unquoted — price from draw, costs, venue terms and local market',
     syncValue: 'Premium licensing, brand partnerships',
     merchandiseStrategy: 'Global merchandise empire, lifestyle brand',
   },
@@ -114,16 +114,12 @@ export class ArtistCareerExpansionService {
     if (!profile) return CAREER_STAGES.foundational;
 
     const catalogSize = profile.catalog?.length || 0;
-    const monthlyListeners = profile.musicalJourney?.monthlyListeners || 0;
-    const isTouring = profile.touringDetails?.isTourReady === 'Ready to Tour';
-    const hasBookingAgent = profile.team?.some((t) => t.role === 'Booking Agent') || false;
-    const recordLabel = profile.team?.some((t) => t.role === 'Label') || false;
-    const syncDeals = (profile.syncDetails?.hasCleanVersions && profile.syncDetails?.hasInstrumentals) || false;
-
-    if (recordLabel || monthlyListeners > 100000) return CAREER_STAGES.elite;
-    if (isTouring && hasBookingAgent && catalogSize >= 5 && monthlyListeners > 10000) return CAREER_STAGES.established;
-    if ((isTouring || hasBookingAgent) && catalogSize >= 3 && monthlyListeners > 1000) return CAREER_STAGES.emerging;
+    // Declared pathway evidence, not invented audience metrics or label status.
+    const stage = adaptation.knowledge.pathway.stage;
+    if (stage === 'official') return CAREER_STAGES.established;
+    if (stage === 'consolidating' || stage === 'building') return CAREER_STAGES.emerging;
     return CAREER_STAGES.foundational;
+
   }
 
   private buildBrandIdentity(profile: UserProfile | null | undefined, adaptation: ArtistAdaptationState): BrandIdentity {
@@ -143,7 +139,7 @@ export class ArtistCareerExpansionService {
 
     return {
       visualAesthetic: knowledge.audience?.visualAesthetic || ['clean', 'modern'],
-      voiceTone: knowledge.identity?.voiceTone || 'authentic',
+      voiceTone: knowledge.audience.brandVoices.join(', ') || 'not declared',
       narrative: knowledge.identity?.livedWorld || 'lived experience',
       targetAudience: knowledge.audience?.profile || genre.businessPlaybook.targetAudience,
       marketPosition: knowledge.audience?.marketPosition || genre.businessPlaybook.marketPosition,
@@ -222,5 +218,3 @@ export class ArtistCareerExpansionService {
     return priorities.slice(0, 6);
   }
 }
-
-export type { ExpandedAdaptationState, CareerStage, BrandIdentity, LiveBookingStrategy };

@@ -448,7 +448,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit {
       }`,
       `- Current view: ${this.activeViewContext()}`,
       "",
-      `ARTIST QUESTION: ${question}`,
+      `ARTIST REQUEST: ${question}`,
     ];
     return lines.join("\n");
   }

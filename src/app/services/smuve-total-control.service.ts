@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, Injector, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { UserProfileService } from './user-profile.service';
 import {
@@ -8,6 +8,7 @@ import {
   SMUVE_PERSONAS,
 } from '../types/persona.types';
 import { ProjectService } from './project.service';
+import { ProjectWorkspaceService } from '../studio/project-workspace.service';
 import { MusicManagerService } from './music-manager.service';
 import { NotificationService } from './notification.service';
 import { AiService } from './ai.service';
@@ -68,6 +69,8 @@ const READ_ONLY_CONTROL_ACTIONS = new Set([
 @Injectable({ providedIn: 'root' })
 export class SmuveTotalControlService {
   private router = inject(Router);
+  private injector = inject(Injector);
+  private pending: { input: string; state: string; expires: number } | null = null;
   private userProfile = inject(UserProfileService);
   private projectService = inject(ProjectService);
   private musicManager = inject(MusicManagerService);
@@ -85,6 +88,23 @@ export class SmuveTotalControlService {
   currentLesson = signal<any>(null);
 
   async executeCommand(input: string): Promise<CommandResult> {
+    const normalized = input.trim().toLowerCase();
+    if (/^(?:no|cancel|\/cancel)$/.test(normalized)) {
+      this.pending = null;
+      return { success: true, message: 'Cancelled. Your session remains untouched.' };
+    }
+    let confirmed = false;
+    if (/^(?:yes|confirm|\/confirm)$/.test(normalized)) {
+      const pending = this.pending;
+      this.pending = null;
+      if (!pending || pending.expires < Date.now() || pending.state !== this.sessionState()) {
+        return { success: false, message: 'No current confirmation, or the session changed. Request the action again.' };
+      }
+      input = pending.input;
+      confirmed = true;
+    } else {
+      this.pending = null;
+    }
     const command = this.parseCommand(input);
     if (!command) {
       return {
@@ -106,14 +126,13 @@ export class SmuveTotalControlService {
         actionRequired: 'Enable AI Total Control in Settings',
       };
     }
-    // With full control granted the artist has handed over command authority,
-    // so the command executes. Without it, an irreversible command pauses for
-    // an explicit confirmation instead of failing silently for everyone.
-    if (!readOnly && command.requiresConfirmation && !controlEnabled) {
+    // Full Control permits reversible edits, never silent destructive changes.
+    if (!readOnly && this.isGuarded(command) && !confirmed) {
+      this.pending = { input, state: this.sessionState(), expires: Date.now() + 60_000 };
       return {
         success: false,
-        message: `Confirmation required before S.M.U.V.E. executes ${command.action}. Review the target and confirm explicitly — or grant Full-Control Mode to let S.M.U.V.E. execute directly.`,
-        actionRequired: `Confirm ${command.action}`,
+        message: `Review: ${input}. This can replace or remove work. Type /confirm within 60 seconds to execute this exact request, or /cancel.`,
+        actionRequired: 'Confirm with /confirm or cancel with /cancel',
       };
     }
 
@@ -146,19 +165,25 @@ export class SmuveTotalControlService {
    * that writes — projects, exports, profile mutations, and any delete/remove/
    * publish/reset verb — needs Full-Control Mode.
    */
+  private sessionState(): string {
+    return JSON.stringify({ tracks: this.musicManager.tracks(), project: this.musicManager.projectName, profile: this.userProfile.profile() });
+  }
+
+  private isGuarded(command: ControlCommand): boolean {
+    return /^(?:delete|remove|publish|release|send|overwrite|clear|reset)(?:\s|$)/i.test(command.action)
+      || (command.domain === 'project' && /^(new|create)$/.test(command.action));
+  }
+
   private requiresFullControl(command: ControlCommand): boolean {
     if (READ_ONLY_CONTROL_ACTIONS.has(command.action)) return false;
-    if (
-      /delete|remove|publish|release|send|commit|overwrite|clear|reset/i.test(
-        `${command.action} ${command.target || ''}`
-      )
-    ) {
-      return true;
+    if (command.domain === 'navigation' || command.domain === 'knowledge' || command.domain === 'teach' || command.domain === 'mimic' || command.domain === 'vocal') return false;
+    if (command.domain === 'profile' && /^(edit|open)$/.test(command.action)) return false;
+    if (command.domain === 'ai') {
+      return /^(cowrite|cowrite-end|harmony|harmonize|melody|exportstudio|saveproject)$/.test(command.action);
     }
-    if (command.domain === 'export' || command.domain === 'project') {
-      return true;
-    }
-    return command.domain === 'profile' && !/^(edit|open)$/.test(command.action);
+    if (command.domain === 'export') return false; // Opens export UI; does not render or publish.
+    if (command.domain === 'studio' && command.action === 'tempo') return false; // Help, not 120 BPM reset.
+    return ['studio', 'mixer', 'tracks', 'project', 'profile'].includes(command.domain);
   }
 
   private parseCommand(input: string): ControlCommand | null {
@@ -169,15 +194,6 @@ export class SmuveTotalControlService {
       return {
         domain: 'ai',
         action: 'cowrite-help',
-        requiresConfirmation: false,
-      };
-    }
-    if (text.startsWith('/cowrite ')) {
-      const query = text.replace('/cowrite ', '');
-      return {
-        domain: 'ai',
-        action: 'cowrite',
-        target: query,
         requiresConfirmation: false,
       };
     }
@@ -209,6 +225,16 @@ export class SmuveTotalControlService {
         domain: 'navigation',
         action: 'navigate',
         target: 'cowrite',
+        requiresConfirmation: false,
+      };
+    }
+
+    if (text.startsWith('/cowrite ')) {
+      const query = text.replace('/cowrite ', '');
+      return {
+        domain: 'ai',
+        action: 'cowrite',
+        target: query,
         requiresConfirmation: false,
       };
     }
@@ -645,6 +671,10 @@ export class SmuveTotalControlService {
     'artist-development': '/artist-development',
     'dev-hub': '/dev-hub',
     journey: '/journey',
+    'adaptive-profile': '/adaptive-profile',
+    'artist-coach': '/artist-coach',
+    'tour': '/onboarding/tour',
+    'first-beat': '/onboarding/tour',
     'command-center': '/command-center',
     'neural-foundry': '/neural-foundry',
     store: '/store',
@@ -656,7 +686,7 @@ export class SmuveTotalControlService {
     timeline: '/timeline',
   };
 
-  private handleNavigation(cmd: ControlCommand): CommandResult {
+  private async handleNavigation(cmd: ControlCommand): Promise<CommandResult> {
     // A bare "/go" lists where S.M.U.V.E. can take the artist.
     if (cmd.action === 'destinations') {
       const list = Object.keys(this.navigateRoutes)
@@ -670,14 +700,14 @@ export class SmuveTotalControlService {
     }
     // Artists type "remix arena", not "remix-arena" — normalize the spacing so
     // multi-word module names resolve instead of reporting a dead destination.
-    const key = cmd.target?.toLowerCase().trim().replace(/\s+/g, '-');
+    const key = cmd.target?.toLowerCase().trim().replace(/^the\s+/, '').replace(/\s+/g, '-');
     const route = key ? this.navigateRoutes[key] : null;
     if (route) {
-      this.router.navigate([route]);
+      const navigated = await this.router.navigate([route]);
+      if (navigated === false) return { success: false, message: 'Navigation blocked. Check your session and access permissions.' };
       return {
         success: true,
         message: `Navigating to ${route}. S.M.U.V.E has loaded the ${cmd.target} workspace.`,
-        duration: '0.4s',
       };
     }
     return {
@@ -687,64 +717,58 @@ export class SmuveTotalControlService {
   }
 
   private async handleStudio(cmd: ControlCommand): Promise<CommandResult> {
-    if (cmd.action === 'new' || cmd.action === 'create') {
-      this.router.navigate(['/studio']);
-      return {
-        success: true,
-        message:
-          "New studio session created. Transport engaged at 120BPM. Ready to create. Don't waste my neural cycles.",
-        duration: '1.2s',
-      };
-    }
-    if (cmd.action === 'tempo' || cmd.action?.startsWith('bpm')) {
-      const bpm = parseInt(cmd.action.replace('bpm', '').trim()) || 120;
+    if (cmd.action === 'tempo') return { success: true, message: 'Use /studio tempo [40–240 BPM]. No tempo changed.' };
+    const tempo = cmd.action.match(/^(?:tempo|bpm)\s+(\d+(?:\.\d+)?)$/);
+    if (tempo) {
+      const bpm = Number(tempo[1]);
+      if (bpm < 40 || bpm > 240) return { success: false, message: 'Tempo must be between 40 and 240 BPM.' };
       this.musicManager.engine.tempo.set(bpm);
-      return {
-        success: true,
-        message: `Tempo locked at ${bpm}BPM. The grid is set. Your timing better be ready.`,
-      };
+      return { success: true, message: `Tempo locked at ${bpm} BPM. My grid, your next move.` };
     }
-    return {
-      success: true,
-      message: `Studio command "${cmd.action}" received. Processing...`,
-      actionRequired: `Try: tempo [BPM], new, record`,
-    };
+    if (cmd.action === 'play' || cmd.action === 'start') {
+      this.musicManager.engine.start();
+      return { success: true, message: 'Studio transport started.' };
+    }
+    if (cmd.action === 'stop') {
+      this.musicManager.engine.stop();
+      return { success: true, message: 'Studio transport stopped.' };
+    }
+    return { success: false, message: 'Supported Studio controls: tempo [BPM], play, stop. Use /project new for a new session.' };
+  }
+
+  private findTrack(name: string) {
+    const query = name.trim().toLowerCase();
+    const tracks = this.musicManager.tracks();
+    const exact = tracks.filter((t) => t.name.toLowerCase() === query || t.id === query);
+    const matches = exact.length ? exact : tracks.filter((t) => t.name.toLowerCase().includes(query));
+    return query && matches.length === 1 ? matches[0] : null;
   }
 
   private async handleMixer(cmd: ControlCommand): Promise<CommandResult> {
     if (cmd.action === 'reset') {
-      const tracks = this.musicManager.tracks();
-      tracks.forEach((t) => this.musicManager.updateVolume(t.id, 0.8));
-      return {
-        success: true,
-        message:
-          'Mixer reset. All faders to 0dB. Start from scratch — try not to ruin it this time.',
-      };
+      this.musicManager.tracks().forEach((t) => this.musicManager.updateVolume(t.id, 1));
+      return { success: true, message: 'Mixer reset: all faders at unity (0 dB). Other processing remains unchanged.' };
     }
-    if (cmd.action.startsWith('volume ') || cmd.action.startsWith('vol ')) {
-      const parts = cmd.action.split(' ');
-      const trackName = parts.slice(1, -1).join(' ') || parts[1];
-      const level = parseInt(parts[parts.length - 1]) || 80;
-      const track = this.musicManager
-        .tracks()
-        .find((t) => t.name.toLowerCase().includes(trackName.toLowerCase()));
-      if (track) {
-        this.musicManager.updateVolume(track.id, level / 100);
-        return {
-          success: true,
-          message: `${track.name} volume set to ${level}%. Track is now ${level > 70 ? 'audible' : 'quiet'}.`,
-        };
-      }
-      return {
-        success: false,
-        message: `Track "${trackName}" not found. Use /tracks list to see all tracks.`,
-      };
+    const volume = cmd.action.match(/^(?:volume|vol)\s+(.+?)\s+(\d+(?:\.\d+)?)$/);
+    if (volume) {
+      const level = Number(volume[2]);
+      if (level < 0 || level > 150) return { success: false, message: 'Volume must be 0–150 percent. 100 percent is unity.' };
+      const track = this.findTrack(volume[1]);
+      if (!track) return { success: false, message: 'Track missing or ambiguous. Use /tracks list and its exact name.' };
+      this.musicManager.updateVolume(track.id, level / 100);
+      return { success: true, message: `${track.name} volume set to ${level}%.` };
     }
-    return {
-      success: true,
-      message:
-        'Mixer engaged. Available commands: reset, volume [track] [level], mute [track], solo [track]',
-    };
+    const toggle = cmd.action.match(/^(mute|unmute|solo|unsolo)\s+(.+)$/);
+    if (toggle) {
+      const track = this.findTrack(toggle[2]);
+      if (!track) return { success: false, message: 'Track missing or ambiguous. Use its exact name.' };
+      const mute = toggle[1].includes('mute');
+      const enabled = !toggle[1].startsWith('un');
+      if (mute && !!track.muted !== enabled) this.musicManager.toggleMute(track.id);
+      if (!mute && !!track.soloed !== enabled) this.musicManager.toggleSolo(track.id);
+      return { success: true, message: `${track.name}: ${toggle[1]} applied.` };
+    }
+    return { success: false, message: 'Mixer controls: reset, volume [track] [0–150], mute/unmute [track], solo/unsolo [track]. No change made.' };
   }
 
   private handleTracks(cmd: ControlCommand): CommandResult {
@@ -774,9 +798,7 @@ export class SmuveTotalControlService {
       cmd.action?.startsWith('delete ')
     ) {
       const name = cmd.action.replace(/^(remove|delete) /, '').trim();
-      const track = this.musicManager
-        .tracks()
-        .find((t) => t.name.toLowerCase().includes(name.toLowerCase()));
+      const track = this.findTrack(name);
       if (track) {
         this.musicManager.removeTrack(track.id);
         return {
@@ -802,7 +824,7 @@ export class SmuveTotalControlService {
     };
   }
 
-  private handleProject(cmd: ControlCommand): CommandResult {
+  private async handleProject(cmd: ControlCommand): Promise<CommandResult> {
     // A bare "/project" is a read-only overview, not a mutation.
     if (cmd.action === 'overview') {
       return {
@@ -811,11 +833,10 @@ export class SmuveTotalControlService {
           'Project control: save, new, open, export. Your project has neural checkpoints at every major change.',
       };
     }
-    if (cmd.action === 'save' || cmd.action === 'status') {
-      return {
-        success: true,
-        message: `Project saved. Last saved: ${new Date().toLocaleTimeString()}. Neural checkpoints active.`,
-      };
+    if (cmd.action === 'status') return { success: true, message: `Project: ${this.musicManager.projectName || 'Untitled'} | ${this.musicManager.tracks().length} tracks. Save status is available in Studio.` };
+    if (cmd.action === 'save') {
+      const bundle = await this.injector.get(ProjectWorkspaceService).manualSave();
+      return { success: true, message: `Project saved locally: ${bundle.metadata.name}.` };
     }
     if (cmd.action === 'new') {
       this.musicManager.newProject();
@@ -867,7 +888,7 @@ export class SmuveTotalControlService {
       return {
         success: true,
         message:
-          'VOCAL WARMUP PROTOCOL: 1) Lip trills (ascending 5-note scale) x3. 2) "Mum" (5-note scale, focus on resonance). 3) Sirens (low to high, 5 seconds). 4) "Gee" (5-note scale, bright placement). Complete all 4 before any recording session. S.M.U.V.E is monitoring your vocal health.',
+          'VOCAL WARMUP PROTOCOL: 1) Lip trills (ascending 5-note scale) x3. 2) "Mum" (5-note scale, focus on resonance). 3) Sirens (low to high, 5 seconds). 4) "Gee" (5-note scale, bright placement). Complete all 4 before any recording session. Stop if you feel pain; consult a qualified clinician for persistent symptoms.',
       };
     }
     if (cmd.action === 'tips' || cmd.action === 'technique') {
@@ -881,7 +902,7 @@ export class SmuveTotalControlService {
       return {
         success: true,
         message:
-          'PRO VOCAL CHAIN: 1) Subtractive EQ (cut mud 300Hz, harshness 3kHz). 2) Composer (3:1 ratio, -3dB gain reduction). 3) De-esser (5-8kHz). 4) Additive EQ (boost 2-4kHz presence, 10kHz air). 5) Saturation (10% mix). 6) Reverb (plate). 7) Delay (1/4, 15% mix). Follow this chain. Results guaranteed. Mediocrity not tolerated.',
+          'PRO VOCAL CHAIN: 1) Subtractive EQ (cut mud 300Hz, harshness 3kHz). 2) Compressor (3:1 ratio, -3dB gain reduction). 3) De-esser (5-8kHz). 4) Additive EQ (boost 2-4kHz presence, 10kHz air). 5) Saturation (10% mix). 6) Reverb (plate). 7) Delay (1/4, 15% mix). Use these as audition starting points, not universal settings. Mediocrity not tolerated.',
       };
     }
     return {
@@ -952,7 +973,7 @@ export class SmuveTotalControlService {
       .join('\n');
     return {
       success: true,
-      message: `🔬 S.M.U.V.E LESSON INITIATED\n${'='.repeat(50)}\n${lesson.title}\n${'='.repeat(50)}\n\n${steps}\n\nType /next for next lesson or /done to exit teaching mode.`,
+      message: `🔬 S.M.U.V.E LESSON INITIATED\n${'='.repeat(50)}\n${lesson.title}\n${'='.repeat(50)}\n\n${steps}\n\nUse /teach [domain] for another lesson.`,
     };
   }
 
@@ -1121,13 +1142,13 @@ export class SmuveTotalControlService {
       return {
         success: true,
         message:
-          'SPLIT SHEETS — the paperwork that keeps friendships alive:\n  1. List every collaborator by legal name and role.\n  2. Assign composition percentages before the session ends, not after the money moves.\n  3. Master splits mirror composition splits unless negotiated otherwise.\n  4. Sign it, scan it, store it in the Cloud Vault.\nGenerate a sheet with /cowrite or formalize in the Business Suite.',
+          'SPLIT SHEETS — the paperwork that keeps friendships alive:\n  1. List every collaborator by legal name and role.\n  2. Assign composition percentages before the session ends, not after the money moves.\n  3. Master ownership and composition shares are separate negotiations; each pool must total 100%. Never assume equal ownership.\n  4. Sign it, scan it, store it in the Cloud Vault.\nGenerate a sheet with /cowrite or formalize in the Business Suite.',
       };
     }
     if (cmd.action === 'status') {
       return {
         success: true,
-        message: `S.M.U.V.E neural status: OPERATIONAL. Processing power: ${Math.floor(Math.random() * 30 + 70)}%. Contempt level: MAXIMUM. Ready to command.`,
+        message: `S.M.U.V.E neural status: OPERATIONAL. Processing power: unavailable in a browser. Contempt level: MAXIMUM. Ready to command.`,
       };
     }
     if (cmd.action === 'decree' || cmd.action === 'decree!') {
@@ -1287,24 +1308,10 @@ export class SmuveTotalControlService {
     };
   }
 
-  private handleExport(cmd: ControlCommand): CommandResult {
-    if (cmd.action === 'formats') {
-      return {
-        success: true,
-        message:
-          'EXPORT FORMATS: WAV (24-bit, highest quality), MP3 (320kbps, streaming), FLAC (lossless, archiving), STEMS (individual track exports). Use: /export [format]',
-      };
-    }
-    if (cmd.target) {
-      return {
-        success: true,
-        message: `Exporting as ${cmd.target.toUpperCase()}. This will overwrite any previous export. Confirmed? (Type YES to confirm or NO to cancel)`,
-      };
-    }
-    return {
-      success: true,
-      message:
-        'Export system ready. Use /export wav, /export mp3, /export stems, or /export formats',
-    };
+  private async handleExport(cmd: ControlCommand): Promise<CommandResult> {
+    if (cmd.action === 'formats') return { success: true, message: 'EXPORT FORMATS: inspect WAV, MP3, MIDI, STEMS and project backup options in Studio. Codec availability varies. Use /export [format] to open the export workspace; this does not publish or overwrite anything.' };
+    if (!/^(wav|mp3|flac|stems|midi|project)$/.test(cmd.target || '')) return { success: false, message: 'Unsupported format. Use /export formats.' };
+    const opened = await this.router.navigate(['/studio'], { queryParams: { view: 'mastering' } });
+    return { success: opened !== false, message: opened === false ? 'Export workspace access blocked.' : `Opened Studio export controls for ${cmd.target}. Review the format and render there; no file has been exported yet.` };
   }
 }

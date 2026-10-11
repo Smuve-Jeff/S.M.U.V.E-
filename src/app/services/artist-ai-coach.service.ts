@@ -68,7 +68,7 @@ export class ArtistAiCoachService {
       prompt: `You are the producer for ${knowledge.identity.name || 'this artist'} (${genre.label}). Use this setup:\n\n${adaptation.productionDirective}\n\nYour job is to produce a track that\n1. Protects the sonic rules\n2. Uses the actual equipment\n3. Delivers on the stated mix priorities\n4. Keeps the artist's production philosophy`,
       context: `Signature sound: ${knowledge.sonic.signatureSound}. Non-negotiables: ${knowledge.sonic.nonNegotiables}. DAW: ${profile.daw?.[0] || 'unspecified'}.`,
       actionItems: [
-        `Set up ${profile.daw?.[0] || 'your DAW'} with these mix priorities: ${genre.productionDefaults.mixPriorities.join(', ')}`,
+        `Set up ${profile.daw?.[0] || 'your DAW'} with these mix priorities: ${(knowledge.craft.mixingPriorities.length ? knowledge.craft.mixingPriorities : genre.productionDefaults.mixPriorities).join(', ')}`,
         `Lock the groove: ${knowledge.sonic.groove || genre.productionDefaults.sonicSignatures[0]}`,
         `Reference track: ${profile.musicalJourney?.musicBlueprint?.referenceTracks?.[0] || 'choose one from the stated influences'}`,
         `Session rule: ${knowledge.sonic.nonNegotiables || 'define the sonic non-negotiable'}`,
@@ -79,7 +79,7 @@ export class ArtistAiCoachService {
       role: 'songwriter',
       title: 'Write inside the artist\'s world',
       urgency: 'high',
-      prompt: `You are the songwriter for ${knowledge.identity.name || 'this artist'}. Write using this approach:\n\nWorld: ${knowledge.identity.livedWorld || 'capture lived-world details'}\nThemes: ${knowledge.craft.lyricalThemes.join(', ') || 'define the recurring subjects'}\nProcess: ${knowledge.craft.songwritingProcess || 'ask about their writing routine'}\n\nStructure: ${genre.songwritingRules.typicalStructures[0]}\nDo not write generic lyrics. Use the artist's own language and concrete details.`,
+      prompt: `You are the songwriter for ${knowledge.identity.name || 'this artist'}. Write using this approach:\n\nWorld: ${knowledge.identity.livedWorld || 'capture lived-world details'}\nThemes: ${knowledge.craft.lyricalThemes.join(', ') || 'define the recurring subjects'}\nProcess: ${knowledge.craft.songwritingProcess || 'ask about their writing routine'}\n\nArrangement: ${knowledge.sonic.arrangement || genre.songwritingRules.typicalStructures[0]}\nDo not write generic lyrics. Use the artist's own language and concrete details.`,
       context: `Tension point: ${knowledge.identity.tension}. Recognition cue: ${knowledge.audience.recognitionCue}.`,
       actionItems: [
         `Write the hook first, make it deliver: ${knowledge.audience.recognitionCue}`,
@@ -128,20 +128,19 @@ export class ArtistAiCoachService {
     const genre = adaptation.genreProfile;
     const knowledge = adaptation.knowledge;
     const catalogSize = profile?.catalog?.length || 0;
-    const releaseType = catalogSize === 0 ? 'Single' : catalogSize < 3 ? 'EP' : 'Album';
-    const targetDate = new Date();
-    targetDate.setMonth(targetDate.getMonth() + (catalogSize === 0 ? 2 : catalogSize < 3 ? 3 : 4));
+    const releaseType = 'Artist-selected format';
+    const targetDate = 'Not scheduled — confirm finished songs, capacity and delivery lead time';
 
     return {
       nextRelease: {
         type: releaseType,
-        targetDate: targetDate.toISOString().split('T')[0],
+        targetDate,
         format: knowledge.sync.hasStems ? ['Master', 'Clean', 'Instrumental', 'Stems'] : ['Master', 'Clean', 'Instrumental'],
         strategy: `${releaseType} release targeting ${genre.businessPlaybook.incomeStreamPriority[0]}. Lead with: ${knowledge.audience.recognitionCue || 'the signature sound'}.`,
       },
-      catalogStrategy: `Build a catalog of ${catalogSize < 5 ? '5-8 works' : 'weekly releases'} to establish authority in ${knowledge.sonic.subgenres[0] || genre.label}.`,
+      catalogStrategy: `Develop ${knowledge.sonic.subgenres[0] || genre.label} at ${knowledge.business.velocity || 'a sustainable artist-selected cadence'}. ${catalogSize} catalog items recorded; drafts do not prove release readiness.`,
       marketingApproach: `Lead with the artist's own voice and lived-world story. Avoid generic ${genre.label} tropes. Use: ${knowledge.audience.visualAesthetic?.[0] || 'define visual language'}.`,
-      revenueTargets: genre.businessPlaybook.incomeStreamPriority.slice(0, 3),
+      revenueTargets: (knowledge.business.streams.length ? knowledge.business.streams : genre.businessPlaybook.incomeStreamPriority).slice(0, 3),
       successMetrics: [
         knowledge.business.successMetric || 'Monthly listeners',
         `Playlist adds (${genre.businessPlaybook.targetAudience.toLowerCase()})`,
@@ -206,5 +205,3 @@ export class ArtistAiCoachService {
     return adaptation.warningsAndProtections;
   }
 }
-
-export type { CoachPrompt, ReleaseStrategy };

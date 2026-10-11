@@ -11,6 +11,8 @@ export interface AppTheme {
 }
 
 export type MainViewMode =
+  | 'adaptive-profile'
+  | 'artist-coach'
   | 'hub'
   | 'studio'
   | 'player'

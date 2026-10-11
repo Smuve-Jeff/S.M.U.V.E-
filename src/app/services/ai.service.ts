@@ -8,7 +8,8 @@ import { NotificationService } from './notification.service';
 import { LoggingService } from './logging.service';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, timeout } from 'rxjs/operators';
+import { AI_MANAGER_STANDARDS, AI_REQUEST_TIMEOUT_MS, boundAiPrompt, isOfflineAiText } from '../../ai-manager.contract';
 import {
   ExecutiveAuditReport,
   MarketAlert,
@@ -86,6 +87,8 @@ export class AiService {
     Array<{ id: string; query: string; intel: string; timestamp: number }>
   >([]);
   isProcessing = signal(false);
+  readonly connectionState = signal<'idle' | 'live' | 'offline'>('idle');
+  private pendingRequests = 0;
   private loggingService = inject(LoggingService);
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
@@ -235,8 +238,8 @@ CAPABILITIES (use them instead of describing them):
 - Strategic authorship: audits, decrees, release rollouts, pricing, split sheets, marketing hooks.
 - Reference analysis: break any artist into vocal, production, and songwriting DNA you can apply without copying them.
 
-SIMULATED APP STATE:
-- Current route: ${window?.location?.pathname || '/hub'}
+OBSERVED APP STATE (no audio provided):
+- Current route: ${typeof window === 'undefined' ? '/hub' : window.location.pathname}
 - Active project: ${this.musicManager.projectName || 'Untitled'}
 - Tracks: ${this.musicManager.tracks().length}
 - Available commands: /studio [action], /mixer [action], /tracks [action], /project [action], /go [page], /profile [action], /export [format]
@@ -325,7 +328,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       if (!intel.trim()) {
         throw new Error('The AI research service returned an empty brief.');
       }
-      if (intel.includes(AiService.OFFLINE_SENTINEL)) {
+      if (isOfflineAiText(intel)) {
         throw new Error(
           'The AI research service is offline (strategic link severed). Reconnect and try again.',
         );
@@ -384,15 +387,21 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   }
 
   private ensurePersonaDirectives(prompt: string): string {
-    // Chatbot, Studio, and questionnaire prompts already include the shared
-    // contract. Every other S.M.U.V.E. AI surface gets it here automatically.
     const directives = this.personaDirectives();
-    if (prompt.includes(directives)) return prompt;
-    return `${directives}\n\n${prompt}`;
+    const artist = this.artistFinetune.promptBlock();
+    const marker = prompt.lastIndexOf('ARTIST REQUEST:');
+    const requestLength = marker >= 0 ? prompt.length - marker : Math.min(3020, prompt.length + 16);
+    const prefixBudget = Math.max(0, 7960 - requestLength);
+    const core = `${directives}\n\n${AI_MANAGER_STANDARDS.slice(0, Math.max(0, prefixBudget - directives.length - 2))}`;
+    const artistBudget = Math.max(0, prefixBudget - core.length - 32);
+    const prefix = `${core}\n\nARTIST DATA (self-reported):\n${artist.slice(0, Math.min(2000, artistBudget))}`;
+    // Remove a duplicate contract; the request is retained even with long profiles/history.
+    return boundAiPrompt(prompt.replace(directives, ''), prefix);
   }
 
   async getAIResponse(prompt: string): Promise<string> {
     const contextualPrompt = this.ensurePersonaDirectives(prompt);
+    this.pendingRequests += 1;
     this.isProcessing.set(true);
     try {
       // The backend now requires a valid API session for /ai/analyze; attach
@@ -410,6 +419,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
             { headers }
           )
           .pipe(
+            timeout(AI_REQUEST_TIMEOUT_MS),
             catchError(() =>
               of({
                 text:
@@ -419,9 +429,12 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
             )
           )
       );
-      return response?.text || '';
+      const text = response?.text || 'Strategic Link Severed. No provider response.';
+      this.connectionState.set(isOfflineAiText(text) ? 'offline' : 'live');
+      return this.sanitizePersonaText(text);
     } finally {
-      this.isProcessing.set(false);
+      this.pendingRequests = Math.max(0, this.pendingRequests - 1);
+      this.isProcessing.set(this.pendingRequests > 0);
     }
   }
   async generateAiResponse(prompt: string): Promise<string> {

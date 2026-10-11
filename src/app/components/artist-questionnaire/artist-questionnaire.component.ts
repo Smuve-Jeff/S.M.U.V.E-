@@ -462,9 +462,9 @@ export class ArtistQuestionnaireComponent {
       'S.M.U.V.E READING OF THE DRAFT (already known — use it, never ask the artist to repeat it):',
       reading,
       '',
-      `Artist asks: ${prompt}`,
       '',
       'Reply in 3 concise parts: (1) direct answer, (2) one concrete next action, (3) one question that would improve your advice. Stay in the character above — arrogant, precise, aimed at the work rather than the person. Do not invent facts or claim to have changed the profile.',
+      `ARTIST REQUEST: ${prompt}`,
     ].join('\n');
   }
 

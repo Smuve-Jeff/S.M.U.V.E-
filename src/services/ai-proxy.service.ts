@@ -1,4 +1,5 @@
 import { AppError } from "@/lib";
+import { AI_MANAGER_STANDARDS } from "../ai-manager.contract";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // Overridable so an operator can pin a model without a code change. Defaults
@@ -33,17 +34,18 @@ export const analyzePrompt = async (
     // Dynamic import keeps boot cheap and avoids loading the SDK until a
     // request actually needs it.
     const { GoogleGenAI } = await import("@google/genai");
-    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY, httpOptions: { timeout: 25_000 } });
 
     const result = await ai.models.generateContent({
       model: GEMINI_MODEL,
       contents: prompt,
+      config: { systemInstruction: AI_MANAGER_STANDARDS, maxOutputTokens: 2048 },
     });
     // `GenerateContentResponse.text` is a getter that concatenates the first
     // candidate's text parts (and is undefined when the model returns none).
     return { text: result.text || FALLBACK_TEXT };
   } catch (error) {
-    console.error("AI proxy error:", error);
+    console.error("AI proxy request failed"); // Never log prompts, provider URLs or credentials.
     throw new AppError(502, "AI service unavailable");
   }
 };

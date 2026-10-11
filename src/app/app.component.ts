@@ -33,6 +33,7 @@ import { SettingsIntegrationService } from './services/settings-integration.serv
 import { DatabaseService } from './services/database.service';
 import { AutoSaveService } from './services/auto-save.service';
 import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
+import { ArtistCoachCommandIntegrationService } from './services/artist-coach-command-integration.service';
 import { CommandPaletteService } from './services/command-palette.service';
 import { UserProfileService } from './services/user-profile.service';
 import { OfflineSyncService } from './services/offline-sync.service';
@@ -102,6 +103,7 @@ export class AppComponent {
   databaseService = inject(DatabaseService);
   autoSaveService = inject(AutoSaveService);
   commandPalette = inject(CommandPaletteService);
+  private coachCommands = inject(ArtistCoachCommandIntegrationService);
   profileService = inject(UserProfileService);
   offlineSync = inject(OfflineSyncService);
   location = inject(Location);
@@ -572,6 +574,7 @@ export class AppComponent {
       ViewConfig['category'],
       { label: string; description: string }
     > = {
+      ARTIST: { label: 'Artist Intelligence', description: 'Profile-calibrated coaching and musical DNA.' },
       CORE: {
         label: 'Core Systems',
         description:

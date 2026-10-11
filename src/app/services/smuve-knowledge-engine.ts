@@ -10,6 +10,9 @@ export interface KnowledgeEntry {
   tags: string[];
   actionRequired?: string;
   relatedEntries?: string[];
+  sources?: string[];
+  jurisdiction?: string;
+  reviewedAt?: string;
 }
 
 export type KnowledgeCategory =
@@ -31,24 +34,20 @@ export class SmuveKnowledgeEngine {
       category: 'Production',
       subcategory: 'Mixing',
       difficulty: 'Intermediate',
-      title: 'Gain Staging Fundamentals',
+      title: 'Gain Staging Without Rituals',
       tags: ['mixing', 'levels', 'headroom'],
-      content:
-        'Set all track faders to -6dB before adding any plugins. This gives you 6dB of headroom for EQ boosts and compression makeup gain. Use a VU meter plugin on your master bus to verify levels never exceed 0dB. Proper gain staging prevents digital clipping and ensures your plugins operate in their optimal range.',
-      actionRequired:
-        'Open mixer and set all faders to -6dB, then listen through the mix.',
+      content: 'Check input, plugin and output meters; avoid clipping at conversion and delivery. Floating-point headroom does not protect a clipped recording or every plugin. Use trim and bypass-matched levels so louder is not mistaken for better. Analog-modelled plugins may specify calibration. No universal fader position or -18 dBFS requirement fits every source.',
+      actionRequired: 'Inspect peaks and plugin calibration, then A/B at matched loudness.',
     },
     {
       id: 'prod-02',
       category: 'Production',
       subcategory: 'Mixing',
       difficulty: 'Intermediate',
-      title: 'The 3-Band Mix Framework',
+      title: 'Masking and Arrangement Before EQ',
       tags: ['mixing', 'structure', 'eq'],
-      content:
-        'Divide your mix into three frequency zones: BASS (20-250Hz) - kick and bass guitar, share no space. MID (250Hz-4kHz) - vocals, guitars, keys, keep clear of mud at 300Hz. HIGHS (4kHz-20kHz) - cymbals, air, presence, boost 10kHz for sparkle. Always check your mix in mono first. If it disappears in mono, your stereo image has phase problems.',
-      actionRequired:
-        'Create three busses (Low/Mid/High) and route tracks to appropriate groups.',
+      content: 'Kick and bass can share frequencies intentionally. Identify which source carries the fundamental and attack, then audition arrangement, octave, envelope, level and selective EQ before reaching for sidechain. Use mono checks to reveal cancellation; do not automatically divide instruments into frequency-band buses.',
+      actionRequired: 'Compare the low end in mono and stereo at matched level; keep changes that improve the musical intent.',
     },
     {
       id: 'prod-03',
@@ -137,23 +136,22 @@ export class SmuveKnowledgeEngine {
       category: 'Production',
       subcategory: 'Mastering',
       difficulty: 'Advanced',
-      title: 'LUFS Targets for Every Platform',
+      title: 'Playback Normalization Is Not a Mastering Target',
       tags: ['mastering', 'loudness', 'lufs'],
-      content:
-        'Each streaming platform has different loudness targets: Spotify -14 LUFS (integrated), Apple Music -16 LUFS, YouTube -13 LUFS, Tidal -14 LUFS, SoundCloud -10 LUFS. Master to -14 LUFS for best cross-platform translation. True Peak should never exceed -1dBTP. Use a loudness meter (YouLean or similar) to verify. Louder is not better — dynamics win.',
-      actionRequired: 'Check your master against platform LUFS targets.',
+      content: 'Spotify Normal playback uses a -14 LUFS normalization reference; Loud and Quiet modes differ, and some players do not normalize. This is not a universal mastering requirement. Choose dynamics and integrated loudness for the song, artist intent and delivery specification; measure true peak and audition codec conversion. Avoid crushing a master merely to hit a number. Spotify publishes service-specific true-peak recommendations; verify current specifications before delivery.',
+      actionRequired: 'A/B a relevant reference at matched loudness; measure LUFS/true peak and check the intended delivery specification.',
+      sources: ['https://support.spotify.com/us/artists/article/loudness-normalization/'],
+      reviewedAt: '2026-10-11',
     },
     {
       id: 'prod-11',
       category: 'Production',
       subcategory: 'Mastering',
       difficulty: 'Expert',
-      title: 'Mastering Chain Architecture',
+      title: 'Master Only What Needs Processing',
       tags: ['mastering', 'chain', 'processing'],
-      content:
-        'Optimal mastering chain: 1) Subtractive EQ (remove resonances), 2) Multiband Compression (glue + balance), 3) Stereo Widener (enhance without phase issues), 4) Harmonic Exciter (add presence), 5) Limiter (max -2dB gain reduction). Always reference commercial tracks in your genre at the same level. A/B compare with the reference every 5 minutes.',
-      actionRequired:
-        'Build a mastering chain: EQ → Multiband → Width → Exciter → Limiter.',
+      content: 'A mastering chain is a set of decisions, not a mandatory EQ/multiband/widener/exciter stack. Diagnose the mix, preserve the stated dynamics and tonal identity, audition minimal corrections at matched level, then limit only as needed for the chosen delivery. Recheck stereo/mono translation and codec distortion.',
+      actionRequired: 'Bypass-match every stage and remove processors that do not solve an identified problem.',
     },
     {
       id: 'prod-12',
@@ -344,24 +342,20 @@ export class SmuveKnowledgeEngine {
       category: 'Marketing',
       subcategory: 'Social Media',
       difficulty: 'Beginner',
-      title: 'The 5-5-5 Content Posting Rule',
+      title: 'Content Cadence That Fits Your Capacity',
       tags: ['marketing', 'social-media', 'content'],
-      content:
-        'Post 5 pieces of educational content (tips, tutorials, behind-the-scenes), 5 pieces of entertaining content (funny, relatable, trending sounds), and 5 promotional posts (new music, merch, shows) per week. The mix keeps your audience engaged without feeling spammy. Educational and entertaining content builds trust. Promotional content converts that trust into action.',
-      actionRequired:
-        'Plan 15 posts for next week: 5 educational, 5 entertaining, 5 promotional.',
+      content: 'Test a sustainable mix of performance, process, story and a clear call to action. Choose cadence from available time, budget, artist boundaries and measured audience response—not a mandatory 15 posts per week. Keep one recognizable sonic or visual cue and measure saves, meaningful replies, permission-based signups and attributable sales.',
+      actionRequired: 'Schedule a small content test you can sustain; review the results before increasing volume.',
     },
     {
       id: 'mkt-02',
       category: 'Marketing',
       subcategory: 'Social Media',
       difficulty: 'Intermediate',
-      title: 'TikTok/Reels Algorithm Hacks 2026',
+      title: 'Short-Form Creative Tests, Not Algorithm Myths',
       tags: ['marketing', 'tiktok', 'algorithm', 'viral'],
-      content:
-        'Post at 7-9am or 7-9pm local time for maximum reach. First 2 seconds must hook: use trending sounds, text overlays, or surprising visuals. Use 3 hashtags max (too many hurts reach). Post consistently (1-2x daily) rather than sporadically. Reply to every comment within 1 hour in the first 24 hours. Completion rate is the #1 algorithm signal — make them watch to the end.',
-      actionRequired:
-        'Create a 15-second hook video following TikTok best practices.',
+      content: 'Treat hooks, length, posting time and formats as testable hypotheses. Platforms change; no fixed hashtag count or posting time guarantees reach. Choose one listener segment, test two openings with the same song excerpt, and compare retention and real listener actions over a stated period. Separate observed metrics from guesses.',
+      actionRequired: 'Run two creative variants, log dates and actual results, and keep the stronger listener signal.',
     },
     {
       id: 'mkt-03',
@@ -404,36 +398,32 @@ export class SmuveKnowledgeEngine {
       category: 'Marketing',
       subcategory: 'Promotion',
       difficulty: 'Intermediate',
-      title: 'Pre-Save Campaign Architecture',
+      title: 'Pre-Save Campaigns Without False Guarantees',
       tags: ['marketing', 'pre-save', 'campaign'],
-      content:
-        'Launch a pre-save campaign 3-4 weeks before release. Use ToneDen or FeatureFM. Create a landing page with: 30-second snippet, compelling visual, email capture. Drive traffic: email list first (30% conversion), then social (5-10%). Offer incentive: download a free track or exclusive content. Track conversion rates. Each pre-save is a guaranteed first-day stream for algorithm activation.',
-      actionRequired:
-        'Set up a pre-save campaign with email capture and incentive.',
+      content: 'A pre-save is intent, not a guaranteed listen or royalty. Build a release page with clear consent, a music preview, accurate date and a single call to action. Match the campaign to existing audience size and delivery timing; do not invent conversion rates. Track consented signups, landing-page conversion and post-release activity separately.',
+      actionRequired: 'Verify delivered metadata and date, then test a release page with explicit consent.',
     },
     {
       id: 'mkt-07',
       category: 'Marketing',
       subcategory: 'Promotion',
       difficulty: 'Expert',
-      title: 'Playlist Pitching Strategy',
+      title: 'Playlist Pitching and Artificial-Streaming Risk',
       tags: ['marketing', 'playlists', 'pitching'],
-      content:
-        'Target curators with 10k-100k followers for 15-30% acceptance rate. Mega-playlists (>1M) accept <2%. Use SubmitHub or Groover for cold pitches. Each pitch must be PERSONALIZED: address curator by name, mention why your track fits THEIR specific playlist, not just any playlist. Send a private SoundCloud link (not public). Follow up once after 2 weeks. Track every submission in a spreadsheet.',
-      actionRequired:
-        'Find 10 curators in your genre and prepare personalized pitches.',
+      content: 'Pitch only genuinely relevant curators with accurate credits, release context and a listening link. There is no guaranteed acceptance rate. Spotify prohibits third-party services guaranteeing streams or paid guaranteed playlist placement; artificial streams can lead to removed metrics, withheld royalties or distributor action. Legitimate advertising is distinct from purchased or fabricated plays.',
+      actionRequired: 'Audit pitches and promotion vendors for guaranteed-stream claims; keep a log and measure genuine listener engagement.',
+      sources: ['https://support.spotify.com/us/artists/article/third-party-services-that-guarantee-streams/'],
+      reviewedAt: '2026-10-11',
     },
     {
       id: 'mkt-08',
       category: 'Marketing',
       subcategory: 'Email Marketing',
       difficulty: 'Intermediate',
-      title: 'Email List = Algorithm Insurance',
+      title: 'Permission-Based Direct Fan Relationships',
       tags: ['marketing', 'email', 'algorithm'],
-      content:
-        'Your email list is the ONLY audience asset you own. DSP algorithms change, social platforms die. Email is forever. Aim to convert 20% of social followers to email subscribers. Offer a free download or exclusive content as incentive. Send monthly updates: new music, behind-the-scenes, personal stories. A 1,000-person email list at 30% open rate = 300 guaranteed first-day streams.',
-      actionRequired:
-        'Set up email capture on your website/landing page and create a welcome sequence.',
+      content: 'A consent-based email list can reduce platform dependence, but an open is not a stream, and no subscriber count guarantees sales. Respect privacy, unsubscribe and local marketing rules; segment by real engagement. Offer useful music or behind-the-scenes context rather than constant urgency.',
+      actionRequired: 'Create a consented welcome sequence and measure actual clicks, replies and conversions.',
     },
 
     // ── BUSINESS DOMAIN (10) ─────────────────────────
@@ -442,58 +432,53 @@ export class SmuveKnowledgeEngine {
       category: 'Business',
       subcategory: 'Revenue',
       difficulty: 'Beginner',
-      title: 'The Independent Artist Revenue Stack',
+      title: 'Build an Artist-Specific Revenue Model',
       tags: ['business', 'revenue', 'income'],
-      content:
-        'Multiple revenue streams: STREAMING (15% of income, passive), MERCH (30%, high margin), SYNC LICENSING (25%, high value), LIVE PERFORMANCE (20%, inconsistent), BRAND DEALS (10%, requires audience). Relying ONLY on streaming is financial suicide. The average independent artist makes $0.003 per stream. You need 333,000 streams to earn $1,000. Diversify or die.',
-      actionRequired:
-        'Calculate your current revenue mix and identify missing streams.',
+      content: 'Map master income, publishing, direct sales, live work, merchandise, services, sync and other genuinely relevant streams. Revenue shares and DSP payouts vary; there is no universal per-stream rate or income mix. Model gross receipts, contractual deductions, recoupment, taxes, costs and net margin separately. Use actual statements and declared capacity before forecasting.',
+      actionRequired: 'List current income and costs; identify one achievable experiment and a break-even metric.',
     },
     {
       id: 'biz-02',
       category: 'Business',
       subcategory: 'Revenue',
       difficulty: 'Advanced',
-      title: 'Publishing Revenue Streams Explained',
+      title: 'Royalties: Rights, Territory and Collection',
       tags: ['business', 'publishing', 'royalties'],
-      content:
-        "Publishing revenue: PERFORMANCE ROYALTIES (radio, live, streaming — collected by PRO), MECHANICAL ROYALTIES (physical/digital sales — collected by MLC/Harry Fox), SYNC ROYALTIES (TV/film/game placements — negotiated directly). Register with a PRO (ASCAP/BMI/SESAC) for performance. Register with the MLC for mechanical. These are SEPARATE from master royalties. Don't leave money on the table.",
-      actionRequired: "Register with a PRO and the MLC if you haven't already.",
+      content: 'Separate composition performance/mechanical income from sound-recording income. In the U.S., PROs administer musical-work performance royalties; The MLC administers eligible digital-audio mechanical uses under the section 115 blanket license, not all worldwide or physical mechanicals. SoundExchange administers qualifying U.S. non-interactive digital sound-recording performance royalties, distinct from interactive master payments through distribution. A publisher/administrator may already collect for you. Other territories differ; do not double-assign administration.',
+      actionRequired: 'Confirm your territory, ownership, existing administrators and matching work/recording identifiers before identifying collection gaps.',
+      sources: ['https://www.themlc.com/digital-music-royalties-landscape', 'https://www.soundexchange.com/digital-performance-royalties/'],
+      reviewedAt: '2026-10-11',
+      jurisdiction: 'U.S. example; verify applicable territory',
     },
     {
       id: 'biz-07',
       category: 'Business',
       subcategory: 'Revenue',
       difficulty: 'Intermediate',
-      title: 'Merch as Your Primary Revenue Driver',
+      title: 'Merchandise: Demand and Margin Before Inventory',
       tags: ['business', 'merch', 'revenue'],
-      content:
-        "Merch should be 30%+ of your income. Start with 3 items: T-shirt ($25), Hoodie ($50), Hat ($20). Print-on-demand (Printful, Printify) eliminates inventory risk. Sell at shows (highest conversion) and online. Bundle merch with music for higher average order value. Limited drops create urgency. Your merch is not just clothing — it's a billboard for your brand.",
-      actionRequired:
-        'Design 3 merch items and set up a print-on-demand store.',
+      content: 'Merch can fit an artist with demonstrated demand, but it is not a mandatory revenue percentage. Price from landed costs, fees, returns, taxes, design and fulfilment; print-on-demand can reduce inventory exposure but has tradeoffs. Validate a small offer with existing fans before expanding.',
+      actionRequired: 'Calculate unit contribution margin and validate demand before ordering inventory.',
     },
     {
       id: 'biz-05',
       category: 'Business',
       subcategory: 'Strategy',
       difficulty: 'Advanced',
-      title: "The 360 Deal: What They Don't Tell You",
+      title: 'Evaluate Participation Deals With Counsel',
       tags: ['business', '360-deal', 'legal'],
-      content:
-        'A 360 deal gives the label a percentage of ALL revenue (touring, merch, sync, publishing) not just recorded music. Standard: 15-25%. NEVER sign without: a reversion clause (rights return after X years), a minimum commitment clause (label must spend $X on marketing), a cap on 360 participation. If a label offers 360, they should be bringing significant value — not just distribution.',
-      actionRequired:
-        'Review any existing deals for 360 clauses and reversion terms.',
+      content: 'Multi-income participation deals vary: review exactly which income is included, deductions, recoupment, audit rights, approvals, term, territory, rights reversion, minimum obligations and termination. No percentage is universally standard. Compare the partner’s written commitments and demonstrated value to a sustainable independent alternative.',
+      actionRequired: 'Prepare a clause-by-clause questions list for a qualified music attorney in the governing jurisdiction.',
     },
     {
       id: 'biz-06',
       category: 'Business',
       subcategory: 'Strategy',
       difficulty: 'Intermediate',
-      title: 'Building Your Team: When to Hire',
+      title: 'Hire for the Bottleneck, Not a Fixed Order',
       tags: ['business', 'team', 'management'],
-      content:
-        "Hire in this order: GRAPHIC DESIGNER (first — visual identity), SOCIAL MEDIA MANAGER (second — consistent content), BOOKING AGENT (third — live shows), PUBLICIST (fourth — press coverage), BUSINESS MANAGER (fifth — finances). Don't hire until you can afford to pay them fairly. Equity (percentage of revenue) can substitute for salary early on. Always have a written agreement.",
-      actionRequired: 'Identify your first hire and budget for them.',
+      content: 'Build a team only when a real bottleneck and sustainable budget justify it. An engineer, designer, administrator or booking partner may be the first useful collaborator depending on the artist. Define scope, deliverables, fees, conflicts, ownership and termination in writing; revenue shares and employment rules need jurisdiction-specific review.',
+      actionRequired: 'Name the bottleneck, quote the work and compare net benefit before hiring.',
     },
 
     // ── LEGAL DOMAIN (8) ─────────────────────────────
@@ -502,48 +487,46 @@ export class SmuveKnowledgeEngine {
       category: 'Legal',
       subcategory: 'Copyright',
       difficulty: 'Intermediate',
-      title: 'Copyright Registration: Complete Guide',
+      title: 'Copyright: Two Works and Jurisdiction',
       tags: ['legal', 'copyright', 'protection'],
-      content:
-        "Copyright exists the moment you create a work, but registration is required to sue for infringement. Register with the US Copyright Office (or your country's equivalent). Cost: $45-65 per work. You can register multiple songs as a collection. Registration establishes a public record and enables statutory damages ($750-$30,000 per infringement + legal fees). Without registration, you can only sue for actual damages — which are nearly impossible to prove.",
-      actionRequired:
-        'Register your 3 most valuable tracks with the Copyright Office this week.',
+      content: 'In the U.S., original protected expression is copyrighted once fixed; a composition (music/lyrics) and its sound recording are separate works and may have different owners. Registration and enforcement prerequisites, timing and remedies depend on the work and jurisdiction; registration does not automatically establish sole ownership or guarantee damages. Do not quote stale fees as current. This is general information, not a legal opinion.',
+      actionRequired: 'Document authorship and ownership separately for composition and master; check the relevant official registration rules with qualified counsel.',
+      sources: ['https://www.copyright.gov/engage/musicians/'],
+      reviewedAt: '2026-10-11',
+      jurisdiction: 'U.S. example; verify applicable territory',
     },
     {
       id: 'legal-02',
       category: 'Legal',
       subcategory: 'Contracts',
       difficulty: 'Advanced',
-      title: 'The Split Sheet: Your Most Important Document',
+      title: 'Split Sheets: Separate Composition and Master Pools',
       tags: ['legal', 'splits', 'collaboration'],
-      content:
-        "A split sheet is a written agreement that establishes ownership percentages BEFORE a collaboration. It should specify: track title, date, each contributor's name, PRO affiliation, percentage share of publishing AND master, contact info, signatures. Without a split sheet, disputes end up in court (or destroyed relationships). Standard splits: producer 50% master, writers split publishing equally.",
-      actionRequired:
-        'Create a split sheet template and use it for your next collaboration.',
+      content: 'Record legal names, roles, contacts, work identifiers when known, agreed composition shares and separately negotiated master ownership/royalty terms, credits and signatures. Each ownership pool must total 100%. There is no universal 50% producer share, equal writer default or automatic matching of publishing and master splits. Distinguish producer royalty points from ownership and define recoupment.',
+      actionRequired: 'Collect each collaborator’s agreed shares and ask counsel to review unresolved ownership before release.',
     },
     {
       id: 'legal-03',
       category: 'Legal',
       subcategory: 'Contracts',
       difficulty: 'Expert',
-      title: 'Producer Agreement Essentials',
+      title: 'Producer Agreements: Define the Actual Rights',
       tags: ['legal', 'producer', 'contract'],
-      content:
-        'A producer agreement should cover: EXCLUSIVITY (is the beat exclusive or leased?), CREDIT (producer name in title/scoring), ROYALTIES (points on master — typically 15-50%), TERM (how long does the agreement last?), TERRITORY (worldwide or limited?), USAGE (streaming, sync, live?). A standard producer lease agreement grants non-exclusive rights for a specific number of streams/units. Exclusive beats cost significantly more.',
-      actionRequired:
-        'Review any producer agreements for exclusivity clauses and royalty terms.',
+      content: 'Review exclusive versus non-exclusive use, permitted media, territory, duration, usage limits, credit, sample permissions, master ownership, composition shares, fees, royalty basis, recoupment, approvals and termination. No producer percentage applies universally. A beat lease may restrict sync or monetization even if the audio file is downloadable.',
+      actionRequired: 'Check the actual license and resolve unclear rights in writing with qualified counsel.',
     },
     {
       id: 'legal-04',
       category: 'Legal',
       subcategory: 'Rights',
       difficulty: 'Expert',
-      title: 'Sample Clearance: Legal & Affordable',
+      title: 'Samples and Interpolations: No Magic Safe Length',
       tags: ['legal', 'samples', 'clearance'],
-      content:
-        'Using uncleared samples is risky. Clearance typically costs 50% of the master + 50% of publishing. If a sample is unrecognizable after processing (pitch-shifted, chopped, filtered), it may be legally safe under "de minimis" use — but this is risky. Use royalty-free sample packs (Splice, Loopmasters) for safety. TrackSuite or ClearanceRight can help with the clearance process. A lawsuit can cost $150k+ to defend.',
-      actionRequired:
-        'Audit your current projects for any uncleared samples and process or replace them.',
+      content: 'Using existing audio can implicate recording rights and underlying composition rights. Re-recording musical material (interpolation) avoids using the original recording but can still implicate the composition. There is no universal safe number of seconds, pitch-shift or chopping trick; fair use is case-specific and varies by jurisdiction. Sample-pack terms may restrict use, exclusivity or Content ID. Clearance costs and ownership terms are negotiated, not fixed percentages.',
+      actionRequired: 'Inventory source material and licenses; get applicable permissions or replace it. Do not treat processing as legal clearance.',
+      sources: ['https://www.copyright.gov/engage/musicians/', 'https://www.copyright.gov/help/faq/faq-fairuse.html'],
+      reviewedAt: '2026-10-11',
+      jurisdiction: 'U.S. example; verify applicable territory',
     },
 
     // ── DISTRIBUTION DOMAIN (6) ─────────────────────
@@ -552,22 +535,20 @@ export class SmuveKnowledgeEngine {
       category: 'Distribution',
       subcategory: 'Strategy',
       difficulty: 'Beginner',
-      title: 'Distributor Comparison: Who to Use',
+      title: 'Choose Distribution by Terms, Not Stale Prices',
       tags: ['distribution', 'distributor', 'platform'],
-      content:
-        'Distributor comparison: DistroKid ($22/yr, unlimited uploads, easy), TuneCore ($29/yr per single, keeps 0%), CD Baby ($9.99/single, keeps 9% of sales), AWAL (invite-only, takes 15%, offers advances), UnitedMasters (free tier takes 10%, Select tier $59/yr). For beginners: DistroKid or TuneCore. For established: AWAL or UnitedMasters Select. All deliver to Spotify, Apple Music, etc.',
-      actionRequired: 'Choose a distributor and upload your next release.',
+      content: 'Compare current territory coverage, fees and commissions, payout rules, ownership, takedown/renewal terms, support, metadata correction, fraud policies and any advance recoupment. Verify current terms directly before choosing; do not treat cached prices or invite-only claims as current. Keep master ownership and publishing administration distinct.',
+      actionRequired: 'Write your delivery requirements and compare current official terms before entering an agreement.',
     },
     {
       id: 'dist-02',
       category: 'Distribution',
       subcategory: 'Strategy',
       difficulty: 'Intermediate',
-      title: 'Release Day Checklist: 14 Days Out',
+      title: 'Release Readiness Before a Countdown',
       tags: ['distribution', 'checklist', 'release'],
-      content:
-        '14 days before: Submit to Spotify editorial (via Spotify for Artists). 7 days before: Final master approved, ISRC codes assigned, artwork confirmed, pre-save live. 3 days before: Social media campaign begins, email list notified. RELEASE DAY: Post on all platforms, pitch to 20+ playlists, send to all press contacts. 7 days after: Thank supporters, analyze streaming data, start next release cycle.',
-      actionRequired: 'Create a release day timeline with all deadlines.',
+      content: 'Build the timeline backwards from verified distributor delivery lead time and editorial pitch deadlines. Approve master, credits, rights, artwork, identifiers and release date before delivery; prepare content and consented fan outreach before launch. No one-size 14-day checklist fits every partner or territory. Evaluate actual first-week evidence rather than automatically starting another release.',
+      actionRequired: 'Confirm rights and delivery, then assign realistic dates, owners and a post-release review.',
     },
 
     // ── CAREER DOMAIN (6) ──────────────────────────
@@ -576,12 +557,10 @@ export class SmuveKnowledgeEngine {
       category: 'Career',
       subcategory: 'Growth',
       difficulty: 'Beginner',
-      title: 'The Independent Artist Roadmap',
+      title: 'Independent Journeys Are Not a Fixed Ladder',
       tags: ['career', 'growth', 'roadmap'],
-      content:
-        "Stage 1: FOUNDATION (months 1-6) — Release 5+ tracks, build social presence, define brand. Stage 2: GROWTH (months 6-18) — Release consistently, grow email list, play local shows. Stage 3: MOMENTUM (months 18-36) — First EP/album, regional touring, sync placements. Stage 4: SCALE (years 3-5) — Full team, national touring, label/distribution partnerships. Each stage has different priorities. Don't skip stages.",
-      actionRequired:
-        "Identify your current stage and focus on that stage's priorities only.",
+      content: 'A first recording, sustainable release practice, direct fan relationships, live development and rights administration can progress independently. Age, genre, years active and label affiliation do not prove ability or reach. Choose the next milestone from evidence, artist goals, budget, access needs and time capacity; touring and major-label deals are optional.',
+      actionRequired: 'Select one measurable milestone that fits your current evidence and constraints.',
     },
     {
       id: 'career-02',
@@ -612,19 +591,20 @@ export class SmuveKnowledgeEngine {
   }
 
   search(query: string): KnowledgeEntry[] {
-    const q = query.toLowerCase();
-    return this.knowledgeBase.filter(
-      (e) =>
-        e.title.toLowerCase().includes(q) ||
-        e.content.toLowerCase().includes(q) ||
-        e.tags.some((t) => t.includes(q)) ||
-        e.category.toLowerCase().includes(q) ||
-        e.subcategory.toLowerCase().includes(q)
-    );
+    const tokens = query.toLowerCase().match(/[a-z0-9]+/g)?.filter((t) => !['a', 'the', 'me', 'my', 'to', 'of', 'in', 'and', 'how', 'what', 'is', 'are', 'do', 'i', 'explain', 'teach', 'about', 'please'].includes(t)) || [];
+    if (!tokens.length) return [];
+    return this.knowledgeBase.map((entry, index) => {
+      const heading = `${entry.title} ${entry.tags.join(' ')} ${entry.category} ${entry.subcategory}`.toLowerCase();
+      const body = entry.content.toLowerCase();
+      const score = tokens.reduce((sum, token) => sum + (heading.includes(token) ? 5 : body.includes(token) ? 1 : 0), 0);
+      const matches = tokens.filter((token) => heading.includes(token) || body.includes(token)).length;
+      return { entry, index, score: matches >= Math.ceil(tokens.length / 2) ? score : 0 };
+    }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score || a.index - b.index).map((item) => item.entry);
   }
 
   getRandomByCategory(category: KnowledgeCategory): KnowledgeEntry | null {
-    const entries = this.getByCategory(category);
+    const canonical = ['Production', 'Songwriting', 'Vocal', 'Marketing', 'Business', 'Legal', 'Distribution', 'Career'].find((c) => c.toLowerCase() === String(category).toLowerCase()) as KnowledgeCategory | undefined;
+    const entries = canonical ? this.getByCategory(canonical) : [];
     if (entries.length === 0) return null;
     return entries[Math.floor(Math.random() * entries.length)];
   }
@@ -651,8 +631,8 @@ export class SmuveKnowledgeEngine {
       `DIFFICULTY: ${entry.difficulty}`,
       `READ: ${entry.content.substring(0, 200)}...`,
       ...(actionStep ? [actionStep] : []),
-      `APPLY: Practice this technique in your current session.`,
-      `REVIEW: Listen back and compare with your previous approach.`,
+      `APPLY: Adapt this to your declared goals, resources and territory.`,
+      `REVIEW: Verify evidence and compare against your intended outcome.`,
     ];
 
     return {

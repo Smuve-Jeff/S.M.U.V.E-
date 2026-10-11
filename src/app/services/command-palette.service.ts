@@ -100,6 +100,12 @@ export class CommandPaletteService {
   query = signal('');
   activeIndex = signal(0);
 
+  private extensionActions = signal<Record<string, CommandPaletteAction[]>>({});
+
+  setExtensionActions(source: string, actions: CommandPaletteAction[]): void {
+    this.extensionActions.update((current) => ({ ...current, [source]: actions }));
+  }
+
   actions = computed<CommandPaletteAction[]>(() => {
     const navigationActions = this.uiService.getViewConfigs().map((view) => ({
       id: `nav-${view.mode}`,
@@ -232,6 +238,7 @@ export class CommandPaletteService {
       ...recentActions,
       ...pinnedActions,
       ...navigationActions,
+      ...Object.values(this.extensionActions()).flat(),
     ];
   });
 

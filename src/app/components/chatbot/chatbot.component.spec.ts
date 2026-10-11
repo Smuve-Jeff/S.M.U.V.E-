@@ -7,6 +7,7 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 import { SpeechRecognitionService } from '../../services/speech-recognition.service';
 import { LoggingService } from '../../services/logging.service';
+import { UserStoreService } from '../../services/user-store.service';
 import { signal } from '@angular/core';
 import { initialProfile } from '../../types/profile.types';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
@@ -20,6 +21,7 @@ describe('ChatbotComponent', () => {
   let speechSynthesisServiceMock: any;
 
   beforeEach(async () => {
+    localStorage.clear();
     userProfileServiceMock = {
       profile: signal(initialProfile),
       updateProfile: jest.fn(),
@@ -350,4 +352,62 @@ describe('ChatbotComponent', () => {
       userProfileServiceMock.profile().settings.ai.aiVoiceShapeShiftEnabled
     ).toBe(true);
   });
+  it('renders a long completed reply immediately without per-word timers', async () => {
+    const reply = 'My verdict. '.repeat(800);
+    const timer = jest.spyOn(globalThis, 'setTimeout');
+    const before = timer.mock.calls.length;
+    await (component as any).streamResponse(reply, 'production');
+    expect(component.messages().at(-1)?.text).toBe(reply);
+    expect(timer.mock.calls.length).toBe(before);
+    expect(component.messages().at(-1)?.isStreaming).toBe(false);
+    timer.mockRestore();
+  });
+
+  it('ignores a late live reply after the artist clears the conversation', async () => {
+    let resolve!: (reply: string) => void;
+    aiServiceMock.getAIResponse = jest.fn(() => new Promise<string>((r) => { resolve = r; }));
+    component.userInput = 'What is my best next campaign?';
+    const sending = component.sendMessage();
+    await Promise.resolve();
+    component.clearHistory();
+    resolve('Late reply must never appear');
+    await sending;
+    expect(component.messages().some((m) => m.text.includes('Late reply'))).toBe(false);
+    expect(component.isTyping()).toBe(false);
+    expect(speechSynthesisServiceMock.speak).not.toHaveBeenCalled();
+  });
+
+  it('isolates saved conversations by authenticated account and drops legacy unscoped history', async () => {
+    const users = TestBed.inject(UserStoreService);
+    localStorage.setItem('smuve.master.chat.v1', JSON.stringify([{ role: 'assistant', text: 'Legacy private history', timestamp: 1 }]));
+    users.user.set({ id: 'artist-a' } as any);
+    fixture.detectChanges();
+    await (component as any).streamResponse('Account A private message', 'business');
+    expect(localStorage.getItem('smuve.master.chat.v1:artist-a')).toContain('Account A private');
+    users.user.set({ id: 'artist-b' } as any);
+    fixture.detectChanges();
+    expect(component.messages().some((m) => m.text.includes('Account A private'))).toBe(false);
+    expect(component.messages().some((m) => m.text.includes('Legacy private'))).toBe(false);
+    users.user.set({ id: 'artist-a' } as any);
+    fixture.detectChanges();
+    expect(component.messages().some((m) => m.text.includes('Account A private'))).toBe(true);
+  });
+
+  it('continues ordinary music questions to live AI rather than returning a generic lesson', async () => {
+    aiServiceMock.getAIResponse = jest.fn().mockResolvedValue('Actual personalized answer.');
+    component.userInput = 'How do I improve my melody?';
+    await component.sendMessage();
+    expect(aiServiceMock.getAIResponse).toHaveBeenCalledWith(expect.stringContaining('How do I improve my melody?'));
+    expect(component.messages().at(-1)?.text).toBe('Actual personalized answer.');
+    expect(speechSynthesisServiceMock.speak).toHaveBeenCalledWith('Actual personalized answer.', expect.objectContaining({ shapeShift: true }));
+  });
+
+  it('treats any persona casing of an offline reply as local knowledge', async () => {
+    aiServiceMock.getAIResponse = jest.fn().mockResolvedValue('Strategic link severed.');
+    component.userInput = 'Explain sample clearance';
+    await component.sendMessage();
+    expect(component.messages().at(-1)?.text).toContain('LOCAL KNOWLEDGE MODE');
+    expect(component.messages().at(-1)?.text).toContain('copyright.gov');
+  });
+
 });

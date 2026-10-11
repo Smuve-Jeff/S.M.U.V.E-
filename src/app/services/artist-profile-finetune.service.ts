@@ -285,6 +285,7 @@ export class ArtistProfileFinetuneService {
     return [
       `ARTIST PROFILE FINE-TUNE (${k.state}, ${k.completeness}% evidence) — adapt every answer to this artist:`,
       `GENRE CONTEXT: ${k.genre} is a reference frame, not an identity verdict.`,
+      `ARTIST CONSTRAINTS: focus=${k.business.focus || 'unknown'}; goal=${k.business.successMetric || 'unknown'}; cadence=${k.business.velocity || 'unknown'}; sonicRule=${k.sonic.nonNegotiables || 'not declared'}; tempo=${k.sonic.tempoZone || 'not declared'}; audience=${k.audience.profile || 'not declared'}.`,
       `DIFFERENTIATORS: ${k.differentiators.join(' | ') || 'none captured yet'}`,
       `MISSING EVIDENCE: ${k.missing.join('; ') || 'none — profile is calibrated'}`,
       sections,

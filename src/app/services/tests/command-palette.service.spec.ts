@@ -191,4 +191,13 @@ describe('CommandPaletteService', () => {
       expect(deckService.togglePlay).not.toHaveBeenCalled();
     });
   });
+  it('replaces reactive extension actions without duplicate or stale commands', () => {
+    const run = jest.fn();
+    service.setExtensionActions('coach', [{ id: 'coach-old', label: 'Old', description: '', category: 'Artist', run }]);
+    service.setExtensionActions('coach', [{ id: 'coach-new', label: 'New', description: '', category: 'Artist', run }]);
+    expect(service.actions().filter((a) => a.id.startsWith('coach-')).map((a) => a.id)).toEqual(['coach-new']);
+    expect(service.executeCommandById('coach-new')).toBe(true);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
 });

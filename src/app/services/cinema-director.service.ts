@@ -237,7 +237,6 @@ export class CinemaDirectorService {
     return [
       `You are S.M.U.V.E 2.0, an uncompromising film and music-video director.`,
       `Deliver a shootable shot list for a ${request.mode} production.`,
-      `Brief: ${request.brief || 'a bold, high-contrast piece built around the artist.'}`,
       `Session tempo: ${safeBpm.toFixed(2)} BPM (1 bar = ${barSeconds.toFixed(2)}s).`,
       `Target runtime: ${Math.round(durationSeconds)}s (~${totalBars} bars).`,
       `Existing footage on the timeline: ${request.existingClipCount ?? 0} clips.`,
@@ -261,6 +260,7 @@ export class CinemaDirectorService {
       `Cover every section of the piece, keep each shot between 1 and 8 bars, ` +
         `and order the shots as they should be cut.`,
       PLAN_SCHEMA_HINT,
+      `ARTIST REQUEST: ${request.brief || 'a bold, high-contrast piece built around the artist.'}`,
     ].join('\n');
   }
 

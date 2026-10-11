@@ -3,6 +3,7 @@ import { signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { SmuveTotalControlService } from './smuve-total-control.service';
 import { UserProfileService } from './user-profile.service';
+import { ProjectWorkspaceService } from '../studio/project-workspace.service';
 import { ProjectService } from './project.service';
 import { MusicManagerService } from './music-manager.service';
 import { NotificationService } from './notification.service';
@@ -35,7 +36,7 @@ describe('SmuveTotalControlService', () => {
 
   beforeEach(() => {
     profileSignal = signal<any>(initialProfileStub());
-    router = { navigate: jest.fn() };
+    router = { navigate: jest.fn().mockResolvedValue(true) };
     updateProfile = jest.fn(async (patch: any) => {
       profileSignal.update((current) => ({ ...current, ...patch }));
     });
@@ -49,9 +50,10 @@ describe('SmuveTotalControlService', () => {
           useValue: { profile: profileSignal, updateProfile },
         },
         { provide: ProjectService, useValue: {} },
+        { provide: ProjectWorkspaceService, useValue: { manualSave: jest.fn().mockResolvedValue({ metadata: { name: 'Actual session' } }) } },
         {
           provide: MusicManagerService,
-          useValue: { tracks: signal([]), engine: { tempo: signal(120) } },
+          useValue: { tracks: signal([]), engine: { tempo: signal(120), start: jest.fn(), stop: jest.fn() }, updateVolume: jest.fn(), toggleMute: jest.fn(), toggleSolo: jest.fn(), removeTrack: jest.fn(), newProject: jest.fn() },
         },
         { provide: NotificationService, useValue: { show: jest.fn() } },
         { provide: SnackbarService, useValue: { show: jest.fn() } },
@@ -299,4 +301,82 @@ describe('SmuveTotalControlService', () => {
     const result = await service.executeCommand('/project save');
     expect(result.success).toBe(false);
   });
+  const enable = async () => service.executeCommand('/ai totalcontrol');
+
+  it('requires exact confirmation even in full control, then executes once', async () => {
+    const music = TestBed.inject(MusicManagerService) as any;
+    music.tracks.set([{ id: 'bass', name: 'Bass', notes: [] }]);
+    await enable();
+    const pending = await service.executeCommand('/tracks delete bass');
+    expect(pending.actionRequired).toContain('/confirm');
+    expect(music.removeTrack).not.toHaveBeenCalled();
+    expect((await service.executeCommand('/confirm')).success).toBe(true);
+    expect(music.removeTrack).toHaveBeenCalledWith('bass');
+    expect((await service.executeCommand('/confirm')).success).toBe(false);
+    expect(music.removeTrack).toHaveBeenCalledTimes(1);
+  });
+
+  it('never confirms a changed or cancelled session', async () => {
+    const music = TestBed.inject(MusicManagerService) as any;
+    await enable();
+    await service.executeCommand('/project new');
+    music.tracks.set([{ id: 'new' }]);
+    expect((await service.executeCommand('/confirm')).success).toBe(false);
+    expect(music.newProject).not.toHaveBeenCalled();
+    await service.executeCommand('/project new');
+    await service.executeCommand('/cancel');
+    expect((await service.executeCommand('/confirm')).success).toBe(false);
+  });
+
+  it('locks studio/mixer writes but allows a tempo help query', async () => {
+    const music = TestBed.inject(MusicManagerService) as any;
+    expect((await service.executeCommand('/studio tempo 140')).success).toBe(false);
+    expect((await service.executeCommand('/studio tempo')).success).toBe(true);
+    expect(music.engine.tempo()).toBe(120);
+    await enable();
+    expect((await service.executeCommand('/studio tempo 140')).success).toBe(true);
+    expect(music.engine.tempo()).toBe(140);
+    expect((await service.executeCommand('/studio bpm 999')).success).toBe(false);
+    expect(music.engine.tempo()).toBe(140);
+  });
+
+  it('sets zero volume correctly, rejects ambiguity, and honors mute/solo', async () => {
+    const music = TestBed.inject(MusicManagerService) as any;
+    music.tracks.set([{ id: 'lead', name: 'Lead', muted: false, soloed: false }, { id: 'back', name: 'Lead Backing' }]);
+    await enable();
+    expect((await service.executeCommand('/mixer volume lead 0')).success).toBe(true);
+    expect(music.updateVolume).toHaveBeenCalledWith('lead', 0);
+    expect((await service.executeCommand('/mixer volume lea 50')).success).toBe(false);
+    await service.executeCommand('/mixer mute lead');
+    await service.executeCommand('/mixer solo lead');
+    expect(music.toggleMute).toHaveBeenCalledWith('lead');
+    expect(music.toggleSolo).toHaveBeenCalledWith('lead');
+  });
+
+  it('awaits real persistence and reports storage failure honestly', async () => {
+    await enable();
+    const workspace = TestBed.inject(ProjectWorkspaceService);
+    expect((await service.executeCommand('/project save')).message).toContain('Actual session');
+    expect(workspace.manualSave).toHaveBeenCalledTimes(1);
+    (workspace.manualSave as jest.Mock).mockRejectedValueOnce(new Error('storage blocked'));
+    expect((await service.executeCommand('/project save')).success).toBe(false);
+  });
+
+  it('opens export controls without claiming a rendered file', async () => {
+    const result = await service.executeCommand('/export wav');
+    expect(result.message).toContain('no file has been exported');
+    expect(router.navigate).toHaveBeenCalledWith(['/studio'], { queryParams: { view: 'mastering' } });
+    expect((await service.executeCommand('/export unknown')).success).toBe(false);
+  });
+
+  it('routes reserved co-write commands before treating them as topics', async () => {
+    const cowrite = TestBed.inject(CoWriteService) as any;
+    cowrite.getSessionSummary = jest.fn().mockReturnValue('real session');
+    cowrite.startSession = jest.fn();
+    expect((await service.executeCommand('/cowrite status')).message).toBe('real session');
+    await service.executeCommand('/cowrite studio');
+    expect(router.navigate).toHaveBeenCalledWith(['/cowrite']);
+    expect(cowrite.startSession).not.toHaveBeenCalled();
+  });
+
 });

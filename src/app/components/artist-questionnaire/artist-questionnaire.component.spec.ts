@@ -76,7 +76,7 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
       expect.stringContaining('Artist: Nova')
     );
     expect(aiService.getAIResponse).toHaveBeenCalledWith(
-      expect.stringContaining('Artist asks: What should I do next?')
+      expect.stringContaining('ARTIST REQUEST: What should I do next?')
     );
     expect(component.aiCoachAnswer()).toContain('Prioritize');
     expect(component.aiCoachBusy()).toBe(false);
@@ -93,7 +93,7 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
     expect(prompt).toContain('EGO MANDATES');
     expect(prompt).toContain('S.M.U.V.E READING OF THE DRAFT');
     expect(prompt).toContain('Differentiation score:');
-    expect(prompt).toContain('Artist asks: What next?');
+    expect(prompt).toContain('ARTIST REQUEST: What next?');
   });
 
   describe('strategic signal scoring', () => {

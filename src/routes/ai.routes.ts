@@ -5,7 +5,8 @@ import { authenticate } from "@/middleware/auth";
 
 const router = Router();
 
-const MAX_PROMPT_LENGTH = 8000;
+import { AI_MAX_PROMPT_LENGTH } from "../ai-manager.contract";
+const MAX_PROMPT_LENGTH = AI_MAX_PROMPT_LENGTH;
 const MAX_IMAGE_PROMPT_LENGTH = 4000;
 
 // AI calls consume external-provider quota, so this endpoint gets a stricter
@@ -20,7 +21,7 @@ const aiLimiter = rateLimit({
 // POST /api/ai/analyze — Gemini-backed analysis proxy (authenticated).
 router.post("/analyze", authenticate, aiLimiter, async (req, res) => {
   const prompt =
-    typeof req.body?.prompt === "string" ? req.body.prompt : undefined;
+    typeof req.body?.prompt === "string" ? req.body.prompt.trim() : undefined;
   if (!prompt) {
     return res.status(400).json({ error: "prompt is required" });
   }

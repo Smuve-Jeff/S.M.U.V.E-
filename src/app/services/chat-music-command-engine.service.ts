@@ -240,6 +240,7 @@ export class ChatMusicCommandEngineService {
 
   private readonly undoStack: UndoEntry[] = [];
   private generationCounter = 0;
+  private pendingClear: { input: string; state: string; expires: number } | null = null;
 
   /** Last mutation label — used by preview()/undo() messaging. */
   private lastCommandLabel = '';
@@ -252,6 +253,33 @@ export class ChatMusicCommandEngineService {
     const trimmed = (input || '').trim();
     if (!trimmed) return null;
 
+    const lower = trimmed.toLowerCase();
+    if (/^(?:no|cancel|\/cancel)$/.test(lower) && this.pendingClear) {
+      this.pendingClear = null;
+      return { content: 'Cancelled. The notes stay.', actions: [] };
+    }
+    if (/^(?:yes|confirm|\/confirm)$/.test(lower) && this.pendingClear) {
+      const pending = this.pendingClear;
+      this.pendingClear = null;
+      if (pending.expires < Date.now() || pending.state !== this.mutationState() || this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) {
+        return { content: 'Confirmation expired or the session/authority changed. Request the clear again.', actions: [] };
+      }
+      return this.clearMusic();
+    }
+    this.pendingClear = null;
+    // A question or discussion is never authorization to edit a session.
+    if (!lower.startsWith('/') && /^(?:what|why|how|when|where|which|who|explain|teach|tell|discuss|should|could|can|do|does|is|are|i\s+(?:want to know|wonder)|don['’]?t|do not)\b/.test(lower)) return null;
+    if (/^(?:play|make|drop|give me)\s+(?:the\s+)?(?:mixer|console|studio|master|track list)\b/.test(lower)) return null;
+    const musicIntent = /^\/(?:make|drums?|bass(?:line)?|chords|melody|tempo|bpm|clear[- ]music)(?:\s|$)/.test(lower)
+      || (/^(?:make|create|build|play|drop|cook up|give me|add|write|set|tempo|bass(?:line)?|chords|melody|drums|clear|wipe|erase)\b/.test(lower) && /\b(?:beat|beats|drums?|bass|bassline|chords?|progression|melody|riff|tempo|bpm|music|pattern|notes)\b/.test(lower));
+    const observational = /^(?:\/)?(?:preview(?: it)?|play (?:it|that|the beat|my beat|the track|the music)|let me hear it|hear it|stop(?: the music| playback| the beat| music)?|cut the sound|music(?: help| \?)?)$/.test(lower);
+    if (musicIntent && !observational && this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) {
+      return { content: 'Full-Control Mode is off. Enable it in Settings → AI before I change music. Ask a question for advice instead.', actions: [] };
+    }
+    if (/^(?:\/clear[- ]music|(?:clear|wipe|erase)\s+(?:the\s+)?(?:music|pattern|tracks|notes))(?:\s|$)/.test(lower)) {
+      this.pendingClear = { input: trimmed, state: this.mutationState(), expires: Date.now() + 60_000 };
+      return { content: 'Clear the music-track notes? Type /confirm within 60 seconds or /cancel. No notes changed yet.', actions: [] };
+    }
     const slash = this.trySlashCommand(trimmed);
     if (slash) {
       if (options?.speak) this.announce(slash.content);
@@ -307,6 +335,7 @@ export class ChatMusicCommandEngineService {
   }
 
   undo(): ChatMusicResult {
+    if (this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) return { content: 'Full-Control Mode is off. Enable it before undoing session edits.', actions: [] };
     const entry = this.undoStack.pop();
     if (!entry) {
       return {
@@ -397,10 +426,8 @@ export class ChatMusicCommandEngineService {
     if (lower.startsWith('/melody ')) {
       return this.createMelody({ key: lower.slice(8) });
     }
-    if (lower === '/tempo' || lower === '/bpm') {
-      return this.setTempo(120);
-    }
-    const tempoMatch = lower.match(/^\/(?:tempo|bpm)\s+(\d+)/);
+    if (lower === '/tempo' || lower === '/bpm') return { content: 'Use /tempo [40–240 BPM]. No tempo changed.', actions: [] };
+    const tempoMatch = lower.match(/^\/(?:tempo|bpm)\s+(\d+(?:\.\d+)?)$/);
     if (tempoMatch) {
       return this.setTempo(Number(tempoMatch[1]));
     }
@@ -423,6 +450,7 @@ export class ChatMusicCommandEngineService {
 
   private tryNaturalCommand(text: string): ChatMusicResult | null {
     const lower = text.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!/^(?:undo|take that back|stop|cut the sound|preview|play|let me hear|hear it|make|create|build|give me|drop|cook up|add|write|set|tempo|chords|progression|drums|bassline|bass line|bass|melody|lead line|riff|clear|wipe|erase)\b/.test(lower)) return null;
 
     // Undo / stop — short, voice-friendly phrases first.
     if (
@@ -487,6 +515,7 @@ export class ChatMusicCommandEngineService {
     );
     if (chordPlay) {
       const parsed = this.parseProgression(chordPlay[1]);
+      if (parsed.length > 0 && this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) return { content: 'Full-Control Mode is off. Enable it before changing chords.', actions: [] };
       if (parsed.length > 0) {
         return this.createChords({ progression: chordPlay[1] });
       }
@@ -494,10 +523,10 @@ export class ChatMusicCommandEngineService {
 
     // Tempo: "set tempo to 128" / "set the tempo 90" / "tempo 128".
     const tempoMatch = lower.match(
-      /(?:set\s+)?(?:the\s+)?tempo\s+(?:to\s+)?(\d{2,3})/
+      /^(?:set\s+)?(?:the\s+)?tempo\s+(?:to\s+)?(\d{2,3})$/
     );
     if (tempoMatch) {
-      const bpm = Math.max(40, Math.min(240, Number(tempoMatch[1])));
+      const bpm = Number(tempoMatch[1]);
       return this.setTempo(bpm);
     }
 
@@ -551,6 +580,7 @@ export class ChatMusicCommandEngineService {
     genre?: string;
     feel?: string;
   }): ChatMusicResult {
+    if (this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) return { content: 'Full-Control Mode is off. No music changed.', actions: [] };
     const profile = this.currentProfile();
     const journey = profile?.musicalJourney;
     const blueprint = journey?.musicBlueprint;
@@ -603,6 +633,7 @@ export class ChatMusicCommandEngineService {
   }
 
   private createDrums(args: { genre?: string; feel?: string }): ChatMusicResult {
+    if (this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) return { content: 'Full-Control Mode is off. No music changed.', actions: [] };
     const tracks = this.music.tracks();
     const snapshot: UndoEntry = {
       label: 'drum pattern',
@@ -628,6 +659,7 @@ export class ChatMusicCommandEngineService {
   }
 
   private createBass(args: { key?: string }): ChatMusicResult {
+    if (this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) return { content: 'Full-Control Mode is off. No music changed.', actions: [] };
     const key = this.parseKey(args.key) ?? this.parseKey('C minor')!;
     const tracks = this.music.tracks();
     const snapshot: UndoEntry = {
@@ -650,6 +682,7 @@ export class ChatMusicCommandEngineService {
   }
 
   private createChords(args: { progression?: string; key?: string }): ChatMusicResult {
+    if (this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) return { content: 'Full-Control Mode is off. No music changed.', actions: [] };
     const tracks = this.music.tracks();
     const snapshot: UndoEntry = {
       label: 'chord progression',
@@ -683,6 +716,7 @@ export class ChatMusicCommandEngineService {
   }
 
   private createMelody(args: { key?: string }): ChatMusicResult {
+    if (this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) return { content: 'Full-Control Mode is off. No music changed.', actions: [] };
     const key = this.parseKey(args.key) ?? this.parseKey('C major')!;
     const tracks = this.music.tracks();
     const snapshot: UndoEntry = {
@@ -705,7 +739,9 @@ export class ChatMusicCommandEngineService {
   }
 
   private setTempo(bpm: number): ChatMusicResult {
-    const clamped = Math.max(40, Math.min(240, bpm));
+    if (this.currentProfile()?.settings?.ai?.aiTotalControlEnabled !== true) return { content: 'Full-Control Mode is off. No music changed.', actions: [] };
+    if (!Number.isFinite(bpm) || bpm < 40 || bpm > 240) return { content: 'Tempo must be between 40 and 240 BPM. No change made.', actions: [] };
+    const clamped = bpm;
     const before = this.currentTempo();
     this.pushUndo({ label: `tempo ${before} → ${clamped} BPM`, tempo: before, notes: [] });
     this.music.engine.tempo.set(clamped);
@@ -764,6 +800,10 @@ export class ChatMusicCommandEngineService {
     snapshot.createdTrackIds.push(id);
     snapshot.notes.push({ trackId: id, notes: [] });
     return id;
+  }
+
+  private mutationState(): string {
+    return JSON.stringify({ tracks: this.music.tracks(), tempo: this.currentTempo(), profile: this.currentProfile()?.id });
   }
 
   private currentTempo(): number {
@@ -832,7 +872,7 @@ export class ChatMusicCommandEngineService {
           add(hatMidi, base + step, step % 4 === 0 ? 0.42 : 0.25);
         }
         for (const step of [2, 6, 10, 14]) add(51, base + step, 0.38);
-      } else if (/\\breggae\\b|dancehall|ska/.test(style)) {
+      } else if (/\breggae\b|dancehall|ska/.test(style)) {
         add(kickMidi, base, 0.82);
         add(kickMidi, base + 10, 0.55);
         add(37, base + 4, 0.58); // cross-stick on the backbeat
@@ -1108,7 +1148,7 @@ export class ChatMusicCommandEngineService {
     if (root === undefined) return null;
     const minor = match[3] === 'm';
     const label =
-      NOTE_NAMES[root] + (match[2] || '') + (minor ? ' minor' : ' major');
+      match[1].toUpperCase() + (match[2] || '') + (minor ? ' minor' : ' major');
     return { root, minor, label };
   }
 
@@ -1139,9 +1179,10 @@ export class ChatMusicCommandEngineService {
     if (quality === 'major') quality = 'maj';
     if (quality === 'minor') quality = 'm';
     if (quality === 'min') quality = 'm';
-    const intervals = CHORD_INTERVALS[quality] ?? CHORD_INTERVALS[''];
+    const intervals = CHORD_INTERVALS[quality];
+    if (!intervals) return null;
     const label =
-      NOTE_NAMES[root] + (match[2] || '') + (quality ? quality : '');
+      match[1].toUpperCase() + (match[2] || '') + (quality ? quality : '');
     return { root, intervals, label };
   }
 

@@ -179,7 +179,7 @@ describe('AiService', () => {
     jest
       .spyOn(service, 'getAIResponse')
       .mockResolvedValue(
-        'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.',
+        'Strategic Link Severed. Offline processing active. FIX YOUR ******* CONNECTION.',
       );
 
     await expect(
@@ -475,7 +475,7 @@ describe('AiService', () => {
 
     const response = await requestPromise;
     expect(response).toBe(
-      'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.'
+      'Strategic Link Severed. Offline processing active. FIX YOUR ******* CONNECTION.'
     );
   });
 
@@ -726,4 +726,53 @@ describe('AiService', () => {
       expect(deficitBrief.impact).toBe('HIGH');
     });
   });
+  it('keeps concurrent processing active until all requests complete', async () => {
+    const first = service.getAIResponse('first');
+    const second = service.getAIResponse('second');
+    const requests = httpMock.match('http://localhost:4000/api/ai/analyze');
+    requests[0].flush({ text: 'First result' });
+    await first;
+    expect(service.isProcessing()).toBe(true);
+    requests[1].flush({ text: 'Second result' });
+    await second;
+    expect(service.isProcessing()).toBe(false);
+    expect(service.connectionState()).toBe('live');
+  });
+
+  it('times out a stalled request and reports the offline state', async () => {
+    jest.useFakeTimers();
+    try {
+      const pending = service.getAIResponse('stalled request');
+      const request = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+      await jest.advanceTimersByTimeAsync(30_001);
+      expect(await pending).toContain('Strategic Link Severed');
+      expect(request.cancelled).toBe(true);
+      expect(service.connectionState()).toBe('offline');
+      expect(service.isProcessing()).toBe(false);
+    } finally { jest.useRealTimers(); }
+  });
+
+  it('fits profile/history context into the server limit while retaining the latest request', async () => {
+    const pending = service.getAIResponse(`${'context '.repeat(3000)}ARTIST REQUEST: Keep MY room tone.`);
+    const request = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+    expect(request.request.body.prompt.length).toBeLessThanOrEqual(8000);
+    expect(request.request.body.prompt).toContain('Keep MY room tone.');
+    expect(request.request.body.prompt).toContain('MUSIC MANAGER OPERATING STANDARD');
+    expect(request.request.body.prompt).toContain('ARTIST DATA');
+    request.flush({ text: 'Answer' });
+    await pending;
+  });
+
+  it('rejects oversize artist requests before spending provider quota', async () => {
+    await expect(service.getAIResponse('x'.repeat(3001))).rejects.toThrow('3000');
+    httpMock.expectNone('http://localhost:4000/api/ai/analyze');
+    expect(service.isProcessing()).toBe(false);
+  });
+
+  it('rejects an offline sentinel regardless of persona casing', async () => {
+    jest.spyOn(service, 'getAIResponse').mockResolvedValue('Strategic link severed. Offline analysis.');
+    await expect(service.industryDeepSearch('publishing')).rejects.toThrow('offline');
+    expect(service.industryIntelligence()).toHaveLength(0);
+  });
+
 });
