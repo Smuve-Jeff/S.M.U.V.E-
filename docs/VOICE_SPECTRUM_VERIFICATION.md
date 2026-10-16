@@ -86,3 +86,44 @@
 - `forceArchetype` pinning (mimic / profile register) and `shapeShift: false`
   are covered by unit tests (`speech-synthesis.service.spec.ts`), not by this
   spec, since the seeded profile has mimic mode off.
+
+## Voice *input* access — second pass (2026-10-16)
+
+Voice output was verified above; this pass verified whether the widget's **mic**
+can be trusted, after the whole dictation path was modelled as one boolean (so a
+blocked microphone, an http origin, a Permissions-Policy denial and an
+engine-less shell all produced a button that did nothing, silently).
+
+`SpeechRecognitionService` now exposes a capability instead:
+
+| Capability | Produced by | Widget surface |
+| --- | --- | --- |
+| `ready` | engine present, secure context, mic allowed or undecided | mic enabled, tooltip explains dictation |
+| `permission-denied` | `navigator.permissions` says `denied`, or the engine reports `not-allowed`, or the `getUserMedia` re-ask fails | mic **stays enabled** so the artist can retry, amber notice names the fix (browser lock icon → Microphone → Allow) |
+| `no-microphone` | `getUserMedia` throws `NotFoundError`, or engine `audio-capture` | notice: connect an input device |
+| `insecure-context` | `isSecureContext === false` | mic enabled, notice says to reopen over https |
+| `policy-blocked` | Permissions-Policy refuses `microphone` | mic enabled, notice says the page may not capture |
+| `native-shell` | no recognition constructor **and** `Capacitor.isNativePlatform()` | mic disabled, reason is its accessible name |
+| `unsupported` | no recognition constructor in a browser | mic disabled, reason is its accessible name |
+
+Verified with `tests/e2e/chatbot-voice-access.spec.ts` (2 passed, real Chromium,
+seeded session, advisor opened on `/hub`):
+
+1. **Blocked mic** — a fake `webkitSpeechRecognition` plus
+   `permissions.query → denied` and a `getUserMedia` that rejects with
+   `NotAllowedError`. Asserted: the mic is visible and **enabled**, pressing it
+   renders the amber `role="status"` notice containing "Microphone access is
+   blocked" and "Allow the microphone for this site", and the composer still
+   accepts and holds typed text.
+2. **Engine-less shell** — `SpeechRecognition`/`webkitSpeechRecognition` removed
+   and `window.Capacitor.isNativePlatform() === true`, as in the packaged Android
+   app. Asserted: the mic exists only as a **disabled** button whose accessible
+   name contains "Dictation isn't available inside the mobile app shell" and
+   "open S.M.U.V.E. in Chrome", no notice is rendered (nothing is tappable), and
+   typed commands still work.
+
+Still unverified: a real dictation round-trip against a working speech backend,
+and an on-device run of the packaged shell. The manifest declares `RECORD_AUDIO`
+and `MODIFY_AUDIO_SETTINGS`, and Capacitor's WebView bridge grants the capture
+request, so recording is expected to work there — that expectation is not a
+measurement.

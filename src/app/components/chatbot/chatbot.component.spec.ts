@@ -46,12 +46,15 @@ describe('ChatbotComponent', () => {
     speechRecognitionServiceMock = {
       isSupported: signal(true),
       isListening: signal(false),
+      capability: signal<string>('ready'),
+      capabilityMessage: jest.fn(() => 'Voice input ready.'),
       startListening: jest.fn(),
       stopListening: jest.fn(),
     };
     speechSynthesisServiceMock = {
       speak: jest.fn(),
       cancel: jest.fn(),
+      isSupported: signal(true),
       liveVoice: signal(null),
       isSpeaking: signal(false),
     };
@@ -152,6 +155,73 @@ describe('ChatbotComponent', () => {
     speechRecognitionServiceMock.isListening.set(true);
     component.toggleVoiceInput();
     expect(speechRecognitionServiceMock.stopListening).toHaveBeenCalledTimes(1);
+  });
+
+  it('explains a blocked microphone instead of leaving a dead mic button', () => {
+    const blocked =
+      'Microphone access is blocked. Allow the microphone for this site, then tap the mic again.';
+    speechRecognitionServiceMock.capability.set('permission-denied');
+    speechRecognitionServiceMock.capabilityMessage.mockReturnValue(blocked);
+    speechRecognitionServiceMock.startListening.mockImplementation(
+      (_onResult: (text: string) => void, onError: (error: any) => void) =>
+        onError({ code: 'not-allowed', message: blocked })
+    );
+
+    component.toggleVoiceInput();
+    fixture.detectChanges();
+
+    // The blocked mic stays pressable so the artist can retry after fixing
+    // access, and the reason is announced in the composer.
+    expect(component.voiceInputPressable()).toBe(true);
+    expect(component.voiceInputNotice()).toBe(blocked);
+    const notice = fixture.nativeElement.querySelector(
+      '[role="status"][aria-live="polite"]'
+    );
+    expect(notice?.textContent).toContain('Microphone access is blocked');
+  });
+
+  it('names the real reason when the shell has no usable dictation engine', () => {
+    const reason =
+      "Dictation isn't available inside the mobile app shell. Type your command here, or open S.M.U.V.E. in Chrome to dictate.";
+    speechRecognitionServiceMock.isSupported.set(false);
+    speechRecognitionServiceMock.capability.set('native-shell');
+    speechRecognitionServiceMock.capabilityMessage.mockReturnValue(reason);
+
+    expect(component.voiceInputPressable()).toBe(false);
+    expect(component.voiceInputTitle()).toBe(reason);
+
+    component.toggleVoiceInput();
+
+    expect(speechRecognitionServiceMock.startListening).not.toHaveBeenCalled();
+    expect(component.voiceInputNotice()).toBe(reason);
+  });
+
+  it('clears the notice once dictation delivers words', () => {
+    speechRecognitionServiceMock.startListening.mockImplementation(
+      (onResult: (text: string) => void) => onResult('open the mixer')
+    );
+
+    component.toggleVoiceInput();
+
+    expect(component.voiceInputNotice()).toBe('');
+    expect(component.userInput).toBe('open the mixer');
+    expect(speechSynthesisServiceMock.cancel).toHaveBeenCalled();
+  });
+
+  it('badges voice morph as unavailable when the device has no speech engine', () => {
+    speechSynthesisServiceMock.isSupported.set(false);
+    fixture.detectChanges();
+
+    expect(component.voiceOutputSupported()).toBe(false);
+    expect(
+      fixture.nativeElement.querySelector('[title^="Voice Morph: unavailable"]')
+    ).toBeTruthy();
+
+    speechSynthesisServiceMock.isSupported.set(true);
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector('[title^="Voice Morph: active"]')
+    ).toBeTruthy();
   });
 
   it('lets the artist stop S.M.U.V.E. voice playback', () => {

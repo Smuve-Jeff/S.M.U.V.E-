@@ -52,10 +52,18 @@
       >
         <span class="material-symbols-outlined text-lg">mood_bad</span>
       </button>
-      <!-- Voice morph is permanent — S.M.U.V.E. identity feature, always active -->
+      <!-- Voice morph is a permanent S.M.U.V.E. identity feature, but the badge
+           states the real capability: a shell without a speech engine cannot
+           produce the morph, and claiming "active" there was a lie. -->
       <span
-        class="p-2 rounded-xl text-brand-primary cursor-default"
-        title="Voice Morph: active — S.M.U.V.E. dynamically cycles vocal pitch every sentence"
+        class="p-2 rounded-xl cursor-default"
+        [class.text-brand-primary]="voiceOutputSupported()"
+        [class.text-slate-600]="!voiceOutputSupported()"
+        [title]="
+          voiceOutputSupported()
+            ? 'Voice Morph: active — S.M.U.V.E. dynamically cycles vocal pitch every sentence'
+            : 'Voice Morph: unavailable — this device has no speech engine, replies stay text-only'
+        "
       >
         <span class="material-symbols-outlined text-lg">record_voice_over</span>
       </span>
@@ -275,22 +283,16 @@
       <button
         type="button"
         (click)="toggleVoiceInput()"
-        [disabled]="!voiceInputSupported() || isTyping()"
+        [disabled]="!voiceInputPressable() || isTyping()"
         [attr.aria-label]="
           voiceInputListening()
             ? 'Stop voice input'
-            : voiceInputSupported()
+            : voiceInputPressable()
               ? 'Start voice input'
-              : 'Voice input unavailable in this browser'
+              : voiceInputTitle()
         "
         [attr.aria-pressed]="voiceInputListening()"
-        [title]="
-          voiceInputSupported()
-            ? voiceInputListening()
-              ? 'Stop voice capture'
-              : 'Dictate a command; review the transcript before sending'
-            : 'Speech recognition is unavailable in this browser'
-        "
+        [title]="voiceInputTitle()"
         class="absolute right-16 w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-slate-400 flex items-center justify-center hover:text-brand-primary hover:border-brand-primary/40 transition-all disabled:opacity-35 disabled:cursor-not-allowed"
         [class.text-red-400]="voiceInputListening()"
         [class.border-red-500/40]="voiceInputListening()"
@@ -309,6 +311,17 @@
         <span class="material-symbols-outlined text-lg">{{ isTyping() ? 'stop' : 'bolt' }}</span>
       </button>
     </div>
+    <!-- Voice access feedback: a blocked, insecure or unsupported microphone
+         explains itself here instead of leaving a dead button. -->
+    <p
+      *ngIf="voiceInputNotice()"
+      role="status"
+      aria-live="polite"
+      class="mb-2 flex items-start gap-1.5 text-[8px] font-bold text-amber-400/90 leading-snug"
+    >
+      <span class="material-symbols-outlined text-xs shrink-0">error</span>
+      <span>{{ voiceInputNotice() }}</span>
+    </p>
     <!-- Quick command chips -->
     <div class="flex flex-wrap gap-1.5">
       <button

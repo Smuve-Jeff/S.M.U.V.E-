@@ -27,7 +27,10 @@ import {
   SpeechSynthesisService,
   VoiceArchetype,
 } from '../../services/speech-synthesis.service';
-import { SpeechRecognitionService } from '../../services/speech-recognition.service';
+import {
+  SpeechRecognitionService,
+  VoiceInputCapability,
+} from '../../services/speech-recognition.service';
 import { LoggingService } from '../../services/logging.service';
 import { QUICK_COMMANDS, CHATBOT_COMMANDS } from './chatbot.commands';
 import { buildArtistMusicContext } from '../../types/profile.types';
@@ -196,6 +199,43 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   public voiceInputListening = computed(
     () => this.speechRecognition?.isListening() ?? false
   );
+  /**
+   * Why dictation is unavailable right now (insecure context, blocked mic,
+   * native shell, no microphone). Optional-chained so the component spec's
+   * small service double stays valid.
+   */
+  public voiceInputCapability = computed<VoiceInputCapability>(
+    () => this.speechRecognition?.capability?.() ?? 'unsupported'
+  );
+  /**
+   * Voice output can be missing too: a WebView without a speech engine cannot
+   * speak at all, so the morph badge must not claim it is active.
+   */
+  public voiceOutputSupported = computed(
+    () => this.speechSynthesisService.isSupported?.() ?? true
+  );
+  /**
+   * Pressable = the engine exists and this shell can use it. A blocked or
+   * insecure state stays pressable on purpose: tapping it is how the artist
+   * learns what to fix instead of meeting a dead control.
+   */
+  public voiceInputPressable = computed(
+    () =>
+      this.voiceInputSupported() &&
+      this.voiceInputCapability() !== 'native-shell'
+  );
+  /** Actionable reason rendered under the composer; empty when voice is fine. */
+  public voiceInputNotice = signal('');
+  /** Tooltip/aria text for the mic button, always explaining the real state. */
+  public voiceInputTitle = computed(() => {
+    if (this.voiceInputListening()) return 'Stop voice capture';
+    if (!this.voiceInputPressable())
+      return (
+        this.capabilityReason(this.speechRecognition) ??
+        'Speech recognition is unavailable in this browser'
+      );
+    return 'Dictate a command; review the transcript before sending';
+  });
   /** Artist-matched archetype for the next spoken reply (mimic mode). */
   private pendingVoiceArchetype: VoiceArchetype | null = null;
 
@@ -705,24 +745,57 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
     this.speechSynthesisService.cancel();
   }
 
-  /** Start/stop browser dictation; recognized words remain editable before sending. */
+  /**
+   * Start/stop browser dictation; recognized words remain editable before sending.
+   *
+   * Every outcome is explained. An engine the shell cannot use, an insecure
+   * context and a blocked microphone all used to be silent no-ops, which read
+   * as "the mic is broken" — the notices below say what is wrong and what to do.
+   */
   toggleVoiceInput(): void {
     const recognition = this.speechRecognition;
-    if (!recognition || !recognition.isSupported()) return;
+    if (!recognition) {
+      this.voiceInputNotice.set('Voice input is unavailable in this build.');
+      return;
+    }
 
     if (recognition.isListening()) {
       recognition.stopListening();
+      this.voiceInputNotice.set('');
+      return;
+    }
+
+    if (!recognition.isSupported()) {
+      this.voiceInputNotice.set(
+        this.capabilityReason(recognition) ??
+          'Voice input unavailable in this browser.'
+      );
       return;
     }
 
     this.speechSynthesisService.cancel();
-    recognition.startListening((transcript) => {
-      const spokenText = transcript.trim();
-      if (!spokenText) return;
-      this.userInput = [this.userInput.trim(), spokenText]
-        .filter(Boolean)
-        .join(' ');
-    });
+    this.voiceInputNotice.set('');
+    recognition.startListening(
+      (transcript) => {
+        const spokenText = transcript.trim();
+        if (!spokenText) return;
+        this.voiceInputNotice.set('');
+        this.userInput = [this.userInput.trim(), spokenText]
+          .filter(Boolean)
+          .join(' ');
+      },
+      (error) => this.voiceInputNotice.set(error.message)
+    );
+  }
+
+  /** Read the reason through an optional method so service doubles stay valid. */
+  private capabilityReason(
+    recognition: SpeechRecognitionService | null
+  ): string | null {
+    if (!recognition) return null;
+    return typeof recognition.capabilityMessage === 'function'
+      ? recognition.capabilityMessage()
+      : null;
   }
 
   /** Stop an in-progress spoken reply without affecting the text response. */

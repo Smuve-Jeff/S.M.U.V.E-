@@ -56,6 +56,14 @@ export interface VoiceReadout {
 @Injectable({ providedIn: 'root' })
 export class SpeechSynthesisService {
   isSpeaking = signal(false);
+  /**
+   * Whether this browser/WebView ships a speech engine at all. `speak()`
+   * always no-opped without one, but the widget still badged voice morph as
+   * "active" — announcing a capability the device does not have.
+   */
+  isSupported = signal(
+    typeof window !== 'undefined' && !!window.speechSynthesis
+  );
 
   // Identity anchor: the first default sentence of a session opens in the
   // Ominous Protocol persona (whose own range already spans deep bass to
