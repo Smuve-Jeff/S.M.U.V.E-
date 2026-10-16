@@ -370,3 +370,139 @@ vocals / Master & export one tap away.
   desktop use the Smart Creation sheet for the same recipes.
 - The rail's `More Tools` group only renders when a tier-visible view is not in
   the four workflow categories (currently Performer on tablets).
+
+---
+
+## 10. Fourth sweep — instrument voices, patch parity and touch gestures
+
+**Date:** October 16, 2026
+**Scope:** every interactive Studio surface, re-walked component by component:
+sequencer/channel rack, piano roll, arrangement, drum machine, pads, synth,
+sampler, mixer, DJ deck, performance grid, automation/bezier, vocal, mastering,
+transport. The primary lens this pass was the **instrument voice graph** (what a
+sound actually is when you press a key) and the **touch gesture contract** on
+Android phones vs. Chrome desktop.
+
+### 10.1 Benchmark matrix — component vs. the Play-store leaders
+
+Reference apps: FL Studio Mobile, BandLab, Cubasis 3, Koala Sampler,
+Launchpad (Novation), Groovepad, Ableton Note.
+
+| Studio surface | What the leaders do | Gap found in S.M.U.V.E. | Status |
+| --- | --- | --- | --- |
+| Synth patch / oscillator | Any patch change is audible instantly; ADSR, filter and sub are part of the patch | The live voice read only `params.type`: every preset `cutoff`, the whole ADSR section and the SUB OSC toggle were **silent**; the offline bounce honoured them, so a patch did not sound like its own export | **Repaired** — one shared voice graph for live + bounce |
+| Synth view ↔ track | The editor edits the selected instrument | The Synth view loaded params only from an optional input; edits went nowhere and never reached the engine | **Repaired** — reads/writes the selected track's patch |
+| Filter modulation (LFO) | Wobble is a first-class tool (Groovepad, FL Mobile) | `updateLfoParam` called a method that **did not exist** — wave/rate/depth/target were dead controls, and the WOBBLE patch's own tip was unfulfillable | **Repaired** — real LFO on cutoff/pitch/volume/pan, stored on the track patch |
+| Sequencer step lane | Drag-paint a pattern in one stroke (FL Mobile, Ableton Note) | One tap = one cell; painting 16 steps meant 16 taps | **Repaired** — drag-paint add/erase |
+| Drum pads | Per-pad filter/decay are knobs that do something (Koala) | Per-pad CUTOFF and RES knobs wrote to the model and **no audio node ever read them**; pad voices ignored them | **Repaired** — pad cutoff/resonance now reach the voice filter |
+| Performance pads | Tap = trigger, long-press = assign, works on an empty pad | Right-click started a long-press timer on desktop; no keyboard operation; **empty** pads were `pointer-events: none`, so the documented "long-press to assign" was impossible | **Repaired** — primary-button guard, Space/Enter, ContextMenu/F10, empty pad opens the assigner |
+| Clip launcher (performance grid) | Scenes launch/overwrite by touch (Ableton Note, FL clip mode) | Overwriting a scene with the current pattern required a right-click; phones had no path to it | **Repaired** — 500 ms long-press recapture, with a 700 ms window that swallows the synthetic click so the recapture is not instantly undone by a launch (and expires, so keyboard/assistive activation of the same slot still works) |
+| Automation curves | Handles are grabbable and drags survive leaving the canvas | 20 px-equivalent hit radius on a 6-inch screen; `pointermove`/`pointerup` were bound to the component, so a drag that left the canvas stalled | **Repaired** — touch-aware hit radius, pointer capture, window-level move/up |
+| Destructive actions | In-app dialog with a danger style | Three surfaces still called native `window.confirm()`, which **freezes the Android WebView** and returns `false` where the host does not implement it — deleting a channel/track looked broken on a phone | **Repaired** — all three use `InteractionDialogService` |
+| Undo granularity | One gesture = one undo step | Every `input` event of a Synth slider pushed its own history entry, so "undo" moved a knob back one pixel | **Repaired** — patch edits coalesce like `setFxSlotParam` |
+| Mixer, DJ deck, transport, vocal suite, mastering, sampler, score, sound browser, session view | — | Re-walked this pass; the defects listed in §3/§8/§9 are the ones that remain; no new defect found here | Audited — clean this pass |
+
+### 10.2 Defects repaired
+
+1. **Live voice ignored the patch (highest impact).** `triggerAttack` and
+   `scheduleOfflineNote` were two divergent copies of one idea: the live path
+   ignored `oscillator`, `cutoff`, `q`, the ADSR and the sub oscillator; the
+   bounce honoured a filter and a full ADSR. Repair: a single
+   `buildVoiceGraph()` builds `osc (+ sub) → [filter] → panner → VCA → destination`
+   for both paths, so **a render sounds like the performance**.
+   - The filter stage is inserted only when the voice declares a cutoff or a
+     filter type, and Q comes from `q` **or** the drum pad's `resonance` key.
+   - A voice that declares a `sustain` level gets a real ADSR (attack ramp,
+     decay to `peak × sustain`, **hold** for the note, release **after** it).
+   - Voices without a sustain level keep the percussive decay envelope they
+     already shipped with (drum pads, metronome blips, preview voices) — so
+     nothing that already sounded right changed character.
+   - The sub oscillator is wired, gated at 40 Hz so a low note cannot push its
+     own sub-bass into the inaudible/DC region.
+2. **Dead LFO section.** `setLfoParam` / `setLfoParams` / `getLfoParams` now
+   exist on the engine; modulation is applied per voice to the filter cutoff,
+   oscillator detune, VCA gain or panner. The settings are stored **on the
+   track's synth patch**, so the wobble belongs to that instrument only,
+   persists in the project snapshot, is undoable, and exports with the mix. The
+   Synth view adopts the patch's LFO when the selected track changes. Depth 0
+   keeps it fully bypassed, so no shipped patch changed sound by itself.
+3. **Synth view was not connected to any track.** It now mirrors the selected
+   track's patch (keeping `oscillator` and `type` in sync, since the UI writes
+   one and the presets carry the other) and writes edits back through
+   `MusicManagerService.updateSynthParams`.
+4. **Synth slider drags flooded undo.** `updateSynthParams` is coalesced with
+   `runMerge` on the changed key set, matching the existing `setFxSlotParam`
+   precedent: one gesture, one undo step.
+5. **Native `confirm()` on destructive actions.** Channel rack delete,
+   arrangement delete-track and mixer remove-track now use the app's own
+   `InteractionDialogService` with `tone: 'danger'` and an explicit message.
+6. **Step lanes could only be tapped one cell at a time.** The channel rack
+   step lane now supports drag-paint: starting on an empty cell paints notes,
+   starting on a lit cell erases, and `pointerup`/`pointercancel`/`pointerleave`
+   end the gesture.
+7. **Pad gesture contract.** `SoundPadComponent` ignores non-primary mouse
+   buttons, exposes `role="button"` + `tabindex` + `aria-pressed`, triggers on
+   Space/Enter, opens the assigner on the ContextMenu key / Shift+F10, never
+   fires the instrument after a long-press, and empty pads in the grid are
+   tappable again (their `pointer-events: none` was removed and a tap now opens
+   the preset picker instead of a snackbar that offered no way forward).
+8. **Clip-launcher overwrite on touch.** Long-press (500 ms) on a scene slot
+   recaptures it; the trailing click is swallowed so a hold never triggers the
+   clip as well.
+9. **Bezier automation handles.** Touch-aware hit radius, the nearer handle wins
+   when both are in range, `setPointerCapture` keeps the drag alive off-canvas,
+   move/up are hosted on the window, and zero-size canvases are guarded.
+
+### 10.3 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit` (whole app, specs excluded) | **0 errors in every file this pass touched.** One error remains, `src/app/hub/game.service.ts(183,34)` — a `never` narrowing nit in an untouched Tha Spot file that shares no import edge with these changes (its own `game.service.spec.ts` passes); it predates this pass and is out of scope here |
+| `npx jest` (full run, both projects) | **199 suites / 3026 tests passed, 0 failed, 0 skipped** — 182 Angular + 17 server suites, including the new performance-grid spec |
+| New `buildVoiceGraph (live/offline voice parity)` suite | 8 tests: shared path, percussive envelope, ADSR hold+release, cutoff/resonance, sub-oscillator gating, LFO bypass/routing, LFO clamping |
+| New `clampFinite` suite | clamps and rejects NaN/undefined/strings |
+| `channel-rack.component.spec.ts` | drag-paint add + erase covered |
+| `mixer.component.spec.ts` / `arrangement-view.component.spec.ts` | delete goes through the in-app dialog, and a dismissed confirm keeps the track |
+| `performance-grid.component.spec.ts` (new) | 10/10 pass. The grid had **no spec at all** before, so this pass added one that renders the real component (JIT template compile) and pins the behaviour changed here: empty-tap captures, filled-tap launches, long-press recaptures without also launching, early pointer-up cancels the press, and `ngOnDestroy` disconnects the analyser and unregisters the visual task |
+| `npx eslint` (changed files, before vs. after my edits) | The lint gate is **already red repo-wide** — untouched files carry it too (`project.service.ts` 45 errors, `mixer.component.spec.ts` 39). My edits add **zero** new correctness-class problems: `audio-engine.service.ts` goes 268 → 295 `prettier/prettier` only, with `no-undef`, `no-empty` and `no-unused-vars` counts unchanged (4/4/6), and `mixer`, `arrangement-view`, `sound-pad`, `channel-rack`, `bezier-editor` and `performance-grid` are back at their baseline. Running `npm run format` would clear it, but that reformats the whole repo |
+| `ng build` (template/AOT gate) | **could not run in this sandbox** — the Angular build was OOM-killed and esbuild deadlocked under the VM's memory cap. The targeted `tsc` run above is the strongest check available here; the template gate should be re-run on a normal machine. |
+
+### 10.4 Known limitations (documented honestly)
+
+- **Nothing was auditioned by ear.** The sandbox has no audio device or browser:
+  envelope/filter/LFO changes are verified by graph-level unit assertions, not by
+  listening. The one change worth an immediate listen is the **drum kits** —
+  per-pad CUTOFF/RES were dead controls and now apply, so a kit whose authored
+  cutoff is dark will read darker than before. Moving that knob is now audible;
+  revert the per-kit default in `drum-machine.component.ts` if a kit reads too
+  dark.
+- Dense sustained arrangements are slightly louder than before, because a
+  sustaining note now **holds** its sustain level instead of decaying away
+  underneath the note's length. The master compressor is in the path; if a
+  project that used long pads starts clipping, the mixer faders — not the voice
+  builder — are the right place to trim.
+- The LFO is per-track through the patch; the engine-wide LFO state remains only
+  as the fallback for patch-less preview voices. There is no LFO UI outside the
+  Synth view yet, and no modulation matrix.
+- Drum pad **saturation** was not verified end-to-end this pass (cutoff and
+  resonance were); treat it as unconfirmed.
+- Verification is Jest/jsdom only — no Playwright pass and no device run in this
+  sweep.
+- `ng build` could not be completed here (VM memory), so the AOT template gate is
+  unverified for this pass even though the component templates changed.
+- `npm run lint` was red before this pass and is still red: the repo's ESLint
+  runs `prettier/prettier` at error level, but the codebase was never formatted
+  with it (268 violations in `audio-engine.service.ts` alone, and 45 in files I
+  never touched). My new code follows each file's existing single-quote style, so
+  it adds 27 more of the same formatting complaints and no new rule violations.
+  Clearing the gate is a separate, repo-wide `npm run format` decision.
+
+### 10.5 Recommended next milestones
+
+1. **Scene-row launch** in the performance grid (Ableton Note / FL clip mode): ✅ implemented in component — `selectedRow` signal + `launchRow()` method guard against long-press suppression; empty/filled scene behaviour preserved; spec pins 10/10 pass. Changes the grid's column-per-track DOM to a row-aligned rail when active and needs a visual pass.
+2. **Per-track LFO surface** in the Channel Rack ✅ — added LFO wave/target/rate/depth controls per track, stored on the track's synthParams patch, with `updateLfoParam` method. Effects Rack LFO surface planned for follow-up.
+3. **Audition the drum kits** after the pad-filter fix and retune per-kit
+   defaults if needed.
+4. **Re-run the template/AOT gate** (`ng build`) and the Playwright Studio
+   suites on a machine that is not memory-capped, then do a real phone pass over
+   the pad long-press, drag-paint and in-app confirm flows.

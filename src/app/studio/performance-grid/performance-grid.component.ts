@@ -24,9 +24,21 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
   trackLevels = signal<Record<string, number>>({});
   private analysers = new Map<string, AnalyserNode>();
   private stopMeteringTask: (() => void) | null = null;
+  /** Row currently selected for row-launch (across all tracks). */
+  selectedRow = signal<number | null>(null);
 
   tracks = this.musicManager.tracks;
   rows = Array.from({ length: 8 }, (_, index) => index);
+
+  private static readonly LONG_PRESS_MS = 500;
+  /**
+   * Window in which the click that follows a long press is swallowed. It has to
+   * outlast the synthesised click but stay short enough that a keyboard or
+   * screen-reader activation of the same slot still works straight afterwards.
+   */
+  private static readonly LONG_PRESS_SUPPRESS_MS = 700;
+  private pressTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastLongPressAt = 0;
 
   ngOnInit() {
     this.startMetering();
@@ -35,6 +47,7 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.stopMeteringTask?.();
     this.stopMeteringTask = null;
+    this.clearPressTimer();
     for (const analyser of this.analysers.values()) {
       try {
         analyser.disconnect();
@@ -87,12 +100,30 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
     return version.notes.length > 0 || version.steps.some(Boolean);
   }
 
+  /** Launch the captured pattern for the selected row across all tracks. */
+  launchRow(): void {
+    const tracks = this.tracks();
+    tracks.forEach((track) => {
+      const slot = track.patternSlots?.find((s) => s.id === this.slotId(this.selectedRow()!));
+      if (slot && slot.versions.length > 0) {
+        const version = slot.versions[slot.versions.length - 1];
+        if (version.notes.length > 0 || version.steps.some(Boolean)) {
+          this.musicManager.recallPatternSlot(track.id, this.slotId(this.selectedRow()!));
+        }
+      }
+    });
+    this.selectedRow.set(null);
+  }
+
   /**
    * Scene trigger: empty scenes CAPTURE the track's current pattern,
    * filled scenes LAUNCH their captured pattern. The header promise
    * ("tap slot to trigger") now holds — notes/steps actually switch.
    */
   toggleClip(trackId: string, clipIndex: number) {
+    // A long-press already recaptured this slot; never also launch it.
+    if (Date.now() - this.lastLongPressAt < PerformanceGridComponent.LONG_PRESS_SUPPRESS_MS)
+      return;
     const track = this.tracks().find((t) => t.id === trackId);
     if (!track) return;
     const slotId = this.slotId(clipIndex);
@@ -108,8 +139,38 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Right-click a filled scene to overwrite it with the current pattern. */
+  /**
+   * Touch equivalent of the right-click "overwrite this scene" action: hold a
+   * slot for half a second and it recaptures the current pattern. Phones had no
+   * path to this at all, while the hover title told them to right-click.
+   */
+  onSlotPointerDown(
+    track: TrackModel,
+    clipIndex: number,
+    event?: PointerEvent,
+  ) {
+    if (event && event.pointerType === "mouse" && event.button !== 0) return;
+    this.clearPressTimer();
+    this.pressTimer = setTimeout(() => {
+      this.lastLongPressAt = Date.now();
+      this.recaptureClip(track, clipIndex);
+    }, PerformanceGridComponent.LONG_PRESS_MS);
+  }
+
+  onSlotPointerUp() {
+    this.clearPressTimer();
+  }
+
+  private clearPressTimer() {
+    if (this.pressTimer !== null) {
+      clearTimeout(this.pressTimer);
+      this.pressTimer = null;
+    }
+  }
+
+  /** Right-click or long-press a scene to overwrite it with the current pattern. */
   recaptureClip(track: TrackModel, clipIndex: number) {
+    this.clearPressTimer();
     this.haptic.medium();
     this.musicManager.capturePatternSlot(
       track.id,

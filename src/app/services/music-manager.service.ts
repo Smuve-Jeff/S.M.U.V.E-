@@ -1077,12 +1077,25 @@ export class MusicManagerService {
     );
   }
 
+  /**
+   * Write synth-patch params for a track.
+   *
+   * Coalesced on the changed key set, exactly like `setFxSlotParam`: the Synth
+   * view fires this on every `input` event of a slider, and one history entry
+   * per animation frame made a single drag flood undo (and made "undo" look
+   * broken, since each step moved the knob back by one pixel). One gesture is
+   * now one undoable step; editing a different control starts a new step.
+   */
   updateSynthParams(trackId: string, params: any) {
     const t = this.tracks().find((x) => x.id === trackId);
     if (!t) return;
     const oldParams = this.clone(t.synthParams);
     const newParams = { ...t.synthParams, ...params };
-    this.runCommand(
+    const mergeKey = `synth:${trackId}:${Object.keys(params ?? {})
+      .sort()
+      .join(',')}`;
+    this.runMerge(
+      mergeKey,
       'Edit Synth · ' + t.name,
       () => {
         this.tracks.update((ts) =>

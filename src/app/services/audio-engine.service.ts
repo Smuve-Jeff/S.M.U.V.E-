@@ -22,6 +22,38 @@ export type DeckId = 'A' | 'B';
 
 export type CrossfaderCurve = 'linear' | 'power' | 'exp' | 'cut';
 
+/** Synth LFO settings (Synth view → Filter Modulation). */
+export interface LfoState {
+  wave: string;
+  rate: number;
+  depth: number;
+  target: string;
+}
+
+const DEFAULT_LFO_STATE: LfoState = {
+  wave: 'sine',
+  rate: 1,
+  depth: 0,
+  target: 'cutoff',
+};
+
+/**
+ * Clamp a possibly-garbage value (undefined, NaN, a string from an input) to a
+ * finite number inside [min, max], falling back to `fallback` when it is not a
+ * usable number. Used by the synth/LFO controls so UI state can never push a
+ * NaN into an AudioParam.
+ */
+export function clampFinite(
+  value: unknown,
+  min: number,
+  max: number,
+  fallback: number
+): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+
 /**
  * Pure crossfader gain math. `val` is the fader position in [-1, 1]
  * (-1 = fully Deck A, +1 = fully Deck B); `curve` selects the blend law and
@@ -2163,42 +2195,18 @@ export class AudioEngineService {
     sendB: number,
     params: any
   ) {
-    const osc = this.createAntialiasedOscillator(
+    const voiceGain = Number.isFinite(gain) ? gain : 1;
+    const peak = Math.max(0.0001, velocity * voiceGain);
+    this.buildVoiceGraph(
       this.ctx,
-      params.type || 'sine',
+      this.getTrackOutput(trackId.toString()),
       freq,
-      time
+      time,
+      peak,
+      duration,
+      pan,
+      params
     );
-    const panner = this.ctx.createStereoPanner();
-    const vca = this.ctx.createGain();
-    panner.pan.setValueAtTime(pan, time);
-    vca.gain.setValueAtTime(0, time);
-    vca.gain.setTargetAtTime(velocity * gain, time, params.attack || 0.01);
-    vca.gain.exponentialRampToValueAtTime(
-      0.001,
-      time + duration + (params.release || 0.1)
-    );
-    osc.connect(panner);
-    panner.connect(vca);
-    vca.connect(this.getTrackOutput(trackId.toString()));
-
-    // Slide note support: glide the oscillator frequency over the note duration.
-    // `params.glideTo` is a target frequency; when present the pitch sweeps
-    // from `freq` to `glideTo` using an exponential ramp (portamento feel).
-    if (
-      typeof params?.glideTo === 'number' &&
-      isFinite(params.glideTo) &&
-      params.glideTo > 0
-    ) {
-      osc.frequency.setValueAtTime(freq, time);
-      osc.frequency.exponentialRampToValueAtTime(
-        params.glideTo,
-        time + Math.max(0.02, duration)
-      );
-    }
-
-    osc.start(time);
-    osc.stop(time + duration + (params.release || 0.1) + 0.1);
 
     if (this.isRecording()) {
       const pitch = Math.round(69 + 12 * Math.log2(freq / 440));
@@ -2212,10 +2220,315 @@ export class AudioEngineService {
   }
 
   /**
-   * Offline voice graph — Sprint A6.5: the exact same synth voice used live
-   * (antialiased oscillator + filter + panner + ADSR VCA + glide), scheduled
-   * onto an arbitrary BaseAudioContext so offline renders sound like live
-   * playback instead of plain oscillators.
+   * Synth LFO (the Synth view's "Filter Modulation" section).
+   *
+   * `setLfoParam` used to be called through an optional-chained cast that no
+   * one had implemented, so the whole LFO section — wave, rate, depth and all
+   * four targets — was a dead control, and the WOBBLE patch's "turn up the LFO
+   * rate" tip could never come true. Voices built after a change now carry the
+   * modulation. Depth 0 leaves it bypassed, so nothing that already shipped
+   * changes sound until the artist touches the section.
+   */
+  private lfoState?: LfoState;
+
+  /**
+   * LFO state, created on demand: a bare `Object.create(prototype)` instance
+   * (the shape several unit tests use) never runs field initialisers.
+   */
+  private ensureLfoState(): LfoState {
+    if (!this.lfoState) this.lfoState = { ...DEFAULT_LFO_STATE };
+    return this.lfoState;
+  }
+
+  /** Update one LFO parameter (`wave` | `rate` | `depth` | `target`). */
+  setLfoParam(param: string, value: unknown): void {
+    const state = this.ensureLfoState();
+    switch (param) {
+      case 'wave':
+        state.wave = String(value || 'sine');
+        break;
+      case 'target':
+        state.target = String(value || 'cutoff');
+        break;
+      case 'rate':
+        state.rate = clampFinite(value, 0.01, 40, state.rate);
+        break;
+      case 'depth':
+        state.depth = clampFinite(value, 0, 1, state.depth);
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** Replace the whole LFO snapshot in one call (used when a patch loads). */
+  setLfoParams(params: Partial<LfoState> | null | undefined): void {
+    if (!params) return;
+    if (params.wave !== undefined) this.setLfoParam('wave', params.wave);
+    if (params.target !== undefined) this.setLfoParam('target', params.target);
+    if (params.rate !== undefined) this.setLfoParam('rate', params.rate);
+    if (params.depth !== undefined) this.setLfoParam('depth', params.depth);
+  }
+
+  /** Current LFO snapshot (read-only copy). */
+  getLfoParams(): LfoState {
+    return { ...this.ensureLfoState() };
+  }
+
+  /**
+   * One voice builder, shared by live playback and the offline bounce.
+   *
+   * Previously `triggerAttack` and `scheduleOfflineNote` were two divergent
+   * copies of the same idea: the live path ignored the voice's filter, sub
+   * oscillator and ADSR outright, so a Synth patch did not sound like its own
+   * export, and the Synth UI's envelope and SUB OSC controls changed nothing
+   * at all. Both paths now build the identical graph:
+   *
+   *     osc (+ sub osc) → [filter] → panner → VCA → destination
+   *
+   * The envelope shape follows the voice's own params so nothing that already
+   * sounded right changes:
+   *   · `sustain` is a number → full ADSR (exactly what the Synth UI draws).
+   *   · otherwise → the percussive decay envelope drum pads and preview
+   *     voices have always used.
+   *
+   * Returns the absolute time at which the voice is silenced.
+   */
+  private buildVoiceGraph(
+    ctx: BaseAudioContext,
+    destination: AudioNode,
+    freq: number,
+    time: number,
+    peak: number,
+    duration: number,
+    pan: number,
+    params: any
+  ): number {
+    const p = params ?? {};
+    const oscType = p.oscillator || p.type || 'sine';
+    const osc = this.createAntialiasedOscillator(
+      ctx as AudioContext,
+      oscType,
+      freq,
+      time
+    );
+
+    // Filter stage — present when the voice declares a cutoff or an explicit
+    // filter type. Applying the preset/pad cutoff is what makes a patch sound
+    // like its export, and what makes the Drum Machine's per-pad CUTOFF / RES
+    // knobs (both were dead controls) reach the audio graph.
+    // A voice may carry its own LFO — it lives on the track's synth patch, so
+    // it persists with the project and exports with the mix. Voices without a
+    // patch fall back to the engine-wide LFO default. Depth 0 is bypassed.
+    const lfoState = {
+      ...this.ensureLfoState(),
+      ...((p.lfo as Partial<LfoState> | undefined) ?? {}),
+    } as LfoState;
+    const lfoDepth = clampFinite(lfoState.depth, 0, 1, 0);
+    const lfoTarget = lfoState.target || "cutoff";
+    const lfoSweepsFilter =
+      lfoDepth > 0 &&
+      lfoTarget !== "pitch" &&
+      lfoTarget !== "volume" &&
+      lfoTarget !== "pan";
+    const hasFilter =
+      Number.isFinite(p.cutoff) || Boolean(p.filterType) || lfoSweepsFilter;
+    let filter: BiquadFilterNode | null = null;
+    let baseCutoffValue = 20000;
+    if (hasFilter) {
+      filter = ctx.createBiquadFilter();
+      filter.type = (p.filterType as BiquadFilterType) || 'lowpass';
+      const cutoff = Number.isFinite(p.cutoff)
+        ? Math.max(20, Math.min(20000, p.cutoff))
+        : lfoSweepsFilter
+          ? 20000 // LFO-only filter stays wide open, so the dry tone is intact
+          : 8000;
+      baseCutoffValue = cutoff;
+      const qSource = Number.isFinite(p.q) ? p.q : p.resonance;
+      const q = Number.isFinite(qSource)
+        ? Math.max(0.0001, Math.min(30, qSource))
+        : 1;
+      filter.frequency.setValueAtTime(cutoff, time);
+      filter.Q.setValueAtTime(q, time);
+    }
+
+    const panner = ctx.createStereoPanner();
+    panner.pan.setValueAtTime(pan, time);
+    const vca = ctx.createGain();
+
+    const safeDuration = Math.max(0.001, duration);
+    const attack = Math.max(0.0001, Number(p.attack) || 0.01);
+    const release = Math.max(0.005, Number(p.release) || 0.1);
+    let stopAt: number;
+
+    if (Number.isFinite(p.sustain)) {
+      // Full ADSR — the note holds its sustain level, then releases after it.
+      const decay = Math.max(0.0001, Number(p.decay) || 0.1);
+      const sustainLevel = Math.max(
+        0.0001,
+        peak * Math.max(0, Math.min(1, p.sustain))
+      );
+      vca.gain.setValueAtTime(0.0001, time);
+      this.rampParam(vca.gain, 'exp', peak, time + attack);
+      vca.gain.setValueAtTime(peak, time + attack + decay);
+      this.rampParam(vca.gain, 'exp', sustainLevel, time + attack + decay);
+      const releaseStart = time + Math.max(attack + decay, safeDuration);
+      vca.gain.setValueAtTime(sustainLevel, releaseStart);
+      this.rampParam(vca.gain, 'exp', 0.0001, releaseStart + release);
+      stopAt = releaseStart + release + 0.05;
+    } else {
+      // Percussive decay — byte-for-byte the envelope drum pads, metronome
+      // blips and preview voices already shipped with.
+      vca.gain.setValueAtTime(0, time);
+      this.targetParam(vca.gain, peak, time, attack);
+      vca.gain.exponentialRampToValueAtTime(
+        0.001,
+        time + safeDuration + release
+      );
+      stopAt = time + safeDuration + release + 0.1;
+    }
+
+    if (filter) {
+      osc.connect(filter);
+      filter.connect(panner);
+    } else {
+      osc.connect(panner);
+    }
+    panner.connect(vca);
+    vca.connect(destination);
+
+    // ── LFO ───────────────────────────────────────────────────────────────
+    // The Synth's Filter Modulation section is applied per voice, on the same
+    // graph the offline bounce uses, so a wobble survives an export. Depth 0
+    // keeps it fully bypassed.
+    let lfoOsc: OscillatorNode | null = null;
+    if (lfoDepth > 0) {
+      let lfoDestination: AudioParam | null = null;
+      let lfoAmount = 0;
+      if (lfoTarget === "pitch") {
+        lfoDestination = osc.detune;
+        lfoAmount = 100 * lfoDepth; // cents — a semitone at full depth
+      } else if (lfoTarget === "volume") {
+        lfoDestination = vca.gain;
+        lfoAmount = peak * lfoDepth;
+      } else if (lfoTarget === "pan") {
+        lfoDestination = panner.pan;
+        lfoAmount = lfoDepth;
+      } else if (filter) {
+        lfoDestination = filter.frequency;
+        lfoAmount = baseCutoffValue * 0.8 * lfoDepth;
+      }
+      if (lfoDestination) {
+        lfoOsc = ctx.createOscillator();
+        lfoOsc.type = (lfoState.wave as OscillatorType) || "sine";
+        const lfoRate = clampFinite(lfoState.rate, 0.01, 40, 1);
+        lfoOsc.frequency.setValueAtTime(lfoRate, time);
+        const lfoDepthGain = ctx.createGain();
+        lfoDepthGain.gain.setValueAtTime(lfoAmount, time);
+        lfoOsc.connect(lfoDepthGain);
+        lfoDepthGain.connect(lfoDestination);
+        lfoOsc.start(time);
+        lfoOsc.stop(stopAt);
+      }
+    }
+
+    // Sub oscillator — the Synth's SUB OSC toggle finally reaches the graph.
+    // Gated at 40Hz so a low note cannot push its own sub-bass into the
+    // inaudible/DC region.
+    let subOsc: OscillatorNode | null = null;
+    if (p.subOsc && Number(p.subGain) > 0 && freq >= 40) {
+      subOsc = this.createAntialiasedOscillator(
+        ctx as AudioContext,
+        p.subType || 'sine',
+        freq * 0.5,
+        time
+      );
+      const subGainNode = ctx.createGain();
+      subGainNode.gain.setValueAtTime(
+        Math.max(0, Math.min(1, Number(p.subGain))),
+        time
+      );
+      subOsc.connect(subGainNode);
+      subGainNode.connect(filter ?? panner);
+    }
+
+    // Slide note support: glide the oscillator frequency over the note
+    // duration. `glideTo` is a target frequency; the pitch sweeps from `freq`
+    // to `glideTo` with an exponential ramp (portamento feel).
+    if (
+      typeof p.glideTo === 'number' &&
+      isFinite(p.glideTo) &&
+      p.glideTo > 0
+    ) {
+      const glideEnd = time + Math.max(0.02, safeDuration);
+      osc.frequency.setValueAtTime(freq, time);
+      osc.frequency.exponentialRampToValueAtTime(p.glideTo, glideEnd);
+      if (subOsc) {
+        subOsc.frequency.setValueAtTime(freq * 0.5, time);
+        subOsc.frequency.exponentialRampToValueAtTime(
+          p.glideTo * 0.5,
+          glideEnd
+        );
+      }
+    }
+
+    osc.start(time);
+    osc.stop(stopAt);
+    if (subOsc) {
+      subOsc.start(time);
+      subOsc.stop(stopAt);
+    }
+
+    return stopAt;
+  }
+
+  /**
+   * Mirror an envelope point onto an AudioParam with an exponential approach
+   * (the hardware-style "attack" curve). Falls back to a ramp when a host or
+   * mocked param does not expose `setTargetAtTime`.
+   */
+  private targetParam(
+    param: AudioParam,
+    value: number,
+    time: number,
+    timeConstant: number
+  ): void {
+    if (typeof (param as any).setTargetAtTime === 'function') {
+      param.setTargetAtTime(value, time, timeConstant);
+      return;
+    }
+    this.rampParam(param, 'exp', value, time + timeConstant);
+  }
+
+  /**
+   * Mirror an envelope point onto an AudioParam. Real browsers expose both
+   * ramp methods, but a bare/mocked param (or a stripped-down WebView) may
+   * not — falling back to setTargetAtTime keeps the voice sounding instead of
+   * throwing out of the scheduler.
+   */
+  private rampParam(
+    param: AudioParam,
+    mode: 'linear' | 'exp',
+    value: number,
+    time: number
+  ): void {
+    const target = mode === 'exp' ? Math.max(0.0001, value) : value;
+    const ramp =
+      mode === 'linear'
+        ? (param as any).linearRampToValueAtTime
+        : (param as any).exponentialRampToValueAtTime;
+    if (typeof ramp === 'function') {
+      ramp.call(param, target, time);
+      return;
+    }
+    param.setTargetAtTime(target, time, 0.01);
+  }
+
+  /**
+   * Offline voice graph — Sprint A6.5. This is now literally the same builder
+   * the live engine uses (`buildVoiceGraph`), so an exported render sounds like
+   * the session that was played instead of a plain-oscillator approximation of
+   * it. `velocity` keeps the offline bounce's 0.9 headroom trim.
    */
   scheduleOfflineNote(
     ctx: BaseAudioContext,
@@ -2227,63 +2540,17 @@ export class AudioEngineService {
     params: any,
     pan: number
   ): void {
-    const osc = this.createAntialiasedOscillator(
-      ctx as AudioContext,
-      params.type || 'sine',
-      freq,
-      time
-    );
-
-    // Filter stage (lowpass by default, cutoff/Q from the synth params)
-    const filter = ctx.createBiquadFilter();
-    filter.type = (params.filterType as BiquadFilterType) || 'lowpass';
-    filter.frequency.setValueAtTime(params.cutoff || 8000, time);
-    filter.Q.setValueAtTime(params.q || 1, time);
-
-    const panner = ctx.createStereoPanner();
-    const vca = ctx.createGain();
-    panner.pan.setValueAtTime(pan, time);
-
-    // ADSR envelope from the synth params (matches the live triggerAttack path)
     const peak = Math.min(1, Math.max(0.02, velocity * 0.9));
-    const attack = params.attack || 0.01;
-    const decay = params.decay || 0.1;
-    const sustain = params.sustain ?? 0.7;
-    const release = params.release || 0.2;
-
-    vca.gain.setValueAtTime(0.0001, time);
-    vca.gain.exponentialRampToValueAtTime(peak, time + attack);
-    vca.gain.setValueAtTime(peak, time + attack + decay);
-    vca.gain.exponentialRampToValueAtTime(
-      Math.max(0.0001, peak * sustain),
-      time + attack + decay
+    this.buildVoiceGraph(
+      ctx,
+      destination,
+      freq,
+      time,
+      peak,
+      duration,
+      pan,
+      params
     );
-    vca.gain.setValueAtTime(
-      Math.max(0.0001, peak * sustain),
-      time + Math.max(attack + decay, duration - release)
-    );
-    vca.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-
-    osc.connect(filter);
-    filter.connect(panner);
-    panner.connect(vca);
-    vca.connect(destination);
-
-    // Slide/glide support — same behavior as live triggerAttack
-    if (
-      typeof params?.glideTo === 'number' &&
-      isFinite(params.glideTo) &&
-      params.glideTo > 0
-    ) {
-      osc.frequency.setValueAtTime(freq, time);
-      osc.frequency.exponentialRampToValueAtTime(
-        params.glideTo,
-        time + Math.max(0.02, duration)
-      );
-    }
-
-    osc.start(time);
-    osc.stop(time + duration + release + 0.1);
   }
 
   /** Toggle antialiased oscillator mode */

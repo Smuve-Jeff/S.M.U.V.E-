@@ -149,4 +149,30 @@ describe("ChannelRackComponent step lane", () => {
     ]);
     expect(component.barCount(tracks()[0])).toBe(5);
   });
+
+  it("supports drag-painting steps across a channel row (add & erase)", () => {
+    const track = makeTrack({
+      notes: [{ id: "n1", midi: 60, step: 0, length: 1, velocity: 0.8 }],
+    });
+    tracks.set([track]);
+
+    // Start painting on an empty cell (step 1) -> adds note, then slide to step 2
+    component.startStepPaint(track, 1);
+    expect(addNote).toHaveBeenCalledWith(
+      "track-1",
+      expect.objectContaining({ step: 1, midi: 60 }),
+    );
+    component.continueStepPaint(track, 2);
+    expect(addNote).toHaveBeenCalledWith(
+      "track-1",
+      expect.objectContaining({ step: 2, midi: 60 }),
+    );
+    component.endStepPaint();
+
+    // Start painting on a lit cell (step 0) -> removes note
+    removeNotes.mockClear();
+    component.startStepPaint(track, 0);
+    expect(removeNotes).toHaveBeenCalledWith("track-1", ["n1"]);
+    component.endStepPaint();
+  });
 });

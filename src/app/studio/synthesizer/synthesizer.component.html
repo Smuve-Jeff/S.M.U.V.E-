@@ -402,10 +402,9 @@
         <div
           class="sub-osc-toggle"
           [class.is-active]="synthParams.subOsc"
-          (click)="updateSynthParam('subOsc', !synthParams.subOsc)"
+          (click)="updateSynthParam('subOsc', !synthParams.subOsc); showTooltip('subOsc')"
           role="switch"
           [attr.aria-checked]="synthParams.subOsc"
-          (click)="showTooltip('subOsc')"
         >
           <span class="sub-osc-dot"></span>
           <span class="sub-osc-text">

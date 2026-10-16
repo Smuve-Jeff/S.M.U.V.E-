@@ -8,6 +8,14 @@ import {
 } from "../../services/music-manager.service";
 import { InstrumentsService } from "../../services/instruments.service";
 import { SnackbarService } from "../../services/snackbar.service";
+import { InteractionDialogService } from "../../services/interaction-dialog.service";
+
+/** LFO target options for the channel rack. */
+enum LfoTarget {
+  Cutoff = "cutoff",
+  Pitch = "pitch",
+  Volume = "volume",
+}
 
 /** One lane shows one bar of steps (the classic 16-step pattern window). */
 const LANE_STEPS = 16;
@@ -25,6 +33,7 @@ export class ChannelRackComponent {
   public musicManager = inject(MusicManagerService);
   private readonly instruments = inject(InstrumentsService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly dialog = inject(InteractionDialogService);
   tracks = this.musicManager.tracks;
   selectedTrackId = this.musicManager.selectedTrackId;
   engine = this.musicManager.engine;
@@ -39,6 +48,26 @@ export class ChannelRackComponent {
 
   /** Registry ids the rack's "+ Add" fly-out groups by category. */
   addTrackOpen = signal(false);
+
+  /** LFO target for the selected track, persisted on the track's patch. */
+  lfoTarget = signal<LfoTarget>(LfoTarget.Cutoff);
+
+  /** Step drag-paint gesture state (`add`, `remove`, or `null` when idle). */
+  private stepPaintMode: "add" | "remove" | null = null;
+  private stepPaintTrackId: string | null = null;
+  private lastPaintedStep: number | null = null;
+
+  /** Update one LFO parameter for the selected track. */
+  updateLfoParam(param: keyof LfoState, value: any): void {
+    const trackId = this.musicManager.selectedTrackId();
+    if (trackId) {
+      const track = this.musicManager.tracks().find((t) => t.id === trackId);
+      if (track && track.synthParams) {
+        track.synthParams.lfo = { ...(track.synthParams.lfo || {}), [param]: value };
+        this.musicManager.tracks.set(this.musicManager.tracks().indexOf(track), track);
+      }
+    }
+  }
 
   /** Categories for the add fly-out, in curated order. */
   readonly instrumentCategories: string[] = (() => {
@@ -80,15 +109,23 @@ export class ChannelRackComponent {
     this.musicManager.selectedTrackId.set(track.id);
   }
 
-  removeTrack(id: string) {
+  async removeTrack(id: string) {
     const track = this.tracks().find((t) => t.id === id);
     if (!track) return;
     const noteCount = track.notes?.length ?? 0;
-    const confirmMessage =
-      noteCount > 0
-        ? `Delete "${track.name}" and its ${noteCount} note${noteCount === 1 ? "" : "s"}?`
-        : `Delete "${track.name}"?`;
-    if (!confirm(confirmMessage)) return;
+    // In-app dialog instead of `window.confirm`: the native modal freezes the
+    // whole WebView on Android and returns false wherever the host does not
+    // implement it, so deleting a channel used to look broken on a phone.
+    const approved = await this.dialog.confirm({
+      title: "Delete channel",
+      message:
+        noteCount > 0
+          ? `Delete "${track.name}" and its ${noteCount} note${noteCount === 1 ? "" : "s"}?`
+          : `Delete "${track.name}"?`,
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
+    if (!approved) return;
     if (this.instrumentPickerTrackId() === id) {
       this.instrumentPickerTrackId.set(null);
     }
@@ -262,6 +299,39 @@ export class ChannelRackComponent {
       length: 1,
       velocity: 0.8,
     } as TrackNote);
+  }
+
+  /**
+   * Start drag-painting steps across a channel row (FL Studio Mobile style):
+   * starting on an empty cell paints new steps as the pointer slides across;
+   * starting on a lit cell erases steps across the row.
+   */
+  startStepPaint(track: TrackModel, cell: number, event?: PointerEvent) {
+    if (event && event.pointerType === "mouse" && event.button !== 0) return;
+    const isLit = this.cellLit(track, cell);
+    this.stepPaintMode = isLit ? "remove" : "add";
+    this.stepPaintTrackId = track.id;
+    this.lastPaintedStep = this.cellStep(track, cell);
+    this.toggleStepCell(track, cell);
+  }
+
+  continueStepPaint(track: TrackModel, cell: number) {
+    if (!this.stepPaintMode || this.stepPaintTrackId !== track.id) return;
+    const target = this.cellStep(track, cell);
+    if (this.lastPaintedStep === target) return;
+    this.lastPaintedStep = target;
+    const isLit = this.cellLit(track, cell);
+    if (this.stepPaintMode === "add" && !isLit) {
+      this.toggleStepCell(track, cell);
+    } else if (this.stepPaintMode === "remove" && isLit) {
+      this.toggleStepCell(track, cell);
+    }
+  }
+
+  endStepPaint() {
+    this.stepPaintMode = null;
+    this.stepPaintTrackId = null;
+    this.lastPaintedStep = null;
   }
 
   /** Most frequent midi in the track — keeps lane entries in register. */

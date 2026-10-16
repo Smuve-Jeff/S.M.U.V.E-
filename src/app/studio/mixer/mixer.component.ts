@@ -21,6 +21,7 @@ import { HapticService } from "../../services/haptic.service";
 import { AiService } from "../../services/ai.service";
 import { Clip } from "../instrument.service";
 import { SnackbarService } from "../../services/snackbar.service";
+import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { RecordingStatusService } from "../recording-status.service";
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
 import { StudioMeterComponent } from "../shared/studio-meter/studio-meter.component";
@@ -55,6 +56,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   private readonly snack = inject(SnackbarService);
   readonly recordingStatus = inject(RecordingStatusService);
   private readonly visualScheduler = inject(StudioVisualSchedulerService);
+  private readonly dialog = inject(InteractionDialogService);
 
   @Input() activeClip: Clip | null = null;
 
@@ -658,11 +660,21 @@ export class MixerComponent implements OnInit, OnDestroy {
       }
     }
   }
-  removeTrack(id: string, event: Event): void {
+  async removeTrack(id: string, event: Event): Promise<void> {
     event.stopPropagation();
-    if (confirm("Permanently remove this mixer track?")) {
-      this.musicManager.removeTrack(id);
-    }
+    // In-app dialog, not `window.confirm`: a native modal freezes the whole
+    // WebView on Android (and returns false outright where the host does not
+    // implement it), which made this destructive action look dead — or worse,
+    // silently do nothing. Every other Studio prompt already goes through
+    // InteractionDialogService.
+    const approved = await this.dialog.confirm({
+      title: "Remove mixer track",
+      message:
+        "Permanently remove this mixer track? Its notes, clips and effects are removed with it.",
+      confirmLabel: "Remove",
+      tone: "danger",
+    });
+    if (approved) this.musicManager.removeTrack(id);
   }
 
   updateTrackVolume(id: string | number, value: number) {

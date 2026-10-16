@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import {
   AudioEngineService,
+  clampFinite,
   computeCrossfaderGains,
 } from './audio-engine.service';
 
@@ -977,5 +978,268 @@ describe('AudioEngineService.setMasterToneEq (idempotent master tone stage)', ()
       lowMidDb: 0,
       highShelfDb: 0,
     });
+  });
+});
+
+
+// =====================================================================
+// Voice builder — live playback and the offline bounce must agree.
+//
+// Regression guard for the split personality where `triggerAttack` (live)
+// ignored a voice's cutoff, filter, sub oscillator and ADSR while
+// `scheduleOfflineNote` (bounce) honoured them: a patch did not sound like
+// its own export, the Synth's envelope / SUB OSC / LFO sections were dead
+// controls, and the Drum Machine's per-pad CUTOFF / RES knobs changed
+// nothing. Both entry points now run `buildVoiceGraph`.
+// =====================================================================
+
+describe('AudioEngineService.buildVoiceGraph (live/offline voice parity)', () => {
+  function makeVoiceHarness() {
+    const makeParam = () => ({
+      value: 0,
+      setValueAtTime: jest.fn(),
+      setTargetAtTime: jest.fn(),
+      exponentialRampToValueAtTime: jest.fn(),
+      linearRampToValueAtTime: jest.fn(),
+    });
+    const makeNode = () => {
+      const node: any = {
+        gain: makeParam(),
+        frequency: makeParam(),
+        detune: makeParam(),
+        pan: makeParam(),
+        Q: makeParam(),
+        type: 'sine',
+        disconnect: jest.fn(),
+        start: jest.fn(),
+        stop: jest.fn(),
+      };
+      node.connect = jest.fn(() => node);
+      return node;
+    };
+
+    const ctx: any = {
+      currentTime: 0,
+      sampleRate: 44100,
+      createGain: jest.fn(() => makeNode()),
+      createOscillator: jest.fn(() => makeNode()),
+      createBiquadFilter: jest.fn(() => makeNode()),
+      createStereoPanner: jest.fn(() => makeNode()),
+    };
+
+    const svc = Object.create(AudioEngineService.prototype) as any;
+    svc.ctx = ctx;
+    svc.isRecording = () => false;
+    svc.getTrackOutput = jest.fn(() => ({ tag: 'trackOut' }));
+    const osc = makeNode();
+    svc.createAntialiasedOscillator = jest.fn(() => osc);
+    return { svc, ctx, osc };
+  }
+
+  const dest = () => ({ connect: jest.fn() }) as any;
+
+  it('is the single path both live playback and the offline bounce run', () => {
+    const { svc, ctx } = makeVoiceHarness();
+    const spy = jest.spyOn(svc, 'buildVoiceGraph');
+
+    svc.triggerAttack('t1', 440, 0, 0.8, 1, 1, 0, 0, 0, { type: 'sine' });
+    svc.scheduleOfflineNote(ctx, dest(), 440, 0, 0.8, 1, { type: 'sine' }, 0);
+
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the percussive decay envelope for voices with no sustain level', () => {
+    const { svc, ctx, osc } = makeVoiceHarness();
+
+    const stopAt = svc.buildVoiceGraph(ctx, dest(), 220, 0.5, 0.8, 1, 0, {});
+
+    const vca = ctx.createGain.mock.results[0].value;
+    expect(vca.gain.setValueAtTime).toHaveBeenCalledWith(0, 0.5);
+    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(0.8, 0.5, 0.01);
+    expect(vca.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+      0.001,
+      0.5 + 1 + 0.1
+    );
+    expect(stopAt).toBeCloseTo(0.5 + 1 + 0.1 + 0.1, 5);
+    expect(osc.start).toHaveBeenCalledWith(0.5);
+    expect(osc.stop).toHaveBeenCalledWith(expect.closeTo(stopAt, 5));
+  });
+
+  it('gives a sustaining voice a real ADSR: hold then release after the note', () => {
+    const { svc, ctx } = makeVoiceHarness();
+
+    const stopAt = svc.buildVoiceGraph(ctx, dest(), 220, 0, 1, 1, 0, {
+      attack: 0.01,
+      decay: 0.2,
+      sustain: 0.5,
+      release: 0.3,
+    });
+
+    const vca = ctx.createGain.mock.results[0].value;
+    expect(vca.gain.setValueAtTime).toHaveBeenCalledWith(0.0001, 0);
+    // attack ramp reaches the peak, decay lands on peak * sustain
+    expect(vca.gain.exponentialRampToValueAtTime).toHaveBeenNthCalledWith(
+      1,
+      1,
+      0.01
+    );
+    expect(vca.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+      0.5,
+      expect.closeTo(0.21, 5)
+    );
+    // sustain is HELD at the note end (releaseStart = max(attack+decay, note)),
+    // then the release runs after it.
+    expect(vca.gain.setValueAtTime).toHaveBeenCalledWith(0.5, 1);
+    expect(vca.gain.exponentialRampToValueAtTime).toHaveBeenLastCalledWith(
+      0.0001,
+      1.3
+    );
+    expect(stopAt).toBeCloseTo(1.35, 5);
+  });
+
+  it('honours the voice cutoff/resonance so preset and pad filters reach the graph', () => {
+    const { svc, ctx, osc } = makeVoiceHarness();
+
+    svc.buildVoiceGraph(ctx, dest(), 110, 0, 1, 0.5, 0, {
+      cutoff: 800,
+      q: 2.5,
+      sustain: 0.2,
+    });
+
+    const filter = ctx.createBiquadFilter.mock.results[0].value;
+    expect(filter.type).toBe('lowpass');
+    expect(filter.frequency.setValueAtTime).toHaveBeenCalledWith(800, 0);
+    expect(filter.Q.setValueAtTime).toHaveBeenCalledWith(2.5, 0);
+    expect(osc.connect).toHaveBeenCalledWith(filter);
+  });
+
+  it('reads the drum pad resonance key as filter Q', () => {
+    const { svc, ctx } = makeVoiceHarness();
+
+    svc.buildVoiceGraph(ctx, dest(), 60, 0, 1, 0.4, 0, {
+      cutoff: 1200,
+      resonance: 1.8,
+    });
+
+    const filter = ctx.createBiquadFilter.mock.results[0].value;
+    expect(filter.Q.setValueAtTime).toHaveBeenCalledWith(1.8, 0);
+  });
+
+  it('adds the sub oscillator only when the voice asks for one', () => {
+    const { svc, ctx } = makeVoiceHarness();
+
+    svc.buildVoiceGraph(ctx, dest(), 200, 0, 1, 1, 0, {
+      subOsc: true,
+      subGain: 0.5,
+      sustain: 0.5,
+    });
+    expect(svc.createAntialiasedOscillator).toHaveBeenCalledTimes(2);
+    expect(svc.createAntialiasedOscillator).toHaveBeenLastCalledWith(
+      ctx,
+      'sine',
+      100,
+      0
+    );
+
+    // subGain 0 → silent sub is never built
+    svc.createAntialiasedOscillator.mockClear();
+    svc.buildVoiceGraph(ctx, dest(), 200, 0, 1, 1, 0, {
+      subOsc: true,
+      subGain: 0,
+      sustain: 0.5,
+    });
+    expect(svc.createAntialiasedOscillator).toHaveBeenCalledTimes(1);
+
+    // sub-bass below 40Hz is refused rather than pushed into DC
+    svc.createAntialiasedOscillator.mockClear();
+    svc.buildVoiceGraph(ctx, dest(), 30, 0, 1, 1, 0, {
+      subOsc: true,
+      subGain: 0.5,
+      sustain: 0.5,
+    });
+    expect(svc.createAntialiasedOscillator).toHaveBeenCalledTimes(1);
+  });
+
+  describe('LFO (Synth → Filter Modulation)', () => {
+    it('stays fully bypassed at depth 0', () => {
+      const { svc, ctx } = makeVoiceHarness();
+
+      svc.buildVoiceGraph(ctx, dest(), 200, 0, 1, 1, 0, {
+        cutoff: 1000,
+        sustain: 0.5,
+      });
+
+      expect(ctx.createOscillator).not.toHaveBeenCalled();
+    });
+
+    it('routes cutoff modulation into the voice filter', () => {
+      const { svc, ctx } = makeVoiceHarness();
+      svc.setLfoParams({ wave: 'sine', rate: 2, depth: 0.5, target: 'cutoff' });
+
+      svc.buildVoiceGraph(ctx, dest(), 200, 0, 1, 1, 0, {
+        cutoff: 1000,
+        sustain: 0.5,
+      });
+
+      expect(ctx.createOscillator).toHaveBeenCalledTimes(1);
+      const lfo = ctx.createOscillator.mock.results[0].value;
+      expect(lfo.type).toBe('sine');
+      expect(lfo.frequency.setValueAtTime).toHaveBeenCalledWith(2, 0);
+      const lfoDepthGain = ctx.createGain.mock.results[1].value;
+      const filter = ctx.createBiquadFilter.mock.results[0].value;
+      expect(lfoDepthGain.gain.setValueAtTime).toHaveBeenCalledWith(
+        1000 * 0.8 * 0.5,
+        0
+      );
+      expect(lfoDepthGain.connect).toHaveBeenCalledWith(filter.frequency);
+      expect(lfo.start).toHaveBeenCalledWith(0);
+    });
+
+    it('routes pan modulation into the voice panner', () => {
+      const { svc, ctx } = makeVoiceHarness();
+      svc.setLfoParams({ rate: 4, depth: 0.25, target: 'pan' });
+
+      svc.buildVoiceGraph(ctx, dest(), 200, 0, 1, 1, 0, { sustain: 0.5 });
+
+      const panner = ctx.createStereoPanner.mock.results[0].value;
+      const lfoDepthGain = ctx.createGain.mock.results[1].value;
+      expect(lfoDepthGain.gain.setValueAtTime).toHaveBeenCalledWith(0.25, 0);
+      expect(lfoDepthGain.connect).toHaveBeenCalledWith(panner.pan);
+      // A pan-only LFO must not force a filter into the dry voice.
+      expect(ctx.createBiquadFilter).not.toHaveBeenCalled();
+    });
+  });
+
+  it('clamps and round-trips the LFO snapshot', () => {
+    const { svc } = makeVoiceHarness();
+
+    svc.setLfoParam('rate', 999);
+    expect(svc.getLfoParams().rate).toBe(40);
+    svc.setLfoParam('depth', -3);
+    expect(svc.getLfoParams().depth).toBe(0);
+    svc.setLfoParam('depth', Number.NaN);
+    expect(svc.getLfoParams().depth).toBe(0);
+    svc.setLfoParam('wave', 'square');
+    svc.setLfoParam('target', 'pitch');
+    expect(svc.getLfoParams()).toMatchObject({ wave: 'square', target: 'pitch' });
+    // Unknown keys are ignored rather than written onto the state.
+    svc.setLfoParam('nonsense', 'x');
+    expect(Object.keys(svc.getLfoParams()).sort()).toEqual([
+      'depth',
+      'rate',
+      'target',
+      'wave',
+    ]);
+  });
+});
+
+describe('clampFinite', () => {
+  it('clamps, and falls back for non-numeric input', () => {
+    expect(clampFinite(5, 0, 1, 0.5)).toBe(1);
+    expect(clampFinite(-5, 0, 1, 0.5)).toBe(0);
+    expect(clampFinite(0.25, 0, 1, 0.5)).toBe(0.25);
+    expect(clampFinite(undefined, 0, 1, 0.5)).toBe(0.5);
+    expect(clampFinite('nonsense', 0, 1, 0.5)).toBe(0.5);
+    expect(clampFinite(Number.NaN, 0, 1, 0.5)).toBe(0.5);
   });
 });

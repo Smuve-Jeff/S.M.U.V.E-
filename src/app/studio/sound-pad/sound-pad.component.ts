@@ -39,7 +39,12 @@ export class SoundPadComponent {
     this.padTriggered.emit();
   }
 
-  onPointerDown(): void {
+  onPointerDown(event?: PointerEvent): void {
+    // Desktop right-click or Ctrl+click opens the context menu immediately;
+    // do not start a long-press timer or fire padTriggered on release.
+    if (event && event.pointerType === "mouse" && event.button !== 0) {
+      return;
+    }
     this.longPressFired = false;
     this.clearTimer();
     this.pressTimer = setTimeout(() => {
@@ -50,6 +55,20 @@ export class SoundPadComponent {
 
   onPointerUp(): void {
     this.clearTimer();
+  }
+
+  onKeyDown(event: KeyboardEvent): void {
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      this.longPressFired = false;
+      this.padTriggered.emit();
+    } else if (
+      event.key === "ContextMenu" ||
+      (event.key === "F10" && event.shiftKey)
+    ) {
+      event.preventDefault();
+      this.padLongPressed.emit();
+    }
   }
 
   onContextMenu(event: MouseEvent): void {

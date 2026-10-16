@@ -4,6 +4,7 @@ import { MusicManagerService } from "../../services/music-manager.service";
 import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { RecordingStatusService } from "../recording-status.service";
+import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -61,6 +62,10 @@ describe("MixerComponent", () => {
     removeTrack: jest.fn(),
   };
 
+  const mockDialog = {
+    confirm: jest.fn().mockResolvedValue(true),
+  };
+
   const recordingStatusMock = {
     armedTrackIds: signal(new Set<string>()),
     armTrack: jest.fn(),
@@ -80,6 +85,7 @@ describe("MixerComponent", () => {
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: RecordingStatusService, useValue: recordingStatusMock },
+        { provide: InteractionDialogService, useValue: mockDialog },
       ],
     }).compileComponents();
 
@@ -242,10 +248,22 @@ describe("MixerComponent", () => {
     });
   });
 
-  it("removes track", () => {
-    window.confirm = jest.fn().mockReturnValue(true);
-    component.removeTrack("1", new MouseEvent("click") as any);
+  it("removes track after an in-app confirm (never window.confirm)", async () => {
+    // A native modal freezes the Android WebView and returns false where the
+    // host does not implement it — so the destructive action must go through
+    // InteractionDialogService like every other Studio prompt.
+    mockDialog.confirm.mockResolvedValueOnce(true);
+    await component.removeTrack("1", new MouseEvent("click") as any);
+    expect(mockDialog.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "danger" }),
+    );
     expect(mockMusicManager.removeTrack).toHaveBeenCalledWith("1");
+  });
+
+  it("keeps the track when the remove confirm is dismissed", async () => {
+    mockDialog.confirm.mockResolvedValueOnce(false);
+    await component.removeTrack("1", new MouseEvent("click") as any);
+    expect(mockMusicManager.removeTrack).not.toHaveBeenCalled();
   });
 
   it("arms a track through RecordingStatusService (single source of truth)", () => {

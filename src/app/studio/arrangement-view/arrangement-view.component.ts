@@ -26,6 +26,7 @@ import {
   Stems,
 } from "../../services/stem-separation.service";
 import { SnackbarService } from "../../services/snackbar.service";
+import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { TakeManagerService } from "../../services/take-manager.service";
 import { TakeLaneComponent } from "../take-lane/take-lane.component";
 import { WebGLRenderer } from "../webgl/webgl-renderer";
@@ -70,6 +71,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   private readonly stemSvc = inject(StemSeparationService);
   private readonly snackbar = inject(SnackbarService);
   private readonly visualScheduler = inject(StudioVisualSchedulerService);
+  private readonly dialog = inject(InteractionDialogService);
   /** Sprint A3 — take lane state per track (TakeManagerService, root-scoped). */
   public readonly takeManager = inject(TakeManagerService);
 
@@ -495,9 +497,19 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.musicManager.toggleSolo(id);
   }
 
-  removeTrack(id: string, e: Event) {
+  async removeTrack(id: string, e: Event) {
     e.stopPropagation();
-    if (confirm("Delete track?")) this.musicManager.removeTrack(id);
+    // In-app dialog rather than `window.confirm`: a native modal freezes the
+    // WebView on Android, and where the host does not implement it, it returns
+    // false — so this destructive action silently did nothing on those devices.
+    const track = this.tracks().find((t) => t.id === id);
+    const approved = await this.dialog.confirm({
+      title: "Delete track",
+      message: `Delete "${track?.name ?? "this track"}" and everything on it?`,
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
+    if (approved) this.musicManager.removeTrack(id);
   }
 
   toggleTakes(id: string, e: Event) {

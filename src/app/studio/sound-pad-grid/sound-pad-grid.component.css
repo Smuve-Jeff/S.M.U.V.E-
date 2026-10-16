@@ -147,7 +147,6 @@
 .spg-cell-empty > app-sound-pad {
   filter: grayscale(0.8) brightness(0.55);
   opacity: 0.55;
-  pointer-events: none;
 }
 
 .spg-cell-reassigning {

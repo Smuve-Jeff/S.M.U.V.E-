@@ -161,7 +161,7 @@ export class SoundPadGridComponent {
     const pad = this.pads()[index];
     if (!pad) return;
     if (!pad.presetId) {
-      this.snackbar.info("Empty pad — assign an instrument first");
+      this.openReassign(index);
       return;
     }
     this.haptic.medium();

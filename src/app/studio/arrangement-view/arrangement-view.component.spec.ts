@@ -11,10 +11,15 @@ import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gestu
 import { HapticService } from "../../services/haptic.service";
 import { AiService } from "../../services/ai.service";
 import { SnackbarService } from "../../services/snackbar.service";
+import { InteractionDialogService } from "../../services/interaction-dialog.service";
 
 describe("ArrangementViewComponent", () => {
   let component: ArrangementViewComponent;
   let fixture: ComponentFixture<ArrangementViewComponent>;
+
+  const mockDialog = {
+    confirm: jest.fn().mockResolvedValue(true),
+  };
 
   const mockAudioSession = {
     isPlaying: signal(false),
@@ -95,6 +100,7 @@ describe("ArrangementViewComponent", () => {
         { provide: HapticService, useValue: mockHaptic },
         { provide: AiService, useValue: mockAiService },
         { provide: SnackbarService, useValue: mockSnackbar },
+        { provide: InteractionDialogService, useValue: mockDialog },
       ],
     }).compileComponents();
 
@@ -155,10 +161,21 @@ describe("ArrangementViewComponent", () => {
     (component as any).onGridTouchEnd();
   });
 
-  it("should call removeTrack", () => {
-    window.confirm = jest.fn().mockReturnValue(true);
-    component.removeTrack("1", new MouseEvent("click") as any);
+  it("should call removeTrack once the in-app confirm is accepted", async () => {
+    // window.confirm froze the Android WebView (and returned false where the
+    // host does not implement it), so the prompt must be the app's own dialog.
+    mockDialog.confirm.mockResolvedValueOnce(true);
+    await component.removeTrack("1", new MouseEvent("click") as any);
+    expect(mockDialog.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "danger" }),
+    );
     expect(mockMusicManager.removeTrack).toHaveBeenCalledWith("1");
+  });
+
+  it("should keep the track when the delete confirm is dismissed", async () => {
+    mockDialog.confirm.mockResolvedValueOnce(false);
+    await component.removeTrack("1", new MouseEvent("click") as any);
+    expect(mockMusicManager.removeTrack).not.toHaveBeenCalled();
   });
 
   it("quantizes selected clip starts to the grid", () => {

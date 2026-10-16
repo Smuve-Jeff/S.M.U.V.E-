@@ -269,6 +269,9 @@
           [attr.aria-label]="
             track.name + ' steps, bar ' + (stepWindowBar() + 1)
           "
+          (pointerup)="endStepPaint()"
+          (pointercancel)="endStepPaint()"
+          (pointerleave)="endStepPaint()"
         >
           <div
             *ngFor="let step of laneSteps; let sIdx = index"
@@ -282,7 +285,9 @@
                   ? 'rgba(255,255,255,0.06)'
                   : 'rgba(255,255,255,0.02)'
             "
-            (click)="toggleStepCell(track, sIdx); $event.stopPropagation()"
+            (pointerdown)="startStepPaint(track, sIdx, $event); $event.stopPropagation()"
+            (pointerenter)="continueStepPaint(track, sIdx)"
+            (click)="$event.stopPropagation()"
             (keydown.enter)="toggleStepCell(track, sIdx); $event.stopPropagation()"
             (keydown.space)="
               $event.preventDefault();
@@ -301,6 +306,67 @@
             "
             [attr.aria-pressed]="cellLit(track, sIdx)"
           ></div>
+
+        <!-- LFO Modulation -->
+        <div class="lfo-control-group flex flex-col gap-2" *ngIf="track.synthParams">
+          <div class="flex items-center gap-1.5"
+            *ngIf="!isBeginner() || activeTooltip() !== 'lfoWave'"
+          >
+            <span class="text-[6px] font-black uppercase tracking-widest opacity-50">Wave</span>
+            <div
+              *ngFor="let wave of lfoWaves"
+              class="lfo-wave-btn text-[5px] roundedpx bg-black/20 hover:bg-black/30 transition-colors"
+              [class.is-active]="lfoTarget === LfoTarget.Cutoff && lfoWave === wave.value"
+              (click)="lfoTarget = wave.target"
+              [attr.aria-label]="wave.label + ' LFO waveform'"
+            >
+              <span class="lfo-wave-icon">{{ wave.icon }}</span>
+              <span class="lfo-wave-label" *ngIf="isBeginner()">{{ wave.label }}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5"
+            *ngIf="!isBeginner() || activeTooltip() !== 'lfoTarget'"
+          >
+            <span class="text-[6px] font-black uppercase opacity-50">Target</span>
+            <div
+ *ngFor="let t of [LfoTarget.Cutoff, LfoTarget.Pitch, LfoTarget.Volume]"
+              class="lfo-target-btn text-[5px] roundedpx bg-black/20 hover:bg-black/30 transition-colors"
+              [class.is-active]="lfoTarget === t"
+              (click)="lfoTarget = t"
+              [attr.aria-label]="t + ' LFO target'"
+            >{{ t }}</div>
+          </div>
+          <div class="flex items-center gap-1.5"
+            *ngIf="!isBeginner() || activeTooltip() !== 'lfoRate'"
+          >
+            <span class="text-[6px] font-black uppercase opacity-50">Rate</span>
+            <input
+              type="range"
+              min="0.01"
+              max="20"
+              step="0.01"
+              [ngModel]="track.synthParams.lfo?.rate ?? 5"
+              (ngModelChange)="updateLfoParam('rate', $event)"
+              class="lfo-fader"
+              [attr.aria-label]="'LFO rate for ' + track.name"
+            />
+          </div>
+          <div class="flex items-center gap-1.5"
+            *ngIf="!isBeginner() || activeTooltip() !== 'lfoDepth'"
+          >
+            <span class="text-[6px] font-black uppercase opacity-50">Depth</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              [ngModel]="track.synthParams.lfo?.depth ?? 0"
+              (ngModelChange)="updateLfoParam('depth', $event)"
+              class="lfo-fader"
+              [attr.aria-label]="'LFO depth for ' + track.name"
+            />
+          </div>
+        </div>
         </div>
       </div>
     </div>

@@ -271,30 +271,48 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
 
   @HostListener("pointerdown", ["$event"])
   onPointerDown(e: PointerEvent): void {
-    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    const canvas = this.canvasRef?.nativeElement;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
 
     const cpIn = this.cpIn();
     const cpOut = this.cpOut();
 
-    // Hit test: within 20px of a control point
+    // Hit test: expanded radius on coarse touchscreens (44px+ equivalent)
+    const isTouch = e.pointerType === "touch";
+    const hitRadius = isTouch ? 0.14 : 0.08;
     const distIn = Math.hypot(x - cpIn.t, 1 - y - cpIn.value);
     const distOut = Math.hypot(x - cpOut.t, 1 - y - cpOut.value);
 
-    if (distIn < 0.06) {
+    if (distIn <= distOut && distIn < hitRadius) {
       this.draggingHandle.set("in");
-    } else if (distOut < 0.06) {
+      try {
+        canvas.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* capture is best-effort: jsdom and older WebViews do not implement it */
+      }
+    } else if (distOut < hitRadius) {
       this.draggingHandle.set("out");
+      try {
+        canvas.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* capture is best-effort: jsdom and older WebViews do not implement it */
+      }
     }
   }
 
-  @HostListener("pointermove", ["$event"])
+  @HostListener("window:pointermove", ["$event"])
   onPointerMove(e: PointerEvent): void {
     const handle = this.draggingHandle();
     if (!handle) return;
 
-    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    const canvas = this.canvasRef?.nativeElement;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
     const t = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const value =
       1 - Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
@@ -307,8 +325,18 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
     this.activePreset.set(""); // custom
   }
 
-  @HostListener("pointerup")
-  onPointerUp(): void {
+  @HostListener("window:pointerup", ["$event"])
+  @HostListener("window:pointercancel", ["$event"])
+  onPointerUp(e?: PointerEvent): void {
+    if (e && this.canvasRef?.nativeElement) {
+      try {
+        if (this.canvasRef.nativeElement.hasPointerCapture?.(e.pointerId)) {
+          this.canvasRef.nativeElement.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        /* release is best-effort; the drag state is cleared regardless */
+      }
+    }
     this.draggingHandle.set(null);
   }
 

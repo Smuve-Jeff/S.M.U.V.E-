@@ -7,6 +7,7 @@ import {
   OnDestroy,
   inject,
   signal,
+  effect,
   ViewChild,
   ElementRef,
 } from "@angular/core";
@@ -14,6 +15,7 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Clip } from "../instrument.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
+import { MusicManagerService } from "../../services/music-manager.service";
 import { HapticService } from "../../services/haptic.service";
 
 interface SynthPatch {
@@ -50,6 +52,7 @@ type MobileTab = "osc" | "env" | "filter" | "fx";
 export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
   private logger = inject(LoggingService);
   private audioEngine = inject(AudioEngineService);
+  private musicManager = inject(MusicManagerService, { optional: true });
   private haptic = inject(HapticService);
 
   @Input() clip: Clip | null = null;
@@ -367,11 +370,55 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     triangle: "Soft & mellow — between sine and saw",
   };
 
-  constructor() {}
+  constructor() {
+    effect(() => {
+      if (this.clip) return;
+      const trackId = this.musicManager?.selectedTrackId?.();
+      const tracks = this.musicManager?.tracks?.();
+      if (!trackId || !tracks) return;
+      const track = tracks.find((t) => t.id === trackId);
+      if (track?.synthParams) {
+        const osc =
+          track.synthParams.oscillator || track.synthParams.type || "sawtooth";
+        this.synthParams = {
+          ...this.synthParams,
+          ...track.synthParams,
+          oscillator: osc,
+          type: osc,
+        };
+        // Adopt the patch's own LFO so switching tracks shows the wobble that
+        // track will actually play instead of the previous track's settings.
+        const patchLfo = track.synthParams.lfo;
+        if (patchLfo) {
+          this.lfoParams = {
+            ...this.lfoParams,
+            ...patchLfo,
+            rate: Number(patchLfo.rate) || this.lfoParams.rate,
+            depth: Number.isFinite(patchLfo.depth)
+              ? patchLfo.depth
+              : this.lfoParams.depth,
+          };
+        }
+        requestAnimationFrame(() => {
+          this.drawWaveform();
+          this.drawAdsr();
+        });
+      }
+    });
+  }
 
   ngOnInit(): void {
     if (this.clip && this.clip.synthParams) {
-      this.synthParams = { ...this.synthParams, ...this.clip.synthParams };
+      const osc =
+        this.clip.synthParams.oscillator ||
+        this.clip.synthParams.type ||
+        this.synthParams.oscillator;
+      this.synthParams = {
+        ...this.synthParams,
+        ...this.clip.synthParams,
+        oscillator: osc,
+        type: osc,
+      };
     }
   }
 
@@ -394,7 +441,21 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     this.haptic.light();
     this.activePatchId.set(patchId);
     this.activePatch.set(patch);
-    this.synthParams = { ...this.synthParams, ...patch.params };
+    const osc =
+      patch.params["oscillator"] || patch.params["type"] || "sawtooth";
+    this.synthParams = {
+      ...this.synthParams,
+      ...patch.params,
+      oscillator: osc,
+      type: osc,
+    };
+    if (this.clip) {
+      this.clip.synthParams = { ...this.synthParams };
+    }
+    const trackId = this.musicManager?.selectedTrackId?.();
+    if (trackId) {
+      this.musicManager?.updateSynthParams?.(trackId, { ...this.synthParams });
+    }
     this.logger.info(`Synth patch loaded: ${patch.name}`);
     requestAnimationFrame(() => {
       this.drawWaveform();
@@ -405,9 +466,22 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Synth param updates ──────────────────────────────
   updateSynthParam(param: string, value: any): void {
     this.synthParams[param] = value;
+    if (param === "oscillator" || param === "type") {
+      this.synthParams.oscillator = value;
+      this.synthParams.type = value;
+    }
     this.logger.info(`Synth ${param}: ${value}`);
     if (this.clip) {
       this.clip.synthParams = { ...this.synthParams };
+    }
+    const trackId = this.musicManager?.selectedTrackId?.();
+    if (trackId) {
+      this.musicManager?.updateSynthParams?.(trackId, {
+        [param]: value,
+        ...(param === "oscillator" || param === "type"
+          ? { oscillator: value, type: value }
+          : {}),
+      });
     }
     if (param === "distortion") {
       this.audioEngine.setSaturation(value);
@@ -417,7 +491,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     if (["attack", "decay", "sustain", "release"].includes(param)) {
       this.drawAdsr();
     }
-    if (["oscillator"].includes(param)) {
+    if (["oscillator", "subOsc", "subGain"].includes(param)) {
       this.drawWaveform();
     }
   }
@@ -426,7 +500,23 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
   updateLfoParam(param: string, value: any): void {
     (this.lfoParams as any)[param] = value;
     this.logger.info(`LFO ${param}: ${value}`);
-    (this.audioEngine as any).setLfoParam?.(param, value);
+    // Push the whole snapshot, not just the changed key: touching any single
+    // LFO control engages the modulation with the depth the section is
+    // displaying, instead of staying silent until the depth slider alone is
+    // dragged. The LFO is stored ON THE TRACK'S PATCH, so it belongs to that
+    // instrument only, persists in the project snapshot and exports with the
+    // mix. (The engine's `setLfoParam` used to not exist at all, so this
+    // entire section was a dead control.)
+    const trackId = this.musicManager?.selectedTrackId?.();
+    if (trackId) {
+      this.musicManager?.updateSynthParams?.(trackId, {
+        lfo: { ...this.lfoParams },
+      });
+    } else {
+      // No track selected (e.g. the preview voice) — fall back to the
+      // engine-wide default LFO.
+      this.audioEngine.setLfoParams({ ...this.lfoParams });
+    }
   }
 
   // ── Waveform visualization ───────────────────────────
