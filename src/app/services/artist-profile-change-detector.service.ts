@@ -37,6 +37,50 @@ export class ArtistProfileChangeDetectorService {
     if (prev.musicalJourney?.signatureSound !== current.musicalJourney?.signatureSound) {
       signals.push({ dimension: 'sonics', source: 'questionnaire', summary: `Signature sound: ${current.musicalJourney?.signatureSound || 'undefined'}`, weight: 0.4 });
     }
+    const previousBlueprint = prev.musicalJourney?.musicBlueprint;
+    const currentBlueprint = current.musicalJourney?.musicBlueprint;
+    const blueprintSignals: Array<{
+      key: keyof NonNullable<UserProfile['musicalJourney']['musicBlueprint']>;
+      dimension: DnaEvidenceInput['dimension'];
+      label: string;
+      weight: number;
+    }> = [
+      { key: 'rhythmicFeel', dimension: 'rhythm', label: 'Rhythmic feel', weight: 0.3 },
+      { key: 'harmonicLanguage', dimension: 'harmony', label: 'Harmonic language', weight: 0.3 },
+      { key: 'vocalDelivery', dimension: 'melody', label: 'Delivery', weight: 0.3 },
+      { key: 'sonicNonNegotiables', dimension: 'sonics', label: 'Sonic non-negotiables', weight: 0.35 },
+      { key: 'referenceTracks', dimension: 'sonics', label: 'Reference tracks', weight: 0.25 },
+      { key: 'lyricalThemes', dimension: 'writing', label: 'Lyrical themes', weight: 0.3 },
+      { key: 'signatureTension', dimension: 'writing', label: 'Signature tension', weight: 0.3 },
+      { key: 'arrangementApproach', dimension: 'arrangement', label: 'Arrangement approach', weight: 0.3 },
+      { key: 'recordingPriorities', dimension: 'production', label: 'Recording priorities', weight: 0.25 },
+      { key: 'mixingPriorities', dimension: 'production', label: 'Mixing priorities', weight: 0.25 },
+      { key: 'audienceProfile', dimension: 'audience', label: 'Audience profile', weight: 0.3 },
+      { key: 'artisticIntent', dimension: 'writing', label: 'Artistic intent', weight: 0.3 },
+      { key: 'collaborationBoundaries', dimension: 'arrangement', label: 'Collaboration boundaries', weight: 0.2 },
+    ];
+    for (const item of blueprintSignals) {
+      const before = previousBlueprint?.[item.key];
+      const after = currentBlueprint?.[item.key];
+      const populated = Array.isArray(after)
+        ? after.length > 0
+        : typeof after === 'string'
+          ? Boolean(after.trim())
+          : after != null;
+      const unchanged =
+        Array.isArray(before) && Array.isArray(after)
+          ? JSON.stringify(before) === JSON.stringify(after)
+          : String(before ?? '').trim() === String(after ?? '').trim();
+      if (!unchanged && populated) {
+        const summary = Array.isArray(after) ? after.join(', ') : String(after);
+        signals.push({
+          dimension: item.dimension,
+          source: 'questionnaire',
+          summary: `${item.label}: ${summary.slice(0, 120)}`,
+          weight: item.weight,
+        });
+      }
+    }
     const prevCatalogCount = prev.catalog?.length || 0;
     const currCatalogCount = current.catalog?.length || 0;
     if (currCatalogCount > prevCatalogCount) {

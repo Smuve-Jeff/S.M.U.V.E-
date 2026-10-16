@@ -18,6 +18,8 @@ export interface ArtistProfileKnowledge {
   state: 'calibrated' | 'partial' | 'foundational';
   completeness: number;
   genre: string;
+  /** Stable domain cue for recommendations across specialist roles. */
+  expertise: { production: string; marketing: string; mastering: string; audioEngineering: string };
   roles: string[];
   identity: {
     name: string;
@@ -41,6 +43,7 @@ export interface ArtistProfileKnowledge {
   craft: {
     productionPhilosophy: string;
     songwritingProcess: string;
+    collaborationBoundaries: string;
     recordingPriorities: string[];
     mixingPriorities: string[];
     gear: string[];
@@ -208,10 +211,13 @@ export class ArtistProfileFinetuneService {
   directiveForProfile(role: FinetuneRole, profile: UserProfile | null | undefined): RoleDirective {
     const knowledge = this.compile(profile);
     const { directive, tips } = this.buildRole(role, knowledge);
+    const missing = knowledge.missing.slice(0, 3).join('; ') || 'n/a';
     return {
       role,
       profileState: knowledge.state,
-      directive,
+      directive: knowledge.state === 'foundational'
+        ? `${directive} Profile evidence is thin (${knowledge.completeness}%) — keep this foundational and ask for: ${missing}.`
+        : directive,
       tips,
       guardrails: this.guardrails(knowledge),
     };
@@ -284,7 +290,10 @@ export class ArtistProfileFinetuneService {
     const voice = this.voiceSpec();
     return [
       `ARTIST PROFILE FINE-TUNE (${k.state}, ${k.completeness}% evidence) — adapt every answer to this artist:`,
-      `GENRE CONTEXT: ${k.genre} is a reference frame, not an identity verdict.`,
+      `GENRE CONTEXT: ${k.genre} is a reference frame, not an identity verdict; do not assume one genre technique fits every subgenre or artist. If the artist blends styles, preserve the blend and explain trade-offs rather than forcing a single genre template.`,
+      `SKILL CALIBRATION: production=${k.expertise.production}; marketing=${k.expertise.marketing}; mastering=${k.expertise.mastering}; audioEngineering=${k.expertise.audioEngineering}. Explain unfamiliar concepts at the artist’s demonstrated level, offer an optional advanced path, and do not confuse a low self-rating with inability.`,
+      'DOMAIN RESPONSE STANDARD: For production and music theory, state the musical goal, give a reversible starting experiment, and explain what to listen for; do not prescribe universal settings as rules. For business, marketing and promotion, distinguish stable principles from current platform policies, request current evidence before time-sensitive claims, tailor actions to the artist’s recorded audience, resources and goal, and never invent results.',
+      `ARTIST CONTRACT (explicit artist-authored instructions override generic genre defaults): intent=${k.audience.intent || 'not declared'}; tension=${k.identity.tension || 'not declared'}; livedWorld=${k.identity.livedWorld || 'not declared'}; recognitionCue=${k.audience.recognitionCue || 'not declared'}; collaborationBoundaries=${k.craft.collaborationBoundaries || 'not declared'}.`,
       `ARTIST CONSTRAINTS: focus=${k.business.focus || 'unknown'}; goal=${k.business.successMetric || 'unknown'}; cadence=${k.business.velocity || 'unknown'}; sonicRule=${k.sonic.nonNegotiables || 'not declared'}; tempo=${k.sonic.tempoZone || 'not declared'}; audience=${k.audience.profile || 'not declared'}.`,
       `DIFFERENTIATORS: ${k.differentiators.join(' | ') || 'none captured yet'}`,
       `MISSING EVIDENCE: ${k.missing.join('; ') || 'none — profile is calibrated'}`,
@@ -571,7 +580,7 @@ export class ArtistProfileFinetuneService {
         };
       case 'legal':
         return {
-          directive: `Draft and review agreements around this artist’s real relationships: collaborators on ${k.craft.lyricalThemes.join(', ') || 'songwriting'}, revenue from ${k.business.streams.join(', ') || 'undefined streams'}, and the boundary “${k.sonic.nonNegotiables || k.identity.tension || 'not yet captured'}” that must be protected contractually.`,
+          directive: `Draft and review agreements around this artist’s real relationships: collaborators on ${k.craft.lyricalThemes.join(', ') || 'songwriting'}, revenue from ${k.business.streams.join(', ') || 'undefined streams'}, and the artist-authored boundary “${k.craft.collaborationBoundaries || k.sonic.nonNegotiables || k.identity.tension || 'not yet captured'}” that must be protected contractually.`,
           tips: [
             k.legal.splitSheet && k.legal.splitSheet !== 'Never'
               ? `Split sheet practice on file: ${k.legal.splitSheet} — keep it ahead of every release.`
@@ -704,6 +713,12 @@ export class ArtistProfileFinetuneService {
       state: 'foundational',
       completeness: 0,
       genre: str(p.primaryGenre) || 'unspecified genre',
+      expertise: {
+        production: String(p.expertiseLevels?.production ?? 'unknown'),
+        marketing: String(p.expertiseLevels?.marketing ?? 'unknown'),
+        mastering: String(p.expertiseLevels?.mastering ?? 'unknown'),
+        audioEngineering: String(p.expertiseLevels?.audioEngineering ?? 'unknown'),
+      },
       roles: list(p.expertise?.roles ?? journey.roles),
       identity: {
         name: str(p.artistName),
@@ -729,6 +744,7 @@ export class ArtistProfileFinetuneService {
       craft: {
         productionPhilosophy: str(journey.productionPhilosophy),
         songwritingProcess: str(journey.songwritingProcess),
+        collaborationBoundaries: str(blueprint.collaborationBoundaries),
         recordingPriorities: list(blueprint.recordingPriorities),
         mixingPriorities: list(blueprint.mixingPriorities),
         gear: list(journey.signatureGear),

@@ -234,6 +234,38 @@
             </div>
           </div>
 
+          <section class="identity-panel p-6 sm:p-8 border-brand-secondary/20" *ngIf="nextSteps().length">
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-5">
+              <div>
+                <div class="text-[10px] font-black text-brand-secondary uppercase tracking-[0.25em]">
+                  Your S.M.U.V.E. action queue
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed mt-2 max-w-2xl">
+                  Ranked from your stated artist contract, official pathway, and missing evidence. Choose a move and S.M.U.V.E. takes you to the exact profile control that improves its advice.
+                </p>
+              </div>
+              <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                {{ nextSteps().length }} priority moves
+              </span>
+            </div>
+            <div class="space-y-3">
+              <button
+                *ngFor="let step of nextSteps(); let i = index"
+                type="button"
+                (click)="focusNextStep(step)"
+                class="w-full flex items-start gap-4 p-4 rounded-xl bg-black/40 border border-white/5 text-left hover:border-brand-primary/40 transition-all"
+              >
+                <span class="w-7 h-7 shrink-0 rounded-full bg-brand-primary/15 text-brand-primary text-[10px] font-black flex items-center justify-center">{{ i + 1 }}</span>
+                <span class="flex-1">
+                  <span class="block text-[10px] font-black text-white uppercase tracking-widest">{{ step.title }}</span>
+                  <span class="block text-[11px] text-slate-400 leading-relaxed mt-1">{{ step.detail }}</span>
+                  <span class="inline-block mt-2 text-[8px] font-black uppercase tracking-widest text-brand-primary">Open {{ coverageFor(step.target).label }}</span>
+                </span>
+                <i class="fas fa-arrow-right text-brand-primary text-[10px] mt-2"></i>
+              </button>
+            </div>
+          </section>
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4" *ngIf="mastery() as m">
             <button
               *ngFor="let section of m.sections"
@@ -814,6 +846,51 @@
               unique tone, intensity, and management style.
             </p>
           </header>
+
+          <section class="identity-panel p-8 border-brand-secondary/25 space-y-6">
+            <div>
+              <div class="text-[10px] font-black text-brand-secondary uppercase tracking-[0.2em]">
+                Artist Operating Contract
+              </div>
+              <h3 class="text-xl font-black uppercase text-white mt-2">
+                Define what S.M.U.V.E. must protect
+              </h3>
+              <p class="text-[11px] text-slate-400 leading-relaxed mt-2 max-w-3xl">
+                These are your explicit rules for every production note, lyric idea, campaign, and release decision. They override generic genre assumptions and update the live fine-tune below before you commit.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label class="space-y-2 md:col-span-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Signature sound</span>
+                <textarea rows="2" [ngModel]="editableProfile().musicalJourney?.signatureSound || ''" (ngModelChange)="updateProfileField('musicalJourney.signatureSound', $event)" placeholder="Describe the sound only you should be making." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Creative tension</span>
+                <textarea rows="3" [ngModel]="blueprintValue('signatureTension')" (ngModelChange)="updateBlueprint('signatureTension', $event)" placeholder="The contradiction that makes your point of view impossible to replace." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Lived-world details</span>
+                <textarea rows="3" [ngModel]="blueprintValue('livedWorldDetails')" (ngModelChange)="updateBlueprint('livedWorldDetails', $event)" placeholder="Places, objects, rituals, memories, and language only you can name." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Sonic non-negotiables</span>
+                <textarea rows="3" [ngModel]="blueprintValue('sonicNonNegotiables')" (ngModelChange)="updateBlueprint('sonicNonNegotiables', $event)" placeholder="What must never be polished, removed, copied, or traded away." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Recognition cue</span>
+                <textarea rows="3" [ngModel]="blueprintValue('recognitionCue')" (ngModelChange)="updateBlueprint('recognitionCue', $event)" placeholder="The first sound, image, phrase, or feeling listeners should recognize." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2 md:col-span-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Artistic intent</span>
+                <textarea rows="2" [ngModel]="blueprintValue('artisticIntent')" (ngModelChange)="updateBlueprint('artisticIntent', $event)" placeholder="What should a listener feel, confront, or carry after engaging with your work?" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2 md:col-span-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Collaboration boundaries</span>
+                <textarea rows="2" [ngModel]="blueprintValue('collaborationBoundaries')" (ngModelChange)="updateBlueprint('collaborationBoundaries', $event)" placeholder="Credit, ownership, creative, and working boundaries S.M.U.V.E. must respect." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+            </div>
+          </section>
 
           <!-- Live fine-tune preview: what S.M.U.V.E. adapts from this draft -->
           <div

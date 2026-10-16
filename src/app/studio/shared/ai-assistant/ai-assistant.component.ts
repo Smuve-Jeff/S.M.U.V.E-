@@ -30,6 +30,7 @@ import {
 } from "../../../types/persona.types";
 import { SpeechRecognitionService } from "../../../services/speech-recognition.service";
 import { SpeechSynthesisService } from "../../../services/speech-synthesis.service";
+import { buildArtistMusicContext } from "../../../types/profile.types";
 
 type AssistantTab = "quick" | "chat";
 
@@ -39,7 +40,7 @@ type AssistantTab = "quick" | "chat";
  * deterministic local assistant instead of showing a broken reply.
  */
 const OFFLINE_SENTINEL = "Strategic Link Severed";
-const CHAT_STORAGE_KEY = "smuve.ai-assistant.messages.v1";
+const CHAT_STORAGE_KEY_PREFIX = "smuve.ai-assistant.messages.v1";
 const CHAT_STORAGE_MAX = 50;
 
 type AssistantActionId =
@@ -335,7 +336,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   private restoreMessages(): void {
     if (typeof window === "undefined") return;
     try {
-      const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
+      const raw = window.localStorage.getItem(this.chatStorageKey());
       if (!raw) return;
       const parsed = JSON.parse(raw) as unknown;
       if (!Array.isArray(parsed)) return;
@@ -359,10 +360,16 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       const slim = this.messages()
         .slice(-CHAT_STORAGE_MAX)
         .map(({ role, text, ts }) => ({ role, text, ts }));
-      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(slim));
+      window.localStorage.setItem(this.chatStorageKey(), JSON.stringify(slim));
     } catch {
       // storage unavailable — degrade silently
     }
+  }
+
+  /** Keep assistant history isolated between signed-in artists. */
+  private chatStorageKey(): string {
+    const userId = this.userProfile.profile().id || "anonymous";
+    return `${CHAT_STORAGE_KEY_PREFIX}.${encodeURIComponent(userId)}`;
   }
 
   /** Wipe the conversation back to the greeting. */
@@ -472,7 +479,8 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       getPersonaOption(
         this.userProfile.profile().settings?.ai?.commanderPersona,
       ).directive,
-      "Answer concisely in plain language. Name the session evidence, the risk, and the concrete repair or experiment.",
+      `ARTIST PROFILE — adapt suggestions to this artist's declared sound, goals, constraints, and learned Musical DNA; treat absent details as unknown, not facts:\n${buildArtistMusicContext(this.userProfile.profile()) || "Profile incomplete; ask concise calibration questions before making artist-specific assumptions."}`,
+      "Answer concisely in plain language. Name the session evidence, the risk, and the concrete repair or experiment. When appropriate, end with one profile-aligned next step.",
       "",
       "LIVE SESSION STATE:",
       `- Project: ${meta?.name || "Untitled"}` +

@@ -56,6 +56,13 @@ import {
   SMUVE_PERSONAS,
 } from '../../types/persona.types';
 
+interface ProfileNextStep {
+  title: string;
+  detail: string;
+  target: string;
+  source: 'artist-contract' | 'pathway' | 'profile-coverage';
+}
+
 @Component({
   selector: 'app-profile-editor',
   templateUrl: './profile-editor.component.html',
@@ -231,6 +238,57 @@ export class ProfileEditorComponent implements OnInit {
 
   /** Whole-module mastery for the dashboard pane. */
   mastery = computed(() => this.profileModule.mastery(this.editableProfile()));
+
+  /**
+   * A short, ranked plan that reconciles the artist's own contract, the
+   * official-career pathway, and incomplete profile evidence. Every item has
+   * an owner pane so "next step" is an action, never generic encouragement.
+   */
+  nextSteps = computed<ProfileNextStep[]>(() => {
+    const fineTune = this.finetunePreview();
+    const knowledge = fineTune.knowledge;
+    const steps: ProfileNextStep[] = [];
+    const add = (step: ProfileNextStep) => {
+      if (!steps.some((item) => item.title === step.title)) steps.push(step);
+    };
+
+    if (knowledge.pathway.nextStep) {
+      add({
+        title: knowledge.pathway.nextStep,
+        detail: knowledge.pathway.nextStepAction || knowledge.pathway.nextStepWhy,
+        target: knowledge.presence.hasFingerprint ? 'fingerprint' : 'music-history',
+        source: 'pathway',
+      });
+    }
+
+    const contractMissing = knowledge.missing.filter((item) =>
+      ['signature tension', 'lived-world details', 'sonic non-negotiables', 'recognition cue', 'artistic intent'].includes(item)
+    );
+    if (contractMissing.length) {
+      add({
+        title: 'Write the artist operating contract',
+        detail: `S.M.U.V.E. still needs ${contractMissing.slice(0, 3).join(', ')} before it can protect your creative decisions.`,
+        target: 'persona',
+        source: 'artist-contract',
+      });
+    }
+
+    for (const section of this.mastery().weakest) {
+      if (!section.missing.length) continue;
+      add({
+        title: `Strengthen ${section.label}`,
+        detail: `Add ${section.missing.slice(0, 2).join(' and ')} so S.M.U.V.E. can make evidence-based recommendations.`,
+        target: section.id,
+        source: 'profile-coverage',
+      });
+    }
+
+    return steps.slice(0, 5);
+  });
+
+  focusNextStep(step: ProfileNextStep): void {
+    this.focusSection(step.target);
+  }
 
   coverageFor(id: string): ProfileSectionCoverage {
     return (
@@ -996,6 +1054,32 @@ export class ProfileEditorComponent implements OnInit {
   readonly activePersonaId = computed(() =>
     normalizePersona(this.editableProfile()?.settings?.ai?.commanderPersona)
   );
+
+  /**
+   * The profile's explicit creative contract. These fields are deliberately
+   * editable beside the S.M.U.V.E. controls: they are the artist's own
+   * instructions, not labels inferred from a genre or a persona selection.
+   */
+  blueprintValue(field: string): string {
+    const blueprint = this.editableProfile().musicalJourney?.musicBlueprint as
+      | Record<string, unknown>
+      | undefined;
+    const value = blueprint?.[field];
+    return typeof value === 'string' ? value : '';
+  }
+
+  updateBlueprint(field: string, value: string): void {
+    this.editableProfile.update((draft) => ({
+      ...draft,
+      musicalJourney: {
+        ...draft.musicalJourney,
+        musicBlueprint: {
+          ...(draft.musicalJourney?.musicBlueprint || {}),
+          [field]: value.trim(),
+        },
+      },
+    }));
+  }
 
   selectPersona(persona: PersonaOption) {
     this.updateProfileField('settings.ai.commanderPersona', persona.id);

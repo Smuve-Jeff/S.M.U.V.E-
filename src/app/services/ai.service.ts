@@ -631,7 +631,11 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const profile = this.userProfileService.profile();
     const journey = profile.musicalJourney || ({} as any);
     const blueprint = journey.musicBlueprint || ({} as any);
-    const completed = Boolean(profile.profileSetupCompleted);
+    const finetune = this.artistFinetune;
+    const knowledge = finetune.knowledge();
+    // Completion records that the flow finished; calibration requires enough
+    // actual evidence to personalize recommendations responsibly.
+    const calibrated = knowledge.state === 'calibrated';
     const genre = profile.primaryGenre || 'unspecified genre';
     const sound = journey.signatureSound || 'an undefined signature sound';
     const intent = blueprint.artisticIntent || 'a clear audience transformation';
@@ -645,10 +649,8 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       ? journey.incomeStreams.join(', ')
       : 'catalogue, audience, and live opportunities';
 
-    const finetune = this.artistFinetune;
-
     return {
-      profileState: completed ? 'calibrated' : 'incomplete',
+      profileState: calibrated ? 'calibrated' : 'incomplete',
       producer: `Produce ${genre} around ${sound}. Protect ${priorities}; do not polish away the artist’s character. Intent: ${intent}.`,
       manager: `Route the next move toward ${goal}. Remove the bottleneck: ${challenge}. Prefer one measurable weekly milestone over scattered activity.`,
       aAndR: `Evaluate songs for fit with ${sound}, the stated intent (${intent}), and the listener context (${audience}). Recommend development only when it strengthens the artist’s point of view.`,

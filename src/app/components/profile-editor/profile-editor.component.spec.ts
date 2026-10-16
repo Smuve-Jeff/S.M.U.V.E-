@@ -345,6 +345,22 @@ describe('ProfileEditorComponent', () => {
       );
     });
 
+    it('builds a profile-specific action queue and routes each move to its owner pane', async () => {
+      const { fixture, component, show, text } = await createComponent();
+      show('mastery');
+
+      const steps = component.nextSteps();
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.some((step) => step.source === 'artist-contract')).toBe(true);
+      expect(steps.some((step) => step.target === 'persona')).toBe(true);
+      expect(text()).toContain('Your S.M.U.V.E. action queue');
+
+      const first = steps[0];
+      component.focusNextStep(first);
+      fixture.detectChanges();
+      expect(component.activeSection()).toBe(first.target);
+    });
+
     it('marks the module calibrated once every pane is filled in', async () => {
       const { fixture, component } = await createComponent();
 
@@ -476,11 +492,19 @@ describe('ProfileEditorComponent', () => {
       expect(preview.knowledge.missing).not.toContain('lived-world details');
       expect(preview.knowledge.differentiators).toContain('faith against doubt');
 
+      component.updateBlueprint(
+        'collaborationBoundaries',
+        'No uncredited features or ownership changes after delivery.'
+      );
+
       const producer = preview.roles.find((r) => r.role === 'producer');
       const legal = preview.roles.find((r) => r.role === 'legal');
       expect(producer?.directive).toContain('rusted organ and hand claps');
       expect(producer?.directive).toContain('keep the pedal noise');
       expect(legal?.directive).toContain('Bandcamp');
+      expect(component.finetunePreview().roles.find((r) => r.role === 'legal')?.directive).toContain(
+        'No uncredited features or ownership changes after delivery.'
+      );
 
       // The preview must be rendered from the draft, not only computed.
       expect(text()).toContain('rusted organ and hand claps');

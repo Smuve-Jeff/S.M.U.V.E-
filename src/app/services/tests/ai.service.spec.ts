@@ -378,6 +378,29 @@ describe('AiService', () => {
     expect(brief.guardrails).toContain('Never invent biography, audience data, achievements, or credits.');
   });
 
+  it('does not call a completed-but-sparse profile calibrated', () => {
+    const sparse = {
+      ...calibratedProfile,
+      profileSetupCompleted: true,
+      musicalJourney: {
+        ...calibratedProfile.musicalJourney,
+        signatureSound: '',
+        musicBlueprint: {},
+      },
+      primaryGenre: '',
+      strategicGoals: [],
+      catalog: [],
+      officialArtistProfiles: [],
+    } as any;
+    (userProfileServiceMock.profile as any).set(sparse);
+
+    const brief = service.getArtistOperatingBrief();
+
+    expect(brief.profileState).toBe('incomplete');
+    expect(brief.completeness).toBeLessThan(100);
+    expect(brief.missingSignals.length).toBeGreaterThan(0);
+  });
+
   it('should adapt songwriting, legal, brand, and voice to the completed profile', () => {
     (userProfileServiceMock.profile as any).set(calibratedProfile);
     const brief = service.getArtistOperatingBrief();

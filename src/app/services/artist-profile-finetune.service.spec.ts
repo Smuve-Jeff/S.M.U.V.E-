@@ -232,6 +232,7 @@ describe('ArtistProfileFinetuneService', () => {
     expect(knowledge.completeness).toBeLessThan(60);
     expect(knowledge.missing).toContain('signature tension');
     expect(service.promptBlock()).toContain('incomplete');
+    expect(service.promptBlock()).toContain('foundational');
     expect(service.directiveFor('producer').directive).toContain('foundational');
   });
 
@@ -249,6 +250,44 @@ describe('ArtistProfileFinetuneService', () => {
     expect(service.directiveFor('marketing').directive).toContain('sync, bandcamp');
     expect(service.directiveFor('legal').directive).toContain('sync, bandcamp');
     expect(service.directiveFor('ar').directive).toContain('Tape hiss, bowed metal, close-mic breath');
+  });
+
+  it('calibrates level to the explicit expertise profile without stereotyping genre', () => {
+    const profile = {
+      ...strongProfile,
+      expertiseLevels: { production: 2, marketing: 4, mastering: 1, audioEngineering: 3 },
+      primaryGenre: 'Afrobeats / jazz fusion',
+      musicalJourney: {
+        ...(strongProfile as any).musicalJourney,
+        subgenres: ['Afrobeats', 'jazz fusion'],
+      },
+    } as unknown as UserProfile;
+    const knowledge = service.compileProfile(profile);
+    const preview = service.directiveForProfile('producer', profile);
+
+    expect(knowledge.expertise).toEqual({ production: '2', marketing: '4', mastering: '1', audioEngineering: '3' });
+    expect(preview.directive).toContain('Afrobeats / jazz fusion');
+    expect(preview.profileState).toBe('calibrated');
+  });
+
+  it('treats the artist-authored operating contract as prompt context and a legal boundary', () => {
+    const profile = {
+      ...strongProfile,
+      musicalJourney: {
+        ...(strongProfile as any).musicalJourney,
+        musicBlueprint: {
+          ...(strongProfile as any).musicalJourney.musicBlueprint,
+          collaborationBoundaries: 'No uncredited features or retroactive ownership changes.',
+        },
+      },
+    } as UserProfile;
+    profileSignal.set(profile);
+
+    expect(service.promptBlock()).toContain('ARTIST CONTRACT');
+    expect(service.promptBlock()).toContain('No uncredited features or retroactive ownership changes.');
+    expect(service.directiveFor('legal').directive).toContain(
+      'No uncredited features or retroactive ownership changes.'
+    );
   });
 
   it('keeps every role inside the artist guardrails and away from imitation', () => {
@@ -272,6 +311,10 @@ describe('ArtistProfileFinetuneService', () => {
     expect(block).toContain('ARTIST PROFILE FINE-TUNE');
     expect(block).toContain('LEGAL:');
     expect(block).toContain('SONGWRITER:');
+    expect(block).toContain('GENRE CONTEXT');
+    expect(block).toContain('SKILL CALIBRATION: production=unknown');
+    expect(block).toContain('DOMAIN RESPONSE STANDARD');
+    expect(block).toContain('reversible starting experiment');
   });
 
   describe('online presence awareness', () => {
