@@ -2057,9 +2057,21 @@ export class MusicManagerService {
   startRecording() {
     this.recordingEngine.startRecording();
   }
-  stopRecording(id: string) {
-    this.recordingEngine.stopRecording();
-    return Promise.resolve(null);
+  /**
+   * Stop the current audio pass and resolve once the take is durable.
+   *
+   * `StudioRecordingEngineService.stopRecording()` is asynchronous end to end:
+   * worklet FLUSH handshake → WAV encode → IndexedDB commit. This call used to
+   * drop that promise and resolve immediately, so the background / pagehide
+   * safety stop had no way to know the artist's audio was actually saved — a
+   * WebView frozen mid-flush lost the performance while every caller reported
+   * success. Guarded so the empty engine mocks in tests stay valid.
+   */
+  async stopRecording(id: string): Promise<null> {
+    if (typeof this.recordingEngine?.stopRecording === "function") {
+      await this.recordingEngine.stopRecording();
+    }
+    return null;
   }
 
   /** Create (or re-use) an automation lane for a track parameter. */

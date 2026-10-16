@@ -51,6 +51,20 @@ export class AudioSessionService {
   /** The "no input" warning is a session-level thing, not a per-pass one. */
   private captureWarningShown = false;
 
+  /**
+   * Set when the app going to the background (hidden / freeze / pagehide)
+   * finalized a live session, with the moment it happened. The Studio can tell
+   * the artist their take was saved and why the transport stopped.
+   */
+  readonly lastBackgroundStopAt = signal<number | null>(null);
+  /**
+   * The in-flight take save. Background stops cannot await inside an event
+   * handler, so the promise is kept here instead of being dropped: a caller
+   * that needs to know the audio is durable (a test, a future native handoff)
+   * can await it.
+   */
+  private takeSaveInFlight: Promise<unknown> | null = null;
+
   readonly playbackState = signal<PlaybackState>("stopped");
   readonly isPlaying = computed(() => this.playbackState() === "playing");
   readonly isRecording = computed(() => this.playbackState() === "recording");
@@ -113,11 +127,26 @@ export class AudioSessionService {
         "visibilitychange",
         this.handleVisibilityChange,
       );
+      // `freeze` (Page Lifecycle API, Chromium/Android WebView) fires just
+      // before the page is suspended — the last moment a worklet flush can
+      // still complete and the WAV can reach IndexedDB.
+      document.addEventListener("freeze", this.handleFreeze);
       this.destroyRef.onDestroy(() => {
         document.removeEventListener(
           "visibilitychange",
           this.handleVisibilityChange,
         );
+        document.removeEventListener("freeze", this.handleFreeze);
+      });
+    }
+
+    // `pagehide` covers the discard/close/swipe-away cases where
+    // `visibilitychange` never fires. Without it a live take is destroyed with
+    // the process and the artist never learns it happened.
+    if (typeof window !== "undefined") {
+      window.addEventListener("pagehide", this.handlePageHide);
+      this.destroyRef.onDestroy(() => {
+        window.removeEventListener("pagehide", this.handlePageHide);
       });
     }
   }
@@ -125,12 +154,42 @@ export class AudioSessionService {
   private handleVisibilityChange = (): void => {
     if (
       typeof document !== "undefined" &&
-      document.visibilityState === "hidden" &&
-      (this.isPlaying() || this.isRecording())
+      document.visibilityState === "hidden"
     ) {
-      this.stop();
+      this.finalizeForBackground("app hidden");
     }
   };
+
+  private handlePageHide = (): void => this.finalizeForBackground("page discarded");
+
+  private handleFreeze = (): void => this.finalizeForBackground("app frozen");
+
+  /**
+   * Is there audio work worth protecting? A transport that is playing or
+   * recording, or a capture graph that is still running (which can outlive the
+   * transport when a pass was started outside the transport record button).
+   */
+  private hasLiveSession(): boolean {
+    return (
+      this.isPlaying() ||
+      this.isRecording() ||
+      this.recordingEngine.isRecording()
+    );
+  }
+
+  /**
+   * Stop cleanly the moment the OS is about to take the page away, so the
+   * captured audio is encoded and persisted while the process is still alive.
+   * Web Audio capture cannot continue once the WebView is frozen (that needs a
+   * native microphone foreground service) — this makes the take survive instead
+   * of vanishing with the process.
+   */
+  private finalizeForBackground(reason: string): void {
+    if (!this.hasLiveSession()) return;
+    this.lastBackgroundStopAt.set(Date.now());
+    this.logger.info(`AudioSession: finalizing the session (${reason}).`);
+    this.stop();
+  }
 
   async initializeMic(channelId: string, deviceId?: string): Promise<void> {
     const channel = this.micChannels().find((ch) => ch.id === channelId);
@@ -234,12 +293,27 @@ export class AudioSessionService {
   stop(): void {
     this.engine.stop();
     if (this.recordingEngine.isRecording()) {
-      void this.musicManager.stopRecording(
-        this.musicManager.selectedTrackId() || "",
-      );
+      // Keep the promise: the take is not durable until the engine has flushed
+      // the worklet, encoded the WAV and committed the IndexedDB write.
+      this.takeSaveInFlight = Promise.resolve(
+        this.musicManager.stopRecording(
+          this.musicManager.selectedTrackId() || "",
+        ),
+      ).catch((error) => {
+        this.logger.warn("AudioSession: the take could not be saved.", error);
+        return null;
+      });
     }
     this.playbackState.set("stopped");
     this.recordingStatus.clearRecordingSource();
+  }
+
+  /**
+   * Resolves once the take finalized by the last stop has been encoded and
+   * persisted. Returns immediately when there is no take in flight.
+   */
+  whenTakeSaved(): Promise<unknown> {
+    return this.takeSaveInFlight ?? Promise.resolve(null);
   }
 
   updateMasterVolume(newVolume: number): void {

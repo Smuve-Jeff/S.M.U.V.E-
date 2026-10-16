@@ -807,3 +807,69 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
     expect(pluginIds()).toEqual(['smuve.chorus.v1']);
   });
 });
+
+describe('MusicManagerService recording teardown', () => {
+  const configure = (engine: unknown) => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        MusicManagerService,
+        HistoryService,
+        {
+          provide: AudioEngineService,
+          useValue: {
+            tempo: signal(120),
+            visualStep: signal(0),
+            setSongLengthSteps: jest.fn(),
+            triggerAttack: jest.fn(),
+          },
+        },
+        { provide: ProjectService, useValue: { currentProject: signal(null) } },
+        { provide: PluginStoreService, useValue: { preload: jest.fn() } },
+        { provide: InstrumentsService, useValue: { getPresets: () => [] } },
+        { provide: StemSeparationService, useValue: {} },
+        { provide: StudioRecordingEngineService, useValue: engine },
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+        { provide: TakeManagerService, useValue: { getCompNotesForStepNow: () => [] } },
+      ],
+    });
+    return TestBed.inject(MusicManagerService);
+  };
+
+  it('resolves stopRecording only once the engine has flushed and persisted the take', async () => {
+    let release!: () => void;
+    const engine = {
+      stopRecording: jest.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            release = resolve;
+          }),
+      ),
+    };
+    const service = configure(engine);
+
+    let settled = false;
+    const pending = service.stopRecording('track-1').then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(engine.stopRecording).toHaveBeenCalledTimes(1);
+    // The promise used to resolve instantly while the take was still in flight.
+    expect(settled).toBe(false);
+
+    release();
+    await pending;
+    expect(settled).toBe(true);
+  });
+
+  it('resolves without throwing when the engine cannot stop', async () => {
+    const service = configure({});
+
+    await expect(service.stopRecording('track-1')).resolves.toBeNull();
+  });
+});

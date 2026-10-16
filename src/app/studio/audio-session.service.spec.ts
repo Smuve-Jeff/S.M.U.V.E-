@@ -90,6 +90,93 @@ describe("AudioSessionService", () => {
     wakeLockMock.release.mockClear();
     snackbarMock.warning.mockClear();
     musicManagerMock.startRecording.mockClear();
+    musicManagerMock.stopRecording.mockReset();
+    recordingEngineMock.isRecording.mockReturnValue(false);
+  });
+
+  // ── Background/freeze safety: a live take must not die with the process ──
+  describe("background safety stop", () => {
+    it("finalizes a live take when the page is discarded (pagehide)", () => {
+      // A record pass: the transport reads 'recording' and the capture engine
+      // is actually capturing, which is the state that must be saved.
+      recordingEngineMock.isRecording.mockReturnValue(true);
+      service.playbackState.set("recording");
+
+      window.dispatchEvent(new Event("pagehide"));
+
+      expect(engineMock.stop).toHaveBeenCalled();
+      expect(musicManagerMock.stopRecording).toHaveBeenCalledWith("track-1");
+      expect(service.lastBackgroundStopAt()).not.toBeNull();
+      expect(service.playbackState()).toBe("stopped");
+    });
+
+    it("finalizes when the app is frozen", () => {
+      recordingEngineMock.isRecording.mockReturnValue(true);
+      service.playbackState.set("recording");
+
+      document.dispatchEvent(new Event("freeze"));
+
+      expect(engineMock.stop).toHaveBeenCalled();
+      expect(service.lastBackgroundStopAt()).not.toBeNull();
+    });
+
+    it("finalizes a capture that outlived the transport", () => {
+      // A pass started outside the transport record button leaves the capture
+      // graph running while playbackState already reads 'stopped'.
+      recordingEngineMock.isRecording.mockReturnValue(true);
+
+      setVisibility("hidden");
+
+      expect(engineMock.stop).toHaveBeenCalled();
+      expect(musicManagerMock.stopRecording).toHaveBeenCalled();
+    });
+
+    it("leaves an idle session untouched when the page is discarded", () => {
+      service.playbackState.set("stopped");
+
+      window.dispatchEvent(new Event("pagehide"));
+
+      expect(engineMock.stop).not.toHaveBeenCalled();
+      expect(musicManagerMock.stopRecording).not.toHaveBeenCalled();
+      expect(service.lastBackgroundStopAt()).toBeNull();
+    });
+
+    it("exposes the take save so a caller can await durability", async () => {
+      let release!: () => void;
+      musicManagerMock.stopRecording.mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            release = resolve;
+          }),
+      );
+      recordingEngineMock.isRecording.mockReturnValue(true);
+      service.playbackState.set("recording");
+
+      window.dispatchEvent(new Event("pagehide"));
+
+      let saved = false;
+      const pending = service.whenTakeSaved().then(() => {
+        saved = true;
+      });
+      await Promise.resolve();
+      expect(saved).toBe(false);
+
+      release();
+      await pending;
+      expect(saved).toBe(true);
+    });
+
+    it("does not ask to save a pass that captured nothing", async () => {
+      // Transport says 'recording' but the capture graph never started (input
+      // unavailable → MIDI-only pass). There is no audio to persist, so the
+      // background stop must not fake a save.
+      service.playbackState.set("recording");
+
+      window.dispatchEvent(new Event("pagehide"));
+
+      expect(musicManagerMock.stopRecording).not.toHaveBeenCalled();
+      await expect(service.whenTakeSaved()).resolves.toBeNull();
+    });
   });
 
   it("stops playback when the tab/app is hidden mid-transport", () => {

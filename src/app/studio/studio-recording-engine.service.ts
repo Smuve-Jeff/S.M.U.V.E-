@@ -3,8 +3,10 @@ import { LoggingService } from "../services/logging.service";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { AudioEngineLatencyService } from "../services/audio-engine-latency.service";
 import { LocalStorageService } from "../services/local-storage.service";
-import { WavEncoder } from "./wav-encoder.util";
+import { WavStreamEncoder } from "./wav-stream-encoder.util";
 import { RecordingLimiterService } from "./recording-limiter.service";
+import { RecordingCaptureBuffer } from "./recording-capture-buffer";
+import { IdbRecordingSpillStore } from "./recording-spill.store";
 import { Subject } from "rxjs";
 
 export interface RecordingMetadata {
@@ -47,8 +49,16 @@ export class StudioRecordingEngineService implements OnDestroy {
   private recordingWorkletContext: AudioContext | null = null;
   private isFlushing = false;
 
-  private leftChannel: Float32Array[] = [];
-  private rightChannel: Float32Array[] = [];
+  /**
+   * Bounded capture window. Resident PCM is capped (64 MB ≈ 2.8 minutes of
+   * 48 kHz stereo) and the overflow spills to IndexedDB, so a take of any
+   * length is neither truncated nor able to OOM the WebView. Public so
+   * diagnostics and tests can read the resident/spilled split.
+   */
+  public capture = new RecordingCaptureBuffer({
+    sampleRate: this.audioEngine.ctx?.sampleRate ?? 48000,
+    spill: new IdbRecordingSpillStore(this.localStorage),
+  });
 
   recordingFinished$ = new Subject<{
     id: string;
@@ -170,27 +180,14 @@ export class StudioRecordingEngineService implements OnDestroy {
       return;
     }
 
-    this.leftChannel = [];
-    this.rightChannel = [];
+    this.capture.beginSession();
     this.recordingTime.set(0);
     this.pendingMidi = [];
     this.recordedBlob.set(null);
 
     this.workletNode = new AudioWorkletNode(ctx, "recording-processor");
-    this.workletNode.port.onmessage = (event) => {
-      if (event.data.command === "DATA") {
-        this.leftChannel.push(...event.data.left);
-        this.rightChannel.push(...event.data.right);
-        const sampleCount = event.data.left.reduce(
-          (acc: number, cur: Float32Array) => acc + cur.length,
-          0,
-        );
-        this.recordingTime.update((t) => t + sampleCount / ctx.sampleRate);
-      } else if (event.data.command === "FLUSHED") {
-        this.flushResolver?.();
-        this.flushResolver = null;
-      }
-    };
+    this.workletNode.port.onmessage = (event) =>
+      this.handleWorkletMessage(event);
 
     if (this.sourceNode) {
       // Route capture through the headroom limiter when enabled. Falls back to
@@ -238,17 +235,34 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.workletNode?.disconnect();
 
     const sampleRate = this.audioEngine.ctx.sampleRate;
-    const recorded = this.getRecordedBuffers();
-    let channels = this.joinChannels(recorded.left, recorded.right);
+    // Reassemble resident + spilled chunks before the WAV is built. Every
+    // chunk of the take is here: the spill store verified each write, and a
+    // failed spill puts its chunks back in memory instead of dropping them.
+    const recorded = await this.capture.collect();
+    const spilledRecords = this.capture.spilledRecords;
+    if (recorded.frames > 0 && spilledRecords > 0) {
+      this.logger.info(
+        `StudioRecordingEngine: reassembled ${spilledRecords} ` +
+          `spilled capture group(s) for this take.`,
+      );
+    }
     // A user can stop before the first render quantum arrives. Keep that
     // zero-duration take exportable as a valid (silent) WAV instead of
     // throwing from the channel validator.
-    if (channels[0].length === 0) {
-      channels = [new Float32Array(1), new Float32Array(1)];
-    }
-    this.recordingTime.set(channels[0].length / sampleRate);
-    const wavBlob = WavEncoder.encodeMultiChannel(
-      channels,
+    const channelChunks: Float32Array[][] =
+      recorded.left.length > 0
+        ? [recorded.left, recorded.right]
+        : [[new Float32Array(1)], [new Float32Array(1)]];
+    const frameCount = channelChunks[0].reduce(
+      (sum, chunk) => sum + chunk.length,
+      0,
+    );
+    this.recordingTime.set(frameCount / sampleRate);
+    // Encode straight from the chunks: the take is never joined into two
+    // contiguous arrays, so stopping a long recording no longer allocates the
+    // whole performance a second time. Byte-identical to the joined encoder.
+    const wavBlob = WavStreamEncoder.encodeMultiChannel(
+      channelChunks,
       "wav-16",
       sampleRate,
     );
@@ -259,7 +273,7 @@ export class StudioRecordingEngineService implements OnDestroy {
       id,
       name: `Studio Session ${new Date().toLocaleTimeString()}`,
       timestamp: Date.now(),
-      duration: channels[0].length / sampleRate,
+      duration: frameCount / sampleRate,
       format: "wav",
       bitDepth: 16,
       sampleRate,
@@ -285,6 +299,27 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.recordingFinished$.next({ id, blob: wavBlob, url, metadata });
   }
 
+  /**
+   * Worklet → main-thread capture messages. Extracted from the port handler so
+   * the capture path (append + budget + flush handshake) is testable without a
+   * real AudioWorkletNode, which no test host provides.
+   */
+  private handleWorkletMessage(event: { data: any }): void {
+    if (event?.data?.command === "DATA") {
+      // The buffer owns the memory ceiling; the timer follows the frames it
+      // actually accepted so the two can never disagree.
+      const frames = this.capture.append(event.data.left, event.data.right);
+      if (frames > 0) {
+        this.recordingTime.update(
+          (t) => t + frames / this.audioEngine.ctx.sampleRate,
+        );
+      }
+    } else if (event?.data?.command === "FLUSHED") {
+      this.flushResolver?.();
+      this.flushResolver = null;
+    }
+  }
+
   getAnalyserNode(): AnalyserNode | null {
     return this.analyserNode;
   }
@@ -299,8 +334,9 @@ export class StudioRecordingEngineService implements OnDestroy {
     left: Float32Array[];
     right: Float32Array[];
   } {
-    const left = this.leftChannel.map((chunk) => chunk.slice());
-    const right = this.rightChannel.map((chunk) => chunk.slice());
+    const resident = this.capture.resident();
+    const left = resident.left.map((chunk) => chunk.slice());
+    const right = resident.right.map((chunk) => chunk.slice());
     if (!applyCompensation) {
       return { left, right };
     }
@@ -315,24 +351,6 @@ export class StudioRecordingEngineService implements OnDestroy {
       left: this.trimChunkList(left, framesToTrim),
       right: this.trimChunkList(right, framesToTrim),
     };
-  }
-
-  private joinChannels(
-    left: Float32Array[],
-    right: Float32Array[],
-  ): [Float32Array, Float32Array] {
-    const totalLength = left.reduce((sum, chunk) => sum + chunk.length, 0);
-    const leftChannel = new Float32Array(totalLength);
-    const rightChannel = new Float32Array(totalLength);
-    let offset = 0;
-    for (let i = 0; i < left.length; i++) {
-      const leftChunk = left[i];
-      const rightChunk = right[i] ?? leftChunk;
-      leftChannel.set(leftChunk, offset);
-      rightChannel.set(rightChunk.subarray(0, leftChunk.length), offset);
-      offset += leftChunk.length;
-    }
-    return [leftChannel, rightChannel];
   }
 
   private trimChunkList(
@@ -397,5 +415,7 @@ export class StudioRecordingEngineService implements OnDestroy {
 
   ngOnDestroy() {
     this.cleanup();
+    // Unlink any spilled chunks for a take that never finished encoding.
+    void this.capture.release();
   }
 }

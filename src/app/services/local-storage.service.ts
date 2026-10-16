@@ -23,7 +23,7 @@ export type PersistenceState = 'ready' | 'unsupported' | 'blocked' | 'failed';
 })
 export class LocalStorageService {
   private dbName = 'SMUVE_OFFLINE_DB';
-  private dbVersion = 7;
+  private dbVersion = 8;
   private db: IDBDatabase | null = null;
   /** Why persistence is unavailable, when it is. Null while everything works. */
   private unavailableReason: Exclude<PersistenceState, 'ready'> | null = null;
@@ -69,6 +69,15 @@ export class LocalStorageService {
       }
       if (!db.objectStoreNames.contains('audio_blobs')) {
         db.createObjectStore('audio_blobs', { keyPath: 'id' });
+      }
+      // Spilled capture chunks for the recording engine's bounded buffer. They
+      // live apart from `audio_blobs` because they are working data for one
+      // in-progress take and are unlinked as soon as its WAV is encoded —
+      // parking them with the finished takes would make every take listing
+      // drag a session's worth of raw PCM into memory. Added in v8 — earlier
+      // DBs get it on upgrade.
+      if (!db.objectStoreNames.contains('recording_chunks')) {
+        db.createObjectStore('recording_chunks', { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains('performance_takes')) {
         // PerformanceRecordingService persists takes here (audio blobs are

@@ -4,6 +4,11 @@ import { AudioEngineService } from "../services/audio-engine.service";
 import { AudioEngineLatencyService } from "../services/audio-engine-latency.service";
 import { LoggingService } from "../services/logging.service";
 import { LocalStorageService } from "../services/local-storage.service";
+import { RecordingCaptureBuffer } from "./recording-capture-buffer";
+import {
+  IdbRecordingSpillStore,
+  RECORDING_CHUNK_STORE,
+} from "./recording-spill.store";
 
 describe("StudioRecordingEngineService", () => {
   let service: StudioRecordingEngineService;
@@ -90,8 +95,10 @@ describe("StudioRecordingEngineService", () => {
 
   it("should fully trim recorded buffers when compensation exceeds the take length", () => {
     latencyMock.getAppliedCompensationMs.mockReturnValue(1000);
-    (service as any).leftChannel = [Float32Array.from([1, 2])];
-    (service as any).rightChannel = [Float32Array.from([3, 4])];
+    service.capture.append(
+      [Float32Array.from([1, 2])],
+      [Float32Array.from([3, 4])],
+    );
 
     const buffers = service.getRecordedBuffers();
 
@@ -151,6 +158,139 @@ describe("StudioRecordingEngineService", () => {
     expect(service.recordedBlob()).not.toBeNull();
     expect(finished).toHaveLength(1);
     expect(finished[0].blob).toBe(service.recordedBlob());
+  });
+
+  it("reassembles a spilled long take when recording stops", async () => {
+    // A take longer than the resident window must come back whole: the chunks
+    // that spilled to storage are rehydrated before the WAV is built.
+    const localStorage = TestBed.inject(LocalStorageService) as any;
+    const spilled: any[] = [];
+    localStorage.persistenceStatus = jest.fn().mockResolvedValue("ready");
+    localStorage.saveItem = jest.fn(async (_store: string, item: any) => {
+      spilled.push(item);
+    });
+    localStorage.getItem = jest.fn(
+      async (_store: string, id: string) =>
+        spilled.find((record) => record.id === id) ?? null,
+    );
+    localStorage.getAllItems = jest.fn(async () => [...spilled]);
+    localStorage.deleteItems = jest.fn(async () => undefined);
+
+    // 64 bytes of resident PCM: two 16-frame stereo pairs already overflow it.
+    service.capture = new RecordingCaptureBuffer({
+      sampleRate: 48000,
+      maxResidentBytes: 64,
+      spill: new IdbRecordingSpillStore(localStorage),
+    });
+
+    const port = {
+      postMessage: jest.fn(),
+      onmessage: null as any,
+    };
+    (service as any).isRecording.set(true);
+    (service as any).workletNode = { port, disconnect: jest.fn() };
+    port.postMessage.mockImplementation((message: any) => {
+      if (message?.command === "FLUSH") {
+        // The worklet acknowledges the flush after posting its DATA.
+        queueMicrotask(() =>
+          (service as any).handleWorkletMessage({
+            data: { command: "FLUSHED" },
+          }),
+        );
+      }
+    });
+
+    const finished: any[] = [];
+    service.recordingFinished$.subscribe((take) => finished.push(take));
+
+    for (let i = 0; i < 3; i++) {
+      (service as any).handleWorkletMessage({
+        data: {
+          command: "DATA",
+          left: [new Float32Array(16).fill(i), new Float32Array(16).fill(i)],
+          right: [new Float32Array(16).fill(i), new Float32Array(16).fill(i)],
+        },
+      });
+    }
+
+    expect(service.capture.frames).toBe(96);
+
+    await service.stopRecording();
+
+    expect(service.capture.spilledRecords).toBeGreaterThan(0);
+    expect(spilled.length).toBeGreaterThan(0);
+    // The full 96-frame take survived: resident window + spilled groups.
+    expect(service.recordingTime()).toBeCloseTo(96 / 48000, 6);
+    expect(finished).toHaveLength(1);
+    expect(finished[0].metadata.duration).toBeCloseTo(96 / 48000, 6);
+  });
+
+  it("produces byte-identical take audio whether or not the take had to spill", async () => {
+    // The end-to-end guarantee of the bounded buffer: spilling changes where
+    // the PCM lived, never what the artist hears.
+    const runTake = async (maxResidentBytes: number) => {
+      const store = TestBed.inject(LocalStorageService) as any;
+      const spilled: any[] = [];
+      store.persistenceStatus = jest.fn().mockResolvedValue("ready");
+      store.saveItem = jest.fn(async (storeName: string, item: any) => {
+        // The engine also persists the finished take (audio_blobs) — only the
+        // capture-chunk records are spill evidence.
+        if (storeName === RECORDING_CHUNK_STORE) spilled.push(item);
+      });
+      store.getItem = jest.fn(
+        async (_s: string, id: string) =>
+          spilled.find((record) => record.id === id) ?? null,
+      );
+      store.getAllItems = jest.fn(async () => [...spilled]);
+      store.deleteItems = jest.fn(async () => undefined);
+
+      service.capture = new RecordingCaptureBuffer({
+        sampleRate: 48000,
+        maxResidentBytes,
+        spill: new IdbRecordingSpillStore(store),
+      });
+
+      const port = { postMessage: jest.fn(), onmessage: null as any };
+      (service as any).isRecording.set(true);
+      (service as any).workletNode = { port, disconnect: jest.fn() };
+      port.postMessage.mockImplementation((message: any) => {
+        if (message?.command === "FLUSH") {
+          queueMicrotask(() =>
+            (service as any).handleWorkletMessage({
+              data: { command: "FLUSHED" },
+            }),
+          );
+        }
+      });
+
+      for (let i = 0; i < 3; i++) {
+        (service as any).handleWorkletMessage({
+          data: {
+            command: "DATA",
+            left: [
+              Float32Array.from({ length: 16 }, (_, f) => (i + f) / 100),
+              Float32Array.from({ length: 16 }, (_, f) => -(i + f) / 100),
+            ],
+            right: [
+              Float32Array.from({ length: 16 }, (_, f) => -(i + f) / 100),
+              Float32Array.from({ length: 16 }, (_, f) => (i + f) / 200),
+            ],
+          },
+        });
+      }
+
+      await service.stopRecording();
+      return { blob: service.recordedBlob()!, spilled };
+    };
+
+    const spilledTake = await runTake(64);
+    const residentTake = await runTake(64 * 1024 * 1024);
+
+    expect(spilledTake.spilled.length).toBeGreaterThan(0);
+    expect(residentTake.spilled).toHaveLength(0);
+    expect(new Uint8Array(await spilledTake.blob.arrayBuffer())).toEqual(
+      new Uint8Array(await residentTake.blob.arrayBuffer()),
+    );
   });
 
   it("should clean up on destroy", () => {
