@@ -8,6 +8,8 @@ describe("ChannelRackComponent step lane", () => {
   let fixture: ComponentFixture<ChannelRackComponent>;
   let addNote: jest.Mock;
   let removeNotes: jest.Mock;
+  let updateSynthParams: jest.Mock;
+  let selectedTrackId: ReturnType<typeof signal<string | null>>;
 
   const makeTrack = (overrides: any = {}) => ({
     id: "track-1",
@@ -38,7 +40,9 @@ describe("ChannelRackComponent step lane", () => {
   beforeEach(async () => {
     addNote = jest.fn();
     removeNotes = jest.fn();
-    tracks.set([makeTrack()]);
+    updateSynthParams = jest.fn();
+    selectedTrackId = signal<string | null>("track-1");
+    tracks.set([makeTrack({ synthParams: { type: "sawtooth" } })]);
 
     await TestBed.configureTestingModule({
       imports: [ChannelRackComponent],
@@ -47,7 +51,7 @@ describe("ChannelRackComponent step lane", () => {
           provide: MusicManagerService,
           useValue: {
             tracks,
-            selectedTrackId: signal<string | null>(null),
+            selectedTrackId,
             engine: { visualStep, isPlaying },
             removeTrack: jest.fn(),
             ensureTrack: jest.fn(),
@@ -56,6 +60,7 @@ describe("ChannelRackComponent step lane", () => {
             toggleSolo: jest.fn(),
             updateVolume: jest.fn(),
             updateTrackPan: jest.fn(),
+            updateSynthParams,
             addTrack: jest.fn(),
             addNoteToTrack: addNote,
             removeNotes,
@@ -174,5 +179,26 @@ describe("ChannelRackComponent step lane", () => {
     component.startStepPaint(track, 0);
     expect(removeNotes).toHaveBeenCalledWith("track-1", ["n1"]);
     component.endStepPaint();
+  });
+
+  it("updates per-track LFO parameters through MusicManagerService.updateSynthParams", () => {
+    component.updateLfoParam("wave", "square", "track-1");
+    expect(updateSynthParams).toHaveBeenCalledWith("track-1", {
+      lfo: expect.objectContaining({
+        wave: "square",
+        target: "cutoff",
+      }),
+    });
+
+    component.updateLfoParam("target", "pitch", "track-1");
+    expect(component.lfoTarget()).toBe("pitch");
+    expect(updateSynthParams).toHaveBeenLastCalledWith("track-1", {
+      lfo: expect.objectContaining({ target: "pitch" }),
+    });
+
+    component.updateLfoParam("rate", "12.5", "track-1");
+    expect(updateSynthParams).toHaveBeenLastCalledWith("track-1", {
+      lfo: expect.objectContaining({ rate: 12.5 }),
+    });
   });
 });

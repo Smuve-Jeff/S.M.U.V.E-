@@ -398,6 +398,13 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
               ? patchLfo.depth
               : this.lfoParams.depth,
           };
+        } else {
+          this.lfoParams = {
+            wave: "sine",
+            rate: 1.0,
+            depth: 0,
+            target: "cutoff",
+          };
         }
         requestAnimationFrame(() => {
           this.drawWaveform();
@@ -498,8 +505,10 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── LFO param updates ────────────────────────────────
   updateLfoParam(param: string, value: any): void {
-    (this.lfoParams as any)[param] = value;
-    this.logger.info(`LFO ${param}: ${value}`);
+    const normalized =
+      param === "rate" || param === "depth" ? Number(value) : value;
+    (this.lfoParams as any)[param] = normalized;
+    this.logger.info(`LFO ${param}: ${normalized}`);
     // Push the whole snapshot, not just the changed key: touching any single
     // LFO control engages the modulation with the depth the section is
     // displaying, instead of staying silent until the depth slider alone is

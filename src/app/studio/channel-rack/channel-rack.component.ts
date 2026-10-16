@@ -6,12 +6,13 @@ import {
   TrackModel,
   TrackNote,
 } from "../../services/music-manager.service";
+import { LfoState } from "../../services/audio-engine.service";
 import { InstrumentsService } from "../../services/instruments.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
 
 /** LFO target options for the channel rack. */
-enum LfoTarget {
+export enum LfoTarget {
   Cutoff = "cutoff",
   Pitch = "pitch",
   Volume = "volume",
@@ -49,6 +50,18 @@ export class ChannelRackComponent {
   /** Registry ids the rack's "+ Add" fly-out groups by category. */
   addTrackOpen = signal(false);
 
+  readonly LfoTarget = LfoTarget;
+  readonly lfoTargets = [LfoTarget.Cutoff, LfoTarget.Pitch, LfoTarget.Volume];
+  readonly lfoWaves = [
+    { value: "sine", label: "Smooth", icon: "∿" },
+    { value: "triangle", label: "Ramp", icon: "△" },
+    { value: "square", label: "Chop", icon: "⊓" },
+    { value: "sawtooth", label: "Buzz", icon: "⋋" },
+  ];
+
+  isBeginner = signal<boolean>(false);
+  activeTooltip = signal<string | null>(null);
+
   /** LFO target for the selected track, persisted on the track's patch. */
   lfoTarget = signal<LfoTarget>(LfoTarget.Cutoff);
 
@@ -57,15 +70,38 @@ export class ChannelRackComponent {
   private stepPaintTrackId: string | null = null;
   private lastPaintedStep: number | null = null;
 
-  /** Update one LFO parameter for the selected track. */
-  updateLfoParam(param: keyof LfoState, value: any): void {
-    const trackId = this.musicManager.selectedTrackId();
-    if (trackId) {
-      const track = this.musicManager.tracks().find((t) => t.id === trackId);
-      if (track && track.synthParams) {
-        track.synthParams.lfo = { ...(track.synthParams.lfo || {}), [param]: value };
-        this.musicManager.tracks.set(this.musicManager.tracks().indexOf(track), track);
-      }
+  /** Update one LFO parameter for a track (or the selected track). */
+  updateLfoParam(
+    param: keyof LfoState,
+    value: any,
+    trackId = this.musicManager.selectedTrackId(),
+  ): void {
+    if (!trackId) return;
+    const track = this.musicManager.tracks().find((t) => t.id === trackId);
+    if (!track || !track.synthParams) return;
+    if (param === "target" && Object.values(LfoTarget).includes(value)) {
+      this.lfoTarget.set(value as LfoTarget);
+    }
+    const nextLfo: Partial<LfoState> = {
+      wave: "sine",
+      rate: 5,
+      depth: 0,
+      target: this.lfoTarget(),
+      ...(track.synthParams.lfo || {}),
+      [param]:
+        param === "rate" || param === "depth" ? Number(value) : value,
+    };
+    if (typeof this.musicManager.updateSynthParams === "function") {
+      this.musicManager.updateSynthParams(trackId, { lfo: nextLfo });
+    } else {
+      track.synthParams.lfo = nextLfo;
+      this.musicManager.tracks.update((ts) =>
+        ts.map((t) =>
+          t.id === trackId
+            ? { ...t, synthParams: { ...t.synthParams, lfo: nextLfo } }
+            : t,
+        ),
+      );
     }
   }
 

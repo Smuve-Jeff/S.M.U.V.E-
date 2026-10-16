@@ -38,6 +38,7 @@ export interface InstrumentPreset {
     | 'world'
     | 'other';
   tags: string[];
+  icon?: string;
   previewUrl?: string;
   sampleQuality?: 'standard' | 'high' | 'studio';
   fallbackPresetId?: string;

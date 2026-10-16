@@ -423,9 +423,11 @@ describe('LoginComponent', () => {
     expect(fixture.componentInstance.requires2FA()).toBe(true);
     expect(fixture.componentInstance.isLoading()).toBe(false);
 
+    apiAuth.login.mockClear();
     fixture.componentInstance.credentials.twoFactorCode = '123456';
     await fixture.componentInstance.onSubmit();
 
+    expect(apiAuth.login).not.toHaveBeenCalled();
     expect(authMock.login).toHaveBeenCalledTimes(2);
     expect(authMock.login).toHaveBeenLastCalledWith(
       expect.objectContaining({

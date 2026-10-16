@@ -151,6 +151,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   trackById = (_: number, t: TrackModel) => t.id;
+  trackBusById = (_: number, bus: { id: string }) => bus.id;
 
   private startMetering() {
     this.stopMeteringTask?.();

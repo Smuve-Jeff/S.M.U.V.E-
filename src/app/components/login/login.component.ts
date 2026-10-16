@@ -95,6 +95,8 @@ export class LoginComponent implements OnInit {
           return;
         }
         result = await this.submitRegister();
+      } else if (this.requires2FA()) {
+        result = await this.authService.login(this.credentials);
       } else {
         result = await this.submitLogin();
       }

@@ -55,6 +55,10 @@
             isActive(track, row) ? track.color + '15' : 'rgba(255,255,255,0.01)'
           "
           (click)="toggleClip(track.id, row)"
+          (pointerdown)="onSlotPointerDown(track, row, $event)"
+          (pointerup)="onSlotPointerUp()"
+          (pointercancel)="onSlotPointerUp()"
+          (pointerleave)="onSlotPointerUp()"
           (contextmenu)="recaptureClip(track, row); $event.preventDefault()"
           [attr.title]="
             hasContent(track, row)

@@ -162,6 +162,25 @@ describe("PerformanceGridComponent", () => {
     expect(capturePatternSlot).not.toHaveBeenCalled();
   });
 
+  it("wires pointerdown and pointerup on the DOM slot buttons for touch long-press", () => {
+    jest.useFakeTimers();
+    const firstSlot: HTMLButtonElement =
+      fixture.nativeElement.querySelector("button.clip-cell-v42");
+    firstSlot.dispatchEvent(new Event("pointerdown"));
+    jest.advanceTimersByTime(500);
+    expect(capturePatternSlot).toHaveBeenCalledWith("t1", "slot-0", "Scene 1");
+  });
+
+  it("launches the selected row across tracks with content and ignores null selection", () => {
+    component.launchRow();
+    expect(recallPatternSlot).not.toHaveBeenCalled();
+
+    component.selectedRow.set(0);
+    component.launchRow();
+    expect(recallPatternSlot).toHaveBeenCalledWith("t1", "slot-0");
+    expect(component.selectedRow()).toBeNull();
+  });
+
   it("tears down its meter tap and visual task on destroy", () => {
     component.ngOnDestroy();
     expect(schedulerStops[0]).toHaveBeenCalled();

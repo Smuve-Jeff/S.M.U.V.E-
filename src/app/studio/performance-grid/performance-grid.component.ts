@@ -101,14 +101,16 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
   }
 
   /** Launch the captured pattern for the selected row across all tracks. */
-  launchRow(): void {
+  launchRow(row = this.selectedRow()): void {
+    if (row === null || row === undefined) return;
+    const slotId = this.slotId(row);
     const tracks = this.tracks();
     tracks.forEach((track) => {
-      const slot = track.patternSlots?.find((s) => s.id === this.slotId(this.selectedRow()!));
+      const slot = track.patternSlots?.find((s) => s.id === slotId);
       if (slot && slot.versions.length > 0) {
         const version = slot.versions[slot.versions.length - 1];
         if (version.notes.length > 0 || version.steps.some(Boolean)) {
-          this.musicManager.recallPatternSlot(track.id, this.slotId(this.selectedRow()!));
+          this.musicManager.recallPatternSlot(track.id, slotId);
         }
       }
     });
