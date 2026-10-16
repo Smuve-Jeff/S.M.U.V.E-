@@ -309,34 +309,20 @@ export class EffectsRackUiComponent {
     this.installMasterChain(next);
   }
 
-  /** Splice/Un-splice the master-bus ScriptProcessor with a kernel closure
-   *  that reads the current enabled plugins from the plugin store each block.
-   *  Uses the width-preserving splice point (installMasterPluginInsertAfterWidth)
-   *  so the M/S master-width stage stays in the signal path. */
+  /**
+   * Splice/Un-splice the master-bus live chain. The engine polls this provider
+   * and hands the slots to the plugin-chain worklet, which resolves each kernel
+   * by name on the audio thread — so the provider may read the plugin store
+   * (params, which modules finished loading) without blocking an audio callback.
+   *
+   * Uses the width-preserving splice point (installMasterPluginInsertAfterWidth)
+   * so the M/S master-width stage stays in the signal path.
+   */
   installMasterChain(ids: string[]): void {
-    this.audioEngine.installMasterPluginInsertAfterWidth(ids, (pluginIds) => {
-      const kernels: Array<
-        | ((
-            input: Float32Array,
-            output: Float32Array,
-            params: Float32Array,
-            sr: number,
-          ) => void)
-        | null
-      > = [];
-      for (const id of pluginIds) {
-        const mod = this.pluginStore["loader"]?.getModule?.(id);
-        const kernel = mod?.getKernel?.(this.kernelNameForManifest(id)) ?? null;
-        kernels.push(kernel);
-      }
-      return kernels;
-    });
+    this.audioEngine.installMasterPluginInsertAfterWidth(ids, (pluginIds) =>
+      pluginIds.map((id) => this.pluginStore.liveInsertSlot(id)),
+    );
     this.pluginStore.preload(ids);
-  }
-
-  /** Reverse-lookup for the kernel name from a plugin id (manifest catalog). */
-  private kernelNameForManifest(id: string): string {
-    return this.pluginStore.manifestFor(id)?.kernelName ?? "process";
   }
 
   fxSlots = computed(() => {

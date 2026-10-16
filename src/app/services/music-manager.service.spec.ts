@@ -873,3 +873,124 @@ describe('MusicManagerService recording teardown', () => {
     await expect(service.stopRecording('track-1')).resolves.toBeNull();
   });
 });
+
+/**
+ * The live plugin chain is hosted by the audio thread, so the manager's job is
+ * only to hand the engine a provider it can poll and to release the insert when
+ * the track goes away.
+ */
+describe('MusicManagerService live plugin insert wiring', () => {
+  const slot = {
+    id: 'smuve.saturation.v2',
+    kernel: 'saturate',
+    params: new Float32Array([0.4, 1, 0]),
+  };
+
+  const installTrackPluginInsert = jest.fn();
+  const releaseTrackPluginInsert = jest.fn();
+  const liveInsertSlot = jest.fn(() => slot);
+  const preload = jest.fn();
+
+  let service: MusicManagerService;
+  let history: HistoryService;
+
+  const makeTrack = () => ({
+    id: 'track-1',
+    name: 'Lead',
+    type: 'midi',
+    instrumentId: 'grand-piano',
+    muted: false,
+    soloed: false,
+    volume: 0.8,
+    gain: 0.8,
+    pan: 0,
+    clips: [],
+    notes: [],
+    steps: new Array(64).fill(false),
+    fxSlots: [],
+    pluginIds: [] as string[],
+    sendA: 0,
+    sendB: 0,
+    effects: [],
+    patternSlots: [],
+    activePatternSlotId: null,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    liveInsertSlot.mockReturnValue(slot);
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        MusicManagerService,
+        HistoryService,
+        {
+          provide: AudioEngineService,
+          useValue: {
+            tempo: signal(120),
+            visualStep: signal(0),
+            setSongLengthSteps: jest.fn(),
+            triggerAttack: jest.fn(),
+            installTrackPluginInsert,
+            releaseTrackPluginInsert,
+          },
+        },
+        { provide: ProjectService, useValue: { currentProject: signal(null) } },
+        { provide: PluginStoreService, useValue: { preload, liveInsertSlot } },
+        { provide: InstrumentsService, useValue: { getPresets: () => [] } },
+        { provide: StemSeparationService, useValue: {} },
+        { provide: StudioRecordingEngineService, useValue: {} },
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+        {
+          provide: TakeManagerService,
+          useValue: { getCompNotesForStepNow: () => [] },
+        },
+      ],
+    });
+
+    service = TestBed.inject(MusicManagerService);
+    history = TestBed.inject(HistoryService);
+    service.tracks.set([makeTrack()]);
+  });
+
+  it('installs the track insert with a provider that resolves slots through the store', () => {
+    service.setTrackPlugins('track-1', ['smuve.saturation.v2']);
+
+    expect(preload).toHaveBeenCalledWith(['smuve.saturation.v2']);
+    const [trackId, ids, provider] = installTrackPluginInsert.mock.calls[0];
+    expect(trackId).toBe('track-1');
+    expect(ids).toEqual(['smuve.saturation.v2']);
+    expect(provider(['smuve.saturation.v2'])).toEqual([slot]);
+  });
+
+  it('reinstalls the previous chain when the edit is undone', () => {
+    service.setTrackPlugins('track-1', ['smuve.saturation.v2']);
+    installTrackPluginInsert.mockClear();
+
+    history.undo();
+
+    const [trackId, ids, provider] = installTrackPluginInsert.mock.calls[0];
+    expect(trackId).toBe('track-1');
+    expect(ids).toEqual([]);
+    expect(provider([])).toEqual([]);
+  });
+
+  it('releases the live insert when a track is deleted, and restores it on undo', () => {
+    service.tracks.set([{ ...makeTrack(), pluginIds: ['smuve.saturation.v2'] }]);
+
+    service.removeTrack('track-1');
+
+    expect(releaseTrackPluginInsert).toHaveBeenCalledWith('track-1');
+
+    history.undo();
+
+    const [trackId, ids] = installTrackPluginInsert.mock.calls[0];
+    expect(trackId).toBe('track-1');
+    expect(ids).toEqual(['smuve.saturation.v2']);
+    expect(service.tracks().map((t) => t.id)).toEqual(['track-1']);
+  });
+});

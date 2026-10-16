@@ -20,7 +20,41 @@ function makeBareEngine() {
   (svc as any).auditionProgress = signal(0);
   (svc as any).auditionDuration = signal(0);
   (svc as any).masterPluginIds = signal<string[]>([]);
+  // Live plugin inserts are hosted by the plugin-chain worklet; bare instances
+  // start with the module "loaded" and a stub logger so a unit test never
+  // touches the real module-loading path (or an undefined LoggingService).
+  (svc as any)._pluginChainWorkletLoaded = true;
+  (svc as any).logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
   return svc;
+}
+
+/**
+ * Minimal AudioWorkletNode stand-in for the live plugin chain: records the
+ * processor name, the node options, the wiring and every chain message.
+ */
+class FakeWorkletNode {
+  static instances: FakeWorkletNode[] = [];
+  port = { postMessage: jest.fn(), onmessage: null as unknown };
+  connect = jest.fn();
+  disconnect = jest.fn();
+  constructor(
+    public ctx: unknown,
+    public processorName: string,
+    public options: any
+  ) {
+    FakeWorkletNode.instances.push(this);
+  }
+}
+
+const originalAudioWorkletNode = (globalThis as any).AudioWorkletNode;
+
+function enableFakeWorkletNode(): void {
+  (globalThis as any).AudioWorkletNode = FakeWorkletNode;
+  FakeWorkletNode.instances = [];
+}
+
+function restoreAudioWorkletNode(): void {
+  (globalThis as any).AudioWorkletNode = originalAudioWorkletNode;
 }
 
 function gain(map: Map<string, any>, id: string) {
@@ -402,109 +436,148 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
     });
   });
 
-  describe('installMasterPluginInsert (Sprint B1 Phase 3)', () => {
-    it('installs a ScriptProcessor between masterGain and preMasterGain', () => {
-      const sp = {
-        connect: jest.fn(),
-        disconnect: jest.fn(),
-        onaudioprocess: null,
-      };
-      svc = makeBareEngine();
-      (svc as any).masterGain = {
-        disconnect: jest.fn(),
-        connect: jest.fn(),
-      };
-      (svc as any)._preMasterGain = { tag: 'preMaster' };
-      (svc as any).masterPluginInsert = null;
-      (svc as any).ctx = {
-        createScriptProcessor: jest.fn(() => sp),
-        sampleRate: 44100,
-      };
+  describe('installTrackPluginInsert (live inserts on the audio thread)', () => {
+    let originalWorkletNode: unknown;
 
-      svc.installMasterPluginInsert(
-        ['smuve.saturation.v2'],
-        () => null
-      );
-      expect((svc as any).masterGain.disconnect).toHaveBeenCalled();
-      expect((svc as any).masterGain.connect).toHaveBeenCalledWith(sp);
-      expect(sp.connect).toHaveBeenCalledWith((svc as any)._preMasterGain);
-      expect(svc.masterPluginIds()).toEqual(['smuve.saturation.v2']);
-      expect((svc as any).masterPluginInsert).toBe(sp);
+    beforeEach(() => {
+      originalWorkletNode = (globalThis as any).AudioWorkletNode;
+      enableFakeWorkletNode();
+      jest.useFakeTimers();
     });
 
-    it('removes the insert and restores masterGain → preMasterGain direct when empty', () => {
-      const sp = { connect: jest.fn(), disconnect: jest.fn(), onaudioprocess: null };
-      svc = makeBareEngine();
-      (svc as any).masterGain = {
-        disconnect: jest.fn(),
-        connect: jest.fn(),
-      };
-      (svc as any)._preMasterGain = { tag: 'preMaster' };
-      (svc as any).masterPluginInsert = sp;
-      (svc as any).ctx = { createScriptProcessor: jest.fn(), sampleRate: 44100 };
-
-      svc.installMasterPluginInsert([]);
-      expect(sp.disconnect).toHaveBeenCalled();
-      expect((svc as any).masterGain.connect).toHaveBeenCalledWith(
-        (svc as any)._preMasterGain
-      );
-      expect((svc as any).masterPluginInsert).toBeNull();
-      expect(svc.masterPluginIds()).toEqual([]);
+    afterEach(() => {
+      jest.useRealTimers();
+      (globalThis as any).AudioWorkletNode = originalWorkletNode;
     });
-  });
 
-  describe('installTrackPluginInsert (Sprint B1 Phase 2 live inserts)', () => {
-    it('installs a ScriptProcessor between rack and width for a non-empty chain', () => {
-      const sp = {
-        connect: jest.fn(),
-        disconnect: jest.fn(),
-        onaudioprocess: null,
-      };
+    function makeTrackEngine() {
       const rack = { output: { disconnect: jest.fn(), connect: jest.fn() } };
       const width = { connect: jest.fn() };
-      svc = makeBareEngine();
-      (svc as any).trackEffectsRacks = new Map([['t1', rack]]);
-      (svc as any).trackWidthNodes = new Map([['t1', width]]);
-      (svc as any).trackPluginInserts = new Map();
-      (svc as any).ctx = { createScriptProcessor: jest.fn(() => sp), sampleRate: 44100 };
-      (svc as any).trackPhaseNodes = new Map();
-      (svc as any).trackFaderGains = new Map();
-      (svc as any).trackOutputs = new Map();
-      (svc as any).trackSendAGains = new Map();
-      (svc as any).trackSendBGains = new Map();
-      (svc as any).getTrackOutput = jest.fn(() => ({}));
+      const engine = makeBareEngine();
+      (engine as any).trackEffectsRacks = new Map([['t1', rack]]);
+      (engine as any).trackWidthNodes = new Map([['t1', width]]);
+      (engine as any).trackPluginInserts = new Map();
+      (engine as any).getTrackOutput = jest.fn(() => ({}));
+      return { engine, rack, width };
+    }
 
-      svc.installTrackPluginInsert('t1', ['smuve.saturation.v2']);
+    it('splices a mono plugin-chain worklet between the rack and the width node', () => {
+      const { engine, rack, width } = makeTrackEngine();
+
+      engine.installTrackPluginInsert('t1', ['smuve.saturation.v2']);
+
+      const node = FakeWorkletNode.instances[0];
+      expect(node.processorName).toBe('plugin-chain-processor');
+      expect(node.options.channelCount).toBe(1);
+      expect(node.options.outputChannelCount).toEqual([1]);
+      expect(node.options.channelCountMode).toBe('explicit');
       expect(rack.output.disconnect).toHaveBeenCalledWith(width);
-      expect(rack.output.connect).toHaveBeenCalledWith(sp);
-      expect(sp.connect).toHaveBeenCalledWith(width);
-      expect((svc as any).trackPluginInserts.get('t1')).toBe(sp);
+      expect(rack.output.connect).toHaveBeenCalledWith(node);
+      expect(node.connect).toHaveBeenCalledWith(width);
+      expect((engine as any).trackPluginInserts.get('t1').node).toBe(node);
     });
 
-    it('removes the insert and restores direct routing for an empty chain', () => {
-      const sp = { connect: jest.fn(), disconnect: jest.fn(), onaudioprocess: null };
-      const rack = { output: { disconnect: jest.fn(), connect: jest.fn() } };
-      const width = { connect: jest.fn() };
-      svc = makeBareEngine();
-      (svc as any).trackEffectsRacks = new Map([['t1', rack]]);
-      (svc as any).trackWidthNodes = new Map([['t1', width]]);
-      (svc as any).trackPluginInserts = new Map([['t1', sp]]);
-      (svc as any).ctx = { createScriptProcessor: jest.fn(), sampleRate: 44100 };
-      (svc as any).trackPhaseNodes = new Map();
-      (svc as any).trackFaderGains = new Map();
-      (svc as any).trackOutputs = new Map();
-      (svc as any).trackSendAGains = new Map();
-      (svc as any).trackSendBGains = new Map();
-      (svc as any).getTrackOutput = jest.fn(() => ({}));
+    it('posts the resolved chain — kernel name plus params — to the audio thread', () => {
+      const { engine } = makeTrackEngine();
+      const params = new Float32Array([0.4, 1, 0]);
 
-      svc.installTrackPluginInsert('t1', []);
-      expect(sp.disconnect).toHaveBeenCalled();
+      engine.installTrackPluginInsert('t1', ['smuve.saturation.v2'], () => [
+        { id: 'smuve.saturation.v2', kernel: 'saturate', params },
+      ]);
+
+      expect(FakeWorkletNode.instances[0].port.postMessage).toHaveBeenCalledWith({
+        type: 'chain',
+        slots: [{ id: 'smuve.saturation.v2', kernel: 'saturate', params }],
+      });
+    });
+
+    it('resolves an unresolved plugin to the identity kernel instead of silence', () => {
+      const { engine } = makeTrackEngine();
+
+      // No provider is the call shape used before the store was wired in: the
+      // ScriptProcessor path passed silence here, which muted the track.
+      engine.installTrackPluginInsert('t1', ['smuve.saturation.v2']);
+
+      const [message] = FakeWorkletNode.instances[0].port.postMessage.mock.calls[0];
+      expect(message.slots).toEqual([
+        {
+          id: 'smuve.saturation.v2',
+          kernel: 'identity',
+          params: new Float32Array(0),
+        },
+      ]);
+    });
+
+    it('re-posts the chain when a provider value changes, and only then', () => {
+      const { engine } = makeTrackEngine();
+      let amount = 0.2;
+      engine.installTrackPluginInsert('t1', ['smuve.saturation.v2'], () => [
+        {
+          id: 'smuve.saturation.v2',
+          kernel: 'saturate',
+          params: new Float32Array([amount]),
+        },
+      ]);
+      const node = FakeWorkletNode.instances[0];
+      expect(node.port.postMessage).toHaveBeenCalledTimes(1);
+
+      // An unchanged chain must not message the audio thread at all.
+      jest.advanceTimersByTime(1000);
+      expect(node.port.postMessage).toHaveBeenCalledTimes(1);
+
+      amount = 0.8;
+      jest.advanceTimersByTime(300);
+      expect(node.port.postMessage).toHaveBeenCalledTimes(2);
+      expect(node.port.postMessage.mock.calls[1][0].slots[0].params[0]).toBeCloseTo(
+        0.8,
+        6
+      );
+    });
+
+    it('removes the insert, restores direct routing and stops the chain poller', () => {
+      const { engine, rack, width } = makeTrackEngine();
+      engine.installTrackPluginInsert('t1', ['smuve.saturation.v2']);
+      const node = FakeWorkletNode.instances[0];
+      const clearSpy = jest.spyOn(globalThis, 'clearInterval');
+
+      engine.installTrackPluginInsert('t1', []);
+
+      expect(rack.output.disconnect).toHaveBeenCalledWith(node);
+      expect(node.disconnect).toHaveBeenCalled();
       expect(rack.output.connect).toHaveBeenCalledWith(width);
-      expect((svc as any).trackPluginInserts.has('t1')).toBe(false);
+      expect((engine as any).trackPluginInserts.has('t1')).toBe(false);
+      expect(clearSpy).toHaveBeenCalled();
+      clearSpy.mockRestore();
+    });
+
+    it('leaves the graph dry when the host cannot host the worklet', () => {
+      const { engine, rack } = makeTrackEngine();
+      (engine as any)._pluginChainWorkletLoaded = false;
+      (engine as any).ctx = { currentTime: 0, sampleRate: 44100 };
+
+      engine.installTrackPluginInsert('t1', ['smuve.saturation.v2']);
+
+      expect(FakeWorkletNode.instances.length).toBe(0);
+      expect(rack.output.connect).not.toHaveBeenCalled();
+      expect(rack.output.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('releases a deleted track insert without rewiring the rack', () => {
+      const { engine, rack } = makeTrackEngine();
+      engine.installTrackPluginInsert('t1', ['smuve.saturation.v2']);
+      const node = FakeWorkletNode.instances[0];
+      rack.output.connect.mockClear();
+
+      (engine as any).releaseTrackPluginInsert('t1');
+
+      expect(rack.output.connect).not.toHaveBeenCalled();
+      expect(rack.output.disconnect).toHaveBeenCalledWith(node);
+      expect(node.disconnect).toHaveBeenCalled();
+      expect((engine as any).trackPluginInserts.has('t1')).toBe(false);
     });
   });
 
-  describe('scheduleOfflineNote (Sprint A6.5 real-synth offline render)', () => {
+  describe('scheduleOfflineNote (Sprint A6.5 real-synth offline render)', () => {  describe('scheduleOfflineNote (Sprint A6.5 real-synth offline render)', () => {
     it('builds the full voice graph (osc → filter → panner → vca → dest)', () => {
       const osc = {
         connect: jest.fn(() => osc),
@@ -776,64 +849,124 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
   // Master plugin insert — width-preserving splice point
   // =====================================================================
   describe('installMasterPluginInsertAfterWidth (fixed splice point)', () => {
-    it('splices the ScriptProcessor between the width merger and pre-master', () => {
-      const sp = {
-        connect: jest.fn(),
-        disconnect: jest.fn(),
-        onaudioprocess: null,
-      };
-      svc = makeBareEngine();
-      (svc as any).masterWidthMerger = {
-        disconnect: jest.fn(),
-        connect: jest.fn(),
-      };
-      (svc as any)._preMasterGain = { tag: 'preMaster' };
-      (svc as any).masterPluginInsert = null;
-      (svc as any).ctx = {
-        createScriptProcessor: jest.fn(() => sp),
-        sampleRate: 44100,
-      };
+    let originalWorkletNode: unknown;
 
-      (svc as any).installMasterPluginInsertAfterWidth(
-        ['smuve.saturation.v2'],
-        () => null
+    beforeEach(() => {
+      originalWorkletNode = (globalThis as any).AudioWorkletNode;
+      enableFakeWorkletNode();
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      (globalThis as any).AudioWorkletNode = originalWorkletNode;
+    });
+
+    function makeMasterEngine() {
+      const engine = makeBareEngine();
+      const merger = { disconnect: jest.fn(), connect: jest.fn() };
+      (engine as any).masterWidthMerger = merger;
+      (engine as any)._preMasterGain = { tag: 'preMaster' };
+      (engine as any).masterPluginInsert = null;
+      return { engine, merger };
+    }
+
+    it('splices a stereo plugin-chain worklet between the width merger and pre-master', () => {
+      const { engine, merger } = makeMasterEngine();
+
+      engine.installMasterPluginInsertAfterWidth(['smuve.saturation.v2']);
+
+      const node = FakeWorkletNode.instances[0];
+      expect(node.processorName).toBe('plugin-chain-processor');
+      expect(node.options.channelCount).toBe(2);
+      expect(node.options.outputChannelCount).toEqual([2]);
+      expect(merger.disconnect).toHaveBeenCalledWith((engine as any)._preMasterGain);
+      expect(merger.connect).toHaveBeenCalledWith(node);
+      expect(node.connect).toHaveBeenCalledWith((engine as any)._preMasterGain);
+      expect(engine.masterPluginIds()).toEqual(['smuve.saturation.v2']);
+      expect((engine as any).masterPluginInsert.node).toBe(node);
+
+      engine.installMasterPluginInsertAfterWidth([]);
+    });
+
+    it('posts the whole chain in order, with each kernel name and its params', () => {
+      const { engine } = makeMasterEngine();
+
+      engine.installMasterPluginInsertAfterWidth(
+        ['smuve.eq.mastering.v2', 'smuve.master.v2'],
+        (ids) =>
+          ids.map((id) =>
+            id === 'smuve.eq.mastering.v2'
+              ? { id, kernel: 'eq', params: new Float32Array(15) }
+              : { id, kernel: 'process', params: new Float32Array(28) }
+          )
       );
-      expect((svc as any).masterWidthMerger.disconnect).toHaveBeenCalledWith(
-        (svc as any)._preMasterGain
-      );
-      expect((svc as any).masterWidthMerger.connect).toHaveBeenCalledWith(sp);
-      expect(sp.connect).toHaveBeenCalledWith((svc as any)._preMasterGain);
-      expect(svc.masterPluginIds()).toEqual(['smuve.saturation.v2']);
-      expect((svc as any).masterPluginInsert).toBe(sp);
+
+      const [message] = FakeWorkletNode.instances[0].port.postMessage.mock.calls[0];
+      expect(message.type).toBe('chain');
+      expect(message.slots.map((slot: any) => slot.kernel)).toEqual([
+        'eq',
+        'process',
+      ]);
+      expect(message.slots[1].params.length).toBe(28);
+
+      engine.installMasterPluginInsertAfterWidth([]);
     });
 
     it('removes the insert and restores merger → pre-master without touching an uninstalled graph', () => {
-      const sp = {
-        connect: jest.fn(),
-        disconnect: jest.fn(),
-        onaudioprocess: null,
-      };
-      svc = makeBareEngine();
-      const merger = { disconnect: jest.fn(), connect: jest.fn() };
-      (svc as any).masterWidthMerger = merger;
-      (svc as any)._preMasterGain = { tag: 'preMaster' };
-      (svc as any).masterPluginInsert = sp;
-      (svc as any).ctx = { createScriptProcessor: jest.fn(), sampleRate: 44100 };
+      const { engine, merger } = makeMasterEngine();
 
-      (svc as any).installMasterPluginInsertAfterWidth([]);
-      expect(sp.disconnect).toHaveBeenCalled();
-      expect(merger.connect).toHaveBeenCalledWith((svc as any)._preMasterGain);
-      expect((svc as any).masterPluginInsert).toBeNull();
-      expect(svc.masterPluginIds()).toEqual([]);
+      engine.installMasterPluginInsertAfterWidth(['smuve.saturation.v2']);
+      const node = FakeWorkletNode.instances[0];
+      const clearSpy = jest.spyOn(globalThis, 'clearInterval');
+
+      engine.installMasterPluginInsertAfterWidth([]);
+
+      expect(node.disconnect).toHaveBeenCalled();
+      expect(clearSpy).toHaveBeenCalled();
+      expect(merger.connect).toHaveBeenCalledWith((engine as any)._preMasterGain);
+      expect((engine as any).masterPluginInsert).toBeNull();
+      expect(engine.masterPluginIds()).toEqual([]);
+      clearSpy.mockRestore();
 
       // Second empty call with no insert installed must not re-wire the graph.
       merger.connect.mockClear();
       merger.disconnect.mockClear();
-      (svc as any).installMasterPluginInsertAfterWidth([]);
+      engine.installMasterPluginInsertAfterWidth([]);
       expect(merger.connect).not.toHaveBeenCalled();
       expect(merger.disconnect).not.toHaveBeenCalled();
     });
+
+    it('leaves the master bus dry and unreported when the host has no AudioWorklet', () => {
+      const { engine, merger } = makeMasterEngine();
+      (engine as any)._pluginChainWorkletLoaded = false;
+      (engine as any).ctx = { currentTime: 0, sampleRate: 44100 };
+
+      engine.installMasterPluginInsertAfterWidth(['smuve.saturation.v2']);
+
+      expect(FakeWorkletNode.instances.length).toBe(0);
+      expect(merger.connect).not.toHaveBeenCalled();
+      expect(merger.disconnect).not.toHaveBeenCalled();
+      // The requested ids are not reported as installed, so the rack never
+      // shows a chain that is not actually running.
+      expect(engine.masterPluginIds()).toEqual([]);
+    });
+
+    it('does not double-install while a chain is already spliced', () => {
+      const { engine } = makeMasterEngine();
+
+      engine.installMasterPluginInsertAfterWidth(['smuve.saturation.v2']);
+      engine.installMasterPluginInsertAfterWidth(['smuve.saturation.v2']);
+
+      expect(FakeWorkletNode.instances.length).toBe(1);
+
+      engine.installMasterPluginInsertAfterWidth([]);
+    });
   });
+});
+
+// =====================================================================
+// Deck send default — regression: a fresh createGain() starts at unity,
 });
 
 // =====================================================================

@@ -481,7 +481,7 @@ export class PluginStoreService {
   }
 
   setParam(pluginId: string, paramId: string, value: number): void {
-    const manifest = this.catalog.find((p) => p.id === pluginId);
+    const manifest = this.manifestFor(pluginId);
     const param = manifest?.params.find((p) => p.id === paramId);
     const clamped = param ? clamp(value, param.min, param.max) : value;
     this.paramOverrides.update((all) => ({
@@ -497,7 +497,7 @@ export class PluginStoreService {
 
   /** Effective (override-or-default) param values for a plugin. */
   valuesFor(pluginId: string): Record<string, number> {
-    const manifest = this.catalog.find((p) => p.id === pluginId);
+    const manifest = this.manifestFor(pluginId);
     const base: Record<string, number> = {};
     for (const p of manifest?.params ?? []) base[p.id] = p.default;
     return { ...base, ...(this.paramOverrides()[pluginId] ?? {}) };
@@ -505,14 +505,44 @@ export class PluginStoreService {
 
   /** Kernel Float32Array for a plugin with current values. */
   kernelParamsFor(pluginId: string): Float32Array {
-    const manifest = this.catalog.find((p) => p.id === pluginId);
+    const manifest = this.manifestFor(pluginId);
     if (!manifest) return new Float32Array();
     return manifest.buildParams(this.valuesFor(pluginId));
   }
 
+  /**
+   * The loaded kernel for a plugin id, or null while its module is still in
+   * flight. Resolves through `manifestFor`, so a community plugin's declared
+   * kernel name is honoured exactly like a built-in's.
+   */
+  kernelFor(pluginId: string): DspKernelFn | null {
+    const manifest = this.manifestFor(pluginId);
+    if (!manifest) return null;
+    return this.loader.getModule(pluginId)?.getKernel(manifest.kernelName) ?? null;
+  }
+
+  /**
+   * The live insert slot for a plugin id — kernel name plus its params in
+   * kernel order — or null while the kernel is still loading. This is the
+   * hand-off to `AudioEngineService`'s live plugin chain: the
+   * `plugin-chain-processor` worklet resolves the kernel by name on the audio
+   * thread, so only the name and the params have to cross over.
+   */
+  liveInsertSlot(
+    pluginId: string
+  ): { id: string; kernel: string; params: Float32Array } | null {
+    const manifest = this.manifestFor(pluginId);
+    if (!manifest || !this.kernelFor(pluginId)) return null;
+    return {
+      id: pluginId,
+      kernel: manifest.kernelName,
+      params: this.kernelParamsFor(pluginId),
+    };
+  }
+
   /** Load (and cache) a plugin's WasmDspModule — Wasm first, JS fallback. */
   async loadModule(pluginId: string): Promise<WasmDspModule | null> {
-    const manifest = this.catalog.find((p) => p.id === pluginId);
+    const manifest = this.manifestFor(pluginId);
     if (!manifest) return null;
     return this.loader.loadModule(pluginId, {
       wasmUrl: manifest.wasmUrl,
@@ -529,7 +559,7 @@ export class PluginStoreService {
     buffer: AudioBuffer,
     pluginId: string
   ): Promise<AudioBuffer> {
-    const manifest = this.catalog.find((p) => p.id === pluginId);
+    const manifest = this.manifestFor(pluginId);
     if (!manifest) return buffer;
     const module = await this.loadModule(pluginId);
     const kernel: DspKernelFn | null = module?.getKernel(manifest.kernelName) ?? null;

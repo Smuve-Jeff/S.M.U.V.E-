@@ -21,6 +21,39 @@ import {
 export type DeckId = 'A' | 'B';
 
 export type CrossfaderCurve = 'linear' | 'power' | 'exp' | 'cut';
+/**
+ * One live plugin insert slot. `kernel` is the name the
+ * `plugin-chain-processor` worklet resolves on the audio thread
+ * ('compressor' | 'limiter' | 'eq' | 'saturate' | 'process'); an unknown name
+ * runs the worklet's identity kernel, so a chain never mutes the track.
+ */
+export interface LivePluginSlot {
+  id: string;
+  kernel: string;
+  params: Float32Array;
+}
+
+/**
+ * Resolves a plugin-id chain to live slots. Called from the engine's chain
+ * poller rather than from an audio callback, so an implementation may touch
+ * the plugin store (read params, check which modules finished loading).
+ */
+export type LivePluginChainProvider = (
+  ids: string[]
+) => Array<LivePluginSlot | null> | null;
+
+/** A live plugin insert hosted by the audio rendering thread. */
+interface LivePluginInsert {
+  node: AudioWorkletNode;
+  /** 1 = mono insert (track), 2 = stereo insert (master bus). */
+  channels: 1 | 2;
+  ids: string[];
+  provider?: LivePluginChainProvider;
+  /** Last chain posted to the audio thread — the poll only sends changes. */
+  signature: string;
+  /** Chain poller; stopped when the insert is removed. */
+  poll: ReturnType<typeof setInterval> | null;
+}
 
 /** Synth LFO settings (Synth view → Filter Modulation). */
 export interface LfoState {
@@ -367,6 +400,8 @@ export class AudioEngineService {
   private readonly antialiasEnabled = signal(true);
   private readonly ditherEnabled = signal(true);
   private ditherNode: GainNode | null = null;
+  /** Looping noise buffer feeding `ditherNode` while dithering is on. */
+  private ditherNoiseSource: AudioBufferSourceNode | null = null;
   private oversampleNodes: Map<string, { up: GainNode; down: GainNode }> =
     new Map();
 
@@ -492,8 +527,8 @@ export class AudioEngineService {
   private trackFaderGains = new Map<string, GainNode>();
   private trackAuxSends = new Map<string, Map<string, GainNode>>();
   private trackEffectsRacks = new Map<string, DynamicEffectsRack>();
-  /** Sprint B1 Phase 2 — live WASM plugin insert ScriptProcessors per track. */
-  private trackPluginInserts = new Map<string, ScriptProcessorNode>();
+  /** Sprint B1 Phase 2 — live WASM plugin insert worklets per track. */
+  private trackPluginInserts = new Map<string, LivePluginInsert>();
 
   public tempo = signal(124.0);
   public isPlaying = signal(false);
@@ -734,6 +769,7 @@ export class AudioEngineService {
       if (canUseWorklet) {
         this.initMasterWorklet();
         this.initWorklet();
+        this.initPluginChainWorklet();
       } else {
         this.logger.info(
           'AudioWorklet unavailable in this host; using the main-thread audio path.'
@@ -2008,27 +2044,43 @@ export class AudioEngineService {
   }
 
   /**
-   * Install / remove a live WASM plugin insert on the master bus with a
-   * fixed splice point. The ScriptProcessor is spliced between the M/S
-   * width merger and the pre-master bus — NOT at masterGain — so the width
-   * network stays in the signal path and removal never leaves a bypass
-   * edge behind. Supersedes the legacy `installMasterPluginInsert`, which
-   * spliced at masterGain (bypassing the width stage) and re-connected a
-   * direct masterGain → pre-master edge on teardown.
+   * Install / remove a live plugin insert on the master bus with a fixed
+   * splice point. The plugin-chain worklet is spliced between the M/S width
+   * merger and the pre-master bus — NOT at masterGain — so the width network
+   * stays in the signal path and removal never leaves a bypass edge behind.
+   *
+   * The chain runs on the audio rendering thread. A 512-frame
+   * `createScriptProcessor` block at 48 kHz is ~10.7 ms of DSP, and it used to
+   * run on the same thread that renders the arrangement, the piano roll and the
+   * mixer — which is what made every enabled plugin a note-entry jitter source,
+   * i.e. the "feels cheap on Android" symptom.
+   *
+   * `getChain` resolves the live chain to slot descriptions (kernel name plus
+   * the kernel's params in kernel order) and is polled while the insert is
+   * installed, so a knob move — or a module that finishes loading
+   * asynchronously — reaches the audio thread on the next tick.
    */
   installMasterPluginInsertAfterWidth(
     pluginIds: string[],
-    getKernels?: (ids: string[]) => Array<((input: Float32Array, output: Float32Array, params: Float32Array, sr: number) => void) | null> | null
+    getChain?: LivePluginChainProvider
   ): void {
     if (pluginIds.length === 0) {
       // Restore the width-merger → pre-master edge + drop the insert.
       // Only touch the graph when an insert was actually installed; the
       // default path (merger → preMasterGain) is left untouched otherwise.
-      if (this.masterPluginInsert) {
+      const insert = this.masterPluginInsert;
+      if (insert) {
         try {
-          this.masterWidthMerger.disconnect(this.masterPluginInsert);
-        } catch { /* already disconnected */ }
-        try { this.masterPluginInsert.disconnect(); } catch { /* already disconnected */ }
+          this.masterWidthMerger.disconnect(insert.node);
+        } catch {
+          /* already disconnected */
+        }
+        this.stopPluginChainPoll(insert);
+        try {
+          insert.node.disconnect();
+        } catch {
+          /* already disconnected */
+        }
         this.masterPluginInsert = null;
         this.masterWidthMerger.connect(this._preMasterGain);
       }
@@ -2038,45 +2090,30 @@ export class AudioEngineService {
 
     if (this.masterPluginInsert) return; // already installed — toggle handled elsewhere
 
-    const sp = this.ctx.createScriptProcessor(512, 2, 2);
-    // If no closure was provided, the kernel pass-through is a no-op (the
-    // caller — Effects Rack UI / collab dispatch — supplies a real one).
-    const kernelProvider =
-      getKernels ?? ((ids: string[]) => ids.map(() => null));
+    // The worklet module loads asynchronously; re-enter this install once it
+    // lands so a plugin toggled during boot still reaches the audio thread.
+    if (
+      !this.whenPluginChainWorkletReady(() =>
+        this.installMasterPluginInsertAfterWidth(pluginIds, getChain)
+      )
+    ) {
+      return;
+    }
 
-    sp.onaudioprocess = (e: AudioProcessingEvent) => {
-      const kernels = kernelProvider(pluginIds);
-      if (!kernels || kernels.length === 0) return;
-      const leftIn = e.inputBuffer.getChannelData(0);
-      const rightIn = e.inputBuffer.getChannelData(1);
-      const leftOut = e.outputBuffer.getChannelData(0);
-      const rightOut = e.outputBuffer.getChannelData(1);
-      const frames = new Float32Array(leftIn.length * 2);
-      const processed = new Float32Array(frames.length);
-      for (let i = 0; i < leftIn.length; i++) {
-        frames[i * 2] = leftIn[i];
-        frames[i * 2 + 1] = rightIn[i];
-      }
-      for (const kernel of kernels) {
-        if (!kernel) continue;
-        kernel(frames, processed, new Float32Array(), this.ctx.sampleRate);
-        frames.set(processed);
-      }
-      for (let i = 0; i < leftOut.length; i++) {
-        leftOut[i] = frames[i * 2];
-        rightOut[i] = frames[i * 2 + 1];
-      }
-    };
+    const insert = this.createLivePluginInsert(pluginIds, getChain, 2);
+    if (!insert) return;
 
     // Splice the insert between the M/S width merger and the pre-master
     // bus so the master-width network stays in the path (splicing at
     // masterGain would bypass it and double-feed the pre-master bus).
     try {
       this.masterWidthMerger.disconnect(this._preMasterGain);
-    } catch { /* already disconnected */ }
-    this.masterWidthMerger.connect(sp);
-    sp.connect(this._preMasterGain);
-    this.masterPluginInsert = sp;
+    } catch {
+      /* already disconnected */
+    }
+    this.masterWidthMerger.connect(insert.node);
+    insert.node.connect(this._preMasterGain);
+    this.masterPluginInsert = insert;
     this.masterPluginIds.set([...pluginIds]);
   }
 
@@ -2564,22 +2601,34 @@ export class AudioEngineService {
     if (enabled && !this.ditherNode) {
       this.ditherNode = this.ctx.createGain();
       this.ditherNode.gain.value = 0.00003; // ~ -90dB TPDF dither
-      // Inject shaped noise via script processor
+      // The noise is pure data, so it comes from a looping buffer instead of a
+      // `createScriptProcessor` callback: one allocation, and zero per-block JS
+      // on the main thread. Same amplitude and distribution as the old source.
       try {
-        const sp = this.ctx.createScriptProcessor(256, 0, 1);
-        sp.onaudioprocess = (e) => {
-          const out = e.outputBuffer.getChannelData(0);
-          for (let i = 0; i < out.length; i++) {
-            out[i] = (Math.random() * 2 - 1) * 0.00003;
-          }
-        };
-        sp.connect(this.ditherNode);
+        const frames = Math.max(1, Math.floor(this.ctx.sampleRate * 2));
+        const noise = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
+        const data = noise.getChannelData(0);
+        for (let i = 0; i < frames; i++) {
+          data[i] = (Math.random() * 2 - 1) * 0.00003;
+        }
+        const source = this.ctx.createBufferSource();
+        source.buffer = noise;
+        source.loop = true;
+        source.connect(this.ditherNode);
         // Dither belongs in the signal the listener hears, not in a meter tap.
-        this.ditherNode!.connect(this.masterOutput);
+        this.ditherNode.connect(this.masterOutput);
+        source.start();
+        this.ditherNoiseSource = source;
       } catch {
-        /* ScriptProcessor deprecated in some contexts */
+        /* This host cannot build a noise source — dither stays off. */
       }
     } else if (!enabled && this.ditherNode) {
+      try {
+        this.ditherNoiseSource?.stop();
+      } catch {
+        /* already stopped */
+      }
+      this.ditherNoiseSource = null;
       this.ditherNode.disconnect();
       this.ditherNode = null;
     }
@@ -2693,17 +2742,23 @@ export class AudioEngineService {
 
   /**
    * Sprint B1 Phase 2 — live WASM plugin inserts.
-   * Inserts a ScriptProcessor between the track's effects rack and the width
-   * node so DSP kernels run on every render quantum while playing. An empty
-   * chain removes the insert and restores the direct rack → width routing.
    *
-   * `getKernels` returns the loaded kernel closures for the track's plugins
-   * (or null when the chain is empty); the engine handles node wiring only.
+   * Hosts the track's chain in a `plugin-chain-processor` worklet spliced
+   * between the effects rack and the width node, so the DSP runs on the audio
+   * rendering thread. An empty chain removes the insert and restores the
+   * direct rack → width routing.
+   *
+   * `getChain` resolves the live chain to slot descriptions (kernel name +
+   * params); the engine only wires nodes and pushes the chain to the audio
+   * thread. A plugin whose kernel has not loaded resolves to the worklet's
+   * identity kernel, i.e. audio passes through — the ScriptProcessor this
+   * replaced returned early on a missing provider *without* writing its output
+   * buffer, which silenced the track.
    */
   installTrackPluginInsert(
     trackId: string,
     pluginIds: string[],
-    getKernels?: (ids: string[]) => Array<((input: Float32Array, output: Float32Array, params: Float32Array, sr: number) => void) | null> | null
+    getChain?: LivePluginChainProvider
   ): void {
     this.getTrackOutput(trackId); // ensure signal chain exists
     const rack = this.trackEffectsRacks.get(trackId);
@@ -2714,116 +2769,228 @@ export class AudioEngineService {
     // Empty chain → remove any existing insert and restore direct routing.
     if (pluginIds.length === 0) {
       if (insert) {
-        try {
-          rack.output.disconnect(insert);
-          insert.disconnect();
-        } catch { /* already disconnected */ }
+        this.releaseTrackPluginInsert(trackId);
         rack.output.connect(width);
-        this.trackPluginInserts.delete(trackId);
       }
       return;
     }
 
     if (insert) return; // already installed — chain changes rebuild on next pass
 
-    const sp = this.ctx.createScriptProcessor(512, 1, 1);
-    const kernelProvider = getKernels ?? (() => null);
-    sp.onaudioprocess = (e: AudioProcessingEvent) => {
-      const kernels = kernelProvider(pluginIds);
-      if (!kernels || kernels.length === 0) return;
-      const input = e.inputBuffer.getChannelData(0);
-      const output = e.outputBuffer.getChannelData(0);
-      const frames = new Float32Array(input.length * 2);
-      const processed = new Float32Array(input.length * 2);
-      for (let i = 0; i < input.length; i++) {
-        frames[i * 2] = input[i];
-        frames[i * 2 + 1] = input[i];
-      }
-      for (const kernel of kernels) {
-        if (!kernel) continue;
-        kernel(frames, processed, new Float32Array(), this.ctx.sampleRate);
-        frames.set(processed);
-      }
-      for (let i = 0; i < output.length; i++) output[i] = frames[i * 2];
-    };
-
-    rack.output.disconnect(width);
-    rack.output.connect(sp);
-    sp.connect(width);
-    this.trackPluginInserts.set(trackId, sp);
-  }
-
-  // ── Master-bus live insert + audition (Sprint B1 Phase 3) ─────────────────
-
-  /** ScriptProcessor spliced between masterGain and preMasterGain for the
-   *  whole-mix live DSP chain. Null when disabled. */
-  private masterPluginInsert: ScriptProcessorNode | null = null;
-  /** Active plugin ids for the master-bus live insert. */
-  readonly masterPluginIds = signal<string[]>([]);
-
-  /**
-   * Enable / disable a live WASM plugin insert on the master bus. Splices a
-   * ScriptProcessor between masterGain and preMasterGain so every track
-   * flows through the chain while playing.
-   */
-  installMasterPluginInsert(
-    pluginIds: string[],
-    getKernels?: (ids: string[]) => Array<((input: Float32Array, output: Float32Array, params: Float32Array, sr: number) => void) | null> | null
-  ): void {
-    if (pluginIds.length === 0) {
-      // Restore direct routing + drop any existing insert.
-      try {
-        this.masterGain.disconnect(this.masterPluginInsert ?? this._preMasterGain);
-      } catch { /* already disconnected */ }
-      if (this.masterPluginInsert) {
-        try { this.masterPluginInsert.disconnect(); } catch {}
-        this.masterPluginInsert = null;
-      }
-      this.masterGain.connect(this._preMasterGain);
-      this.masterPluginIds.set([]);
+    if (
+      !this.whenPluginChainWorkletReady(() =>
+        this.installTrackPluginInsert(trackId, pluginIds, getChain)
+      )
+    ) {
       return;
     }
 
-    if (this.masterPluginInsert) return; // already installed — toggle handled elsewhere
+    const next = this.createLivePluginInsert(pluginIds, getChain, 1);
+    if (!next) return;
 
-    const sp = this.ctx.createScriptProcessor(512, 2, 2);
-    // If no closure was provided, the kernel pass-through is a no-op (the
-    // caller — Effects Rack UI / collab dispatch — supplies a real one).
-    const kernelProvider =
-      getKernels ?? ((ids: string[]) => ids.map(() => null));
-
-    sp.onaudioprocess = (e: AudioProcessingEvent) => {
-      const kernels = kernelProvider(pluginIds);
-      if (!kernels || kernels.length === 0) return;
-      const leftIn = e.inputBuffer.getChannelData(0);
-      const rightIn = e.inputBuffer.getChannelData(1);
-      const leftOut = e.outputBuffer.getChannelData(0);
-      const rightOut = e.outputBuffer.getChannelData(1);
-      const frames = new Float32Array(leftIn.length * 2);
-      const processed = new Float32Array(frames.length);
-      for (let i = 0; i < leftIn.length; i++) {
-        frames[i * 2] = leftIn[i];
-        frames[i * 2 + 1] = rightIn[i];
-      }
-      for (const kernel of kernels) {
-        if (!kernel) continue;
-        kernel(frames, processed, new Float32Array(), this.ctx.sampleRate);
-        frames.set(processed);
-      }
-      for (let i = 0; i < leftOut.length; i++) {
-        leftOut[i] = frames[i * 2];
-        rightOut[i] = frames[i * 2 + 1];
-      }
-    };
-
-    try {
-      this.masterGain.disconnect(this._preMasterGain);
-    } catch { /* already disconnected */ }
-    this.masterGain.connect(sp);
-    sp.connect(this._preMasterGain);
-    this.masterPluginInsert = sp;
-    this.masterPluginIds.set([...pluginIds]);
+    rack.output.disconnect(width);
+    rack.output.connect(next.node);
+    next.node.connect(width);
+    this.trackPluginInserts.set(trackId, next);
   }
+
+  /**
+   * Drop a track's live plugin insert and its chain poller without touching the
+   * mixer graph — for a deleted track, where rewiring the rack would be wrong.
+   */
+  releaseTrackPluginInsert(trackId: string): void {
+    const insert = this.trackPluginInserts.get(trackId);
+    if (!insert) return;
+    // Sever both edges, so a re-install (undo of a track deletion) cannot leave
+    // the old node silently fed by the rack.
+    try {
+      this.trackEffectsRacks.get(trackId)?.output.disconnect(insert.node);
+    } catch {
+      /* not connected */
+    }
+    this.stopPluginChainPoll(insert);
+    try {
+      insert.node.disconnect();
+    } catch {
+      /* already disconnected */
+    }
+    this.trackPluginInserts.delete(trackId);
+  }
+
+  // ── Live plugin insert host (plugin-chain-processor worklet) ─────────────
+
+  /**
+   * Chain poll period: fast enough that a knob move is audible on the next
+   * tick, slow enough that the signature diff costs nothing next to a render
+   * quantum on the audio thread.
+   */
+  private static readonly PLUGIN_CHAIN_POLL_MS = 200;
+
+  /** Live DSP insert spliced between the width merger and the pre-master bus. */
+  private masterPluginInsert: LivePluginInsert | null = null;
+  /** Active plugin ids for the master-bus live insert. */
+  readonly masterPluginIds = signal<string[]>([]);
+
+  private _pluginChainWorkletLoaded = false;
+  private _pluginChainWorkletInitPromise: Promise<boolean> | null = null;
+
+  /**
+   * Register the plugin-chain worklet module once. Resolves false when this
+   * host cannot host AudioWorklet DSP; a live insert then stays dry
+   * (unprocessed, never silent) rather than falling back to main-thread DSP,
+   * which is the cost this worklet exists to remove.
+   */
+  private initPluginChainWorklet(): Promise<boolean> {
+    if (this._pluginChainWorkletLoaded) return Promise.resolve(true);
+    if (this._pluginChainWorkletInitPromise) {
+      return this._pluginChainWorkletInitPromise;
+    }
+
+    this._pluginChainWorkletInitPromise = (async () => {
+      try {
+        if (
+          typeof (this.ctx as any).audioWorklet?.addModule !== 'function' ||
+          typeof AudioWorkletNode === 'undefined'
+        ) {
+          this.logger.warn(
+            'AudioEngine: this host has no AudioWorklet, so live plugin inserts stay dry.'
+          );
+        } else {
+          await this.ctx.audioWorklet.addModule(
+            'assets/worklets/plugin-chain-processor.worklet.js'
+          );
+          this._pluginChainWorkletLoaded = true;
+          this.logger.info(
+            'AudioEngine: plugin-chain worklet active — live plugin inserts run on the audio thread.'
+          );
+        }
+      } catch (err: any) {
+        this.logger.warn(
+          'AudioEngine: plugin-chain worklet load failed, live plugin inserts stay dry.',
+          err?.message
+        );
+      }
+      // Only a successful load is cached: a transient failure (offline boot, a
+      // cancelled fetch) must not disable live inserts for the whole session.
+      if (!this._pluginChainWorkletLoaded) {
+        this._pluginChainWorkletInitPromise = null;
+      }
+      return this._pluginChainWorkletLoaded;
+    })();
+
+    return this._pluginChainWorkletInitPromise;
+  }
+
+  /**
+   * True when the worklet module is already registered. Otherwise the module
+   * load is kicked off and `apply` runs as soon as it lands, so a plugin
+   * toggled during boot still reaches the audio thread.
+   */
+  private whenPluginChainWorkletReady(apply: () => void): boolean {
+    if (this._pluginChainWorkletLoaded) return true;
+    void this.initPluginChainWorklet().then((ready) => {
+      if (ready) apply();
+    });
+    return false;
+  }
+
+  /** Build the worklet node and start polling the chain into it. */
+  private createLivePluginInsert(
+    pluginIds: string[],
+    provider: LivePluginChainProvider | undefined,
+    channels: 1 | 2
+  ): LivePluginInsert | null {
+    let node: AudioWorkletNode;
+    try {
+      node = new AudioWorkletNode(this.ctx, 'plugin-chain-processor', {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        channelCount: channels,
+        channelCountMode: 'explicit',
+        channelInterpretation: 'speakers',
+        outputChannelCount: [channels],
+        processorOptions: { channels },
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        'AudioEngine: plugin-chain node creation failed, insert stays dry.',
+        err?.message
+      );
+      return null;
+    }
+
+    const insert: LivePluginInsert = {
+      node,
+      channels,
+      ids: [...pluginIds],
+      provider,
+      signature: '',
+      poll: null,
+    };
+    this.pushPluginChain(insert);
+    insert.poll = setInterval(
+      () => this.pushPluginChain(insert),
+      AudioEngineService.PLUGIN_CHAIN_POLL_MS
+    );
+    return insert;
+  }
+
+  /**
+   * Resolve the chain and hand it to the audio thread — but only when it
+   * actually changed, since the poll runs five times a second for the life of
+   * the insert.
+   */
+  private pushPluginChain(insert: LivePluginInsert): void {
+    const slots = this.resolveLiveChain(insert.ids, insert.provider);
+    const signature = slots
+      .map(
+        (slot) => `${slot.id}:${slot.kernel}:${Array.from(slot.params).join(',')}`
+      )
+      .join('|');
+    if (signature === insert.signature) return;
+    insert.signature = signature;
+    try {
+      insert.node.port.postMessage({ type: 'chain', slots });
+    } catch (err: any) {
+      // A closed context or a detached port must never take the engine down.
+      this.logger.warn(
+        'AudioEngine: could not push the live plugin chain.',
+        err?.message
+      );
+    }
+  }
+
+  /**
+   * One slot per requested plugin id, in chain order. A plugin with no loaded
+   * kernel — a module still in flight, a community kernel this build does not
+   * ship — resolves to the worklet's identity kernel, so the running chain
+   * matches the rack the artist is looking at and never turns into silence.
+   */
+  private resolveLiveChain(
+    ids: string[],
+    provider: LivePluginChainProvider | undefined
+  ): LivePluginSlot[] {
+    const provided = provider ? provider(ids) : null;
+    return ids.map((id, index) => {
+      const slot = provided?.[index];
+      if (!slot) return { id, kernel: 'identity', params: new Float32Array(0) };
+      return {
+        id: slot.id || id,
+        kernel: slot.kernel || 'identity',
+        params: slot.params?.length ? slot.params : new Float32Array(0),
+      };
+    });
+  }
+
+  /** Stop an insert's chain poller. Safe to call twice. */
+  private stopPluginChainPoll(insert: LivePluginInsert): void {
+    if (insert.poll !== null) {
+      clearInterval(insert.poll);
+      insert.poll = null;
+    }
+  }
+
+  // ── Master-bus live insert + audition (Sprint B1 Phase 3) ─────────────────
 
   // ── Audition (Sprint B1 Phase 3) — play polished offline render via the live ctx ─
 

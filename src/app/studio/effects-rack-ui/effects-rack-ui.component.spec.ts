@@ -73,6 +73,7 @@ describe("EffectsRackUiComponent", () => {
     ],
     preload: jest.fn(),
     manifestFor: jest.fn(() => ({ kernelName: "process" })),
+    liveInsertSlot: jest.fn(() => null),
     loader: { getModule: jest.fn() },
   };
 
@@ -212,5 +213,30 @@ describe("EffectsRackUiComponent", () => {
     audioEngineMock.masterPluginIds.set([]);
     component.sendActiveToLiveChain();
     expect(musicManagerMock.setTrackPlugins).toHaveBeenCalledTimes(1);
+  });
+
+  it("hands the master chain to the engine as resolvable live slots", () => {
+    const params = new Float32Array([0.4, 1, 0]);
+    pluginStoreMock.liveInsertSlot.mockReturnValue({
+      id: "smuve.saturation.v2",
+      kernel: "saturate",
+      params,
+    });
+
+    component.installMasterChain(["smuve.saturation.v2"]);
+
+    expect(pluginStoreMock.preload).toHaveBeenCalledWith(["smuve.saturation.v2"]);
+    const provider =
+      audioEngineMock.installMasterPluginInsertAfterWidth.mock.calls[0][1];
+    expect(provider(["smuve.saturation.v2"])).toEqual([
+      { id: "smuve.saturation.v2", kernel: "saturate", params },
+    ]);
+
+    // A plugin whose kernel is still loading resolves to nothing; the engine
+    // turns that into its identity kernel rather than dropping the slot.
+    pluginStoreMock.liveInsertSlot.mockReturnValue(null);
+    component.installMasterChain(["smuve.community.v1"]);
+    const second = audioEngineMock.installMasterPluginInsertAfterWidth.mock.calls[1][1];
+    expect(second(["smuve.community.v1"])).toEqual([null]);
   });
 });

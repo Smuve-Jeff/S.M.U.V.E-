@@ -232,4 +232,66 @@ describe('PluginStoreService (Sprint B1)', () => {
       expect(block).toEqual(copy);
     });
   });
+
+  describe('live insert hand-off (the audio thread runs the chain)', () => {
+    it('resolves a slot only once the kernel is loaded', async () => {
+      expect(svc.kernelFor('smuve.saturation.v2')).toBeNull();
+      expect(svc.liveInsertSlot('smuve.saturation.v2')).toBeNull();
+
+      await svc.loadModule('smuve.saturation.v2');
+
+      expect(svc.kernelFor('smuve.saturation.v2')).not.toBeNull();
+      const slot = svc.liveInsertSlot('smuve.saturation.v2')!;
+      expect(slot.kernel).toBe('saturate'); // the manifest's kernel name
+      expect(slot.params.length).toBe(3); // [amount, mix, mode]
+      expect(slot.params[0]).toBeCloseTo(0.2, 6);
+    });
+
+    it('carries param overrides into the slot the engine runs', async () => {
+      await svc.loadModule('smuve.saturation.v2');
+      svc.setParam('smuve.saturation.v2', 'amount', 0.75);
+
+      const slot = svc.liveInsertSlot('smuve.saturation.v2')!;
+      expect(Array.from(slot.params)).toEqual([0.75, 1, 0]);
+    });
+
+    it('resolves a community plugin through its manifest kernel name', async () => {
+      const id = svc.importCommunityPlugin(
+        JSON.stringify({
+          format: 'smuve-plugin',
+          manifest: {
+            id: 'smuve.chorus.v1',
+            name: 'Chorus',
+            version: '1.0.0',
+            author: 'Community',
+            category: 'EQ',
+            description: 'test',
+            icon: 'x',
+            kernelName: 'eq',
+            params: [
+              { id: 'depth', label: 'Depth', min: 0, max: 1, step: 0.01, default: 0.3 },
+              { id: 'rate', label: 'Rate', min: 0, max: 5, step: 0.1, default: 1 },
+            ],
+          },
+        })
+      );
+
+      // Clamped against the community manifest, and delivered in order.
+      svc.setParam(id, 'rate', 99);
+      expect(svc.valuesFor(id)).toEqual({ depth: 0.3, rate: 5 });
+      const params = Array.from(svc.kernelParamsFor(id));
+      expect(params[0]).toBeCloseTo(0.3, 5);
+      expect(params[1]).toBe(5);
+
+      await svc.loadModule(id);
+      const slot = svc.liveInsertSlot(id)!;
+      expect(slot.kernel).toBe('eq');
+      expect(Array.from(slot.params)).toEqual(params);
+    });
+
+    it('returns null for an unknown plugin id', () => {
+      expect(svc.kernelFor('smuve.nope.v1')).toBeNull();
+      expect(svc.liveInsertSlot('smuve.nope.v1')).toBeNull();
+    });
+  });
 });

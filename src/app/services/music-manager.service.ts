@@ -443,8 +443,8 @@ export class MusicManagerService {
 
   /**
    * Sprint B1 Phase 2 — set a track's WASM plugin insert chain. Persists on
-   * the model and installs the live ScriptProcessor insert in the audio
-   * graph (kernels run on every render quantum while playing).
+   * the model and installs the live insert in the audio graph, where the
+   * plugin-chain worklet runs the kernels on the audio thread.
    */
   setTrackPlugins(trackId: string, pluginIds: string[]): void {
     const t = this.tracks().find((x) => x.id === trackId);
@@ -457,17 +457,27 @@ export class MusicManagerService {
         this.tracks.update((ts) =>
           ts.map((x) => (x.id === trackId ? { ...x, pluginIds: next } : x))
         );
-        this.engine.installTrackPluginInsert(trackId, next);
+        this.engine.installTrackPluginInsert(trackId, next, this.liveChainFor);
         this.pluginStore.preload(next);
       },
       () => {
         this.tracks.update((ts) =>
           ts.map((x) => (x.id === trackId ? { ...x, pluginIds: prev } : x))
         );
-        this.engine.installTrackPluginInsert(trackId, prev);
+        this.engine.installTrackPluginInsert(trackId, prev, this.liveChainFor);
       }
     );
   }
+
+  /**
+   * Resolve a plugin chain to live insert slots for the audio engine. Read by
+   * the engine's chain poller (never from an audio callback), so a plugin whose
+   * module is still loading resolves to null — the worklet then passes audio
+   * through until the next poll picks the kernel up.
+   */
+  private liveChainFor = (ids: string[]) =>
+    ids.map((id) => this.pluginStore.liveInsertSlot(id));
+
 
   // ── Macro FX slots ────────────────────────────────────────────────
 
@@ -649,6 +659,9 @@ export class MusicManagerService {
     this.runCommand(
       'Remove Track · ' + snapshot.name,
       () => {
+        // Drop the live insert (and its chain poller) with the track: the mixer
+        // nodes stay behind, so rewiring the rack here would be wrong.
+        this.engine.releaseTrackPluginInsert(id);
         this.tracks.update((ts) => ts.filter((t) => t.id !== id));
         if (this.selectedTrackId() === id) this.selectedTrackId.set(null);
       },
@@ -659,6 +672,13 @@ export class MusicManagerService {
           return next;
         });
         this.selectedTrackId.set(prevSelected);
+        if (snapshot.pluginIds?.length) {
+          this.engine.installTrackPluginInsert(
+            id,
+            snapshot.pluginIds,
+            this.liveChainFor
+          );
+        }
       }
     );
   }
