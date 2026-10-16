@@ -141,7 +141,7 @@ export class AiService {
   personaDirectives(): string {
     const ai = this.userProfileService.profile().settings?.ai;
     const persona = getPersonaOption(ai?.commanderPersona);
-    const profanity = ai?.aiProfanityEnabled === true;
+    const profanity = this.explicitLanguageEnabled();
     const intensity = ai?.aiPersonaIntensityEnabled === true;
     const totalControl = ai?.aiTotalControlEnabled === true;
 
@@ -273,9 +273,26 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   }
 
   /** Applies the same profile preference to online and deterministic replies. */
+  /**
+   * Whether the artist's profile permits explicit language.
+   *
+   * The default is UNLOCKED. `initialProfile` ships `aiProfanityEnabled: true`
+   * and the spoken path has always defaulted to allow, but this decision used to
+   * be made with `=== true` in three places — so a profile that predates the
+   * key, or an import that arrives without it, read as DISABLED and silently
+   * stripped the character: the reply text was censored here, the roast lines
+   * were censored in `processCommand`, and the prompt itself was told
+   * "LANGUAGE — LOCKED", so the model wrote clean copy from the start. Only an
+   * explicit artist choice may sanitize S.M.U.V.E.
+   */
+  private explicitLanguageEnabled(): boolean {
+    const setting =
+      this.userProfileService.profile().settings?.ai?.aiProfanityEnabled;
+    return typeof setting === 'boolean' ? setting : true;
+  }
+
   sanitizePersonaText(text: string): string {
-    return this.userProfileService.profile().settings?.ai?.aiProfanityEnabled ===
-      true
+    return this.explicitLanguageEnabled()
       ? text
       : this.sanitizeExplicitLanguage(text);
   }
@@ -489,8 +506,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
             artist: profile.artistName || 'artist',
           })
         : responses[Math.floor(Math.random() * responses.length)];
-      return this.userProfileService.profile().settings?.ai?.aiProfanityEnabled ===
-        true
+      return this.explicitLanguageEnabled()
         ? response
         : this.sanitizeExplicitLanguage(response);
     } finally {

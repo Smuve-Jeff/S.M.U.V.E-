@@ -1092,10 +1092,12 @@ export class SmuveTotalControlService {
         message: `Persona intensity ${!current ? 'MAXIMUM — no cushioning, no disclaimers' : 'standard'}.`,
       };
     }
-    // Profanity toggle
+    // Profanity toggle. Explicit language is the default, so an unset key
+    // reports as ENABLED (matching the reply text, the roast lines and the
+    // spoken path) instead of announcing a lock that is not in effect.
     if (cmd.action === 'profanity' || cmd.action === 'vulgar') {
       const current =
-        this.userProfile.profile().settings?.ai?.aiProfanityEnabled === true;
+        this.userProfile.profile().settings?.ai?.aiProfanityEnabled !== false;
       await this.patchAiSetting('aiProfanityEnabled', !current);
       return {
         success: true,

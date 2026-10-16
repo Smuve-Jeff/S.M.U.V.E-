@@ -211,3 +211,69 @@ Still unverified: on-device playback in the packaged Android/iOS shell — wheth
 its engine publishes any voices at all is a device measurement, not an
 inference, and the native dictation round-trip from the second pass remains
 open.
+
+## Core identity — persona, language, and the changing voice (2026-10-16)
+
+Output access was closed; this pass audited whether the *character* itself
+survives to the speaker, and deepened the per-sentence voice change.
+
+### What the audit found
+
+1. **An unanswered language question silently censored S.M.U.V.E.** Three
+   separate decisions were made with `aiProfanityEnabled === true`:
+   `sanitizePersonaText` censored the reply text, `processCommand` censored the
+   roast lines, and `personaDirectives` injected `LANGUAGE — LOCKED` into the
+   prompt — while `initialProfile` ships the setting as `true` and the spoken
+   path already defaulted to allow. A profile that predates the key, or an
+   import that arrives without it, therefore read as *disabled* and the artist
+   got a sanitized assistant everywhere at once.
+2. **The Ominous Protocol anchor existed only for the first sentence of a
+   session.** `sessionOpened` was per service instance, so after the opening
+   reply the signature persona never returned — an exchange could open on
+   Soprano, Childlike Glitch or the Choir instead.
+3. **The non-human archetypes had no delivery of their own.** Pitch, rate,
+   volume and browser voice all changed per sentence, but Creature, Childlike
+   Glitch and the layered Choir were one reader at three pitches, and every
+   sentence ended the same way.
+
+### Fixes
+
+- `AiService.explicitLanguageEnabled()` — one resolver for the setting, default
+  UNLOCKED, used by the prompt directive, `sanitizePersonaText` and
+  `processCommand`. Only an explicit `false` from the artist censors anything.
+  The Total Control `profanity` readout uses `!== false` so the reported state
+  matches the effective one.
+- **The signature persona anchors every exchange.** `speakNow` claims the anchor
+  for the opening sentence of each reply; `takeReplyAnchor()` yields when the
+  previous sentence already spoke Ominous Protocol, so the
+  change-every-sentence promise outranks the reassertion, and the anchor is
+  filtered out of the spectrum deck so it can never double up inside one reply.
+- **`VoiceTexture`** — `plain | stutter | growl | choral` — applied to the
+  SPOKEN text only (the transcript stays verbatim): the glitch repeats its
+  opening sound (`Fi-Fix the low end.`), the creature growls in and drawls a
+  vowel, the choir answers itself. A rotating breath gesture (`…`, `—`, `...`)
+  never repeats twice running, so consecutive sentences do not breathe alike
+  either. The live readout now reports the texture.
+
+### Verification
+
+- **Unit — 130 passed across 5 suites** (speech-synthesis, ai, chatbot, widget,
+  total control). New cases: every reply opens on the chosen signature
+  archetype; a reply that would repeat the previous tone opens elsewhere
+  instead; each non-human archetype is spoken in its own texture and reports it;
+  human personas stay `plain` and never repeat the previous breath gesture; an
+  unset `aiProfanityEnabled` keeps `LANGUAGE — UNLOCKED` and passes profanity
+  through `sanitizePersonaText`; an explicit `false` still censors; offline
+  roasts are uncensored when unlocked.
+- **Types/build** — `tsc --noEmit` clean for app and specs; production AOT build
+  succeeds.
+- **e2e, real Chromium — 2 passed (14 s).** The spectrum run now opens on
+  `Ominous Protocol` and then rolls the deck with its textures
+  (`Childlike Glitch … stutter`, `Choir (Layered) … choral`, `Creature … growl`,
+  humans `plain`), all 11 distinct tones, all three bands with no back-to-back
+  repeat. A **later exchange opens on `Ominous Protocol` again** — printed as
+  `VOICE // Ominous Protocol · low · Fake Female Voice B · plain` — which is the
+  per-exchange anchor observed in the running app. In the second spec's exchange
+  boundary the app had just spoken the anchor, and the next exchange correctly
+  opened on a different tone rather than doubling it.
+

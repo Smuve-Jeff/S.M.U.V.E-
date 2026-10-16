@@ -62,6 +62,16 @@ export type VoiceOutputCapability =
 /** How long to wait for the engine's asynchronous voice list before giving up. */
 const VOICE_LIST_WAIT_MS = 1200;
 
+/**
+ * How a sentence is delivered, beyond the voice that speaks it.
+ *
+ * Pitch/rate/volume and the browser voice already change every sentence, but
+ * the non-human personas were still the same reader at a different pitch. The
+ * texture belongs to the archetype and is applied to the SPOKEN text only —
+ * the transcript the artist reads back stays verbatim.
+ */
+export type VoiceTexture = 'plain' | 'stutter' | 'growl' | 'choral';
+
 /** Live readout of the voice currently speaking — archetype, band, voice, pitch. */
 export interface VoiceReadout {
   archetype: string;
@@ -71,6 +81,8 @@ export interface VoiceReadout {
   rate: number;
   /** Human-readable prosody state for the live UI; native browser voices remain the fallback. */
   prosody: 'measured' | 'urgent' | 'conversational' | 'dramatic';
+  /** Delivery texture used for this sentence (`plain` for human personas). */
+  texture: VoiceTexture;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -259,8 +271,10 @@ export class SpeechSynthesisService {
   private archetypeHistory: number[] = [];
   /** Full-spectrum deck — one vocal tone per sentence, no tone twice until all are used. */
   private spectrumDeck: SmuveArchetype[] = [];
-  /** False until the first default sentence anchors the session in the signature tone. */
-  private sessionOpened = false;
+  /** True until the opening sentence of the current reply has taken the anchor. */
+  private replyAnchorPending = false;
+  /** Last breath gesture, so consecutive sentences never breathe the same way. */
+  private lastBreathGesture: string | null = null;
 
   private userProfile = inject(UserProfileService, { optional: true });
   private logger = inject(LoggingService, { optional: true });
@@ -418,21 +432,38 @@ export class SpeechSynthesisService {
 
     this.cancel();
 
+    // The signature persona reasserts itself on the opening sentence of every
+    // reply (see `takeReplyAnchor`). A forced archetype — mimic / register mode
+    // — replaces the anchor instead of competing with it.
+    this.replyAnchorPending =
+      this.defaultToOminous && options?.forceArchetype === undefined;
+
     // Build one utterance per sentence (queued by the platform in order),
-    // each carrying its own voice meta for the live readout.
+    // each carrying its own voice meta for the live readout. The archetype is
+    // drawn BEFORE the line is finished, because the delivery texture belongs
+    // to the voice that is about to speak it.
     const utterances: {
       utterance: SpeechSynthesisUtterance;
       meta: VoiceReadout;
     }[] = sentences
       .map((sentence) => {
-        const processed = this.applyAuthoritativePronunciation(sentence);
-        const trimmed = processed.trim();
-        if (!trimmed) return null;
-        const utterance = new SpeechSynthesisUtterance(trimmed);
-        const meta = this.configureSentenceUtterance(utterance, options, trimmed);
+        const processed = this.applyAuthoritativePronunciation(sentence).trim();
+        if (!processed) return null;
+        const archetype = this.selectDynamicArchetype(options);
+        const utterance = new SpeechSynthesisUtterance(
+          this.deliverLine(archetype, processed)
+        );
+        const meta = this.configureSentenceUtterance(
+          utterance,
+          options,
+          processed,
+          archetype
+        );
         return { utterance, meta };
       })
       .filter((u): u is { utterance: SpeechSynthesisUtterance; meta: VoiceReadout } => u !== null);
+
+    this.replyAnchorPending = false;
 
     utterances.forEach(({ utterance, meta }, index) => {
       utterance.onstart = () => {
@@ -490,6 +521,8 @@ export class SpeechSynthesisService {
       pitch: utterance.pitch,
       rate: utterance.rate,
       prosody: this.prosodyFor(text, utterance.rate),
+      // Stable mode is the accessibility fallback: one voice, one delivery.
+      texture: 'plain',
     };
     utterance.onstart = () => {
       this.isSpeaking.set(true);
@@ -535,30 +568,53 @@ export class SpeechSynthesisService {
         return forced;
       }
     }
-    return this.nextSpectrumArchetype();
+    return this.nextSpectrumArchetype(this.takeReplyAnchor());
+  }
+
+  /**
+   * True exactly once per reply, for the sentence that carries the signature
+   * persona. Skipped when the previous sentence already spoke it: the
+   * change-every-sentence promise outranks the reassertion.
+   */
+  private takeReplyAnchor(): boolean {
+    if (!this.replyAnchorPending) return false;
+    this.replyAnchorPending = false;
+    const ominous = this.ominousArchetype();
+    return !!ominous && this.lastSpokenName() !== ominous.name;
+  }
+
+  /** The signature persona that anchors every reply. */
+  private ominousArchetype(): SmuveArchetype | null {
+    return (
+      this.SMUVE_ARCHETYPES.find((a) => a.name === 'Ominous Protocol') ?? null
+    );
+  }
+
+  /** The tone of the sentence that spoke last, if any. */
+  private lastSpokenName(): string | null {
+    const index = this.archetypeHistory[this.archetypeHistory.length - 1];
+    if (index === undefined) return null;
+    return this.SMUVE_ARCHETYPES[index]?.name ?? null;
   }
 
   /**
    * One card off the spectrum deck.
    *
-   * The FIRST default sentence of a session is the signature Ominous Protocol
-   * persona (its own range already spans [0.15, 1.7]), so the identity still
-   * opens every conversation; every sentence after it is a fresh tone from the
-   * shuffled remainder of the complete table.
+   * `anchorIdentity` hands the signature Ominous Protocol persona to the first
+   * sentence of a reply — its own range already spans [0.15, 1.7], so the
+   * identity opens every answer instead of only the first answer of a session.
+   * Every sentence after it is a fresh tone from the shuffled remainder of the
+   * complete table.
    */
-  private nextSpectrumArchetype(): SmuveArchetype {
-    if (!this.sessionOpened) {
-      this.sessionOpened = true;
-      const ominous = this.SMUVE_ARCHETYPES.find(
-        (a) => a.name === 'Ominous Protocol'
+  private nextSpectrumArchetype(anchorIdentity = false): SmuveArchetype {
+    const ominous = this.ominousArchetype();
+    if (anchorIdentity && ominous) {
+      // Reserved out of the deck, so the sentence AFTER the anchor must differ.
+      this.spectrumDeck = this.spectrumDeck.filter(
+        (archetype) => archetype.name !== ominous.name
       );
-      if (this.defaultToOminous && ominous) {
-        this.rememberArchetype(ominous);
-        // The remainder is a full-spectrum shuffle, so sentence two onward
-        // never falls back into the same signature tone.
-        this.spectrumDeck = this.buildSpectrumDeck([ominous]);
-        return ominous;
-      }
+      this.rememberArchetype(ominous);
+      return ominous;
     }
 
     if (this.spectrumDeck.length === 0) {
@@ -590,7 +646,11 @@ export class SpeechSynthesisService {
   private buildSpectrumDeck(spoken: SmuveArchetype[] = []): SmuveArchetype[] {
     const spokenNames = new Set(spoken.map((archetype) => archetype.name));
     const deck = this.uniqueArchetypes().filter(
-      (archetype) => !spokenNames.has(archetype.name)
+      (archetype) =>
+        !spokenNames.has(archetype.name) &&
+        // The signature persona is delivered by the per-reply anchor rather
+        // than the deck, so it can never surface twice inside one reply.
+        !(this.defaultToOminous && archetype.name === 'Ominous Protocol')
     );
     for (let i = deck.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -627,6 +687,80 @@ export class SpeechSynthesisService {
   }
 
   /**
+   * Finishes one sentence for the voice that is about to speak it.
+   *
+   * Two layers, neither of which touches the transcript the artist reads back:
+   * an archetype delivery texture, and a rotating breath gesture so consecutive
+   * sentences never breathe the same way.
+   */
+  private deliverLine(archetype: SmuveArchetype, text: string): string {
+    const textured = this.textureLine(archetype, text);
+    const gesture = this.nextBreathGesture();
+    return gesture ? `${textured} ${gesture}` : textured;
+  }
+
+  /** The texture an archetype speaks with — also reported in the live readout. */
+  private textureFor(archetype: SmuveArchetype): VoiceTexture {
+    switch (archetype.name) {
+      case 'Childlike Glitch':
+        return 'stutter';
+      case 'Creature':
+        return 'growl';
+      case 'Choir (Layered)':
+        return 'choral';
+      default:
+        return 'plain';
+    }
+  }
+
+  /**
+   * The non-human personas get a vocal identity of their own instead of being
+   * the same reader one octave apart: the glitch stutters its opening sound,
+   * the creature growls in and drawls a vowel, the choir answers itself.
+   */
+  private textureLine(archetype: SmuveArchetype, text: string): string {
+    switch (this.textureFor(archetype)) {
+      case 'stutter':
+        return this.stutterOnset(text);
+      case 'growl':
+        return `Mmm. ${this.drawlOneVowel(text)}`;
+      case 'choral':
+        return `Aaah. ${text} ... one voice.`;
+      default:
+        return text;
+    }
+  }
+
+  /** Repeats a word's opening sound: "Fix it." → "Fi-Fix it." */
+  private stutterOnset(text: string): string {
+    const word = text.match(/^([A-Za-z]{3,})/)?.[1];
+    if (!word) return text;
+    const onset = word.slice(0, Math.max(2, Math.ceil(word.length / 3)));
+    return `${onset}-${text}`;
+  }
+
+  /** Doubles the first vowel of one word, so a growl reads as a drawl spoken. */
+  private drawlOneVowel(text: string): string {
+    return text.replace(
+      /\b([A-Za-z]*?)([aeiou])([A-Za-z]*)\b/i,
+      (match, head: string, vowel: string, tail: string) =>
+        head ? `${head}${vowel}${vowel}${tail}` : match
+    );
+  }
+
+  /** A rotating non-verbal beat between sentences, never the same twice running. */
+  private nextBreathGesture(): string {
+    const gestures = ['…', '—', '...'];
+    const picked = gestures[Math.floor(Math.random() * gestures.length)];
+    const gesture =
+      picked === this.lastBreathGesture
+        ? gestures[(gestures.indexOf(picked) + 1) % gestures.length]
+        : picked;
+    this.lastBreathGesture = gesture;
+    return gesture;
+  }
+
+  /**
    * Configures a single sentence's utterance with SHAPE-SHIFTING:
    *  - fresh archetype roll
    *  - pitch band biased AWAY from the previous band (deep bass ↔ soprano)
@@ -635,9 +769,10 @@ export class SpeechSynthesisService {
   private configureSentenceUtterance(
     utterance: SpeechSynthesisUtterance,
     options?: SpeakOptions,
-    text = ''
+    text = '',
+    archetype?: SmuveArchetype
   ): VoiceReadout {
-    this.currentArchetype = this.selectDynamicArchetype(options);
+    this.currentArchetype = archetype ?? this.selectDynamicArchetype(options);
     if (!this.currentArchetype) {
       return {
         archetype: 'Unknown',
@@ -646,6 +781,7 @@ export class SpeechSynthesisService {
         pitch: 1,
         rate: 1,
         prosody: 'conversational',
+        texture: 'plain',
       };
     }
 
@@ -689,6 +825,7 @@ export class SpeechSynthesisService {
       pitch: utterance.pitch,
       rate: utterance.rate,
       prosody: this.prosodyFor(text, utterance.rate),
+      texture: this.textureFor(this.currentArchetype),
     };
   }
 

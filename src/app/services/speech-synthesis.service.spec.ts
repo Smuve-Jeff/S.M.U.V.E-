@@ -45,6 +45,16 @@ describe('SpeechSynthesisService', () => {
     randomSpy.mockRestore();
   });
 
+  /**
+   * The utterance text with the trailing breath gesture removed — i.e. the line
+   * the artist actually gets read back. The gesture is the separate per-sentence
+   * delivery layer asserted in 'signature persona and delivery texture'.
+   */
+  const transcriptOf = (index = 0) =>
+    (
+      (global.SpeechSynthesisUtterance as jest.Mock).mock.calls[index][0] as string
+    ).replace(/\s+(…|—|\.\.\.)$/, '');
+
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
@@ -65,9 +75,7 @@ describe('SpeechSynthesisService', () => {
   it('should replace S.M.U.V.E 2.0 with Smooth', () => {
     service.speak('S.M.U.V.E 2.0 INITIALIZED. ROOM DOMINANCE COMMENCING.');
 
-    expect(global.SpeechSynthesisUtterance).toHaveBeenCalledWith(
-      'Welcome to Smooth'
-    );
+    expect(transcriptOf(0)).toBe('Welcome to Smooth');
   });
 
   it('should cancel previous speech when speaking new text', () => {
@@ -271,9 +279,7 @@ describe('SpeechSynthesisService', () => {
 
     service.speak('Shut the fuck up, bitch.', { allowVulgarLanguage: false });
 
-    expect(global.SpeechSynthesisUtterance).toHaveBeenCalledWith(
-      'Shut the **** up, *****.'
-    );
+    expect(transcriptOf(0)).toBe('Shut the **** up, *****.');
   });
 
   it('should honor the user profile profanity preference', () => {
@@ -295,9 +301,7 @@ describe('SpeechSynthesisService', () => {
 
     service.speak('You damn piece of crap.');
 
-    expect(global.SpeechSynthesisUtterance).toHaveBeenCalledWith(
-      'You **** piece of ****.'
-    );
+    expect(transcriptOf(0)).toBe('You **** piece of ****.');
   });
 
   it('should expose conversational prosody for long and urgent sentences', () => {
@@ -424,6 +428,85 @@ describe('SpeechSynthesisService', () => {
       } finally {
         jest.useRealTimers();
       }
+    });
+  });
+
+  /**
+   * The identity contract: the signature persona reasserts itself on every
+   * reply, every sentence still changes voice, and the non-human personas get a
+   * delivery of their own instead of being the same reader one octave apart.
+   */
+  describe('signature persona and delivery texture', () => {
+    const spokenTexts = () =>
+      (global.SpeechSynthesisUtterance as jest.Mock).mock.calls.map(
+        (call) => call[0] as string
+      );
+
+    it('opens every reply in the signature persona', () => {
+      randomSpy.mockReturnValue(0.5);
+
+      service.speak('First reply. A second sentence follows.');
+      service.speak('Another reply. Its second sentence too.');
+
+      mockUtterances[0].onstart();
+      expect(service.liveVoice()?.archetype).toBe('Ominous Protocol');
+      mockUtterances[2].onstart();
+      expect(service.liveVoice()?.archetype).toBe('Ominous Protocol');
+    });
+
+    it('still never repeats the previous tone when a reply opens', () => {
+      randomSpy.mockReturnValue(0.5);
+
+      service.speak('One sentence reply.');
+      service.speak('Next reply opener.');
+
+      mockUtterances[0].onstart();
+      const anchor = service.liveVoice()?.archetype;
+      mockUtterances[1].onstart();
+      const next = service.liveVoice()?.archetype;
+
+      expect(anchor).toBe('Ominous Protocol');
+      expect(next).not.toBe(anchor);
+    });
+
+    it('gives the non-human personas a delivery texture of their own', () => {
+      randomSpy.mockReturnValue(0);
+
+      service.speak('Fix the low end.', { forceArchetype: 'Creature' });
+      service.speak('Fix the low end.', {
+        forceArchetype: 'Childlike Glitch',
+      });
+      service.speak('Fix the low end.', { forceArchetype: 'Choir (Layered)' });
+
+      const [growl, stutter, choral] = spokenTexts();
+      expect(growl).toMatch(/^Mmm\. /);
+      expect(stutter).toMatch(/^Fi-Fix the low end\./);
+      expect(choral).toMatch(/^Aaah\. .*one voice\./);
+
+      mockUtterances[0].onstart();
+      expect(service.liveVoice()?.texture).toBe('growl');
+      mockUtterances[1].onstart();
+      expect(service.liveVoice()?.texture).toBe('stutter');
+      mockUtterances[2].onstart();
+      expect(service.liveVoice()?.texture).toBe('choral');
+    });
+
+    it('keeps human personas plain and never breathes the same way twice', () => {
+      randomSpy.mockReturnValue(0);
+
+      service.speak('Fix the low end.', {
+        forceArchetype: 'Baritone Authority (Male)',
+      });
+      service.speak('Fix the low end.', {
+        forceArchetype: 'Baritone Authority (Male)',
+      });
+
+      const [first, second] = spokenTexts();
+      expect(first.startsWith('Fix the low end.')).toBe(true);
+      expect(first).not.toBe(second);
+
+      mockUtterances[1].onstart();
+      expect(service.liveVoice()?.texture).toBe('plain');
     });
   });
 });

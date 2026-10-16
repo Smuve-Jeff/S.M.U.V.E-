@@ -590,6 +590,37 @@ describe('AiService', () => {
       expect(locked).toContain('LANGUAGE — LOCKED');
       // The character survives the language preference.
       expect(locked).toContain('SADISTIC EDGE');
+      // An explicit artist choice is the ONLY thing that censors anything.
+      expect(service.sanitizePersonaText('Shut the fuck up.')).not.toContain(
+        'fuck'
+      );
+    });
+
+    it('keeps explicit language when the profile never answered the question', () => {
+      // An imported or pre-existing profile can arrive without the key. The
+      // default is unlocked, so the character must NOT come back sanitized —
+      // deciding this with `=== true` did exactly that, in the reply text, the
+      // roast lines and the prompt itself.
+      const current = userProfileServiceMock.profile();
+      const ai = { ...current.settings.ai } as Record<string, unknown>;
+      delete ai['aiProfanityEnabled'];
+      userProfileServiceMock.profile.set({
+        ...current,
+        settings: { ...current.settings, ai: ai as any },
+      });
+
+      expect(service.personaDirectives()).toContain('LANGUAGE — UNLOCKED');
+      expect(service.sanitizePersonaText('This mix is shit.')).toBe(
+        'This mix is shit.'
+      );
+    });
+
+    it('leaves the offline roast lines uncensored when the language is unlocked', async () => {
+      setAi({ aiProfanityEnabled: true });
+
+      const roast = await service.processCommand('open the mixer');
+
+      expect(roast).not.toContain('*');
     });
 
     it('reports maximum intensity only when the artist enables it', () => {

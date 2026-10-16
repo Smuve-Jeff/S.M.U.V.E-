@@ -216,6 +216,7 @@ test.describe('S.M.U.V.E voice spectrum (runtime)', () => {
     );
     const archetypes = parts.map((p) => p[0] ?? '');
     const bands = parts.map((p) => p[1] ?? '');
+    const textures = parts.map((p) => p[3] ?? '');
 
     const report = archetypes.map((archetype, index) => {
       const u = data.utterances[index];
@@ -223,6 +224,7 @@ test.describe('S.M.U.V.E voice spectrum (runtime)', () => {
         sentence: index + 1,
         archetype,
         band: bands[index],
+        texture: textures[index],
         pitch: u ? Number(u.pitch.toFixed(3)) : null,
         voice: u ? u.voiceName : null,
       };
@@ -233,7 +235,7 @@ test.describe('S.M.U.V.E voice spectrum (runtime)', () => {
     console.log('=== S.M.U.V.E VOICE SPECTRUM — OBSERVED ===');
     report.forEach((row) =>
       console.log(
-        `  ${String(row.sentence).padStart(2)}. ${row.archetype} | band=${row.band} | pitch=${row.pitch} | ${row.voice}`
+        `  ${String(row.sentence).padStart(2)}. ${row.archetype} | band=${row.band} | texture=${row.texture} | pitch=${row.pitch} | ${row.voice}`
       )
     );
     console.log('  distinct tones:', distinctTones.length, JSON.stringify(distinctTones));
@@ -277,6 +279,61 @@ test.describe('S.M.U.V.E voice spectrum (runtime)', () => {
     expect(new Set(data.utterances.map((u) => u.voiceName)).size).toBeGreaterThan(
       1
     );
+
+    // The signature persona anchors the opening of every reply, so the first
+    // sampled sentence is the Ominous Protocol tone rather than a random draw.
+    expect(archetypes[0]).toBe('Ominous Protocol');
+
+    // Every sentence reports the delivery texture it was spoken with, and the
+    // non-human personas are delivered in their own texture instead of the
+    // human default.
+    const expectedTexture: Record<string, string> = {
+      Creature: 'growl',
+      'Childlike Glitch': 'stutter',
+      'Choir (Layered)': 'choral',
+    };
+    expect(textures.every((texture) => texture.length > 0)).toBe(true);
+    archetypes.forEach((archetype, index) => {
+      expect(
+        textures[index],
+        `sentence ${index + 1} (${archetype}) was not delivered in its own texture`
+      ).toBe(expectedTexture[archetype] ?? 'plain');
+    });
+
+    // The identity anchor is claimed by the opening sentence of an exchange, so
+    // it appears in the run and — like every other tone — never twice in a row.
+    const anchorSightings = archetypes.filter((a) => a === 'Ominous Protocol');
+    expect(anchorSightings.length).toBeGreaterThanOrEqual(1);
+
+    // A LATER exchange reasserts the signature persona: its opening sentence is
+    // the Ominous Protocol anchor rather than a card off the spectrum deck.
+    const seenReadouts = await page.evaluate(
+      () => (window as any).__smuveReadouts.length as number
+    );
+    await input.fill('sync licensing placements');
+    await page.locator('button[aria-label="Send message to S.M.U.V.E"]').click();
+    await page.waitForFunction(
+      ({ seen }) => {
+        const w = window as any;
+        return (
+          w.__smuveReadouts.length > seen &&
+          w.__smuveQueueDepth === 0 &&
+          Date.now() - w.__smuveLastEndAt > 400
+        );
+      },
+      { seen: seenReadouts },
+      { timeout: 70_000 }
+    );
+    const laterExchange = await page.evaluate(
+      (seen) => ((window as any).__smuveReadouts as string[]).slice(seen),
+      seenReadouts
+    );
+
+    console.log('=== S.M.U.V.E LATER EXCHANGE — OPENING SENTENCE ===');
+    console.log('  ' + (laterExchange[0] ?? '<none captured>'));
+
+    expect(laterExchange.length).toBeGreaterThan(0);
+    expect(laterExchange[0]).toContain('Ominous Protocol');
   });
 
   test('still voices the first reply when the engine publishes its voices late', async ({
@@ -325,5 +382,56 @@ test.describe('S.M.U.V.E voice spectrum (runtime)', () => {
     // The first sentence of the first reply is voiced, not silent.
     expect(utterances[0].voiceName).toBeTruthy();
     expect(utterances.every((u) => !!u.voiceName)).toBe(true);
+
+    // A second reply reasserts the signature persona: its opening sentence is
+    // the Ominous Protocol anchor rather than a random card off the deck.
+    const seenReadouts = await page.evaluate(
+      () => (window as any).__smuveReadouts.length as number
+    );
+    await input.fill('sync licensing placements');
+    await page.locator('button[aria-label="Send message to S.M.U.V.E"]').click();
+    await page.waitForFunction(
+      ({ seen }) => {
+        const w = window as any;
+        return (
+          w.__smuveReadouts.length > seen &&
+          w.__smuveQueueDepth === 0 &&
+          Date.now() - w.__smuveLastEndAt > 400
+        );
+      },
+      { seen: seenReadouts },
+      { timeout: 70_000 }
+    );
+
+    const secondReply = await page.evaluate(
+      (seen) =>
+        ((window as any).__smuveReadouts as string[]).slice(seen),
+      seenReadouts
+    );
+
+    const exchangeOne = await page.evaluate(
+      (seen) => ((window as any).__smuveReadouts as string[]).slice(0, seen),
+      seenReadouts
+    );
+    const archetypeOf = (line: string) =>
+      line.replace(/^VOICE \/\/ /, '').split(' · ')[0]?.trim() ?? '';
+
+    console.log('=== S.M.U.V.E SECOND EXCHANGE — TONE SEQUENCE ===');
+    secondReply.forEach((line, index) => console.log(`  ${index + 1}. ${line}`));
+
+    expect(secondReply.length).toBeGreaterThan(0);
+
+    // The change-every-sentence rule outranks the identity reassertion: when the
+    // previous sentence already spoke the signature tone, the next exchange
+    // opens on a different one instead of doubling it.
+    expect(secondReply[0]).not.toBe(exchangeOne[exchangeOne.length - 1]);
+
+    const secondTones = secondReply.map(archetypeOf);
+    for (let i = 1; i < secondTones.length; i++) {
+      expect(
+        secondTones[i],
+        `second exchange sentence ${i + 1} repeated the previous tone`
+      ).not.toBe(secondTones[i - 1]);
+    }
   });
 });

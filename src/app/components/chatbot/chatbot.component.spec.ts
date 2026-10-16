@@ -253,6 +253,25 @@ describe('ChatbotComponent', () => {
     expect(glyph().getAttribute('aria-label')).toContain('listening');
   });
 
+  it('shows the delivery texture of the sentence being spoken', () => {
+    speechSynthesisServiceMock.liveVoice.set({
+      archetype: 'Creature',
+      band: 'low',
+      voiceName: 'Fake Male Voice A',
+      pitch: 0.31,
+      rate: 0.62,
+      prosody: 'dramatic',
+      texture: 'growl',
+    });
+    speechSynthesisServiceMock.isSpeaking.set(true);
+    fixture.detectChanges();
+
+    const readout = fixture.nativeElement.textContent as string;
+
+    expect(readout).toContain('Creature');
+    expect(readout).toContain('growl');
+  });
+
   it('lets the artist stop S.M.U.V.E. voice playback', () => {
     component.stopVoiceOutput();
     expect(speechSynthesisServiceMock.cancel).toHaveBeenCalledTimes(1);
