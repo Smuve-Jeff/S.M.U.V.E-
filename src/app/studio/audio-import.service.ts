@@ -5,6 +5,7 @@ import { MusicManagerService } from "../services/music-manager.service";
 import { LoggingService } from "../services/logging.service";
 import { SnackbarService } from "../services/snackbar.service";
 import { AudioStretchService } from "./audio-stretch.service";
+import { SampleStreamer, type SampleStreamerOptions, createSampleStreamer } from "../services/sample-streamer.service";
 
 export type EnhancePreset = "clean" | "vocal" | "broadcast" | "master";
 
@@ -93,7 +94,10 @@ export const ENHANCE_PRESETS: readonly EnhancePresetConfig[] = [
 export interface ImportedAudio {
   id: string;
   name: string;
-  buffer: AudioBuffer;
+  /** Full decoded AudioBuffer — guaranteed for short samples (< threshold).
+   * May be null for long imports; use the SampleStreamer to play sliced audio.
+   */
+  buffer: AudioBuffer | null;
   blob: Blob;
   url: string;
   duration: number;
@@ -123,6 +127,8 @@ export interface ImportedAudio {
   enhancedBuffer: AudioBuffer | null;
   /** Which enhancement shape produced `enhancedBuffer`. */
   enhancedPreset: EnhancePreset | null;
+  /** SampleStreamer instance for sliced playback (long imports only). */
+  sampleStreamer: SampleStreamer | null;
 }
 
 type EditSnapshot = Pick<
@@ -188,7 +194,38 @@ export class AudioImportService {
 
       for (const file of files) {
         try {
-          const buffer = await this.fileLoader.decodeToAudioBuffer(ctx, file);
+          // Estimate duration to decide whether to use SampleStreamer.
+          const estimatedSec = this.estimateDurationFromFile(file);
+          let buffer: AudioBuffer | null = null;
+          let duration = 0;
+          let ss: SampleStreamer | null = null;
+
+          if (estimatedSec > 10) {
+            // Long import: use SampleStreamer for bounded-preview playback.
+            ss = createSampleStreamer({
+              maxResidentSeconds: 30,
+              shortSampleThresholdSeconds: 10,
+              onResidentChange: (buffer, duration) => {
+                // Fill in the import entry once the resident window is ready.
+                const last = results.at(-1);
+                if (!last || last.sampleStreamer !== ss) return;
+                last.sampleStreamer = ss;
+                last.buffer = buffer ?? null;
+                last.duration = duration ?? 0;
+                last.sampleRate = 48000;
+                last.channels = 2;
+              },
+            });
+            // The sampleStreamer will asynchronously set buffer / duration.
+            // Set stubs now; the UI will see the final values when onResidentChange fires.
+            buffer = null;
+            duration = estimatedSec;
+          } else {
+            // Short sample: fully decode and cache.
+            buffer = await this.fileLoader.decodeToAudioBuffer(ctx, file);
+            duration = buffer.duration;
+          }
+
           const url = URL.createObjectURL(file);
 
           const imported: ImportedAudio = {
@@ -197,9 +234,9 @@ export class AudioImportService {
             buffer,
             blob: file,
             url,
-            duration: buffer.duration,
-            sampleRate: buffer.sampleRate,
-            channels: buffer.numberOfChannels,
+            duration,
+            sampleRate: buffer?.sampleRate ?? 48000,
+            channels: buffer?.numberOfChannels ?? 2,
             trimStart: 0,
             trimEnd: 1,
             gain: 1.0,
@@ -214,6 +251,7 @@ export class AudioImportService {
             editedUrl: null,
             enhancedBuffer: null,
             enhancedPreset: null,
+            sampleStreamer: estimatedSec > 10 ? (ss || null) : null,
           };
           results.push(imported);
           this.appliedEditState.set(imported.id, this.snapshot(imported));
@@ -234,6 +272,18 @@ export class AudioImportService {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * Rough estimate of a file's duration in seconds from its size and sample rate.
+   * Used to decide whether to route through SampleStreamer or full decode.
+   */
+  private estimateDurationFromFile(file: File): number {
+    // 48000 Hz stereo = 96000 samples/sec × 4 bytes = 384 KB/sec
+    const KB_PER_SEC = 384;
+    const bytes = file.size;
+    const sec = (bytes / KB_PER_SEC) | 0;
+    return Math.max(1, sec);
   }
 
   /**
@@ -756,9 +806,13 @@ export class AudioImportService {
       this.snackbar.success(`Added "${audio.name}" as new track`);
     };
 
-    // Not the current edit target — add the rendered buffer directly.
+    // Not the current edit target — add whatever buffer we have (full decode
+    // for short samples, or the resident window for long imports).
     if (this.selectedAudio()?.id !== audio.id) {
-      addTrack(audio.enhancedBuffer ?? audio.buffer);
+      const buffer = audio.buffer ?? audio.sampleStreamer?.getResidentBuffer();
+      if (buffer) {
+        addTrack(buffer);
+      }
       return;
     }
 
@@ -785,6 +839,10 @@ export class AudioImportService {
     this.importedAudio().forEach((audio) => {
       URL.revokeObjectURL(audio.url);
       if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
+      // Also detach the sample streamer if present.
+      if (audio.sampleStreamer) {
+        audio.sampleStreamer.destroy();
+      }
     });
     this.importedAudio.set([]);
     this.selectedAudio.set(null);
