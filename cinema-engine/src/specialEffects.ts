@@ -9,6 +9,7 @@ export interface EffectParams {
   strength?: number;
   aiModel?: string;
   aiStrength?: number;
+  integration?: 'webgpu' | 'onnx' | 'mediapipe' | 'none';
 }
 
 /**
@@ -331,13 +332,24 @@ export class SpecialEffects {
     const intensity = params.intensity || 0.5;
     const model = params.aiModel || 'srcnn'; // Super-resolution model
     const strength = params.aiStrength || 0.5;
+    const integration = params.integration || 'none';
+    let description = `AI super-resolution with ${model} model (strength: ${strength})`;
+
+    if (integration === 'webgpu') {
+      description += ' (WebGPU enabled)';
+    } else if (integration === 'onnx') {
+      description += ' (ONNX Runtime)';
+    } else if (integration === 'mediapipe') {
+      description += ' (MediaPipe)';
+    }
+
     return {
       ...params,
       effect: 'ai-upscale',
       intensity,
       model,
       strength,
-      description: `AI super-resolution with ${model} model (strength: ${strength})`,
+      description,
     };
   }
 
@@ -345,13 +357,24 @@ export class SpecialEffects {
     const intensity = params.intensity || 0.5;
     const model = params.aiModel || 'basic'; // Denoising model
     const strength = params.aiStrength || 0.5;
+    const integration = params.integration || 'none';
+    let description = `AI denoising with ${model} model (strength: ${strength})`;
+
+    if (integration === 'webgpu') {
+      description += ' (WebGPU enabled)';
+    } else if (integration === 'onnx') {
+      description += ' (ONNX Runtime)';
+    } else if (integration === 'mediapipe') {
+      description += ' (MediaPipe)';
+    }
+
     return {
       ...params,
       effect: 'ai-denoise',
       intensity,
       model,
       strength,
-      description: `AI denoising with ${model} model (strength: ${strength})`,
+      description,
     };
   }
 
@@ -359,13 +382,24 @@ export class SpecialEffects {
     const intensity = params.intensity || 0.5;
     const model = params.aiModel || 'enhance'; // Enhancement model
     const strength = params.aiStrength || 0.5;
+    const integration = params.integration || 'none';
+    let description = `AI enhancement with ${model} model (strength: ${strength})`;
+
+    if (integration === 'webgpu') {
+      description += ' (WebGPU enabled)';
+    } else if (integration === 'onnx') {
+      description += ' (ONNX Runtime)';
+    } else if (integration === 'mediapipe') {
+      description += ' (MediaPipe)';
+    }
+
     return {
       ...params,
       effect: 'ai-enhance',
       intensity,
       model,
       strength,
-      description: `AI enhancement with ${model} model (strength: ${strength})`,
+      description,
     };
   }
 }
