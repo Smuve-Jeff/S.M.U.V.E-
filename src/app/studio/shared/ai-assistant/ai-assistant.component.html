@@ -14,7 +14,9 @@
       <span class="material-symbols-outlined ai-header-icon">auto_awesome</span>
       <div>
         <p class="ai-header-name">Compose Assistant</p>
-        <p class="ai-header-sub">Context-aware AI · session aware</p>
+        <p class="ai-header-sub" [title]="personaTitle()">
+          {{ personaName() }} · context-aware studio AI
+        </p>
       </div>
     </div>
     <div class="ai-header-actions">
@@ -31,13 +33,15 @@
         "
       >
         <span class="material-symbols-outlined">{{
-          aiMode() === 'online'
-            ? 'wifi'
-            : aiMode() === 'local'
-              ? 'cloud_off'
-              : 'auto_awesome'
+          aiMode() === "online"
+            ? "wifi"
+            : aiMode() === "local"
+              ? "cloud_off"
+              : "auto_awesome"
         }}</span>
-        {{ aiMode() === 'online' ? 'LIVE' : aiMode() === 'local' ? 'LOCAL' : 'AI' }}
+        {{
+          aiMode() === "online" ? "LIVE" : aiMode() === "local" ? "LOCAL" : "AI"
+        }}
       </span>
       <button
         type="button"
@@ -131,6 +135,34 @@
         <div class="ai-msg-body">
           <p>{{ m.text }}</p>
           <div
+            class="ai-msg-voice"
+            *ngIf="m.role === 'assistant' && m.ts !== messages()[0]?.ts"
+          >
+            <button
+              type="button"
+              class="ai-voice-btn"
+              (click)="readAssistantMessage(m.text)"
+              [disabled]="
+                voiceOutputCapability() === 'unsupported' ||
+                voiceOutputCapability() === 'no-voices'
+              "
+              aria-label="Read this assistant reply aloud"
+              title="Read reply aloud"
+            >
+              <span class="material-symbols-outlined">volume_up</span> Read
+              aloud
+            </button>
+            <button
+              *ngIf="voiceSpeaking()"
+              type="button"
+              class="ai-voice-btn"
+              (click)="stopVoiceOutput()"
+              aria-label="Stop spoken reply"
+            >
+              <span class="material-symbols-outlined">stop_circle</span> Stop
+            </button>
+          </div>
+          <div
             class="ai-msg-actions"
             *ngIf="m.role === 'assistant' && m.actions && m.actions.length"
           >
@@ -143,7 +175,7 @@
               {{ a.label }}
             </button>
           </div>
-          <span class="ai-msg-time">{{ m.ts | date: 'HH:mm' }}</span>
+          <span class="ai-msg-time">{{ m.ts | date: "HH:mm" }}</span>
         </div>
       </div>
       <div *ngIf="isThinking()" class="ai-msg ai-msg-assistant ai-msg-thinking">
@@ -178,6 +210,25 @@
         aria-label="Ask the AI assistant"
       />
       <button
+        type="button"
+        class="ai-mic"
+        (click)="toggleVoiceInput()"
+        [disabled]="!speechRecognition.isSupported() || isThinking()"
+        [attr.aria-label]="
+          voiceListening() ? 'Stop voice input' : 'Dictate a message'
+        "
+        [attr.aria-pressed]="voiceListening()"
+        [title]="
+          speechRecognition.isSupported()
+            ? 'Dictate a message'
+            : speechRecognition.capabilityMessage()
+        "
+      >
+        <span class="material-symbols-outlined">{{
+          voiceListening() ? "mic_off" : "mic"
+        }}</span>
+      </button>
+      <button
         type="submit"
         class="ai-send"
         [disabled]="!userInput().trim()"
@@ -186,5 +237,13 @@
         <span class="material-symbols-outlined">send</span>
       </button>
     </form>
+    <p
+      *ngIf="voiceNotice()"
+      class="ai-voice-notice"
+      role="status"
+      aria-live="polite"
+    >
+      {{ voiceNotice() }}
+    </p>
   </div>
 </aside>

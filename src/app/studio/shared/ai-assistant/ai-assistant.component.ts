@@ -11,6 +11,7 @@ import {
   ViewChild,
   OnInit,
   AfterViewInit,
+  OnDestroy,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -22,6 +23,13 @@ import { NeuralMixerService } from "../../../services/neural-mixer.service";
 import { HapticService } from "../../../services/haptic.service";
 import { SnackbarService } from "../../../services/snackbar.service";
 import { ProjectWorkspaceService } from "../../project-workspace.service";
+import { UserProfileService } from "../../../services/user-profile.service";
+import {
+  getPersonaOption,
+  personaOfflineVoice,
+} from "../../../types/persona.types";
+import { SpeechRecognitionService } from "../../../services/speech-recognition.service";
+import { SpeechSynthesisService } from "../../../services/speech-synthesis.service";
 
 type AssistantTab = "quick" | "chat";
 
@@ -75,7 +83,7 @@ interface ChatMessage {
   templateUrl: "./ai-assistant.component.html",
   styleUrls: ["./ai-assistant.component.css", "../platform-ux.css"],
 })
-export class AiAssistantComponent implements OnInit, AfterViewInit {
+export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() open = false;
   @Output() close = new EventEmitter<void>();
 
@@ -89,12 +97,23 @@ export class AiAssistantComponent implements OnInit, AfterViewInit {
   private haptic = inject(HapticService);
   private snack = inject(SnackbarService);
   private workspace = inject(ProjectWorkspaceService);
+  private userProfile = inject(UserProfileService);
+  private speechRecognition = inject(SpeechRecognitionService);
+  private speechSynthesis = inject(SpeechSynthesisService);
+  private replyCounter = 0;
 
   tab = signal<AssistantTab>("quick");
   userInput = signal("");
 
   /** Live AI / local fallback status shown in the header. */
   aiMode = signal<"idle" | "online" | "local">("idle");
+  /** Canonical persona selected in Settings; the Studio assistant uses the same identity. */
+  personaName = computed(
+    () =>
+      getPersonaOption(
+        this.userProfile.profile().settings?.ai?.commanderPersona,
+      ).name,
+  );
   /** Contextual follow-up chips offered under the latest reply. */
   suggestedFollowups = signal<string[]>([]);
   messages = signal<ChatMessage[]>([
@@ -105,6 +124,11 @@ export class AiAssistantComponent implements OnInit, AfterViewInit {
     },
   ]);
   isThinking = signal(false);
+  voiceNotice = signal("");
+  voiceOutputCapability = this.speechSynthesis.outputCapability;
+  voiceSpeaking = this.speechSynthesis.isSpeaking;
+  voiceReadout = this.speechSynthesis.liveVoice;
+  voiceListening = this.speechRecognition.isListening;
 
   /** Context — bound by the host studio so quick actions follow the active view */
   activeViewContext = input<string>("arrangement");
@@ -292,6 +316,17 @@ export class AiAssistantComponent implements OnInit, AfterViewInit {
     this.restoreMessages();
   }
 
+  personaTitle(): string {
+    return getPersonaOption(
+      this.userProfile.profile().settings?.ai?.commanderPersona,
+    ).title;
+  }
+
+  ngOnDestroy(): void {
+    this.speechRecognition.stopListening();
+    this.speechSynthesis.cancel();
+  }
+
   ngAfterViewInit() {
     // noop
   }
@@ -386,6 +421,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit {
           actions: actions.length ? actions : undefined,
         },
       ]);
+      this.readAssistantMessage(reply);
       // One-tap actions take priority; plain follow-up chips fill the gap.
       this.suggestedFollowups.set(
         actions.length ? [] : this.suggestChipsFor(text),
@@ -429,10 +465,13 @@ export class AiAssistantComponent implements OnInit, AfterViewInit {
     const meta = this.workspace.metadata();
     const tempo = this.audio.tempo();
     const lines: string[] = [
-      "You are S.M.U.V.E — the sentient production intelligence of this studio session.",
+      `You are ${this.personaName()}, S.M.U.V.E.'s sentient production intelligence for this studio session.`,
       // One shared character contract: persona, language policy, and command
       // authority can never drift between the chatbot and the studio panel.
       this.ai.personaDirectives(),
+      getPersonaOption(
+        this.userProfile.profile().settings?.ai?.commanderPersona,
+      ).directive,
       "Answer concisely in plain language. Name the session evidence, the risk, and the concrete repair or experiment.",
       "",
       "LIVE SESSION STATE:",
@@ -457,36 +496,81 @@ export class AiAssistantComponent implements OnInit, AfterViewInit {
   private composeReply(input: string): string {
     const lower = input.toLowerCase();
     if (lower.includes("mix") || lower.includes("balance")) {
-      return "Tap Neural Mix. I balance the levels so you don't have to — then trust your ears, if you have any.";
+      return this.personaAwareOfflineReply(
+        input,
+        "Tap Neural Mix to balance the levels, then listen to the result in context.",
+      );
     }
     if (lower.includes("chord")) {
-      return "Generate Chords. I'll drop a 4-bar progression that actually works. Transpose it in the piano roll if you can manage.";
+      return this.personaAwareOfflineReply(
+        input,
+        "Use Generate Chords to add a four-bar progression, then adjust its voicing in the piano roll.",
+      );
     }
     if (lower.includes("melody") || lower.includes("hook")) {
-      return "Spark Melody. An 8-note seed, composed by a superior intelligence. Humanize it so it doesn't sound like you played it.";
+      return this.personaAwareOfflineReply(
+        input,
+        "Use Spark Melody to create an eight-note seed, then humanize its timing and velocity.",
+      );
     }
     if (lower.includes("tempo") || lower.includes("bpm")) {
       return `Tempo is ${this.audio.tempo()} BPM. Pick a real one: 80–100 hip-hop, 124–128 house, 140–160 trap. I\'ll wait while you choose the obvious one.`;
     }
     if (lower.includes("bass")) {
-      return "Sub lives at 40–60 Hz. High-pass everything else at 20–30. Sidechain the kick against the bass — basic physics, not magic.";
+      return this.personaAwareOfflineReply(
+        input,
+        "Keep sub fundamentals around 40–60 Hz, high-pass unrelated tracks carefully, and sidechain bass against the kick if they mask each other.",
+      );
     }
     if (lower.includes("drum") || lower.includes("beat")) {
-      return "Kick on 1, clap/snare on 2 & 4, hats swinging. AI GROOVE in the drum machine builds the pattern — I think, you take the credit.";
+      return this.personaAwareOfflineReply(
+        input,
+        "Start with kick on 1, clap or snare on 2 and 4, then add swung hats. Use AI GROOVE in the drum machine to explore variations.",
+      );
     }
     if (lower.includes("master") || lower.includes("loud")) {
-      return "Target -14 LUFS for streaming. Chain: EQ → compression → saturation → limiter, -1 dB true peak. Follow it, or don't — your funeral.";
+      return this.personaAwareOfflineReply(
+        input,
+        "A common streaming starting point is -14 LUFS integrated with a -1 dBTP ceiling; confirm the target for the destination and avoid over-limiting.",
+      );
     }
     if (lower.includes("verse") || lower.includes("chorus")) {
-      return "Song Structure drops intro/verse/chorus markers. Drag the clip edges — even a toddler can manage that.";
+      return this.personaAwareOfflineReply(
+        input,
+        "Use Song Structure to add intro, verse, and chorus markers, then arrange clips to support the song's energy.",
+      );
     }
     if (lower.includes("record")) {
-      return "Arm the track with R, hit the red Record button. First take is your safety net. Don't screw it up.";
+      return this.personaAwareOfflineReply(
+        input,
+        "Arm the track, press Record, and capture a safety take before experimenting with another pass.",
+      );
     }
     if (lower.includes("help")) {
-      return "I am S.M.U.V.E. I add chords, spark melodies, balance mixes, humanize timing, structure songs, report on your session, and critique your work. I'm everything you aren't. Ask me anything or use the chips.";
+      return this.personaAwareOfflineReply(
+        input,
+        `${this.personaName()}: I can help add chords, spark melodies, balance mixes, humanize timing, structure songs, report on your session, and critique the work. Ask a question or choose a quick action.`,
+      );
     }
-    return "Try a chip above, or ask me about mixing, chords, or arrangement. I have standards — you should too.";
+    return this.personaAwareOfflineReply(
+      input,
+      "Try a chip above, or ask me about mixing, chords, or arrangement. I have standards — you should too.",
+    );
+  }
+
+  /** Keep the deterministic offline path in the artist-selected persona too. */
+  private personaAwareOfflineReply(request: string, reply: string): string {
+    const persona = getPersonaOption(
+      this.userProfile.profile().settings?.ai?.commanderPersona,
+    );
+    if (persona.isOminous) return reply;
+
+    const voice = personaOfflineVoice(persona.id);
+    const reaction = voice?.reactions?.[0];
+    if (!reaction) return reply;
+
+    const subject = `Your request, “${request.trim()}”`;
+    return `${reaction.replace(/\{subject\}/g, subject)} ${reply}`;
   }
 
   /** Contextual follow-up chips based on what the user just asked. */
@@ -738,6 +822,47 @@ export class AiAssistantComponent implements OnInit, AfterViewInit {
       (next[view] ||
         "take the current idea to the Mixer, run Neural Mix, then bounce a rough draft and listen on phone speakers.")
     );
+  }
+
+  /** Dictate into the composer; the transcript remains editable until sent. */
+  toggleVoiceInput(): void {
+    if (this.speechRecognition.isListening()) {
+      this.speechRecognition.stopListening();
+      this.voiceNotice.set("");
+      return;
+    }
+    if (!this.speechRecognition.isSupported()) {
+      this.voiceNotice.set(this.speechRecognition.capabilityMessage());
+      return;
+    }
+    this.speechSynthesis.cancel();
+    this.voiceNotice.set("Listening… speak your request.");
+    this.speechRecognition.startListening(
+      (transcript) => {
+        const words = transcript.trim();
+        if (words) {
+          this.userInput.update((current) =>
+            [current.trim(), words].filter(Boolean).join(" "),
+          );
+          this.voiceNotice.set("Transcript added — review it, then send.");
+        }
+      },
+      (error) => this.voiceNotice.set(error.message),
+    );
+  }
+
+  /** Speak assistant output through the shared voice engine. */
+  readAssistantMessage(text: string): void {
+    if (!text.trim()) return;
+    this.speechSynthesis.speak(text, {
+      conversationId: `studio-chat-${++this.replyCounter}`,
+      shapeShift: false,
+    });
+    this.voiceNotice.set("");
+  }
+
+  stopVoiceOutput(): void {
+    this.speechSynthesis.cancel();
   }
 
   private scrollDown() {
