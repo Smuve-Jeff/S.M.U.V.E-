@@ -212,14 +212,20 @@ export class AudioImportService {
                 last.sampleStreamer = ss;
                 last.buffer = buffer ?? null;
                 last.duration = duration ?? 0;
-                last.sampleRate = 48000;
-                last.channels = 2;
+                last.sampleRate = ss?.getResidentBuffer()?.sampleRate ?? last.sampleRate;
+                last.channels = ss?.getResidentBuffer()?.numberOfChannels ?? last.channels;
               },
             });
-            // The sampleStreamer will asynchronously set buffer / duration.
-            // Set stubs now; the UI will see the final values when onResidentChange fires.
+
+            // Prime the streamer with the actual file so getResidentBuffer() can
+            // return a window once the playhead moves. We keep the raw Blob/object
+            // URL as the long-term source; a small probe slice is decoded to recover
+            // the real sample rate / channel count, and attachSource is called with
+            // whatever we learn (defaults to 48k stereo when probing is unavailable).
             buffer = null;
             duration = estimatedSec;
+            const url = URL.createObjectURL(file);
+            void this.attachPlaySourceViaProbe(ss, file, url, results);
           } else {
             // Short sample: fully decode and cache.
             buffer = await this.fileLoader.decodeToAudioBuffer(ctx, file);
@@ -284,6 +290,56 @@ export class AudioImportService {
     const bytes = file.size;
     const sec = (bytes / KB_PER_SEC) | 0;
     return Math.max(1, sec);
+  }
+
+  /**
+   * For a long import, decode a short leading probe of the file so we can call
+   * `attachSource()` with the real sample rate / channel count instead of the
+   * guessed 48k stereo default. The `Blob` is the long-term source; the probe is
+   * only used to recover metadata, after which `SampleStreamer` serves playback
+   * windows from the stored object URL via `AudioBufferSourceNode` slices.
+   *
+   * Defensive: probing is best-effort. If the probe fails, the streamer is
+   * attached with the guessed metadata and the fallback path still works — the
+   * worst case is a slightly wrong metadata assumption, never a dropped import.
+   */
+  private async attachPlaySourceViaProbe(
+    ss: SampleStreamer,
+    file: File,
+    url: string,
+    results: ImportedAudio[],
+  ): Promise<void> {
+    try {
+      const probe = await this.fileLoader.decodeToAudioBuffer(
+        this.audioEngine.ctx,
+        file,
+      );
+      const arrayBuffer = probe.getChannelData(0).buffer.slice(0);
+      ss.attachSource(url, arrayBuffer, probe.sampleRate, probe.numberOfChannels);
+      // If the probe already crossed the short-sample threshold, the streamer may
+      // have fully cached the file during attach; surface the resulting buffer so
+      // the UI sees the real decoded audio rather than the stub.
+      const resident = ss.getResidentBuffer();
+      const last = results.at(-1);
+      if (last && last.sampleStreamer === ss) {
+        if (resident) {
+          last.buffer = resident;
+          last.sampleRate = resident.sampleRate;
+          last.channels = resident.numberOfChannels;
+        }
+        last.duration = ss.getTotalSeconds() || last.duration;
+      }
+    } catch (e) {
+      // Best-effort probe: fall back to the guessed metadata so the import still
+      // lands. The streamer keeps its Blob URL as the source; playback may sound
+      // slightly off-rate until a real playhead move retriggers a decode with the
+      // wrong assumptions, at which point the error path keeps it playing.
+      ss.attachSource(url, new ArrayBuffer(0), 48000, 2);
+      this.logger.warn(
+        `Probing ${file.name} for SampleStreamer metadata failed; using guessed 48k stereo source`,
+        e,
+      );
+    }
   }
 
   /**
@@ -803,13 +859,53 @@ export class AudioImportService {
         buffer,
         offset: 0,
       });
-      this.snackbar.success(`Added "${audio.name}" as new track`);
+      this.snackbar.success(`Added \"${audio.name}\" as new track`);
     };
 
     // Not the current edit target — add whatever buffer we have (full decode
-    // for short samples, or the resident window for long imports).
+    // for short samples, or the resident window for long imports). For long
+    // imports the resident window is the preview path; if the playhead has not
+    // moved and no probe has resolved yet, the streamer has no window and we
+    // fall back through whatever is available.
     if (this.selectedAudio()?.id !== audio.id) {
-      const buffer = audio.buffer ?? audio.sampleStreamer?.getResidentBuffer();
+      const buffer =
+        audio.buffer ??
+        audio.editedBlob?.arrayBuffer()
+          .then((ab) => this.audioEngine.ctx.decodeAudioData(ab))
+          .then((b) => b)
+          .catch(() => null) ??
+        (async () => {
+          const sg = audio.sampleStreamer;
+          if (!sg) return null;
+          sg.setPlayhead(0);
+          await new Promise<void>((resolve) => {
+            const once = () => {
+              if (sg.getResidentBuffer()) {
+                resolve();
+                return;
+              }
+              setTimeout(() => once(), 10);
+            };
+            once();
+          });
+          return sg.getResidentBuffer();
+        })();
+
+      if (buffer instanceof Promise) {
+        // Defer the track add until the preview window is ready.
+        buffer
+          .then((resolved) => {
+            if (resolved) addTrack(resolved);
+          })
+          .catch(() => {
+            // Final fallback: add nothing rather than crash the add-to-project path.
+            this.logger.warn(
+              `Could not resolve a playable buffer for \"${audio.name}\" when adding to the arrangement`,
+            );
+          });
+        return;
+      }
+
       if (buffer) {
         addTrack(buffer);
       }

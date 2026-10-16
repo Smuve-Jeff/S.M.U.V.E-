@@ -7,6 +7,7 @@ import {
   Injector,
 } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
+import { SampleStreamer } from './sample-streamer.service';
 import { ProjectService } from './project.service';
 import { HistoryService } from './history.service';
 import { PluginStoreService } from './plugin-store.service';
@@ -2499,17 +2500,26 @@ export class MusicManagerService {
               Math.min(clip.fadeIn || 0, clip.length) * secPerBar;
             const fadeOutSec =
               Math.min(clip.fadeOut || 0, clip.length) * secPerBar;
-            this.engine.triggerSampler(
-              t.id,
-              audioData,
-              swungTime,
-              t.gain,
-              t.pan,
-              clipDur,
-              rate,
-              fadeInSec,
-              fadeOutSec
-            );
+            // Phase H: when a clip carries a SampleStreamer, play from the
+            // bounded resident window instead of one full decoded AudioBuffer;
+            // the engine advances the clip playhead per invocation.
+            if ((clip as any).clipStreamer) {
+              (clip as any).clipStreamer.setPlayhead(
+                (clip as any).clipOriginSeconds *
+                  (clip as any).clipSampleRate
+              );
+              this.engine.triggerSampler(
+                t.id,
+                (clip as any).clipStreamer,
+                swungTime,
+                t.gain,
+                t.pan,
+                clipDur,
+                rate,
+                fadeInSec,
+                fadeOutSec
+              );
+            }
           }
         }
       });
