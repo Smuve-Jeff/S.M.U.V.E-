@@ -104,6 +104,25 @@
           ></span>
         }
       </button>
+      <!-- Voice Lab: audition every tone, run the spectrum, pin a reply voice. -->
+      <button
+        type="button"
+        (click)="toggleVoiceLab()"
+        class="p-2 rounded-xl transition-all"
+        [class.text-brand-primary]="voiceLabOpen()"
+        [class.text-slate-600]="!voiceLabOpen()"
+        [attr.aria-expanded]="voiceLabOpen()"
+        [attr.aria-label]="
+          voiceLabOpen() ? 'Close the Voice Lab' : 'Open the Voice Lab'
+        "
+        [title]="
+          voiceLabOpen()
+            ? 'Close the Voice Lab'
+            : 'Voice Lab: audition all eleven tones, run the full spectrum, pin the voice of your next reply'
+        "
+      >
+        <span class="material-symbols-outlined text-lg">graphic_eq</span>
+      </button>
       <button
         type="button"
         (click)="close.emit()"
@@ -178,6 +197,102 @@
       <span class="material-symbols-outlined text-xs">stop_circle</span>
       Stop
     </button>
+  </div>
+
+  <!-- ───────── VOICE LAB ─────────
+       The identity is the product, so the artist can hear it: every tone in the
+       roster, the full spectrum on demand, and a pin for the next reply. -->
+  <div
+    *ngIf="voiceLabOpen()"
+    class="shrink-0 px-4 py-3 border-b border-white/5 bg-black/30 studio-module-scroll max-h-72 overflow-y-auto"
+    role="region"
+    aria-label="Voice Lab"
+  >
+    <div class="flex flex-wrap items-center gap-2 mb-2">
+      <span
+        class="text-[7px] font-black text-brand-primary uppercase tracking-[0.3em]"
+        >Voice Lab</span
+      >
+      <span class="text-[7px] font-black text-slate-600 uppercase tracking-widest"
+        >{{ voiceLabArchetypes().length }} tones · {{ labVoiceCount() }} engine
+        voices</span
+      >
+      @if (pinnedVoice()) {
+        <span
+          class="text-[7px] font-black text-yellow-400 uppercase tracking-widest"
+          >PINNED → {{ pinnedVoice() }}</span
+        >
+        <button
+          type="button"
+          (click)="clearArchetypePin()"
+          class="text-[7px] font-black text-slate-500 uppercase tracking-widest hover:text-red-400 transition-colors"
+          aria-label="Release the pinned voice"
+        >
+          Release
+        </button>
+      }
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 mb-2">
+      <button
+        type="button"
+        (click)="runVoiceSpectrumDemo()"
+        class="px-2.5 py-1 rounded-lg bg-brand-primary/15 border border-brand-primary/40 text-[7px] font-black text-brand-primary uppercase tracking-widest hover:bg-brand-primary/25 transition-all"
+        title="Hear the identity anchor the first sentence and every sentence after it change voice"
+      >
+        ▶ Run the full spectrum
+      </button>
+      <span class="text-[7px] font-bold text-slate-500"
+        >Tap a tone to audition it · ⇱ pins it for your next reply</span
+      >
+    </div>
+
+    <p
+      *ngIf="labOutputNotice()"
+      role="status"
+      class="mb-2 text-[7px] font-bold text-amber-400/90"
+    >
+      {{ labOutputNotice() }}
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+      <div
+        *ngFor="let tone of voiceLabArchetypes()"
+        class="flex items-center gap-1 rounded-lg border border-white/5 bg-white/[0.02] px-2 py-1"
+      >
+        <button
+          type="button"
+          (click)="auditionArchetype(tone.name)"
+          [title]="tone.description"
+          [attr.aria-label]="'Audition ' + tone.name + ' (' + tone.texture + ' delivery)'"
+          class="flex-1 min-w-0 text-left text-[7px] font-black uppercase tracking-widest text-slate-300 hover:text-brand-primary transition-colors"
+        >
+          <span class="block truncate">{{ tone.name }}</span>
+          <span
+            class="block text-[6px] font-bold text-slate-600 normal-case tracking-normal"
+            >{{ tone.texture }} · {{ tone.gender }}</span
+          >
+        </button>
+        <button
+          type="button"
+          (click)="pinArchetype(tone.name)"
+          [attr.aria-label]="'Pin ' + tone.name + ' for the next reply'"
+          title="Pin this voice for your next reply"
+          class="shrink-0 text-[10px] leading-none text-slate-600 hover:text-yellow-400 transition-colors"
+        >
+          ⇱
+        </button>
+      </div>
+    </div>
+
+    <p
+      *ngIf="voiceLabNotice()"
+      role="status"
+      aria-live="polite"
+      class="mt-2 text-[7px] font-bold text-slate-400"
+    >
+      {{ voiceLabNotice() }}
+    </p>
   </div>
 
   <!-- Contextual command drawer -->

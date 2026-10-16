@@ -277,3 +277,39 @@ survives to the speaker, and deepened the per-sentence voice change.
   boundary the app had just spoken the anchor, and the next exchange correctly
   opened on a different tone rather than doubling it.
 
+## Voice Lab — hearing the identity (2026-10-16)
+
+The roster and the spectrum were only reachable by sending a message. The advisor
+now carries a **Voice Lab** (header button, `aria-label="Open the Voice Lab"`):
+it lists all eleven tones with the delivery texture and gender each speaks in,
+auditions any single tone, runs the full-spectrum demo, and pins the voice of the
+next reply.
+
+Building it surfaced two defects that the unit suite had not:
+
+1. **`setArchetype()` was a no-op.** It only pushed an entry into
+   `archetypeHistory`, which the spectrum deck ignored on the very next draw, so
+   "force this voice for the next message" changed nothing. A pin now holds the
+   register for exactly one reply — the pitch bands keep moving inside it — and
+   then releases itself; an explicit per-call `forceArchetype` still outranks it.
+2. **The stable audition path ignored the archetype's texture** and reported
+   `texture: 'plain'`, so auditioning Creature played a plain read and the lab
+described it wrong. The texture now applies to the stable line too and is
+   reported truthfully.
+
+Verified: unit 152 across the six voice/identity suites (67 after the final
+change), `tsc` clean for app and specs, production AOT build, and the new
+`tests/e2e/chatbot-voice-lab.spec.ts` — **1 passed (20.8 s)** in real Chromium:
+
+- **audition** — `"Mmm. Fiix the low end and mean it. …" | voice=Fake Female Voice B
+  | pitch=0.301 | rate=0.62`, readout
+  `VOICE // Creature · stable · Fake Female Voice B · growl`;
+- **pinned reply** — all 9 sentences held `Creature` while the bands moved
+  (`mid → high → mid → low → high → low → mid → low → mid`) and every sentence
+  kept the `growl` texture; the `PINNED → Creature` badge then cleared itself;
+- **spectrum resumed** — the next reply opened on `Ominous Protocol` and rolled
+  the deck with `Childlike Glitch … stutter` and `Choir (Layered) … choral`.
+
+The pre-existing spectrum spec still passes (2 passed, 16.1 s): 11 distinct tones,
+pitch floor → ceiling 0.231 → 1.948, and a later exchange opening on the anchor.
+

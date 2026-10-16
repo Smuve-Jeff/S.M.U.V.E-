@@ -58,6 +58,25 @@ describe('ChatbotComponent', () => {
       outputCapability: signal<string>('ready'),
       liveVoice: signal(null),
       isSpeaking: signal(false),
+      // Voice Lab surface.
+      archetypeCatalog: jest.fn(() => [
+        {
+          name: 'Ominous Protocol',
+          description: 'The signature persona.',
+          gender: 'neutral',
+          texture: 'plain',
+        },
+        {
+          name: 'Creature',
+          description: 'Subterranean growl.',
+          gender: 'creature',
+          texture: 'growl',
+        },
+      ]),
+      availableVoiceNames: jest.fn(() => ['Fake Voice A', 'Fake Voice B']),
+      setArchetype: jest.fn(),
+      clearArchetypePin: jest.fn(),
+      pinnedArchetypeName: jest.fn(() => null),
     };
     const loggingServiceMock = {
       error: jest.fn(),
@@ -251,6 +270,64 @@ describe('ChatbotComponent', () => {
     fixture.detectChanges();
     expect(glyph().getAttribute('data-voice-state')).toBe('listening');
     expect(glyph().getAttribute('aria-label')).toContain('listening');
+  });
+
+  it('opens the Voice Lab with the tone roster and auditions one tone', () => {
+    component.toggleVoiceLab();
+    fixture.detectChanges();
+
+    expect(component.voiceLabOpen()).toBe(true);
+    expect(component.voiceLabArchetypes()).toHaveLength(2);
+    expect(component.labVoiceCount()).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('Creature');
+
+    component.auditionArchetype('Creature');
+
+    expect(speechSynthesisServiceMock.speak).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ shapeShift: false, forceArchetype: 'Creature' })
+    );
+    // The notice names the delivery the artist is hearing.
+    expect(component.voiceLabNotice()).toContain('growl');
+  });
+
+  it('runs the spectrum demo through the shape-shifting path', () => {
+    component.runVoiceSpectrumDemo();
+
+    expect(speechSynthesisServiceMock.speak).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ shapeShift: true })
+    );
+    expect(speechSynthesisServiceMock.clearArchetypePin).toHaveBeenCalled();
+    expect(component.voiceLabNotice()).toContain('spectrum');
+  });
+
+  it('pins a tone for the next reply, shows it, and releases it', () => {
+    speechSynthesisServiceMock.pinnedArchetypeName.mockReturnValue('Creature');
+
+    component.toggleVoiceLab();
+    component.pinArchetype('Creature');
+    fixture.detectChanges();
+
+    expect(speechSynthesisServiceMock.setArchetype).toHaveBeenCalledWith(
+      'Creature'
+    );
+    expect(component.pinnedVoice()).toBe('Creature');
+    expect(fixture.nativeElement.textContent).toContain('PINNED');
+
+    component.clearArchetypePin();
+    fixture.detectChanges();
+
+    expect(speechSynthesisServiceMock.clearArchetypePin).toHaveBeenCalled();
+    expect(component.pinnedVoice()).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('PINNED');
+  });
+
+  it('says so when the device cannot audition anything', () => {
+    speechSynthesisServiceMock.outputCapability.set('no-voices');
+    fixture.detectChanges();
+
+    expect(component.labOutputNotice()).toContain('no speech voices');
   });
 
   it('shows the delivery texture of the sentence being spoken', () => {

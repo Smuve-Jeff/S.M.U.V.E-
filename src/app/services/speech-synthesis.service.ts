@@ -72,6 +72,14 @@ const VOICE_LIST_WAIT_MS = 1200;
  */
 export type VoiceTexture = 'plain' | 'stutter' | 'growl' | 'choral';
 
+/** One row of the Voice Lab roster. */
+export interface VoiceArchetypeOption {
+  name: VoiceArchetype;
+  description: string;
+  gender: 'male' | 'female' | 'neutral' | 'creature';
+  texture: VoiceTexture;
+}
+
 /** Live readout of the voice currently speaking — archetype, band, voice, pitch. */
 export interface VoiceReadout {
   archetype: string;
@@ -398,6 +406,14 @@ export class SpeechSynthesisService {
     // and some WebView engines render that as pure silence — audible on desktop
     // and mute in the packaged app. The reply therefore waits (bounded) for the
     // voice list, and a newer reply supersedes a pending wait.
+    // A pinned archetype (Voice Lab / artist override) outranks the spectrum
+    // for exactly one reply and then releases itself. An explicit per-call
+    // forceArchetype still wins over the pin.
+    if (this.pinnedArchetype && !options?.forceArchetype) {
+      options = { ...options, forceArchetype: this.pinnedArchetype };
+      this.pinnedArchetype = null;
+    }
+
     const generation = ++this.speakGeneration;
     if (!this.voicesAvailable) {
       void this.whenVoicesReady().then(() => {
@@ -494,7 +510,12 @@ export class SpeechSynthesisService {
     if (!processed) return;
 
     this.currentArchetype = this.selectDynamicArchetype(options);
-    const utterance = new SpeechSynthesisUtterance(processed);
+    // The delivery texture belongs to the archetype, not to shape-shifting, so
+    // a stable audition still sounds like the tone it is auditioning. The
+    // rotating breath gesture is a per-sentence layer and is left out here.
+    const utterance = new SpeechSynthesisUtterance(
+      this.textureLine(this.currentArchetype, processed)
+    );
     const [minPitch, maxPitch] = this.currentArchetype.pitchRange;
     const [minRate, maxRate] = this.currentArchetype.rateRange;
     utterance.pitch = Math.max(
@@ -521,8 +542,8 @@ export class SpeechSynthesisService {
       pitch: utterance.pitch,
       rate: utterance.rate,
       prosody: this.prosodyFor(text, utterance.rate),
-      // Stable mode is the accessibility fallback: one voice, one delivery.
-      texture: 'plain',
+      // One voice for the whole line, but the tone's own delivery applies.
+      texture: this.textureFor(this.currentArchetype),
     };
     utterance.onstart = () => {
       this.isSpeaking.set(true);
@@ -571,6 +592,9 @@ export class SpeechSynthesisService {
     return this.nextSpectrumArchetype(this.takeReplyAnchor());
   }
 
+  /** Archetype pinned for the next reply (Voice Lab / artist override). */
+  private pinnedArchetype: VoiceArchetype | null = null;
+
   /**
    * True exactly once per reply, for the sentence that carries the signature
    * persona. Skipped when the previous sentence already spoke it: the
@@ -585,9 +609,12 @@ export class SpeechSynthesisService {
 
   /** The signature persona that anchors every reply. */
   private ominousArchetype(): SmuveArchetype | null {
-    return (
-      this.SMUVE_ARCHETYPES.find((a) => a.name === 'Ominous Protocol') ?? null
-    );
+    return this.findArchetype('Ominous Protocol');
+  }
+
+  /** One archetype from the table by name. */
+  private findArchetype(name: VoiceArchetype): SmuveArchetype | null {
+    return this.SMUVE_ARCHETYPES.find((a) => a.name === name) ?? null;
   }
 
   /** The tone of the sentence that spoke last, if any. */
@@ -917,15 +944,49 @@ export class SpeechSynthesisService {
     return null;
   }
 
-  /** Force a specific vocal archetype for the next message */
+  /**
+   * Force a specific vocal archetype for the NEXT reply, then release it.
+   *
+   * This used to only push an entry into `archetypeHistory`, which the spectrum
+   * deck ignored on the very next draw — so the call changed nothing. An
+   * explicit pin now outranks the deck for one reply (the pitch bands keep
+   * moving inside the pinned register) and then clears itself.
+   */
   setArchetype(archetype: VoiceArchetype): void {
-    const found = this.SMUVE_ARCHETYPES.find((a) => a.name === archetype);
-    if (found) this.archetypeHistory = [this.SMUVE_ARCHETYPES.indexOf(found)];
+    this.pinnedArchetype = this.findArchetype(archetype)?.name ?? null;
+  }
+
+  /** Release a pinned archetype without speaking (artist changed their mind). */
+  clearArchetypePin(): void {
+    this.pinnedArchetype = null;
+  }
+
+  /** The archetype pinned for the next reply, if any. */
+  pinnedArchetypeName(): VoiceArchetype | null {
+    return this.pinnedArchetype;
   }
 
   /** Get available archetype names for UI display */
   getArchetypeNames(): string[] {
-    return [...new Set(this.SMUVE_ARCHETYPES.map((a) => a.name))];
+    return this.uniqueArchetypes().map((a) => a.name);
+  }
+
+  /**
+   * The roster the Voice Lab renders: every tone with the delivery texture it
+   * speaks in, in the order the table declares them.
+   */
+  archetypeCatalog(): VoiceArchetypeOption[] {
+    return this.uniqueArchetypes().map((archetype) => ({
+      name: archetype.name,
+      description: archetype.description,
+      gender: archetype.gender,
+      texture: this.textureFor(archetype),
+    }));
+  }
+
+  /** Browser voices the engine has published, for the Voice Lab readout. */
+  availableVoiceNames(): string[] {
+    return this.voices.map((voice) => voice.name);
   }
 
   cancel(): void {

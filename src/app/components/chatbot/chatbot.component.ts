@@ -26,6 +26,7 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import {
   SpeechSynthesisService,
   VoiceArchetype,
+  VoiceArchetypeOption,
   VoiceOutputCapability,
 } from '../../services/speech-synthesis.service';
 
@@ -54,6 +55,12 @@ import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ChatMusicCommandEngineService } from '../../services/chat-music-command-engine.service';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
+
+/** Voice Lab: one line per archetype, and a multi-sentence spectrum demo. */
+const VOICE_LAB_SAMPLE =
+  'Fix the low end and mean it. I am the standard, and you are not there yet.';
+const VOICE_LAB_SPECTRUM_DEMO =
+  'Listen closely. My floor is the basement of this mix. My ceiling sits above your ambition. Every sentence is a different entity. Do not make me repeat myself.';
 
 interface ChatMessage {
   id: string;
@@ -273,6 +280,96 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   /** Artist-matched archetype for the next spoken reply (mimic mode). */
   private pendingVoiceArchetype: VoiceArchetype | null = null;
 
+  /** ── Voice Lab: audition the identity, run the spectrum, pin a reply ── */
+  public voiceLabOpen = signal(false);
+  public voiceLabNotice = signal('');
+  public pinnedVoice = signal<VoiceArchetype | null>(null);
+  /** Roster of every tone with the texture it speaks in. */
+  public voiceLabArchetypes = computed<VoiceArchetypeOption[]>(
+    () => this.speechSynthesisService.archetypeCatalog?.() ?? []
+  );
+
+  /** Engine voices currently available — a lab with none cannot audition. */
+  labVoiceCount(): number {
+    return this.speechSynthesisService.availableVoiceNames?.()?.length ?? 0;
+  }
+
+  /** Eyebrow for the lab: what it can actually do on this device. */
+  labOutputNotice(): string {
+    switch (this.voiceOutputCapability()) {
+      case 'no-voices':
+        return 'This device has no speech voices installed — the roster is listed, but nothing can be auditioned.';
+      case 'loading':
+        return 'The speech engine is still publishing its voices…';
+      case 'unsupported':
+        return 'This device has no speech engine — auditions stay silent.';
+      default:
+        return '';
+    }
+  }
+
+  toggleVoiceLab(): void {
+    this.voiceLabOpen.update((open) => !open);
+  }
+
+  /**
+   * Audition one archetype: the whole sample in that single voice, so the
+   * artist hears the tone itself instead of the spectrum.
+   */
+  auditionArchetype(archetype: VoiceArchetype): void {
+    this.speechSynthesisService.speak(VOICE_LAB_SAMPLE, {
+      conversationId: 'voice-lab',
+      shapeShift: false,
+      forceArchetype: archetype,
+    });
+    this.voiceLabNotice.set(
+      `Auditioning ${archetype} — ${this.textureOf(archetype)} delivery.`
+    );
+  }
+
+  /** The spectrum, demonstrated: the normal shape-shifting path over one line. */
+  runVoiceSpectrumDemo(): void {
+    this.pinnedVoice.set(null);
+    this.speechSynthesisService.clearArchetypePin?.();
+    this.speechSynthesisService.speak(VOICE_LAB_SPECTRUM_DEMO, {
+      conversationId: 'voice-lab-spectrum',
+      shapeShift: true,
+    });
+    this.voiceLabNotice.set(
+      'Running the spectrum: the identity anchors the first sentence, every sentence after it changes voice.'
+    );
+  }
+
+  /**
+   * Pin a tone for the next reply. The register holds and the pitch bands keep
+   * moving inside it; the pin releases itself once the reply has been spoken.
+   */
+  pinArchetype(archetype: VoiceArchetype): void {
+    this.speechSynthesisService.setArchetype(archetype);
+    this.pinnedVoice.set(
+      this.speechSynthesisService.pinnedArchetypeName?.() ?? archetype
+    );
+    this.voiceLabNotice.set(
+      `Next reply speaks as ${archetype}. The bands still shift; the register holds.`
+    );
+  }
+
+  clearArchetypePin(): void {
+    this.speechSynthesisService.clearArchetypePin?.();
+    this.pinnedVoice.set(null);
+    this.voiceLabNotice.set(
+      'Pin released — the full spectrum owns the next reply again.'
+    );
+  }
+
+  /** Delivery texture for one roster row (kept next to the roster it labels). */
+  private textureOf(archetype: VoiceArchetype): string {
+    return (
+      this.voiceLabArchetypes().find((tone) => tone.name === archetype)?.texture ??
+      'plain'
+    );
+  }
+
   readonly quickCommands = QUICK_COMMANDS;
 
   readonly commandGroups: QuickCommandGroup[] = [
@@ -455,6 +552,11 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (generation === this.replyGeneration) {
         this.isTyping.set(false);
         this.pendingVoiceArchetype = null;
+        // A Voice Lab pin is consumed by the reply it was set for, so the badge
+        // must stop advertising a pin that has already been spent.
+        this.pinnedVoice.set(
+          this.speechSynthesisService.pinnedArchetypeName?.() ?? null
+        );
       }
     }
   }

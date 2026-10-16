@@ -491,6 +491,44 @@ describe('SpeechSynthesisService', () => {
       expect(service.liveVoice()?.texture).toBe('choral');
     });
 
+    it('keeps the archetype texture on the stable audition path', () => {
+      randomSpy.mockReturnValue(0);
+
+      service.speak('Fix the low end.', {
+        shapeShift: false,
+        forceArchetype: 'Creature',
+      });
+
+      // The Voice Lab auditions one tone; the tone's own delivery still applies
+      // (reporting `plain` here made the lab misdescribe what it played).
+      expect(spokenTexts()[0]).toMatch(/^Mmm\. /);
+      mockUtterances[0].onstart();
+      expect(service.liveVoice()?.band).toBe('stable');
+      expect(service.liveVoice()?.texture).toBe('growl');
+    });
+
+    it('lists every tone with the delivery texture it speaks in', () => {
+      const catalog = service.archetypeCatalog();
+
+      expect(catalog).toHaveLength(11);
+      expect(catalog.find((t) => t.name === 'Creature')?.texture).toBe('growl');
+      expect(catalog.find((t) => t.name === 'Childlike Glitch')?.texture).toBe(
+        'stutter'
+      );
+      expect(catalog.find((t) => t.name === 'Choir (Layered)')?.texture).toBe(
+        'choral'
+      );
+      expect(catalog.find((t) => t.name === 'Ominous Protocol')?.texture).toBe(
+        'plain'
+      );
+      expect(service.getArchetypeNames()).toHaveLength(11);
+      expect(service.availableVoiceNames()).toEqual([
+        'Google English',
+        'Microsoft David',
+        'Microsoft Zira',
+      ]);
+    });
+
     it('keeps human personas plain and never breathes the same way twice', () => {
       randomSpy.mockReturnValue(0);
 
@@ -507,6 +545,51 @@ describe('SpeechSynthesisService', () => {
 
       mockUtterances[1].onstart();
       expect(service.liveVoice()?.texture).toBe('plain');
+    });
+  });
+
+  /**
+   * The Voice Lab contract. `setArchetype` used to only seed the archetype
+   * history, which the spectrum deck ignored on the next draw — the pin now
+   * really holds the register for exactly one reply.
+   */
+  describe('Voice Lab pinning', () => {
+    it('holds a pinned archetype for one reply, then releases it', () => {
+      randomSpy.mockReturnValue(0.5);
+
+      service.setArchetype('Creature');
+      expect(service.pinnedArchetypeName()).toBe('Creature');
+
+      service.speak('First reply.');
+      expect(service.pinnedArchetypeName()).toBeNull();
+
+      mockUtterances[0].onstart();
+      expect(service.liveVoice()?.archetype).toBe('Creature');
+      expect(service.liveVoice()?.texture).toBe('growl');
+
+      service.speak('Second reply.');
+      mockUtterances[1].onstart();
+      expect(service.liveVoice()?.archetype).not.toBe('Creature');
+    });
+
+    it('lets an explicit per-call archetype outrank a pin', () => {
+      randomSpy.mockReturnValue(0.5);
+
+      service.setArchetype('Creature');
+      service.speak('Forced.', { forceArchetype: 'Soprano Elite (Female)' });
+
+      mockUtterances[0].onstart();
+      expect(service.liveVoice()?.archetype).toBe('Soprano Elite (Female)');
+      // The pin was not the archetype that spoke, so it survives for its reply.
+      expect(service.pinnedArchetypeName()).toBe('Creature');
+    });
+
+    it('releases a pin on demand without speaking', () => {
+      service.setArchetype('Creature');
+
+      service.clearArchetypePin();
+
+      expect(service.pinnedArchetypeName()).toBeNull();
     });
   });
 });
