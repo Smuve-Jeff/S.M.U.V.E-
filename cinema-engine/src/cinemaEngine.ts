@@ -214,6 +214,11 @@ export class CinemaEngine {
     // Apply live streaming specific enhancements
     result = this.liveStreamingFeatures.enhance(result, options?.liveStreaming);
     
+    // Apply AI enhancement if enabled
+    if (options?.aiEnhance) {
+      result = this.specialEffects.apply('ai-enhance', { intensity: options.aiEnhance.intensity ?? 0.5, aiModel: options.aiEnhance.model });
+    }
+    
     return result;
   }
 
@@ -259,6 +264,11 @@ export class CinemaEngine {
     
     // Apply movie directing specific enhancements
     result = this.movieDirectingFeatures.enhance(result, options?.movieDirecting);
+    
+    // Apply AI enhancement if enabled
+    if (options?.aiEnhance) {
+      result = this.specialEffects.apply('ai-enhance', { intensity: options.aiEnhance.intensity ?? 0.5, aiModel: options.aiEnhance.model });
+    }
     
     return result;
   }
