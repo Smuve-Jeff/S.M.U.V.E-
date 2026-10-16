@@ -15,8 +15,8 @@ Reproduce the evidence:
 ```bash
 # AudioWorklet DSP surface
 rg -n "addModule|new AudioWorkletNode" src/app src/assets/worklets
-# Remaining main-thread DSP
-rg -n "createScriptProcessor" src/app/services/audio-engine.service.ts
+# Main-thread DSP call sites (only the no-Web-Audio capability shim is left)
+rg -n "createScriptProcessor" src/app --glob '!*.spec.ts'
 # WASM kernels + SIMD build
 rg -n "simd128|EXPORTED_FUNCTIONS" scripts/build-wasm.sh
 # Memory model: every sample fully decoded to an AudioBuffer
@@ -27,11 +27,11 @@ cat android/app/src/main/AndroidManifest.xml
 
 ---
 
-## 1. Real-time latency & CPU — **PARTIAL** (one DSP path still on the main thread)
+## 1. Real-time latency & CPU — **SHIPPED for main-thread DSP** (two smaller gaps open)
 
-**Already shipped.** Critical DSP already leaves the main thread: eight worklet
+**Already shipped.** Critical DSP already leaves the main thread: nine worklet
 processors in `src/assets/worklets/` (synth, sampler, master bus, effects,
-sidechain, recording, pitch corrector, stem separator) plus the generic
+sidechain, recording, pitch corrector, stem separator, plugin chain) plus the generic
 `src/assets/audio-processor.worklet.js`, wired
 from `sampler.ts:79`, `subtractive-synth.ts:86`, `audio-engine.service.ts:836`
 (master) and `:3071` (sidechain), `effects/dynamic-effects-rack.ts:351`,
@@ -43,26 +43,24 @@ first-class path: `studio/wasm/wasm-loader.service.ts` (fetch + instantiate,
 JS fallback), JS kernels in `studio/wasm/wasm-dsp-kernels.ts`, C kernels with
 `-msimd128` in `scripts/build-wasm.sh:68` and `studio/wasm/c/*.cpp`.
 
-**Open — the live plugin chain is the outlier.** The WASM plugin inserts that
-make the plugin framework a selling point run in `createScriptProcessor`, i.e.
-on the main thread:
+**Closed in this pass — the live plugin chain ran on the main thread.** This was
+the single highest-ROI item in the audit. A 512-frame `createScriptProcessor`
+block at 48 kHz is ~10.7 ms of kernel work done on the thread that renders the
+arrangement, the piano roll and the mixer, so every enabled plugin made
+note-entry jitter worse — the "feels cheap on Android" symptom.
 
-| Path | Line | Buffer |
-| --- | --- | --- |
-| Master-bus plugin insert (current, spliced after the width stage) | `audio-engine.service.ts:2041` | 512, stereo |
-| Per-track plugin insert | `audio-engine.service.ts:2729` | 512, mono |
-| Master-bus plugin insert (legacy, superseded by the above) | `audio-engine.service.ts:2789` | 512, stereo |
-| Sidechain tap | `audio-engine.service.ts:2569` | 256 |
+| Was (line at audit time) | Disposition |
+| --- | --- |
+| Master-bus plugin insert, spliced after the width stage (`:2041`) | now the `plugin-chain-processor` worklet |
+| Per-track plugin insert (`:2729`) | now the `plugin-chain-processor` worklet |
+| Master-bus plugin insert, legacy splice at `masterGain` (`:2789`) | **deleted** — superseded by the width-preserving insert and called from nowhere but its own spec |
+| Row 4 (`:2569`), listed here as a "sidechain tap" | **corrected:** that line was the dither noise generator, not a sidechain tap. It is now a looping `AudioBufferSourceNode` |
 
-A 512-frame ScriptProcessor at 48 kHz is ~10.7 ms of work done on the same
-thread that renders the arrangement, the piano roll and the mixer. Every enabled
-plugin makes note-entry jitter worse, which is exactly the "feels cheap on
-Android" symptom. **Fix:** host the same kernel closures in one
-`plugin-chain-processor.worklet.js` (kernels are already plain
-`(in, out, params, sr) => void` closures, and the master/effects worklets
-already demonstrate the `postMessage` command protocol), then delete the
-ScriptProcessor inserts. Effort: 1–2 days. This is the single highest-ROI item
-in the audit.
+`rg -n "createScriptProcessor" src/app --glob '!*.spec.ts'` now matches only
+`createSilentAudioContext()`, the capability shim the engine hands to callers in
+a host with no Web Audio at all — never a live DSP path. See §9f for the design,
+and for the parity spec that keeps the worklet's DSP identical to the kernels the
+offline render uses.
 
 **Open — low-power adaptation was wired to nothing.** `performanceTier` only
 ever changed via `updateAdaptivePerformance(load)`
@@ -250,7 +248,7 @@ first bank is commercially distributed.
 
 | # | Item | Area | Effort | Payoff |
 | --- | --- | --- | --- | --- |
-| P0 | Move the live plugin chain (track + master inserts) from `ScriptProcessor` to an AudioWorklet hosting the existing kernels | 1 | 1–2 d | Removes the last main-thread DSP; input→output jitter on Android |
+| P0 | ~~Move the live plugin chain (track + master inserts) from `ScriptProcessor` to an AudioWorklet hosting the existing kernels~~ **shipped (§9f)** | 1 | — | No main-thread DSP left in the engine; input→output jitter on Android |
 | P0 | ~~Bound / page the recording capture buffer before it OOMs a 3 GB phone~~ **shipped (§9)** | 2 | — | Long takes no longer crash the WebView |
 | P1 | ~~Stream the WAV encode from the collected chunks (removes the stop-time join)~~ **shipped (§9b)** | 2 | — | Stop-time peak is the take, not 2× it |
 | P0 | Microphone foreground service so capture *continues* while backgrounded (permission + `microphone` FGS type + native plugin) | 4 | 1–2 d | Recording parity with FL Mobile / Cubasis |
@@ -420,3 +418,54 @@ error, module-load failure).
   explicit-interactive pass-through, the shared analysis instance, the zero-gain
   sink, the degrade-to-`null` path when the graph cannot be wired, and full
   release on destroy.
+
+### 9f. Live plugin inserts hosted on the audio thread (`plugin-chain-processor`)
+
+`src/assets/worklets/plugin-chain-processor.worklet.js` hosts the plugin
+framework's DSP for both insert points, and the engine hosts the node:
+
+- **Kernels, not closures.** An AudioWorklet cannot receive JS closures, so the
+  chain crosses the thread as data — `{ type: 'chain', slots: [{ id, kernel,
+  params }] }` — and the worklet resolves `kernel` by name (`compressor`,
+  `limiter`, `eq`, `saturate`, `process`, the monolithic mastering chain).
+  `LivePluginSlot` / `LivePluginChainProvider`
+  (`audio-engine.service.ts`) are the hand-off types;
+  `PluginStoreService.liveInsertSlot(id)` builds a slot from a manifest, so the
+  effects rack and the track chain resolve params through one code path.
+- **The worklet owns the state.** `wasm-dsp-kernels.ts` declares its compressor
+  envelope, biquad memory and limiter gain *inside* the function body, because
+  the offline path treats one call as the whole signal. A real-time host cannot:
+  a per-quantum reset re-attacks the compressor every 2.7 ms. Each slot is
+  therefore built once by a factory that owns its state for the life of the
+  chain, and `plugin-chain-processor.spec.ts` pins the first render quantum to
+  the offline kernel sample for sample (max diff < 1e-9, every kernel) — the two
+  copies of the DSP can no longer drift apart silently. The same spec pins the
+  streaming state (gain reduction carries into the next quantum and releases),
+  the biquad memory, the mono track path and the pass-through cases.
+- **The chain is polled, not pulled from an audio callback.** The providers used
+  to be called per render quantum, which was cheap but meant the only way a
+  param could reach the DSP was to re-resolve it on the main thread every block.
+  Now the engine polls the provider every 200 ms (`PLUGIN_CHAIN_POLL_MS`) and
+  posts only a changed signature; the poller stops the moment the insert is
+  removed, and `releaseTrackPluginInsert(trackId)` is called by
+  `MusicManagerService.removeTrack` so a deleted track does not leave a timer
+  behind (undo re-installs it).
+- **No main-thread fallback.** When the host has no AudioWorklet the insert is
+  not spliced at all, `masterPluginIds` does not change, and the engine logs a
+  warning — the same "degrade loudly, never run main-thread DSP" rule §1 states,
+  rather than a silent second implementation.
+- **Two live-path bugs fell out of the move.** The insert passed an *empty*
+  `Float32Array` as kernel params, so the live chain ignored every knob and ran
+  on kernel defaults — the params now come from the plugin store. And the
+  per-track `onaudioprocess` returned early when its kernel provider resolved
+  nothing, *without* writing its output buffer, i.e. enabling a plugin on a track
+  silenced that track; an unresolved slot is now the worklet's identity kernel.
+  Community plugins were also invisible to the live and offline paths
+  (`valuesFor`/`kernelParamsFor`/`loadModule` searched the built-in catalog only);
+  they now resolve through `manifestFor`, so an imported plugin's declared kernel
+  name and params are honoured.
+- 17 new/rewritten engine-spec cases (master splice, chain order and params,
+  dry-host behaviour in both directions, no double install, poller re-post and
+  stop, identity fallback, track release) plus 4 store cases
+  (`plugin-store.service.spec.ts`) and 4 caller cases
+  (`music-manager.service.spec.ts`, `effects-rack-ui.component.spec.ts`).
