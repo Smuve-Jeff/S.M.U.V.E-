@@ -10,6 +10,12 @@ export interface EffectParams {
   aiModel?: string;
   aiStrength?: number;
   integration?: 'webgpu' | 'onnx' | 'mediapipe' | 'none';
+  /** WebGPU shader module path or compiled WGSL source */
+  webgpuShaderPath?: string;
+  /** WebGPU compute pipeline layout descriptor */
+  webgpuPipelineLayout?: any;
+  /** WebGPU render pipeline descriptor */
+  webgpuRenderPipeline?: any;
 }
 
 /**
@@ -333,10 +339,13 @@ export class SpecialEffects {
     const model = params.aiModel || 'srcnn'; // Super-resolution model
     const strength = params.aiStrength || 0.5;
     const integration = params.integration || 'none';
+    const shaderPath = params.webgpuShaderPath || 'shaders/super_resolution.wgsl';
     let description = `AI super-resolution with ${model} model (strength: ${strength})`;
 
     if (integration === 'webgpu') {
-      description += ' (WebGPU enabled)';
+      description += ` (WebGPU enabled, shader: ${shaderPath})`;
+      // In a real implementation, the WebGPU pipeline would execute the super_resolution.wgsl shader
+      // to perform AI-powered upscaling on the GPU
     } else if (integration === 'onnx') {
       description += ' (ONNX Runtime)';
     } else if (integration === 'mediapipe') {
@@ -350,6 +359,7 @@ export class SpecialEffects {
       model,
       strength,
       description,
+      webgpuShaderPath: shaderPath,
     };
   }
 
@@ -358,10 +368,13 @@ export class SpecialEffects {
     const model = params.aiModel || 'basic'; // Denoising model
     const strength = params.aiStrength || 0.5;
     const integration = params.integration || 'none';
+    const shaderPath = params.webgpuShaderPath || 'shaders/denoise.wgsl';
     let description = `AI denoising with ${model} model (strength: ${strength})`;
 
     if (integration === 'webgpu') {
-      description += ' (WebGPU enabled)';
+      description += ` (WebGPU enabled, shader: ${shaderPath})`;
+      // In a real implementation, the WebGPU pipeline would execute the denoise.wgsl shader
+      // to perform AI-powered noise reduction on the GPU
     } else if (integration === 'onnx') {
       description += ' (ONNX Runtime)';
     } else if (integration === 'mediapipe') {
@@ -375,6 +388,7 @@ export class SpecialEffects {
       model,
       strength,
       description,
+      webgpuShaderPath: shaderPath,
     };
   }
 
@@ -387,6 +401,8 @@ export class SpecialEffects {
 
     if (integration === 'webgpu') {
       description += ' (WebGPU enabled)';
+      // In a real implementation, the WebGPU pipeline would execute the enhance.wgsl shader
+      // to perform AI-powered general enhancement on the GPU
     } else if (integration === 'onnx') {
       description += ' (ONNX Runtime)';
     } else if (integration === 'mediapipe') {

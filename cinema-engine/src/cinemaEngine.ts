@@ -4,6 +4,20 @@
  * and anything else that enhance music video, live streaming, movie directing quality
  */
 
+/**
+ * Performance metrics for video enhancement
+ */
+export interface EnhancementMetrics {
+  /** Time in milliseconds spent on enhancement */
+  durationMs: number;
+  /** Whether AI was used */
+  usedAI: boolean;
+  /** AI model used (if applicable) */
+  aiModel?: string;
+  /** Integration backend used (if applicable) */
+  integration?: 'webgpu' | 'onnx' | 'mediapipe' | 'none';
+}
+
 import { SpecialEffects } from './specialEffects';
 import { Transitions } from './transitions';
 import { VoiceOver } from './voiceOver';
@@ -131,13 +145,25 @@ export class CinemaEngine {
    * Comprehensive video enhancement for music video quality
    * @param videoInput Input video data
    * @param options Enhancement options
-   * @returns Enhanced video data
+   * @returns Enhanced video data with metrics
    */
-  enhanceForMusicVideo(videoInput: any, options?: any): any {
+  enhanceForMusicVideo(videoInput: any, options?: any): { result: any; metrics: EnhancementMetrics } {
+    const startTime = performance.now();
     let result = videoInput;
+    let usedAI = false;
+    let aiModel: string | undefined;
+    let integration: 'webgpu' | 'onnx' | 'mediapipe' | 'none' = 'none';
     
     // Apply special effects (including AI)
-    result = this.specialEffects.enhance(result, options?.effects);// Apply filters
+    result = this.specialEffects.enhance(result, options?.effects);
+    
+    // Track if AI was used in effects
+    if (options?.effects?.some?.( (e: string) => e.startsWith('ai-'))) {
+      usedAI = true;
+      aiModel = options.effects.find((e: string) => e.startsWith('ai-'))?.replace('ai-', '');
+    }
+
+    // Apply filters
     result = this.filters.apply(result, { type: options?.filter, intensity: options?.intensity ?? 0.5 });
 
     // Apply crop if needed
@@ -166,23 +192,44 @@ export class CinemaEngine {
     // Apply AI enhancement if enabled
     if (options?.aiEnhance) {
       result = this.specialEffects.apply('ai-enhance', { intensity: options.aiEnhance.intensity ?? 0.5, aiModel: options.aiEnhance.model });
+      usedAI = true;
+      aiModel = options.aiEnhance.model;
+      integration = options.aiEnhance.integration || 'none';
     }
 
-    return result;
+    const endTime = performance.now();
+    const metrics: EnhancementMetrics = {
+      durationMs: Math.round(endTime - startTime),
+      usedAI,
+      aiModel,
+      integration,
+    };
+
+    return { result, metrics };
   }
 
   /**
    * Comprehensive video enhancement for live streaming quality
    * @param videoInput Input video data
    * @param options Enhancement options
-   * @returns Enhanced video data
+   * @returns Enhanced video data with metrics
    */
-  enhanceForLiveStreaming(videoInput: any, options?: any): any {
+  enhanceForLiveStreaming(videoInput: any, options?: any): { result: any; metrics: EnhancementMetrics } {
+    const startTime = performance.now();
     let result = videoInput;
+    let usedAI = false;
+    let aiModel: string | undefined;
+    let integration: 'webgpu' | 'onnx' | 'mediapipe' | 'none' = 'none';
     
     // Apply special effects (performance-friendly)
     result = this.specialEffects.enhance(result, options?.effects, { realTime: true });
     
+    // Track if AI was used in effects
+    if (options?.effects?.some?.( (e: string) => e.startsWith('ai-'))) {
+      usedAI = true;
+      aiModel = options.effects.find((e: string) => e.startsWith('ai-'))?.replace('ai-', '');
+    }
+
     // Apply filters (lightweight)
     result = this.filters.apply(result, { type: options?.filter, intensity: options?.intensity ?? 0.5 });
     
@@ -217,23 +264,44 @@ export class CinemaEngine {
     // Apply AI enhancement if enabled
     if (options?.aiEnhance) {
       result = this.specialEffects.apply('ai-enhance', { intensity: options.aiEnhance.intensity ?? 0.5, aiModel: options.aiEnhance.model });
+      usedAI = true;
+      aiModel = options.aiEnhance.model;
+      integration = options.aiEnhance.integration || 'none';
     }
     
-    return result;
+    const endTime = performance.now();
+    const metrics: EnhancementMetrics = {
+      durationMs: Math.round(endTime - startTime),
+      usedAI,
+      aiModel,
+      integration,
+    };
+
+    return { result, metrics };
   }
 
   /**
    * Comprehensive video enhancement for movie directing quality
    * @param videoInput Input video data
    * @param options Enhancement options
-   * @returns Enhanced video data
+   * @returns Enhanced video data with metrics
    */
-  enhanceForMovieDirecting(videoInput: any, options?: any): any {
+  enhanceForMovieDirecting(videoInput: any, options?: any): { result: any; metrics: EnhancementMetrics } {
+    const startTime = performance.now();
     let result = videoInput;
+    let usedAI = false;
+    let aiModel: string | undefined;
+    let integration: 'webgpu' | 'onnx' | 'mediapipe' | 'none' = 'none';
     
     // Apply special effects (cinematic)
     result = this.specialEffects.enhance(result, options?.effects, { cinematic: true });
     
+    // Track if AI was used in effects
+    if (options?.effects?.some?.( (e: string) => e.startsWith('ai-'))) {
+      usedAI = true;
+      aiModel = options.effects.find((e: string) => e.startsWith('ai-'))?.replace('ai-', '');
+    }
+
     // Apply filters (film-like)
     result = this.filters.apply(result, { type: options?.filter, intensity: options?.intensity ?? 0.5 });
     
@@ -268,9 +336,20 @@ export class CinemaEngine {
     // Apply AI enhancement if enabled
     if (options?.aiEnhance) {
       result = this.specialEffects.apply('ai-enhance', { intensity: options.aiEnhance.intensity ?? 0.5, aiModel: options.aiEnhance.model });
+      usedAI = true;
+      aiModel = options.aiEnhance.model;
+      integration = options.aiEnhance.integration || 'none';
     }
     
-    return result;
+    const endTime = performance.now();
+    const metrics: EnhancementMetrics = {
+      durationMs: Math.round(endTime - startTime),
+      usedAI,
+      aiModel,
+      integration,
+    };
+
+    return { result, metrics };
   }
 }
 
