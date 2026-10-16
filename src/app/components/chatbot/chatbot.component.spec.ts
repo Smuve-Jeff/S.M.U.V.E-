@@ -55,6 +55,7 @@ describe('ChatbotComponent', () => {
       speak: jest.fn(),
       cancel: jest.fn(),
       isSupported: signal(true),
+      outputCapability: signal<string>('ready'),
       liveVoice: signal(null),
       isSpeaking: signal(false),
     };
@@ -222,6 +223,34 @@ describe('ChatbotComponent', () => {
     expect(
       fixture.nativeElement.querySelector('[title^="Voice Morph: active"]')
     ).toBeTruthy();
+  });
+
+  it('badges voice morph as unavailable when the engine published no voices', () => {
+    speechSynthesisServiceMock.outputCapability.set('no-voices');
+    fixture.detectChanges();
+
+    expect(component.voiceOutputCapability()).toBe('no-voices');
+    expect(component.voiceOutputSupported()).toBe(false);
+    expect(component.voiceOutputTitle()).toContain('no speech voices');
+    expect(
+      fixture.nativeElement.querySelector('[title^="Voice Morph: unavailable"]')
+    ).toBeTruthy();
+  });
+
+  it('passes the live voice state to the brand mark', () => {
+    const glyph = () =>
+      fixture.nativeElement.querySelector('app-smuve-widget svg');
+
+    expect(glyph().getAttribute('data-voice-state')).toBe('idle');
+
+    speechSynthesisServiceMock.isSpeaking.set(true);
+    fixture.detectChanges();
+    expect(glyph().getAttribute('data-voice-state')).toBe('speaking');
+
+    speechRecognitionServiceMock.isListening.set(true);
+    fixture.detectChanges();
+    expect(glyph().getAttribute('data-voice-state')).toBe('listening');
+    expect(glyph().getAttribute('aria-label')).toContain('listening');
   });
 
   it('lets the artist stop S.M.U.V.E. voice playback', () => {

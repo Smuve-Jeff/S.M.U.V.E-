@@ -4,7 +4,10 @@
   fill="none"
   xmlns="http://www.w3.org/2000/svg"
   role="img"
-  aria-label="S.M.U.V.E brand mark"
+  [attr.aria-label]="ariaLabel"
+  [attr.data-voice-state]="voiceState"
+  [class.is-speaking]="voiceState === 'speaking'"
+  [class.is-listening]="voiceState === 'listening'"
 >
   <defs>
     <!-- Royal blue fluid gradient -->

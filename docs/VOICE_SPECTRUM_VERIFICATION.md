@@ -127,3 +127,87 @@ and an on-device run of the packaged shell. The manifest declares `RECORD_AUDIO`
 and `MODIFY_AUDIO_SETTINGS`, and Capacitor's WebView bridge grants the capture
 request, so recording is expected to work there — that expectation is not a
 measurement.
+
+## Voice *output* access — third pass (2026-10-16)
+
+Input was modelled; output was still assumed. This pass inspected what the
+widget's speech engine can actually do, and closed the gap between "the API
+exists" and "the artist hears a reply".
+
+### What the inspection found
+
+1. **Voice output was assumed ready the instant the page loaded.**
+   `SpeechSynthesisService.isSupported` was a one-shot truthy check of
+   `window.speechSynthesis`, and `speak()` built its utterances immediately.
+   Chromium — and the Android WebView the packaged app runs in — answer
+   `getVoices()` with an **empty array** until the asynchronous `voiceschanged`
+   event. An utterance built in that window carried no `voice` and no `lang`,
+   and engines that cannot resolve a voice render nothing. Nothing in the app
+   listened for `voiceschanged` (zero hits across `src/`). Symptom class: the
+   reply S.M.U.V.E. never says, or only the first reply, while the badge still
+   claims voice morph.
+2. **No fallback voice and no language.** `pickVoiceForBand()` could return
+   `null` and nothing substituted the engine's own default voice; `/hub`
+   utterances never set `lang`, so an engine that ignores `voice` had nothing to
+   fall back on.
+3. **The badge overstated the capability.** "Voice Morph: active" was rendered
+   from engine presence alone, so a device whose engine published no voices
+   (a WebView with no TTS voices installed) was told voice morph was working.
+   The tooltip copy was also duplicated inline in the template, independent of
+   the state it described.
+4. **The widget's own mark was inert.** The chatbot held `voiceSpeaking` and
+   `voiceInputListening` but passed nothing to `app-smuve-widget`, so the avatar
+   never communicated that S.M.U.V.E. was speaking or that the artist was
+dictating; the only cue was the text readout above the composer.
+
+### Fixes
+
+- `SpeechSynthesisService.outputCapability` — `ready | loading | no-voices |
+  unsupported`. The engine's list is read at construction and refreshed on
+  `voiceschanged`, with a bounded 1200 ms wait, so a device with no installed
+  voices reports `no-voices` instead of sitting on "loading" forever.
+- `speak()` waits for the list when it has not arrived yet (a newer reply
+  supersedes the wait through a generation counter, so a stale reply is never
+  spoken late) and then builds the utterances.
+- `defaultVoice()` falls back to the engine's own default voice, and
+  `applyVoiceToUtterance()` assigns the chosen voice **and its `lang`**.
+- The badge copy is derived from the same capability the badge renders, so the
+  label can no longer contradict the state (`voiceOutputTitle()`), and
+  `voiceOutputSupported()` is false for both `unsupported` and `no-voices`.
+- The brand mark reports voice state: `speaking`/`listening` inputs,
+  `data-voice-state`, `is-speaking`/`is-listening` styling (blue emission while
+  S.M.U.V.E. talks, red while the artist dictates; `prefers-reduced-motion`
+  keeps the colour and drops the animation) and an aria-label that announces it.
+
+### Verification
+
+- **Unit — 70 passed** across `speech-synthesis.service.spec.ts`,
+  `speech-recognition.service.spec.ts`, `chatbot.component.spec.ts` and the new
+  `smuve-widget.component.spec.ts`. New cases: the reply waits for a late voice
+  list and is then spoken with a real voice; a superseded reply is dropped;
+  `no-voices` after the bounded wait; the utterance language is pinned to the
+  chosen voice; the glyph reports speaking/listening and listening wins.
+- **Types/build** — `tsc --noEmit -p tsconfig.json` and `-p tsconfig.spec.json`
+  clean; `ng build --configuration production` succeeds (AOT templates).
+- **e2e, real Chromium** (`tests/e2e/smuve-voice-spectrum.spec.ts` against the
+  production bundle served statically) — **2 passed in 12.8 s**:
+  1. the pre-existing spectrum run is unchanged: 11 distinct tones, pitch floor →
+     ceiling 0.176 → 1.955, all three bands alternating without back-to-back
+     repeats;
+  2. new `still voices the first reply when the engine publishes its voices
+     late` — the harness answers `getVoices()` with `[]` for 600 ms and only
+     then fires `voiceschanged`; the first utterance was still voiced
+     (`voice=Fake Female Voice B`, pitch 0.415). Before the fix that utterance
+     carried no voice at all.
+- **Sandbox note** — the restored cloud sandbox has no root and shipped neither
+  the X11/NSS/ALSA libraries nor a fontconfig setup, so Chromium first failed to
+  start (`libnspr4.so: cannot open shared object file`) and, once started,
+  aborted the moment a page rendered text
+  (`FATAL:third_party/skia/src/ports/SkFontMgr_FontConfigInterface.cpp Not
+  implemented` → `trap int3`). `scripts/setup-e2e-browser-libs.sh` downloads and
+  unpacks the packages without root and prints the environment to run with.
+
+Still unverified: on-device playback in the packaged Android/iOS shell — whether
+its engine publishes any voices at all is a device measurement, not an
+inference, and the native dictation round-trip from the second pass remains
+open.

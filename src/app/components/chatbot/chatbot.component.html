@@ -10,7 +10,13 @@
       <div
         class="w-12 h-12 rounded-2xl flex items-center justify-center group overflow-visible"
       >
-        <app-smuve-widget class="w-full h-full"></app-smuve-widget>
+        <!-- The mark is also the voice avatar: it reports that S.M.U.V.E. is
+             speaking or that the artist is dictating. -->
+        <app-smuve-widget
+          class="w-full h-full"
+          [speaking]="voiceSpeaking()"
+          [listening]="voiceInputListening()"
+        ></app-smuve-widget>
       </div>
       <div class="flex flex-col">
         <h3
@@ -53,17 +59,15 @@
         <span class="material-symbols-outlined text-lg">mood_bad</span>
       </button>
       <!-- Voice morph is a permanent S.M.U.V.E. identity feature, but the badge
-           states the real capability: a shell without a speech engine cannot
-           produce the morph, and claiming "active" there was a lie. -->
+           states the real capability: a shell without a speech engine, or one
+           whose engine published no voices, cannot produce the morph, and
+           claiming "active" there was a lie. -->
       <span
         class="p-2 rounded-xl cursor-default"
         [class.text-brand-primary]="voiceOutputSupported()"
         [class.text-slate-600]="!voiceOutputSupported()"
-        [title]="
-          voiceOutputSupported()
-            ? 'Voice Morph: active — S.M.U.V.E. dynamically cycles vocal pitch every sentence'
-            : 'Voice Morph: unavailable — this device has no speech engine, replies stay text-only'
-        "
+        [title]="voiceOutputTitle()"
+        [attr.aria-label]="voiceOutputTitle()"
       >
         <span class="material-symbols-outlined text-lg">record_voice_over</span>
       </span>

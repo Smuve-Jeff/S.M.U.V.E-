@@ -21,9 +21,15 @@ import { seedAuthenticatedSession } from './helpers';
  * pitch bands alternate without back-to-back repeats.
  */
 
-const HARNESS = String.raw`
+/**
+ * Builds the harness. `voiceLagMs > 0` reproduces the real-world engine that
+ * answers getVoices() with an EMPTY list until `voiceschanged` fires — the
+ * window in which an utterance built without a voice is silently dropped.
+ */
+const buildHarness = (voiceLagMs = 0) => String.raw`
 (() => {
   const w = window;
+  const VOICE_LAG_MS = ${voiceLagMs};
   w.__smuveUtterances = [];
   w.__smuveReadouts = [];
   w.__smuveQueueDepth = 0;
@@ -87,16 +93,28 @@ const HARNESS = String.raw`
     }, PER_SENTENCE_MS);
   }
 
+  // Voices arrive immediately, or only after the engine announces them.
+  let voices = VOICE_LAG_MS > 0 ? [] : VOICES;
+  const voiceListeners = [];
+  if (VOICE_LAG_MS > 0) {
+    setTimeout(() => {
+      voices = VOICES;
+      voiceListeners.forEach((cb) => { try { cb({ type: 'voiceschanged' }); } catch (err) {} });
+    }, VOICE_LAG_MS);
+  }
+
   const synth = {
     paused: false,
     pending: false,
     speaking: false,
-    getVoices: () => VOICES,
+    getVoices: () => voices,
     speak: (u) => { queue.push(u); pump(); },
     cancel: () => { queue.length = 0; processing = false; w.__smuveQueueDepth = 0; },
     pause: () => {},
     resume: () => {},
-    addEventListener: () => {},
+    addEventListener: (type, cb) => {
+      if (type === 'voiceschanged' && typeof cb === 'function') voiceListeners.push(cb);
+    },
     removeEventListener: () => {},
     dispatchEvent: () => true
   };
@@ -123,6 +141,8 @@ const HARNESS = String.raw`
   }, 25);
 })();
 `;
+
+const HARNESS = buildHarness(0);
 
 /** Knowledge/AI-fallback prompts that return multi-sentence local replies. */
 const PROMPTS = [
@@ -257,5 +277,53 @@ test.describe('S.M.U.V.E voice spectrum (runtime)', () => {
     expect(new Set(data.utterances.map((u) => u.voiceName)).size).toBeGreaterThan(
       1
     );
+  });
+
+  test('still voices the first reply when the engine publishes its voices late', async ({
+    page,
+  }) => {
+    // Real engines answer getVoices() with an empty list until `voiceschanged`.
+    // An utterance built in that window carried no voice at all and some
+    // engines played nothing, so the reply waited for the list instead.
+    await page.addInitScript({ content: buildHarness(600) });
+    await seedAuthenticatedSession(page);
+
+    await page.goto('/hub');
+    await expect(page.locator('body')).toBeVisible();
+
+    await page
+      .locator('button[aria-label="Toggle S.M.U.V.E advisor"]')
+      .first()
+      .click();
+    const input = page.locator('input[placeholder^="Command S.M.U.V.E 2.0"]');
+    await expect(input).toBeVisible();
+    await input.fill('explain mix master and production');
+    await page.locator('button[aria-label="Send message to S.M.U.V.E"]').click();
+
+    await page.waitForFunction(
+      () => (window as any).__smuveUtterances.length > 0,
+      undefined,
+      { timeout: 70_000 }
+    );
+
+    const utterances = await page.evaluate(
+      () =>
+        (window as any).__smuveUtterances as Array<{
+          text: string;
+          voiceName: string | null;
+          pitch: number;
+        }>
+    );
+
+    console.log('=== S.M.U.V.E LATE VOICE LIST — FIRST UTTERANCE ===');
+    console.log(
+      `  "${utterances[0].text}" | voice=${utterances[0].voiceName} | pitch=${Number(
+        utterances[0].pitch.toFixed(3)
+      )}`
+    );
+
+    // The first sentence of the first reply is voiced, not silent.
+    expect(utterances[0].voiceName).toBeTruthy();
+    expect(utterances.every((u) => !!u.voiceName)).toBe(true);
   });
 });

@@ -28,8 +28,58 @@
   }
 }
 
+/* ── Voice state: the mark itself reports that voice is live ───────────────
+   Speaking and listening are deliberately different signals — royal-blue
+   emission while S.M.U.V.E. talks, red (the same red as the mic button) while
+   the artist dictates. Both are listed with the :hover rule of the same
+   weight so hovering cannot cancel the voice state. */
+@keyframes smuve-voice-speak {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(51, 102, 255, 0.55));
+  }
+  50% {
+    transform: scale(1.09);
+    filter: drop-shadow(0 0 18px rgba(85, 136, 255, 0.95));
+  }
+}
+
+@keyframes smuve-voice-listen {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(248, 113, 113, 0.5));
+  }
+  50% {
+    transform: scale(1.07);
+    filter: drop-shadow(0 0 18px rgba(248, 113, 113, 0.95));
+  }
+}
+
+.smuve-widget-glyph.is-speaking,
+:host(:hover) .smuve-widget-glyph.is-speaking {
+  animation: smuve-voice-speak 0.9s ease-in-out infinite;
+}
+
+.smuve-widget-glyph.is-listening,
+:host(:hover) .smuve-widget-glyph.is-listening {
+  animation: smuve-voice-listen 1.05s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .smuve-widget-glyph {
+  .smuve-widget-glyph,
+  .smuve-widget-glyph.is-speaking,
+  .smuve-widget-glyph.is-listening {
     animation: none;
+  }
+
+  /* Motion off — colour still carries the state. */
+  .smuve-widget-glyph.is-speaking {
+    filter: drop-shadow(0 0 12px rgba(85, 136, 255, 0.95));
+  }
+
+  .smuve-widget-glyph.is-listening {
+    filter: drop-shadow(0 0 12px rgba(248, 113, 113, 0.95));
   }
 }

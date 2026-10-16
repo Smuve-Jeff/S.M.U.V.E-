@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
+import { LoggingService } from './logging.service';
 
 export type VoiceArchetype =
   | 'Deep Bass (Male)'
@@ -42,6 +43,25 @@ interface SpeakOptions {
 /** Pitch bands used to force constant full-spectrum change between sentences. */
 type PitchBand = 'low' | 'mid' | 'high';
 
+/**
+ * Why voice output can (or cannot) be heard right now.
+ *
+ * This is a different question from "does `speechSynthesis` exist". Engines
+ * publish their voice list asynchronously — Chromium/WebView return an EMPTY
+ * array from `getVoices()` until the `voiceschanged` event — and an utterance
+ * built in that window carries neither a voice nor a language, which those
+ * engines render as silence. `loading` covers that window, `no-voices` the
+ * device that genuinely has no speech voices installed.
+ */
+export type VoiceOutputCapability =
+  | 'ready'
+  | 'loading'
+  | 'no-voices'
+  | 'unsupported';
+
+/** How long to wait for the engine's asynchronous voice list before giving up. */
+const VOICE_LIST_WAIT_MS = 1200;
+
 /** Live readout of the voice currently speaking — archetype, band, voice, pitch. */
 export interface VoiceReadout {
   archetype: string;
@@ -64,6 +84,21 @@ export class SpeechSynthesisService {
   isSupported = signal(
     typeof window !== 'undefined' && !!window.speechSynthesis
   );
+  /** Real voice-output capability — see `VoiceOutputCapability`. */
+  outputCapability = signal<VoiceOutputCapability>(
+    typeof window !== 'undefined' && !!window.speechSynthesis
+      ? 'loading'
+      : 'unsupported'
+  );
+  /** Voices the engine has published; empty until the list arrives. */
+  private voices: SpeechSynthesisVoice[] = [];
+  private voicesAvailable = false;
+  /** True once the bounded wait for the voice list has elapsed. */
+  private voiceWaitExpired = false;
+  private voiceListTimer: ReturnType<typeof setTimeout> | null = null;
+  private voiceWaiters: (() => void)[] = [];
+  /** Bumped per `speak()` so a reply superseded while voices load never plays. */
+  private speakGeneration = 0;
 
   // Identity anchor: the first default sentence of a session opens in the
   // Ominous Protocol persona (whose own range already spans deep bass to
@@ -228,11 +263,108 @@ export class SpeechSynthesisService {
   private sessionOpened = false;
 
   private userProfile = inject(UserProfileService, { optional: true });
+  private logger = inject(LoggingService, { optional: true });
 
   /** Live voice readout — updated on every sentence as it begins speaking. */
   liveVoice = signal<VoiceReadout | null>(null);
 
-  constructor() {}
+  constructor() {
+    this.watchVoiceList();
+  }
+
+  /**
+   * Watches the engine's voice list instead of assuming the API alone means the
+   * artist will hear the reply. Releases waiters as soon as the list lands.
+   */
+  private watchVoiceList(): void {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      this.outputCapability.set('unsupported');
+      return;
+    }
+    this.refreshVoiceList();
+    const synth = window.speechSynthesis as any;
+    if (typeof synth.addEventListener === 'function') {
+      synth.addEventListener('voiceschanged', () => this.refreshVoiceList());
+    }
+    if (this.voicesAvailable) return;
+    // Bounded wait, so a device with no installed voices reports that instead
+    // of leaving the widget stuck on "warming up" forever.
+    this.voiceListTimer = setTimeout(() => {
+      this.voiceListTimer = null;
+      this.voiceWaitExpired = true;
+      this.refreshVoiceList();
+      this.settleVoiceWaiters();
+    }, VOICE_LIST_WAIT_MS);
+  }
+
+  /** Re-reads the engine's voice list, updating capability and releasing waiters. */
+  private refreshVoiceList(): void {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      this.outputCapability.set('unsupported');
+      return;
+    }
+    let voices: SpeechSynthesisVoice[] = [];
+    try {
+      voices = window.speechSynthesis.getVoices() ?? [];
+    } catch (error) {
+      this.logger?.warn?.('Could not read the speech voice list', error);
+      voices = [];
+    }
+    if (voices.length > 0) {
+      this.voices = voices;
+      this.voicesAvailable = true;
+      this.outputCapability.set('ready');
+      if (this.voiceListTimer !== null) {
+        clearTimeout(this.voiceListTimer);
+        this.voiceListTimer = null;
+      }
+      this.settleVoiceWaiters();
+      return;
+    }
+    if (!this.voicesAvailable) {
+      this.outputCapability.set(this.voiceWaitExpired ? 'no-voices' : 'loading');
+    }
+  }
+
+  /** Resolves when the voice list settles: published, or the bounded wait expired. */
+  private whenVoicesReady(): Promise<void> {
+    if (this.voicesAvailable) return Promise.resolve();
+    return new Promise<void>((resolve) => this.voiceWaiters.push(resolve));
+  }
+
+  private settleVoiceWaiters(): void {
+    const waiters = this.voiceWaiters;
+    this.voiceWaiters = [];
+    waiters.forEach((resolve) => resolve());
+  }
+
+  /** The engine's own default voice — the last resort before silence. */
+  private defaultVoice(): SpeechSynthesisVoice | null {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+    const voices = this.voices.length
+      ? this.voices
+      : window.speechSynthesis.getVoices() ?? [];
+    return voices.find((voice) => voice.default) ?? voices[0] ?? null;
+  }
+
+  /**
+   * Assigns the chosen voice AND its language. An engine that ignores `voice`
+   * still honours `lang`, so pinning it keeps the reply audible instead of
+   * letting the engine guess — or produce nothing.
+   */
+  private applyVoiceToUtterance(
+    utterance: SpeechSynthesisUtterance,
+    voice: SpeechSynthesisVoice | null
+  ): void {
+    if (!voice) return;
+    try {
+      utterance.voice = voice;
+      if (voice.lang) utterance.lang = voice.lang;
+    } catch {
+      // Voice assignment can throw on some platforms — keep speaking.
+    }
+  }
+
 
   /**
    * Speaks text with per-sentence shape-shifting.
@@ -248,6 +380,23 @@ export class SpeechSynthesisService {
     if (!text || typeof window === 'undefined' || !window.speechSynthesis)
       return;
 
+    // Speaking before the engine publishes its voices assigns no voice at all,
+    // and some WebView engines render that as pure silence — audible on desktop
+    // and mute in the packaged app. The reply therefore waits (bounded) for the
+    // voice list, and a newer reply supersedes a pending wait.
+    const generation = ++this.speakGeneration;
+    if (!this.voicesAvailable) {
+      void this.whenVoicesReady().then(() => {
+        if (generation === this.speakGeneration) this.speakNow(text, options);
+      });
+      return;
+    }
+
+    this.speakNow(text, options);
+  }
+
+  /** Builds and queues the utterances for one reply. */
+  private speakNow(text: string, options?: SpeakOptions): void {
     // Apply vulgar language preference (default: allow). If the caller opts
     // out, sanitize the text.
     const allowVulgar =
@@ -331,14 +480,8 @@ export class SpeechSynthesisService {
     utterance.volume =
       this.currentArchetype.baseVolume * (0.85 + Math.random() * 0.15);
 
-    const voice = this.pickVoiceForBand('mid');
-    if (voice) {
-      try {
-        utterance.voice = voice;
-      } catch {
-        // Ignore platform voice assignment failures.
-      }
-    }
+    const voice = this.pickVoiceForBand('mid') ?? this.defaultVoice();
+    this.applyVoiceToUtterance(utterance, voice);
 
     const meta: VoiceReadout = {
       archetype: this.currentArchetype.name,
@@ -534,15 +677,10 @@ export class SpeechSynthesisService {
     utterance.volume =
       this.currentArchetype.baseVolume * (0.85 + Math.random() * 0.15);
 
-    // 3) Voice rotation matched to the band's gender.
-    const voice = this.pickVoiceForBand(band);
-    if (voice) {
-      try {
-        utterance.voice = voice;
-      } catch {
-        // Voice assignment can throw on some platforms — keep speaking.
-      }
-    }
+    // 3) Voice rotation matched to the band's gender, falling back to the
+    // engine's own default voice so a sentence is never voiced by nothing.
+    const voice = this.pickVoiceForBand(band) ?? this.defaultVoice();
+    this.applyVoiceToUtterance(utterance, voice);
 
     return {
       archetype: this.currentArchetype.name,

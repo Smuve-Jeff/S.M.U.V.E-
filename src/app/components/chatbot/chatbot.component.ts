@@ -26,7 +26,9 @@ import { AudioEngineService } from '../../services/audio-engine.service';
 import {
   SpeechSynthesisService,
   VoiceArchetype,
+  VoiceOutputCapability,
 } from '../../services/speech-synthesis.service';
+
 import {
   SpeechRecognitionService,
   VoiceInputCapability,
@@ -208,12 +210,44 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     () => this.speechRecognition?.capability?.() ?? 'unsupported'
   );
   /**
-   * Voice output can be missing too: a WebView without a speech engine cannot
-   * speak at all, so the morph badge must not claim it is active.
+   * Voice output can be missing at two levels: a shell with no speech engine at
+   * all, and an engine that has published no voices (a WebView with no TTS
+   * voices installed speaks nothing). The morph badge reports both, so it never
+   * claims a voice the device cannot produce.
    */
+  public voiceOutputCapability = computed<VoiceOutputCapability>(() => {
+    const service = this.speechSynthesisService as any;
+    // A missing engine outranks any voice-list state.
+    if (typeof service.isSupported === 'function' && !service.isSupported()) {
+      return 'unsupported';
+    }
+    return typeof service.outputCapability === 'function'
+      ? (service.outputCapability() as VoiceOutputCapability)
+      : 'ready';
+  });
+  /** Only a usable or still-warming engine earns the active badge. */
   public voiceOutputSupported = computed(
-    () => this.speechSynthesisService.isSupported?.() ?? true
+    () =>
+      this.voiceOutputCapability() !== 'unsupported' &&
+      this.voiceOutputCapability() !== 'no-voices'
   );
+  /**
+   * Tooltip/aria text that always states the real output capability. The copy
+   * lives here, keyed off the same capability the badge uses, so the label can
+   * never contradict the state it is describing.
+   */
+  public voiceOutputTitle = computed(() => {
+    switch (this.voiceOutputCapability()) {
+      case 'ready':
+        return 'Voice Morph: active — S.M.U.V.E. dynamically cycles vocal pitch every sentence';
+      case 'loading':
+        return 'Voice Morph: warming up — the speech engine is publishing its voice list';
+      case 'no-voices':
+        return 'Voice Morph: unavailable — this device has no speech voices installed, replies stay text-only';
+      default:
+        return 'Voice Morph: unavailable — this device has no speech engine, replies stay text-only';
+    }
+  });
   /**
    * Pressable = the engine exists and this shell can use it. A blocked or
    * insecure state stays pressable on purpose: tapping it is how the artist

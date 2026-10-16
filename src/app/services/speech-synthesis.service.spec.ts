@@ -331,4 +331,99 @@ describe('SpeechSynthesisService', () => {
     expect((failingUtterance as any).pitch).toBeDefined();
     expect((failingUtterance as any).rate).toBeDefined();
   });
+
+  it('pins the utterance language to the chosen voice', () => {
+    mockSpeechSynthesis.getVoices.mockReturnValue([
+      { name: 'Microsoft David', lang: 'en-GB' },
+    ]);
+    randomSpy.mockReturnValue(0);
+
+    service.speak('Language check.');
+
+    expect(mockUtterances[0].lang).toBe('en-GB');
+  });
+
+  it('reports ready once the engine has published voices', () => {
+    expect(service.outputCapability()).toBe('ready');
+  });
+
+  /**
+   * Chromium and the Android WebView answer an empty voice list until the
+   * `voiceschanged` event. Speaking in that window assigns no voice at all,
+   * which those engines can render as silence — the reply that worked on
+   * desktop and produced nothing in the packaged app.
+   */
+  describe('when the engine has not published its voices yet', () => {
+    const createServiceWithLaggingVoices = () => {
+      const listeners: Record<string, () => void> = {};
+      mockSpeechSynthesis.getVoices.mockReturnValue([]);
+      mockSpeechSynthesis.addEventListener = jest.fn(
+        (type: string, callback: () => void) => {
+          listeners[type] = callback;
+        }
+      );
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({});
+      const lagging = TestBed.inject(SpeechSynthesisService);
+      return {
+        lagging,
+        publishVoices: () => {
+          mockSpeechSynthesis.getVoices.mockReturnValue([
+            { name: 'Microsoft David', lang: 'en-US', default: true },
+          ]);
+          listeners['voiceschanged']?.();
+          return Promise.resolve();
+        },
+        flush: () => new Promise((resolve) => setTimeout(resolve, 0)),
+      };
+    };
+
+    it('reports that it is still warming up instead of claiming it will speak', () => {
+      const { lagging } = createServiceWithLaggingVoices();
+
+      expect(lagging.outputCapability()).toBe('loading');
+    });
+
+    it('waits for the voice list, then speaks with a real voice', async () => {
+      const { lagging, publishVoices, flush } =
+        createServiceWithLaggingVoices();
+
+      lagging.speak('Hold the line.');
+      expect(mockSpeechSynthesis.speak).not.toHaveBeenCalled();
+
+      await publishVoices();
+      await flush();
+
+      expect(lagging.outputCapability()).toBe('ready');
+      expect(mockSpeechSynthesis.speak).toHaveBeenCalledTimes(1);
+      expect(mockUtterances[0].voice).toMatchObject({ name: 'Microsoft David' });
+    });
+
+    it('never speaks a reply that a newer one superseded', async () => {
+      const { lagging, publishVoices, flush } =
+        createServiceWithLaggingVoices();
+
+      lagging.speak('First reply.');
+      lagging.speak('Second reply.');
+
+      await publishVoices();
+      await flush();
+
+      expect(mockSpeechSynthesis.speak).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports no voices once the bounded wait expires', () => {
+      jest.useFakeTimers();
+      try {
+        const { lagging } = createServiceWithLaggingVoices();
+
+        expect(lagging.outputCapability()).toBe('loading');
+        jest.advanceTimersByTime(1500);
+
+        expect(lagging.outputCapability()).toBe('no-voices');
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+  });
 });
