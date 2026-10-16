@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { NotificationService } from './notification.service';
+import { AuxAudioContextService } from './aux-audio-context.service';
 import { createMlWorker } from './ml-worker-factory';
 
 export interface Stems {
@@ -39,6 +40,7 @@ export interface StemResult {
 })
 export class StemSeparationService {
   private notificationService = inject(NotificationService);
+  private aux = inject(AuxAudioContextService);
 
   /** Live progress during on-device separation */
   readonly progress = signal<StemProgress>({
@@ -418,8 +420,9 @@ export class StemSeparationService {
     sampleRate: number
   ): Promise<Stems> {
     return new Promise((resolve, reject) => {
-      // Use a temporary AudioContext for worklet processing
-      const ctx = new AudioContext();
+      // Temporary auxiliary graph: the separator is never monitored, so it
+      // asks for a playback buffer rather than an interactive one.
+      const ctx = this.aux.createAuxContext('playback');
       let node: AudioWorkletNode;
 
       ctx.audioWorklet
@@ -431,6 +434,10 @@ export class StemSeparationService {
           });
 
           this.workletNode = node;
+          // A processor with no path to the destination is never pulled. The
+          // separator reports through its port, so a zero-gain sink is enough
+          // (and the same trick the recording engine relies on).
+          this.aux.attachSilentSink(ctx, node);
 
           // Convert channel data to transferable buffers
           const transferList: ArrayBuffer[] = [];

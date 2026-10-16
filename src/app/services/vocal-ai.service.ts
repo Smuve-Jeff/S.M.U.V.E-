@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { AiService } from './ai.service';
 import { LoggingService } from './logging.service';
+import { AuxAudioContextService } from './aux-audio-context.service';
 
 /**
  * Measured features of an uploaded vocal take. Extracted from the raw samples
@@ -60,6 +61,7 @@ export function analyzeVocalBuffer(buffer: AudioBuffer): VocalAnalysis {
 export class VocalAiService {
   private aiService = inject(AiService);
   private logger = inject(LoggingService);
+  private aux = inject(AuxAudioContextService);
 
   feedbackMode = signal<'passive' | 'inclusive'>('passive');
   currentAdvice = signal<string>('ANALYZING VOCAL CORRIDOR...');
@@ -109,22 +111,20 @@ export class VocalAiService {
     if (typeof AudioContext === 'undefined') return fallback;
 
     try {
-      const ctx = new AudioContext();
-      try {
-        const decoded = await ctx.decodeAudioData(await blob.arrayBuffer());
-        const a = analyzeVocalBuffer(decoded);
-        return [
-          `duration ${a.durationSeconds}s`,
-          `peak ${a.peakDb} dBFS`,
-          `RMS ${a.rmsDb} dBFS`,
-          `crest factor ${a.crestDb} dB`,
-          `silence ${(a.silentRatio * 100).toFixed(1)}%`,
-          `clipped samples ${a.clippedSamples}`,
-          `${a.channels}ch @ ${a.sampleRate} Hz`,
-        ].join(' \u00b7 ');
-      } finally {
-        void ctx.close?.();
-      }
+      // Decode-only work shares one analysis context instead of opening (and
+      // tearing down) a fresh interactive output stream per take.
+      const ctx = this.aux.analysisContext();
+      const decoded = await ctx.decodeAudioData(await blob.arrayBuffer());
+      const a = analyzeVocalBuffer(decoded);
+      return [
+        `duration ${a.durationSeconds}s`,
+        `peak ${a.peakDb} dBFS`,
+        `RMS ${a.rmsDb} dBFS`,
+        `crest factor ${a.crestDb} dB`,
+        `silence ${(a.silentRatio * 100).toFixed(1)}%`,
+        `clipped samples ${a.clippedSamples}`,
+        `${a.channels}ch @ ${a.sampleRate} Hz`,
+      ].join(' \u00b7 ');
     } catch {
       return fallback;
     }

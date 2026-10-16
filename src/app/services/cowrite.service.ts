@@ -314,7 +314,10 @@ export class CoWriteService {
       return;
     }
 
-    this.audioContext = new AudioContext();
+    // The preview is heard immediately, so it keeps an interactive buffer —
+    // but it states that explicitly instead of taking the host default (see
+    // AuxAudioContextService for the policy).
+    this.audioContext = new AudioContext({ latencyHint: 'interactive' });
     const ctx = this.audioContext;
     this.isPlayingAudio.set(true);
 

@@ -1,9 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { SocialNetworkingService } from './social-networking.service';
+import { AuxAudioContextService } from './aux-audio-context.service';
 
 @Injectable({ providedIn: 'root' })
 export class PeerNetworkingService {
   private social = inject(SocialNetworkingService);
+  private aux = inject(AuxAudioContextService);
   private peerConnection?: RTCPeerConnection;
   private localStream?: MediaStream;
 
@@ -28,6 +30,8 @@ export class PeerNetworkingService {
 
   private analyserNode: AnalyserNode | null = null;
   private activityInterval: any = null;
+  /** Auxiliary graph for the voice-activity analyser, owned by endCall(). */
+  private activityContext: AudioContext | null = null;
 
   async startCall(toUserId: string) {
     this.callState.set('calling');
@@ -224,11 +228,16 @@ export class PeerNetworkingService {
 
     // ── Voice Activity Analyser ──
     try {
-      const audioCtx = new AudioContext();
+      // Nothing here is monitored, so the graph asks for a playback buffer.
+      const audioCtx = this.aux.createAuxContext('playback');
+      this.activityContext = audioCtx;
       const source = audioCtx.createMediaStreamSource(this.localStream!);
       this.analyserNode = audioCtx.createAnalyser();
       this.analyserNode.fftSize = 256;
       source.connect(this.analyserNode);
+      // Web Audio only pulls a node that reaches the destination, so without a
+      // zero-gain sink this analyser reported silence for the whole call.
+      this.aux.attachSilentSink(audioCtx, this.analyserNode);
 
       // Poll analyser for volume levels
       const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
@@ -278,6 +287,13 @@ export class PeerNetworkingService {
       this.activityInterval = null;
     }
     this.analyserNode = null;
+    // Release the auxiliary graph: it used to stay open (and running) for the
+    // life of the app after the first call.
+    const activityContext = this.activityContext;
+    this.activityContext = null;
+    if (activityContext) {
+      void Promise.resolve(activityContext.close?.()).catch(() => undefined);
+    }
     this.voiceActivityLevel.set(0);
     this.peerConnection?.close();
     this.peerConnection = undefined;

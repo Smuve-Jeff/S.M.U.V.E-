@@ -219,7 +219,9 @@ export class HapticService {
   audioClick(frequency = 1000, durationMs = 5) {
     try {
       if (!this.ctx) {
-        this.ctx = new AudioContext();
+        // A feedback click must be immediate, so it asks for an interactive
+        // buffer explicitly rather than taking whatever the host defaults to.
+        this.ctx = new AudioContext({ latencyHint: 'interactive' });
       }
       if (this.ctx.state === 'suspended') {
         this.ctx.resume();

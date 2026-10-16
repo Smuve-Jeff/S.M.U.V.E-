@@ -671,7 +671,9 @@ export class AudioRecorderViewComponent
       const restoreMonitoring = this.monitoringEnabled();
       this.closeAudioGraph();
       this.monitoringEnabled.set(restoreMonitoring);
-      this.audioContext = new AudioContext();
+      // Input monitoring is heard in real time, so the meter graph asks for an
+      // interactive buffer explicitly (see AuxAudioContextService).
+      this.audioContext = new AudioContext({ latencyHint: 'interactive' });
       this.analyserNode = this.audioContext.createAnalyser();
       this.analyserNode.fftSize = 256;
       const source = this.audioContext.createMediaStreamSource(stream);
