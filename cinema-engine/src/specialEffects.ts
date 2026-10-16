@@ -16,6 +16,14 @@ export interface EffectParams {
   webgpuPipelineLayout?: any;
   /** WebGPU render pipeline descriptor */
   webgpuRenderPipeline?: any;
+  /** ONNX Runtime Web session path or compiled model URL */
+  onnxModelPath?: string;
+  /** ONNX Runtime Web execution provider: 'webgpu' | 'wasm' */
+  onnxExecutionProvider?: 'webgpu' | 'wasm';
+  /** ONNX Runtime Web input tensor shape (NCHW/NHWC etc.) */
+  onnxInputShape?: string;
+  /** ONNX Runtime Web output tensor shape */
+  onnxOutputShape?: string;
 }
 
 /**
@@ -340,6 +348,8 @@ export class SpecialEffects {
     const strength = params.aiStrength || 0.5;
     const integration = params.integration || 'none';
     const shaderPath = params.webgpuShaderPath || 'shaders/super_resolution.wgsl';
+    const onnxModelPath = params.onnxModelPath;
+    const onnxExecutionProvider = params.onnxExecutionProvider || 'wasm';
     let description = `AI super-resolution with ${model} model (strength: ${strength})`;
 
     if (integration === 'webgpu') {
@@ -347,7 +357,16 @@ export class SpecialEffects {
       // In a real implementation, the WebGPU pipeline would execute the super_resolution.wgsl shader
       // to perform AI-powered upscaling on the GPU
     } else if (integration === 'onnx') {
-      description += ' (ONNX Runtime)';
+      description += ' (ONNX Runtime';
+      if (onnxExecutionProvider === 'webgpu') {
+        description += ' (WebGPU)';
+      } else {
+        description += ' (WASM)';
+      }
+      if (onnxModelPath) {
+        description += `, model: ${onnxModelPath}`;
+      }
+      description += ')';
     } else if (integration === 'mediapipe') {
       description += ' (MediaPipe)';
     }
@@ -360,6 +379,8 @@ export class SpecialEffects {
       strength,
       description,
       webgpuShaderPath: shaderPath,
+      onnxModelPath,
+      onnxExecutionProvider,
     };
   }
 
@@ -369,6 +390,8 @@ export class SpecialEffects {
     const strength = params.aiStrength || 0.5;
     const integration = params.integration || 'none';
     const shaderPath = params.webgpuShaderPath || 'shaders/denoise.wgsl';
+    const onnxModelPath = params.onnxModelPath;
+    const onnxExecutionProvider = params.onnxExecutionProvider || 'wasm';
     let description = `AI denoising with ${model} model (strength: ${strength})`;
 
     if (integration === 'webgpu') {
@@ -376,7 +399,16 @@ export class SpecialEffects {
       // In a real implementation, the WebGPU pipeline would execute the denoise.wgsl shader
       // to perform AI-powered noise reduction on the GPU
     } else if (integration === 'onnx') {
-      description += ' (ONNX Runtime)';
+      description += ' (ONNX Runtime';
+      if (onnxExecutionProvider === 'webgpu') {
+        description += ' (WebGPU)';
+      } else {
+        description += ' (WASM)';
+      }
+      if (onnxModelPath) {
+        description += `, model: ${onnxModelPath}`;
+      }
+      description += ')';
     } else if (integration === 'mediapipe') {
       description += ' (MediaPipe)';
     }
@@ -389,6 +421,8 @@ export class SpecialEffects {
       strength,
       description,
       webgpuShaderPath: shaderPath,
+      onnxModelPath,
+      onnxExecutionProvider,
     };
   }
 
@@ -397,6 +431,8 @@ export class SpecialEffects {
     const model = params.aiModel || 'enhance'; // Enhancement model
     const strength = params.aiStrength || 0.5;
     const integration = params.integration || 'none';
+    const onnxModelPath = params.onnxModelPath;
+    const onnxExecutionProvider = params.onnxExecutionProvider || 'wasm';
     let description = `AI enhancement with ${model} model (strength: ${strength})`;
 
     if (integration === 'webgpu') {
@@ -404,7 +440,16 @@ export class SpecialEffects {
       // In a real implementation, the WebGPU pipeline would execute the enhance.wgsl shader
       // to perform AI-powered general enhancement on the GPU
     } else if (integration === 'onnx') {
-      description += ' (ONNX Runtime)';
+      description += ' (ONNX Runtime';
+      if (onnxExecutionProvider === 'webgpu') {
+        description += ' (WebGPU)';
+      } else {
+        description += ' (WASM)';
+      }
+      if (onnxModelPath) {
+        description += `, model: ${onnxModelPath}`;
+      }
+      description += ')';
     } else if (integration === 'mediapipe') {
       description += ' (MediaPipe)';
     }
@@ -416,6 +461,8 @@ export class SpecialEffects {
       model,
       strength,
       description,
+      onnxModelPath,
+      onnxExecutionProvider,
     };
   }
 }

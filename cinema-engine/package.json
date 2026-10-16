@@ -8,15 +8,28 @@
     "dev": "tsc watch",
     "test": "jest"
   },
-  "keywords": ["cinema", "engine", "special-effects", "transitions", "voice-over", "filters", "crop", "text-editor", "music-video", "live-streaming", "movie-directing"],
+  "keywords": [
+    "cinema",
+    "engine",
+    "special-effects",
+    "transitions",
+    "voice-over",
+    "filters",
+    "crop",
+    "text-editor",
+    "music-video",
+    "live-streaming",
+    "movie-directing"
+  ],
   "author": "Freebuff",
   "license": "MIT",
   "dependencies": {
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "onnxruntime-web": "^1.30.0"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
+    "@types/jest": "^29.5.5",
     "jest": "^29.7.0",
-    "@types/jest": "^29.5.5"
+    "typescript": "^5.3.3"
   }
 }
