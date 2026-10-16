@@ -2316,6 +2316,18 @@
             }}</span>
             <span class="comp-insights-metric-label">Engine state</span>
           </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              deviceProfile.tier() | uppercase
+            }} · {{ deviceProfile.profile().signals.cores }}c</span>
+            <span class="comp-insights-metric-label">Device class</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              deviceProfile.budget().maxVoices
+            }}</span>
+            <span class="comp-insights-metric-label">Voice budget</span>
+          </div>
         </div>
         <ul
           class="comp-insights-events"
@@ -2329,6 +2341,15 @@
           >
             <code>ENGINE</code>
             <span>{{ recommendation }}</span>
+          </li>
+        </ul>
+        <ul
+          class="comp-insights-events"
+          *ngIf="deviceProfile.reasons().length"
+        >
+          <li *ngFor="let reason of deviceProfile.reasons() | slice: 0 : 3">
+            <code>DEVICE</code>
+            <span>{{ reason }}</span>
           </li>
         </ul>
       </div>

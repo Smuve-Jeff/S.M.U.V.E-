@@ -106,6 +106,7 @@ import {
   StudioTelemetryService,
 } from "./studio-telemetry.service";
 import { AudioEngineLatencyService } from "../services/audio-engine-latency.service";
+import { StudioDeviceProfileService } from "../services/studio-device-profile.service";
 import { StudioOrchestrationService } from "../services/studio-orchestration.service";
 import { buildZip, type ZipEntry } from "./zip.util";
 
@@ -535,6 +536,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly componentRecording = inject(ComponentRecordingService);
   public readonly studioTelemetry = inject(StudioTelemetryService);
   public readonly engineLatency = inject(AudioEngineLatencyService);
+  /** Capability-detected device class + audio budget (see Engine Metrics). */
+  public readonly deviceProfile = inject(StudioDeviceProfileService);
 
   // ── Back navigation (see the BACK NAVIGATION section below) ──
   /** Synthetic history entries currently pushed for open overlays. */
