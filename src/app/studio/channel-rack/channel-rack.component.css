@@ -816,7 +816,10 @@ button[disabled] {
   border-radius: 6px;
   background: color-mix(in srgb, var(--rack-surface) 72%, transparent);
   box-shadow: none;
-  touch-action: manipulation;
+  /* Drag-paint owns the gesture: with `manipulation` the browser could claim a
+     swipe as a pan and cancel the pointer stream, which made painting a row
+     impossible on touch. The lane still pans from its padding and gaps. */
+  touch-action: none;
 }
 
 .channel-rack-step-cell:hover,
@@ -875,6 +878,12 @@ button[disabled] {
     flex: 1 1 100%;
     order: 5;
     justify-content: flex-start;
+    /* The lane is `items-end`, which right-aligns the 16-step grid. Once the
+       grid is wider than the lane it overflows to the LEFT, and an LTR scroller
+       cannot pan into negative scroll space — the first ~11 steps of a bar were
+       unreachable and unpaintable on a phone. Start-aligning the grid puts the
+       overflow on the right, where the lane's own `overflow-x: auto` reaches it. */
+    align-items: flex-start;
     margin-left: 0;
     padding-top: 2px;
   }
@@ -1000,6 +1009,12 @@ button[disabled] {
     flex: 1 1 100%;
     order: 5;
     justify-content: flex-start;
+    /* The lane is `items-end`, which right-aligns the 16-step grid. Once the
+       grid is wider than the lane it overflows to the LEFT, and an LTR scroller
+       cannot pan into negative scroll space — the first ~11 steps of a bar were
+       unreachable and unpaintable on a phone. Start-aligning the grid puts the
+       overflow on the right, where the lane's own `overflow-x: auto` reaches it. */
+    align-items: flex-start;
     margin-left: 0;
     padding-top: 2px;
   }

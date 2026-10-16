@@ -269,6 +269,8 @@
           [attr.aria-label]="
             track.name + ' steps, bar ' + (stepWindowBar() + 1)
           "
+          [attr.data-track-id]="track.id"
+          (pointermove)="onStepPaintMove(track, $event)"
           (pointerup)="endStepPaint()"
           (pointercancel)="endStepPaint()"
           (pointerleave)="endStepPaint()"
@@ -276,6 +278,7 @@
           <div
             *ngFor="let step of laneSteps; let sIdx = index"
             class="w-2.5 h-7 rounded-sm transition-all shadow-lg cursor-crosshair channel-rack-step-cell"
+            [attr.data-step-index]="sIdx"
             [class.active]="cellLit(track, sIdx)"
             [class.current-step]="cellNow(sIdx)"
             [style.background-color]="

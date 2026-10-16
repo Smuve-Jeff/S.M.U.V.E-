@@ -506,3 +506,99 @@ Launchpad (Novation), Groovepad, Ableton Note.
 4. **Re-run the template/AOT gate** (`ng build`) and the Playwright Studio
    suites on a machine that is not memory-capped, then do a real phone pass over
    the pad long-press, drag-paint and in-app confirm flows.
+
+## 11. Fifth pass — voice access capabilities and phone touch gestures
+
+Two questions drove this pass: *why does the advisor widget's mic do nothing on
+some devices*, and *do the studio's touch gestures actually work in a real
+browser* — the fourth pass could only verify gestures in jsdom.
+
+### 11.1 Voice access (advisor widget)
+
+Dictation used to be modelled as a single boolean, so a blocked microphone, an
+http page, a Permissions-Policy denial and an engine-less shell all rendered a
+mic that looked alive and then did nothing. `SpeechRecognitionService` now models
+**capability** (`ready`, `unsupported`, `native-shell`, `insecure-context`,
+`policy-blocked`, `permission-denied`, `no-microphone`) and answers each state
+with an actionable sentence (`capabilityMessage()`). The widget keeps the mic
+pressable in every recoverable state so the reason is reachable, and only
+disables it — with the reason as its accessible name — in states no permission
+can fix. `startListening()` pre-flights secure context, Permissions-Policy and
+permission, re-asks through `getUserMedia` when the mic is known-blocked, and
+normalises engine errors (`not-allowed`, `audio-capture`, `network`,
+`no-speech`, `language-not-supported`) into the same sentences. An engine that
+ends without results now reports `no-speech` instead of stopping silently, and a
+`permission-denied` state clears itself when the artist unblocks the mic.
+
+The packaged Android shell has no Web Speech engine. The manifest declares
+`RECORD_AUDIO` and `MODIFY_AUDIO_SETTINGS` and Capacitor's own WebView bridge
+grants the capture request, so recording works there — dictation is the only
+missing piece, and the widget now says exactly that (`native-shell`).
+
+### 11.2 Phone touch gestures
+
+Real Chrome touch events (CDP `Input.dispatchTouchEvent`) found three defects
+jsdom could never expose:
+
+1. **Drag-paint died after one step on touch.** Touch pointers get implicit
+   pointer capture on the cell that received `pointerdown`, so the browser
+   retargets every later `pointermove` to that one cell — sibling cells never
+   fire `pointerenter`, and the lane could only ever paint its first step. Slide
+   continuation now resolves the cell under the finger from the pointer's
+   coordinates (`elementFromPoint` + `data-step-index`, scoped by the grid's new
+   `data-track-id`), so a finger sliding across another channel's lane can never
+   paint the track the gesture started on. Cells use `touch-action: none` so the
+   browser cannot claim the swipe as a pan and cancel the pointer stream. Mouse
+   drags resolve through the same path; `continueStepPaint` still de-duplicates
+   by step.
+2. **The step lane was unreachable on a phone.** The lane is `items-end`, which
+   right-aligns the 634 px 16-step grid inside a ~340 px lane; the overflow went
+   *left*, into negative scroll space an LTR scroller can never pan into, so the
+   first ~11 steps of every bar were invisible and unpaintable at 390 px wide.
+   The narrow-viewport rules now start-align the grid, which moves the overflow
+   to the right where the lane's own `overflow-x: auto` reaches it.
+3. **A slow device could launch a scene it had just overwritten.** The
+   long-press click suppression was a 700 ms window measured from the *press*.
+   Chrome's release click measured ~600–700 ms after the press on this VM, so the
+   recapture and the launch could both run. The window is now re-armed on release
+   and only for gestures that actually long-pressed, so the release click is
+   swallowed however long the artist held, while a plain tap still launches
+   immediately.
+
+### 11.3 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit -p tsconfig.json` | **0 errors** across the whole app project |
+| Jest: `speech-recognition.service.spec.ts`, `chatbot.component.spec.ts`, `performance-grid`, `channel-rack` | **65 tests passed** (4 suites, 0 failed) |
+| Jest: `performance-grid.component.spec.ts` | 14/14, including the new "slow hold whose release click arrives late" and "plain tap launches" cases |
+| Jest: `channel-rack.component.spec.ts` | 12/12, including the new coordinate-based slide continuation and the cross-channel / off-lane rejection cases |
+| Playwright: `tests/e2e/chatbot-voice-access.spec.ts` | **2 passed** — a blocked mic explains itself, stays retryable and leaves typed commands working; a shell with no recognition engine disables the mic, names the reason and keeps the composer usable |
+| Playwright: `tests/e2e/studio-touch-gestures.spec.ts` | **2 passed** — Performance Grid hold recaptures the scene while the release tap is swallowed (and a later tap still launches); Channel Rack touch drag paints steps 1–5 and a second drag erases 1–3 |
+| Command | `source ~/pwdeps/env.sh && FREEBUFF_MANAGED_PREVIEW=1 npx playwright test tests/e2e/chatbot-voice-access.spec.ts tests/e2e/studio-touch-gestures.spec.ts --workers=1` → **4 passed (36.4 s)** |
+
+Headless Chromium here needs libraries this VM does not ship, and no root is
+available, so the runtime was assembled under `~/pwdeps` from Ubuntu 24.04
+`.deb` archives (`libnspr4`, `libnss3`, `libatk1.0-0t64`, `libatk-bridge2.0-0t64`,
+`libxcomposite1`, `libxdamage1`, `libxfixes3`, `libxrandr2`, `libxrender1`,
+`libxi6`, `libxkbcommon0`, `libasound2t64`, `libatspi2.0-0t64`, `libfontconfig1`,
+`fontconfig-config`, `fonts-dejavu-core`) plus a minimal `fonts.conf`; the exports
+live in `~/pwdeps/env.sh`. Re-run `npx playwright install chromium` after a
+workspace restore — `npm ci` does not fetch browsers.
+
+### 11.4 Known limitations
+
+- **No device or emulator pass.** The Android claims rest on the manifest and on
+  Capacitor's own permission bridge, not on a captured device log.
+- **Dictation is not verified against a real speech service.** The e2e specs
+  assert the *access* states (blocked mic, engine-less shell) and the unit specs
+  assert error normalisation; a machine with a working Web Speech backend still
+  needs one manual dictation pass.
+- **The long-press suppression is still bounded by time** (release + 700 ms). A
+  device slower than that bound would still double-fire; the fix removes the
+  common case, not the class.
+- The lane-overflow repair in 11.2 applies at ≤900 px. Wider layouts right-align
+  the lane on purpose and fit the grid, so they keep `items-end`.
+- The e2e specs run against the dev server, whose first serve of the 3.4 MB
+  studio route chunk can take minutes; the studio specs therefore allow a 120 s
+  first paint and the gesture test budget is 240 s per test.

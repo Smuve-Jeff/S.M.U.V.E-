@@ -154,6 +154,36 @@ describe("PerformanceGridComponent", () => {
     expect(recallPatternSlot).toHaveBeenCalledWith("t1", "slot-0");
   });
 
+  it("swallows a release click that arrives long after a slow hold", () => {
+    jest.useFakeTimers();
+    component.onSlotPointerDown(tracksSignal()[0] as any, 0);
+    jest.advanceTimersByTime(500);
+    expect(capturePatternSlot).toHaveBeenCalledWith("t1", "slot-0", "Scene 1");
+
+    // The artist keeps holding: the press-based window is long gone by now.
+    jest.advanceTimersByTime(900);
+    component.onSlotPointerUp();
+
+    // ...and the platform's release click only lands on a busy device.
+    jest.advanceTimersByTime(600);
+    component.toggleClip("t1", 0);
+    expect(recallPatternSlot).not.toHaveBeenCalled();
+
+    // The re-armed window still expires, so the slot cannot stay dead.
+    jest.advanceTimersByTime(200);
+    component.toggleClip("t1", 0);
+    expect(recallPatternSlot).toHaveBeenCalledWith("t1", "slot-0");
+  });
+
+  it("launches on a plain tap that never long-pressed", () => {
+    jest.useFakeTimers();
+    component.onSlotPointerDown(tracksSignal()[0] as any, 0);
+    component.onSlotPointerUp();
+    component.toggleClip("t1", 0);
+    expect(recallPatternSlot).toHaveBeenCalledWith("t1", "slot-0");
+    expect(capturePatternSlot).not.toHaveBeenCalled();
+  });
+
   it("cancels a pending long press when the pointer lifts early", () => {
     jest.useFakeTimers();
     component.onSlotPointerDown(tracksSignal()[0] as any, 0);

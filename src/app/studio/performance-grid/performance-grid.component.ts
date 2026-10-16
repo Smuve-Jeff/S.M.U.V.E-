@@ -38,7 +38,16 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
    */
   private static readonly LONG_PRESS_SUPPRESS_MS = 700;
   private pressTimer: ReturnType<typeof setTimeout> | null = null;
-  private lastLongPressAt = 0;
+  /**
+   * Click-suppression deadline. It is armed when the long press captures the
+   * scene and re-armed on release, because the browser pairs a release with a
+   * click and that click is the one that must never launch the scene the hold
+   * just overwrote. Measuring from the press alone lost that click on slow
+   * devices, where it can arrive hundreds of ms after the finger lifts.
+   */
+  private suppressClickUntil = 0;
+  /** True between the long press firing and the finger lifting. */
+  private longPressFired = false;
 
   ngOnInit() {
     this.startMetering();
@@ -124,8 +133,7 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
    */
   toggleClip(trackId: string, clipIndex: number) {
     // A long-press already recaptured this slot; never also launch it.
-    if (Date.now() - this.lastLongPressAt < PerformanceGridComponent.LONG_PRESS_SUPPRESS_MS)
-      return;
+    if (Date.now() < this.suppressClickUntil) return;
     const track = this.tracks().find((t) => t.id === trackId);
     if (!track) return;
     const slotId = this.slotId(clipIndex);
@@ -154,13 +162,23 @@ export class PerformanceGridComponent implements OnInit, OnDestroy {
     if (event && event.pointerType === "mouse" && event.button !== 0) return;
     this.clearPressTimer();
     this.pressTimer = setTimeout(() => {
-      this.lastLongPressAt = Date.now();
+      this.longPressFired = true;
+      this.suppressClickUntil =
+        Date.now() + PerformanceGridComponent.LONG_PRESS_SUPPRESS_MS;
       this.recaptureClip(track, clipIndex);
     }, PerformanceGridComponent.LONG_PRESS_MS);
   }
 
   onSlotPointerUp() {
     this.clearPressTimer();
+    // Only a gesture that actually long-pressed re-arms the window, and it
+    // re-arms from the release: a plain tap has nothing to suppress and must
+    // launch straight away, however long the artist held the finger down.
+    if (this.longPressFired) {
+      this.longPressFired = false;
+      this.suppressClickUntil =
+        Date.now() + PerformanceGridComponent.LONG_PRESS_SUPPRESS_MS;
+    }
   }
 
   private clearPressTimer() {

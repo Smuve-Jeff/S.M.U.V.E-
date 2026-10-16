@@ -370,6 +370,51 @@ export class ChannelRackComponent {
     this.lastPaintedStep = null;
   }
 
+  /**
+   * Slide continuation driven by pointer coordinates rather than by the event
+   * target. Touch pointers get implicit capture on the cell that received
+   * `pointerdown`, so every later `pointermove` is retargeted to that one cell
+   * and sibling cells never fire `pointerenter` — the per-cell handler alone
+   * could only ever paint the first step of a swipe. Mouse drags resolve to the
+   * same cell through both paths, and `continueStepPaint` de-duplicates by step,
+   * so the two routes cannot double-toggle one cell.
+   */
+  onStepPaintMove(track: TrackModel, event: PointerEvent) {
+    if (!this.stepPaintMode || this.stepPaintTrackId !== track.id) return;
+    const cell = this.stepCellUnderPointer(event, track.id);
+    if (cell === null) return;
+    this.continueStepPaint(track, cell);
+  }
+
+  /**
+   * Step index under a pointer event, or null when the pointer is off this
+   * lane. The grid carries its track id so a finger sliding across a different
+   * channel's lane can never paint the track the gesture started on.
+   */
+  private stepCellUnderPointer(
+    event: PointerEvent,
+    trackId: string,
+  ): number | null {
+    if (typeof document === 'undefined') return null;
+    const hit = document.elementFromPoint?.(
+      Number(event?.clientX ?? 0),
+      Number(event?.clientY ?? 0),
+    );
+    const source =
+      hit instanceof Element
+        ? hit
+        : event?.target instanceof Element
+          ? event.target
+          : null;
+    const cell = source?.closest('[data-step-index]');
+    if (!cell) return null;
+    if (cell.closest('[data-track-id]')?.getAttribute('data-track-id') !== trackId) {
+      return null;
+    }
+    const index = Number(cell.getAttribute('data-step-index'));
+    return Number.isInteger(index) ? index : null;
+  }
+
   /** Most frequent midi in the track — keeps lane entries in register. */
   pitchForNewNote(track: TrackModel): number {
     if (track.notes.length === 0) return 60;

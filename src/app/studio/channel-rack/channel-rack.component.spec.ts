@@ -181,6 +181,105 @@ describe("ChannelRackComponent step lane", () => {
     component.endStepPaint();
   });
 
+  /** Minimal lane DOM: a grid tagged with its track id holding indexed cells. */
+  const buildLane = (trackId: string, count: number) => {
+    const lane = document.createElement("div");
+    lane.setAttribute("data-track-id", trackId);
+    const cells: HTMLElement[] = [];
+    for (let i = 0; i < count; i++) {
+      const cell = document.createElement("div");
+      cell.setAttribute("data-step-index", String(i));
+      lane.appendChild(cell);
+      cells.push(cell);
+    }
+    document.body.appendChild(lane);
+    return { lane, cells };
+  };
+
+  /** jsdom has no layout, so hit-testing is stubbed the way the browser would answer. */
+  const stubHit = (element: Element | null) => {
+    Object.defineProperty(document, "elementFromPoint", {
+      configurable: true,
+      writable: true,
+      value: jest.fn(() => element),
+    });
+  };
+
+  it("slides a touch drag to the cell under the finger, not the pointer-captured cell", () => {
+    const track = makeTrack();
+    tracks.set([track]);
+
+    const { lane, cells } = buildLane("track-1", 4);
+    // Touch pointers keep implicit capture on the cell that was pressed, so the
+    // move event still targets step 1 while the finger is over step 2.
+    stubHit(cells[2]);
+    const move = {
+      target: cells[0],
+      clientX: 12,
+      clientY: 34,
+    } as unknown as PointerEvent;
+
+    component.startStepPaint(track, 1);
+    expect(addNote).toHaveBeenCalledWith(
+      "track-1",
+      expect.objectContaining({ step: 1 }),
+    );
+
+    addNote.mockClear();
+    component.onStepPaintMove(track, move);
+    expect(addNote).toHaveBeenCalledWith(
+      "track-1",
+      expect.objectContaining({ step: 2 }),
+    );
+
+    // Repeat moves inside one cell must not double-toggle it.
+    addNote.mockClear();
+    component.onStepPaintMove(track, move);
+    expect(addNote).not.toHaveBeenCalled();
+
+    component.endStepPaint();
+    lane.remove();
+  });
+
+  it("ignores slide moves that leave the lane, cross channels, or arrive after the gesture", () => {
+    const track = makeTrack();
+    tracks.set([track]);
+
+    const { lane } = buildLane("track-1", 4);
+    const otherLane = buildLane("track-2", 4);
+    const crossChannel = {
+      target: otherLane.cells[3],
+      clientX: 5,
+      clientY: 5,
+    } as unknown as PointerEvent;
+
+    component.startStepPaint(track, 1);
+    addNote.mockClear();
+
+    // The finger has slid onto another channel's lane.
+    stubHit(otherLane.cells[3]);
+    component.onStepPaintMove(track, crossChannel);
+    expect(addNote).not.toHaveBeenCalled();
+
+    // Off every lane: the only remaining hint is the captured cell, which
+    // belongs to the other channel and must not paint this one.
+    stubHit(null);
+    component.onStepPaintMove(track, crossChannel);
+    expect(addNote).not.toHaveBeenCalled();
+
+    component.endStepPaint();
+    stubHit(otherLane.cells[1]);
+    component.onStepPaintMove(track, {
+      target: otherLane.cells[1],
+      clientX: 6,
+      clientY: 6,
+    } as unknown as PointerEvent);
+    expect(addNote).not.toHaveBeenCalled();
+
+    lane.remove();
+    otherLane.lane.remove();
+  });
+
   it("updates per-track LFO parameters through MusicManagerService.updateSynthParams", () => {
     component.updateLfoParam("wave", "square", "track-1");
     expect(updateSynthParams).toHaveBeenCalledWith("track-1", {
