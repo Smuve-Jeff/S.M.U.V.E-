@@ -27,7 +27,7 @@ import { TextEditor } from './textEditor';
 import { MusicVideoFeatures } from './musicVideoFeatures';
 import { LiveStreamingFeatures } from './liveStreamingFeatures';
 import { MovieDirectingFeatures } from './movieDirectingFeatures';
-import { VideoUploader, UploadOptions, UploadResult, UploadProgress, UploadedVideo } from './upload';
+import { VideoUploader, UploadOptions, UploadResult, UploadedVideo, UploaderConfig } from './upload';
 import { createVideoUploader } from './upload';
 
 /**
@@ -45,7 +45,7 @@ export class CinemaEngine {
   private movieDirectingFeatures: MovieDirectingFeatures;
   private videoUploader: VideoUploader;
 
-  constructor() {
+  constructor(uploadConfig?: UploaderConfig) {
     this.specialEffects = new SpecialEffects();
     this.transitions = new Transitions();
     this.voiceOver = new VoiceOver();
@@ -55,7 +55,7 @@ export class CinemaEngine {
     this.musicVideoFeatures = new MusicVideoFeatures();
     this.liveStreamingFeatures = new LiveStreamingFeatures();
     this.movieDirectingFeatures = new MovieDirectingFeatures();
-    this.videoUploader = createVideoUploader();
+    this.videoUploader = createVideoUploader(uploadConfig);
   }
 
   /**
@@ -112,12 +112,12 @@ export class CinemaEngine {
   }
 
   /**
-   * Upload a video file with progress tracking
+   * Upload a video file to the server with multipart FormData.
    * @param file Video file to upload
-   * @param options Upload options
-   * @returns Upload result with video metadata
+   * @param options Upload options (endpoint, fields, headers, progress, abort signal)
+   * @returns Promise resolving to the upload result with video metadata
    */
-  uploadVideo(file: File, options?: UploadOptions): UploadResult {
+  async uploadVideo(file: File, options?: UploadOptions): Promise<UploadResult> {
     return this.videoUploader.upload(file, options);
   }
 

@@ -1,7 +1,29 @@
 /**
  * Video Upload Module
- * Handles video file uploads with progress tracking and metadata
+ * Real upload transport (multipart FormData -> HTTP) with progress tracking
+ *
+ * Server contract: the configured endpoint receives a `multipart/form-data`
+ * POST containing the file (default field name `file`) plus any extra fields,
+ * and answers with JSON shaped like:
+ *
+ *   { id, url, thumbnailUrl?, duration?, width?, height?, size?, filename?, type? }
+ *
+ * or the same object nested under `data` / `video`.
+ *
+ * When set, `generateThumbnails` and `extractMetadata` are also sent as form
+ * fields so the server can act on them, alongside every entry of `fields`.
  */
+
+/** Default endpoint used when `UploadOptions.endpoint` is not provided. */
+export const DEFAULT_UPLOAD_ENDPOINT = '/api/videos/upload';
+
+/** File types accepted when `UploadOptions.allowedTypes` is not provided. */
+export const DEFAULT_ACCEPTED_TYPES = [
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'video/x-matroska',
+];
 
 export interface UploadProgress {
   /** Progress percentage (0-100) */
@@ -60,138 +82,409 @@ export interface UploadOptions {
   generateThumbnails?: boolean;
   /** Whether to extract metadata */
   extractMetadata?: boolean;
+  /** Server endpoint receiving the multipart POST. Default: /api/videos/upload */
+  endpoint?: string;
+  /** Form field name used for the file part. Default: "file" */
+  fieldName?: string;
+  /** Additional multipart form fields sent with the upload */
+  fields?: Record<string, string>;
+  /** Additional request headers (do not set Content-Type: the browser adds the boundary) */
+  headers?: Record<string, string>;
+  /**
+   * Real upload progress callback.
+   * When provided the upload uses XMLHttpRequest, because fetch cannot report
+   * upload progress for multipart bodies. Without it the request uses fetch.
+   */
+  onProgress?: (progress: UploadProgress) => void;
+  /** Cancellation signal forwarded to the request */
+  signal?: AbortSignal;
+  /** Fetch credentials mode. Default: "same-origin" */
+  credentials?: RequestCredentials;
+}
+
+/**
+ * Options for constructing a VideoUploader
+ */
+export interface UploaderConfig {
+  /** Default server endpoint for uploads */
+  endpoint?: string;
+  /** Default maximum file size in bytes */
+  maxSize?: number;
+  /** Default allowed MIME types */
+  allowedTypes?: string[];
 }
 
 /**
  * Result of a video upload operation
  */
 export interface UploadResult {
-  /** The uploaded video metadata */
+  /** The uploaded video metadata (empty when `error` is set) */
   video: UploadedVideo;
-  /** Progress events during upload */
-  onProgress?: ((progress: UploadProgress) => void) | undefined;
   /** Error message if upload failed */
   error?: string;
 }
 
 /**
- * Cinema Engine Upload Capabilities
- * Provides video upload functionality integrated with the enhancement pipeline
+ * Video Upload Capabilities
+ * Provides a real multipart upload transport integrated with the enhancement pipeline
  */
 export class VideoUploader {
-  private readonly MAX_DEFAULT_SIZE = 500 * 1024 * 1024; // 500MB default
-  private readonly ACCEPTED_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska'];
+  private readonly defaultEndpoint: string;
+  private readonly maxDefaultSize: number;
+  private readonly acceptedTypes: string[];
+
+  constructor(config: UploaderConfig = {}) {
+    this.defaultEndpoint = config.endpoint || DEFAULT_UPLOAD_ENDPOINT;
+    this.maxDefaultSize = config.maxSize ?? 500 * 1024 * 1024; // 500MB default
+    this.acceptedTypes = config.allowedTypes || DEFAULT_ACCEPTED_TYPES;
+  }
 
   /**
-   * Upload a video file with progress tracking
+   * Upload a video file to the configured server endpoint.
    * @param file Video file to upload
    * @param options Upload options
-   * @returns Upload result with progress handler
+   * @returns Upload result with video metadata, or an error message
    */
-  upload(file: File, options?: UploadOptions): UploadResult {
-    const {
-      maxSize = this.MAX_DEFAULT_SIZE,
-      allowedTypes = this.ACCEPTED_TYPES,
-      generateThumbnails = true,
-      extractMetadata = true,
-    } = options || {};
-
-    // Validate file
-    if (!file) {
-      return { video: this.getEmptyVideo(), error: 'No file provided' };
+  async upload(file: File, options: UploadOptions = {}): Promise<UploadResult> {
+    const validationError = this.validate(file, options);
+    if (validationError) {
+      return { video: this.getEmptyVideo(), error: validationError };
     }
 
-    if (file.size > maxSize) {
-      return { video: this.getEmptyVideo(), error: `File too large: ${this.formatBytes(file.size)} (max: ${this.formatBytes(maxSize)})` };
-    }
+    const endpoint = options.endpoint || this.defaultEndpoint;
+    const formData = this.buildFormData(file, options);
 
-    if (allowedTypes.length > 0 && !allowedTypes.some((t) => file.type.startsWith(t.split('/')[0]))) {
-      return { video: this.getEmptyVideo(), error: `Unsupported file type: ${file.type}` };
-    }
+    try {
+      const video =
+        options.onProgress && typeof XMLHttpRequest !== 'undefined'
+          ? await this.sendWithXHR(endpoint, formData, file, options)
+          : await this.sendWithFetch(endpoint, formData, file, options);
 
-    const videoId = `vid_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const uploadedAt = Date.now();
-    const video: UploadedVideo = {
-      id: videoId,
-      filename: file.name,
-      url: '',
-      size: file.size,
-      uploadedAt,
-      type: file.type,
-    };
-
-    // Simulate upload progress (in a real implementation, this would use FormData/fetch)
-    const progressEvents: UploadProgress[] = [];
-    let simulatedProgress = 0;
-
-    const intervalId = setInterval(() => {
-      simulatedProgress += Math.random() * 15;
-      if (simulatedProgress >= 100) {
-        simulatedProgress = 100;
-        clearInterval(intervalId);
+      return { video };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (options.onProgress) {
+        options.onProgress({
+          percentage: 0,
+          uploadedBytes: 0,
+          totalBytes: file.size,
+          isComplete: false,
+          isError: true,
+          error: message,
+        });
       }
-
-      const progress: UploadProgress = {
-        percentage: Math.min(Math.round(simulatedProgress), 100),
-        uploadedBytes: Math.round((simulatedProgress / 100) * file.size),
-        totalBytes: file.size,
-        isComplete: simulatedProgress >= 100,
-        isError: false,
-      };
-
-      progressEvents.push(progress);
-    }, 200);
-
-    // Simulate actual upload completing in 1-3 seconds
-    setTimeout(() => {
-      clearInterval(intervalId);
-      // In a real implementation, this would be the actual upload response
-      video.url = `https://cdn.example.com/uploads/${videoId}/${file.name}`;
-      video.duration = this.estimateDuration(file.size);
-      video.width = 1920; // Typical HD
-      video.height = 1080; // Typical HD
-    }, 2000 + Math.random() * 1000);
-
-    return {
-      video,
-      onProgress: undefined,
-    };
+      return { video: this.getEmptyVideo(), error: message };
+    }
   }
 
   /**
-   * Estimate video duration based on file size (rough approximation)
-   * @param fileSize File size in bytes
-   * @returns Estimated duration in seconds
-   */
-  private estimateDuration(fileSize: number): number {
-    // Rough: ~5 MB per second for 1080p30
-    const bitrateKbps = 5000;
-    const seconds = (fileSize / (bitrateKbps * 1024)) * 8;
-    return Math.round(seconds);
-  }
-
-  /**
-   * Generate a thumbnail from an uploaded video
+   * Generate (or read) a thumbnail URL for an uploaded video
    * @param video The uploaded video metadata
-   * @returns Thumbnail URL or error
+   * @returns Thumbnail result with URL or error
    */
   generateThumbnail(video: UploadedVideo): { thumbnailUrl: string } | { error: string } {
-    // In a real implementation, this would use a canvas/video element to extract a frame
-    // For simulation, we generate a thumbnail URL based on the video ID and a timestamp
     if (!video.id) {
       return { error: 'No video ID available for thumbnail generation' };
     }
-    
-    // Simulate thumbnail generation - in real implementation, would extract frame at 10% duration
-    const thumbnailTimestamp = Math.max(1, (video.duration || 10) * 0.1);
-    const thumbnailUrl = `https://cdn.example.com/thumbnails/${video.id}/timestamp-${thumbnailTimestamp}.jpg`;
-    
-    // Simulate processing delay
-    setTimeout(() => {
-      // Thumbnail would be generated and stored at the URL
-    }, 500);
-    
-    return { thumbnailUrl };
+
+    if (video.thumbnailUrl) {
+      return { thumbnailUrl: video.thumbnailUrl };
+    }
+
+    // Fall back to the deterministic server path used by the upload pipeline
+    return { thumbnailUrl: `${this.getApiBase(video.url)}/videos/${video.id}/thumbnail` };
+  }
+
+  // --- transport -----------------------------------------------------------
+
+  /**
+   * POST the multipart body with fetch. Progress is coarse because fetch does
+   * not expose upload progress for FormData bodies.
+   */
+  private async sendWithFetch(
+    endpoint: string,
+    formData: FormData,
+    file: File,
+    options: UploadOptions
+  ): Promise<UploadedVideo> {
+    if (typeof fetch !== 'function') {
+      throw new Error('fetch is not available in this environment');
+    }
+
+    // Fail fast: never start a request that is already cancelled.
+    if (options.signal?.aborted) {
+      throw new DOMException('Upload aborted', 'AbortError');
+    }
+
+    const startedAt = Date.now();
+    options.onProgress?.(this.buildProgress(0, file.size, startedAt));
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      body: formData,
+      headers: options.headers,
+      credentials: options.credentials || 'same-origin',
+      signal: options.signal,
+    });
+
+    const bodyText = await response.text();
+
+    if (!response.ok) {
+      throw new Error(this.describeHttpError(response.status, response.statusText, bodyText));
+    }
+
+    const video = this.toUploadedVideo(this.parseJson(bodyText), file);
+    options.onProgress?.(this.buildProgress(file.size, file.size, startedAt));
+    return video;
+  }
+
+  /**
+   * POST the multipart body with XMLHttpRequest to obtain real upload progress.
+   */
+  private sendWithXHR(
+    endpoint: string,
+    formData: FormData,
+    file: File,
+    options: UploadOptions
+  ): Promise<UploadedVideo> {
+    return new Promise<UploadedVideo>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const startedAt = Date.now();
+
+      if (options.signal?.aborted) {
+        reject(new DOMException('Upload aborted', 'AbortError'));
+        return;
+      }
+
+      xhr.open('POST', endpoint, true);
+      xhr.responseType = 'text';
+
+      xhr.withCredentials = options.credentials === 'include';
+
+      for (const [name, value] of Object.entries(options.headers || {})) {
+        xhr.setRequestHeader(name, value);
+      }
+
+      xhr.upload.onprogress = (event: ProgressEvent) => {
+        if (!event.lengthComputable) return;
+        options.onProgress?.(
+          this.buildProgress(event.loaded, event.total || file.size, startedAt, event.lengthComputable)
+        );
+      };
+
+      xhr.onload = () => {
+        const bodyText = typeof xhr.response === 'string' ? xhr.response : xhr.responseText;
+        if (xhr.status < 200 || xhr.status >= 300) {
+          reject(new Error(this.describeHttpError(xhr.status, xhr.statusText, bodyText)));
+          return;
+        }
+
+        try {
+          const video = this.toUploadedVideo(this.parseJson(bodyText), file);
+          options.onProgress?.(this.buildProgress(file.size, file.size, startedAt));
+          resolve(video);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error while uploading the video'));
+      xhr.ontimeout = () => reject(new Error('The upload request timed out'));
+      xhr.onabort = () => reject(new DOMException('Upload aborted', 'AbortError'));
+
+      options.signal?.addEventListener(
+        'abort',
+        () => {
+          xhr.abort();
+        },
+        { once: true }
+      );
+
+      // Emit an initial 0% event so both transports report progress consistently.
+      options.onProgress?.(this.buildProgress(0, file.size, startedAt));
+      xhr.send(formData);
+    });
+  }
+
+  // --- helpers -------------------------------------------------------------
+
+  private buildFormData(file: File, options: UploadOptions): FormData {
+    const formData = new FormData();
+    formData.append(options.fieldName || 'file', file, file.name);
+
+    // Let the server honour the post-processing flags.
+    if (typeof options.generateThumbnails === 'boolean') {
+      formData.append('generateThumbnails', String(options.generateThumbnails));
+    }
+    if (typeof options.extractMetadata === 'boolean') {
+      formData.append('extractMetadata', String(options.extractMetadata));
+    }
+
+    for (const [name, value] of Object.entries(options.fields || {})) {
+      formData.append(name, value);
+    }
+
+    return formData;
+  }
+
+  private validate(file: File, options: UploadOptions): string | null {
+    if (!file) {
+      return 'No file provided';
+    }
+
+    const maxSize = options.maxSize ?? this.maxDefaultSize;
+    if (file.size > maxSize) {
+      return `File too large: ${this.formatBytes(file.size)} (max: ${this.formatBytes(maxSize)})`;
+    }
+
+    const allowedTypes = options.allowedTypes ?? this.acceptedTypes;
+    if (
+      allowedTypes.length > 0 &&
+      file.type &&
+      !allowedTypes.some((allowed) => this.matchesType(file.type, allowed))
+    ) {
+      return `Unsupported file type: ${file.type}`;
+    }
+
+    return null;
+  }
+
+  /** Match a concrete MIME type against a full type or a wildcard family. */
+  private matchesType(mimeType: string, allowed: string): boolean {
+    if (allowed === mimeType || allowed === '*/*') return true;
+    if (allowed.endsWith('/*')) {
+      return mimeType.startsWith(`${allowed.slice(0, -1)}`);
+    }
+    return false;
+  }
+
+  private buildProgress(
+    uploadedBytes: number,
+    totalBytes: number,
+    startedAt: number,
+    lengthComputable = true
+  ): UploadProgress {
+    const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 0);
+    const safeTotal = totalBytes > 0 ? totalBytes : 0;
+    const percentage =
+      lengthComputable && safeTotal > 0
+        ? Math.min(100, Math.round((uploadedBytes / safeTotal) * 100))
+        : 0;
+    const bytesPerSecond = elapsedSeconds > 0 ? uploadedBytes / elapsedSeconds : 0;
+    const remainingBytes = Math.max(safeTotal - uploadedBytes, 0);
+
+    const progress: UploadProgress = {
+      percentage,
+      uploadedBytes,
+      totalBytes: safeTotal,
+      isComplete: lengthComputable && safeTotal > 0 && uploadedBytes >= safeTotal,
+      isError: false,
+    };
+
+    if (bytesPerSecond > 0) {
+      progress.speed = `${this.formatBytes(bytesPerSecond)}/s`;
+      if (remainingBytes > 0) {
+        progress.eta = Math.ceil(remainingBytes / bytesPerSecond);
+      }
+    }
+
+    return progress;
+  }
+
+  private describeHttpError(status: number, statusText: string, bodyText: string): string {
+    const detail = this.extractErrorMessage(bodyText);
+    const statusLabel = statusText ? `${status} ${statusText}` : `${status}`;
+    return `Upload failed with HTTP ${statusLabel}${detail ? `: ${detail}` : ''}`;
+  }
+
+  private extractErrorMessage(bodyText: string): string | undefined {
+    const payload = this.parseJson(bodyText);
+    if (!payload || typeof payload !== 'object') return undefined;
+
+    const record = payload as Record<string, unknown>;
+    const candidate = record.error ?? record.message ?? record.detail;
+    if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+    if (candidate && typeof candidate === 'object') {
+      const nested = (candidate as Record<string, unknown>).message;
+      if (typeof nested === 'string' && nested.trim()) return nested.trim();
+    }
+    return undefined;
+  }
+
+  private parseJson(bodyText: string): unknown {
+    if (!bodyText) return null;
+    try {
+      return JSON.parse(bodyText);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Map a server response onto UploadedVideo. */
+  private toUploadedVideo(payload: unknown, file: File): UploadedVideo {
+    const record = this.unwrapPayload(payload);
+    const rawUrl = record.url ?? record.fileUrl ?? record.src ?? record.location;
+
+    if (typeof rawUrl !== 'string' || !rawUrl) {
+      throw new Error('Upload response did not include a video URL');
+    }
+
+    return {
+      id: this.toStringOr(record.id ?? record.videoId, file.name),
+      filename: this.toStringOr(record.filename ?? record.name, file.name),
+      url: rawUrl,
+      thumbnailUrl: this.toOptionalString(record.thumbnailUrl ?? record.thumbnail),
+      size: this.toOptionalNumber(record.size) ?? file.size,
+      duration: this.toOptionalNumber(record.duration),
+      width: this.toOptionalNumber(record.width),
+      height: this.toOptionalNumber(record.height),
+      type: this.toOptionalString(record.type) ?? file.type,
+      uploadedAt: this.toOptionalNumber(record.uploadedAt) ?? Date.now(),
+    };
+  }
+
+  private unwrapPayload(payload: unknown): Record<string, unknown> {
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('Upload response was not a JSON object');
+    }
+
+    const record = payload as Record<string, unknown>;
+    const nested = record.data ?? record.video ?? record.result;
+    if (nested && typeof nested === 'object') {
+      return nested as Record<string, unknown>;
+    }
+    return record;
+  }
+
+  /** Origin for absolute video URLs; empty for relative ones (same-origin). */
+  private getApiBase(videoUrl: string): string {
+    if (!/^https?:\/\//i.test(videoUrl)) return '';
+    try {
+      return new URL(videoUrl).origin;
+    } catch {
+      return '';
+    }
+  }
+
+  private toStringOr(value: unknown, fallback: string): string {
+    if (typeof value === 'string' && value) return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    return fallback;
+  }
+
+  private toOptionalString(value: unknown): string | undefined {
+    if (typeof value === 'string' && value) return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    return undefined;
+  }
+
+  private toOptionalNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    return undefined;
   }
 
   /**
@@ -200,7 +493,7 @@ export class VideoUploader {
    * @returns Formatted string (e.g., "1.5 MB")
    */
   private formatBytes(bytes: number): string {
-    if (bytes < 1024) return `${bytes} bytes`;
+    if (bytes < 1024) return `${Math.round(bytes)} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
@@ -224,8 +517,9 @@ export class VideoUploader {
 
 /**
  * Convenience function to create a VideoUploader instance
+ * @param config Optional transport configuration
  * @returns New VideoUploader instance
  */
-export function createVideoUploader(): VideoUploader {
-  return new VideoUploader();
+export function createVideoUploader(config?: UploaderConfig): VideoUploader {
+  return new VideoUploader(config);
 }
