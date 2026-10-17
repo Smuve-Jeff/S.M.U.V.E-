@@ -85,6 +85,23 @@ export interface SceneMarker {
   kind: MarkerKind;
 }
 
+/**
+ * A music bed or voice bed imported from the artist's own device.
+ *
+ * The file is decoded once into an `AudioBuffer` and played through the studio's
+ * master bus rather than a detached <audio> element, so the bed is heard in the
+ * preview, follows the transport, and lands in the exported master — the export
+ * already records that same bus.
+ */
+export interface AudioOverlay {
+  name: string;
+  /** Object URL for the imported file, revoked when the bed is replaced. */
+  url: string;
+  /** Length of the imported file in seconds. */
+  duration: number;
+  buffer: AudioBuffer;
+}
+
 /** Streamer lower-third graphics, drawn into the preview so exports carry them. */
 export interface LowerThird {
   enabled: boolean;
@@ -593,6 +610,16 @@ export class VideoEngineService {
 
   tracks = signal<VideoTrack[]>(createDefaultTracks());
 
+  // ── Audio overlay (imported music bed / voice bed) ─────────────────────
+
+  audioOverlay = signal<AudioOverlay | null>(null);
+  /** Bed level, 0…1. Applied live so a fader move is heard, not re-rendered. */
+  audioOverlayVolume = signal(0.8);
+  /** Repeat the bed under a cut that is longer than the file. */
+  audioOverlayLoop = signal(true);
+  private audioOverlaySource: AudioBufferSourceNode | null = null;
+  private audioOverlayGain: GainNode | null = null;
+
   private animationFrameId: number | null = null;
   private lastUpdateTime = 0;
 
@@ -1062,6 +1089,9 @@ export class VideoEngineService {
 
   seek(time: number) {
     this.currentTime.set(Math.max(0, Math.min(time, this.duration())));
+    // The bed is a live Web Audio source, so it has to be re-cued at the new
+    // playhead; left alone it keeps playing from where it was.
+    if (this.isPlaying()) this.startAudioOverlay(this.currentTime());
   }
 
   togglePlay() {
@@ -1079,15 +1109,116 @@ export class VideoEngineService {
     if (this.isPlaying()) return;
     this.isPlaying.set(true);
     this.lastUpdateTime = performance.now();
+    this.startAudioOverlay(this.currentTime());
     this.startLoop();
   }
 
   pause() {
     this.isPlaying.set(false);
+    this.stopAudioOverlay();
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
+  }
+
+  // ── Audio overlay transport ────────────────────────────────────────────
+
+  /**
+   * Decode a picked audio file and bed it under the timeline.
+   *
+   * Rejects if the host cannot decode the file (an unsupported codec, or a
+   * file the picker handed over truncated), so the caller can name the failure
+   * instead of leaving the operator with a silent no-op.
+   */
+  async loadAudioOverlay(file: File): Promise<AudioOverlay> {
+    const decoded = await this.audioEngine.ctx.decodeAudioData(
+      await file.arrayBuffer()
+    );
+    const previous = this.audioOverlay();
+    this.stopAudioOverlay();
+    if (previous?.url) URL.revokeObjectURL(previous.url);
+
+    const overlay: AudioOverlay = {
+      name: file.name,
+      url: URL.createObjectURL(file),
+      duration: decoded.duration,
+      buffer: decoded,
+    };
+    this.audioOverlay.set(overlay);
+    if (this.isPlaying()) this.startAudioOverlay(this.currentTime());
+    return overlay;
+  }
+
+  /** Drop the bed and release its blob. */
+  clearAudioOverlay() {
+    this.stopAudioOverlay();
+    const previous = this.audioOverlay();
+    if (previous?.url) URL.revokeObjectURL(previous.url);
+    this.audioOverlay.set(null);
+  }
+
+  setAudioOverlayVolume(volume: number) {
+    const safe = Math.max(
+      0,
+      Math.min(1, Number.isFinite(volume) ? Number(volume) : 0)
+    );
+    this.audioOverlayVolume.set(safe);
+    if (this.audioOverlayGain) {
+      this.audioOverlayGain.gain.setTargetAtTime(
+        safe,
+        this.audioEngine.ctx.currentTime,
+        0.02
+      );
+    }
+  }
+
+  setAudioOverlayLoop(loop: boolean) {
+    if (this.audioOverlayLoop() === loop) return;
+    this.audioOverlayLoop.set(loop);
+    // Re-cue so the change applies to the take already running.
+    if (this.isPlaying()) this.startAudioOverlay(this.currentTime());
+  }
+
+  /** Start the bed at the playhead, or re-cue it if one is already running. */
+  private startAudioOverlay(atSeconds: number) {
+    const overlay = this.audioOverlay();
+    if (!overlay) return;
+    this.stopAudioOverlay();
+
+    const loop = this.audioOverlayLoop();
+    // A one-shot bed that has already run out contributes nothing more.
+    if (!loop && atSeconds >= overlay.duration) return;
+
+    const ctx = this.audioEngine.ctx;
+    const source = ctx.createBufferSource();
+    source.buffer = overlay.buffer;
+    source.loop = loop;
+    const gain = ctx.createGain();
+    gain.gain.value = this.audioOverlayVolume();
+    source.connect(gain);
+    gain.connect(this.audioEngine.masterGain);
+
+    const offset = loop ? atSeconds % overlay.duration : atSeconds;
+    source.start(0, Math.max(0, offset));
+    this.audioOverlaySource = source;
+    this.audioOverlayGain = gain;
+  }
+
+  private stopAudioOverlay() {
+    try {
+      this.audioOverlaySource?.stop();
+    } catch {
+      /* already stopped by the browser */
+    }
+    try {
+      this.audioOverlaySource?.disconnect();
+      this.audioOverlayGain?.disconnect();
+    } catch {
+      /* a node torn down twice is not an error */
+    }
+    this.audioOverlaySource = null;
+    this.audioOverlayGain = null;
   }
 
   private startLoop() {

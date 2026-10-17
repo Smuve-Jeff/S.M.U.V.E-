@@ -1209,6 +1209,8 @@
             >
               <input
                 type="file"
+                accept="video/*,image/*"
+                aria-label="Upload a video or image from this device"
                 (change)="onFileUpload($event)"
                 class="absolute inset-0 opacity-0 cursor-pointer"
               />
@@ -1219,6 +1221,76 @@
                 >Ingest</span
               >
             </div>
+          </div>
+
+          <!--
+            Audio overlay: the bed a music video or a scored scene is cut to.
+            The file is decoded onto the studio's master bus, so it is heard in
+            the preview, follows the transport and lands in the export.
+          -->
+          <div class="rounded-xl border border-border bg-surface p-3 grid gap-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-text-dim">
+                Audio Overlay
+              </span>
+              @if (videoEngine.audioOverlay()) {
+                <button
+                  type="button"
+                  class="text-[9px] font-black uppercase text-text-dim"
+                  (click)="removeAudioOverlay()"
+                >
+                  Remove
+                </button>
+              }
+            </div>
+
+            @if (videoEngine.audioOverlay(); as overlay) {
+              <span class="text-[10px] font-bold text-text-main truncate">
+                {{ overlay.name }} · {{ overlay.duration | number: '1.0-0' }}s
+              </span>
+              <label class="grid gap-1">
+                <span class="text-[9px] uppercase text-text-dim">
+                  Level {{ audioOverlayPercent() }}%
+                </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  aria-label="Audio overlay level"
+                  [ngModel]="audioOverlayPercent()"
+                  (ngModelChange)="setAudioOverlayLevel($event)"
+                />
+              </label>
+              <button
+                type="button"
+                class="text-[9px] font-black uppercase text-text-dim text-left"
+                [attr.aria-pressed]="videoEngine.audioOverlayLoop()"
+                (click)="toggleAudioOverlayLoop()"
+              >
+                {{ videoEngine.audioOverlayLoop() ? 'Loop · on' : 'Loop · off' }}
+              </button>
+            } @else {
+              <div
+                class="h-16 rounded-lg border border-border border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer relative"
+              >
+                <input
+                  type="file"
+                  accept="audio/*"
+                  aria-label="Add a music or voice bed from this device"
+                  (change)="onAudioOverlayUpload($event)"
+                  class="absolute inset-0 opacity-0 cursor-pointer"
+                />
+                <span class="material-symbols-outlined text-text-dim">library_music</span>
+                <span class="text-[8px] font-black uppercase text-text-dim">
+                  Add music / voice bed
+                </span>
+              </div>
+            }
+
+            @if (audioOverlayError()) {
+              <span class="text-[9px] text-red-400">{{ audioOverlayError() }}</span>
+            }
           </div>
         </div>
 

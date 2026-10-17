@@ -576,3 +576,172 @@ describe('VideoEngineService transport', () => {
     }
   });
 });
+
+/**
+ * The audio overlay is the bed a music video or a scored scene is cut to, so it
+ * is tested on the transport: it must start with the picture, stop with it, and
+ * re-cue when the playhead moves — a bed that drifts out of sync is worse than
+ * no bed at all.
+ */
+describe('VideoEngineService audio overlay', () => {
+  type FakeNode = {
+    connect: jest.Mock;
+    disconnect: jest.Mock;
+    start: jest.Mock;
+    stop: jest.Mock;
+  };
+
+  const createHarness = () => {
+    const sources: (FakeNode & { buffer: unknown; loop: boolean })[] = [];
+    const gains: (FakeNode & {
+      gain: { value: number; setTargetAtTime: jest.Mock };
+    })[] = [];
+    const masterGain = { connect: jest.fn(), disconnect: jest.fn() };
+
+    const audio = {
+      tempo: () => 120,
+      masterGain,
+      ctx: {
+        currentTime: 0,
+        createBufferSource: jest.fn(() => {
+          const source = {
+            buffer: null as unknown,
+            loop: false,
+            connect: jest.fn(),
+            disconnect: jest.fn(),
+            start: jest.fn(),
+            stop: jest.fn(),
+          };
+          sources.push(source);
+          return source;
+        }),
+        createGain: jest.fn(() => {
+          const gain = {
+            gain: { value: 1, setTargetAtTime: jest.fn() },
+            connect: jest.fn(),
+            disconnect: jest.fn(),
+            start: jest.fn(),
+            stop: jest.fn(),
+          };
+          gains.push(gain);
+          return gain;
+        }),
+        decodeAudioData: jest.fn(async () => ({ duration: 30 })),
+      },
+    };
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        VideoEngineService,
+        { provide: AudioEngineService, useValue: audio },
+      ],
+    });
+
+    return {
+      engine: TestBed.inject(VideoEngineService),
+      audio,
+      sources,
+      gains,
+      masterGain,
+    };
+  };
+
+  const picked = (name = 'bed.mp3'): File =>
+    ({
+      name,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    }) as unknown as File;
+
+  beforeEach(() => {
+    jest
+      .spyOn(URL, 'createObjectURL')
+      .mockImplementation((file: Blob | MediaSource) => `blob:${(file as File).name}`);
+    jest.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    jest
+      .spyOn(globalThis, 'requestAnimationFrame')
+      .mockImplementation(() => 0 as unknown as number);
+    jest
+      .spyOn(globalThis, 'cancelAnimationFrame')
+      .mockImplementation(() => undefined);
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it('decodes a picked file as the bed and keeps its name and length', async () => {
+    const { engine } = createHarness();
+
+    const overlay = await engine.loadAudioOverlay(picked('song.wav'));
+
+    expect(overlay.name).toBe('song.wav');
+    expect(overlay.duration).toBe(30);
+    expect(engine.audioOverlay()?.url).toBe('blob:song.wav');
+  });
+
+  it('starts the bed with the picture and stops it with the transport', async () => {
+    const { engine, sources, masterGain } = createHarness();
+    await engine.loadAudioOverlay(picked());
+
+    engine.play();
+    expect(sources).toHaveLength(1);
+    expect(sources[0].start).toHaveBeenCalledWith(0, 0);
+    expect(sources[0].loop).toBe(true);
+
+    engine.pause();
+    expect(sources[0].stop).toHaveBeenCalled();
+  });
+
+  it('re-cues the bed when the playhead moves mid-take', async () => {
+    const { engine, sources } = createHarness();
+    await engine.loadAudioOverlay(picked());
+    engine.play();
+
+    engine.seek(12);
+
+    // The first source is stopped and a second one starts 12s into the file.
+    expect(sources[0].stop).toHaveBeenCalled();
+    expect(sources[1].start).toHaveBeenCalledWith(0, 12);
+  });
+
+  it('ramps the bed level live and clamps it to the fader range', async () => {
+    const { engine, gains } = createHarness();
+    await engine.loadAudioOverlay(picked());
+    engine.play();
+
+    engine.setAudioOverlayVolume(0.35);
+    expect(engine.audioOverlayVolume()).toBe(0.35);
+    expect(gains[0].gain.setTargetAtTime).toHaveBeenCalledWith(
+      0.35,
+      expect.any(Number),
+      expect.any(Number)
+    );
+
+    engine.setAudioOverlayVolume(4);
+    expect(engine.audioOverlayVolume()).toBe(1);
+    engine.setAudioOverlayVolume(-2);
+    expect(engine.audioOverlayVolume()).toBe(0);
+  });
+
+  it('leaves a one-shot bed silent once the playhead is past its end', async () => {
+    const { engine, sources } = createHarness();
+    await engine.loadAudioOverlay(picked());
+    engine.setAudioOverlayLoop(false);
+
+    engine.seek(45);
+    engine.play();
+
+    expect(sources).toHaveLength(0);
+  });
+
+  it('releases the bed blob and the source when the overlay is cleared', async () => {
+    const { engine, sources } = createHarness();
+    await engine.loadAudioOverlay(picked('bed.m4a'));
+    engine.play();
+
+    engine.clearAudioOverlay();
+
+    expect(sources[0].stop).toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:bed.m4a');
+    expect(engine.audioOverlay()).toBeNull();
+  });
+});

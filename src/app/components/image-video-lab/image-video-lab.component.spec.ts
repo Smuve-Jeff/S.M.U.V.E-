@@ -167,6 +167,16 @@ describe('ImageVideoLabComponent', () => {
         },
       ]),
       safeZoneEnabled: signal(true),
+      // Audio overlay surface: the bed, its fader, its loop switch.
+      audioOverlay: signal<{ name: string; url: string; duration: number } | null>(
+        null
+      ),
+      audioOverlayVolume: signal(0.8),
+      audioOverlayLoop: signal(true),
+      loadAudioOverlay: jest.fn(),
+      clearAudioOverlay: jest.fn(),
+      setAudioOverlayVolume: jest.fn(),
+      setAudioOverlayLoop: jest.fn(),
       lowerThird: signal({ enabled: false, title: '', subtitle: '' }),
       countdownRemaining: signal<number | null>(null),
       countdownLabel: jest.fn().mockReturnValue(null),
@@ -696,6 +706,91 @@ describe('ImageVideoLabComponent', () => {
         }),
       })
     );
+  });
+
+  it('places a phone video on the visual lane', async () => {
+    const { component, videoEngine } = await createComponent();
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'take.mp4', type: 'video/mp4' }] },
+    });
+
+    expect(videoEngine.addClip).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({
+        name: 'take.mp4',
+        type: 'video',
+        source: 'upload',
+      })
+    );
+    expect(component.aiFeedback()).toContain('UPLOAD SUCCESS');
+  });
+
+  it('classifies a gallery take that arrives with no MIME type', async () => {
+    const { component, videoEngine } = await createComponent();
+
+    // Android's document provider hands over an empty type for many gallery
+    // videos; the suffix is the only signal the file carries.
+    await component.onFileUpload({
+      target: { files: [{ name: 'camera-roll.MOV', type: '' }] },
+    });
+
+    expect(videoEngine.addClip).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ name: 'camera-roll.MOV', type: 'video' })
+    );
+  });
+
+  it('re-arms the picker so the same take can be chosen twice', async () => {
+    const { component } = await createComponent();
+    const input = {
+      files: [{ name: 'take.mp4', type: 'video/mp4' }],
+      value: 'C:\\fakepath\\take.mp4',
+    };
+
+    await component.onFileUpload({ target: input });
+
+    // A picker left holding its previous value emits no second change event,
+    // which is indistinguishable from a dead upload button on a phone.
+    expect(input.value).toBe('');
+  });
+
+  it('names a file that is neither a video nor an image', async () => {
+    const { component, videoEngine } = await createComponent();
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'contract.pdf', type: 'application/pdf' }] },
+    });
+
+    expect(videoEngine.addClip).not.toHaveBeenCalled();
+    expect(component.aiFeedback()).toContain('UNSUPPORTED FILE: CONTRACT.PDF');
+  });
+
+  it('reports a bed the browser cannot decode instead of failing silently', async () => {
+    const { component, videoEngine } = await createComponent();
+    videoEngine.loadAudioOverlay.mockRejectedValueOnce(
+      new Error('EncodingError')
+    );
+
+    await component.onAudioOverlayUpload({
+      target: { files: [{ name: 'take.flac', type: 'audio/flac' }], value: 'x' },
+    });
+
+    expect(component.audioOverlayError()).toContain('Could not read take.flac');
+    expect(component.aiFeedback()).toContain('AUDIO OVERLAY FAILED');
+  });
+
+  it('drives the bed fader and loop switch through the engine', async () => {
+    const { component, videoEngine } = await createComponent();
+
+    component.setAudioOverlayLevel('42');
+    expect(videoEngine.setAudioOverlayVolume).toHaveBeenCalledWith(0.42);
+
+    component.toggleAudioOverlayLoop();
+    expect(videoEngine.setAudioOverlayLoop).toHaveBeenCalledWith(false);
+
+    component.removeAudioOverlay();
+    expect(videoEngine.clearAudioOverlay).toHaveBeenCalled();
   });
 
   it('clicks on the timeline seek the playhead proportionally', async () => {
