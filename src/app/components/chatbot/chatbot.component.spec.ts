@@ -11,6 +11,7 @@ import { UserStoreService } from '../../services/user-store.service';
 import { signal } from '@angular/core';
 import { initialProfile } from '../../types/profile.types';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
+import { SmuveTotalControlService } from '../../services/smuve-total-control.service';
 
 describe('ChatbotComponent', () => {
   let component: ChatbotComponent;
@@ -595,6 +596,23 @@ describe('ChatbotComponent', () => {
     expect(aiServiceMock.getAIResponse).toHaveBeenCalledWith(expect.stringContaining('How do I improve my melody?'));
     expect(component.messages().at(-1)?.text).toBe('Actual personalized answer.');
     expect(speechSynthesisServiceMock.speak).toHaveBeenCalledWith('Actual personalized answer.', expect.objectContaining({ shapeShift: true }));
+  });
+
+  it('executes a natural-language app request through the control engine', async () => {
+    const control = TestBed.inject(SmuveTotalControlService);
+    const execute = jest
+      .spyOn(control, 'executeCommand')
+      .mockResolvedValue({ success: true, message: 'bass muted.' });
+    aiServiceMock.getAIResponse = jest.fn().mockResolvedValue('model answer');
+
+    component.userInput = 'mute the bass';
+    await component.sendMessage();
+
+    expect(execute).toHaveBeenCalledWith('/mixer mute bass');
+    expect(component.messages().at(-1)?.text).toContain('bass muted.');
+    // The model is advisory only for requests S.M.U.V.E. can execute.
+    expect(aiServiceMock.getAIResponse).not.toHaveBeenCalled();
+    execute.mockRestore();
   });
 
   it('treats any persona casing of an offline reply as local knowledge', async () => {

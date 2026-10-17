@@ -340,6 +340,24 @@
 
 .wizard-tip-icon {
   flex: 0 0 auto;
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* The hero and card glyphs come from the shell's own icon font rather than
+   emoji: one visual language with the rest of the Studio, and no dependency on
+   an emoji font being installed (a Linux desktop or a stripped Android image
+   renders those code points as tofu boxes). */
+.wizard-hero-icon .material-symbols-outlined {
+  font-size: 34px;
+  line-height: 1;
+  color: var(--teal-500, #00e5ff);
+}
+
+.wizard-card-icon .material-symbols-outlined {
+  font-size: 24px;
+  line-height: 1;
+  color: var(--card-accent, var(--teal-500, #00e5ff));
 }
 
 .wizard-card-cta {
@@ -472,6 +490,9 @@
   .wizard-hero-icon {
     width: 60px;
     height: 60px;
+  }
+
+  .wizard-hero-icon .material-symbols-outlined {
     font-size: 28px;
   }
 

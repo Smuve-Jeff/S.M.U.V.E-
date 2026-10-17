@@ -335,7 +335,13 @@ export class AppComponent {
           'performance',
           'mastering',
         ].includes(path) ||
-        (path === 'studio' && this.isMobile())
+        // The Studio is a full-window DAW on every device, not a page inside
+        // the Hub. On desktop the Hub frame (top bar + sidebar + footer) cost a
+        // 1440x900 window 195px — 22% of the screen — while duplicating the
+        // navigation the Studio's own rail already provides, and the timeline
+        // was left with 49% of the viewport. `/studio` owns the window; its
+        // rail Home item (and the header back control) return to the Hub.
+        path === "studio"
     );
   }
 

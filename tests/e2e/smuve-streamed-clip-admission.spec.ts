@@ -64,25 +64,32 @@ test.describe('clip-streamer admission (synthetic long import)', () => {
     });
 
     const chooserPromise = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: /import/i }).click();
+    await page.getByRole('button', { name: 'Import audio files' }).click();
     const chooser = await chooserPromise;
     await chooser.setFiles({ name: 'qa-long-loop.wav', mimeType: 'audio/wav', buffer: longWavFixture() });
 
-    await expect(
-      page.locator('.comp-import-empty').or(page.locator('[data-studio-workspace]')),
-    ).toBeVisible();
+    await expect(page.locator('.comp-import-editor')).toBeVisible({
+      timeout: 30_000,
+    });
 
-    await page.evaluate((name) => {
-      const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
-      const audioImport = studio.audioImport;
-      if (!audioImport.importedAudio().length) {
-        throw new Error('imported audio not staged');
-      }
-      audioImport.addToProject(audioImport.selectedAudio()!);
-    }, 'qa-long-loop.wav');
+    await page.getByRole('button', { name: /add to project/i }).click();
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const studio = (window as any).ng.getComponent(
+              document.querySelector('app-studio'),
+            );
+            const lastTrack = studio.musicManager.tracks().at(-1);
+            return Boolean(lastTrack?.clips?.[0]?.clipStreamer);
+          }),
+        { timeout: 15_000 },
+      )
+      .toBe(true);
 
     const clip = await page.evaluate<{
-      clipStreamer: unknown;
+      clipStreamer: boolean;
       clipOriginSeconds: number;
       clipLengthSeconds: number;
       clipSampleRate: number;
@@ -95,7 +102,7 @@ test.describe('clip-streamer admission (synthetic long import)', () => {
       const clip = lastTrack.clips?.[0] ?? null;
       if (!clip) return null;
       return {
-        clipStreamer: clip.clipStreamer,
+        clipStreamer: Boolean(clip.clipStreamer),
         clipOriginSeconds: clip.clipOriginSeconds,
         clipLengthSeconds: clip.clipLengthSeconds,
         clipSampleRate: clip.clipSampleRate,
@@ -104,7 +111,7 @@ test.describe('clip-streamer admission (synthetic long import)', () => {
     });
 
     expect(clip).not.toBeNull();
-    expect(clip!.clipStreamer).toBeTruthy();
+    expect(clip!.clipStreamer).toBe(true);
     expect(clip!.clipOriginSeconds).toBe(0);
     expect(clip!.clipLengthSeconds).toBeGreaterThan(0);
     expect(clip!.clipSampleRate).toBeGreaterThan(0);

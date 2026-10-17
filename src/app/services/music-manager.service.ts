@@ -2304,11 +2304,20 @@ export class MusicManagerService {
     color: string;
     buffer: AudioBuffer;
     offset: number;
+    clipStreamer?: SampleStreamer | null;
+    clipOriginSeconds?: number;
+    clipLengthSeconds?: number;
+    clipSampleRate?: number;
+    clipChannels?: number;
   }): void {
     const trackId = opts.id || 'audio_' + Date.now();
     const clipId = 'clip_' + Date.now();
+    const durationSec =
+      opts.clipLengthSeconds && opts.clipLengthSeconds > 0
+        ? opts.clipLengthSeconds
+        : opts.buffer.duration;
     const barsAtBpm = Math.ceil(
-      opts.buffer.duration / (60 / this.engine.tempo() / 4)
+      durationSec / (60 / this.engine.tempo() / 4)
     );
 
     const track: TrackModel = {
@@ -2329,6 +2338,17 @@ export class MusicManagerService {
           length: Math.max(1, barsAtBpm),
           type: 'audio',
           audioRefId: clipId,
+          ...(opts.clipStreamer
+            ? {
+                clipStreamer: opts.clipStreamer,
+                clipOriginSeconds: opts.clipOriginSeconds ?? 0,
+                clipLengthSeconds: durationSec,
+                clipSampleRate:
+                  opts.clipSampleRate ?? opts.buffer.sampleRate ?? 48000,
+                clipChannels:
+                  opts.clipChannels ?? opts.buffer.numberOfChannels ?? 2,
+              }
+            : {}),
         } as any,
       ],
       notes: [],
@@ -2505,12 +2525,28 @@ export class MusicManagerService {
             // the engine advances the clip playhead per invocation.
             if ((clip as any).clipStreamer) {
               (clip as any).clipStreamer.setPlayhead(
-                (clip as any).clipOriginSeconds *
-                  (clip as any).clipSampleRate
+                ((clip as any).clipOriginSeconds || 0) *
+                  ((clip as any).clipSampleRate || 48000)
               );
               this.engine.triggerSampler(
                 t.id,
                 (clip as any).clipStreamer,
+                swungTime,
+                t.gain,
+                t.pan,
+                clipDur,
+                rate,
+                fadeInSec,
+                fadeOutSec,
+                (clip as any).clipOriginSeconds ?? 0,
+                (clip as any).clipLengthSeconds ?? clipDur,
+                (clip as any).clipSampleRate ?? 48000,
+                (clip as any).clipChannels ?? 2
+              );
+            } else {
+              this.engine.triggerSampler(
+                t.id,
+                audioData,
                 swungTime,
                 t.gain,
                 t.pan,

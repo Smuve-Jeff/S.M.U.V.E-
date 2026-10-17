@@ -5,9 +5,11 @@ import { AudioEngineService } from "../services/audio-engine.service";
 import { MusicManagerService } from "../services/music-manager.service";
 import { LoggingService } from "../services/logging.service";
 import { SnackbarService } from "../services/snackbar.service";
+import { createSampleStreamer } from "../services/sample-streamer.service";
 
 describe("AudioImportService (stretch engine)", () => {
   let service: AudioImportService;
+  let addAudioTrackMock: jest.Mock;
 
   function makeBuffer(
     ctx: any,
@@ -56,7 +58,10 @@ describe("AudioImportService (stretch engine)", () => {
         AudioImportService,
         { provide: FileLoaderService, useValue: { pickLocalFiles: jest.fn() } },
         { provide: AudioEngineService, useValue: audioEngineMock },
-        { provide: MusicManagerService, useValue: {} },
+        {
+          provide: MusicManagerService,
+          useValue: { addAudioTrack: (addAudioTrackMock = jest.fn()) },
+        },
         {
           provide: LoggingService,
           useValue: { warn: jest.fn(), error: jest.fn() },
@@ -304,5 +309,52 @@ describe("AudioImportService (stretch engine)", () => {
   it("does not enhance without a selected import", async () => {
     service.selectedAudio.set(null);
     await expect(service.enhanceQuality("clean")).resolves.toBeNull();
+  });
+
+  it("forwards SampleStreamer clip admission fields when adding a long import to the project", () => {
+    const buf = makeBuffer(service.audioEngine.ctx, 48000 * 12, 440, 48000);
+    const streamer = createSampleStreamer({ maxResidentSeconds: 30 });
+    const pcm = new Float32Array(48000 * 12);
+    pcm.set(buf.getChannelData(0));
+    streamer.attachSource("blob:long", pcm.buffer, 48000, 1);
+    streamer.setPlayhead(0);
+
+    const imported: any = {
+      id: "long-1",
+      name: "qa-long-loop",
+      buffer: streamer.getResidentBuffer(),
+      blob: new Blob(),
+      url: "blob:long",
+      duration: 12,
+      sampleRate: 48000,
+      channels: 1,
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1,
+      pitchSemitones: 0,
+      fadeIn: 0,
+      fadeOut: 0,
+      loopStart: 0,
+      loopEnd: 1,
+      normalize: false,
+      editedBlob: null,
+      editedUrl: null,
+      enhancedBuffer: null,
+      enhancedPreset: null,
+      sampleStreamer: streamer,
+    };
+    service.importedAudio.set([imported]);
+    service.selectedAudio.set(imported);
+
+    service.addToProject(imported);
+
+    expect(addAudioTrackMock).toHaveBeenCalledTimes(1);
+    const call = addAudioTrackMock.mock.calls[0][0];
+    expect(call.clipStreamer).toBe(streamer);
+    expect(call.clipOriginSeconds).toBe(0);
+    expect(call.clipLengthSeconds).toBeGreaterThan(0);
+    expect(call.clipSampleRate).toBe(48000);
+    expect(call.clipChannels).toBe(1);
   });
 });

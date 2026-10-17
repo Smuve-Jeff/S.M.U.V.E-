@@ -1,0 +1,749 @@
+/* ============================================================================
+   S.M.U.V.E. STUDIO — PRO SURFACE SYSTEM (depth + glass 2.0)
+   ----------------------------------------------------------------------------
+   Global stylesheet, registered LAST in angular.json so it can settle two
+   arguments the Studio's own layers were having with each other:
+
+     1. DEPTH.  `.comp-canvas`, `.comp-rail`, `.comp-backdrop`,
+        `.comp-panel-backdrop`, `.comp-panel` and `.studio-save-warning` each
+        hard-coded a z-index in a different file (0 / 50 / 75 / 80 / 9000).
+        Nothing could answer "what covers what" without reading all of them.
+        This file declares the scale once, as tokens, and then applies them to
+        those surfaces **at their existing numeric values** — so the stacking
+        order is provably unchanged and the intent is now written down.
+
+     2. GLASS 2.0.  The Studio's default skin is studio-fl-mobile.css, which
+        deliberately flattens every surface ("no glass blur, no ambient glow,
+        hairline 1px separators"). That was the right call for the FL mimicry,
+        but it left `.glass-v42` — the canonical translucent surface the rest of
+        the app uses — with nowhere to apply. This layer reinstates a single,
+        consistent glass recipe for the shell chrome and panels.
+
+   WHY `body .comp-shell.comp-shell`
+   Measured specificity, not guesswork:
+     · `.comp-panel[_ngcontent-x]` (component stylesheet)      = (0,2,0)
+     · `body .comp-shell .comp-panel` (studio-fl-mobile.css)   = (0,2,1)
+     · `.dark-mode … .comp-panel` (shell theme layers)         = (0,3,0)+
+   `body .comp-shell.comp-shell .comp-panel` = (0,3,1) outranks all three
+   without `!important`, which keeps the accessibility overrides in
+   studio-adaptive-display.css able to win when the user asks for them (those
+   do use `!important`, on purpose — see that file's cascade contract).
+
+   Everything here is Studio-scoped. The Home Hub, auth screens and profile are
+   untouched.
+   ========================================================================= */
+
+/* ----------------------------------------------------------------------------
+   1. THE DEPTH SCALE — one definition for the whole Studio
+   ---------------------------------------------------------------------------- */
+body .comp-shell {
+  /* Stacking tiers, lowest first. */
+  --daw-z-workspace: 0; /* canvases: arrangement grid, piano roll, pads */
+  --daw-z-content: 10; /* in-view sticky rulers, view headers */
+  --daw-z-tools: 40; /* rail, bottom dock, context toolbar, footer */
+  --daw-z-menubar: 45; /* topbar — its dropdowns must clear the docked rail */
+  --daw-z-scrim: 50; /* modal scrim behind a sliding panel */
+  --daw-z-panel-scrim: 75; /* the tighter scrim a side panel draws */
+  --daw-z-panel: 80; /* slide-over panels, drawers, inspector */
+  --daw-z-sheet: 85; /* bottom sheets above a panel */
+  --daw-z-overlay: 120; /* search, keyboard help, dialogs */
+  --daw-z-toast: 9000; /* save warning — nothing may ever cover it */
+
+  /* A shadow per tier, so a surface's elevation reads the same everywhere. */
+  --daw-elev-workspace: none;
+  --daw-elev-content: 0 1px 0 rgba(0, 0, 0, 0.4);
+  --daw-elev-tools: 0 -6px 18px rgba(0, 0, 0, 0.4);
+  --daw-elev-panel: -10px 0 34px rgba(0, 0, 0, 0.5);
+  --daw-elev-sheet: 0 -14px 40px rgba(0, 0, 0, 0.55);
+  --daw-elev-overlay: 0 24px 68px rgba(0, 0, 0, 0.6);
+}
+
+/* Applied at the values the shells already used — see the header. */
+body .comp-shell .comp-canvas {
+  z-index: var(--daw-z-workspace);
+}
+/* The project menu is absolutely positioned inside the topbar, so the topbar's
+   own stacking tier decides whether the rail can cover it. Asserting the rail
+   into the tools tier (it used to be `auto`) put the topbar's 30 behind it and
+   made six menu items unclickable on desktop widths; the menubar tier sits
+   above the tools and below every scrim. */
+body .comp-shell .comp-topbar {
+  z-index: var(--daw-z-menubar);
+}
+body .comp-shell .comp-rail,
+body .comp-shell .comp-context-toolbar,
+body .comp-shell .comp-footer,
+body .comp-shell .comp-bottombar {
+  z-index: var(--daw-z-tools);
+}
+body .comp-shell .comp-backdrop {
+  z-index: var(--daw-z-scrim);
+}
+body .comp-shell .comp-panel-backdrop {
+  z-index: var(--daw-z-panel-scrim);
+}
+body .comp-shell .comp-panel,
+body .comp-shell .comp-drawer {
+  z-index: var(--daw-z-panel);
+}
+body .comp-shell .studio-save-warning {
+  z-index: var(--daw-z-toast);
+}
+
+/* ----------------------------------------------------------------------------
+   2. GLASS 2.0 — the canonical studio surface
+   Tokens are the recipe; the surfaces below only pick a fill. Changing the
+   blur radius or the edge gradient in one place re-skins the whole shell.
+   ---------------------------------------------------------------------------- */
+body .comp-shell {
+  --glass-v42-blur: 12px;
+  --glass-v42-saturate: 1.12;
+  --glass-v42-fill: rgba(23, 24, 29, 0.76);
+  --glass-v42-fill-dense: rgba(18, 19, 24, 0.9);
+  --glass-v42-edge-top: rgba(255, 255, 255, 0.2);
+  --glass-v42-edge-mid: rgba(255, 255, 255, 0.045);
+  --glass-v42-edge-bottom: rgba(255, 255, 255, 0.12);
+  --glass-v42-sheen: rgba(255, 255, 255, 0.06);
+}
+
+/* The four docked chrome bars share one surface. `.comp-topbar` paints itself
+   through a ::before (so it never becomes a containing block for the fixed
+   drawers), which is why it is listed separately. */
+body .comp-shell.comp-shell .comp-context-toolbar,
+body .comp-shell.comp-shell .comp-footer,
+body .comp-shell.comp-shell .comp-bottombar,
+body .comp-shell.comp-shell .comp-rail,
+body .comp-shell.comp-shell .comp-topbar::before {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--glass-v42-fill), var(--glass-v42-fill)) padding-box,
+    linear-gradient(
+        160deg,
+        var(--glass-v42-edge-top),
+        var(--glass-v42-edge-mid) 46%,
+        var(--glass-v42-edge-bottom)
+      )
+      border-box;
+  backdrop-filter: blur(var(--glass-v42-blur)) saturate(var(--glass-v42-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-v42-blur))
+    saturate(var(--glass-v42-saturate));
+}
+
+/* Panels, drawers and popovers sit one tier up: denser fill, deeper shadow,
+   same edge. `.comp-panel` and `.comp-drawer` previously carried a nearly
+   opaque fill plus a 18px blur, so this is a *reduction* in cost as well as a
+   consistency win. */
+body .comp-shell.comp-shell .comp-panel,
+body .comp-shell.comp-shell .comp-drawer,
+body .comp-shell.comp-shell .comp-project-menu,
+body .comp-shell.comp-shell .glass-pro {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--glass-v42-fill-dense), var(--glass-v42-fill-dense))
+      padding-box,
+    linear-gradient(
+        160deg,
+        var(--glass-v42-edge-top),
+        var(--glass-v42-edge-mid) 46%,
+        var(--glass-v42-edge-bottom)
+      )
+      border-box;
+  backdrop-filter: blur(16px) saturate(var(--glass-v42-saturate));
+  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-v42-saturate));
+  box-shadow:
+    inset 0 1px 0 var(--glass-v42-sheen),
+    var(--daw-elev-panel);
+}
+
+/* The topbar's ::before already draws the fill; the bar itself must stay
+   transparent or it double-darkens. */
+body .comp-shell.comp-shell .comp-topbar {
+  background: transparent;
+}
+
+/* ----------------------------------------------------------------------------
+   3. THUMB ZONE + SAFE AREA
+   The reachable band on a 360–412px phone held one-handed is the bottom third.
+   The dock and the CREATE action already live there; what did not was clearance
+   — the dock and the floating action button could overlap each other and the
+   Android gesture bar on a notched device. These rules only ever add space.
+   ---------------------------------------------------------------------------- */
+body .comp-shell .comp-bottombar {
+  /* Gesture-bar clearance, plus the extra band that keeps the tab row inside
+     the thumb arc rather than at the very edge of the glass. */
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+}
+
+body .comp-shell .comp-fab {
+  /* Sit above the dock rather than on it, then respect the gesture bar. */
+  bottom: calc(
+    var(--studio-mobile-dock-height, 72px) +
+      max(12px, env(safe-area-inset-bottom, 12px)) + 10px
+  );
+  right: max(14px, env(safe-area-inset-right, 14px));
+}
+
+/* Landscape phones: the gesture bar moves to the side, and a 68px dock eats a
+   fifth of a 390px-tall viewport. Keep the controls but spend less height. */
+@media (max-width: 932px) and (orientation: landscape) {
+  body .comp-shell .comp-bottombar {
+    padding-bottom: max(4px, env(safe-area-inset-bottom, 4px));
+  }
+  body .comp-shell .comp-fab {
+    bottom: calc(
+      var(--studio-mobile-dock-height, 64px) +
+        max(8px, env(safe-area-inset-bottom, 8px)) + 6px
+    );
+  }
+}
+
+/* Never let a side overlay or the marquee intrude into the notch / camera
+   housing when the app runs full-bleed (viewport-fit=cover). */
+body .comp-shell .comp-panel,
+body .comp-shell .comp-drawer,
+body .comp-shell .comp-topbar {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ----------------------------------------------------------------------------
+   4. FALLBACKS
+   `prefers-reduced-transparency` and `prefers-contrast: more` are owned by
+   src/studio-adaptive-display.css, which loads before this file but uses
+   `!important` inside its preference media queries — so it still wins over
+   everything above. Nothing needs to be duplicated here; this note exists so
+   the next reader does not "fix" the apparent gap.
+   ---------------------------------------------------------------------------- */
+
+/* ----------------------------------------------------------------------------
+   5. PANE BUDGET — phone density and desktop proportions
+   Measured before this section landed, at 1440x900 and 390x844:
+
+     desktop   shell 705 of a 900 window (the Hub frame kept 195px),
+               canvas 439 (49%) — see app.component.ts, /studio is now
+               full-bleed so the shell owns the window.
+     phone     status 22 + topbar 50 + tools 44 + AI band 48 + dock 68 = 232px
+               of 844 (27.5%) around a 540px canvas, of which the tools row
+               held a single button and the band held three.
+
+   The rules below spend that budget deliberately: one row for the tools
+   trigger and the session band, a transport whose primary controls fit the
+   screen instead of scrolling under the edge, dock labels that never truncate
+   mid-word, and a type floor so a 8px caption stops being the smallest thing
+   on a 390px screen.
+   ---------------------------------------------------------------------------- */
+
+/* Desktop keeps the shell exactly as authored: the wrapper is transparent. */
+body .comp-shell .comp-chrome-rail {
+  display: contents;
+}
+
+/* ── 5a. Phone: one chrome row instead of two bars ───────────────────────── */
+@media (max-width: 768px) {
+  body .comp-shell .comp-chrome-rail {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    min-width: 0;
+    padding: 0 8px 6px;
+  }
+
+  /* The lone MORE trigger shares the row; it stops drawing its own band. */
+  body .comp-shell .comp-chrome-rail > .comp-topbar-tools {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    min-height: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* The component sheet pins this trigger to a 28px minimum for the old
+     full-width band (`.comp-shell .comp-topbar-tools .comp-tool-btn.comp-tool-more`);
+     sharing a row means it needs a real target, so the shell class is doubled
+     to outrank it rather than reaching for `!important` outside a preference
+     query. */
+  body .comp-shell.comp-shell .comp-chrome-rail > .comp-topbar-tools
+    .comp-tool-btn.comp-tool-more {
+    height: 44px;
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  /* Descriptions are for the sheet, not the strip. */
+  body .comp-shell .comp-chrome-rail > .comp-topbar-tools .comp-tool-label {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  body .comp-shell .comp-chrome-rail > app-ai-band {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+  }
+
+  /* A row that continues past the edge must say so. A fade is the affordance;
+     a hard cut reads as a broken layout. Only the session band gets it: the
+     transport is no longer a scroller at this width (5b below), and masking it
+     here faded the pinned More chip's right edge, which made a complete button
+     look like a truncated one. */
+  body .comp-shell .comp-chrome-rail > app-ai-band {
+    mask-image: linear-gradient(
+      90deg,
+      #000 0,
+      #000 calc(100% - 26px),
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      #000 0,
+      #000 calc(100% - 26px),
+      transparent 100%
+    );
+  }
+
+  /* ── 5b. Transport: the strip fits the phone instead of running off it ── */
+  /* The transport used to be one max-content strip inside a horizontally
+     scrolling topbar (studio-fl-mobile.css pins the whole chain to
+     `width: max-content`). That was fine while the topbar was a long dock, but
+     on this rail it parked the loop toggle, the metronome and the entire
+     "More" popover past the right edge at 390px — measured 499px of strip in
+     a 390px viewport, with `More` starting at x=426.
+
+     Now the strip takes the width it is given, the primary controls scroll
+     under a pinned More chip, and the readout is the only thing allowed to
+     scroll out of view. */
+  body .comp-shell .studio-transport-shell,
+  body .comp-shell .studio-transport-shell__primary,
+  body .comp-shell app-transport-bar,
+  body .comp-shell .ctb-shell {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  body .comp-shell .ctb-primary-row {
+    gap: 4px;
+    min-width: 0;
+    /* The 14px trailing pad is the fade's landing strip: without it the last
+       digits of the bar:beat readout scrolled *under* the mask when the strip
+       was dragged to the end. */
+    padding-right: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  body .comp-shell .ctb-primary-row::-webkit-scrollbar {
+    display: none;
+  }
+  /* The strip is 414px of controls in ~330px of rail, so it scrolls. A hard
+     cut reads as a broken layout; a 12px fade reads as "there is more" and
+     stays narrower than the 14px trailing pad, so a fully-scrolled readout is
+     never washed out by it. */
+  body .comp-shell .ctb-primary-row {
+    mask-image: linear-gradient(
+      90deg,
+      #000 0,
+      #000 calc(100% - 12px),
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      #000 0,
+      #000 calc(100% - 12px),
+      transparent 100%
+    );
+    overscroll-behavior-x: contain;
+  }
+  body .comp-shell .ctb-primary-row .ctb-position {
+    scroll-snap-align: end;
+  }
+  /* Live controls first: playback → tempo → loop/metronome → position. */
+  body .comp-shell .ctb-primary-row .ctb-tempo {
+    order: 1;
+  }
+  body .comp-shell .ctb-primary-row .ctb-toggles {
+    order: 2;
+  }
+  body .comp-shell .ctb-primary-row .ctb-position {
+    order: 3;
+  }
+  /* More holds tap tempo, punch-in, takes, count-in, loop A/B, undo, output
+     routing and export — it must never be the item that scrolls away. */
+  body .comp-shell .ctb-secondary {
+    order: 4;
+    flex: 0 0 auto;
+    margin-left: 2px;
+  }
+  /* Its label costs 24px of the strip on a phone and repeats what the tune
+     glyph already says; the accessible name stays on the `<summary>`. */
+  @media (max-width: 480px) {
+    body .comp-shell .ctb-secondary-trigger {
+      width: 44px;
+      min-width: 44px;
+      padding: 0;
+    }
+    body .comp-shell .ctb-secondary-trigger > span:last-child {
+      display: none;
+    }
+  }
+  body .comp-shell .ctb-primary-row .ctb-group {
+    gap: 2px;
+    flex: 0 0 auto;
+  }
+  body .comp-shell .ctb-primary-row .ctb-btn,
+  body .comp-shell .ctb-primary-row .ctb-undo-btn {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+  }
+  body .comp-shell .ctb-bpm {
+    min-width: 52px;
+    height: 44px;
+    padding: 0 6px;
+  }
+  body .comp-shell .ctb-bpm-value {
+    font-size: 15px;
+  }
+  body .comp-shell .ctb-bpm-unit {
+    font-size: 8px;
+    letter-spacing: 0.06em;
+  }
+  body .comp-shell .ctb-position-readout {
+    font-size: 11px;
+  }
+
+  /* Narrow phones: the ± nudges are the first thing to go — the BPM readout
+     opens the preset list, so tempo is still editable in one tap. The
+     position readout is no longer removed down here: it scrolls with the
+     strip instead of being deleted from the strip. */
+  @media (max-width: 380px) {
+    body .comp-shell .ctb-tempo .ctb-nudge {
+      display: none;
+    }
+    body .comp-shell .ctb-primary-row {
+      gap: 3px;
+    }
+    body .comp-shell .ctb-bpm {
+      min-width: 48px;
+    }
+  }
+
+  /* ── 5c. Dock labels: never truncate mid-word, never below 10px ────────── */
+  body .comp-shell .comp-bottombar .comp-tab-label,
+  body .comp-shell .comp-tab .comp-tab-label {
+    font-size: 10px;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ── 5d. The CREATE action clears the transport, not just the dock ─────── */
+  /* It used to sit one dock-height above the bottom, which parked it on top of
+     the wizard's primary CTA and the transport row on a 844px screen. */
+  body .comp-shell .comp-fab {
+    bottom: calc(
+      var(--studio-mobile-dock-height, 72px) + 60px +
+        max(10px, env(safe-area-inset-bottom, 10px))
+    );
+    right: max(12px, env(safe-area-inset-right, 12px));
+  }
+}
+
+/* Reduced motion is owned by the capability layer; re-stating it here would
+   only add a second opinion. */
+
+/* ── 5e. Second pass on the phone rail: compact the band chips ───────────── */
+@media (max-width: 768px) {
+  /* Two chips plus a faded third, instead of one and a half. The band is a
+     scroller; shrinking the chip is what makes the fade land on a boundary. */
+  body .comp-shell .comp-chrome-rail .ai-band {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+  body .comp-shell .comp-chrome-rail .ai-band-player,
+  body .comp-shell .comp-chrome-rail .ai-band-readout {
+    padding: 4px 9px;
+    min-height: 36px;
+  }
+  body .comp-shell .comp-chrome-rail .ai-band-label,
+  body .comp-shell .comp-chrome-rail .ai-band-player-text,
+  body .comp-shell .comp-chrome-rail .ai-band-state {
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Tempo is editable from the BPM readout (`ctb-bpm` opens the preset list),
+     so the ± nudges are what give the position readout its room back. */
+  body .comp-shell .ctb-tempo .ctb-nudge {
+    display: none;
+  }
+
+  /* The floating assistant sits over the canvas; reserve its footprint at the
+     end of the scroll so it can never park on a primary CTA. */
+  body .comp-shell .studio-primary-canvas {
+    padding-bottom: 76px;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   6. TWO CLIPPING BUGS THE FULL-BLEED WINDOW EXPOSED
+   Both were present before this pass; the extra 195px of shell made them
+   visible instead of hiding them under the Hub frame.
+   ---------------------------------------------------------------------------- */
+
+/* a) The session band was flex-shrunk to 27px in a 900px-tall shell while its
+      own content needs 58px, so the four roster chips spilled under the stage
+      marquee. A band that reports its own height must not be compressible. */
+body .comp-shell app-ai-band {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+/* b) The wizard's footer is `position: sticky; bottom: 0`, so the last ~77px of
+      the step cards scrolled *behind* it — the tip line of every card was cut
+      off mid-sentence on both a phone and a 1440x900 window. Reserve the
+      footer's height at the end of the card grid. */
+body .comp-shell .wizard-cards {
+  padding-bottom: 88px;
+}
+
+/* ----------------------------------------------------------------------------
+   7. DESKTOP TOP BAR — the utility cluster has to be whole at every width
+   ----------------------------------------------------------------------------
+   Measured before this pass, at 1440x900: the right cluster was 378px wide
+   with 669px of content, so seven of its nine controls — theme, Stage FX,
+   shortcuts, Sets, share, collab and the AI assistant — started past its own
+   right edge. They were technically reachable by dragging the cluster
+   sideways, which no desktop user does, so in practice they read as missing.
+
+   The cause was the split: the transport claimed `flex: 1 1 auto` and so took
+   802px for 567px of content, while the cluster was the item made to shrink.
+   The transport is the thing that should yield, so the cluster keeps its
+   content width and the strip absorbs the slack. Below 1340px there is not
+   enough room for both at full width (the strip needs 567px and the cluster
+   633px, plus a 216px brand block), so the two sentences nobody needs to read
+   twice — the status pill and the arm-audio prompt — collapse to their glyphs.
+   Both keep their `aria-label` and `title`, and 1520px is where the shelf ends.
+   ---------------------------------------------------------------------------- */
+@media (min-width: 1025px) {
+  body .comp-shell .comp-topbar-center {
+    flex: 0 1 auto;
+    min-width: min(500px, 46vw);
+  }
+  /* shell-refinement.css caps this cluster at min(42vw, 520px) to keep it out
+     of the canvas. With the transport yielding instead, the cap is what still
+     hides controls, so it lifts on desktop and the content sets the width. */
+  body .comp-shell .comp-topbar-right {
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: none;
+    gap: 4px;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1519px) {
+  /* The status pip is a LED, not a control: it keeps the dot. */
+  body .comp-shell .comp-now-performing {
+    width: 30px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+  body .comp-shell .comp-now-performing > span:last-child {
+    display: none;
+  }
+  /* Arming audio stays one click away and keeps its pulsing speaker. */
+  body .comp-shell .comp-arm-audio {
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+  body .comp-shell .comp-arm-audio > span:last-child {
+    display: none;
+  }
+}
+
+/* The utility cluster's icon buttons carry a second label chip ("LEARN",
+   "DARK", "FX", "?", "SETS"). At the 36px these buttons take in a dense
+   desktop row, the chip is 5–33px wide and lands *on top of* the glyph, so the
+   row reads as smudged. The tooltip and the accessible name already say what
+   each button does, so on desktop the icons stand alone at 40px. */
+@media (min-width: 1025px) {
+  body .comp-shell .comp-topbar-right .comp-icon-btn {
+    width: 40px;
+    min-width: 40px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+  }
+  body .comp-shell .comp-topbar-right .comp-icon-btn .comp-theme-chip {
+    display: none;
+  }
+}
+
+/* The status pill draws its red LED with `::before`, and the template also
+   prints a decorative "●" — at every width that read as two dots, and in the
+   collapsed desktop pill it looked like a toggle switch. The CSS LED is the
+   one that pulses, so the duplicate glyph goes. */
+body .comp-shell .comp-now-performing > span[aria-hidden="true"] {
+  display: none;
+}
+
+/* Loop and metronome are 32px borderless glyphs in the component sheet — a
+   quiet secondary treatment that works beside a dense desktop strip. On the
+   phone they sit next to 44px bordered transport buttons and read as floating
+   icons. Same box, same weight, same 44px target. */
+@media (max-width: 768px) {
+  body .comp-shell .ctb-primary-row .ctb-toggle {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--espresso-text, #f1f5ff);
+  }
+  body .comp-shell .ctb-primary-row .ctb-toggle.ctb-toggle-active {
+    border-color: transparent;
+    background: var(--teal-500, #00e5ff);
+    color: #04121a;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   8. The wizard footer is sticky, so the step cards scroll *under* it.
+   Without a transition that reads as a bug: a card's tag line is sliced in
+   half by the footer's top border at every scroll position that is not the
+   very end. A 28px scrim above the bar turns the slice into a fade, the same
+   affordance the chrome rail uses for its scrollers.
+   ---------------------------------------------------------------------------- */
+body .comp-shell .wizard-footer::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 28px;
+  background: linear-gradient(
+    to top,
+    var(--ivory-deep, #06091a) 0%,
+    color-mix(in srgb, var(--ivory-deep, #06091a) 55%, transparent) 55%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* ----------------------------------------------------------------------------
+   9. Arrangement toolbar chips must not squish into each other
+   ----------------------------------------------------------------------------
+   `.header-actions` is `display: flex; flex-wrap: wrap` with default
+   `flex-shrink: 1`, so once its content passed the row width every chip
+   collapsed to its 28px `min-width` — the box shrank, the nowrap label did
+   not, and "SNAP ON / + GROUP / + TRACK / STEM SPLIT" printed on top of each
+   other (measured at 1440px: 883px of content in an 860px row, four chips at
+   28px each). Wrapping is the intended behaviour; squashing is not.
+   ---------------------------------------------------------------------------- */
+body .comp-shell .header-actions > * {
+  flex: 0 0 auto;
+}
+
+/* studio-fl-mobile.css sizes every `.mini-btn` inside the playlist to a 26px
+   square — right for the M / S / record squares on a track header, wrong for
+   the ones in the *header* that carry words. At 1440px "SNAP ON / + GROUP /
+   + TRACK / STEM SPLIT" were squeezed to 26px and their nowrap labels printed
+   on top of each other, and the play-mode toggle collapsed into a 28px orange
+   circle whose "SONG" label ran across "ENDS AT 64 BARS". The header keeps the
+   height, drops the fixed width. */
+body .comp-shell .playlist-container .playlist-header .mini-btn {
+  width: auto;
+  min-width: 28px;
+  padding: 0 8px;
+}
+
+/* ----------------------------------------------------------------------------
+   10. Phone quick-start lane: fit inside its own cap
+   ----------------------------------------------------------------------------
+   The lane is capped at `min(48vh, 268px)` so the canvas keeps the rest of an
+   844px phone — a good call. But its content measured 298px and the cap gave it
+   266px of client height, so the lane scrolled internally and clipped the
+   "next step" row (Mix it / Add vocals / Master & export) — the one row a
+   returning user reaches for. Tighten the lane's rhythm by 32px instead of
+   raising the cap, so everything it shows fits without an inner scroll.
+   ---------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  body .comp-shell .comp-mobile-start {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+  body .comp-shell .comp-mobile-start h2 {
+    font-size: 17px;
+  }
+  body .comp-shell .comp-mobile-start-copy p {
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+  body .comp-shell .comp-mobile-start-hero {
+    min-height: 52px;
+    padding-block: 6px;
+  }
+  body .comp-shell .comp-mobile-next-btn {
+    min-height: 36px;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   11. Phone arrangement header: one swipeable row, not four stacked ones
+   ----------------------------------------------------------------------------
+   On a 390px phone the header stacked four rows — product badge + undo/redo,
+   the module transport, AUTO / AI VAR / play-mode, then SNAP / +GROUP / +TRACK
+   / STEM SPLIT — and the last row was clipped by the canvas. All of it sat
+   inside a 296px canvas, so the actual timeline was a sliver.
+
+   Two of those rows are duplicated information on this device: the product
+   badge is a title, and "GLOBAL TRANSPORT · READY" mirrors the strip that is
+   already pinned above the canvas. They go; what remains becomes one
+   horizontally swipeable toolbar so every control stays reachable while the
+   canvas keeps the height.
+   ---------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  body .comp-shell .playlist-header {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  body .comp-shell .playlist-header::-webkit-scrollbar {
+    display: none;
+  }
+  body .comp-shell .playlist-header > * {
+    flex: 0 0 auto;
+    margin-inline: 0;
+  }
+  body .comp-shell .playlist-header .view-tabs {
+    gap: 4px;
+  }
+  body .comp-shell .playlist-header .history-controls {
+    margin-left: 0;
+  }
+  body .comp-shell .playlist-header .header-actions {
+    margin-left: 0;
+  }
+  body .comp-shell .playlist-header .view-tabs .tab-btn,
+  body .comp-shell .playlist-header .module-transport {
+    display: none;
+  }
+}

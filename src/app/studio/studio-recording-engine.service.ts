@@ -3,7 +3,7 @@ import { LoggingService } from "../services/logging.service";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { AudioEngineLatencyService } from "../services/audio-engine-latency.service";
 import { LocalStorageService } from "../services/local-storage.service";
-import { WavStreamEncoder } from "./wav-stream-encoder.util";
+import { WavStreamWriter, peakDbFs } from "./wav-stream-encoder.util";
 import { RecordingLimiterService } from "./recording-limiter.service";
 import { RecordingCaptureBuffer } from "./recording-capture-buffer";
 import { IdbRecordingSpillStore } from "./recording-spill.store";
@@ -35,6 +35,12 @@ export class StudioRecordingEngineService implements OnDestroy {
   recordingTime = signal(0);
   inputLevel = signal(0);
   recordedBlob = signal<Blob | null>(null);
+  /**
+   * Per-channel peak of the take in dBFS, measured during the streaming encode
+   * (so the comp lane does not have to decode or re-scan the audio for it).
+   * Null until a take has finished.
+   */
+  recordedPeaks = signal<{ left: number; right: number } | null>(null);
   takes = signal<any[]>([]);
   pendingMidi: any[] = [];
 
@@ -123,14 +129,14 @@ export class StudioRecordingEngineService implements OnDestroy {
       // desktops without a mic). That is an expected environment, not a
       // broken engine — warn so it does not read as a boot-time fault.
       const name = (error as DOMException)?.name;
-      if (name === 'NotFoundError' || name === 'OverconstrainedError') {
+      if (name === "NotFoundError" || name === "OverconstrainedError") {
         this.logger.warn(
-          'StudioRecordingEngine: no audio input device available; capture stays idle.',
+          "StudioRecordingEngine: no audio input device available; capture stays idle.",
           error,
         );
       } else {
         this.logger.error(
-          'StudioRecordingEngine: Initialization failed',
+          "StudioRecordingEngine: Initialization failed",
           error,
         );
       }
@@ -184,6 +190,7 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.recordingTime.set(0);
     this.pendingMidi = [];
     this.recordedBlob.set(null);
+    this.recordedPeaks.set(null);
 
     this.workletNode = new AudioWorkletNode(ctx, "recording-processor");
     this.workletNode.port.onmessage = (event) =>
@@ -235,37 +242,45 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.workletNode?.disconnect();
 
     const sampleRate = this.audioEngine.ctx.sampleRate;
-    // Reassemble resident + spilled chunks before the WAV is built. Every
-    // chunk of the take is here: the spill store verified each write, and a
-    // failed spill puts its chunks back in memory instead of dropping them.
-    const recorded = await this.capture.collect();
+    const capturedFrames = this.capture.frames;
     const spilledRecords = this.capture.spilledRecords;
-    if (recorded.frames > 0 && spilledRecords > 0) {
+    if (spilledRecords > 0) {
       this.logger.info(
-        `StudioRecordingEngine: reassembled ${spilledRecords} ` +
-          `spilled capture group(s) for this take.`,
+        `StudioRecordingEngine: streaming ${spilledRecords} ` +
+          `spilled capture group(s) into the take.`,
       );
     }
-    // A user can stop before the first render quantum arrives. Keep that
-    // zero-duration take exportable as a valid (silent) WAV instead of
-    // throwing from the channel validator.
-    const channelChunks: Float32Array[][] =
-      recorded.left.length > 0
-        ? [recorded.left, recorded.right]
-        : [[new Float32Array(1)], [new Float32Array(1)]];
-    const frameCount = channelChunks[0].reduce(
-      (sum, chunk) => sum + chunk.length,
-      0,
-    );
+    // Encode straight out of the capture buffer, one group at a time. The take
+    // is never reassembled into memory: each spilled group is read, encoded and
+    // unlinked before the next one is touched, so the end-of-take footprint is
+    // the resident window plus the encoded output. Previously it was the whole
+    // performance in PCM *plus* the encoded copy built from it — and the reason
+    // the joined copy existed at all was a synchronous reader that no longer
+    // has to run at stop time.
+    const writer = new WavStreamWriter({ channelCount: 2, sampleRate });
+    for await (const group of this.capture.drainGroups()) {
+      writer.push([group.left, group.right]);
+    }
+    if (capturedFrames === 0) {
+      // A user can stop before the first render quantum arrives. Keep that
+      // zero-duration take exportable as a valid (silent) WAV.
+      writer.push([[new Float32Array(1)], [new Float32Array(1)]]);
+    }
+    const { blob: wavBlob, stats } = writer.end();
+    const frameCount = stats.frames;
+    if (capturedFrames > 0 && frameCount !== capturedFrames) {
+      // The header is written from the frames that actually arrived, so a
+      // mismatch here means the take lost audio on the way out.
+      this.logger.warn(
+        `StudioRecordingEngine: encoded ${frameCount} of ` +
+          `${capturedFrames} captured frames.`,
+      );
+    }
     this.recordingTime.set(frameCount / sampleRate);
-    // Encode straight from the chunks: the take is never joined into two
-    // contiguous arrays, so stopping a long recording no longer allocates the
-    // whole performance a second time. Byte-identical to the joined encoder.
-    const wavBlob = WavStreamEncoder.encodeMultiChannel(
-      channelChunks,
-      "wav-16",
-      sampleRate,
-    );
+    this.recordedPeaks.set({
+      left: peakDbFs(stats.peakLeft),
+      right: peakDbFs(stats.peakRight),
+    });
     this.recordedBlob.set(wavBlob);
 
     const id = `studio_rec_${Date.now()}`;
@@ -329,7 +344,13 @@ export class StudioRecordingEngineService implements OnDestroy {
     return this.mediaStream;
   }
 
-  /** Return the current left/right channel buffers for SmartRecordingService to pull real comp takes */
+  /**
+   * The resident capture window (bounded by the buffer's memory budget), with
+   * the applied input-latency compensation trimmed. This is the live preview
+   * used during capture and the fallback for a caller that has no finished take
+   * (a stopped take is served by `recordedBlob()` + `recordedPeaks()` instead,
+   * so a long performance is never pulled back into memory).
+   */
   getRecordedBuffers(applyCompensation: boolean = true): {
     left: Float32Array[];
     right: Float32Array[];
@@ -351,6 +372,16 @@ export class StudioRecordingEngineService implements OnDestroy {
       left: this.trimChunkList(left, framesToTrim),
       right: this.trimChunkList(right, framesToTrim),
     };
+  }
+
+  /**
+   * Frames the capture buffer accepted for this take, before the writer's
+   * zero-frame substitution. 0 means the pass captured nothing, which is what a
+   * caller must check before treating the finished take as audio — a take made
+   * of the substitute silent frame is exportable but is not a performance.
+   */
+  getRecordedFrameCount(): number {
+    return this.capture.frames;
   }
 
   private trimChunkList(

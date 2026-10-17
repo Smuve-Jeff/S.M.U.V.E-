@@ -18,6 +18,7 @@ import { AiMixAssistantService } from "../effects/ai-mix-assistant.service";
 import { ExportService } from "../../services/export.service";
 import { PluginStoreService } from "../../services/plugin-store.service";
 import { MusicManagerService } from "../../services/music-manager.service";
+import { SpectrumAnalyzerComponent } from "../spectrum-analyzer/spectrum-analyzer.component";
 
 interface MasteringBand {
   id: number;
@@ -46,12 +47,18 @@ interface MasteringPreset {
 @Component({
   selector: "app-mastering-suite",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SpectrumAnalyzerComponent],
   templateUrl: "./mastering-suite.component.html",
   styleUrls: ["./mastering-suite.component.css", "../shared/platform-ux.css"],
 })
 export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   private audioEngine = inject(AudioEngineService);
+
+  // ── Pro metering surface ──────────────────────────────
+  /** The engine's master tap — the same node the LUFS meter reads. */
+  readonly masterAnalyser = () => this.audioEngine?.masterAnalyser ?? null;
+  /** Analyzer runs only while the transport rolls (and Stage FX is on). */
+  readonly metering = () => !!this.audioEngine?.isPlaying?.();
   public aiService = inject(AiService);
   private haptic = inject(HapticService);
   private snack = inject(SnackbarService);

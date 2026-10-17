@@ -11,8 +11,9 @@
  * Ordering rule that makes reassembly safe: chunks are only ever spilled
  * **oldest first**, and the spill of one group completes before the next group
  * is handed to the store. So spilled records are contiguous, ordered by
- * `index`, and always older than anything still resident — `collect()` can
- * simply concatenate records (sorted) followed by the resident chunks.
+ * `index`, and always older than anything still resident — `drainGroups()` can
+ * simply yield the records in index order and then the resident window, and the
+ * consumer (the WAV writer) sees the take exactly as it was performed.
  *
  * Failure rule: a spill write that rejects puts its chunks **back in front of**
  * the resident queue and disables further spilling for the session. Nothing is
@@ -35,6 +36,11 @@ export interface CaptureSpillStore {
   readAll(sessionId: string): Promise<CaptureSpillRecord[]>;
   /** Drop one session's records. Must not touch another session's audio. */
   clear(sessionId: string): Promise<void>;
+  /**
+   * Unlink one consumed record. Called as the take is streamed out, so a long
+   * performance never leaves its PCM on disk after it has been encoded.
+   */
+  remove(id: string): Promise<void>;
 }
 
 export interface RecordingCaptureBufferOptions {
@@ -52,10 +58,17 @@ export interface RecordingCaptureBufferOptions {
 
 export const DEFAULT_MAX_RESIDENT_CAPTURE_BYTES = 64 * 1024 * 1024;
 
-export interface CollectedCapture {
+/**
+ * One slice of a take, in capture order. A group is either a spilled record
+ * (older audio, read from the store) or the resident window (everything still
+ * in memory, always newest).
+ */
+export interface CaptureGroup {
   left: Float32Array[];
   right: Float32Array[];
   frames: number;
+  /** True when this group was read from the spill store. */
+  fromSpill: boolean;
 }
 
 export class RecordingCaptureBuffer {
@@ -92,7 +105,7 @@ export class RecordingCaptureBuffer {
 
   static newSessionId(): string {
     return `cap_${Date.now().toString(36)}_${Math.floor(
-      Math.random() * 1e9
+      Math.random() * 1e9,
     ).toString(36)}`;
   }
 
@@ -105,7 +118,11 @@ export class RecordingCaptureBuffer {
     return this.appendedFrames;
   }
 
-  /** Frames handed to the spill store but not yet resident. */
+  /**
+   * Frames handed to the spill store and not yet streamed out. Drops to 0 once
+   * `drainGroups()` has consumed the take, because the records are unlinked as
+   * they are read.
+   */
   get spilledFrames(): number {
     return this.spilledFrameCount;
   }
@@ -167,60 +184,64 @@ export class RecordingCaptureBuffer {
   }
 
   /**
-   * Every chunk of the take in capture order: the spilled records (ordered by
-   * their index) followed by the resident window. Only call this once capture
-   * has stopped (`FLUSHED` received) — it waits for an in-flight spill write.
+   * Stream the take out in capture order: the spilled records (ordered by their
+   * index, oldest first) followed by the resident window. Only call this once
+   * capture has stopped (`FLUSHED` received) — it waits for an in-flight spill
+   * write.
+   *
+   * Why streaming instead of one collected array: the finished take used to be
+   * rehydrated into memory so the sync channel reader could see it, which cost
+   * the whole performance in PCM *and* the encoded copy built from it. A
+   * consumer that walks this generator (the WAV writer) only ever holds one
+   * group, and each spilled record is unlinked from the store as soon as its
+   * group has been consumed — the encoded bytes are in the caller's output by
+   * then, so the PCM and its disk copy are both dead weight.
+   *
+   * The resident window is deliberately *not* dropped: it is bounded by
+   * `maxResidentBytes` by construction, and the synchronous readers (the take
+   * preview and comp fallback) still work against it.
    */
-  async collect(): Promise<CollectedCapture> {
+  async *drainGroups(): AsyncGenerator<CaptureGroup, void, void> {
     await this.awaitSpill();
-    if (!this.spill || this.recordsDrained) {
-      return {
+    if (this.spill && !this.recordsDrained) {
+      let records: CaptureSpillRecord[] = [];
+      try {
+        records = await this.spill.readAll(this.sessionId);
+      } catch (error) {
+        // The take must still come back with whatever is resident.
+        this.lastSpillError = error;
+        records = [];
+      }
+      const ordered = [...records].sort((a, b) => a.index - b.index);
+      for (const record of ordered) {
+        const left = record.left ?? [];
+        const right = left.map((chunk, i) => record.right?.[i] ?? chunk);
+        const frames = left.reduce((sum, chunk) => sum + chunk.length, 0);
+        yield { left, right, frames, fromSpill: true };
+        // Unlink one group at a time: nothing behind it can depend on it (the
+        // records are contiguous and ordered), and the caller has already taken
+        // this group's audio.
+        await this.unlinkRecord(record);
+      }
+      // A second drain must not re-read the store: the records are gone, and
+      // re-yielding them would duplicate the take.
+      this.recordsDrained = true;
+      this.spilledFrameCount = 0;
+      this.recordCount = 0;
+    }
+
+    if (this.residentLeft.length > 0) {
+      const frames = this.residentLeft.reduce(
+        (sum, chunk) => sum + chunk.length,
+        0,
+      );
+      yield {
         left: [...this.residentLeft],
         right: [...this.residentRight],
-        frames: this.appendedFrames,
+        frames,
+        fromSpill: false,
       };
     }
-    let records: CaptureSpillRecord[] = [];
-    try {
-      records = await this.spill.readAll(this.sessionId);
-    } catch (error) {
-      // The take must still come back with whatever is resident.
-      this.lastSpillError = error;
-      records = [];
-    }
-    const ordered = [...records].sort((a, b) => a.index - b.index);
-    const left: Float32Array[] = [];
-    const right: Float32Array[] = [];
-    for (const record of ordered) {
-      for (let i = 0; i < record.left.length; i++) {
-        const leftChunk = record.left[i];
-        if (!leftChunk) continue;
-        left.push(leftChunk);
-        right.push(record.right[i] ?? leftChunk);
-      }
-    }
-    left.push(...this.residentLeft);
-    right.push(...this.residentRight);
-
-    // Drain the spill store into the resident window. The take is finished, so
-    // the whole of it belongs in memory now: callers that read the channels
-    // synchronously after stop (comp takes) see the complete performance
-    // instead of just the window, and a second collect() cannot duplicate the
-    // chunks because the store is emptied and marked drained.
-    this.residentLeft = left;
-    this.residentRight = right;
-    this.residentByteCount = left.reduce(
-      (sum, chunk, index) =>
-        sum + (chunk.length + (right[index] ?? chunk).length) * 4,
-      0
-    );
-    this.recordsDrained = true;
-    this.spilledFrameCount = 0;
-    // Nothing left to spill for this take.
-    this.spillDisabled = true;
-    await this.clearSpilledRecords();
-
-    return { left: [...left], right: [...right], frames: this.appendedFrames };
   }
 
   /**
@@ -325,7 +346,7 @@ export class RecordingCaptureBuffer {
     return records.reduce(
       (sum, record) =>
         sum + record.left.reduce((chunks, chunk) => chunks + chunk.length, 0),
-      0
+      0,
     );
   }
 
@@ -333,7 +354,8 @@ export class RecordingCaptureBuffer {
     this.residentLeft.unshift(...left);
     this.residentRight.unshift(...right);
     for (let i = 0; i < left.length; i++) {
-      this.residentByteCount += (left[i].length + (right[i] ?? left[i]).length) * 4;
+      this.residentByteCount +=
+        (left[i].length + (right[i] ?? left[i]).length) * 4;
     }
   }
 
@@ -344,12 +366,16 @@ export class RecordingCaptureBuffer {
     }
   }
 
-  private async clearSpilledRecords(): Promise<void> {
+  /**
+   * Unlink one record that has already been handed to a consumer. A failure is
+   * only a storage leak, so it is recorded and never thrown: by this point the
+   * caller holds the audio.
+   */
+  private async unlinkRecord(record: CaptureSpillRecord): Promise<void> {
     if (!this.spill) return;
     try {
-      await this.spill.clear(this.sessionId);
+      await this.spill.remove(record.id);
     } catch (error) {
-      // Orphaned records only cost disk space; the take is already in memory.
       this.lastSpillError = error;
     }
   }

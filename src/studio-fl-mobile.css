@@ -1887,7 +1887,11 @@ body .comp-shell .pr-precision-pill.active {
 
   /* Tool row 53 → 44px with 36px chips. The chips need !important here:
      the global touch floor pins .comp-tool-btn to 44px, which overflowed the
-     44px row (content 47px in 43px) and clipped the chip edges. */
+     44px row (content 47px in 43px) and clipped the chip edges.
+     Scoped to `.comp-desktop-tools`: those chips live in a dense row that is
+     only rendered above 768px. The row's *trigger* (`.comp-tool-more`) now
+     shares a 56px rail with the AI band, where 36px is below the touch floor —
+     the 44px target in studio-pro-surface.css owns that one. */
   body .comp-shell .comp-topbar-tools {
     flex: 0 0 auto;
     min-height: 0;
@@ -1895,7 +1899,7 @@ body .comp-shell .pr-precision-pill.active {
     padding: 3px 8px;
     gap: 5px;
   }
-  body .comp-shell .comp-tool-btn {
+  body .comp-shell .comp-desktop-tools .comp-tool-btn {
     min-height: 36px !important;
     height: 36px !important;
     padding: 4px 10px;

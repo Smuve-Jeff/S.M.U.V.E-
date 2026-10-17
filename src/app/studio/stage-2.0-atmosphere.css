@@ -644,3 +644,164 @@
     animation: none !important;
   }
 }
+
+/* ============================================================
+   § REACTIVE FIELD — atmospheric lighting 2.0
+   ------------------------------------------------------------
+   AtmosphericLightService taps the engine's master analyser and publishes one
+   smoothed frame per ~33 ms as custom properties on the shell root:
+
+     --atmo-active      1 while the transport is rolling AND Stage FX is on
+     --atmo-level       0..1  overall musical energy
+     --atmo-low         0..1  20–200 Hz   (kick / sub)
+     --atmo-mid         0..1  200 Hz–2 kHz (body of the mix)
+     --atmo-high        0..1  2–12 kHz     (air / hats / consonants)
+     --atmo-brightness  0..1  spectral centroid (dark → bright)
+
+   Two layers consume them, and both are deliberately cheap:
+
+     · .comp-aurora-energy-low / -high are full-field washes. Only `opacity`
+       and `transform` change, so the compositor does the work and no pixel is
+       repainted; the gradient itself is static, recoloured once by
+       `color-mix()` when --atmo-brightness crosses its step.
+
+   The three authored drift blobs are untouched — their transform/opacity are
+   owned by their entrance + drift keyframes, and layering a second source on
+   the same properties would only fight the animation.
+   ============================================================ */
+
+.comp-aurora-energy {
+  position: absolute;
+  inset: -10%;
+  transform-origin: 50% 60%;
+  transform: translate3d(0, 0, 0) scale(0.92);
+  border-radius: 50%;
+  filter: blur(64px);
+  /* Authored off; --atmo-active brings it up. A blurred 64px wash this large
+     is never worth painting when nothing is playing. */
+  opacity: 0;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* Bass bed — a wide teal pool that swells with the low band. */
+.comp-aurora-energy-low {
+  background: radial-gradient(
+    circle at 50% 78%,
+    color-mix(
+      in srgb,
+      var(--stage-teal, #20d7d2) calc(28% + var(--atmo-brightness, 0.5) * 34%),
+      var(--neon-amber, #d97706)
+    ) 0%,
+    transparent 62%
+  );
+}
+
+/* Air layer — a smaller, brighter wash that rides the high band. */
+.comp-aurora-energy-high {
+  background: radial-gradient(
+    circle at 62% 22%,
+    color-mix(
+      in srgb,
+      var(--stage-teal-bright, #2ba09c) calc(34% + var(--atmo-brightness, 0.5) * 40%),
+      var(--neon-mint, #34f5c5)
+    ) 0%,
+    transparent 58%
+  );
+}
+
+/* The whole reactive path is gated on --atmo-active, so a paused transport
+   costs exactly one zero-multiplied calc. */
+.comp-shell .comp-aurora-energy-low {
+  opacity: calc(var(--atmo-active, 0) * (0.1 + var(--atmo-low, 0) * 0.5));
+  transform: translate3d(0, calc(var(--atmo-low, 0) * -2vh), 0)
+    scale(calc(0.9 + var(--atmo-low, 0) * 0.22));
+}
+
+.comp-shell .comp-aurora-energy-high {
+  opacity: calc(var(--atmo-active, 0) * (0.06 + var(--atmo-high, 0) * 0.42));
+  transform: translate3d(calc(var(--atmo-mid, 0) * 2vw), 0, 0)
+    scale(calc(0.86 + var(--atmo-high, 0) * 0.26));
+}
+
+/* Brand accent follows the same frame — the "live console" cue, and the only
+   reactive element above the fold. Kept to opacity + transform for the same
+   compositor-only reason. */
+.comp-shell .comp-brand-pulse {
+  opacity: calc(0.35 + var(--atmo-active, 0) * (0.25 + var(--atmo-high, 0) * 0.4));
+  transform: scale(calc(1 + var(--atmo-active, 0) * var(--atmo-level, 0) * 0.3));
+}
+
+/* Reduced motion: the field keeps its authored look, no per-frame motion. The
+   brand dot itself stays visible — it is part of the authored brand, not of the
+   reactive layer — only its reactive scale is dropped. */
+@media (prefers-reduced-motion: reduce) {
+  .comp-shell .comp-aurora-energy-low,
+  .comp-shell .comp-aurora-energy-high {
+    opacity: 0 !important;
+    transform: none !important;
+  }
+  .comp-shell .comp-brand-pulse {
+    transform: none !important;
+  }
+}
+
+/* The Studio already owns a "Stage FX off" switch (low-end tier / battery
+   saver). Respect it here too so the reactive layer can never survive a
+   switch the user made for power reasons. */
+.comp-shell.comp-stage-fx-off .comp-aurora-energy {
+  opacity: 0 !important;
+}
+
+/* ============================================================
+   § VIEW TRANSITION — direction-aware
+   ------------------------------------------------------------
+   Switching tools used to swap the canvas instantly, which read as a flicker
+   on a phone (the outgoing view's scroll position, its WebGL canvas and its
+   meters all changed in the same frame). One short slide in the direction of
+   travel gives the change a spatial meaning instead: forward enters from the
+   right, backward from the left, and the shell sets
+   `.comp-canvas[data-view-dir]` from `ViewDirection` in setActiveView().
+
+   This block supersedes the plain rise-in from design-refinement.css (same
+   specificity, later file) and keeps its 12px of vertical travel off the floor
+   so a phone does not animate two axes at once.
+   ============================================================ */
+@keyframes daw-view-forward {
+  from {
+    opacity: 0;
+    transform: translate3d(20px, 6px, 0) scale(0.994);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes daw-view-backward {
+  from {
+    opacity: 0;
+    transform: translate3d(-20px, 6px, 0) scale(0.994);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.comp-canvas > .comp-view {
+  animation: daw-view-forward 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+.comp-canvas[data-view-dir='backward'] > .comp-view {
+  animation-name: daw-view-backward;
+}
+
+/* A 160ms fade is the whole transition for users who asked for reduced motion;
+   design-refinement.css already zeroes the animation, so only the reduced
+   *duration* needs stating here (and only for the reduced case). */
+@media (prefers-reduced-motion: reduce) {
+  .comp-canvas > .comp-view {
+    animation: none !important;
+  }
+}

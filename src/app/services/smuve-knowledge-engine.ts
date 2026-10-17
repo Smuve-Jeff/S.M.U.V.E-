@@ -27,6 +27,22 @@ export type KnowledgeCategory =
 
 @Injectable({ providedIn: 'root' })
 export class SmuveKnowledgeEngine {
+  /**
+   * Curated, reviewed knowledge.
+   *
+   * Each domain header states the entries this engine actually ships for that
+   * domain. A sweep found those numbers had been aspirational rather than real
+   * (Legal claimed 8 and held 4, Distribution claimed 6 and held 2), so every
+   * surface that reports coverage — including the `/knowledge` overview — could
+   * advertise depth the engine did not have. The counts are exact now;
+   * Songwriting (7) and Vocal (5) are the domains still below their original
+   * targets and are the next knowledge pass.
+   *
+   * Legal and Business entries carry scope, jurisdiction and source notes on
+   * purpose: S.M.U.V.E. answers money and rights questions, so those entries
+   * say what they are (general information, not legal advice) and flag the
+   * terms that must be verified locally.
+   */
   private readonly knowledgeBase: KnowledgeEntry[] = [
     // ── PRODUCTION DOMAIN (20) ──────────────────────
     {
@@ -190,7 +206,70 @@ export class SmuveKnowledgeEngine {
         'Label your next session as CREATIVE or CRITICAL before starting.',
     },
 
-    // ── SONGWRITING DOMAIN (15) ────────────────────
+    {
+      id: 'prod-15',
+      category: 'Production',
+      subcategory: 'Mixing',
+      difficulty: 'Intermediate',
+      title: 'Reference Translation, Not Reference Worship',
+      tags: ['mixing', 'reference', 'translation'],
+      content: 'A mix is finished when it survives the systems the audience actually uses: phone speaker, laptop, earbuds, car. Audition the same ten seconds on each at matched loudness and fix what breaks — usually one element, not the whole balance. Do not chase a reference track tone-for-tone; it was mastered, for a different arrangement, in a different room.',
+      actionRequired: 'Bounce a 30-second loop and check it on three systems before touching another processor.',
+    },
+    {
+      id: 'prod-16',
+      category: 'Production',
+      subcategory: 'Mixing',
+      difficulty: 'Advanced',
+      title: 'Parallel Processing Without Phase Damage',
+      tags: ['mixing', 'parallel', 'phase'],
+      content: 'A parallel chain only works when the paths stay aligned. Lookahead in a limiter, a linear-phase EQ, or a converter round-trip shifts the parallel copy in time, and the sum cancels the low end. Compare against the dry signal in mono and check correlation after every parallel stage; if the bottom disappears, align the delay or drop the stage.',
+      actionRequired: 'Sum the parallel bus to mono and compare it with the dry signal before committing.',
+    },
+    {
+      id: 'prod-17',
+      category: 'Production',
+      subcategory: 'Recording',
+      difficulty: 'Intermediate',
+      title: 'Punch-Ins and Comping Discipline',
+      tags: ['recording', 'comping', 'takes'],
+      content: 'Record to a click and keep complete takes, then comp by phrase: one keeper per line, crossfade at the breath, and hold every source take until the mix is approved. Punching too early hides performance problems that comping would have exposed. Name takes by section so a week later the one that worked is still findable.',
+      actionRequired: 'Comp one section by phrase and keep all source takes until the song is approved.',
+    },
+    {
+      id: 'prod-18',
+      category: 'Production',
+      subcategory: 'Sound Design',
+      difficulty: 'Intermediate',
+      title: 'Subtract Before You Add',
+      tags: ['sound-design', 'layering', 'arrangement'],
+      content: 'Most weak sounds are crowded, not thin. Solo the sound, mute what competes with it, and try removing a layer, narrowing the octave spread or shortening the decay before adding another synth, saturator or exciter. Every layer costs headroom, phase coherence and mix clarity, and few of them buy presence.',
+      actionRequired: 'Solo the part, remove one competing element, and re-check before layering anything new.',
+    },
+    {
+      id: 'prod-19',
+      category: 'Production',
+      subcategory: 'Production Workflow',
+      difficulty: 'Beginner',
+      title: 'Session Hygiene That Survives a Month',
+      tags: ['workflow', 'stems', 'versioning'],
+      content: 'Name tracks, colour-code buses, print stems per bus, keep one master chain saved as a preset, and version the project before destructive edits. A session you cannot reopen and understand three weeks later is a session you will redo. Stem out at unity with master-bus processing bypassed, so a remix, sync or re-master request is one you can actually fulfil.',
+      actionRequired: 'Bounce per-bus stems at unity and label which version is the approved mix.',
+    },
+    {
+      id: 'prod-20',
+      category: 'Production',
+      subcategory: 'Mastering',
+      difficulty: 'Intermediate',
+      title: 'Verify Delivery Specs Before You Upload',
+      tags: ['mastering', 'delivery', 'loudness'],
+      content: 'Platform loudness references, true-peak recommendations and delivery requirements change, and partners publish different specs for different products. Check the current official documentation at delivery time, keep a loud and a dynamic master where the partner allows it, and measure integrated loudness and true peak on the file you actually ship rather than on the session.',
+      actionRequired: 'Measure the final file and confirm the current spec from the partner’s own documentation.',
+      sources: ['https://support.spotify.com/us/artists/article/loudness-normalization/'],
+      reviewedAt: '2026-10-16',
+    },
+
+    // ── SONGWRITING DOMAIN (7) ────────────────────
     {
       id: 'song-01',
       category: 'Songwriting',
@@ -274,7 +353,7 @@ export class SmuveKnowledgeEngine {
         'Set up a co-write with clear splits and direction agreed in advance.',
     },
 
-    // ── VOCAL DOMAIN (12) ──────────────────────────
+    // ── VOCAL DOMAIN (5) ──────────────────────────
     {
       id: 'vocal-01',
       category: 'Vocal',
@@ -426,6 +505,77 @@ export class SmuveKnowledgeEngine {
       actionRequired: 'Create a consented welcome sequence and measure actual clicks, replies and conversions.',
     },
 
+    {
+      id: 'mkt-09',
+      category: 'Marketing',
+      subcategory: 'Promotion',
+      difficulty: 'Beginner',
+      title: 'The Pre-Release Asset Ladder',
+      tags: ['promotion', 'release', 'campaign'],
+      content: 'Work backwards from the release date: announce, then a hook clip, then a clip from a different section, then the pre-save ask, then release-day action, then the two weeks after. Each rung needs its own asset — the same 15 seconds posted five times is one post, not a campaign — and one consistent action for the audience and the algorithm to learn.',
+      actionRequired: 'Write the release date and fill six dated asset slots before launch.',
+    },
+    {
+      id: 'mkt-10',
+      category: 'Marketing',
+      subcategory: 'Promotion',
+      difficulty: 'Beginner',
+      title: 'Content Cadence You Can Sustain',
+      tags: ['promotion', 'content', 'consistency'],
+      content: 'Pick a cadence you can hold on your worst week — one strong post plus a few low-effort stories is a real answer — then batch it and keep three repeatable formats. Missing a week costs nothing; disappearing for a month after burnout costs the audience you already built.',
+      actionRequired: 'Batch one week of content and schedule it before the week starts.',
+    },
+    {
+      id: 'mkt-11',
+      category: 'Marketing',
+      subcategory: 'Advertising',
+      difficulty: 'Intermediate',
+      title: 'Paid Promotion: Do the Math Before the Spend',
+      tags: ['marketing', 'ads', 'budget'],
+      content: 'Track cost per result, not impressions: a campaign is worth running only while the cost per save, click or sale stays below what that action earns you. Start at the smallest budget that produces a readable number, target one audience, change one variable at a time, and stop when it stops clearing the bar.',
+      actionRequired: 'Define the cost per result that makes the campaign worth running, then test at the smallest readable budget.',
+    },
+    {
+      id: 'mkt-12',
+      category: 'Marketing',
+      subcategory: 'Audience',
+      difficulty: 'Intermediate',
+      title: 'Own the Channel, Rent the Platform',
+      tags: ['marketing', 'fans', 'email'],
+      content: 'Followers are rented; an email list, a community you moderate, or a customer list is owned. Convert by giving a reason to leave the feed — a download, a pre-save, a ticket, a voice note — and measure the conversion rate rather than the follower count. Then measure whether the owned channel actually opens.',
+      actionRequired: 'Pick one owned channel, add a single conversion path to it, and measure the rate for two weeks.',
+    },
+    {
+      id: 'mkt-13',
+      category: 'Marketing',
+      subcategory: 'Playlists',
+      difficulty: 'Intermediate',
+      title: 'Editorial, Independent and Paid Playlisting Are Different Products',
+      tags: ['promotion', 'playlists', 'pitching'],
+      content: 'Editorial pitch windows are deadlines you can miss; independent curation is sometimes sold and sometimes not; paid placement is not editorial support, and a guaranteed-numbers service is a fraud risk that can cost the release and the account. Keep pitches personal, keep the timeline realistic, and pitch inside the partner’s own window.',
+      actionRequired: 'Pitch editorially inside the window, and check any paid offer against the platform’s own rules first.',
+    },
+    {
+      id: 'mkt-14',
+      category: 'Marketing',
+      subcategory: 'Branding',
+      difficulty: 'Beginner',
+      title: 'Consistent Imagery Without a Designer',
+      tags: ['branding', 'artwork', 'identity'],
+      content: 'Fix two typefaces, a three-colour palette and one crop rule, then reuse them for covers, thumbnails, lyric cards and live visuals. Legibility beats novelty — check the thumbnail at the size it actually appears, and keep the artist name readable when the artwork is 60 pixels wide.',
+      actionRequired: 'Write down the palette, the two typefaces and the crop rule, then apply them to the next three assets.',
+    },
+    {
+      id: 'mkt-15',
+      category: 'Marketing',
+      subcategory: 'Analytics',
+      difficulty: 'Advanced',
+      title: 'Analytics That Change a Decision',
+      tags: ['marketing', 'analytics', 'data'],
+      content: 'Ignore total plays. Track saves per stream, skip rate in the first 30 seconds, completion, follower-to-listener ratio and which source actually converted. A number that cannot change what you do next month is entertainment, not evidence — and a dashboard nobody reads is a cost, not a strategy.',
+      actionRequired: 'Choose two metrics that map to a decision you can make, and review them after the next release.',
+    },
+
     // ── BUSINESS DOMAIN (10) ─────────────────────────
     {
       id: 'biz-01',
@@ -481,6 +631,61 @@ export class SmuveKnowledgeEngine {
       actionRequired: 'Name the bottleneck, quote the work and compare net benefit before hiring.',
     },
 
+    {
+      id: 'biz-03',
+      category: 'Business',
+      subcategory: 'Revenue',
+      difficulty: 'Advanced',
+      title: 'Performance, Mechanical and Digital-Performance Are Separate Pools',
+      tags: ['business', 'royalties', 'registration'],
+      content: 'One song can earn through several systems that do not share a collector: performance royalties for the composition, mechanical royalties for reproduction and distribution, digital-performance royalties for non-interactive use, and master royalties paid by the distributor. Registering with one organisation does not collect the others, and unclaimed income can be forfeited after a deadline. This is general information, not legal advice.',
+      actionRequired: 'List which societies and distributors collect for your works today, and name the gaps.',
+      sources: ['https://www.copyright.gov/engage/musicians/'],
+      reviewedAt: '2026-10-16',
+      jurisdiction: 'Verify current rules for your territory',
+    },
+    {
+      id: 'biz-04',
+      category: 'Business',
+      subcategory: 'Metadata',
+      difficulty: 'Intermediate',
+      title: 'ISRC Identifies the Recording, UPC Identifies the Release',
+      tags: ['business', 'metadata', 'identifiers'],
+      content: 'An ISRC is assigned per recording and stays with that audio across releases, territories and platforms; a UPC/EAN identifies a release or product, not a song. Confusing the two creates duplicate catalogue entries, split streams and royalties paid to the wrong party. Keep a sheet mapping recording → ISRC → release → UPC, and refuse a second ISRC for audio you already released.',
+      actionRequired: 'Audit one release: does each recording carry exactly one ISRC and each release exactly one UPC?',
+    },
+    {
+      id: 'biz-08',
+      category: 'Business',
+      subcategory: 'Accounting',
+      difficulty: 'Advanced',
+      title: 'Read the Statement Before You Bank the Advance',
+      tags: ['business', 'royalties', 'contracts'],
+      content: 'A royalty statement defines gross versus net, which costs are recoupable, what the percentage applies to and when you may audit. Ask for those definitions in writing before signing, and reconcile each statement against your own play and sales data. Cross-collateralisation and packaging or marketing deductions can leave a genuinely profitable release paying nothing.',
+      actionRequired: 'Get recoupable costs, the royalty base and audit rights defined in writing before signing.',
+    },
+    {
+      id: 'biz-09',
+      category: 'Business',
+      subcategory: 'Strategy',
+      difficulty: 'Intermediate',
+      title: 'Budget a Release Like a Small P&L',
+      tags: ['business', 'budget', 'release'],
+      content: 'List expected costs — production, mastering, artwork, video, ads, distribution, legal review — against expected income from streams, sales, sync and live. Decide what the release must return and what you are willing to spend to learn, then fund the line item that removes the biggest uncertainty rather than the one that feels most like a music video.',
+      actionRequired: 'Write the three biggest costs and the one you can cut without hurting the campaign.',
+    },
+    {
+      id: 'biz-10',
+      category: 'Business',
+      subcategory: 'Team',
+      difficulty: 'Intermediate',
+      title: 'What a Manager or Agent Commission Actually Covers',
+      tags: ['business', 'management', 'commission'],
+      content: 'Commission rates, which revenue streams they apply to, the term, the territory and the post-term (sunset) clause are all negotiated; there is no universal percentage. Confirm what is included — live, merch, publishing, sync — who pays expenses, and what happens to commissions on deals signed during the term but closing after it. Get it reviewed in your own territory.',
+      actionRequired: 'Before signing, get the commission base, exclusions, term and post-term clause in writing.',
+      jurisdiction: 'Jurisdiction-specific; have counsel review the term sheet',
+    },
+
     // ── LEGAL DOMAIN (8) ─────────────────────────────
     {
       id: 'legal-01',
@@ -502,8 +707,10 @@ export class SmuveKnowledgeEngine {
       difficulty: 'Advanced',
       title: 'Split Sheets: Separate Composition and Master Pools',
       tags: ['legal', 'splits', 'collaboration'],
-      content: 'Record legal names, roles, contacts, work identifiers when known, agreed composition shares and separately negotiated master ownership/royalty terms, credits and signatures. Each ownership pool must total 100%. There is no universal 50% producer share, equal writer default or automatic matching of publishing and master splits. Distinguish producer royalty points from ownership and define recoupment.',
+      content: 'Record legal names, roles, contacts, work identifiers when known, agreed composition shares and separately negotiated master ownership/royalty terms, credits and signatures. Each ownership pool must total 100%. There is no universal 50% producer share, equal writer default or automatic matching of publishing and master splits. Distinguish producer royalty points from ownership and define recoupment. General information, not a legal opinion.',
       actionRequired: 'Collect each collaborator’s agreed shares and ask counsel to review unresolved ownership before release.',
+      reviewedAt: '2026-10-16',
+      jurisdiction: 'Verify share and signature rules in your territory',
     },
     {
       id: 'legal-03',
@@ -512,8 +719,10 @@ export class SmuveKnowledgeEngine {
       difficulty: 'Expert',
       title: 'Producer Agreements: Define the Actual Rights',
       tags: ['legal', 'producer', 'contract'],
-      content: 'Review exclusive versus non-exclusive use, permitted media, territory, duration, usage limits, credit, sample permissions, master ownership, composition shares, fees, royalty basis, recoupment, approvals and termination. No producer percentage applies universally. A beat lease may restrict sync or monetization even if the audio file is downloadable.',
+      content: 'Review exclusive versus non-exclusive use, permitted media, territory, duration, usage limits, credit, sample permissions, master ownership, composition shares, fees, royalty basis, recoupment, approvals and termination. No producer percentage applies universally. A beat lease may restrict sync or monetization even if the audio file is downloadable. General information, not a legal opinion.',
       actionRequired: 'Check the actual license and resolve unclear rights in writing with qualified counsel.',
+      reviewedAt: '2026-10-16',
+      jurisdiction: 'Verify the applicable territory’s rules with counsel',
     },
     {
       id: 'legal-04',
@@ -527,6 +736,56 @@ export class SmuveKnowledgeEngine {
       sources: ['https://www.copyright.gov/engage/musicians/', 'https://www.copyright.gov/help/faq/faq-fairuse.html'],
       reviewedAt: '2026-10-11',
       jurisdiction: 'U.S. example; verify applicable territory',
+    },
+
+    {
+      id: 'legal-05',
+      category: 'Legal',
+      subcategory: 'Contracts',
+      difficulty: 'Advanced',
+      title: 'Red Flags in an Exclusive Deal',
+      tags: ['legal', 'contracts', 'rights'],
+      content: 'Perpetual all-rights grants with no reversion, recoupment against costs you cannot audit, controlled-composition clauses, cross-collateralisation across unrelated income and options exercisable at the counterparty’s sole discretion are the terms that separate an opportunity from a trap. Weigh each against what you actually receive in return — an advance, marketing spend, distribution or a guaranteed campaign. General information, not a legal opinion.',
+      actionRequired: 'Write down the grant, the term, the reversion clause and the recoupment base before signing anything.',
+      sources: ['https://www.copyright.gov/engage/musicians/'],
+      reviewedAt: '2026-10-16',
+      jurisdiction: 'U.S. example; verify applicable territory',
+    },
+    {
+      id: 'legal-06',
+      category: 'Legal',
+      subcategory: 'Rights',
+      difficulty: 'Advanced',
+      title: 'Administration Is Not Ownership',
+      tags: ['legal', 'publishing', 'administration'],
+      content: 'A publishing administration deal collects and administers a share for a term and a commission while ownership stays with the writer — unless the contract assigns the copyright, which some do. Read the term, the territory, the collection scope, the reversion terms and whether the administrator can sign licences on your behalf without approval. General information, not a legal opinion.',
+      actionRequired: 'Before signing, separate what is assigned from what is merely administered.',
+      reviewedAt: '2026-10-16',
+      jurisdiction: 'U.S. example; verify applicable territory',
+    },
+    {
+      id: 'legal-07',
+      category: 'Legal',
+      subcategory: 'Rights',
+      difficulty: 'Intermediate',
+      title: 'Clear the Name Before You Release Under It',
+      tags: ['legal', 'trademark', 'brand'],
+      content: 'A band or brand name can conflict with an existing trademark even when an obvious search finds nothing, because conflicts are class- and territory-specific. Search the relevant registers and the streaming platforms, and get advice before printing merchandise or signing a distribution deal under a name you may not own. General information, not a legal opinion.',
+      actionRequired: 'Search the registers and platforms for your artist name, then confirm your rights with counsel.',
+      reviewedAt: '2026-10-16',
+      jurisdiction: 'Verify in every territory you release or tour in',
+    },
+    {
+      id: 'legal-08',
+      category: 'Legal',
+      subcategory: 'Rights',
+      difficulty: 'Advanced',
+      title: 'AI-Generated Elements: Keep the Provenance',
+      tags: ['legal', 'ai', 'copyright'],
+      content: 'Rules on copyrightability, disclosure and the provenance of training data for AI-generated audio, artwork and lyrics differ by jurisdiction, registry and platform, and they are changing. Record the tool, model, version and prompt for every generated element, and check each partner’s current policy before release. Documentation is cheap at creation time and impossible to reconstruct afterwards. General information, not a legal opinion.',
+      actionRequired: 'Log tool, model, version and prompt for every AI-generated element in the release.',
+      reviewedAt: '2026-10-16',
+      jurisdiction: 'Jurisdiction- and platform-specific; verify current policy before release',
     },
 
     // ── DISTRIBUTION DOMAIN (6) ─────────────────────
@@ -551,6 +810,47 @@ export class SmuveKnowledgeEngine {
       actionRequired: 'Confirm rights and delivery, then assign realistic dates, owners and a post-release review.',
     },
 
+    {
+      id: 'dist-03',
+      category: 'Distribution',
+      subcategory: 'Metadata',
+      difficulty: 'Intermediate',
+      title: 'Deliver Metadata With the Audio, Not After',
+      tags: ['distribution', 'metadata', 'identifiers'],
+      content: 'A delivery needs the recording and its ISRC, the release and its UPC, contributor credits, registered writer names with their societies, agreed splits, artwork that meets the partner’s own spec, and a master that matches the intended product. Missing metadata is the most common reason a release pays late — or pays someone else.',
+      actionRequired: 'Build the metadata sheet before delivery, not after the release date is booked.',
+    },
+    {
+      id: 'dist-04',
+      category: 'Distribution',
+      subcategory: 'Strategy',
+      difficulty: 'Intermediate',
+      title: 'Direct-to-DSP or Aggregator: Compare the Terms, Not the Hype',
+      tags: ['distribution', 'platform', 'ownership'],
+      content: 'Fee structure, royalty split, ownership, takedown rules, support and payment thresholds differ between direct platform deals and aggregators. Some take a percentage for a defined term; others charge a flat fee and never own anything. Price both against the current official terms and against the catalogue you actually have.',
+      actionRequired: 'Write your non-negotiables — ownership, term, takedown — and compare current official terms against them.',
+    },
+    {
+      id: 'dist-05',
+      category: 'Distribution',
+      subcategory: 'Release',
+      difficulty: 'Beginner',
+      title: 'Release Day Is the Start, Not the Finish',
+      tags: ['distribution', 'release', 'promotion'],
+      content: 'The first week is when platforms, press and the algorithm are paying attention: be reachable, drive the owned channels, put money behind the two assets already performing, and answer everyone who engages. Schedule the week-two follow-up before the release, because the drop in attention afterwards is predictable rather than a verdict on the song.',
+      actionRequired: 'Write release-day and week-two tasks with dates before the release goes live.',
+    },
+    {
+      id: 'dist-06',
+      category: 'Distribution',
+      subcategory: 'Rights',
+      difficulty: 'Advanced',
+      title: 'Content ID, Covers and Samples at Delivery',
+      tags: ['distribution', 'content-id', 'covers'],
+      content: 'A cover needs a mechanical licence for the composition even though the recording is yours; a sample needs both the recording and the composition cleared; and a Content ID claim on material you do not own can divert your revenue or mute the release. Declare every third-party element to the distributor before delivery, with the licence details attached.',
+      actionRequired: 'Declare covers, samples and borrowed material before upload, with licence details.',
+    },
+
     // ── CAREER DOMAIN (6) ──────────────────────────
     {
       id: 'career-01',
@@ -573,6 +873,46 @@ export class SmuveKnowledgeEngine {
         'Build 10 deep industry relationships rather than 100 shallow ones. Quality relationships lead to collaborations, playlists, and opportunities. Attend 1-2 industry events per month (conferences, showcases, networking events). Follow up within 24 hours. Provide value before asking for favors. Support their work genuinely. A strong network is your single most valuable career asset — more than talent.',
       actionRequired:
         'Reach out to 3 people in your network this week with genuine value, not asks.',
+    },
+    {
+      id: 'career-03',
+      category: 'Career',
+      subcategory: 'Live',
+      difficulty: 'Intermediate',
+      title: 'Small-Room Touring Math',
+      tags: ['career', 'touring', 'live'],
+      content: 'Before accepting a date, model travel, accommodation, backline, fees and the split against realistic attendance and per-head merchandise. A guarantee protects cash flow on a first visit to a market; a door deal rewards an audience you have already proved. Log what each show actually returned so the next offer is evaluated against evidence rather than enthusiasm.',
+      actionRequired: 'Model one show’s break-even attendance before accepting the next date.',
+    },
+    {
+      id: 'career-04',
+      category: 'Career',
+      subcategory: 'Sync',
+      difficulty: 'Advanced',
+      title: 'Building a Sync-Ready Catalogue',
+      tags: ['career', 'sync', 'licensing'],
+      content: 'Supervisors ask for instrumental and clean versions, one-stop clearance, correct metadata, cue-sheet-ready splits and a library that can be searched by mood, tempo and key. That is production work you can do while the release cycle is slow, and it is the reason some catalogues get called a second time.',
+      actionRequired: 'Export instrumentals, TV mixes and a tagged metadata sheet for your three strongest tracks.',
+    },
+    {
+      id: 'career-05',
+      category: 'Career',
+      subcategory: 'Collaboration',
+      difficulty: 'Intermediate',
+      title: 'Features and Partnerships: Terms Before Verses',
+      tags: ['career', 'collaboration', 'splits'],
+      content: 'Agree the split, the credit, the delivery format and the release window before anyone writes, and put it in a split sheet the same week. A feature is a rights transaction with a relationship attached; ambiguous terms are what turn a good collaboration into a silent catalogue problem two years later.',
+      actionRequired: 'Send a split sheet with credit, shares and deadlines before scheduling the session.',
+    },
+    {
+      id: 'career-06',
+      category: 'Career',
+      subcategory: 'Growth',
+      difficulty: 'Beginner',
+      title: 'Sustainable Cadence Beats a Heroic Month',
+      tags: ['career', 'burnout', 'cadence'],
+      content: 'A release schedule you can repeat, protected writing time and honest capacity beat one intense month followed by silence. Budget recovery like a production cost: a burned-out artist ships nothing, and an unfinished catalogue earns nothing. Choose the cadence you could hold for a year, not the one that impresses this week.',
+      actionRequired: 'Set a cadence you could hold for a year, then protect one writing block a week.',
     },
   ];
 

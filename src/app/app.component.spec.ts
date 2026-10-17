@@ -364,7 +364,15 @@ describe('AppComponent', () => {
     expect(uiService.setActiveViewFromRoute).not.toHaveBeenCalled();
   });
 
-  it('treats studio as full-page on mobile but not on desktop', async () => {
+  /**
+   * The Studio is a full-window DAW on every device. It used to be full-page
+   * only on a phone, which left the desktop shell inside the Hub frame: at
+   * 1440x900 that frame took 195px (the shell measured 705px tall) and the
+   * timeline was left with 49% of the viewport, while duplicating the
+   * navigation the Studio's own rail already provides. A resize must not move
+   * the Studio in or out of that mode.
+   */
+  it('treats studio as full-page at every viewport width', async () => {
     const originalWidth = window.innerWidth;
 
     Object.defineProperty(window, 'innerWidth', {
@@ -383,7 +391,7 @@ describe('AppComponent', () => {
     component.onResize();
 
     expect(component.isMobile()).toBe(false);
-    expect(component.isFullPageMode()).toBe(false);
+    expect(component.isFullPageMode()).toBe(true);
 
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,

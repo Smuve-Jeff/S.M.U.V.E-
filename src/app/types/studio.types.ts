@@ -54,6 +54,12 @@ export interface StudioClip {
    * exposed in the arrangement keep behaving.
    */
   patternSlotId?: string | null;
+  /** Phase H — SampleStreamer admission fields for long imported stems. */
+  clipStreamer?: unknown;
+  clipOriginSeconds?: number;
+  clipLengthSeconds?: number;
+  clipSampleRate?: number;
+  clipChannels?: number;
 }
 
 export interface StudioAutomationPoint {

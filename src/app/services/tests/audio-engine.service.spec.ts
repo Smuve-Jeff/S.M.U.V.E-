@@ -272,6 +272,38 @@ describe('AudioEngineService', () => {
     expect(source.start).toHaveBeenCalledWith(2);
   });
 
+  it('should schedule a SampleStreamer resident window and advance its playhead', () => {
+    const windowBuffer = { duration: 12, sampleRate: 48000 } as AudioBuffer;
+    const streamer = {
+      setPlayhead: jest.fn(),
+      getResidentBuffer: jest.fn(() => windowBuffer),
+      advancePlayhead: jest.fn(),
+    } as any;
+
+    service.triggerSampler(
+      1,
+      streamer,
+      1.5,
+      0.9,
+      -0.2,
+      4,
+      1,
+      0,
+      0,
+      2,
+      4,
+      48000,
+      2
+    );
+
+    const source =
+      mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
+    expect(streamer.setPlayhead).toHaveBeenCalledWith(2 * 48000);
+    expect(source.buffer).toBe(windowBuffer);
+    expect(source.start).toHaveBeenCalledWith(1.5);
+    expect(streamer.advancePlayhead).toHaveBeenCalledWith(4 * 48000);
+  });
+
   it('should schedule metronome and step callbacks with lookahead timing', () => {
     service.metronomeEnabled.set(true);
     const scheduled = jest.fn();

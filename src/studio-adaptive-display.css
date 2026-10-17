@@ -1,0 +1,378 @@
+/* ============================================================================
+   S.M.U.V.E. STUDIO — ADAPTIVE DISPLAY & ACCESSIBILITY LAYER 4.0
+   ----------------------------------------------------------------------------
+   Global stylesheet (registered in angular.json, loaded after styles.css,
+   studio-redesign-global.css, studio-fl-mobile.css and animate.css).
+
+   WHY THIS LAYER EXISTS
+   The Studio ships three authored palettes — FL-Mobile graphite (the default),
+   focus-mode graphite, and lights-out — plus a dense touch/instrument surface.
+   All three are tuned for the *average* device. This layer is the fourth axis:
+   it reacts to what the **device and the user** say about the display they are
+   actually holding —
+
+     · prefers-contrast: more / less   — glare and legibility
+     · forced-colors: active           — Windows / Android high-contrast mode
+     · dynamic-range: high             — HDR / OLED panels
+     · prefers-reduced-transparency    — translucent-material hosts
+
+   BENCHMARK (Android phones 5–6.5in, portrait + landscape; Chrome desktop)
+   The patterns this layer acts on, and where they come from:
+     · Stagelight (Sound On Sound review) — a dark surface carrying bright,
+       high-contrast data is what keeps a touch DAW legible in daylight.
+     · Cubasis (Steinberg manual) — documents bright / grey / dark arranger
+       backgrounds and a compact phone tier: the *user* picks the contrast
+       level, the developer never hard-codes one.
+     · FL Studio Mobile (Image-Line manual + Play listing) — selectable themes
+       and user-controlled UI scaling; the reference studio-fl-mobile.css
+       already follows for palette, not for contrast adaptation.
+     · Koala Sampler (manual) — state is never colour-only; hold/slide
+       affordances stay readable at phone size.
+     · Android Accessibility guidance — 48dp targets, and never encode state in
+       colour alone.
+   Only the *capability* axis is in scope here. Touch sizes, progressive
+   disclosure and navigation contracts live in shared/platform-ux.css,
+   studio-redesign.css and studio-fl-mobile.css.
+
+   CASCADE CONTRACT
+   Studio chrome and panels are component styles, so their rules carry Angular's
+   emulated-encapsulation attribute and resolve to (0,2,0)+; shell theme rules
+   reach (0,3,0)+ through `:host-context()`. A user's explicit accessibility
+   setting must not lose a specificity contest against a `color:` someone typed
+   months ago, so — and only — inside the capability and preference media
+   queries below, declarations are `!important`. That is the same contract the
+   shipped reduced-motion guards already use (`animation: none !important`), and
+   the recommended practice for user-preference media queries. Outside those
+   queries this file never uses `!important`.
+
+   THE STUDIO IS ALWAYS DARK. `body .comp-shell` re-points the app tokens at the
+   FL graphite palette unconditionally, and `.focus-mode` / `.dark-mode` only
+   move the floor — they never make it light. Every ink value below is therefore
+   light-on-dark; there is no light-Studio branch to write.
+
+   Everything here is Studio-scoped through `body .comp-shell`; the Home Hub,
+   auth screens and profile keep their own look untouched.
+   ========================================================================= */
+
+/* ----------------------------------------------------------------------------
+   1. ADAPTIVE TOKENS
+   One indirection so the modes below stay readable, and so an instrument can
+   borrow a value instead of re-deriving it.
+   ---------------------------------------------------------------------------- */
+body .comp-shell {
+  /* Ink guaranteed to read on the graphite default. */
+  --adc-ink-strong: #ffffff;
+  /* Structural hairline used when authored 1px separators are too faint. */
+  --adc-hair-line: rgba(255, 255, 255, 0.72);
+  /* Glow / gradient budget: 1 = as authored, 0 = decoration removed. */
+  --adc-decor-opacity: 1;
+  --adc-marquee-opacity: 0.55;
+}
+
+/* ----------------------------------------------------------------------------
+   2. prefers-contrast: more  — "readable in a bright train window"
+   Two moves, in order of value:
+     a) remap the palette variables the whole Studio already consumes, so every
+        panel sharpens at once without a per-selector fight;
+     b) reinforce the structural hairlines, and give the states that exist only
+        as colour a second, non-colour cue (benchmark: Android guidance).
+   Only the muted line/ink tokens move. The accent hues (FL orange, arm red,
+   play green) stay authored — a pro-audio surface uses them to identify tracks.
+   ---------------------------------------------------------------------------- */
+@media (prefers-contrast: more) {
+  /* (a) Palette remap. */
+  body .comp-shell {
+    --stage-muted: #eef2fa !important;
+    --stage-line: rgba(255, 255, 255, 0.72) !important;
+    --stage-line-soft: rgba(255, 255, 255, 0.46) !important;
+    --stage-shadow: 0 12px 28px rgba(0, 0, 0, 0.78) !important;
+    --stage-focus: #ffd9a8 !important;
+    --espresso-muted: #e8edf7 !important;
+    --espresso-line: rgba(255, 255, 255, 0.72) !important;
+    --espresso-soft: rgba(255, 255, 255, 0.18) !important;
+    --ivory-line: rgba(255, 255, 255, 0.72) !important;
+    --color-text-dim: #e8edf7 !important;
+    --color-border: rgba(255, 255, 255, 0.72) !important;
+    --color-border-bright: rgba(255, 255, 255, 0.86) !important;
+    --fl-dim: #eef2fa !important;
+    --fl-dim-2: #c9cddb !important;
+    --fl-line: rgba(255, 255, 255, 0.72) !important;
+    --fl-line-soft: rgba(255, 255, 255, 0.46) !important;
+    --adc-decor-opacity: 0.35;
+    --adc-marquee-opacity: 0.9;
+  }
+  /* Theme floors stay where the author put them — contrast mode only lifts the
+     ceiling, it does not re-light the room. */
+  body.focus-mode .comp-shell {
+    --stage-canvas: #0b0b0f !important;
+  }
+  body.dark-mode .comp-shell {
+    --stage-canvas: #000000 !important;
+  }
+
+  /* (b) Structural reinforcement. The remap above only reaches surfaces that
+     already consume the tokens; these catch the panels that hard-code a
+     hairline, plus the decorative aurora and marquee. */
+  body .comp-shell .comp-topbar,
+  body .comp-shell .comp-context-toolbar,
+  body .comp-shell .comp-footer,
+  body .comp-shell .comp-bottombar,
+  body .comp-shell .comp-rail,
+  body .comp-shell .comp-panel,
+  body .comp-shell .comp-drawer,
+  body .comp-shell .comp-project-menu,
+  body .comp-shell .studio-project-status,
+  body .comp-shell .studio-status-chip,
+  body .comp-shell .comp-status-chip {
+    border-color: var(--adc-hair-line) !important;
+  }
+  /* Never let opacity styling hide a label at this setting — including the
+     "disabled because nothing is armed yet" cases. */
+  body .comp-shell .studio-status-chip,
+  body .comp-shell .comp-status-chip,
+  body .comp-shell .comp-tab-label,
+  body .comp-shell .comp-tool-label,
+  body .comp-shell .comp-chip {
+    color: inherit !important;
+    opacity: 1 !important;
+  }
+  /* Decoration never competes with data at this setting. */
+  body .comp-shell.comp-shell,
+  body .comp-shell .comp-canvas,
+  body .comp-shell .comp-aurora {
+    background-image: none !important;
+  }
+  body .comp-shell .comp-aurora {
+    opacity: 0 !important;
+  }
+  body .comp-shell .stage-marquee-track {
+    opacity: var(--adc-marquee-opacity) !important;
+  }
+
+  /* (b2) State without colour. Mute / solo / arm / active destination are
+     colour-coded everywhere; add a shape so the state survives a monochrome
+     read (colour-vision deficiency, and bright sunlight on a glossy panel).
+     Solid ring = "you are here", dotted ring = "this control is engaged". */
+  body .comp-shell .comp-tab[aria-selected='true'],
+  body .comp-shell .comp-rail-item.comp-rail-active,
+  body .comp-shell .comp-drawer-grid-btn.comp-drawer-active,
+  body .comp-shell .comp-tool-active,
+  body .comp-shell [aria-selected='true'],
+  body .comp-shell [aria-pressed='true'] {
+    outline: 2px solid currentColor !important;
+    outline-offset: -2px !important;
+  }
+  body .comp-shell :is(.mini-btn.active-solo, .mini-btn.active-mute),
+  body .comp-shell :is([class*='arm-audio'], [class*='arm-midi']),
+  body .comp-shell [class*='mute-active'] {
+    outline: 2px dashed currentColor !important;
+    outline-offset: -3px !important;
+  }
+  /* Pad / step / key cells: an ON cell must carry a shape, not only a fill. */
+  body .comp-shell :is(
+    [class*='-pad'][aria-pressed='true'],
+    [class*='-step'][aria-pressed='true'],
+    [class*='-step'].step-on,
+    [class*='-step'][class*='active']
+  ) {
+    outline: 2px solid currentColor !important;
+    outline-offset: -2px !important;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   3. prefers-contrast: less  — "stop glowing at me at 1am"
+   The aurora wash, the marquee ticker and the accent halos are the loudest
+   things on an OLED phone in a dark room, and none of them carry data. The
+   decoration budget goes to zero; meters, waveforms and clips keep full
+   strength. (Note: `prefers-contrast: less` is not emulatable in headless
+   Chromium, so this block is covered by the bundle-parse check in
+   tests/e2e/studio-adaptive-display.spec.ts.)
+   ---------------------------------------------------------------------------- */
+@media (prefers-contrast: less) {
+  body .comp-shell {
+    --adc-decor-opacity: 0;
+    --adc-marquee-opacity: 0.24;
+    /* Glow tokens — these mirror the app's neon ramp, re-pointed by
+       studio-fl-mobile.css, so muting them mutes every halo at once. */
+    --teal-glow: rgba(255, 154, 31, 0.1) !important;
+    --teal-soft-glow: rgba(255, 154, 31, 0.05) !important;
+    --orange-glow: rgba(255, 154, 31, 0.1) !important;
+    --neon-pink-glow: rgba(255, 26, 140, 0.08) !important;
+    --neon-violet-glow: rgba(139, 92, 246, 0.08) !important;
+    --neon-amber-glow: rgba(255, 182, 39, 0.08) !important;
+    --neon-mint-glow: rgba(52, 245, 197, 0.08) !important;
+    --fl-accent-soft: rgba(255, 154, 31, 0.08) !important;
+  }
+  /* Radial ambience, aurora blobs and the ticker are the glare sources. */
+  body .comp-shell.comp-shell,
+  body .comp-shell .comp-canvas {
+    background-image: none !important;
+  }
+  body .comp-shell .comp-aurora,
+  body .comp-shell .comp-aurora-blob {
+    opacity: 0 !important;
+  }
+  body .comp-shell .comp-stage-marquee,
+  body .comp-shell .stage-marquee-track {
+    opacity: var(--adc-marquee-opacity) !important;
+  }
+  /* Active-state halos collapse to a flat ring — still legible, no bloom.
+     `filter` is cleared too because several states use a drop-shadow glow. */
+  body .comp-shell .comp-rail-item.comp-rail-active,
+  body .comp-shell .comp-tab-active .material-symbols-outlined,
+  body .comp-shell .comp-tool-active,
+  body .comp-shell .comp-ai-btn,
+  body .comp-shell .btn-pro-primary,
+  body .comp-shell .comp-now-playing,
+  body .comp-shell .vu-clip,
+  body .comp-shell .meter-clip {
+    box-shadow: none !important;
+    filter: none !important;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   4. forced-colors: active  — Windows / Android force-colours
+   The browser overrides colour, so every state the Studio encodes as colour,
+   shadow or glow disappears: `box-shadow` and `filter` are dropped entirely.
+   The active rail item, the armed track, the engaged pad and the recording
+   indicator are currently *only* a shadow or a fill, so at this setting they
+   vanish — a real regression, not a taste call. Restore each one with an
+   outline (a property the component styles leave unset, so nothing has to be
+   overridden to add it) and with forced-colour system keywords.
+   ---------------------------------------------------------------------------- */
+@media (forced-colors: active) {
+  /* Data surfaces keep a real boundary once authored backgrounds are gone. */
+  body .comp-shell .comp-panel,
+  body .comp-shell .comp-drawer,
+  body .comp-shell .comp-topbar,
+  body .comp-shell .comp-context-toolbar,
+  body .comp-shell .comp-footer,
+  body .comp-shell .comp-bottombar,
+  body .comp-shell .comp-rail,
+  body .comp-shell .comp-rail-item,
+  body .comp-shell .comp-tab,
+  body .comp-shell .comp-project-menu,
+  body .comp-shell .mix-strip,
+  body .comp-shell .track-header {
+    border: 1px solid CanvasText !important;
+  }
+
+  /* Every active / engaged state gets an outline instead of a halo. */
+  body .comp-shell .comp-tab-active,
+  body .comp-shell .comp-tab[aria-selected='true'],
+  body .comp-shell .comp-rail-item.comp-rail-active,
+  body .comp-shell .comp-drawer-active,
+  body .comp-shell .comp-tool-active,
+  body .comp-shell [aria-selected='true'],
+  body .comp-shell [aria-pressed='true'] {
+    outline: 2px solid Highlight !important;
+    outline-offset: -2px !important;
+  }
+  body .comp-shell :is(.mini-btn.active-solo, .mini-btn.active-mute),
+  body .comp-shell :is([class*='arm-audio'], [class*='arm-midi']) {
+    outline: 2px dashed Highlight !important;
+    outline-offset: -3px !important;
+  }
+  /* Recording is the one state that must be unmistakable at any contrast, and
+     unlike mute/solo it is not a toggle — it takes the heaviest ring. */
+  body .comp-shell :is(
+    .record-button.is-active,
+    [class*='rec-armed'],
+    [class*='recording-active']
+  ) {
+    outline: 3px solid CanvasText !important;
+    outline-offset: -2px !important;
+  }
+  /* Step / clip / pad fills are colour-only; give them a text-colour border so
+     "on" stays distinguishable from "off" once fills are flattened. */
+  body .comp-shell :is(
+    [class*='-pad'],
+    [class*='-step'],
+    [class*='-cell'],
+    [class*='-clip']
+  ) {
+    border: 1px solid CanvasText !important;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   5. dynamic-range: high  — HDR / OLED panels
+   On a panel that can show true black, a near-black canvas (#131418) is
+   strictly worse than black: it wastes the panel's contrast ratio and burns
+   power on OLED. Push the canvas to true black and let the meters and clip
+   indicators use the headroom they were authored for.
+   (Not emulatable in headless Chromium; covered by the bundle-parse check.)
+   ---------------------------------------------------------------------------- */
+@media (dynamic-range: high) {
+  body .comp-shell {
+    --stage-canvas: #000000 !important;
+    --ivory-deep: #000000 !important;
+    --fl-bg: #000000 !important;
+    --stage-shadow: 0 18px 46px rgba(0, 0, 0, 0.85) !important;
+  }
+  body.focus-mode .comp-shell {
+    /* Focus-mode is deliberately mid-graphite; keep its intent, deepen the floor
+       so panels separate from the void. */
+    --stage-canvas: #0b0b0e !important;
+  }
+  body .comp-shell .comp-canvas,
+  body .comp-shell .comp-rail {
+    background-color: #000000 !important;
+  }
+  /* Peak-luminance cues: clip and overload indicators at full drive. */
+  body .comp-shell .vu-clip,
+  body .comp-shell .meter-clip {
+    filter: brightness(1.3) saturate(1.15) !important;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   6. prefers-reduced-transparency: reduce  — "give me opaque surfaces"
+   The shell blurs six surfaces (topbar, context toolbar, footer, bottom dock,
+   panels, scrims). On a translucent-material host — or for a user who asked the
+   OS for solid surfaces because the blur makes them motion-sick — the blur is
+   the wrong choice. Fall back to the opaque paper the tokens already name.
+   (Not emulatable in headless Chromium; covered by the bundle-parse check.)
+   ---------------------------------------------------------------------------- */
+@media (prefers-reduced-transparency: reduce) {
+  body .comp-shell .comp-topbar::before,
+  body .comp-shell .comp-context-toolbar,
+  body .comp-shell .comp-footer,
+  body .comp-shell .comp-bottombar,
+  body .comp-shell .comp-panel,
+  body .comp-shell .comp-drawer,
+  body .comp-shell .comp-project-menu,
+  body .comp-shell .comp-backdrop,
+  body .comp-shell .comp-panel-backdrop,
+  body .comp-shell .glass-pro {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  /* Opaque replacements — the authored `color-mix(..., transparent)` rules are
+     what actually produced the see-through effect. */
+  body .comp-shell .comp-topbar::before,
+  body .comp-shell .comp-context-toolbar,
+  body .comp-shell .comp-footer,
+  body .comp-shell .comp-bottombar,
+  body .comp-shell .comp-panel,
+  body .comp-shell .comp-drawer,
+  body .comp-shell .comp-project-menu,
+  body .comp-shell .glass-pro {
+    background: var(--stage-paper, #1b1c21) !important;
+  }
+  /* Scrims are functional — they separate a modal from the canvas — so keep
+     them, just opaque enough to do the job without a blur. */
+  body .comp-shell .comp-backdrop,
+  body .comp-shell .comp-panel-backdrop {
+    background-color: rgba(8, 9, 11, 0.78) !important;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   NOTE — prefers-reduced-motion is intentionally absent.
+   The shell, the sub-components and shared/platform-ux.css already carry a
+   complete reduced-motion guard for every animation this layer's siblings
+   introduce; a second, weaker guard here would only shadow them.
+   ---------------------------------------------------------------------------- */

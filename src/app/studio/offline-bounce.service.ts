@@ -407,10 +407,20 @@ export class OfflineBounceService {
         const secPerBar = 4 * (60 / tempo);
         for (const clip of clips) {
           if (clip.type !== "audio") continue;
-          const clipBuffer =
+          let clipBuffer =
             (clip as any).audioData ||
             ((clip as any).audioRefId &&
               this.musicManager.stemAudioCache?.get((clip as any).audioRefId));
+          // Streamed long imports carry a SampleStreamer; render the bounded
+          // resident window cued to the clip origin, as the live engine does.
+          if (!clipBuffer && (clip as any).clipStreamer) {
+            const streamer = (clip as any).clipStreamer;
+            streamer.setPlayhead(
+              Math.max(0, ((clip as any).clipOriginSeconds || 0) *
+                ((clip as any).clipSampleRate || 48000)),
+            );
+            clipBuffer = streamer.getResidentBuffer();
+          }
           if (!clipBuffer) continue;
           this.renderAudioClip(
             ctx,

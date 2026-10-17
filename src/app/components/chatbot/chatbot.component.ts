@@ -54,6 +54,10 @@ import { SmuveWidgetComponent } from '../smuve-widget/smuve-widget.component';
 import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ChatMusicCommandEngineService } from '../../services/chat-music-command-engine.service';
+import {
+  ChatAppCommandService,
+  interpretAppRequest,
+} from '../../services/chat-app-command.service';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
 
 /** Voice Lab: one line per archetype, and a multi-sentence spectrum demo. */
@@ -156,6 +160,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
   private get snack(): SnackbarService | null {
     return this.injector.get(SnackbarService, null);
+  }
+  /** Natural-language app control (Total Control with the guard rails intact). */
+  private get appCommand(): ChatAppCommandService | null {
+    return this.injector.get(ChatAppCommandService, null);
   }
   private get router(): Router | null {
     return this.injector.get(Router, null);
@@ -659,6 +667,22 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       };
     }
 
+    // 5.5) Natural-language app control. "Mute the bass", "save my session",
+    //      "switch to the mixer" and "export as wav" used to reach the model,
+    //      which could only describe the command back to the artist. They
+    //      execute now — through Total Control, so the Full-Control gate, the
+    //      guarded-verb confirmation and the command history all still apply.
+    //
+    //      Interpretation runs first and synchronously: a question stays on the
+    //      model's path with no extra hop, and only a request that maps to a
+    //      real command waits on the control engine.
+    if (interpretAppRequest(trimmed)) {
+      const executed = await this.appCommand?.tryExecute(trimmed);
+      if (executed) {
+        return { content: executed.content, actions: [] };
+      }
+    }
+
     // 6) ALL-CAPS command tokens → real knowledge by domain
     if (/^[A-Z_]{4,}$/.test(trimmed) && CHATBOT_COMMANDS.some((c) => c.command === trimmed)) {
       return this.routeCapitalCommand(trimmed);
@@ -833,6 +857,20 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
         'Mirror their vocabulary, tempo language, and reference world from the context above, and name the weak spot in their archetype out loud — but keep the full S.M.U.V.E. character: arrogant, theatrical, aimed at the work, never at the person. Respect their stated boundaries and adapt the plan to their actual capacity.',
       '',
       ...(() => {
+        const session = this.sessionSnapshot();
+        return session
+          ? [
+              'LIVE SESSION (the artist’s session right now — answer questions about their project, tempo and tracks from these values, never from imagination, and never ask them to repeat state you already have):',
+              session,
+              '',
+            ]
+          : [];
+      })(),
+      ...(() => {
+        const grounding = this.knowledgeGrounding(question);
+        return grounding ? [grounding, ''] : [];
+      })(),
+      ...(() => {
         const context = this.buildConversationContext(question);
         return context
           ? [
@@ -843,6 +881,65 @@ ${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational u
           : [];
       })(),
       `ARTIST REQUEST: ${question}`,
+    ].join('\n');
+  }
+
+  /**
+   * Compact readout of the session the artist is actually working in, so a
+   * question like "what is muted?" is answered from state instead of a guess.
+   */
+  private sessionSnapshot(): string | null {
+    const music = this.music;
+    if (!music) return null;
+    try {
+      const tracks = music.tracks() ?? [];
+      const tempo = music.engine?.tempo?.();
+      const header = `Project: ${music.projectName || 'Untitled'} | Tempo: ${
+        tempo ?? 'unknown'
+      } BPM | Tracks: ${tracks.length}`;
+      const listing = tracks.length
+        ? tracks
+            .slice(0, 24)
+            .map(
+              (track) =>
+                `  - ${track.name}${track.muted ? ' [MUTED]' : ''}${
+                  track.soloed ? ' [SOLO]' : ''
+                }`
+            )
+            .join('\n')
+        : '  (no tracks yet) — the first move is a beat or a melody, not a strategy deck.';
+      return `${header}\n${listing}`;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Curated knowledge for this request, injected as citable evidence.
+   *
+   * The live model is strong, but it is not the source of record for royalty,
+   * contract, metadata or release mechanics, and a confident wrong deadline
+   * costs the artist real money. Matching entries from the reviewed knowledge
+   * base ride along with their sources and scope notes; the model is told to
+   * ground the answer in them and to flag anything it says beyond them.
+   */
+  private knowledgeGrounding(question: string): string | null {
+    const matches = this.knowledgeEngine.search(question).slice(0, 3);
+    if (matches.length === 0) return null;
+    const entries = matches.map((entry) =>
+      [
+        `- ${entry.title} [${entry.category}/${entry.subcategory}, ${entry.difficulty}]`,
+        `  ${entry.content}`,
+        entry.actionRequired ? `  ACTION: ${entry.actionRequired}` : '',
+        entry.jurisdiction ? `  SCOPE: ${entry.jurisdiction}` : '',
+        ...(entry.sources ?? []).map((url) => `  SOURCE: ${url}`),
+      ]
+        .filter(Boolean)
+        .join('\n')
+    );
+    return [
+      'S.M.U.V.E. VERIFIED KNOWLEDGE BASE — the reviewed entries that match this request. Ground the answer in them, keep their caution, jurisdiction and "not legal advice" notes intact, and never invent a fee, percentage, deadline or statistic they do not state. If you go beyond them, say so and say it is not from the knowledge base.',
+      ...entries,
     ].join('\n');
   }
 

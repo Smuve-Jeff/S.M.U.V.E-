@@ -189,7 +189,9 @@
         [attr.aria-pressed]="metronomeEnabled()"
         aria-label="Toggle metronome"
       >
-        <span class="material-symbols-outlined">metronome</span>
+        <!-- `metronome` has no glyph in the served Material Symbols font (it
+             rendered as the word), so the click control uses the tick icon. -->
+        <span class="material-symbols-outlined">timer</span>
       </button>
       <button
         type="button"

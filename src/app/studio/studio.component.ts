@@ -24,6 +24,7 @@ import { MidiWriter, MidiTrackData } from "./midi-writer.util";
 import { MidiImportService } from "./midi-import.service";
 
 import { AudioSessionService } from "./audio-session.service";
+import { AtmosphericLightService } from "./atmospheric-light.service";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { CloudSyncService } from "../services/cloud-sync.service";
 import { FileLoaderService } from "../services/file-loader.service";
@@ -50,6 +51,7 @@ import {
 
 import { MixerComponent } from "./mixer/mixer.component";
 import { ArrangementViewComponent } from "./arrangement-view/arrangement-view.component";
+import { InspectorComponent } from "./inspector/inspector.component";
 import { PianoRollComponent } from "./piano-roll/piano-roll.component";
 import { MasteringSuiteComponent } from "./mastering-suite/mastering-suite.component";
 import { DrumMachineComponent } from "./drum-machine/drum-machine.component";
@@ -188,6 +190,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     FormsModule,
     MixerComponent,
     ArrangementViewComponent,
+    InspectorComponent,
     PianoRollComponent,
     MasteringSuiteComponent,
     DrumMachineComponent,
@@ -495,9 +498,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild("fileInput", { static: false })
   fileInput?: ElementRef<HTMLInputElement>;
   @ViewChild(SnackbarComponent) snackbar?: SnackbarComponent;
-  @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;
-  @ViewChild("spectrumCanvas", { static: false })
+  @ViewChild(SearchOverlayComponent) searchOverlay?: SearchOverlayComponent;  @ViewChild("spectrumCanvas", { static: false})
   spectrumCanvas?: ElementRef<HTMLCanvasElement>;
+  /** Shell root — carries the --atmo-* custom properties the aurora reads. */
+  @ViewChild("shellRoot", { static: false})
+  shellRoot?: ElementRef<HTMLElement>;
 
   /** Animation frame handle for spectrum analyzer rendering */
   private spectrumRafId: number | null = null;
@@ -508,6 +513,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   // ---- Services (public for templates) ----
   public readonly audioSession = inject(AudioSessionService);
   public readonly audioEngine = inject(AudioEngineService);
+  private readonly atmosphere = inject(AtmosphericLightService);
   public hardware = inject(HardwareService);
   collaboration = inject(CollaborationService);
   public readonly uiService = inject(UIService);
@@ -667,7 +673,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!audio) return null;
     // Show the enhanced render once the user applies it, so the waveform and
     // the audio preview always agree.
-    const source = (audio.enhancedBuffer ?? audio.buffer).getChannelData(0);
+    const buffer =
+      audio.enhancedBuffer ??
+      audio.buffer ??
+      audio.sampleStreamer?.getResidentBuffer() ??
+      null;
+    if (!buffer) return null;
+    const source = buffer.getChannelData(0);
     const zoom = Math.max(1, this.importWaveformZoom());
     if (zoom === 1) return source;
     const length = Math.max(256, Math.floor(source.length / zoom));
@@ -820,6 +832,36 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   browserCollapsed = signal(false);
   inspectorCollapsed = signal(false);
   railCollapsed = signal(false);
+
+  // ── View choreography ─────────────────────────────────
+  /**
+   * Direction of the last main-view change, consumed by CSS as
+   * `data-view-dir`. A forward move slides the incoming view in from the right,
+   * a backward move from the left, so the chrome never "pops" between tools.
+   */
+  viewDirection = signal<'forward' | 'backward'>('forward');
+
+  /**
+   * The order swipe navigation walks. The first four entries are the bottom
+   * dock's own tabs — swipe must agree with the visible tab order or the
+   * gesture feels arbitrary — followed by the two "finish the record" stages a
+   * producer moves to next. Views outside the rail (session, plugins, …) are
+   * entered by their own control and leave the rail at its first entry.
+   */
+  private readonly viewRail: readonly StudioView[] = [
+    'arrangement',
+    'drum-machine',
+    'piano-roll',
+    'vocal-suite',
+    'mixer',
+    'mastering',
+  ];
+
+  /** True while the contextual inspector is available (not a phone). */
+  showInspector = computed(() => !this.uiService.isCompactMobile());
+
+  /** Gesture state for canvas swipe navigation — cleared on every touchstart. */
+  private swipeOrigin: { x: number; y: number; at: number } | null = null;
 
   // ── Beginner Mode ─────────────────────────────────────
   /**
@@ -1002,7 +1044,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * the full 22-stage list lives in the rail (desktop) and drawer (touch).
    */
   bottomNavItems = computed(() => [
-    { id: "arrangement", label: "Playlist", icon: "view_quilt" },
+    { id: "arrangement", label: "Song", icon: "view_quilt" },
     { id: "drum-machine", label: "Steps", icon: "grid_on" },
     { id: "piano-roll", label: "Keys", icon: "piano" },
     { id: "vocal-suite", label: "Vocals", icon: "mic" },
@@ -1356,6 +1398,27 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       document.body.classList.toggle("stage-fx-off", !this.stageFxEnabled());
     });
 
+    // ── Dynamic atmospheric lighting — the aurora field follows the audio.
+    // The service taps the engine's master analyser (one smoothed 0..1 frame
+    // per ~33 ms) and publishes it as --atmo-* on the shell, so the visual
+    // never touches per-element styles and never runs unless the transport is
+    // actually rolling. Every access is guarded: `performance`-tier devices
+    // keep Stage FX off, reduced-motion users settle to the authored look, and
+    // unit-test engine doubles that lack `masterAnalyser` degrade silently. ──
+    effect(() => {
+      const wanted = this.isLivePerforming() && this.stageFxEnabled();
+      try {
+        this.atmosphere.setStyleTarget(this.shellRoot?.nativeElement ?? null);
+        this.atmosphere.bind(
+          (this.audioEngine as { masterAnalyser?: AnalyserNode | null })
+            ?.masterAnalyser ?? null,
+        );
+        this.atmosphere.setActive(wanted);
+      } catch {
+        // guard against test environment mocks
+      }
+    });
+
     // ── Stage FX live-sync — the executive preference is the single source
     // of truth. When it changes anywhere (Settings → Studio Pro, the tier
     // guard, a cloud sync / profile restore) while the Studio stays mounted,
@@ -1579,9 +1642,18 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit() {
     this.activeView();
+    // The shell root is only resolvable once the view exists, and the
+    // atmosphere effect can legitimately run before that.
+    try {
+      this.atmosphere.setStyleTarget(this.shellRoot?.nativeElement ?? null);
+    } catch {
+      // guard against test environment mocks
+    }
   }
 
   ngOnDestroy() {
+    this.atmosphere.stop();
+    this.atmosphere.setStyleTarget(null);
     this.stopSpectrumAnalyzer();
     this.stopCompTakePreview();
     window.removeEventListener("popstate", this.onStudioPopState);
@@ -1986,6 +2058,17 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.mobileDrawerOpen.set(false);
       this.syncPanelFocus(".comp-drawer", false);
     }
+    // Record travel direction before swapping the view so the transition CSS
+    // knows which edge the incoming panel should enter from. Only a real change
+    // counts — re-selecting the current tab must not replay the animation.
+    const previous = this.activeView();
+    if (previous !== view) {
+      this.viewDirection.set(
+        this.viewRailIndex(view) >= this.viewRailIndex(previous)
+          ? "forward"
+          : "backward",
+      );
+    }
     this.activeView.set(view);
     this.mobilePanel.set(null);
     this.haptic.light();
@@ -2002,6 +2085,90 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onBottomNavClick(viewId: string) {
     if (isStudioView(viewId)) this.setActiveView(viewId);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // VIEW NAVIGATION — direction, swipe rail, inspector handoff
+  // ═══════════════════════════════════════════════════════════
+
+  /** Position in the swipe rail; anything off the rail sorts to the start. */
+  private viewRailIndex(view: StudioView): number {
+    const index = this.viewRail.indexOf(view);
+    return index === -1 ? 0 : index;
+  }
+
+  /**
+   * Move one step along the rail. Clamped at both ends: a DAW that wraps from
+   * Mastering back to the Arrangement on an accidental swipe loses work.
+   */
+  stepView(delta: number) {
+    const next = this.viewRailIndex(this.activeView()) + delta;
+    if (next < 0 || next >= this.viewRail.length) return false;
+    const target = this.viewRail[next];
+    if (target === this.activeView()) return false;
+    this.setActiveView(target);
+    this.haptic.light();
+    return true;
+  }
+
+  /** Inspector → Effects Rack handoff: select the track, then open the rack. */
+  openEffectsRack(trackId: string) {
+    if (trackId) this.musicManager.selectedTrackId.set(trackId);
+    this.setActiveView("effects-rack");
+  }
+
+  /** Phone-only gesture; stands down while anything is stacked over the canvas. */
+  private swipeNavigationEnabled(): boolean {
+    if (!this.uiService.isCompactMobile()) return false;
+    if (
+      this.mobileDrawerOpen() ||
+      this.mobilePanel() ||
+      this.showMobileToolsSheet()
+    ) {
+      return false;
+    }
+    if (this.showShortcuts()) return false;
+    return !this.showSmartCreationSheet();
+  }
+
+  /** True when the touch began on a surface that owns its own horizontal drag. */
+  private touchOwnedByCanvas(target: EventTarget | null): boolean {
+    const element = target as HTMLElement | null;
+    if (!element || typeof element.closest !== "function") return true;
+    const owned =
+      "canvas, input, textarea, select, [role='slider'], [data-swipe-ignore]," +
+      " .fader-rail, .fader-cap, .crossfader, .jog-wheel, .knob, .mix-strip," +
+      " .comp-drawer, .comp-panel, .comp-context-toolbar";
+    return !!element.closest(owned);
+  }
+
+  onCanvasTouchStart(event: TouchEvent) {
+    this.swipeOrigin = null;
+    if (!this.swipeNavigationEnabled()) return;
+    // A pinch is a zoom, never a view change.
+    if (event.touches.length !== 1) return;
+    if (this.touchOwnedByCanvas(event.target)) return;
+    const touch = event.touches[0];
+    this.swipeOrigin = { x: touch.clientX, y: touch.clientY, at: Date.now() };
+  }
+
+  onCanvasTouchEnd(event: TouchEvent) {
+    const origin = this.swipeOrigin;
+    this.swipeOrigin = null;
+    if (!origin || !this.swipeNavigationEnabled()) return;
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+
+    const dx = touch.clientX - origin.x;
+    const dy = touch.clientY - origin.y;
+    // Horizontal intent, and decisively so: a scroll flick has more vertical
+    // travel and must never change view.
+    if (Math.abs(dx) < 64) return;
+    if (Math.abs(dx) < Math.abs(dy) * 1.6) return;
+    // A long press is not a swipe (Android has raised a callout by now).
+    if (Date.now() - origin.at > 700) return;
+
+    this.stepView(dx < 0 ? 1 : -1);
   }
 
   copyShareLink() {

@@ -993,4 +993,85 @@ describe('MusicManagerService live plugin insert wiring', () => {
     expect(ids).toEqual(['smuve.saturation.v2']);
     expect(service.tracks().map((t) => t.id)).toEqual(['track-1']);
   });
+
+  it('stamps clipStreamer admission fields on addAudioTrack and dispatches streamed vs classic clips in playStep', () => {
+    const triggerSampler = jest.fn();
+    (service as any).engine.triggerSampler = triggerSampler;
+    (service as any).engine.calculatePlaybackRate = jest.fn(() => 1);
+
+    const mockBuffer = {
+      duration: 12,
+      sampleRate: 48000,
+      numberOfChannels: 1,
+    } as AudioBuffer;
+    const streamer = {
+      setPlayhead: jest.fn(),
+      getResidentBuffer: jest.fn(() => mockBuffer),
+      advancePlayhead: jest.fn(),
+    } as any;
+
+    service.addAudioTrack({
+      id: 'track-streamed',
+      name: 'Streamed Stem',
+      color: '#0E7C7B',
+      buffer: mockBuffer,
+      offset: 0,
+      clipStreamer: streamer,
+      clipOriginSeconds: 1.5,
+      clipLengthSeconds: 12,
+      clipSampleRate: 48000,
+      clipChannels: 1,
+    });
+
+    const added = service.tracks().find((t) => t.id === 'track-streamed')!;
+    const clip: any = added.clips[0];
+    expect(clip.clipStreamer).toBe(streamer);
+    expect(clip.clipOriginSeconds).toBe(1.5);
+    expect(clip.clipLengthSeconds).toBe(12);
+    expect(clip.clipSampleRate).toBe(48000);
+    expect(clip.clipChannels).toBe(1);
+
+    service.playStep(0, 0.5, 0.125);
+    expect(streamer.setPlayhead).toHaveBeenCalledWith(1.5 * 48000);
+    expect(triggerSampler).toHaveBeenCalledWith(
+      'track-streamed',
+      streamer,
+      0.5,
+      0.8,
+      0,
+      expect.any(Number),
+      1,
+      0,
+      0,
+      1.5,
+      12,
+      48000,
+      1
+    );
+
+    // Classic short clip (no clipStreamer) still triggers with its AudioBuffer
+    triggerSampler.mockClear();
+    service.addAudioTrack({
+      id: 'track-classic',
+      name: 'Short Hit',
+      color: '#E11D48',
+      buffer: mockBuffer,
+      offset: 0,
+    });
+    service.tracks.update((ts) =>
+      ts.filter((t) => t.id === 'track-classic')
+    );
+    service.playStep(0, 1.0, 0.125);
+    expect(triggerSampler).toHaveBeenCalledWith(
+      'track-classic',
+      mockBuffer,
+      1.0,
+      0.8,
+      0,
+      expect.any(Number),
+      1,
+      0,
+      0
+    );
+  });
 });

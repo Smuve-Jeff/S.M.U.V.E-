@@ -133,6 +133,50 @@ describe("OfflineBounceService", () => {
     expect(service.isBouncing()).toBe(false);
   });
 
+  it("should render streamed clips from their resident window at the clip origin", async () => {
+    const windowBuffer = { duration: 1, length: 48000, sampleRate: 48000, numberOfChannels: 2 };
+    const streamer = {
+      setPlayhead: jest.fn(),
+      getResidentBuffer: jest.fn(() => windowBuffer),
+    };
+    mockMusicManager.tracks = () => [
+      {
+        name: "Streamed",
+        notes: [],
+        clips: [
+          {
+            type: "audio",
+            start: 0,
+            length: 4,
+            clipStreamer: streamer,
+            clipOriginSeconds: 2,
+            clipSampleRate: 48000,
+          },
+        ],
+        gain: 0.8,
+        synthParams: { type: "sine" },
+        muted: false,
+        soloed: false,
+      },
+    ];
+    const renderSpy = jest
+      .spyOn(service as any, "renderAudioClip")
+      .mockImplementation(() => {});
+    const result = await service.bounce("wav-16", 2, 0.5);
+    if (result) URL.revokeObjectURL(result.url);
+    expect(streamer.setPlayhead).toHaveBeenCalledWith(96000);
+    expect(renderSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ clipStreamer: streamer }),
+      windowBuffer,
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    );
+    renderSpy.mockRestore();
+  });
+
   it("should not throw on cancel", () => {
     expect(() => service.cancel()).not.toThrow();
     expect(service.isBouncing()).toBe(false);

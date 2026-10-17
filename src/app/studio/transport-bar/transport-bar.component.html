@@ -109,7 +109,11 @@
           : 'Metronome is OFF · click to enable'
       "
     >
-      <span class="material-symbols-outlined">metronome</span>
+      <!-- `metronome` is not in the Material Symbols build Google serves, so it
+           fell back to the letters "metronome" (and, clipped to 44px on a
+           phone, to an empty circle). `timer` is the closest glyph that
+           actually renders: a tick device, which is what a click track is. -->
+      <span class="material-symbols-outlined">timer</span>
     </button>
   </div>
 

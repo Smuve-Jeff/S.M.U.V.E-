@@ -10,6 +10,16 @@ import {
   RECORDING_CHUNK_STORE,
 } from "./recording-spill.store";
 
+/** jsdom's Blob lacks .arrayBuffer() in this setup — read via FileReader. */
+function readBlobBytes(blob: Blob): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
 describe("StudioRecordingEngineService", () => {
   let service: StudioRecordingEngineService;
   let audioCtxMock: any;
@@ -160,9 +170,10 @@ describe("StudioRecordingEngineService", () => {
     expect(finished[0].blob).toBe(service.recordedBlob());
   });
 
-  it("reassembles a spilled long take when recording stops", async () => {
-    // A take longer than the resident window must come back whole: the chunks
-    // that spilled to storage are rehydrated before the WAV is built.
+  it("streams a spilled long take into the WAV without rehydrating it", async () => {
+    // A take longer than the resident window must still come back whole: the
+    // spilled groups are read, encoded and unlinked one at a time, so the
+    // performance is never reassembled into memory just to be encoded.
     const localStorage = TestBed.inject(LocalStorageService) as any;
     const spilled: any[] = [];
     localStorage.persistenceStatus = jest.fn().mockResolvedValue("ready");
@@ -214,15 +225,61 @@ describe("StudioRecordingEngineService", () => {
     }
 
     expect(service.capture.frames).toBe(96);
+    expect(service.capture.spilledRecords).toBeGreaterThan(0);
+    // The resident window is the take's tail, not the whole take.
+    expect(service.capture.residentBytes).toBeLessThan(96 * 2 * 4);
 
     await service.stopRecording();
 
-    expect(service.capture.spilledRecords).toBeGreaterThan(0);
+    // Every group was consumed and unlinked, and nothing was merged back in.
     expect(spilled.length).toBeGreaterThan(0);
+    expect(localStorage.deleteItems).toHaveBeenCalledWith(
+      RECORDING_CHUNK_STORE,
+      [spilled[0].id],
+    );
+    expect(service.capture.spilledRecords).toBe(0);
+    expect(service.capture.spilledFrames).toBe(0);
+    expect(service.capture.residentBytes).toBeLessThan(96 * 2 * 4);
     // The full 96-frame take survived: resident window + spilled groups.
     expect(service.recordingTime()).toBeCloseTo(96 / 48000, 6);
     expect(finished).toHaveLength(1);
     expect(finished[0].metadata.duration).toBeCloseTo(96 / 48000, 6);
+    // The writer builds the header from the frames it actually received, so the
+    // data chunk proves the whole take was streamed in — not just the window.
+    const bytes = await readBlobBytes(finished[0].blob);
+    expect(new DataView(bytes.buffer).getUint32(40, true)).toBe(96 * 2 * 2);
+  });
+
+  it("publishes the take's per-channel peaks with the finished blob", async () => {
+    const port = { postMessage: jest.fn(), onmessage: null as any };
+    (service as any).isRecording.set(true);
+    (service as any).workletNode = { port, disconnect: jest.fn() };
+    port.postMessage.mockImplementation((message: any) => {
+      if (message?.command === "FLUSH") {
+        queueMicrotask(() =>
+          (service as any).handleWorkletMessage({
+            data: { command: "FLUSHED" },
+          }),
+        );
+      }
+    });
+
+    (service as any).handleWorkletMessage({
+      data: {
+        command: "DATA",
+        left: [new Float32Array(32).fill(0.5)],
+        right: [new Float32Array(32).fill(0.25)],
+      },
+    });
+
+    expect(service.recordedPeaks()).toBeNull();
+
+    await service.stopRecording();
+
+    // Measured while encoding, so the comp lane never has to decode or re-scan
+    // the audio to level a take.
+    expect(service.recordedPeaks()).toEqual({ left: -6, right: -12 });
+    expect(service.getRecordedFrameCount()).toBe(32);
   });
 
   it("produces byte-identical take audio whether or not the take had to spill", async () => {

@@ -314,20 +314,45 @@ export class AudioImportService {
         this.audioEngine.ctx,
         file,
       );
-      const arrayBuffer = probe.getChannelData(0).buffer.slice(0);
-      ss.attachSource(url, arrayBuffer, probe.sampleRate, probe.numberOfChannels);
-      // If the probe already crossed the short-sample threshold, the streamer may
-      // have fully cached the file during attach; surface the resulting buffer so
-      // the UI sees the real decoded audio rather than the stub.
+      const channels = Math.max(1, probe.numberOfChannels);
+      const frames = probe.length;
+      const planar = new Float32Array(frames * channels);
+      for (let ch = 0; ch < channels; ch++) {
+        planar.set(probe.getChannelData(ch), ch * frames);
+      }
+      ss.attachSource(url, planar.buffer, probe.sampleRate, channels);
+      ss.setPlayhead(0);
+      // Surface the initial resident window and real metadata so the import
+      // editor and arrangement add path have a valid AudioBuffer immediately.
       const resident = ss.getResidentBuffer();
-      const last = results.at(-1);
-      if (last && last.sampleStreamer === ss) {
-        if (resident) {
-          last.buffer = resident;
-          last.sampleRate = resident.sampleRate;
-          last.channels = resident.numberOfChannels;
+      const target =
+        results.find((a) => a.sampleStreamer === ss) ??
+        this.importedAudio().find((a) => a.sampleStreamer === ss);
+      if (target) {
+        const nextBuffer = resident ?? probe;
+        const nextDuration = ss.getTotalSeconds() || probe.duration || target.duration;
+        target.buffer = nextBuffer;
+        target.sampleRate = probe.sampleRate;
+        target.channels = probe.numberOfChannels;
+        target.duration = nextDuration;
+        this.importedAudio.update((list) =>
+          list.map((item) =>
+            item.id === target.id
+              ? {
+                  ...item,
+                  buffer: nextBuffer,
+                  sampleRate: probe.sampleRate,
+                  channels: probe.numberOfChannels,
+                  duration: nextDuration,
+                }
+              : item,
+          ),
+        );
+        if (this.selectedAudio()?.id === target.id) {
+          this.selectedAudio.set(
+            this.importedAudio().find((item) => item.id === target.id) ?? target,
+          );
         }
-        last.duration = ss.getTotalSeconds() || last.duration;
       }
     } catch (e) {
       // Best-effort probe: fall back to the guessed metadata so the import still
@@ -530,8 +555,13 @@ export class AudioImportService {
 
     const ctx = this.audioEngine.ctx;
     // Enhancements are non-destructive: render the enhanced source when one
-    // exists, otherwise the original decoded import.
-    const buffer = audio.enhancedBuffer ?? audio.buffer;
+    // exists, otherwise the original decoded import (or resident window).
+    const buffer =
+      audio.enhancedBuffer ??
+      audio.buffer ??
+      audio.sampleStreamer?.getResidentBuffer() ??
+      null;
+    if (!buffer) return Promise.resolve(null);
     const sr = buffer.sampleRate;
     const channels = buffer.numberOfChannels;
 
@@ -760,7 +790,12 @@ export class AudioImportService {
 
   /** Get waveform data (decimated) for canvas rendering */
   getWaveformData(audio: ImportedAudio, width: number): number[] {
-    const buffer = audio.enhancedBuffer ?? audio.buffer;
+    const buffer =
+      audio.enhancedBuffer ??
+      audio.buffer ??
+      audio.sampleStreamer?.getResidentBuffer() ??
+      null;
+    if (!buffer) return [];
     const data = buffer.getChannelData(0);
     const step = Math.max(1, Math.floor(data.length / width));
     const waveform: number[] = [];
@@ -852,69 +887,130 @@ export class AudioImportService {
    */
   addToProject(audio: ImportedAudio) {
     const addTrack = (buffer: AudioBuffer) => {
+      const originSeconds = Math.max(0, (audio.trimStart || 0) * (audio.duration || buffer.duration));
+      const clipLengthSeconds = Math.max(
+        0.001,
+        buffer.duration || (audio.duration * Math.max(0.01, (audio.trimEnd ?? 1) - (audio.trimStart ?? 0))),
+      );
       this.musicManager.addAudioTrack({
         id: "audio_" + Date.now(),
         name: audio.name,
         color: "#0E7C7B",
         buffer,
         offset: 0,
+        ...(audio.sampleStreamer
+          ? {
+              clipStreamer: audio.sampleStreamer,
+              clipOriginSeconds: originSeconds,
+              clipLengthSeconds,
+              clipSampleRate: buffer.sampleRate || audio.sampleRate || 48000,
+              clipChannels: buffer.numberOfChannels || audio.channels || 2,
+            }
+          : {}),
       });
       this.snackbar.success(`Added \"${audio.name}\" as new track`);
     };
 
-    // Not the current edit target — add whatever buffer we have (full decode
-    // for short samples, or the resident window for long imports). For long
-    // imports the resident window is the preview path; if the playhead has not
-    // moved and no probe has resolved yet, the streamer has no window and we
-    // fall back through whatever is available.
-    if (this.selectedAudio()?.id !== audio.id) {
-      const buffer =
-        audio.buffer ??
-        audio.editedBlob?.arrayBuffer()
-          .then((ab) => this.audioEngine.ctx.decodeAudioData(ab))
-          .then((b) => b)
-          .catch(() => null) ??
-        (async () => {
-          const sg = audio.sampleStreamer;
-          if (!sg) return null;
-          sg.setPlayhead(0);
-          await new Promise<void>((resolve) => {
-            const once = () => {
-              if (sg.getResidentBuffer()) {
-                resolve();
-                return;
-              }
-              setTimeout(() => once(), 10);
-            };
-            once();
-          });
-          return sg.getResidentBuffer();
-        })();
-
-      if (buffer instanceof Promise) {
-        // Defer the track add until the preview window is ready.
-        buffer
-          .then((resolved) => {
-            if (resolved) addTrack(resolved);
-          })
-          .catch(() => {
-            // Final fallback: add nothing rather than crash the add-to-project path.
-            this.logger.warn(
-              `Could not resolve a playable buffer for \"${audio.name}\" when adding to the arrangement`,
+    const resolveFallbackBuffer = async (): Promise<AudioBuffer | null> => {
+      if (audio.enhancedBuffer) return audio.enhancedBuffer;
+      if (audio.buffer) return audio.buffer;
+      if (audio.sampleStreamer) {
+        audio.sampleStreamer.setPlayhead(0);
+        const resident = audio.sampleStreamer.getResidentBuffer();
+        if (resident) return resident;
+      }
+      if (audio.editedBlob) {
+        try {
+          const ab = await audio.editedBlob.arrayBuffer();
+          return await this.audioEngine.ctx.decodeAudioData(ab);
+        } catch {
+          // continue to blob fallback
+        }
+      }
+      if (audio.blob) {
+        try {
+          const decoded = await this.fileLoader.decodeToAudioBuffer(
+            this.audioEngine.ctx,
+            audio.blob as File,
+          );
+          if (audio.sampleStreamer && !audio.sampleStreamer.getResidentBuffer()) {
+            const chs = Math.max(1, decoded.numberOfChannels);
+            const planar = new Float32Array(decoded.length * chs);
+            for (let ch = 0; ch < chs; ch++) {
+              planar.set(decoded.getChannelData(ch), ch * decoded.length);
+            }
+            audio.sampleStreamer.attachSource(
+              audio.url,
+              planar.buffer,
+              decoded.sampleRate,
+              chs,
             );
-          });
+            audio.sampleStreamer.setPlayhead(0);
+          }
+          return audio.sampleStreamer?.getResidentBuffer() ?? decoded;
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    };
+
+    // Not the current edit target — add whatever buffer we have (full decode
+    // for short samples, or the resident window for long imports).
+    if (this.selectedAudio()?.id !== audio.id) {
+      const immediate =
+        audio.enhancedBuffer ??
+        audio.buffer ??
+        audio.sampleStreamer?.getResidentBuffer() ??
+        null;
+      if (immediate) {
+        addTrack(immediate);
         return;
       }
-
-      if (buffer) {
-        addTrack(buffer);
-      }
+      void resolveFallbackBuffer()
+        .then((resolved) => {
+          if (resolved) addTrack(resolved);
+        })
+        .catch(() => {
+          this.logger.warn(
+            `Could not resolve a playable buffer for \"${audio.name}\" when adding to the arrangement`,
+          );
+        });
       return;
     }
 
+    // Long imports with default (untouched) trim/gain/stretch/pitch settings can
+    // be added directly from their resident window without an extra WAV encode/decode
+    // round-trip.
+    const isUnmodified =
+      audio.trimStart === 0 &&
+      audio.trimEnd === 1 &&
+      audio.gain === 1 &&
+      Math.abs(audio.stretchRatio - 1) <= 0.001 &&
+      Math.abs(audio.pitchSemitones) <= 0.001 &&
+      audio.fadeIn === 0 &&
+      audio.fadeOut === 0 &&
+      !audio.normalize &&
+      !audio.enhancedBuffer;
+    if (audio.sampleStreamer && isUnmodified) {
+      const resident = audio.sampleStreamer.getResidentBuffer() ?? audio.buffer;
+      if (resident) {
+        addTrack(resident);
+        return;
+      }
+    }
+
     this.applyEdits().then(async (blob) => {
-      if (!blob) return;
-      let buffer = audio.enhancedBuffer ?? audio.buffer;
+      if (!blob) {
+        const fallback = await resolveFallbackBuffer();
+        if (fallback) addTrack(fallback);
+        return;
+      }
+      let buffer =
+        audio.enhancedBuffer ??
+        audio.buffer ??
+        audio.sampleStreamer?.getResidentBuffer() ??
+        null;
       try {
         const arrayBuffer = await blob.arrayBuffer();
         buffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
@@ -926,7 +1022,12 @@ export class AudioImportService {
           e,
         );
       }
-      addTrack(buffer);
+      if (!buffer) {
+        buffer = await resolveFallbackBuffer();
+      }
+      if (buffer) {
+        addTrack(buffer);
+      }
     });
   }
 

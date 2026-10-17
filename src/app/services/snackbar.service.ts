@@ -65,6 +65,13 @@ export class SnackbarService {
 
     this.isShowing.set(true);
     this.snackbarRef.instance.show(config);
+    // The toast is usually requested from inside a click handler, i.e. during
+    // the change-detection pass that the handler kicked off. `show()` writes its
+    // message signal in that same pass, and a dynamically attached view is not
+    // revisited by the traversal already in flight — so the first paint of every
+    // in-app toast was blank (only the close glyph rendered). Re-render the
+    // toast's own view once its state is set.
+    this.snackbarRef.changeDetectorRef.detectChanges();
 
     setTimeout(() => {
       this.isShowing.set(false);

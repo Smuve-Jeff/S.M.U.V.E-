@@ -46,6 +46,40 @@
     </div>
   </header>
 
+  <!-- ── Pro metering: high-resolution FFT RTA ──────────────────────────
+       Log-frequency, peak-hold, dB-gridded. Reads the engine's master tap,
+       and only animates while the transport is rolling — a mastering suite
+       that burns frames on a stopped project is worse than no meter. -->
+  <section
+    class="mb-6 p-4 rounded-2xl bg-slate-950/70 border border-fl-border studio-workspace-surface mastering-rta"
+    aria-label="Master spectrum analyzer"
+  >
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <div>
+        <h2
+          class="text-[10px] font-black text-slate-300 uppercase tracking-[0.28em]"
+        >
+          Master Spectrum · RTA
+        </h2>
+        <p class="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+          Log-frequency FFT · peak hold · 20 Hz – 20 kHz
+        </p>
+      </div>
+      <span
+        class="text-[9px] font-black uppercase tracking-[0.22em]"
+        [class]="metering() ? 'text-emerald-400' : 'text-slate-500'"
+      >
+        {{ metering() ? 'Rolling' : 'Stopped' }}
+      </span>
+    </div>
+    <app-spectrum-analyzer
+      [analyser]="masterAnalyser()"
+      [active]="metering()"
+      [height]="148"
+      label="Master bus"
+    ></app-spectrum-analyzer>
+  </section>
+
   <!-- Sprint B1 Phase 2: real-render meters -->
   <section
     *ngIf="renderedTruePeak() !== null"

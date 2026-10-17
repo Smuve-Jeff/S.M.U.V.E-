@@ -1,5 +1,14 @@
-import { test, expect } from '@playwright/test';
+import { test, expect as baseExpect } from '@playwright/test';
 import { seedAuthenticatedSession } from './helpers';
+
+/**
+ * The Studio defers its heavy workspaces (`@defer (on viewport)`), so on a cold
+ * dev server a view can take a few seconds past first paint to mount. The
+ * default 5s assertion budget is shorter than that chunk fetch, which showed up
+ * as "app-mixer not found" rather than as a real failure. Assertions are
+ * unchanged; only the budget is realistic.
+ */
+const expect = baseExpect.configure({ timeout: 20_000 });
 
 const views = [
   'arrangement', 'session', 'piano-roll', 'drum-machine', 'channel-rack', 'mixer',

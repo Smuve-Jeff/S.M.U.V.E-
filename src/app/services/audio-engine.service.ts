@@ -12,6 +12,7 @@ import { firstValueFrom } from 'rxjs';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { StemSeparationService, Stems } from './stem-separation.service';
 import { DynamicEffectsRack } from '../studio/effects/dynamic-effects-rack';
+import { SampleStreamer } from './sample-streamer.service';
 import {
   LoudnessMeter,
   phaseCorrelation,
@@ -2635,22 +2636,48 @@ export class AudioEngineService {
   }
 
   /**
-   * Phase F2 — sampler trigger with optional clip fade-in / fade-out.
+   * Phase F2 / Phase H — sampler trigger with optional clip fade-in / fade-out
+   * and SampleStreamer window support for long imported clips.
    * Fades are expressed in seconds and applied as linear gain ramps on the
    * per-trigger VCA, so arrangement clips with `fadeIn`/`fadeOut` set get a
    * click-free envelope exactly like a professional DAW's clip fades.
    */
   triggerSampler(
     trackId: string | number,
-    buffer: AudioBuffer,
+    bufferOrStreamer: AudioBuffer | SampleStreamer,
     time: number,
     velocity: number,
     pan: number,
     duration: number,
     playbackRate: number = 1,
     fadeInSec: number = 0,
-    fadeOutSec: number = 0
+    fadeOutSec: number = 0,
+    clipOriginSeconds: number = 0,
+    clipLengthSeconds: number = 0,
+    sampleRate: number = 48000,
+    _channels: number = 2
   ) {
+    const isStreamer =
+      bufferOrStreamer instanceof SampleStreamer ||
+      (bufferOrStreamer !== null &&
+        typeof bufferOrStreamer === 'object' &&
+        typeof (bufferOrStreamer as unknown as SampleStreamer).getResidentBuffer ===
+          'function' &&
+        typeof (bufferOrStreamer as unknown as SampleStreamer).advancePlayhead ===
+          'function');
+
+    const buffer = isStreamer
+      ? this.sampleStreamerToWindow(
+          bufferOrStreamer as SampleStreamer,
+          clipOriginSeconds,
+          sampleRate
+        )
+      : (bufferOrStreamer as AudioBuffer);
+
+    if (!buffer) {
+      return;
+    }
+
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
     source.playbackRate.setValueAtTime(playbackRate, time);
@@ -2684,6 +2711,24 @@ export class AudioEngineService {
     gain.connect(this.getTrackOutput(trackId.toString()));
     source.start(time);
     source.stop(time + safeDuration + 0.01);
+
+    if (isStreamer) {
+      const advanceSec = clipLengthSeconds > 0 ? clipLengthSeconds : safeDuration;
+      (bufferOrStreamer as SampleStreamer).advancePlayhead(
+        advanceSec * (sampleRate || 48000)
+      );
+    }
+  }
+
+  private sampleStreamerToWindow(
+    streamer: SampleStreamer,
+    clipOriginSeconds: number,
+    sampleRate: number
+  ): AudioBuffer | null {
+    streamer.setPlayhead(
+      Math.max(0, (clipOriginSeconds || 0) * (sampleRate || 48000))
+    );
+    return streamer.getResidentBuffer() ?? null;
   }
 
   getTrackOutput(id: string): GainNode {

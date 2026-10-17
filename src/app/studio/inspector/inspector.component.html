@@ -1,0 +1,274 @@
+<aside
+  class="insp"
+  [class.insp-collapsed]="collapsed()"
+  [attr.aria-label]="'Track inspector'"
+  data-inspector
+>
+  <header class="insp-head">
+    <span class="material-symbols-outlined insp-glyph" aria-hidden="true">tune</span>
+    <h2 class="insp-title">Inspector</h2>
+    <button
+      type="button"
+      class="insp-icon-btn insp-toggle"
+      (click)="toggleCollapsed.emit()"
+      [attr.aria-expanded]="!collapsed()"
+      [attr.aria-label]="
+        collapsed() ? 'Expand track inspector' : 'Collapse track inspector'
+      "
+      [title]="collapsed() ? 'Expand inspector' : 'Collapse inspector'"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">{{
+        collapsed() ? 'chevron_left' : 'chevron_right'
+      }}</span>
+    </button>
+  </header>
+
+  <div class="insp-body" *ngIf="!collapsed()">
+    <ng-container *ngIf="track() as t; else inspEmpty">
+      <!-- Identity: colour swatch + name + track kind. The colour is the same
+           one the arrangement lane and the mixer strip use, so the panel is
+           recognisably "that track" at a glance. -->
+      <div class="insp-identity">
+        <span
+          class="insp-swatch"
+          [style.background]="t.color"
+          aria-hidden="true"
+        ></span>
+        <div class="insp-identity-copy">
+          <span class="insp-name" [title]="t.name">{{ t.name }}</span>
+          <span class="insp-meta">
+            <span class="insp-badge">{{ typeLabel(t) }}</span>
+            <span class="insp-index">CH {{ trackCount() }}</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Mute / Solo / Phase — the three switches an arranger reaches for
+           constantly. Phase is shown as "Ø" because that is what the hardware
+           and every other DAW prints. -->
+      <div class="insp-switches" role="group" aria-label="Track switches">
+        <button
+          type="button"
+          class="insp-switch insp-switch-mute"
+          [class.is-on]="t.muted"
+          [attr.aria-pressed]="t.muted"
+          (click)="toggleMute()"
+          aria-label="Mute track"
+        >
+          M
+        </button>
+        <button
+          type="button"
+          class="insp-switch insp-switch-solo"
+          [class.is-on]="t.soloed"
+          [attr.aria-pressed]="t.soloed"
+          (click)="toggleSolo()"
+          aria-label="Solo track"
+        >
+          S
+        </button>
+        <button
+          type="button"
+          class="insp-switch insp-switch-phase"
+          [class.is-on]="t.phaseInvert"
+          [attr.aria-pressed]="!!t.phaseInvert"
+          (click)="togglePhase()"
+          aria-label="Invert track phase"
+          title="Invert phase (Ø)"
+        >
+          Ø
+        </button>
+      </div>
+
+      <!-- Level -->
+      <div class="insp-field">
+        <div class="insp-field-head">
+          <label class="insp-label" for="insp-volume">Volume</label>
+          <output class="insp-value insp-value-num" for="insp-volume">{{
+            gainLabel
+          }}</output>
+        </div>
+        <input
+          id="insp-volume"
+          class="insp-slider insp-slider-volume"
+          type="range"
+          min="0"
+          max="150"
+          step="1"
+          [value]="volumePercent"
+          (input)="onVolume($any($event.target).value)"
+          aria-label="Track volume"
+        />
+      </div>
+
+      <!-- Pan -->
+      <div class="insp-field">
+        <div class="insp-field-head">
+          <label class="insp-label" for="insp-pan">Pan</label>
+          <output class="insp-value insp-value-num" for="insp-pan">{{
+            panLabel
+          }}</output>
+        </div>
+        <input
+          id="insp-pan"
+          class="insp-slider insp-slider-pan"
+          type="range"
+          min="-100"
+          max="100"
+          step="1"
+          [value]="panPercent"
+          (input)="onPan($any($event.target).value)"
+          aria-label="Track pan"
+        />
+      </div>
+
+      <!-- Stereo width — deliberately its own control: a mono-compatibility
+           check is the most common reason to open an inspector mid-mix. -->
+      <div class="insp-field insp-field-compact">
+        <div class="insp-field-head">
+          <label class="insp-label" for="insp-width">Width</label>
+          <output class="insp-value insp-value-num" for="insp-width"
+            >{{ t.stereoWidth ? (t.stereoWidth * 100).toFixed(0) : '0' }}</output
+          >
+        </div>
+        <input
+          id="insp-width"
+          class="insp-slider"
+          type="range"
+          min="-100"
+          max="100"
+          step="1"
+          [value]="t.stereoWidth ? t.stereoWidth * 100 : 0"
+          (input)="onStereoWidth($any($event.target).value)"
+          aria-label="Stereo width"
+        />
+      </div>
+
+      <!-- Sends -->
+      <div class="insp-group" role="group" aria-label="Auxiliary sends">
+        <span class="insp-group-title">Sends</span>
+        <div class="insp-field insp-field-compact">
+          <div class="insp-field-head">
+            <label class="insp-label" for="insp-send-a">Reverb&nbsp;(A)</label>
+            <output class="insp-value insp-value-num" for="insp-send-a"
+              >{{ sendAPercent }}</output
+            >
+          </div>
+          <input
+            id="insp-send-a"
+            class="insp-slider"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            [value]="sendAPercent"
+            (input)="onSend('A', $any($event.target).value)"
+            aria-label="Send A amount"
+          />
+        </div>
+        <div class="insp-field insp-field-compact">
+          <div class="insp-field-head">
+            <label class="insp-label" for="insp-send-b">Delay&nbsp;(B)</label>
+            <output class="insp-value insp-value-num" for="insp-send-b"
+              >{{ sendBPercent }}</output
+            >
+          </div>
+          <input
+            id="insp-send-b"
+            class="insp-slider"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            [value]="sendBPercent"
+            (input)="onSend('B', $any($event.target).value)"
+            aria-label="Send B amount"
+          />
+        </div>
+      </div>
+
+      <!-- Inserts -->
+      <div class="insp-group" role="group" aria-label="Track inserts">
+        <div class="insp-group-head">
+          <span class="insp-group-title">Inserts</span>
+          <button
+            type="button"
+            class="insp-link-btn"
+            (click)="openRack()"
+            aria-label="Open the effects rack for this track"
+          >
+            Rack
+            <span class="material-symbols-outlined" aria-hidden="true"
+              >open_in_new</span
+            >
+          </button>
+        </div>
+
+        <p class="insp-hint" *ngIf="!(t.fxSlots?.length)">
+          No inserts on this track yet — open the rack to add one.
+        </p>
+
+        <ul class="insp-fx" *ngIf="t.fxSlots?.length">
+          <li
+            class="insp-fx-slot"
+            *ngFor="let slot of t.fxSlots; trackBy: fxTrackId"
+            [class.is-off]="!slot.enabled"
+          >
+            <button
+              type="button"
+              class="insp-fx-power"
+              [attr.aria-pressed]="slot.enabled"
+              [attr.aria-label]="
+                (slot.enabled ? 'Bypass ' : 'Enable ') + slot.type
+              "
+              (click)="toggleFx(slot.id)"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">{{
+                slot.enabled ? 'power_settings_new' : 'power_off'
+              }}</span>
+            </button>
+            <span class="insp-fx-name" [title]="slot.type">{{ slot.type }}</span>
+            <button
+              type="button"
+              class="insp-fx-remove"
+              (click)="removeFx(slot.id)"
+              [attr.aria-label]="'Remove ' + slot.type"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true"
+                >close</span
+              >
+            </button>
+          </li>
+        </ul>
+      </div>
+    </ng-container>
+
+    <!-- Never a dead panel (Stagelight / Cubasis both open with something
+         playable or an explicit instruction — an inspector that renders a
+         blank column reads as broken). -->
+    <ng-template #inspEmpty>
+      <div class="insp-empty">
+        <span class="material-symbols-outlined insp-empty-glyph" aria-hidden="true"
+          >touch_app</span
+        >
+        <p class="insp-empty-copy">
+          Tap a track lane to edit its level, pan and inserts here — without
+          leaving the arrangement.
+        </p>
+        <span class="insp-empty-hint">
+          {{ trackCount() }} track{{ trackCount() === 1 ? '' : 's' }} in this
+          session
+        </span>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Collapsed rail keeps the track colour visible so you can still see which
+       channel the inspector is pointing at. -->
+  <div class="insp-rail" *ngIf="collapsed()" aria-hidden="true">
+    <span
+      class="insp-rail-swatch"
+      [style.background]="track()?.color || 'transparent'"
+    ></span>
+  </div>
+</aside>

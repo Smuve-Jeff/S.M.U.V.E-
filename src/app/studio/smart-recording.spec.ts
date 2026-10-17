@@ -25,6 +25,9 @@ function createRecordingEngineMock() {
       return Promise.resolve();
     }),
     getRecordedBuffers: jest.fn().mockReturnValue({ left: [], right: [] }),
+    recordedBlob: jest.fn().mockReturnValue(null),
+    recordedPeaks: jest.fn().mockReturnValue(null),
+    getRecordedFrameCount: jest.fn().mockReturnValue(0),
   };
   return mock;
 }
@@ -241,6 +244,33 @@ describe("SmartRecordingService", () => {
       expect(take!.peakDbL).toBeCloseTo(-6, 0);
       expect(take!.peakDbR).toBeCloseTo(-12, 0);
       expect(service.isCompRecording()).toBe(false);
+    });
+
+    it("uses the engine's streamed take instead of pulling the PCM back", async () => {
+      // A stopped take arrives as an encoded blob plus its measured peaks, so a
+      // long pass is never rehydrated (the whole take plus a joined copy) just
+      // to build a file the engine already has.
+      const streamedBlob = new Blob(["wav-bytes"], { type: "audio/wav" });
+      recordingEngineMock.recordedBlob.mockReturnValue(streamedBlob);
+      recordingEngineMock.getRecordedFrameCount.mockReturnValue(96);
+      recordingEngineMock.recordedPeaks.mockReturnValue({
+        left: -6,
+        right: -12,
+      });
+      recordingEngineMock.getRecordedBuffers.mockReturnValue({
+        left: [new Float32Array(4800).fill(0.5)],
+        right: [new Float32Array(4800).fill(0.5)],
+      });
+
+      service.startNewCompGroup("t1", "Track", "Chorus");
+      await service.startCompTake();
+      const take = await service.finishCompTake();
+
+      expect(take!.blob).toBe(streamedBlob);
+      expect(take!.peakDbL).toBe(-6);
+      expect(take!.peakDbR).toBe(-12);
+      expect(take!.durationMs).toBe(Math.round((96 / 48000) * 1000));
+      expect(recordingEngineMock.getRecordedBuffers).not.toHaveBeenCalled();
     });
 
     it("keeps the input open for the post-roll before saving a take", async () => {
@@ -988,7 +1018,11 @@ describe("SmartRecordingService", () => {
       });
       service.compGroups.set([
         makeGroup(
-          [makeTake("a", 1, 1, 3), makeTake("b", 2, 3, 5), makeTake("c", 3, 1, 7)],
+          [
+            makeTake("a", 1, 1, 3),
+            makeTake("b", 2, 3, 5),
+            makeTake("c", 3, 1, 7),
+          ],
           [
             { id: "s1", startBar: 1, endBar: 3, takeId: "a" },
             { id: "s2", startBar: 3, endBar: 5, takeId: "b" },

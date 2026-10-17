@@ -104,16 +104,75 @@ export class SampleStreamer {
 
   /** Get the total duration of the source in seconds. Returns 0 if no source. */
   getDuration(): number {
+    if (!this.sourceArrayBuffer || !this.sourceSampleRate) return 0;
+    return this.getTotalFrames() / this.sourceSampleRate;
+  }
+
+  private getTotalFrames(): number {
     if (!this.sourceArrayBuffer) return 0;
-    // We store the sampleRate from attachSource; if the original file had a different rate we could re-query, but the attachSource caller is responsible for consistency.
-    return (this.sourceArrayBuffer.byteLength / (this.sourceSampleRate * this.sourceChannels * 4)) | 0;
+    const bytesPerFrame = Math.max(4, this.sourceChannels * 4);
+    return Math.floor(this.sourceArrayBuffer.byteLength / bytesPerFrame);
+  }
+
+  private buildPcmWindowBuffer(startFrame: number, endFrame: number): AudioBuffer | null {
+    if (!this.sourceArrayBuffer || this.sourceArrayBuffer.byteLength < 4) return null;
+    // Detect RIFF/Ogg/fLaC/ID3 container headers; those go through decodeAudioData.
+    const magic = new Uint8Array(this.sourceArrayBuffer, 0, Math.min(4, this.sourceArrayBuffer.byteLength));
+    const tag = String.fromCharCode(...magic);
+    if (tag === 'RIFF' || tag === 'OggS' || tag === 'fLaC' || tag === 'ID3\u0003' || tag.startsWith('ID3')) {
+      return null;
+    }
+    const totalFrames = this.getTotalFrames();
+    const clampedStart = Math.max(0, Math.min(startFrame, totalFrames));
+    const clampedEnd = Math.max(clampedStart, Math.min(endFrame, totalFrames));
+    const frameCount = Math.max(1, clampedEnd - clampedStart);
+    const channels = Math.max(1, this.sourceChannels || 1);
+    const sampleRate = this.sourceSampleRate || 48000;
+    const pcm = new Float32Array(this.sourceArrayBuffer);
+
+    const AudioBufferCtor: typeof AudioBuffer | undefined = (globalThis as any).AudioBuffer;
+    if (typeof AudioBufferCtor === 'function') {
+      try {
+        const buf = new AudioBufferCtor({
+          numberOfChannels: channels,
+          length: frameCount,
+          sampleRate,
+        });
+        for (let ch = 0; ch < channels; ch++) {
+          const channelOffset = Math.min(ch, Math.floor(pcm.length / Math.max(1, totalFrames)) - 1);
+          const base = Math.max(0, channelOffset) * totalFrames;
+          const slice = pcm.subarray(base + clampedStart, base + clampedStart + frameCount);
+          buf.getChannelData(ch).set(slice);
+        }
+        return buf;
+      } catch {
+        // Fall through to lightweight AudioBuffer-compatible object for test environments.
+      }
+    }
+
+    const channelData: Float32Array[] = [];
+    for (let ch = 0; ch < channels; ch++) {
+      const out = new Float32Array(frameCount);
+      const slice = pcm.subarray(clampedStart, clampedStart + frameCount);
+      out.set(slice);
+      channelData.push(out);
+    }
+    return {
+      sampleRate,
+      length: frameCount,
+      duration: frameCount / sampleRate,
+      numberOfChannels: channels,
+      getChannelData: (c: number) => channelData[Math.max(0, Math.min(c, channelData.length - 1))],
+      copyFromChannel: () => {},
+      copyToChannel: () => {},
+    } as unknown as AudioBuffer;
   }
 
   /** Advance the playhead by deltaFrames. Clamps to [0, duration]. After advancing, returns the new resident buffer so the caller can feed it to an AudioBufferSourceNode. */
   advancePlayhead(deltaFrames: number): AudioBuffer | null {
     if (!this.sourceArrayBuffer) return null;
 
-    const totalFrames = this.sourceArrayBuffer.byteLength / (this.sourceSampleRate * this.sourceChannels * 4);
+    const totalFrames = this.getTotalFrames();
     const frameStep = Math.round(deltaFrames);
     this.playheadFrame = Math.max(0, Math.min(this.playheadFrame + frameStep, totalFrames));
 
@@ -123,11 +182,24 @@ export class SampleStreamer {
     const startFrame = Math.max(0, this.playheadFrame - Math.floor(windowSeconds * this.sourceSampleRate / 2));
     const endFrame = Math.min(totalFrames, startFrame + windowSeconds * this.sourceSampleRate);
 
+    // If the attached source is raw Float32 PCM (planar or mono), build a
+    // windowed AudioBuffer synchronously so playback has a resident window
+    // immediately without failing decodeAudioData on headerless PCM.
+    const syncWindow = this.buildPcmWindowBuffer(startFrame, endFrame);
+    if (syncWindow) {
+      this.residentBuffer = syncWindow;
+      this.residentDuration = syncWindow.duration;
+      if (this.onResidentChange) {
+        this.onResidentChange(syncWindow, syncWindow.duration);
+      }
+      return this.residentBuffer;
+    }
+
     // Decode the slice we need from the original ArrayBuffer.
     // We use the AudioContext.decodeAudioData path because it is the same path every other import uses, and it guarantees a proper AudioBuffer.
     const chunkArrayBuffer = this.sourceArrayBuffer.slice(
-      startFrame * this.sourceSampleRate * this.sourceChannels * 4,
-      endFrame * this.sourceSampleRate * this.sourceChannels * 4,
+      startFrame * this.sourceChannels * 4,
+      endFrame * this.sourceChannels * 4,
     );
 
     const ctx = (globalThis as any).AudioContext
@@ -191,7 +263,7 @@ export class SampleStreamer {
   /** Set the playhead to an absolute frame position. Clamps to [0, totalFrames]. */
   setPlayhead(frame: number): void {
     if (!this.sourceArrayBuffer) return;
-    const totalFrames = this.sourceArrayBuffer.byteLength / (this.sourceSampleRate * this.sourceChannels * 4);
+    const totalFrames = this.getTotalFrames();
     this.playheadFrame = Math.max(0, Math.min(frame, totalFrames));
     // Refill the resident window.
     this.advancePlayhead(0);

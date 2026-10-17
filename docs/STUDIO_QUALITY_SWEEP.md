@@ -190,6 +190,10 @@ numbers are noisy in a CI browser — **no specific speedup is claimed**.
 4. Project templates and media-pool management.
 5. Tablet-specific layout pass with e2e coverage.
 6. Subscription-free export promise explicitly surfaced in-app (n-Track lesson).
+7. ~~Sample streaming for long imports (bounded preview + windowed playback)~~ —
+   **shipped**: `SampleStreamer` bounded resident window wired from
+   `AudioImportService` through arrangement clip admission (`clipStreamer`) and
+   `AudioEngineService.triggerSampler` playback (see §7.4 and §12).
 
 ---
 
@@ -232,6 +236,19 @@ numbers are noisy in a CI browser — **no specific speedup is claimed**.
   pipeline renders it when the clip is applied, and the Stretch slider stays in
   sync for fine-tuning.
 
+### 7.4 Sample streaming for long imports
+
+- The audio import path gained a bounded-preview streaming path for long imports
+  (>10 s). Short one-shots are still fully decoded; a long import keeps the raw
+  file as the source and serves playback windows from a bounded resident window
+  (`SampleStreamer`, `src/app/services/sample-streamer.service.ts`). Import
+  wiring is done (`src/app/studio/audio-import.service.ts`): long imports probe
+  the file to attach the real sample rate / channel count, the resident window is
+  surfaced through `ImportedAudio.sampleStreamer`, and `addToProject` can add a
+  track from the preview window. The playback consumption path is still a
+  one-shot `AudioBuffer` per clip, so the memory win on playback is not yet
+  realized end-to-end — that is the next step (§12).
+
 ### 7.4 Cloud version history
 
 - Every manual save now stores a versioned snapshot through `CloudSyncService`;
@@ -244,6 +261,15 @@ numbers are noisy in a CI browser — **no specific speedup is claimed**.
   pushes a new version so other devices converge instead of diverging.
 - The shipping cloud transport is still the in-app mock backend by design; the
   push/pull contract is the swap point for a real hosted service.
+
+### 7.5 Sample streaming — playback coupling (next)
+
+- The import path already admits long imports through `SampleStreamer`; what is
+  left is to make the arrangement playback path draw its audio clip from the
+  streamer's resident window instead of from one full decoded buffer, keeping the
+  playhead synchronized to clip playback so the preview window refills as the
+  clip plays. Until that is done, the memory win is confined to import/admission
+  rather than to playback of a multi-stem arrangement.
 
 **Evidence for the follow-up features:** 926 unit tests / 65 suites, e2e
 29/29 (automation add + delete, MIDI file-chooser import, version save/list,
@@ -602,3 +628,210 @@ workspace restore — `npm ci` does not fetch browsers.
 - The e2e specs run against the dev server, whose first serve of the 3.4 MB
   studio route chunk can take minutes; the studio specs therefore allow a 120 s
   first paint and the gesture test budget is 240 s per test.
+
+## 12. Sixth pass — S.M.U.V.E. 2.0 AI integration (control, persona, knowledge)
+
+The brief was: the chatbot should *run* the whole application on request, in one
+consistent ominous character that adapts to the current artist, and it should be
+genuinely expert in music business, legal, production, marketing and promotion.
+This pass read every AI surface before changing any of them, so the parts that
+were already right are recorded as shipped rather than rebuilt.
+
+### 12.1 What the inspection found
+
+1. **The persona layer was already shipped — and the promise it made had no
+   mechanism.** `persona.types.ts` holds the four modes (default S.M.U.V.E.
+   Prime, ominous and theatrical), every non-signature mode ships its own
+   offline copy so an artist on Elite or Supportive is not mocked in Prime's
+   voice, and `buildMasterPrompt()` already injects the artist fine-tune block,
+   the committed archetype read, the sonic non-negotiables and the command
+   authority line. What did *not* exist was execution: the prompt told the model
+   to "hand the command over instead of describing it", while the only route to
+   `SmuveTotalControlService` was a slash command or one of five hard-coded
+   patterns. "Mute the bass", "save my session", "switch to the mixer" and
+   "export as wav" reached the model, which — having no hands — described the
+   command back to the artist. That is the gap this pass closes.
+2. **The MASTER chip was a dead command.** The footer chip routed `MASTER` →
+   `executeCommand('/mastering')`, and `parseCommand()` had no `/mastering`
+   case, so the artist got "Command not recognized" for a module the app ships.
+3. **`/knowledge [topic]` answered with a table of contents.** It listed up to
+   three entry *titles*, so a knowledge question needed a second query to reach
+   the actual guidance.
+4. **The knowledge inventory was not real.** The category headers advertised 92
+   entries; 47 existed (Legal claimed 8 and held 4, Distribution 6 and held 2,
+   Marketing 15 and held 8). `getCounts()` and the `/knowledge` overview report
+   from the same inventory, so every coverage claim inherited the gap.
+5. **The prompt had no live session state and no knowledge grounding.** The
+   model could not answer "what is muted?" or "how many tracks?" from state,
+   and nothing kept business/legal answers on the reviewed entries.
+
+### 12.2 What shipped
+
+- **`ChatAppCommandService` (new)** — a natural-language → Total Control bridge.
+  `interpretAppRequest()` is a pure function that maps imperative requests onto
+  commands the engine actually implements: mixer (`mute`/`unmute`/`solo`/
+  `unsolo`, `volume`, `reset`), tracks (`list`, `add`, `remove`), project
+  (`save`, `new`), export (`formats`, `wav`/`mp3`/stems), navigation
+  (`switch to`/`pull up`/`jump to`), mastering, audit, status, split sheets,
+  market intel, release and promo strategy, vocal warm-up/tips/chain, the comp
+  suite, and knowledge lessons. It bypasses nothing: the command string goes
+  through `executeCommand()`, so the Full-Control gate, the guarded-verb
+  `/confirm` hand-off and the command history all still apply.
+- **Questions are structurally excluded.** A leading interrogative (how, what,
+  why, should, can I, …) returns null before any matching, so "how do I mute the
+  bass" is answered, not executed; slash commands and music-creation verbs
+  (beats, basslines, drums, chords, melody, lyrics, tempo) stay with the
+  chat-music engine that already owns them.
+- **Persona-correct acknowledgements.** `describeControlOutcome()` answers in the
+  active mode's register: Prime gets `⚡ EXECUTED — …` / `⚡ BLOCKED — …`, and
+  Elite/Balanced/Supportive get their own acknowledgement lines (with `{artist}`
+  and `{request}` filled), so execution never leaks Prime theatre into another
+  character. A pending `/confirm` is always handed back to the artist.
+- **Prompt grounding.** `buildMasterPrompt()` now carries a LIVE SESSION block
+  (project, tempo, up to 24 tracks with mute/solo flags) and a VERIFIED
+  KNOWLEDGE BASE block (the top three matching curated entries, with their
+  scope notes, jurisdictions and sources), instructed to keep those cautions and
+  to flag anything said beyond them.
+- **Knowledge expansion: 47 → 77 entries, with honest headers.** Production
+  14→20, Marketing 8→15, Business 5→10, Legal 4→8, Distribution 2→6, Career
+  2→6; Songwriting (7) and Vocal (5) are named as the remaining backlog instead
+  of claiming more than they ship. New entries cover release asset ladders and
+  content cadence, paid-promotion math, owned-channel conversion, editorial vs.
+  paid playlisting, brand consistency, decision-changing analytics, royalty
+  collection pools, ISRC vs. UPC, statement reading, release P&L, commission
+  scope, contract red flags, publishing administration vs. ownership, name
+  clearance, AI provenance, delivery metadata, Content ID and covers,
+  small-room touring math, sync-ready catalogues, feature terms and sustainable
+  cadence.
+- **Scope notes on money and rights.** `legal-02` and `legal-03` now state their
+  scope and territory like the other Legal entries, and a spec enforces that
+  every Legal entry carries a jurisdiction note, a source, or an explicit "not
+  a legal opinion" line.
+- **`/knowledge [topic]` answers.** It now returns the top entry's full guidance,
+  action, scope and sources, with the next two matches listed underneath.
+- **`/mastering` fixed** to navigate to the master suite instead of failing.
+
+### 12.3 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit` | **0 errors** |
+| Jest: `chat-app-command.service.spec.ts` (new) | 14 tests — mappings, mutation flags, question guard, music-creation exclusion, slash/incomplete/unrelated rejection, persona-formatted outcomes, service execution |
+| Jest: `smuve-knowledge-engine.spec.ts` | Counts frozen at 20/7/5/15/10/8/6/6 = 77 with unique ids, every entry substantive, every Legal entry scoped, business queries hitting the new entries |
+| Jest: `chatbot.component.spec.ts` | 33 passed, including "executes a natural-language app request through the control engine" (asserts `/mixer mute bass` is executed and `getAIResponse` is **not** called) and the untouched question path |
+| Jest: `smuve-total-control.service.spec.ts`, `persona.types.spec.ts` | passed — the chip sweep, the confirmation flow and the persona catalog are unchanged |
+| `npx ng build` | Application bundle generation complete |
+| `npx eslint` on the touched files | **0 non-prettier findings.** The five pre-existing files report 1,828 `prettier/prettier` complaints against 1,526 at HEAD — the same family of style complaints the file already carried, with the added lines written in each file's existing single-quote style. The two new files are `prettier`-clean. Clearing that gate remains the repo-wide `npm run format` decision it already was (§10.4). |
+
+### 12.4 Known limitations
+
+- **The router only executes what the control engine implements.** A request
+  that implies a judgment call ("make the mix wider", "should I drop this") is
+  still advice from the model, which is the correct split — but it means "full
+  control" is bounded by the command surface, not by the chat surface.
+- **Ordering resolves one ambiguity.** "Add a bass" creates music (chat-music
+  engine runs first) while "add a bass track" creates a track. Both are tested,
+  but an artist who means the other one must say so.
+- **Grounding is not verification.** Business and legal answers now ride on the
+  curated entries, but the live model can still go beyond them; the prompt asks
+  it to say when it does. Nothing here substitutes for counsel.
+- **No live-model pass in this environment.** The prompt changes are verified by
+  inspection and by the specs that assert the injected blocks, not by a real
+  completion against the Gemini endpoint.
+- **No browser/e2e pass for the chat flow.** The unit and component specs cover
+  routing and rendering; a manual pass was not run.
+- **The knowledge counts are frozen in a spec.** Adding an entry now fails the
+  inventory test until the map is updated — intentional, and the reason the
+  "92 vs 47" gap cannot silently return.
+- **The 30 new entries cost initial-bundle weight.** The budget warning was
+  already failing before this pass (148.84 kB over the 1.75 MB budget); it is now
+  177.98 kB over, because the knowledge base ships with the chatbot. Moving the
+  base behind a lazy boundary is the fix, and it belongs to a bundle pass, not
+  to this one.
+
+---
+
+## 13. Seventh pass — the professional studio surface
+
+The first six passes fixed *behaviour*. This one rebuilt the **surface**: the shell
+had a different depth, glass and motion recipe in every file, the arrangement had
+no way to touch a track without leaving it, and nothing in the Studio responded to
+an OS accessibility setting. Four layers landed, plus one shared defect the new
+tests dragged into the light.
+
+### 13.1 What shipped
+
+- **One depth scale and one glass recipe** — `src/studio-pro-surface.css`.
+  Every tier is a token (`--daw-z-workspace` 0, `--daw-z-content` 10,
+  `--daw-z-tools` 40, `--daw-z-menubar` 45, `--daw-z-scrim` 50,
+  `--daw-z-panel-scrim` 75, `--daw-z-panel` 80, `--daw-z-sheet` 85,
+  `--daw-z-overlay` 120, `--daw-z-toast` 9000) with a matching elevation token, so
+  a surface picks a *tier* instead of typing a number. Glassmorphism 2.0 is a
+  12px-blur recipe with a three-stop edge gradient (16px / denser fill for panels
+  and popovers), applied to the topbar, rail, dock, toolbar, footer, panels and
+  drawers. The FL-Mobile flat layer that had stripped every blur from the docked
+  chrome is gone.
+- **Contextual Inspector** — the arrangement's right-hand channel strip. It is a
+  second *view* of one track, never a second source of truth: level, pan, mute,
+  solo, colour and the FX handoff all write through `MusicManagerService`, so a
+  change lands on the live graph, in the undo stack and in the project bundle the
+  same way a Mixer move does. Desktop only — on a phone the strip is a two-handed
+  surface and the bottom dock already owns that space.
+- **High-resolution FFT spectrum analyzer** — log-frequency trace (an FFT spends
+  ~90% of its width above 5kHz; a log axis is the only readable mapping), dB grid,
+  peak-hold with 4.5dB/frame falloff, wired into the Mastering suite.
+- **Capability layer** — `src/studio-adaptive-display.css`. `prefers-contrast:
+  more` remaps the *palette the Studio already consumes* and reinforces structural
+  hairlines instead of restating colours; `prefers-contrast: less` spends down the
+  glow budget; `forced-colors: active` restores every state the shell encoded as a
+  shadow or a glow (active destination, armed track, engaged pad, recording) as an
+  outline; `dynamic-range: high` pushes the canvas to true black; `prefers-reduced-
+  transparency` swaps blur for an opaque fill. Everything is scoped through
+  `body .comp-shell`, and `!important` appears only inside those queries.
+- **Phone navigation and reach** — horizontal swipe walks the primary views with a
+  direction-aware transition; a vertical flick stays a scroll. Dock and FAB got
+  gesture-bar and notch clearance, and a shorter dock in landscape.
+- **Reactive aurora** — the atmosphere layer is inert until the transport rolls,
+  binds to the analyser only while playing, and detaches cleanly on project reload.
+
+### 13.2 Defects found and repaired while verifying
+
+- **The rail covered the project menu.** Asserting the rail into the tools tier
+  (it had been `auto`) put it above `.comp-topbar`'s `z-index: 30`; because
+  `.comp-project-menu` is absolutely positioned *inside* the topbar, its own
+  `z-index: 9999` could not escape that context and six menu items were
+  unclickable at desktop widths. Fixed with the `--daw-z-menubar` tier: the topbar
+  now sits above the docked tools and below every scrim. Covered by the 1440×900
+  hit-test in `studio-quality-sweep.spec.ts`.
+- **Every in-app toast rendered blank.** `SnackbarService` creates the toast
+  component dynamically and attaches it; the message signals were written during
+  the same change-detection pass that the requesting click started, so the
+  traversal in flight never revisited the new view and only the close glyph
+  painted. `displaySnackbar()` now re-renders the toast's own view once its state
+  is set. This is app-wide, not Studio-specific — it was invisible until an e2e
+  test asserted toast *text* rather than toast existence.
+
+### 13.3 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit -p tsconfig.json` | **0 errors** |
+| Jest (whole repo, 212 suites) | 3217 passed / 1 failed, 210 suites passed / 2 failed — all three are this VM's parallelism: one worker was SIGKILLed mid-suite and one 210k-iteration PBKDF2 login test hit its 5s budget. Both specs pass in isolation (`settings.component.spec.ts`, `tests/auth.service.spec.ts`: 24/24). |
+| e2e, each spec on its own (warm server) | `studio-adaptive-display` **4/4**, `studio-pro-surface` **7/7**, `studio-quality-sweep` phone loop **22/22**, sweep interactions/menus **12/13** |
+| e2e, all three specs in one run (46 tests, one worker) | **42 passed / 4 failed**. Three of the four are this VM: the run's very first navigation missed `.comp-shell` inside 30s while the dev server was rebuilding, a renderer crashed (`Target crashed` mid-click), and one phone view read an empty `data-studio-workspace` while its route was still resolving. Each passes in the per-spec runs above. The fourth is pre-existing (below). |
+| e2e budgets | `playwright.config.ts` now sets `expect: { timeout: 15s }` and `timeout: 60s`, because first paint of the Studio's lazy route graph takes 6–10s on this host and the default 5s/30s budgets expired inside `page.goto` rather than on an assertion. |
+
+### 13.4 Known limitations
+
+- **The offline WAV export renders near-silence.** `renderProjectOffline()` peaks
+  at 4.5e-4 for a sine note at gain 0.8 — the RIFF container, gain and mute
+  handling are all correct, the *audio graph* is not. This is **pre-existing**:
+  the identical peak (0.00045254832366481423) reproduces from a clean worktree at
+  the base commit, and `export.service.ts` / `audio-engine.service.ts` are
+  untouched by this pass. It needs its own audio-graph investigation.
+- **Preference support is emulated, not device-verified.** No Windows High
+  Contrast pass, no OLED HDR panel, no real reduced-transparency host.
+- **Touch is synthetic.** Swipe and flick are driven by dispatched `TouchEvent`s,
+  not by a physical device.
+- **The analyzer is verified against synthetic buffers**, not against a reference
+  analyser.

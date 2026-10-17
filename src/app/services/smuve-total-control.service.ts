@@ -556,6 +556,18 @@ export class SmuveTotalControlService {
       };
     }
 
+    // Master suite — the MASTER chip in the chatbot footer sent `/mastering`
+    // here, where nothing matched it, so the artist got "Command not recognized"
+    // for a module the app actually ships.
+    if (text === '/mastering' || text === '/master suite') {
+      return {
+        domain: 'navigation',
+        action: 'navigate',
+        target: 'mastering',
+        requiresConfirmation: false,
+      };
+    }
+
     // Export commands — `/export formats` used to be parsed as "export in the
     // FORMATS format" and answered with a confirmation request instead of the
     // format list the help text advertises.
@@ -931,16 +943,30 @@ export class SmuveTotalControlService {
           message: `No knowledge found for "${cmd.target}". Try: mixing, mastering, vocal, songwriting, marketing, legal, business, distribution, career, sound-design, recording, branding, promotion, collaboration, copyright, revenue`,
         };
       }
-      const top = results.slice(0, 3);
-      const entries = top
-        .map(
-          (e) =>
-            `  📚 ${e.title} [${e.category}/${e.subcategory}] (${e.difficulty})`
-        )
+      // Answer with the guidance itself, not a table of contents: the artist
+      // asked a knowledge question and used to get three titles back, which
+      // forced a second query to reach the actual information.
+      const primary = results[0];
+      const guidance = [
+        `📚 ${primary.title} [${primary.category}/${primary.subcategory}] (${primary.difficulty})`,
+        primary.content,
+        primary.actionRequired ? `🎯 ACTION: ${primary.actionRequired}` : '',
+        primary.jurisdiction
+          ? `SCOPE: ${primary.jurisdiction}. General information, not legal advice.`
+          : '',
+        ...(primary.sources ?? []).map((url: string) => `SOURCE: ${url}`),
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const alsoInBase = results
+        .slice(1, 3)
+        .map((e) => `  • ${e.title} [${e.category}]`)
         .join('\n');
       return {
         success: true,
-        message: `S.M.U.V.E found ${results.length} entries for "${cmd.target}":\n${entries}\n\nLearn more: /teach ${results[0].category}`,
+        message: `S.M.U.V.E found ${results.length} entries for "${cmd.target}":\n\n${guidance}${
+          alsoInBase ? `\n\nALSO IN THE BASE:\n${alsoInBase}` : ''
+        }\n\nGo deeper: /teach ${primary.category}`,
       };
     }
     return {

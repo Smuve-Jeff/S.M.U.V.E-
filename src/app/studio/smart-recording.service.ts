@@ -5,6 +5,7 @@ import { RecordingStatusService } from "./recording-status.service";
 import { LocalStorageService } from "../services/local-storage.service";
 import { StudioRecordingEngineService } from "./studio-recording-engine.service";
 import { WavEncoder } from "./wav-encoder.util";
+import { peakDbFs } from "./wav-stream-encoder.util";
 
 /** A single recorded take within a comp group */
 export interface CompTake {
@@ -385,17 +386,29 @@ export class SmartRecordingService {
       await this.holdPostRoll();
     }
 
-    // Flush the engine before reading its buffers: the worklet only hands over
-    // the final render quantum on stop, so reading first truncated the take.
-    let left: Float32Array[] = [];
-    let right: Float32Array[] = [];
+    // Flush the engine before reading the take: the worklet only hands over the
+    // final render quantum on stop, so reading first truncated it.
+    let blob: Blob | null = null;
+    let peakDbL = -60;
+    let peakDbR = -60;
+    let frameCount = 0;
     try {
       if (this.recordingEngine.isRecording()) {
         await this.recordingEngine.stopRecording();
       }
-      const buffers = this.recordingEngine.getRecordedBuffers();
-      left = buffers.left;
-      right = buffers.right;
+      // The engine encoded the take while its PCM was still chunked, so the
+      // comp lane does not pull the performance back into memory: for a long
+      // pass, rehydrating it here was the whole take plus a joined copy plus
+      // the re-encode, all to produce a blob the engine already has.
+      const streamed = this.recordingEngine.recordedBlob();
+      const capturedFrames = this.recordingEngine.getRecordedFrameCount();
+      if (streamed && capturedFrames > 0) {
+        blob = streamed;
+        const peaks = this.recordingEngine.recordedPeaks();
+        peakDbL = peaks?.left ?? -60;
+        peakDbR = peaks?.right ?? -60;
+        frameCount = capturedFrames;
+      }
     } catch (error) {
       this.logger.warn(
         "SmartRecording: comp capture did not stop cleanly",
@@ -403,32 +416,40 @@ export class SmartRecordingService {
       );
     }
 
-    if (left.length === 0 || right.length === 0) {
-      // No PCM means the pass captured nothing. A fabricated silent take would
-      // sit in the group looking real (and could be comped into the mix), so
-      // report it and leave the group untouched instead.
-      this.isCompRecording.set(false);
-      this.captureError.set("Take discarded — no audio was captured");
-      this.recordingStatus.clearRecordingSource();
-      this.logger.warn(
-        "SmartRecording: comp take discarded — capture produced no audio.",
+    if (!blob) {
+      // No finished take: either the pass captured nothing, or the engine never
+      // produced one. A fabricated silent take would sit in the group looking
+      // real (and could be comped into the mix), so fall back to the buffer
+      // only if it holds audio, and otherwise discard the take.
+      const buffers = this.recordingEngine.getRecordedBuffers();
+      const left = buffers.left;
+      const right = buffers.right;
+      if (left.length === 0 || right.length === 0) {
+        this.isCompRecording.set(false);
+        this.captureError.set("Take discarded — no audio was captured");
+        this.recordingStatus.clearRecordingSource();
+        this.logger.warn(
+          "SmartRecording: comp take discarded — capture produced no audio.",
+        );
+        return null;
+      }
+      // The recording engine stores separate channel chunks. Keep them separate
+      // for WAV encoding; splitting an interleaved buffer in half would turn
+      // time-order data into two corrupted channels.
+      const leftChannel = this.joinChunks(left);
+      const rightChannel = this.joinChunks(right);
+      frameCount = Math.min(leftChannel.length, rightChannel.length);
+      const alignedLeft = leftChannel.slice(0, frameCount);
+      const alignedRight = rightChannel.slice(0, frameCount);
+      blob = WavEncoder.encodeMultiChannel(
+        [alignedLeft, alignedRight],
+        "wav-16",
+        sampleRate,
       );
-      return null;
+      peakDbL = this.peakDbOf(alignedLeft);
+      peakDbR = this.peakDbOf(alignedRight);
     }
 
-    // The recording engine already stores separate channel chunks. Keep them
-    // separate for WAV encoding; splitting an interleaved buffer in half would
-    // turn time-order data into two corrupted channels.
-    const leftChannel = this.joinChunks(left);
-    const rightChannel = this.joinChunks(right);
-    const frameCount = Math.min(leftChannel.length, rightChannel.length);
-    const alignedLeft = leftChannel.slice(0, frameCount);
-    const alignedRight = rightChannel.slice(0, frameCount);
-    const blob = WavEncoder.encodeMultiChannel(
-      [alignedLeft, alignedRight],
-      "wav-16",
-      sampleRate,
-    );
     const durationMs = Math.round((frameCount / sampleRate) * 1000);
 
     const url = URL.createObjectURL(blob);
@@ -450,10 +471,11 @@ export class SmartRecordingService {
       regionEndBar,
       isMuted: false,
       isCompSelection: false,
-      // Measured from the captured samples — a hard-coded readout made every
-      // take look identically levelled in the comp view.
-      peakDbL: this.peakDbOf(alignedLeft),
-      peakDbR: this.peakDbOf(alignedRight),
+      // Measured from the captured samples (during the encode for a streamed
+      // take, from the buffers on the fallback path) — a hard-coded readout made
+      // every take look identically levelled in the comp view.
+      peakDbL,
+      peakDbR,
     };
     this.captureError.set(null);
 
@@ -1123,8 +1145,7 @@ export class SmartRecordingService {
         playableOutStart: start + (srcRangeStart - base),
         playableOutEnd: start + (srcRangeEnd - base),
         postRoll: sourceLength - (base + (end - start)),
-        coversSegment:
-          base >= 0 && srcRangeEnd - srcRangeStart >= end - start,
+        coversSegment: base >= 0 && srcRangeEnd - srcRangeStart >= end - start,
       });
     }
     if (segments.length === 0) return null;
@@ -1142,9 +1163,7 @@ export class SmartRecordingService {
       if (index === segments.length - 1) return "last" as const;
       const incoming = segments[index + 1];
       if (segment.postRoll >= fade) {
-        return incoming.coversSegment
-          ? ("post" as const)
-          : ("splice" as const);
+        return incoming.coversSegment ? ("post" as const) : ("splice" as const);
       }
       return incoming.base >= fade ? ("pre" as const) : ("none" as const);
     });
@@ -1153,14 +1172,8 @@ export class SmartRecordingService {
     const right = new Float32Array(totalFrames);
 
     for (let index = 0; index < segments.length; index++) {
-      const {
-        source,
-        base,
-        start,
-        end,
-        playableOutStart,
-        playableOutEnd,
-      } = segments[index];
+      const { source, base, start, end, playableOutStart, playableOutEnd } =
+        segments[index];
       const join = joins[index];
       const incoming = index > 0 ? joins[index - 1] : null;
 
@@ -1268,14 +1281,17 @@ export class SmartRecordingService {
     return result;
   }
 
-  /** Peak level of a captured channel in dBFS, floored at -60. */
+  /**
+   * Peak level of a captured channel in dBFS, floored at -60. Delegates the
+   * mapping to the encoder so a take measured from buffers and a take measured
+   * during the encode report the same number.
+   */
   private peakDbOf(samples: Float32Array): number {
     let peak = 0;
     for (let i = 0; i < samples.length; i++) {
       const abs = Math.abs(samples[i]);
       if (abs > peak) peak = abs;
     }
-    if (!(peak > 0)) return -60;
-    return Math.max(-60, Math.round(20 * Math.log10(peak) * 10) / 10);
+    return peakDbFs(peak);
   }
 }

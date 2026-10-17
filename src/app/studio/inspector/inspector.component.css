@@ -1,0 +1,507 @@
+/* ============================================================
+   CONTEXTUAL INSPECTOR
+   Right-hand channel strip for the Arrangement view (Logic Pro /
+   Cubasis placement). Lives inside .comp-shell, so it inherits the
+   Studio's glass + depth tokens rather than re-declaring them.
+   ============================================================ */
+
+:host {
+  display: flex;
+  flex: 0 0 auto;
+  min-height: 0;
+  /* 300px is the width the shell's `inspectorWidth` signal already
+     assumed; keep them in step. */
+  width: var(--insp-width, 300px);
+  transition: width 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:host(:has(.insp-collapsed)) {
+  width: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    transition: none;
+  }
+}
+
+.insp {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  border-left: 1px solid transparent;
+  /* Glass 2.0 recipe, taken from the shell tokens (see
+     src/studio-pro-surface.css). Falls back to the same values so the
+     component renders correctly in isolation (Storybook, tests). */
+  background:
+    linear-gradient(
+        var(--glass-v42-fill-dense, rgba(18, 19, 24, 0.9)),
+        var(--glass-v42-fill-dense, rgba(18, 19, 24, 0.9))
+      )
+      padding-box,
+    linear-gradient(
+        160deg,
+        var(--glass-v42-edge-top, rgba(255, 255, 255, 0.2)),
+        var(--glass-v42-edge-mid, rgba(255, 255, 255, 0.045)) 46%,
+        var(--glass-v42-edge-bottom, rgba(255, 255, 255, 0.12))
+      )
+      border-box;
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  color: var(--fl-text, #ececf0);
+  font-size: 12px;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.insp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--fl-line, #34353d);
+  background: color-mix(in srgb, var(--fl-panel, #1b1c21) 88%, transparent);
+}
+
+.insp-glyph {
+  font-size: 17px;
+  color: var(--teal-500, #ff9a1f);
+}
+
+.insp-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fl-dim, #a0a1ab);
+}
+
+.insp-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--fl-dim, #a0a1ab);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+.insp-icon-btn:hover {
+  background: var(--fl-panel-3, #2c2d34);
+  color: var(--fl-text, #ececf0);
+}
+.insp-icon-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* ── Body ───────────────────────────────────────────────── */
+.insp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ── Identity ───────────────────────────────────────────── */
+.insp-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.insp-swatch {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 34px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.insp-identity-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.insp-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.insp-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.insp-badge {
+  padding: 1px 5px;
+  border: 1px solid var(--fl-accent-line, rgba(255, 154, 31, 0.44));
+  border-radius: 4px;
+  color: var(--fl-accent-2, #ffb454);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.insp-index {
+  color: var(--fl-dim-2, #6c6d76);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* ── Switches ───────────────────────────────────────────── */
+.insp-switches {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.insp-switch {
+  min-height: 34px;
+  border: 1px solid var(--fl-line, #34353d);
+  border-radius: 7px;
+  background: var(--fl-panel-2, #232429);
+  color: var(--fl-dim, #a0a1ab);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease,
+    transform 120ms cubic-bezier(0.34, 1.4, 0.44, 1);
+}
+.insp-switch:active {
+  transform: scale(0.96);
+}
+.insp-switch:focus-visible {
+  outline: 2px solid var(--stage-focus, #8ce8e3);
+  outline-offset: 2px;
+}
+
+/* State is never colour-only: solo and phase also invert their glyph weight
+   and gain a ring, so the switch still reads in a monochrome screenshot. */
+.insp-switch-solo.is-on {
+  border-color: var(--fl-play, #74c05a);
+  background: color-mix(in srgb, var(--fl-play, #74c05a) 22%, transparent);
+  color: var(--fl-play, #74c05a);
+  box-shadow: inset 0 0 0 1px var(--fl-play, #74c05a);
+}
+.insp-switch-mute.is-on {
+  border-color: var(--fl-rec, #e5484d);
+  background: color-mix(in srgb, var(--fl-rec, #e5484d) 22%, transparent);
+  color: var(--fl-rec, #e5484d);
+  box-shadow: inset 0 0 0 1px var(--fl-rec, #e5484d);
+}
+.insp-switch-phase.is-on {
+  border-color: var(--fl-accent, #ff9a1f);
+  background: var(--fl-accent-soft, rgba(255, 154, 31, 0.14));
+  color: var(--fl-accent-2, #ffb454);
+}
+
+/* ── Fields ─────────────────────────────────────────────── */
+.insp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.insp-field-compact {
+  gap: 3px;
+}
+
+.insp-field-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.insp-label {
+  color: var(--fl-dim, #a0a1ab);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.insp-value {
+  color: var(--fl-text, #ececf0);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Tabular figures: a level readout that reflows as the digits change is the
+   single most common tell of a non-pro DAW. */
+.insp-value-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  min-width: 58px;
+  text-align: right;
+}
+
+/* ── Sliders ────────────────────────────────────────────── */
+.insp-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 26px;
+  margin: 0;
+  background: transparent;
+  cursor: grab;
+  accent-color: var(--fl-accent, #ff9a1f);
+}
+.insp-slider:active {
+  cursor: grabbing;
+}
+.insp-slider:focus-visible {
+  outline: 2px solid var(--stage-focus, #8ce8e3);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.insp-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--fl-inset, #0e0f12);
+  box-shadow: inset 0 0 0 1px var(--fl-line, #34353d);
+}
+.insp-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--fl-inset, #0e0f12);
+}
+
+.insp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 1px solid var(--fl-accent-line, rgba(255, 154, 31, 0.44));
+  border-radius: 50%;
+  background: linear-gradient(180deg, #3a3b42, #232429);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.insp-slider::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--fl-accent-line, rgba(255, 154, 31, 0.44));
+  border-radius: 50%;
+  background: linear-gradient(180deg, #3a3b42, #232429);
+}
+
+/* Light theme parity — the shell can be driven in light mode too. */
+:host-context(.light-mode) .insp {
+  --fl-text: #1d2129;
+  --fl-dim: #5a6270;
+  --fl-dim-2: #7b8494;
+  --fl-line: rgba(24, 30, 42, 0.16);
+  --fl-panel: #f4f5f7;
+  --fl-panel-2: #ffffff;
+  --fl-panel-3: #e9ebef;
+  --fl-inset: #e6e8ec;
+  color: #1d2129;
+}
+
+/* ── Groups ─────────────────────────────────────────────── */
+.insp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--fl-line, #34353d);
+}
+
+.insp-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.insp-group-title {
+  color: var(--fl-dim, #a0a1ab);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.insp-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fl-accent-2, #ffb454);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.insp-link-btn:hover {
+  background: var(--fl-accent-soft, rgba(255, 154, 31, 0.14));
+  border-color: var(--fl-accent-line, rgba(255, 154, 31, 0.44));
+}
+.insp-link-btn .material-symbols-outlined {
+  font-size: 13px;
+}
+
+.insp-hint {
+  margin: 0;
+  color: var(--fl-dim-2, #6c6d76);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* ── Insert slots ───────────────────────────────────────── */
+.insp-fx {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insp-fx-slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 2px 4px 2px 2px;
+  border: 1px solid var(--fl-line, #34353d);
+  border-radius: 7px;
+  background: var(--fl-panel-2, #232429);
+  transition: border-color 140ms ease;
+}
+.insp-fx-slot:hover {
+  border-color: var(--fl-accent-line, rgba(255, 154, 31, 0.44));
+}
+.insp-fx-slot.is-off {
+  opacity: 0.55;
+}
+
+.insp-fx-power,
+.insp-fx-remove {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fl-dim, #a0a1ab);
+  cursor: pointer;
+}
+.insp-fx-power .material-symbols-outlined,
+.insp-fx-remove .material-symbols-outlined {
+  font-size: 15px;
+}
+.insp-fx-slot:not(.is-off) .insp-fx-power {
+  color: var(--fl-play, #74c05a);
+}
+.insp-fx-remove:hover {
+  color: var(--fl-rec, #e5484d);
+  background: color-mix(in srgb, var(--fl-rec, #e5484d) 16%, transparent);
+}
+
+.insp-fx-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Empty state ────────────────────────────────────────── */
+.insp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 8px;
+  text-align: center;
+  color: var(--fl-dim, #a0a1ab);
+}
+
+.insp-empty-glyph {
+  font-size: 30px;
+  color: var(--fl-accent, #ff9a1f);
+  opacity: 0.7;
+}
+
+.insp-empty-copy {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.insp-empty-hint {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fl-dim-2, #6c6d76);
+}
+
+/* ── Collapsed rail ─────────────────────────────────────── */
+.insp-rail {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  padding-top: 14px;
+}
+
+.insp-rail-swatch {
+  width: 8px;
+  height: 34px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+/* ── Touch ergonomics (Android) ─────────────────────────── */
+@media (pointer: coarse) {
+  .insp-switch,
+  .insp-icon-btn,
+  .insp-fx-power,
+  .insp-fx-remove {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .insp-slider {
+    min-height: 34px;
+  }
+  .insp-slider::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+    margin-top: -8px;
+  }
+}

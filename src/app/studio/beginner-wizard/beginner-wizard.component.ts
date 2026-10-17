@@ -29,7 +29,9 @@ export interface WizardStep {
     <div class="wizard-shell">
       <!-- Hero header -->
       <header class="wizard-hero">
-        <div class="wizard-hero-icon">🎵</div>
+        <div class="wizard-hero-icon">
+          <span class="material-symbols-outlined" aria-hidden="true">graphic_eq</span>
+        </div>
         <h1 class="wizard-hero-title">Make Your First Song</h1>
         <p class="wizard-hero-sub">
           Follow these 6 easy steps — no experience needed!
@@ -62,14 +64,20 @@ export interface WizardStep {
             <span *ngIf="!isStepDone(step.id)">{{ step.id }}</span>
             <span *ngIf="isStepDone(step.id)" class="wizard-check">✓</span>
           </div>
-          <div class="wizard-card-icon">{{ step.icon }}</div>
+          <div class="wizard-card-icon">
+            <span class="material-symbols-outlined" aria-hidden="true">{{
+              step.icon
+            }}</span>
+          </div>
           <div class="wizard-card-body">
             <h3 class="wizard-card-title">{{ step.title }}</h3>
             <p class="wizard-card-subtitle">{{ step.subtitle }}</p>
             <p class="wizard-card-desc">{{ step.description }}</p>
           </div>
           <div class="wizard-card-tip">
-            <span class="wizard-tip-icon">💡</span>
+            <span class="wizard-tip-icon material-symbols-outlined" aria-hidden="true"
+              >lightbulb</span
+            >
             {{ step.tip }}
           </div>
           <div class="wizard-card-cta">
@@ -116,7 +124,7 @@ export class BeginnerWizardComponent {
     {
       id: 1,
       key: "record",
-      icon: "🎤",
+      icon: "mic",
       title: "Record Your Voice",
       subtitle: "Step 1 — Capture your sound",
       description:
@@ -128,7 +136,7 @@ export class BeginnerWizardComponent {
     {
       id: 2,
       key: "beat",
-      icon: "🥁",
+      icon: "album",
       title: "Add a Beat",
       subtitle: "Step 2 — Pick a rhythm",
       description:
@@ -140,7 +148,7 @@ export class BeginnerWizardComponent {
     {
       id: 3,
       key: "melody",
-      icon: "🎹",
+      icon: "piano",
       title: "Add a Melody",
       subtitle: "Step 3 — Play some notes",
       description:
@@ -152,7 +160,7 @@ export class BeginnerWizardComponent {
     {
       id: 4,
       key: "takes",
-      icon: "🎬",
+      icon: "movie",
       title: "Record Takes & Comp",
       subtitle: "Step 4 — Keep the best pass",
       description:
@@ -164,7 +172,7 @@ export class BeginnerWizardComponent {
     {
       id: 5,
       key: "mix",
-      icon: "🎛️",
+      icon: "tune",
       title: "Mix It Together",
       subtitle: "Step 5 — Balance your sound",
       description:
@@ -176,7 +184,7 @@ export class BeginnerWizardComponent {
     {
       id: 6,
       key: "export",
-      icon: "🚀",
+      icon: "rocket_launch",
       title: "Export & Share",
       subtitle: "Step 6 — Ship your song",
       description:

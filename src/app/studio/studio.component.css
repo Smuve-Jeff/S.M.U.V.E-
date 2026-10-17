@@ -4660,3 +4660,43 @@
   outline: 2px solid var(--teal-500);
   outline-offset: 2px;
 }
+
+/* ============================================================
+   CONTEXTUAL INSPECTOR — arrangement split
+   The Arrangement view stops being a single full-bleed child and becomes a
+   row: timeline on the left, the selected track's channel strip on the right.
+   Scoped to the arrangement stage so no other view picks up the layout.
+   ============================================================ */
+.comp-view.comp-arrangement-stage {
+  flex-direction: row;
+}
+
+.comp-arrangement-main {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.comp-arrangement-main > * {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The strip is a fixed-width dock, never a growing column: `.comp-view > *`
+   above would otherwise hand it an equal share of the timeline. */
+.comp-arrangement-stage > app-inspector {
+  flex: 0 0 auto;
+  align-self: stretch;
+  min-width: 0;
+}
+
+/* Below 1024px the split gets too tight to be useful (the timeline needs the
+   horizontal room more than the strip does). The track's own controls stay
+   reachable in the Mixer, one drawer tap away. */
+@media (max-width: 1023px) {
+  .comp-arrangement-stage > app-inspector {
+    display: none;
+  }
+}

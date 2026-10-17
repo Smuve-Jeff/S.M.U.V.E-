@@ -1,11 +1,11 @@
-import { LocalStorageService } from '../services/local-storage.service';
+import { LocalStorageService } from "../services/local-storage.service";
 import type {
   CaptureSpillRecord,
   CaptureSpillStore,
-} from './recording-capture-buffer';
+} from "./recording-capture-buffer";
 
 /** Object store holding spilled capture chunks (see LocalStorageService). */
-export const RECORDING_CHUNK_STORE = 'recording_chunks';
+export const RECORDING_CHUNK_STORE = "recording_chunks";
 
 /**
  * IndexedDB-backed spill store for `RecordingCaptureBuffer`.
@@ -28,20 +28,20 @@ export class IdbRecordingSpillStore implements CaptureSpillStore {
 
   async write(record: CaptureSpillRecord): Promise<void> {
     const status = await this.storage.persistenceStatus();
-    if (status !== 'ready') {
+    if (status !== "ready") {
       throw new Error(`Recording spill unavailable (${status}).`);
     }
     await this.storage.saveItem(RECORDING_CHUNK_STORE, record);
     const stored = await this.storage.getItem(RECORDING_CHUNK_STORE, record.id);
     if (!stored) {
-      throw new Error('Recording spill did not persist.');
+      throw new Error("Recording spill did not persist.");
     }
   }
 
   async readAll(sessionId: string): Promise<CaptureSpillRecord[]> {
     const all = await this.storage.getAllItems(RECORDING_CHUNK_STORE);
     return (all as CaptureSpillRecord[]).filter(
-      (record) => record?.sessionId === sessionId
+      (record) => record?.sessionId === sessionId,
     );
   }
 
@@ -50,7 +50,16 @@ export class IdbRecordingSpillStore implements CaptureSpillStore {
     if (records.length === 0) return;
     await this.storage.deleteItems(
       RECORDING_CHUNK_STORE,
-      records.map((record) => record.id)
+      records.map((record) => record.id),
     );
+  }
+
+  /**
+   * Unlink one record whose audio the caller has already consumed. Targeted by
+   * id rather than by session, so streaming a take out frees its storage as it
+   * goes without a full read of the store per group.
+   */
+  async remove(id: string): Promise<void> {
+    await this.storage.deleteItems(RECORDING_CHUNK_STORE, [id]);
   }
 }

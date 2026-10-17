@@ -1,4 +1,5 @@
 <div
+  #shellRoot
   class="comp-shell"
   [class.comp-compact]="uiService.isCompactMobile()"
   [class.comp-mobile-nav]="uiService.showMobileNav()"
@@ -24,11 +25,17 @@
     <span>{{ projectWorkspace.isSaving() ? 'Saving…' : projectWorkspace.isDirty() ? 'Unsaved changes' : projectWorkspace.lastPersistedAt() > 0 ? 'Saved locally' : 'New session' }}</span>
   </div>
 
-  <!-- Stage 2.0 ambient aurora field (pure decoration) -->
+  <!-- Stage 2.0 ambient aurora field (pure decoration).
+       The three drift blobs are authored motion; the trailing `energy` layer is
+       the music-reactive one — AtmosphericLightService writes --atmo-* onto
+       this shell and the layer consumes them, so no JS touches element styles
+       per frame. See stage-2.0-atmosphere.css § reactive field. -->
   <div class="comp-aurora" aria-hidden="true">
     <span class="comp-aurora-blob comp-aurora-a"></span>
     <span class="comp-aurora-blob comp-aurora-b"></span>
     <span class="comp-aurora-blob comp-aurora-c"></span>
+    <span class="comp-aurora-energy comp-aurora-energy-low"></span>
+    <span class="comp-aurora-energy comp-aurora-energy-high"></span>
   </div>
 
   <!-- ====================== TOP TRANSPORT ====================== -->
@@ -636,6 +643,10 @@
   <!-- Desktop: the full context toolbar. Compact mobile: one MORE button →
        the tools sheet (progressive disclosure — every tool stays one tap
        away, but nine buttons no longer sit above the canvas). -->
+  <!-- Chrome rail: the tools trigger and the AI session band share one row on
+       a phone (two stacked 44px bars cost 11% of an 844px screen for four
+       controls). `display: contents` keeps the desktop layout untouched. -->
+  <div class="comp-chrome-rail">
   <div
     class="comp-topbar-tools studio-context-toolbar"
     role="toolbar"
@@ -787,6 +798,7 @@
 
   <!-- ====================== AI SESSION BAND ====================== -->
   <app-ai-band></app-ai-band>
+  </div>
 
   <!-- ====================== STAGE MARQUEE ====================== -->
   <div class="stage-marquee comp-stage-marquee" aria-hidden="true">
@@ -969,8 +981,17 @@
       </button>
     </nav>
 
-    <!-- Active view canvas -->
-    <section class="comp-canvas studio-primary-canvas" [ngSwitch]="activeView()">
+    <!-- Active view canvas.
+         data-view-dir drives the direction-aware view transition (see the
+         § VIEW TRANSITION block in stage-2.0-atmosphere.css); the touch
+         handlers add horizontal swipe navigation on phones only. -->
+    <section
+      class="comp-canvas studio-primary-canvas"
+      [attr.data-view-dir]="viewDirection()"
+      (touchstart)="onCanvasTouchStart($event)"
+      (touchend)="onCanvasTouchEnd($event)"
+      [ngSwitch]="activeView()"
+    >
       <!-- Arrangement / Beginner Wizard (toggled by mode) -->
       <ng-container *ngSwitchCase="'arrangement'">
         <div class="comp-view comp-beginner-view" *ngIf="isBeginnerMode()">
@@ -980,11 +1001,23 @@
             (switchToPro)="toggleBeginnerMode()"
           ></app-beginner-wizard>
         </div>
-        <div class="comp-view" *ngIf="!isBeginnerMode()">
-          <app-arrangement-view
-            (requestViewChange)="onWizardNavigate($event)"
-            (openBezierEditor)="toggleBezierEditor($event)"
-          ></app-arrangement-view>
+        <!-- Inspector split: the timeline stays the canvas, the channel strip
+             for the selected track docks beside it. Collapsed on phones and
+             small tablets — the strip is a two-handed surface, and the bottom
+             dock already owns that space. -->
+        <div class="comp-view comp-arrangement-stage" *ngIf="!isBeginnerMode()">
+          <div class="comp-arrangement-main">
+            <app-arrangement-view
+              (requestViewChange)="onWizardNavigate($event)"
+              (openBezierEditor)="toggleBezierEditor($event)"
+            ></app-arrangement-view>
+          </div>
+          <app-inspector
+            *ngIf="showInspector()"
+            [collapsed]="inspectorCollapsed()"
+            (toggleCollapsed)="toggleInspector()"
+            (openEffectsRack)="openEffectsRack($event)"
+          ></app-inspector>
         </div>
       </ng-container>
       <div class="comp-view" *ngSwitchCase="'session'">

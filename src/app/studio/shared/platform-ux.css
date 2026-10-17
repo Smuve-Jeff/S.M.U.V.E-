@@ -182,3 +182,79 @@
     transform: none;
   }
 }
+
+/* ============================================================
+   S.M.U.V.E. STUDIO — SURFACE & DEPTH SYSTEM
+   ------------------------------------------------------------
+   Two things every Studio panel needs and none of them agreed on:
+   one glass recipe, and one depth scale.
+
+   1. GLASS 2.0 (`.glass-v42`)
+      The canonical translucent surface. Opt in by adding the class; the
+      recipe is a single gradient-border pair, which is why it needs no
+      pseudo-element and no `border-image` (both of which break on the
+      rounded, overflowing panels the Studio is full of):
+
+        background: <fill> padding-box, <edge gradient> border-box
+        border: 1px solid transparent
+
+      It blurs at 12px, which is the point where a Studio toolbar reads as
+      glass without turning text behind it into mush on a 360px phone.
+      `prefers-reduced-transparency` and `prefers-contrast: more` are honoured
+      globally in src/studio-adaptive-display.css; the fills here are the
+      values that layer's fallbacks name.
+
+   2. DEPTH
+      Workspace < Content < Tools < Scrim < Panel < Sheet < Overlay < Toast.
+      The single definition of that scale lives in src/studio-pro-surface.css
+      (global, so it also reaches child-component templates and can outrank the
+      FL-Mobile flat re-skin). Every value here falls back to the same number,
+      so this sheet stays standalone-safe and there is exactly one place to
+      change the order.
+   ============================================================ */
+
+.glass-v42 {
+  position: relative;
+  border: 1px solid transparent;
+  /* The gradient-border pair: fill on padding-box, edge gradient on border-box.
+     No pseudo-element (panels already use ::before for the sheet grabber) and
+     no border-image (it ignores border-radius). */
+  background:
+    linear-gradient(
+        var(--glass-v42-fill, rgba(22, 23, 28, 0.78)),
+        var(--glass-v42-fill, rgba(22, 23, 28, 0.78))
+      )
+      padding-box,
+    linear-gradient(
+        160deg,
+        var(--glass-v42-edge-top, rgba(255, 255, 255, 0.22)),
+        var(--glass-v42-edge-mid, rgba(255, 255, 255, 0.05)) 46%,
+        var(--glass-v42-edge-bottom, rgba(255, 255, 255, 0.13))
+      )
+      border-box;
+  backdrop-filter: blur(var(--glass-v42-blur, 12px))
+    saturate(var(--glass-v42-saturate, 1.12));
+  -webkit-backdrop-filter: blur(var(--glass-v42-blur, 12px))
+    saturate(var(--glass-v42-saturate, 1.12));
+  /* The specular top edge is what actually sells "glass" rather than
+     "translucent grey"; an inset highlight costs no extra layer. */
+  box-shadow:
+    inset 0 1px 0 var(--glass-v42-sheen, rgba(255, 255, 255, 0.06)),
+    var(--daw-elev-panel, -10px 0 34px rgba(0, 0, 0, 0.45));
+}
+
+/* Docked bars: no cast shadow (they are flush with the canvas edge). */
+.glass-v42.glass-flat {
+  box-shadow: inset 0 1px 0 var(--glass-v42-sheen, rgba(255, 255, 255, 0.06));
+}
+
+/* Sheets and dialogs: denser fill, deeper band of blur, sheet-tier shadow. */
+.glass-v42.glass-sheet {
+  --glass-v42-fill: rgba(18, 19, 24, 0.9);
+  backdrop-filter: blur(18px) saturate(var(--glass-v42-saturate, 1.12));
+  -webkit-backdrop-filter: blur(18px)
+    saturate(var(--glass-v42-saturate, 1.12));
+  box-shadow:
+    inset 0 1px 0 var(--glass-v42-sheen, rgba(255, 255, 255, 0.06)),
+    var(--daw-elev-sheet, 0 -14px 40px rgba(0, 0, 0, 0.5));
+}

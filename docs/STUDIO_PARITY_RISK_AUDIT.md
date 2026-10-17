@@ -21,6 +21,8 @@ rg -n "createScriptProcessor" src/app --glob '!*.spec.ts'
 rg -n "simd128|EXPORTED_FUNCTIONS" scripts/build-wasm.sh
 # Memory model: every sample fully decoded to an AudioBuffer
 rg -n "decodeAudioData" src/app
+# Recording take: streamed out of the capture buffer, never reassembled
+rg -n "drainGroups|WavStreamWriter|recordedPeaks" src/app/studio --glob '!*.spec.ts'
 # Native shell
 cat android/app/src/main/AndroidManifest.xml
 ```
@@ -114,26 +116,41 @@ push every render quantum into `leftChannel`/`rightChannel` and never spill,
 cap or page it: ~23 MB of Float32 per minute, ~1.4 GB for a 60-minute session,
 with the join at `stopRecording()` doubling the peak transiently. It now
 captures into `RecordingCaptureBuffer`, which holds a 64 MB resident window
-(≈2.8 min of 48 kHz stereo) and spills the overflow to IndexedDB, then
-rehydrates every chunk before the WAV is built — see §9. A failed or
-unavailable spill puts its chunks back in memory rather than dropping audio, so
-the worst case is the old behaviour, never a truncated take.
+(≈2.8 min of 48 kHz stereo) and spills the overflow to IndexedDB; the take is
+encoded group by group straight out of the store and the resident window, so it
+is never reassembled — see §9. A failed or unavailable spill puts its chunks
+back in memory rather than dropping audio, so the worst case is the old
+behaviour, never a truncated take.
 
-**Also shipped — the stop-time join is gone.** The take is no longer joined
-into two contiguous `Float32Array`s and encoded in one pass
-(`WavStreamEncoder`, §9b). It is still rehydrated into memory when it ends, but
-chunked: the peak is the take itself rather than the take plus a contiguous copy
-of it plus the encoded buffer (~2× the old peak for the same session).
+**Also shipped — the stop-time join is gone, and so is the rehydration. The
+take is encoded as it streams.** `stopRecording()` walks the capture buffer's
+groups and feeds a `WavStreamWriter` (`wav-stream-encoder.util.ts`, §9b), so the
+PCM is never joined into two contiguous `Float32Array`s and never held as a
+second copy. Each spilled group is **unlinked from IndexedDB the moment its
+bytes are in the WAV**, so the end-of-take footprint is the bounded resident
+window (~64 MB) plus the encoded file itself: for the 60-minute 48 kHz stereo
+case above, ~750 MB at stop against ~2.1 GB before (the whole performance pulled
+back into memory as PCM, with the encoded file built beside it), and during the
+take itself ~64 MB rather than ~1.4 GB. Nothing is rebuilt or re-decoded, and
+there is no longer a spike at the instant the artist presses stop. The per-channel peak is measured during that same encode, so the
+comp lane reads a level instead of decoding or re-scanning the performance.
 
 **Still open:**
-1. A fully streaming encode that frees each spilled group as it writes would
-   drop the end-of-take footprint to the resident window, at the cost of making
-   the post-stop channel reader asynchronous (comp takes read it synchronously
-   today).
-2. A `SampleStreamer` for long imports: keep a bounded preview buffer resident,
-   serve playback windows from the stored file via `AudioBufferSourceNode`
-   slices; keep the worklet sampler for short one-shots only.
-3. Surface a live memory estimate (resident bytes from the capture buffer, plus
+1. ~~A `SampleStreamer` for long imports: keep a bounded preview buffer resident,~~
+   **shipped (`src/app/services/sample-streamer.service.ts` +
+   `src/app/studio/audio-import.service.ts` +
+   `src/app/services/music-manager.service.ts` +
+   `src/app/services/audio-engine.service.ts`):** a bounded preview buffer is
+   resident for long imports (>10 s), playback windows are served from the stored
+   file via `AudioBufferSourceNode` slices, and the worklet sampler is kept for
+   short one-shots only. Import-side and playback-side wiring are both connected:
+   the import path probes the file to attach the real sample rate / channel count,
+   the resident window is surfaced through `ImportedAudio.sampleStreamer`,
+   `addToProject` stamps `clipStreamer` (`clipOriginSeconds`,
+   `clipLengthSeconds`, `clipSampleRate`, `clipChannels`) onto the arrangement
+   clip, and `playStep` / `triggerSampler` schedule from the streamer's resident
+   window while advancing its playhead.
+2. Surface a live memory estimate (resident bytes from the capture buffer, plus
    `performance.memory` where available) in the Engine Metrics card so the
    artist sees the wall before they hit it.
 
@@ -255,7 +272,7 @@ first bank is commercially distributed.
 | P1 | ~~Backgrounding silently destroyed a live take~~ **shipped (§9c)**: durable finalize on hidden/freeze/pagehide; the engine's stop promise is no longer dropped | 4 | — | The captured audio survives backgrounding |
 | P1 | **Shipped in this pass:** device-class detection driving the adaptive engine tier (§9) | 1, 3 | — | Low-end devices stop booting the full budget |
 | P1 | ~~Cap the "extra AudioContext" count / pass `latencyHint` at the six non-engine call sites~~ **shipped (§9e)** | 1, 3 | — | Every auxiliary graph states its latency intent; decode work shares one context; call/separation graphs are released |
-| P1 | Sample streaming for long imports (bounded preview + windowed playback) | 2 | 3–5 d | Multi-stem projects on low-RAM devices |
+| P1 | ~~Sample streaming for long imports (bounded preview + windowed playback)~~ **shipped (§2)**: `SampleStreamer` resident window + clip-streamer admission & playback coupling | 2 | — | Multi-stem projects on low-RAM devices |
 | P1 | Device calibration run persisted into the profile (latency baseline per model/API level) | 5 | 1 d | Accurate record compensation without guesswork |
 | P2 | Piano-roll / arrangement / mixer touch ergonomics pass | 6 | 2–3 d | Visible polish; table stakes vs the leaders |
 | P2 | Granular / convolution / wavetable kernels to WASM with SIMD | 7 | 3–5 d | Quality + CPU on the heaviest instruments |
@@ -293,9 +310,10 @@ session in RAM:
 
 - Resident PCM is capped at 64 MB; overflow is spilled **oldest first**, one
   group in flight at a time, so spilled records are contiguous and always older
-  than anything resident. `collect()` reassembles records-by-index followed by
-the resident window, i.e. capture order, with no gap when a spill happened
-  mid-take.
+  than anything resident. `drainGroups()` streams records-by-index followed by
+  the resident window, i.e. capture order, with no gap when a spill happened
+  mid-take, and unlinks each record once its group has been handed to the
+  encoder.
 - `IdbRecordingSpillStore` **verifies each write**: `LocalStorageService.saveItem()`
   is a deliberate silent no-op when IndexedDB is missing/blocked, which would
   otherwise let the buffer discard audio it never stored. The store checks
@@ -306,34 +324,58 @@ the resident window, i.e. capture order, with no gap when a spill happened
   never unlink another take's audio; each new take retires the previous
   session's chunks in the background once its WAV exists.
 - Tests: 10 in `recording-capture-buffer.spec.ts` (budget, ordering, no-spill
-  store, write-failure recovery, session retirement, release, spill drain,
-  channel mirroring)
+  store, write-failure recovery, session retirement, release, streaming the take
+  out of the store while unlinking each group, no double yield on a second
+  drain, channel mirroring)
   and 6 in `recording-spill.store.spec.ts` (write verification, blocked
   persistence, per-session read/clear isolation), plus an end-to-end engine test
   in `studio-recording-engine.service.spec.ts` that drives the real worklet
   message path with a tiny budget and asserts the finished WAV still carries
   every captured frame.
 
-### 9b. Chunked WAV encode (`WavStreamEncoder`)
+### 9b. Streaming WAV encode + per-take peaks (`WavStreamWriter`)
 
-`src/app/studio/wav-stream-encoder.util.ts` — encodes a take straight from the
-capture buffer's chunk lists instead of `joinChannels()` + one contiguous
-encode. The header is written once and each chunk becomes its own part of the
-Blob, so the stop-time allocation is one chunk rather than the whole file.
+`src/app/studio/wav-stream-encoder.util.ts` — the take is encoded as it streams
+out of the capture buffer instead of being joined and encoded in one pass.
+`StudioRecordingEngineService.stopRecording()` walks `capture.drainGroups()` and
+pushes each group into a `WavStreamWriter`, so the stop-time allocation is one
+group rather than the whole file, and the take is never reassembled.
 
-- **Proven byte-identical** to `WavEncoder.encodeMultiChannel(joined, …)`: 7 spec
-  cases compare raw bytes across uniform chunks, ragged/odd chunk boundaries
-  (what a 50 ms worklet chunk plus a short flush actually produces), mono, the
-  16-bit clamp/scale range, and non-`wav-16` formats. Anything the streaming
-  path cannot prove identical (different chunk layouts per channel) falls back
-  to the contiguous encoder rather than guessing.
-- `RecordingCaptureBuffer.collect()` now **drains** the spill store into the
-  resident window (emptying the store and marking the session drained), so the
-  synchronous post-stop readers still see the complete take and a second
-  `collect()` cannot duplicate chunks.
-- The engine spec gained the end-to-end guarantee: the same performance run
+- Each group becomes its own Blob part, and the **header is written from the
+  frames that actually arrived** (`end()`), so a RIFF length that disagrees with
+  the data chunk is unrepresentable. The old shape — join the take, allocate
+  the encoded copy, write a header from a frame count the caller tracked
+  separately — could report a length the data chunk did not have.
+- `drainGroups()` **unlinks each spilled record as its bytes land in the WAV**,
+  so a 60-minute take does not leave its PCM on IndexedDB after the file exists.
+  Unlinking is by record id (`CaptureSpillStore.remove`), not a full store read
+  per group, and a failed unlink is recorded (a storage leak) rather than thrown
+  — the caller already holds the audio.
+- The writer **measures each channel's peak as it writes** (`stats.peakLeft` /
+  `peakRight`, converted by `peakDbFs()`), published as
+  `recordingEngine.recordedPeaks()`. `SmartRecordingService` comp captures read
+  `recordedBlob()` + `recordedPeaks()` and now only rehydrate
+  (`getRecordedBuffers()`) as a fallback for the case where the engine produced
+  no blob at all — a long comp pass no longer pays for a second copy of itself.
+- `WavStreamEncoder` (chunk-array in, Blob out) is kept as the thin wrapper the
+  other capture callers use; it and the writer are **proven byte-identical** to
+  `WavEncoder.encodeMultiChannel(joined, …)`: 7 spec cases compare raw bytes
+  across uniform chunks, ragged/odd chunk boundaries (what a 50 ms worklet chunk
+  plus a short flush actually produces), mono, the 16-bit clamp/scale range,
+  group-by-group feeding, and non-`wav-16` formats. Anything the streaming path
+  cannot prove identical (different chunk layouts per channel) falls back to the
+  contiguous encoder rather than guessing.
+- `end()` is idempotent, so a retried save reuses the finished file instead of
+  building a second copy, a group whose channels do not line up is rejected
+  rather than silently interleaved wrong, and a mono writer mirrors its one
+  channel as the right peak. 14 spec cases in
+  `wav-stream-encoder.util.spec.ts`.
+- The engine spec keeps the end-to-end guarantee: the same performance run
   through a 64-byte budget (spilling) and through a 64 MB budget (no spill)
-  produces **byte-identical take audio**.
+  produces **byte-identical take audio**, the spilled record is unlinked once
+  the take is out, and the finished blob is published with its measured peaks;
+  `smart-recording.spec.ts` covers the comp lane taking that streamed blob and
+  its peaks instead of calling `getRecordedBuffers()`.
 
 ### 9c. Background-safe take finalize
 
