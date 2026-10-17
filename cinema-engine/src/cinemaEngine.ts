@@ -27,6 +27,8 @@ import { TextEditor } from './textEditor';
 import { MusicVideoFeatures } from './musicVideoFeatures';
 import { LiveStreamingFeatures } from './liveStreamingFeatures';
 import { MovieDirectingFeatures } from './movieDirectingFeatures';
+import { VideoUploader, UploadOptions, UploadResult, UploadProgress, UploadedVideo } from './upload';
+import { createVideoUploader } from './upload';
 
 /**
  * Main Cinema Engine class
@@ -41,6 +43,7 @@ export class CinemaEngine {
   private musicVideoFeatures: MusicVideoFeatures;
   private liveStreamingFeatures: LiveStreamingFeatures;
   private movieDirectingFeatures: MovieDirectingFeatures;
+  private videoUploader: VideoUploader;
 
   constructor() {
     this.specialEffects = new SpecialEffects();
@@ -52,6 +55,7 @@ export class CinemaEngine {
     this.musicVideoFeatures = new MusicVideoFeatures();
     this.liveStreamingFeatures = new LiveStreamingFeatures();
     this.movieDirectingFeatures = new MovieDirectingFeatures();
+    this.videoUploader = createVideoUploader();
   }
 
   /**
@@ -105,6 +109,25 @@ export class CinemaEngine {
    */
   cropFrame(width: number, height: number, x: number, y: number): any {
     return this.crop.crop(width, height, x, y);
+  }
+
+  /**
+   * Upload a video file with progress tracking
+   * @param file Video file to upload
+   * @param options Upload options
+   * @returns Upload result with video metadata
+   */
+  uploadVideo(file: File, options?: UploadOptions): UploadResult {
+    return this.videoUploader.upload(file, options);
+  }
+
+  /**
+   * Generate a thumbnail from an uploaded video
+   * @param video The uploaded video metadata
+   * @returns Thumbnail result with URL or error
+   */
+  generateThumbnail(video: UploadedVideo): { thumbnailUrl: string } | { error: string } {
+    return this.videoUploader.generateThumbnail(video);
   }
 
   /**
