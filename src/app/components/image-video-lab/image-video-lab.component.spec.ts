@@ -18,6 +18,7 @@ import {
   CameraCaptureService,
 } from '../../services/camera-capture.service';
 import { CinemaProjectService } from '../../services/cinema-project.service';
+import { CinemaEngineService } from '../../services/cinema-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 import { createDefaultEffects } from '../../services/video-engine.service';
 
@@ -509,6 +510,10 @@ describe('ImageVideoLabComponent', () => {
       refresh: jest.fn(async () => []),
     };
 
+    const cinemaEngine = {
+      measureVideo: jest.fn(async () => null),
+    };
+
     const speechSynthesis = {
       speak: jest.fn(),
       cancel: jest.fn(),
@@ -533,6 +538,7 @@ describe('ImageVideoLabComponent', () => {
         { provide: CameraCaptureService, useValue: camera },
         { provide: CinemaProjectService, useValue: cinemaProjects },
         { provide: SpeechSynthesisService, useValue: speechSynthesis },
+        { provide: CinemaEngineService, useValue: cinemaEngine },
       ],
     })
       .overrideComponent(ImageVideoLabComponent, {
@@ -554,6 +560,7 @@ describe('ImageVideoLabComponent', () => {
     return {
       component,
       videoEngine,
+      cinemaEngine,
       camera,
       exportService,
       cinemaProjects,
@@ -791,6 +798,51 @@ describe('ImageVideoLabComponent', () => {
 
     component.removeAudioOverlay();
     expect(videoEngine.clearAudioOverlay).toHaveBeenCalled();
+  });
+
+  it('takes the measured length of a phone video from the cinema engine', async () => {
+    const { component, videoEngine, cinemaEngine } = await createComponent();
+    videoEngine.addClip.mockReturnValue('clip-measured');
+    videoEngine.findClip.mockReturnValue({
+      id: 'clip-measured',
+      effects: { trimStart: 0, trimEnd: 0, speed: 1 },
+    } as never);
+    cinemaEngine.measureVideo.mockResolvedValueOnce({
+      duration: 47.2,
+      width: 1920,
+      height: 1080,
+      aspectRatio: 1.7778,
+      type: 'video/mp4',
+      size: 1024,
+      filename: 'camera-roll.mp4',
+    });
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'camera-roll.mp4', type: 'video/mp4' }] },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // A two-minute take must not land as the preset's few seconds.
+    expect(videoEngine.updateClip).toHaveBeenCalledWith(
+      'clip-measured',
+      expect.objectContaining({ duration: 47.2 })
+    );
+    expect(component.aiFeedback()).toContain('0:47');
+    expect(component.aiFeedback()).toContain('1920×1080');
+  });
+
+  it('keeps the preset length when the engine cannot read the file', async () => {
+    const { component, videoEngine, cinemaEngine } = await createComponent();
+    videoEngine.addClip.mockReturnValue('clip-fallback');
+    cinemaEngine.measureVideo.mockResolvedValueOnce(null);
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'take.mkv', type: 'video/x-matroska' }] },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(cinemaEngine.measureVideo).toHaveBeenCalled();
+    expect(videoEngine.updateClip).not.toHaveBeenCalled();
   });
 
   it('clicks on the timeline seek the playhead proportionally', async () => {

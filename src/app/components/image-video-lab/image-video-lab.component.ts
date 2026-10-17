@@ -44,6 +44,7 @@ import {
   VoiceoverLine,
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
+import { CinemaEngineService } from '../../services/cinema-engine.service';
 import { CinemaProjectService } from '../../services/cinema-project.service';
 import {
   CAPTURE_QUALITIES,
@@ -201,6 +202,8 @@ interface PinchState {
 })
 export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private logger = inject(LoggingService);
+  /** Measures a picked take with the bundled cinema engine. */
+  private cinemaEngine = inject(CinemaEngineService);
   private aiService = inject(AiService);
   private userContext = inject(UserContextService);
   public videoEngine = inject(VideoEngineService);
@@ -3823,7 +3826,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const url = URL.createObjectURL(file);
     try {
       this.ownedObjectUrls.add(url);
-      this.videoEngine.addClip(targetTrackId, {
+      const clipId = this.videoEngine.addClip(targetTrackId, {
         name: file.name,
         url,
         startTime: this.videoEngine.currentTime(),
@@ -3847,6 +3850,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.aiFeedback.set(
         `UPLOAD SUCCESS: ${file.name} mapped into the ${this.activePreset().name} workflow.`
       );
+      // The clip is on the timeline already; the measured length replaces the
+      // preset fallback as soon as the engine has read the file's header.
+      if (kind === 'video') void this.adoptMeasuredDuration(clipId, file);
     } catch (error) {
       // Nothing reached the timeline, so the blob must not stay alive.
       this.ownedObjectUrls.delete(url);
@@ -3856,6 +3862,41 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         `UPLOAD FAILED: ${file.name.toUpperCase()} COULD NOT BE ADDED. TRY A SMALLER FILE OR ANOTHER TAKE.`
       );
     }
+  }
+
+  /**
+   * Replace a freshly ingested clip's preset length with the take's real one.
+   *
+   * A phone video is as long as it is; laying eight seconds of a two-minute
+   * take on the timeline taught the operator to distrust the import. The trim
+   * amounts are resolved against the measured length at the same time so the
+   * clip's fades stay proportional.
+   */
+  private async adoptMeasuredDuration(
+    clipId: string,
+    file: File
+  ): Promise<void> {
+    const metadata = await this.cinemaEngine.measureVideo(file);
+    if (!metadata) return;
+
+    const clip = this.videoEngine.findClip(clipId);
+    if (!clip) return;
+
+    const duration = Math.max(
+      MIN_ACTIVE_CLIP_DURATION,
+      Math.min(metadata.duration, this.videoEngine.duration())
+    );
+    this.videoEngine.updateClip(clipId, {
+      duration,
+      effects: {
+        ...clip.effects,
+        trimStart: this.resolveTrimAmount(duration),
+        trimEnd: this.resolveTrimAmount(duration),
+      },
+    });
+    this.aiFeedback.set(
+      `UPLOAD SUCCESS: ${file.name} · ${this.formatSeconds(duration)} · ${metadata.width}×${metadata.height} mapped into the ${this.activePreset().name} workflow.`
+    );
   }
 
   /** Resolve a picked file to the lane it belongs on: MIME first, then suffix. */

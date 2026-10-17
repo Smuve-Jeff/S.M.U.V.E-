@@ -14,7 +14,11 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      // The cinema-engine package is compiled into the app build straight from
+      // its sources: it has no runtime dependencies of its own, so there is no
+      // dist step to forget before `ng build` or `jest`.
+      "cinema-engine": ["cinema-engine/src/index.ts"]
     }
   },
   "include": ["src/app", "src/main.ts", "src/polyfills.ts", "src/test.ts", "src/styles.css"],
