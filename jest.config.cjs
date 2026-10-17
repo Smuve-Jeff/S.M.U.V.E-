@@ -22,6 +22,9 @@ module.exports = {
       }),
       setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
       moduleNameMapper: {
+        // jest does not read tsconfig `paths`, so the engine alias the Angular
+        // build resolves has to be repeated here.
+        '^cinema-engine$': '<rootDir>/cinema-engine/src/index.ts',
         '^tone$': '<rootDir>/node_modules/tone/build/Tone.js',
         // Intercept the ML worker factory so Jest never parses import.meta.url.
         // Production code keeps using the real factory via Angular esbuild bundling.
