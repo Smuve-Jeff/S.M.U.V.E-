@@ -95,6 +95,29 @@ export interface SpriteSheetOptions {
   timeoutMs?: number;
 }
 
+/**
+ * Everything a client needs to render hover previews from a hosted sheet,
+ * without the image data itself.
+ */
+export interface SpriteSheetMeta {
+  /** Tiles per row */
+  columns: number;
+  /** Rows in the sheet */
+  rows: number;
+  /** Tile width in pixels */
+  frameWidth: number;
+  /** Tile height in pixels */
+  frameHeight: number;
+  /** Sheet width in pixels */
+  width: number;
+  /** Sheet height in pixels */
+  height: number;
+  /** Source video duration in seconds */
+  duration: number;
+  /** Tiles in timeline order */
+  frames: SpriteFrame[];
+}
+
 export interface SpriteSheetResult {
   /** Encoded sprite sheet */
   blob: Blob;
@@ -475,6 +498,23 @@ export class VideoAnalyzer {
  */
 export function createVideoAnalyzer(): VideoAnalyzer {
   return new VideoAnalyzer();
+}
+
+/**
+ * Strip the image data and object URL from a capture, leaving the layout and
+ * tile map that can be stored next to the hosted sheet.
+ */
+export function toSpriteSheetMeta(sheet: SpriteSheetResult): SpriteSheetMeta {
+  return {
+    columns: sheet.columns,
+    rows: sheet.rows,
+    frameWidth: sheet.frameWidth,
+    frameHeight: sheet.frameHeight,
+    width: sheet.width,
+    height: sheet.height,
+    duration: sheet.duration,
+    frames: sheet.frames,
+  };
 }
 
 /**

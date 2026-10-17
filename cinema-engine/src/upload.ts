@@ -15,6 +15,12 @@
  * In a browser, `extractMetadata` additionally reads real duration and frame
  * dimensions locally and sends them as `duration` / `width` / `height`, and
  * `generateThumbnails` captures a local frame into `UploadResult.thumbnail`.
+ *
+ * With `generateSpriteSheet`, the sheet is captured before the request and
+ * sent as a second file part (`spriteSheet`, filename `<video>.sprite.<ext>`)
+ * plus a `spriteSheetMeta` JSON field describing the grid and tile times, so
+ * the server can store it for other clients. The response should then include
+ * `spriteSheetUrl` (or `spriteSheet: { url, ... }`) for the hosted image.
  */
 
 import {
@@ -24,6 +30,9 @@ import {
   ThumbnailResult,
   SpriteSheetOptions,
   SpriteSheetResult,
+  SpriteSheetMeta,
+  SpriteFrame,
+  toSpriteSheetMeta,
   createVideoAnalyzer,
 } from './videoAnalysis';
 
@@ -69,6 +78,10 @@ export interface UploadedVideo {
   url: string;
   /** Thumbnail URL (generated from video) */
   thumbnailUrl?: string;
+  /** Hosted sprite sheet URL, when one was uploaded and the server returned it */
+  spriteSheetUrl?: string;
+  /** Layout and tile times of the hosted sprite sheet */
+  spriteSheet?: SpriteSheetMeta;
   /** File size in bytes */
   size: number;
   /** Video duration in seconds (if available) */
@@ -97,6 +110,12 @@ export interface UploadOptions {
   extractMetadata?: boolean;
   /** Capture options used when `generateThumbnails` is enabled in a browser */
   thumbnailOptions?: ThumbnailOptions;
+  /** Whether to capture a sprite sheet and upload it with the video (browser only) */
+  generateSpriteSheet?: boolean;
+  /** Capture options used when `generateSpriteSheet` is enabled */
+  spriteSheetOptions?: SpriteSheetOptions;
+  /** Form field name used for the sprite sheet part. Default: "spriteSheet" */
+  spriteSheetFieldName?: string;
   /** Server endpoint receiving the multipart POST. Default: /api/videos/upload */
   endpoint?: string;
   /** Form field name used for the file part. Default: "file" */
@@ -139,6 +158,10 @@ export interface UploadResult {
   thumbnail?: ThumbnailResult;
   /** Why local thumbnail capture failed, when it was requested but did not succeed */
   thumbnailError?: string;
+  /** Locally captured sprite sheet when `generateSpriteSheet` is enabled */
+  spriteSheet?: SpriteSheetResult;
+  /** Why sprite sheet capture failed, when it was requested but did not succeed */
+  spriteSheetError?: string;
   /** Error message if upload failed */
   error?: string;
 }
@@ -204,7 +227,18 @@ export class VideoUploader {
       options.extractMetadata && this.analyzer.isSupported()
         ? await this.tryExtractMetadata(file)
         : undefined;
-    const formData = this.buildFormData(file, options, metadata);
+
+    let spriteSheet: SpriteSheetResult | undefined;
+    let spriteSheetError: string | undefined;
+    if (options.generateSpriteSheet) {
+      try {
+        spriteSheet = await this.analyzer.captureSpriteSheet(file, options.spriteSheetOptions);
+      } catch (error) {
+        spriteSheetError = error instanceof Error ? error.message : String(error);
+      }
+    }
+
+    const formData = this.buildFormData(file, options, metadata, spriteSheet);
 
     try {
       const uploaded =
@@ -212,7 +246,7 @@ export class VideoUploader {
           ? await this.sendWithXHR(endpoint, formData, file, options)
           : await this.sendWithFetch(endpoint, formData, file, options);
 
-      const video = this.mergeMetadata(uploaded, metadata);
+      const video = this.applySpriteSheet(this.mergeMetadata(uploaded, metadata), spriteSheet);
 
       let thumbnail: ThumbnailResult | undefined;
       let thumbnailError: string | undefined;
@@ -224,7 +258,7 @@ export class VideoUploader {
         }
       }
 
-      return { video, thumbnail, thumbnailError };
+      return { video, thumbnail, thumbnailError, spriteSheet, spriteSheetError };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (options.onProgress) {
@@ -237,7 +271,7 @@ export class VideoUploader {
           error: message,
         });
       }
-      return { video: this.getEmptyVideo(), error: message };
+      return { video: this.getEmptyVideo(), error: message, spriteSheet, spriteSheetError };
     }
   }
 
@@ -372,13 +406,28 @@ export class VideoUploader {
 
   // --- helpers -------------------------------------------------------------
 
-  private buildFormData(file: File, options: UploadOptions, metadata?: VideoMetadata): FormData {
+  private buildFormData(
+    file: File,
+    options: UploadOptions,
+    metadata?: VideoMetadata,
+    spriteSheet?: SpriteSheetResult
+  ): FormData {
     const formData = new FormData();
     formData.append(options.fieldName || 'file', file, file.name);
 
     // Let the server honour the post-processing flags.
     if (typeof options.generateThumbnails === 'boolean') {
       formData.append('generateThumbnails', String(options.generateThumbnails));
+    }
+
+    if (spriteSheet) {
+      const field = options.spriteSheetFieldName || 'spriteSheet';
+      formData.append(field, spriteSheet.blob, this.spriteSheetFilename(file, spriteSheet.type));
+      // Layout and tile times travel with the image so any client can rebuild
+      // the hover map from what the server stores.
+      formData.append('spriteSheetMeta', JSON.stringify(toSpriteSheetMeta(spriteSheet)));
+    } else if (typeof options.generateSpriteSheet === 'boolean') {
+      formData.append('generateSpriteSheet', String(options.generateSpriteSheet));
     }
 
     if (metadata) {
@@ -395,6 +444,25 @@ export class VideoUploader {
     }
 
     return formData;
+  }
+
+  /** Name the sheet after the video so stored files stay recognisable. */
+  private spriteSheetFilename(file: File, type: string): string {
+    const base = file.name.replace(/\.[^./\\]+$/, '') || 'video';
+    const extension = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg';
+    return `${base}.sprite.${extension}`;
+  }
+
+  /**
+   * Attach the hosted sheet URL and a usable tile map to the uploaded video.
+   * Local captures fill in the layout when the server only echoes a URL.
+   */
+  private applySpriteSheet(video: UploadedVideo, local?: SpriteSheetResult): UploadedVideo {
+    const meta = video.spriteSheet ?? (local ? toSpriteSheetMeta(local) : undefined);
+    if (meta) {
+      video.spriteSheet = meta;
+    }
+    return video;
   }
 
   /** Local extraction is a convenience: never let it fail the upload. */
@@ -523,11 +591,15 @@ export class VideoUploader {
       throw new Error('Upload response did not include a video URL');
     }
 
+    const sprite = this.readSpriteSheet(record);
+
     return {
       id: this.toStringOr(record.id ?? record.videoId, file.name),
       filename: this.toStringOr(record.filename ?? record.name, file.name),
       url: rawUrl,
       thumbnailUrl: this.toOptionalString(record.thumbnailUrl ?? record.thumbnail),
+      spriteSheetUrl: sprite.url,
+      spriteSheet: sprite.meta,
       size: this.toOptionalNumber(record.size) ?? file.size,
       duration: this.toOptionalNumber(record.duration),
       width: this.toOptionalNumber(record.width),
@@ -535,6 +607,58 @@ export class VideoUploader {
       type: this.toOptionalString(record.type) ?? file.type,
       uploadedAt: this.toOptionalNumber(record.uploadedAt) ?? Date.now(),
     };
+  }
+
+  /**
+   * Read the hosted sheet URL and, when the server echoes the grid, a tile map.
+   * Coordinates are rebuilt from the grid when only dimensions are returned.
+   */
+  private readSpriteSheet(record: Record<string, unknown>): {
+    url?: string;
+    meta?: SpriteSheetMeta;
+  } {
+    const raw = record.spriteSheet;
+    const nested = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : undefined;
+    const url = this.toOptionalString(record.spriteSheetUrl ?? record.spriteUrl ?? nested?.url);
+
+    const source = nested ?? record;
+    const columns = this.toOptionalNumber(source.columns);
+    const rows = this.toOptionalNumber(source.rows);
+    const frameWidth = this.toOptionalNumber(source.frameWidth);
+    const frameHeight = this.toOptionalNumber(source.frameHeight);
+    const duration = this.toOptionalNumber(source.duration) ?? this.toOptionalNumber(record.duration);
+
+    if (!columns || !rows || !frameWidth || !frameHeight) {
+      return { url };
+    }
+
+    const width = this.toOptionalNumber(source.width) ?? columns * frameWidth;
+    const height = this.toOptionalNumber(source.height) ?? rows * frameHeight;
+    const total = Math.max(1, columns * rows);
+    const frames = this.rebuildSpriteFrames(total, columns, frameWidth, frameHeight, duration);
+
+    return {
+      url,
+      meta: { columns, rows, frameWidth, frameHeight, width, height, duration: duration ?? 0, frames },
+    };
+  }
+
+  private rebuildSpriteFrames(
+    count: number,
+    columns: number,
+    frameWidth: number,
+    frameHeight: number,
+    duration?: number
+  ): SpriteFrame[] {
+    const span = duration && duration > 0 ? duration : count;
+    return Array.from({ length: count }, (_, index) => ({
+      index,
+      time: (span * (index + 0.5)) / count,
+      x: (index % columns) * frameWidth,
+      y: Math.floor(index / columns) * frameHeight,
+      width: frameWidth,
+      height: frameHeight,
+    }));
   }
 
   private unwrapPayload(payload: unknown): Record<string, unknown> {
