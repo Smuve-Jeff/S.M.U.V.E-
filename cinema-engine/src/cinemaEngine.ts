@@ -28,6 +28,7 @@ import { MusicVideoFeatures } from './musicVideoFeatures';
 import { LiveStreamingFeatures } from './liveStreamingFeatures';
 import { MovieDirectingFeatures } from './movieDirectingFeatures';
 import { VideoUploader, UploadOptions, UploadResult, UploadedVideo, UploaderConfig } from './upload';
+import { VideoMetadata, ThumbnailOptions, ThumbnailResult } from './videoAnalysis';
 import { createVideoUploader } from './upload';
 
 /**
@@ -128,6 +129,24 @@ export class CinemaEngine {
    */
   generateThumbnail(video: UploadedVideo): { thumbnailUrl: string } | { error: string } {
     return this.videoUploader.generateThumbnail(video);
+  }
+
+  /**
+   * Read real duration and frame dimensions from a local video file.
+   * @param file Video file
+   * @param timeoutMs Abort after this many milliseconds (default 15000)
+   */
+  extractVideoMetadata(file: File, timeoutMs?: number): Promise<VideoMetadata> {
+    return this.videoUploader.extractMetadata(file, timeoutMs);
+  }
+
+  /**
+   * Capture a real frame from a local video file as an encoded image.
+   * @param file Video file
+   * @param options Capture position, size and encoding options
+   */
+  captureThumbnail(file: File, options?: ThumbnailOptions): Promise<ThumbnailResult> {
+    return this.videoUploader.extractThumbnail(file, options);
   }
 
   /**

@@ -12,7 +12,18 @@
  *
  * When set, `generateThumbnails` and `extractMetadata` are also sent as form
  * fields so the server can act on them, alongside every entry of `fields`.
+ * In a browser, `extractMetadata` additionally reads real duration and frame
+ * dimensions locally and sends them as `duration` / `width` / `height`, and
+ * `generateThumbnails` captures a local frame into `UploadResult.thumbnail`.
  */
+
+import {
+  VideoAnalyzer,
+  VideoMetadata,
+  ThumbnailOptions,
+  ThumbnailResult,
+  createVideoAnalyzer,
+} from './videoAnalysis';
 
 /** Default endpoint used when `UploadOptions.endpoint` is not provided. */
 export const DEFAULT_UPLOAD_ENDPOINT = '/api/videos/upload';
@@ -80,8 +91,10 @@ export interface UploadOptions {
   allowedTypes?: string[];
   /** Whether to generate thumbnails */
   generateThumbnails?: boolean;
-  /** Whether to extract metadata */
+  /** Whether to extract metadata (locally in browsers, otherwise asks the server) */
   extractMetadata?: boolean;
+  /** Capture options used when `generateThumbnails` is enabled in a browser */
+  thumbnailOptions?: ThumbnailOptions;
   /** Server endpoint receiving the multipart POST. Default: /api/videos/upload */
   endpoint?: string;
   /** Form field name used for the file part. Default: "file" */
@@ -120,6 +133,10 @@ export interface UploaderConfig {
 export interface UploadResult {
   /** The uploaded video metadata (empty when `error` is set) */
   video: UploadedVideo;
+  /** Locally captured thumbnail when `generateThumbnails` is enabled (browser only) */
+  thumbnail?: ThumbnailResult;
+  /** Why local thumbnail capture failed, when it was requested but did not succeed */
+  thumbnailError?: string;
   /** Error message if upload failed */
   error?: string;
 }
@@ -132,11 +149,31 @@ export class VideoUploader {
   private readonly defaultEndpoint: string;
   private readonly maxDefaultSize: number;
   private readonly acceptedTypes: string[];
+  private readonly analyzer: VideoAnalyzer;
 
   constructor(config: UploaderConfig = {}) {
     this.defaultEndpoint = config.endpoint || DEFAULT_UPLOAD_ENDPOINT;
     this.maxDefaultSize = config.maxSize ?? 500 * 1024 * 1024; // 500MB default
     this.acceptedTypes = config.allowedTypes || DEFAULT_ACCEPTED_TYPES;
+    this.analyzer = createVideoAnalyzer();
+  }
+
+  /**
+   * Read real duration and frame dimensions from the file without uploading it.
+   * @param file Video file
+   * @param timeoutMs Abort after this many milliseconds (default 15000)
+   */
+  extractMetadata(file: File, timeoutMs?: number): Promise<VideoMetadata> {
+    return this.analyzer.getMetadata(file, timeoutMs);
+  }
+
+  /**
+   * Capture a frame from the file as an encoded image, locally in the browser.
+   * @param file Video file
+   * @param options Capture position, size and encoding options
+   */
+  extractThumbnail(file: File, options?: ThumbnailOptions): Promise<ThumbnailResult> {
+    return this.analyzer.captureThumbnail(file, options);
   }
 
   /**
@@ -152,15 +189,31 @@ export class VideoUploader {
     }
 
     const endpoint = options.endpoint || this.defaultEndpoint;
-    const formData = this.buildFormData(file, options);
+    const metadata =
+      options.extractMetadata && this.analyzer.isSupported()
+        ? await this.tryExtractMetadata(file)
+        : undefined;
+    const formData = this.buildFormData(file, options, metadata);
 
     try {
-      const video =
+      const uploaded =
         options.onProgress && typeof XMLHttpRequest !== 'undefined'
           ? await this.sendWithXHR(endpoint, formData, file, options)
           : await this.sendWithFetch(endpoint, formData, file, options);
 
-      return { video };
+      const video = this.mergeMetadata(uploaded, metadata);
+
+      let thumbnail: ThumbnailResult | undefined;
+      let thumbnailError: string | undefined;
+      if (options.generateThumbnails) {
+        try {
+          thumbnail = await this.analyzer.captureThumbnail(file, options.thumbnailOptions);
+        } catch (error) {
+          thumbnailError = error instanceof Error ? error.message : String(error);
+        }
+      }
+
+      return { video, thumbnail, thumbnailError };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (options.onProgress) {
@@ -308,7 +361,7 @@ export class VideoUploader {
 
   // --- helpers -------------------------------------------------------------
 
-  private buildFormData(file: File, options: UploadOptions): FormData {
+  private buildFormData(file: File, options: UploadOptions, metadata?: VideoMetadata): FormData {
     const formData = new FormData();
     formData.append(options.fieldName || 'file', file, file.name);
 
@@ -316,7 +369,13 @@ export class VideoUploader {
     if (typeof options.generateThumbnails === 'boolean') {
       formData.append('generateThumbnails', String(options.generateThumbnails));
     }
-    if (typeof options.extractMetadata === 'boolean') {
+
+    if (metadata) {
+      // Real values read from the file outperform a server-side probe.
+      if (metadata.duration > 0) formData.append('duration', String(metadata.duration));
+      if (metadata.width > 0) formData.append('width', String(metadata.width));
+      if (metadata.height > 0) formData.append('height', String(metadata.height));
+    } else if (typeof options.extractMetadata === 'boolean') {
       formData.append('extractMetadata', String(options.extractMetadata));
     }
 
@@ -325,6 +384,30 @@ export class VideoUploader {
     }
 
     return formData;
+  }
+
+  /** Local extraction is a convenience: never let it fail the upload. */
+  private async tryExtractMetadata(file: File): Promise<VideoMetadata | undefined> {
+    try {
+      return await this.analyzer.getMetadata(file);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** Prefer server-reported values, filling gaps with local measurements. */
+  private mergeMetadata(video: UploadedVideo, metadata?: VideoMetadata): UploadedVideo {
+    if (!metadata) return video;
+
+    return {
+      ...video,
+      duration: video.duration ?? (metadata.duration > 0 ? metadata.duration : undefined),
+      width: video.width ?? (metadata.width > 0 ? metadata.width : undefined),
+      height: video.height ?? (metadata.height > 0 ? metadata.height : undefined),
+      size: video.size || metadata.size,
+      filename: video.filename || metadata.filename,
+      type: video.type || metadata.type,
+    };
   }
 
   private validate(file: File, options: UploadOptions): string | null {
