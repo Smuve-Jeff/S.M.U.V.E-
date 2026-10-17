@@ -220,8 +220,10 @@ export class CinemaEngine {
       aiModel = options.effects.find((e: string) => e.startsWith('ai-'))?.replace('ai-', '');
     }
 
-    // Apply filters
-    result = this.filters.apply(result, { type: options?.filter, intensity: options?.intensity ?? 0.5 });
+    // Apply filter when one was requested
+    if (options?.filter) {
+      result = this.filters.apply(options.filter, { intensity: options?.intensity ?? 0.5 });
+    }
 
     // Apply crop if needed
     if (options?.crop) {
@@ -287,8 +289,10 @@ export class CinemaEngine {
       aiModel = options.effects.find((e: string) => e.startsWith('ai-'))?.replace('ai-', '');
     }
 
-    // Apply filters (lightweight)
-    result = this.filters.apply(result, { type: options?.filter, intensity: options?.intensity ?? 0.5 });
+    // Apply filter when one was requested (lightweight)
+    if (options?.filter) {
+      result = this.filters.apply(options.filter, { intensity: options?.intensity ?? 0.5 });
+    }
     
     // Apply transition if switching scenes
     if (options?.transition) {
@@ -359,8 +363,10 @@ export class CinemaEngine {
       aiModel = options.effects.find((e: string) => e.startsWith('ai-'))?.replace('ai-', '');
     }
 
-    // Apply filters (film-like)
-    result = this.filters.apply(result, { type: options?.filter, intensity: options?.intensity ?? 0.5 });
+    // Apply filter when one was requested (film-like)
+    if (options?.filter) {
+      result = this.filters.apply(options.filter, { intensity: options?.intensity ?? 0.5 });
+    }
     
     // Apply transition (dramatic)
     if (options?.transition) {

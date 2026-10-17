@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "description": "Cinema engine module for special effects, transitions, voice over, filters, crops, text editor and other features enhancing music video, live streaming, and movie directing quality",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc build",
-    "dev": "tsc watch",
-    "test": "jest"
+    "build": "tsc && node scripts/copy-assets.mjs",
+    "dev": "tsc --watch",
+    "pretest": "npm run build",
+    "test": "node --test test/smoke.test.cjs"
   },
   "keywords": [
     "cinema",
