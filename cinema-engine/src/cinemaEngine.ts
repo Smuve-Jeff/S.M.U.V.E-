@@ -28,7 +28,13 @@ import { MusicVideoFeatures } from './musicVideoFeatures';
 import { LiveStreamingFeatures } from './liveStreamingFeatures';
 import { MovieDirectingFeatures } from './movieDirectingFeatures';
 import { VideoUploader, UploadOptions, UploadResult, UploadedVideo, UploaderConfig } from './upload';
-import { VideoMetadata, ThumbnailOptions, ThumbnailResult } from './videoAnalysis';
+import {
+  VideoMetadata,
+  ThumbnailOptions,
+  ThumbnailResult,
+  SpriteSheetOptions,
+  SpriteSheetResult,
+} from './videoAnalysis';
 import { createVideoUploader } from './upload';
 
 /**
@@ -147,6 +153,15 @@ export class CinemaEngine {
    */
   captureThumbnail(file: File, options?: ThumbnailOptions): Promise<ThumbnailResult> {
     return this.videoUploader.extractThumbnail(file, options);
+  }
+
+  /**
+   * Build a sprite sheet of evenly spaced frames for timeline hover previews.
+   * @param file Video file
+   * @param options Frame count, grid layout and encoding options
+   */
+  createSpriteSheet(file: File, options?: SpriteSheetOptions): Promise<SpriteSheetResult> {
+    return this.videoUploader.createSpriteSheet(file, options);
   }
 
   /**

@@ -22,6 +22,8 @@ import {
   VideoMetadata,
   ThumbnailOptions,
   ThumbnailResult,
+  SpriteSheetOptions,
+  SpriteSheetResult,
   createVideoAnalyzer,
 } from './videoAnalysis';
 
@@ -174,6 +176,15 @@ export class VideoUploader {
    */
   extractThumbnail(file: File, options?: ThumbnailOptions): Promise<ThumbnailResult> {
     return this.analyzer.captureThumbnail(file, options);
+  }
+
+  /**
+   * Build a sprite sheet of evenly spaced frames for timeline hover previews.
+   * @param file Video file
+   * @param options Frame count, grid layout and encoding options
+   */
+  createSpriteSheet(file: File, options?: SpriteSheetOptions): Promise<SpriteSheetResult> {
+    return this.analyzer.captureSpriteSheet(file, options);
   }
 
   /**
