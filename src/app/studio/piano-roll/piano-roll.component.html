@@ -1,0 +1,763 @@
+<div class="pr-shell studio-workspace-surface piano-roll-surface" data-studio-module="piano-roll">
+  <!-- HEADER -->
+  <header class="pr-header" role="banner">
+    <div class="pr-header-left">
+      <span class="material-symbols-outlined" style="color: var(--teal-500)"
+        >piano</span
+      >
+      <div
+        class="pr-track-pill"
+        *ngIf="selectedTrack() as track"
+        [attr.aria-label]="'Editing track ' + track.name"
+      >
+        <span
+          class="pr-track-dot"
+          [style.background-color]="track.color"
+        ></span>
+        <span>{{ track.name }}</span>
+      </div>
+      <span
+        *ngIf="highlightedRange() as range"
+        class="pr-link-badge"
+        title="Highlighted via cross-link"
+      >
+        <span class="material-symbols-outlined">arrow_outward</span>
+        Linked · steps {{ range.startStep }}–{{ range.endStep }}
+      </span>
+    </div>
+
+    <div class="pr-header-tools" role="toolbar" aria-label="Editing tools">
+      <!-- Zoom controls -->
+      <div class="pr-zoom-group">
+        <button
+          type="button"
+          class="pr-tool pr-tool-sm"
+          (click)="zoomOut()"
+          title="Zoom out"
+          aria-label="Zoom out grid"
+        >
+          <span class="material-symbols-outlined">zoom_out</span>
+        </button>
+        <span class="pr-zoom-readout">{{ zoomPercent() }}%</span>
+        <button
+          type="button"
+          class="pr-tool pr-tool-sm"
+          (click)="zoomIn()"
+          title="Zoom in"
+          aria-label="Zoom in grid"
+        >
+          <span class="material-symbols-outlined">zoom_in</span>
+        </button>
+      </div>
+      <button
+        type="button"
+        class="pr-tool"
+        [class.active]="editMode() === 'draw'"
+        (click)="setEditMode('draw')"
+        [attr.aria-pressed]="editMode() === 'draw'"
+        [attr.aria-label]="'Draw tool'"
+        title="Draw (D)"
+      >
+        <span class="material-symbols-outlined">edit</span>
+      </button>
+      <button
+        type="button"
+        class="pr-tool"
+        [class.active]="editMode() === 'select'"
+        (click)="setEditMode('select')"
+        [attr.aria-pressed]="editMode() === 'select'"
+        [attr.aria-label]="'Selection tool'"
+        title="Select (S)"
+      >
+        <span class="material-symbols-outlined">arrow_selector_tool</span>
+      </button>
+      <button
+        type="button"
+        class="pr-tool"
+        [class.active]="editMode() === 'erase'"
+        (click)="setEditMode('erase')"
+        [attr.aria-pressed]="editMode() === 'erase'"
+        [attr.aria-label]="'Erase tool'"
+        title="Erase (E)"
+      >
+        <span class="material-symbols-outlined">backspace</span>
+      </button>
+      <button
+        type="button"
+        class="pr-tool"
+        [class.active]="editMode() === 'velocity'"
+        (click)="setEditMode('velocity')"
+        [attr.aria-pressed]="editMode() === 'velocity'"
+        [attr.aria-label]="'Velocity tool'"
+        title="Velocity (V)"
+      >
+        <span class="material-symbols-outlined">speed</span>
+      </button>
+      <button
+        type="button"
+        class="pr-tool"
+        [class.active]="editMode() === 'chord'"
+        (click)="setEditMode('chord')"
+        [attr.aria-pressed]="editMode() === 'chord'"
+        [attr.aria-label]="'Chord stamp tool'"
+        title="Chord stamp (C)"
+      >
+        <span class="material-symbols-outlined">piano</span>
+      </button>
+    </div>
+
+    <div
+      class="pr-tool-status"
+      role="status"
+      aria-live="polite"
+      [attr.data-tool]="editMode()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">touch_app</span>
+      Tool: {{ editMode() | titlecase }}
+    </div>
+
+    <div class="pr-snap" role="radiogroup" aria-label="Snap-to-grid resolution">
+      <span class="pr-snap-label" id="pr-snap-label">Snap</span>
+      <button
+        *ngFor="let s of snapOptions"
+        type="button"
+        role="radio"
+        class="pr-snap-btn"
+        [class.active]="snap() === s.value"
+        (click)="setSnap(s.value)"
+        [attr.aria-checked]="snap() === s.value"
+        [attr.aria-label]="'Snap to ' + s.label"
+      >
+        {{ s.label }}
+      </button>
+    </div>
+
+    <button
+      type="button"
+      class="pr-ai-chip"
+      (click)="humanizeNotes()"
+      [attr.aria-label]="'AI: Humanize selected notes'"
+    >
+      <span class="material-symbols-outlined">auto_awesome</span>
+      <span>Humanize</span>
+    </button>
+    <div class="pr-snap" role="group" aria-label="Quantization controls">
+      <select
+        class="pr-ks-select"
+        [ngModel]="quantizePresetId()"
+        (ngModelChange)="setQuantizePreset($event)"
+        aria-label="Quantize preset"
+      >
+        <option *ngFor="let preset of quantizePresets" [value]="preset.id">
+          {{ preset.name }}
+        </option>
+      </select>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="quantizeSelection()"
+        [disabled]="selectionCount() === 0"
+        title="Quantize selected notes"
+      >
+        Q Sel
+      </button>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="quantizeTrack()"
+        title="Quantize whole track"
+      >
+        Q All
+      </button>
+    </div>
+    <div class="pr-transport-mini" role="group" aria-label="Tempo and metronome">
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="togglePlay()"
+        [attr.aria-label]="audioSession.isPlaying() ? 'Pause playback' : 'Start playback'"
+      >
+        <span class="material-symbols-outlined">{{
+          audioSession.isPlaying() ? 'pause' : 'play_arrow'
+        }}</span>
+      </button>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        [class.active]="metronomeEnabled()"
+        (click)="toggleMetronome()"
+        [attr.aria-pressed]="metronomeEnabled()"
+        aria-label="Toggle metronome"
+      >
+        <span class="material-symbols-outlined">metronome</span>
+      </button>
+      <button
+        type="button"
+        class="pr-tempo-chip"
+        (click)="showTempoMenu.set(!showTempoMenu())"
+        [attr.aria-expanded]="showTempoMenu()"
+        aria-haspopup="menu"
+        [attr.aria-label]="'Tempo ' + audioEngine.tempo() + ' BPM'"
+      >
+        {{ audioEngine.tempo() }} BPM
+      </button>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="nudgeTempo(-1)"
+        [attr.aria-label]="'Decrease tempo to ' + (audioEngine.tempo() - 1) + ' BPM'"
+      >
+        −
+      </button>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="nudgeTempo(1)"
+        [attr.aria-label]="'Increase tempo to ' + (audioEngine.tempo() + 1) + ' BPM'"
+      >
+        +
+      </button>
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm"
+        (click)="tapTempo()"
+        [attr.aria-label]="
+          tapBpmGuess() === null
+            ? 'Tap tempo'
+            : 'Tap tempo locked at ' + tapBpmGuess() + ' BPM'
+        "
+      >
+        Tap
+      </button>
+      <div class="pr-tempo-menu" *ngIf="showTempoMenu()" role="menu">
+        <button
+          *ngFor="let preset of tempoPresets"
+          type="button"
+          class="pr-tempo-preset"
+          (click)="setTempo(preset)"
+          role="menuitem"
+        >
+          {{ preset }} BPM
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="pr-selection-status" aria-live="polite">
+    {{ selectionAnnouncement() }}
+  </div>
+
+  <!-- KEY / SCALE SELECTOR BAR -->
+  <div class="pr-key-scale-bar" role="group" aria-label="Key and scale">
+    <span class="pr-ks-label">Key</span>
+    <select
+      class="pr-ks-select"
+      [ngModel]="selectedKey()"
+      (ngModelChange)="setKey($event)"
+      aria-label="Root key"
+    >
+      <option *ngFor="let k of keyOptions" [value]="k">{{ k }}</option>
+    </select>
+    <span class="pr-ks-label" id="pr-scale-label">Scale</span>
+    <div class="pr-scale-chips" role="radiogroup" aria-labelledby="pr-scale-label">
+      <button
+        *ngFor="let s of scaleOptions"
+        type="button"
+        role="radio"
+        class="pr-scale-chip"
+        [class.active]="selectedScale() === s.value"
+        (click)="setScale(s.value)"
+        [attr.aria-checked]="selectedScale() === s.value"
+        [attr.aria-label]="'Use ' + s.label + ' scale'"
+      >
+        {{ s.label }}
+      </button>
+    </div>
+    <label class="pr-scale-lock">
+      <input
+        type="checkbox"
+        [ngModel]="scaleLockEnabled()"
+        (ngModelChange)="toggleScaleLock()"
+      />
+      <span>Lock</span>
+    </label>
+    <!-- Phase F3 — one-tap auto key/scale detection from the melody -->
+    <button
+      type="button"
+      class="pr-detect-btn"
+      (click)="autoDetectScale()"
+      [attr.aria-label]="'Auto-detect the key and scale from the notes on this track'"
+      title="✨ Detect key & scale from this track's notes"
+    >
+      <span class="material-symbols-outlined">auto_awesome</span>
+      <span>Auto</span>
+    </button>
+    <span class="pr-grid-steps">Steps: {{ gridSteps() }}</span>
+    <button
+      type="button"
+      class="pr-expand-btn"
+      (click)="expandGrid()"
+      title="Add 16 more steps"
+    >
+      +16
+    </button>
+  </div>
+
+  <!-- MAIN CANVAS ROW -->
+  <div class="pr-canvas-row">
+    <!-- Pitch keys column -->
+    <div
+      class="pr-keys no-scrollbar"
+      #keysSidebar
+      aria-hidden="true"
+      (scroll)="$event.preventDefault()"
+    >
+      <div
+        *ngFor="let midi of displayKeys()"
+        class="pr-key"
+        [class.black]="isBlackKey(midi)"
+        [class.in-scale]="isInScale(midi)"
+        [style.height.px]="isBlackKey(midi) ? rowHeight() * 0.55 : rowHeight()"
+        (pointerdown)="auditionKey(midi, $event)"
+        title="Audition {{ getKeyName(midi) + getOctaveLabel(midi) }}"
+      >
+        <span>{{ getKeyName(midi) + getOctaveLabel(midi) }}</span>
+      </div>
+    </div>
+
+    <!-- Main grid: WebGL canvas -->
+    <div
+      class="pr-grid no-scrollbar"
+      [class.select-mode]="editMode() === 'select'"
+      #scrollContainer
+      tabindex="0"
+      role="grid"
+      [attr.aria-label]="
+        'Piano roll grid at step ' +
+        (focusedStep() + 1) +
+        ', note ' +
+        getKeyName(focusedMidi()) +
+        getOctaveLabel(focusedMidi())
+      "
+      (pointerdown)="onGridPointerDown($event)"
+      (touchstart)="onGridTouchStart($event)"
+      (touchmove)="onGridTouchMove($event)"
+      (touchend)="onGridTouchEnd($event)"
+      (touchcancel)="onGridTouchEnd($event)"
+      (keydown)="onGridKeydown($event)"
+      (focus)="gridHasFocus.set(true)"
+      (blur)="gridHasFocus.set(false)"
+      (scroll)="syncKeyScroll()"
+      (wheel)="onGridWheel($event)"
+    >
+      <canvas
+        #glCanvas
+        class="pr-gl-canvas"
+        [style.width.px]="gridWidth()"
+        [style.height.px]="canvasHeight()"
+      ></canvas>
+      <div
+        class="pr-grid-focus-cell"
+        *ngIf="gridHasFocus()"
+        [style.left.px]="focusedStep() * cellWidth()"
+        [style.top.px]="rowTopPx(focusedMidi())"
+        [style.width.px]="cellWidth()"
+        [style.height.px]="rowHeight()"
+        aria-hidden="true"
+      ></div>
+      <!-- Marquee (lasso) selection overlay -->
+      <div
+        class="pr-marquee"
+        *ngIf="marqueeStyle() as style"
+        [style.left]="style.left"
+        [style.top]="style.top"
+        [style.width]="style.width"
+        [style.height]="style.height"
+        aria-hidden="true"
+      ></div>
+    </div>
+  </div>
+
+  <!--
+    Velocity lane, CC lane strip and the automation/toggle bars are siblings of
+    the canvas row, not children of it. They are horizontal bands (border-top,
+    align-items: center) built for the shell's column flow; inside the row — a
+    flex ROW of keys + grid — each of them became a full-height column, and on a
+    desktop viewport the two bar rails alone claimed ~820px of the row, leaving
+    the grid ~150px wide. Their natural height also stacked correctly on phones
+    instead of being clipped by the row's `overflow: hidden`.
+  -->
+  <div class="pr-auto-toolbar">
+      <span class="pr-auto-label">Automation</span>
+      <div
+        class="pr-auto-params"
+        role="radiogroup"
+        aria-label="Automation lane parameter"
+      >
+        <button
+          type="button"
+          role="radio"
+          class="pr-auto-param"
+          [class.active]="automationParam() === 'velocity'"
+          (click)="setAutomationParam('velocity')"
+          [attr.aria-checked]="automationParam() === 'velocity'"
+          aria-label="Velocity automation lane"
+          title="Velocity"
+        >Vel</button>
+        <button
+          type="button"
+          role="radio"
+          class="pr-auto-param"
+          [class.active]="automationParam() === 'cutoff'"
+          (click)="setAutomationParam('cutoff')"
+          [attr.aria-checked]="automationParam() === 'cutoff'"
+          aria-label="Filter cutoff automation lane"
+          title="Filter Cutoff"
+        >Cut</button>
+        <button
+          type="button"
+          role="radio"
+          class="pr-auto-param"
+          [class.active]="automationParam() === 'pan'"
+          (click)="setAutomationParam('pan')"
+          [attr.aria-checked]="automationParam() === 'pan'"
+          aria-label="Pan automation lane"
+          title="Pan"
+        >Pan</button>
+        <button
+          type="button"
+          role="radio"
+          class="pr-auto-param"
+          [class.active]="automationParam() === 'volume'"
+          (click)="setAutomationParam('volume')"
+          [attr.aria-checked]="automationParam() === 'volume'"
+          aria-label="Volume automation lane"
+          title="Volume"
+        >Vol</button>
+      </div>
+      <button
+        type="button"
+        class="pr-bezier-btn"
+        (click)="openBezierForCurrentLane()"
+        title="Edit bezier curve on this lane"
+      >
+        <span class="material-symbols-outlined">auto_awesome</span>
+        <span>Bezier</span>
+      </button>
+    </div>
+
+    <!-- CC LANE STRIP (4 lanes: Mod, Expression, Pan, Cutoff) -->
+    <div class="pr-cc-strip" *ngIf="showCcLane()">
+      <div class="pr-cc-lane" *ngFor="let lane of ccLanes">
+        <div class="pr-cc-header">
+          <span
+            class="pr-cc-label"
+            [style.color]="lane.color"
+          >{{ lane.label }}
+            <span *ngIf="lane.type === 'pitchbend'">(PB)</span>
+            <span *ngIf="lane.type !== 'pitchbend'">(CC{{ ccLaneController()[lane.id] ?? lane.cc }})</span>
+          </span>
+          <span
+            class="pr-cc-live"
+            [style.color]="lane.color"
+            *ngIf="ccRecordArmed()"
+            title="Recording armed"
+          >●</span>
+          <span class="pr-cc-header-actions">
+            <!-- Per-lane MIDI channel selector -->
+            <select
+              class="pr-cc-ch"
+              [value]="ccLaneChannel()[lane.id] ?? 0"
+              (change)="setCcLaneChannel(lane.id, $any($event.target).value)"
+              [title]="'MIDI channel for ' + lane.label + ' (CH' + (ccLaneChannel()[lane.id] ?? 0) + ')'"
+            >
+              <option *ngFor="let ch of [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]" [value]="ch">
+                CH{{ ch }}
+              </option>
+            </select>
+            <!-- MIDI Learn: assign the next incoming CC to this lane -->
+            <button
+              type="button"
+              class="pr-cc-learn"
+              [class.learning]="isCcLaneLearning(lane.id)"
+              [style.--lane-color]="lane.color"
+              (click)="
+                isCcLaneLearning(lane.id)
+                  ? cancelCcLaneLearn()
+                  : startCcLaneLearn(lane.id)
+              "
+              [title]="
+                isCcLaneLearning(lane.id)
+                  ? 'Listening… twist a knob to assign ' + lane.label
+                  : 'MIDI Learn: assign the next knob to ' + lane.label
+              "
+            >
+              <span class="material-symbols-outlined">track_changes</span>
+            </button>
+            <button
+              type="button"
+              class="pr-cc-bezier"
+              (click)="openBezierForCcLane(lane.id)"
+              [style.--lane-color]="lane.color"
+              title="Edit bezier curve for {{ lane.label }}"
+            >
+              <span class="material-symbols-outlined">auto_awesome</span>
+            </button>
+          </span>
+        </div>
+        <div
+          class="pr-cc-track"
+          (pointerdown)="onCcPointerDown($event, lane.id)"
+          (pointermove)="onCcPointerMove($event, lane.id)"
+        >
+          <div
+            class="pr-cc-fill"
+            [style.background]="lane.color"
+            [style.height.%]="(ccLaneValues()[lane.id] ?? 64) / 127 * 100"
+          ></div>
+          <span class="pr-cc-value">{{ ccLaneValues()[lane.id] ?? 64 }}</span>
+          <!-- Recorded keyframe readout dots: x = step%, y = value% -->
+          <span
+            class="pr-cc-dot"
+            *ngFor="let pt of ccLaneReadouts()[lane.id]"
+            [style.left.%]="pt.x"
+            [style.bottom.%]="pt.y"
+            [style.background]="lane.color"
+            title="Recorded keyframe"
+          ></span>
+        </div>
+      </div>
+    </div>
+    <!-- CC lane toggle button + output selector + record arm -->
+    <div class="pr-cc-toggle-bar">
+      <span class="pr-cc-toggle-label">CC Lanes</span>
+      <button
+        type="button"
+        *ngFor="let lane of ccLanes"
+        class="pr-cc-toggle-btn"
+        [class.active]="activeCcLane() === lane.id"
+        [class.recording]="ccRecordArmed() && activeCcLane() === lane.id"
+        [style.--lane-color]="lane.color"
+        (click)="toggleCcLane(lane.id)"
+        [title]="lane.label + ' (CC' + lane.cc + ')'"
+      >
+        {{ lane.label }}
+      </button>
+      <span class="pr-cc-spacer"></span>
+      <!-- MIDI OUT selector -->
+      <label class="pr-cc-out-label" for="ccOutputSelect">MIDI OUT</label>
+      <select
+        id="ccOutputSelect"
+        class="pr-cc-out-select"
+        [ngModel]="djMidi.ccOutputIndex()"
+        (ngModelChange)="djMidi.setCcOutput($event)"
+        [disabled]="djMidi.ccOutputNames().length === 0"
+        [title]="
+          djMidi.ccOutputNames().length === 0
+            ? 'No MIDI outputs connected'
+            : 'Choose MIDI output for CC messages'
+        "
+      >
+        <option *ngFor="let name of djMidi.ccOutputNames(); let i = index" [value]="i">
+          {{ name }}
+        </option>
+      </select>
+      <!-- REC arm -->
+      <button
+        type="button"
+        class="pr-cc-rec"
+        [class.armed]="ccRecordArmed()"
+        (click)="toggleCcRecord()"
+        [title]="
+          ccRecordArmed()
+            ? 'Stop CC automation recording'
+            : 'Arm CC automation recording (writes keyframes at playhead while playing)'
+        "
+      >
+        <span class="pr-cc-rec-dot"></span>
+        <span>REC</span>
+      </button>
+      <!-- Sustain pedal LED (CC64 + half-pedal CC68) -->
+      <span
+        class="pr-sus-led"
+        [class.active]="sustainActive()"
+        [class.half]="sustainHalfPedal()"
+        [title]="
+          sustainActive()
+            ? sustainHalfPedal()
+              ? 'Sustain half-pedal (CC68 ' + sustainAmount() + ') — soft notes released'
+              : 'Sustain pedal (CC64) engaged'
+            : 'Sustain pedal (CC64) — half-pedal via CC68'
+        "
+      >
+        <span class="pr-sus-dot"></span>
+        <span>SUS</span>
+        <!-- Half-pedal intensity meter -->
+        <span class="pr-sus-meter" *ngIf="sustainActive()">
+          <span
+            class="pr-sus-meter-fill"
+            [style.width.%]="(sustainAmount() / 127) * 100"
+          ></span>
+        </span>
+        <!-- Release count chip: notes released by the last pedal lift -->
+        <span
+          class="pr-sus-release"
+          *ngIf="sustainReleaseCount() > 0"
+        >{{ sustainReleaseCount() }} ✕</span>
+      </span>
+    </div>
+    <div
+      class="pr-velocity"
+      #velocityViewport
+      (scroll)="onVelocityScroll($event)"
+      (pointerdown)="onVelocityPointerDown($event)"
+      (pointermove)="onVelocityPointerMove($event)"
+    >
+      <canvas
+        #glVelocityCanvas
+        class="pr-gl-canvas pr-gl-canvas--velocity"
+        [style.width.px]="gridWidth()"
+        [style.height.px]="80"
+      ></canvas>
+    </div>
+
+    <!-- Right inspector: a companion rail beside the grid, so it keeps the
+         row layout (right-aligned via .pr-canvas-row--inspector) without the
+         row's flexible height. -->
+    <div class="pr-canvas-row pr-canvas-row--inspector">
+    <div class="pr-inspector" *ngIf="selectionCount() > 0">
+      <!-- Toggle precision panel -->
+      <button
+        type="button"
+        class="pr-inspector-toggle"
+        (click)="togglePrecisionPanel()"
+        [class.active]="showPrecisionPanel()"
+      >
+        <span class="material-symbols-outlined">tune</span>
+        <span>Precision</span>
+      </button>
+      <button
+        type="button"
+        class="pr-inspector-toggle pr-slide-toggle"
+        [class.active]="selectedNoteIsSlide()"
+        [class.disabled]="selectionCount() === 0"
+        (click)="toggleSlideOnSelection()"
+        [title]="
+          selectionCount() === 0
+            ? 'Select notes to add slide'
+            : selectedNoteIsSlide()
+              ? 'Remove slide glide'
+              : 'FL-style slide: pitch glides over note duration'
+        "
+      >
+        <span class="material-symbols-outlined">trending_up</span>
+        <span>Slide</span>
+      </button>
+      <button
+        type="button"
+        class="pr-inspector-toggle"
+        (click)="duplicateSelection()"
+        title="Duplicate selected notes"
+      >
+        <span class="material-symbols-outlined">content_copy</span>
+        <span>Duplicate</span>
+      </button>
+      <button
+        type="button"
+        class="pr-inspector-toggle"
+        (click)="deleteSelection()"
+        title="Delete selected notes"
+      >
+        <span class="material-symbols-outlined">delete</span>
+        <span>Delete</span>
+      </button>
+      <div class="pr-inspector-pill">
+        <div class="pr-inspector-pill-label">Velocity</div>
+        <div class="pr-inspector-pill-value">{{ selectedNoteVelocity() }}</div>
+        <input
+          type="range"
+          min="0.1"
+          max="1.5"
+          step="0.05"
+          [ngModel]="selectedNoteVelocity()"
+          (ngModelChange)="setSelectedVelocity($event)"
+        />
+      </div>
+      <div class="pr-inspector-pill">
+        <div class="pr-inspector-pill-label">Prob.</div>
+        <div class="pr-inspector-pill-value">
+          {{ selectedNoteProbability() }}
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          [ngModel]="selectedNoteProbability()"
+          (ngModelChange)="setSelectedProbability($event)"
+        />
+      </div>
+      <!-- ═══ PRECISION PANEL ══════════════════════════ -->
+      <ng-container *ngIf="showPrecisionPanel()">
+        <div class="pr-inspector-pill pr-precision-pill">
+          <div class="pr-inspector-pill-label">Micro-Offset</div>
+          <div class="pr-inspector-pill-value">
+            {{ selectedNoteMicroOffset() > 0 ? '+' : ''
+            }}{{ (selectedNoteMicroOffset() * 100).toFixed(0) }}%
+          </div>
+          <input
+            type="range"
+            min="-0.5"
+            max="0.5"
+            step="0.01"
+            [ngModel]="selectedNoteMicroOffset()"
+            (ngModelChange)="setSelectedMicroOffset($event)"
+          />
+        </div>
+        <div class="pr-inspector-pill pr-precision-pill">
+          <div class="pr-inspector-pill-label">Pitch Bend (st)</div>
+          <div class="pr-inspector-pill-value">
+            {{ selectedNotePitchBend() > 0 ? '+' : ''
+            }}{{ selectedNotePitchBend().toFixed(1) }}
+          </div>
+          <input
+            type="range"
+            min="-12"
+            max="12"
+            step="0.1"
+            [ngModel]="selectedNotePitchBend()"
+            (ngModelChange)="setSelectedPitchBend($event)"
+          />
+        </div>
+        <div class="pr-inspector-pill pr-precision-pill">
+          <div class="pr-inspector-pill-label">Length</div>
+          <div class="pr-inspector-pill-value">
+            {{ selectedNoteLength().toFixed(2) }}
+          </div>
+          <input
+            type="range"
+            min="0.125"
+            max="16"
+            step="0.125"
+            [ngModel]="selectedNoteLength()"
+            (ngModelChange)="setSelectedLength($event)"
+          />
+        </div>
+        <div class="pr-inspector-pill pr-precision-art">
+          <div class="pr-inspector-pill-label">Articulation</div>
+          <div class="pr-articulation-chips">
+            <button
+              *ngFor="let a of articulationOptions"
+              type="button"
+              class="pr-art-chip"
+              [class.active]="selectedNoteArticulation() === a.value"
+              (click)="setSelectedArticulation(a.value)"
+            >
+              {{ a.label }}
+            </button>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>

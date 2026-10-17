@@ -1,0 +1,180 @@
+.profile-editor-view {
+  min-height: 100vh;
+  padding-bottom: 5rem;
+}
+
+.executive-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: white;
+  font-family: inherit;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.executive-input:focus {
+  outline: none;
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.chip {
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s;
+}
+
+.chip-active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.active-nav {
+  color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.protocol-tile {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.protocol-tile:hover {
+  transform: translateY(-5px);
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.identity-card,
+.identity-panel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+}
+
+.identity-label {
+  display: block;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.identity-score {
+  display: block;
+  color: #10b981;
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.identity-copy {
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  margin-top: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.connector-row,
+.action-row,
+.risk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.risk-row {
+  justify-content: flex-start;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+}
+
+.connector-pill {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.connector-pill--good {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.connector-action {
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.08);
+  color: #10b981;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .connector-row,
+  .action-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Below lg the two-column rail stacks, and the sidebar used to push the
+   editor ~1380px down the page (an 874px pane list + the intel card). The
+   aside dissolves into the column: the pane rail leads, the editor follows,
+   and Strategic Intel lands after the work surface instead of before it. */
+@media (max-width: 1023.98px) {
+  .profile-editor-view aside {
+    display: contents;
+  }
+
+  .profile-editor-view .profile-nav {
+    order: 1;
+    scrollbar-width: none;
+  }
+
+  .profile-editor-view .profile-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .profile-editor-view main {
+    order: 2;
+  }
+
+  .profile-editor-view .profile-intel {
+    order: 3;
+  }
+}

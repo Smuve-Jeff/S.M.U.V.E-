@@ -1,0 +1,608 @@
+import { Injectable, inject, signal, Injector } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { LoggingService } from './logging.service';
+import { TokenService } from './token.service';
+import { UserStoreService, AuthUser } from './user-store.service';
+import { APP_SECURITY_CONFIG as GLOBAL_SECURITY_CONFIG } from '../app.security';
+import { SecurityService } from './security.service';
+import { UserProfileService } from './user-profile.service';
+import { ApiAuthService } from './api-auth.service';
+import type { ApiAuthResponse } from './api-auth.service';
+
+export interface AuthCredentials {
+  email: string;
+  password: string;
+  twoFactorCode?: string;
+}
+export type { AuthUser };
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private injector = inject(Injector);
+  private tokenService = inject(TokenService);
+  private userStore = inject(UserStoreService);
+  private http = inject(HttpClient);
+  private logger = inject(LoggingService);
+
+  private securityService = inject(SecurityService);
+  private profileService = inject(UserProfileService);
+  private apiAuthService = inject(ApiAuthService);
+
+  currentUser = this.userStore.user;
+  isAuthenticated = this.userStore.isAuthenticated;
+  jwtToken = this.tokenService.jwtToken;
+
+  constructor() {}
+
+  /**
+   * Storage APIs can exist but still throw in private/restricted contexts.
+   * Probe the exact store before using it so login fails clearly instead of
+   * leaving a partially-authenticated client session.
+   */
+  private canUseStorage(storage: Storage | undefined): storage is Storage {
+    if (!storage) return false;
+    try {
+      const probeKey = '__smuve_storage_probe__';
+      storage.setItem(probeKey, '1');
+      storage.removeItem(probeKey);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Persist the session, reporting storage rejections instead of throwing:
+   * an already-granted login must not crash because the browser blocks
+   * sessionStorage (private/restricted mode) or the quota is spent. Returns
+   * whether the session actually landed so callers can warn about reload
+   * fragility rather than pass silently.
+   */
+  private persistSession(user: AuthUser): boolean {
+    if (
+      typeof sessionStorage === 'undefined' ||
+      !this.canUseStorage(sessionStorage)
+    ) {
+      this.logger.warn('AUTH_ALERT: SESSION PERSISTENCE REJECTED BY STORAGE.');
+      return false;
+    }
+    const sessionStr =
+      JSON.stringify(user) + '|' + GLOBAL_SECURITY_CONFIG.auth_salt;
+    const salted = btoa(
+      String.fromCharCode(...new TextEncoder().encode(sessionStr))
+    );
+    try {
+      sessionStorage.setItem('smuve_auth_session', salted);
+      return true;
+    } catch {
+      this.logger.warn('AUTH_ALERT: SESSION PERSISTENCE REJECTED BY STORAGE.');
+      return false;
+    }
+  }
+
+  private async deriveKey(password: string, salt: string): Promise<string> {
+    if (
+      typeof password !== 'string' ||
+      password.trim().length === 0 ||
+      typeof salt !== 'string' ||
+      salt.trim().length === 0
+    ) {
+      throw new Error(
+        'Password and salt must be non-empty strings for key derivation'
+      );
+    }
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      'PBKDF2',
+      false,
+      ['deriveBits']
+    );
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: encoder.encode(salt),
+        iterations: GLOBAL_SECURITY_CONFIG.pbkdf2_iterations,
+        hash: 'SHA-512',
+      },
+      keyMaterial,
+      GLOBAL_SECURITY_CONFIG.key_length
+    );
+    return Array.from(new Uint8Array(derivedBits))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  async loadSession() {
+    // Sessions are intentionally stored in sessionStorage, not localStorage.
+    // Check the actual store before touching it because private/restricted
+    // browser contexts can expose one storage API while denying the other.
+    if (
+      typeof sessionStorage === 'undefined' ||
+      !this.canUseStorage(sessionStorage)
+    )
+      return;
+    let session: string | null = null;
+    try {
+      session = sessionStorage.getItem('smuve_auth_session');
+    } catch {
+      this.userStore.setUser(null);
+      this.tokenService.setToken(null);
+      return;
+    }
+    if (!session) return;
+    try {
+      const decodedBytes = Uint8Array.from(atob(session), (c) =>
+        c.charCodeAt(0)
+      );
+      const decoded = new TextDecoder().decode(decodedBytes);
+      const [data, key] = decoded.split('|');
+      if (key !== GLOBAL_SECURITY_CONFIG.auth_salt) {
+        try {
+          sessionStorage.removeItem('smuve_auth_session');
+        } catch {
+          // Storage may be readable but not writable in private mode.
+        }
+        this.userStore.setUser(null);
+        this.tokenService.setToken(null);
+        this.logger.error('AUTH_ALERT: SESSION INTEGRITY COMPROMISED.');
+        return;
+      }
+      const user = JSON.parse(data);
+      // SECURITY NOTICE: This is a client-side demo implementation.
+      // To prevent role/permission forgery, we explicitly ignore any permission or role fields
+      // from the client-supplied payload, and enforce standard 'Artist' role and 'STANDARD' permissions.
+      user.role = 'Artist';
+      user.permissions = ['STANDARD'];
+
+      this.userStore.setUser(user);
+      await this.profileService.loadProfile(user.id);
+    } catch {
+      try {
+        sessionStorage.removeItem('smuve_auth_session');
+      } catch {
+        // Storage may be readable but not writable in private mode.
+      }
+      this.userStore.setUser(null);
+      this.tokenService.setToken(null);
+      this.logger.error('AUTH_ERROR: NEURAL LINK SEVERED.');
+    }
+    // If a real API JWT is present, refresh the session from the API when
+    // possible (silently ignores API-down / expired tokens).
+    await this.refreshApiSessionUser();
+  }
+
+  /**
+   * Best-effort refresh of a restored session from the S.M.U.V.E. API using
+   * GET /api/auth/me. No-ops when there is no JWT or the API is unreachable.
+   */
+  private async refreshApiSessionUser(): Promise<void> {
+    const token = this.tokenService.jwtToken();
+    const current = this.userStore.user();
+    if (!token || !current) return;
+    try {
+      const apiUser = await this.apiAuthService.me();
+      this.userStore.setUser({
+        ...current,
+        artistName: apiUser.name,
+        email: apiUser.email,
+        lastLogin: new Date(),
+      });
+    } catch {
+      // API offline or token invalid/expired — keep the local session as-is.
+    }
+  }
+
+  async login(creds: AuthCredentials) {
+    this.logger.info('AUTH_EXECUTION: INITIATING CRYPTOGRAPHIC VALIDATION...');
+    const AUTH_FAILURE_DELAY_MS = 1200;
+
+    if (
+      typeof localStorage === 'undefined' ||
+      !this.canUseStorage(localStorage)
+    ) {
+      return {
+        success: false,
+        message: 'STORAGE UNAVAILABLE. NEURAL LINK FAILS.',
+      };
+    }
+
+    const emailKey = (creds.email || '').trim().toLowerCase();
+    let storedUserStr: string | null = null;
+    try {
+      storedUserStr = localStorage.getItem(`smuve_db_user_${emailKey}`);
+    } catch {
+      return {
+        success: false,
+        message: 'STORAGE UNAVAILABLE. NEURAL LINK FAILS.',
+      };
+    }
+
+    // To prevent timing attacks, always perform key derivation even if user doesn't exist
+    const passwordToDerive =
+      creds.password || 'dummy_password_for_equal_timing';
+    const hashedInput = await this.deriveKey(
+      passwordToDerive,
+      GLOBAL_SECURITY_CONFIG.auth_salt
+    );
+
+    if (!storedUserStr) {
+      await new Promise((r) => setTimeout(r, AUTH_FAILURE_DELAY_MS));
+      return {
+        success: false,
+        message:
+          'AUTHORIZATION DENIED. YOUR CREDENTIALS ARE AS WEAK AS YOUR MIX.',
+      };
+    }
+
+    let storedUser: any;
+    try {
+      storedUser = JSON.parse(storedUserStr);
+    } catch {
+      await new Promise((r) => setTimeout(r, AUTH_FAILURE_DELAY_MS));
+      return {
+        success: false,
+        message:
+          'AUTHORIZATION DENIED. YOUR CREDENTIALS ARE AS WEAK AS YOUR MIX.',
+      };
+    }
+
+    if (!storedUser || typeof storedUser !== 'object' || typeof storedUser.passwordHash !== 'string') {
+      await new Promise((r) => setTimeout(r, AUTH_FAILURE_DELAY_MS));
+      return {
+        success: false,
+        message:
+          'AUTHORIZATION DENIED. YOUR CREDENTIALS ARE AS WEAK AS YOUR MIX.',
+      };
+    }
+
+    if (hashedInput !== storedUser.passwordHash) {
+      await new Promise((r) => setTimeout(r, AUTH_FAILURE_DELAY_MS));
+      return {
+        success: false,
+        message:
+          'AUTHORIZATION DENIED. YOUR CREDENTIALS ARE AS WEAK AS YOUR MIX.',
+      };
+    }
+
+    if (storedUser.requires2FA && !creds.twoFactorCode) {
+      return {
+        success: false,
+        message: 'SECOND FACTOR REQUIRED. SECURE YOUR TRANSMISSION.',
+        requires2FA: true,
+      };
+    }
+
+    const user: AuthUser = {
+      id: storedUser.id,
+      email: storedUser.email,
+      artistName: storedUser.artistName,
+      role: storedUser.role,
+      permissions: storedUser.permissions,
+      createdAt: new Date(storedUser.createdAt),
+      lastLogin: new Date(),
+      profileCompleteness: storedUser.profileCompleteness,
+      emailVerified: storedUser.emailVerified,
+      // The demo store has no mail pipeline to complete verification with, so
+      // it keeps the historical behaviour of gating on the local flag.
+      emailVerificationRequired: !storedUser.emailVerified,
+    };
+
+    this.userStore.setUser(user);
+    // Load the profile under the real user id so profile.id is stamped from
+    // the first session (needed for correct cloud-sync keys).
+    await this.profileService.loadProfile(user.id);
+
+    // ARCHITECTURAL NOTE: Mock token used for local session persistence.
+    // In production/integrated flow, this token MUST be returned by the backend
+    // after validating credentials through the Cloudflare Worker.
+    const tempToken =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
+      btoa(JSON.stringify({ sub: user.id, role: user.role }));
+    this.tokenService.setToken(tempToken, 'legacy');
+
+    const persisted = this.persistSession(user);
+
+    return {
+      success: true,
+      message:
+        `ACCESS GRANTED, ${user.artistName}. THE SYSTEM IS READY. DO NOT DISAPPOINT ME.` +
+        (persisted
+          ? ''
+          : ' STORAGE REJECTED: THIS SESSION WILL NOT SURVIVE A RELOAD.'),
+    };
+  }
+
+  async register(creds: AuthCredentials, artistName: string) {
+    this.logger.info('AUTH_EXECUTION: INITIALIZING GENESIS PROTOCOL...');
+
+    if (
+      typeof localStorage === 'undefined' ||
+      !this.canUseStorage(localStorage)
+    ) {
+      return {
+        success: false,
+        message: 'STORAGE UNAVAILABLE. NEURAL LINK FAILS.',
+      };
+    }
+
+    const validation = this.validatePassword(creds.password);
+    if (!validation.isValid) {
+      return { success: false, message: 'REJECTED: ' + validation.errors[0] };
+    }
+
+    const registrationDelay = 1000 + Math.random() * 500;
+
+    let existingUser: string | null;
+    try {
+      existingUser = localStorage.getItem(
+        `smuve_db_user_${creds.email.toLowerCase()}`
+      );
+    } catch {
+      return {
+        success: false,
+        message: 'STORAGE REJECTED. NEURAL LINK FAILS.',
+      };
+    }
+
+    if (existingUser) {
+      await new Promise((r) => setTimeout(r, registrationDelay));
+      return {
+        success: false,
+        message: 'CONFLICT: THIS IDENTITY ALREADY EXISTS IN THE VAULT.',
+      };
+    }
+
+    const passwordHash = await this.deriveKey(
+      creds.password,
+      GLOBAL_SECURITY_CONFIG.auth_salt
+    );
+    const userId = 'usr_' + btoa(creds.email).slice(0, 8);
+
+    const newUser = {
+      id: userId,
+      email: creds.email,
+      artistName: artistName || 'NEW_RECRUIT',
+      passwordHash,
+      role: 'Artist',
+      permissions: ['STANDARD'],
+      createdAt: new Date(),
+      profileCompleteness: 0,
+      emailVerified: false,
+      requires2FA: false,
+    };
+
+    try {
+      localStorage.setItem(
+        `smuve_db_user_${creds.email.toLowerCase()}`,
+        JSON.stringify(newUser)
+      );
+    } catch {
+      // No account record means no future login — a real failure, not a warning.
+      return {
+        success: false,
+        message: 'STORAGE REJECTED. NEURAL LINK FAILS.',
+      };
+    }
+
+    const MIN_CODE = 100000;
+    const CODE_RANGE = 900000;
+    const verificationCodeNumber =
+      typeof crypto !== 'undefined' &&
+      typeof (crypto as any).randomInt === 'function'
+        ? (crypto as any).randomInt(MIN_CODE, MIN_CODE + CODE_RANGE)
+        : Math.floor(MIN_CODE + Math.random() * CODE_RANGE);
+    const verificationCode = verificationCodeNumber.toString();
+    try {
+      localStorage.setItem(
+        `smuve_verification_${creds.email.toLowerCase()}`,
+        verificationCode
+      );
+    } catch {
+      // Best-effort: the account exists, only code delivery is degraded.
+      this.logger.warn('AUTH_ALERT: VERIFICATION CODE PERSISTENCE REJECTED.');
+    }
+
+    if (typeof window !== 'undefined') {
+      // In production, verification codes are sent via email/SMS.
+      // The demo stores it locally; we surface it through the registration
+      // result so the login component can display it inline.
+      console.log(
+        `[demo] Verification code for ${creds.email}: ${verificationCode}`
+      );
+    }
+
+    await new Promise((r) => setTimeout(r, registrationDelay));
+
+    // Auto-login after registration for demo purposes
+    return this.login(creds);
+  }
+
+  /**
+   * Persist a session issued by the S.M.U.V.E. API (real JWT + user).
+   * Mirrors the legacy demo session persistence so a page reload keeps the
+   * session alive via loadSession().
+   */
+  establishApiSession(response: ApiAuthResponse): AuthUser {
+    const user: AuthUser = {
+      id: String(response.user.id),
+      email: response.user.email,
+      artistName: response.user.name,
+      role: 'Artist',
+      permissions: ['STANDARD'],
+      createdAt: new Date(response.user.createdAt),
+      lastLogin: new Date(),
+      profileCompleteness: 100,
+      // The server's answer, not an assumption: an API session used to claim a
+      // verified address unconditionally, which made the guard's "verified"
+      // check meaningless.
+      emailVerified: response.user.emailVerified === true,
+      emailVerificationRequired:
+        response.emailVerificationAvailable === true &&
+        response.user.emailVerified !== true,
+    };
+
+    this.userStore.setUser(user);
+    this.tokenService.setToken(response.token, 'api');
+    // Stamp profile.id with the API user id immediately so auto-save and
+    // artist-identity sync use the real account key.
+    void this.profileService.loadProfile(user.id);
+
+    this.persistSession(user);
+
+    this.logger.info('AUTH_LOG: API SESSION ESTABLISHED.');
+    return user;
+  }
+
+  logout() {
+    this.userStore.setUser(null);
+    this.tokenService.setToken(null);
+    if (typeof sessionStorage !== 'undefined') {
+      try {
+        sessionStorage.removeItem('smuve_auth_session');
+      } catch {
+        // Storage may be readable but refuse removal in restricted contexts.
+      }
+    }
+    // Terminating a session must also release the security state the account
+    // left in memory (CSRF token, rate-limit cache, enrollment artifacts), so
+    // the next sign-in cannot read anything that belonged to the previous one.
+    // Feature-detected: lightweight/embedded hosts provide the base service only.
+    try {
+      (
+        this.securityService as unknown as {
+          zeroizeSensitiveData?: () => unknown;
+        }
+      ).zeroizeSensitiveData?.();
+    } catch {
+      // Never let cleanup failure abort the logout itself.
+    }
+    this.logger.info('AUTH_LOG: SESSION TERMINATED.');
+  }
+
+  /**
+   * Adopt the server's verification state after an API confirmation.
+   *
+   * The gate is `emailVerificationRequired`, so clearing `emailVerified` alone
+   * would leave the artist still blocked from sensitive routes.
+   */
+  markEmailVerified(verifiedEmail?: string): AuthUser | null {
+    const currentUser = this.userStore.user();
+    if (!currentUser) return null;
+    // A confirmation for a different address must not flip this session.
+    if (
+      verifiedEmail &&
+      verifiedEmail.toLowerCase() !== currentUser.email.toLowerCase()
+    ) {
+      return currentUser;
+    }
+
+    const verifiedUser: AuthUser = {
+      ...currentUser,
+      emailVerified: true,
+      emailVerificationRequired: false,
+    };
+    this.userStore.setUser(verifiedUser);
+    this.persistSession(verifiedUser);
+    return verifiedUser;
+  }
+
+  validatePassword(p: string) {
+    const errors = [];
+    if (p.length < 8)
+      errors.push(
+        'PASSWORD TOO SHORT. I REQUIRE AT LEAST 8 CHARACTERS OF ENTROPY.'
+      );
+    if (!/[A-Z]/.test(p)) errors.push('MISSING UPPERCASE INTENSITY.');
+    if (!/[a-z]/.test(p)) errors.push('MISSING LOWERCASE SONICS.');
+    if (!/[0-9]/.test(p)) errors.push('MISSING NUMERIC DATA POINTS.');
+    if (!/[^A-Za-z0-9]/.test(p))
+      errors.push('MISSING SPECIAL CHARACTER SYMBOLS.');
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  async verifyEmail(code: string, email?: string) {
+    await new Promise((r) => setTimeout(r, 800));
+
+    const normalizedEmail = email?.toLowerCase().trim();
+    if (email) {
+      let storedCode: string | null;
+      try {
+        storedCode = localStorage.getItem(
+          `smuve_verification_${normalizedEmail}`
+        );
+      } catch {
+        return {
+          success: false,
+          message: 'STORAGE REJECTED. NEURAL LINK FAILS.',
+        };
+      }
+      if (storedCode && code !== storedCode) {
+        return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
+      }
+    } else {
+      if (code === '000000') {
+        return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
+      }
+    }
+
+    if (normalizedEmail) {
+      const userKey = `smuve_db_user_${normalizedEmail}`;
+      let storedUserStr: string | null;
+      try {
+        storedUserStr = localStorage.getItem(userKey);
+      } catch {
+        return {
+          success: false,
+          message: 'STORAGE REJECTED. NEURAL LINK FAILS.',
+        };
+      }
+      if (storedUserStr) {
+        // A corrupt record must not crash verification — skip the flip and
+        // let the code check above decide the outcome.
+        let storedUser: any = null;
+        try {
+          storedUser = JSON.parse(storedUserStr);
+        } catch {
+          storedUser = null;
+        }
+        if (storedUser && typeof storedUser === 'object') {
+          storedUser.emailVerified = true;
+          try {
+            localStorage.setItem(userKey, JSON.stringify(storedUser));
+          } catch {
+            this.logger.warn('AUTH_ALERT: VERIFICATION WRITE REJECTED BY STORAGE.');
+          }
+        }
+      }
+
+      const currentUser = this.userStore.user();
+      if (currentUser?.email.toLowerCase() === normalizedEmail) {
+        const verifiedUser = {
+          ...currentUser,
+          emailVerified: true,
+          emailVerificationRequired: false,
+        };
+        this.userStore.setUser(verifiedUser);
+        this.persistSession(verifiedUser);
+      }
+
+      try {
+        localStorage.removeItem(`smuve_verification_${normalizedEmail}`);
+      } catch {
+        // Storage may be readable but not writable in private mode.
+      }
+    }
+
+    return { success: true, message: 'CHANNEL SECURE. WELCOME TO THE ELITE.' };
+  }
+
+  async resendVerificationCode() {
+    return {
+      success: true,
+      message: 'TRANSMISSION RE-SENT. DO NOT LOSE IT AGAIN.',
+    };
+  }
+}

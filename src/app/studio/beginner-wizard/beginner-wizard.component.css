@@ -1,0 +1,520 @@
+/* ============================================================
+   S.M.U.V.E. Studio — Beginner Mode wizard
+   ------------------------------------------------------------
+   The guided "make your first song" surface that replaces the
+   arrangement canvas while beginner mode is on. Scoped styling
+   only: the six step cards keep their `--card-accent` binding,
+   the progress fill keeps its width binding and every card still
+   navigates to the same target view on tap.
+
+   Pass fixes two mobile-audit failures the surface shipped with:
+     1. the action footer was `position: fixed`, so it floated over
+        the shell's transport/footer chrome and under the Android
+        gesture bar;
+     2. nothing guarded `prefers-reduced-motion`, even though the
+        hero emoji animates forever.
+   ============================================================ */
+
+:host {
+  display: block;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+}
+
+.wizard-shell {
+  min-height: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  font-family: var(--font-sans);
+  color: var(--espresso-text, #f1f5ff);
+}
+
+/* ── Hero ────────────────────────────────────────────────── */
+
+.wizard-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 8px 8px;
+  text-align: center;
+}
+
+.wizard-hero-icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 1px solid color-mix(in srgb, var(--teal-500, #00e5ff) 34%, transparent);
+  border-radius: 999px;
+  background:
+    radial-gradient(
+      70% 70% at 50% 30%,
+      color-mix(in srgb, var(--teal-500, #00e5ff) 28%, transparent) 0%,
+      transparent 70%
+    ),
+    var(--ivory-panel, #14192e);
+  box-shadow:
+    0 0 26px color-mix(in srgb, var(--teal-500, #00e5ff) 22%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font-size: 34px;
+  line-height: 1;
+  animation: wizard-float 3.2s ease-in-out infinite;
+}
+
+@keyframes wizard-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.wizard-hero-title {
+  margin: 0;
+  font-size: clamp(1.45rem, 1.1rem + 1.4vw, 1.9rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--espresso-text, #f1f5ff);
+}
+
+.wizard-hero-sub {
+  max-width: 46ch;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--espresso-muted, #94a3c8);
+}
+
+.wizard-progress-track {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  height: 10px;
+  margin: 6px auto 0;
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.1));
+  border-radius: 99px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.08) 0 1px,
+      transparent 1px 11px
+    ),
+    var(--ivory-deep, #06091a);
+  overflow: hidden;
+}
+
+.wizard-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(
+    90deg,
+    var(--teal-600, #00b8d4) 0%,
+    var(--teal-500, #00e5ff) 55%,
+    var(--teal-400, #66f0ff) 100%
+  );
+  box-shadow: 0 0 14px color-mix(in srgb, var(--teal-500, #00e5ff) 45%, transparent);
+  transition: width 460ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.wizard-progress-label {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--espresso-muted, #94a3c8);
+}
+
+/* ── Step cards ──────────────────────────────────────────── */
+
+.wizard-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+@media (min-width: 600px) {
+  .wizard-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .wizard-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.wizard-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  min-height: 186px;
+  padding: 18px 16px 16px;
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.1));
+  border-radius: var(--studio-radius-lg, 20px);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ivory-panel, #14192e) 94%, transparent) 0%,
+    color-mix(in srgb, var(--ivory-deep, #06091a) 78%, transparent) 100%
+  );
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 220ms ease;
+}
+
+/* Per-step accent rail — the accent comes from `[style.--card-accent]`. */
+.wizard-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--card-accent, var(--teal-500, #00e5ff)) 0%,
+    color-mix(
+        in srgb,
+        var(--card-accent, var(--teal-500, #00e5ff)) 30%,
+        transparent
+      )
+      100%
+  );
+  opacity: 0.55;
+  transition: opacity 180ms ease;
+}
+
+.wizard-card:hover,
+.wizard-card-active {
+  border-color: var(--card-accent, var(--teal-500, #00e5ff));
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.28),
+    0 0 0 1px
+      color-mix(in srgb, var(--card-accent, var(--teal-500, #00e5ff)) 22%, transparent),
+    0 0 22px
+      color-mix(in srgb, var(--card-accent, var(--teal-500, #00e5ff)) 16%, transparent);
+}
+
+.wizard-card:hover::before,
+.wizard-card-active::before {
+  opacity: 1;
+}
+
+.wizard-card:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.wizard-card:focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 3px;
+}
+
+/* Completed steps stay fully legible — only the accent moves to teal. */
+.wizard-card-done {
+  border-color: color-mix(in srgb, var(--teal-600, #00b8d4) 52%, transparent);
+}
+
+.wizard-card-done::before {
+  background: linear-gradient(
+    90deg,
+    var(--teal-600, #00b8d4) 0%,
+    color-mix(in srgb, var(--teal-500, #00e5ff) 35%, transparent) 100%
+  );
+  opacity: 1;
+}
+
+.wizard-card-step-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--card-accent, var(--teal-500, #00e5ff));
+  color: #06091a;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.wizard-card-done .wizard-card-step-badge {
+  background: var(--teal-600, #00b8d4);
+  color: #06091a;
+}
+
+.wizard-check {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.wizard-card-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--studio-radius-md, 14px);
+  background: color-mix(
+    in srgb,
+    var(--card-accent, var(--teal-500, #00e5ff)) 16%,
+    transparent
+  );
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--card-accent, var(--teal-500, #00e5ff)) 34%, transparent);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.wizard-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.wizard-card-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  color: var(--espresso-text, #f1f5ff);
+}
+
+.wizard-card-subtitle {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--card-accent, var(--teal-500, #00e5ff));
+}
+
+.wizard-card-desc {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--espresso-muted, #94a3c8);
+}
+
+.wizard-card-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-left: 2px solid
+    color-mix(in srgb, var(--card-accent, var(--teal-500, #00e5ff)) 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ivory-deep, #06091a) 42%, transparent);
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--espresso-muted, #94a3c8);
+}
+
+.wizard-tip-icon {
+  flex: 0 0 auto;
+}
+
+.wizard-card-cta {
+  align-self: flex-start;
+  padding: 5px 12px;
+  border: 1px solid
+    color-mix(in srgb, var(--card-accent, var(--teal-500, #00e5ff)) 45%, transparent);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--card-accent, var(--teal-500, #00e5ff));
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.wizard-card-active .wizard-card-cta {
+  background: var(--card-accent, var(--teal-500, #00e5ff));
+  color: #06091a;
+}
+
+.wizard-card-done .wizard-card-cta {
+  border-color: color-mix(in srgb, var(--teal-600, #00b8d4) 55%, transparent);
+  color: var(--teal-400, #66f0ff);
+}
+
+/* ── Action footer ───────────────────────────────────────── */
+
+/* Sticky rather than `position: fixed`: the buttons stay reachable while the
+   step list scrolls, without floating over the shell's own chrome or being
+   swallowed by the Android gesture bar. */
+.wizard-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  gap: 12px;
+  margin: 22px -16px 0;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ivory-deep, #06091a) 72%, transparent) 0%,
+    var(--ivory-deep, #06091a) 62%
+  );
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.wizard-footer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 0;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--studio-radius-sm, 10px);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 140ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.wizard-footer-btn .material-symbols-outlined {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.wizard-footer-btn:active {
+  transform: scale(0.98);
+}
+
+.wizard-footer-btn:focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 2px;
+}
+
+.wizard-footer-pro {
+  border-color: var(--teal-400, #66f0ff);
+  background: linear-gradient(
+    180deg,
+    var(--teal-400, #66f0ff) 0%,
+    var(--teal-500, #00e5ff) 100%
+  );
+  color: #06091a;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--teal-500, #00e5ff) 26%, transparent);
+}
+
+.wizard-footer-pro:hover {
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--teal-500, #00e5ff) 36%, transparent);
+}
+
+.wizard-footer-reset {
+  border-color: var(--ivory-line, rgba(180, 200, 255, 0.1));
+  background: var(--ivory-panel, #14192e);
+  color: var(--espresso-muted, #94a3c8);
+}
+
+.wizard-footer-reset:hover {
+  border-color: var(--espresso-muted, #94a3c8);
+  color: var(--espresso-text, #f1f5ff);
+}
+
+/* ── Android / narrow viewport ───────────────────────────── */
+
+@media (max-width: 480px) {
+  .wizard-shell {
+    padding: 16px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .wizard-hero {
+    padding: 12px 4px 4px;
+  }
+
+  .wizard-hero-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 28px;
+  }
+
+  .wizard-card {
+    min-height: 0;
+    padding: 16px 14px 14px;
+  }
+
+  .wizard-footer {
+    flex-direction: column;
+    margin: 18px -12px 0;
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .wizard-footer-btn {
+    width: 100%;
+  }
+}
+
+/* A tap device has no hover state, so the lift would stick after a tap. */
+@media (hover: none) {
+  .wizard-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-hero-icon {
+    animation: none;
+  }
+
+  .wizard-card,
+  .wizard-card::before,
+  .wizard-card-cta,
+  .wizard-progress-fill,
+  .wizard-footer-btn {
+    transition: none;
+  }
+
+  .wizard-card:hover,
+  .wizard-card-active,
+  .wizard-card:active {
+    transform: none;
+  }
+}

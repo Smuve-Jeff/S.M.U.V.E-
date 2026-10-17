@@ -1,0 +1,36 @@
+<div
+  *ngIf="open"
+  class="studio-sheet-layer"
+  role="presentation"
+  (click)="onBackdropClick()"
+>
+  <section
+    class="studio-bottom-sheet"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="title || 'Studio options'"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="studio-sheet-grabber" aria-hidden="true"></div>
+    <header class="studio-sheet-header">
+      <div>
+        <h2 *ngIf="title">{{ title }}</h2>
+        <p *ngIf="description">{{ description }}</p>
+      </div>
+      <button
+        type="button"
+        class="studio-sheet-close"
+        (click)="close()"
+        [attr.aria-label]="closeLabel"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </header>
+    <div class="studio-sheet-body">
+      <ng-content></ng-content>
+    </div>
+    <footer class="studio-sheet-footer">
+      <ng-content select="[studio-sheet-actions]"></ng-content>
+    </footer>
+  </section>
+</div>

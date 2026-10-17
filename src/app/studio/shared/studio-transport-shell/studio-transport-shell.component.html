@@ -1,0 +1,16 @@
+<section
+  class="studio-transport-shell"
+  role="region"
+  aria-label="Global transport"
+>
+  <div class="studio-transport-shell__primary">
+    <app-transport-bar></app-transport-bar>
+  </div>
+
+  <div
+    class="studio-transport-shell__utility"
+    aria-label="Transport utilities"
+  >
+    <ng-content select="[studio-transport-utility]"></ng-content>
+  </div>
+</section>

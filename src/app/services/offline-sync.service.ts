@@ -1,0 +1,409 @@
+import { Injectable, inject, signal } from '@angular/core';
+import { LoggingService } from './logging.service';
+import { LocalStorageService } from './local-storage.service';
+
+export interface SyncQueueItem {
+  id: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  endpoint: string;
+  payload: any;
+  timestamp: number;
+  retryCount: number;
+  maxRetries: number;
+  channel?: 'default' | 'connector' | 'webhook';
+  connectorId?: string;
+  userId?: string;
+}
+
+type SyncEndpointHandler = (item: SyncQueueItem) => Promise<void>;
+
+@Injectable({
+  providedIn: 'root',
+})
+export class OfflineSyncService {
+  private logger = inject(LoggingService);
+  private localStorage = inject(LocalStorageService);
+
+  private readonly SYNC_STORE = 'sync_queue';
+  private readonly MAX_RETRIES = 3;
+  private readonly RETRY_DELAY_MS = 5000;
+
+  isSyncing = signal(false);
+  pendingCount = signal(0);
+  deadLetterCount = signal(0);
+  lastSyncAttempt = signal<number | null>(null);
+  networkStatus = signal<'online' | 'offline'>('online');
+  /** Optimistic local-save mode — data persists to IndexedDB instantly */
+  localSaveEnabled = signal(true);
+  /** Last local save timestamp for fast offline feedback */
+  lastLocalSaveAt = signal<number | null>(null);
+
+  private syncInProgress = false;
+  private onlineHandler: (() => void) | null = null;
+  private offlineHandler: (() => void) | null = null;
+  /** In-process adapters for local/offline-backed endpoints. */
+  private endpointHandlers = new Map<string, SyncEndpointHandler>();
+
+  constructor() {
+    this.initNetworkListeners();
+    void this.updatePendingCount();
+    // Flush queue on startup if we're already online
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      setTimeout(() => void this.processQueue(), 2000);
+    }
+  }
+
+  private initNetworkListeners(): void {
+    if (typeof window === 'undefined') return;
+
+    this.networkStatus.set(navigator.onLine ? 'online' : 'offline');
+
+    this.onlineHandler = () => {
+      this.networkStatus.set('online');
+      this.logger.info('OfflineSync: Network restored - initiating sync');
+      void this.processQueue();
+    };
+
+    this.offlineHandler = () => {
+      this.networkStatus.set('offline');
+      this.logger.info('OfflineSync: Network lost - queuing operations');
+    };
+
+    window.addEventListener('online', this.onlineHandler);
+    window.addEventListener('offline', this.offlineHandler);
+  }
+
+  /**
+   * Queues an operation for offline sync.
+   * If localSaveEnabled, the payload is also persisted to IndexedDB
+   * immediately so the app never blocks on network.
+   */
+  async queueOperation(
+    action: SyncQueueItem['action'],
+    endpoint: string,
+    payload: any,
+    metadata: Pick<SyncQueueItem, 'channel' | 'connectorId' | 'userId'> = {}
+  ): Promise<string> {
+    const item: SyncQueueItem = {
+      id: `sync_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      action,
+      endpoint,
+      payload,
+      timestamp: Date.now(),
+      retryCount: 0,
+      maxRetries: this.MAX_RETRIES,
+      channel: metadata.channel || 'default',
+      connectorId: metadata.connectorId,
+      userId: metadata.userId,
+    };
+
+    // Local-first: persist to IndexedDB instantly so UI never stalls
+    if (this.localSaveEnabled()) {
+      await this.localStorage.saveItem(
+        'offline_local_cache',
+        {
+          id: item.id,
+          endpoint: item.endpoint,
+          payload: item.payload,
+          savedAt: Date.now(),
+        },
+        24 * 60 * 60 * 1000
+      ); // 24h TTL
+      this.lastLocalSaveAt.set(Date.now());
+    }
+
+    await this.localStorage.saveItem(this.SYNC_STORE, item);
+    await this.updatePendingCount();
+
+    this.logger.info(`OfflineSync: Queued ${action} operation for ${endpoint}`);
+
+    // If online, try to sync immediately
+    if (this.networkStatus() === 'online') {
+      void this.processQueue();
+    }
+
+    return item.id;
+  }
+
+  /**
+   * Save data directly to local cache without queuing for sync.
+   * Used for instant offline-first project saves.
+   */
+  async saveLocal(
+    key: string,
+    data: any,
+    ttlMs = 7 * 24 * 60 * 60 * 1000
+  ): Promise<void> {
+    await this.localStorage.saveItem(
+      'offline_local_cache',
+      {
+        id: key,
+        payload: data,
+        savedAt: Date.now(),
+      },
+      ttlMs
+    );
+    this.lastLocalSaveAt.set(Date.now());
+  }
+
+  /**
+   * Read data from local cache.
+   */
+  async readLocal(key: string): Promise<any> {
+    return this.localStorage.getItem('offline_local_cache', key);
+  }
+
+  async queueConnectorSync(
+    connectorId: string,
+    endpoint: string,
+    payload: any,
+    userId?: string
+  ): Promise<string> {
+    return this.queueOperation('UPDATE', endpoint, payload, {
+      channel: 'connector',
+      connectorId,
+      userId,
+    });
+  }
+
+  /**
+   * Register a local endpoint adapter. This keeps offline replay on the same
+   * domain service instead of sending synthetic URLs such as /mock-cloud/push
+   * through fetch. The queue remains durable; the adapter is re-registered by
+   * its owning service on every app boot.
+   */
+  registerEndpointHandler(endpoint: string, handler: SyncEndpointHandler): () => void {
+    this.endpointHandlers.set(endpoint, handler);
+    return () => {
+      if (this.endpointHandlers.get(endpoint) === handler) {
+        this.endpointHandlers.delete(endpoint);
+      }
+    };
+  }
+
+  /**
+   * Processes the sync queue when network is available.
+   */
+  async processQueue(): Promise<void> {
+    if (this.syncInProgress || this.networkStatus() === 'offline') {
+      return;
+    }
+
+    this.syncInProgress = true;
+    this.isSyncing.set(true);
+    this.lastSyncAttempt.set(Date.now());
+
+    try {
+      const items = await this.localStorage.getAllItems(this.SYNC_STORE);
+      const sortedItems = items.sort((a, b) => a.timestamp - b.timestamp);
+
+      for (const item of sortedItems) {
+        if (this.networkStatus() === 'offline') {
+          break;
+        }
+
+        try {
+          await this.executeSync(item);
+          await this.removeFromQueue(item.id);
+        } catch (error) {
+          await this.handleSyncError(item, error);
+        }
+      }
+    } catch (error) {
+      this.logger.error('OfflineSync: Queue processing failed', error);
+    } finally {
+      this.syncInProgress = false;
+      this.isSyncing.set(false);
+      await this.updatePendingCount();
+    }
+  }
+
+  private getAuthHeader(): Record<string, string> {
+    if (typeof window === 'undefined') {
+      return {};
+    }
+
+    const token = localStorage.getItem('smuve_jwt_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  private async executeSync(item: SyncQueueItem): Promise<void> {
+    const handler = this.endpointHandlers.get(item.endpoint);
+    if (handler) {
+      await handler(item);
+      this.logger.info(
+        `OfflineSync: Successfully replayed ${item.action} to ${item.endpoint}`
+      );
+      return;
+    }
+
+    const method =
+      item.action === 'DELETE'
+        ? 'DELETE'
+        : item.action === 'CREATE'
+          ? 'POST'
+          : 'PUT';
+
+    const response = await fetch(item.endpoint, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeader(),
+      },
+      body: item.action !== 'DELETE' ? JSON.stringify(item.payload) : undefined,
+    });
+
+    if (!response.ok) {
+      const error = new Error(
+        `Sync failed with status ${response.status}`
+      ) as Error & { statusCode?: number };
+      error.statusCode = response.status;
+      throw error;
+    }
+
+    this.logger.info(
+      `OfflineSync: Successfully synced ${item.action} to ${item.endpoint}`
+    );
+  }
+
+  private async handleSyncError(
+    item: SyncQueueItem,
+    error: any
+  ): Promise<void> {
+    const updatedItem: SyncQueueItem = {
+      ...item,
+      retryCount: item.retryCount + 1,
+    };
+
+    // Client errors can't succeed by retrying — the payload is the problem.
+    // Sending them back through the queue 3× only hammers the API before the
+    // inevitable dead-letter. Skip straight there; the user can fix the
+    // payload and use replayDeadLetter().
+    const statusCode = error?.statusCode;
+    const unrecoverable =
+      (typeof statusCode === 'number' &&
+        statusCode >= 400 &&
+        statusCode < 500) ||
+      error?.name === 'AbortError';
+
+    if (
+      unrecoverable ||
+      updatedItem.retryCount >= item.maxRetries
+    ) {
+      this.logger.error(
+        `OfflineSync: Max retries exceeded for ${item.id}`,
+        error
+      );
+      await this.moveToDeadLetter(item);
+    } else {
+      await this.localStorage.saveItem(this.SYNC_STORE, updatedItem);
+      this.logger.warn(
+        `OfflineSync: Retry ${updatedItem.retryCount}/${item.maxRetries} for ${item.id}`
+      );
+    }
+  }
+
+  private async moveToDeadLetter(item: SyncQueueItem): Promise<void> {
+    await this.localStorage.saveItem('sync_dead_letter', {
+      ...item,
+      failedAt: Date.now(),
+    });
+    await this.removeFromQueue(item.id);
+  }
+
+  /**
+   * Re-queue a dead-lettered operation for another sync attempt.
+   * Use after the underlying failure (validation error, expired auth,
+   * schema drift) has been fixed — otherwise the item just dead-letters again.
+   */
+  async replayDeadLetter(id: string): Promise<boolean> {
+    const item = await this.localStorage.getItem('sync_dead_letter', id);
+    if (!item) return false;
+
+    await this.localStorage.deleteItem('sync_dead_letter', id);
+    await this.localStorage.saveItem(this.SYNC_STORE, {
+      ...item,
+      retryCount: 0,
+      timestamp: Date.now(),
+    });
+    await this.updatePendingCount();
+    this.logger.info(`OfflineSync: Requeued dead-letter ${id}`);
+
+    if (this.networkStatus() === 'online') {
+      void this.processQueue();
+    }
+    return true;
+  }
+
+  /**
+   * Discard a dead-lettered operation permanently.
+   * Use when the operation is obsolete and should not be retried.
+   */
+  async clearDeadLetter(id: string): Promise<boolean> {
+    const item = await this.localStorage.getItem('sync_dead_letter', id);
+    if (!item) return false;
+
+    await this.localStorage.deleteItem('sync_dead_letter', id);
+    await this.updatePendingCount();
+    this.logger.info(`OfflineSync: Discarded dead-letter ${id}`);
+    return true;
+  }
+
+  /** List dead-lettered operations (oldest first) for operator review. */
+  async listDeadLetters(): Promise<SyncQueueItem[]> {
+    const items = await this.localStorage.getAllItems('sync_dead_letter');
+    return items.sort((a, b) => (a.failedAt ?? a.timestamp) - (b.failedAt ?? b.timestamp));
+  }
+
+  private async removeFromQueue(id: string): Promise<void> {
+    await this.localStorage.deleteItem(this.SYNC_STORE, id);
+  }
+
+  private async updatePendingCount(): Promise<void> {
+    try {
+      const items = await this.localStorage.getAllItems(this.SYNC_STORE);
+      const deadLetter =
+        await this.localStorage.getAllItems('sync_dead_letter');
+      this.pendingCount.set(items.length);
+      this.deadLetterCount.set(deadLetter.length);
+    } catch {
+      this.pendingCount.set(0);
+      this.deadLetterCount.set(0);
+    }
+  }
+
+  /**
+   * Gets the current queue status.
+   */
+  async getQueueStatus(): Promise<{
+    pending: number;
+    deadLetter: number;
+    connectorPending: number;
+    isOnline: boolean;
+    lastSync: number | null;
+  }> {
+    const pending = await this.localStorage.getAllItems(this.SYNC_STORE);
+    const deadLetter = await this.localStorage.getAllItems('sync_dead_letter');
+
+    return {
+      pending: pending.length,
+      deadLetter: deadLetter.length,
+      connectorPending: pending.filter((item) => item.channel === 'connector')
+        .length,
+      isOnline: this.networkStatus() === 'online',
+      lastSync: this.lastSyncAttempt(),
+    };
+  }
+
+  /**
+   * Clears all pending sync operations (use with caution).
+   */
+  async clearQueue(): Promise<void> {
+    const items = await this.localStorage.getAllItems(this.SYNC_STORE);
+    for (const item of items) {
+      await this.removeFromQueue(item.id);
+    }
+    await this.updatePendingCount();
+    this.logger.info('OfflineSync: Queue cleared');
+  }
+}

@@ -1,0 +1,145 @@
+/* ===========================================================
+   S.M.U.V.E. Waveform Renderer — Canvas-backed professional
+   PCM waveform with playhead, recording overlay, and meta.
+   =========================================================== */
+
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100%;
+}
+
+.wr-shell {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  background: var(--espresso-text, #1f1a12);
+  border-radius: 8px;
+  overflow-y: auto; overflow-x: hidden;
+  border: 1px solid var(--espresso-line, rgba(61, 53, 42, 0.15));
+}
+
+.wr-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: auto;
+}
+
+/* Interactive loop handles.
+   `touch-action: none` is load-bearing on Android Chrome: with the default
+   `auto`, a horizontal finger drag is claimed by the browser as a pan/scroll
+   and never reaches the canvas, so the loop region could not be edited on a
+   touchscreen. Only interactive waveforms opt in — a display-only waveform
+   must keep scrolling with the page. */
+:host(.wr-interactive) .wr-canvas {
+  touch-action: none;
+  cursor: ew-resize;
+}
+
+/* Recording badge (top-left) */
+.wr-rec-badge {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(185, 28, 28, 0.85);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  animation: wrPulse 1.2s ease-in-out infinite;
+}
+.wr-rec-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: white;
+}
+@keyframes wrPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Meta footer (bottom-right timecodes) */
+.wr-meta {
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  display: flex;
+  gap: 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Waveform Renderer · Console polish
+   ═══════════════════════════════════════════════════════════ */
+.wr-shell {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.wr-shell:hover {
+  border-color: color-mix(in srgb, var(--teal-500) 40%, transparent);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.22),
+    inset 0 0 24px rgba(14, 124, 123, 0.06);
+}
+
+.wr-rec-badge {
+  animation:
+    wrPulse 1.2s ease-in-out infinite,
+    wr-badge-glow 1.2s ease-in-out infinite;
+}
+
+@keyframes wr-badge-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(185, 28, 28, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(185, 28, 28, 0);
+  }
+}
+
+.wr-meta {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wr-rec-badge {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REDESIGN — RECORDING BADGE LABEL
+   The badge label had no typography rule, so it inherited the
+   body font at an arbitrary size over the canvas.
+   ═══════════════════════════════════════════════════════════ */
+.wr-rec-label {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}

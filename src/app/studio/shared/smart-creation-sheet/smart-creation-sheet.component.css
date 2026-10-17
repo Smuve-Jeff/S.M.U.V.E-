@@ -1,0 +1,988 @@
+/* ============================================================
+   SMART CREATION SHEET — S.M.U.V.E. Studio
+   Inspired by BandLab, FL Studio Mobile, Voloco
+   Touchscreen-first ergonomics with Desktop Chrome responsiveness
+   ============================================================ */
+
+:host {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  pointer-events: auto;
+}
+
+/* ── Backdrop ── */
+.sc-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 6, 13, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: scFadeIn 220ms ease-out;
+}
+
+/* ── Sheet Container (Bottom sheet on phone, centered modal on desktop) ── */
+.sc-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: min(92vh, 760px);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(
+    180deg,
+    rgba(22, 20, 31, 0.98) 0%,
+    rgba(14, 12, 20, 0.99) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: none;
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(14, 124, 123, 0.2);
+  animation: scSlideUp 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* Snaps the sheet back when a drag is released below the dismiss threshold. */
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  color: #faf9ff;
+  user-select: none;
+}
+
+/* While a finger is on the handle the sheet must track it exactly — no easing lag. */
+.sc-sheet.sc-dragging {
+  transition: none;
+}
+
+@media (min-width: 769px) {
+  .sc-sheet {
+    bottom: auto;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+    width: min(92vw, 780px);
+    border-radius: 28px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    animation: scPopIn 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* ── Drag Handle (Mobile only) ── */
+/* The full-width strip is the touch target (~33px tall); ::before paints the
+   44×5px pill. A bare 5px-tall grab strip is unusable on glass. */
+.sc-drag-handle {
+  position: relative;
+  width: 100%;
+  height: 33px;
+  flex-shrink: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.sc-drag-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  transition: background 160ms ease;
+}
+
+.sc-drag-handle:active::before {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+@media (min-width: 769px) {
+  .sc-drag-handle {
+    display: none;
+  }
+}
+
+
+/* ── Header ── */
+.sc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sc-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(14, 124, 123, 0.25);
+  border: 1px solid rgba(43, 160, 156, 0.45);
+  color: #2ba09c;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sc-badge .material-symbols-outlined {
+  font-size: 15px;
+}
+
+.sc-title {
+  margin: 0;
+  font-size: clamp(18px, 4vw, 22px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.sc-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.4;
+}
+
+.sc-close-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 160ms ease;
+  flex-shrink: 0;
+}
+
+.sc-close-btn:hover,
+.sc-close-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.sc-close-btn:active {
+  transform: scale(0.95);
+}
+
+/* ── Sheet chrome: the drag/flick band above the scrolling panel ── */
+.sc-sheet-chrome {
+  flex-shrink: 0;
+  /* Vertical drags belong to the dismiss gesture, so vertical panning is off;
+     horizontal panning stays on because the tab strip overflows on phones.
+     (touch-action is intersected with ancestors, so `none` here would have
+     frozen the tab strip rather than just the chrome.) */
+  touch-action: pan-x;
+}
+
+/* ── Navigation Tabs ── */
+.sc-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 20px;
+  overflow-x: auto;
+  touch-action: pan-x;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2);
+  scrollbar-width: none;
+}
+
+.sc-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.sc-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.sc-tab .material-symbols-outlined {
+  font-size: 19px;
+}
+
+.sc-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sc-tab-active {
+  color: #00f0ff;
+  background: rgba(0, 240, 255, 0.12);
+  border-color: rgba(0, 240, 255, 0.35);
+  box-shadow: 0 2px 10px rgba(0, 240, 255, 0.15);
+}
+
+/* Touch-only affordance: the panels are swipeable on phones, not on desktop. */
+.sc-swipe-hint {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 20px 0;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sc-swipe-hint .material-symbols-outlined {
+  font-size: 15px;
+}
+
+@media (max-width: 768px) {
+  .sc-swipe-hint {
+    display: flex;
+  }
+}
+
+/* ── Combined Recently Used row (packs · presets · chord moods) ── */
+.sc-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.18);
+  touch-action: pan-x;
+}
+
+.sc-recent-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  color: #2ba09c;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sc-recent-label .material-symbols-outlined {
+  font-size: 15px;
+}
+
+.sc-recent-strip {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sc-recent-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.sc-recent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.sc-recent-chip:hover,
+.sc-recent-chip:focus-visible {
+  border-color: rgba(0, 240, 255, 0.45);
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.sc-recent-chip:active {
+  transform: scale(0.97);
+}
+
+.sc-recent-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.sc-recent-kind {
+  color: #2ba09c;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Content Area ── */
+.sc-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 20px 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.sc-panel-head {
+  margin-bottom: 14px;
+}
+
+.sc-section-kicker {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #2ba09c;
+  text-transform: uppercase;
+}
+
+.sc-section-hint {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ── 1. Genre Starters Grid ── */
+.sc-starters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .sc-starters-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Last-used recall (persisted between sessions) ── */
+.sc-resume-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(43, 160, 156, 0.5);
+  background: rgba(14, 124, 123, 0.14);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 180ms ease, border-color 180ms ease, border-style 180ms ease;
+}
+
+.sc-resume-bar:hover,
+.sc-resume-bar:focus-visible {
+  background: rgba(14, 124, 123, 0.24);
+  border-style: solid;
+  border-color: #2ba09c;
+}
+
+.sc-resume-bar:active {
+  transform: scale(0.99);
+}
+
+.sc-resume-icon {
+  font-size: 22px;
+  color: #2ba09c;
+  flex-shrink: 0;
+}
+
+.sc-resume-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sc-resume-label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2ba09c;
+}
+
+.sc-resume-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc-resume-tag {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #2ba09c;
+  color: #07060d;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.sc-last-used-chip {
+  align-self: flex-start;
+  margin-top: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(0, 240, 255, 0.15);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  color: #00f0ff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.sc-starter-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: left;
+  cursor: pointer;
+  color: #fff;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  min-height: 120px;
+}
+
+.sc-starter-card:hover,
+.sc-starter-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(43, 160, 156, 0.5);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(14, 124, 123, 0.2);
+}
+
+.sc-starter-card:active {
+  transform: scale(0.98);
+}
+
+.sc-starter-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sc-starter-emoji {
+  font-size: 28px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.sc-starter-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sc-starter-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.sc-starter-genre {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sc-play-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #2ba09c;
+  color: #07060d;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  box-shadow: 0 4px 12px rgba(43, 160, 156, 0.35);
+  flex-shrink: 0;
+}
+
+.sc-play-pill .material-symbols-outlined {
+  font-size: 15px;
+}
+
+.sc-starter-tagline {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.35;
+}
+
+.sc-starter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.sc-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* ── Panel Footer ── */
+.sc-panel-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sc-footer-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sc-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 160ms ease;
+  min-height: 40px;
+}
+
+.sc-link-btn:hover {
+  border-color: #2ba09c;
+  background: rgba(43, 160, 156, 0.15);
+  color: #00f0ff;
+}
+
+/* ── 2. Vocal Preset Packs (1-tap chains) ── */
+.sc-vocal-preset-section {
+  margin-bottom: 16px;
+}
+
+.sc-vocal-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 480px) {
+  .sc-vocal-presets-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sc-vocal-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 44px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.sc-vocal-preset-card:hover,
+.sc-vocal-preset-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(0, 240, 255, 0.5);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4), 0 0 18px rgba(0, 240, 255, 0.18);
+}
+
+.sc-vocal-preset-card:active {
+  transform: scale(0.98);
+}
+
+.sc-vocal-preset-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sc-vocal-preset-emoji {
+  font-size: 24px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.sc-vocal-preset-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sc-vocal-preset-name {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.sc-vocal-preset-category {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sc-vocal-preset-tagline {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.35;
+}
+
+/* ── 2. Vocals Grid ── */
+.sc-vocals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.sc-vocal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sc-vocal-studio {
+  background: linear-gradient(135deg, rgba(14, 124, 123, 0.18), rgba(22, 20, 31, 0.8));
+  border-color: rgba(43, 160, 156, 0.35);
+}
+
+.sc-vocal-quick {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.18), rgba(22, 20, 31, 0.8));
+  border-color: rgba(168, 85, 247, 0.35);
+}
+
+.sc-vocal-icon-wrap {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(43, 160, 156, 0.2);
+  color: #00f0ff;
+}
+
+.sc-icon-quick {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+
+.sc-vocal-icon-wrap .material-symbols-outlined {
+  font-size: 28px;
+}
+
+.sc-vocal-info h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.sc-vocal-info p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.4;
+}
+
+.sc-vocal-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ── Primary & Secondary Action Buttons ── */
+.sc-action-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #0e7c7b, #2ba09c);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(14, 124, 123, 0.4);
+  transition: all 180ms ease;
+  margin-top: auto;
+}
+
+.sc-action-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(14, 124, 123, 0.55);
+}
+
+.sc-action-primary:active {
+  transform: scale(0.97);
+}
+
+.sc-action-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  background: rgba(168, 85, 247, 0.15);
+  color: #d8b4fe;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 180ms ease;
+  margin-top: auto;
+}
+
+.sc-action-secondary:hover {
+  background: rgba(168, 85, 247, 0.25);
+  color: #fff;
+}
+
+.sc-action-secondary:active {
+  transform: scale(0.97);
+}
+
+/* ── 3. Chords & Keys Grid ── */
+.sc-chords-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.sc-chord-mood-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.sc-chord-mood-card:hover,
+.sc-chord-mood-card:focus-visible {
+  border-color: rgba(0, 240, 255, 0.4);
+  background: rgba(0, 240, 255, 0.06);
+  transform: translateY(-2px);
+}
+
+.sc-chord-mood-card:active {
+  transform: scale(0.98);
+}
+
+.sc-chord-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sc-chord-emoji {
+  font-size: 24px;
+}
+
+.sc-chord-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.sc-chord-title {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sc-chord-key {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.sc-inject-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 240, 255, 0.15);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: #00f0ff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.sc-inject-chip .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.sc-progression-preview {
+  display: flex;
+  gap: 8px;
+}
+
+.sc-roman-pill {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #faf9ff;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── 4. AI Cards ── */
+.sc-ai-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sc-ai-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(14, 124, 123, 0.35);
+  background: linear-gradient(135deg, rgba(14, 124, 123, 0.15), rgba(22, 20, 31, 0.9));
+}
+
+.sc-ai-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.sc-ai-icon {
+  font-size: 32px;
+  color: #00f0ff;
+  flex-shrink: 0;
+}
+
+.sc-ai-card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.sc-ai-card p {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+/* ── Animations ── */
+@keyframes scFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scPopIn {
+  from {
+    transform: translate(-50%, -46%) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: scFadeIn 180ms ease-out;
+}

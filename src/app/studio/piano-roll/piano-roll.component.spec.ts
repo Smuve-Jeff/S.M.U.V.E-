@@ -1,0 +1,840 @@
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { PianoRollComponent } from "./piano-roll.component";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { AudioSessionService } from "../audio-session.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { signal, computed, Component } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gesture.service";
+import { HapticService } from "../../services/haptic.service";
+import { DjMidiService } from "../../services/dj-midi.service";
+import { HardwareService } from "../../services/hardware.service";
+import { HistoryService } from "../../services/history.service";
+import { AutomationService } from "../automation.service";
+import { Subject } from "rxjs";
+import { QuantizationService } from "../quantization.service";
+
+@Component({
+  selector: "app-channel-rack",
+  standalone: true,
+  template: '<div data-testid="channel-rack"></div>',
+})
+class StubChannelRackComponent {}
+
+describe("PianoRollComponent", () => {
+  let component: PianoRollComponent;
+  let fixture: ComponentFixture<PianoRollComponent>;
+
+  const mockAudioSession = {
+    isPlaying: signal(false),
+    isRecording: signal(false),
+    togglePlay: jest.fn(),
+    toggleRecord: jest.fn(),
+    engine: { outputLufs: signal(-14) },
+  };
+
+  const mockTracks = signal([
+    {
+      id: "1",
+      name: "Lead",
+      instrumentId: "synth",
+      notes: [],
+      clips: [],
+      fxSlots: [],
+      gain: 1,
+      pan: 0,
+      sendA: 0,
+      sendB: 0,
+      mute: false,
+      solo: false,
+      steps: [],
+      color: "#fff",
+    },
+  ]);
+
+  const mockMusicManager = {
+    tracks: mockTracks,
+    selectedTrackId: signal("1"),
+    currentStep: signal(0),
+    crossLinkRequest: signal(null),
+    updateNote: jest.fn(
+      (trackId: string, noteId: string, patch: Record<string, unknown>) => {
+        mockTracks.update((list) =>
+          list.map((t) =>
+            t.id === trackId
+              ? {
+                  ...t,
+                  notes: (t.notes ?? []).map((n) =>
+                    n.id === noteId ? { ...n, ...patch } : n,
+                  ),
+                }
+              : t,
+          ),
+        );
+      },
+    ),
+    addNoteToTrack: jest.fn(),
+    removeNotes: jest.fn(),
+    quantizeTrack: jest.fn(),
+    duplicateNotes: jest.fn(),
+    strumTrack: jest.fn(),
+    getNoteSlideSemitones: jest.fn((n) =>
+      n?.isSlide ? (n.pitchBend ?? 0) : 0,
+    ),
+    humanizeTrack: jest.fn(),
+    arpeggiateTrack: jest.fn(),
+    selectedTrack: computed(() => mockTracks()[0] ?? null),
+    engine: { scaleMode: signal("major"), scaleLock: signal(false) },
+  };
+
+  const mockAudioEngine = {
+    tempo: signal(120),
+    visualStep: signal(0),
+    metronomeEnabled: signal(false),
+    resume: jest.fn(),
+    toggleMetronome: jest.fn(() => {
+      mockAudioEngine.metronomeEnabled.update((value) => !value);
+      return mockAudioEngine.metronomeEnabled();
+    }),
+  };
+
+  const mockEnhancedTouchGestures = {
+    zoomLevel: signal(1),
+    verticalZoomLevel: signal(1),
+    handlePinch: jest.fn(),
+    setZoom: jest.fn((level: number) =>
+      mockEnhancedTouchGestures.zoomLevel.set(level),
+    ),
+    adjustZoom: jest.fn(),
+    resetZoom: jest.fn(),
+    resetPinch: jest.fn(),
+  };
+
+  const mockHaptic = {
+    light: jest.fn(),
+    medium: jest.fn(),
+    drumHit: jest.fn(),
+    preset: jest.fn(),
+    velocity: jest.fn(),
+  };
+
+  const performerCC = new Subject<{
+    controller: number;
+    value: number;
+    channel: number;
+  }>();
+  const performerPitchBend = new Subject<{ value: number; channel: number }>();
+  const performerNoteOn = new Subject<{
+    note: number;
+    velocity: number;
+    channel: number;
+  }>();
+  const performerNoteOff = new Subject<{
+    note: number;
+    velocity: number;
+    channel: number;
+  }>();
+
+  const mockDjMidi = {
+    sendCC: jest.fn(),
+    sendPitchBend: jest.fn(),
+    setCcOutput: jest.fn(),
+    ccOutputIndex: signal(0),
+    ccOutputNames: signal(["MIDI Output 1", "MIDI Output 2"]),
+    performerNoteOn,
+    performerNoteOff,
+    performerCC,
+    performerPitchBend,
+    performerCCMap: signal([]),
+    startPerformerLearn: jest.fn(),
+    cancelPerformerLearn: jest.fn(),
+    midiActivityPulse: signal(false),
+    lastMidiMessage: signal(null),
+    connectedDevices: signal([]),
+    midiOutputs: signal([]),
+  };
+
+  const mockAutomation = {
+    lanes: signal([]),
+    ensureLane: jest.fn(() => ({ id: "auto-lane-test" })),
+    addPoint: jest.fn(),
+    setPoints: jest.fn(),
+  };
+
+  const mockHardware = {
+    sustainActive: signal(false),
+    sustainHalfPedal: signal(false),
+    sustainAmount: signal(127),
+    lastSustainReleaseCount: signal(0),
+  };
+
+  const mockHistory = {
+    execute: jest.fn(),
+  };
+  const mockQuantization = {
+    presets: [{ id: "straight_1_16", name: "Straight 1/16" }],
+    selectedPresetId: signal("straight_1_16"),
+    quantizeNotes: jest.fn((notes: any[]) => ({
+      quantized: notes.map((n) => ({ ...n, step: Math.round(n.step) })),
+      changedCount: notes.length,
+      averageOffset: 0.25,
+    })),
+  };
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    await TestBed.configureTestingModule({
+      imports: [
+        PianoRollComponent,
+        CommonModule,
+        FormsModule,
+        StubChannelRackComponent,
+      ],
+      providers: [
+        { provide: AudioSessionService, useValue: mockAudioSession },
+        { provide: MusicManagerService, useValue: mockMusicManager },
+        { provide: AudioEngineService, useValue: mockAudioEngine },
+        {
+          provide: EnhancedTouchGestureService,
+          useValue: mockEnhancedTouchGestures,
+        },
+        { provide: HapticService, useValue: mockHaptic },
+        { provide: DjMidiService, useValue: mockDjMidi },
+        { provide: AutomationService, useValue: mockAutomation },
+        { provide: HardwareService, useValue: mockHardware },
+        { provide: HistoryService, useValue: mockHistory },
+        { provide: QuantizationService, useValue: mockQuantization },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(PianoRollComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    // Reset shared mock state between tests
+    mockAutomation.addPoint.mockClear();
+    mockAutomation.ensureLane.mockClear();
+    mockAutomation.setPoints.mockClear();
+    mockDjMidi.sendCC.mockClear();
+    mockDjMidi.sendPitchBend.mockClear();
+    mockDjMidi.setCcOutput.mockClear();
+    mockDjMidi.startPerformerLearn.mockClear();
+    mockDjMidi.cancelPerformerLearn.mockClear();
+    mockHistory.execute.mockClear();
+    mockQuantization.quantizeNotes.mockClear();
+    mockHardware.sustainActive.set(false);
+    mockHardware.sustainHalfPedal.set(false);
+    mockHardware.sustainAmount.set(127);
+    mockHardware.lastSustainReleaseCount.set(0);
+    mockEnhancedTouchGestures.zoomLevel.set(1);
+    mockEnhancedTouchGestures.verticalZoomLevel.set(1);
+    component.ccRecordArmed.set(false);
+    component.ccLaneLearnTarget.set(null);
+  });
+
+  it("should create", () => {
+    expect(component).toBeTruthy();
+  });
+
+  it("should call fitToPage", () => {
+    const spy = jest.spyOn(component, "fitToPage");
+    component.fitToPage();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it("should toggle CC record arm", () => {
+    expect(component.ccRecordArmed()).toBe(false);
+    component.toggleCcRecord();
+    expect(component.ccRecordArmed()).toBe(true);
+    component.toggleCcRecord();
+    expect(component.ccRecordArmed()).toBe(false);
+  });
+
+  it("should send CC via the dedicated CC output selector", () => {
+    component.djMidi.setCcOutput(1);
+    expect(mockDjMidi.setCcOutput).toHaveBeenCalledWith(1);
+    component.updateCcLaneValue("pan", 64);
+    expect(mockDjMidi.sendCC).toHaveBeenCalledWith(10, 64, 0);
+  });
+
+  it("should record a CC keyframe when armed and playing", () => {
+    mockAudioSession.isPlaying.set(true);
+    component.toggleCcRecord();
+    component.updateCcLaneValue("cut", 90);
+    expect(mockAutomation.ensureLane).toHaveBeenCalledWith(
+      "1",
+      "cc_cutoff",
+      expect.objectContaining({ min: 0, max: 127 }),
+    );
+    expect(mockAutomation.addPoint).toHaveBeenCalledWith(
+      "auto-lane-test",
+      expect.any(Number),
+      90,
+    );
+  });
+
+  it("should not record keyframes when transport is stopped", () => {
+    mockAudioSession.isPlaying.set(false);
+    component.toggleCcRecord();
+    component.updateCcLaneValue("mod", 20);
+    expect(mockAutomation.addPoint).not.toHaveBeenCalled();
+  });
+
+  it("should reflect incoming MIDI CC on the matching lane", () => {
+    performerCC.next({ controller: 74, value: 0.5, channel: 0 });
+    expect(component.ccLaneValues()["cut"]).toBe(64);
+  });
+
+  it("should record incoming MIDI CC when armed and playing", () => {
+    mockAudioSession.isPlaying.set(true);
+    component.toggleCcRecord();
+    performerCC.next({ controller: 11, value: 1.0, channel: 0 });
+    expect(mockAutomation.ensureLane).toHaveBeenCalledWith(
+      "1",
+      "cc_expression",
+      expect.anything(),
+    );
+    expect(mockAutomation.addPoint).toHaveBeenCalledWith(
+      "auto-lane-test",
+      expect.any(Number),
+      127,
+    );
+  });
+
+  it("should route the bend lane through MIDI pitch bend (0xE0)", () => {
+    component.updateCcLaneValue("bend", 96);
+    expect(mockDjMidi.sendPitchBend).toHaveBeenCalledWith(
+      expect.closeTo(0.51, 0.01),
+      0,
+    );
+    expect(mockDjMidi.sendCC).not.toHaveBeenCalledWith(0, 96, 0);
+  });
+
+  it("should reflect incoming MIDI pitch bend on the bend lane", () => {
+    performerPitchBend.next({ value: 0.5, channel: 0 });
+    expect(component.ccLaneValues()["bend"]).toBe(95);
+  });
+
+  it("should hold sustained notes while the sustain pedal is engaged", () => {
+    mockHardware.sustainActive.set(true);
+    // Simulate an external note-on → preview + sustained tracking
+    performerNoteOn.next({ note: 60, velocity: 0.8, channel: 0 });
+    performerNoteOff.next({ note: 60, velocity: 0, channel: 0 });
+    expect(component["sustainedNotes"].has(60)).toBe(true);
+    // Releasing the pedal clears held notes
+    mockHardware.sustainActive.set(false);
+    performerNoteOn.next({ note: 61, velocity: 0.8, channel: 0 });
+    performerNoteOff.next({ note: 61, velocity: 0, channel: 0 });
+    expect(component["sustainedNotes"].has(61)).toBe(false);
+  });
+
+  it("should build a CC lane readout from recorded automation keyframes", () => {
+    mockAutomation.lanes.set([
+      {
+        id: "l1",
+        target: { trackId: "1", parameter: "cc_cutoff" },
+        points: [
+          { time: 0, value: 0 },
+          { time: 8, value: 127 },
+        ],
+      },
+    ]);
+    const readout = component.ccLaneReadouts();
+    expect(readout["cut"]).toHaveLength(2);
+    expect(readout["cut"][0]).toEqual({ x: 0, y: 0 });
+    expect(readout["cut"][1]).toEqual({ x: expect.any(Number), y: 100 });
+  });
+
+  it("should commit one undoable step when CC recording stops", () => {
+    mockAudioSession.isPlaying.set(true);
+    component.toggleCcRecord();
+    component.updateCcLaneValue("pan", 80);
+    component.toggleCcRecord();
+    expect(mockHistory.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Record CC automation" }),
+    );
+    // Undo restores the snapshot through setPoints
+    const call = mockHistory.execute.mock.calls[0][0];
+    call.undo();
+    expect(mockAutomation.setPoints).toHaveBeenCalled();
+  });
+
+  it("should send CC on the per-lane MIDI channel", () => {
+    component.setCcLaneChannel("pan", 3);
+    component.updateCcLaneValue("pan", 64);
+    expect(mockDjMidi.sendCC).toHaveBeenCalledWith(10, 64, 3);
+  });
+
+  it("should only match incoming CC on the lane channel", () => {
+    // CC10 on channel 0 does not match the pan lane now routed to CH3
+    component.setCcLaneChannel("pan", 3);
+    performerCC.next({ controller: 10, value: 0.5, channel: 0 });
+    expect(component.ccLaneValues()["pan"]).toBe(64);
+    performerCC.next({ controller: 10, value: 0.25, channel: 3 });
+    expect(component.ccLaneValues()["pan"]).toBe(32);
+  });
+
+  it("should start MIDI Learn for a lane and adopt the captured mapping", () => {
+    component.startCcLaneLearn("cut");
+    expect(mockDjMidi.startPerformerLearn).toHaveBeenCalledWith("cc_lane_cut");
+    expect(component.isCcLaneLearning("cut")).toBe(true);
+    // Simulate the DJ service recording a capture for this target
+    mockDjMidi.performerCCMap.set([
+      { controller: 73, channel: 5, target: "cc_lane_cut" },
+    ]);
+    // Let the effect flush
+    TestBed.flushEffects();
+    expect(component.ccLaneController()["cut"]).toBe(73);
+    expect(component.ccLaneChannel()["cut"]).toBe(5);
+    expect(component.isCcLaneLearning("cut")).toBe(false);
+  });
+
+  it("should cancel MIDI Learn", () => {
+    component.startCcLaneLearn("mod");
+    component.cancelCcLaneLearn();
+    expect(mockDjMidi.cancelPerformerLearn).toHaveBeenCalled();
+    expect(component.isCcLaneLearning("mod")).toBe(false);
+  });
+
+  it("should surface half-pedal + release count from the hardware layer", () => {
+    mockHardware.sustainHalfPedal.set(true);
+    mockHardware.sustainAmount.set(40);
+    mockHardware.lastSustainReleaseCount.set(3);
+    expect(component.sustainHalfPedal()).toBe(true);
+    expect(component.sustainAmount()).toBe(40);
+    expect(component.sustainReleaseCount()).toBe(3);
+  });
+
+  it("should open the bezier editor with the real automation lane id", () => {
+    const emitSpy = jest.spyOn(component.openBezierEditor, "emit");
+    component.openBezierForCcLane("cut");
+    expect(mockAutomation.ensureLane).toHaveBeenCalledWith(
+      "1",
+      "cc_cutoff",
+      expect.anything(),
+    );
+    expect(emitSpy).toHaveBeenCalledWith("auto-lane-test");
+  });
+
+  it("should auto-open the bezier editor for the last recorded lane on disarm", () => {
+    const emitSpy = jest.spyOn(component.openBezierEditor, "emit");
+    mockAudioSession.isPlaying.set(true);
+    component.toggleCcRecord();
+    component.updateCcLaneValue("cut", 90);
+    component.toggleCcRecord();
+    expect(emitSpy).toHaveBeenCalledWith("auto-lane-test");
+  });
+
+  it("should toggle slide on the selected notes", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [{ id: "n1", midi: 60, step: 0, length: 1, velocity: 0.8 }],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(["n1"]));
+    component.toggleSlideOnSelection();
+    expect(mockMusicManager.updateNote).toHaveBeenCalledWith(
+      "1",
+      "n1",
+      expect.objectContaining({ isSlide: true, pitchBend: 2 }),
+    );
+    expect(component.selectedNoteIsSlide()).toBe(true);
+  });
+
+  it("should un-toggle slide on the selected notes", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          {
+            id: "n2",
+            midi: 62,
+            step: 0,
+            length: 1,
+            velocity: 0.8,
+            isSlide: true,
+          },
+        ],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(["n2"]));
+    component.toggleSlideOnSelection();
+    expect(mockMusicManager.updateNote).toHaveBeenCalledWith(
+      "1",
+      "n2",
+      expect.objectContaining({ isSlide: false }),
+    );
+  });
+
+  it("should do nothing when no notes are selected", () => {
+    component.selectedNoteIds.set(new Set());
+    component.toggleSlideOnSelection();
+    expect(mockMusicManager.updateNote).not.toHaveBeenCalled();
+  });
+
+  it("should quantize selected notes through history", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [{ id: "n1", midi: 60, step: 1.4, length: 1, velocity: 0.8 }],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(["n1"]));
+    component.quantizeSelection();
+    expect(mockQuantization.quantizeNotes).toHaveBeenCalled();
+    expect(mockHistory.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ name: expect.stringContaining("Quantize") }),
+    );
+    const cmd = mockHistory.execute.mock.calls[0][0];
+    cmd.execute();
+    expect(mockMusicManager.tracks()[0].notes[0].step).toBe(1);
+  });
+
+  it("should duplicate selected notes", () => {
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+    component.duplicateSelection();
+    expect(mockMusicManager.duplicateNotes).toHaveBeenCalledWith(
+      "1",
+      ["n1", "n2"],
+      1,
+    );
+  });
+
+  it("should delete selected notes and clear selection", () => {
+    component.selectedNoteIds.set(new Set(["n1"]));
+    component.deleteSelection();
+    expect(mockMusicManager.removeNotes).toHaveBeenCalledWith("1", ["n1"]);
+    expect(component.selectedNoteIds().size).toBe(0);
+  });
+
+  it("selects an existing note from the WebGL grid hit-test path", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: "hit-note", midi: 60, step: 4, length: 1, velocity: 0.7 },
+        ],
+      },
+    ]);
+
+    component.setEditMode("select");
+    (component as any).handleGridInteraction(4, 60, { previewExisting: true });
+
+    expect(component.selectedNoteIds()).toEqual(new Set(["hit-note"]));
+  });
+
+  it("supports keyboard selection and deletion on the grid", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: "grid-note", midi: 60, step: 2, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    component.focusedStep.set(2);
+    component.focusedMidi.set(60);
+    component.setEditMode("select");
+
+    component.onGridKeydown({
+      key: "Enter",
+      preventDefault: jest.fn(),
+      target: document.createElement("div"),
+    } as any);
+    expect(component.selectedNoteIds()).toEqual(new Set(["grid-note"]));
+
+    component.onGridKeydown({
+      key: "Delete",
+      preventDefault: jest.fn(),
+      target: document.createElement("div"),
+    } as any);
+    expect(mockMusicManager.removeNotes).toHaveBeenCalledWith("1", [
+      "grid-note",
+    ]);
+  });
+
+  it("updates tempo and toggles metronome from the compact transport controls", () => {
+    component.nudgeTempo(2);
+    expect(mockAudioEngine.tempo()).toBe(122);
+
+    component.toggleMetronome();
+    expect(mockAudioEngine.resume).toHaveBeenCalled();
+    expect(mockAudioEngine.toggleMetronome).toHaveBeenCalled();
+  });
+
+  // ── Sprint A2 — slide-note data path ─────────────────────
+  it("getNoteSlideSemitones returns 0 for non-slide notes", () => {
+    mockMusicManager.getNoteSlideSemitones.mockReturnValue(0);
+    expect(mockMusicManager.getNoteSlideSemitones({ midi: 60 })).toBe(0);
+  });
+
+  it("getNoteSlideSemitones returns the clamped bend for slide notes", () => {
+    mockMusicManager.getNoteSlideSemitones.mockImplementation((n) =>
+      n.isSlide ? 5 : 0,
+    );
+    expect(
+      mockMusicManager.getNoteSlideSemitones({
+        midi: 62,
+        isSlide: true,
+        pitchBend: 5,
+      }),
+    ).toBe(5);
+  });
+
+  it("snaps a dragged note to the active grid instead of leaving fractions", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: "drag-note", midi: 60, step: 4, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(["drag-note"]));
+    component.setSnap("1/16");
+
+    // Arm the drag the same way a note press does, then move 1.6 steps right
+    // and 1 row up (cell 32px, row 22px at default zoom).
+    (component as any).startDraggingSelection(0, 0);
+    component.onPointerMove({
+      clientX: 32 * 1.6,
+      clientY: -22,
+      pointerType: "mouse",
+    } as PointerEvent);
+
+    const note = mockMusicManager.tracks()[0].notes[0];
+    // 4 + 1.6 snaps to 6 (1/16 grid), not 5.6; midi moves up one row.
+    expect(note.step).toBe(6);
+    expect(note.midi).toBe(61);
+    component.onPointerUp({ pointerType: "mouse" } as PointerEvent);
+  });
+
+  it("preserves relative spacing inside a multi-note drag", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: "a", midi: 60, step: 0, length: 1, velocity: 0.8 },
+          { id: "b", midi: 64, step: 3, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(["a", "b"]));
+    component.setSnap("1/16");
+
+    (component as any).startDraggingSelection(0, 0);
+    component.onPointerMove({
+      clientX: 32 * 2.4,
+      clientY: 0,
+      pointerType: "mouse",
+    } as PointerEvent);
+
+    const notes = mockMusicManager.tracks()[0].notes;
+    const a = notes.find((n) => n.id === "a")!;
+    const b = notes.find((n) => n.id === "b")!;
+    // Anchor snaps 0 + 2.4 → 2, and the 3-step gap between the notes survives.
+    expect(a.step).toBe(2);
+    expect(b.step).toBe(5);
+    component.onPointerUp({ pointerType: "mouse" } as PointerEvent);
+  });
+
+  it("drag/resize touch gestures are owned by the touch path, not pointermove", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: "touch-note", midi: 60, step: 4, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(["touch-note"]));
+    component.setSnap("1/16");
+    (component as any).startDraggingSelection(0, 0);
+
+    // A compatibility pointermove from a touch screen must not double-apply
+    // the drag on top of the touch handlers.
+    component.onPointerMove({
+      clientX: 32 * 3,
+      clientY: 0,
+      pointerType: "touch",
+    } as PointerEvent);
+    expect(mockMusicManager.tracks()[0].notes[0].step).toBe(4);
+
+    component.onPointerUp({ pointerType: "touch" } as PointerEvent);
+    // The touch pointerup must NOT clear the drag either — touchend owns it.
+    expect((component as any).draggingNotes).not.toBeNull();
+    (component as any).draggingNotes = null;
+  });
+
+  it("arms a note drag from a touch press and moves it on touchmove", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          { id: "touch-move", midi: 60, step: 4, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    component.setEditMode("select");
+    component.setSnap("1/16");
+    // Point the ViewChild at a real container so getGridPosition resolves.
+    const container = document.createElement("div");
+    container.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 400, height: 400, bottom: 400, right: 400, x: 0, y: 0 }) as DOMRect;
+    Object.defineProperty(container, "scrollLeft", { value: 0, writable: true });
+    Object.defineProperty(container, "scrollTop", { value: 0, writable: true });
+    (component as any).scrollContainer = { nativeElement: container };
+
+    // Press on the note at step 4 / row for midi 60 (32px per cell, 22px rows).
+    const rowFor60 = (96 - 1 - (60 - 24)) * 22;
+    component.onGridTouchStart({
+      touches: [{ clientX: 4 * 32 + 4, clientY: rowFor60 + 4 }],
+    } as any);
+    expect((component as any).draggingNotes).not.toBeNull();
+
+    // Drag right by two cells and up one row.
+    component.onGridTouchMove({
+      preventDefault: jest.fn(),
+      touches: [
+        { clientX: 4 * 32 + 4 + 64, clientY: rowFor60 + 4 - 22 },
+      ],
+    } as any);
+    const note = mockMusicManager.tracks()[0].notes[0];
+    expect(note.step).toBe(6);
+    expect(note.midi).toBe(61);
+
+    component.onGridTouchEnd({
+      changedTouches: [{ clientX: 0, clientY: 0 }],
+      touches: [],
+    } as any);
+    expect((component as any).draggingNotes).toBeNull();
+  });
+
+  it("does not create a stray note after a pinch released one finger at a time", () => {
+    mockMusicManager.tracks.update((t) => [{ ...t[0], notes: [] }]);
+    component.setEditMode("draw");
+    const container = document.createElement("div");
+    container.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 400, height: 400, bottom: 400, right: 400, x: 0, y: 0 }) as DOMRect;
+    Object.defineProperty(container, "scrollLeft", { value: 0, writable: true });
+    Object.defineProperty(container, "scrollTop", { value: 0, writable: true });
+    (component as any).scrollContainer = { nativeElement: container };
+
+    component.onGridTouchStart({
+      touches: [
+        { clientX: 100, clientY: 100 },
+        { clientX: 200, clientY: 100 },
+      ],
+    } as any);
+    // First finger lifts while the second stays down.
+    component.onGridTouchEnd({
+      changedTouches: [{ clientX: 100, clientY: 100 }],
+      touches: [{ clientX: 200, clientY: 100 }],
+    } as any);
+    expect(mockMusicManager.addNoteToTrack).not.toHaveBeenCalled();
+
+    // Second finger lifts last — still no note.
+    component.onGridTouchEnd({
+      changedTouches: [{ clientX: 200, clientY: 100 }],
+      touches: [],
+    } as any);
+    expect(mockMusicManager.addNoteToTrack).not.toHaveBeenCalled();
+  });
+
+  it("maps a velocity-lane drag against the lane's real height", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [{ id: "v1", midi: 60, step: 0, length: 1, velocity: 0.8 }],
+      },
+    ]);
+    // 90px lane: a press at the vertical midpoint must read ~0.5. The old
+    // hardcoded /60 mapping turned that same press into 0.25.
+    const lane = {
+      scrollLeft: 0,
+      getBoundingClientRect: () =>
+        ({ left: 0, top: 0, width: 1024, height: 90, right: 1024, bottom: 90 }) as DOMRect,
+    };
+    component.onVelocityPointerDown({
+      clientX: 5,
+      clientY: 45,
+      currentTarget: lane,
+    } as any);
+
+    const velocity = mockMusicManager.updateNote.mock.calls[0][2].velocity;
+    expect(velocity).toBeGreaterThan(0.45);
+    expect(velocity).toBeLessThan(0.55);
+  });
+
+  it("does not pan the render camera by the scroll offset (native scroll owns the pan)", () => {
+    const renderSpy = jest.fn();
+    (component as any).isGlInitialized = true;
+    (component as any).glRenderer = {
+      resize: jest.fn(),
+      clear: jest.fn(),
+      markDirty: jest.fn(),
+      destroy: jest.fn(),
+    };
+    (component as any).prRenderer = {
+      setPixelsPerStep: jest.fn(),
+      setRowHeight: jest.fn(),
+      setMidiRange: jest.fn(),
+      render: renderSpy,
+      renderVelocityLane: jest.fn(),
+    };
+    (component as any).glVelRenderer = {
+      resize: jest.fn(),
+      clear: jest.fn(),
+      destroy: jest.fn(),
+    };
+    (component as any).scrollContainer = {
+      nativeElement: {
+        clientWidth: 400,
+        clientHeight: 300,
+        scrollLeft: 512,
+        scrollTop: 128,
+      },
+    };
+
+    (component as any).renderPianoRoll();
+
+    const camera = renderSpy.mock.calls[0][3];
+    expect(camera).toEqual({ scrollX: 0, scrollY: 0, zoom: 1 });
+    (component as any).isGlInitialized = false;
+  });
+
+  it("zoom buttons actually resize the grid (single zoom source)", () => {
+    const before = component.cellWidth();
+    component.zoomIn();
+    expect(component.cellWidth()).toBeGreaterThan(before);
+    expect(component.zoomPercent()).toBe(125);
+    expect(mockEnhancedTouchGestures.setZoom).toHaveBeenCalled();
+
+    component.zoomOut();
+    expect(component.cellWidth()).toBe(before);
+    expect(component.zoomPercent()).toBe(100);
+  });
+
+  it("selectedNoteIsSlide stays true after re-selecting the same notes", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [
+          {
+            id: "n3",
+            midi: 60,
+            step: 0,
+            length: 1,
+            velocity: 0.8,
+            isSlide: true,
+            pitchBend: 3,
+          },
+        ],
+      },
+    ]);
+    component.selectedNoteIds.set(new Set(["n3"]));
+    expect(component.selectedNoteIsSlide()).toBe(true);
+  });
+});

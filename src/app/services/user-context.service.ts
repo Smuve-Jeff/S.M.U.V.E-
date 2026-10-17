@@ -1,0 +1,152 @@
+import { Injectable, signal } from '@angular/core';
+
+export interface AppTheme {
+  name: string;
+  primary: string;
+  accent: string;
+  neutral: string;
+  purple: string;
+  red: string;
+  blue: string;
+}
+
+export type MainViewMode =
+  | 'adaptive-profile'
+  | 'artist-coach'
+  | 'hub'
+  | 'studio'
+  | 'player'
+  | 'dj'
+  | 'piano-roll'
+  | 'canvas-piano-roll'
+  | 'image-editor'
+  | 'video-editor'
+  | 'vocal-suite'
+  | 'networking'
+  | 'profile'
+  | 'tha-spot'
+  | 'login'
+  | 'projects'
+  | 'release-pipeline'
+  | 'produce'
+  | 'lyric-editor'
+  | 'remix-arena'
+  | 'image-video-lab'
+  | 'strategy'
+  | 'analytics'
+  | 'practice'
+  | 'career'
+  | 'knowledge-base'
+  | 'business-suite'
+  | 'business-pipeline'
+  | 'mixer'
+  | 'drum-machine'
+  | 'mastering'
+  | 'dj-deck'
+  | 'performance'
+  | 'settings'
+  | 'timeline'
+  | 'cloud'
+  | 'store'
+  | 'products'
+  | 'inbox'
+  | 'cowrite'
+  | 'artist-development'
+  | 'command-center'
+  | 'neural-foundry'
+  | 'journey';
+
+export interface Stems {
+  vocals: AudioBuffer;
+  drums: AudioBuffer;
+  bass: AudioBuffer;
+  instrumental: AudioBuffer;
+  other: AudioBuffer;
+}
+
+export interface DeckState {
+  track: any;
+  bpm: number;
+  playbackRate: number;
+  progress: number;
+  duration: number;
+  gain: number;
+  filterFreq: number;
+  /** Analog filter topology (LPF/HPF) the channel is currently switched to. */
+  filterMode: BiquadFilterType;
+  eqHigh: number;
+  eqMid: number;
+  eqLow: number;
+  slip: boolean;
+  isPlaying: boolean;
+  loop: boolean;
+  hotCues: (number | null)[];
+  samplerPads: {
+    drums: (number | null)[];
+    fx: (number | null)[];
+    vocals: (number | null)[];
+  };
+  stemGains: Record<string, number>;
+  vinylImageUrl?: string;
+  isCueing: boolean;
+  fxAmount: number;
+  activeFx:
+    | 'none'
+    | 'autowah'
+    | 'echo'
+    | 'damp'
+    | 'reverb'
+    | 'chorus'
+    | 'phaser'
+    | 'rotate';
+  detectedBpm: number;
+  keyLock: boolean;
+  bassBoost: number;
+}
+
+export const initialDeckState: DeckState = {
+  track: null,
+  bpm: 128,
+  playbackRate: 1,
+  progress: 0,
+  duration: 0,
+  gain: 1,
+  filterFreq: 20000,
+  filterMode: 'lowpass',
+  eqHigh: 1,
+  eqMid: 1,
+  eqLow: 1,
+  slip: false,
+  isPlaying: false,
+  loop: false,
+  hotCues: new Array(8).fill(null),
+  samplerPads: {
+    drums: new Array(8).fill(null),
+    fx: new Array(8).fill(null),
+    vocals: new Array(8).fill(null),
+  },
+  stemGains: { vocals: 1, drums: 1, bass: 1, instrumental: 1, other: 1 },
+  vinylImageUrl: '',
+  isCueing: false,
+  fxAmount: 0,
+  activeFx: 'none',
+  detectedBpm: 0,
+  keyLock: true,
+  bassBoost: 0,
+};
+
+@Injectable({
+  providedIn: 'root',
+})
+export class UserContextService {
+  mainViewMode = signal<MainViewMode>('tha-spot');
+  appTheme = signal<any>('analog-v42');
+
+  setMainViewMode(mode: MainViewMode): void {
+    this.mainViewMode.set(mode);
+  }
+
+  setAppTheme(theme: any): void {
+    this.appTheme.set(theme);
+  }
+}

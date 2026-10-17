@@ -1,0 +1,91 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+.angular/cache
+test-results/
+
+# Environment variables (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Patch rejects
+*.rej
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
+
+# Build artifacts and dist outputs
+Build/
+dist/
+coverage/
+tsconfig.tsbuildinfo
+
+# Test and tooling caches/reports
+.playwright/
+playwright-report/
+.eslintcache
+.madge-cache/
+
+# Temporary files
+.tmp/
+.tmp-ng/
+.cache/
+
+# OS/Editor
+Thumbs.db
+# CodeBuddy
+.codebuddy/*
+!.codebuddy/skills/
+!.codebuddy/rules/
+!.codebuddy/prompts/
+!.codebuddy/config.json
+server/.env
+
+# Python bytecode caches
+__pycache__/
+*.py[cod]
+
+# Python tooling (see requirements-dev.txt)
+.venv/
+.pytest_cache/
+
+# Studio render/test artifacts
+smuve_test_loop.wav
+smuve_master_compressed.wav
+smuve_master_mix.wav
+smuve_master_session.smuve
+smuve_stem_*.wav
+test_sample_loop.wav
+test_stem_*.wav
+test_anthem.smuve
+dsp_reference.json
+
+# Private keys & nested repo/phone clones (never commit)
+private.key
+public.key
+S.M.U.V.E-
+nvchad-termux
+cli

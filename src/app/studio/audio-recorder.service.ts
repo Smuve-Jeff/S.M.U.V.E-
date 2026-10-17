@@ -1,0 +1,249 @@
+import { Subject } from "rxjs";
+import { Injectable, inject, signal, OnDestroy } from "@angular/core";
+import { LocalStorageService } from "../services/local-storage.service";
+import { LoggingService } from "../services/logging.service";
+
+export interface RecordingSettings {
+  gain?: number;
+  trimmed?: boolean;
+  [key: string]: any;
+}
+
+export interface RecordingItem {
+  id: string;
+  blob: Blob;
+  name: string;
+  timestamp: number;
+  settings: RecordingSettings;
+}
+
+@Injectable({
+  providedIn: "root",
+})
+export class AudioRecorderService implements OnDestroy {
+  private localStorageService = inject(LocalStorageService);
+  private logger = inject(LoggingService);
+
+  isRecording = signal(false);
+  recordedBlobs: Blob[] = [];
+  pendingMidi: any[] = [];
+  recordingFinished$ = new Subject<{
+    id: string;
+    blob: Blob;
+    url: string;
+    midi?: any[];
+    /** Wall-clock length of the take, persisted with the blob. */
+    durationSec?: number;
+    persisted?: boolean;
+    name?: string;
+  }>();
+
+  mediaRecorder: MediaRecorder | null = null;
+  private activeUrls = new Set<string>();
+  private startedAtMs = 0;
+
+  /** Create a URL owned by the recorder so views can release it predictably. */
+  createRecordingUrl(blob: Blob): string {
+    const url = URL.createObjectURL(blob);
+    this.activeUrls.add(url);
+    return url;
+  }
+
+  revokeRecordingUrl(url: string) {
+    if (this.activeUrls.has(url)) {
+      URL.revokeObjectURL(url);
+      this.activeUrls.delete(url);
+      this.logger.info(`Revoked object URL: ${url}`);
+    }
+  }
+
+  private revokeAllUrls() {
+    this.activeUrls.forEach((url) => {
+      URL.revokeObjectURL(url);
+    });
+    this.activeUrls.clear();
+  }
+
+  ngOnDestroy() {
+    this.revokeAllUrls();
+  }
+
+  async startRecording(stream: MediaStream) {
+    if (!stream || stream.getAudioTracks().length === 0) {
+      throw new Error("No audio tracks found in stream");
+    }
+
+    if (this.isRecording()) {
+      throw new Error("A recording is already in progress");
+    }
+    this.recordedBlobs = [];
+
+    if (typeof MediaRecorder === "undefined") {
+      throw new Error("MediaRecorder is not supported in this environment");
+    }
+
+    const isTypeSupported =
+      typeof MediaRecorder.isTypeSupported === "function"
+        ? (type: string) => MediaRecorder.isTypeSupported(type)
+        : () => false;
+    const supportedMimeType = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+    ].find(isTypeSupported);
+    const options = supportedMimeType ? { mimeType: supportedMimeType } : {};
+
+    try {
+      this.mediaRecorder = new MediaRecorder(stream, options);
+    } catch (recorderError) {
+      this.logger.error("Failed to instantiate MediaRecorder", recorderError);
+      throw recorderError;
+    }
+
+    this.mediaRecorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        this.recordedBlobs.push(event.data);
+      }
+    };
+
+    this.mediaRecorder.onstop = async () => {
+      try {
+        const mimeType =
+          this.mediaRecorder?.mimeType ||
+          this.recordedBlobs.find((part) => part.type)?.type ||
+          "application/octet-stream";
+        const blob = new Blob(this.recordedBlobs, { type: mimeType });
+        const id = `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        // Persist the real take length: the recorder view reads it back from
+        // `settings.durationSec`, so without it every restored take showed 0:00.
+        const durationSec = Math.max(
+          0,
+          Math.round((Date.now() - this.startedAtMs) / 1000),
+        );
+
+        const name = `Recording ${new Date().toLocaleTimeString()}`;
+        let persisted = false;
+        try {
+          if ((await this.localStorageService.persistenceStatus()) !== "ready") {
+            throw new Error("Local recording storage is unavailable");
+          }
+          await this.localStorageService.saveItem("audio_blobs", {
+            id,
+            blob,
+            name,
+            timestamp: Date.now(),
+            settings: { gain: 1.0, trimmed: false, durationSec },
+          });
+          persisted = true;
+          this.logger.info(`Recording ${id} saved.`);
+        } catch (saveError) {
+          this.logger.error(
+            "Failed to persist recording to storage",
+            saveError,
+          );
+        }
+
+        const url = this.createRecordingUrl(blob);
+
+        this.recordingFinished$.next({
+          id,
+          blob,
+          name,
+          url,
+          midi: [...this.pendingMidi],
+          durationSec,
+          persisted,
+        });
+      } catch (error) {
+        this.logger.error("Failed to process recording stop", error);
+      } finally {
+        this.isRecording.set(false);
+        this.pendingMidi = [];
+      }
+    };
+
+    this.startedAtMs = Date.now();
+    this.mediaRecorder.start();
+    this.isRecording.set(true);
+  }
+
+  stopRecording() {
+    if (!this.mediaRecorder) return;
+    try {
+      if (this.mediaRecorder.state !== "inactive") {
+        this.mediaRecorder.stop();
+        return;
+      }
+      this.isRecording.set(false);
+    } catch (error) {
+      this.logger.error("Error stopping MediaRecorder", error);
+      this.isRecording.set(false);
+    }
+  }
+
+  async getOfflineRecordings() {
+    return await this.localStorageService.getAllItems("audio_blobs");
+  }
+
+  async renameOfflineRecording(id: string, name: string): Promise<void> {
+    const normalizedName = name.trim();
+    if (!normalizedName) throw new Error("Recording name cannot be empty");
+
+    const item = (await this.localStorageService.getItem(
+      "audio_blobs",
+      id,
+    )) as RecordingItem | null;
+    if (!item) throw new Error(`Recording ${id} was not found`);
+
+    await this.localStorageService.saveItem("audio_blobs", {
+      ...item,
+      name: normalizedName,
+    });
+  }
+
+  async saveOfflineRecording(item: RecordingItem): Promise<void> {
+    if ((await this.localStorageService.persistenceStatus()) !== "ready") {
+      throw new Error("Local recording storage is unavailable");
+    }
+    await this.localStorageService.saveItem("audio_blobs", item);
+  }
+
+  async deleteOfflineRecording(id: string): Promise<void> {
+    const storage = this.localStorageService as any;
+    const remove = storage.deleteItem || storage.removeItem;
+    if (typeof remove === "function") {
+      await remove.call(this.localStorageService, "audio_blobs", id);
+      return;
+    }
+    // Older storage adapters expose only save/get; retain compatibility by
+    // replacing the collection without the deleted item when possible.
+    const items = (await this.getOfflineRecordings()) as RecordingItem[];
+    if (typeof storage.saveItems === "function") {
+      await storage.saveItems(
+        "audio_blobs",
+        items.filter((item) => item.id !== id),
+      );
+      return;
+    }
+    throw new Error("Recording storage does not support deletion");
+  }
+
+  async applyOfflineEdit(id: string, edits: Partial<RecordingSettings>) {
+    try {
+      const item = (await this.localStorageService.getItem(
+        "audio_blobs",
+        id,
+      )) as RecordingItem | null;
+      if (item) {
+        item.settings = { ...item.settings, ...edits };
+        await this.localStorageService.saveItem("audio_blobs", item);
+        this.logger.info(`Offline edits applied to recording ${id}.`);
+      } else {
+        this.logger.warn(`Recording ${id} not found for editing`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to apply edits to recording ${id}`, error);
+      throw error;
+    }
+  }
+}

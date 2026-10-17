@@ -1,0 +1,14 @@
+<div class="stem-controls-container">
+  <div *ngFor="let stem of stems" class="stem-control">
+    <label>{{ stem | titlecase }}</label>
+    <input
+      type="range"
+      min="0"
+      max="1"
+      step="0.01"
+      [value]="gainValues[stem]"
+      (input)="onGainChange(stem, $event)"
+      class="vertical-slider"
+    />
+  </div>
+</div>

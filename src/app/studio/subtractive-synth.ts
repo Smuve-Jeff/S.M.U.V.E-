@@ -1,0 +1,410 @@
+import { Instrument } from "./instrument";
+import { ADSREnvelope } from "./adsr-envelope";
+import { NodePool } from "./performance-utils";
+import { SamplerEngine } from "./sampler-engine";
+import { SampleMap } from "../services/file-loader.service";
+
+interface Voice {
+  oscillators: OscillatorNode[];
+  subOscillator: OscillatorNode | null;
+  gain: GainNode;
+  filter: BiquadFilterNode;
+  filterGain: GainNode;
+  sampleStop?: () => void;
+}
+
+export type OscillatorType = "sine" | "square" | "sawtooth" | "triangle";
+
+export class SubtractiveSynth extends Instrument {
+  private readonly envelope = new ADSREnvelope(
+    this.audioContext,
+    0.01,
+    0.2,
+    0.8,
+    0.5,
+    true,
+  );
+  private readonly filterEnvelope = new ADSREnvelope(
+    this.audioContext,
+    0.05,
+    0.3,
+    0.5,
+    0.3,
+    true,
+  );
+
+  private voices: Map<number, Voice> = new Map();
+  private masterFilter: BiquadFilterNode;
+  private oscillatorType: OscillatorType = "sawtooth";
+  private numOscillators: number = 2;
+  private detuneValue: number = 10;
+  private subOscillatorLevel: number = 0.3;
+  private filterCutoff: number = 2000;
+  private filterEnvelopeAmount: number = 3000;
+
+  // Hybrid Engine
+  private samplerEngine?: SamplerEngine;
+  private activeSampleMap?: SampleMap;
+  private sampleLayerMix: number = 0.5;
+
+  // Node Pools
+  private oscillatorPool: NodePool<OscillatorNode>;
+  private gainPool: NodePool<GainNode>;
+  private filterPool: NodePool<BiquadFilterNode>;
+
+  // ── Phase 1 Latency: AudioWorklet Synth Processor ──────────
+  private workletNode: AudioWorkletNode | null = null;
+  private workletReady = false;
+  private useWorklet = false;
+  private nextNoteId = 0;
+
+  constructor(audioContext: AudioContext, samplerEngine?: SamplerEngine) {
+    super(audioContext, 12);
+    this.samplerEngine = samplerEngine;
+
+    this.oscillatorPool = new NodePool(this.audioContext, (ctx) =>
+      ctx.createOscillator(),
+    );
+    this.gainPool = new NodePool(this.audioContext, (ctx) => ctx.createGain());
+    this.filterPool = new NodePool(this.audioContext, (ctx) =>
+      ctx.createBiquadFilter(),
+    );
+
+    this.masterFilter = this.audioContext.createBiquadFilter();
+    this.masterFilter.type = "lowpass";
+    this.masterFilter.frequency.value = this.filterCutoff;
+    this.masterFilter.Q.value = 1.0;
+    this.masterFilter.connect(this.output);
+
+    // Kick off worklet loading (async, non-blocking)
+    this.initWorklet();
+  }
+
+  /** Initialize the AudioWorklet-based synth processor for sample-accurate DSP */
+  private async initWorklet(): Promise<void> {
+    try {
+      await this.audioContext.audioWorklet.addModule(
+        "assets/worklets/synth-processor.worklet.js",
+      );
+      this.workletNode = new AudioWorkletNode(
+        this.audioContext,
+        "synth-processor",
+      );
+      this.workletNode.connect(this.masterFilter);
+      this.workletReady = true;
+      this.useWorklet = true;
+    } catch {
+      // Fallback: stay on main-thread oscillator nodes
+      console.debug("Synth worklet unavailable, using main-thread oscillators");
+    }
+  }
+
+  setSampleMap(map: SampleMap) {
+    this.activeSampleMap = map;
+  }
+
+  setSampleMix(mix: number) {
+    this.sampleLayerMix = Math.max(0, Math.min(mix, 1));
+  }
+
+  play(note: number, velocity: number): void {
+    const frequency = 440 * Math.pow(2, (note - 69) / 12);
+
+    // ── Phase 1 Latency: Use AudioWorklet when available ──
+    if (this.useWorklet && this.workletReady && this.workletNode) {
+      const noteId = ++this.nextNoteId;
+      this.workletNode.port.postMessage({
+        type: "NOTE_ON",
+        payload: {
+          noteId,
+          freq: frequency,
+          velocity: velocity / 127,
+          waveform: this.oscillatorType,
+          adsr: {
+            attack: this.envelope.attack,
+            decay: this.envelope.decay,
+            sustain: this.envelope.sustain,
+            release: this.envelope.release,
+          },
+          filterCutoff: this.filterCutoff,
+          filterQ: 1.0,
+          pan: 0,
+        },
+      });
+      this.voiceManager.addVoice({
+        note,
+        startTime: this.audioContext.currentTime,
+        stop: () => {
+          this.workletNode?.port.postMessage({
+            type: "NOTE_OFF",
+            payload: { noteId, freq: frequency },
+          });
+        },
+      });
+      this.voices.set(note, {} as Voice); // placeholder for tracking
+
+      // Hybrid layer: sampler still runs main-thread
+      if (this.samplerEngine && this.activeSampleMap) {
+        const sampleGain = this.gainPool.get();
+        sampleGain.gain.value = this.sampleLayerMix;
+        sampleGain.connect(this.masterFilter);
+        this.samplerEngine.playNote(
+          this.activeSampleMap,
+          note,
+          velocity,
+          sampleGain,
+        );
+      }
+      return;
+    }
+
+    // ── Fallback: main-thread oscillators ────────────────
+    const oscillators: OscillatorNode[] = [];
+    const synthMix = 1.0 - (this.activeSampleMap ? this.sampleLayerMix : 0);
+
+    for (let i = 0; i < this.numOscillators; i++) {
+      const oscillator = this.oscillatorPool.get();
+      oscillator.type = this.oscillatorType;
+      oscillator.frequency.value = frequency;
+      const detuneOffset =
+        this.numOscillators > 1
+          ? (i - (this.numOscillators - 1) / 2) * this.detuneValue
+          : 0;
+      if (oscillator.detune) oscillator.detune.value = detuneOffset;
+      oscillators.push(oscillator);
+    }
+
+    let subOscillator: OscillatorNode | null = null;
+    if (this.subOscillatorLevel > 0) {
+      subOscillator = this.oscillatorPool.get();
+      subOscillator.type = "sine";
+      subOscillator.frequency.value = frequency / 2;
+    }
+
+    const voiceFilter = this.filterPool.get();
+    voiceFilter.type = "lowpass";
+    voiceFilter.frequency.value = this.filterCutoff;
+    voiceFilter.Q.value = 1.0;
+
+    const filterGain = this.gainPool.get();
+    filterGain.gain.value = 1.0;
+
+    const gain = this.gainPool.get();
+    gain.gain.value =
+      synthMix /
+      (this.numOscillators + (subOscillator ? this.subOscillatorLevel : 0));
+
+    this.envelope.apply(gain, velocity);
+
+    const filterMin = this.filterCutoff;
+    const filterMax = Math.min(
+      this.filterCutoff + this.filterEnvelopeAmount,
+      20000,
+    );
+    this.filterEnvelope.applyToParam(
+      voiceFilter.frequency,
+      velocity,
+      filterMin,
+      filterMax,
+    );
+
+    oscillators.forEach((osc) => {
+      osc.connect(gain);
+      osc.start();
+    });
+
+    if (subOscillator) {
+      const subGain = this.gainPool.get();
+      subGain.gain.value = this.subOscillatorLevel;
+      subOscillator.connect(subGain);
+      subGain.connect(gain);
+      subOscillator.start();
+    }
+
+    gain.connect(voiceFilter);
+    voiceFilter.connect(filterGain);
+    filterGain.connect(this.masterFilter);
+
+    // Hybrid Layer
+    let sampleStop: (() => void) | undefined;
+    if (this.samplerEngine && this.activeSampleMap) {
+      const sampleGain = this.gainPool.get();
+      sampleGain.gain.value = this.sampleLayerMix;
+      sampleGain.connect(voiceFilter);
+      sampleStop = this.samplerEngine.playNote(
+        this.activeSampleMap,
+        note,
+        velocity,
+        sampleGain,
+      );
+    }
+
+    const voice: Voice = {
+      oscillators,
+      subOscillator,
+      gain,
+      filter: voiceFilter,
+      filterGain,
+      sampleStop,
+    };
+
+    this.voiceManager.addVoice({
+      note,
+      startTime: this.audioContext.currentTime,
+      stop: () => this.executeStop(voice),
+    });
+
+    this.voices.set(note, voice);
+  }
+
+  stop(note: number): void {
+    const voice = this.voices.get(note);
+    if (voice) {
+      // Worklet-managed voice: send NOTE_OFF, then remove after release
+      if (!voice.oscillators) {
+        const frequency = 440 * Math.pow(2, (note - 69) / 12);
+        this.workletNode?.port.postMessage({
+          type: "NOTE_OFF",
+          payload: { noteId: note, freq: frequency },
+        });
+        // Let release envelope complete before cleanup
+        setTimeout(
+          () => {
+            this.voices.delete(note);
+            this.voiceManager.removeVoice(note);
+          },
+          this.envelope.release * 1000 + 100,
+        );
+        return;
+      }
+
+      // Main-thread voice: standard cleanup
+      this.envelope.releaseEnvelope(voice.gain);
+      this.filterEnvelope.releaseParam(
+        voice.filter.frequency,
+        this.filterCutoff,
+      );
+
+      const stopTime = this.audioContext.currentTime + this.envelope.release;
+      voice.oscillators.forEach((osc) => osc.stop(stopTime));
+      if (voice.subOscillator) {
+        voice.subOscillator.stop(stopTime);
+      }
+
+      if (voice.sampleStop) {
+        voice.sampleStop();
+      }
+
+      setTimeout(
+        () => {
+          this.executeStop(voice);
+          this.voices.delete(note);
+          this.voiceManager.removeVoice(note);
+        },
+        this.envelope.release * 1000 + 100,
+      );
+    }
+  }
+
+  /** Immediately stop all active voices (panic). */
+  stopAll(): void {
+    // ── Phase 1 Latency: STOP_ALL via worklet ──
+    if (this.useWorklet && this.workletNode) {
+      this.workletNode.port.postMessage({ type: "STOP_ALL" });
+    }
+
+    this.voices.forEach((voice) => {
+      // Skip worklet-managed voices (they have no oscillators array)
+      if (!voice.oscillators) return;
+      const now = this.audioContext.currentTime;
+      voice.gain.gain.cancelScheduledValues(now);
+      voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
+      // Fast release (5ms) for panic
+      voice.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.005);
+      voice.oscillators.forEach((osc) => {
+        try {
+          osc.stop(now + 0.01);
+        } catch {
+          /* already stopped */
+        }
+      });
+      if (voice.subOscillator) {
+        try {
+          voice.subOscillator.stop(now + 0.01);
+        } catch {
+          /* already stopped */
+        }
+      }
+      setTimeout(() => this.executeStop(voice), 20);
+    });
+    this.voices.clear();
+    this.voiceManager.clear();
+  }
+
+  private executeStop(voice: Voice) {
+    voice.oscillators.forEach((osc) => {
+      try {
+        osc.stop();
+      } catch {
+        /* already stopped */
+      }
+      this.oscillatorPool.release(osc);
+    });
+    if (voice.subOscillator) {
+      try {
+        voice.subOscillator.stop();
+      } catch {
+        /* already stopped */
+      }
+      this.oscillatorPool.release(voice.subOscillator);
+    }
+    this.gainPool.release(voice.gain);
+    this.filterPool.release(voice.filter);
+    this.gainPool.release(voice.filterGain);
+  }
+
+  setFilterCutoff(cutoff: number): void {
+    this.filterCutoff = Math.max(20, Math.min(cutoff, 20000));
+    this.masterFilter.frequency.value = this.filterCutoff;
+  }
+
+  setFilterResonance(q: number): void {
+    this.masterFilter.Q.value = Math.max(0.1, Math.min(q, 30));
+  }
+
+  setFilterEnvelopeAmount(amount: number): void {
+    this.filterEnvelopeAmount = Math.max(0, Math.min(amount, 10000));
+  }
+
+  setOscillatorType(type: OscillatorType): void {
+    this.oscillatorType = type;
+  }
+
+  setDetune(cents: number): void {
+    this.detuneValue = Math.max(0, Math.min(cents, 50));
+  }
+
+  setSubOscillatorLevel(level: number): void {
+    this.subOscillatorLevel = Math.max(0, Math.min(level, 1));
+  }
+
+  setNumOscillators(num: number): void {
+    this.numOscillators = Math.max(1, Math.min(num, 4));
+  }
+
+  setAttack(value: number): void {
+    this.envelope.attack = value;
+  }
+
+  setRelease(value: number): void {
+    this.envelope.release = value;
+  }
+
+  setDecay(value: number): void {
+    this.envelope.decay = value;
+  }
+
+  setSustain(value: number): void {
+    this.envelope.sustain = value;
+  }
+}

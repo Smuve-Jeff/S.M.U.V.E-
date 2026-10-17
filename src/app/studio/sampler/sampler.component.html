@@ -1,0 +1,450 @@
+<div class="sampler-shell studio-workspace-surface sampler-surface">
+  <!-- Top bar: title + import + global controls -->
+  <header class="sampler-topbar studio-context-toolbar">
+    <div class="sampler-title">
+      <span class="material-symbols-outlined">library_music</span>
+      <span>SAMPLER</span>
+      <span class="sampler-zone-count">{{ zones().length }} zone(s)</span>
+    </div>
+
+    <div class="sampler-controls studio-horizontal-rail">
+      <!-- Import button -->
+      <button
+        type="button"
+        class="sampler-btn sampler-btn-import"
+        (click)="importSample()"
+        [disabled]="isImporting()"
+      >
+        <span class="material-symbols-outlined">add_circle</span>
+        <span>{{ isImporting() ? 'Importing...' : 'Import Sample' }}</span>
+      </button>
+
+      <!-- Stop All -->
+      <button
+        type="button"
+        class="sampler-btn sampler-btn-stop"
+        (click)="stopAll()"
+      >
+        <span class="material-symbols-outlined">stop</span>
+        <span>Stop All</span>
+      </button>
+
+      <!-- Pitch Bend -->
+      <div class="sampler-mod-row">
+        <label class="sampler-mod-label">Pitch</label>
+        <input
+          type="range"
+          class="sampler-mod-slider"
+          min="0"
+          max="100"
+          [value]="pitchBend()"
+          (input)="onPitchBendChange(getInputValue($event))"
+        />
+      </div>
+
+      <!-- Modulation -->
+      <div class="sampler-mod-row">
+        <label class="sampler-mod-label">Mod</label>
+        <input
+          type="range"
+          class="sampler-mod-slider"
+          min="0"
+          max="100"
+          [value]="modulation()"
+          (input)="onModulationChange(getInputValue($event))"
+        />
+      </div>
+
+      <!-- Master Volume -->
+      <div class="sampler-mod-row">
+        <label class="sampler-mod-label">Vol</label>
+        <input
+          type="range"
+          class="sampler-mod-slider sampler-vol-slider"
+          min="0"
+          max="100"
+          [value]="masterVolume()"
+          (input)="masterVolume.set(getInputValue($event))"
+        />
+      </div>
+    </div>
+  </header>
+
+  <!-- Drop zone -->
+  <div
+    #dropZone
+    class="sampler-dropzone sampler-import-surface"
+    [class.sampler-dropzone-active]="dragOver()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+    (click)="importSample()"
+    (keydown)="onDropZoneKeydown($event)"
+    tabindex="0"
+    role="button"
+    aria-label="Import audio into sampler"
+  >
+    <span class="material-symbols-outlined">cloud_upload</span>
+    <span>Drop audio files here or click Import</span>
+  </div>
+
+  <!-- Main content: waveform + editor -->
+  <div class="sampler-main studio-module-scroll">
+    <!-- Left: Waveform + keyboard -->
+    <div class="sampler-waveform-panel sampler-waveform-panel-surface">
+      <!-- Waveform display -->
+      <div class="sampler-waveform-container sampler-waveform-surface">
+        <app-waveform-renderer
+          [audioData]="waveformData()"
+          [duration]="waveformDuration()"
+          [loopStart]="selectedZone()?.loopEnabled ? selectedZone()!.loopStart : null"
+          [loopEnd]="selectedZone()?.loopEnabled ? selectedZone()!.loopEnd : null"
+          [loopInteractive]="true"
+          (loopStartChange)="onWaveformLoopStartChange($event)"
+          (loopEndChange)="onWaveformLoopEndChange($event)"
+          color="var(--teal-400)"
+        ></app-waveform-renderer>
+        <div class="sampler-waveform-empty" *ngIf="!waveformData()">
+          <span class="material-symbols-outlined">music_note</span>
+          <span>Select a zone or import a sample</span>
+        </div>
+      </div>
+
+      <!-- Zone keyboard (mini piano) -->
+      <div class="sampler-keyboard sampler-zone-rail">
+        <button
+          *ngFor="let z of zones()"
+          type="button"
+          class="sampler-key"
+          [class.sampler-key-selected]="selectedPitch() === z.pitch"
+          [class.sampler-key-active]="selectedPitch() === z.pitch"
+          (pointerdown)="onZonePointerDown($event, z.pitch)"
+          (pointerup)="onZonePointerUp(z.pitch)"
+          (pointercancel)="onZonePointerCancel(z.pitch)"
+          (pointerleave)="onZonePointerCancel(z.pitch)"
+          (click)="onZoneClick(z.pitch)"
+          [title]="z.noteName + ' (' + z.sampleCount + ' samples)'"
+        >
+          <span class="sampler-key-note">{{ z.noteName }}</span>
+          <span class="sampler-key-count">{{ z.sampleCount }}</span>
+        </button>
+
+        <div class="sampler-keyboard-empty" *ngIf="zones().length === 0">
+          No samples loaded. Import audio to get started.
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Editor tabs -->
+    <ng-container *ngIf="selectedZone() as zone">
+      <div class="sampler-editor sampler-editor-surface">
+        <!-- Tab bar -->
+        <nav class="sampler-tabs studio-segmented">
+          <button
+            type="button"
+            class="sampler-tab"
+            [class.sampler-tab-active]="activeTab() === 'zones'"
+            (click)="setActiveTab('zones')"
+          >Zone</button>
+          <button
+            type="button"
+            class="sampler-tab"
+            [class.sampler-tab-active]="activeTab() === 'adsr'"
+            (click)="setActiveTab('adsr')"
+          >ADSR</button>
+          <button
+            type="button"
+            class="sampler-tab"
+            [class.sampler-tab-active]="activeTab() === 'loops'"
+            (click)="setActiveTab('loops')"
+          >Loop</button>
+          <button
+            type="button"
+            class="sampler-tab"
+            [class.sampler-tab-active]="activeTab() === 'routing'"
+            (click)="setActiveTab('routing')"
+          >Routing</button>
+        </nav>
+
+        <!-- Zone info tab -->
+        <div class="sampler-editor-panel" *ngIf="activeTab() === 'zones'">
+          <div class="sampler-editor-row">
+            <label>Note</label>
+            <span class="sampler-editor-value">{{ zone.noteName }} (MIDI {{ zone.pitch }})</span>
+          </div>
+          <div class="sampler-editor-row">
+            <label>Samples</label>
+            <span class="sampler-editor-value">{{ zone.sampleCount }}</span>
+          </div>
+          <div class="sampler-editor-row">
+            <label>Round Robin</label>
+            <button
+              type="button"
+              class="sampler-toggle"
+              [class.sampler-toggle-on]="zone.roundRobin"
+              (click)="toggleRoundRobin(zone.pitch)"
+            >
+              {{ zone.roundRobin ? 'ON' : 'OFF' }}
+            </button>
+          </div>
+          <div class="sampler-editor-row">
+            <label>Output</label>
+            <select
+              class="sampler-select"
+              [value]="zone.outputChannel"
+              (change)="setOutputChannel(zone.pitch, getSelectValue($event))"
+            >
+              <option
+                *ngFor="let ch of outputChannels; let i = index"
+                [value]="i - 1"
+              >{{ ch }}</option>
+            </select>
+          </div>
+          <!-- Stretch engine: pitch shift + tempo match -->
+          <div class="sampler-editor-row">
+            <label>Pitch Shift</label>
+            <div class="sampler-stretch-row">
+              <button
+                type="button"
+                class="sampler-stretch-btn"
+                (click)="applyPitchShift(stretchSemitones() - 1)"
+                title="Pitch down 1 semitone"
+                [disabled]="zone.sampleCount === 0"
+              >−</button>
+              <span class="sampler-stretch-value">
+                {{ stretchSemitones() > 0 ? '+' : '' }}{{ stretchSemitones() }} st
+              </span>
+              <button
+                type="button"
+                class="sampler-stretch-btn"
+                (click)="applyPitchShift(stretchSemitones() + 1)"
+                title="Pitch up 1 semitone"
+                [disabled]="zone.sampleCount === 0"
+              >+</button>
+            </div>
+          </div>
+          <div class="sampler-editor-row">
+            <label>Tempo Match</label>
+            <div class="sampler-stretch-row">
+              <input
+                type="number"
+                class="sampler-stretch-input"
+                [ngModel]="stretchSourceBpm()"
+                (ngModelChange)="stretchSourceBpm.set(parseStretchBpm($event))"
+                min="20"
+                max="300"
+                title="Source BPM of this sample"
+              />
+              <span class="sampler-stretch-bpm">BPM → {{ audioEngine.tempo() }}</span>
+              <button
+                type="button"
+                class="sampler-stretch-btn sampler-stretch-apply"
+                (click)="applyTempoMatch()"
+                [disabled]="zone.sampleCount === 0"
+                title="Match sample to project tempo"
+              >✓</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADSR tab -->
+        <div class="sampler-editor-panel" *ngIf="activeTab() === 'adsr'">
+          <div class="sampler-adsr-grid">
+            <div class="sampler-adsr-row">
+              <label>A</label>
+              <input
+                type="range"
+                class="sampler-adsr-slider"
+                min="0.001"
+                max="5"
+                step="0.01"
+                [value]="zone.attack"
+                (input)="updateAdsr(zone.pitch, 'attack', getInputValue($event))"
+              />
+              <span class="sampler-adsr-val">{{ zone.attack.toFixed(3) }}s</span>
+            </div>
+            <div class="sampler-adsr-row">
+              <label>D</label>
+              <input
+                type="range"
+                class="sampler-adsr-slider"
+                min="0.001"
+                max="5"
+                step="0.01"
+                [value]="zone.decay"
+                (input)="updateAdsr(zone.pitch, 'decay', getInputValue($event))"
+              />
+              <span class="sampler-adsr-val">{{ zone.decay.toFixed(3) }}s</span>
+            </div>
+            <div class="sampler-adsr-row">
+              <label>S</label>
+              <input
+                type="range"
+                class="sampler-adsr-slider"
+                min="0"
+                max="1"
+                step="0.01"
+                [value]="zone.sustain"
+                (input)="updateAdsr(zone.pitch, 'sustain', getInputValue($event))"
+              />
+              <span class="sampler-adsr-val">{{ (zone.sustain * 100).toFixed(0) }}%</span>
+            </div>
+            <div class="sampler-adsr-row">
+              <label>R</label>
+              <input
+                type="range"
+                class="sampler-adsr-slider"
+                min="0.001"
+                max="10"
+                step="0.01"
+                [value]="zone.release"
+                (input)="updateAdsr(zone.pitch, 'release', getInputValue($event))"
+              />
+              <span class="sampler-adsr-val">{{ zone.release.toFixed(3) }}s</span>
+            </div>
+          </div>
+          <!-- ADSR visual mini-envelope -->
+          <div class="sampler-adsr-visual">
+            <svg viewBox="0 0 200 60" class="sampler-adsr-svg">
+              <polygon
+                [attr.points]="adsrSvgPoints()"
+                fill="rgba(43,160,156,0.15)"
+                stroke="#2BA09C"
+                stroke-width="1.5"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Loop tab -->
+        <div class="sampler-editor-panel" *ngIf="activeTab() === 'loops'">
+          <div class="sampler-editor-row">
+            <label>Loop</label>
+            <button
+              type="button"
+              class="sampler-toggle"
+              [class.sampler-toggle-on]="zone.loopEnabled"
+              (click)="toggleLoop(zone.pitch)"
+            >
+              {{ zone.loopEnabled ? 'ON' : 'OFF' }}
+            </button>
+          </div>
+          <div class="sampler-editor-row">
+            <label>Start</label>
+            <input
+              type="range"
+              class="sampler-adsr-slider"
+              min="0"
+              max="100"
+              step="0.5"
+              [value]="zone.loopStart * 100"
+              (input)="updateLoopStart(zone.pitch, getInputValue($event))"
+            />
+            <span class="sampler-adsr-val">{{ (zone.loopStart * 100).toFixed(1) }}%</span>
+          </div>
+          <div class="sampler-editor-row">
+            <label>End</label>
+            <input
+              type="range"
+              class="sampler-adsr-slider"
+              min="0"
+              max="100"
+              step="0.5"
+              [value]="zone.loopEnd * 100"
+              (input)="updateLoopEnd(zone.pitch, getInputValue($event))"
+            />
+            <span class="sampler-adsr-val">{{ (zone.loopEnd * 100).toFixed(1) }}%</span>
+          </div>
+          <div class="sampler-editor-row">
+            <label>Fade</label>
+            <input
+              type="range"
+              class="sampler-adsr-slider"
+              min="0"
+              max="200"
+              step="1"
+              [value]="zone.loopCrossfade * 1000"
+              (input)="updateLoopCrossfade(zone.pitch, getInputValue($event))"
+            />
+            <span class="sampler-adsr-val">{{ (zone.loopCrossfade * 1000).toFixed(0) }}ms</span>
+          </div>
+          <p class="sampler-hint">Loop region highlighted on waveform. Fade creates a smooth crossfade at the loop point.</p>
+        </div>
+
+        <!-- Routing tab -->
+        <div class="sampler-editor-panel" *ngIf="activeTab() === 'routing'">
+          <!-- Connect / Disconnect bar -->
+          <div class="sampler-routing-bar">
+            <div class="sampler-routing-status">
+              <span
+                class="sampler-routing-dot"
+                [class.sampler-routing-dot-on]="mixerConnected()"
+              ></span>
+              <span class="sampler-routing-label">
+                {{ mixerConnected() ? 'Multi-out Active' : 'Direct to Master' }}
+              </span>
+            </div>
+            <button
+              type="button"
+              class="sampler-btn"
+              [class.sampler-btn-import]="!mixerConnected()"
+              [class.sampler-btn-stop]="mixerConnected()"
+              (click)="mixerConnected() ? disconnectFromMixer() : connectToMixer()"
+            >
+              <span class="material-symbols-outlined">
+                {{ mixerConnected() ? 'link_off' : 'link' }}
+              </span>
+              <span>{{ mixerConnected() ? 'Disconnect' : 'Connect to Mixer' }}</span>
+            </button>
+          </div>
+
+          <!-- Zone routing grid -->
+          <div class="sampler-routing-grid">
+            <div class="sampler-routing-header">
+              <span>Zone</span>
+              <span>Output</span>
+              <span>Route</span>
+            </div>
+            <div
+              class="sampler-routing-row"
+              *ngFor="let z of zones()"
+            >
+              <span class="sampler-routing-zone">{{ z.noteName }}</span>
+              <select
+                class="sampler-select sampler-routing-select"
+                [value]="z.outputChannel"
+                (change)="assignToMixerChannel(z.pitch, parseIntSafe(getSelectValue($event)))"
+              >
+                <option
+                  *ngFor="let ch of outputChannels; let i = index"
+                  [value]="i - 1"
+                >{{ ch }}</option>
+              </select>
+              <span
+                class="sampler-routing-route"
+                [class.sampler-routing-route-master]="z.outputChannel < 0"
+                [class.sampler-routing-route-channel]="z.outputChannel >= 0"
+              >
+                {{ z.outputChannel < 0 ? 'Master' : 'Ch ' + (z.outputChannel + 1) }}
+              </span>
+            </div>
+            <div class="sampler-routing-summary" *ngIf="zones().length > 0">
+              <span>{{ routedZoneCount() }} / {{ zones().length }} zones on separate channels</span>
+            </div>
+            <div class="sampler-routing-empty" *ngIf="zones().length === 0">
+              <span class="material-symbols-outlined">schema</span>
+              <span>Load samples first, then assign outputs</span>
+            </div>
+          </div>
+          <p class="sampler-hint">Route each zone to a different mixer channel for individual processing. Click 'Connect to Mixer' to activate multi-out audio routing.</p>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Empty state: no zone selected -->
+    <div class="sampler-editor sampler-editor-empty studio-empty-state" *ngIf="!selectedZone()">
+      <span class="material-symbols-outlined">touch_app</span>
+      <span>Select a zone above to edit its settings</span>
+    </div>
+  </div>
+</div>

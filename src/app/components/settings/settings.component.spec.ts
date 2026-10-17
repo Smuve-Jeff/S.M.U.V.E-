@@ -1,0 +1,433 @@
+import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { SettingsComponent } from './settings.component';
+import { UserProfileService } from '../../services/user-profile.service';
+import { UIService } from '../../services/ui.service';
+import { NotificationService } from '../../services/notification.service';
+import { SecurityService } from '../../services/security.service';
+import { MicrophoneService } from '../../services/microphone.service';
+import { AudioEngineService } from '../../services/audio-engine.service';
+import { AuthService } from '../../services/auth.service';
+import { InteractionDialogService } from '../../services/interaction-dialog.service';
+import { HttpClient } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
+import { TokenService } from '../../services/token.service';
+import { PermissionService } from '../../services/permission.service';
+import { LocalStorageService } from '../../services/local-storage.service';
+import { DatabaseService } from '../../services/database.service';
+import { AudioEngineLatencyService } from '../../services/audio-engine-latency.service';
+
+describe('SettingsComponent', () => {
+  const createComponent = async () => {
+    const profileServiceMock = {
+      profile: signal({
+        settings: {
+          ui: {
+            theme: 'Dark',
+            performanceMode: false,
+            showScanlines: false,
+            animationsEnabled: true,
+          },
+          audio: {
+            masterVolume: 0.8,
+            autoSaveEnabled: true,
+            sampleRate: 48000,
+            bufferSize: 256,
+            defaultExportFormat: 'wav',
+          },
+          ai: {
+            kbWriteAccess: true,
+            commanderPersona: 'Elite',
+            autoAuditEnabled: false,
+          },
+          studio: {
+            defaultQuantize: '1/16',
+            autoMixEnabled: false,
+          },
+          dj: {
+            crossfaderCurve: 'linear',
+            hamsterMode: false,
+            vinylMode: true,
+            visualCuePoints: true,
+          },
+          security: {
+            twoFactorEnabled: false,
+            endToEndEncryption: false,
+            biometricLock: false,
+            auditLogEnabled: false,
+            sessionTimeout: 3600,
+          },
+        },
+      }),
+      updateProfile: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const microphoneServiceMock = {
+      availableDevices: signal([
+        {
+          deviceId: 'focusrite',
+          label: 'Focusrite Scarlett',
+          type: 'interface',
+          isDefault: true,
+          capabilities: ['default', 'stereo'],
+        },
+      ]),
+      selectedDeviceId: signal<string | null>('focusrite'),
+      updateAvailableDevices: jest.fn().mockResolvedValue(undefined),
+      initialize: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const audioEngineMock = {
+      outputMode: signal<'speakers' | 'headphones'>('speakers'),
+      setOutputMode: jest.fn(),
+    };
+
+    const latencyServiceMock = {
+      snapshot: signal({ totalLatencyMs: 42 }),
+      appliedCompensationMs: signal(0),
+      lastCalibration: signal(null),
+      calibrateFromCurrentDevice: jest.fn().mockResolvedValue({
+        measuredLatencyMs: 42,
+        recommendedCompensationMs: 42,
+        benchmarkSpeedRatio: 1.25,
+        capturedAt: Date.now(),
+      }),
+    };
+
+    const securityServiceMock = {
+      fetchLogs: jest.fn(),
+      fetchSessions: jest.fn(),
+      logEvent: jest.fn().mockResolvedValue(undefined),
+      revokeSession: jest.fn().mockResolvedValue(undefined),
+      sessions: signal([]),
+      logs: signal([]),
+      getSecurityAudit: jest.fn().mockReturnValue({
+        score: 100,
+        status: 'FORTIFIED',
+        alerts: [],
+      }),
+      exportUserData: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const authServiceMock = {
+      logout: jest.fn(),
+    };
+
+    const dialogMock = {
+      confirm: jest.fn(),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [SettingsComponent],
+      providers: [
+        { provide: UserProfileService, useValue: profileServiceMock },
+        {
+          provide: UIService,
+          useValue: {
+            setTheme: jest.fn(),
+            performanceMode: signal(false),
+            togglePerformanceMode: jest.fn(),
+            navigateToView: jest.fn(),
+            beginnerMode: signal(true),
+            getAvailableThemes: jest.fn().mockReturnValue([
+              {
+                name: 'Light',
+                primary: '#10b981',
+                accent: '#f59e0b',
+                neutral: '#f8fafc',
+                purple: '#6366f1',
+                red: '#ef4444',
+                blue: '#3b82f6',
+              },
+              {
+                name: 'Dark',
+                primary: '#10b981',
+                accent: '#38bdf8',
+                neutral: '#020617',
+                purple: '#6366f1',
+                red: '#f43f5e',
+                blue: '#3b82f6',
+              },
+            ]),
+          },
+        },
+        { provide: NotificationService, useValue: { show: jest.fn() } },
+        { provide: SecurityService, useValue: securityServiceMock },
+        { provide: MicrophoneService, useValue: microphoneServiceMock },
+        { provide: AudioEngineService, useValue: audioEngineMock },
+        { provide: AudioEngineLatencyService, useValue: latencyServiceMock },
+        { provide: AuthService, useValue: authServiceMock },
+        { provide: InteractionDialogService, useValue: dialogMock },
+        {
+          provide: HttpClient,
+          useValue: {
+            delete: jest.fn(() => of({ ok: true })),
+          },
+        },
+        {
+          provide: TokenService,
+          useValue: { jwtToken: jest.fn(() => 'test-token') },
+        },
+        {
+          provide: PermissionService,
+          useValue: {
+            requestPermission: jest.fn().mockResolvedValue(true),
+            refreshAllStatuses: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: LocalStorageService,
+          useValue: {
+            getStorageStats: jest.fn().mockResolvedValue({
+              usedBytes: 1024,
+              totalBytes: 10240,
+              percentUsed: 10,
+            }),
+            clearAllCache: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: DatabaseService,
+          useValue: {
+            saveUserProfile: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(SettingsComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    return {
+      component,
+      microphoneServiceMock,
+      audioEngineMock,
+      latencyServiceMock,
+      securityServiceMock,
+      authServiceMock,
+      dialogMock,
+    };
+  };
+
+  it('refreshes audio input devices from settings audio tab actions', async () => {
+    const { component, microphoneServiceMock } = await createComponent();
+
+    await component.refreshAudioInputs();
+
+    expect(microphoneServiceMock.updateAvailableDevices).toHaveBeenCalled();
+  });
+
+  it('routes audio input selection through microphone initialization', async () => {
+    const { component, microphoneServiceMock } = await createComponent();
+
+    await component.selectAudioInput('focusrite');
+
+    expect(microphoneServiceMock.initialize).toHaveBeenCalledWith('focusrite');
+  });
+
+  it('sets output monitor mode through audio engine', async () => {
+    const { component, audioEngineMock } = await createComponent();
+
+    component.setOutputMode('headphones');
+
+    expect(audioEngineMock.setOutputMode).toHaveBeenCalledWith('headphones');
+  });
+
+  it('calibrates latency compensation and persists the measured device offset', async () => {
+    const { component, latencyServiceMock } = await createComponent();
+    const profileService = TestBed.inject(UserProfileService) as {
+      updateProfile: jest.Mock;
+    };
+
+    await component.calibrateLatencyCompensation();
+
+    expect(latencyServiceMock.calibrateFromCurrentDevice).toHaveBeenCalledWith(1);
+    expect(profileService.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          studio: expect.objectContaining({ latencyCompensation: 42 }),
+        }),
+      })
+    );
+  });
+
+  it('loads security data on initialization', async () => {
+    const { securityServiceMock } = await createComponent();
+
+    expect(securityServiceMock.fetchLogs).toHaveBeenCalled();
+    expect(securityServiceMock.fetchSessions).toHaveBeenCalled();
+  });
+
+  it('normalizes numeric form values before persisting settings', async () => {
+    const { component } = await createComponent();
+    const profileService = TestBed.inject(UserProfileService) as {
+      updateProfile: jest.Mock;
+    };
+
+    component.updateSetting('audio' as any, 'masterVolume', '4');
+    component.updateSetting('studio' as any, 'latencyCompensation', '-20');
+
+    expect(profileService.updateProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          studio: expect.objectContaining({ latencyCompensation: 0 }),
+        }),
+      })
+    );
+    expect(profileService.updateProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          audio: expect.objectContaining({ masterVolume: 1 }),
+        }),
+      })
+    );
+  });
+
+  it('keeps beginner guidance backed by the profile and local mirror', async () => {
+    const { component } = await createComponent();
+
+    component.updateSetting('ui' as any, 'beginnerMode', false);
+
+    expect((TestBed.inject(UserProfileService).profile() as any).settings.ui.beginnerMode).toBeUndefined();
+    expect(localStorage.getItem('smuve_beginner_mode')).toBe('off');
+    expect((TestBed.inject(UIService) as any).beginnerMode()).toBe(false);
+    expect((TestBed.inject(UserProfileService).updateProfile as jest.Mock)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          ui: expect.objectContaining({ beginnerMode: false }),
+        }),
+      })
+    );
+  });
+
+  it('reports only recorded profile evidence in the S.M.U.V.E. context summary', async () => {
+    const { component } = await createComponent();
+
+    expect(component.profileAlignment().officialLinks).toBe(0);
+    expect(component.profileAlignment().catalogItems).toBe(0);
+    expect(component.profileAlignment().contextReady).toBe(false);
+  });
+
+  it('syncs theme changes through the shared UI service', async () => {
+    const { component } = await createComponent();
+    const uiService = TestBed.inject(UIService) as {
+      setTheme: jest.Mock;
+    };
+
+    await component.updateSetting('ui' as any, 'theme', 'Light');
+
+    expect(uiService.setTheme).toHaveBeenCalledWith('Light');
+  });
+
+  it('includes the Stage FX preference in the appearance summary', async () => {
+    const { component } = await createComponent();
+
+    const fx = component
+      .appearanceSummary()
+      .find((item) => item.label === 'Stage FX');
+
+    expect(fx).toBeDefined();
+    // Legacy / unset profiles default to the ambient (on) reading.
+    expect(fx!.value).toBe('Ambient');
+  });
+
+  it('live-previews the Stage FX toggle on the body class before commit', async () => {
+    const { component } = await createComponent();
+
+    document.body.classList.remove('stage-fx-off');
+    component.updateSetting('studio' as any, 'stageFxEnabled', false);
+    expect(document.body.classList.contains('stage-fx-off')).toBe(true);
+
+    component.updateSetting('studio' as any, 'stageFxEnabled', true);
+    expect(document.body.classList.contains('stage-fx-off')).toBe(false);
+  });
+
+  it('purgeProfile logs the event and calls logout when confirmed', async () => {
+    const { component, securityServiceMock, authServiceMock, dialogMock } =
+      await createComponent();
+
+    dialogMock.confirm.mockResolvedValue(true);
+
+    await component.purgeProfile();
+
+    expect(securityServiceMock.logEvent).toHaveBeenCalledWith(
+      'PROFILE_PURGE',
+      'User initiated irreversible profile purge.'
+    );
+    expect(authServiceMock.logout).toHaveBeenCalled();
+  });
+
+  it('purgeProfile does nothing when user cancels the confirmation', async () => {
+    const { component, securityServiceMock, authServiceMock, dialogMock } =
+      await createComponent();
+
+    dialogMock.confirm.mockResolvedValue(false);
+
+    await component.purgeProfile();
+
+    expect(securityServiceMock.logEvent).not.toHaveBeenCalledWith(
+      'PROFILE_PURGE',
+      expect.any(String)
+    );
+    expect(authServiceMock.logout).not.toHaveBeenCalled();
+  });
+
+  it('purgeProfile deletes the account server-side when a real id exists', async () => {
+    const { component, securityServiceMock, authServiceMock, dialogMock } =
+      await createComponent();
+
+    const http = TestBed.inject(HttpClient);
+    const profile = TestBed.inject(UserProfileService).profile();
+    const withId = { ...profile, id: 'usr-42' };
+    (TestBed.inject(UserProfileService) as any).profile.set(withId);
+    dialogMock.confirm.mockResolvedValue(true);
+
+    await component.purgeProfile();
+
+    expect(http.delete).toHaveBeenCalledWith(
+      expect.stringContaining('/user/usr-42'),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
+      })
+    );
+    expect(securityServiceMock.logEvent).toHaveBeenCalled();
+    expect(authServiceMock.logout).toHaveBeenCalled();
+  });
+
+  it('purgeProfile aborts without logout when the server delete fails', async () => {
+    const { component, authServiceMock, dialogMock } = await createComponent();
+
+    const http = TestBed.inject(HttpClient) as any;
+    http.delete.mockImplementation(() => throwError(() => ({ status: 500 })));
+    const profile = TestBed.inject(UserProfileService).profile();
+    (TestBed.inject(UserProfileService) as any).profile.set({
+      ...profile,
+      id: 'usr-42',
+    });
+    dialogMock.confirm.mockResolvedValue(true);
+
+    await component.purgeProfile();
+
+    expect(authServiceMock.logout).not.toHaveBeenCalled();
+    http.delete.mockImplementation(() => of({ ok: true }));
+  });
+
+  it('purgeProfile treats a 404 as already-deleted and finishes cleanly', async () => {
+    const { component, authServiceMock, dialogMock } = await createComponent();
+
+    const http = TestBed.inject(HttpClient) as any;
+    http.delete.mockImplementation(() => throwError(() => ({ status: 404 })));
+    const profile = TestBed.inject(UserProfileService).profile();
+    (TestBed.inject(UserProfileService) as any).profile.set({
+      ...profile,
+      id: 'usr-42',
+    });
+    dialogMock.confirm.mockResolvedValue(true);
+
+    await component.purgeProfile();
+
+    expect(authServiceMock.logout).toHaveBeenCalled();
+    http.delete.mockImplementation(() => of({ ok: true }));
+  });
+});

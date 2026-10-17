@@ -1,0 +1,35 @@
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.2);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.4);
+}
+
+:host {
+  display: block;
+  background: #020617;
+}
+
+/* Ensure data stream doesn't overflow */
+.data-stream {
+  max-height: calc(100vh - 400px);
+}
+
+/* Scale Assistant Animation */
+@keyframes dash {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+.hud-node-link path {
+  stroke-dasharray: 10;
+  animation: dash 50s linear infinite;
+}

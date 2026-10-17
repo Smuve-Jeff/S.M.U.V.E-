@@ -1,0 +1,18 @@
+<div
+  class="sound-pad sound-pad-surface"
+  role="button"
+  tabindex="0"
+  [attr.aria-label]="name || 'Sound Pad'"
+  [attr.aria-pressed]="active"
+  [class.active]="active"
+  [style.--pad-color]="color"
+  (click)="triggerPad()"
+  (pointerdown)="onPointerDown($event)"
+  (pointerup)="onPointerUp()"
+  (pointercancel)="onPointerUp()"
+  (pointerleave)="onPointerUp()"
+  (keydown)="onKeyDown($event)"
+  (contextmenu)="onContextMenu($event)"
+>
+  <span class="sp-label">{{ name }}</span>
+</div>

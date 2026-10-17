@@ -1,0 +1,139 @@
+/* ============================================================
+   S.M.U.V.E. STUDIO — SUB-COMPONENT REFINEMENT EXTENSION 2.1
+   Benchmarks: dj-booth (Pioneer-style), mixer (console-grade)
+   Additive only — registered in dj-deck.component.ts and
+   mixer.component.ts styleUrls (NOT studio.component.css: emulated
+   view encapsulation scopes every rule to the owning component's
+   template, so a shell-level import could never reach these
+   elements). Applies the same press physics, icon optical
+   settings, and focus discipline to the two most instrument-dense
+   sub-components. Each registrant only matches its own half.
+   ============================================================ */
+
+/* ── 1. MATERIAL SYMBOLS OPTICAL SETTINGS — both components ── */
+.dj-booth .material-symbols-outlined,
+.mix-shell .material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 24;
+  line-height: 1;
+}
+
+/* ── 2. DJ BOOTH — deck-control press physics ── */
+/* Pioneer-style hardware responds instantly; the virtual deck must too. */
+.dj-booth .transport-button,
+.dj-booth .performance-pad,
+.dj-booth .cue-button,
+.dj-booth .hotcue,
+.dj-booth .pad-cell {
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(0.34, 1.4, 0.44, 1);
+}
+.dj-booth .performance-pad:active,
+.dj-booth .hotcue:active,
+.dj-booth .pad-cell:active {
+  transform: scale(0.93);
+  filter: brightness(1.2);
+}
+/* Jog wheel: no browser gesture interference while scratching. */
+.dj-booth .jog-wheel,
+.dj-booth .jog-canvas {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* (The REC breathe animation and the platter/tonearm gesture locks now live
+   in dj-deck.component.css + dj-booth-refinement.css, which own the booth's
+   vintage palette — a second copy here only shadowed the keyframe.) */
+/* Deck color fields glow when that deck is the live master.
+   The halo itself lives in dj-deck.component.css (it owns the vintage
+   amber/jade tokens); this layer only supplies the smoothing, so the
+   two sheets can no longer fight over the box-shadow. */
+.dj-booth .deck-chassis.deck-a,
+.dj-booth .deck-chassis.deck-b {
+  transition: box-shadow 0.3s ease;
+}
+
+/* ── 3. MIXER — fader, meter & strip polish ── */
+/* Fader caps and strip mutes lift on hover, settle on press. */
+.mix-shell button {
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(0.34, 1.4, 0.44, 1);
+}
+.mix-shell button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+/* VU meter zones keep their pro palette; add a soft clip halo. */
+.mix-shell .vu-clip,
+.mix-shell .meter-clip {
+  box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
+}
+/* Channel strips read as hardware modules with consistent depth. */
+.mix-shell .mix-strip {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.mix-shell .mix-strip:hover {
+  border-color: rgba(14, 124, 123, 0.3);
+  box-shadow: 0 6px 18px rgba(14, 124, 123, 0.1);
+}
+/* Selected channel gets the console's teal rail light. */
+.mix-shell .mix-strip.selected {
+  box-shadow:
+    inset 3px 0 0 var(--teal-500),
+    0 6px 18px rgba(14, 124, 123, 0.12);
+}
+
+/* ── 4. TOUCH TARGETS — mobile floors across both components ── */
+@media (max-width: 768px), (max-width: 932px) and (orientation: landscape) {
+  .dj-booth .performance-pad,
+  .dj-booth .hotcue,
+  .dj-booth .transport-button,
+  .mix-shell .mix-strip button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .dj-booth .performance-pad:active {
+    transform: scale(0.9);
+  }
+  /* Dense step/key style grids in the mixer opt out, as in the shell. */
+  .mix-shell .dense button {
+    min-height: 32px;
+  }
+}
+
+/* ── 5. DESKTOP FOCUS DISCIPLINE ── */
+@media (min-width: 769px) {
+  .dj-booth button:focus-visible,
+  .mix-shell button:focus-visible,
+  .mix-shell input:focus-visible {
+    outline: 2px solid var(--stage-focus, var(--teal-600, #0b6a69));
+    outline-offset: 2px;
+  }
+  .dj-booth button:focus-visible {
+    outline-color: var(--booth-a, #20d7d2);
+  }
+}
+
+/* ── 6. REDUCED MOTION GUARD ── */
+@media (prefers-reduced-motion: reduce) {
+  .dj-booth .record-button.is-active {
+    animation: none !important;
+  }
+  .dj-booth .transport-button,
+  .dj-booth .performance-pad,
+  .dj-booth .cue-button,
+  .mix-shell button,
+  .dj-booth button {
+    transition-duration: 0.001ms !important;
+  }
+}

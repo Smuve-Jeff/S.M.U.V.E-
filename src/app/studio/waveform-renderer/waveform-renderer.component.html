@@ -1,0 +1,26 @@
+<div class="wr-shell">
+  <canvas
+    #waveCanvas
+    class="wr-canvas"
+    [attr.width]="800"
+    [attr.height]="160"
+    [attr.aria-label]="
+      duration > 0
+        ? 'Audio waveform, ' + duration.toFixed(1) + ' seconds'
+        : 'Audio waveform'
+    "
+    role="img"
+  ></canvas>
+
+  <!-- Recording indicator overlay -->
+  <div class="wr-rec-badge" *ngIf="isRecording">
+    <span class="wr-rec-dot"></span>
+    <span class="wr-rec-label">REC</span>
+  </div>
+
+  <!-- Meta footer -->
+  <div class="wr-meta" *ngIf="duration > 0">
+    <span>{{ duration * progress | number: '1.2-2' }}s</span>
+    <span>{{ duration | number: '1.2-2' }}s</span>
+  </div>
+</div>

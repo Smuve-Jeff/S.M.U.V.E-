@@ -1,0 +1,479 @@
+/* ============================================================
+   S.M.U.V.E. Studio — global workspace redesign contracts
+   Low-specificity rules intentionally complement component CSS.
+   ============================================================ */
+
+:root {
+  --studio-space-1: 4px;
+  --studio-space-2: 8px;
+  --studio-space-3: 12px;
+  --studio-space-4: 16px;
+  --studio-space-5: 24px;
+  --studio-space-6: 32px;
+  --studio-touch-target: 44px;
+  --studio-mobile-dock: calc(64px + env(safe-area-inset-bottom, 0px));
+  --studio-header: 64px;
+  --studio-footer: 48px;
+  --studio-radius-sm: 10px;
+  --studio-radius-md: 14px;
+  --studio-radius-lg: 20px;
+}
+
+app-arrangement-view,
+app-piano-roll,
+app-drum-machine,
+app-mixer,
+app-session-view,
+app-audio-recorder-view,
+app-vocal-suite,
+app-performance-mode,
+app-performance-grid,
+app-mastering-suite,
+app-dj-deck,
+app-synthesizer,
+app-sampler,
+app-sound-browser,
+app-sample-library,
+app-sound-pad-grid,
+app-sound-pad,
+app-chord-editor,
+app-score-view,
+app-plugin-store,
+app-effects-rack-ui,
+app-channel-rack,
+app-ai-produce,
+app-ai-band,
+app-bezier-editor,
+app-midi-input-widget,
+app-recording-waveform {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+}
+
+.studio-workspace-surface {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  isolation: isolate;
+}
+
+.studio-module-card {
+  min-width: 0;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: var(--studio-radius-md);
+  background: color-mix(in srgb, var(--ivory-paper, #1a2040) 88%, transparent);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+}
+
+.studio-touch-target {
+  min-width: var(--studio-touch-target);
+  min-height: var(--studio-touch-target);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.studio-horizontal-rail {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.studio-horizontal-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.studio-module-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.studio-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.studio-primary-button,
+.studio-secondary-button,
+.studio-ghost-button,
+.studio-icon-button {
+  min-height: var(--studio-touch-target);
+  min-width: var(--studio-touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: var(--studio-radius-sm);
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  padding: 0 14px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.studio-primary-button {
+  color: var(--ivory-deep, #06091a);
+  background: var(--teal-500, #00e5ff);
+  border-color: var(--teal-400, #5eead4);
+}
+
+.studio-secondary-button,
+.studio-ghost-button,
+.studio-icon-button {
+  color: var(--espresso-text, #f1f5ff);
+  background: color-mix(in srgb, var(--ivory-paper, #1a2040) 86%, transparent);
+}
+
+.studio-icon-button {
+  width: var(--studio-touch-target);
+  padding: 0;
+}
+
+.studio-primary-button:active,
+.studio-secondary-button:active,
+.studio-ghost-button:active,
+.studio-icon-button:active {
+  transform: scale(0.97);
+}
+
+.studio-primary-button:disabled,
+.studio-secondary-button:disabled,
+.studio-ghost-button:disabled,
+.studio-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+}
+
+.studio-segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  padding: 3px;
+  overflow-x: auto;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--ivory-deep, #06091a) 72%, transparent);
+  scrollbar-width: none;
+}
+
+.studio-segmented::-webkit-scrollbar {
+  display: none;
+}
+
+.studio-segmented > button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--espresso-muted, #94a3c8);
+  background: transparent;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.studio-segmented > button[aria-pressed='true'],
+.studio-segmented > button.active {
+  color: var(--ivory-deep, #06091a);
+  background: var(--teal-500, #00e5ff);
+}
+
+.studio-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 9px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.studio-status-pill[data-state='recording'] {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.studio-status-pill[data-state='blocked'],
+.studio-status-pill[data-state='warning'] {
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+.studio-empty-state,
+.studio-loading-state {
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--espresso-muted, #94a3c8);
+  text-align: center;
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --studio-header: 60px;
+    --studio-footer: 40px;
+  }
+
+  .studio-primary-button,
+  .studio-secondary-button,
+  .studio-ghost-button,
+  .studio-icon-button,
+  .studio-touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  .studio-module-scroll {
+    scrollbar-width: none;
+  }
+
+  .studio-module-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-primary-button,
+  .studio-secondary-button,
+  .studio-ghost-button,
+  .studio-icon-button,
+  .studio-segmented > button {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ============================================================
+   MOBILE AUDIT CONTRACT — Android portrait + landscape
+   ------------------------------------------------------------
+   Checks encoded here so a workspace can never reintroduce them:
+     1. No module may create page-level horizontal overflow.
+     2. Tap surfaces must not wait on the 300ms delay or flash grey.
+     3. Safe areas are respected by the canvas and by scroll rails.
+     4. Every interactive element shows a visible focus ring.
+   `overflow-x: clip` (not `hidden`) keeps the inner scroll rails,
+   sticky lanes and sticky headers of each workspace intact.
+   ============================================================ */
+app-arrangement-view,
+app-piano-roll,
+app-drum-machine,
+app-mixer,
+app-session-view,
+app-audio-recorder-view,
+app-vocal-suite,
+app-vocal-comp-view,
+app-performance-mode,
+app-performance-grid,
+app-performer,
+app-mastering-suite,
+app-dj-deck,
+app-synthesizer,
+app-sampler,
+app-sound-browser,
+app-sample-library,
+app-sound-pad-grid,
+app-sound-pad,
+app-chord-editor,
+app-score-view,
+app-plugin-store,
+app-effects-rack-ui,
+app-channel-rack,
+app-ai-produce,
+app-take-lane,
+app-waveform-renderer,
+app-ai-band,
+app-bezier-editor,
+app-midi-input-widget,
+app-recording-waveform {
+  overflow-x: clip;
+}
+
+@media (pointer: coarse) {
+  app-arrangement-view button,
+  app-arrangement-view [role='button'],
+  app-piano-roll button,
+  app-piano-roll [role='button'],
+  app-drum-machine button,
+  app-mixer button,
+  app-session-view button,
+  app-audio-recorder-view button,
+  app-vocal-suite button,
+  app-vocal-comp-view button,
+  app-performance-mode button,
+  app-mastering-suite button,
+  app-dj-deck button,
+  app-synthesizer button,
+  app-sampler button,
+  app-sound-browser button,
+  app-sample-library button,
+  app-sound-pad-grid button,
+  app-channel-rack button,
+  app-plugin-store button,
+  app-effects-rack-ui button,
+  app-ai-band button,
+  app-bezier-editor button,
+  app-midi-input-widget button,
+  app-recording-waveform button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* Keep the last row of any workspace clear of the Android gesture bar. */
+  .studio-primary-canvas {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .studio-module-scroll {
+    scroll-padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+}
+
+/* Visible focus for every interactive element inside the workspaces. Module
+   stylesheets are injected after this file, so any component that ships its
+   own ring still wins; this only fills the gaps. */
+app-arrangement-view :focus-visible,
+app-piano-roll :focus-visible,
+app-drum-machine :focus-visible,
+app-mixer :focus-visible,
+app-session-view :focus-visible,
+app-audio-recorder-view :focus-visible,
+app-vocal-suite :focus-visible,
+app-vocal-comp-view :focus-visible,
+app-performance-mode :focus-visible,
+app-mastering-suite :focus-visible,
+app-dj-deck :focus-visible,
+app-synthesizer :focus-visible,
+app-sampler :focus-visible,
+app-sound-browser :focus-visible,
+app-sample-library :focus-visible,
+app-sound-pad-grid :focus-visible,
+app-channel-rack :focus-visible,
+app-plugin-store :focus-visible,
+app-effects-rack-ui :focus-visible,
+app-score-view :focus-visible,
+app-ai-band :focus-visible,
+app-bezier-editor :focus-visible,
+app-midi-input-widget :focus-visible,
+app-recording-waveform :focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 2px;
+}
+
+/* Performer is URL-accessible even though its desktop nav entry is hidden.
+   Prefix the scoped classes to preserve them over the component's very large
+   final style sheet while keeping these desktop workspace refinements local. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  app-performer .performer-header {
+    align-items: stretch;
+    padding: 8px 10px;
+    gap: 7px;
+  }
+
+  app-performer .performer-brand-rail,
+  app-performer .performer-layout-switcher {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  app-performer .performer-rack {
+    min-height: 82px;
+    padding: 8px 10px;
+  }
+
+  app-performer .performer-rack .rack-cell {
+    min-height: 62px;
+  }
+
+  app-performer .performer-meter-deck {
+    gap: 8px;
+  }
+
+  app-performer .performer-meter-deck .meter-pane {
+    min-width: 78px;
+  }
+
+  app-performer .performer-pad-grid {
+    padding: 10px;
+    gap: 7px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  app-performer .performer-header {
+    min-height: 50px;
+    padding-block: 6px;
+  }
+
+  app-performer .performer-header .spectrum-strip {
+    height: 28px;
+  }
+
+  app-performer .performer-midi-panel,
+  app-performer .performer-midi-editor,
+  app-performer .performer-midi-log {
+    max-height: min(30vh, 250px);
+    margin-top: 6px;
+  }
+
+  app-performer .performer-rack {
+    min-height: 74px;
+    padding-block: 6px;
+  }
+
+  app-performer .performer-rack .rack-cell {
+    min-height: 54px;
+    padding-block: 5px;
+  }
+
+  app-performer .performer-meter-deck {
+    padding-block: 6px;
+  }
+
+  app-performer .performer-viewport {
+    min-height: 160px;
+  }
+
+  app-performer .performer-keyboard-rail {
+    min-height: 148px;
+  }
+
+  app-performer .performer-takes {
+    padding-block: 6px;
+  }
+
+  app-performer .performer-take-rail {
+    min-height: 98px;
+  }
+
+  app-performer .performer-take-card,
+  app-performer .performer-take-empty {
+    min-height: 92px;
+  }
+}

@@ -1,0 +1,75 @@
+<div
+  class="rec-waveform-container"
+  [class.recording]="isRecording()"
+  role="region"
+  aria-label="Live recording waveform"
+>
+  <!-- Header row: status pulse, time, limiter toggle -->
+  <div class="rec-waveform-head">
+    <div class="flex items-center gap-2">
+      <span
+        class="rec-pulse"
+        [class.active]="isRecording()"
+        aria-hidden="true"
+      ></span>
+      <span class="rec-label">
+        {{ isRecording() ? 'REC' : 'READY' }}
+      </span>
+      <span class="rec-time font-mono">{{ recordingTimeFormatted() }}</span>
+    </div>
+    <button
+      (click)="resetWaveform()"
+      [disabled]="!waveformData()"
+      class="rec-action"
+      title="Clear live waveform"
+      type="button"
+    >
+      <span class="material-symbols-outlined text-xs">replay</span>
+    </button>
+  </div>
+
+  <!-- Live waveform canvas (reuses the DAW waveform renderer) -->
+  <div class="rec-waveform-canvas">
+    <app-waveform-renderer
+      [audioData]="waveformData()"
+      [duration]="durationSeconds()"
+      [progress]="1"
+      [isRecording]="isRecording()"
+      mode="mirrored"
+      color="#2BA09C"
+    ></app-waveform-renderer>
+  </div>
+
+  <!-- Headroom + limiter strip -->
+  <div class="rec-meter-row">
+    <div class="rec-meter">
+      <span class="rec-meter-label">HEADROOM</span>
+      <div class="rec-meter-track">
+        <div
+          class="rec-meter-fill"
+          [class.hot]="headroomPercent() >= 100 || peakInputDb() >= 0"
+          [style.width.%]="headroomPercent()"
+        ></div>
+        <div class="rec-meter-marker" [class.clip]="peakInputDb() >= 0" [style.left.%]="(peakInputDb() + 60) / 60 * 100"></div>
+      </div>
+    </div>
+    <button
+      (click)="toggleLimiter()"
+      [class.on]="limiterEnabled()"
+      class="rec-limiter-toggle"
+      type="button"
+      [attr.aria-pressed]="limiterEnabled()"
+      [title]="
+        limiterEnabled()
+          ? 'Limiter on — click to disable'
+          : 'Limiter off — click to enable'
+      "
+    >
+      <span class="material-symbols-outlined text-xs">graphic_eq</span>
+      LIMITER
+      <span class="rec-limiter-state">{{
+        limiterEnabled() ? (isLimiting() ? 'ENGAGED' : 'ARMED') : 'OFF'
+      }}</span>
+    </button>
+  </div>
+</div>

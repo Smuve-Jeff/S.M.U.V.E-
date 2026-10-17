@@ -1,0 +1,300 @@
+<div
+  class="login-shell w-full flex justify-center bg-[#020617] relative overflow-y-auto overflow-x-hidden"
+>
+  <div class="scan-line"></div>
+  <!-- Dynamic Background Accents -->
+  <div
+    class="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-blue-600/10 pointer-events-none"
+  ></div>
+
+  <!-- Main Login Container -->
+  <div
+    class="auth-card w-full max-w-md glass-v42-pro rounded-[2.5rem] border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-20"
+  >
+    <!-- Scanning Line Effect -->
+    <div
+      class="absolute top-0 left-0 w-full h-1 bg-brand-primary/20 animate-pulse-subtle pointer-events-none"
+    ></div>
+
+    <div class="auth-brand text-center">
+      <div
+        class="w-20 h-20 rounded-3xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary mx-auto mb-6 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+      >
+        <span class="material-symbols-outlined text-4xl">security</span>
+      </div>
+      <h1
+        class="auth-title font-black text-white uppercase italic tracking-tighter leading-none"
+      >
+        S.M.U.V.E.<span class="text-brand-primary">2.0</span>
+      </h1>
+      <p
+        class="text-[10px] font-black text-silver-dim uppercase tracking-[0.5em] mt-4 opacity-70"
+      >
+        Strategic Music Utility Virtual Enterprise
+      </p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="space-y-6">
+      <!-- Status Banner -->
+      <div
+        class="rounded-2xl border border-brand-primary/15 bg-brand-primary/5 px-5 py-5"
+      >
+        <p
+          class="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary"
+        >
+          {{
+            isVerifying()
+              ? 'Transmission Verification'
+              : requires2FA()
+                ? 'Neural Authentication'
+                : 'System Authorization'
+          }}
+        </p>
+        <p class="text-[11px] text-silver-dim/80 mt-2 leading-relaxed">
+          {{
+            isVerifying()
+              ? 'Decipher the 6-digit transmission code sent to your secure channel.'
+              : requires2FA()
+                ? 'Confirm identity via your primary authentication device.'
+                : 'Enter your credentials to establish a secure link with the S.M.U.V.E. infrastructure.'
+          }}
+        </p>
+      </div>
+
+      @if (isVerifying()) {
+        <div class="space-y-3">
+          <label
+            for="verificationCode"
+            class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+            >Authorization Cipher</label
+          >
+          <input
+            id="verificationCode"
+            type="text"
+            [(ngModel)]="verificationCode"
+            name="verificationCode"
+            required
+            maxlength="6"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            pattern="[0-9]{6}"
+            placeholder="000000"
+            class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-5 text-center text-3xl font-black tracking-[0.6em] focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/50 outline-none transition-all placeholder:text-white/5 text-brand-primary"
+          />
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="isLoading() || verificationCode.length !== 6"
+          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-brand-primary/20 active:scale-[0.98] transition-transform disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+        >
+          @if (isLoading()) {
+            <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+          }
+          Establish Link
+        </button>
+
+        <div class="text-center mt-6 flex flex-col items-center gap-4">
+          <button
+            type="button"
+            (click)="onResendCode()"
+            [disabled]="isLoading()"
+            class="text-[9px] font-black text-silver-dim hover:text-brand-primary uppercase tracking-[0.2em] transition-all opacity-60 hover:opacity-100"
+          >
+            Resend Transmission
+          </button>
+          @if (usesApiAuth()) {
+            <button
+              type="button"
+              (click)="skipVerification()"
+              [disabled]="isLoading()"
+              class="text-[9px] font-black text-silver-dim/60 hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50"
+            >
+              Verify Later From Settings
+            </button>
+          }
+        </div>
+      } @else if (requires2FA()) {
+        <div class="space-y-3">
+          <label
+            for="twoFactorCode"
+            class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+            >Neural Key</label
+          >
+          <input
+            id="twoFactorCode"
+            type="text"
+            [(ngModel)]="credentials.twoFactorCode"
+            name="twoFactorCode"
+            required
+            maxlength="6"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            pattern="[0-9]{6}"
+            placeholder="******"
+            class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-5 text-center text-3xl font-black tracking-[0.6em] focus:border-brand-primary outline-none transition-all placeholder:text-white/5 text-brand-primary"
+          />
+        </div>
+        <button
+          type="submit"
+          [disabled]="
+            isLoading() ||
+            !credentials.twoFactorCode ||
+            credentials.twoFactorCode.length !== 6
+          "
+          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-brand-primary/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+        >
+          @if (isLoading()) {
+            <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+          }
+          Confirm Identity
+        </button>
+      } @else {
+        @if (isRegistering()) {
+          <div class="space-y-2">
+            <label
+              for="artistName"
+              class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+              >Artist Designation</label
+            >
+            <input
+              id="artistName"
+              type="text"
+              [(ngModel)]="artistName"
+              name="artistName"
+              required
+              placeholder="STAGE NAME"
+              autocomplete="name"
+              class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30 uppercase"
+            />
+          </div>
+        }
+
+        <div class="space-y-2">
+          <label
+            for="email"
+            class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+            >Secure Channel</label
+          >
+          <input
+            id="email"
+            type="email"
+            [(ngModel)]="credentials.email"
+            name="email"
+            required
+            autocomplete="email"
+            placeholder="EMAIL ADDRESS"
+            class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30 uppercase"
+          />
+        </div>
+
+        <div class="space-y-2">
+          <label
+            for="password"
+            class="text-[10px] font-black text-silver-dim uppercase tracking-widest ml-1"
+            >Access Cipher</label
+          >
+          <div class="relative">
+            <input
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              [(ngModel)]="credentials.password"
+              name="password"
+              required
+              [autocomplete]="isRegistering() ? 'new-password' : 'current-password'"
+              placeholder="PASSWORD"
+              class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 pr-14 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30"
+            />
+            <button
+              type="button"
+              (click)="showPassword.set(!showPassword())"
+              class="password-toggle absolute right-2 top-1/2 -translate-y-1/2 text-silver-dim hover:text-brand-primary transition-colors"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+            >
+              <span class="material-symbols-outlined text-xl">{{
+                showPassword() ? 'visibility_off' : 'visibility'
+              }}</span>
+            </button>
+          </div>
+        </div>
+
+        @if (isRegistering() && credentials.password) {
+          <div class="px-2 pt-2 space-y-2">
+            <p
+              class="text-[9px] font-black uppercase tracking-widest"
+              [class.text-brand-primary]="passwordValidation.isValid"
+              [class.text-brand-danger]="!passwordValidation.isValid"
+            >
+              Cipher Strength
+            </p>
+            <div class="space-y-1 text-silver-dim text-[10px] leading-tight">
+              @for (error of passwordValidation.errors; track error) {
+                <p class="text-brand-danger opacity-80 flex items-start gap-1">
+                  <span class="mt-0.5 material-symbols-outlined text-[10px]"
+                    >close</span
+                  >
+                  {{ error }}
+                </p>
+              }
+            </div>
+          </div>
+        }
+
+        <button
+          type="submit"
+          [disabled]="isLoading()"
+          class="w-full mt-6 btn-elegant btn-elegant-primary h-16 text-xs font-black uppercase tracking-[0.3em] shadow-xl shadow-brand-primary/10 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+        >
+          @if (isLoading()) {
+            <span class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+          }
+          {{ isRegistering() ? 'Initialize Genesis' : 'Authorize Access' }}
+        </button>
+      }
+    </form>
+
+    <!-- Feedback Message -->
+    @if (message()) {
+      <div
+        role="status"
+        aria-live="polite"
+        class="auth-feedback mt-6 p-5 rounded-2xl border text-center text-[10px] font-black uppercase tracking-widest"
+        [class.border-brand-danger]="isError()"
+        [class.text-brand-danger]="isError()"
+        [class.bg-brand-danger/5]="isError()"
+        [class.border-brand-primary]="!isError()"
+        [class.text-brand-primary]="!isError()"
+        [class.bg-brand-primary/5]="!isError()"
+      >
+        <div class="flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-sm">{{
+            isError() ? 'warning' : 'check_circle'
+          }}</span>
+          {{ message() }}
+        </div>
+      </div>
+    }
+
+    <!-- Toggle Mode -->
+    <div class="mt-6 pt-4 border-t border-white/5 text-center flex flex-col items-center gap-1">
+      <button
+        type="button"
+        (click)="toggleMode()"
+        [disabled]="isLoading()"
+        class="text-[10px] font-black text-silver-dim hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50"
+      >
+        {{
+          isRegistering() ? 'Return to Authorization' : 'New Artist Designation'
+        }}
+      </button>
+      <button
+        type="button"
+        (click)="openRecovery()"
+        [disabled]="isLoading()"
+        class="text-[10px] font-black text-silver-dim/70 hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50"
+      >
+        Forgot Access Cipher?
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,3209 @@
+<div
+  class="comp-shell"
+  [class.comp-compact]="uiService.isCompactMobile()"
+  [class.comp-mobile-nav]="uiService.showMobileNav()"
+  [class.comp-header-collapsed]="headerCollapsed()"
+  [class.comp-footer-collapsed]="footerCollapsed()"
+  [class.comp-stage-live]="isLivePerforming()"
+  [class.comp-stage-fx-off]="!stageFxEnabled()"
+  [attr.aria-label]="'S.M.U.V.E. Studio workspace'"
+  (keydown)="onShellKeydown($event)"
+  (contextmenu)="onShellContextMenu($event)"
+>
+  <input type="file" #fileInput style="display: none;" accept=".smuve" (change)="loadProjectFile($event)">
+
+  <div *ngIf="projectWorkspace.persistenceError()" class="studio-save-warning" role="alert">
+    <span class="material-symbols-outlined" aria-hidden="true">warning</span>
+    <span>{{ projectWorkspace.persistenceError() }}</span>
+    <button type="button" (click)="saveProject()" [disabled]="projectWorkspace.isSaving()">Retry save</button>
+    <button type="button" (click)="exportProject()">Export backup</button>
+  </div>
+
+  <div class="studio-project-status" role="status" aria-live="polite" [class.studio-project-status-dirty]="projectWorkspace.isDirty()">
+    <span class="material-symbols-outlined" aria-hidden="true">{{ projectWorkspace.isDirty() ? 'edit' : 'check_circle' }}</span>
+    <span>{{ projectWorkspace.isSaving() ? 'Saving…' : projectWorkspace.isDirty() ? 'Unsaved changes' : projectWorkspace.lastPersistedAt() > 0 ? 'Saved locally' : 'New session' }}</span>
+  </div>
+
+  <!-- Stage 2.0 ambient aurora field (pure decoration) -->
+  <div class="comp-aurora" aria-hidden="true">
+    <span class="comp-aurora-blob comp-aurora-a"></span>
+    <span class="comp-aurora-blob comp-aurora-b"></span>
+    <span class="comp-aurora-blob comp-aurora-c"></span>
+  </div>
+
+  <!-- ====================== TOP TRANSPORT ====================== -->
+  <header class="comp-topbar" role="banner">
+    <div class="comp-topbar-left">
+      <button
+        type="button"
+        class="comp-icon-btn md:hidden"
+        (click)="toggleMobileDrawer()"
+        [attr.aria-label]="'Open navigation menu'"
+        [attr.aria-expanded]="mobileDrawerOpen()"
+      >
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <button
+        type="button"
+        class="comp-icon-btn comp-header-toggle hidden md:grid"
+        (click)="toggleHeader()"
+        [attr.aria-label]="
+          headerCollapsed()
+            ? 'SHOW top bar with transport controls'
+            : 'HIDE top bar · maximize canvas for the current view'
+        "
+        [attr.aria-pressed]="headerCollapsed()"
+        [attr.title]="
+          headerCollapsed()
+            ? 'Click to SHOW transport bar &amp; theme controls'
+            : 'Click to HIDE top bar &amp; maximize canvas'
+        "
+      >
+        <span class="material-symbols-outlined">{{
+          headerCollapsed() ? 'expand_more' : 'expand_less'
+        }}</span>
+      </button>
+      <div
+        class="comp-brand led-strip"
+        (click)="toggleProjectMenu()"
+        (keydown.enter)="toggleProjectMenu()"
+        (keydown.space)="$event.preventDefault(); toggleProjectMenu()"
+        tabindex="0"
+        role="button"
+        [attr.aria-expanded]="showProjectMenu()"
+        aria-haspopup="menu"
+        [attr.aria-label]="'S.M.U.V.E. Stage — tap to open project menu'"
+      >
+        <div class="comp-brand-mark" aria-hidden="true">
+          <span class="comp-brand-pulse"></span>
+        </div>
+        <div class="comp-brand-text">
+          <span class="comp-brand-name">S.M.U.V.E.</span>
+          <span class="comp-brand-tag">{{ projectWorkspace.metadata()?.name || 'Untitled Set' }}</span>
+        </div>
+      </div>
+      <!-- Desktop Project Menu Dropdown -->
+      <div class="comp-project-menu" *ngIf="showProjectMenu()">
+        <button type="button" class="comp-project-menu-item" (click)="newProject(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">add_circle</span> New Project
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="toggleSetsBrowser(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">folder_special</span> Open Project…
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="triggerLoadProject(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">folder_open</span> Load from file
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="importMidi(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">piano</span> Import MIDI
+        </button>
+        <button type="button" class="comp-project-menu-item" [disabled]="projectWorkspace.isSaving()" (click)="saveProject(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">save</span> Save Project
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="toggleVersionHistory(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">history</span> Version History
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="toggleProjectMetadata(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">edit_document</span> Project Details
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="exportProject(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">download</span> Export Project Bundle
+        </button>
+        <button type="button" class="comp-project-menu-item" (click)="exportMidi(); toggleProjectMenu()">
+          <span class="material-symbols-outlined">music_note</span> Export MIDI
+        </button>
+      </div>
+      <!-- Invisible backdrop to close the project menu -->
+      <div class="comp-menu-backdrop" *ngIf="showProjectMenu()" (click)="toggleProjectMenu()"></div>
+    </div>
+
+    <app-studio-transport-shell class="comp-topbar-center"></app-studio-transport-shell>
+
+    <div class="comp-topbar-right">
+      <!-- Stage status pip -->
+      <span class="comp-now-performing" [attr.aria-label]="isLivePerforming() ? 'Session playing' : 'Production workspace'">
+        <span aria-hidden="true">●</span>
+        <span>{{ isLivePerforming() ? 'PLAYING' : 'PRODUCTION' }}</span>
+      </span>
+
+      <!-- External hardware badge — visible only when an external device
+           (audio interface, MIDI keyboard, gamepad) is connected. -->
+      <span
+        *ngIf="
+          hardware?.status?.()?.audioInterfaceConnected ||
+          hardware?.status?.()?.midiDevicesConnected > 0 ||
+          hardware?.status?.()?.gamepadConnected
+        "
+        class="comp-hw-badge led-strip"
+        [attr.aria-label]="hardware ? hardware.connectedDevicesBadge() : ''"
+        [title]="hardware ? hardware.connectedDevicesBadge() : ''"
+        role="status"
+      >
+        <span class="material-symbols-outlined">cable</span>
+        <span>{{ hardware ? hardware.connectedDevicesBadge() : '' }}</span>
+      </span>
+
+      <!-- ARM AUDIO pip — visible until first user gesture arms the AudioContext.
+           Hidden once transport rolls so it doesn't pulse next to NOW PLAYING. -->
+      <button
+        *ngIf="showArmAudioPip()"
+        type="button"
+        class="comp-arm-audio"
+        (click)="audioEngine.resume()"
+        aria-label="Tap to arm audio — browsers require a click before sound plays"
+        title="Tap to arm audio · browsers require a user click before sound plays"
+      >
+        <span class="material-symbols-outlined">volume_up</span>
+        <span>TAP TO ARM AUDIO</span>
+      </button>
+
+      <!-- NOW PLAYING pip — replaces ARM AUDIO once transport is rolling and
+           AudioContext has been resumed. Pulses teal-green for clear at-a-glance
+           "audio is flowing" feedback during live performance. -->
+      <div
+        *ngIf="isLivePerforming()"
+        class="comp-now-playing"
+        role="status"
+        aria-live="polite"
+        aria-label="Audio engine is now performing"
+      >
+        <span class="comp-now-playing-dot" aria-hidden="true"></span>
+        <span>NOW PLAYING</span>
+      </div>
+
+      <!-- Beginner / Pro mode toggle -->
+      <button
+        type="button"
+        class="comp-icon-btn comp-beginner-toggle"
+        [class.comp-beginner-active]="isBeginnerMode()"
+        (click)="toggleBeginnerMode()"
+        [attr.aria-label]="
+          isBeginnerMode()
+            ? 'Switch to Pro mode — full studio controls'
+            : 'Switch to Beginner mode — guided experience with tips'
+        "
+        [attr.title]="
+          isBeginnerMode()
+            ? 'Beginner Mode ON · click for Pro'
+            : 'Pro Mode · click for Beginner'
+        "
+      >
+        <span class="material-symbols-outlined">{{
+          isBeginnerMode() ? 'school' : 'auto_awesome'
+        }}</span>
+        <span class="comp-theme-chip" aria-hidden="true">{{
+          isBeginnerMode() ? 'LEARN' : 'PRO'
+        }}</span>
+      </button>
+
+      <!-- Theme cycle button (Light → Focus → Dark) -->
+      <button
+        type="button"
+        class="comp-icon-btn comp-theme-btn"
+        (click)="cycleTheme()"
+        [attr.aria-label]="
+          'Switch theme — currently ' +
+          currentThemeLabel() +
+          ' mode · click to advance'
+        "
+        [attr.data-current-theme]="themeMode()"
+        title="Switch theme · currently: {{ currentThemeLabel() }}"
+      >
+        <span class="material-symbols-outlined">{{ nextThemeIcon() }}</span>
+        <span class="comp-theme-chip" aria-hidden="true">{{
+          currentThemeLabel()
+        }}</span>
+      </button>
+
+      <!-- Stage FX ambience toggle (aurora / marquee / sheens / pulses) -->
+      <button
+        type="button"
+        class="comp-icon-btn comp-fx-toggle"
+        [class.comp-fx-off]="!stageFxEnabled()"
+        (click)="toggleStageFx()"
+        [attr.aria-label]="
+          stageFxEnabled()
+            ? 'Disable Stage FX — calm mode for battery &amp; low-end devices'
+            : 'Enable Stage FX — full ambient lighting'
+        "
+        [attr.aria-pressed]="stageFxEnabled()"
+        title="Stage FX · currently: {{ stageFxEnabled() ? 'ON' : 'OFF' }}"
+      >
+        <span class="material-symbols-outlined">{{
+          stageFxEnabled() ? 'auto_fix_high' : 'auto_fix_off'
+        }}</span>
+        <span class="comp-theme-chip" aria-hidden="true">{{
+          stageFxEnabled() ? 'FX' : 'FX OFF'
+        }}</span>
+      </button>
+
+      <!-- Keyboard shortcuts help (Space play · R record · M metronome) -->
+      <button
+        type="button"
+        class="comp-icon-btn comp-kbd-help-btn"
+        [class.comp-kbd-help-active]="showShortcuts()"
+        (click)="toggleShortcuts()"
+        [attr.aria-label]="
+          showShortcuts()
+            ? 'Hide the keyboard shortcuts list'
+            : 'Show the keyboard shortcuts list'
+        "
+        [attr.aria-expanded]="showShortcuts()"
+        title="Keyboard shortcuts — Space play · R record · M metronome · Ctrl+Z undo · Shift+F Stage FX"
+      >
+        <span class="material-symbols-outlined">keyboard</span>
+        <span class="comp-theme-chip" aria-hidden="true">?</span>
+      </button>
+
+      <!-- Sets browser — every project saved on this device, one tap away -->
+      <button
+        type="button"
+        class="comp-icon-btn comp-sets-btn"
+        [class.comp-active]="showSetsBrowser()"
+        (click)="toggleSetsBrowser()"
+        [attr.aria-label]="
+          showSetsBrowser()
+            ? 'Close the Sets browser'
+            : 'Open the Sets browser — every project saved on this device'
+        "
+        [attr.aria-expanded]="showSetsBrowser()"
+        title="Sets · open, import or delete saved projects"
+      >
+        <span class="material-symbols-outlined">folder_open</span>
+        <span class="comp-theme-chip" aria-hidden="true">SETS</span>
+      </button>
+      <button
+        type="button"
+        class="comp-icon-btn comp-share-btn"
+        (click)="copyShareLink()"
+        title="Copy Studio share link to clipboard"
+        aria-label="Copy Studio share link to clipboard"
+      >
+        <span class="material-symbols-outlined">share</span>
+      </button>
+      <button
+        type="button"
+        class="comp-icon-btn comp-collab-btn"
+        [class.comp-active]="collaboration.currentSession()"
+        (click)="toggleCollaboration()"
+        [attr.aria-label]="
+          collaboration.currentSession()
+            ? 'Leave live collaboration session'
+            : 'Start live collaboration session — invite producers to join in real-time'
+        "
+        [attr.aria-pressed]="!!collaboration.currentSession()"
+        [attr.title]="
+          collaboration.currentSession()
+            ? 'You are in a live collab session · click to leave'
+            : 'Start a live collab session and invite producers'
+        "
+      >
+        <span class="material-symbols-outlined">group</span>
+      </button>
+      <button
+        type="button"
+        class="comp-icon-btn comp-ai-btn led-strip"
+        (click)="toggleAiAssistant()"
+        [attr.aria-label]="
+          showAiAssistant()
+            ? 'Close AI Assistant chat'
+            : 'Open AI Assistant chat — get mixing, sound design &amp; strategy help'
+        "
+        [attr.aria-expanded]="showAiAssistant()"
+        [attr.title]="
+          showAiAssistant()
+            ? 'AI Assistant · click to close'
+            : 'Open AI Assistant · mixing &amp; strategy'
+        "
+      >
+        <span class="material-symbols-outlined">auto_awesome</span>
+        <span class="comp-ai-pip" aria-hidden="true"></span>
+      </button>
+
+      <!-- Sprint B2 Phase 2 — presence header (avatars, voice chip, session code) -->
+      @if (collaboration.currentSession() || collaboration.peerRoster().length > 0) {
+        <div class="comp-presence" role="group" aria-label="Live collaboration peers">
+          <span class="comp-session-chip" [attr.title]="'Session ' + collaboration.sessionCode()">
+            <span class="material-symbols-outlined">group</span>
+            <span class="comp-session-code">{{ collaboration.sessionCode() }}</span>
+          </span>
+          @for (peer of collaboration.peerRoster().slice(0, 5); track peer.userId) {
+            <span
+              class="comp-peer-avatar"
+              [class.comp-peer-talking]="isPeerTalking(peer.userId)"
+              [attr.title]="peer.artistName + (isPeerTalking(peer.userId) ? ' · talking' : '')"
+            >
+              {{ peer.artistName.slice(0, 2).toUpperCase() }}
+              <span class="comp-peer-talking-dot" aria-hidden="true"></span>
+            </span>
+          }
+          @if (collaboration.peerRoster().length > 5) {
+            <span class="comp-peer-overflow">+{{ collaboration.peerRoster().length - 5 }}</span>
+          }
+          @if (collaboration.voiceActive()) {
+            <span
+              class="comp-voice-chip"
+              role="status"
+              aria-label="Voice channel active"
+              title="Voice channel active"
+            >
+              <span class="material-symbols-outlined">call</span>
+            </span>
+          }
+        </div>
+      }
+    </div>
+  </header>
+
+  <!-- ====================== KEYBOARD SHORTCUTS HELP ====================== -->
+  <div
+    class="comp-kbd-backdrop"
+    *ngIf="showShortcuts()"
+    (click)="showShortcuts.set(false)"
+    aria-hidden="true"
+  ></div>
+  <div
+    class="comp-kbd-popover glass-v42"
+    *ngIf="showShortcuts()"
+    role="dialog"
+    aria-label="Keyboard shortcuts"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="comp-kbd-popover-head">
+      <span class="material-symbols-outlined">keyboard</span>
+      <span>STUDIO SHORTCUTS</span>
+    </header>
+    <div class="comp-kbd-grid">
+      <span class="comp-kbd-key"><kbd>Space</kbd><em>Play / Pause</em></span>
+      <span class="comp-kbd-key"><kbd>R</kbd><em>Record</em></span>
+      <span class="comp-kbd-key"><kbd>M</kbd><em>Metronome</em></span>
+      <span class="comp-kbd-key"><kbd>Ctrl</kbd><kbd>Z</kbd><em>Undo</em></span>
+      <span class="comp-kbd-key"
+        ><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Z</kbd><em>Redo</em></span
+      >
+      <span class="comp-kbd-key"
+        ><kbd>Ctrl</kbd><kbd>I</kbd><em>AI Mix</em></span
+      >
+      <span class="comp-kbd-key"
+        ><kbd>Ctrl</kbd><kbd>S</kbd><em>Save</em></span
+      >
+      <span class="comp-kbd-key"
+        ><kbd>Ctrl</kbd><kbd>E</kbd><em>Export</em></span
+      >
+      <span class="comp-kbd-key"
+        ><kbd>Shift</kbd><kbd>F</kbd><em>Stage FX</em></span
+      >
+    </div>
+    <p class="comp-kbd-popover-note">
+      Ctrl = Cmd on Mac · works anywhere in the Studio
+    </p>
+  </div>
+
+  <!-- ====================== MOBILE TOOLS SHEET ====================== -->
+  <!-- Compact-mobile progressive disclosure. The topbar keeps the AI
+       assistant one tap away; this bottom sheet owns every other secondary
+       command — the whole tools row plus the demoted topbar cluster
+       (beginner/theme/Stage FX/shortcuts/share/collab) and saved Sets.
+       Desktop never shows the MORE trigger, and `display: none` keeps this
+       surface out of the accessibility tree when closed. -->
+  <div
+    class="comp-tools-backdrop"
+    *ngIf="showMobileToolsSheet() && uiService.isCompactMobile()"
+    (click)="toggleMobileToolsSheet(false)"
+    aria-hidden="true"
+  ></div>
+  <aside
+    class="comp-tools-sheet"
+    [class.comp-tools-sheet-open]="showMobileToolsSheet()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showMobileToolsSheet()"
+    [attr.inert]="showMobileToolsSheet() ? null : ''"
+    aria-label="Studio tools"
+  >
+    <header class="comp-tools-sheet-head">
+      <span class="comp-tools-sheet-title">
+        <span class="material-symbols-outlined">tune</span>
+        STUDIO TOOLS
+      </span>
+      <button
+        type="button"
+        class="comp-tools-sheet-close"
+        (click)="toggleMobileToolsSheet(false)"
+        aria-label="Close studio tools"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+
+    <div class="comp-tools-sheet-body">
+      <section class="comp-tools-sheet-group" aria-label="Create and record">
+        <span class="comp-tools-sheet-label">CREATE &amp; RECORD</span>
+        <div class="comp-tools-sheet-grid">
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleSmartCreation(true); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">bolt</span>
+            <strong>1-Tap Starter</strong>
+            <small>Vibe → full loop</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleAiMixAssistant(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">analytics</span>
+            <strong>AI Mix</strong>
+            <small>Smart suggestions</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleSmartRecordingPanel(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">radio_button_checked</span>
+            <strong>Record</strong>
+            <small>{{ smartRecording.recordingMode() | uppercase }} mode</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="comp-tools-sheet-group" aria-label="Project actions">
+        <span class="comp-tools-sheet-label">PROJECT</span>
+        <div class="comp-tools-sheet-grid">
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleSetsBrowser(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">folder_open</span>
+            <strong>My Sets</strong>
+            <small>Saved projects</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="saveProject(); toggleMobileToolsSheet(false)"
+            [disabled]="projectWorkspace.isSaving()"
+          >
+            <span class="material-symbols-outlined">save</span>
+            <strong>{{ projectWorkspace.isSaving() ? 'Saving…' : 'Save' }}</strong>
+            <small>Back to your sets</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="exportProject(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">file_download</span>
+            <strong>Export</strong>
+            <small>.smuve bundle</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="audioImport.importFiles(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">upload_file</span>
+            <strong>Import audio</strong>
+            <small>MP3 · WAV</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="exportMidi(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">piano</span>
+            <strong>Export MIDI</strong>
+            <small>.mid file</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleProjectMetadata(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">info</span>
+            <strong>Project info</strong>
+            <small>Genre · key · mood</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleStudioInsights(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">monitoring</span>
+            <strong>Insights</strong>
+            <small>Metrics &amp; backlog</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="comp-tools-sheet-group" aria-label="Session and sharing">
+        <span class="comp-tools-sheet-label">SESSION</span>
+        <div class="comp-tools-sheet-grid">
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            [class.comp-tools-sheet-on]="isBeginnerMode()"
+            (click)="toggleBeginnerMode(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">{{
+              isBeginnerMode() ? 'school' : 'auto_awesome'
+            }}</span>
+            <strong>{{ isBeginnerMode() ? 'Beginner Mode' : 'Pro Mode' }}</strong>
+            <small>Guided ↔ full controls</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="copyShareLink(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">share</span>
+            <strong>Share</strong>
+            <small>Copy studio link</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            [class.comp-tools-sheet-on]="!!collaboration.currentSession()"
+            (click)="toggleCollaboration(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">group</span>
+            <strong>{{
+              collaboration.currentSession() ? 'Leave collab' : 'Collab'
+            }}</strong>
+            <small>{{
+              collaboration.currentSession()
+                ? 'End the live session'
+                : 'Jam in real time'
+            }}</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            (click)="toggleShortcuts(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">keyboard</span>
+            <strong>Shortcuts</strong>
+            <small>Space · R · Ctrl+S</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="comp-tools-sheet-group" aria-label="Appearance">
+        <span class="comp-tools-sheet-label">APPEARANCE</span>
+        <div class="comp-tools-sheet-grid">
+          <button
+            *ngFor="let t of ['light', 'focus', 'dark']"
+            type="button"
+            class="comp-tools-sheet-btn"
+            [class.comp-tools-sheet-on]="themeMode() === t"
+            (click)="themeMode.set(t); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">
+              {{
+                t === 'light'
+                  ? 'light_mode'
+                  : t === 'focus'
+                    ? 'filter_drama'
+                    : 'dark_mode'
+              }}
+            </span>
+            <strong>{{
+              t === 'light' ? 'Light' : t === 'focus' ? 'Focus' : 'Dark'
+            }}</strong>
+            <small>Theme</small>
+          </button>
+          <button
+            type="button"
+            class="comp-tools-sheet-btn"
+            [class.comp-tools-sheet-on]="stageFxEnabled()"
+            (click)="toggleStageFx(); toggleMobileToolsSheet(false)"
+          >
+            <span class="material-symbols-outlined">{{
+              stageFxEnabled() ? 'auto_fix_high' : 'auto_fix_off'
+            }}</span>
+            <strong>Stage FX</strong>
+            <small>{{ stageFxEnabled() ? 'On — ambience' : 'Off — calm' }}</small>
+          </button>
+        </div>
+      </section>
+    </div>
+  </aside>
+
+  <!-- ====================== TOPBAR CONTROLS ====================== -->
+  <!-- Desktop: the full context toolbar. Compact mobile: one MORE button →
+       the tools sheet (progressive disclosure — every tool stays one tap
+       away, but nine buttons no longer sit above the canvas). -->
+  <div
+    class="comp-topbar-tools studio-context-toolbar"
+    role="toolbar"
+    aria-label="Studio context tools"
+    *ngIf="!headerCollapsed()"
+  >
+    <button
+      type="button"
+      class="comp-tool-btn comp-tool-more"
+      (click)="toggleMobileToolsSheet()"
+      [class.comp-tool-active]="showMobileToolsSheet()"
+      title="All studio tools — mix, record, save, export & more"
+      aria-label="Open studio tools menu"
+      [attr.aria-expanded]="showMobileToolsSheet()"
+      [attr.aria-haspopup]="'dialog'"
+    >
+      <span class="material-symbols-outlined">{{ showMobileToolsSheet() ? 'close' : 'tune' }}</span>
+      <span class="comp-tool-label">MORE</span>
+    </button>
+
+    <div class="comp-desktop-tools">
+    <button
+      type="button"
+      class="comp-tool-btn comp-tool-create"
+      (click)="toggleSmartCreation()"
+      [class.comp-tool-active]="showSmartCreationSheet()"
+      title="1-Tap Smart Creation — genre starters, chord moods, vocal booth"
+      aria-label="Open 1-Tap Smart Creation Assistant"
+    >
+      <span class="material-symbols-outlined">bolt</span>
+      <span class="comp-tool-label">CREATE</span>
+      <span class="comp-tool-badge comp-tool-badge-smart">1-TAP</span>
+    </button>
+    
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="toggleAiMixAssistant()"
+      [class.comp-tool-active]="showAiMixAssistant()"
+      title="AI Mix Assistant — analyze tracks &amp; get smart suggestions  ·  Ctrl+I"
+      aria-label="Toggle AI Mix Assistant panel"
+    >
+      <span class="material-symbols-outlined">analytics</span>
+      <span
+        class="comp-tool-badge"
+        *ngIf="aiMixAssistant.suggestions().length > 0"
+        >{{ aiMixAssistant.suggestions().length }}</span
+      >
+      <span class="comp-tool-label">AI MIX</span>
+      <span class="comp-kbd">Ctrl+I</span>
+    </button>
+    <button
+      type="button"
+      class="comp-tool-btn comp-tool-rec"
+      (click)="toggleSmartRecordingPanel()"
+      [class.comp-tool-active]="showSmartRecordingPanel()"
+      [class.comp-tool-rec-punch]="smartRecording.recordingMode() === 'punch'"
+      [class.comp-tool-rec-comp]="smartRecording.recordingMode() === 'comp'"
+      title="Recording mode — {{ smartRecording.recordingMode() | uppercase }}"
+      aria-label="Toggle recording mode panel"
+    >
+      <span class="material-symbols-outlined">radio_button_checked</span>
+      <span class="comp-tool-label">{{
+        smartRecording.recordingMode() | uppercase
+      }}</span>
+      <span
+        class="comp-tool-status-pip"
+        [class.comp-tool-status-punch]="smartRecording.isPunching()"
+        [class.comp-tool-status-comp]="smartRecording.isCompRecording()"
+      ></span>
+    </button>
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="toggleProjectMetadata()"
+      [class.comp-tool-active]="showProjectMetadata()"
+      title="Project metadata — genre, key, mood &amp; export"
+      aria-label="Toggle project metadata editor"
+    >
+      <span class="material-symbols-outlined">info</span>
+      <span class="comp-tool-label">INFO</span>
+    </button>
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="saveProject()"
+      title="Save project  ·  Ctrl+S"
+      aria-label="Save project"
+      [disabled]="projectWorkspace.isSaving()"
+      [attr.aria-busy]="projectWorkspace.isSaving()"
+    >
+      <span class="material-symbols-outlined">save</span>
+      <span
+        class="comp-tool-badge"
+        *ngIf="projectWorkspace.isDirty()"
+        title="Unsaved changes"
+        >!</span
+      >
+      <span class="comp-tool-label">{{ projectWorkspace.isSaving() ? 'SAVING' : 'SAVE' }}</span>
+      <span class="comp-kbd">Ctrl+S</span>
+    </button>
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="exportProject()"
+      title="Export project as .smuve bundle  ·  Ctrl+E"
+      aria-label="Export project bundle"
+    >
+      <span class="material-symbols-outlined">file_download</span>
+      <span class="comp-tool-label">EXPORT</span>
+      <span class="comp-kbd">Ctrl+E</span>
+    </button>
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="audioImport.importFiles()"
+      title="Import audio files (.mp3, .wav)"
+      aria-label="Import audio files"
+    >
+      <span class="material-symbols-outlined">upload_file</span>
+      <span class="comp-tool-label">IMPORT</span>
+    </button>
+    <!-- MIDI Export -->
+    <button
+      type="button"
+      class="comp-tool-btn comp-tool-midi"
+      (click)="exportMidi()"
+      title="Export all MIDI tracks as Standard MIDI File (.mid)"
+      aria-label="Export MIDI file"
+    >
+      <span class="material-symbols-outlined">piano</span>
+      <span class="comp-tool-label">MIDI</span>
+    </button>
+    <!-- Studio product insights (north-star metrics + competitor gaps) -->
+    <button
+      type="button"
+      class="comp-tool-btn"
+      (click)="toggleStudioInsights()"
+      [class.comp-tool-active]="showStudioInsights()"
+      title="Studio Insights — north-star metrics &amp; competitor gap backlog"
+      aria-label="Toggle Studio Insights panel"
+      [attr.aria-pressed]="showStudioInsights()"
+    >
+      <span class="material-symbols-outlined">monitoring</span>
+      <span class="comp-tool-label">INSIGHTS</span>
+    </button>
+    </div>
+  </div>
+
+  <!-- ====================== AI SESSION BAND ====================== -->
+  <app-ai-band></app-ai-band>
+
+  <!-- ====================== STAGE MARQUEE ====================== -->
+  <div class="stage-marquee comp-stage-marquee" aria-hidden="true">
+    <div class="stage-marquee-track">
+      <span>★ S.M.U.V.E. STAGE ★ NOW PERFORMING LIVE ★</span>
+      <span>★ CITY LIGHTS / BOOTH FLOOR OPEN ★ DROP YOUR NEXT BAR ★</span>
+      <span>★ ROOSTER MIX ACTIVE ★ TRACK ARMS READY ★ SOUND CHECK OK ★</span>
+      <span>★ S.M.U.V.E. STAGE ★ NOW PERFORMING LIVE ★</span>
+      <span>★ CITY LIGHTS / BOOTH FLOOR OPEN ★ DROP YOUR NEXT BAR ★</span>
+      <span>★ ROOSTER MIX ACTIVE ★ TRACK ARMS READY ★ SOUND CHECK OK ★</span>
+    </div>
+  </div>
+
+  <!-- ====================== MAIN WORKSPACE ====================== -->
+  <main
+    class="comp-main studio-workspace-frame"
+    role="main"
+    [attr.data-studio-workspace]="activeView()"
+  >
+    <!-- Mobile quick-start lane: keep the first musical action one tap away.
+         Hidden in Beginner Mode — the wizard already owns first-run guidance
+         on the arrangement slot, so the lane would duplicate onboarding. -->
+    <section
+      class="comp-mobile-start"
+      *ngIf="
+        uiService.isCompactMobile() &&
+        activeView() === 'arrangement' &&
+        !isBeginnerMode()
+      "
+      aria-labelledby="mobile-start-title"
+    >
+      <div class="comp-mobile-start-copy">
+        <div class="comp-mobile-start-kicker-row">
+          <span class="comp-mobile-start-kicker">1-TAP CREATION</span>
+          <span class="comp-mobile-start-badge">EASY MODE</span>
+        </div>
+        <h2 id="mobile-start-title">Make something in 30 seconds.</h2>
+        <p>Pick a vibe or instant starter. S.M.U.V.E. loads the tracks, sounds and grooves automatically.</p>
+      </div>
+      <!-- ONE primary create action. The old 2×2 starter grid duplicated
+           entries that already live in the CREATE sheet and the drawer,
+           and every extra button competed with the beat for attention. -->
+      <button
+        type="button"
+        class="comp-mobile-start-action comp-mobile-start-hero"
+        (click)="toggleSmartCreation(true)"
+        aria-label="Open 1-Tap Smart Creation Assistant"
+      >
+        <span class="material-symbols-outlined">bolt</span>
+        <span><strong>1-Tap Starter</strong><small>Beats · Keys · Vocals — pick a vibe, we build the loop</small></span>
+      </button>
+
+      <!-- One-tap instrumentals: each chip loads drums + bass + chords +
+           melody and starts the transport, so a phone artist hears a
+           finished-sounding loop in a single tap. -->
+      <div class="comp-mobile-quick" role="group" aria-label="One-tap instrumentals">
+        <span class="comp-mobile-quick-hint"
+          >TAP A VIBE — FULL INSTRUMENTAL IN ONE TAP</span
+        >
+        <div class="comp-mobile-quick-chips">
+          <button
+            *ngFor="let recipe of mobileQuickRecipes()"
+            type="button"
+            class="comp-mobile-quick-chip"
+            (click)="quickStartRecipe(recipe.id)"
+            [attr.aria-label]="
+              'Load the ' +
+              recipe.label +
+              ' instrumental at ' +
+              recipe.bpm +
+              ' BPM'
+            "
+            [title]="recipe.vibe"
+          >
+            <span class="comp-mobile-quick-glyph" aria-hidden="true">{{
+              recipe.glyph
+            }}</span>
+            <span class="comp-mobile-quick-name">{{ recipe.label }}</span>
+            <span class="comp-mobile-quick-bpm">{{ recipe.bpm }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- After a loop is loaded, keep the finishing path one tap away -->
+      <div
+        class="comp-mobile-next"
+        *ngIf="musicManager.tracks().length > 0"
+        role="group"
+        aria-label="Next steps after loading a groove"
+      >
+        <span class="comp-mobile-next-kicker">NEXT</span>
+        <button
+          type="button"
+          class="comp-mobile-next-btn"
+          (click)="setActiveView('mixer')"
+        >
+          <span class="material-symbols-outlined">tune</span> Mix it
+        </button>
+        <button
+          type="button"
+          class="comp-mobile-next-btn"
+          (click)="setActiveView('vocal-suite')"
+        >
+          <span class="material-symbols-outlined">mic</span> Add vocals
+        </button>
+        <button
+          type="button"
+          class="comp-mobile-next-btn"
+          (click)="setActiveView('mastering')"
+        >
+          <span class="material-symbols-outlined">graphic_eq</span> Master &amp;
+          export
+        </button>
+      </div>
+    </section>
+
+    <!-- Desktop view rail (FL Studio side rail pattern) -->
+    <nav
+      class="comp-rail studio-workspace-navigation"
+      [class.comp-rail-collapsed]="railCollapsed()"
+      aria-label="Studio view selector"
+    >
+      <!-- Home navigation button -->
+      <button
+        type="button"
+        class="comp-rail-item comp-rail-home"
+        (click)="navigateHome()"
+        aria-label="Return to Home Hub"
+        title="Go back to the main hub"
+      >
+        <span class="material-symbols-outlined">home</span>
+        <span class="comp-rail-label">Home</span>
+      </button>
+      <!-- Grouped, scrollable view list — every stage stays reachable even
+           when the window is short (the flat list used to clip below fold). -->
+      <div class="comp-rail-scroll">
+        <section
+          class="comp-rail-group"
+          *ngFor="let group of railGroups(); trackBy: railGroupTrack"
+          [attr.aria-label]="group.label"
+        >
+          <div class="comp-rail-group-head" *ngIf="!railCollapsed()" aria-hidden="true">
+            <span class="material-symbols-outlined">{{ group.icon }}</span>
+            <span class="comp-rail-group-title">{{ group.label }}</span>
+          </div>
+          <button
+            *ngFor="let item of group.views"
+            type="button"
+            class="comp-rail-item"
+            [class.comp-rail-active]="activeView() === item.id"
+            (click)="setActiveView(item.id)"
+            [attr.aria-label]="'Switch to ' + item.label + ' view'"
+            [attr.aria-pressed]="activeView() === item.id"
+          >
+            <span class="material-symbols-outlined">{{ item.icon }}</span>
+            <span class="comp-rail-label">{{ item.label }}</span>
+          </button>
+        </section>
+        <!-- MIDI Input Widget -->
+        <app-midi-input-widget
+          *ngIf="!railCollapsed()"
+          class="comp-rail-widget"
+        ></app-midi-input-widget>
+      </div>
+
+      <button
+        type="button"
+        class="comp-rail-item comp-rail-collapse"
+        (click)="toggleRail()"
+        [attr.aria-label]="
+          railCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'
+        "
+      >
+        <span class="material-symbols-outlined">{{
+          railCollapsed() ? 'chevron_right' : 'chevron_left'
+        }}</span>
+        <span class="comp-rail-label">{{
+          railCollapsed() ? 'Expand' : 'Collapse'
+        }}</span>
+      </button>
+    </nav>
+
+    <!-- Active view canvas -->
+    <section class="comp-canvas studio-primary-canvas" [ngSwitch]="activeView()">
+      <!-- Arrangement / Beginner Wizard (toggled by mode) -->
+      <ng-container *ngSwitchCase="'arrangement'">
+        <div class="comp-view comp-beginner-view" *ngIf="isBeginnerMode()">
+          <app-beginner-wizard
+            (navigateToView)="onWizardNavigate($event)"
+            (launchWithPreset)="onWizardLaunchWithPreset($event)"
+            (switchToPro)="toggleBeginnerMode()"
+          ></app-beginner-wizard>
+        </div>
+        <div class="comp-view" *ngIf="!isBeginnerMode()">
+          <app-arrangement-view
+            (requestViewChange)="onWizardNavigate($event)"
+            (openBezierEditor)="toggleBezierEditor($event)"
+          ></app-arrangement-view>
+        </div>
+      </ng-container>
+      <div class="comp-view" *ngSwitchCase="'session'">
+        <app-session-view></app-session-view>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'piano-roll'">
+        @defer (on viewport; prefetch on idle) {
+          <app-piano-roll
+            (openBezierEditor)="toggleBezierEditor($event)"
+          ></app-piano-roll>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">piano</span>
+            Tuning the Piano Roll…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'drum-machine'">
+        <app-drum-machine></app-drum-machine>
+      </div>
+      <div class="comp-view" *ngSwitchCase="'mixer'">
+        @defer (on viewport; prefetch on idle) {
+          <app-mixer></app-mixer>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">tune</span>
+            Routing the Mixer…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'performance'">
+        @defer (on viewport; prefetch on idle) {
+          <app-performance-mode
+            [pads]="performancePads()"
+            (padClicked)="onPerformancePadClicked($event)"
+          ></app-performance-mode>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">interpreter_mode</span>
+            Setting the stage…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'performer'">
+        @defer (on viewport; prefetch on idle) {
+          <app-performer></app-performer>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">piano_off</span>
+            Tuning the performer…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'mastering'">
+        @defer (on viewport; prefetch on idle) {
+          <app-mastering-suite></app-mastering-suite>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">graphic_eq</span>
+            Cueing the mastering chain…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'ai-produce'">
+        @defer (on viewport; prefetch on idle) {
+          <app-ai-produce></app-ai-produce>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">psychology</span>
+            Waking the AI producer…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'dj'">
+        @defer (on viewport; prefetch on idle) {
+          <app-dj-deck></app-dj-deck>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">album</span>
+            Warming up the DJ Booth…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'vocal-suite'">
+        @defer (on viewport; prefetch on idle) {
+          <app-vocal-suite></app-vocal-suite>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">mic</span>
+            Patching the Vocal Suite…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'channel-rack'">
+        @defer (on viewport; prefetch on idle) {
+          <app-channel-rack></app-channel-rack>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">inventory_2</span>
+            Opening the channel rack…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'effects-rack'">
+        @defer (on viewport; prefetch on idle) {
+          <app-effects-rack-ui></app-effects-rack-ui>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">magic_button</span>
+            Patching the rack…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'audio-recorder'">
+        @defer (on viewport; prefetch on idle) {
+          <app-audio-recorder-view></app-audio-recorder-view>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">mic_external_on</span>
+            Opening the recorder…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'sampler'">
+        @defer (on viewport; prefetch on idle) {
+          <app-sampler></app-sampler>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">graphic_eq</span>
+            Slicing samples…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'score'">
+        @defer (on viewport; prefetch on idle) {
+          <app-score-view></app-score-view>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">music_note</span>
+            Engraving the score…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'plugins'">
+        @defer (on viewport; prefetch on idle) {
+          <app-plugin-store></app-plugin-store>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">extension</span>
+            Stocking the plugin shelf…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'sample-library'">
+        @defer (on viewport; prefetch on idle) {
+          <app-sample-library></app-sample-library>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">library_music</span>
+            Opening the sample library…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'sound-browser'">
+        @defer (on viewport; prefetch on idle) {
+          <app-sound-browser></app-sound-browser>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">queue_music</span>
+            Browsing sounds…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'sound-pad'">
+        @defer (on viewport; prefetch on idle) {
+          <app-sound-pad-grid></app-sound-pad-grid>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">grid_on</span>
+            Warming the pads…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'synthesizer'">
+        @defer (on viewport; prefetch on idle) {
+          <app-synthesizer [clip]="null"></app-synthesizer>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">waves</span>
+            Patching the synth…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchCase="'chord-editor'">
+        @defer (on viewport; prefetch on idle) {
+          <app-chord-editor
+            (navigateToPianoRoll)="setActiveView('piano-roll')"
+          ></app-chord-editor>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">music_note</span>
+            Voicing chords…
+          </div>
+        }
+      </div>
+      <div class="comp-view" *ngSwitchDefault>
+        <app-arrangement-view
+          (openBezierEditor)="toggleBezierEditor($event)"
+        ></app-arrangement-view>
+      </div>
+    </section>
+  </main>
+
+  <!-- ====================== STUDIO FOOTER ====================== -->
+  <footer class="comp-footer studio-global-status-bar" role="contentinfo">
+    <div class="comp-footer-left">
+      <button
+        type="button"
+        class="comp-icon-btn comp-footer-toggle"
+        (click)="toggleFooter()"
+        [attr.aria-label]="
+          footerCollapsed()
+            ? 'Show bottom status bar'
+            : 'Hide bottom status bar · maximize workspace'
+        "
+        [attr.aria-pressed]="footerCollapsed()"
+        [attr.title]="
+          footerCollapsed()
+            ? 'Click to SHOW bottom status bar'
+            : 'Click to HIDE bottom status bar &amp; maximize canvas'
+        "
+      >
+        <span class="material-symbols-outlined">{{
+          footerCollapsed() ? 'expand_less' : 'expand_more'
+        }}</span>
+      </button>
+      <span
+        class="comp-footer-brand"
+        aria-label="Smuve Jeff Presents — S.M.U.V.E. 2.0 footer branding"
+      >
+        <span class="comp-footer-mark">©</span>
+        <span class="comp-footer-brand-name">Smuve Jeff</span>
+        <span class="comp-footer-brand-byline">Presents</span>
+      </span>
+    </div>
+
+    <div class="comp-footer-center">
+      <span
+        class="comp-footer-chip studio-status-chip"
+        [attr.data-state]="
+          showArmAudioPip()
+            ? 'blocked'
+            : audioEngine.isRecording()
+              ? 'recording'
+              : audioEngine.isPlaying()
+                ? 'playing'
+                : 'ready'
+        "
+        [attr.aria-label]="
+          showArmAudioPip()
+            ? 'Audio blocked — tap to arm audio'
+            : audioEngine.isRecording()
+              ? 'Recording'
+              : audioEngine.isPlaying()
+                ? 'Playing'
+                : 'Audio ready'
+        "
+        aria-live="polite"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">
+          {{
+            showArmAudioPip()
+              ? 'volume_off'
+              : audioEngine.isRecording()
+                ? 'fiber_manual_record'
+                : audioEngine.isPlaying()
+                  ? 'play_arrow'
+                  : 'check_circle'
+          }}
+        </span>
+        {{
+          showArmAudioPip()
+            ? 'Audio blocked'
+            : audioEngine.isRecording()
+              ? 'Recording'
+              : audioEngine.isPlaying()
+                ? 'Playing'
+                : 'Audio ready'
+        }}
+      </span>
+      <span
+        *ngIf="projectWorkspace.isDirty()"
+        class="comp-footer-chip studio-status-chip"
+        data-state="dirty"
+        title="Project has unsaved changes"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+        Unsaved
+      </span>
+      <span class="comp-footer-chip" title="Current view">
+        <span class="material-symbols-outlined">view_quilt</span>
+        {{ activeView() | titlecase }}
+      </span>
+      <span class="comp-footer-chip" title="Project tempo">
+        <span class="material-symbols-outlined">speed</span>
+        {{ audioEngine.tempo() }} BPM
+      </span>
+      <span class="comp-footer-chip" title="Playback position (1-based bar)">
+        <span class="material-symbols-outlined">music_note</span>
+        Bar {{ currentBar() }}
+      </span>
+      <span
+        class="comp-footer-chip comp-footer-rec"
+        *ngIf="smartRecording.recordingMode() !== 'normal'"
+        [class.comp-footer-rec-punch]="
+          smartRecording.recordingMode() === 'punch'
+        "
+        [class.comp-footer-rec-comp]="smartRecording.recordingMode() === 'comp'"
+        title="Recording mode"
+      >
+        <span class="material-symbols-outlined">radio_button_checked</span>
+        {{ smartRecording.recordingMode() | uppercase }}
+      </span>
+      <span
+        class="comp-footer-chip"
+        *ngIf="audioEngine.externalOutputActive()"
+        title="Audio routed to an external sink"
+      >
+        <span class="material-symbols-outlined">speaker</span>
+        OUT · {{ audioEngine.outputDeviceName() }}
+      </span>
+      <span
+        class="comp-footer-chip"
+        *ngIf="hardware && hardware.externalHardwareConnected()"
+        [title]="hardware.connectedDevicesBadge()"
+      >
+        <span class="material-symbols-outlined">cable</span>
+        {{ hardware.connectedDevicesBadge() }}
+      </span>
+    </div>
+
+    <div class="comp-footer-right">
+      <!-- Desktop side-panel toggles -->
+      <button
+        type="button"
+        class="comp-icon-btn hidden md:grid"
+        (click)="toggleRail()"
+        [attr.aria-label]="
+          railCollapsed()
+            ? 'Expand view sidebar'
+            : 'Collapse view sidebar · see more canvas'
+        "
+        [attr.title]="
+          railCollapsed()
+            ? 'Click to EXPAND view sidebar'
+            : 'Click to COLLAPSE view sidebar &amp; see more canvas'
+        "
+      >
+        <span class="material-symbols-outlined">{{
+          railCollapsed() ? 'dock_to_right' : 'dock_to_left'
+        }}</span>
+      </button>
+      <button
+        type="button"
+        class="comp-icon-btn hidden md:grid"
+        (click)="toggleHeader()"
+        [attr.aria-label]="
+          headerCollapsed()
+            ? 'Show top bar with transport controls'
+            : 'Hide top bar · maximize canvas'
+        "
+        [attr.title]="
+          headerCollapsed()
+            ? 'Click to SHOW top bar'
+            : 'Click to HIDE top bar &amp; maximize canvas'
+        "
+      >
+        <span class="material-symbols-outlined">{{
+          headerCollapsed() ? 'expand_more' : 'expand_less'
+        }}</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ====================== BOTTOM TAB BAR (Mobile Touch Optimized BandLab/FL pattern) ====================== -->
+  <nav
+    class="comp-bottombar"
+    *ngIf="uiService.showMobileNav()"
+    role="tablist"
+    aria-label="Studio modules"
+  >
+    <button
+      *ngFor="let item of bottomNavItems()"
+      type="button"
+      role="tab"
+      class="comp-tab"
+      [class.comp-tab-active]="activeView() === item.id"
+      (click)="setActiveView(item.id)"
+      [attr.aria-selected]="activeView() === item.id"
+      [attr.aria-label]="item.label"
+    >
+      <span class="material-symbols-outlined">{{ item.icon }}</span>
+      <span class="comp-tab-label">{{ item.label }}</span>
+      <span class="comp-tab-indicator" aria-hidden="true"></span>
+    </button>
+
+    <!-- Center 1-Tap CREATE Action Pill (BandLab / FL Studio Mobile prominent center trigger) -->
+    <button
+      type="button"
+      role="button"
+      class="comp-tab comp-tab-create-hero"
+      (click)="toggleSmartCreation()"
+      aria-label="1-Tap Smart Music Creation Assistant"
+      title="Open 1-Tap Smart Creation Assistant"
+    >
+      <div class="comp-create-pill-glow"></div>
+      <span class="material-symbols-outlined comp-create-hero-icon">bolt</span>
+      <span class="comp-tab-label">CREATE</span>
+    </button>
+
+    <!-- Home tab (mobile) -->
+    <button
+      type="button"
+      role="tab"
+      class="comp-tab"
+      (click)="navigateHome()"
+      aria-label="Return to Home Hub"
+    >
+      <span class="material-symbols-outlined">home</span>
+      <span class="comp-tab-label">Home</span>
+      <span class="comp-tab-indicator" aria-hidden="true"></span>
+    </button>
+
+    <!-- "+" overflow button opens the categorized mobile drawer -->
+    <button
+      type="button"
+      role="tab"
+      class="comp-tab comp-tab-more"
+      (click)="toggleMobileDrawer()"
+      aria-label="Open Studio view drawer and tools"
+      [attr.aria-expanded]="mobileDrawerOpen()"
+    >
+      <span class="material-symbols-outlined">grid_view</span>
+      <span class="comp-tab-label">MORE</span>
+      <span class="comp-tab-indicator" aria-hidden="true"></span>
+    </button>
+  </nav>
+
+  <!-- ====================== MOBILE DRAWER (slide-out) ====================== -->
+  <aside
+    class="comp-drawer"
+    [class.comp-drawer-open]="mobileDrawerOpen()"
+    *ngIf="uiService.showMobileNav()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!mobileDrawerOpen()"
+    [attr.inert]="mobileDrawerOpen() ? null : ''"
+    aria-label="Studio navigation"
+  >
+    <header class="comp-drawer-header">
+      <span class="comp-drawer-title">Stage Map</span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleMobileDrawer()"
+        aria-label="Close navigation"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <nav class="comp-drawer-nav" aria-label="Mobile navigation">
+      <!-- The drawer is the *complete* tool map: no CREATE hero here — the
+           bottom bar's center CREATE pill is always one thumb-tap away, and
+           a second identical card only added scroll length. -->
+
+      <!-- 4 Intuitive Workflow Stages (Google Play Blueprint) -->
+      <div class="comp-drawer-categories">
+        <div
+          *ngFor="let cat of studioWorkflowCategories()"
+          class="comp-drawer-category-group"
+        >
+          <div class="comp-drawer-category-header">
+            <span class="material-symbols-outlined comp-drawer-cat-icon">{{ cat.icon }}</span>
+            <span class="comp-drawer-category-title">{{ cat.label }}</span>
+          </div>
+          <div class="comp-drawer-category-grid">
+            <button
+              *ngFor="let view of cat.views"
+              (click)="setActiveView(view.id)"
+              [class.comp-drawer-active]="activeView() === view.id"
+              class="comp-drawer-grid-btn"
+              [title]="view.description"
+            >
+              <span class="material-symbols-outlined">{{ view.icon }}</span>
+              <span class="comp-drawer-grid-label">{{ view.label }}</span>
+              <span *ngIf="view.primary" class="comp-drawer-grid-pill">MAIN</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- ARM AUDIO pip in mobile drawer (first-run audio unlock) -->
+      <button
+        *ngIf="showArmAudioPip()"
+        (click)="audioEngine.resume()"
+        class="comp-drawer-item comp-drawer-arm"
+      >
+        <span class="material-symbols-outlined">volume_up</span>
+        <span>🔊 ARM AUDIO</span>
+      </button>
+
+      <!-- Home button in mobile drawer -->
+      <button
+        (click)="navigateHome(); toggleMobileDrawer()"
+        class="comp-drawer-item"
+      >
+        <span class="material-symbols-outlined">home</span>
+        <span>Back to Home Hub</span>
+      </button>
+
+      <!-- Project Management (Mobile) -->
+      <div class="comp-drawer-divider" style="height: 1px; background: var(--espresso-line); margin: 8px 0;"></div>
+      <button (click)="triggerLoadProject(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">folder_open</span>
+        <span>Load Project</span>
+      </button>
+      <button (click)="toggleSetsBrowser(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">folder_special</span>
+        <span>My Sets (saved projects)</span>
+      </button>
+      <button (click)="saveProject(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">save</span>
+        <span>Save Project</span>
+      </button>
+      <button (click)="toggleProjectMetadata(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">edit_document</span>
+        <span>Project Details</span>
+      </button>
+      <button (click)="exportProject(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">download</span>
+        <span>Export .smuve Bundle</span>
+      </button>
+      <button (click)="exportMidi(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">music_note</span>
+        <span>Export MIDI</span>
+      </button>
+      <button (click)="importMidi(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">piano</span>
+        <span>Import MIDI</span>
+      </button>
+      <button (click)="toggleVersionHistory(); toggleMobileDrawer()" class="comp-drawer-item">
+        <span class="material-symbols-outlined">history</span>
+        <span>Version History</span>
+      </button>
+      <div class="comp-drawer-divider" style="height: 1px; background: var(--espresso-line); margin: 8px 0;"></div>
+
+      <!-- Appearance + Stage FX moved to the MORE tools sheet (drawer
+           declutter): they are session preferences, not navigation, so they
+           no longer add three rows to the stage map. -->
+    </nav>
+    <div class="comp-drawer-footer">
+      <button
+        type="button"
+        class="btn-pro btn-pro-primary w-full"
+        (click)="newProject(); toggleMobileDrawer()"
+      >
+        <span class="material-symbols-outlined">add_circle</span>
+        New Set
+      </button>
+    </div>
+  </aside>
+  <div
+    class="comp-backdrop"
+    *ngIf="mobileDrawerOpen() && uiService.showMobileNav()"
+    (click)="toggleMobileDrawer()"
+    aria-hidden="true"
+  ></div>
+
+  <!-- ====================== AI MIX PANEL (right slide) ====================== -->
+  <aside
+    class="comp-panel comp-aimix-panel"
+    [class.comp-panel-open]="showAiMixAssistant()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showAiMixAssistant()"
+    [attr.inert]="showAiMixAssistant() ? null : ''"
+    aria-label="AI Mix Assistant"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">analytics</span>
+        AI MIX
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleAiMixAssistant()"
+        aria-label="Close AI Mix panel"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <!-- Spectrum Analyzer -->
+      <div class="comp-aimix-spectrum">
+        <canvas
+          #spectrumCanvas
+          class="comp-aimix-canvas"
+          width="280"
+          height="80"
+        ></canvas>
+        <span class="comp-aimix-spectrum-label">MASTER FREQUENCY SPECTRUM</span>
+      </div>
+
+      <!-- Mix Quality Score -->
+      <div class="comp-aimix-score">
+        <div
+          class="comp-aimix-ring"
+          [style.background]="
+            'conic-gradient(var(--teal-500) ' +
+            aiMixAssistant.mixQualityScore() * 3.6 +
+            'deg, var(--espresso-line) 0deg)'
+          "
+        >
+          <div class="comp-aimix-ring-inner">
+            <span class="comp-aimix-score-val">{{
+              aiMixAssistant.mixQualityScore()
+            }}</span>
+          </div>
+        </div>
+        <div class="comp-aimix-score-label">
+          {{ aiMixAssistant.mixQualityLabel() }}
+        </div>
+      </div>
+
+      <!-- Analyze & Refresh -->
+      <button
+        type="button"
+        class="comp-aimix-analyze"
+        (click)="runAiMixAnalysis()"
+      >
+        <span class="material-symbols-outlined">refresh</span>
+        Analyze All Tracks
+      </button>
+
+      <!-- Track Analyses -->
+      <div
+        class="comp-aimix-section"
+        *ngIf="aiMixAssistant.analyses().length > 0"
+      >
+        <span class="comp-aimix-section-title">TRACK ANALYSES</span>
+        <div
+          class="comp-aimix-track"
+          *ngFor="let a of aiMixAssistant.analyses()"
+        >
+          <div class="comp-aimix-track-name">{{ a.trackName }}</div>
+          <div class="comp-aimix-track-tags">
+            <span
+              class="comp-aimix-tag"
+              [class.comp-aimix-tag-dark]="a.frequencyProfile === 'dark'"
+              [class.comp-aimix-tag-bright]="a.frequencyProfile === 'bright'"
+              [class.comp-aimix-tag-balanced]="
+                a.frequencyProfile === 'balanced'
+              "
+              >{{ a.frequencyProfile }}</span
+            >
+            <span class="comp-aimix-tag">{{ a.stereoWidth }}</span>
+            <span class="comp-aimix-tag">{{ a.transientContent }}</span>
+            <span
+              class="comp-aimix-tag"
+              [class.comp-aimix-tag-complex]="
+                a.harmonicComplexity === 'complex'
+              "
+              >{{ a.harmonicComplexity }}</span
+            >
+          </div>
+          <div class="comp-aimix-track-role">
+            <span class="material-symbols-outlined">double_arrow</span>
+            {{ a.suggestedRole }}
+          </div>
+          <!-- Frequency profile bar -->
+          <div class="comp-aimix-bar">
+            <div
+              class="comp-aimix-bar-fill"
+              [style.width.%]="
+                a.frequencyProfile === 'dark'
+                  ? 20
+                  : a.frequencyProfile === 'warm'
+                    ? 35
+                    : a.frequencyProfile === 'balanced'
+                      ? 50
+                      : a.frequencyProfile === 'bright'
+                        ? 75
+                        : 90
+              "
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Chord Suggestions -->
+      <div class="comp-aimix-section">
+        <span class="comp-aimix-section-title">CHORD PROGRESSIONS</span>
+        <div class="comp-chord-genre-row">
+          <label class="comp-chord-genre-label">Genre</label>
+          <select
+            class="comp-chord-genre-select"
+            [ngModel]="chordGenre()"
+            (ngModelChange)="chordGenre.set($event)"
+          >
+            <option *ngFor="let g of chordGenres" [value]="g">
+              {{ g | titlecase }}
+            </option>
+          </select>
+        </div>
+        <div class="comp-chord-progression">
+          <span
+            class="comp-chord-chord"
+            *ngFor="let c of chordProgression(); let i = index"
+            (click)="applyChordToPianoRoll(c, i)"
+            title="Apply {{ c }} to piano roll"
+          >
+            <span class="comp-chord-name">{{ c }}</span>
+            <span class="comp-chord-apply">+</span>
+          </span>
+        </div>
+
+        <!-- Chord Voicing Controls -->
+        <div class="comp-chord-voicing">
+          <span class="comp-aimix-section-title">VOICING</span>
+          <div class="comp-chord-voicing-row">
+            <button
+              type="button"
+              class="comp-chord-voicing-btn"
+              [class.active]="chordVoicing() === 'close'"
+              (click)="chordVoicing.set('close')"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              class="comp-chord-voicing-btn"
+              [class.active]="chordVoicing() === 'open'"
+              (click)="chordVoicing.set('open')"
+            >
+              Open
+            </button>
+            <button
+              type="button"
+              class="comp-chord-voicing-btn"
+              [class.active]="chordVoicing() === 'wide'"
+              (click)="chordVoicing.set('wide')"
+            >
+              Wide
+            </button>
+          </div>
+          <div class="comp-chord-voicing-preview">
+            <!-- Keyboard visualization -- 2 octaves C3-C5 -->
+            <div class="comp-chord-keys" *ngIf="voicingNotes().length > 0">
+              <span
+                *ngFor="let n of voicingNotes(); let i = index"
+                class="comp-chord-key"
+                [class.voicing-root]="i === 0"
+                [class.voicing-third]="isThird(n, voicingNotes())"
+                [class.voicing-fifth]="isFifth(n, voicingNotes())"
+                [title]="'MIDI ' + n"
+              >
+                <span class="comp-chord-key-dot"></span>
+              </span>
+            </div>
+            <span
+              class="comp-chord-preview-label"
+              *ngIf="voicingNotes().length > 0"
+              >{{ chordVoicing() | titlecase }}:
+              {{ voicingNotes().join(', ') }}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggestions -->
+      <div
+        class="comp-aimix-section"
+        *ngIf="aiMixAssistant.suggestions().length > 0"
+      >
+        <span class="comp-aimix-section-title"
+          >SUGGESTIONS ({{ aiMixAssistant.suggestions().length }})</span
+        >
+        <div
+          class="comp-aimix-suggestion"
+          *ngFor="let s of aiMixAssistant.suggestions()"
+          [class.comp-aimix-sug-critical]="s.severity === 'critical'"
+          [class.comp-aimix-sug-rec]="s.severity === 'recommended'"
+        >
+          <div class="comp-aimix-sug-head">
+            <span class="comp-aimix-sug-icon material-symbols-outlined">
+              {{
+                s.type === 'eq'
+                  ? 'tune'
+                  : s.type === 'compression'
+                    ? 'compress'
+                    : s.type === 'reverb'
+                      ? 'music_note'
+                      : s.type === 'level'
+                        ? 'volume_up'
+                        : 'width'
+              }}
+            </span>
+            <span class="comp-aimix-sug-label">{{ s.label }}</span>
+            <span
+              class="comp-aimix-sug-sev"
+              [class.critical]="s.severity === 'critical'"
+              >{{ s.severity }}</span
+            >
+          </div>
+          <p class="comp-aimix-sug-desc">{{ s.description }}</p>
+          <div class="comp-aimix-sug-values">
+            <span>{{ s.parameter }}: {{ s.currentValue }} → </span>
+            <span class="comp-aimix-sug-target">{{ s.suggestedValue }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====================== RECORDING MODE PANEL (right slide) ====================== -->
+  <aside
+    class="comp-panel comp-rec-panel"
+    [class.comp-panel-open]="showSmartRecordingPanel()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showSmartRecordingPanel()"
+    [attr.inert]="showSmartRecordingPanel() ? null : ''"
+    aria-label="Recording Mode"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">radio_button_checked</span>
+        RECORDING
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleSmartRecordingPanel()"
+        aria-label="Close recording panel"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <!-- Recording Mode Selector -->
+      <div class="comp-rec-modes">
+        <button
+          type="button"
+          class="comp-rec-mode"
+          [class.comp-rec-mode-active]="
+            smartRecording.recordingMode() === 'normal'
+          "
+          (click)="setRecordingMode('normal')"
+        >
+          <span class="material-symbols-outlined">fiber_manual_record</span>
+          <span>Normal</span>
+        </button>
+        <button
+          type="button"
+          class="comp-rec-mode"
+          [class.comp-rec-mode-active]="
+            smartRecording.recordingMode() === 'punch'
+          "
+          (click)="setRecordingMode('punch')"
+        >
+          <span class="material-symbols-outlined">first_page</span>
+          <span>Punch</span>
+        </button>
+        <button
+          type="button"
+          class="comp-rec-mode"
+          [class.comp-rec-mode-active]="
+            smartRecording.recordingMode() === 'comp'
+          "
+          (click)="setRecordingMode('comp')"
+        >
+          <span class="material-symbols-outlined">layers</span>
+          <span>Comp</span>
+        </button>
+      </div>
+
+      <!-- Punch Controls -->
+      <div
+        class="comp-rec-section"
+        *ngIf="smartRecording.recordingMode() === 'punch'"
+      >
+        <span class="comp-aimix-section-title">PUNCH REGION</span>
+        <div class="comp-rec-punch-controls">
+          <div class="comp-rec-punch-row">
+            <label>In (bar):</label>
+            <input
+              type="number"
+              min="1"
+              max="256"
+              [ngModel]="smartRecording.punchInBar()"
+              (ngModelChange)="smartRecording.setPunchIn($event || 1)"
+              class="comp-rec-input"
+            />
+          </div>
+          <div class="comp-rec-punch-row">
+            <label>Out (bar):</label>
+            <input
+              type="number"
+              min="1"
+              max="256"
+              [ngModel]="smartRecording.punchOutBar()"
+              (ngModelChange)="smartRecording.setPunchOut($event || 4)"
+              class="comp-rec-input"
+            />
+          </div>
+          <div class="comp-rec-punch-actions">
+            <button
+              type="button"
+              class="comp-rec-punch-btn"
+              [class.comp-rec-punch-armed]="smartRecording.punchArmed()"
+              (click)="smartRecording.armPunch()"
+            >
+              {{ smartRecording.punchArmed() ? 'ARMED' : 'ARM' }}
+            </button>
+            <button
+              type="button"
+              class="comp-rec-punch-btn"
+              (click)="smartRecording.clearPunchRegion()"
+            >
+              CLEAR
+            </button>
+          </div>
+          <div
+            class="comp-rec-status-label"
+            *ngIf="smartRecording.punchStatusLabel()"
+          >
+            {{ smartRecording.punchStatusLabel() }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Comp Controls -->
+      <div
+        class="comp-rec-section"
+        *ngIf="smartRecording.recordingMode() === 'comp'"
+      >
+        <span class="comp-aimix-section-title">
+          COMP TAKES
+          @if (smartRecording.activeCompGroup(); as activeGroup) {
+            · {{ activeGroup.sectionLabel }}
+          }
+        </span>
+        <div class="comp-rec-comp-actions">
+          <button
+            type="button"
+            class="comp-rec-comp-btn"
+            (click)="smartRecording.startCompTake()"
+          >
+            <span class="material-symbols-outlined">fiber_manual_record</span>
+            @if (smartRecording.isCompRecording()) {
+              RECORDING TAKE {{ smartRecording.currentTakeNumber() }}
+            } @else {
+              Take {{ smartRecording.currentTakeNumber() }}
+            }
+          </button>
+          <button
+            type="button"
+            class="comp-rec-comp-btn"
+            (click)="smartRecording.finishCompTake()"
+          >
+            FINISH TAKE
+          </button>
+        </div>
+        @if (smartRecording.captureError(); as captureError) {
+          <div class="comp-rec-status-label comp-rec-error">
+            {{ captureError }}
+          </div>
+        }
+        <div
+          class="comp-rec-takes"
+          *ngIf="smartRecording.activeCompGroupTakes().length > 0"
+        >
+          <div
+            class="comp-rec-take"
+            *ngFor="let t of smartRecording.activeCompGroupTakes()"
+            [class.comp-rec-take-selected]="t.isCompSelection"
+            [class.comp-rec-take-muted]="t.isMuted"
+            (click)="previewCompTake(t)"
+          >
+            <span class="comp-rec-take-num">{{ t.label }}</span>
+            <span class="comp-rec-take-meta"
+              >{{ (t.durationMs / 1000).toFixed(1) }}s</span
+            >
+            <!-- Playback button -->
+            <button
+              type="button"
+              class="comp-rec-take-play"
+              (click)="$event.stopPropagation(); previewCompTake(t)"
+              [class.comp-rec-take-playing]="previewingTakeId() === t.id"
+              title="Preview take"
+            >
+              <span class="material-symbols-outlined">{{
+                previewingTakeId() === t.id ? 'stop' : 'play_arrow'
+              }}</span>
+            </button>
+            <button
+              type="button"
+              class="comp-rec-take-action"
+              (click)="
+                $event.stopPropagation();
+                smartRecording.selectCompTake(
+                  smartRecording.activeCompGroupId()!,
+                  t.id
+                )
+              "
+              title="Select as comp"
+            >
+              ✓
+            </button>
+            <button
+              type="button"
+              class="comp-rec-take-action"
+              (click)="
+                $event.stopPropagation();
+                smartRecording.toggleTakeMute(
+                  smartRecording.activeCompGroupId()!,
+                  t.id
+                )
+              "
+              title="Mute/unmute"
+            >
+              M
+            </button>
+          </div>
+          <!-- Export Takes button -->
+          <button
+            type="button"
+            class="comp-rec-export-takes"
+            (click)="exportCompTakes()"
+            *ngIf="smartRecording.activeCompGroupTakes().length > 0"
+          >
+            <span class="material-symbols-outlined">file_download</span>
+            Export All Takes (WAV)
+          </button>
+
+          <!-- Export Comp button — the assembled bounce of the whole section -->
+          <button
+            type="button"
+            class="comp-rec-export-comp"
+            (click)="exportCompAssembly()"
+            *ngIf="smartRecording.activeCompGroupTakes().length > 0"
+          >
+            <span class="material-symbols-outlined">album</span>
+            Export Comp (WAV)
+          </button>
+        </div>
+      </div>
+
+      <!-- Auto-split toggle -->
+      <div class="comp-rec-section">
+        <label class="comp-rec-toggle">
+          <input
+            type="checkbox"
+            [ngModel]="smartRecording.autoSplitEnabled()"
+            (ngModelChange)="smartRecording.autoSplitEnabled.set($event)"
+          />
+          <span>Auto-split on silence</span>
+        </label>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====================== PROJECT METADATA PANEL (right slide) ====================== -->
+  <aside
+    class="comp-panel comp-meta-panel"
+    [class.comp-panel-open]="showProjectMetadata()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showProjectMetadata()"
+    [attr.inert]="showProjectMetadata() ? null : ''"
+    aria-label="Project Metadata"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">info</span>
+        PROJECT
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleProjectMetadata()"
+        aria-label="Close project metadata"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <div class="comp-meta-field">
+        <label>Name</label>
+        <input
+          type="text"
+          class="comp-meta-input"
+          [ngModel]="projectWorkspace.metadata()?.name || 'Untitled'"
+          (ngModelChange)="projectWorkspace.updateMetadata({ name: $event })"
+        />
+      </div>
+
+      <div class="comp-meta-field">
+        <label>Genre</label>
+        <div class="comp-meta-chips">
+          <button
+            *ngFor="let g of projectWorkspace.genres"
+            type="button"
+            class="comp-meta-chip"
+            [class.active]="projectWorkspace.metadata()?.genre === g"
+            (click)="setProjectGenre(g)"
+          >
+            {{ g }}
+          </button>
+        </div>
+      </div>
+
+      <div class="comp-meta-field">
+        <label>Mood</label>
+        <div class="comp-meta-chips">
+          <button
+            *ngFor="let m of projectWorkspace.moods"
+            type="button"
+            class="comp-meta-chip"
+            [class.active]="projectWorkspace.metadata()?.mood === m"
+            (click)="setProjectMood(m)"
+          >
+            {{ m }}
+          </button>
+        </div>
+      </div>
+
+      <div class="comp-meta-field">
+        <label>Key</label>
+        <div class="comp-meta-chips">
+          <button
+            *ngFor="let k of projectWorkspace.keys"
+            type="button"
+            class="comp-meta-chip"
+            [class.active]="projectWorkspace.metadata()?.key === k"
+            (click)="setProjectKey(k)"
+          >
+            {{ k }}
+          </button>
+        </div>
+      </div>
+
+      <div class="comp-meta-field" *ngIf="templateService.templates.length">
+        <label>Rapid build</label>
+        <div class="comp-meta-chips">
+          <button
+            *ngFor="let template of templateService.templates"
+            type="button"
+            class="comp-meta-chip"
+            (click)="applyTemplate(template.id)"
+          >
+            {{ template.name }}
+          </button>
+        </div>
+        <span class="comp-meta-hint"
+          >One-tap starter templates for faster arrangement building.</span
+        >
+      </div>
+
+      <div class="comp-meta-field">
+        <label>Auto-save</label>
+        <label class="comp-rec-toggle">
+          <input
+            type="checkbox"
+            [ngModel]="projectWorkspace.autoSaveEnabled()"
+            (ngModelChange)="projectWorkspace.autoSaveEnabled.set($event)"
+          />
+          <span>{{ projectWorkspace.autoSaveEnabled() ? 'ON' : 'OFF' }}</span>
+        </label>
+        <span class="comp-meta-hint" *ngIf="projectWorkspace.lastAutoSave() > 0"
+          >Last auto-save:
+          {{ projectWorkspace.lastAutoSave() | date: 'HH:mm:ss' }}</span
+        >
+      </div>
+
+      <div class="comp-meta-field" *ngIf="projectWorkspace.lastPersistedAt() > 0">
+        <label>Last save</label>
+        <span class="comp-meta-hint">
+          {{ projectWorkspace.lastPersistedAt() | date: 'HH:mm:ss' }}
+        </span>
+      </div>
+
+      <div
+        class="comp-meta-field"
+        *ngIf="
+          projectWorkspace.lastRecoveredAt() &&
+          projectWorkspace.lastRecoveredSource()
+        "
+      >
+        <label>Recovered</label>
+        <span class="comp-meta-hint">
+          Restored {{ formatPersistenceSource(projectWorkspace.lastRecoveredSource()) }}
+          snapshot at
+          {{ projectWorkspace.lastRecoveredAt() | date: 'HH:mm:ss' }}
+        </span>
+      </div>
+
+      <div class="comp-meta-actions">
+        <button
+          type="button"
+          class="comp-meta-action-btn"
+          (click)="saveProject()"
+        >
+          <span class="material-symbols-outlined">save</span>
+          Save Project
+        </button>
+        <button
+          type="button"
+          class="comp-meta-action-btn"
+          (click)="exportProject()"
+        >
+          <span class="material-symbols-outlined">file_download</span>
+          Export .smuve
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====================== STUDIO INSIGHTS PANEL (right slide) ====================== -->
+  <aside
+    class="comp-panel comp-insights-panel"
+    [class.comp-panel-open]="showStudioInsights()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showStudioInsights()"
+    [attr.inert]="showStudioInsights() ? null : ''"
+    aria-label="Studio Insights"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">monitoring</span>
+        INSIGHTS
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleStudioInsights()"
+        aria-label="Close Studio Insights panel"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <p class="comp-insights-lede">
+        Rolling {{ studioWeeklyDashboard().windowDays }}-day north-star pulse,
+        live gap scoring, and coach CTAs. Local-only — nothing leaves this
+        device.
+      </p>
+
+      <div class="comp-insights-section" *ngIf="insightCoachActions().length">
+        <span class="comp-aimix-section-title">COACH · NEXT BEST</span>
+        <div
+          class="comp-insights-coach"
+          *ngFor="let action of insightCoachActions()"
+        >
+          <div class="comp-insights-coach-head">
+            <span class="comp-insights-coach-title">{{ action.title }}</span>
+            <button
+              type="button"
+              class="comp-insights-coach-dismiss"
+              (click)="dismissCoachAction(action, $event)"
+              [attr.aria-label]="'Dismiss ' + action.title"
+              title="Dismiss"
+            >
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <p class="comp-insights-coach-reason">{{ action.reason }}</p>
+          <div class="comp-insights-coach-meta">
+            <span class="comp-insights-coach-cat">{{
+              formatInsightCategory(action.category)
+            }}</span>
+            <button
+              type="button"
+              class="comp-insights-coach-cta"
+              (click)="runCoachAction(action)"
+              [disabled]="
+                action.id === 'probe_latency' && insightsProbeRunning()
+              "
+              [attr.aria-busy]="
+                action.id === 'probe_latency' && insightsProbeRunning()
+              "
+            >
+              {{
+                action.id === 'probe_latency' && insightsProbeRunning()
+                  ? 'Probing…'
+                  : action.ctaLabel
+              }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="comp-insights-section">
+        <span class="comp-aimix-section-title">LIVE ENGINE PROFILE</span>
+        <div class="comp-insights-metrics">
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.performanceTier
+                | uppercase
+            }}</span>
+            <span class="comp-insights-metric-label">Adaptive tier</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.totalLatencyMs | number: '1.0-0'
+            }}ms</span>
+            <span class="comp-insights-metric-label">Live latency</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.sampleRateHz
+            }}</span>
+            <span class="comp-insights-metric-label">Sample rate</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              engineLatency.profileSummary().snapshot.contextState | uppercase
+            }}</span>
+            <span class="comp-insights-metric-label">Engine state</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              deviceProfile.tier() | uppercase
+            }} · {{ deviceProfile.profile().signals.cores }}c</span>
+            <span class="comp-insights-metric-label">Device class</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              deviceProfile.budget().maxVoices
+            }}</span>
+            <span class="comp-insights-metric-label">Voice budget</span>
+          </div>
+        </div>
+        <ul
+          class="comp-insights-events"
+          *ngIf="engineLatency.profileSummary().recommendations.length"
+        >
+          <li
+            *ngFor="
+              let recommendation of engineLatency.profileSummary().recommendations
+                | slice: 0 : 3
+            "
+          >
+            <code>ENGINE</code>
+            <span>{{ recommendation }}</span>
+          </li>
+        </ul>
+        <ul
+          class="comp-insights-events"
+          *ngIf="deviceProfile.reasons().length"
+        >
+          <li *ngFor="let reason of deviceProfile.reasons() | slice: 0 : 3">
+            <code>DEVICE</code>
+            <span>{{ reason }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="comp-insights-section">
+        <span class="comp-aimix-section-title">NORTH STAR</span>
+        <div class="comp-insights-metrics">
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              studioWeeklyDashboard().metrics.avgSessionMinutes
+            }}</span>
+            <span class="comp-insights-metric-label">Avg session (min)</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val"
+              >{{ studioWeeklyDashboard().metrics.ideaToFirstLoopSeconds }}s</span
+            >
+            <span class="comp-insights-metric-label">Idea → first loop</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              formatInsightPct(studioWeeklyDashboard().metrics.exportSuccessRate)
+            }}</span>
+            <span class="comp-insights-metric-label">Export success</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              formatInsightPct(
+                studioWeeklyDashboard().metrics.crashFreeSessionsRate
+              )
+            }}</span>
+            <span class="comp-insights-metric-label">Crash-free</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">{{
+              formatInsightPct(studioWeeklyDashboard().metrics.collabSessionRate)
+            }}</span>
+            <span class="comp-insights-metric-label">Collab sessions</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">
+              {{
+                studioWeeklyDashboard().metrics.latencyProbeCount
+                  ? studioWeeklyDashboard().metrics.avgLatencyMs + 'ms'
+                  : '—'
+              }}
+            </span>
+            <span class="comp-insights-metric-label">Avg latency</span>
+          </div>
+          <div class="comp-insights-metric">
+            <span class="comp-insights-metric-val">
+              {{
+                studioWeeklyDashboard().metrics.avgRenderSpeedRatio
+                  ? '×' +
+                    (
+                      studioWeeklyDashboard().metrics.avgRenderSpeedRatio
+                      | number: '1.0-2'
+                    )
+                  : '—'
+              }}
+            </span>
+            <span class="comp-insights-metric-label">Render speed</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="comp-insights-probe-btn"
+          (click)="runInsightsLatencyProbe()"
+          [disabled]="insightsProbeRunning()"
+          [attr.aria-busy]="insightsProbeRunning()"
+        >
+          <span class="material-symbols-outlined">speed</span>
+          {{
+            insightsProbeRunning() ? 'Probing engine…' : 'Run full engine probe'
+          }}
+        </button>
+      </div>
+
+      <div class="comp-insights-section">
+        <span class="comp-aimix-section-title">PRIORITY BACKLOG</span>
+        <div
+          class="comp-insights-gap"
+          *ngFor="let row of studioWeeklyDashboard().prioritizedBacklog"
+        >
+          <div class="comp-insights-gap-head">
+            <span class="comp-insights-gap-name">{{
+              formatInsightCategory(row.category)
+            }}</span>
+            <span class="comp-insights-gap-weight"
+              >w {{ row.weight | number: '1.0-2' }}</span
+            >
+          </div>
+          <div class="comp-insights-gap-bar">
+            <div
+              class="comp-insights-gap-fill"
+              [style.width.%]="row.smuveScore"
+              [attr.aria-valuenow]="row.smuveScore"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              role="progressbar"
+              [attr.aria-label]="
+                formatInsightCategory(row.category) +
+                ' score ' +
+                row.smuveScore
+              "
+            ></div>
+          </div>
+          <div class="comp-insights-gap-meta">
+            <span>Us {{ row.smuveScore }}</span>
+            <span>Best {{ row.bestCompetitorScore }}</span>
+            <span
+              class="comp-insights-gap-delta"
+              [class.comp-insights-gap-lead]="row.gap === 0"
+              >{{ row.gap === 0 ? 'LEAD' : '−' + row.gap }}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="comp-insights-section"
+        *ngIf="insightEventVolumeEntries().length"
+      >
+        <span class="comp-aimix-section-title">EVENT VOLUME</span>
+        <ul class="comp-insights-events">
+          <li *ngFor="let e of insightEventVolumeEntries()">
+            <code>{{ e.name }}</code>
+            <span>{{ e.count }}</span>
+          </li>
+        </ul>
+      </div>
+      <p
+        class="comp-insights-empty"
+        *ngIf="!insightEventVolumeEntries().length"
+      >
+        No Studio events yet this week — keep producing and the pulse fills in.
+      </p>
+    </div>
+  </aside>
+
+  <!-- ====================== AI ASSISTANT PANEL (right slide) ====================== -->
+  <app-ai-assistant
+    [open]="showAiAssistant()"
+    [activeViewContext]="activeView()"
+    (close)="showAiAssistant.set(false)"
+  ></app-ai-assistant>
+
+  <!-- ====================== COMPONENT RECORDING PANEL (right slide) ====================== -->
+  <aside
+    class="comp-panel comp-rec-src-panel"
+    [class.comp-panel-open]="showComponentRecording()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showComponentRecording()"
+    [attr.inert]="showComponentRecording() ? null : ''"
+    aria-label="Component Recording"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">radio_button_checked</span>
+        COMP REC<br /><small style="font-size: 8px; opacity: 0.6">{{
+          componentRecording.activeSource()
+            ? componentRecording.getConfig(componentRecording.activeSource()!)
+                ?.label
+            : 'Select source'
+        }}</small>
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="showComponentRecording.set(false)"
+        aria-label="Close component recording"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <span class="comp-aimix-section-title">RECORDING SOURCE</span>
+      <div class="comp-rec-src-grid">
+        <button
+          type="button"
+          class="comp-rec-src-btn"
+          *ngFor="let c of componentRecording.componentConfigs"
+          [class.active]="componentRecording.activeSource() === c.componentId"
+          (click)="selectComponentRecording(c.componentId)"
+        >
+          <span class="material-symbols-outlined">{{ c.icon }}</span>
+          <span class="comp-rec-src-label">{{ c.label }}</span>
+          <span class="comp-rec-src-badge" *ngIf="c.usesInput">🎤</span>
+        </button>
+      </div>
+
+      <!-- Recording Controls -->
+      <div class="comp-rec-section">
+        <button
+          type="button"
+          class="comp-meta-action-btn"
+          [class.recording-active]="componentRecording.isRecording()"
+          (click)="componentRecording.toggleRecording()"
+        >
+          <span class="material-symbols-outlined">{{
+            componentRecording.isRecording() ? 'stop' : 'fiber_manual_record'
+          }}</span>
+          {{
+            componentRecording.isRecording()
+              ? 'STOP (' + componentRecording.recordingDuration() + 's)'
+              : 'START RECORDING'
+          }}
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====================== IMPORT AUDIO PANEL (right slide) ====================== -->
+  <aside
+    class="comp-panel comp-import-panel"
+    [class.comp-panel-open]="showImportPanel()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showImportPanel()"
+    [attr.inert]="showImportPanel() ? null : ''"
+    aria-label="Audio Import"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">upload_file</span>
+        AUDIO IMPORT
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleImportPanel()"
+        aria-label="Close import panel"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <!-- Imported files list -->
+      <div
+        class="comp-import-list"
+        *ngIf="audioImport.importedAudio().length > 0"
+      >
+        <div
+          class="comp-import-item"
+          *ngFor="let a of audioImport.importedAudio()"
+          [class.selected]="audioImport.selectedAudio()?.id === a.id"
+          (click)="audioImport.selectAudio(a.id)"
+        >
+          <span class="material-symbols-outlined">audio_file</span>
+          <span class="comp-import-name">{{ a.name }}</span>
+          <span class="comp-import-meta">{{ a.duration.toFixed(1) }}s</span>
+          <button
+            type="button"
+            class="comp-import-remove"
+            (click)="$event.stopPropagation(); audioImport.removeAudio(a.id)"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      <div
+        *ngIf="audioImport.importedAudio().length === 0"
+        class="comp-import-empty"
+      >
+        <span
+          class="material-symbols-outlined"
+          style="font-size: 32px; opacity: 0.3"
+          >upload_file</span
+        >
+        <span>Tap IMPORT to add audio files</span>
+      </div>
+
+      <!-- Waveform + Editor for selected audio -->
+      <div
+        class="comp-import-editor"
+        *ngIf="audioImport.selectedAudio() as selAudio"
+      >
+        <span class="comp-aimix-section-title">{{ selAudio.name }}</span>
+        <div class="comp-import-waveform">
+          <app-waveform-renderer
+            [audioData]="selectedImportWaveform()"
+            [duration]="selAudio.duration"
+            [progress]="0"
+            mode="envelope"
+            [loopStart]="selAudio.loopStart"
+            [loopEnd]="selAudio.loopEnd"
+            [loopInteractive]="true"
+            (loopStartChange)="audioImport.setLoopStart($event)"
+            (loopEndChange)="audioImport.setLoopEnd($event)"
+          ></app-waveform-renderer>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Zoom</label>
+          <input
+            type="range"
+            min="1"
+            max="8"
+            step="1"
+            [value]="importWaveformZoom()"
+            (input)="importWaveformZoom.set(+$any($event.target).value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val">{{ importWaveformZoom() }}x</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Snap</label>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="toggleImportSnap()"
+          >
+            {{ importSnapEnabled() ? 'ON' : 'OFF' }}
+          </button>
+        </div>
+
+        <!-- Trim controls -->
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Trim Start</label>
+          <input
+            type="range"
+            min="0"
+            max="0.95"
+            [step]="importSnapEnabled() ? 0.0625 : 0.01"
+            [value]="selAudio.trimStart"
+            (input)="audioImport.setTrimStart($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val"
+            >{{ (selAudio.trimStart * 100).toFixed(0) }}%</span
+          >
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Trim End</label>
+          <input
+            type="range"
+            min="0.05"
+            max="1"
+            [step]="importSnapEnabled() ? 0.0625 : 0.01"
+            [value]="selAudio.trimEnd"
+            (input)="audioImport.setTrimEnd($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val"
+            >{{ (selAudio.trimEnd * 100).toFixed(0) }}%</span
+          >
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Gain</label>
+          <input
+            type="range"
+            min="0"
+            max="2"
+            step="0.05"
+            [value]="selAudio.gain"
+            (input)="audioImport.setGain($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val"
+            >{{ (selAudio.gain * 100).toFixed(0) }}%</span
+          >
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Stretch</label>
+          <input
+            type="range"
+            min="0.25"
+            max="4"
+            step="0.05"
+            [value]="selAudio.stretchRatio"
+            (input)="audioImport.setStretchRatio($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val">{{ selAudio.stretchRatio.toFixed(2) }}x</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Match BPM</label>
+          <input
+            type="number"
+            min="20"
+            max="300"
+            step="1"
+            [value]="importSourceBpm()"
+            (input)="setImportSourceBpm($event)"
+            class="comp-import-number"
+            aria-label="Source tempo of the imported audio"
+          />
+          <button
+            type="button"
+            class="comp-meta-action-btn comp-import-match-btn"
+            (click)="matchImportTempo()"
+            aria-label="Stretch the import to the project tempo"
+          >
+            → {{ audioEngine.tempo() }} BPM
+          </button>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Pitch</label>
+          <input
+            type="range"
+            min="-12"
+            max="12"
+            step="1"
+            [value]="selAudio.pitchSemitones"
+            (input)="audioImport.setPitchSemitones($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val">{{ selAudio.pitchSemitones }} st</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Fade In</label>
+          <input
+            type="range"
+            min="0"
+            max="0.5"
+            step="0.01"
+            [value]="selAudio.fadeIn"
+            (input)="audioImport.setFadeIn($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val">{{ (selAudio.fadeIn * 100).toFixed(0) }}%</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Fade Out</label>
+          <input
+            type="range"
+            min="0"
+            max="0.5"
+            step="0.01"
+            [value]="selAudio.fadeOut"
+            (input)="audioImport.setFadeOut($event.target.value)"
+            class="comp-import-slider"
+          />
+          <span class="comp-import-slider-val">{{ (selAudio.fadeOut * 100).toFixed(0) }}%</span>
+        </div>
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Normalize</label>
+          <input
+            type="checkbox"
+            [checked]="selAudio.normalize"
+            (change)="audioImport.toggleNormalize($any($event.target).checked)"
+          />
+        </div>
+        <!-- Quality enhancement (offline, non-destructive) -->
+        <div class="comp-import-slider-row">
+          <label class="comp-import-slider-label">Enhance</label>
+          <select
+            class="comp-import-select"
+            [value]="audioImport.enhancePreset()"
+            (change)="audioImport.setEnhancePreset($any($event.target).value)"
+            aria-label="Audio enhancement preset"
+          >
+            <option
+              *ngFor="let preset of audioImport.enhancePresets"
+              [value]="preset.id"
+              [title]="preset.description"
+            >
+              {{ preset.label }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            [disabled]="audioImport.isEnhancing()"
+            (click)="audioImport.enhanceQuality()"
+          >
+            <span class="material-symbols-outlined">auto_fix_high</span>
+            {{ audioImport.isEnhancing() ? 'Enhancing…' : 'Enhance' }}
+          </button>
+        </div>
+        <div class="comp-import-slider-row" *ngIf="selAudio.enhancedPreset">
+          <span class="comp-import-slider-val"
+            >Enhanced · {{ selAudio.enhancedPreset }}</span
+          >
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.clearEnhancement()"
+          >
+            <span class="material-symbols-outlined"
+              >settings_backup_restore</span
+            >
+            Original
+          </button>
+        </div>
+        <audio
+          controls
+          class="comp-import-preview"
+          [src]="selAudio.editedUrl || selAudio.url"
+        ></audio>
+        <div class="comp-import-smart">
+          <span class="comp-aimix-section-title">Smart Production</span>
+          <div class="comp-import-smart-row" *ngFor="let cap of smartProduction.capabilities()">
+            <span>{{ cap.label }}</span>
+            <span *ngIf="cap.status === 'ready'" class="comp-import-smart-ready">Ready</span>
+            <span *ngIf="cap.status !== 'ready'" class="comp-import-smart-disabled" [title]="cap.reason">
+              {{ cap.reason }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="comp-meta-actions">
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.applyEdits()"
+          >
+            <span class="material-symbols-outlined">check_circle</span>
+            Apply Edits
+          </button>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.cancelEdits()"
+          >
+            <span class="material-symbols-outlined">undo</span>
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.resetEdits()"
+          >
+            <span class="material-symbols-outlined">restart_alt</span>
+            Reset
+          </button>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.exportEditedAudio()"
+          >
+            <span class="material-symbols-outlined">file_download</span>
+            Export WAV
+          </button>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
+            (click)="audioImport.addToProject(selAudio)"
+          >
+            <span class="material-symbols-outlined">library_music</span>
+            Add to Project
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====================== CROSS-LINK LIVE ANNOUNCER (a11y) ====================== -->
+  <div
+    class="comp-sr-announcer"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  >
+    {{ crossLinkAnnouncement() }}
+  </div>
+
+  <!-- ====================== VOCAL COMP VIEW PANEL ====================== -->
+  <aside
+    class="comp-panel comp-vocal-comp-panel"
+    [class.comp-panel-open]="showVocalComp()"
+    role="dialog"
+    aria-label="Vocal Comp View"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">layers</span>
+        VOCAL COMP
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleVocalComp()"
+        aria-label="Close comp view"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <app-vocal-comp-view></app-vocal-comp-view>
+    </div>
+  </aside>
+
+  <!-- ====================== BEZIER EDITOR PANEL ====================== -->
+  <aside
+    class="comp-panel comp-bezier-panel"
+    [class.comp-panel-open]="showBezierEditor()"
+    role="dialog"
+    aria-label="Bezier Curve Editor"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">timeline</span>
+        BEZIER CURVES
+      </span>
+      <button
+        type="button"
+        class="comp-icon-btn"
+        (click)="toggleBezierEditor()"
+        aria-label="Close bezier editor"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <div class="comp-panel-body">
+      <app-bezier-editor
+        [laneId]="bezierLaneId()"
+        (curveChanged)="onBezierCurveChanged($event)"
+      ></app-bezier-editor>
+    </div>
+  </aside>
+
+  <!-- ====================== CLOUD VERSION HISTORY PANEL ====================== -->
+  <aside
+    class="comp-panel comp-versions-panel"
+    [class.comp-panel-open]="showVersionHistory()"
+    role="dialog"
+    aria-label="Cloud version history"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">history</span>
+        VERSION HISTORY
+      </span>
+      <div class="comp-versions-header-actions">
+        <button
+          type="button"
+          class="comp-icon-btn"
+          [disabled]="versionHistoryBusy()"
+          (click)="pushVersionSnapshot()"
+          aria-label="Save a new cloud version"
+        >
+          <span class="material-symbols-outlined">cloud_upload</span>
+        </button>
+        <button
+          type="button"
+          class="comp-icon-btn"
+          (click)="toggleVersionHistory()"
+          aria-label="Close version history"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </header>
+    <div class="comp-panel-body comp-versions-body">
+      <p class="comp-versions-hint">
+        Every manual save stores a restorable version. Restoring keeps the current
+        state as a new version, so nothing is lost.
+      </p>
+      <p class="comp-versions-empty" *ngIf="versionHistoryBusy()">
+        Loading versions…
+      </p>
+      <p
+        class="comp-versions-empty"
+        *ngIf="!versionHistoryBusy() && versionHistory().length === 0"
+      >
+        No cloud versions yet — save the project to create the first one.
+      </p>
+      <ul class="comp-versions-list" *ngIf="versionHistory().length > 0">
+        <li
+          class="comp-versions-row"
+          *ngFor="let snapshot of versionHistory(); trackBy: versionTrack"
+        >
+          <div class="comp-versions-meta">
+            <span class="comp-versions-title">
+              v{{ snapshot.version }} · {{ snapshot.title }}
+            </span>
+            <span class="comp-versions-sub">
+              {{ versionDeviceLabel(snapshot) }} ·
+              {{ snapshot.timestamp | date: 'MMM d, HH:mm' }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="studio-secondary-button comp-versions-restore"
+            [disabled]="versionHistoryBusy()"
+            (click)="restoreVersion(snapshot)"
+          >
+            Restore
+          </button>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- ====================== SETS BROWSER (local project workspaces) ====================== -->
+  <aside
+    class="comp-panel comp-sets-panel"
+    [class.comp-panel-open]="showSetsBrowser()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!showSetsBrowser()"
+    [attr.inert]="showSetsBrowser() ? null : ''"
+    aria-label="Sets browser"
+  >
+    <header class="comp-panel-header">
+      <span class="comp-panel-title">
+        <span class="material-symbols-outlined">folder_special</span>
+        PROJECTS
+      </span>
+      <div class="comp-sets-header-actions">
+        <button
+          type="button"
+          class="comp-icon-btn"
+          [disabled]="setsBusy()"
+          (click)="refreshLocalSets()"
+          aria-label="Refresh the set list"
+        >
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
+        <button
+          type="button"
+          class="comp-icon-btn"
+          (click)="toggleSetsBrowser()"
+          aria-label="Close the Sets browser"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </header>
+    <div class="comp-panel-body comp-sets-body">
+      <div class="comp-sets-actions">
+        <button
+          type="button"
+          class="comp-sets-action comp-sets-action-primary"
+          [disabled]="setsBusy()"
+          (click)="newSetFromBrowser()"
+        >
+          <span class="material-symbols-outlined">add_circle</span>
+          <span><strong>New Project</strong><small>Empty project · 120 BPM</small></span>
+        </button>
+        <button
+          type="button"
+          class="comp-sets-action"
+          [disabled]="setsBusy()"
+          (click)="importSetFromBrowser()"
+        >
+          <span class="material-symbols-outlined">upload_file</span>
+          <span><strong>Import project</strong><small>.smuve project file or backup</small></span>
+        </button>
+      </div>
+
+      <p class="comp-sets-hint">
+        Every project autosaves on this device. Tap a project to open it — the
+        current session is only replaced after you confirm.
+      </p>
+
+      <p class="comp-sets-empty" *ngIf="setsBusy() && localSets().length === 0">
+        Reading this device…
+      </p>
+      <p class="comp-sets-error" *ngIf="setsError()" role="alert">
+        {{ setsError() }}
+      </p>
+      <p
+        class="comp-sets-empty"
+        *ngIf="!setsBusy() && !setsError() && localSets().length === 0"
+      >
+        No saved projects yet. Save the current session (Ctrl+S) or load a
+        starter, and it appears here ready to reopen on the go.
+      </p>
+
+      <ul class="comp-sets-list" *ngIf="localSets().length > 0">
+        <li
+          class="comp-sets-row"
+          *ngFor="let set of localSets(); trackBy: setTrack"
+          [class.comp-sets-row-current]="isCurrentSet(set)"
+        >
+          <button
+            type="button"
+            class="comp-sets-open"
+            [disabled]="setsBusy()"
+            (click)="openStoredSet(set)"
+            [attr.aria-label]="'Open set ' + set.name"
+            [attr.title]="
+              isCurrentSet(set)
+                ? 'This set is currently open'
+                : 'Open ' + set.name
+            "
+          >
+            <span class="comp-sets-mark" aria-hidden="true"></span>
+            <span class="comp-sets-meta">
+              <span class="comp-sets-name">
+                {{ set.name }}
+                <span class="comp-sets-current-pill" *ngIf="isCurrentSet(set)"
+                  >OPEN</span
+                >
+              </span>
+              <span class="comp-sets-sub">
+                {{ set.bpm }} BPM · {{ set.trackCount }} track{{
+                  set.trackCount === 1 ? '' : 's'
+                }}
+                <ng-container *ngIf="set.genre">
+                  · {{ set.genre | titlecase }}</ng-container
+                >
+                <ng-container *ngIf="set.mood">
+                  · {{ set.mood | titlecase }}</ng-container
+                >
+              </span>
+              <span class="comp-sets-stamp"
+                >{{ setSourceLabel(set) }}
+                {{ formatSetSavedAt(set.savedAt) }} · v{{ set.version }}</span
+              >
+            </span>
+          </button>
+          <button
+            type="button"
+            class="comp-sets-delete"
+            [disabled]="setsBusy()"
+            (click)="deleteStoredSet(set)"
+            [attr.aria-label]="'Delete set ' + set.name"
+            title="Delete this set and its local autosave versions"
+          >
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- ====================== GLOBAL OVERLAYS (legacy) ====================== -->
+  <!-- ====================== SMART CREATION SHEET (Google Play 1-Tap Starter) ====================== -->
+  <app-smart-creation-sheet
+    *ngIf="showSmartCreationSheet()"
+    (closeSheet)="showSmartCreationSheet.set(false)"
+    (navigateToView)="setActiveView($any($event))"
+  ></app-smart-creation-sheet>
+
+  <app-search-overlay></app-search-overlay>
+  <app-snackbar></app-snackbar>
+
+  <!-- ====================== AI FLOATING ACTION BUTTON (mobile desktop) ====================== -->
+  <button
+    *ngIf="!showAiAssistant()"
+    type="button"
+    class="comp-fab"
+    (click)="toggleAiAssistant()"
+    aria-label="Open AI Assistant"
+  >
+    <span class="material-symbols-outlined">auto_awesome</span>
+  </button>
+
+  <!-- Sprint B2 Phase 2 — Peer cursors overlay (absolute over the studio surface) -->
+  <div class="peer-cursor-layer" aria-hidden="true">
+    @for (cursor of peerCursorList(); track cursor.userId) {
+      <span
+        class="peer-cursor"
+        [style.left.%]="cursor.x * 100"
+        [style.top.%]="cursor.y * 100"
+        [attr.title]="cursor.artistName"
+      >
+        <span class="peer-cursor-arrow"></span>
+        <span class="peer-cursor-name">{{ cursor.artistName }}</span>
+      </span>
+    }
+  </div>
+</div>

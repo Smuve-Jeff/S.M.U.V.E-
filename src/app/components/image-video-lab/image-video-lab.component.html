@@ -1,0 +1,1642 @@
+<div
+  class="cinema-shell flex flex-col bg-background animate-enter min-h-full"
+>
+  <!-- CINEMA HEADER: Fluid & Adaptive -->
+  <header
+    class="p-4 md:p-8 pb-4 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border glass-v42 shadow-v42-xl"
+  >
+    <div class="flex flex-col">
+      <div class="flex items-center gap-2 mb-1 md:mb-2">
+        <div
+          class="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"
+        ></div>
+        <span
+          class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+          >Visual Production Suite</span
+        >
+      </div>
+      <h1
+        class="text-2xl md:text-4xl font-black tracking-tighter text-text-main uppercase italic leading-none"
+      >
+        CINEMA<span class="text-brand-primary">ENGINE</span>
+      </h1>
+      <p class="text-[10px] md:text-xs text-text-dim mt-1 md:mt-2 font-medium">
+        Professional multi-track video orchestration & neural visual synthesis.
+      </p>
+    </div>
+
+    <div class="header-actions flex items-center gap-3">
+      <label class="export-window">
+        <span class="export-window-label">Capture</span>
+        <select
+          class="export-window-select"
+          aria-label="Video export capture window in seconds"
+          [disabled]="isExporting()"
+          [ngModel]="exportWindow()"
+          (ngModelChange)="exportWindow.set(+$event)"
+        >
+          @for (seconds of exportWindowOptions; track seconds) {
+            <option [value]="seconds">{{ seconds }}s</option>
+          }
+        </select>
+      </label>
+      <button
+        (click)="videoEngine.togglePlay()"
+        class="w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all shadow-lg border border-border active:scale-95"
+        [attr.aria-label]="videoEngine.isPlaying() ? 'Pause transport' : 'Play transport'"
+        [class.bg-brand-primary]="videoEngine.isPlaying()"
+        [class.text-white]="videoEngine.isPlaying()"
+        [class.bg-surface]="!videoEngine.isPlaying()"
+        [class.text-brand-primary]="!videoEngine.isPlaying()"
+      >
+        <span class="material-symbols-outlined text-xl">{{
+          videoEngine.isPlaying() ? 'pause' : 'play_arrow'
+        }}</span>
+      </button>
+      <button
+        (click)="exportVideo()"
+        [disabled]="isExporting()"
+        class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest px-4 md:px-8 h-11 md:h-12 flex-grow md:flex-grow-0"
+      >
+        {{ isExporting() ? 'RENDERING ' + exportProgress() + '%' : 'EXPORT VIDEO' }}
+      </button>
+    </div>
+  </header>
+
+  <!--
+    The production blueprint is a disclosure on the stacked layout: it is the
+    hero of the module, and on a phone it sat between the operator and the
+    monitor. Its copy stays visible, so the module always says what it is for.
+  -->
+  <section
+    class="production-upgrade-bar"
+    [class.section-collapsed]="isSectionCollapsed('blueprint')"
+  >
+    <div class="production-upgrade-copy" data-section-head>
+      <div class="section-head-row">
+        <span class="upgrade-eyebrow">Production Upgrade</span>
+        @if (isStackedLayout()) {
+          <button
+            type="button"
+            class="section-toggle"
+            [attr.aria-expanded]="!isSectionCollapsed('blueprint')"
+            [attr.aria-label]="
+              isSectionCollapsed('blueprint')
+                ? 'Show the production setup'
+                : 'Hide the production setup'
+            "
+            (click)="toggleSection('blueprint')"
+          >
+            <span class="material-symbols-outlined">expand_more</span>
+          </button>
+        }
+      </div>
+      <h2 class="upgrade-title">
+        One visual suite for films, live social broadcasts, and creator vlogs
+      </h2>
+      <p class="upgrade-description">
+        {{ productionBlueprint().summary }}
+      </p>
+    </div>
+
+    <div class="production-mode-grid">
+      @for (mode of productionModes; track mode.id) {
+        <button
+          class="production-mode-card"
+          [class.active]="videoEngine.productionMode() === mode.id"
+          [attr.aria-pressed]="videoEngine.productionMode() === mode.id"
+          (click)="selectProductionMode(mode.id)"
+        >
+          <span class="production-mode-label">{{ mode.label }}</span>
+          <span class="production-mode-description">{{
+            mode.description
+          }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="production-blueprint-grid">
+      <div class="blueprint-stat">
+        <span class="blueprint-label">Runtime</span>
+        <span class="blueprint-value">{{
+          productionBlueprint().runtimeLabel
+        }}</span>
+      </div>
+      <div class="blueprint-stat">
+        <span class="blueprint-label">Delivery</span>
+        <span class="blueprint-value">{{
+          productionBlueprint().targetLabel
+        }}</span>
+      </div>
+      <div class="blueprint-stat">
+        <span class="blueprint-label">Format</span>
+        <span class="blueprint-value">{{
+          productionBlueprint().formatLabel
+        }}</span>
+      </div>
+      <div class="blueprint-stat">
+        <span class="blueprint-label">Timeline</span>
+        <span class="blueprint-value">{{
+          productionBlueprint().laneLabel
+        }}</span>
+      </div>
+    </div>
+
+    <div class="delivery-preset-row">
+      @for (
+        preset of getPresetsForMode(videoEngine.productionMode());
+        track preset.id
+      ) {
+        <button
+          class="delivery-preset-card"
+          [class.active]="activePreset().id === preset.id"
+          [attr.aria-pressed]="activePreset().id === preset.id"
+          (click)="selectDeliveryPreset(preset.id)"
+        >
+          <span class="delivery-preset-name">{{ preset.name }}</span>
+          <span class="delivery-preset-meta"
+            >{{ preset.aspectRatio }} · {{ preset.width }}×{{
+              preset.height
+            }}</span
+          >
+          <span class="delivery-preset-copy">{{ preset.description }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
+  <div
+    class="cinema-workspace flex-grow flex flex-col lg:flex-row"
+  >
+    <!-- MAIN WORKSPACE -->
+    <div
+      class="cinema-main flex-grow flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-border"
+    >
+      <!-- PROGRAM MONITOR -->
+      <section class="monitor-section bg-black/5">
+        <div class="monitor-head">
+          <div class="monitor-head-title">
+            <span class="upgrade-eyebrow">Program Monitor</span>
+            <h2 class="monitor-title">
+              {{ showCameraSurface() ? 'Live Viewfinder' : 'Timeline Output' }}
+            </h2>
+          </div>
+
+          <div class="monitor-tabs" role="tablist" aria-label="Monitor source">
+            <button
+              type="button"
+              role="tab"
+              class="monitor-tab"
+              [class.active]="showProgramSurface()"
+              [attr.aria-selected]="showProgramSurface()"
+              (click)="setMonitorSource('program')"
+            >
+              PROGRAM
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="monitor-tab"
+              [class.active]="showCameraSurface()"
+              [attr.aria-selected]="showCameraSurface()"
+              (click)="setMonitorSource('camera')"
+            >
+              CAMERA
+            </button>
+          </div>
+
+          <div class="monitor-badges">
+            <span class="monitor-badge" [class.live]="transportActive()">{{
+              monitorResolutionLabel()
+            }}</span>
+            <span class="monitor-badge monitor-badge-time"
+              >{{ videoEngine.currentTime() | number: '1.2-2' }}s /
+              {{ videoEngine.duration() | number: '1.2-2' }}s</span
+            >
+          </div>
+        </div>
+
+        <div class="monitor-frame">
+          <div
+            #stageSurface
+            class="monitor-card glass-v42"
+            [style.aspect-ratio]="monitorAspectRatio()"
+            [style.--monitor-ratio]="monitorAspectRatio()"
+          >
+            <canvas
+              #previewCanvas
+              class="monitor-canvas"
+              [class.monitor-hidden]="showCameraSurface()"
+            ></canvas>
+
+            <!--
+              Live camera sink. It stays in the layout at all times — a fully
+              hidden <video> stops decoding, which leaves the viewfinder black
+              while the UI claims LIVE — so the inactive state is a 1% fade, not
+              `display: none`. `autoplay` starts decoding the moment it is bound.
+            -->
+            <video
+              #cameraFeed
+              class="monitor-viewfinder"
+              [class.viewfinder-active]="showCameraSurface()"
+              [class.mirrored]="camera.mirrored()"
+              autoplay
+              playsinline
+              muted
+            ></video>
+
+            <!--
+              Native player for the clip under the playhead. Full-bleed and with
+              native controls: Chrome and Android get a user-gesture playback
+              path, seek, fullscreen and volume that a canvas cannot provide.
+            -->
+            @if (showProgramSurface()) {
+              @if (activeVideoClip(); as activeClip) {
+                <video
+                  #nativePlayer
+                  class="monitor-player"
+                  controls
+                  muted
+                  playsinline
+                  preload="metadata"
+                  [attr.aria-label]="'Play ' + activeClip.name"
+                  (play)="onNativePlayerPlay()"
+                  (pause)="onNativePlayerPause()"
+                  (seeked)="onNativePlayerSeek()"
+                  (volumechange)="onNativePlayerVolumeChange()"
+                ></video>
+                <div class="monitor-player-tag">
+                  {{ activeClip.name }} · NATIVE PLAYBACK
+                </div>
+              }
+            }
+
+            @if (showCameraSurface()) {
+              @if (!camera.isLive()) {
+                <div class="monitor-empty" aria-live="polite">
+                  <span class="material-symbols-outlined">videocam_off</span>
+                  <span class="monitor-empty-title">Viewfinder offline</span>
+                  <span class="monitor-empty-copy">
+                    Open the camera to frame the shot — photos and takes land on
+                    the Capture Deck below.
+                  </span>
+                  <button
+                    type="button"
+                    class="monitor-empty-cta"
+                    [disabled]="camera.isStarting()"
+                    (click)="toggleCamera()"
+                  >
+                    <span class="material-symbols-outlined">videocam</span>
+                    <span>{{
+                      camera.isStarting() ? 'REQUESTING ACCESS…' : 'START CAMERA'
+                    }}</span>
+                  </button>
+                </div>
+              } @else {
+                <div class="monitor-rec" [class.recording]="camera.isRecording()">
+                  <span class="monitor-rec-dot"></span>
+                  <span>{{
+                    camera.isRecording()
+                      ? 'REC ' + camera.recordingSeconds() + 's'
+                      : camera.qualityLabel()
+                  }}</span>
+                </div>
+
+                <!--
+                  The flip button lives on the picture, not in a control row:
+                  that is where an operator's thumb already is, and it names the
+                  angle it switches to so the tap is never a guess.
+                -->
+                @if (camera.angles().length > 1) {
+                  <button
+                    type="button"
+                    class="monitor-flip"
+                    [disabled]="!camera.canSwitchDevice()"
+                    [attr.aria-label]="
+                      'Switch camera angle, currently ' +
+                      camera.activeAngleLabel()
+                    "
+                    (click)="flipCameraAngle()"
+                  >
+                    <span class="material-symbols-outlined">cameraswitch</span>
+                    <span>{{ camera.activeAngleLabel() }}</span>
+                  </button>
+                }
+              }
+            }
+
+            <!--
+              One-tap recovery sits with the monitor but outside the surface
+              switch: a blocked capture is exactly where the operator is looking,
+              and a start that failed while the monitor sat on PROGRAM must not
+              become unreachable.
+            -->
+            @if (camera.canRetry() || camera.isRetrying()) {
+              <button
+                type="button"
+                class="camera-retry-chip"
+                [disabled]="camera.isRetrying()"
+                (click)="retryCamera()"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  [class.spin]="camera.isRetrying()"
+                  >refresh</span
+                >
+                <span>{{
+                  camera.isRetrying() ? 'RETRYING…' : 'RETRY CAPTURE'
+                }}</span>
+              </button>
+            } @else if (camera.status() === 'embedded') {
+              <button
+                type="button"
+                class="camera-retry-chip"
+                (click)="openCaptureInNewTab()"
+              >
+                <span class="material-symbols-outlined">open_in_new</span>
+                <span>OPEN IN NEW TAB</span>
+              </button>
+            }
+
+            <div class="monitor-hud">
+              <span class="monitor-transport" [class.live]="transportActive()">
+                <i class="monitor-dot"></i>{{ transportLabel() }}
+              </span>
+              <span class="monitor-source-tag">{{
+                showCameraSurface()
+                  ? (camera.sourceType() === 'screen' ? 'SCREEN SHARE' : 'CAMERA')
+                  : 'PROGRAM'
+              }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="monitor-transport-bar">
+          <button
+            type="button"
+            class="monitor-transport-button monitor-transport-primary"
+            (click)="videoEngine.togglePlay()"
+            [attr.aria-label]="
+              videoEngine.isPlaying() ? 'Pause transport' : 'Play transport'
+            "
+          >
+            <span class="material-symbols-outlined">{{
+              videoEngine.isPlaying() ? 'pause' : 'play_arrow'
+            }}</span>
+          </button>
+          <button
+            type="button"
+            class="monitor-transport-button"
+            (click)="stopTransport()"
+            aria-label="Stop and rewind the transport"
+          >
+            <span class="material-symbols-outlined">stop</span>
+          </button>
+          <input
+            type="range"
+            class="monitor-scrub"
+            aria-label="Scrub the playhead"
+            min="0"
+            [max]="videoEngine.duration()"
+            step="0.01"
+            [value]="videoEngine.currentTime()"
+            (input)="onMonitorSeek($event)"
+          />
+          <span class="monitor-readout"
+            >{{ videoEngine.currentTime() | number: '1.2-2' }}s</span
+          >
+          @if (activeVideoClip()) {
+            <button
+              type="button"
+              class="monitor-transport-button"
+              (click)="togglePlayerAudio()"
+              [attr.aria-label]="playerUnmuted() ? 'Mute the player' : 'Unmute the player'"
+            >
+              <span class="material-symbols-outlined">{{
+                playerUnmuted() ? 'volume_up' : 'volume_off'
+              }}</span>
+            </button>
+            <button
+              type="button"
+              class="monitor-transport-button"
+              (click)="downloadActiveClip()"
+              aria-label="Download the clip under the playhead"
+            >
+              <span class="material-symbols-outlined">download</span>
+            </button>
+          }
+          <button
+            type="button"
+            class="monitor-transport-button"
+            (click)="toggleMonitorFullscreen()"
+            aria-label="Toggle fullscreen monitor"
+          >
+            <span class="material-symbols-outlined">fullscreen</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- CAPTURE DECK: stills and takes straight off the sensor -->
+      <section class="capture-deck" aria-labelledby="capture-deck-title">
+        <div class="capture-deck-head">
+          <div class="capture-deck-title-block">
+            <span class="upgrade-eyebrow">Camera Capture</span>
+            <h2 id="capture-deck-title" class="capture-deck-title">
+              Capture Deck
+            </h2>
+          </div>
+          <span
+            class="camera-status-chip"
+            [class.live]="camera.isLive()"
+            [class.error]="!!camera.lastError()"
+            >{{ camera.statusLabel() }}</span
+          >
+        </div>
+
+        <div class="capture-deck-row">
+          <div class="capture-shutters">
+            <button
+              type="button"
+              class="capture-shutter capture-shutter-photo"
+              [disabled]="!camera.isLive()"
+              (click)="captureCameraPhoto()"
+              aria-label="Take a photo"
+            >
+              <span class="material-symbols-outlined">photo_camera</span>
+              <span class="capture-shutter-label">PHOTO</span>
+            </button>
+            <button
+              type="button"
+              class="capture-shutter capture-shutter-record"
+              [class.recording]="camera.isRecording()"
+              [disabled]="!camera.isLive() || !camera.recordingSupported()"
+              (click)="toggleCameraTake()"
+              [attr.aria-label]="
+                camera.isRecording() ? 'Stop the take' : 'Record a take'
+              "
+            >
+              <span class="material-symbols-outlined">{{
+                camera.isRecording() ? 'stop_circle' : 'fiber_manual_record'
+              }}</span>
+              <span class="capture-shutter-label">{{
+                camera.isRecording() ? camera.recordingSeconds() + 's' : 'RECORD'
+              }}</span>
+            </button>
+            <button
+              type="button"
+              class="capture-shutter"
+              [class.active]="camera.isLive()"
+              [disabled]="camera.isStarting()"
+              (click)="toggleCamera()"
+              [attr.aria-label]="camera.isLive() ? 'Stop camera' : 'Start camera'"
+            >
+              <span class="material-symbols-outlined">{{
+                camera.isLive() ? 'videocam_off' : 'videocam'
+              }}</span>
+              <span class="capture-shutter-label">{{
+                camera.isLive() ? 'STOP' : 'START'
+              }}</span>
+            </button>
+          </div>
+
+          <div class="capture-settings">
+            <label class="capture-field">
+              <span class="capture-field-label"
+                >Quality · {{ camera.maxResolutionLabel() }}</span
+              >
+              <select
+                class="capture-select"
+                aria-label="Capture quality"
+                [disabled]="camera.isRecording()"
+                [ngModel]="camera.quality()"
+                (ngModelChange)="changeCaptureQuality($event)"
+              >
+                @for (option of captureQualities; track option.id) {
+                  <option [value]="option.id">{{ option.label }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="capture-field">
+              <span class="capture-field-label">Input · {{ camera.deviceName() }}</span>
+              <select
+                class="capture-select"
+                aria-label="Camera input device"
+                [disabled]="!camera.canSwitchDevice() || camera.devices().length === 0"
+                [ngModel]="camera.selectedDeviceId()"
+                (ngModelChange)="selectCameraDevice($event)"
+              >
+                @if (camera.devices().length === 0) {
+                  <option value="">No camera detected</option>
+                }
+                @for (device of camera.devices(); track device.deviceId) {
+                  <option [value]="device.deviceId">{{ device.label }}</option>
+                }
+              </select>
+            </label>
+
+            <div class="capture-angles">
+              <span class="capture-field-label"
+                >Angle · {{ camera.activeAngleLabel() }}</span
+              >
+              <div
+                class="capture-angle-rail"
+                role="group"
+                aria-label="Camera angle"
+              >
+                @for (angle of camera.angles(); track angle.id) {
+                  <button
+                    type="button"
+                    class="capture-angle"
+                    [class.active]="angle.isActive"
+                    [disabled]="!camera.canSwitchDevice()"
+                    [attr.aria-pressed]="angle.isActive"
+                    (click)="selectCameraAngle(angle)"
+                  >
+                    <span class="material-symbols-outlined">cameraswitch</span>
+                    <span>{{ angle.label }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="capture-toggles">
+              <button
+                type="button"
+                class="capture-toggle"
+                [class.active]="camera.mirrored()"
+                [attr.aria-pressed]="camera.mirrored()"
+                (click)="toggleCameraMirror()"
+              >
+                MIRROR
+              </button>
+              <button
+                type="button"
+                class="capture-toggle"
+                [class.active]="camera.isLive() && camera.sourceType() === 'screen'"
+                [attr.aria-pressed]="
+                  camera.isLive() && camera.sourceType() === 'screen'
+                "
+                [disabled]="!camera.screenShareSupported()"
+                (click)="captureScreen()"
+              >
+                SCREEN
+              </button>
+            </div>
+          </div>
+
+          <div class="capture-tray" aria-label="Captured photos and takes">
+            <div class="capture-tray-head">
+              <span>Session Captures</span>
+              <span class="capture-tray-count">{{ captureCount() }}</span>
+            </div>
+            @if (deckCaptures().length === 0) {
+              <p class="capture-tray-empty">
+                Photos and takes appear here the moment they are captured, ready
+                to download or jump back to on the timeline.
+              </p>
+            } @else {
+              <ul class="capture-tray-list">
+                @for (capture of deckCaptures(); track capture.id) {
+                  <li class="capture-card">
+                    @if (capture.kind === 'photo') {
+                      <img
+                        class="capture-thumb"
+                        [src]="capture.url"
+                        [alt]="capture.name"
+                      />
+                    } @else {
+                      <video
+                        class="capture-thumb"
+                        [src]="capture.url"
+                        muted
+                        playsinline
+                        preload="metadata"
+                      ></video>
+                    }
+                    <div class="capture-meta">
+                      <span class="capture-name">{{ capture.name }}</span>
+                      <span class="capture-sub">
+                        @if (capture.width > 0) {
+                          {{ capture.width }}×{{ capture.height }} ·
+                        }
+                        {{ capture.sizeLabel }}{{
+                          capture.ingested ? ' · on timeline' : ''
+                        }}
+                      </span>
+                    </div>
+                    <div class="capture-card-actions">
+                      <button
+                        type="button"
+                        (click)="downloadCapture(capture)"
+                        [attr.aria-label]="'Download ' + capture.name"
+                      >
+                        <span class="material-symbols-outlined">download</span>
+                      </button>
+                      <button
+                        type="button"
+                        (click)="locateCapture(capture)"
+                        [attr.aria-label]="'Show ' + capture.name + ' on the timeline'"
+                      >
+                        <span class="material-symbols-outlined">my_location</span>
+                      </button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </div>
+
+        <p class="capture-detail">{{ camera.statusDetail() }}</p>
+        @if (camera.lastError()) {
+          <p class="camera-error">{{ camera.lastError() }}</p>
+        }
+        @if (camera.previewWarning()) {
+          <p class="camera-warning">{{ camera.previewWarning() }}</p>
+        }
+      </section>
+
+      <!-- TIMELINE EDITOR: Responsive Height -->
+      <section
+        class="timeline-section bg-surface/50 p-4 md:p-6 border-t border-border"
+      >
+        <div class="timeline-head flex items-center justify-between">
+          <div class="flex items-center gap-4 md:gap-6">
+            <h3
+              class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >
+              Master Timeline
+            </h3>
+            <div class="zoom-cluster">
+              <button
+                (click)="zoomOut()"
+                class="zoom-button"
+                aria-label="Zoom timeline out"
+              >
+                <span class="material-symbols-outlined text-sm">remove</span>
+              </button>
+              <span class="text-[9px] md:text-[10px] font-mono text-text-dim"
+                >{{ zoomLevel() * 100 | number: '1.0-0' }}%</span
+              >
+              <button
+                (click)="zoomIn()"
+                class="zoom-button"
+                aria-label="Zoom timeline in"
+              >
+                <span class="material-symbols-outlined text-sm">add</span>
+              </button>
+            </div>
+          </div>
+          <div class="timeline-toolbar">
+            <label class="timeline-toggle">
+              <input
+                type="checkbox"
+                [checked]="videoEngine.snapToBeat()"
+                (change)="videoEngine.snapToBeat.set($any($event.target).checked)"
+              />
+              <span>Beat snap</span>
+            </label>
+            <button type="button" class="timeline-tool" (click)="splitAtPlayhead()">CUT</button>
+            <button type="button" class="timeline-tool" (click)="duplicateSelectedClip()">DUPLICATE</button>
+            <button type="button" class="timeline-tool timeline-tool-danger" (click)="deleteSelectedClip()">DELETE</button>
+            <input
+              class="marker-input"
+              type="text"
+              aria-label="Marker label"
+              placeholder="Marker label"
+              [ngModel]="markerDraft()"
+              (ngModelChange)="markerDraft.set($event)"
+              (keyup.enter)="addMarkerAtPlayhead()"
+            />
+            <button type="button" class="timeline-tool" (click)="addMarkerAtPlayhead()">MARK</button>
+            <button type="button" class="timeline-tool" (click)="seekRelativeMarker(-1)">PREV</button>
+            <button type="button" class="timeline-tool" (click)="seekRelativeMarker(1)">NEXT</button>
+          </div>
+          <div class="selected-clip-toolbar" *ngIf="selectedClip() as clip">
+            <span class="selected-clip-name">{{ clip.name }}</span>
+            <span>{{ clip.startTime | number: '1.2-2' }}s · {{ clip.duration | number: '1.2-2' }}s</span>
+            <span class="selected-clip-bars">{{ selectedClipBars() }}</span>
+            <button type="button" (click)="nudgeSelectedClip(-1 / 30)">−1F</button>
+            <button type="button" (click)="nudgeSelectedClip(1 / 30)">+1F</button>
+            <select aria-label="Move selected clip to lane" [ngModel]="selectedClipLane()" (ngModelChange)="moveSelectedClipToLane($event)">
+              @for (track of trackOptions(); track track.id) {
+                <option [value]="track.id" [disabled]="track.locked">{{ track.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!--
+          #timelineScroller is the pinch/scroll viewport. Pointer events here
+          track two-finger contact so a pinch scales the timeline; a one-finger
+          drag still scrolls natively because `touch-action: pan-x pan-y` keeps
+          panning with the browser while pinching is handled in JS.
+        -->
+        <div
+          #timelineScroller
+          class="timeline-scroller-touch flex-grow overflow-auto custom-scrollbar relative"
+          (scroll)="onTimelineScroll($event)"
+          (pointerdown)="onTimelinePointerDown($event)"
+          (pointermove)="onTimelinePointerMove($event)"
+          (pointerup)="onTimelinePointerUp($event)"
+          (pointercancel)="onTimelinePointerUp($event)"
+        >
+          <div
+            class="flex flex-col gap-2 md:gap-3 min-w-full cursor-pointer"
+            [style.width.px]="timelineWidthPx()"
+            (click)="onTimelineClick($event)"
+            title="Tap or click the timeline to move the playhead"
+          >
+            <!--
+              Press-and-drag scrub surface. On Android, a touch drag here fires
+              pointermove with pointerType 'touch'; without these bindings the
+              ruler only responded to discrete taps and the scrub was inert.
+            -->
+            <div
+              class="timeline-ruler"
+              aria-label="Timeline beat ruler"
+              (pointerdown)="onRulerPointerDown($event)"
+              (pointermove)="onRulerPointerMove($event)"
+              (pointerup)="onRulerPointerUp($event)"
+              (pointercancel)="onRulerPointerUp($event)"
+            >
+              @for (tick of rulerTicks(); track tick.time) {
+                <button
+                  type="button"
+                  class="timeline-tick"
+                  [class.bar]="tick.isBar"
+                  [style.left.px]="tick.time * pxPerSecond()"
+                  (click)="onTickClick($event, tick.time)"
+                >
+                  <span>{{ tick.time | number: '1.0-0' }}</span>
+                </button>
+              }
+              @for (marker of visibleMarkers(); track marker.id) {
+                <button
+                  type="button"
+                  class="timeline-marker"
+                  [style.left.px]="marker.time * pxPerSecond()"
+                  [title]="marker.label + ' — tap to jump, double-tap to remove'"
+                  [attr.aria-label]="'Jump to marker ' + marker.label"
+                  (click)="onMarkerClick($event, marker.id)"
+                  (dblclick)="$event.stopPropagation(); removeMarker(marker.id)"
+                >
+                  <span>{{ marker.label }}</span>
+                </button>
+              }
+            </div>
+            @for (track of videoEngine.tracks(); track track.id) {
+              <div
+                class="h-10 md:h-12 bg-background/50 rounded-lg border border-border relative"
+              >
+                <!--
+                  Lane label. `track-label` pins it to the left edge of the lane
+                  viewport (see the stylesheet), so panning a long timeline never
+                  loses track of which lane you are editing.
+                -->
+                <div
+                  class="track-label w-20 md:w-24 bg-surface/90 backdrop-blur-sm flex items-center px-2 md:px-3 border-r border-border"
+                >
+                  <span
+                    class="text-[7px] md:text-[8px] font-black text-text-dim uppercase truncate"
+                    >{{ track.name }}</span
+                  >
+                </div>
+
+                @for (clip of track.clips; track clip.id) {
+                  <div
+                    class="clip-block absolute h-6 md:h-8 top-1 md:top-2 rounded-md border border-brand-primary/30 bg-brand-primary/10 flex items-center px-2 cursor-pointer hover:bg-brand-primary/20 transition-all z-10"
+                    [class.ring-2]="selectedClipId() === clip.id"
+                    [class.ring-brand-primary]="selectedClipId() === clip.id"
+                    [style.left.px]="clip.startTime * pxPerSecond()"
+                    [style.width.px]="clip.duration * pxPerSecond()"
+                    (pointerdown)="onClipPointerDown($event, clip)"
+                    (pointermove)="onClipPointerMove($event)"
+                    (pointerup)="onClipPointerUp($event)"
+                    (pointercancel)="onClipPointerUp($event)"
+                  >
+                    <span
+                      class="text-[8px] md:text-[9px] font-bold text-text-main truncate"
+                      >{{ clip.name }}</span
+                    >
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Playhead -->
+            <div
+              class="absolute top-0 bottom-0 w-px bg-red-500 z-30 pointer-events-none"
+              [style.left.px]="videoEngine.currentTime() * pxPerSecond()"
+            >
+              <div
+                class="w-1.5 h-1.5 bg-red-500 rounded-full -ml-1 -mt-1"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- SIDEBAR: AI DIRECTOR -->
+    <aside
+      class="cinema-aside w-full lg:w-80 bg-surface/30 p-6 md:p-8 flex flex-col gap-6 md:gap-8 shrink-0"
+    >
+      <div class="flex flex-col gap-4 md:gap-6">
+        <h2
+          class="text-md md:text-lg font-black text-text-main uppercase tracking-tight"
+        >
+          AI Strategic Director
+        </h2>
+
+        <div
+          class="p-4 rounded-xl bg-brand-primary/5 border border-brand-primary/10 border-l-4 border-l-brand-primary italic"
+        >
+          <p
+            class="text-[9px] md:text-[10px] text-text-main leading-relaxed uppercase font-bold"
+          >
+            "{{ aiFeedback() }}"
+          </p>
+        </div>
+
+        <!--
+          Projects. A film or a broadcast rundown is not a single sitting, so the
+          edit has to outlive the tab — this is where it is written down and
+          where an old one is reopened.
+        -->
+        <section
+          class="project-console"
+          aria-labelledby="project-console-title"
+          [class.section-collapsed]="isSectionCollapsed('projects')"
+        >
+          <div class="director-console-heading" data-section-head>
+            <div>
+              <span class="upgrade-eyebrow">Long-Form Work</span>
+              <h3 id="project-console-title" class="director-console-title">
+                Projects
+              </h3>
+            </div>
+            <div class="section-head-actions">
+              <span
+                class="director-state"
+                [class.busy]="cinemaProjects.isBusy()"
+                >{{
+                  cinemaProjects.activeProject()?.name || 'UNSAVED'
+                }}</span
+              >
+              @if (isStackedLayout()) {
+                <button
+                  type="button"
+                  class="section-toggle"
+                  [attr.aria-expanded]="!isSectionCollapsed('projects')"
+                  [attr.aria-label]="
+                    isSectionCollapsed('projects')
+                      ? 'Expand Projects'
+                      : 'Collapse Projects'
+                  "
+                  (click)="toggleSection('projects')"
+                >
+                  <span class="material-symbols-outlined">expand_more</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <label class="director-field">
+            <span>Project name</span>
+            <input
+              type="text"
+              maxlength="60"
+              placeholder="Untitled Cinema Project"
+              [ngModel]="projectName()"
+              (ngModelChange)="projectName.set($event)"
+            />
+          </label>
+
+          <div class="director-actions director-actions-compact">
+            <button
+              type="button"
+              class="director-button director-button-primary"
+              [disabled]="cinemaProjects.isBusy()"
+              (click)="saveProject()"
+            >
+              {{
+                cinemaProjects.activeProjectId() ? 'SAVE PROJECT' : 'SAVE AS NEW'
+              }}
+            </button>
+            <button
+              type="button"
+              class="director-button"
+              [disabled]="cinemaProjects.isBusy()"
+              (click)="startNewProject()"
+            >
+              NEW PROJECT
+            </button>
+          </div>
+
+          @if (cinemaProjects.storageNotice(); as storageNotice) {
+            <p class="camera-error">{{ storageNotice }}</p>
+          } @else if (!cinemaProjects.hasProjects()) {
+            <p class="panel-detail">
+              No saved projects yet. Name the edit and save it to come back to it
+              later.
+            </p>
+          } @else {
+            <ul class="project-list">
+              @for (project of cinemaProjects.projects(); track project.id) {
+                <li
+                  class="project-card"
+                  [class.active]="cinemaProjects.activeProjectId() === project.id"
+                >
+                  <button
+                    type="button"
+                    class="project-open"
+                    [attr.aria-label]="'Open ' + project.name"
+                    (click)="openProject(project.id)"
+                  >
+                    <span class="project-name">{{ project.name }}</span>
+                    <span class="project-meta"
+                      >{{ project.presetName }} · {{ project.clipCount }} clip(s) ·
+                      {{ project.markerCount }} marker(s)</span
+                    >
+                    <span class="project-meta"
+                      >{{ project.updatedAt | date: 'MMM d, h:mm a' }}</span
+                    >
+                    @if (project.needsMediaCount > 0) {
+                      <span class="project-warning"
+                        >{{ project.needsMediaCount }} clip(s) need media
+                        re-ingested</span
+                      >
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    class="project-delete"
+                    [attr.aria-label]="'Delete ' + project.name"
+                    (click)="deleteProject(project.id, $event)"
+                  >
+                    <span class="material-symbols-outlined text-base">delete</span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (cinemaProjects.lastError()) {
+            <p class="camera-error">{{ cinemaProjects.lastError() }}</p>
+          }
+        </section>
+
+        <div
+          class="production-directives-panel"
+          [class.section-collapsed]="isSectionCollapsed('directives')"
+        >
+          <div class="panel-head" data-section-head>
+            <h3
+              class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >
+              Mode Directives
+            </h3>
+            <div class="section-head-actions">
+              <button
+                type="button"
+                class="safe-zone-toggle"
+                (click)="videoEngine.safeZoneEnabled.update((value) => !value)"
+              >
+                {{
+                  videoEngine.safeZoneEnabled()
+                    ? 'Safe Zone On'
+                    : 'Safe Zone Off'
+                }}
+              </button>
+              @if (isStackedLayout()) {
+                <button
+                  type="button"
+                  class="section-toggle"
+                  [attr.aria-expanded]="!isSectionCollapsed('directives')"
+                  [attr.aria-label]="
+                    isSectionCollapsed('directives')
+                      ? 'Expand mode directives'
+                      : 'Collapse mode directives'
+                  "
+                  (click)="toggleSection('directives')"
+                >
+                  <span class="material-symbols-outlined">expand_more</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="production-directives-list">
+            @for (directive of productionDirectives(); track directive.title) {
+              <div class="production-directive-row">
+                <p class="production-directive-title">{{ directive.title }}</p>
+                <p class="production-directive-detail">
+                  {{ directive.detail }}
+                </p>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- The director console is deliberately inline with the editor: AI can
+             stage work, but every generated decision remains visible and editable. -->
+        <section
+          class="director-console"
+          aria-labelledby="director-console-title"
+          [class.section-collapsed]="isSectionCollapsed('director')"
+        >
+          <div class="director-console-heading" data-section-head>
+            <div>
+              <span class="upgrade-eyebrow">S.M.U.V.E. Control Surface</span>
+              <h3 id="director-console-title" class="director-console-title">Director Console</h3>
+            </div>
+            <div class="section-head-actions">
+              <span class="director-state" [class.busy]="director.isPlanning()">
+                {{ director.isPlanning() ? 'Planning…' : director.shotCount() + ' shots' }}
+              </span>
+              @if (isStackedLayout()) {
+                <button
+                  type="button"
+                  class="section-toggle"
+                  [attr.aria-expanded]="!isSectionCollapsed('director')"
+                  [attr.aria-label]="
+                    isSectionCollapsed('director')
+                      ? 'Expand the director console'
+                      : 'Collapse the director console'
+                  "
+                  (click)="toggleSection('director')"
+                >
+                  <span class="material-symbols-outlined">expand_more</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <label class="director-field">
+            <span>Creative brief</span>
+            <textarea
+              rows="3"
+              placeholder="Describe the story, performance, world, or stream format…"
+              [ngModel]="director.brief()"
+              (ngModelChange)="director.brief.set($event)"
+            ></textarea>
+          </label>
+          <div class="director-actions">
+            <button
+              type="button"
+              class="director-button director-button-primary"
+              [disabled]="director.isPlanning()"
+              (click)="generateShotPlan()"
+            >
+              {{ director.isPlanning() ? 'S.M.U.V.E. IS THINKING' : 'GENERATE SHOT PLAN' }}
+            </button>
+            <button
+              type="button"
+              class="director-button"
+              [disabled]="!director.plan()"
+              (click)="stageShotPlan()"
+            >
+              STAGE ON TIMELINE
+            </button>
+          </div>
+          @if (director.plan(); as plan) {
+            <div class="director-plan-card">
+              <div class="director-plan-title">{{ plan.title }}</div>
+              <p>{{ plan.logline }}</p>
+              <div class="director-plan-meta">
+                <span>{{ plan.origin === 'smuve' ? 'AI DIRECTED' : 'LOCAL FALLBACK' }}</span>
+                <span>{{ director.plannedRuntime() | number: '1.0-0' }}s planned</span>
+              </div>
+            </div>
+          }
+
+          <div class="command-console">
+            <div class="command-console-label">Interactive direction</div>
+            <div class="command-row">
+              <input
+                type="text"
+                aria-label="Cinema command"
+                placeholder="Try: roll, cut on the beat, mark scene, go live…"
+                [ngModel]="commandInput()"
+                (ngModelChange)="commandInput.set($event)"
+                (keyup.enter)="runTypedCommand()"
+              />
+              <button type="button" class="director-button" (click)="runTypedCommand()">RUN</button>
+            </div>
+            <div class="director-actions director-actions-compact">
+              <button type="button" class="director-button" [class.active]="voiceEnabled()" (click)="toggleVoiceControl()">
+                {{ voiceEnabled() ? 'VOICE ARMED' : 'ARM VOICE' }}
+              </button>
+              <button type="button" class="director-button" (click)="autoStructureTimeline()">STRUCTURE {{ videoEngine.productionMode() === 'movie' ? 'ACTS' : 'SECTIONS' }}</button>
+              <button type="button" class="director-button" (click)="autoCutToBeat()">AUTO-CUT TO BEAT</button>
+            </div>
+          </div>
+        </section>
+
+        @if (videoEngine.productionMode() === 'stream') {
+          <section class="broadcast-console" aria-labelledby="broadcast-console-title">
+            <div class="director-console-heading">
+              <div>
+                <span class="upgrade-eyebrow">Live Program</span>
+                <h3 id="broadcast-console-title" class="director-console-title">Broadcast Kit</h3>
+              </div>
+              <span class="director-state" [class.busy]="countdownLabel()">{{ countdownLabel() || 'STANDBY' }}</span>
+            </div>
+            <label class="director-field">
+              <span>Platform</span>
+              <select [ngModel]="livePlatform()" (ngModelChange)="livePlatform.set($event)">
+                @for (platform of livePlatforms; track platform) {
+                  <option [value]="platform">{{ platform | uppercase }}</option>
+                }
+              </select>
+            </label>
+            <div class="broadcast-input-grid">
+              <input type="text" aria-label="Lower third title" placeholder="Host / show title" [ngModel]="lowerThird().title" (ngModelChange)="videoEngine.setLowerThird({ title: $event })" />
+              <input type="text" aria-label="Lower third subtitle" placeholder="Topic / subtitle" [ngModel]="lowerThird().subtitle" (ngModelChange)="videoEngine.setLowerThird({ subtitle: $event })" />
+            </div>
+            <div class="director-actions director-actions-compact">
+              <button type="button" class="director-button" [class.active]="lowerThird().enabled" (click)="toggleLowerThird()">LOWER THIRD</button>
+              <button type="button" class="director-button director-button-primary" (click)="fireBroadcastCue()">{{ countdownLabel() ? 'CANCEL CUE' : '3…2…1 CUE' }}</button>
+              <button type="button" class="director-button" (click)="goLive()">GO LIVE</button>
+              <button type="button" class="director-button" (click)="endLive()">END LIVE</button>
+            </div>
+          </section>
+        }
+
+        <div
+          class="space-y-4"
+          [class.section-collapsed]="isSectionCollapsed('assets')"
+        >
+          <div class="section-head-row" data-section-head>
+            <h3
+              class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >
+              Neural Assets
+            </h3>
+            @if (isStackedLayout()) {
+              <button
+                type="button"
+                class="section-toggle"
+                [attr.aria-expanded]="!isSectionCollapsed('assets')"
+                [attr.aria-label]="
+                  isSectionCollapsed('assets')
+                    ? 'Expand neural assets'
+                    : 'Collapse neural assets'
+                "
+                (click)="toggleSection('assets')"
+              >
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+            }
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <button
+              (click)="generateImage()"
+              class="h-20 md:h-24 rounded-xl bg-surface border border-border hover:border-brand-primary/40 transition-all flex flex-col items-center justify-center gap-2 group"
+            >
+              <span
+                class="material-symbols-outlined text-brand-primary group-hover:scale-110 transition-transform"
+                >auto_fix</span
+              >
+              <span class="text-[8px] font-black uppercase text-text-dim"
+                >Synthesize</span
+              >
+            </button>
+            <div
+              class="h-20 md:h-24 rounded-xl bg-surface border border-border border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer relative"
+            >
+              <input
+                type="file"
+                (change)="onFileUpload($event)"
+                class="absolute inset-0 opacity-0 cursor-pointer"
+              />
+              <span class="material-symbols-outlined text-text-dim"
+                >cloud_upload</span
+              >
+              <span class="text-[8px] font-black uppercase text-text-dim"
+                >Ingest</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="space-y-4"
+          [class.section-collapsed]="isSectionCollapsed('fx')"
+        >
+          <div class="section-head-row" data-section-head>
+            <h3
+              class="text-[9px] md:text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >
+              FX Matrix
+            </h3>
+            @if (isStackedLayout()) {
+              <button
+                type="button"
+                class="section-toggle"
+                [attr.aria-expanded]="!isSectionCollapsed('fx')"
+                [attr.aria-label]="
+                  isSectionCollapsed('fx')
+                    ? 'Expand the FX matrix'
+                    : 'Collapse the FX matrix'
+                "
+                (click)="toggleSection('fx')"
+              >
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+            }
+          </div>
+          <div class="grid grid-cols-1 gap-2">
+            <label
+              class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"
+            >
+              <span
+                class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+                >Filter</span
+              >
+              <select
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                aria-label="Colour look"
+                [ngModel]="selectedFilter()"
+                (ngModelChange)="selectedFilter.set($any($event))"
+              >
+                @for (look of clipFilters; track look.id) {
+                  <option [value]="look.id">{{ look.label }}</option>
+                }
+              </select>
+            </label>
+
+            <label
+              class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"
+            >
+              <span
+                class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+                >Transition</span
+              >
+              <select
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                aria-label="Scene transition"
+                [ngModel]="selectedTransition()"
+                (ngModelChange)="selectedTransition.set($any($event))"
+              >
+                @for (move of clipTransitions; track move.id) {
+                  <option [value]="move.id">{{ move.label }}</option>
+                }
+              </select>
+            </label>
+
+            <label
+              class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"
+            >
+              <span
+                class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+                >Transition Blend
+                {{ transitionDuration() | number: '1.1-1' }}s</span
+              >
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                class="w-full accent-brand-primary"
+                [ngModel]="transitionDuration()"
+                (ngModelChange)="transitionDuration.set(+$event)"
+              />
+            </label>
+
+            <label
+              class="p-3 bg-background/50 rounded-lg border border-border grid gap-2"
+            >
+              <span
+                class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+                >Edge Trim {{ trimAmount() | number: '1.1-1' }}s</span
+              >
+              <input
+                type="range"
+                min="0"
+                max="3"
+                step="0.1"
+                class="w-full accent-brand-primary"
+                [ngModel]="trimAmount()"
+                (ngModelChange)="trimAmount.set(+$event)"
+              />
+            </label>
+          </div>
+
+          <button
+            type="button"
+            class="btn-pro btn-pro-primary w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+            (click)="applyEnhancementsToActiveClips()"
+          >
+            APPLY FX TO ACTIVE CLIPS
+          </button>
+          <button
+            type="button"
+            class="btn-pro w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+            (click)="gradeWholeTimeline()"
+          >
+            GRADE WHOLE TIMELINE
+          </button>
+          <div
+            class="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border"
+          >
+            <span
+              class="text-[9px] md:text-[10px] font-bold text-text-main uppercase"
+              >Upscale 4K Uploads</span
+            >
+            <input
+              type="checkbox"
+              class="w-4 h-4 accent-brand-primary"
+              aria-label="Upscale 4K uploads"
+              [ngModel]="highQualityEnhancer()"
+              (ngModelChange)="highQualityEnhancer.set(!!$event)"
+            />
+          </div>
+
+          <!-- FX rack: every dial is non-destructive and composites over the frame -->
+          <div class="fx-rack" aria-labelledby="fx-rack-title">
+            <h4 id="fx-rack-title" class="fx-rack-title">FX Rack</h4>
+            @for (effect of clipEffects; track effect.id) {
+              <label class="fx-dial" [attr.title]="effect.hint">
+                <span class="fx-dial-head">
+                  <span>{{ effect.label }}</span>
+                  <span class="fx-dial-value"
+                    >{{ (fxRack()[effect.id] * 100) | number: '1.0-0' }}%</span
+                  >
+                </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  class="w-full accent-brand-primary"
+                  [attr.aria-label]="effect.label"
+                  [ngModel]="fxRack()[effect.id]"
+                  (ngModelChange)="setFxValue(effect.id, +$event)"
+                />
+              </label>
+            }
+            <button
+              type="button"
+              class="btn-pro btn-pro-primary w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+              (click)="applyFxRackToActiveClips()"
+            >
+              APPLY FX RACK
+            </button>
+          </div>
+
+          <!-- Camera moves and speed, applied to the selected clip -->
+          <div class="fx-rack" aria-labelledby="motion-title">
+            <h4 id="motion-title" class="fx-rack-title">Motion &amp; Speed</h4>
+            <label class="fx-dial">
+              <span class="fx-dial-head"><span>Camera Move</span></span>
+              <select
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                aria-label="Camera move"
+                [ngModel]="selectedMotion()"
+                (ngModelChange)="selectedMotion.set($any($event))"
+              >
+                @for (motion of clipMotions; track motion.id) {
+                  <option [value]="motion.id">{{ motion.label }}</option>
+                }
+              </select>
+            </label>
+            <label class="fx-dial">
+              <span class="fx-dial-head">
+                <span>Playback Speed</span>
+                <span class="fx-dial-value">{{ selectedSpeed() | number: '1.2-2' }}×</span>
+              </span>
+              <input
+                type="range"
+                [min]="speedEnvelope.min"
+                [max]="speedEnvelope.max"
+                step="0.05"
+                class="w-full accent-brand-primary"
+                aria-label="Playback speed"
+                [ngModel]="selectedSpeed()"
+                (ngModelChange)="selectedSpeed.set(+$event)"
+              />
+            </label>
+            <button
+              type="button"
+              class="btn-pro w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+              (click)="applyMotionToSelectedClip()"
+            >
+              APPLY TO SELECTED CLIP
+            </button>
+          </div>
+
+          <!-- Title cards: the text-editing surface -->
+          <div class="fx-rack" aria-labelledby="title-editor-title">
+            <h4 id="title-editor-title" class="fx-rack-title">Title Cards</h4>
+            <label class="fx-dial">
+              <span class="fx-dial-head"><span>Title</span></span>
+              <input
+                type="text"
+                maxlength="120"
+                placeholder="Scene title"
+                aria-label="Title text"
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                [ngModel]="titleText()"
+                (ngModelChange)="titleText.set($event)"
+              />
+            </label>
+            <label class="fx-dial">
+              <span class="fx-dial-head"><span>Subtitle</span></span>
+              <input
+                type="text"
+                maxlength="160"
+                placeholder="Optional subtitle"
+                aria-label="Title subtitle"
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                [ngModel]="titleSubtitle()"
+                (ngModelChange)="titleSubtitle.set($event)"
+              />
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="fx-dial">
+                <span class="fx-dial-head"><span>Style</span></span>
+                <select
+                  class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                  aria-label="Title style"
+                  [ngModel]="titleStyle()"
+                  (ngModelChange)="titleStyle.set($any($event))"
+                >
+                  <option value="title-card">Title Card</option>
+                  <option value="lower-third">Lower Third</option>
+                  <option value="caption">Caption</option>
+                  <option value="centered">Centered</option>
+                </select>
+              </label>
+              <label class="fx-dial">
+                <span class="fx-dial-head"><span>Position</span></span>
+                <select
+                  class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                  aria-label="Title position"
+                  [ngModel]="titlePosition()"
+                  (ngModelChange)="titlePosition.set($any($event))"
+                >
+                  <option value="top">Top</option>
+                  <option value="center">Center</option>
+                  <option value="bottom">Bottom</option>
+                </select>
+              </label>
+            </div>
+            <label class="fx-dial">
+              <span class="fx-dial-head">
+                <span>Hold</span>
+                <span class="fx-dial-value">{{ titleDuration() }}s</span>
+              </span>
+              <input
+                type="range"
+                min="1"
+                max="15"
+                step="1"
+                class="w-full accent-brand-primary"
+                aria-label="Title hold duration"
+                [ngModel]="titleDuration()"
+                (ngModelChange)="titleDuration.set(+$event)"
+              />
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest h-10"
+                (click)="addTitleCard()"
+              >
+                CUT TITLE IN
+              </button>
+              <button
+                type="button"
+                class="btn-pro text-[9px] md:text-[10px] font-black tracking-widest h-10"
+                (click)="updateSelectedTitle()"
+              >
+                UPDATE SELECTED
+              </button>
+            </div>
+            <button
+              type="button"
+              class="btn-pro w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+              (click)="loadSelectedTitleIntoEditor()"
+            >
+              LOAD SELECTED CARD
+            </button>
+          </div>
+
+          <!-- Voice overlay: narration cut onto the AI Voiceovers lane -->
+          <div class="fx-rack" aria-labelledby="narration-title">
+            <h4 id="narration-title" class="fx-rack-title">Voice Overlay</h4>
+            <label class="fx-dial">
+              <span class="fx-dial-head"><span>Narration Line</span></span>
+              <textarea
+                rows="3"
+                maxlength="600"
+                placeholder="What the narrator says over this scene…"
+                aria-label="Narration line"
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                [ngModel]="narrationText()"
+                (ngModelChange)="narrationText.set($event)"
+              ></textarea>
+            </label>
+            <label class="fx-dial">
+              <span class="fx-dial-head"><span>Voice</span></span>
+              <select
+                class="bg-surface border border-border rounded-md px-2 py-1 text-[10px] text-text-main"
+                aria-label="Narration voice"
+                [ngModel]="narrationVoice()"
+                (ngModelChange)="narrationVoice.set($event)"
+              >
+                <option value="">S.M.U.V.E Default</option>
+                @for (voice of narrationVoices; track voice) {
+                  <option [value]="voice">{{ voice }}</option>
+                }
+              </select>
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                class="btn-pro btn-pro-primary text-[9px] md:text-[10px] font-black tracking-widest h-10"
+                (click)="addNarrationLine()"
+              >
+                CUT NARRATION IN
+              </button>
+              <button
+                type="button"
+                class="btn-pro text-[9px] md:text-[10px] font-black tracking-widest h-10"
+                (click)="speakSelectedVoiceover()"
+              >
+                SPEAK SELECTED
+              </button>
+            </div>
+          </div>
+
+          <!-- Long-form structure: cut the visuals lane into scene cards -->
+          <div class="fx-rack" aria-labelledby="structure-title">
+            <h4 id="structure-title" class="fx-rack-title">Long-Form Structure</h4>
+            <button
+              type="button"
+              class="btn-pro w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+              (click)="cutTimelineIntoScenes()"
+            >
+              CUT LANE INTO SCENES
+            </button>
+          </div>
+
+          <!-- Social streaming cutdowns -->
+          <div class="fx-rack" aria-labelledby="cutdown-title">
+            <h4 id="cutdown-title" class="fx-rack-title">Social Cutdowns</h4>
+            @for (cutdown of socialCutdowns; track cutdown.id) {
+              <button
+                type="button"
+                class="cutdown-button"
+                [attr.aria-label]="'Arm ' + cutdown.platform + ' cutdown'"
+                (click)="applySocialCutdown(cutdown)"
+              >
+                <span class="cutdown-name">{{ cutdown.platform }}</span>
+                <span class="cutdown-meta"
+                  >{{ cutdown.aspectRatio }} · {{ cutdown.seconds }}s</span
+                >
+              </button>
+            }
+            @if (cutdownAspect()) {
+              <button
+                type="button"
+                class="btn-pro w-full text-[9px] md:text-[10px] font-black tracking-widest h-10"
+                (click)="clearSocialCutdown()"
+              >
+                RELEASE CUTDOWN
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-6 border-t border-border space-y-4">
+        <div class="p-4 rounded-xl bg-surface border border-border">
+          <div
+            class="flex justify-between text-[9px] font-black uppercase mb-2"
+          >
+            <span class="text-text-dim">Render Progress</span>
+            <span class="text-brand-primary">
+              @if (isExporting()) {
+                {{ exportProgress() }}%
+              } @else if (exportProgress() === 100) {
+                Done
+              } @else {
+                Idle
+              }
+            </span>
+          </div>
+          <div class="w-full h-1 bg-border rounded-full overflow-hidden">
+            <div
+              class="h-full bg-brand-primary transition-all duration-500"
+              [style.width.%]="exportProgress()"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

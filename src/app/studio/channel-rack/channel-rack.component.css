@@ -1,0 +1,1045 @@
+/* ===========================================================
+   S.M.U.V.E. Composer — Channel Rack
+   FL Studio Mobile pattern — instrument slots + step grid
+   City Skylines After Dark — Stage Edition
+   =========================================================== */
+
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--ivory-deep, #06091a);
+  color: var(--espresso-text);
+  font-family: var(--font-sans);
+  overflow-y: auto; overflow-x: hidden;
+}
+
+.rack-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--ivory-deep);
+}
+
+.rack-header {
+  height: 48px;
+  background: linear-gradient(
+    180deg,
+    var(--ivory-panel) 0%,
+    var(--ivory-deep) 100%
+  );
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--ivory-line);
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+.rack-header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--espresso-text);
+}
+
+.rack-header small {
+  font-size: 9px;
+  color: var(--teal-500);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.channel-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.channel-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ivory-line);
+  background: var(--ivory-paper);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  min-height: 52px;
+}
+
+.channel-item:hover:not(.selected) {
+  background: var(--teal-50);
+  border-color: var(--ivory-line);
+}
+
+.channel-item.selected {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+  box-shadow:
+    0 0 0 1px var(--teal-500),
+    0 0 18px var(--teal-soft-glow);
+  z-index: 1;
+}
+
+.channel-color-strip {
+  width: 4px;
+  height: 32px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.channel-name {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--espresso-text);
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channel-type {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--espresso-muted);
+}
+
+.channel-controls {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.channel-ctrl-btn {
+  width: 28px;
+  height: 26px;
+  background: var(--ivory-deep);
+  border: 1px solid var(--ivory-line);
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  color: var(--espresso-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s;
+  display: grid;
+  place-items: center;
+}
+
+.channel-ctrl-btn:hover {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+
+.channel-ctrl-btn.muted {
+  background: var(--neon-amber);
+  color: var(--ivory-deep);
+  border-color: var(--neon-amber);
+  box-shadow: 0 0 10px var(--neon-amber-glow);
+}
+
+.channel-ctrl-btn.soloed {
+  background: var(--teal-500);
+  color: var(--ivory-deep);
+  border-color: var(--teal-500);
+  box-shadow: 0 0 12px var(--teal-glow);
+}
+
+.rack-fader-pro {
+  width: 100%;
+  height: 2px;
+  appearance: none;
+  background: var(--ivory-deep);
+  border-radius: 1px;
+  outline: none;
+  cursor: pointer;
+}
+
+.rack-fader-pro::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: var(--teal-500);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 6px var(--teal-glow);
+  border: 1px solid var(--teal-600);
+}
+
+/* Step pads row */
+.step-row {
+  display: flex;
+  gap: 2px;
+  padding: 4px 8px 6px 24px;
+  background: var(--ivory-deep);
+  border-bottom: 1px solid var(--ivory-line);
+}
+
+.step-pad {
+  flex: 1 1 0;
+  aspect-ratio: 1;
+  max-width: 32px;
+  max-height: 32px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.1s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hover press feedback — small radial ripple inside the pad */
+.step-pad::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at center,
+    rgba(14, 124, 123, 0.35) 0%,
+    rgba(14, 124, 123, 0) 70%
+  );
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.step-pad:hover::before {
+  opacity: 1;
+  animation: step-press 0.45s ease-out;
+}
+@keyframes step-press {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.step-pad:hover {
+  border-color: var(--teal-500);
+  background: var(--teal-50);
+}
+
+.step-pad.active {
+  background: linear-gradient(180deg, var(--teal-500) 0%, var(--teal-700) 100%);
+  border-color: var(--teal-500);
+  box-shadow: 0 0 10px var(--teal-glow);
+}
+
+.step-pad.active.beat-end {
+  border-right-color: var(--teal-300);
+}
+
+.current-step .step-pad {
+  border-color: var(--neon-amber);
+  box-shadow: 0 0 6px var(--neon-amber-glow);
+}
+
+/* Beat-pulse animation: triggered on the .current-step row during play */
+.current-step .step-pad {
+  animation: step-beat-pulse 0.32s ease-out;
+}
+@keyframes step-beat-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(234, 179, 8, 0);
+  }
+  35% {
+    transform: scale(1.18);
+    box-shadow: 0 0 18px rgba(234, 179, 8, 0.7);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 6px var(--neon-amber-glow);
+  }
+}
+
+/* Active step (the toggled-on one in the sequence) gets the LED glow */
+.step-pad.active {
+  position: relative;
+  background: linear-gradient(180deg, var(--teal-400) 0%, var(--teal-700) 100%);
+  border-color: var(--teal-300);
+  box-shadow:
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    0 0 10px var(--teal-glow),
+    0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+}
+.step-pad.active::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 4px;
+  height: 1.5px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 1px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+  animation: step-led-blink 0.6s ease-in-out infinite;
+}
+@keyframes step-led-blink {
+  0%, 100% { opacity: 0.95; }
+  50% { opacity: 0.55; }
+}
+
+/* Scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ---------- DARK MODE ---------- */
+:host-context(.dark-mode) .rack-header {
+  background: linear-gradient(180deg, #0a0f22 0%, #000208 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .channel-item {
+  background: #0a0f22;
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+:host-context(.dark-mode) .channel-item:hover:not(.selected) {
+  background: rgba(102, 240, 255, 0.06);
+}
+
+:host-context(.dark-mode) .channel-item.selected {
+  background: rgba(102, 240, 255, 0.12);
+  border-color: var(--teal-500);
+  box-shadow:
+    0 0 0 1px var(--teal-500),
+    0 0 22px var(--teal-glow);
+}
+
+:host-context(.dark-mode) .channel-ctrl-btn {
+  background: #06091a;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.dark-mode) .step-row {
+  background: #000208;
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+:host-context(.dark-mode) .step-pad {
+  background: #0a0f22;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .step-pad:hover {
+  background: rgba(102, 240, 255, 0.08);
+}
+
+@media (max-width: 768px) {
+  .channel-item {
+    padding: 6px 8px;
+    min-height: 56px;
+  }
+  .step-pad {
+    max-width: 24px;
+    max-height: 24px;
+  }
+
+  /* Show touch-optimized faders on mobile instead of hiding */
+  .rack-fader-pro {
+    display: block;
+    height: 4px;
+  }
+  .rack-fader-pro::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Enlarge mute/solo touch targets */
+  .channel-ctrl-btn {
+    min-width: 32px;
+    min-height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .channel-item {
+    padding: 6px 6px;
+    gap: 4px;
+  }
+  .channel-name {
+    font-size: 9px;
+  }
+  .rack-fader-pro {
+    height: 5px;
+  }
+  .rack-fader-pro::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Pad safe-area for bottom navigation */
+  .channel-list {
+    padding-bottom: env(safe-area-inset-bottom, 8px);
+  }
+}
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Channel Rack
+   Wrap header actions, avoid horizontal clipping, compact in
+   landscape phones.
+   ============================================================ */
+@media (max-width: 768px) {
+  :host {
+    overflow-x: hidden;
+  }
+  .rack-header {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+}
+@media (max-width: 932px) and (orientation: landscape) {
+  .rack-header {
+    height: 44px;
+  }
+  .channel-item {
+    min-height: 48px;
+  }
+}
+
+/* ============================================================
+   STAGE 2.0 — CHANNEL RACK RACK LIGHT
+   Neon rack hairline · channel lift · LED fader glow
+   ============================================================ */
+
+.rack-container {
+  background:
+    radial-gradient(90% 50% at 50% 0%, rgba(32, 215, 210, 0.06), transparent 60%),
+    var(--ivory-deep, #06091a);
+}
+
+/* Rack header: teal hairline + lit title. */
+.rack-header {
+  position: relative;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+}
+.rack-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(43, 160, 156, 0.6),
+    rgba(255, 173, 71, 0.4),
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Channels: calm lift + selected glow echo. */
+.channel-item {
+  transition:
+    transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.22s ease,
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+.channel-item:hover:not(.selected) {
+  transform: translateX(2px);
+}
+.channel-item.selected {
+  transform: translateX(2px);
+  box-shadow:
+    0 0 0 1px var(--teal-500, #0e7c7b),
+    0 6px 18px rgba(14, 124, 123, 0.22),
+    0 0 22px rgba(14, 124, 123, 0.18);
+}
+.channel-item.selected .channel-name {
+  text-shadow: 0 0 10px rgba(14, 124, 123, 0.45);
+}
+
+/* Color strip: instrument-grade light pipe. */
+.channel-color-strip {
+  box-shadow: 0 0 8px rgba(14, 124, 123, 0.35);
+}
+
+/* Control buttons: brighter engaged states. */
+.channel-ctrl-btn {
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.16s ease,
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+.channel-ctrl-btn:active {
+  transform: scale(0.9);
+}
+.channel-ctrl-btn.muted,
+.channel-ctrl-btn.soloed {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 0 12px rgba(217, 119, 6, 0.45);
+}
+.channel-ctrl-btn.soloed {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 0 12px rgba(14, 124, 123, 0.45);
+}
+
+/* Faders: glowing thumb on hover. */
+.rack-fader-pro::-webkit-slider-thumb {
+  transition: transform 0.14s ease, box-shadow 0.18s ease;
+}
+.rack-fader-pro:hover::-webkit-slider-thumb {
+  transform: scale(1.25);
+  box-shadow: 0 0 12px rgba(14, 124, 123, 0.7);
+}
+
+/* Dark theme: keep the rack moody but legible. */
+:host-context(.dark-mode) .channel-item.selected {
+  box-shadow:
+    0 0 0 1px var(--teal-500, #0e7c7b),
+    0 6px 18px rgba(0, 0, 0, 0.4),
+    0 0 26px rgba(14, 124, 123, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .channel-item,
+  .channel-ctrl-btn {
+    transition: none !important;
+  }
+  .channel-item:hover:not(.selected) {
+    transform: none !important;
+  }
+  .rack-fader-pro::-webkit-slider-thumb:hover {
+    transform: none !important;
+  }
+}
+
+/* Live lane: playhead cell glows amber so it stays visible over lit cells */
+.current-step {
+  box-shadow:
+    0 0 0 1px var(--neon-amber, #fbbf24),
+    0 0 10px rgba(234, 179, 8, 0.55);
+  z-index: 1;
+}
+
+/* Bar window pager */
+.bar-active {
+  background: rgba(14, 124, 123, 0.55) !important;
+  color: #fff;
+}
+
+/* ── Instrument picker fly-outs (add + per-channel) ──────────────── */
+.add-flyout,
+.instrument-flyout {
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  scrollbar-width: thin;
+}
+.add-flyout button:hover,
+.instrument-flyout button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+/* Chosen instrument gets a teal check + tint (kept explicit for the
+   dynamic [class.bg-teal-500\/20] binding). */
+.instrument-flyout button.bg-teal-500\/20 {
+  background: rgba(20, 184, 166, 0.18);
+}
+
+/* Bus/lane rows are container-only — dim the step lane so it reads as
+   non-editable instead of looking broken. */
+.channel-item .rack-fader-pro {
+  cursor: pointer;
+}
+
+button[disabled] {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* ============================================================
+   COMPONENT CONTRACT — Channel Rack
+   A bounded, touch-first instrument shelf that keeps the legacy
+   step lane and instrument fly-outs intact.
+   ============================================================ */
+
+:host {
+  --rack-surface: var(--ivory-paper, #fbf7ec);
+  --rack-panel: var(--ivory-panel, #fffaf0);
+  --rack-canvas: var(--ivory-bg, #f5efe0);
+  --rack-ink: var(--espresso-text, #1f1a12);
+  --rack-muted: var(--espresso-muted, #7e7259);
+  --rack-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --rack-teal: var(--teal-500, #0e7c7b);
+  --rack-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: var(--rack-ink);
+}
+
+.channel-rack-surface {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--rack-line);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 30%),
+    var(--rack-canvas);
+  box-shadow: var(--rack-shadow);
+}
+
+.rack-header {
+  min-height: 58px;
+  height: auto;
+  padding: 10px 14px;
+  gap: 12px;
+  background: color-mix(in srgb, var(--rack-surface) 92%, transparent);
+  border-bottom: 1px solid var(--rack-line);
+  box-shadow: 0 5px 18px rgba(61, 53, 42, 0.05);
+}
+
+.rack-title,
+.channel-rack-title {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  color: var(--rack-teal);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.channel-rack-add {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--rack-teal) 55%, transparent);
+  border-radius: 10px;
+  background: var(--rack-teal);
+  color: var(--ivory-deep, #fbf7ec);
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--rack-teal) 24%, transparent);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.channel-rack-add:hover,
+.channel-rack-add:focus-visible {
+  background: var(--teal-600, #0a5f5e);
+  border-color: var(--teal-400, #2ba09c);
+  color: white;
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--rack-teal) 32%, transparent);
+}
+
+.channel-rack-list {
+  min-height: 0;
+  padding: 12px;
+  gap: 8px;
+  background: color-mix(in srgb, var(--rack-canvas) 86%, transparent);
+}
+
+.channel-rack-channel {
+  min-height: 76px;
+  padding: 12px;
+  gap: 12px;
+  overflow: visible;
+  border: 1px solid var(--rack-line);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--rack-surface) 94%, transparent);
+  box-shadow: 0 4px 14px rgba(61, 53, 42, 0.055);
+}
+
+.channel-rack-channel::before {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--rack-teal) 6%, transparent));
+}
+
+.channel-rack-channel:hover:not(.selected) {
+  border-color: color-mix(in srgb, var(--rack-teal) 42%, var(--rack-line));
+  background: color-mix(in srgb, var(--rack-teal) 4%, var(--rack-surface));
+  box-shadow: 0 7px 18px rgba(61, 53, 42, 0.08);
+}
+
+.channel-rack-channel.selected {
+  border-color: var(--rack-teal);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--rack-teal) 10%, var(--rack-surface)), var(--rack-surface));
+  box-shadow:
+    inset 3px 0 0 var(--rack-teal),
+    0 8px 20px color-mix(in srgb, var(--rack-teal) 16%, transparent);
+}
+
+.channel-rack-channel.selected .channel-name {
+  color: var(--rack-teal);
+}
+
+.channel-rack-meter-stack {
+  width: 78px;
+  flex: 0 0 78px;
+  gap: 7px;
+}
+
+.channel-rack-meter-stack .rack-fader-pro {
+  min-width: 0;
+  height: 5px;
+  background: color-mix(in srgb, var(--rack-ink) 12%, transparent);
+}
+
+.channel-rack-meter-stack .rack-fader-pro::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--rack-surface);
+  background: var(--rack-teal);
+  box-shadow: 0 2px 7px color-mix(in srgb, var(--rack-teal) 38%, transparent);
+}
+
+.channel-rack-instrument {
+  min-height: 28px;
+  padding: 3px 5px;
+  border-radius: 7px;
+  color: var(--rack-muted);
+  opacity: 0.78;
+  letter-spacing: 0.08em;
+}
+
+.channel-rack-instrument:hover,
+.channel-rack-instrument:focus-visible {
+  background: color-mix(in srgb, var(--rack-teal) 9%, transparent);
+  color: var(--rack-teal);
+  opacity: 1;
+}
+
+.channel-rack-actions {
+  flex: 0 0 auto;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--rack-line) 70%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--rack-surface) 72%, transparent);
+}
+
+.channel-rack-actions button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 7px;
+  color: var(--rack-muted);
+}
+
+.channel-rack-actions button:hover,
+.channel-rack-actions button:focus-visible {
+  background: color-mix(in srgb, var(--rack-teal) 12%, transparent);
+  color: var(--rack-teal);
+}
+
+.channel-rack-step-lane {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  margin-left: auto;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  touch-action: pan-x;
+}
+
+.channel-rack-bar-pager {
+  justify-content: flex-end;
+  max-width: 100%;
+  gap: 3px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 1px;
+}
+
+.channel-rack-bar-pager button {
+  flex: 0 0 auto;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--rack-line) 80%, transparent);
+  border-radius: 7px;
+  color: var(--rack-muted);
+  background: color-mix(in srgb, var(--rack-surface) 76%, transparent);
+}
+
+.channel-rack-bar-pager button:hover,
+.channel-rack-bar-pager button:focus-visible,
+.channel-rack-bar-pager button.bar-active {
+  border-color: var(--rack-teal);
+  color: var(--rack-teal);
+  background: color-mix(in srgb, var(--rack-teal) 12%, var(--rack-surface));
+}
+
+.channel-rack-step-grid {
+  flex: 0 0 auto;
+  min-width: max-content;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--rack-line) 80%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--rack-ink) 7%, transparent);
+}
+
+.channel-rack-step-cell {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 34px;
+  border: 1px solid color-mix(in srgb, var(--rack-line) 86%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--rack-surface) 72%, transparent);
+  box-shadow: none;
+  /* Drag-paint owns the gesture: with `manipulation` the browser could claim a
+     swipe as a pan and cancel the pointer stream, which made painting a row
+     impossible on touch. The lane still pans from its padding and gaps. */
+  touch-action: none;
+}
+
+.channel-rack-step-cell:hover,
+.channel-rack-step-cell:focus-visible {
+  border-color: var(--rack-teal);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rack-teal) 20%, transparent);
+}
+
+.channel-rack-step-cell.active {
+  border-color: color-mix(in srgb, var(--rack-teal) 80%, white);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rack-teal) 48%, transparent);
+}
+
+.channel-rack-step-cell.current-step {
+  border-color: var(--neon-amber, #d97706);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--neon-amber, #d97706) 32%, transparent);
+}
+
+.add-flyout,
+.instrument-flyout {
+  min-width: 220px;
+  max-height: min(320px, 56vh);
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--rack-teal) 35%, var(--rack-line));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--rack-panel) 96%, transparent);
+  box-shadow: 0 18px 40px rgba(25, 35, 42, 0.2);
+}
+
+.add-flyout button,
+.instrument-flyout button {
+  min-height: 36px;
+  border-radius: 8px;
+  color: var(--rack-ink);
+}
+
+.add-flyout button:hover,
+.instrument-flyout button:hover,
+.add-flyout button:focus-visible,
+.instrument-flyout button:focus-visible {
+  background: color-mix(in srgb, var(--rack-teal) 12%, transparent);
+  color: var(--rack-teal);
+}
+
+@media (max-width: 900px) {
+  .channel-rack-channel {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .channel-rack-channel > .flex-1 {
+    min-width: 150px;
+  }
+
+  .channel-rack-step-lane {
+    flex: 1 1 100%;
+    order: 5;
+    justify-content: flex-start;
+    /* The lane is `items-end`, which right-aligns the 16-step grid. Once the
+       grid is wider than the lane it overflows to the LEFT, and an LTR scroller
+       cannot pan into negative scroll space — the first ~11 steps of a bar were
+       unreachable and unpaintable on a phone. Start-aligning the grid puts the
+       overflow on the right, where the lane's own `overflow-x: auto` reaches it. */
+    align-items: flex-start;
+    margin-left: 0;
+    padding-top: 2px;
+  }
+
+  .channel-rack-actions {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .rack-header {
+    min-height: 52px;
+    padding: 8px 10px;
+  }
+
+  .channel-rack-list {
+    padding: 8px;
+  }
+
+  .channel-rack-channel {
+    min-height: 68px;
+    padding: 9px;
+    gap: 8px;
+  }
+
+  .channel-rack-meter-stack {
+    width: 68px;
+    flex-basis: 68px;
+  }
+
+  .channel-rack-step-cell {
+    flex-basis: 24px;
+    width: 24px;
+    height: 38px;
+  }
+
+  .channel-rack-actions button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .channel-rack-channel {
+    min-height: 60px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .channel-rack-step-cell {
+    height: 30px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — RACK HEADER COVERAGE
+   The rack header hook had no rule, so it could not hold its own
+   row while the channel list scrolled. Styling only: channel
+   rows, grouping and routing bindings are untouched.
+   ════════════════════════════════════════════════════════════ */
+
+.channel-rack-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 48px;
+}
+
+@media (max-width: 768px) {
+  .channel-rack-header {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: var(--ivory-panel, #14192e);
+  }
+}
+
+@media (forced-colors: active) {
+  .channel-rack-header {
+    border-bottom-color: CanvasText;
+  }
+}
+
+/* Desktop portrait/narrow workspaces: the step editor receives its own
+   full-width rail instead of competing with track metadata for inline width. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .channel-rack-header {
+    min-height: 50px;
+    padding: 7px 10px;
+  }
+
+  .channel-rack-list {
+    padding: 8px;
+    gap: 7px;
+  }
+
+  .channel-rack-channel {
+    min-height: 68px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 9px;
+    gap: 8px;
+  }
+
+  .channel-rack-channel > .flex-1 {
+    min-width: 150px;
+  }
+
+  .channel-rack-meter-stack {
+    width: 68px;
+    flex-basis: 68px;
+  }
+
+  .channel-rack-actions {
+    opacity: 1;
+  }
+
+  .channel-rack-step-lane {
+    flex: 1 1 100%;
+    order: 5;
+    justify-content: flex-start;
+    /* The lane is `items-end`, which right-aligns the 16-step grid. Once the
+       grid is wider than the lane it overflows to the LEFT, and an LTR scroller
+       cannot pan into negative scroll space — the first ~11 steps of a bar were
+       unreachable and unpaintable on a phone. Start-aligning the grid puts the
+       overflow on the right, where the lane's own `overflow-x: auto` reaches it. */
+    align-items: flex-start;
+    margin-left: 0;
+    padding-top: 2px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .channel-rack-header {
+    min-height: 46px;
+    padding-block: 5px;
+  }
+
+  .channel-rack-list {
+    padding-block: 6px;
+  }
+
+  .channel-rack-channel {
+    min-height: 58px;
+    padding-block: 6px;
+  }
+
+  .channel-rack-step-cell {
+    height: 28px;
+  }
+
+  .channel-rack-bar-pager button {
+    min-height: 27px;
+  }
+}

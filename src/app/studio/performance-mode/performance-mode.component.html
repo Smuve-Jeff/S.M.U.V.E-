@@ -1,0 +1,243 @@
+<!--
+  Performance Mode — Live clip launcher with velocity control + MIDI mapping
+  MPC-style pad grid with haptic feedback, long-press context, velocity zones,
+  MIDI Learn Mode, and pressure-sensitive pads
+-->
+<div class="performance-shell studio-workspace-surface performance-mode-surface">
+  <!-- VELOCITY STRIP -->
+  <div
+    class="perf-velocity-strip studio-context-toolbar performance-velocity-toolbar"
+    aria-label="Velocity control"
+  >
+    <span class="perf-velo-label">Velocity</span>
+    <input
+      type="range"
+      class="perf-velo-slider"
+      min="0.1"
+      max="1"
+      step="0.05"
+      [value]="activeVelocity()"
+      (input)="setVelocity(+$any($event.target).value)"
+      aria-label="Pad velocity"
+    />
+    <span class="perf-velo-readout"
+      >{{ (effectiveVelocity() * 100).toFixed(0) }}%</span
+    >
+    <!-- Pressure indicator -->
+    @if (activePressure() > 0) {
+      <span
+        class="perf-pressure-indicator"
+        [style.--pressure-scale]="activePressure()"
+        title="Pressure: {{ (activePressure() * 100).toFixed(0) }}%"
+      >
+        <span class="perf-pressure-fill" [style.width.%]="activePressure() * 100"></span>
+      </span>
+    }
+    <!-- Velocity Zone Badge -->
+    <span
+      class="perf-velo-zone"
+      [style.background]="
+        currentVelocityZone() === 'soft'
+          ? '#2BA09C'
+          : currentVelocityZone() === 'medium'
+            ? '#0E7C7B'
+            : '#D97706'
+      "
+    >
+      {{ currentVelocityZone() | uppercase }}
+    </span>
+    <!-- Sustain pedal LED (CC64 + half-pedal CC68) -->
+    <span
+      class="perf-sustain-led"
+      [class.active]="sustainActive()"
+      [class.half]="sustainHalfPedal()"
+      title="Sustain pedal — {{ sustainHalfPedal() ? 'HALF-PEDAL (' + sustainAmount() + ')' : sustainActive() ? 'engaged' : 'released' }}"
+    >
+      <span class="perf-sustain-dot"></span>
+      <span class="perf-sustain-label">
+        SUS{{ sustainHalfPedal() ? ' ½' : '' }}
+      </span>
+    </span>
+    <!-- MIDI Mapping Toggle -->
+    <button
+      type="button"
+      class="perf-midi-toggle studio-icon-button performance-midi-toggle"
+      [class.active]="showMidiMapping()"
+      [class.learn-active]="isLearnMode()"
+      (click)="toggleMidiMapping()"
+      title="MIDI note mapping"
+    >
+      <span class="material-symbols-outlined">piano</span>
+    </button>
+  </div>
+
+  <!-- PAD GRID -->
+  <div
+    class="performance-grid studio-module-scroll performance-pad-grid"
+    role="grid"
+    aria-label="Performance pad grid"
+  >
+    <div
+      *ngFor="let pad of pads; trackBy: trackByPad"
+      class="performance-pad performance-pad-surface"
+      tabindex="0"
+      (keydown)="onPadKeydown(pad, $event)"
+      [ngClass]="{
+        loop: pad.type === 'loop',
+        'one-shot': pad.type === 'one-shot',
+        active: pad.isPlaying,
+        'is-longpressed': longPressPadId() === pad.id,
+        'is-learning': isPadLearning(pad.id),
+        'is-pressed': pressedPadId() === pad.id,
+      }"
+      [style.--velo-scale]="effectiveVelocity()"
+      [style.--velo-zone-color]="
+        currentVelocityZone() === 'soft'
+          ? '#2BA09C'
+          : currentVelocityZone() === 'medium'
+            ? '#0E7C7B'
+            : '#D97706'
+      "
+      (pointerdown)="onPointerDown(pad, $event)"
+      (pointermove)="onPointerMove(pad, $event)"
+      (pointerup)="onPointerUp(pad, $event)"
+      (pointercancel)="onPointerCancel(pad)"
+      (contextmenu)="onContextMenu(pad); $event.preventDefault()"
+      [attr.aria-pressed]="pad.isPlaying"
+      [attr.aria-label]="
+        pad.name +
+        ' — ' +
+        (pad.type === 'loop' ? 'Loop' : 'One-shot') +
+        (pad.isPlaying ? ' — playing' : '')
+      "
+      role="button"
+      (blur)="dismissLongPress()"
+      (aria-roledescription)="'Performance ' + (pad.type === 'loop' ? 'loop' : 'one-shot') + ' pad'"
+    >
+      <div class="pad-name">{{ pad.name || 'PAD' }}</div>
+      <div class="pad-type">{{ pad.type === 'loop' ? 'LOOP' : '1-SHOT' }}</div>
+      <!-- MIDI note badge -->
+      @if (!showMidiMapping()) {
+        <div class="pad-midi-badge">{{ midiNoteName(midiNoteMap()[pad.id] ?? 36) }}</div>
+      }
+      <!-- Learn mode indicator -->
+      @if (isPadLearning(pad.id)) {
+        <div class="pad-learn-badge">LEARN</div>
+      }
+      <!-- Velocity zone indicator bar -->
+      <div class="pad-velo-bar">
+        @for (zone of velocityZones; track zone.zone) {
+          <div
+            class="pad-velo-segment"
+            [style.background]="zone.color"
+            [style.opacity]="
+              currentVelocityZone() === zone.zone ? '1' : '0.25'
+            "
+            [style.width]="(zone.range[1] - zone.range[0]) * 100 + '%'"
+            [title]="zone.label + ': ' + (zone.range[0] * 100).toFixed(0) + '%–' + (zone.range[1] * 100).toFixed(0) + '%'"
+          ></div>
+        }
+      </div>
+      <!-- Pressure-reactive bar -->
+      <div class="pad-pressure-bar">
+        <div
+          class="pad-pressure-fill"
+          [style.width.%]="pressedPadId() === pad.id ? activePressure() * 100 : 0"
+        ></div>
+      </div>
+      <div class="pad-status-indicator"></div>
+
+      <!-- Long-press context menu -->
+      @if (longPressPadId() === pad.id) {
+        <div class="pad-context-menu performance-context-menu" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="pad-ctx-btn studio-secondary-button performance-context-button"
+            (click)="triggerPad(pad); dismissLongPress()"
+          >
+            ▶ Play
+          </button>
+          <button
+            type="button"
+            class="pad-ctx-btn studio-secondary-button performance-context-button"
+            (click)="startLearnMode(pad.id); dismissLongPress()"
+          >
+            <span class="ctx-icon">🎯</span> MIDI Learn
+          </button>
+          <button
+            type="button"
+            class="pad-ctx-btn studio-secondary-button performance-context-button"
+            (click)="dismissLongPress()"
+          >
+            ✕ Close
+          </button>
+        </div>
+      }
+    </div>
+
+    <div
+      *ngIf="pads.length === 0"
+      class="empty-state studio-empty-state performance-empty-state"
+    >
+      <span class="empty-icon">∿</span>
+      <p>No performance pads mapped. Load an instrument or clips to begin.</p>
+    </div>
+  </div>
+
+  <!-- MIDI MAPPING PANEL (collapsible) -->
+  @if (showMidiMapping()) {
+    <div class="perf-midi-panel studio-module-scroll performance-midi-console">
+      <div class="perf-midi-header studio-context-toolbar performance-midi-header">
+        <span class="perf-midi-title">MIDI NOTE MAP</span>
+        <span class="perf-midi-help">Assign MIDI note numbers (0–127) to pads</span>
+      </div>
+      <div class="perf-midi-grid">
+        @for (pad of pads; track pad.id) {
+          <div class="perf-midi-row" [class.learning]="isPadLearning(pad.id)">
+            <span class="perf-midi-pad-name">{{ pad.name }}</span>
+            <input
+              type="range"
+              class="perf-midi-slider"
+              min="0"
+              max="127"
+              step="1"
+              [value]="midiNoteMap()[pad.id] ?? 36"
+              (input)="setMidiNoteForPad(pad.id, +$any($event.target).value)"
+            />
+            <span class="perf-midi-note">{{
+              midiNoteName(midiNoteMap()[pad.id] ?? 36)
+            }}</span>
+            <span class="perf-midi-number">{{
+              midiNoteMap()[pad.id] ?? 36
+            }}</span>
+            <!-- Learn button per pad -->
+            <button
+              type="button"
+              class="perf-learn-btn studio-secondary-button performance-learn-button"
+              [class.active]="isPadLearning(pad.id)"
+              (click)="isPadLearning(pad.id) ? cancelLearnMode() : startLearnMode(pad.id)"
+              title="MIDI Learn — tap this then press a key on your MIDI controller"
+            >
+              @if (isPadLearning(pad.id)) {
+                <span class="learn-pulse">● LISTENING</span>
+              } @else {
+                <span>🎯 Learn</span>
+              }
+            </button>
+          </div>
+        }
+      </div>
+      @if (isLearnMode()) {
+        <div class="perf-learn-status">
+          <span class="learn-dot"></span>
+          Waiting for MIDI note... tap a key on your controller
+          <button
+            type="button"
+            class="perf-learn-cancel studio-ghost-button performance-learn-cancel"
+            (click)="cancelLearnMode()"
+          >Cancel</button>
+        </div>
+      }
+    </div>
+  }
+</div>

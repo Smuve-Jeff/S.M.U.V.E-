@@ -1,0 +1,1591 @@
+/* ===========================================================
+   S.M.U.V.E. — Neural Synth v5
+   Mobile-first synthesizer · Beginner mode · Visual canvas
+   Touch-optimized controls (44px+ targets)
+   =========================================================== */
+
+:host {
+  display: block;
+  min-height: 100%;
+  width: 100%;
+  background: var(--ivory-deep, #06091a);
+  color: var(--espresso-text, #f1f5ff);
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  overflow-y: auto; overflow-x: hidden;
+}
+
+/* ── Container ──────────────────────────────── */
+.synth-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* ── Header ─────────────────────────────────── */
+.synth-header {
+  height: auto;
+  min-height: 48px;
+  background: linear-gradient(
+    180deg,
+    var(--ivory-panel, #14192e) 0%,
+    var(--ivory-deep, #06091a) 100%
+  );
+  border-bottom: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+.synth-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.synth-title {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--espresso-text, #f1f5ff);
+  flex-shrink: 0;
+}
+
+.synth-patch-name {
+  color: var(--teal-500, #0e7c7b);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  background: color-mix(in srgb, var(--teal-500) 15%, transparent);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--teal-500) 25%, transparent);
+  flex-shrink: 0;
+}
+
+.synth-patch-desc {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--espresso-muted, #94a3c8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.synth-header-right {
+  flex-shrink: 0;
+}
+
+/* ── Beginner / Pro toggle ──────────────────── */
+.synth-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: var(--ivory-paper, #1a1f35);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  border-radius: 8px;
+  color: var(--espresso-muted, #94a3c8);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 36px;
+  font-family: inherit;
+}
+
+.synth-mode-toggle .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.synth-mode-toggle:hover {
+  border-color: var(--teal-500);
+}
+
+.synth-mode-toggle.is-beginner {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  border-color: #d97706;
+}
+
+/* ── Patch rail (horizontal scroll) ─────────── */
+.synth-patch-rail {
+  display: flex;
+  gap: 6px;
+  padding: 0.5rem 0.75rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+}
+
+.synth-patch-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.synth-patch-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 12px;
+  background: var(--ivory-paper, #1a1f35);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  border-radius: 8px;
+  color: var(--espresso-muted, #94a3c8);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+  min-width: 60px;
+  font-family: inherit;
+}
+
+.synth-patch-btn:hover {
+  border-color: var(--teal-500);
+}
+
+.synth-patch-btn.is-active {
+  background: var(--teal-500, #0e7c7b);
+  color: var(--ivory-deep, #06091a);
+  border-color: var(--teal-500);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--teal-500) 40%, transparent);
+}
+
+.synth-patch-btn-name {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.synth-patch-btn-tip {
+  font-size: 8px;
+  font-weight: 500;
+  opacity: 0.7;
+  line-height: 1.2;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Mobile tabs ────────────────────────────── */
+.synth-mobile-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px 0.75rem;
+  background: var(--ivory-panel, #14192e);
+  border-bottom: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  flex-shrink: 0;
+}
+
+.synth-mtab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--espresso-muted, #94a3c8);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.synth-mtab .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.synth-mtab:hover {
+  color: var(--teal-500);
+}
+
+.synth-mtab-active {
+  background: color-mix(in srgb, var(--teal-500) 12%, transparent);
+  color: var(--teal-500);
+  border-color: color-mix(in srgb, var(--teal-500) 30%, transparent);
+}
+
+.synth-mtab-label {
+  font-size: 8px;
+}
+
+/* ── Content area ───────────────────────────── */
+.synth-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 0.75rem;
+  gap: 0.75rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Section card ───────────────────────────── */
+.synth-section {
+  background: var(--ivory-panel, #14192e);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.section-title {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--teal-500, #0e7c7b);
+  letter-spacing: 0.14em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ivory-line, rgba(180, 200, 255, 0.08));
+}
+
+.section-hint {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--espresso-muted, #94a3c8);
+  line-height: 1.3;
+}
+
+/* ── Canvas visualization ───────────────────── */
+.synth-canvas-wrap {
+  width: 100%;
+  background: var(--ivory-deep, #06091a);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.06));
+  border-radius: 8px;
+  overflow: hidden;
+  padding: 4px;
+}
+
+.synth-canvas {
+  width: 100%;
+  height: 64px;
+  display: block;
+}
+
+/* ── Wave selector ──────────────────────────── */
+.wave-selector {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.wave-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--ivory-paper, #1a1f35);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  color: var(--espresso-muted, #94a3c8);
+  padding: 8px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s ease;
+  min-height: 48px;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.wave-btn:hover {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+
+.wave-btn.active {
+  background: var(--teal-500, #0e7c7b);
+  color: var(--ivory-deep, #06091a);
+  border-color: var(--teal-500);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--teal-500) 40%, transparent);
+}
+
+.wave-btn-name {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.wave-btn-desc {
+  font-size: 8px;
+  font-weight: 500;
+  opacity: 0.7;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ── Parameter groups ───────────────────────── */
+.param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.param-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.param-label {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--espresso-muted, #94a3c8);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.param-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.param-value {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--teal-500, #0e7c7b);
+  flex-shrink: 0;
+}
+
+.param-help-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--teal-500) 15%, transparent);
+  color: var(--teal-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+/* ── Tooltip / tip ──────────────────────────── */
+.param-tip {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--espresso-muted, #94a3c8);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  padding: 8px 10px;
+  border-radius: 8px;
+  line-height: 1.4;
+  animation: tipFadeIn 0.2s ease;
+}
+
+@keyframes tipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Sliders (touch-optimized) ──────────────── */
+.synth-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: var(--ivory-deep, #06091a);
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.synth-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--teal-500, #0e7c7b);
+  border: 3px solid var(--ivory-deep, #06091a);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--teal-500) 40%, transparent);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.synth-slider::-webkit-slider-thumb:hover {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--teal-500) 30%, transparent),
+    0 0 12px color-mix(in srgb, var(--teal-500) 25%, transparent);
+}
+
+.synth-slider::-webkit-slider-thumb:active {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--teal-500) 20%, transparent);
+}
+
+.synth-slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--teal-500, #0e7c7b);
+  border: 3px solid var(--ivory-deep, #06091a);
+  cursor: pointer;
+}
+
+/* Vertical slider for ADSR */
+.synth-slider-v {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 6px;
+  height: 100%;
+  min-height: 80px;
+}
+
+/* ── ADSR grid ──────────────────────────────── */
+.adsr-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.adsr-fader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.adsr-fader-header {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.adsr-label {
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--espresso-muted, #94a3c8);
+}
+
+.adsr-val {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--teal-500);
+}
+
+.fader-well {
+  flex: 1;
+  width: 24px;
+  background: var(--ivory-deep, #06091a);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  min-height: 80px;
+}
+
+.fader-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(
+    180deg,
+    var(--teal-400, #2ba09c),
+    var(--teal-700, #08504f)
+  );
+  border-radius: 0 0 4px 4px;
+  transition: height 0.15s ease;
+}
+
+/* ── LFO wave selector ──────────────────────── */
+.lfo-wave-select {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.lfo-wave-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: var(--ivory-paper, #1a1f35);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  border-radius: 8px;
+  color: var(--espresso-muted, #94a3c8);
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 48px;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.lfo-wave-btn:hover {
+  border-color: var(--teal-500);
+}
+
+.lfo-wave-btn.is-active {
+  background: var(--teal-500, #0e7c7b);
+  color: var(--ivory-deep, #06091a);
+  border-color: var(--teal-500);
+}
+
+.lfo-wave-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.lfo-wave-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ── Knob row (side-by-side) ────────────────── */
+.knob-row {
+  display: flex;
+  gap: 12px;
+}
+
+.knob-row .param-group {
+  flex: 1;
+}
+
+/* ── Select ─────────────────────────────────── */
+.synth-select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--ivory-paper, #1a1f35);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  border-radius: 8px;
+  color: var(--espresso-text, #f1f5ff);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+}
+
+.synth-select:focus {
+  border-color: var(--teal-500);
+  outline: none;
+}
+
+/* ── Sub oscillator toggle ──────────────────── */
+.sub-osc-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sub-osc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--ivory-paper, #1a1f35);
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.08));
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--espresso-muted, #94a3c8);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 48px;
+}
+
+.sub-osc-toggle.is-active {
+  background: var(--teal-500, #0e7c7b);
+  color: var(--ivory-deep, #06091a);
+  border-color: var(--teal-500);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--teal-500) 30%, transparent);
+}
+
+.sub-osc-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: currentColor;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.sub-osc-toggle.is-active .sub-osc-dot {
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.sub-osc-text {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Focus visible ──────────────────────────── */
+.wave-btn:focus-visible,
+.lfo-wave-btn:focus-visible,
+.synth-patch-btn:focus-visible,
+.synth-mtab:focus-visible,
+.sub-osc-toggle:focus-visible,
+.synth-mode-toggle:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+/* ── Dark mode tweaks ───────────────────────── */
+:host-context(.dark-mode) .synth-section {
+  background: #0a0f22;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+:host-context(.dark-mode) .wave-btn,
+:host-context(.dark-mode) .lfo-wave-btn {
+  background: #06091a;
+}
+
+:host-context(.dark-mode) .fader-well {
+  background: #000208;
+}
+
+/* ── Mobile: stacked single-column ──────────── */
+@media (max-width: 768px) {
+  .synth-content {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  /* Hide sections not matching active tab */
+  .synth-section-hidden-mobile {
+    display: none !important;
+  }
+
+  .synth-section {
+    flex: none;
+    padding: 0.75rem;
+  }
+
+  .wave-selector {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+
+  .wave-btn {
+    min-height: 52px;
+    padding: 6px 4px;
+  }
+
+  .adsr-grid {
+    gap: 6px;
+  }
+
+  .fader-well {
+    min-height: 100px;
+    width: 28px;
+  }
+
+  .synth-slider-v {
+    min-height: 100px;
+  }
+
+  .lfo-wave-select {
+    gap: 4px;
+  }
+
+  .lfo-wave-btn {
+    min-height: 52px;
+  }
+
+  .knob-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .synth-patch-desc {
+    display: none;
+  }
+
+  .synth-header {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .synth-patch-rail {
+    padding: 0.4rem 0.5rem;
+    gap: 4px;
+  }
+
+  .synth-patch-btn {
+    min-width: 50px;
+    padding: 5px 8px;
+  }
+
+  .wave-btn-desc {
+    display: none;
+  }
+
+  .fader-well {
+    min-height: 80px;
+    width: 24px;
+  }
+
+  .synth-slider-v {
+    min-height: 80px;
+  }
+}
+
+/* ── Desktop: hide mobile tabs ──────────────── */
+@media (min-width: 769px) {
+  .synth-mobile-tabs {
+    display: none;
+  }
+
+  .synth-section-hidden-mobile {
+    display: flex !important;
+  }
+}
+
+/* ============================================================
+   DEEP RESPONSIVE REFINEMENT — Synthesizer
+   Landscape phones reclaim row layout; touch-friendly tabs;
+   focus rings.
+   ============================================================ */
+@media (max-width: 932px) and (orientation: landscape) {
+  .knob-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .synth-section {
+    padding: 0.5rem;
+  }
+  .wave-btn,
+  .lfo-wave-btn {
+    min-height: 44px;
+  }
+}
+@media (max-width: 768px) {
+  .synth-mobile-tabs {
+    min-height: 44px;
+  }
+}
+
+/* Keyboard & assistive-tech focus visibility */
+:host :focus-visible {
+  outline: 2px solid var(--teal-400, #2ba09c);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Neural Synth · Hardware console polish
+   ═══════════════════════════════════════════════════════════ */
+.synth-container {
+  background:
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(14, 124, 123, 0.08) 0%,
+      transparent 45%
+    ),
+    var(--ivory-deep, #06091a);
+}
+
+.synth-header {
+  position: relative;
+}
+
+.synth-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--teal-500) 55%, transparent),
+    transparent
+  );
+  opacity: 0.6;
+}
+
+.synth-patch-name {
+  transition:
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.synth-mode-toggle {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    background 140ms ease;
+}
+
+.synth-mode-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(14, 124, 123, 0.25);
+}
+
+.synth-mode-toggle.is-beginner {
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.3);
+}
+
+.synth-mode-toggle.is-beginner:hover {
+  box-shadow: 0 6px 22px rgba(245, 158, 11, 0.4);
+}
+
+.synth-patch-rail {
+  position: relative;
+}
+
+.synth-patch-btn {
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease;
+}
+
+.synth-patch-btn:hover {
+  transform: translateY(-2px);
+}
+
+.synth-patch-btn.is-active {
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--teal-500) 40%, transparent),
+    0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.synth-mtab {
+  position: relative;
+}
+
+.synth-mtab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 30%;
+  right: 30%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--teal-500);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--teal-500) 60%, transparent);
+}
+
+.synth-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--teal-500) transparent;
+}
+
+.synth-section {
+  position: relative;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.synth-section:hover {
+  border-color: color-mix(in srgb, var(--teal-500) 30%, transparent);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+.section-title {
+  position: relative;
+}
+
+.section-title .material-symbols-outlined {
+  transition: transform 180ms ease;
+}
+
+.synth-section:hover .section-title .material-symbols-outlined {
+  transform: scale(1.12);
+}
+
+.synth-canvas-wrap {
+  transition: border-color 180ms ease;
+}
+
+.synth-canvas-wrap:hover {
+  border-color: color-mix(in srgb, var(--teal-500) 45%, transparent);
+}
+
+.synth-canvas {
+  filter: drop-shadow(0 0 6px rgba(14, 124, 123, 0.25));
+}
+
+.wave-btn,
+.lfo-wave-btn {
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease;
+}
+
+.wave-btn:hover,
+.lfo-wave-btn:hover {
+  transform: translateY(-1px);
+}
+
+.wave-btn.active {
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--teal-500) 40%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.param-value {
+  font-variant-numeric: tabular-nums;
+  transition: color 140ms ease;
+}
+
+.param-header:hover .param-value {
+  color: var(--teal-300);
+}
+
+.param-help-icon {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.param-help-icon:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--teal-500) 40%, transparent);
+}
+
+.synth-slider::-webkit-slider-thumb {
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.fader-well {
+  transition: border-color 160ms ease;
+}
+
+.fader-well:hover {
+  border-color: color-mix(in srgb, var(--teal-500) 40%, transparent);
+}
+
+.fader-fill {
+  box-shadow: 0 0 8px rgba(43, 160, 156, 0.35);
+}
+
+.lfo-wave-btn.is-active {
+  box-shadow: 0 0 10px color-mix(in srgb, var(--teal-500) 35%, transparent);
+}
+
+.sub-osc-toggle {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.sub-osc-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.sub-osc-toggle.is-active {
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--teal-500) 30%, transparent),
+    0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .synth-patch-btn,
+  .wave-btn,
+  .lfo-wave-btn,
+  .sub-osc-toggle {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   COMPONENT CONTRACT — Neural Synthesizer
+   Header, patch rail, and parameter desk share one bounded
+   console. Canvas rendering and all parameter bindings remain
+   owned by the component.
+   ============================================================ */
+
+:host {
+  --synth-canvas: var(--ivory-bg, #f5efe0);
+  --synth-surface: var(--ivory-paper, #fbf7ec);
+  --synth-panel: var(--ivory-panel, #fffaf0);
+  --synth-ink: var(--espresso-text, #1f1a12);
+  --synth-muted: var(--espresso-muted, #7e7259);
+  --synth-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --synth-teal: var(--teal-500, #0e7c7b);
+  --synth-shadow: 0 14px 32px rgba(61, 53, 42, 0.1);
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: var(--synth-ink);
+}
+
+.synth-surface {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--synth-line);
+  border-radius: 18px;
+  background:
+    radial-gradient(78% 30% at 50% 0%, color-mix(in srgb, var(--synth-teal) 9%, transparent), transparent 72%),
+    var(--synth-canvas);
+  box-shadow: var(--synth-shadow);
+}
+
+.synth-container {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.synth-header {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 60px;
+  padding: 10px 14px;
+  border-color: var(--synth-line);
+  background: color-mix(in srgb, var(--synth-surface) 94%, transparent);
+  box-shadow: 0 5px 18px rgba(61, 53, 42, 0.06);
+}
+
+.synth-header-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 8px;
+}
+
+.synth-title {
+  color: var(--synth-ink);
+  font-size: 12px;
+}
+
+.synth-patch-name {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border-color: color-mix(in srgb, var(--synth-teal) 30%, var(--synth-line));
+  background: color-mix(in srgb, var(--synth-teal) 10%, var(--synth-panel));
+  color: var(--synth-teal);
+}
+
+.synth-patch-desc {
+  min-width: 0;
+  color: var(--synth-muted);
+}
+
+.synth-mode-toggle {
+  min-height: 44px;
+  padding: 0 12px;
+  border-color: var(--synth-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--synth-panel) 82%, transparent);
+  color: var(--synth-muted);
+  touch-action: manipulation;
+}
+
+.synth-mode-toggle:hover,
+.synth-mode-toggle:focus-visible {
+  border-color: var(--synth-teal);
+  background: color-mix(in srgb, var(--synth-teal) 10%, var(--synth-panel));
+  color: var(--synth-teal);
+}
+
+.synth-mode-toggle.is-beginner {
+  border-color: var(--neon-amber, #d97706);
+  background: color-mix(in srgb, var(--neon-amber, #d97706) 86%, #111827);
+  color: #fff;
+}
+
+.synth-patch-rail {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 7px 12px;
+  gap: 6px;
+  border-color: var(--synth-line);
+  background: color-mix(in srgb, var(--synth-panel) 66%, transparent);
+  overscroll-behavior-x: contain;
+}
+
+.synth-patch-btn {
+  min-height: 44px;
+  min-width: 64px;
+  padding: 6px 11px;
+  border-color: var(--synth-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--synth-surface) 86%, transparent);
+  color: var(--synth-muted);
+  touch-action: manipulation;
+}
+
+.synth-patch-btn:hover,
+.synth-patch-btn:focus-visible {
+  border-color: var(--synth-teal);
+  background: color-mix(in srgb, var(--synth-teal) 9%, var(--synth-surface));
+  color: var(--synth-ink);
+}
+
+.synth-patch-btn.is-active {
+  border-color: var(--synth-teal);
+  background: var(--synth-teal);
+  color: var(--ivory-deep, #06091a);
+}
+
+.synth-patch-btn.is-active .synth-patch-btn-name,
+.synth-patch-btn.is-active .synth-patch-btn-tip {
+  color: var(--ivory-deep, #06091a);
+}
+
+.synth-mobile-tabs {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 8px;
+  gap: 4px;
+  border-color: var(--synth-line);
+  background: color-mix(in srgb, var(--synth-panel) 84%, transparent);
+  overscroll-behavior-x: contain;
+}
+
+.synth-mtab {
+  flex: 1 0 64px;
+  min-height: 44px;
+  border-radius: 8px;
+  color: var(--synth-muted);
+  touch-action: manipulation;
+}
+
+.synth-mtab:hover,
+.synth-mtab:focus-visible,
+.synth-mtab-active {
+  border-color: color-mix(in srgb, var(--synth-teal) 42%, var(--synth-line));
+  background: color-mix(in srgb, var(--synth-teal) 12%, var(--synth-panel));
+  color: var(--synth-teal);
+}
+
+.synth-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(10px, 1.5vw, 16px);
+  gap: clamp(8px, 1.2vw, 14px);
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--synth-teal) transparent;
+}
+
+.synth-section {
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(10px, 1.3vw, 16px);
+  gap: 10px;
+  border-color: var(--synth-line);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--synth-surface) 96%, transparent), var(--synth-panel));
+  box-shadow: 0 4px 14px rgba(61, 53, 42, 0.05);
+}
+
+.synth-section:hover {
+  border-color: color-mix(in srgb, var(--synth-teal) 38%, var(--synth-line));
+  box-shadow: 0 7px 20px color-mix(in srgb, var(--synth-teal) 12%, transparent);
+}
+
+.section-title {
+  color: var(--synth-teal);
+  letter-spacing: 0.16em;
+}
+
+.section-title::after {
+  background: color-mix(in srgb, var(--synth-line) 80%, transparent);
+}
+
+.section-hint,
+.param-label,
+.adsr-label,
+.adsr-val,
+.wave-btn,
+.lfo-wave-btn,
+.sub-osc-toggle {
+  color: var(--synth-muted);
+}
+
+.synth-canvas-wrap {
+  min-height: 76px;
+  border-color: color-mix(in srgb, var(--synth-teal) 28%, var(--synth-line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--synth-canvas) 86%, #05070d);
+}
+
+.synth-canvas {
+  min-height: 64px;
+}
+
+.wave-selector,
+.lfo-wave-select {
+  gap: 7px;
+}
+
+.wave-btn,
+.lfo-wave-btn {
+  min-height: 48px;
+  border-color: var(--synth-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--synth-surface) 86%, transparent);
+  touch-action: manipulation;
+}
+
+.wave-btn:hover,
+.wave-btn:focus-visible,
+.lfo-wave-btn:hover,
+.lfo-wave-btn:focus-visible {
+  border-color: var(--synth-teal);
+  background: color-mix(in srgb, var(--synth-teal) 9%, var(--synth-surface));
+  color: var(--synth-ink);
+}
+
+.wave-btn.active,
+.lfo-wave-btn.is-active {
+  border-color: var(--synth-teal);
+  background: var(--synth-teal);
+  color: var(--ivory-deep, #06091a);
+}
+
+.wave-btn.active .wave-btn-name,
+.wave-btn.active .wave-btn-desc,
+.lfo-wave-btn.is-active .lfo-wave-icon,
+.lfo-wave-btn.is-active .lfo-wave-label {
+  color: var(--ivory-deep, #06091a);
+}
+
+.param-group {
+  gap: 8px;
+}
+
+.param-header {
+  min-height: 32px;
+  padding: 0 2px;
+}
+
+.param-value {
+  color: var(--synth-teal);
+}
+
+.param-tip {
+  border-color: color-mix(in srgb, var(--synth-teal) 24%, var(--synth-line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--synth-teal) 7%, var(--synth-panel));
+  color: var(--synth-muted);
+}
+
+.synth-slider {
+  min-height: 36px;
+  background: color-mix(in srgb, var(--synth-canvas) 88%, transparent);
+  accent-color: var(--synth-teal);
+}
+
+.synth-slider::-webkit-slider-thumb {
+  border-color: var(--synth-surface);
+  background: var(--synth-teal);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--synth-teal) 34%, transparent);
+}
+
+.adsr-grid {
+  gap: 10px;
+}
+
+.adsr-fader,
+.adsr-fader-header {
+  gap: 7px;
+}
+
+.fader-well {
+  min-height: 96px;
+  border-color: var(--synth-line);
+  background: color-mix(in srgb, var(--synth-canvas) 88%, transparent);
+}
+
+.knob-row {
+  gap: 12px;
+}
+
+.synth-select {
+  min-height: 44px;
+  border-color: var(--synth-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--synth-surface) 86%, transparent);
+  color: var(--synth-ink);
+}
+
+.sub-osc-toggle {
+  min-height: 48px;
+  border-color: var(--synth-line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--synth-surface) 86%, transparent);
+  touch-action: manipulation;
+}
+
+.sub-osc-toggle:hover,
+.sub-osc-toggle:focus-visible {
+  border-color: var(--synth-teal);
+  background: color-mix(in srgb, var(--synth-teal) 9%, var(--synth-surface));
+  color: var(--synth-ink);
+}
+
+.sub-osc-toggle.is-active {
+  border-color: var(--synth-teal);
+  background: var(--synth-teal);
+  color: var(--ivory-deep, #06091a);
+}
+
+:host :focus-visible {
+  outline-color: var(--synth-teal);
+}
+
+@media (max-width: 768px) {
+  .synth-surface {
+    border-radius: 14px;
+  }
+
+  .synth-header {
+    min-height: 0;
+    padding: 8px 10px;
+  }
+
+  .synth-patch-rail {
+    padding: 6px 8px;
+  }
+
+  .synth-mobile-tabs {
+    padding: 4px 6px;
+  }
+
+  .synth-content {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .synth-section {
+    padding: 10px;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .synth-header {
+    min-height: 48px;
+    padding-block: 6px;
+  }
+
+  .synth-patch-desc {
+    display: none;
+  }
+
+  .synth-patch-rail {
+    padding-block: 5px;
+  }
+
+  .synth-content {
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .synth-section {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .synth-canvas-wrap {
+    min-height: 56px;
+  }
+
+  .fader-well,
+  .synth-slider-v {
+    min-height: 70px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .synth-patch-btn,
+  .wave-btn,
+  .lfo-wave-btn,
+  .sub-osc-toggle {
+    transition: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REDESIGN — FILTER / LFO SECTION COVERAGE
+   The LFO section hook is the mobile tab target (hidden or shown by
+   [class.synth-section-hidden-mobile]); without a width contract it
+   could force the panel wider than the viewport. Styling only: LFO
+   routing, depth and the audio graph are untouched.
+   ═══════════════════════════════════════════════════════════ */
+.lfo-section {
+  min-width: 0;
+}
+
+.lfo-section .section-header {
+  min-height: 32px;
+}
+
+@media (pointer: coarse) {
+  .lfo-section .lfo-wave-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Desktop portrait/narrow workspaces: two module columns keep every synth
+   section legible; the bounded content rail owns the resulting scroll. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .synth-header {
+    min-height: 50px;
+    padding: 7px 10px;
+  }
+
+  .synth-patch-desc {
+    display: none;
+  }
+
+  .synth-patch-rail {
+    padding-block: 5px;
+  }
+
+  .synth-content {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .synth-section {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .synth-canvas-wrap {
+    min-height: 62px;
+  }
+
+  .fader-well {
+    min-height: 82px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .synth-header {
+    min-height: 46px;
+    padding-block: 5px;
+  }
+
+  .synth-patch-desc {
+    display: none;
+  }
+
+  .synth-patch-rail {
+    padding-block: 4px;
+  }
+
+  .synth-content {
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .synth-section {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .synth-canvas-wrap {
+    min-height: 52px;
+  }
+
+  .synth-canvas {
+    min-height: 48px;
+  }
+
+  .fader-well,
+  .synth-slider-v {
+    min-height: 68px;
+  }
+}

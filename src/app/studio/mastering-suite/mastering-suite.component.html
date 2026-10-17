@@ -1,0 +1,431 @@
+<div
+  class="mastering-suite-container p-6 bg-slate-950/90 backdrop-blur-3xl border border-fl-border rounded-3xl animate__animated animate__fadeIn studio-workspace-surface studio-module-scroll mastering-surface"
+>
+  <header class="flex flex-wrap justify-between items-center gap-3 mb-6 mastering-header">
+    <div>
+      <h1
+        class="text-3xl font-black text-white italic tracking-tighter uppercase"
+      >
+        Neural<span class="text-fl-blue neon-glow-v42">Mastering</span>
+      </h1>
+      <p
+        class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]"
+      >
+        Precision Bus Processor v2.0 · AI Presets Ready
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <button
+        (click)="refreshRoast()"
+        class="px-5 py-2 bg-white/5 tactile-v42 text-slate-200 text-xs font-black uppercase tracking-widest rounded-full border border-fl-border hover:bg-white/10 transition-all studio-secondary-button"
+        aria-label="Refresh AI mastering roast"
+      >
+        <span class="material-symbols-outlined align-middle text-base mr-1"
+          >refresh</span
+        >
+        Roast
+      </button>
+      <button
+        (click)="renderAndMaster()"
+        class="px-6 py-2 bg-emerald-500/90 tactile-v42 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all studio-primary-button"
+        [disabled]="isRendering()"
+      >
+        <span class="material-symbols-outlined align-middle text-base mr-1">
+          {{ isRendering() ? 'hourglass_top' : 'graphic_eq' }}
+        </span>
+        {{ isRendering() ? 'RENDERING…' : 'RENDER & MASTER' }}
+      </button>
+      <button
+        type="button"
+        (click)="processMastering()"
+        aria-label="Run automated mastering on the mix"
+        class="px-6 py-2 bg-fl-blue tactile-v42 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg shadow-fl-blue/20 hover:scale-105 transition-all studio-secondary-button"
+      >
+        AUTO-PROCESS
+      </button>
+    </div>
+  </header>
+
+  <!-- Sprint B1 Phase 2: real-render meters -->
+  <section
+    *ngIf="renderedTruePeak() !== null"
+    class="mb-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 p-4 flex flex-col gap-2 mastering-render-card"
+    aria-label="Real render mastering meters"
+  >
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-emerald-400 text-sm"
+        >bolt</span
+      >
+      <span
+        class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.25em]"
+      >
+        Real Render · {{ renderedDuration() }}s · {{
+          renderedPluginCount()
+        }} plugin{{ renderedPluginCount() === 1 ? '' : 's' }}
+      </span>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="rounded-xl bg-white/5 border border-emerald-500/20 p-2 text-center">
+        <div class="text-[8px] font-black text-emerald-400/70 uppercase tracking-widest">
+          True Peak
+        </div>
+        <div class="text-lg font-black text-white font-mono">{{
+          renderedTruePeak()
+        }} dBFS</div>
+      </div>
+      <div class="rounded-xl bg-white/5 border border-emerald-500/20 p-2 text-center">
+        <div class="text-[8px] font-black text-emerald-400/70 uppercase tracking-widest">
+          Integrated LUFS
+        </div>
+        <div class="text-lg font-black text-white font-mono">{{
+          renderedLufs()
+        }} LUFS</div>
+      </div>
+      <div class="rounded-xl bg-white/5 border border-emerald-500/20 p-2 text-center">
+        <div class="text-[8px] font-black text-emerald-400/70 uppercase tracking-widest">
+          RMS
+        </div>
+        <div class="text-lg font-black text-white font-mono">{{
+          renderedRms()
+        }} dBFS</div>
+      </div>
+      <div class="rounded-xl bg-white/5 border border-emerald-500/20 p-2 text-center">
+        <div class="text-[8px] font-black text-emerald-400/70 uppercase tracking-widest">
+          Loudness Range
+        </div>
+        <div class="text-lg font-black text-white font-mono">{{
+          renderedLra()
+        }} LU</div>
+      </div>
+    </div>
+
+    <!-- Sprint B2 Phase 2: Audition controls -->
+    <div
+      *ngIf="renderedBufferRef"
+      class="flex items-center gap-3 pt-2"
+      aria-label="Audition polished master"
+    >
+      <button
+        type="button"
+        (click)="auditionToggle()"
+        [attr.aria-label]="
+          audioEngine.auditionPlaying() ? 'Stop audition' : 'Audition master'
+        "
+        [attr.aria-pressed]="audioEngine.auditionPlaying()"
+        class="px-4 py-2 bg-emerald-500 tactile-v42 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all"
+      >
+        <span class="material-symbols-outlined align-middle text-base mr-1">
+          {{
+            audioEngine.auditionPlaying()
+              ? 'stop_circle'
+              : 'play_circle'
+          }}
+        </span>
+        {{
+          audioEngine.auditionPlaying()
+            ? 'STOP AUDITION'
+            : 'AUDITION MASTER'
+        }}
+      </button>
+      <div class="flex-1">
+        <div
+          class="h-2 bg-white/5 rounded-full overflow-hidden border border-emerald-500/20"
+        >
+          <div
+            class="h-full bg-emerald-400 transition-[width] duration-100"
+            [style.width.%]="audioEngine.auditionProgress() * 100"
+          ></div>
+        </div>
+        <div
+          class="text-[9px] text-white/60 font-mono mt-1 text-right"
+          aria-hidden="true"
+        >
+          {{
+            formatSeconds(audioEngine.auditionProgress() * audioEngine.auditionDuration())
+          }}
+          / {{ formatSeconds(audioEngine.auditionDuration()) }}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Genre selector for AI mastering -->
+  <section class="mb-4 mastering-genre-panel" aria-label="Genre selector for AI Mastering">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="material-symbols-outlined text-fl-blue text-sm"
+        >music_note</span
+      >
+      <span
+        class="text-[9px] font-black text-slate-500 uppercase tracking-[0.25em]"
+      >
+        Genre Target
+      </span>
+      @if (aiDetectedGenre()) {
+        <span
+          class="ml-auto text-[8px] font-bold text-fl-blue/60 uppercase tracking-widest"
+        >
+          detected: {{ aiDetectedGenre() }}
+        </span>
+      }
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      @for (g of availableGenres; track g.value) {
+        <button
+          type="button"
+          class="genre-chip"
+          [class.genre-chip-active]="selectedGenre() === g.value"
+          (click)="selectGenre(g.value)"
+          [attr.aria-pressed]="selectedGenre() === g.value"
+        >
+          <span class="genre-chip-emoji">{{ g.emoji }}</span>
+          <span class="genre-chip-label">{{ g.label }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
+  <!-- Pro: AI mastering presets rail -->
+  <section class="mb-6 mastering-presets-panel" aria-label="AI mastering presets">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="material-symbols-outlined text-fl-blue text-lg"
+        >auto_awesome</span
+      >
+      <span
+        class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]"
+      >
+        AI Mastering Presets · one-click destination
+      </span>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mastering-preset-grid">
+      <button
+        *ngFor="let preset of presets"
+        type="button"
+        class="ms-preset-card mastering-preset-card"
+        [class.ms-preset-active]="activePresetId() === preset.id"
+        (click)="applyPreset(preset)"
+        [attr.aria-pressed]="activePresetId() === preset.id"
+        [attr.aria-label]="
+          'Apply ' +
+          preset.label +
+          ' mastering preset · target ' +
+          preset.targetLufs +
+          ' LUFS, ceiling ' +
+          preset.safeCeiling +
+          ' dBFS'
+        "
+      >
+        <span class="ms-preset-emoji">{{ preset.emoji }}</span>
+        <span class="ms-preset-label">{{ preset.label }}</span>
+        <span class="ms-preset-tagline">{{ preset.tagline }}</span>
+        <span class="ms-preset-readout">
+          <span class="ms-preset-lufs">{{ preset.targetLufs }} LUFS</span>
+          <span class="ms-preset-ceiling">⌐ {{ preset.safeCeiling }} dBFS</span>
+        </span>
+        <span
+          class="ms-preset-flair"
+          *ngIf="activePresetId() === preset.id"
+          aria-hidden="true"
+        >
+          <span class="material-symbols-outlined text-base">check_circle</span>
+          ACTIVE
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-8 mastering-dashboard">
+    <!-- Visualizer Section -->
+    <div class="col-span-1 md:col-span-12 lg:col-span-7 space-y-6">
+      <div
+        class="glass-v42 shadow-v42-xl p-4 rounded-2xl border border-fl-border relative overflow-hidden h-40 md:h-64 mastering-visualizer"
+      >
+        <div
+          class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"
+        ></div>
+        <canvas
+          #spectrogram
+          class="w-full h-full rounded-xl"
+          width="800"
+          height="256"
+        ></canvas>
+        <div
+          class="absolute top-4 left-4 text-[8px] font-black text-fl-blue/40 uppercase tracking-widest"
+        >
+          Spectral_History_Matrix
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 sm:grid-cols-5 gap-3">
+        @for (band of bands(); track band.id) {
+          <div
+            class="p-3 bg-black/40 border border-fl-border rounded-2xl flex flex-col items-center text-center group hover:border-fl-blue/30 transition-all mastering-band-card"
+          >
+            <span class="text-[8px] font-black text-slate-500 mb-1">{{
+              band.range
+            }}</span>
+            <span class="text-xs font-bold text-white mb-3">{{
+              band.name
+            }}</span>
+            <div
+              class="w-1.5 h-20 bg-white/5 rounded-full overflow-hidden relative"
+            >
+              <div
+                class="absolute bottom-0 left-0 right-0 bg-fl-blue group-hover:bg-accent-magenta transition-colors"
+                [style.height.%]="((band.gain + 12) / 24) * 100"
+              ></div>
+            </div>
+            <span
+              class="mt-3 text-[10px] font-mono font-bold"
+              [class.text-fl-blue]="band.gain > 0"
+              >{{ band.gain > 0 ? '+' : '' }}{{ band.gain }}dB</span
+            >
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Meters Section -->
+    <div class="col-span-1 md:col-span-12 lg:col-span-5 space-y-6">
+      <div
+        class="glass-v42 shadow-v42-xl p-6 rounded-3xl border border-fl-border grid grid-cols-2 gap-4 md:gap-6 mastering-meter-card"
+      >
+        <div class="flex flex-col gap-1">
+          <span
+            class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+            >Integrated_LUFS</span
+          >
+          <span class="text-3xl font-black text-white italic">{{
+            lufsIntegrated()
+          }}</span>
+          <div class="w-full h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
+            <div
+              class="h-full bg-fl-blue"
+              [style.width.%]="lufsBarPercent(lufsIntegrated())"
+            ></div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span
+            class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+            >True_Peak_dBFS</span
+          >
+          <span class="text-3xl font-black text-white italic">{{
+            truePeak()
+          }}</span>
+          <div class="w-full h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
+            <div
+              class="h-full bg-accent-magenta"
+              [style.width.%]="peakBarPercent(truePeak())"
+            ></div>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span
+            class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+            >Loudness_Range</span
+          >
+          <span class="text-3xl font-black text-white italic">{{ lra() }}</span>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span
+            class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
+            >Phase_Correlation</span
+          >
+          <span class="text-3xl font-black text-white italic">{{
+            correlation()
+          }}</span>
+        </div>
+      </div>
+
+      <div
+        class="glass-v42 shadow-v42-xl p-6 rounded-3xl border border-fl-border flex flex-col gap-4 mastering-control-card"
+      >
+        <div
+          class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]"
+        >
+          Mastering Controls
+        </div>
+        <label class="text-xs text-slate-300">
+          Target LUFS
+          <input
+            type="range"
+            min="-24"
+            max="-8"
+            step="0.1"
+            aria-label="Target LUFS in dB"
+            [value]="targetLufs()"
+            (input)="updateTargetLufs(+$any($event.target).value)"
+            class="w-full"
+          />
+          <span class="text-fl-blue font-mono">{{ targetLufs() }}</span>
+        </label>
+        <label class="text-xs text-slate-300">
+          Safe Ceiling dBFS
+          <input
+            type="range"
+            min="-1.2"
+            max="-0.01"
+            step="0.01"
+            aria-label="Safe Ceiling in dBFS"
+            [value]="safeCeiling()"
+            (input)="updateSafeCeiling(+$any($event.target).value)"
+            class="w-full"
+          />
+          <span class="text-fl-blue font-mono">{{ safeCeiling() }}</span>
+        </label>
+        @if (smartAssistSuggestion()) {
+          <p class="text-xs text-slate-300">{{ smartAssistSuggestion() }}</p>
+        }
+        @if (eqMaskingHint()) {
+          <p class="text-xs text-brand-secondary">{{ eqMaskingHint() }}</p>
+        }
+        @if (isProcessing()) {
+          <p class="text-[10px] text-fl-blue uppercase tracking-widest">
+            Processing...
+          </p>
+        }
+      </div>
+
+      <div
+        class="p-6 rounded-3xl bg-fl-blue/5 border border-fl-blue/20 flex flex-col gap-4 mastering-roast-card"
+      >
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-fl-blue animate-pulse"
+            >shield</span
+          >
+          <span
+            class="text-[10px] font-black text-fl-blue uppercase tracking-[0.2em]"
+            >Safety_Intelligence · AI Roast</span
+          >
+          <span
+            *ngIf="activePresetId()"
+            class="ml-auto px-2 py-0.5 bg-fl-blue/20 rounded border border-fl-blue/30 text-[9px] font-black text-fl-blue uppercase tracking-widest"
+          >
+            {{ activePresetId() }}
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 italic leading-relaxed">
+          {{ masteringRoast() }}
+        </p>
+        <div class="flex gap-3 flex-wrap">
+          <div
+            class="px-3 py-1 bg-fl-blue/20 rounded border border-fl-blue/30 text-[9px] font-black text-fl-blue uppercase"
+          >
+            Limiter_Active
+          </div>
+          <div
+            class="px-3 py-1 bg-white/5 rounded border border-fl-border text-[9px] font-black text-slate-500 uppercase"
+          >
+            Oversampling_4X
+          </div>
+          <div
+            *ngIf="activePresetId()"
+            class="px-3 py-1 bg-accent-magenta/20 rounded border border-accent-magenta/30 text-[9px] font-black text-accent-magenta uppercase"
+          >
+            Preset_Active
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

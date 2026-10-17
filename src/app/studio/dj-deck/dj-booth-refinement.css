@@ -1,0 +1,148 @@
+/* ============================================================
+   S.M.U.V.E. DJ BOOTH — REFINEMENT LAYER
+   ------------------------------------------------------------
+   ADDITIVE ONLY. This sheet is registered *after*
+   dj-deck.component.css in the component's styleUrls, so it wins
+   styling ties: it therefore carries no layout, sizing, padding
+   or grid rules at all. It owns exactly three things:
+
+     1. the shared token aliases other layers read
+        (--cue-N cue lamps, --dj-a/--dj-b deck accents),
+     2. hardware press physics + optical icon settings,
+     3. touch / focus / reduced-motion floors.
+
+   Anything structural belongs in dj-deck.component.css.
+   ============================================================ */
+
+:host {
+  /* Legacy deck accents kept as aliases so the shared studio layers
+     (subcomponent-refinement.css, platform-ux.css) keep resolving. */
+  --dj-a: var(--vv-a, #f0a24a);
+  --dj-b: var(--vv-b, #46b3a2);
+  --booth-a: var(--vv-a, #f0a24a);
+  --booth-b: var(--vv-b, #46b3a2);
+  --booth-red: var(--vv-cue, #d63d2c);
+  --booth-green: var(--vv-lamp, #86c14a);
+
+  /* Per-cue lamp palette (also mirrored in the component sheet so the
+     2D canvas painter can read it back through getComputedStyle). */
+  --cue-0: #e5453c;
+  --cue-1: #e08a34;
+  --cue-2: #d9b23a;
+  --cue-3: #7ab648;
+  --cue-4: #3f9bd6;
+  --cue-5: #8a6ad6;
+  --cue-6: #d0529f;
+  --cue-7: #9dbf46;
+
+  --color-hotcue-0: var(--cue-0);
+  --color-hotcue-1: var(--cue-1);
+  --color-hotcue-2: var(--cue-2);
+  --color-hotcue-3: var(--cue-3);
+  --color-hotcue-4: var(--cue-4);
+  --color-hotcue-5: var(--cue-5);
+  --color-hotcue-6: var(--cue-6);
+  --color-hotcue-7: var(--cue-7);
+
+  color-scheme: dark;
+}
+
+/* ── 1. OPTICAL SETTINGS ─────────────────────────────────────────── */
+.dj-booth .material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 500,
+    'GRAD' 0,
+    'opsz' 24;
+  line-height: 1;
+}
+
+/* ── 2. HARDWARE PRESS PHYSICS ───────────────────────────────────── */
+/* Bakelite keys snap under the finger; a valve console does not glide. */
+.dj-booth .transport-button,
+.dj-booth .performance-pad,
+.dj-booth .cue-button,
+.dj-booth .hotcue,
+.dj-booth .pad-cell {
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 180ms ease,
+    transform 170ms cubic-bezier(0.34, 1.4, 0.44, 1);
+}
+.dj-booth .performance-pad:active,
+.dj-booth .hotcue:active,
+.dj-booth .pad-cell:active,
+.dj-booth .cue-button:active {
+  transform: scale(0.94);
+  filter: brightness(1.18);
+}
+
+/* The platter, the tonearm and every rotary knob own their gestures
+   completely — the page must never scroll out from under a performance. */
+.dj-booth .vinyl-platter,
+.dj-booth .jog-wheel,
+.dj-booth .jog-canvas,
+.dj-booth .tonearm-rail,
+.dj-booth .vknob {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Tape running: the REC key breathes with the broadcast. */
+.dj-booth .record-button.is-active {
+  animation: dj-rec-breathe 1.1s ease-in-out infinite;
+}
+@keyframes dj-rec-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 18px rgba(214, 61, 44, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(214, 61, 44, 0.46);
+  }
+}
+
+/* The deck currently driving the master bus gets its lamp halo. */
+.dj-booth .deck-chassis {
+  transition: box-shadow 0.32s ease;
+}
+
+/* ── 3. TOUCH FLOORS (Android) ───────────────────────────────────── */
+@media (max-width: 1023px), (max-width: 932px) and (orientation: landscape) {
+  .dj-booth .performance-pad,
+  .dj-booth .hotcue,
+  .dj-booth .cue-button,
+  .dj-booth .transport-button,
+  .dj-booth .master-sync-button,
+  .dj-booth .automix-button {
+    min-height: 44px;
+  }
+  .dj-booth .performance-pad:active {
+    transform: scale(0.9);
+  }
+}
+
+/* ── 4. DESKTOP FOCUS DISCIPLINE ─────────────────────────────────── */
+@media (min-width: 769px) {
+  .dj-booth button:focus-visible {
+    outline: 2px solid var(--vv-a, #f0a24a);
+    outline-offset: 2px;
+  }
+}
+
+/* ── 5. REDUCED MOTION GUARD ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .dj-booth .record-button.is-active {
+    animation: none !important;
+  }
+  .dj-booth .transport-button,
+  .dj-booth .performance-pad,
+  .dj-booth .cue-button,
+  .dj-booth .hotcue {
+    transition-duration: 0.001ms !important;
+  }
+}

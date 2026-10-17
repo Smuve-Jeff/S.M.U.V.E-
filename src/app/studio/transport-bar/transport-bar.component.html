@@ -1,0 +1,611 @@
+<div
+  class="ctb-shell"
+  [class.is-playing]="isPlaying()"
+  role="toolbar"
+  aria-label="Transport controls"
+>
+  <div class="ctb-primary-row" role="group" aria-label="Primary transport">
+  <!-- Play / Stop / Record -->
+  <div class="ctb-group" role="group" aria-label="Playback">
+    <button
+      type="button"
+      class="ctb-btn ctb-stop"
+      (click)="stop()"
+      [attr.aria-label]="'Stop playback (returns to bar 1)'"
+      [attr.aria-pressed]="isStopped()"
+      title="Stop playback — return to bar 1"
+    >
+      <span class="material-symbols-outlined">stop</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-btn ctb-play"
+      [class.ctb-play-active]="isPlaying()"
+      (click)="togglePlay()"
+      [attr.aria-label]="
+        (isPlaying() ? 'Pause playback' : 'Start playback') + ' (Space)'
+      "
+      [attr.aria-pressed]="isPlaying()"
+      [attr.title]="
+        isPlaying() ? 'Pause playback — Space' : 'Start playback — Space'
+      "
+    >
+      <span class="material-symbols-outlined">{{
+        isPlaying() ? 'pause' : 'play_arrow'
+      }}</span>
+      <span
+        class="ctb-play-pulse"
+        *ngIf="isPlaying()"
+        aria-hidden="true"
+      ></span>
+    </button>
+    <button
+      type="button"
+      class="ctb-btn ctb-rec"
+      [class.ctb-rec-active]="isRecording()"
+      (click)="toggleRecord()"
+      [attr.aria-label]="
+        (isRecording() ? 'Stop recording' : 'Start recording') + ' (R)'
+      "
+      [attr.aria-pressed]="isRecording()"
+      [attr.title]="
+        isRecording() ? 'Stop recording — R' : 'Start recording — R'
+      "
+    >
+      <span class="material-symbols-outlined">fiber_manual_record</span>
+    </button>
+
+    <span
+      *ngIf="recordingLabel()"
+      class="ctb-rec-source"
+      [attr.aria-live]="'polite'"
+      role="status"
+    >
+      <span
+        class="ctb-rec-dot"
+        aria-hidden="true"
+      ></span>
+      {{ recordingLabel() }}
+    </span>
+
+  </div>
+
+  <!-- Loop + Metronome toggles — FL Studio Mobile keeps both on the main
+       transport strip, next to play/record, instead of behind More. -->
+  <div class="ctb-group ctb-toggles" role="group" aria-label="Toggles">
+    <button
+      type="button"
+      class="ctb-toggle"
+      [class.ctb-toggle-active]="loopEnabled()"
+      (click)="toggleLoop()"
+      [attr.aria-pressed]="loopEnabled()"
+      [attr.aria-label]="
+        (loopEnabled() ? 'Turn OFF loop region' : 'Turn ON loop region') +
+        ' — currently ' +
+        (loopEnabled() ? 'on' : 'off')
+      "
+      [attr.title]="
+        loopEnabled()
+          ? 'Loop region is ON · click to turn off'
+          : 'Loop region is OFF · click to turn on'
+      "
+    >
+      <span class="material-symbols-outlined">repeat</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-toggle"
+      [class.ctb-toggle-active]="metronomeEnabled()"
+      (click)="toggleMetronome()"
+      [attr.aria-pressed]="metronomeEnabled()"
+      [attr.aria-label]="
+        (metronomeEnabled() ? 'Turn OFF metronome' : 'Turn ON metronome') +
+        ' — currently ' +
+        (metronomeEnabled() ? 'on' : 'off')
+      "
+      [attr.title]="
+        metronomeEnabled()
+          ? 'Metronome is ON · click to mute'
+          : 'Metronome is OFF · click to enable'
+      "
+    >
+      <span class="material-symbols-outlined">metronome</span>
+    </button>
+  </div>
+
+  <!-- Tempo group + Tap Tempo -->
+  <div class="ctb-group ctb-tempo" role="group" aria-label="Tempo">
+    <button
+      type="button"
+      class="ctb-btn ctb-nudge"
+      (click)="nudgeTempo(-1)"
+      [attr.aria-label]="'Slow down by 1 BPM (now ' + audioEngine.tempo() + ')'"
+      title="Slow down 1 BPM"
+    >
+      <span class="material-symbols-outlined">remove</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-bpm"
+      (click)="showBpmDropdown.set(!showBpmDropdown())"
+      [attr.aria-label]="
+        'Tempo ' + audioEngine.tempo() + ' BPM — tap for preset list'
+      "
+      aria-haspopup="dialog"
+      title="Tempo {{
+        audioEngine.tempo()
+      }} BPM — tap for preset list (80–160 BPM)"
+    >
+      <span class="ctb-bpm-value">{{ audioEngine.tempo() }}</span>
+      <span class="ctb-bpm-unit">BPM</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-btn ctb-nudge"
+      (click)="nudgeTempo(1)"
+      [attr.aria-label]="'Speed up by 1 BPM (now ' + audioEngine.tempo() + ')'"
+      title="Speed up 1 BPM"
+    >
+      <span class="material-symbols-outlined">add</span>
+    </button>
+
+  </div>
+
+  <!-- Stage 2.0 — Live position readout (Bar : Beat : Sixteenth) + time signature -->
+  <div
+    class="ctb-group ctb-position"
+    role="group"
+    aria-label="Playback position"
+  >
+    <span
+      class="ctb-timesig"
+      title="Time signature — 4/4"
+      aria-label="Time signature 4 over 4"
+      >{{ timeSignature }}</span
+    >
+    <span class="ctb-position-readout" aria-live="off" aria-hidden="false">
+      <b class="ctb-pos-bar">{{ positionReadout().bar }}</b
+      ><i>:</i><span class="ctb-pos-beat">{{ positionReadout().beat }}</span
+      ><i>:</i><span class="ctb-pos-six">{{ positionReadout().sixteenth }}</span>
+    </span>
+  </div>
+  </div>
+
+  <details class="ctb-secondary">
+    <summary class="ctb-secondary-trigger" aria-label="More studio controls" aria-controls="ctb-secondary-controls" title="More studio controls">
+      <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+      <span>More</span>
+    </summary>
+    <div id="ctb-secondary-controls" class="ctb-secondary-panel" role="group" aria-label="Secondary studio controls">
+      <div class="ctb-group ctb-tap-group" role="group" aria-label="Tap tempo">
+        <button type="button" class="ctb-btn ctb-tap" [class.ctb-tap-armed]="tapBpmGuess() !== null" (click)="tapTempo()" (dblclick)="resetTapTempo()" [attr.aria-label]="tapBpmGuess() ? 'Tap tempo · locked at ' + tapBpmGuess() + ' BPM — double-click to reset' : 'Tap to set BPM by feel · click again to lock in (double-click resets)'" title="Tap to set BPM by feel · double-click resets">
+          <span class="material-symbols-outlined">touch_app</span>
+          <span class="ctb-tap-readout" *ngIf="tapBpmGuess() !== null">{{ tapBpmGuess() }}</span>
+        </button>
+      </div>
+      <div class="ctb-group ctb-takes" role="group" aria-label="Take lane — punch-in and take stamping">
+        <button type="button" class="ctb-punch" [class.ctb-punch-active]="punchInActive()" (click)="togglePunchIn()" [attr.aria-pressed]="punchInActive()" [attr.aria-label]="punchInActive() ? 'Punch-in armed for selected track — disarm' : 'Arm punch-in for selected track'" [attr.title]="punchInActive() ? 'Punch-in armed — stop recording to stamp a take' : 'Punch-in off — tap to arm for the selected track'"><span class="material-symbols-outlined">radio_button_checked</span></button>
+        <button type="button" class="ctb-btn ctb-take-stamp" (click)="stampTake()" aria-label="Stamp a take for the selected track" title="Stamp a take for the selected track (snapshots note region)"><span class="material-symbols-outlined">note_add</span></button>
+        <span *ngIf="takeCount() > 0" class="ctb-take-count" aria-live="polite" [attr.title]="lastTakeLabel() ? 'Latest: ' + lastTakeLabel() : takeCount() + ' takes'"><span class="material-symbols-outlined">library_music</span> {{ takeCount() }}<ng-container *ngIf="lastTakeLabel()"> · {{ lastTakeLabel() }}</ng-container></span>
+      </div>
+
+  <!-- Sprint A4 — Playback-mode status chip (read-only mirror of AudioEngineService.playMode) -->
+  <div
+    class="ctb-group ctb-playmode"
+    role="group"
+    aria-label="Playback mode"
+  >
+    <span
+      class="ctb-mode-pill"
+      [class.ctb-mode-song]="audioEngine.playMode() === 'song'"
+      [class.ctb-mode-pattern]="audioEngine.playMode() === 'pattern'"
+      [attr.aria-label]="
+        'Playback mode is ' +
+        (audioEngine.playMode() === 'song' ? 'Song' : 'Pattern')
+      "
+      [title]="
+        audioEngine.playMode() === 'song'
+          ? 'Song mode · playback stops at the arrangement end'
+          : 'Pattern mode · loops forever'
+      "
+    >
+      <span class="material-symbols-outlined">
+        {{
+          audioEngine.playMode() === 'song' ? 'music_note' : 'repeat'
+        }}
+      </span>
+      {{ audioEngine.playMode() === 'song' ? 'SONG' : 'PATTERN' }}
+    </span>
+  </div>
+
+  <!-- Pro: Count-in picker -->
+  <div
+    class="ctb-group ctb-countin"
+    role="group"
+    aria-label="Count-in bars before play / record"
+  >
+    <span
+      class="ctb-countin-label"
+      title="Count-in beats audibly before play &amp; record"
+      >CI</span
+    >
+    <button
+      *ngFor="let n of [0, 1, 2]"
+      type="button"
+      class="ctb-countin-chip"
+      [class.ctb-countin-active]="countInBars() === n"
+      (click)="setCountIn(n)"
+      [attr.aria-label]="
+        n === 0
+          ? 'Turn OFF count-in (play &amp; record start immediately)'
+          : 'Set ' +
+            n +
+            '-bar count-in · click beat before play and record start'
+      "
+      [attr.aria-pressed]="countInBars() === n"
+      [attr.title]="
+        n === 0
+          ? 'No count-in · play &amp; record start on the next beat'
+          : 'Audible ' + n + '-bar count-in before play &amp; record'
+      "
+    >
+      {{ n === 0 ? 'OFF' : n + 'B' }}
+    </button>
+  </div>
+
+  <!-- Pro: A/B Loop Region -->
+  <div class="ctb-group ctb-loop-ab" role="group" aria-label="A/B loop region">
+    <button
+      type="button"
+      class="ctb-loop-chip"
+      [class.ctb-loop-chip-on]="loopStartStep() !== null"
+      (click)="setLoopMarker('start')"
+      title="Drop loop START marker at playhead"
+      [attr.aria-label]="
+        loopStartStep() === null
+          ? 'Drop loop START marker at playhead (step 0)'
+          : 'Loop START set at step ' + loopStartStep() + ' · click to move it'
+      "
+    >
+      <span class="material-symbols-outlined">first_page</span>
+      A
+    </button>
+    <button
+      type="button"
+      class="ctb-loop-chip"
+      [class.ctb-loop-chip-on]="loopEndStep() !== null"
+      (click)="setLoopMarker('end')"
+      title="Drop loop END marker at playhead"
+      [attr.aria-label]="
+        loopEndStep() === null
+          ? 'Drop loop END marker at playhead (step 0)'
+          : 'Loop END set at step ' + loopEndStep() + ' · click to move it'
+      "
+    >
+      <span class="material-symbols-outlined">last_page</span>
+      B
+    </button>
+    <span
+      class="ctb-loop-readout"
+      *ngIf="loopRegionLabel() !== '—'"
+      aria-live="polite"
+    >
+      {{ loopRegionLabel() }}
+    </span>
+    <button
+      type="button"
+      class="ctb-loop-clear"
+      (click)="clearLoopRegion()"
+      *ngIf="hasLoopRegion()"
+      title="Clear A→B loop region"
+      aria-label="Clear A to B loop region"
+    >
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+
+  <!-- Pro: Undo / Redo -->
+  <div class="ctb-group ctb-undo" role="group" aria-label="History">
+    <button
+      type="button"
+      class="ctb-undo-btn"
+      (click)="undo()"
+      [attr.aria-label]="
+        canUndo()
+          ? 'Undo last edit · ' + undoCount() + ' in history stack (Ctrl+Z)'
+          : 'Nothing to undo · history stack is empty'
+      "
+      [attr.title]="canUndo() ? 'Undo last edit · Ctrl+Z' : 'No edits to undo'"
+    >
+      <span class="material-symbols-outlined">undo</span>
+      <span class="ctb-undo-badge" *ngIf="undoCount() > 0">{{
+        undoCount()
+      }}</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-undo-btn"
+      (click)="redo()"
+      [attr.aria-label]="
+        canRedo()
+          ? 'Redo last undone edit · ' + redoCount() + ' ready (Ctrl+Shift+Z)'
+          : 'Nothing to redo · history stack is empty'
+      "
+      [attr.title]="
+        canRedo() ? 'Redo last undone edit · Ctrl+Shift+Z' : 'No edits to redo'
+      "
+    >
+      <span class="material-symbols-outlined">redo</span>
+      <span class="ctb-undo-badge" *ngIf="redoCount() > 0">{{
+        redoCount()
+      }}</span>
+    </button>
+  </div>
+
+  <!-- Pro: Test Sound probe -->
+  <div class="ctb-group">
+    <button
+      type="button"
+      class="ctb-btn ctb-test-sound"
+      [class.ctb-test-fired]="testSoundFired()"
+      (click)="playTestSound()"
+      [attr.aria-pressed]="testSoundFired()"
+      [attr.aria-label]="
+        testSoundFired()
+          ? 'Audio path is alive · probe sounded ' +
+            secondsSinceTest() +
+            's ago · click to re-test'
+          : 'Test audio path — play 0.6s audible probe to verify speakers and routing'
+      "
+      title="Testing speakers &amp; routing — click to fire 0.6s probe"
+    >
+      <span class="material-symbols-outlined">{{
+        testSoundFired() ? 'check_circle' : 'campaign'
+      }}</span>
+    </button>
+  </div>
+
+  <!-- Pro: Master meter -->
+  <div class="ctb-meter ctb-meter-pro" aria-hidden="false">
+    <div class="ctb-meter-bars">
+      <div
+        class="ctb-meter-bar"
+        [style.transform]="'scaleY(' + masterLevelVisual() + ')'"
+      ></div>
+      <div
+        class="ctb-meter-bar"
+        [style.transform]="'scaleY(' + masterLevelVisual() + ')'"
+      ></div>
+      <div
+        class="ctb-meter-peak"
+        [style.bottom.%]="masterPeakHold() * 100"
+      ></div>
+    </div>
+    <div class="ctb-meter-readout" aria-live="off">
+      <span class="ctb-db-now" [class.over]="masterDb() > 0">
+        {{ formatDb(masterDb()) }}
+      </span>
+      <span class="ctb-db-peak"> PK {{ formatDb(masterPeakDb()) }} </span>
+    </div>
+  </div>
+
+  <!-- Pro: Output meter (auto-adjusts visual under external devices) -->
+  <div class="ctb-meter ctb-meter-out" aria-hidden="false">
+    <div class="ctb-meter-bars">
+      <div
+        class="ctb-meter-out-bar"
+        [style.transform]="'scaleY(' + outputPeak() + ')'"
+      ></div>
+      <div
+        class="ctb-meter-out-bar ctb-meter-out-bar-peak"
+        [style.transform]="'scaleY(' + outputRms() + ')'"
+      ></div>
+    </div>
+    <div class="ctb-meter-readout" aria-live="off">
+      <span class="ctb-db-now" [class.over]="outputDb() > 0">
+        {{ formatDb(outputDb()) }}
+      </span>
+      <span class="ctb-meter-out-eq">{{ outputProfileLabel() }}</span>
+    </div>
+  </div>
+
+  <!-- Master volume -->
+  <div class="ctb-volume">
+    <span class="material-symbols-outlined ctb-volume-icon">volume_up</span>
+    <input
+      type="range"
+      min="0"
+      max="100"
+      step="1"
+      [ngModel]="masterVolume()"
+      (input)="updateMasterVolume($event)"
+      class="ctb-volume-slider"
+      [attr.aria-label]="
+        'Master output volume at ' + masterVolume() + ' percent'
+      "
+      title="Master output volume"
+    />
+    <span class="ctb-volume-readout">{{ masterVolume() }}</span>
+  </div>
+
+  <!-- Pro: Audio Output Device picker (auto-adjusts to external devices) -->
+  <div
+    class="ctb-group ctb-output-group"
+    role="group"
+    aria-label="Audio output device"
+  >
+    <button
+      type="button"
+      class="ctb-btn ctb-output-pill"
+      [class.ctb-output-external]="audioEngine.externalOutputActive()"
+      (click)="showOutputDeviceDropdown.set(!showOutputDeviceDropdown())"
+      [attr.aria-label]="
+        'Route studio audio to ' +
+        audioEngine.outputDeviceName() +
+        ' · click to choose a different output device'
+      "
+      [attr.aria-expanded]="showOutputDeviceDropdown()"
+      [title]="outputDeviceTooltip()"
+    >
+      <span class="material-symbols-outlined">speaker</span>
+      <span class="ctb-output-label"
+        >OUT: {{ audioEngine.outputDeviceName() }}</span
+      >
+      <span class="ctb-output-arrow material-symbols-outlined"
+        >expand_more</span
+      >
+    </button>
+    <div
+      class="ctb-output-dropdown glass-v42"
+      *ngIf="showOutputDeviceDropdown()"
+      role="menu"
+      aria-label="Audio output device list"
+    >
+      <button
+        type="button"
+        class="ctb-output-item"
+        [class.ctb-output-item-active]="
+          audioEngine.selectedOutputDeviceId() === ''
+        "
+        (click)="selectOutputDevice('')"
+        role="menuitem"
+      >
+        <span class="material-symbols-outlined">settings_input_hdmi</span>
+        <span>System default output</span>
+      </button>
+      <button
+        *ngFor="let d of audioEngine.outputDevices()"
+        type="button"
+        class="ctb-output-item"
+        [class.ctb-output-item-active]="
+          audioEngine.selectedOutputDeviceId() === d.deviceId
+        "
+        (click)="selectOutputDevice(d.deviceId)"
+        role="menuitem"
+      >
+        <span class="material-symbols-outlined">speaker</span>
+        <span>{{ d.label }}</span>
+      </button>
+      <p
+        class="ctb-output-hint"
+        *ngIf="audioEngine.outputDevices().length === 0"
+      >
+        Plug a USB interface or headphones to choose a different output.
+      </p>
+      <p class="ctb-output-hint" *ngIf="!audioEngine.supportsSinkId()">
+        This browser doesn't support audio output switching — selection is
+        informational only.
+      </p>
+    </div>
+  </div>
+
+  <!-- Export and Ideas actions -->
+  <div class="ctb-group ctb-export-actions" role="group" aria-label="Export and share">
+    <button type="button" class="ctb-dropdown-action" aria-label="Export WAV" (click)="exportWav()" [disabled]="isExporting()">
+      <span class="material-symbols-outlined">download</span> Export WAV
+    </button>
+    <button type="button" class="ctb-dropdown-action" aria-label="Export MIDI" (click)="exportMidi()">
+      <span class="material-symbols-outlined">music_note</span> Export MIDI
+    </button>
+    <button type="button" class="ctb-dropdown-action" (click)="shareExport()" [disabled]="isExporting()">
+      <span class="material-symbols-outlined">share</span> {{ isExporting() ? 'Rendering…' : 'Export & Share WAV' }}
+    </button>
+    <button type="button" class="ctb-dropdown-action" (click)="shareMidi()">
+      <span class="material-symbols-outlined">ios_share</span> Share MIDI
+    </button>
+  </div>
+  <!-- Pro: Ideas Generator trigger -->
+  <div class="ctb-group ctb-ideas-group">
+    <button
+      type="button"
+      class="ctb-btn ctb-ideas"
+      (click)="openIdeas()"
+      aria-label="Open Ideas Generator · curated 4-bar starter loops"
+      title="Open Ideas Generator — pick a curated 4-bar starter loop"
+    >
+      <span class="material-symbols-outlined">auto_awesome</span>
+      <span class="ctb-ideas-label">IDEAS</span>
+    </button>
+  </div>
+  </div>
+  </details>
+
+  <!-- BPM dropdown -->
+  <div
+    class="ctb-dropdown glass-v42"
+    *ngIf="showBpmDropdown()"
+    role="dialog"
+    aria-label="BPM presets"
+  >
+    <button
+      type="button"
+      class="ctb-dropdown-close"
+      (click)="showBpmDropdown.set(false)"
+      aria-label="Close preset list"
+    >
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <p class="ctb-dropdown-title">BPM Presets</p>
+    <div class="ctb-dropdown-grid">
+      <button
+        *ngFor="let bpm of bpmPresets"
+        type="button"
+        class="ctb-dropdown-item"
+        [class.ctb-dropdown-item-active]="audioEngine.tempo() === bpm"
+        (click)="setTempo(bpm)"
+      >
+        {{ bpm }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     IDEAS GENERATOR MODAL — 6 curated genre starter loops
+     ───────────────────────────────────────────────────────────── -->
+<div
+  class="ideas-modal-root"
+  *ngIf="ideasOpen()"
+  role="dialog"
+  aria-label="Ideas generator"
+>
+  <div class="ideas-modal-backdrop" (click)="closeIdeas()"></div>
+  <div class="ideas-modal-card">
+    <button
+      class="ideas-modal-close"
+      type="button"
+      (click)="closeIdeas()"
+      aria-label="Close ideas generator"
+    >
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <header class="ideas-modal-head">
+      <span class="ideas-modal-glyph">✨</span>
+      <h2 class="ideas-modal-title">Loop Starters</h2>
+      <p class="ideas-modal-sub">
+        One tap and you have a session-ready loop: curated chord progression,
+        drum groove, and bassline. BPM-aware.
+      </p>
+    </header>
+
+    <div class="ideas-modal-bento">
+      <button
+        *ngFor="let r of ideas.recipes"
+        type="button"
+        class="ideas-card"
+        (click)="useRecipe(r)"
+        [attr.aria-label]="'Generate ' + r.name + ' at ' + r.bpm + ' BPM'"
+      >
+        <span class="ideas-card-glyph">{{ r.glyph }}</span>
+        <span class="ideas-card-name">{{ r.name }}</span>
+        <span class="ideas-card-meta">{{ r.bpm }} BPM · {{ r.vibe }}</span>
+        <span class="ideas-card-prog">
+          <span class="ideas-card-prog-chip" *ngFor="let p of r.progression">
+            {{ p }}
+          </span>
+        </span>
+        <span class="ideas-card-cta">➕ Generate</span>
+      </button>
+    </div>
+  </div>
+</div>

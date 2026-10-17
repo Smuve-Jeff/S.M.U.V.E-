@@ -1,0 +1,440 @@
+import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { LoginComponent } from './login.component';
+import { AuthService } from '../../services/auth.service';
+import { ApiAuthError, ApiAuthService } from '../../services/api-auth.service';
+import { APP_SECURITY_CONFIG } from '../../app.security';
+import { SecurityService } from '../../services/security.service';
+import { OnboardingService } from '../../services/onboarding.service';
+import { LoggingService } from '../../services/logging.service';
+import { LoginConfirmationService } from '../../services/login-confirmation.service';
+
+describe('LoginComponent', () => {
+  const build = async () => {
+    const authMock = {
+      isAuthenticated: jest.fn().mockReturnValue(false),
+      currentUser: jest.fn().mockReturnValue(null),
+      validatePassword: jest.fn().mockReturnValue({
+        isValid: false,
+        errors: ['PASSWORD TOO SHORT.'],
+      }),
+      login: jest.fn(),
+      register: jest.fn(),
+      verifyEmail: jest.fn(),
+      resendVerificationCode: jest.fn(),
+      establishApiSession: jest.fn(),
+    };
+    // Transport failure, as the real client reports it: a typed ApiAuthError
+    // with status 0. A bare `{ status: 0 }` is not what ApiAuthService throws
+    // and would only be swallowed by the catch-all fallback this flow forbids.
+    const apiAuthMock = {
+      login: jest.fn().mockRejectedValue(new ApiAuthError(0, 'API unavailable')),
+      register: jest.fn().mockRejectedValue(
+        new ApiAuthError(0, 'API unavailable')
+      ),
+    };
+    const securityMock = {
+      isValidRedirectUrl: jest.fn().mockReturnValue(false),
+    };
+    const onboardingMock = {
+      shouldShow: jest.fn(() => false),
+    };
+    const loggerMock = {
+      system: jest.fn(),
+      error: jest.fn(),
+    };
+    const loginConfirmationMock = {
+      sendLoginConfirmation: jest.fn().mockResolvedValue(undefined),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [LoginComponent, HttpClientTestingModule],
+      providers: [
+        { provide: AuthService, useValue: authMock },
+        { provide: ApiAuthService, useValue: apiAuthMock },
+        { provide: SecurityService, useValue: securityMock },
+        { provide: OnboardingService, useValue: onboardingMock },
+        { provide: LoggingService, useValue: loggerMock },
+        { provide: LoginConfirmationService, useValue: loginConfirmationMock },
+        {
+          provide: Router,
+          useValue: { navigate: jest.fn(), navigateByUrl: jest.fn() },
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { queryParamMap: { get: jest.fn(() => null) } },
+          },
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(LoginComponent);
+    return { fixture, authMock, loginConfirmationMock };
+  };
+
+  it('renders the authorization form without throwing', async () => {
+    const { fixture } = await build();
+    expect(() => fixture.detectChanges()).not.toThrow();
+    expect(fixture.nativeElement.textContent).toContain('S.M.U.V.E');
+  });
+
+  it('renders the primary CTA for the default login mode', async () => {
+    const { fixture } = await build();
+    fixture.detectChanges();
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('button')
+    ) as HTMLButtonElement[];
+    expect(buttons.some((b) => b.textContent?.includes('Authorize Access')))
+      .toBe(true);
+    // Registering flips the CTA label to the genesis action.
+    fixture.componentInstance.isRegistering.set(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Initialize Genesis');
+  });
+
+  it('renders the password strength block while registering without throwing', async () => {
+    const { fixture } = await build();
+    fixture.componentInstance.isRegistering.set(true);
+    fixture.componentInstance.credentials.password = 'x';
+
+    expect(() => fixture.detectChanges()).not.toThrow();
+    expect(fixture.nativeElement.textContent).toContain('Cipher Strength');
+  });
+
+  it('normalizes the email before submitting credentials to the API', async () => {
+    const { fixture, authMock } = await build();
+    const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+      login: jest.Mock;
+    };
+    const response = {
+      token: 'api-jwt-token',
+      user: {
+        id: 7,
+        name: 'API Artist',
+        email: 'artist@example.com',
+        role: 'user',
+        createdAt: '2026-08-23T00:00:00.000Z',
+        updatedAt: '2026-08-23T00:00:00.000Z',
+      },
+    };
+    apiAuth.login.mockResolvedValue(response);
+    authMock.establishApiSession.mockReturnValue({ artistName: 'API Artist' });
+    fixture.componentInstance.credentials = {
+      email: '  ARTIST@EXAMPLE.COM  ',
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+
+    expect(apiAuth.login).toHaveBeenCalledWith({
+      email: 'artist@example.com',
+      password: 'Password1!',
+    });
+    expect(fixture.componentInstance.credentials.email).toBe('artist@example.com');
+  });
+
+  it('establishes the API session after successful credential login', async () => {
+    jest.useFakeTimers();
+    const { fixture, authMock } = await build();
+    const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+      login: jest.Mock;
+    };
+    const response = {
+      token: 'api-jwt-token',
+      user: {
+        id: 7,
+        name: 'API Artist',
+        email: 'artist@example.com',
+        role: 'user',
+        createdAt: '2026-08-23T00:00:00.000Z',
+        updatedAt: '2026-08-23T00:00:00.000Z',
+      },
+    };
+    const apiUser = {
+      id: '7',
+      email: response.user.email,
+      artistName: response.user.name,
+      role: 'Artist',
+      permissions: ['STANDARD'],
+      createdAt: new Date(response.user.createdAt),
+      lastLogin: new Date(),
+      profileCompleteness: 100,
+      emailVerified: true,
+    };
+    apiAuth.login.mockResolvedValue(response);
+    authMock.establishApiSession.mockReturnValue(apiUser);
+
+    fixture.componentInstance.credentials = {
+      email: response.user.email,
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+    jest.runOnlyPendingTimers();
+
+    expect(apiAuth.login).toHaveBeenCalledWith({
+      email: response.user.email,
+      password: 'Password1!',
+    });
+    expect(authMock.establishApiSession).toHaveBeenCalledWith(response);
+    expect(authMock.login).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('makes the second-factor form available after a 2FA challenge', async () => {
+    const { fixture, authMock } = await build();
+    authMock.login.mockResolvedValue({
+      success: false,
+      requires2FA: true,
+      message: 'SECOND FACTOR REQUIRED.',
+    });
+    fixture.componentInstance.credentials = {
+      email: 'artist@example.com',
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+
+    expect(fixture.componentInstance.requires2FA()).toBe(true);
+    expect(fixture.componentInstance.isLoading()).toBe(false);
+  });
+
+  it('sends a login confirmation before navigating after successful auth', async () => {
+    jest.useFakeTimers();
+    const { fixture, authMock, loginConfirmationMock } = await build();
+    const router = TestBed.inject(Router);
+    authMock.login.mockResolvedValue({ success: true, message: 'ok' });
+    authMock.currentUser = jest.fn(() => ({
+      id: 'u1',
+      email: 'artist@example.com',
+      artistName: 'Artist',
+      lastLogin: new Date(),
+    }));
+
+    fixture.componentInstance.credentials = {
+      email: 'artist@example.com',
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+    jest.advanceTimersByTime(1000);
+
+    expect(loginConfirmationMock.sendLoginConfirmation).toHaveBeenCalled();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/hub');
+    jest.useRealTimers();
+  });
+
+  it('falls back to the local demo store when the API is unreachable (server error)', async () => {
+    const { fixture, authMock } = await build();
+    const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+      login: jest.Mock;
+    };
+    apiAuth.login.mockRejectedValue(
+      new ApiAuthError(503, 'Server unavailable')
+    );
+    authMock.login.mockResolvedValue({
+      success: true,
+      message: 'ACCESS GRANTED, LEGACY ARTIST.',
+    });
+    fixture.componentInstance.credentials = {
+      email: 'legacy@example.com',
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+
+    expect(authMock.login).toHaveBeenCalledWith(
+      fixture.componentInstance.credentials
+    );
+    expect(fixture.componentInstance.isError()).toBe(false);
+    expect(fixture.componentInstance.message()).toContain('ACCESS GRANTED');
+  });
+
+  it('keeps a 401 a strict denial even when the legacy fallback is enabled', async () => {
+    const { fixture, authMock } = await build();
+    const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };
+    const original = config.legacy_auth_fallback;
+    config.legacy_auth_fallback = true;
+    try {
+      const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+        login: jest.Mock;
+      };
+      apiAuth.login.mockRejectedValue(
+        new ApiAuthError(401, 'Invalid email or password')
+      );
+      fixture.componentInstance.credentials = {
+        email: 'legacy@example.com',
+        password: 'Password1!',
+      };
+
+      await fixture.componentInstance.onSubmit();
+
+      expect(authMock.login).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.isError()).toBe(true);
+      expect(fixture.componentInstance.message()).toContain(
+        'AUTHORIZATION DENIED'
+      );
+    } finally {
+      config.legacy_auth_fallback = original;
+    }
+  });
+
+  it('reports a 5xx as an API outage instead of a credential denial', async () => {
+    const { fixture, authMock } = await build();
+    const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };
+    const original = config.legacy_auth_fallback;
+    config.legacy_auth_fallback = false;
+    try {
+      const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+        login: jest.Mock;
+      };
+      apiAuth.login.mockRejectedValue(
+        new ApiAuthError(503, 'Server unavailable')
+      );
+      fixture.componentInstance.credentials = {
+        email: 'artist@example.com',
+        password: 'Password1!',
+      };
+
+      await fixture.componentInstance.onSubmit();
+
+      expect(authMock.login).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.isError()).toBe(true);
+      expect(fixture.componentInstance.message()).toBe(
+        'API OUTAGE: AUTHENTICATION SERVER IS TEMPORARILY UNAVAILABLE.'
+      );
+    } finally {
+      config.legacy_auth_fallback = original;
+    }
+  });
+
+  it('reports a network failure as an outage too', async () => {
+    const { fixture } = await build();
+    const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };
+    const original = config.legacy_auth_fallback;
+    config.legacy_auth_fallback = false;
+    try {
+      const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+        login: jest.Mock;
+      };
+      apiAuth.login.mockRejectedValue(
+        new ApiAuthError(0, 'Unknown authentication error')
+      );
+      fixture.componentInstance.credentials = {
+        email: 'artist@example.com',
+        password: 'Password1!',
+      };
+
+      await fixture.componentInstance.onSubmit();
+
+      expect(fixture.componentInstance.message()).toBe(
+        'API OUTAGE: AUTHENTICATION SERVER IS TEMPORARILY UNAVAILABLE.'
+      );
+    } finally {
+      config.legacy_auth_fallback = original;
+    }
+  });
+
+  it('swallows an unexpected legacy-store failure during fallback', async () => {
+    const { fixture, authMock } = await build();
+    const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };
+    const original = config.legacy_auth_fallback;
+    config.legacy_auth_fallback = true;
+    try {
+      const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+        login: jest.Mock;
+      };
+      apiAuth.login.mockRejectedValue(
+        new ApiAuthError(503, 'Server unavailable')
+      );
+      authMock.login.mockRejectedValue(new Error('legacy store down'));
+
+      fixture.componentInstance.credentials = {
+        email: 'legacy@example.com',
+        password: 'Password1!',
+      };
+
+      await expect(
+        fixture.componentInstance.onSubmit()
+      ).resolves.toBeUndefined();
+
+      expect(authMock.login).toHaveBeenCalled();
+      expect(fixture.componentInstance.isError()).toBe(true);
+      expect(fixture.componentInstance.message()).toContain('UNAVAILABLE');
+    } finally {
+      config.legacy_auth_fallback = original;
+    }
+  });
+
+  it('keeps a 401 as a denial when the legacy fallback is disabled', async () => {
+    const { fixture, authMock } = await build();
+    const config = APP_SECURITY_CONFIG as { legacy_auth_fallback: boolean };
+    const original = config.legacy_auth_fallback;
+    config.legacy_auth_fallback = false;
+    try {
+      const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+        login: jest.Mock;
+      };
+      apiAuth.login.mockRejectedValue(
+        new ApiAuthError(401, 'Invalid email or password')
+      );
+      fixture.componentInstance.credentials = {
+        email: 'legacy@example.com',
+        password: 'Password1!',
+      };
+
+      await fixture.componentInstance.onSubmit();
+
+      expect(authMock.login).not.toHaveBeenCalled();
+      expect(fixture.componentInstance.isError()).toBe(true);
+      expect(fixture.componentInstance.message()).toContain(
+        'AUTHORIZATION DENIED'
+      );
+    } finally {
+      config.legacy_auth_fallback = original;
+    }
+  });
+
+  it('completes a legacy 2FA login through the fallback on resubmit', async () => {
+    const { fixture, authMock } = await build();
+    const apiAuth = TestBed.inject(ApiAuthService) as unknown as {
+      login: jest.Mock;
+    };
+    apiAuth.login.mockRejectedValue(
+      new ApiAuthError(503, 'Server unavailable')
+    );
+    authMock.login
+      .mockResolvedValueOnce({
+        success: false,
+        requires2FA: true,
+        message: 'SECOND FACTOR REQUIRED. SECURE YOUR TRANSMISSION.',
+      })
+      .mockResolvedValueOnce({ success: true, message: 'ACCESS GRANTED.' });
+
+    fixture.componentInstance.credentials = {
+      email: 'legacy@example.com',
+      password: 'Password1!',
+    };
+
+    await fixture.componentInstance.onSubmit();
+    expect(fixture.componentInstance.requires2FA()).toBe(true);
+    expect(fixture.componentInstance.isLoading()).toBe(false);
+
+    apiAuth.login.mockClear();
+    fixture.componentInstance.credentials.twoFactorCode = '123456';
+    await fixture.componentInstance.onSubmit();
+
+    expect(apiAuth.login).not.toHaveBeenCalled();
+    expect(authMock.login).toHaveBeenCalledTimes(2);
+    expect(authMock.login).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        email: 'legacy@example.com',
+        twoFactorCode: '123456',
+      })
+    );
+    expect(fixture.componentInstance.isError()).toBe(false);
+  });
+});

@@ -1,0 +1,674 @@
+<div
+  class="playlist-container studio-workspace-surface arrangement-surface glass-v42 shadow-v42-xl"
+  data-studio-module="arrangement"
+  [class.tool-blade]="activeTool() === 'blade'"
+  [class.tool-glue]="activeTool() === 'glue'"
+>
+  <div class="playlist-header wood-panel">
+    <div class="view-tabs flex items-center gap-4">
+      <!-- Product badge, not a control. It used to be a <button class="active">
+           that did nothing, so it read as a dead tab and stole a tab stop. -->
+      <span class="tab-btn active neon-text-xs" role="presentation">
+        ELITE ARRANGEMENT PRO v5
+      </span>
+      <div class="history-controls flex gap-1 ml-4">
+        <button
+          (click)="history.undo()"
+          [disabled]="!history.canUndo()"
+          class="mini-btn tactile-v42"
+          title="Undo (Ctrl+Z)"
+        >
+          <span class="material-symbols-outlined text-[10px]">undo</span>
+        </button>
+        <button
+          (click)="history.redo()"
+          [disabled]="!history.canRedo()"
+          class="mini-btn tactile-v42"
+          title="Redo (Ctrl+Y)"
+        >
+          <span class="material-symbols-outlined text-[10px]">redo</span>
+        </button>
+        <span
+          class="action-history-text text-[8px] opacity-60 ml-2"
+          *ngIf="history.lastActionName()"
+          >{{ history.lastActionName() | uppercase }}</span
+        >
+      </div>
+    </div>
+
+    <div
+      class="module-transport glass-v42 mx-4"
+      role="status"
+      aria-live="polite"
+      aria-label="Arrangement transport follows the global Studio transport"
+    >
+      <span class="module-transport-label">GLOBAL TRANSPORT</span>
+      <span class="module-transport-state" [attr.data-state]="audioSession.isPlaying() ? (audioSession.isRecording() ? 'recording' : 'playing') : 'ready'">
+        <span class="material-symbols-outlined" aria-hidden="true">
+          {{ audioSession.isRecording() ? 'fiber_manual_record' : audioSession.isPlaying() ? 'play_arrow' : 'check_circle' }}
+        </span>
+        {{ audioSession.isRecording() ? 'RECORDING' : audioSession.isPlaying() ? 'PLAYING' : 'READY' }}
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2 mx-2">
+      <button
+        class="tactile-v42 px-3 py-1 text-[8px] font-black"
+        [class.bg-red-500]="isRecordingAutomation()"
+        (click)="toggleAutomation()"
+      >
+        AUTO
+      </button>
+      <button
+        class="tactile-v42 px-3 py-1 text-[8px] font-black bg-blue-600/40"
+        (click)="aiVariation()"
+      >
+        AI VAR
+      </button>
+      <!-- Sprint A4 — Song/Pattern mode pill: structure length is the song boundary. -->
+      <div
+        class="play-mode-pill tactile-v42 executive-glass flex items-center gap-1 px-2 py-1"
+        [class.play-mode-song]="playMode() === 'song'"
+        [class.play-mode-pattern]="playMode() === 'pattern'"
+        [attr.aria-label]="
+          'Playback mode ' +
+          (playMode() === 'song' ? 'Song' : 'Pattern') +
+          ' — ends at ' +
+          effectiveBars() +
+          ' bars'
+        "
+        [title]="
+          playMode() === 'song'
+            ? 'Song mode · playback stops at the arrangement end (' +
+              effectiveBars() +
+              ' bars)'
+            : 'Pattern mode · loops forever at ' +
+              effectiveBars() +
+              ' bars'
+        "
+      >
+        <button
+          type="button"
+          class="play-mode-toggle mini-btn tactile-v42 px-2 py-0.5"
+          (click)="togglePlayMode()"
+          [attr.aria-pressed]="playMode() === 'pattern'"
+          aria-label="Toggle playback mode"
+        >
+          <span class="material-symbols-outlined text-[10px]">
+            {{ playMode() === 'song' ? 'music_note' : 'repeat' }}
+          </span>
+          {{ playMode() === 'song' ? 'SONG' : 'PATTERN' }}
+        </button>
+        <span class="ends-readout text-[8px] opacity-80 ml-1">
+          ENDS AT {{ effectiveBars() }} BARS
+        </span>
+        <span
+          *ngIf="songEnded()"
+          class="song-ended-badge ml-1 text-[8px] font-black text-red-300 cursor-pointer"
+          role="status"
+          aria-live="polite"
+          (click)="acknowledgeSongEnded()"
+          title="Click to dismiss"
+        >
+          SONG ENDED ✓
+        </span>
+      </div>
+    </div>
+    <div class="tool-selector studio-horizontal-rail" role="toolbar" aria-label="Arrangement edit mode">
+      <button
+        *ngFor="let tool of arrangementTools"
+        type="button"
+        (click)="setEditMode(tool.id)"
+        class="tool-btn tactile-v42"
+        [class.active]="editMode() === tool.id"
+        [attr.aria-pressed]="editMode() === tool.id"
+        [attr.aria-label]="tool.label + ' edit mode'"
+        [title]="tool.label"
+      >
+        <span class="material-symbols-outlined text-xs" aria-hidden="true">{{ tool.icon }}</span>
+        <span class="tool-btn-label">{{ tool.label }}</span>
+      </button>
+    </div>
+
+    <div class="header-actions flex items-center gap-2">
+      <div
+        class="edit-tools flex gap-1 mr-4"
+        *ngIf="selectedClipIds().size > 0"
+      >
+        <button
+          (click)="splitAtPlayhead()"
+          class="mini-btn tactile-v42 executive-glass"
+          title="Split at Playhead"
+        >
+          <span class="material-symbols-outlined text-[10px]">content_cut</span>
+        </button>
+        <button
+          (click)="duplicateSelected()"
+          class="mini-btn tactile-v42 executive-glass"
+          title="Duplicate"
+        >
+          <span class="material-symbols-outlined text-[10px]"
+            >content_copy</span
+          >
+        </button>
+        <button
+          *ngIf="selectedClipIds().size > 1"
+          (click)="consolidateSelected()"
+          class="mini-btn tactile-v42 executive-glass"
+          title="Glue touching clips into one clip"
+          [disabled]="!canConsolidateSelection()"
+        >
+          <span class="material-symbols-outlined text-[10px]">join_full</span>
+          GLUE
+        </button>
+        <button
+          (click)="quantizeSelected()"
+          class="mini-btn tactile-v42 executive-glass"
+          title="Quantize clip starts to the grid"
+        >
+          <span class="material-symbols-outlined text-[10px]">grid_guides</span>
+          Q
+        </button>
+        <!-- Phase F2 — clip trim (shrink left / right edges) -->
+        <button
+          (click)="trimSelected('start', snapEnabled() ? 0.25 : 0.1)"
+          class="mini-btn tactile-v42 executive-glass av-trim-btn"
+          title="Trim left edge shorter (snap: ¼ bar)"
+          aria-label="Trim clip start later (shorter)"
+        >
+          <span class="material-symbols-outlined text-[10px]">chevron_left</span>
+          TRI
+        </button>
+        <button
+          (click)="trimSelected('end', snapEnabled() ? -0.25 : -0.1)"
+          class="mini-btn tactile-v42 executive-glass av-trim-btn"
+          title="Trim right edge shorter (snap: ¼ bar)"
+          aria-label="Trim clip end earlier (shorter)"
+        >
+          TRI
+          <span class="material-symbols-outlined text-[10px]">chevron_right</span>
+        </button>
+        <!-- Phase F2 — audio clip fades (cycle 0 → ½ → 1 → 2 bars) -->
+        <button
+          (click)="cycleFade('in')"
+          class="mini-btn tactile-v42 executive-glass av-fade-btn"
+          [title]="
+            'Fade-in: ' +
+            formatFade(firstSelectedFade('in')) +
+            ' (click to cycle)'
+          "
+          [class.av-fade-active]="firstSelectedFade('in') > 0"
+        >
+          <span class="material-symbols-outlined text-[10px]">trending_up</span>
+          FI
+        </button>
+        <button
+          (click)="cycleFade('out')"
+          class="mini-btn tactile-v42 executive-glass av-fade-btn"
+          [title]="
+            'Fade-out: ' +
+            formatFade(firstSelectedFade('out')) +
+            ' (click to cycle)'
+          "
+          [class.av-fade-active]="firstSelectedFade('out') > 0"
+        >
+          <span class="material-symbols-outlined text-[10px]">trending_down</span>
+          FO
+        </button>
+        <!-- Phase F2 — delete selected clips -->
+        <button
+          (click)="deleteSelected()"
+          class="mini-btn tactile-v42 executive-glass av-del-btn"
+          title="Delete selected clip(s)"
+          aria-label="Delete selected clips"
+        >
+          <span class="material-symbols-outlined text-[10px]">delete</span>
+          DEL
+        </button>
+        <!-- Pattern picker: point the selected MIDI clip at another pattern
+             (or capture the live one into a new slot first). Audio clips are
+             not pattern-based and disable the control. -->
+        <select
+          *ngIf="selectedClipIsPatternable()"
+          class="mini-btn tactile-v42 executive-glass av-pattern-select"
+          [ngModel]="selectedClipPatternId()"
+          (ngModelChange)="onSelectedClipPatternChange($event)"
+          [attr.aria-label]="'Pattern played by the selected clip'"
+          [title]="
+            'Clip pattern: ' +
+            (patternSlotLabel(selectedClipPatternId()) ?? 'live pattern')
+          "
+        >
+          <option
+            *ngFor="let opt of patternOptionsForSelectedClip()"
+            [value]="opt.id"
+          >
+            {{ opt.label }}
+          </option>
+        </select>
+        <button
+          (click)="newPatternFromSelection()"
+          class="mini-btn tactile-v42 executive-glass av-new-pattern-btn"
+          title="Capture the current pattern into a new slot and select it"
+          aria-label="Create new pattern from current pattern"
+        >
+          <span class="material-symbols-outlined text-[10px]">library_add</span>
+          NEW PATTERN
+        </button>
+        <button
+          (click)="bounceSelected()"
+          class="mini-btn tactile-v42 executive-glass bounce-btn"
+          title="Bounce Track to Audio"
+        >
+          <span class="material-symbols-outlined text-[10px]">waves</span>
+          BOUNCE
+        </button>
+        <button
+          (click)="
+            crossLinkToPianoRoll(
+              findFirstSelectedTrack()!,
+              findFirstSelectedClip()!
+            )
+          "
+          class="mini-btn tactile-v42 executive-glass av-pr-btn"
+          title="Open in Piano Roll"
+          aria-label="Open selected clip in Piano Roll editor"
+          [disabled]="!findFirstSelectedClip()"
+        >
+          <span class="material-symbols-outlined text-[10px]"
+            >arrow_outward</span
+          >
+          PR
+        </button>
+      </div>
+
+      <button
+        (click)="toggleSnap()"
+        class="mini-btn tactile-v42 executive-glass snap-toggle"
+        [class.active-snap]="snapEnabled()"
+      >
+        {{ snapEnabled() ? 'SNAP ON' : 'SNAP OFF' }}
+      </button>
+      <button
+        (click)="createGroup()"
+        class="mini-btn tactile-v42 executive-glass"
+      >
+        + GROUP
+      </button>
+      <button (click)="addTrack()" class="mini-btn tactile-v42 executive-glass">
+        + TRACK
+      </button>
+      <button
+        (click)="openStemSplit()"
+        class="mini-btn tactile-v42 executive-glass stem-btn"
+      >
+        🎚 STEM SPLIT
+      </button>
+    </div>
+  </div>  <div
+    class="arrangement-mode-status"
+    role="status"
+    aria-live="polite"
+    [attr.data-mode]="editMode()"
+  >
+    <span class="material-symbols-outlined" aria-hidden="true">touch_app</span>
+    <span><strong>{{ editModeLabel() }}</strong> mode</span>
+    <span *ngIf="selectedClipIds().size > 0" class="arrangement-selection-status">
+      · {{ selectedClipIds().size }} clip{{ selectedClipIds().size === 1 ? '' : 's' }} selected
+    </span>
+  </div>
+
+  <div class="playlist-content no-scrollbar">
+    <!-- Empty-arrangement CTA: guides a fresh session into AI Produce or a
+         beat-first start so the canvas is never a dead end. -->
+    <div
+      class="arr-empty-cta glass-v42"
+      *ngIf="tracks().length === 0"
+      role="region"
+      aria-label="Start your first arrangement"
+    >
+      <div class="arr-empty-icon" aria-hidden="true">
+        <span class="material-symbols-outlined">auto_awesome</span>
+      </div>
+      <h3 class="arr-empty-title">Your canvas is ready. Make the first move.</h3>
+      <p class="arr-empty-sub">
+        Ask S.M.U.V.E. to produce a full track from an idea, or drop in a beat
+        first and build from there.
+      </p>
+      <div class="arr-empty-actions">
+        <button
+          type="button"
+          class="arr-empty-primary"
+          (click)="requestViewChange.emit('ai-produce')"
+        >
+          <span class="material-symbols-outlined">auto_awesome</span>
+          Generate with AI Produce
+        </button>
+        <button
+          type="button"
+          class="arr-empty-secondary"
+          (click)="requestViewChange.emit('drum-machine')"
+        >
+          <span class="material-symbols-outlined">grid_view</span>
+          Start with a Beat
+        </button>
+      </div>
+    </div>
+
+    <div class="track-headers no-scrollbar wood-panel">
+      <div
+        *ngFor="
+          let track of tracks().filter(
+            (t) =>
+              !t.parentId ||
+              !tracks().find((p) => p.id === t.parentId)?.collapsed
+          )
+        "
+        class="track-header tactile-v42 glass-v42"
+        [style.height.px]="
+          laneHeight() +
+          (musicManager.takesExpanded()[track.id]
+            ? takeLaneRows(track) * (laneHeight() * 0.6)
+            : 0)
+        "
+        [class.selected]="isTrackSelected(track.id)"
+        (click)="selectTrack(track.id)"
+      >
+        <div class="track-top flex items-center p-2">
+          <div
+            class="track-color-strip w-1 h-8 rounded mr-2"
+            [style.background-color]="track.color || '#af25f4'"
+          ></div>
+          <span class="track-name neon-text-xs truncate">{{
+            track.name | uppercase
+          }}</span>
+          <button
+            type="button"
+            class="ml-auto text-[8px] opacity-60 hover:opacity-100"
+            (click)="toggleTakes(track.id, $event)"
+            [attr.aria-expanded]="musicManager.takesExpanded()[track.id]"
+          >
+            {{
+              musicManager.takesExpanded()[track.id]
+                ? 'HIDE TAKES'
+                : 'SHOW TAKES'
+            }}
+          </button>
+        </div>
+        <div class="track-controls">
+          <button
+            type="button"
+            class="mini-btn"
+            [class.active-mute]="track.muted"
+            (click)="toggleMute(track.id, $event)"
+          >
+            M
+          </button>
+          <button
+            type="button"
+            class="mini-btn"
+            [class.active-solo]="track.soloed"
+            (click)="toggleSolo(track.id, $event)"
+          >
+            S
+          </button>
+          <button
+            type="button"
+            class="mini-btn"
+            (click)="removeTrack(track.id, $event)"
+          >
+            <span class="material-symbols-outlined text-[10px]">delete</span>
+          </button>
+        </div>
+        <app-take-lane
+          *ngIf="musicManager.takesExpanded()[track.id]"
+          [trackId]="track.id"
+          class="track-take-lane"
+        ></app-take-lane>
+      </div>
+    </div>
+
+    <div
+      class="grid-viewport no-scrollbar glass-v42"
+      #gridViewport
+      (touchstart)="onGridTouchStart($event)"
+      (touchmove)="onGridTouchMove($event)"
+      (touchend)="onGridTouchEnd()"
+      (pointerdown)="onGridPointerDown($event)"
+      (wheel)="onGridWheel($event)"
+    >
+      <canvas
+        #glCanvas
+        class="gl-canvas"
+        [style.width.px]="gridWidth()"
+        [style.height.px]="canvasHeight()"
+      ></canvas>
+    </div>
+
+    <section
+      class="arrangement-automation"
+      *ngIf="showAutomation()"
+      aria-label="Automation curves"
+    >
+      <app-automation-curve-editor
+        [barWidth]="barWidth()"
+        [totalBars]="effectiveBars()"
+        [trackId]="musicManager.selectedTrackId()"
+        (openBezierEditor)="openBezierEditor.emit($event)"
+      ></app-automation-curve-editor>
+    </section>
+
+    <section class="arrangement-overview" aria-label="Arrangement overview">
+      <div class="arrangement-overview-head">
+        <span class="arrangement-overview-title">OVERVIEW</span>
+        <span class="arrangement-overview-readout">
+          Bar {{ (musicManager.currentStep() / 16) + 1 | number: '1.0-0' }} / {{ effectiveBars() }}
+        </span>
+        <label class="arrangement-zoom">
+          <span class="material-symbols-outlined" aria-hidden="true">zoom_in</span>
+          <input
+            type="range"
+            min="0.5"
+            max="2"
+            step="0.1"
+            [value]="overviewZoom()"
+            (input)="setOverviewZoom($event)"
+            aria-label="Arrangement zoom"
+          />
+        </label>
+      </div>
+      <button
+        type="button"
+        class="arrangement-overview-track"
+        (click)="seekFromOverview($event)"
+        aria-label="Seek arrangement from overview"
+      >
+        <span
+          class="arrangement-overview-playhead"
+          [style.left.%]="(musicManager.currentStep() / (16 * effectiveBars())) * 100"
+          aria-hidden="true"
+        ></span>
+      </button>
+    </section>
+  </div>
+
+  <nav
+    *ngIf="selectedClipIds().size > 0"
+    class="arrangement-mobile-actions"
+    aria-label="Selected clip actions"
+  >
+    <span class="arrangement-mobile-selection" aria-live="polite">
+      {{ selectedClipIds().size }} selected
+    </span>
+    <button type="button" class="arrangement-mobile-action" (click)="splitAtPlayhead()">
+      <span class="material-symbols-outlined" aria-hidden="true">content_cut</span>
+      Split
+    </button>
+    <button type="button" class="arrangement-mobile-action" (click)="duplicateSelected()">
+      <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+      Duplicate
+    </button>
+    <button type="button" class="arrangement-mobile-action" (click)="trimSelected('start', snapEnabled() ? 0.25 : 0.1)">
+      <span class="material-symbols-outlined" aria-hidden="true">west</span>
+      Trim
+    </button>
+    <button type="button" class="arrangement-mobile-action arrangement-mobile-action-danger" (click)="deleteSelected()">
+      <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+      Delete
+    </button>
+    <button type="button" class="arrangement-mobile-action" (click)="openClipActions()">
+      <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+      More
+    </button>
+  </nav>
+
+  <app-studio-bottom-sheet
+    [open]="clipActionsOpen()"
+    title="Clip actions"
+    description="Non-destructive edits apply to the selected clip or clips."
+    (closed)="closeClipActions()"
+  >
+    <div class="arrangement-sheet-grid">
+      <button type="button" class="studio-secondary-button" (click)="cycleFade('in'); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">trending_up</span>
+        Fade in · {{ formatFade(firstSelectedFade('in')) }}
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="cycleFade('out'); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">trending_down</span>
+        Fade out · {{ formatFade(firstSelectedFade('out')) }}
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="quantizeSelected(0.25); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">grid_guides</span>
+        Quantize to ¼ bar
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="toggleAutomation(); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">show_chart</span>
+        {{ showAutomation() ? 'Hide automation' : 'Show automation' }}
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="splitAtPlayhead(); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">content_cut</span>
+        Split at playhead
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="duplicateSelected(); closeClipActions()">
+        <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+        Duplicate
+      </button>
+      <!-- Trim stays open so the edge can be nudged repeatedly. -->
+      <button type="button" class="studio-secondary-button" (click)="trimSelected('start', -0.25)">
+        <span class="material-symbols-outlined" aria-hidden="true">first_page</span>
+        Trim start · ¼ bar
+      </button>
+      <button type="button" class="studio-secondary-button" (click)="trimSelected('end', 0.25)">
+        <span class="material-symbols-outlined" aria-hidden="true">last_page</span>
+        Trim end · ¼ bar
+      </button>
+      <button
+        type="button"
+        class="studio-secondary-button"
+        [disabled]="!canConsolidateSelection()"
+        (click)="consolidateSelected(); closeClipActions()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">join_full</span>
+        Consolidate
+      </button>
+    </div>
+    <div studio-sheet-actions class="arrangement-sheet-actions">
+      <button
+        type="button"
+        class="studio-ghost-button"
+        [disabled]="selectedClipIds().size === 0"
+        (click)="deleteSelected(); closeClipActions()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+        Delete
+      </button>
+      <button type="button" class="studio-ghost-button" (click)="closeClipActions()">Done</button>
+    </div>
+  </app-studio-bottom-sheet>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────
+     STEM SPLITTER MODAL (fixed overlay outside the playlist)
+     ───────────────────────────────────────────────────────────── -->
+<div
+  class="stem-modal-root"
+  *ngIf="stemOpen()"
+  role="dialog"
+  aria-label="Stem Splitter"
+>
+  <div class="stem-modal-backdrop" (click)="closeStemSplit()"></div>
+  <div class="stem-modal-card">
+    <button
+      class="stem-modal-close"
+      (click)="closeStemSplit()"
+      aria-label="Close"
+    >
+      <span class="material-symbols-outlined">close</span>
+    </button>
+    <header class="stem-modal-head">
+      <span class="stem-modal-glyph">🎚</span>
+      <h2 class="stem-modal-title">Neural Stem Splitter</h2>
+      <p class="stem-modal-sub">
+        Drop an audio file — get vocals, drums, bass, instrumental, and other as
+        separate tracks you can mute / solo / mix.
+      </p>
+    </header>
+
+    <div class="stem-modal-body">
+      <label class="stem-drop-zone" tabindex="0">
+        <span class="material-symbols-outlined">upload</span>
+        <span class="stem-drop-label">
+          {{ stemFileName() ? stemFileName() : 'Drop or browse audio file' }}
+        </span>
+        <input
+          type="file"
+          accept="audio/*"
+          hidden
+          (change)="onStemFile($event)"
+        />
+      </label>
+
+      <div class="stem-progress" *ngIf="stemBusy() || stemProgress() > 0">
+        <div class="stem-progress-bar" [style.width.%]="stemProgress()"></div>
+        <span class="stem-progress-text">
+          {{
+            stemProgress() < 50
+              ? 'Decoding ·'
+              : stemProgress() < 100
+                ? 'Spectral Decomposition ·'
+                : 'Stems Ready'
+          }}
+          {{ stemProgress() }}%
+        </span>
+      </div>
+
+      <div class="stem-results" *ngIf="stemStems() as stems">
+        <div
+          class="stem-card"
+          *ngFor="
+            let s of [
+              { key: 'vocals', label: '🎤 Vocals' },
+              { key: 'drums', label: '🥁 Drums' },
+              { key: 'bass', label: '🎸 Bass' },
+              { key: 'instrumental', label: '🎹 Instrumental' },
+              { key: 'other', label: '🎺 Other' },
+            ]
+          "
+        >
+          <div class="stem-card-glyph">{{ s.label.split(' ')[0] }}</div>
+          <div class="stem-card-name">{{ s.label.split(' ')[1] }}</div>
+          <div class="stem-card-meta">
+            {{ stems[s.key]?.duration ?? 0 | number: '1.1-1' }}s
+          </div>
+        </div>
+        <button
+          class="stem-apply-btn"
+          [disabled]="!stemStems()"
+          (click)="applyStems()"
+        >
+          ➕ Add 5 Stem Tracks
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

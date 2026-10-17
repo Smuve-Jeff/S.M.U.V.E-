@@ -1,0 +1,528 @@
+import {
+  Injectable,
+  inject,
+  signal,
+  computed,
+  OnDestroy,
+  Injector,
+} from "@angular/core";
+import { LoggingService } from "../services/logging.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { LocalStorageService } from "../services/local-storage.service";
+import { StudioRecordingEngineService } from "./studio-recording-engine.service";
+import { WavEncoder } from "./wav-encoder.util";
+import { Subject } from "rxjs";
+
+/**
+ * A Take is a single completed recording — analogous to a comp in
+ * Logic / a clip-take in Pro Tools / a Scene record in FL Studio.
+ */
+export interface PerformanceTake {
+  id: string;
+  takeNumber: number;
+  name: string;
+  blob: Blob;
+  url: string;
+  durationMs: number;
+  peakDbL: number;
+  peakDbR: number;
+  recordedAt: number;
+  trackId?: string;
+  trackName?: string;
+  isComping: boolean;
+  notes: { midi: number; velocity: number; atMs: number }[];
+}
+
+/**
+ * PerformanceRecordingService — multi-take performance capture.
+ * Built atop StudioRecordingEngine for I/O + analysis, but exposes a
+ * richer take lifecycle (take 1..N, per-take peak metering, comping,
+ * export with stems metadata) used by the Performer view.
+ */
+@Injectable({ providedIn: "root" })
+export class PerformanceRecordingService implements OnDestroy {
+  private logger = inject(LoggingService);
+  private audioEngine = inject(AudioEngineService);
+  private localStorage = inject(LocalStorageService);
+  private injector = inject(Injector);
+
+  /** Lazy access to the recording engine via DI injector — avoids startup-order coupling. */
+  private get recordingEngine(): StudioRecordingEngineService | null {
+    try {
+      return this.injector.get(StudioRecordingEngineService);
+    } catch {
+      return null;
+    }
+  }
+
+  /** All takes across the current session */
+  takes = signal<PerformanceTake[]>([]);
+
+  /** Currently armed take number — when next stop arrives, this becomes
+   * the takeId for the new PerformanceTake. */
+  armedTakeNumber = signal(1);
+
+  /** Currently selected take in the take-carousel */
+  selectedTakeId = signal<string | null>(null);
+
+  /** Rolling live meters */
+  liveInputDbL = signal(-60);
+  liveInputDbR = signal(-60);
+  liveOutputDbL = signal(-60);
+  liveOutputDbR = signal(-60);
+
+  /** State */
+  isArmed = signal(false);
+  isRecording = signal(false);
+  monitorEnabled = signal(false); // monitoring via headphones (low-latency pass-through)
+  phantomPowerEnabled = signal(false); // +48V (cosmetic toggle for condenser mic hints)
+
+  /** Real-time derived — for UI pulse on record */
+  meterFlash = computed(() =>
+    Math.max(this.liveInputDbL(), this.liveInputDbR()),
+  );
+
+  selectedTake = computed(() => {
+    const id = this.selectedTakeId();
+    if (!id) return this.takes()[this.takes().length - 1] || null;
+    return this.takes().find((t) => t.id === id) || null;
+  });
+
+  takeCount = computed(() => this.takes().length);
+
+  private meterRaf: number | null = null;
+  private startTimestampMs = 0;
+  private liveMidi: { midi: number; velocity: number; atMs: number }[] = [];
+  private peakL = -Infinity;
+  private peakR = -Infinity;
+  private inited = false;
+  private initializePromise: Promise<boolean> | null = null;
+  /** Whether this service owns the stream (the shared recording engine normally does). */
+  private ownsMediaStream = false;
+  /** Pending async engine boot started in startRecording(); awaited in finishTake(). */
+  private engineStartPromise: Promise<boolean> | null = null;
+  /**
+   * Track the take was armed against in startRecording(). finishTake() accepts
+   * the same pair, but a stop path that only knows the take (a hardware stop,
+   * an auto-stop) used to produce an unattributed take even though the artist
+   * had already said which track they were punching into.
+   */
+  private pendingTrackId?: string;
+  private pendingTrackName?: string;
+
+  recordingFinished$ = new Subject<PerformanceTake>();
+  takeArmed$ = new Subject<number>();
+
+  constructor() {
+    // Start meter loop immediately so meters are always "live" (idle zeros)
+    this.startMeterLoop();
+  }
+
+  async initialize(): Promise<boolean> {
+    if (this.inited) return true;
+    if (this.initializePromise) return this.initializePromise;
+
+    this.initializePromise = this.initializeInternal();
+    try {
+      return await this.initializePromise;
+    } finally {
+      this.initializePromise = null;
+    }
+  }
+
+  private async initializeInternal(): Promise<boolean> {
+    const engine = this.recordingEngine;
+    if (engine) {
+      try {
+        const ready = engine.isInitialized() || (await engine.initialize());
+        if (!ready) return false;
+
+        // Reuse the engine's stream and analyser. Calling getUserMedia here
+        // as well would open a second microphone stream and can produce
+        // device contention, doubled input, or a stale meter.
+        this._liveInputAnalyser = engine.getAnalyserNode?.() ?? null;
+        this._mediaStream = engine.getMediaStream?.() ?? null;
+        this.ownsMediaStream = false;
+        this.inited = true;
+        this.logger.info(
+          "PerformanceRecording: sharing the studio input stream.",
+        );
+        return true;
+      } catch (e) {
+        this.logger.warn(
+          "PerformanceRecording: shared recording engine initialization failed.",
+          e,
+        );
+        return false;
+      }
+    }
+
+    // Keep the direct path for isolated consumers/tests that do not provide
+    // StudioRecordingEngineService, but never fabricate a recording from it.
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          sampleRate: 48000,
+          channelCount: 2,
+        },
+      });
+
+      const ctx = this.audioEngine.ctx;
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      src.connect(analyser);
+      this._liveInputAnalyser = analyser;
+      this._mediaStream = stream;
+      this.ownsMediaStream = true;
+      this.inited = true;
+      this.logger.info("PerformanceRecording: input stream active.");
+      return true;
+    } catch (e) {
+      this.logger.warn(
+        "PerformanceRecording: getUserMedia failed (likely no mic permission).",
+        e,
+      );
+      return false;
+    }
+  }
+
+  arm(takeNumber?: number) {
+    const n = takeNumber ?? this.armedTakeNumber();
+    this.armedTakeNumber.set(n);
+    this.isArmed.set(true);
+    this.takeArmed$.next(n);
+  }
+
+  disarm() {
+    this.isArmed.set(false);
+  }
+
+  toggleMonitor() {
+    this.monitorEnabled.update((v) => !v);
+    if (this.monitorEnabled() && this._mediaStream) {
+      // Attempt low-latency pass-through to AudioContext destination
+      // (Use a Gain at -Inf by default to avoid feedback loops.)
+      try {
+        const ctx = this.audioEngine.ctx;
+        if (!this._monitorGain) {
+          this._monitorGain = ctx.createGain();
+          this._monitorGain.gain.value = 0.8;
+          this._monitorSource?.disconnect();
+          this._monitorSource = ctx.createMediaStreamSource(this._mediaStream);
+          this._monitorSource.connect(this._monitorGain);
+          this._monitorGain.connect(ctx.destination);
+        }
+        this._monitorGain.gain.value = this.monitorEnabled() ? 0.8 : 0;
+      } catch {
+        // best-effort
+      }
+    } else if (this._monitorGain) {
+      this._monitorGain.gain.value = 0;
+    }
+  }
+
+  togglePhantom() {
+    this.phantomPowerEnabled.update((v) => !v);
+  }
+
+  startRecording(trackId?: string, trackName?: string) {
+    if (this.isRecording()) return;
+    this.pendingTrackId = trackId;
+    this.pendingTrackName = trackName;
+    const engine = this.recordingEngine;
+    this.liveMidi = [];
+    this.peakL = -Infinity;
+    this.peakR = -Infinity;
+    this.startTimestampMs = performance.now();
+    this.isRecording.set(true);
+    // Start capture through the shared engine. The same initialization promise
+    // is awaited by finishTake(), so stopping immediately after pressing record
+    // cannot race engine boot or silently turn into a fake take.
+    if (engine) {
+      this.engineStartPromise = (async () => {
+        const ready = await this.initialize();
+        if (!ready) {
+          this.logger.warn("PerformanceRecording: capture is unavailable.");
+          this.isRecording.set(false);
+          this.isArmed.set(false);
+          return false;
+        }
+        engine.startRecording();
+        const started = engine.isRecording();
+        if (!started) {
+          this.logger.warn(
+            "PerformanceRecording: engine refused to start capture.",
+          );
+          this.isRecording.set(false);
+          this.isArmed.set(false);
+        }
+        return started;
+      })();
+    } else {
+      // No engine means there is no capture path. initialize() may still be
+      // useful to a direct consumer for metering, but finishTake() will not
+      // manufacture an audio artifact without recorded PCM.
+      this.engineStartPromise = this.initialize().then((ready) => {
+        if (!ready) {
+          this.resetRecordingState();
+        }
+        return ready;
+      });
+    }
+  }
+
+  recordMidi(midi: number, velocity: number) {
+    if (!this.isRecording()) return;
+    this.liveMidi.push({
+      midi,
+      velocity,
+      atMs: performance.now() - this.startTimestampMs,
+    });
+  }
+
+  async finishTake(
+    trackId?: string,
+    trackName?: string,
+  ): Promise<PerformanceTake | null> {
+    if (!this.isRecording()) return null;
+    let durationMs = performance.now() - this.startTimestampMs;
+    const takeNumber = this.armedTakeNumber();
+    // A stop that does not repeat the track still attributes the take to the
+    // track it was armed against.
+    const takeTrackId = trackId ?? this.pendingTrackId;
+    const takeTrackName = trackName ?? this.pendingTrackName;
+
+    // ── Real capture via StudioRecordingEngine AudioWorklet ──
+    let blob: Blob;
+    const engine = this.recordingEngine;
+    if (engine) {
+      // Make sure the async engine boot from startRecording() settled and
+      // then flush the worklet so the channel buffers are finalized.
+      try {
+        if (this.engineStartPromise) {
+          await this.engineStartPromise;
+        }
+        this.engineStartPromise = null;
+        if (engine.isRecording()) {
+          await engine.stopRecording();
+        }
+        const flushed = engine.recordedBlob();
+        if (flushed) {
+          blob = flushed;
+          // Reconcile the take duration with the actual captured length.
+          durationMs = Math.round(engine.recordingTime() * 1000);
+        } else {
+          const { left, right } = engine.getRecordedBuffers();
+          if (left.length === 0 || right.length === 0) {
+            this.logger.warn(
+              "PerformanceRecording: capture stopped without PCM buffers; take discarded.",
+            );
+            this.resetRecordingState();
+            return null;
+          }
+          const leftChannel = this.joinChunks(left);
+          const rightChannel = this.joinChunks(right);
+          const sampleRate = this.audioEngine.ctx.sampleRate;
+          blob = WavEncoder.encodeMultiChannel(
+            [leftChannel, rightChannel],
+            "wav-16",
+            sampleRate,
+          );
+          durationMs = Math.round((leftChannel.length / sampleRate) * 1000);
+        }
+      } catch (e) {
+        this.logger.warn(
+          "PerformanceRecording: engine capture failed; take discarded.",
+          e,
+        );
+        this.resetRecordingState();
+        return null;
+      }
+    } else {
+      this.logger.warn(
+        "PerformanceRecording: no capture engine available; take discarded.",
+      );
+      this.resetRecordingState();
+      return null;
+    }
+    const url = URL.createObjectURL(blob);
+
+    const take: PerformanceTake = {
+      id: `take_${Date.now()}_${takeNumber}`,
+      takeNumber,
+      name: `Take ${takeNumber}`,
+      blob,
+      url,
+      durationMs,
+      peakDbL: isFinite(this.peakL) ? this.peakL : -60,
+      peakDbR: isFinite(this.peakR) ? this.peakR : -60,
+      recordedAt: Date.now(),
+      trackId: takeTrackId,
+      trackName: takeTrackName,
+      isComping: false,
+      notes: [...this.liveMidi],
+    };
+
+    this.takes.update((arr) => [...arr, take]);
+    this.selectedTakeId.set(take.id);
+    this.armedTakeNumber.set(takeNumber + 1);
+    this.isRecording.set(false);
+    this.isArmed.set(false);
+
+    try {
+      await this.localStorage.saveItem("performance_takes", { ...take });
+    } catch {
+      // best-effort persistence
+    }
+
+    this.recordingFinished$.next(take);
+    return take;
+  }
+
+  deleteTake(takeId: string) {
+    const removed = this.takes().find((t) => t.id === takeId);
+    if (removed) {
+      // Release the blob URL — takes own their object URLs for life, so
+      // deleting a take without revoking leaks memory in long sessions
+      // (audit finding #2).
+      try {
+        URL.revokeObjectURL(removed.url);
+      } catch {
+        // best-effort
+      }
+      // Drop the orphaned IndexedDB row too, otherwise a deleted take
+      // resurrects on the next session restore.
+      void this.localStorage
+        .deleteItem("performance_takes", takeId)
+        .catch(() => undefined);
+    }
+    this.takes.update((arr) => arr.filter((t) => t.id !== takeId));
+    if (this.selectedTakeId() === takeId) {
+      this.selectedTakeId.set(null);
+    }
+  }
+
+  setComping(takeId: string, isComping: boolean) {
+    this.takes.update((arr) =>
+      arr.map((t) => (t.id === takeId ? { ...t, isComping } : t)),
+    );
+  }
+
+  async exportTake(takeId: string, format: "wav" | "mp3" | "stems-metadata") {
+    const take = this.takes().find((t) => t.id === takeId);
+    if (!take) return;
+    // best-effort download. Only WAV data exists in this build (no MP3
+    // encoder is wired), so never advertise a format the blob isn't —
+    // stems-metadata is not a downloadable artifact and exports the WAV.
+    const extension = "wav";
+    const a = document.createElement("a");
+    a.href = take.url;
+    a.download = `${take.name.replace(/\s+/g, "_")}.${extension}`;
+    a.click();
+  }
+
+  private resetRecordingState(): void {
+    this.engineStartPromise = null;
+    this.pendingTrackId = undefined;
+    this.pendingTrackName = undefined;
+    this.isRecording.set(false);
+    this.isArmed.set(false);
+    this.liveMidi = [];
+    this.peakL = -Infinity;
+    this.peakR = -Infinity;
+  }
+
+  /** Join Float32Array chunks into a single contiguous buffer (mirrors StudioRecordingEngine). */
+  private joinChunks(chunks: Float32Array[], minimumLength = 0): Float32Array {
+    const length = Math.max(
+      minimumLength,
+      chunks.reduce((total, chunk) => total + chunk.length, 0),
+    );
+    const result = new Float32Array(length);
+    let offset = 0;
+    for (const chunk of chunks) {
+      const writable = Math.min(chunk.length, result.length - offset);
+      if (writable <= 0) break;
+      result.set(chunk.subarray(0, writable), offset);
+      offset += writable;
+    }
+    return result;
+  }
+
+  /** Convert linear amplitude to dBFS */
+  private linearToDb(v: number) {
+    if (v <= 0) return -60;
+    return 20 * Math.log10(v);
+  }
+
+  private _liveInputAnalyser: AnalyserNode | null = null;
+  private _mediaStream: MediaStream | null = null;
+  private _monitorGain: GainNode | null = null;
+  private _monitorSource: MediaStreamAudioSourceNode | null = null;
+
+  private startMeterLoop() {
+    if (this.meterRaf) return;
+    const buf = new Uint8Array(2048);
+    const tick = () => {
+      // Input meter
+      if (this._liveInputAnalyser) {
+        this._liveInputAnalyser.getByteTimeDomainData(buf);
+        let peak = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const v = Math.abs((buf[i] - 128) / 128);
+          if (v > peak) peak = v;
+        }
+        const db = this.linearToDb(peak);
+        this.liveInputDbL.set(db);
+        this.liveInputDbR.set(db); // stereo source
+        if (this.isRecording() && peak > this.peakL) {
+          this.peakL = db;
+          this.peakR = db;
+        }
+      } else {
+        // Slow natural decay to -60 dBFS
+        this.liveInputDbL.update((v) => Math.max(-60, v - 0.5));
+        this.liveInputDbR.update((v) => Math.max(-60, v - 0.5));
+      }
+      // Output meter — pull from master if available
+      try {
+        const master = this.audioEngine.masterAnalyser;
+        if (master) {
+          master.getByteTimeDomainData(buf);
+          let peak = 0;
+          for (let i = 0; i < buf.length; i++) {
+            const v = Math.abs((buf[i] - 128) / 128);
+            if (v > peak) peak = v;
+          }
+          const db = this.linearToDb(peak);
+          this.liveOutputDbL.set(db);
+          this.liveOutputDbR.set(db);
+        }
+      } catch {
+        this.liveOutputDbL.update((v) => Math.max(-60, v - 0.5));
+        this.liveOutputDbR.update((v) => Math.max(-60, v - 0.5));
+      }
+      this.meterRaf = requestAnimationFrame(tick);
+    };
+    this.meterRaf = requestAnimationFrame(tick);
+  }
+
+  ngOnDestroy() {
+    if (this.meterRaf) cancelAnimationFrame(this.meterRaf);
+    this._monitorGain?.disconnect();
+    this._monitorSource?.disconnect();
+    this._liveInputAnalyser?.disconnect();
+    if (this.ownsMediaStream) {
+      this._mediaStream?.getTracks().forEach((t) => t.stop());
+    }
+    this._monitorGain = null;
+    this._monitorSource = null;
+    this._liveInputAnalyser = null;
+    this._mediaStream = null;
+    this.ownsMediaStream = false;
+  }
+}

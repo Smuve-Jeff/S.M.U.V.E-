@@ -1,0 +1,868 @@
+<div
+  class="vocal-suite-root min-h-screen bg-vocal-obsidian text-slate-100 font-sans selection:bg-vocal-fl-blue/30 flex flex-col relative overflow-hidden"
+>
+  <!-- Dynamic HUD Background -->
+  <div class="absolute inset-0 pointer-events-none opacity-20">
+    <div
+      class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(157,0,255,0.1),transparent_70%)]"
+    ></div>
+    <div
+      class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]"
+    ></div>
+  </div>
+
+  <!-- Header Navigation -->
+  <header
+    class="vs-hud-header h-16 border-b border-fl-border flex items-center justify-between px-8 bg-vocal-obsidian/80 backdrop-blur-xl z-20 sticky top-0"
+  >
+    <div class="flex items-center gap-6">
+      <div class="flex flex-col">
+        <h1
+          class="text-xl font-black tracking-tighter text-white flex items-center gap-2"
+        >
+          VOCAL SUITE
+          <span
+            class="text-[10px] bg-vocal-primary px-1.5 py-0.5 rounded tracking-widest uppercase"
+            >Platinum v2.0</span
+          >
+        </h1>
+        <div
+          class="vs-hud-sub flex items-center gap-2 text-[10px] font-mono text-vocal-primary uppercase font-bold"
+        >
+          <span
+            class="size-1.5 rounded-full bg-vocal-primary animate-pulse"
+          ></span>
+          Neural Engine Active
+        </div>
+      </div>
+
+      <nav
+        class="flex bg-white/5 rounded-lg p-1 border border-fl-border ml-4"
+        role="tablist"
+        aria-label="Vocal Suite view mode"
+      >
+        <button
+          type="button"
+          role="tab"
+          (click)="viewMode.set('pipeline')"
+          [class.bg-vocal-primary]="viewMode() === 'pipeline'"
+          [class.text-white]="viewMode() === 'pipeline'"
+          [attr.aria-selected]="viewMode() === 'pipeline'"
+          aria-label="Pipeline mode"
+          class="px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all"
+        >
+          Pipeline
+        </button>
+        <button
+          type="button"
+          role="tab"
+          (click)="viewMode.set('console')"
+          [class.bg-vocal-primary]="viewMode() === 'console'"
+          [class.text-white]="viewMode() === 'console'"
+          [attr.aria-selected]="viewMode() === 'console'"
+          aria-label="Console mode"
+          class="px-4 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all"
+        >
+          Console
+        </button>
+      </nav>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <!-- S.M.U.V.E. Mini HUD -->
+      <div
+        class="bg-vocal-titanium/40 border border-vocal-fl-blue/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all"
+        role="button"
+        tabindex="0"
+        [attr.aria-pressed]="!vocalAi.isPassiveMode()"
+        [attr.aria-label]="'Toggle Neural Intelligence guidance · currently ' + (vocalAi.isPassiveMode() ? 'passive' : 'inclusive')"
+        (click)="vocalAi.toggleFeedbackMode()"
+        (keydown.enter)="vocalAi.toggleFeedbackMode()"
+        (keydown.space)="$event.preventDefault(); vocalAi.toggleFeedbackMode()"
+      >
+        <div
+          class="size-8 rounded-full bg-vocal-fl-blue/10 border border-vocal-primary flex items-center justify-center"
+        >
+          <span
+            class="material-symbols-outlined text-vocal-primary text-sm"
+            [class.animate-pulse]="!vocalAi.isPassiveMode()"
+            >{{
+              vocalAi.isPassiveMode() ? 'visibility_off' : 'neurology'
+            }}</span
+          >
+        </div>
+        <div class="flex flex-col">
+          <span
+            class="text-[8px] font-bold text-slate-500 uppercase tracking-widest"
+            >Guidance:
+            {{ vocalAi.isPassiveMode() ? 'Passive' : 'Inclusive' }}</span
+          >
+          <span class="text-[10px] font-mono text-fl-blue"
+            >Neural Intelligence Active</span
+          >
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 p-6 z-10 overflow-y-auto custom-scrollbar">
+    <!-- Pipeline Mode -->
+    <div *ngIf="viewMode() === 'pipeline'" class="max-w-6xl mx-auto space-y-8">
+      <!-- Steps Indicator -->
+      <div
+        class="vs-steps grid grid-cols-4 gap-4"
+        role="tablist"
+        aria-label="Vocal Suite pipeline steps"
+      >
+        <button
+          type="button"
+          role="tab"
+          *ngFor="let s of ['setup', 'record', 'edit', 'master']"
+          (click)="setStep(s)"
+          [class.border-vocal-primary]="currentStep() === s"
+          [class.bg-vocal-fl-blue/10]="currentStep() === s"
+          [attr.aria-selected]="currentStep() === s"
+          [attr.aria-label]="'Step ' + (s === 'setup' ? '1' : s === 'record' ? '2' : s === 'edit' ? '3' : '4') + ': ' + s"
+          class="border border-fl-border rounded-xl p-4 transition-all hover:bg-white/5 group text-left"
+        >
+          <div class="flex items-center gap-3">
+            <span
+              class="text-xs font-black font-mono text-slate-500 group-hover:text-vocal-primary transition-colors uppercase tracking-widest"
+              >0{{
+                s === 'setup' ? 1 : s === 'record' ? 2 : s === 'edit' ? 3 : 4
+              }}</span
+            >
+            <span
+              class="text-sm font-black uppercase tracking-tighter"
+              [class.text-vocal-primary]="currentStep() === s"
+              >{{ s }}</span
+            >
+          </div>
+        </button>
+      </div>
+
+      <!-- Step Content: Setup -->
+      <div
+        *ngIf="currentStep() === 'setup'"
+        class="bg-vocal-titanium/20 border border-fl-border rounded-2xl p-8 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-500"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div class="space-y-8">
+            <div class="space-y-2">
+              <h2
+                class="text-3xl font-black tracking-tight text-white uppercase"
+              >
+                Neural Input Stage
+              </h2>
+              <p class="text-slate-400 text-sm">
+                Configure your hardware interface for high-fidelity capture.
+              </p>
+            </div>
+
+            <app-microphone-interface></app-microphone-interface>
+
+            <button
+              type="button"
+              (click)="setStep('record')"
+              aria-label="Begin Strategic Capture"
+              class="w-full py-4 bg-vocal-primary text-white font-black uppercase tracking-widest rounded-xl hover:bg-vocal-fl-blue/80 transition-all shadow-[0_0_20px_rgba(157,0,255,0.3)]"
+            >
+              Begin Strategic Capture
+            </button>
+          </div>
+
+          <div
+            class="bg-vocal-oled rounded-2xl border border-fl-border p-6 flex flex-col items-center justify-center relative group overflow-hidden"
+          >
+            <div
+              class="absolute inset-0 bg-gradient-to-t from-vocal-fl-blue/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+            ></div>
+            <div
+              class="size-48 rounded-full border-2 border-dashed border-vocal-fl-blue/20 flex items-center justify-center relative animate-[spin_20s_linear_infinite]"
+            >
+              <div
+                class="size-40 rounded-full border-2 border-vocal-fl-blue/40 flex items-center justify-center animate-[spin_10s_linear_infinite_reverse]"
+              ></div>
+            </div>
+            <div
+              class="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center"
+            >
+              <span
+                class="material-symbols-outlined text-5xl text-vocal-primary drop-shadow-[0_0_15px_rgba(157,0,255,0.5)]"
+                >mic_external_on</span
+              >
+              <span
+                class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500"
+                >Signal Integrity: 100%</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step Content: Record -->
+      <div
+        *ngIf="currentStep() === 'record'"
+        class="space-y-6 animate-in fade-in zoom-in-95 duration-500"
+      >
+        <div
+          class="bg-vocal-titanium/20 border border-fl-border rounded-3xl p-8 backdrop-blur-xl relative overflow-hidden"
+        >
+          <div class="absolute top-0 right-0 p-8 flex flex-col items-end gap-1">
+            <span
+              class="text-4xl font-mono font-black text-white tracking-tighter"
+              >{{ recordingTimeFormatted() }}</span
+            >
+            <span
+              class="text-[10px] font-bold text-rose-500 animate-pulse uppercase tracking-[0.2em]"
+              *ngIf="micService.isRecording()"
+              >Recording Live</span
+            >
+          </div>
+
+          <div
+            class="vs-spectrogram h-64 mb-8 bg-vocal-oled rounded-2xl border border-fl-border relative flex items-center justify-center overflow-hidden"
+          >
+            <canvas
+              #spectrograph
+              width="1200"
+              height="256"
+              class="w-full h-full opacity-60"
+            ></canvas>
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-vocal-obsidian/20 via-transparent to-vocal-obsidian/20"
+            ></div>
+          </div>
+
+          <div class="flex justify-center gap-8 items-center">
+            <button
+              type="button"
+              (click)="toggleRecording()"
+              [class.bg-fl-blue]="micService.isRecording()"
+              [attr.aria-label]="micService.isRecording() ? 'Stop recording' : 'Start recording'"
+              [attr.aria-pressed]="micService.isRecording()"
+              class="size-20 rounded-full bg-vocal-primary flex items-center justify-center shadow-[0_0_30px_rgba(157,0,255,0.4)] hover:scale-105 transition-all"
+            >
+              <span class="material-symbols-outlined text-4xl text-white">{{
+                micService.isRecording() ? 'stop' : 'fiber_manual_record'
+              }}</span>
+            </button>
+            <button
+              type="button"
+              *ngIf="micService.isRecording()"
+              (click)="
+                micService.isPaused()
+                  ? micService.resumeRecording()
+                  : micService.pauseRecording()
+              "
+              [attr.aria-label]="micService.isPaused() ? 'Resume recording' : 'Pause recording'"
+              [attr.aria-pressed]="micService.isPaused()"
+              class="size-14 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
+            >
+              <span class="material-symbols-outlined text-white">{{
+                micService.isPaused() ? 'play_arrow' : 'pause'
+              }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="flex flex-wrap items-center justify-between gap-4"
+          *ngIf="micService.recordedBlob()"
+        >
+          <label
+            class="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-300"
+          >
+            <input
+              type="checkbox"
+              [checked]="autoRouteTakes()"
+              (change)="toggleAutoRoute()"
+              aria-label="Route finished takes to the arrangement automatically"
+              class="size-4 accent-vocal-primary"
+            />
+            Auto-route takes
+          </label>
+          <div class="flex flex-wrap gap-3">
+            <button
+              type="button"
+              (click)="routeTakeToArrangement()"
+              aria-label="Add the current take to the arrangement"
+              class="px-6 py-3 bg-white/5 border border-fl-border font-black uppercase tracking-widest text-xs rounded-xl hover:bg-white/10 transition-all"
+            >
+              Add to Arrangement
+            </button>
+            <button
+              type="button"
+              (click)="setStep('edit')"
+              aria-label="Commit recording to S.M.U.V.E. Lab for editing"
+              class="px-8 py-3 bg-white text-vocal-obsidian font-black uppercase tracking-widest text-xs rounded-xl hover:bg-slate-200 transition-all"
+            >
+              Commit to S.M.U.V.E. Lab
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step Content: Edit -->
+      <div *ngIf="currentStep() === 'edit'" class="space-y-6">
+        <div
+          class="bg-vocal-titanium/20 border border-fl-border rounded-2xl p-8"
+        >
+          <h2 class="text-xl font-black uppercase tracking-widest mb-6">
+            Non-Destructive Waveform Editor
+          </h2>
+          <div
+            class="vs-edit-spectrogram h-48 bg-vocal-oled rounded-xl border border-fl-border mb-6 relative overflow-hidden group"
+          >
+            <canvas
+              #waveformCanvas
+              width="1200"
+              height="192"
+              class="w-full h-full"
+            ></canvas>
+            <div
+              class="absolute inset-y-0 left-1/3 w-[1px] bg-vocal-primary shadow-[0_0_10px_#a855f7]"
+            ></div>
+          </div>
+          <div class="vs-edit-actions flex flex-wrap gap-4" role="group" aria-label="Vocal edit actions">
+            <button
+              type="button"
+              (click)="normalizeTake()"
+              [disabled]="isProcessingTake()"
+              aria-label="Normalize recording loudness"
+              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Normalize
+            </button>
+            <button
+              type="button"
+              (click)="trimTakeSilence()"
+              [disabled]="isProcessingTake()"
+              aria-label="Trim silence from recording edges"
+              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Trim Silence
+            </button>
+            <button
+              type="button"
+              (click)="routeTakeToArrangement()"
+              aria-label="Add the edited take to the arrangement"
+              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"
+            >
+              Add to Arrangement
+            </button>
+            <button
+              type="button"
+              (click)="setStep('master')"
+              aria-label="Proceed to mastering step"
+              class="px-6 py-2 bg-vocal-primary rounded text-[10px] font-black uppercase tracking-widest ml-auto"
+            >
+              Proceed to Mastering
+            </button>
+          </div>
+          <p
+            *ngIf="takeStatus() as status"
+            role="status"
+            class="mt-4 text-[10px] font-bold uppercase tracking-widest text-vocal-primary"
+          >
+            {{ status }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Step Content: Master -->
+      <div
+        *ngIf="currentStep() === 'master'"
+        class="animate-in fade-in slide-in-from-right-4 duration-500"
+      >
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div class="lg:col-span-2 space-y-6">
+            <div
+              class="bg-vocal-titanium/20 border border-fl-border rounded-2xl p-6"
+            >
+              <div
+                class="vs-master-tabs flex gap-4 mb-8"
+                role="tablist"
+                aria-label="Mastering modules"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  *ngFor="let t of ['eq', 'comp', 'exciter', 'limiter']"
+                  (click)="activeMasteringTab.set(t)"
+                  [class.border-vocal-primary]="activeMasteringTab() === t"
+                  [class.text-vocal-primary]="activeMasteringTab() === t"
+                  [attr.aria-selected]="activeMasteringTab() === t"
+                  [attr.aria-label]="'Mastering module: ' + t.toUpperCase()"
+                  class="px-6 py-2 border border-fl-border bg-white/5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:border-vocal-primary transition-all"
+                >
+                  {{ t }}
+                </button>
+              </div>
+
+              <!-- EQ Controls -->
+              <div
+                *ngIf="activeMasteringTab() === 'eq'"
+                class="space-y-8 animate-in fade-in duration-300"
+              >
+                <div class="grid grid-cols-3 gap-8">
+                  <div class="flex flex-col gap-4 items-center">
+                    <div
+                      class="relative h-48 w-2 bg-white/5 rounded-full flex items-end"
+                    >
+                      <div
+                        class="w-full bg-vocal-primary rounded-full shadow-[0_0_15px_#a855f7]"
+                        [style.height.%]="
+                          ((mastering.params().eq.low + 12) / 24) * 100
+                        "
+                      ></div>
+                      <input
+                        type="range"
+                        min="-12"
+                        max="12"
+                        step="0.1"
+                        [ngModel]="mastering.params().eq.low"
+                        (ngModelChange)="
+                          mastering.updateParams({
+                            eq: { ...mastering.params().eq, low: $event },
+                          })
+                        "
+                        class="absolute inset-0 opacity-0 cursor-pointer [writing-mode:bt-lr] h-full w-full"
+                      />
+                    </div>
+                    <span
+                      class="text-[9px] font-bold text-slate-500 uppercase tracking-widest"
+                      >Low Shelf</span
+                    >
+                  </div>
+                  <div class="flex flex-col gap-4 items-center">
+                    <div
+                      class="relative h-48 w-2 bg-white/5 rounded-full flex items-end"
+                    >
+                      <div
+                        class="w-full bg-vocal-primary rounded-full shadow-[0_0_15px_#a855f7]"
+                        [style.height.%]="
+                          ((mastering.params().eq.mid + 12) / 24) * 100
+                        "
+                      ></div>
+                      <input
+                        type="range"
+                        min="-12"
+                        max="12"
+                        step="0.1"
+                        [ngModel]="mastering.params().eq.mid"
+                        (ngModelChange)="
+                          mastering.updateParams({
+                            eq: { ...mastering.params().eq, mid: $event },
+                          })
+                        "
+                        class="absolute inset-0 opacity-0 cursor-pointer [writing-mode:bt-lr] h-full w-full"
+                      />
+                    </div>
+                    <span
+                      class="text-[9px] font-bold text-slate-500 uppercase tracking-widest"
+                      >Presence</span
+                    >
+                  </div>
+                  <div class="flex flex-col gap-4 items-center">
+                    <div
+                      class="relative h-48 w-2 bg-white/5 rounded-full flex items-end"
+                    >
+                      <div
+                        class="w-full bg-vocal-primary rounded-full shadow-[0_0_15px_#a855f7]"
+                        [style.height.%]="
+                          ((mastering.params().eq.high + 12) / 24) * 100
+                        "
+                      ></div>
+                      <input
+                        type="range"
+                        min="-12"
+                        max="12"
+                        step="0.1"
+                        [ngModel]="mastering.params().eq.high"
+                        (ngModelChange)="
+                          mastering.updateParams({
+                            eq: { ...mastering.params().eq, high: $event },
+                          })
+                        "
+                        class="absolute inset-0 opacity-0 cursor-pointer [writing-mode:bt-lr] h-full w-full"
+                      />
+                    </div>
+                    <span
+                      class="text-[9px] font-bold text-slate-500 uppercase tracking-widest"
+                      >Air Shelf</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <div
+                *ngIf="activeMasteringTab() !== 'eq'"
+                class="h-64 flex flex-col items-center justify-center gap-4 text-slate-600 font-mono text-[10px] uppercase tracking-widest"
+              >
+                <span class="material-symbols-outlined text-4xl opacity-20"
+                  >Settings</span
+                >
+                Advanced Parameters Integrated into Global Neural Chain
+                <div
+                  class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-fl-border group hover:border-vocal-primary/30 transition-all"
+                >
+                  <div class="flex flex-col">
+                    <span
+                      class="text-[10px] font-black text-white uppercase tracking-widest"
+                      >Neural De-Esser</span
+                    >
+                    <span
+                      class="text-[8px] text-slate-500 uppercase font-bold mt-1"
+                      >AI Sibilance Reduction</span
+                    >
+                  </div>
+                  <!-- Real bypass for the chain's de-esser. This used to be
+                       hard-wired on ([class.bg-vocal-primary]="true" with no
+                       handler), so it advertised a control that could never
+                       change anything. -->
+                  <button
+                    type="button"
+                    class="w-10 h-6 rounded-full relative transition-all"
+                    [class.bg-vocal-primary]="deEsserEnabled()"
+                    [class.bg-slate-800]="!deEsserEnabled()"
+                    (click)="toggleDeEsser()"
+                    [attr.aria-pressed]="deEsserEnabled()"
+                    [attr.aria-label]="
+                      deEsserEnabled()
+                        ? 'AI Sibilance Reduction engaged — tap to bypass'
+                        : 'AI Sibilance Reduction bypassed — tap to engage'
+                    "
+                  >
+                    <div
+                      class="absolute top-1 size-4 bg-white rounded-full shadow-lg transition-all"
+                      [class.right-1]="deEsserEnabled()"
+                      [class.left-1]="!deEsserEnabled()"
+                    ></div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mastering Intel Sidebar -->
+          <div class="space-y-6">
+            <div
+              class="bg-vocal-oled/80 border border-vocal-fl-blue/30 rounded-2xl p-6 backdrop-blur-xl"
+            >
+              <h3
+                class="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2"
+              >
+                <span
+                  class="material-symbols-outlined text-vocal-primary text-sm animate-pulse"
+                  >auto_awesome</span
+                >
+                S.M.U.V.E. INTEL HUD
+              </h3>
+              <div class="space-y-4">
+                <div
+                  *ngFor="let item of vocalAi.vocalIntel()"
+                  class="p-3 bg-white/5 rounded-lg border-l-2 transition-all animate-in slide-in-from-right-2"
+                  [class.border-vocal-primary]="item.type === 'technical'"
+                  [class.border-fl-blue]="item.type === 'market'"
+                >
+                  <p
+                    class="text-[10px] text-slate-300 leading-relaxed font-mono uppercase tracking-tighter"
+                  >
+                    {{ item.message }}
+                  </p>
+                </div>
+                <div
+                  *ngIf="vocalAi.vocalIntel().length === 0"
+                  class="p-3 bg-white/5 rounded-lg border-l-2 border-slate-700"
+                >
+                  <p class="text-[10px] text-slate-500 italic">
+                    Your vocal delivery is offensive to my sensors. I have
+                    purged the amateurish frequencies in your mid-range.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              (click)="downloadRecording()"
+              aria-label="Finalize and export mastered recording"
+              class="w-full py-4 bg-emerald-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-fl-blue transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+            >
+              <span class="material-symbols-outlined">export_notes</span>
+              Finalize & Export
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Console Mode -->
+    <div
+      *ngIf="viewMode() === 'console'"
+      class="h-full flex flex-col gap-6 animate-in fade-in duration-500"
+    >
+      <div class="grid grid-cols-12 gap-6 flex-1">
+        <div
+          class="col-span-12 lg:col-span-8 bg-vocal-titanium/20 border border-fl-border rounded-3xl p-6 flex flex-col gap-6"
+        >
+          <div
+            class="vs-spectrogram h-80 bg-vocal-oled rounded-2xl border border-fl-border relative overflow-hidden"
+          >
+            <canvas
+              #spectrograph
+              width="1600"
+              height="320"
+              class="w-full h-full opacity-80"
+            ></canvas>
+            <div
+              class="absolute inset-0 bg-gradient-to-t from-vocal-obsidian/40 to-transparent"
+            ></div>
+            <div class="absolute bottom-6 left-8 flex flex-col">
+              <span
+                class="text-3xl font-mono font-black text-white tracking-tighter"
+                >{{ recordingTimeFormatted() }}</span
+              >
+              <span
+                class="text-[9px] font-bold text-vocal-primary uppercase tracking-widest"
+                >Engine Timecode</span
+              >
+            </div>
+          </div>
+
+          <div class="vs-transport-row flex items-center justify-between">
+            <div class="flex gap-4" role="group" aria-label="Vocal transport">
+              <button
+                type="button"
+                (click)="toggleRecording()"
+                [attr.aria-pressed]="micService.isRecording()"
+                [attr.aria-label]="micService.isRecording() ? 'Stop vocal engine' : 'Ignite vocal capture'"
+                class="px-8 py-3 bg-fl-blue rounded-xl text-white font-black uppercase tracking-widest text-[10px] shadow-[0_0_20px_rgba(225,29,72,0.3)] hover:scale-105 transition-all"
+              >
+                {{
+                  micService.isRecording() ? 'Stop Engine' : 'Ignite Capture'
+                }}
+              </button>
+              <button
+                type="button"
+                (click)="toggleMonitor()"
+                [class.bg-vocal-primary]="monitorEnabled()"
+                [attr.aria-pressed]="monitorEnabled()"
+                [attr.aria-label]="
+                  monitorEnabled()
+                    ? 'Input monitoring on — tap to mute'
+                    : 'Input monitoring muted — tap to unmute'
+                "
+                [attr.title]="
+                  monitorEnabled()
+                    ? 'Monitoring the processed vocal chain'
+                    : 'Monitoring muted'
+                "
+                class="px-8 py-3 bg-white/5 border border-fl-border rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all"
+              >
+                {{ monitorEnabled() ? 'Monitor' : 'Muted' }}
+              </button>
+            </div>
+            <div class="flex gap-8">
+              <div class="flex flex-col items-end">
+                <span class="text-xs font-mono text-fl-blue font-bold"
+                  >-2.1dB</span
+                >
+                <span class="text-[8px] font-bold text-slate-500 uppercase"
+                  >Input Peak</span
+                >
+              </div>
+              <div class="flex flex-col items-end">
+                <span class="text-xs font-mono text-vocal-primary font-bold"
+                  >-14.2 LUFS</span
+                >
+                <span class="text-[8px] font-bold text-slate-500 uppercase"
+                  >Output LUFS</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-span-12 lg:col-span-4 space-y-6">
+          <div
+            class="bg-vocal-obsidian border border-vocal-fl-blue/20 rounded-3xl p-6 h-full flex flex-col shadow-2xl"
+          >
+            <h3
+              class="text-xs font-black uppercase tracking-[0.3em] text-slate-500 mb-8 flex items-center gap-2"
+            >
+              <span class="material-symbols-outlined text-sm">Tune</span>
+              Mastering Control Strip
+            </h3>
+
+            <div class="flex-1 space-y-10">
+              <div class="space-y-4">
+                <div
+                  class="flex justify-between text-[10px] font-bold uppercase tracking-widest"
+                >
+                  <span class="text-slate-400">Harmonic Exciter</span>
+                  <span class="text-vocal-primary"
+                    >{{
+                      (mastering.params().exciter.amount * 100).toFixed(0)
+                    }}%</span
+                  >
+                </div>
+                <input
+                  type="range"
+                  [ngModel]="mastering.params().exciter.amount"
+                  (ngModelChange)="
+                    mastering.updateParams({
+                      exciter: {
+                        ...mastering.params().exciter,
+                        amount: $event,
+                      },
+                    })
+                  "
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer"
+                />
+              </div>
+
+              <div class="space-y-4">
+                <div
+                  class="flex justify-between text-[10px] font-bold uppercase tracking-widest"
+                >
+                  <span class="text-slate-400">Limiter Ceiling</span>
+                  <span class="text-vocal-primary"
+                    >{{ mastering.params().limiter.ceiling }}dB</span
+                  >
+                </div>
+                <input
+                  type="range"
+                  [ngModel]="mastering.params().limiter.ceiling"
+                  (ngModelChange)="
+                    mastering.updateParams({
+                      limiter: {
+                        ...mastering.params().limiter,
+                        ceiling: $event,
+                      },
+                    })
+                  "
+                  min="-12"
+                  max="0"
+                  step="0.1"
+                  class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer"
+                />
+              </div>
+
+              <div
+                class="bg-vocal-fl-blue/5 rounded-xl p-4 border border-vocal-fl-blue/10 animate-pulse"
+                *ngIf="!vocalAi.isPassiveMode()"
+              >
+                <p
+                  class="text-[9px] text-vocal-primary leading-relaxed font-bold uppercase italic"
+                >
+                  "Neural Intelligence: Signal optimization active. Dominating
+                  frequency corridors."
+                </p>
+              </div>
+            </div>
+
+            <!-- Elite Auto-Tune Control -->
+            <div class="space-y-4 pt-6 border-t border-white/10">
+              <div
+                class="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest"
+              >
+                <div class="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    [ngModel]="pitchCorrection.enabled()"
+                    (ngModelChange)="pitchCorrection.enabled.set($event)"
+                    class="rounded border-white/10 bg-vocal-obsidian text-vocal-primary focus:ring-0"
+                  />
+                  <span class="text-slate-400">Elite Auto-Tune</span>
+                </div>
+                <span class="text-vocal-primary"
+                  >{{ (pitchCorrection.amount() * 100).toFixed(0) }}%</span
+                >
+              </div>
+              <input
+                type="range"
+                [ngModel]="pitchCorrection.amount()"
+                (ngModelChange)="pitchCorrection.amount.set($event)"
+                min="0"
+                max="1"
+                step="0.01"
+                class="w-full h-1 bg-white/5 rounded-full appearance-none accent-vocal-primary cursor-pointer"
+              />
+              <div class="flex justify-between items-center mt-2">
+                <span class="text-[8px] text-slate-500 uppercase"
+                  >Retune Speed</span
+                >
+                <select
+                  [ngModel]="pitchCorrection.retuneSpeed()"
+                  (ngModelChange)="pitchCorrection.retuneSpeed.set($event)"
+                  class="bg-vocal-obsidian text-[8px] text-vocal-primary border border-white/10 rounded px-1"
+                >
+                  <option [value]="0.005">Instant</option>
+                  <option [value]="0.05">Fast</option>
+                  <option [value]="0.1">Natural</option>
+                  <option [value]="0.5">Slow</option>
+                </select>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              (click)="downloadRecording()"
+              aria-label="Export vocal recording instantly"
+              class="w-full py-4 mt-8 bg-vocal-primary rounded-xl text-white font-black uppercase tracking-widest text-[10px] hover:bg-vocal-fl-blue/80 transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+            >
+              Instant Export
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Status Bar -->
+  <footer
+    class="vs-status-bar h-10 bg-vocal-obsidian border-t border-fl-border flex items-center justify-between px-8 text-[10px] font-mono text-slate-500 uppercase tracking-widest z-20"
+  >
+    <div class="flex gap-6 items-center">
+      <span class="flex items-center gap-2">
+        <span class="size-2 rounded-full bg-fl-blue"></span>
+        96.0kHz / 32-BIT FLOAT
+      </span>
+      <span class="text-slate-800">|</span>
+      <span>BUF: 128 SAMPLES</span>
+    </div>
+    <div class="vs-status-meta flex items-center gap-4">
+      <span class="text-vocal-primary font-black">S.M.U.V.E. CORE v2.0</span>
+      <div class="h-4 w-[1px] bg-white/10"></div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400">Latency:</span>
+        <span class="text-fl-blue">1.2ms</span>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<style>
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(157, 0, 255, 0.2);
+    border-radius: 2px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(157, 0, 255, 0.4);
+  }
+</style>
+<app-uplink-console
+  *ngIf="showUplink()"
+  (close)="showUplink.set(false)"
+></app-uplink-console>

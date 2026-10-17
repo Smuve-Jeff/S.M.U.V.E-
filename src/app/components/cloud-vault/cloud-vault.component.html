@@ -1,0 +1,281 @@
+<section class="cloud-vault" aria-labelledby="cv-title">
+  <header class="cv-header">
+    <div class="cv-header-text">
+      <p class="cv-eyebrow">SPRINT&nbsp;D1&nbsp;·&nbsp;CLOUD&nbsp;SYNC</p>
+      <h1 id="cv-title">Cloud&nbsp;Vault</h1>
+      <p class="cv-lede">
+        BandLab-grade project sync in-DAW. Push, pull, resolve conflicts,
+        and restore older snapshots — all without leaving the workspace.
+      </p>
+    </div>
+    <div class="cv-header-actions">
+      <button
+        type="button"
+        class="cv-btn cv-btn-ghost"
+        (click)="goBack()"
+        aria-label="Back to hub"
+      >← Hub</button>
+    </div>
+  </header>
+
+  <div class="cv-status-strip" role="status" aria-live="polite">
+    <span
+      class="cv-status-dot"
+      [class.is-up]="cloud.isCloudReachable()"
+      [class.is-down]="!cloud.isCloudReachable()"
+      [attr.aria-label]="cloud.isCloudReachable() ? 'Cloud reachable' : 'Cloud unreachable'"
+    ></span>
+    <span class="cv-status-label">
+      {{ cloud.isCloudReachable() ? 'Cloud reachable' : 'Offline — queueing' }}
+    </span>
+    <span class="cv-status-meta">
+      Last sync:
+      {{
+        cloud.lastSyncedAt()
+          ? (cloud.lastSyncedAt() | date: 'shortTime')
+          : '—'
+      }}
+    </span>
+    <span class="cv-status-meta">
+      Pending: {{ offline.pendingCount() }}
+    </span>
+    <span class="cv-status-meta">
+      Conflicts: {{ cloud.conflictCount() }}
+    </span>
+    <button
+      type="button"
+      class="cv-btn cv-btn-mini"
+      (click)="toggleOffline()"
+      [attr.aria-pressed]="!cloud.simulatedNetworkOnline()"
+    >
+      {{ cloud.simulatedNetworkOnline() ? 'Simulate offline' : 'Come back online' }}
+    </button>
+  </div>
+
+  <div class="cv-grid">
+    <!-- DEVICE PANEL -->
+    <article class="cv-card cv-device" aria-labelledby="cv-device-title">
+      <header class="cv-card-head">
+        <h2 id="cv-device-title">This device</h2>
+        <span class="cv-pill">REGISTERED</span>
+      </header>
+      <label class="cv-field">
+        <span class="cv-field-label">Display name</span>
+        <input
+          type="text"
+          [ngModel]="cloud.deviceName()"
+          (ngModelChange)="cloud.setDeviceName($event)"
+          maxlength="64"
+          aria-label="Device display name"
+        />
+      </label>
+      <dl class="cv-meta-list">
+        <div><dt>ID</dt><dd class="cv-mono">{{ cloud.deviceId() }}</dd></div>
+        <div><dt>Platform</dt><dd>Web Studio</dd></div>
+        <div>
+          <dt>Status</dt>
+          <dd>
+            <span
+              class="cv-status-dot"
+              [class.is-up]="cloud.isCloudReachable()"
+              [class.is-down]="!cloud.isCloudReachable()"
+            ></span>
+            {{ cloud.isCloudReachable() ? 'Online' : 'Offline' }}
+          </dd>
+        </div>
+      </dl>
+    </article>
+
+    <!-- DEMO PROJECT PANEL -->
+    <article class="cv-card cv-demo" aria-labelledby="cv-demo-title">
+      <header class="cv-card-head">
+        <h2 id="cv-demo-title">Demo project push</h2>
+        <span class="cv-pill">{{ cloud.pushStatus() | uppercase }}</span>
+      </header>
+      <label class="cv-field">
+        <span class="cv-field-label">Project ID</span>
+        <input
+          type="text"
+          [ngModel]="demoProjectId()"
+          (ngModelChange)="demoProjectId.set($event)"
+          aria-label="Project identifier"
+        />
+      </label>
+      <label class="cv-field">
+        <span class="cv-field-label">Title</span>
+        <input
+          type="text"
+          [ngModel]="demoTitle()"
+          (ngModelChange)="demoTitle.set($event)"
+          aria-label="Project title"
+        />
+      </label>
+      <label class="cv-field">
+        <span class="cv-field-label">Payload (JSON)</span>
+        <textarea
+          rows="3"
+          [ngModel]="demoPayload()"
+          (ngModelChange)="demoPayload.set($event)"
+          aria-label="Payload as JSON"
+        ></textarea>
+      </label>
+      <div class="cv-action-row">
+        <button
+          type="button"
+          class="cv-btn cv-btn-primary"
+          [disabled]="pushBusy() || !demoProjectId().trim()"
+          [attr.aria-busy]="pushBusy()"
+          (click)="pushDemo()"
+        >
+          {{ pushBusy() ? 'Pushing…' : 'Push to cloud' }}
+        </button>
+        <button
+          type="button"
+          class="cv-btn"
+          [disabled]="!cloud.isCloudReachable()"
+          (click)="pullDemo()"
+        >
+          Pull from cloud
+        </button>
+        <button
+          type="button"
+          class="cv-btn cv-btn-ghost"
+          (click)="seedOtherDevice()"
+        >
+          Simulate remote edit
+        </button>
+      </div>
+    </article>
+
+    <!-- CONFLICT QUEUE -->
+    <article
+      class="cv-card cv-conflicts"
+      [class.is-empty]="conflictRows().length === 0"
+      aria-labelledby="cv-conflicts-title"
+    >
+      <header class="cv-card-head">
+        <h2 id="cv-conflicts-title">Conflict queue</h2>
+        <span class="cv-pill" [class.is-alert]="cloud.conflictCount() > 0">
+          {{ cloud.conflictCount() }}
+        </span>
+      </header>
+      <p class="cv-empty" *ngIf="conflictRows().length === 0">
+        No competing edits detected. Push from another device to see the
+        resolver in action.
+      </p>
+      <ul class="cv-conflict-list" *ngIf="conflictRows().length > 0">
+        <li
+          class="cv-conflict-row"
+          *ngFor="let row of conflictRows(); trackBy: trackById"
+        >
+          <div class="cv-conflict-meta">
+            <strong>{{ row.projectId }}</strong>
+            <span class="cv-mono">
+              local&nbsp;v{{ row.localVersion }}&nbsp;vs&nbsp;remote&nbsp;v{{ row.remoteVersion }}
+            </span>
+            <span class="cv-conflict-device">
+              from&nbsp;{{ row.remoteDeviceName }}
+              · {{ row.detectedAt | date: 'shortTime' }}
+            </span>
+          </div>
+          <div class="cv-action-row">
+            <button
+              type="button"
+              class="cv-btn cv-btn-primary"
+              (click)="resolve(row.projectId, 'mine')"
+            >Keep mine</button>
+            <button
+              type="button"
+              class="cv-btn"
+              (click)="resolve(row.projectId, 'theirs')"
+            >Take theirs</button>
+            <button
+              type="button"
+              class="cv-btn cv-btn-ghost"
+              (click)="resolve(row.projectId, 'merge')"
+            >Merge both</button>
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <!-- RECENT CLOUD PROJECTS -->
+    <article class="cv-card cv-recent" aria-labelledby="cv-recent-title">
+      <header class="cv-card-head">
+        <h2 id="cv-recent-title">Recent cloud projects</h2>
+        <span class="cv-pill">{{ recentCloudProjects().length }}</span>
+      </header>
+      <p class="cv-empty" *ngIf="recentCloudProjects().length === 0">
+        Push your first project to populate the cloud index.
+      </p>
+      <ul class="cv-recent-list" *ngIf="recentCloudProjects().length > 0">
+        <li
+          class="cv-recent-row"
+          *ngFor="let snap of recentCloudProjects(); trackBy: trackByProjectId"
+        >
+          <div class="cv-recent-meta">
+            <strong>{{ snap.title }}</strong>
+            <span class="cv-mono">{{ snap.projectId }}</span>
+            <span class="cv-mute">
+              v{{ snap.version }} · {{ snap.deviceId }} · {{ snap.timestamp | date: 'shortTime' }}
+            </span>
+          </div>
+          <div class="cv-action-row">
+            <button
+              type="button"
+              class="cv-btn cv-btn-mini"
+              (click)="loadSnapshots(snap.projectId)"
+            >Snapshots</button>
+          </div>
+          <ul
+            class="cv-snapshot-list"
+            *ngIf="snapshotsFor()[snap.projectId]"
+          >
+            <li
+              class="cv-snapshot-row"
+              *ngFor="let snap2 of snapshotsFor()[snap.projectId]; trackBy: trackByProjectId"
+            >
+              <span class="cv-mute">
+                {{ snap2.deviceId }} · v{{ snap2.version }} · {{ snap2.timestamp | date: 'shortTime' }}
+              </span>
+              <button
+                type="button"
+                class="cv-btn cv-btn-mini"
+                (click)="restore(snap.projectId, snap2)"
+              >Restore</button>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </article>
+
+    <!-- TIMELINE -->
+    <article class="cv-card cv-timeline" aria-labelledby="cv-timeline-title">
+      <header class="cv-card-head">
+        <h2 id="cv-timeline-title">Sync timeline</h2>
+        <span class="cv-pill">{{ cloud.timeline().length }}</span>
+      </header>
+      <p class="cv-empty" *ngIf="cloud.timeline().length === 0">
+        No sync activity yet — try pushing the demo project above.
+      </p>
+      <ol class="cv-timeline-list" *ngIf="cloud.timeline().length > 0">
+        <li
+          class="cv-timeline-row"
+          *ngFor="let entry of cloud.timeline().slice(0, 12); trackBy: trackById"
+        >
+          <span class="cv-time">{{ entry.at | date: 'shortTime' }}</span>
+          <span class="cv-dir" [class.is-pull]="entry.direction === 'pull'">
+            {{ entry.direction === 'push' ? '▲' : '▼' }}
+          </span>
+          <span class="cv-timeline-meta">
+            <strong>{{ entry.projectTitle }}</strong>
+            <span class="cv-mute">{{ entry.note || entry.status }}</span>
+          </span>
+          <span class="cv-pill" [class.is-alert]="entry.status === 'conflict' || entry.status === 'error'">
+            {{ entry.status | uppercase }}
+          </span>
+        </li>
+      </ol>
+    </article>
+  </div>
+</section>

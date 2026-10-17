@@ -1,0 +1,5 @@
+{
+  "name": "S.M.U.V.E 2.0",
+  "description": "S.M.U.V.E 2.0 — Strategic Music Utility Virtual Enterprise. A self-hosted ecosystem for independent artists featuring professional production tools, strategic intelligence, and career control in one platform.",
+  "requestFramePermissions": ["microphone", "camera"]
+}

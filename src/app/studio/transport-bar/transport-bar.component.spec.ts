@@ -1,0 +1,394 @@
+import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { computed, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+
+import { TransportBarComponent } from "./transport-bar.component";
+import { AudioSessionService } from "../audio-session.service";
+import { AudioEngineService } from "../../services/audio-engine.service";
+import { ExportService } from "../../services/export.service";
+import { RecordingStatusService } from "../recording-status.service";
+import { IdeasGeneratorService } from "../../services/ideas-generator.service";
+import { MusicManagerService } from "../../services/music-manager.service";
+import { TakeManagerService } from "../../services/take-manager.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { ProjectService } from "../../services/project.service";
+import { HapticService } from "../../services/haptic.service";
+import { HistoryService } from "../../services/history.service";
+import { createMockHapticService } from "../../testing/mocks/hardware.mock";
+
+describe("TransportBarComponent", () => {
+  let component: TransportBarComponent;
+  let fixture: ComponentFixture<TransportBarComponent>;
+
+  const playbackState = signal<"stopped" | "playing" | "recording">("stopped");
+  const mockAudioSession = {
+    playbackState,
+    isPlaying: computed(() => playbackState() === "playing"),
+    isRecording: computed(() => playbackState() === "recording"),
+    isStopped: computed(() => playbackState() === "stopped"),
+    masterVolume: signal(80),
+    togglePlay: jest.fn(),
+    toggleRecord: jest.fn(),
+    stop: jest.fn(),
+    updateMasterVolume: jest.fn(),
+  };
+
+  const mockAudioEngine = {
+    visualStep: signal(0),
+    playbackLoopEnabled: signal(false),
+    playbackLoopStart: signal<number | null>(null),
+    playbackLoopEnd: signal<number | null>(null),
+    setPlaybackLoop: jest.fn((start: number | null, end: number | null) => {
+      mockAudioEngine.playbackLoopStart.set(start);
+      mockAudioEngine.playbackLoopEnd.set(end);
+      if (start === null || end === null) mockAudioEngine.playbackLoopEnabled.set(false);
+      return end !== null && start !== null && end > start;
+    }),
+    tempo: signal(120),
+    metronomeEnabled: signal(false),
+    outputPeak: signal(0),
+    outputRms: signal(0),
+    outputLevelDb: () => -60,
+    outputProfileLabel: signal("FLAT"),
+    monitorBlend: signal(0.5),
+    playMode: () => "pattern",
+    externalOutputActive: () => false,
+    outputDeviceName: () => "Default",
+    supportsSinkId: () => false,
+    outputDevices: () => [] as { deviceId: string; label: string }[],
+    selectedOutputDeviceId: () => "",
+    setOutputDevice: jest.fn(async () => true),
+    resume: jest.fn(),
+    startCountIn: jest.fn(),
+    toggleMetronome: jest.fn(),
+    setMetronomeVolume: jest.fn(),
+    getContext: jest.fn(() => null),
+    masterGain: {},
+  };
+
+  const mockRecordingStatus = {
+    masterLevelLinear: signal(0),
+    masterPeakHoldLinear: signal(0),
+    recordingLabel: signal(""),
+  };
+
+  const mockIdeas = {
+    recipes: [] as unknown[],
+    applyGeneratedRecipe: jest.fn(),
+  };
+
+  const mockMusicManager = {
+    selectedTrackId: () => null,
+    selectedTrack: () => null,
+    applyGeneratedRecipe: jest.fn(),
+    projectName: "Test Project",
+    tracks: () => [] as unknown[],
+    snapshotProject: jest.fn(() => ({})),
+  };
+
+  const mockTakeManager = {
+    isPunchIn: (id: string) => signal(false),
+    getTakes: (id: string) => signal([] as unknown[]),
+    setPunchIn: jest.fn(),
+    stampTake: jest.fn(() => ({ startStep: 0, endStep: 15 })),
+  };
+
+  const mockSnackbar = {
+    info: jest.fn(),
+    success: jest.fn(),
+    error: jest.fn(),
+    show: jest.fn(),
+  };
+
+  const mockHistory = {
+    canUndo: signal(false),
+    canRedo: signal(false),
+    undoCount: signal(0),
+    redoCount: signal(0),
+    lastActionName: signal(""),
+    undo: jest.fn(),
+    redo: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [TransportBarComponent, CommonModule, FormsModule],
+      providers: [
+        { provide: AudioSessionService, useValue: mockAudioSession },
+        { provide: AudioEngineService, useValue: mockAudioEngine },
+        {
+          provide: ExportService,
+          useValue: {
+            exportProjectWav: jest.fn(),
+            exportProjectMidi: jest.fn(),
+            downloadBlob: jest.fn(),
+            exportAndShare: jest.fn(),
+            shareMidi: jest.fn(),
+          },
+        },
+        { provide: RecordingStatusService, useValue: mockRecordingStatus },
+        { provide: IdeasGeneratorService, useValue: mockIdeas },
+        { provide: MusicManagerService, useValue: mockMusicManager },
+        { provide: TakeManagerService, useValue: mockTakeManager },
+        { provide: SnackbarService, useValue: mockSnackbar },
+        { provide: ProjectService, useValue: { currentProject: () => null } },
+        { provide: HapticService, useValue: createMockHapticService() },
+        { provide: HistoryService, useValue: mockHistory },
+      ],
+    }).compileComponents();
+
+    // Reset module-level mock signals so tests stay isolated (the pulse test
+    // flips playbackState to 'playing' and must not leak into later tests).
+    playbackState.set("stopped");
+    mockAudioEngine.tempo.set(120);
+    mockAudioEngine.visualStep.set(0);
+    jest.clearAllMocks();
+
+    fixture = TestBed.createComponent(TransportBarComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it("should create", () => {
+    expect(component).toBeTruthy();
+  });
+
+  describe("primary and secondary control hierarchy", () => {
+    it("keeps only playback, tempo and position controls in the primary row", () => {
+      const primary = fixture.nativeElement.querySelector(
+        ".ctb-primary-row",
+      ) as HTMLElement;
+      expect(primary.querySelector(".ctb-play")).toBeTruthy();
+      expect(primary.querySelector(".ctb-stop")).toBeTruthy();
+      expect(primary.querySelector(".ctb-rec")).toBeTruthy();
+      expect(primary.querySelector(".ctb-tempo")).toBeTruthy();
+      expect(primary.querySelector(".ctb-position")).toBeTruthy();
+      expect(primary.querySelector(".ctb-tap")).toBeNull();
+      expect(primary.querySelector(".ctb-countin")).toBeNull();
+      expect(primary.querySelector(".ctb-loop-ab")).toBeNull();
+    });
+
+    it("opens a compact secondary-controls panel for advanced actions", () => {
+      const details = fixture.nativeElement.querySelector(
+        ".ctb-secondary",
+      ) as HTMLDetailsElement;
+      expect(details.open).toBe(false);
+      details
+        .querySelector("summary")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fixture.detectChanges();
+      expect(details.open).toBe(true);
+      expect(details.querySelector(".ctb-countin")).toBeTruthy();
+      expect(details.querySelector(".ctb-loop-ab")).toBeTruthy();
+      expect(details.querySelector(".ctb-undo")).toBeTruthy();
+      expect(details.querySelector(".ctb-test-sound")).toBeTruthy();
+      expect(details.querySelector(".ctb-volume-slider")).toBeTruthy();
+      expect(details.querySelector(".ctb-output-group")).toBeTruthy();
+      expect(details.querySelector(".ctb-ideas")).toBeTruthy();
+    });
+  });
+
+  it('wires A/B markers and loop enabled state to the audio engine', () => {
+    mockAudioEngine.visualStep.set(16);
+    component.setLoopMarker('start');
+    expect(mockAudioEngine.setPlaybackLoop).toHaveBeenCalledWith(16, null);
+    mockAudioEngine.visualStep.set(32);
+    component.setLoopMarker('end');
+    expect(mockAudioEngine.setPlaybackLoop).toHaveBeenCalledWith(16, 32);
+    component.toggleLoop();
+    expect(mockAudioEngine.playbackLoopEnabled()).toBe(true);
+    component.clearLoopRegion();
+    expect(mockAudioEngine.playbackLoopEnabled()).toBe(false);
+  });
+
+  it('surfaces render failures and clears the exporting busy state', async () => {
+    jest.spyOn(TestBed.inject(ExportService), 'exportProjectWav').mockRejectedValueOnce(new Error('Render failed'));
+    await component.exportWav();
+    expect(mockSnackbar.error).toHaveBeenCalledWith('WAV export failed · Render failed');
+    expect(component.isExporting()).toBe(false);
+  });
+
+  describe("core transport smoke test", () => {
+    it("keeps Play/Pause, Stop, Record and tempo controls functional", () => {
+      const root: HTMLElement = fixture.nativeElement;
+      root.querySelector<HTMLButtonElement>(".ctb-play")!.click();
+      expect(mockAudioEngine.resume).toHaveBeenCalled();
+      expect(mockAudioSession.togglePlay).toHaveBeenCalled();
+
+      root.querySelector<HTMLButtonElement>(".ctb-stop")!.click();
+      expect(mockAudioSession.stop).toHaveBeenCalled();
+
+      root.querySelector<HTMLButtonElement>(".ctb-rec")!.click();
+      expect(mockAudioSession.toggleRecord).toHaveBeenCalled();
+
+      root.querySelectorAll<HTMLButtonElement>(".ctb-nudge")[1].click();
+      expect(mockAudioEngine.tempo()).toBe(121);
+    });
+  });
+
+  describe("Stage 2.0 position readout", () => {
+    it("maps the engine step to Bar : Beat : Sixteenth in 4/4", () => {
+      // Step 25 → bar 2 (16 steps/bar), beat 3, sixteenth 2.
+      mockAudioEngine.visualStep.set(25);
+      expect(component.positionReadout()).toEqual({
+        bar: 2,
+        beat: 3,
+        sixteenth: 2,
+      });
+    });
+
+    it("starts at bar 1, beat 1, sixteenth 1", () => {
+      mockAudioEngine.visualStep.set(0);
+      expect(component.positionReadout()).toEqual({
+        bar: 1,
+        beat: 1,
+        sixteenth: 1,
+      });
+    });
+
+    it("clamps negative playhead values to the start of the bar", () => {
+      mockAudioEngine.visualStep.set(-4);
+      expect(component.positionReadout()).toEqual({
+        bar: 1,
+        beat: 1,
+        sixteenth: 1,
+      });
+    });
+
+    it("exposes the 4/4 time signature chip", () => {
+      expect(component.timeSignature).toBe("4/4");
+    });
+  });
+
+  describe("pulse state", () => {
+    it("adds the is-playing class to the shell while transport rolls", () => {
+      const shell: HTMLElement =
+        fixture.nativeElement.querySelector(".ctb-shell");
+      expect(shell.classList.contains("is-playing")).toBe(false);
+
+      playbackState.set("playing");
+      fixture.detectChanges();
+
+      expect(shell.classList.contains("is-playing")).toBe(true);
+    });
+  });
+
+  describe("tap tempo", () => {
+    it("sets the tempo from measured tap intervals", () => {
+      const nowSpy = jest.spyOn(performance, "now");
+      nowSpy.mockReturnValueOnce(1_000);
+      component.tapTempo();
+      nowSpy.mockReturnValueOnce(1_500); // 500 ms → 120 BPM
+      component.tapTempo();
+
+      expect(mockAudioEngine.tempo()).toBe(120);
+      nowSpy.mockRestore();
+    });
+
+    it("clamps wild guesses to 40–240 BPM", () => {
+      const nowSpy = jest.spyOn(performance, "now");
+      nowSpy.mockReturnValueOnce(1_000);
+      component.tapTempo();
+      nowSpy.mockReturnValueOnce(1_010); // 10 ms → 6000 BPM → clamped to 240
+      component.tapTempo();
+
+      expect(mockAudioEngine.tempo()).toBe(240);
+      nowSpy.mockRestore();
+    });
+  });
+
+  describe("count-in", () => {
+    it("starts an audible count-in instead of instant play when armed", () => {
+      component.countInBars.set(1);
+      component.togglePlay();
+
+      expect(mockAudioEngine.resume).toHaveBeenCalled();
+      expect(mockAudioEngine.startCountIn).toHaveBeenCalledWith(1);
+      expect(playbackState()).toBe("playing");
+    });
+  });
+
+  describe("dB readouts", () => {
+    it("formats negative infinity, unity and over-zero levels", () => {
+      expect(component.formatDb(-Infinity)).toBe("−∞");
+      expect(component.formatDb(0)).toBe("0.0");
+      expect(component.formatDb(1.5)).toBe("+1.5");
+    });
+  });
+
+  // ── Sprint A3 loop-recording: auto-stamped takes ──
+  describe("punch-in take stamping", () => {
+    const track = {
+      id: "track-1",
+      name: "Lead",
+      notes: [{ id: "n1", midi: 60, step: 0, length: 1, velocity: 0.8 }],
+    };
+    const original = {
+      selectedTrack: mockMusicManager.selectedTrack,
+      selectedTrackId: mockMusicManager.selectedTrackId,
+      isPunchIn: mockTakeManager.isPunchIn,
+      getTakes: mockTakeManager.getTakes,
+    };
+
+    beforeEach(() => {
+      mockMusicManager.selectedTrack = () => track as any;
+      mockMusicManager.selectedTrackId = () => track.id;
+      mockTakeManager.isPunchIn = () => signal(true);
+      mockTakeManager.getTakes = () => signal([] as unknown[]);
+    });
+
+    afterEach(() => {
+      mockMusicManager.selectedTrack = original.selectedTrack;
+      mockMusicManager.selectedTrackId = original.selectedTrackId;
+      mockTakeManager.isPunchIn = original.isPunchIn;
+      mockTakeManager.getTakes = original.getTakes;
+    });
+
+    /** Run the transport-bar effects for the current signal state. */
+    const tick = () => {
+      TestBed.flushEffects();
+      fixture.detectChanges();
+    };
+
+    it("stamps a take on each loop wrap, then the final pass on stop", () => {
+      playbackState.set("recording");
+      mockAudioEngine.visualStep.set(0);
+      tick();
+      expect(mockTakeManager.stampTake).not.toHaveBeenCalled();
+
+      mockAudioEngine.visualStep.set(16);
+      tick();
+      expect(mockTakeManager.stampTake).not.toHaveBeenCalled();
+
+      // Playhead wrapped backwards → a loop pass completed while recording.
+      mockAudioEngine.visualStep.set(4);
+      tick();
+      expect(mockTakeManager.stampTake).toHaveBeenCalledTimes(1);
+      expect(mockTakeManager.stampTake).toHaveBeenCalledWith(
+        "track-1",
+        "Take 1",
+        track.notes,
+        4,
+      );
+
+      playbackState.set("stopped");
+      tick();
+      expect(mockTakeManager.stampTake).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not stamp when punch-in was not armed for the pass", () => {
+      mockTakeManager.isPunchIn = () => signal(false);
+
+      playbackState.set("recording");
+      mockAudioEngine.visualStep.set(8);
+      tick();
+      mockAudioEngine.visualStep.set(2);
+      tick();
+      playbackState.set("stopped");
+      tick();
+
+      expect(mockTakeManager.stampTake).not.toHaveBeenCalled();
+    });
+  });
+});

@@ -1,0 +1,2554 @@
+import {
+  Injectable,
+  inject,
+  signal,
+  computed,
+  effect,
+  Injector,
+} from '@angular/core';
+import { AudioEngineService } from './audio-engine.service';
+import { SampleStreamer } from './sample-streamer.service';
+import { ProjectService } from './project.service';
+import { HistoryService } from './history.service';
+import { PluginStoreService } from './plugin-store.service';
+import { InstrumentsService } from './instruments.service';
+import { StemSeparationService } from './stem-separation.service';
+import { IdeaRecipe } from './ideas-generator.service';
+import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
+import { LoggingService } from './logging.service';
+import { TakeManagerService } from './take-manager.service';
+import { AutomationService } from '../studio/automation.service';
+import { OfflineBounceService } from '../studio/offline-bounce.service';
+import { AudioImportService } from '../studio/audio-import.service';
+import {
+  Project,
+  StudioTrack,
+  StudioClip,
+  StudioTake,
+  TrackType,
+} from '../types/studio.types';
+
+export interface TrackNote {
+  id: string;
+  midi: number;
+  step: number;
+  length: number;
+  velocity: number;
+  params?: any;
+  probability?: number;
+  isSlide?: boolean;
+  /** Pro Precision: micro-timing offset in steps (±0.5 = half-step swing) */
+  microOffset?: number;
+  /** Pro Precision: pitch bend in semitones (±12 = one octave) */
+  pitchBend?: number;
+  /** CC 1 — modulation wheel (0..1) */
+  modulation?: number;
+  /** CC 11 — expression (0..1) */
+  expression?: number;
+  /** Channel aftertouch per-note (0..1) */
+  aftertouch?: number;
+  /** Pro Precision: articulation style */
+  articulation?:
+    | 'normal'
+    | 'staccato'
+    | 'legato'
+    | 'portamento'
+    | 'pizzicato'
+    | 'accent';
+  /** Pro Precision: note pan override (-1..1) */
+  notePan?: number;
+}
+
+export interface FxSlot {
+  id: string;
+  type: string;
+  params: any;
+  enabled: boolean;
+}
+
+/**
+ * Macro FX slot type → native DSP plugin id (see the plugin registry in
+ * `studio/effects/plugin-interface`).
+ *
+ * Only types with a real implementation are listed. `Filter` and `Limiter` are
+ * offered by the rack's Add Effect menu but have no plugin behind them, so they
+ * stay data-only instead of pretending to process audio.
+ */
+const FX_TYPE_TO_PLUGIN_ID: Record<string, string> = {
+  Reverb: 'smuve.reverb.v1',
+  Delay: 'smuve.delay.v1',
+  Compressor: 'smuve.compressor.v1',
+  EQ: 'smuve.eq.v1',
+  Saturation: 'smuve.distortion.v1',
+  Chorus: 'smuve.chorus.v1',
+};
+
+export interface PatternVersion {
+  id: string;
+  name: string;
+  steps: boolean[];
+  notes: TrackNote[];
+}
+
+export interface PatternSlot {
+  id: string;
+  name: string;
+  activeVersionId: string;
+  versions: PatternVersion[];
+}
+
+export interface SongSection {
+  id: string;
+  name: string;
+  start: number;
+  length: number;
+  color?: string;
+}
+
+export interface PerformerScene {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface GlobalChord {
+  root: string;
+  quality: string;
+  steps?: number[];
+}
+
+export interface TrackModel extends StudioTrack {
+  id: string;
+  instrumentId: string;
+  notes: TrackNote[];
+  steps: boolean[];
+  fxSlots: FxSlot[];
+  /** Sprint B1 Phase 2 — WASM plugin inserts on this track's live chain. */
+  pluginIds?: string[];
+  synthParams?: any;
+  gain: number;
+  sendA: number;
+  sendB: number;
+  /** Pro: Phase inversion state */
+  phaseInvert?: boolean;
+  /** Pro: Stereo Width / Pan amount (-1..1) */
+  stereoWidth?: number;
+  /** Pro: Map of auxBusId -> level (0..1) */
+  auxSends?: Record<string, number>;
+  /** VCA bus assignment. null = unassigned. Set via mixer.component onAssignTrackToVca. */
+  vcaId?: string | null;
+  activePatternSlotId?: string | null;
+  patternSlots?: PatternSlot[];
+  swingAmount?: number;
+  collapsed?: boolean;
+  stepVelocities?: Record<number, number>;
+}
+
+@Injectable({
+  providedIn: 'root',
+})
+export class MusicManagerService {
+  public static readonly DRUM_TRACK_ID = 'track_drums_100';
+
+  public engine = inject(AudioEngineService);
+  public activePatternSlotId = signal('slot-0');
+  public patternSlots = signal([{ id: 'slot-0', name: 'Pattern 1' }]);
+
+  private projectService = inject(ProjectService);
+  private history = inject(HistoryService);
+  private instruments = inject(InstrumentsService);
+  private pluginStore = inject(PluginStoreService);
+  private recordingEngine = inject(StudioRecordingEngineService);
+  private stemSplitter = inject(StemSeparationService);
+  private logger = inject(LoggingService);
+  /** Sprint A3 Phase 4 — comp/take source for active-take playback. */
+  private takeManager = inject(TakeManagerService);
+  private automation = inject(AutomationService);
+  /**
+   * Lazy-resolved services that (transitively) depend on MusicManagerService
+   * (OfflineBounceService and AudioImportService both inject it). Resolving
+   * via the Injector at call time avoids the Angular circular-DI deadlock.
+   */
+  private readonly injector = inject(Injector);
+  private get offlineBounce(): OfflineBounceService {
+    return this.injector.get(OfflineBounceService);
+  }
+  private get audioImporter(): AudioImportService {
+    return this.injector.get(AudioImportService);
+  }
+
+  /**
+   * AudioBuffer cache for stem-derived audio clips.
+   *
+   * `clone()` (used by HistoryService via JSON.parse/stringify) destroys
+   * AudioBuffers because they're not JSON-serializable. Storing the raw
+   * buffers here — keyed by clip id — keeps them alive across undo/redo.
+   */
+  public stemAudioCache = new Map<string, AudioBuffer>();
+
+  tracks = signal<TrackModel[]>([]);
+  selectedTrackId = signal<string | null>(null);
+  currentStep = signal(0);
+  activeSceneId = signal<string | null>(null);
+  takesExpanded = signal<Record<string, boolean>>({});
+
+  /**
+   * Cross-link request: one component (Arrangement, DrumMachine) asks the
+   * Studio shell to jump into another view (typically piano-roll) with a
+   * specific track selected and an optional note range to spotlight.
+   *
+   * The `timestamp` lets observers dedupe / detect newly emitted
+   * requests without comparing deep object identity.
+   */
+  /** Public accessor for the current project name — used by AiService */
+  get projectName(): string {
+    return this.projectService.currentProject()?.name || 'Untitled';
+  }
+
+  crossLinkRequest = signal<{
+    view: 'piano-roll';
+    trackId: string;
+    noteRange?: { startStep: number; endStep: number };
+    label?: string;
+    timestamp: number;
+  } | null>(null);
+
+  requestCrossLink(req: {
+    view: 'piano-roll';
+    trackId: string;
+    noteRange?: { startStep: number; endStep: number };
+    label?: string;
+  }) {
+    this.crossLinkRequest.set({ ...req, timestamp: Date.now() });
+  }
+
+  clearCrossLink() {
+    this.crossLinkRequest.set(null);
+  }
+
+  /**
+   * Sprint A4 — reactive bridge from the arrangement's `structure` (the
+   * SongSection list edited in arrangement-view) to the audio engine's
+   * `songLengthSteps` signal. Recomputes on every structure change and
+   * pushes the larger of structure total / activeLoopBars so the song-stop
+   * boundary always follows the arrangement instead of staying on the
+   * default 64-step seed. Result is clamped to a minimum of 16 (1 bar) so
+   * pattern-mode fallback below never produces a 0-length song.
+   */
+  private structureSongLengthEffect = effect(() => {
+    const sections = this.structure() ?? [];
+    const fromStructure = sections.reduce(
+      (sum, s) => sum + Math.max(0, s?.length ?? 0),
+      0
+    );
+    const bars = Math.max(4, fromStructure, this.activeLoopBars());
+    this.engine.setSongLengthSteps(bars * 16);
+  });
+  activeLoopBars = signal(64);
+  structure = signal<SongSection[]>([
+    { id: 'intro', name: 'Intro', start: 0, length: 4 },
+    { id: 'verse', name: 'Verse', start: 4, length: 8 },
+    { id: 'chorus', name: 'Chorus', start: 12, length: 8 },
+    { id: 'outro', name: 'Outro', start: 20, length: 4 },
+  ]);
+  chords = signal<GlobalChord[]>([]);
+  performerScenes = signal<PerformerScene[]>([]);
+  projectLoaded = signal(true);
+
+  selectedTrack = computed(
+    () => this.tracks().find((t) => t.id === this.selectedTrackId()) || null
+  );
+
+  constructor() {
+    this.setupProjectSync();
+    this.engine.onScheduleStep = (step, time, duration) => {
+      this.currentStep.set(step);
+      this.playStep(step, time, duration);
+    };
+  }
+
+  /**
+   * Extra per-step renderers — the AI session musicians (and anything else that
+   * needs to read the transport without owning it). MusicManagerService stays
+   * the single scheduler; observers run *after* the arranged parts, so a
+   * generated note can never mute or delay the arrangement.
+   */
+  private stepObservers = new Set<
+    (step: number, time: number, duration: number) => void
+  >();
+
+  /** Register a per-step observer. Returns an unsubscribe function. */
+  onStep(
+    observer: (step: number, time: number, duration: number) => void
+  ): () => void {
+    this.stepObservers.add(observer);
+    return () => this.stepObservers.delete(observer);
+  }
+
+  private notifyStepObservers(
+    step: number,
+    time: number,
+    duration: number
+  ): void {
+    for (const observer of this.stepObservers) {
+      try {
+        observer(step, time, duration);
+      } catch (error) {
+        // A jam must never break the transport.
+        this.logger.warn('MusicManager: step observer failed', error);
+      }
+    }
+  }
+
+  private setupProjectSync() {
+    effect(
+      () => {
+        const project = this.projectService.currentProject();
+        if (project && this.tracks().length === 0) {
+          this.tracks.set((project.tracks || []) as any);
+          this.engine.tempo.set(project.bpm || 120);
+          this.history.clear();
+        }
+      }
+    );
+  }
+
+  // ── History-aware mutation primitives ──────────────────────────────
+
+  /** Run a regular (non-coalesced) reversible command. */
+  private runCommand(name: string, execute: () => void, undo: () => void) {
+    this.history.execute({ name, execute, undo });
+  }
+
+  /** Run a coalesced command — merges with previous on matching mergeKey. */
+  private runMerge(
+    mergeKey: string,
+    name: string,
+    execute: () => void,
+    undo: () => void
+  ) {
+    this.history.coalesce({ name, execute, undo, mergeKey });
+  }
+
+  /** Deep-clone plain-object arrays (notes, clips, tracks). */
+  private clone<T>(v: T): T {
+    return JSON.parse(JSON.stringify(v));
+  }
+
+  /** Default one-slot pattern rack attached to a fresh track. */
+  private createDefaultSlots(): PatternSlot[] {
+    return [
+      {
+        id: 'slot-0',
+        name: 'Pattern 1',
+        activeVersionId: 'v1',
+        versions: [
+          {
+            id: 'v1',
+            name: 'v1',
+            steps: new Array(64).fill(false),
+            notes: [],
+          },
+        ],
+      },
+    ];
+  }
+
+  // ── Project lifecycle ──────────────────────────────────────────────
+
+  newProject(skipDefaults = false) {
+    const oldTracks = this.clone(this.tracks());
+    const oldSelected = this.selectedTrackId();
+    this.runCommand(
+      'New Project',
+      () => {
+        this.tracks.set([]);
+        this.selectedTrackId.set(null);
+        this.engine.stop();
+        if (!skipDefaults) {
+          this.addTrack('Piano', 'grand-piano');
+          this.addTrack('Drums', 'trap-808-elite', 'drum');
+        }
+      },
+      () => {
+        this.tracks.set(this.clone(oldTracks));
+        this.selectedTrackId.set(oldSelected);
+      }
+    );
+    this.history.clear();
+  }
+
+  loadProject(snapshot: any) {
+    if (!snapshot) return;
+    this.logger.info('Loading project snapshot...');
+    this.history.clear();
+    // Sprint B2 Phase 1 — restore tracks + tempo first so the take-lane
+    // restore lands on top of the correct arrangement.
+    if (snapshot.tracks && Array.isArray(snapshot.tracks)) {
+      this.tracks.set(this.clone(snapshot.tracks) as any);
+    }
+    if (snapshot.bpm && typeof snapshot.bpm === 'number') {
+      this.engine.tempo.set(snapshot.bpm);
+    }
+    // Sprint A3 Phase 5 — restore take-lane state saved in the snapshot.
+    this.takeManager.restore(snapshot.takeState);
+  }
+
+  // ── Tracks ─────────────────────────────────────────────────────────
+
+  addTrack(name: string, instrumentId: string, type: TrackType = 'midi') {
+    // The drum kit is addressed by a well-known id (drum-machine kit state,
+    // pad routing, swing). Derive it from the track TYPE as well as the
+    // instrument id — no shipped preset id contains "drum" — but only for the
+    // first drum channel, otherwise a second kit would collide on the id.
+    const wantsDrumKit = type === 'drum' || instrumentId.includes('drum');
+    const drumIdTaken = this.tracks().some(
+      (t) => t.id === MusicManagerService.DRUM_TRACK_ID
+    );
+    const id =
+      wantsDrumKit && !drumIdTaken
+        ? MusicManagerService.DRUM_TRACK_ID
+        : 'track_' + Date.now() + Math.random();
+    const preset = this.instruments
+      .getPresets()
+      .find((p) => p.id === instrumentId);
+
+    const newTrack: TrackModel = {
+      id,
+      name,
+      type,
+      instrumentId,
+      muted: false,
+      soloed: false,
+      volume: 0.8,
+      gain: 0.8,
+      pan: 0,
+      clips: [],
+      notes: [],
+      steps: new Array(64).fill(false),
+      fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+      pluginIds: [],
+      sendA: 0,
+      sendB: 0,
+      color: '#af25f4',
+      synthParams: preset?.synth || { type: 'sine' },
+      effects: [],
+      patternSlots: this.createDefaultSlots(),
+      activePatternSlotId: 'slot-0',
+    };
+
+    this.tracks.update((ts) => [...ts, newTrack]);
+    this.selectedTrackId.set(id);
+    return id;
+  }
+
+  /**
+   * Sprint B1 Phase 2 — set a track's WASM plugin insert chain. Persists on
+   * the model and installs the live insert in the audio graph, where the
+   * plugin-chain worklet runs the kernels on the audio thread.
+   */
+  setTrackPlugins(trackId: string, pluginIds: string[]): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const prev = [...(t.pluginIds ?? [])];
+    const next = [...pluginIds];
+    this.runCommand(
+      'Edit WASM Chain · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === trackId ? { ...x, pluginIds: next } : x))
+        );
+        this.engine.installTrackPluginInsert(trackId, next, this.liveChainFor);
+        this.pluginStore.preload(next);
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === trackId ? { ...x, pluginIds: prev } : x))
+        );
+        this.engine.installTrackPluginInsert(trackId, prev, this.liveChainFor);
+      }
+    );
+  }
+
+  /**
+   * Resolve a plugin chain to live insert slots for the audio engine. Read by
+   * the engine's chain poller (never from an audio callback), so a plugin whose
+   * module is still loading resolves to null — the worklet then passes audio
+   * through until the next poll picks the kernel up.
+   */
+  private liveChainFor = (ids: string[]) =>
+    ids.map((id) => this.pluginStore.liveInsertSlot(id));
+
+
+  // ── Macro FX slots ────────────────────────────────────────────────
+
+  /**
+   * Append a macro FX slot to a track's chain. History-aware, so "Add Effect"
+   * in the rack is undoable like every other arrangement mutation.
+   * Returns the new slot id (or null when the track is gone).
+   */
+  addFxSlot(trackId: string, type: string): string | null {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return null;
+    const before = this.clone(t.fxSlots ?? []);
+    const slot: FxSlot = {
+      id: `fx_${type.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${Date.now().toString(36)}`,
+      type,
+      params: {},
+      enabled: true,
+    };
+    const after = [...before, slot];
+    this.runCommand(
+      `Add ${type} · ` + t.name,
+      () => this.writeFxSlots(trackId, after),
+      () => this.writeFxSlots(trackId, before)
+    );
+    return slot.id;
+  }
+
+  /** Remove a macro FX slot from a track's chain (undoable). */
+  removeFxSlot(trackId: string, slotId: string): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const before = this.clone(t.fxSlots ?? []);
+    const after = before.filter((s) => s.id !== slotId);
+    if (after.length === before.length) return;
+    this.runCommand(
+      'Remove FX Slot · ' + t.name,
+      () => this.writeFxSlots(trackId, after),
+      () => this.writeFxSlots(trackId, before)
+    );
+  }
+
+  /**
+   * Write one parameter of a macro FX slot. Coalesced on the slot+param pair
+   * so dragging a knob does not flood the history stack with one entry per
+   * frame — the whole gesture undoes as a single step.
+   */
+  setFxSlotParam(
+    trackId: string,
+    slotId: string,
+    paramId: string,
+    value: number
+  ): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const before = this.clone(t.fxSlots ?? []);
+    const next = value;
+    const after = before.map((s) =>
+      s.id === slotId
+        ? { ...s, params: { ...(s.params ?? {}), [paramId]: next } }
+        : s
+    );
+    this.runMerge(
+      `fx:${trackId}:${slotId}:${paramId}`,
+      `Edit ${paramId}`,
+      () => this.writeFxSlots(trackId, after),
+      () => this.writeFxSlots(trackId, before)
+    );
+  }
+
+  /** Toggle a macro FX slot's bypass state (undoable). */
+  toggleFxSlot(trackId: string, slotId: string): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const before = this.clone(t.fxSlots ?? []);
+    const after = before.map((s) =>
+      s.id === slotId ? { ...s, enabled: !s.enabled } : s
+    );
+    this.runCommand(
+      'Toggle FX Slot · ' + t.name,
+      () => this.writeFxSlots(trackId, after),
+      () => this.writeFxSlots(trackId, before)
+    );
+  }
+
+  /**
+   * trackId → (macro fx slot id → live insert). Lets `syncFxSlotsToRack` diff the
+   * data-only macro chain against the rack's inserts instead of tearing the whole
+   * rack down and rebuilding it on every edit.
+   */
+  private fxInsertSlots = new Map<
+    string,
+    Map<string, { insertId: string; pluginId: string }>
+  >();
+
+  /**
+   * Mirror a track's macro FX chain onto its live DynamicEffectsRack.
+   *
+   * Before this existed, the Add Effect menu only wrote a data record: `fxSlots`
+   * was counted by the AI mixer and rendered as chips, but never reached an
+   * AudioNode — so every effect the menu offered was inaudible. The inserts now
+   * follow the slot order the user sees, and a slot's bypass toggle is mirrored
+   * onto its plugin.
+   *
+   * `slot.params` stays data-only on purpose: the macro slots carry free-form
+   * keys (`wet`, `decay`, ...) with no schema in common with the plugin's own
+   * parameter ids, so guessing a mapping here would move the wrong control.
+   */
+  private syncFxSlotsToRack(trackId: string, slots: FxSlot[]): void {
+    const getRack = (this.engine as Partial<AudioEngineService>)
+      ?.getTrackEffectsRack;
+    if (typeof getRack !== 'function') return;
+    const rack = getRack.call(this.engine, trackId);
+
+    const assigned = new Map(this.fxInsertSlots.get(trackId) ?? []);
+
+    // Release inserts whose slot was removed, bypassed away, or had its type swapped.
+    for (const [fxSlotId, entry] of assigned) {
+      const slot = slots.find((s) => s.id === fxSlotId);
+      if (slot && FX_TYPE_TO_PLUGIN_ID[slot.type] === entry.pluginId) continue;
+      rack.removeInsert(entry.insertId);
+      assigned.delete(fxSlotId);
+    }
+
+    // Instantiate the plugins for any new slot.
+    for (const slot of slots) {
+      const pluginId = FX_TYPE_TO_PLUGIN_ID[slot.type];
+      if (!pluginId || assigned.has(slot.id)) continue;
+      const insert = rack.addInsert(pluginId);
+      if (insert) assigned.set(slot.id, { insertId: insert.id, pluginId });
+    }
+
+    // Inserts append on creation, so re-seat them in the displayed chain order.
+    let index = 0;
+    for (const slot of slots) {
+      const entry = assigned.get(slot.id);
+      if (!entry) continue;
+      rack.moveInsert(entry.insertId, index);
+      index += 1;
+    }
+
+    // Mirror each slot's bypass state onto its plugin.
+    for (const [fxSlotId, entry] of assigned) {
+      const slot = slots.find((s) => s.id === fxSlotId);
+      const rackSlot = rack.inserts.find((s) => s.id === entry.insertId);
+      if (!slot || !rackSlot) continue;
+      if (rackSlot.plugin.enabled !== slot.enabled) {
+        rack.toggleInsert(entry.insertId);
+      }
+    }
+
+    this.fxInsertSlots.set(trackId, assigned);
+  }
+
+  /**
+   * Re-mirror a track's FX chain onto its rack after a write that bypassed
+   * `writeFxSlots` — the AI mixer and the neural mixer patch track state
+   * directly, and their effects have to be audible too.
+   */
+  syncTrackFxChain(trackId: string): void {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return;
+    this.syncFxSlotsToRack(trackId, track.fxSlots ?? []);
+  }
+
+  /** Single writer for a track's macro FX chain. */
+  private writeFxSlots(trackId: string, slots: FxSlot[]): void {
+    this.tracks.update((ts) =>
+      ts.map((x) => (x.id === trackId ? { ...x, fxSlots: slots } : x))
+    );
+    this.syncFxSlotsToRack(trackId, slots);
+  }
+
+  removeTrack(id: string) {
+    const list = this.tracks();
+    const idx = list.findIndex((t) => t.id === id);
+    if (idx < 0) return;
+    const snapshot = this.clone(list[idx]);
+    const prevSelected = this.selectedTrackId();
+    this.runCommand(
+      'Remove Track · ' + snapshot.name,
+      () => {
+        // Drop the live insert (and its chain poller) with the track: the mixer
+        // nodes stay behind, so rewiring the rack here would be wrong.
+        this.engine.releaseTrackPluginInsert(id);
+        this.tracks.update((ts) => ts.filter((t) => t.id !== id));
+        if (this.selectedTrackId() === id) this.selectedTrackId.set(null);
+      },
+      () => {
+        this.tracks.update((ts) => {
+          const next = [...ts];
+          next.splice(idx, 0, snapshot);
+          return next;
+        });
+        this.selectedTrackId.set(prevSelected);
+        if (snapshot.pluginIds?.length) {
+          this.engine.installTrackPluginInsert(
+            id,
+            snapshot.pluginIds,
+            this.liveChainFor
+          );
+        }
+      }
+    );
+  }
+
+  setInstrument(trackId: string, instId: string) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const oldInstrument = t.instrumentId;
+    const oldSynth = this.clone(t.synthParams);
+    const preset = this.instruments.getPresets().find((p) => p.id === instId);
+    this.runCommand(
+      'Switch Instrument · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  instrumentId: instId,
+                  synthParams: preset?.synth || x.synthParams,
+                }
+              : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? { ...x, instrumentId: oldInstrument, synthParams: oldSynth }
+              : x
+          )
+        );
+      }
+    );
+  }
+
+  // ── Notes ──────────────────────────────────────────────────────────
+
+  /**
+   * Sprint A3 Phase 4 — write a comp-merged note list back to a track. Used
+   * by the take-lane APPLY COMP / BAKE SECTIONS actions, MIDI import and the
+   * chord stamper; replaces the working notes wholesale so the comp becomes the
+   * new arrangement content.
+   *
+   * Wholesale note replacement is the most destructive edit in the Studio, so
+   * it goes through the history stack like every other edit — it used to write
+   * the track directly, leaving comping, section baking and MIDI import
+   * impossible to undo.
+   */
+  replaceTrackNotes(
+    trackId: string,
+    notes: TrackNote[],
+    actionName = "Replace Notes"
+  ): void {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return;
+
+    const before = (track.notes ?? []).map((n) => this.clone(n));
+    const after = notes.map((n) => this.clone(n));
+    if (before.length === 0 && after.length === 0) return;
+
+    this.runCommand(
+      `${actionName} · ${track.name}`,
+      () => this.applyTrackNotes(trackId, after),
+      () => this.applyTrackNotes(trackId, before)
+    );
+  }
+
+  /** Low-level note write used by `replaceTrackNotes` execute/undo. */
+  private applyTrackNotes(trackId: string, notes: TrackNote[]): void {
+    this.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === trackId ? { ...t, notes: notes.map((n) => this.clone(n)) } : t
+      )
+    );
+  }
+
+  addNoteToTrack(trackId: string, note: TrackNote) {
+    const noteClone = this.clone(note);
+    this.runCommand(
+      'Add Note · ' + note.midi,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId ? { ...t, notes: [...t.notes, noteClone] } : t
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? { ...t, notes: t.notes.filter((n) => n.id !== noteClone.id) }
+              : t
+          )
+        );
+      }
+    );
+  }
+
+  removeNotes(trackId: string, noteIds: string[]) {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track || noteIds.length === 0) return;
+    const removed = this.clone(
+      track.notes.filter((n) => noteIds.includes(n.id))
+    );
+    this.runCommand(
+      'Delete ' + noteIds.length + ' Note' + (noteIds.length === 1 ? '' : 's'),
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? { ...t, notes: t.notes.filter((n) => !noteIds.includes(n.id)) }
+              : t
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId ? { ...t, notes: [...t.notes, ...removed] } : t
+          )
+        );
+      }
+    );
+  }
+
+  updateNote(trackId: string, noteId: string, patch: Partial<TrackNote>) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    const note = t?.notes.find((n) => n.id === noteId);
+    if (!note) return;
+    const prev = this.clone(note);
+    const next = { ...note, ...patch };
+    this.runCommand(
+      'Edit Note · ' + next.midi,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  notes: x.notes.map((n) =>
+                    n.id === noteId ? { ...n, ...patch } : n
+                  ),
+                }
+              : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  notes: x.notes.map((n) => (n.id === noteId ? prev : n)),
+                }
+              : x
+          )
+        );
+      }
+    );
+  }
+
+  duplicateNotes(trackId: string, ids: string[], offset: number) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const sources = t.notes.filter((n) => ids.includes(n.id));
+    const dupes = sources.map((n) => ({
+      ...this.clone(n),
+      id: 'note-' + Date.now() + '-' + Math.random(),
+      step: n.step + offset,
+    }));
+    this.runCommand(
+      'Duplicate ' + dupes.length + ' Note' + (dupes.length === 1 ? '' : 's'),
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, notes: [...x.notes, ...dupes] } : x
+          )
+        );
+      },
+      () => {
+        const dupeIds = new Set(dupes.map((d) => d.id));
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? { ...x, notes: x.notes.filter((n) => !dupeIds.has(n.id)) }
+              : x
+          )
+        );
+      }
+    );
+  }
+
+  applyChordStamp(
+    trackId: string,
+    baseMidi: number,
+    step: number,
+    chordType: string
+  ) {
+    const intervals: Record<string, number[]> = {
+      maj: [0, 4, 7],
+      min: [0, 3, 7],
+      maj7: [0, 4, 7, 11],
+      min7: [0, 3, 7, 10],
+      dom7: [0, 4, 7, 10],
+      sus4: [0, 5, 7],
+    };
+    const offsets = intervals[chordType] || [0];
+    const stamped: TrackNote[] = offsets.map((interval) => ({
+      id: 'chord_' + Date.now() + '_' + interval,
+      midi: baseMidi + interval,
+      step,
+      length: 1,
+      velocity: 0.8,
+    }));
+    this.runCommand(
+      'Stamp Chord · ' + chordType,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? {
+                  ...t,
+                  notes: [...t.notes, ...stamped.map((n) => this.clone(n))],
+                }
+              : t
+          )
+        );
+      },
+      () => {
+        const stampedIds = new Set(stamped.map((n) => n.id));
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? {
+                  ...t,
+                  notes: t.notes.filter((n) => !stampedIds.has(n.id)),
+                }
+              : t
+          )
+        );
+      }
+    );
+  }
+
+  recordLiveNote(midi: number, velocity: number) {
+    // Reads selection-time state — wraps a single addNoteToTrack as history step
+    const trackId = this.selectedTrackId();
+    if (!trackId) return;
+    this.addNoteToTrack(trackId, {
+      id: 'rec_' + Date.now(),
+      midi,
+      step: this.engine.visualStep() % 64,
+      length: 1,
+      velocity,
+    });
+  }
+
+  // ── Mixer (mute / solo / volume / pan / sends) ──────────────────────
+
+  toggleMute(id: string) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const wasMuted = !!t.muted;
+    this.runCommand(
+      (wasMuted ? 'Unmute · ' : 'Mute · ') + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, muted: !x.muted } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, muted: wasMuted } : x))
+        );
+      }
+    );
+  }
+
+  toggleSolo(id: string) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const wasSoloed = !!t.soloed;
+    this.runCommand(
+      (wasSoloed ? 'Unsolo · ' : 'Solo · ') + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, soloed: !x.soloed } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, soloed: wasSoloed } : x))
+        );
+      }
+    );
+  }
+
+  updateVolume(id: string, vol: number) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const oldGain = t.gain;
+    const newGain = Math.max(0, Math.min(1.5, vol));
+    // Coalesce: consecutive fader moves on the same track collapse to one
+    // undo step that rewinds to the original pre-drag volume.
+    this.runMerge(
+      'volume:' + id,
+      'Set Volume · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === id ? { ...x, gain: newGain, volume: newGain } : x
+          )
+        );
+        this.engine.updateTrack(id, { gain: newGain });
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === id ? { ...x, gain: oldGain, volume: oldGain } : x
+          )
+        );
+        this.engine.updateTrack(id, { gain: oldGain });
+      }
+    );
+  }
+
+  updateTrackPan(id: string, val: number) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const oldPan = t.pan;
+    const newPan = Math.max(-1, Math.min(1, val / 100));
+    this.runMerge(
+      'pan:' + id,
+      'Set Pan · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, pan: newPan } : x))
+        );
+        this.engine.updateTrack(id, { pan: newPan });
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, pan: oldPan } : x))
+        );
+        this.engine.updateTrack(id, { pan: oldPan });
+      }
+    );
+  }
+
+  togglePhase(id: string) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const inverted = !t.phaseInvert;
+    this.tracks.update((ts) =>
+      ts.map((x) => (x.id === id ? { ...x, phaseInvert: inverted } : x))
+    );
+    this.engine.updateTrack(id, { phaseInvert: inverted });
+  }
+
+  updateStereoWidth(id: string, val: number) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const width = Math.max(-1, Math.min(1, val / 100));
+    this.tracks.update((ts) =>
+      ts.map((x) => (x.id === id ? { ...x, stereoWidth: width } : x))
+    );
+    this.engine.updateTrack(id, { pan: width }); // Reusing pan node for simple implementation
+  }
+
+  updateSend(id: string, send: 'A' | 'B', value: number) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const oldSend = send === 'A' ? t.sendA : t.sendB;
+    const newSend = Math.max(0, Math.min(1, value));
+    this.runMerge(
+      'send' + send + ':' + id,
+      'Set Send ' + send + ' · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            send === 'A'
+              ? x.id === id
+                ? { ...x, sendA: newSend }
+                : x
+              : x.id === id
+                ? { ...x, sendB: newSend }
+                : x
+          )
+        );
+        this.engine.updateTrack(
+          id,
+          send === 'A' ? { sendA: newSend } : { sendB: newSend }
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            send === 'A'
+              ? x.id === id
+                ? { ...x, sendA: oldSend }
+                : x
+              : x.id === id
+                ? { ...x, sendB: oldSend }
+                : x
+          )
+        );
+        this.engine.updateTrack(
+          id,
+          send === 'A' ? { sendA: oldSend } : { sendB: oldSend }
+        );
+      }
+    );
+  }
+
+  /**
+   * Write synth-patch params for a track.
+   *
+   * Coalesced on the changed key set, exactly like `setFxSlotParam`: the Synth
+   * view fires this on every `input` event of a slider, and one history entry
+   * per animation frame made a single drag flood undo (and made "undo" look
+   * broken, since each step moved the knob back by one pixel). One gesture is
+   * now one undoable step; editing a different control starts a new step.
+   */
+  updateSynthParams(trackId: string, params: any) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const oldParams = this.clone(t.synthParams);
+    const newParams = { ...t.synthParams, ...params };
+    const mergeKey = `synth:${trackId}:${Object.keys(params ?? {})
+      .sort()
+      .join(',')}`;
+    this.runMerge(
+      mergeKey,
+      'Edit Synth · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, synthParams: newParams } : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, synthParams: oldParams } : x
+          )
+        );
+      }
+    );
+  }
+
+  // ── Clips ──────────────────────────────────────────────────────────
+
+  /**
+   * New arrangement clips are stamped with the track's active pattern so a
+   * clip is a real pattern instance: it keeps playing the material it was
+   * drawn with even after the live pattern moves on, and it can be re-pointed
+   * at another pattern (FL's "select pattern for this clip").
+   */
+  activePatternSlotFor(trackId: string): string | null {
+    const track = this.tracks().find((t) => t.id === trackId);
+    return track?.activePatternSlotId ?? track?.patternSlots?.[0]?.id ?? null;
+  }
+
+  /** Resolve the notes a clip should play, per its pattern reference. */
+  private notesForClip(
+    track: TrackModel,
+    clip: StudioClip,
+    liveNotes: TrackNote[]
+  ): TrackNote[] {
+    const slotId = clip.patternSlotId;
+    // No reference (legacy clip) or a reference to the live working pattern:
+    // the track's current notes (incl. any comp take) ARE that pattern.
+    if (!slotId || slotId === track.activePatternSlotId) return liveNotes;
+    const slot = track.patternSlots?.find((s) => s.id === slotId);
+    if (!slot || slot.versions.length === 0) return liveNotes;
+    return slot.versions[slot.versions.length - 1].notes ?? [];
+  }
+
+  /**
+   * Point a clip at another pattern slot. Selecting such a clip also makes the
+   * slot active so the Channel Rack / Piano Roll edit the pattern you hear.
+   */
+  setClipPattern(trackId: string, clipId: string, slotId: string | null) {
+    const track = this.tracks().find((t) => t.id === trackId);
+    const clip = track?.clips.find((c) => c.id === clipId);
+    if (!track || !clip) return;
+    const prev = clip.patternSlotId ?? null;
+    const prevActive = track.activePatternSlotId ?? null;
+    if (prev === slotId) return;
+    this.runCommand(
+      'Set Clip Pattern · ' + (clip.name || track.name),
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id !== trackId
+              ? t
+              : {
+                  ...t,
+                  activePatternSlotId: slotId ?? t.activePatternSlotId,
+                  clips: t.clips.map((c) =>
+                    c.id === clipId ? { ...c, patternSlotId: slotId } : c
+                  ),
+                }
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id !== trackId
+              ? t
+              : {
+                  ...t,
+                  activePatternSlotId: prevActive,
+                  clips: t.clips.map((c) =>
+                    c.id === clipId ? { ...c, patternSlotId: prev } : c
+                  ),
+                }
+          )
+        );
+      }
+    );
+  }
+
+  /**
+   * Capture the live pattern into a NEW slot and return its id, so the
+   * arrangement can hold more than one pattern per track.
+   */
+  createPatternSlot(trackId: string, name?: string): string | null {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return null;
+    const slotId = 'slot-' + Date.now();
+    const label = name || `Pattern ${(track.patternSlots?.length ?? 0) + 1}`;
+    const notesBefore = this.clone(track.notes || []);
+    const slotsBefore = this.clone(track.patternSlots || []);
+    const previousActive = track.activePatternSlotId ?? null;
+    const slotCount = track.patternSlots?.length ?? 0;
+
+    this.runCommand(
+      'New Pattern · ' + label,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => {
+            if (t.id !== trackId) return t;
+            const version: PatternVersion = {
+              id: 'v-' + Date.now(),
+              name: 'auto ' + (slotCount + 1),
+              steps: [...(t.steps || [])],
+              notes: this.clone(t.notes || []),
+            };
+            // Snapshot the pattern being LEFT before switching the active
+            // slot. Without this, a clip still pointing at the old slot would
+            // resolve to that slot's stale (often empty) first version and
+            // fall silent the moment a second pattern is created.
+            const carried = (t.patternSlots || []).map((slot) =>
+              slot.id === previousActive
+                ? { ...slot, versions: [...slot.versions, version] }
+                : slot,
+            );
+            return {
+              ...t,
+              activePatternSlotId: slotId,
+              // The new pattern starts as a copy of the live pattern, like
+              // FL's "clone pattern", so the artist keeps their material.
+              patternSlots: [
+                ...carried,
+                {
+                  id: slotId,
+                  name: label,
+                  activeVersionId: 'v1',
+                  versions: [
+                    {
+                      id: 'v1',
+                      name: 'v1',
+                      steps: [...(t.steps || [])],
+                      notes: this.clone(t.notes || []),
+                    },
+                  ],
+                },
+              ],
+            };
+          })
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id !== trackId
+              ? t
+              : {
+                  ...t,
+                  activePatternSlotId: previousActive,
+                  patternSlots: this.clone(slotsBefore),
+                  notes: this.clone(notesBefore),
+                }
+          )
+        );
+      }
+    );
+    return slotId;
+  }
+
+  /**
+   * Deep-copy a channel: notes, steps, pattern slots and arrangement clips all
+   * come along, so "clone" means clone rather than "add an empty channel".
+   */
+  cloneTrack(trackId: string, name?: string): string | null {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return null;
+    const newId = 'track_' + Date.now() + Math.random();
+    const now = Date.now();
+    const copy: TrackModel = {
+      ...this.clone(track),
+      id: newId,
+      name: name || `${track.name} (Copy)`,
+      muted: false,
+      soloed: false,
+      notes: this.clone(track.notes || []).map((n, i) => ({
+        ...n,
+        id: `note-${now}-${i}-${Math.floor(Math.random() * 1000)}`,
+      })),
+      clips: (track.clips || []).map((c, i) => ({
+        ...this.clone(c),
+        id: `clip_${now}_${i}_${Math.floor(Math.random() * 1000)}`,
+      })),
+    };
+    this.runCommand(
+      'Clone Track · ' + track.name,
+      () => {
+        this.tracks.update((ts) => [...ts, copy]);
+        this.selectedTrackId.set(newId);
+      },
+      () => {
+        this.tracks.update((ts) => ts.filter((t) => t.id !== newId));
+        this.selectedTrackId.set(trackId);
+      }
+    );
+    return newId;
+  }
+
+  addClipToTrack(trackId: string, clip: Partial<StudioClip>) {
+    const newClip: StudioClip = {
+      id: 'clip_' + Date.now(),
+      start: 0,
+      length: 4,
+      name: 'Clip',
+      type: 'midi',
+      // Only stamp a pattern when the caller (e.g. an AI/stem path) has not
+      // already decided, and only for MIDI/drum material.
+      patternSlotId:
+        clip.type === 'audio' ? null : this.activePatternSlotFor(trackId),
+      ...clip,
+    };
+    const clipClone = this.clone(newClip);
+    this.runCommand(
+      'Add Clip · ' + clipClone.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId ? { ...t, clips: [...t.clips, clipClone] } : t
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? { ...t, clips: t.clips.filter((c) => c.id !== clipClone.id) }
+              : t
+          )
+        );
+      }
+    );
+  }
+
+  updateClip(trackId: string, clipId: string, patch: Partial<StudioClip>) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    const clip = t?.clips.find((c) => c.id === clipId);
+    if (!clip) return;
+    const prev = this.clone(clip);
+    this.runCommand(
+      'Edit Clip · ' + (patch.name || clip.name),
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  clips: x.clips.map((c) =>
+                    c.id === clipId ? { ...c, ...patch } : c
+                  ),
+                }
+              : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  clips: x.clips.map((c) => (c.id === clipId ? prev : c)),
+                }
+              : x
+          )
+        );
+      }
+    );
+  }
+
+  removeClip(trackId: string, clipId: string) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    const clip = t?.clips.find((c) => c.id === clipId);
+    if (!clip) return;
+    const snapshot = this.clone(clip);
+    this.runCommand(
+      'Remove Clip · ' + clip.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? { ...x, clips: x.clips.filter((c) => c.id !== clipId) }
+              : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, clips: [...x.clips, snapshot] } : x
+          )
+        );
+      }
+    );
+  }
+
+  splitClip(trackId: string, clipId: string, bar: number) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    const clip = t?.clips.find((c) => c.id === clipId);
+    if (!clip) return;
+    const original = this.clone(clip);
+    const first = this.clone({
+      ...clip,
+      length: bar - clip.start,
+    });
+    const secondId = 'clip_' + Date.now() + '_b';
+    const second = this.clone({
+      ...clip,
+      id: secondId,
+      start: bar,
+      length: clip.length - (bar - clip.start),
+    });
+    this.runCommand(
+      'Split Clip · ' + clip.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => {
+            if (x.id !== trackId) return x;
+            return {
+              ...x,
+              clips: [...x.clips.filter((c) => c.id !== clipId), first, second],
+            };
+          })
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  clips: [
+                    ...x.clips.filter((c) => c.id !== secondId),
+                    original,
+                  ],
+                }
+              : x
+          )
+        );
+      }
+    );
+  }
+
+  glueClips(trackId: string, clipIds: string[]): string | null {
+    const uniqueIds = Array.from(new Set(clipIds)).filter(Boolean);
+    if (uniqueIds.length < 2) return null;
+
+    const track = this.tracks().find((x) => x.id === trackId);
+    if (!track) return null;
+
+    const selected = uniqueIds
+      .map((id) => track.clips.find((clip) => clip.id === id) ?? null)
+      .filter((clip): clip is StudioClip => clip !== null);
+    if (selected.length !== uniqueIds.length) return null;
+
+    const sorted = this.sortClipsByStart(selected);
+    if (!this.areClipsGlueCompatible(sorted)) return null;
+
+    const start = sorted[0].start || 0;
+    const end = sorted.reduce(
+      (max, clip) => Math.max(max, this.clipEnd(clip)),
+      start
+    );
+    const mergedClip: StudioClip = {
+      ...sorted[0],
+      id: `clip_${Date.now()}_glue`,
+      start,
+      length: Math.max(0.25, end - start),
+      name: this.buildGluedClipName(track.name, sorted),
+    };
+    const mergedClipId = mergedClip.id;
+    const idSet = new Set(uniqueIds);
+    const before = this.copyClipList(track.clips);
+    const after = this.sortClipsByStart([
+      ...track.clips.filter((clip) => !idSet.has(clip.id)),
+      mergedClip,
+    ]);
+
+    this.runCommand(
+      `Glue ${sorted.length} Clips · ${track.name}`,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, clips: this.copyClipList(after) } : x
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, clips: this.copyClipList(before) } : x
+          )
+        );
+      }
+    );
+
+    return mergedClipId;
+  }
+
+  private clipEnd(clip: Pick<StudioClip, 'start' | 'length'>): number {
+    return (clip.start || 0) + (clip.length || 0);
+  }
+
+  private sortClipsByStart(clips: StudioClip[]): StudioClip[] {
+    return [...clips].sort((a, b) => {
+      const startDelta = (a.start || 0) - (b.start || 0);
+      if (Math.abs(startDelta) > 0.001) return startDelta;
+      return this.clipEnd(a) - this.clipEnd(b);
+    });
+  }
+
+  private copyClipList(clips: StudioClip[]): StudioClip[] {
+    return clips.map((clip) => ({ ...clip }));
+  }
+
+  private resolveClipAudioSource(clip: StudioClip): unknown {
+    const refId = (clip as any).audioRefId;
+    if (typeof refId === 'string' && refId.trim().length > 0) return refId;
+    return (clip as any).audioData ?? null;
+  }
+
+  private areClipsGlueCompatible(clips: StudioClip[]): boolean {
+    if (clips.length < 2) return false;
+    const baseType = clips[0].type;
+    const baseAudioSource =
+      baseType === 'audio' ? this.resolveClipAudioSource(clips[0]) : null;
+    const epsilon = 0.001;
+    let lastEnd = this.clipEnd(clips[0]);
+
+    for (let index = 1; index < clips.length; index++) {
+      const clip = clips[index];
+      if (clip.type !== baseType) return false;
+      if ((clip.start || 0) - lastEnd > epsilon) return false;
+      if (
+        baseType === 'audio' &&
+        this.resolveClipAudioSource(clip) !== baseAudioSource
+      ) {
+        return false;
+      }
+      lastEnd = Math.max(lastEnd, this.clipEnd(clip));
+    }
+
+    return true;
+  }
+
+  private buildGluedClipName(trackName: string, clips: StudioClip[]): string {
+    const uniqueNames = Array.from(
+      new Set(clips.map((clip) => (clip.name || '').trim()).filter(Boolean))
+    );
+    if (uniqueNames.length === 1) return uniqueNames[0];
+    if (uniqueNames.length === 0) return `${trackName} Clip`;
+    return `${trackName} Consolidated`;
+  }
+
+  // ── Bulk-mutate current notes (array wholesale replace for clean undo) ─
+
+  quantizeTrack(id: string, noteIds?: string[]) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const before = this.clone(t.notes);
+    const after = t.notes.map((n) =>
+      noteIds && !noteIds.includes(n.id)
+        ? n
+        : { ...n, step: Math.round(n.step) }
+    );
+    this.runCommand(
+      'Quantize · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+  }
+
+  humanizeTrack(id: string, noteIds?: string[]) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const before = this.clone(t.notes);
+    const after = t.notes.map((n) =>
+      noteIds && !noteIds.includes(n.id)
+        ? n
+        : {
+            ...n,
+            step: n.step + (Math.random() - 0.5) * 0.1,
+            velocity: Math.max(
+              0.1,
+              Math.min(1, n.velocity + (Math.random() - 0.5) * 0.2)
+            ),
+          }
+    );
+    this.runCommand(
+      'Humanize · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+  }
+
+  strumTrack(id: string, noteIds?: string[]) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const before = this.clone(t.notes);
+    const sortedAsc = [...t.notes].sort((a, b) => a.midi - b.midi);
+    const targetIds = noteIds ?? sortedAsc.map((n) => n.id);
+    const targets = sortedAsc.filter((n) => targetIds.includes(n.id));
+    const { step: _ignored, ...rest } = targets[0] ?? { step: 0 };
+    const after = t.notes.map((n) => {
+      if (!targetIds.includes(n.id)) return n;
+      const idx = targets.indexOf(n);
+      return { ...n, step: n.step + idx * 0.02 };
+    });
+    this.runCommand(
+      'Strum · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+  }
+
+  arpeggiateTrack(id: string, noteIds?: string[]) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const before = this.clone(t.notes);
+    const targetIds = new Set(noteIds ?? t.notes.map((n) => n.id));
+    const targets = t.notes.filter((n) => targetIds.has(n.id));
+    const others = t.notes.filter((n) => !targetIds.has(n.id));
+    if (targets.length === 0) return;
+    const arpNotes: TrackNote[] = [];
+    targets.forEach((base) => {
+      [0, 4, 7, 12].forEach((v, i) => {
+        arpNotes.push({
+          ...this.clone(base),
+          id: `arp_${base.id}_${i}_${Date.now()}`,
+          midi: base.midi + v,
+          step: base.step + i * 0.25,
+          length: 0.25,
+        });
+      });
+    });
+    const arpIds = new Set(arpNotes.map((n) => n.id));
+    const after = [...others, ...arpNotes];
+    this.runCommand(
+      'Arpeggiate · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+  }
+
+  // ── Pattern slots / scenes / takes (kept lightweight) ─────────────
+
+  toggleStep(id: string, stepIndex: number) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== id) return t;
+        const steps = [...t.steps];
+        steps[stepIndex] = !steps[stepIndex];
+        return { ...t, steps };
+      })
+    );
+  }
+
+  setActivePatternSlotId(id: string) {
+    this.activePatternSlotId.set(id);
+  }
+
+  addPatternSlot() {
+    const id = 'slot-' + Date.now();
+    this.patternSlots.update((ps) => [
+      ...ps,
+      { id, name: 'Pattern ' + (ps.length + 1) },
+    ]);
+  }
+
+  setActivePatternSlot(trackId: string, slotId: string) {
+    // Snapshot the id BEFORE the command runs — the previous undo closure
+    // read it back post-update (always the new value), so undo was a no-op.
+    const previousSlotId = this.tracks().find((t) => t.id === trackId)
+      ?.activePatternSlotId ?? null;
+    this.runCommand(
+      'Switch Pattern Slot',
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId ? { ...t, activePatternSlotId: slotId } : t
+          )
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? { ...t, activePatternSlotId: previousSlotId }
+              : t
+          )
+        );
+      }
+    );
+  }
+
+  // ── Routing / bus (not history-tracked; they're a UX affordance) ──
+
+  setTrackBus(trackId: string, busId: string | undefined) {
+    this.tracks.update((ts) =>
+      ts.map((t) => (t.id === trackId ? { ...t, busId } : t))
+    );
+    this.engine.updateTrack(trackId, { busId });
+  }
+
+  setPadRouting(padId: string, busId: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id === MusicManagerService.DRUM_TRACK_ID) {
+          const newPads =
+            (t as any).pads?.map((p: any) =>
+              p.id === padId ? { ...p, busId } : p
+            ) || [];
+          return { ...t, pads: newPads };
+        }
+        return t;
+      })
+    );
+  }
+
+  updateDrumSwing(amount: number) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id === MusicManagerService.DRUM_TRACK_ID) {
+          return { ...t, swingAmount: amount };
+        }
+        return t;
+      })
+    );
+  }
+
+  // ── Misc helpers (non-history) ────────────────────────────────────
+
+  ensureTrack(instrumentId: string) {
+    const existing = this.tracks().find((t) => t.instrumentId === instrumentId);
+    if (!existing) {
+      return this.addTrack('New ' + instrumentId, instrumentId);
+    }
+    return existing.id;
+  }
+
+  setTrackColor(id: string, color: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) => (t.id === id ? { ...t, color } : t))
+    );
+  }
+
+  reorderTrack(fromIndex: number, toIndex: number) {
+    this.tracks.update((ts) => {
+      const next = [...ts];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }
+
+  setTrackQualityMode(id: string, mode: 'performance' | 'quality') {
+    this.tracks.update((ts) =>
+      ts.map((t) => (t.id === id ? { ...t, qualityMode: mode } : t))
+    );
+  }
+
+  setStepVelocity(id: string, stepIndex: number, velocity: number) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== id) return t;
+        const stepVelocities = { ...t.stepVelocities };
+        stepVelocities[stepIndex] = velocity;
+        return { ...t, stepVelocities };
+      })
+    );
+  }
+
+  snapshotPatternVersion(trackId: string, slotId: string, versionName: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) => {
+        if (t.id !== trackId) return t;
+        const slot = t.patternSlots?.find((s) => s.id === slotId);
+        if (!slot) return t;
+        const versionId = 'v-' + Date.now();
+        const newVersion: PatternVersion = {
+          id: versionId,
+          name: versionName,
+          steps: [...t.steps],
+          notes: this.clone(t.notes),
+        };
+        return {
+          ...t,
+          patternSlots: t.patternSlots?.map((s) =>
+            s.id === slotId
+              ? { ...s, versions: [...s.versions, newVersion] }
+              : s
+          ),
+        };
+      })
+    );
+  }
+
+  clearPatternLane(id: string) {
+    this.tracks.update((ts) =>
+      ts.map((t) =>
+        t.id === id
+          ? { ...t, steps: new Array(t.steps.length).fill(false), notes: [] }
+          : t
+      )
+    );
+  }
+  recallPatternSlot(id: string, slotId: string) {
+    const before = this.tracks().find((t) => t.id === id);
+    const slot = before?.patternSlots?.find((s) => s.id === slotId);
+    // Nothing captured for this scene yet — nothing to recall.
+    if (!before || !slot || slot.versions.length === 0) return;
+    const notesBefore = this.clone(before.notes);
+    const stepsBefore = [...before.steps];
+    const activeBefore = before.activePatternSlotId;
+    this.runCommand(
+      'Recall Pattern',
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => {
+            if (t.id !== id) return t;
+            const current = t.patternSlots?.find((s) => s.id === slotId);
+            if (!current) return t;
+            // Restore the most recently saved version so new snapshots are recalled.
+            const version = current.versions[current.versions.length - 1];
+            return {
+              ...t,
+              steps: [...(version?.steps || t.steps)],
+              notes: this.clone(version?.notes || t.notes),
+              activePatternSlotId: slotId,
+            };
+          })
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === id
+              ? {
+                  ...t,
+                  notes: this.clone(notesBefore),
+                  steps: [...stepsBefore],
+                  activePatternSlotId: activeBefore,
+                }
+              : t
+          )
+        );
+      }
+    );
+  }
+
+  /**
+   * Capture the track's CURRENT pattern (notes + steps) into a fixed-id
+   * pattern slot (e.g. the performance grid's `slot-<row>` scenes). History-
+   * wrapped so capture is undoable. Creates the slot when missing.
+   */
+  capturePatternSlot(trackId: string, slotId: string, name: string) {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return;
+    const notesBefore = this.clone(track.notes);
+    const stepsBefore = [...track.steps];
+    const activeBefore = track.activePatternSlotId;
+    const slotsBefore = this.clone(track.patternSlots || []);
+    this.runCommand(
+      'Capture Pattern',
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => {
+            if (t.id !== trackId) return t;
+            const version: PatternVersion = {
+              id: 'v-' + Date.now(),
+              name,
+              steps: [...t.steps],
+              notes: this.clone(t.notes),
+            };
+            const slots = [...(t.patternSlots || [])];
+            const existingIdx = slots.findIndex((s) => s.id === slotId);
+            if (existingIdx >= 0) {
+              slots[existingIdx] = {
+                id: slotId,
+                name,
+                activeVersionId: version.id,
+                versions: [...slots[existingIdx].versions, version],
+              };
+            } else {
+              slots.push({
+                id: slotId,
+                name,
+                activeVersionId: version.id,
+                versions: [version],
+              });
+            }
+            return { ...t, patternSlots: slots, activePatternSlotId: slotId };
+          })
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? {
+                  ...t,
+                  notes: this.clone(notesBefore),
+                  steps: [...stepsBefore],
+                  patternSlots: this.clone(slotsBefore),
+                  activePatternSlotId: activeBefore,
+                }
+              : t
+          )
+        );
+      }
+    );
+  }
+
+  snapshotProject(): Project | null {
+    const current = this.projectService.currentProject();
+    if (!current) return null;
+    return {
+      ...current,
+      tracks: this.tracks() as any,
+      bpm: this.engine.tempo(),
+      updatedAt: Date.now(),
+      // Sprint A3 Phase 5 — persist take-lane state (takes, active, punch-in,
+      // comp stacks, sections) alongside the arrangement.
+      takeState: this.takeManager.serialize(),
+    } as Project & { takeState: ReturnType<TakeManagerService['serialize']> };
+  }
+
+  importProject(file: File) {
+    if (!file) return;
+    const oldTracks = this.clone(this.tracks());
+    const oldBpm = this.engine.tempo();
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        this.runCommand(
+          'Import Project',
+          () => {
+            if (data.tracks) this.tracks.set(data.tracks);
+            if (data.bpm) this.engine.tempo.set(data.bpm);
+          },
+          () => {
+            this.tracks.set(this.clone(oldTracks));
+            this.engine.tempo.set(oldBpm);
+          }
+        );
+      } catch (err) {
+        console.error('Import failed', err);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  launchScene(id: string) {
+    this.activeSceneId.set(id);
+  }
+
+  /**
+   * Promote a take region into the arrangement as a comp section. The take
+   * assigned to the region (explicit, or the track's active take) now plays
+   * that step span during transport — the "bake region to timeline" action.
+   */
+  promoteTakeRegion(trackId: string, clipId: string, region: any) {
+    const takeId =
+      region?.takeId ?? this.takeManager.getActiveTake(trackId)()?.id ?? null;
+    const startStep = Number(region?.startStep ?? region?.start ?? 0);
+    const endStep = Number(
+      region?.endStep ?? region?.end ?? startStep + 16
+    );
+    if (
+      !trackId ||
+      !takeId ||
+      !Number.isFinite(startStep) ||
+      !Number.isFinite(endStep) ||
+      endStep <= startStep
+    ) {
+      this.logger.warn('promoteTakeRegion: invalid region/take', {
+        trackId,
+        clipId,
+        region,
+      });
+      return null;
+    }
+    const section = this.takeManager.setSection(
+      trackId,
+      Math.floor(startStep),
+      Math.ceil(endStep),
+      takeId
+    );
+    this.logger.info(
+      `Promoted take ${takeId} to section ${section.startStep}-${section.endStep}`
+    );
+    return section;
+  }
+
+  /**
+   * Bounce a single track to a WAV file through the offline render engine
+   * (synth notes + audio clips, respecting mute and clip fades). Returns the
+   * bounce result (blob/url/peak/RMS) or null when the track is unknown.
+   */
+  async bounceTrack(
+    id: string,
+    format: 'wav-16' | 'wav-32' | 'wav-32-float' = 'wav-32-float'
+  ) {
+    const track = this.tracks().find((t) => t.id === id);
+    if (!track) {
+      this.logger.warn('bounceTrack: unknown track', id);
+      return null;
+    }
+    this.logger.info(`Bouncing track: ${track.name}`);
+    return this.offlineBounce.bounceTrack(id, format);
+  }
+
+  /** Import audio files into the project (delegates to the import editor). */
+  importAudio(): Promise<void> {
+    return this.audioImporter.importFiles();
+  }
+  startRecording() {
+    this.recordingEngine.startRecording();
+  }
+  /**
+   * Stop the current audio pass and resolve once the take is durable.
+   *
+   * `StudioRecordingEngineService.stopRecording()` is asynchronous end to end:
+   * worklet FLUSH handshake → WAV encode → IndexedDB commit. This call used to
+   * drop that promise and resolve immediately, so the background / pagehide
+   * safety stop had no way to know the artist's audio was actually saved — a
+   * WebView frozen mid-flush lost the performance while every caller reported
+   * success. Guarded so the empty engine mocks in tests stay valid.
+   */
+  async stopRecording(id: string): Promise<null> {
+    if (typeof this.recordingEngine?.stopRecording === "function") {
+      await this.recordingEngine.stopRecording();
+    }
+    return null;
+  }
+
+  /** Create (or re-use) an automation lane for a track parameter. */
+  addAutomationLane(trackId: string, param: string) {
+    const lane = this.automation.ensureLane(trackId, param);
+    this.logger.info(`Added automation lane for ${param} on ${trackId}`);
+    return lane;
+  }
+
+  // ── Generated recipes (blank-canvas killer) ───────────────────────
+
+  /**
+   * One-tap setup: snapshot current state, wipe, populate with the recipe's
+   * curated tracks + drum steps + bpm. Single reversible history step.
+   */
+  applyGeneratedRecipe(recipe: IdeaRecipe): void {
+    const beforeTracks = this.clone(this.tracks());
+    const beforeBpm = this.engine.tempo();
+    const beforeSel = this.selectedTrackId();
+
+    // Build all new tracks in memory first.
+    const newTracks: TrackModel[] = [];
+    const stepsByTrack = new Map<string, boolean[]>();
+    recipe.tracks.forEach((rt) => {
+      const built = this.buildRecipeTrack(rt);
+      newTracks.push(built);
+      if (rt.drum) {
+        stepsByTrack.set(
+          built.id,
+          this.expandDrumPattern(rt.drum.kick, rt.drum.snare, rt.drum.hat)
+        );
+      }
+    });
+    // Apply drum steps for tracks that have a drum pattern.
+    if (stepsByTrack.size) {
+      newTracks.forEach((t) => {
+        const steps = stepsByTrack.get(t.id);
+        if (steps) t.steps = steps;
+      });
+    }
+
+    const setTempo = (bpm: number) => this.engine.tempo.set(bpm);
+    const restore = () => {
+      this.stemAudioCache.clear();
+      this.tracks.set(this.clone(beforeTracks));
+      this.selectedTrackId.set(beforeSel);
+      setTempo(beforeBpm);
+    };
+
+    this.history.execute({
+      name: 'Generate · ' + recipe.name,
+      execute: () => {
+        this.tracks.set(newTracks);
+        this.selectedTrackId.set(newTracks[0]?.id ?? null);
+        setTempo(recipe.bpm);
+      },
+      undo: restore,
+    });
+  }
+
+  /** Build a `TrackModel` matching addTrack()'s shape, from a recipe track. */
+  private buildRecipeTrack(rt: {
+    name: string;
+    instrumentId: string;
+    notes: IdeaRecipe['tracks'][0]['notes'];
+  }): TrackModel {
+    const id = rt.instrumentId.includes('drum')
+      ? MusicManagerService.DRUM_TRACK_ID
+      : 'track_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const preset = this.instruments
+      .getPresets()
+      .find((p) => p.id === rt.instrumentId);
+    return {
+      id,
+      name: rt.name,
+      type: rt.instrumentId.includes('drum') ? 'drum' : 'midi',
+      instrumentId: rt.instrumentId,
+      muted: false,
+      soloed: false,
+      volume: 0.8,
+      gain: 0.8,
+      pan: 0,
+      clips: [],
+      notes: rt.notes.map((n, i) => ({
+        id: `recipe_${id}_${i}`,
+        midi: n.midi,
+        step: n.step,
+        length: n.length,
+        velocity: n.velocity,
+      })),
+      steps: new Array(64).fill(false),
+      fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+      sendA: 0,
+      sendB: 0,
+      color: '#af25f4',
+      synthParams: preset?.synth || { type: 'sine' },
+      effects: [],
+      patternSlots: this.createDefaultSlots(),
+      activePatternSlotId: 'slot-0',
+    };
+  }
+
+  /** Expand 3 lane-arrays (kick/snare/hat) → single 64-step boolean array. */
+  private expandDrumPattern(
+    kick: number[],
+    snare: number[],
+    hat: number[]
+  ): boolean[] {
+    const steps = new Array(64).fill(false);
+    [...kick, ...snare, ...hat].forEach((i) => {
+      if (i >= 0 && i < 64) steps[i] = true;
+    });
+    return steps;
+  }
+
+  /**
+   * Create 4 audio tracks from a stem split — caches audio buffers in
+   * `stemAudioCache` keyed by clip id, so audio survives undo/redo
+   * (which would otherwise JSON-strip the AudioBuffer reference).
+   */
+  addStemsAsAudioTracks(stems: {
+    vocals: AudioBuffer;
+    drums: AudioBuffer;
+    bass: AudioBuffer;
+    instrumental: AudioBuffer;
+    other?: AudioBuffer;
+  }): void {
+    const beforeTracks = this.clone(this.tracks());
+    const beforeSel = this.selectedTrackId();
+
+    const labels: Record<keyof typeof stems, string> = {
+      vocals: '🎤 Vocals',
+      drums: '🥁 Drums',
+      bass: '🎸 Bass',
+      instrumental: '🎹 Instrumental',
+      other: '🎺 Other',
+    };
+
+    // Build tracks + clip refs (no buffer refs on the tracks signal itself).
+    const builtRefs: Array<{
+      trackId: string;
+      clipId: string;
+      name: string;
+      buffer: AudioBuffer;
+    }> = [];
+    const newTracks: TrackModel[] = [];
+    (Object.keys(stems) as (keyof typeof stems)[]).forEach((key) => {
+      const buf = stems[key];
+      if (!buf) return;
+      const trackId =
+        'track_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      const clipId = 'stem_' + Date.now() + '_' + key;
+      const barsAt124 = Math.ceil(buf.duration / (60 / 124 / 4));
+      const track = this.buildRecipeTrack({
+        name: labels[key] ?? key,
+        instrumentId: 'sampler-elite',
+        notes: [],
+      });
+      track.id = trackId;
+      track.type = 'audio';
+      newTracks.push(track);
+      builtRefs.push({
+        trackId,
+        clipId,
+        name: labels[key] ?? key,
+        buffer: buf,
+      });
+    });
+
+    const restore = () => {
+      builtRefs.forEach((r) => this.stemAudioCache.delete(r.clipId));
+      this.tracks.set(this.clone(beforeTracks));
+      this.selectedTrackId.set(beforeSel);
+    };
+
+    this.history.execute({
+      name: 'Add Stems (Split)',
+      execute: () => {
+        builtRefs.forEach((r) => {
+          this.stemAudioCache.set(r.clipId, r.buffer);
+          // Add the audio clip referencing the cache by id.
+          this.addClipToTrack(r.trackId, {
+            id: r.clipId,
+            name: r.name,
+            start: 0,
+            length: Math.max(
+              1,
+              builtRefs[0]
+                ? Math.ceil(builtRefs[0].buffer.duration / (60 / 124 / 4))
+                : 4
+            ),
+            type: 'audio',
+            audioRefId: r.clipId,
+          } as any);
+        });
+        this.tracks.set(newTracks);
+      },
+      undo: restore,
+    });
+  }
+
+  /**
+   * Add a single recorded audio take as a new track in the arrangement.
+   * Called by the Audio Recorder's "Export to Arrangement" button.
+   */
+  addAudioTrack(opts: {
+    id: string;
+    name: string;
+    color: string;
+    buffer: AudioBuffer;
+    offset: number;
+  }): void {
+    const trackId = opts.id || 'audio_' + Date.now();
+    const clipId = 'clip_' + Date.now();
+    const barsAtBpm = Math.ceil(
+      opts.buffer.duration / (60 / this.engine.tempo() / 4)
+    );
+
+    const track: TrackModel = {
+      id: trackId,
+      name: opts.name || 'Audio Take',
+      type: 'audio',
+      instrumentId: 'sampler-elite',
+      muted: false,
+      soloed: false,
+      volume: 0.8,
+      gain: 0.8,
+      pan: 0,
+      clips: [
+        {
+          id: clipId,
+          name: opts.name,
+          start: opts.offset || 0,
+          length: Math.max(1, barsAtBpm),
+          type: 'audio',
+          audioRefId: clipId,
+        } as any,
+      ],
+      notes: [],
+      steps: new Array(64).fill(false),
+      fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+      sendA: 0,
+      sendB: 0,
+      color: opts.color || '#E11D48',
+      synthParams: { type: 'sine' },
+      effects: [],
+      patternSlots: this.createDefaultSlots(),
+      activePatternSlotId: 'slot-0',
+    };
+
+    // Cache the AudioBuffer so it survives undo/redo (JSON strips buffers)
+    this.stemAudioCache.set(clipId, opts.buffer);
+    this.tracks.update((ts) => [...ts, track]);
+    this.selectedTrackId.set(trackId);
+  }
+
+  // ── Playback engine stepper ───────────────────────────────────────
+
+  playStep(step: number, time: number, duration: number) {
+    const STEPS_PER_BAR = 16;
+    const stepInBar = step % STEPS_PER_BAR;
+    const isOffbeat = stepInBar % 2 !== 0;
+    const drumTrack = this.tracks().find(
+      (t) => t.id === MusicManagerService.DRUM_TRACK_ID
+    );
+    const swingOffset = isOffbeat ? (drumTrack as any)?.swingAmount || 0 : 0;
+    const swungTime = time + swingOffset * duration * 0.5;
+
+    const allTracks = this.tracks();
+    const hasSolo = allTracks.some((t) => t.soloed);
+    allTracks
+      .filter((t) => !t.muted && (!hasSolo || t.soloed))
+      .forEach((t) => {
+
+      // Sprint A3 Phase 4/5 — comp playback: a section-assigned take wins for
+      // this step (sectional comp), else the active take snapshot, else the
+      // working copy.
+      const takeNotes = this.takeManager.getCompNotesForStepNow(t.id, step);
+      const playNotes = takeNotes.length > 0 ? takeNotes : t.notes;
+
+      const clips = t.clips ?? [];
+      // Seeded MIDI tracks often have notes before they have arrangement
+      // clips. Treat that as an active pattern instead of silently producing
+      // no sound; explicit clips still gate playback as before.
+      const playableClips =
+        clips.length > 0
+          ? clips
+          : [
+              {
+                start: 0,
+                length: Number.POSITIVE_INFINITY,
+                type: 'midi',
+              } as StudioClip,
+            ];
+
+      playableClips.forEach((clip) => {
+        // Gate in STEPS, never whole bars: clips snap to quarter bars, so a
+        // clip drawn at bar 8.5 starts on step 136. The old bar-based test
+        // delayed such a MIDI clip by up to a bar, and `bar === clip.start`
+        // could never be true for it, so a fractional-start audio clip was
+        // simply silent.
+        const startStep = Math.round((clip.start || 0) * STEPS_PER_BAR);
+        const endStep =
+          startStep +
+          Math.max(1, Math.round((clip.length || 4) * STEPS_PER_BAR));
+        if (step < startStep || step >= endStep) return;
+
+        // Pattern instance: a clip plays the pattern it references rather than
+        // whatever the track's live working pattern has become since.
+        const clipNotes =
+          clip.type === 'audio' ? [] : this.notesForClip(t, clip, playNotes);
+
+        if (clip.type !== 'audio') {
+          // Pattern position is CLIP-RELATIVE: a clip is a window onto its
+          // pattern, so it must start the pattern where it starts. The old
+          // global `step % 64` phase made a clip drawn at bar 8.5 begin on
+          // pattern step 8 — i.e. play the wrong bar of its own pattern.
+          const patternSpan = Math.max(
+            1,
+            this.engine.loopLengthSteps?.() ?? 64,
+          );
+          const localStep =
+            ((step - startStep) % patternSpan + patternSpan) % patternSpan;
+          clipNotes
+            .filter((n) => Math.floor(n.step) === localStep)
+            .forEach((n) => {
+              if (n.probability !== undefined && Math.random() >= n.probability)
+                return; // Skip based on probability
+
+              // Sub-grid placement: the 1/32 and 1/8T snaps store a
+              // FRACTIONAL `step` (x.5 / x.333). The step gate above floors
+              // that to the surrounding step, so without carrying the
+              // fraction into the schedule time every sub-grid note played a
+              // half/third of a step early — the on-screen grid and what you
+              // heard disagreed. microOffset stays additive on top.
+              const stepFraction = n.step - Math.floor(n.step);
+              const microTime =
+                swungTime +
+                (n.microOffset ?? 0) * duration +
+                stepFraction * duration;
+              const baseFreq = 440 * Math.pow(2, (n.midi - 69) / 12);
+              const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
+              // Slide notes: glide from the base pitch to the pitch-bend target
+              const glideTo =
+                n.isSlide && (n.pitchBend ?? 0) !== 0
+                  ? freq
+                  : undefined;
+              const synthParams = glideTo !== undefined
+                ? { ...t.synthParams, glideTo: baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12) }
+                : t.synthParams;
+
+              // Articulation-driven length multiplier
+              let lengthMul = 1.0;
+              switch (n.articulation) {
+                case 'staccato':
+                  lengthMul = 0.25;
+                  break;
+                case 'legato':
+                  lengthMul = 1.1;
+                  break;
+                case 'portamento':
+                  lengthMul = 1.0;
+                  break;
+                case 'pizzicato':
+                  lengthMul = 0.15;
+                  break;
+                case 'accent':
+                  lengthMul = 0.5;
+                  break;
+              }
+
+              const notePan = n.notePan ?? t.pan;
+
+              this.engine.triggerAttack(
+                t.id,
+                freq,
+                microTime,
+                n.velocity,
+                n.length * duration * lengthMul,
+                t.gain,
+                notePan,
+                0,
+                0,
+                synthParams
+              );
+            });
+        }
+
+        if (clip.type === 'audio' && step === startStep) {
+          // Audio can be either inline (legacy) or cached by id (stem splits).
+          const audioData =
+            (clip as any).audioData ||
+            ((clip as any).audioRefId &&
+              this.stemAudioCache.get((clip as any).audioRefId));
+          if (audioData) {
+            const rate = this.engine.calculatePlaybackRate(
+              (clip as any).originalBpm || this.engine.tempo()
+            );
+            const clipDur =
+              clip.length * 4 * (60 / this.engine.tempo());
+            // Phase F2 — clip fade envelope. Fades are stored in bars on
+            // the clip (matching start/length units); convert to seconds.
+            const secPerBar = 4 * (60 / this.engine.tempo());
+            const fadeInSec =
+              Math.min(clip.fadeIn || 0, clip.length) * secPerBar;
+            const fadeOutSec =
+              Math.min(clip.fadeOut || 0, clip.length) * secPerBar;
+            // Phase H: when a clip carries a SampleStreamer, play from the
+            // bounded resident window instead of one full decoded AudioBuffer;
+            // the engine advances the clip playhead per invocation.
+            if ((clip as any).clipStreamer) {
+              (clip as any).clipStreamer.setPlayhead(
+                (clip as any).clipOriginSeconds *
+                  (clip as any).clipSampleRate
+              );
+              this.engine.triggerSampler(
+                t.id,
+                (clip as any).clipStreamer,
+                swungTime,
+                t.gain,
+                t.pan,
+                clipDur,
+                rate,
+                fadeInSec,
+                fadeOutSec
+              );
+            }
+          }
+        }
+      });
+    });
+
+    // Observers last: the AI session musicians improvise on top of whatever the
+    // arrangement just rendered.
+    this.notifyStepObservers(step, swungTime, duration);
+  }
+
+  isStepActive(track: TrackModel, stepIdx: number): boolean {
+    return track.notes.some((n) => Math.floor(n.step) === stepIdx);
+  }
+
+  /**
+   * Sprint A2 — slide-note data path helper. Returns the semitone ramp the
+   * engine should glide to while playing the note. Returns 0 for non-slide
+   * notes (so callers can treat it as "no glide"). The piano-roll toggle
+   * defaults `pitchBend` to 2 (~whole-step) when slide mode turns ON, but
+   * designers can dial it to ±12 semitones (±1 octave).
+   */
+  getNoteSlideSemitones(note: TrackNote): number {
+    if (!note?.isSlide) return 0;
+    const bend = Number(note.pitchBend ?? 0);
+    if (!Number.isFinite(bend)) return 0;
+    return Math.max(-12, Math.min(12, bend));
+  }
+
+  createBus(name: string) {
+    return this.addTrack(name, 'bus', 'bus');
+  }
+}

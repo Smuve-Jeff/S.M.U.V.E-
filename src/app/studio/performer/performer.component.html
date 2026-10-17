@@ -1,0 +1,1072 @@
+<!--
+  Performer View — Composer Ivory + Teal
+  Mobile-first responsive layout, FL Studio Mobile-inspired keyboard/pad/matrix switcher,
+  omnipresent take carousel for multi-take recording, L/R peak meters, monitor/phantom
+  toggles, expressive pitch + mod sliders, and high-quality live instrument selection.
+-->
+<div class="performer-shell studio-workspace-surface performer-surface">
+  <!-- ───────── TOP META BAR ───────── -->
+  <header class="perf-header studio-context-toolbar performer-header">
+    <div class="brand-row studio-horizontal-rail performer-brand-rail">
+      <div class="spectrum-strip" aria-hidden="true">
+        <span
+          *ngFor="let v of spectrumData()"
+          class="spectrum-bar"
+          [style.height.%]="v * 100"
+        ></span>
+      </div>
+      <div class="brand-title">
+        <h1>Performance</h1>
+        <p>Live instruments · Multi-take recording · Pro metering</p>
+      </div>
+      <div class="perf-notebook" aria-live="polite">
+        @if (midiService.connectedDevices().length) {
+          <button
+            type="button"
+            class="notebook-label midi-indicator"
+            [class.midi-active]="midiService.midiActivityPulse()"
+            (click)="toggleMidiPanel()"
+            [attr.aria-expanded]="midiPanelOpen()"
+            title="MIDI devices: {{
+              midiService.connectedDevices().join(', ')
+            }}"
+          >
+            🎹 MIDI
+          </button>
+        }
+        <span class="notebook-stream">
+          <span *ngFor="let note of performanceLog()" class="notebook-note">{{
+            note
+          }}</span>
+        </span>
+      </div>
+    </div>
+
+    <div
+      class="layout-switcher studio-segmented studio-horizontal-rail performer-layout-switcher"
+      role="tablist"
+    >
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="layout() === 'keyboard'"
+        [class.is-active]="layout() === 'keyboard'"
+        (click)="setLayout('keyboard')"
+      >
+        <span class="icn" aria-hidden="true">♪</span> Keyboard
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="layout() === 'pads'"
+        [class.is-active]="layout() === 'pads'"
+        (click)="setLayout('pads')"
+      >
+        <span class="icn" aria-hidden="true">▣</span> Pads
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="layout() === 'matrix'"
+        [class.is-active]="layout() === 'matrix'"
+        (click)="setLayout('matrix')"
+      >
+        <span class="icn" aria-hidden="true">▦</span> Matrix
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="layout() === 'macros'"
+        [class.is-active]="layout() === 'macros'"
+        (click)="setLayout('macros')"
+        class="macros-tab"
+      >
+        <span class="icn" aria-hidden="true">🎛</span> FX Macros
+      </button>
+    </div>
+  </header>
+
+  <!-- ───────── MIDI DEVICE PICKER PANEL ───────── -->
+  @if (midiPanelOpen() && midiService.connectedDevices().length) {
+    <div
+      class="midi-picker-panel studio-module-scroll performer-midi-panel"
+      role="region"
+      aria-label="MIDI device picker"
+    >
+      <div class="midi-picker-head">
+        <span class="midi-picker-title">MIDI Devices</span>
+        <span
+          class="midi-picker-activity"
+          [class.is-pulsing]="midiService.midiActivityPulse()"
+          >●</span
+        >
+      </div>
+      <div class="midi-picker-list">
+        <div
+          *ngFor="let device of midiService.connectedDevices()"
+          class="midi-picker-row"
+        >
+          <span class="midi-picker-name">{{ device }}</span>
+          <button
+            type="button"
+            class="midi-picker-toggle studio-ghost-button performer-midi-device-toggle"
+            [class.is-on]="isDeviceEnabled(device)"
+            (click)="toggleDevice(device)"
+            [attr.aria-label]="
+              (isDeviceEnabled(device) ? 'Disable' : 'Enable') + ' ' + device
+            "
+          >
+            {{ isDeviceEnabled(device) ? 'ON' : 'OFF' }}
+          </button>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="midi-picker-close studio-icon-button performer-midi-close"
+        (click)="midiPanelOpen.set(false)"
+        aria-label="Close MIDI panel"
+      >
+        ✕
+      </button>
+      <!-- MIDI clock controls -->
+      <div class="midi-clock-strip">
+        <label class="midi-clock-label">MIDI Clock</label>
+        <button
+          type="button"
+          class="midi-clock-btn studio-secondary-button performer-midi-clock-button"
+          [class.is-active]="midiService.clockEnabled()"
+          (click)="toggleClock()"
+        >
+          {{ midiService.clockEnabled() ? '⏹ STOP' : '▶ START' }}
+        </button>
+        <div class="midi-clock-bpm">
+          <input
+            type="range"
+            min="40"
+            max="300"
+            step="1"
+            [value]="midiService.clockBpm()"
+            (input)="midiService.setClockBpm(+$any($event.target).value)"
+            aria-label="Clock BPM"
+            class="midi-clock-slider"
+          />
+          <span class="midi-clock-readout"
+            >{{ midiService.clockBpm() }} BPM</span
+          >
+        </div>
+      </div>
+      <!-- Mapping editor toggle -->
+      <button
+        type="button"
+        class="midi-picker-edit-btn studio-secondary-button performer-midi-edit-button"
+        (click)="toggleMappingEditor()"
+      >
+        {{ midiMappingEditorOpen() ? '✕ Close Editor' : '✎ Edit CC Mappings' }}
+      </button>
+      <!-- Slave sync toggle -->
+      <div class="midi-clock-strip" style="margin-top: 4px">
+        <label class="midi-clock-label">Slave Sync</label>
+        <button
+          type="button"
+          class="midi-clock-btn studio-secondary-button performer-midi-clock-button"
+          [class.is-active]="midiService.slaveSyncEnabled()"
+          (click)="midiService.toggleSlaveSync()"
+        >
+          {{ midiService.slaveSyncEnabled() ? '⏱ ON' : '⏱ OFF' }}
+        </button>
+        @if (midiService.slaveSyncEnabled()) {
+          <span class="midi-clock-readout" style="font-size: 10px"
+            >{{ midiService.slaveBpm() }} BPM</span
+          >
+          <span
+            [style.color]="
+              midiService.slaveTransportRunning()
+                ? 'var(--teal-500)'
+                : 'var(--record)'
+            "
+          >
+            {{ midiService.slaveTransportRunning() ? '▶' : '⏸' }}
+          </span>
+        }
+      </div>
+      <!-- Activity log toggle -->
+      <button
+        type="button"
+        class="midi-picker-edit-btn studio-secondary-button performer-midi-edit-button"
+        (click)="midiLogOpen.update((v) => !v)"
+      >
+        {{ midiLogOpen() ? '✕ Close Log' : '📋 MIDI Activity Log' }}
+      </button>
+
+      <!-- ── MIDI Thru/Merge Router Controls ── -->
+      <details class="midi-thru-details">
+        <summary class="midi-thru-summary">🔀 MIDI Thru</summary>
+        <div class="midi-thru-body">
+          <div class="midi-clock-strip">
+            <label class="midi-clock-label">Active</label>
+            <button
+              type="button"
+              class="midi-clock-btn studio-secondary-button performer-midi-clock-button"
+              [class.is-active]="midiService.thruEnabled()"
+              (click)="midiService.thruEnabled.update((v) => !v)"
+            >
+              {{ midiService.thruEnabled() ? 'ON' : 'OFF' }}
+            </button>
+          </div>
+          @if (midiService.thruEnabled()) {
+            <div class="midi-clock-strip" style="margin-top: 4px">
+              <label class="midi-clock-label">Source</label>
+              <select
+                class="midi-thru-select"
+                [value]="midiService.thruInputIndex()"
+                (change)="
+                  midiService.thruInputIndex.set(+$any($event.target).value)
+                "
+              >
+                <option value="0">All Inputs</option>
+                @for (
+                  name of midiService.midiInputNames();
+                  track name;
+                  let i = $index
+                ) {
+                  <option [value]="i + 1">{{ name }}</option>
+                }
+              </select>
+            </div>
+            <div class="midi-clock-strip" style="margin-top: 4px">
+              <label class="midi-clock-label">Filter</label>
+              <select
+                class="midi-thru-select"
+                [value]="midiService.thruFilter()"
+                (change)="midiService.thruFilter.set($any($event.target).value)"
+              >
+                <option value="all">All Messages</option>
+                <option value="notes">Notes Only</option>
+                <option value="cc">CC Only</option>
+                <option value="clock">Clock Only</option>
+              </select>
+            </div>
+            <div class="midi-clock-strip" style="margin-top: 4px">
+              <label class="midi-clock-label">Output</label>
+              <select
+                class="midi-thru-select"
+                [value]="midiService.thruOutputIndex()"
+                (change)="
+                  midiService.thruOutputIndex.set(+$any($event.target).value)
+                "
+              >
+                @if (midiService.midiOutputNames().length === 0) {
+                  <option value="0">No Outputs</option>
+                }
+                @for (
+                  name of midiService.midiOutputNames();
+                  track name;
+                  let i = $index
+                ) {
+                  <option [value]="i">{{ name }}</option>
+                }
+              </select>
+            </div>
+          }
+        </div>
+      </details>
+    </div>
+  }
+
+  <!-- ───────── MIDI ACTIVITY LOG ───────── -->
+  @if (midiLogOpen()) {
+    <div class="midi-activity-log studio-module-scroll performer-midi-log">
+      <div class="midi-log-head">
+        <span class="midi-mapping-title">MIDI Activity</span>
+        <button
+          type="button"
+          class="midi-mapping-clear-all studio-ghost-button performer-midi-clear-button"
+          (click)="midiService.clearMidiLog()"
+        >
+          Clear
+        </button>
+      </div>
+      <div class="midi-log-stream">
+        @if (midiService.midiLog().length === 0) {
+          <div class="midi-log-empty">Waiting for MIDI messages…</div>
+        }
+        @for (entry of midiService.midiLog(); track entry.id) {
+          <div
+            class="midi-log-row"
+            [class.midi-log-clock]="entry.type === 'clock'"
+          >
+            <span class="midi-log-icon">{{ logTypeIcon(entry.type) }}</span>
+            <span class="midi-log-type">{{
+              entry.type === 'note_on'
+                ? 'ON'
+                : entry.type === 'note_off'
+                  ? 'OFF'
+                  : entry.type.toUpperCase()
+            }}</span>
+            @if (
+              entry.channel > 0 ||
+              (entry.type !== 'clock' &&
+                entry.type !== 'start' &&
+                entry.type !== 'stop' &&
+                entry.type !== 'continue')
+            ) {
+              <span class="midi-log-ch">CH{{ entry.channel }}</span>
+            }
+            @if (entry.type === 'note_on' || entry.type === 'note_off') {
+              <span class="midi-log-val"
+                >#{{ entry.number }} v{{ entry.value }}</span
+              >
+            }
+            @if (entry.type === 'cc') {
+              <span class="midi-log-val"
+                >CC{{ entry.number }} = {{ entry.value }}</span
+              >
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ───────── MIDI MAPPING EDITOR MODAL ───────── -->
+  @if (midiMappingEditorOpen()) {
+    <div class="midi-mapping-editor studio-module-scroll performer-midi-editor">
+      <div class="midi-mapping-editor-head">
+        <span class="midi-mapping-title">Performer CC Mappings</span>
+        <button
+          type="button"
+          class="midi-mapping-clear-all studio-ghost-button performer-midi-clear-button"
+          (click)="clearAllPerformerMappings()"
+        >
+          Clear All
+        </button>
+      </div>
+      @if (midiService.performerCCMap().length === 0) {
+        <div class="midi-mapping-empty">
+          <p>
+            No custom CC mappings. Click 🎯 on Modulation, Volume, or Pan to
+            learn.
+          </p>
+        </div>
+      }
+      @if (midiService.performerCCMap().length > 0) {
+        <div class="midi-mapping-table">
+          <div class="midi-mapping-row midi-mapping-header">
+            <span>Target</span>
+            <span>Channel</span>
+            <span>CC#</span>
+            <span></span>
+          </div>
+          @for (mapping of midiService.performerCCMap(); track mapping.target) {
+            <div class="midi-mapping-row">
+              <span class="midi-mapping-target">{{ mapping.target }}</span>
+              <span class="midi-mapping-detail">{{ mapping.channel }}</span>
+              <span class="midi-mapping-detail">{{ mapping.controller }}</span>
+              <button
+                type="button"
+                class="midi-mapping-delete studio-icon-button performer-midi-delete-button"
+                (click)="deletePerformerMapping(mapping.target)"
+                aria-label="Delete mapping for {{ mapping.target }}"
+              >
+                ✕
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ───────── INSTRUMENT RACK ───────── -->
+  <section
+    class="perf-rack studio-horizontal-rail performer-rack"
+    *ngIf="selectedTrack() as track"
+  >
+    <div class="rack-cell rack-instrument">
+      <label class="rack-label">Instrument</label>
+      <select
+        class="rack-select"
+        [ngModel]="activeInstrumentId()"
+        (ngModelChange)="setInstrument($event)"
+        aria-label="Active instrument"
+      >
+        <option *ngFor="let inst of availableInstruments()" [value]="inst.id">
+          {{ inst.name }}
+        </option>
+      </select>
+      <div class="rack-track-tag" title="Active track">
+        <span class="tag-pip"></span>
+        {{ track.name }}
+      </div>
+    </div>
+
+    <div class="rack-cell rack-knobs">
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+        "
+      >
+        <app-knob
+          label="VOL"
+          [min]="0"
+          [max]="150"
+          [value]="track.gain * 100"
+          (valueChange)="updateTrackVolume($event)"
+        ></app-knob>
+        <div style="display: flex; align-items: center; gap: 4px">
+          <button
+            type="button"
+            class="midi-learn-btn studio-icon-button performer-midi-learn"
+            [class.is-learning]="
+              midiService.performerLearnTarget() === 'volume'
+            "
+            (click)="
+              midiService.performerLearnActive() &&
+              midiService.performerLearnTarget() === 'volume'
+                ? cancelLearn()
+                : startLearn('volume')
+            "
+          >
+            🎯
+          </button>
+          <span class="midi-learn-mapping">{{
+            getCCMappingLabel('volume')
+          }}</span>
+        </div>
+      </div>
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+        "
+      >
+        <app-knob
+          label="PAN"
+          [min]="-100"
+          [max]="100"
+          [value]="track.pan * 100"
+          (valueChange)="updateTrackPan($event)"
+        ></app-knob>
+        <div style="display: flex; align-items: center; gap: 4px">
+          <button
+            type="button"
+            class="midi-learn-btn studio-icon-button performer-midi-learn"
+            [class.is-learning]="midiService.performerLearnTarget() === 'pan'"
+            (click)="
+              midiService.performerLearnActive() &&
+              midiService.performerLearnTarget() === 'pan'
+                ? cancelLearn()
+                : startLearn('pan')
+            "
+          >
+            🎯
+          </button>
+          <span class="midi-learn-mapping">{{ getCCMappingLabel('pan') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="rack-cell rack-craft">
+      <app-knob
+        label="CUT"
+        [min]="20"
+        [max]="20000"
+        [value]="20000"
+        (valueChange)="liveEngine.updateParameter('cutoff', $event)"
+      ></app-knob>
+      <app-knob
+        label="RES"
+        [min]="0"
+        [max]="20"
+        [value]="1"
+        (valueChange)="liveEngine.updateParameter('resonance', $event)"
+      ></app-knob>
+      <app-knob
+        label="ATK"
+        [min]="0.001"
+        [max]="2"
+        [value]="0.01"
+        (valueChange)="liveEngine.updateParameter('attack', $event)"
+      ></app-knob>
+      <app-knob
+        label="REL"
+        [min]="0.01"
+        [max]="5"
+        [value]="0.5"
+        (valueChange)="liveEngine.updateParameter('release', $event)"
+      ></app-knob>
+    </div>
+
+    <div class="rack-cell rack-modes">
+      <button
+        type="button"
+        class="rack-toggle studio-secondary-button performer-rack-toggle"
+        [class.is-active]="smartChords()"
+        [attr.aria-pressed]="smartChords()"
+        (click)="toggleSmartChords()"
+      >
+        Smart <span>Chords</span>
+      </button>
+      <button
+        type="button"
+        class="rack-toggle studio-secondary-button performer-rack-toggle"
+        [class.is-active]="liveEngine.arpeggiatorEnabled()"
+        [attr.aria-pressed]="liveEngine.arpeggiatorEnabled()"
+        (click)="liveEngine.arpeggiatorEnabled.update((v) => !v)"
+      >
+        Arp
+      </button>
+      <button
+        type="button"
+        class="rack-toggle studio-secondary-button performer-rack-toggle"
+        [class.is-active]="liveEngine.scaleLock()"
+        [attr.aria-pressed]="liveEngine.scaleLock()"
+        (click)="liveEngine.scaleLock.update((v) => !v)"
+      >
+        Scale <span>Lock</span>
+      </button>
+      <div class="rack-scale-pick">
+        <label class="rack-label">Scale</label>
+        <select
+          class="rack-select rack-select-sm"
+          [ngModel]="liveEngine.scaleMode()"
+          (ngModelChange)="liveEngine.setScale($event)"
+          aria-label="Scale mode"
+        >
+          <option value="major">Major</option>
+          <option value="minor">Minor</option>
+          <option value="blues">Blues</option>
+          <option value="pentatonic">Penta</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── LIVE METERS (L/R PRO PEAK-HOLD) ───────── -->
+  <section
+    class="perf-meter-deck performer-meter-deck"
+    aria-label="Input and output meters"
+  >
+    <div class="meter-strip">
+      <div class="meter-pane">
+        <div class="meter-led-row">
+          <span class="meter-label">IN&nbsp;L</span>
+          <span class="meter-readout"
+            >{{ perfRecording.liveInputDbL() | number: '1.0-0' }} dB</span
+          >
+        </div>
+        <div
+          class="meter-bar"
+          role="meter"
+          [attr.aria-valuemin]="-60"
+          [attr.aria-valuemax]="0"
+          [attr.aria-valuenow]="perfRecording.liveInputDbL() | number: '1.0-0'"
+        >
+          <div
+            class="meter-fill in-l"
+            [style.width.%]="dbToPct(perfRecording.liveInputDbL())"
+          ></div>
+        </div>
+      </div>
+      <div class="meter-pane">
+        <div class="meter-led-row">
+          <span class="meter-label">IN&nbsp;R</span>
+          <span class="meter-readout"
+            >{{ perfRecording.liveInputDbR() | number: '1.0-0' }} dB</span
+          >
+        </div>
+        <div
+          class="meter-bar"
+          role="meter"
+          [attr.aria-valuemin]="-60"
+          [attr.aria-valuemax]="0"
+          [attr.aria-valuenow]="perfRecording.liveInputDbR() | number: '1.0-0'"
+        >
+          <div
+            class="meter-fill in-r"
+            [style.width.%]="dbToPct(perfRecording.liveInputDbR())"
+          ></div>
+        </div>
+      </div>
+      <div class="meter-pane">
+        <div class="meter-led-row">
+          <span class="meter-label">OUT&nbsp;L</span>
+          <span class="meter-readout"
+            >{{ perfRecording.liveOutputDbL() | number: '1.0-0' }} dB</span
+          >
+        </div>
+        <div
+          class="meter-bar"
+          role="meter"
+          [attr.aria-valuemin]="-60"
+          [attr.aria-valuemax]="0"
+          [attr.aria-valuenow]="perfRecording.liveOutputDbL() | number: '1.0-0'"
+        >
+          <div
+            class="meter-fill out-l"
+            [style.width.%]="dbToPct(perfRecording.liveOutputDbL())"
+          ></div>
+        </div>
+      </div>
+      <div class="meter-pane">
+        <div class="meter-led-row">
+          <span class="meter-label">OUT&nbsp;R</span>
+          <span class="meter-readout"
+            >{{ perfRecording.liveOutputDbR() | number: '1.0-0' }} dB</span
+          >
+        </div>
+        <div
+          class="meter-bar"
+          role="meter"
+          [attr.aria-valuemin]="-60"
+          [attr.aria-valuemax]="0"
+          [attr.aria-valuenow]="perfRecording.liveOutputDbR() | number: '1.0-0'"
+        >
+          <div
+            class="meter-fill out-r"
+            [style.width.%]="dbToPct(perfRecording.liveOutputDbR())"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live recording waveform + headroom limiter (real-time capture feedback) -->
+    <app-recording-waveform class="perf-rec-waveform"></app-recording-waveform>
+
+    <!-- Record transport -->
+    <div class="rec-transport">
+      <button
+        type="button"
+        class="rec-arm-btn studio-primary-button performer-record-button"
+        [class.is-armed]="perfRecording.isArmed()"
+        [class.is-rec]="perfRecording.isRecording()"
+        [attr.aria-pressed]="
+          perfRecording.isArmed() || perfRecording.isRecording()
+        "
+        (click)="toggleArm()"
+        aria-label="Arm recording"
+      >
+        <span class="rec-dot"></span>
+        <span class="rec-text">
+          <ng-container *ngIf="perfRecording.isRecording()"
+            >RECORDING · Take
+            {{ perfRecording.armedTakeNumber() }}</ng-container
+          >
+          <ng-container
+            *ngIf="!perfRecording.isRecording() && perfRecording.isArmed()"
+            >ARMED · Take {{ perfRecording.armedTakeNumber() }}</ng-container
+          >
+          <ng-container
+            *ngIf="!perfRecording.isRecording() && !perfRecording.isArmed()"
+            >ARM Take {{ perfRecording.armedTakeNumber() }}</ng-container
+          >
+        </span>
+      </button>
+      <div class="rec-toggles">
+        <button
+          type="button"
+          class="rec-util-btn studio-secondary-button performer-record-utility"
+          [class.is-on]="perfRecording.monitorEnabled()"
+          [attr.aria-pressed]="perfRecording.monitorEnabled()"
+          title="Monitor (headphone pass-through)"
+          (click)="perfRecording.toggleMonitor()"
+        >
+          👂 Monitor
+        </button>
+        <button
+          type="button"
+          class="rec-util-btn studio-secondary-button performer-record-utility"
+          [class.is-on]="perfRecording.phantomPowerEnabled()"
+          [attr.aria-pressed]="perfRecording.phantomPowerEnabled()"
+          title="+48V Phantom Power"
+          (click)="perfRecording.togglePhantom()"
+        >
+          ⚡ +48V
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── MAIN VIEWPORT ───────── -->
+  <section class="perf-viewport studio-module-scroll performer-viewport">
+    <!-- KEYBOARD -->
+    <div
+      class="view-keyboard performer-view performer-keyboard-view"
+      *ngIf="layout() === 'keyboard'"
+    >
+      <div class="kb-suggestion">
+        <span class="ai-pill">✨ Humanize</span>
+        <span class="ai-pill">🎼 Suggest Chord</span>
+      </div>
+      <div
+        class="keyboard-scroll studio-horizontal-rail performer-keyboard-rail"
+        tabindex="0"
+        aria-label="On-screen keyboard"
+      >
+        <div class="keyboard-row">
+          <button
+            *ngFor="let key of keyboardKeys"
+            type="button"
+            class="kb-key"
+            [class.is-black]="isBlackKey(key.midi)"
+            [class.is-white]="!isBlackKey(key.midi)"
+            [class.is-active]="activeKeys().has(key.midi)"
+            [attr.aria-label]="'Key ' + key.name"
+            (pointerdown)="onKeyDown(key.midi, $event)"
+            (pointerup)="onKeyUp(key.midi, $event)"
+            (pointercancel)="onKeyUp(key.midi, $event)"
+            (lostpointercapture)="onKeyUp(key.midi, $event)"
+          >
+            <span class="kb-legend">{{ key.name }}</span>
+          </button>
+        </div>
+      </div>
+      <div class="kb-expression">
+        <div class="xb-strip">
+          <label class="xb-label">Pitch Bend</label>
+          <input
+            type="range"
+            class="xb-slider xb-pitch"
+            min="-1"
+            max="1"
+            step="0.01"
+            [value]="pitchBend()"
+            (input)="onPitchBend($event)"
+            aria-label="Pitch bend"
+          />
+          <div class="xb-readout">{{ pitchBend() | number: '1.2-2' }}</div>
+        </div>
+        <div class="xb-strip">
+          <label class="xb-label"
+            >Modulation
+            <button
+              type="button"
+              class="midi-learn-btn studio-icon-button performer-midi-learn"
+              [class.is-learning]="
+                midiService.performerLearnTarget() === 'modulation'
+              "
+              (click)="
+                midiService.performerLearnActive() &&
+                midiService.performerLearnTarget() === 'modulation'
+                  ? cancelLearn()
+                  : startLearn('modulation')
+              "
+              [title]="
+                midiService.performerLearnTarget() === 'modulation'
+                  ? 'Listening... press any CC'
+                  : 'MIDI Learn: map a controller to Modulation'
+              "
+            >
+              {{
+                midiService.performerLearnTarget() === 'modulation'
+                  ? '🎯'
+                  : '🎯'
+              }}
+            </button>
+            <span class="midi-learn-mapping">{{
+              getCCMappingLabel('modulation')
+            }}</span>
+          </label>
+          <input
+            type="range"
+            class="xb-slider xb-mod"
+            min="0"
+            max="1"
+            step="0.01"
+            [value]="modWheel()"
+            (input)="onModWheel($event)"
+            aria-label="Modulation wheel"
+          />
+          <div class="xb-readout">{{ modWheel() | number: '1.2-2' }}</div>
+        </div>
+        <div class="xb-strip">
+          <label class="xb-label">
+            Velocity
+            <span class="vel-tag">{{ velocityLevelLabel() }}</span>
+          </label>
+          <input
+            type="range"
+            class="xb-slider xb-velocity"
+            min="0"
+            max="127"
+            step="1"
+            [value]="velocity()"
+            (input)="onVelocity($event)"
+            aria-label="Note velocity (MIDI 0-127)"
+          />
+          <div class="xb-readout">{{ velocity() }}</div>
+        </div>
+        <div class="xb-strip">
+          <label class="xb-label">Octave</label>
+          <div class="octave-cluster">
+            <button
+              type="button"
+              class="oct-btn studio-icon-button performer-octave-button"
+              (click)="nudgeOctave(-1)"
+              aria-label="Octave down"
+            >
+              −
+            </button>
+            <span class="octave-readout">{{
+              octave() > 0 ? '+' + octave() : octave()
+            }}</span>
+            <button
+              type="button"
+              class="oct-btn studio-icon-button performer-octave-button"
+              (click)="nudgeOctave(1)"
+              aria-label="Octave up"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PADS -->
+    <div
+      class="view-pads performer-view performer-pads-view"
+      *ngIf="layout() === 'pads'"
+    >
+      <div class="pads-suggestion">
+        <span class="ai-pill">🌀 Generate Pattern</span>
+        <span class="ai-pill">🎚️ Humanize Velocity</span>
+      </div>
+      <div class="pad-grid studio-module-scroll performer-pad-grid">
+        <button
+          *ngFor="let pad of performerPads; let i = index"
+          type="button"
+          class="perf-pad performer-pad-surface"
+          [class.is-active]="activeKeys().has(pad.midi)"
+          [style.--pad-color]="pad.color"
+          [attr.aria-label]="'Pad ' + (i + 1)"
+          (pointerdown)="onPadPointerDown($event, pad.midi)"
+          (pointerup)="onPadPointerUp($event, pad.midi)"
+          (pointercancel)="onPadPointerUp($event, pad.midi)"
+          (lostpointercapture)="onPadPointerUp($event, pad.midi)"
+        >
+          <span class="pad-led" aria-hidden="true"></span>
+          <span class="pad-label">{{ pad.name }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- FX MACROS (XY pad) -->
+    <div
+      class="view-macros performer-view performer-macros-view"
+      *ngIf="layout() === 'macros'"
+    >
+      <!-- 5 preset chips on top -->
+      <div
+        class="macro-preset-strip studio-horizontal-rail performer-macro-rail"
+        role="tablist"
+        aria-label="Macro presets"
+      >
+        <button
+          *ngFor="let p of fxMacros.presets"
+          type="button"
+          class="macro-preset-chip studio-secondary-button performer-macro-chip"
+          [class.is-active]="fxMacros.activeMacroId() === p.id"
+          [style.--macro-color]="p.color"
+          (click)="fxMacros.setMacro(p.id)"
+          [attr.aria-pressed]="fxMacros.activeMacroId() === p.id"
+        >
+          <span class="macro-preset-glyph">{{ p.glyph }}</span>
+          <span class="macro-preset-name">{{ p.name }}</span>
+        </button>
+      </div>
+
+      <!-- The XY surface -->
+      <div
+        class="xy-pad performer-xy-surface"
+        #xyPad
+        (pointerdown)="onPadDown($event, xyPad)"
+        (pointermove)="onPadMove($event, xyPad)"
+        (pointerup)="onPadUp($event, xyPad)"
+        (pointerleave)="onPadUp($event, xyPad)"
+        role="slider"
+        aria-label="FX Macro XY pad"
+        [attr.aria-valuetext]="
+          fxMacros.activeMacro().name +
+          ' · X=' +
+          fxMacros.currentValues().xLabel +
+          ', Y=' +
+          fxMacros.currentValues().yLabel
+        "
+      >
+        <!-- Crosshair guide lines -->
+        <div class="xy-cross xy-cross-v"></div>
+        <div class="xy-cross xy-cross-h"></div>
+        <!-- Corner HUD labels (from current macro's target specs) -->
+        <div class="xy-corner xy-corner-tl">
+          <span class="xy-corner-label">{{
+            fxMacros.activeMacro().xTarget.label
+          }}</span>
+          <span class="xy-corner-value">{{
+            fxMacros.currentValues().xLabel
+          }}</span>
+        </div>
+        <div class="xy-corner xy-corner-tr">
+          <span class="xy-corner-label">{{
+            fxMacros.activeMacro().yTarget.label
+          }}</span>
+          <span class="xy-corner-value">{{
+            fxMacros.currentValues().yLabel
+          }}</span>
+        </div>
+        <div class="xy-corner xy-corner-bl">
+          <span class="xy-corner-glyph">{{
+            fxMacros.activeMacro().glyph
+          }}</span>
+          <span class="xy-corner-name">{{ fxMacros.activeMacro().name }}</span>
+        </div>
+        <div class="xy-corner xy-corner-br">
+          <span class="xy-corner-status">{{
+            fxMacros.engaged() ? 'ENGAGED' : 'OPEN'
+          }}</span>
+          <button
+            type="button"
+            class="xy-corner-reset studio-icon-button performer-xy-reset"
+            (click)="fxMacros.reset(); $event.stopPropagation()"
+            aria-label="Reset macro to center"
+          >
+            RESET
+          </button>
+        </div>
+        <!-- Position dot -->
+        <div
+          class="xy-dot"
+          [class.is-engaged]="fxMacros.engaged()"
+          [style.left.%]="fxMacros.xyPos().x * 100"
+          [style.top.%]="(1 - fxMacros.xyPos().y) * 100"
+        >
+          <span class="xy-dot-ring"></span>
+        </div>
+      </div>
+
+      <p class="macro-hint">
+        Drag with one finger to modulate
+        <strong>{{ fxMacros.activeMacro().xTarget.label }}</strong>
+        and
+        <strong>{{ fxMacros.activeMacro().yTarget.label }}</strong>
+        simultaneously. {{ fxMacros.activeMacro().description }}.
+      </p>
+    </div>
+
+    <!-- MATRIX -->
+    <div
+      class="view-matrix performer-view performer-matrix-view"
+      *ngIf="layout() === 'matrix'"
+    >
+      <aside class="scene-rail studio-module-scroll performer-scene-rail">
+        <div class="rail-title">Scenes</div>
+        <button
+          *ngFor="let scene of scenes()"
+          type="button"
+          class="scene-btn performer-scene-button"
+          [class.is-active]="isSceneActive(scene)"
+          [style.--scene-color]="scene.color"
+          (click)="launchScene(scene)"
+          [attr.aria-label]="'Scene ' + scene.name"
+        >
+          <span class="scene-pip"></span>
+          <span class="scene-name">{{ scene.name }}</span>
+        </button>
+      </aside>
+      <div class="matrix-area studio-module-scroll performer-matrix-area">
+        <app-performance-grid></app-performance-grid>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── TAKE CAROUSEL ───────── -->
+  <footer
+    class="take-carousel studio-safe-bottom performer-takes"
+    aria-label="Recorded takes"
+  >
+    <div class="tc-head">
+      <div class="tc-title-row">
+        <h2>Takes</h2>
+        <span class="tc-count">{{ perfRecording.takeCount() }} recorded</span>
+      </div>
+      <p class="tc-help" *ngIf="perfRecording.takeCount() === 0">
+        Arm a take number, hit record, capture multiple comps. Select a take to
+        inspect or export.
+      </p>
+    </div>
+    <div
+      class="tc-list studio-horizontal-rail performer-take-rail"
+      role="listbox"
+      aria-label="Take list"
+    >
+      <!-- A take card carries its own action buttons, so the card itself is a
+           div with role="option" rather than a <button>. Nesting a button
+           inside a button is invalid HTML: the parser hoists the inner
+           buttons out of the card, orphaning its Comp / Export / Delete
+           actions. -->
+      <div
+        class="tc-card performer-take-card"
+        *ngFor="let take of perfRecording.takes()"
+        role="option"
+        tabindex="0"
+        [attr.aria-selected]="perfRecording.selectedTakeId() === take.id"
+        [class.is-selected]="perfRecording.selectedTakeId() === take.id"
+        (click)="perfRecording.selectedTakeId.set(take.id)"
+        (keydown.enter)="perfRecording.selectedTakeId.set(take.id)"
+        (keydown.space)="
+          perfRecording.selectedTakeId.set(take.id); $event.preventDefault()
+        "
+      >
+        <div class="tc-card-num">#{{ take.takeNumber }}</div>
+        <div class="tc-card-name">{{ take.name }}</div>
+        <div class="tc-card-meta">
+          {{ formatTakeDuration(take.durationMs) }}
+        </div>
+        <div class="tc-card-actions">
+          <button
+            type="button"
+            class="tc-mini studio-icon-button performer-take-action"
+            title="Comping"
+            [class.is-on]="take.isComping"
+            [attr.aria-pressed]="take.isComping"
+            (click)="
+              perfRecording.setComping(take.id, !take.isComping);
+              $event.stopPropagation()
+            "
+          >
+            ★
+          </button>
+          <button
+            type="button"
+            class="tc-mini studio-icon-button performer-take-action"
+            title="Export"
+            (click)="
+              perfRecording.exportTake(take.id, 'wav'); $event.stopPropagation()
+            "
+          >
+            ↧
+          </button>
+          <button
+            type="button"
+            class="tc-mini tc-mini-danger studio-icon-button performer-take-action"
+            title="Delete take"
+            (click)="
+              perfRecording.deleteTake(take.id); $event.stopPropagation()
+            "
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      <div class="tc-empty studio-empty-state performer-take-empty" *ngIf="perfRecording.takeCount() === 0">
+        <span class="tc-empty-glyph">∿</span>
+        <span class="tc-empty-text">No takes yet</span>
+      </div>
+    </div>
+  </footer>
+</div>

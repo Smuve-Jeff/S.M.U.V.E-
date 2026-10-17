@@ -1,0 +1,121 @@
+<section
+  class="sl-shell studio-workspace-surface sample-library-surface"
+  aria-label="Sample library"
+>
+  <header class="sl-header studio-context-toolbar">
+    <div class="sl-title">
+      <span class="material-symbols-outlined sl-title-icon">library_music</span>
+      <div>
+        <h2 class="sl-h2">Sample Library</h2>
+        <p class="sl-sub">
+          Tag-stamped drum kits, bass patches, keys, and FX — usable across any
+          set.
+        </p>
+      </div>
+    </div>
+    <label class="sl-search" role="search">
+      <span class="material-symbols-outlined" aria-hidden="true">search</span>
+      <input
+        type="search"
+        placeholder="Search samples, tags, kits…"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+        aria-label="Search sample library"
+      />
+    </label>
+  </header>
+
+  <!-- CATEGORY CHIPS -->
+  <nav
+    class="sl-cats studio-horizontal-rail"
+    aria-label="Sample categories"
+  >
+    <button
+      *ngFor="let cat of categories()"
+      type="button"
+      class="sl-cat"
+      [class.sl-cat-active]="selectedCategory() === cat.id"
+      (click)="selectedCategory.set(cat.id)"
+      [attr.aria-pressed]="selectedCategory() === cat.id"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">{{
+        cat.icon
+      }}</span>
+      <span class="sl-cat-label">{{ cat.label }}</span>
+      <span class="sl-cat-count">{{ cat.count }}</span>
+    </button>
+  </nav>
+
+  <!-- GRID -->
+  <div class="sl-grid studio-module-scroll" role="list">
+    <article
+      *ngFor="let sample of filteredSamples()"
+      class="sl-card"
+      [class.sl-card-previewing]="previewingId() === sample.id"
+      [class.sl-card-dragging]="dragSampleId() === sample.id"
+      draggable="true"
+      (dragstart)="onDragStart($event, sample.id, sample.name)"
+      (dragend)="onDragEnd()"
+      (click)="onCardClick($event, sample.id)"
+      (pointerdown)="onCardPointerDown($event, sample.id)"
+      (pointerup)="onCardPointerUp($event, sample.id)"
+      (pointercancel)="onCardPointerCancel()"
+      (pointerleave)="onCardPointerCancel()"
+      (dblclick)="previewSample(sample.id)"
+      tabindex="0"
+      role="listitem"
+      [attr.aria-label]="
+        'Sample ' + sample.name + ', category ' + sample.category
+      "
+      (keydown.enter)="loadSample(sample.id)"
+      (keydown.space)="previewSample(sample.id); $event.preventDefault()"
+    >
+      <div class="sl-card-icon">
+        <span class="material-symbols-outlined">{{ sample.icon }}</span>
+      </div>
+      <div class="sl-card-body">
+        <div class="sl-card-name">{{ sample.name }}</div>
+        <div class="sl-card-tags">
+          <button
+            *ngFor="let tag of sample.tags.slice(0, 3)"
+            type="button"
+            class="sl-tag"
+            [class.sl-tag-active]="selectedTag() === tag"
+            (click)="toggleTag(tag); $event.stopPropagation()"
+          >
+            #{{ tag }}
+          </button>
+        </div>
+      </div>
+      <div class="sl-card-meta">
+        <button
+          type="button"
+          class="sl-icon-btn"
+          (click)="previewSample(sample.id); $event.stopPropagation()"
+          [attr.aria-label]="'Preview ' + sample.name"
+          title="Preview"
+        >
+          <span class="material-symbols-outlined">play_arrow</span>
+        </button>
+        <button
+          type="button"
+          class="sl-icon-btn sl-icon-btn-primary"
+          (click)="loadSample(sample.id); $event.stopPropagation()"
+          [attr.aria-label]="'Load ' + sample.name + ' onto new track'"
+          title="Load"
+        >
+          <span class="material-symbols-outlined">add</span>
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <footer
+    class="sl-foot studio-empty-state"
+    *ngIf="filteredSamples().length === 0"
+  >
+    <p>
+      No samples match those filters. Try clearing search or switching category.
+    </p>
+  </footer>
+</section>

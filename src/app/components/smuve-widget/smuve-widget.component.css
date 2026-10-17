@@ -1,0 +1,85 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.smuve-widget-glyph {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 2px 8px rgba(10, 42, 160, 0.35));
+  animation: smuve-breathe 4s ease-in-out infinite;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+:host(:hover) .smuve-widget-glyph {
+  transform: scale(1.12);
+  filter: drop-shadow(0 4px 16px rgba(10, 42, 160, 0.55));
+}
+
+@keyframes smuve-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+/* ── Voice state: the mark itself reports that voice is live ───────────────
+   Speaking and listening are deliberately different signals — royal-blue
+   emission while S.M.U.V.E. talks, red (the same red as the mic button) while
+   the artist dictates. Both are listed with the :hover rule of the same
+   weight so hovering cannot cancel the voice state. */
+@keyframes smuve-voice-speak {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(51, 102, 255, 0.55));
+  }
+  50% {
+    transform: scale(1.09);
+    filter: drop-shadow(0 0 18px rgba(85, 136, 255, 0.95));
+  }
+}
+
+@keyframes smuve-voice-listen {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(248, 113, 113, 0.5));
+  }
+  50% {
+    transform: scale(1.07);
+    filter: drop-shadow(0 0 18px rgba(248, 113, 113, 0.95));
+  }
+}
+
+.smuve-widget-glyph.is-speaking,
+:host(:hover) .smuve-widget-glyph.is-speaking {
+  animation: smuve-voice-speak 0.9s ease-in-out infinite;
+}
+
+.smuve-widget-glyph.is-listening,
+:host(:hover) .smuve-widget-glyph.is-listening {
+  animation: smuve-voice-listen 1.05s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smuve-widget-glyph,
+  .smuve-widget-glyph.is-speaking,
+  .smuve-widget-glyph.is-listening {
+    animation: none;
+  }
+
+  /* Motion off — colour still carries the state. */
+  .smuve-widget-glyph.is-speaking {
+    filter: drop-shadow(0 0 12px rgba(85, 136, 255, 0.95));
+  }
+
+  .smuve-widget-glyph.is-listening {
+    filter: drop-shadow(0 0 12px rgba(248, 113, 113, 0.95));
+  }
+}

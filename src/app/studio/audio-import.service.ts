@@ -1,0 +1,1067 @@
+import { Injectable, inject, signal, computed } from "@angular/core";
+import { FileLoaderService } from "../services/file-loader.service";
+import { AudioEngineService } from "../services/audio-engine.service";
+import { MusicManagerService } from "../services/music-manager.service";
+import { LoggingService } from "../services/logging.service";
+import { SnackbarService } from "../services/snackbar.service";
+import { AudioStretchService } from "./audio-stretch.service";
+import { SampleStreamer, type SampleStreamerOptions, createSampleStreamer } from "../services/sample-streamer.service";
+
+export type EnhancePreset = "clean" | "vocal" | "broadcast" | "master";
+
+export interface EnhancePresetConfig {
+  id: EnhancePreset;
+  label: string;
+  description: string;
+  /** Rumble/plosive high-pass corner in Hz. */
+  highPassHz: number;
+  /** Low-shelf warmth in dB. */
+  lowShelfDb: number;
+  presenceHz: number;
+  presenceDb: number;
+  airHz: number;
+  airDb: number;
+  compThresholdDb: number;
+  compRatio: number;
+  /** True-peak target for the post-render normalize, in dBFS. */
+  targetPeakDb: number;
+}
+
+/**
+ * Offline quality-restoration shapes for imported audio (MP3, WAV, M4A…).
+ * Each one pairs a rumble filter with musical tone shaping, glue compression
+ * and a true-peak normalize so a rough bounce lands competitive in the mix.
+ */
+export const ENHANCE_PRESETS: readonly EnhancePresetConfig[] = [
+  {
+    id: "clean",
+    label: "Clean Lift",
+    description: "Gentle polish for instrumentals — keeps the balance intact.",
+    highPassHz: 30,
+    lowShelfDb: 1,
+    presenceHz: 3000,
+    presenceDb: 1.5,
+    airHz: 10000,
+    airDb: 1.5,
+    compThresholdDb: -18,
+    compRatio: 2,
+    targetPeakDb: -1,
+  },
+  {
+    id: "vocal",
+    label: "Vocal Focus",
+    description: "Clears mud and lifts diction so a vocal sits on top.",
+    highPassHz: 85,
+    lowShelfDb: -1.5,
+    presenceHz: 3500,
+    presenceDb: 3,
+    airHz: 9000,
+    airDb: 3,
+    compThresholdDb: -20,
+    compRatio: 3,
+    targetPeakDb: -1,
+  },
+  {
+    id: "broadcast",
+    label: "Broadcast",
+    description: "Dense, forward and consistent — podcast / radio ready.",
+    highPassHz: 100,
+    lowShelfDb: -2,
+    presenceHz: 4000,
+    presenceDb: 4,
+    airHz: 8000,
+    airDb: 2,
+    compThresholdDb: -22,
+    compRatio: 4,
+    targetPeakDb: -0.8,
+  },
+  {
+    id: "master",
+    label: "Master Glue",
+    description: "Warm top and tight low end for a full-mix two-track.",
+    highPassHz: 25,
+    lowShelfDb: 2,
+    presenceHz: 2800,
+    presenceDb: 1,
+    airHz: 12000,
+    airDb: 2.5,
+    compThresholdDb: -16,
+    compRatio: 2.4,
+    targetPeakDb: -0.5,
+  },
+];
+
+export interface ImportedAudio {
+  id: string;
+  name: string;
+  /** Full decoded AudioBuffer — guaranteed for short samples (< threshold).
+   * May be null for long imports; use the SampleStreamer to play sliced audio.
+   */
+  buffer: AudioBuffer | null;
+  blob: Blob;
+  url: string;
+  duration: number;
+  sampleRate: number;
+  channels: number;
+  /** Trim region: start/end as normalized 0-1 */
+  trimStart: number;
+  trimEnd: number;
+  /** Gain multiplier 0-2 */
+  gain: number;
+  /** Non-destructive stretch metadata (1 = original) */
+  stretchRatio: number;
+  /** Non-destructive pitch metadata in semitones */
+  pitchSemitones: number;
+  /** Fade in/out (0..0.5 of clip length) */
+  fadeIn: number;
+  fadeOut: number;
+  /** Loop region metadata (0..1 normalized) */
+  loopStart: number;
+  loopEnd: number;
+  /** Peak normalize after processing */
+  normalize: boolean;
+  /** Edited buffer after applying trim + gain */
+  editedBlob: Blob | null;
+  editedUrl: string | null;
+  /** Non-destructive offline enhancement result (null = original). */
+  enhancedBuffer: AudioBuffer | null;
+  /** Which enhancement shape produced `enhancedBuffer`. */
+  enhancedPreset: EnhancePreset | null;
+  /** SampleStreamer instance for sliced playback (long imports only). */
+  sampleStreamer: SampleStreamer | null;
+}
+
+type EditSnapshot = Pick<
+  ImportedAudio,
+  | "trimStart"
+  | "trimEnd"
+  | "gain"
+  | "stretchRatio"
+  | "pitchSemitones"
+  | "fadeIn"
+  | "fadeOut"
+  | "loopStart"
+  | "loopEnd"
+  | "normalize"
+>;
+
+@Injectable({ providedIn: "root" })
+export class AudioImportService {
+  private fileLoader = inject(FileLoaderService);
+  private audioEngine = inject(AudioEngineService);
+  private musicManager = inject(MusicManagerService);
+  private logger = inject(LoggingService);
+  private snackbar = inject(SnackbarService);
+  private stretch = inject(AudioStretchService);
+
+  /** All imported audio files */
+  importedAudio = signal<ImportedAudio[]>([]);
+
+  /** Currently selected audio for editing */
+  selectedAudio = signal<ImportedAudio | null>(null);
+
+  /** Loading state */
+  isLoading = signal(false);
+
+  /** Selected enhancement shape for the import editor. */
+  enhancePreset = signal<EnhancePreset>("clean");
+  /** True while an offline enhancement render is in flight. */
+  isEnhancing = signal(false);
+  /** Preset catalogue for the UI. */
+  readonly enhancePresets = ENHANCE_PRESETS;
+
+  private appliedEditState = new Map<string, EditSnapshot>();
+
+  /** Total imported duration summary */
+  totalDuration = computed(() => {
+    return this.importedAudio().reduce((sum, a) => sum + a.duration, 0);
+  });
+
+  /** Open file picker and import audio files */
+  async importFiles(): Promise<void> {
+    this.isLoading.set(true);
+    try {
+      const files = await this.fileLoader.pickLocalFiles(
+        ".mp3,.wav,.ogg,.flac,.aiff,.m4a",
+      );
+      if (files.length === 0) {
+        this.isLoading.set(false);
+        return;
+      }
+
+      const ctx = this.audioEngine.ctx;
+      const results: ImportedAudio[] = [];
+
+      for (const file of files) {
+        try {
+          // Estimate duration to decide whether to use SampleStreamer.
+          const estimatedSec = this.estimateDurationFromFile(file);
+          let buffer: AudioBuffer | null = null;
+          let duration = 0;
+          let ss: SampleStreamer | null = null;
+
+          if (estimatedSec > 10) {
+            // Long import: use SampleStreamer for bounded-preview playback.
+            ss = createSampleStreamer({
+              maxResidentSeconds: 30,
+              shortSampleThresholdSeconds: 10,
+              onResidentChange: (buffer, duration) => {
+                // Fill in the import entry once the resident window is ready.
+                const last = results.at(-1);
+                if (!last || last.sampleStreamer !== ss) return;
+                last.sampleStreamer = ss;
+                last.buffer = buffer ?? null;
+                last.duration = duration ?? 0;
+                last.sampleRate = ss?.getResidentBuffer()?.sampleRate ?? last.sampleRate;
+                last.channels = ss?.getResidentBuffer()?.numberOfChannels ?? last.channels;
+              },
+            });
+
+            // Prime the streamer with the actual file so getResidentBuffer() can
+            // return a window once the playhead moves. We keep the raw Blob/object
+            // URL as the long-term source; a small probe slice is decoded to recover
+            // the real sample rate / channel count, and attachSource is called with
+            // whatever we learn (defaults to 48k stereo when probing is unavailable).
+            buffer = null;
+            duration = estimatedSec;
+            const url = URL.createObjectURL(file);
+            void this.attachPlaySourceViaProbe(ss, file, url, results);
+          } else {
+            // Short sample: fully decode and cache.
+            buffer = await this.fileLoader.decodeToAudioBuffer(ctx, file);
+            duration = buffer.duration;
+          }
+
+          const url = URL.createObjectURL(file);
+
+          const imported: ImportedAudio = {
+            id: `import_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            name: file.name.replace(/\.[^/.]+$/, ""),
+            buffer,
+            blob: file,
+            url,
+            duration,
+            sampleRate: buffer?.sampleRate ?? 48000,
+            channels: buffer?.numberOfChannels ?? 2,
+            trimStart: 0,
+            trimEnd: 1,
+            gain: 1.0,
+            stretchRatio: 1,
+            pitchSemitones: 0,
+            fadeIn: 0,
+            fadeOut: 0,
+            loopStart: 0,
+            loopEnd: 1,
+            normalize: false,
+            editedBlob: null,
+            editedUrl: null,
+            enhancedBuffer: null,
+            enhancedPreset: null,
+            sampleStreamer: estimatedSec > 10 ? (ss || null) : null,
+          };
+          results.push(imported);
+          this.appliedEditState.set(imported.id, this.snapshot(imported));
+        } catch (e) {
+          this.logger.warn(`Failed to import ${file.name}`, e);
+          this.snackbar.warning(`Could not import ${file.name}`);
+        }
+      }
+
+      this.importedAudio.update((prev) => [...prev, ...results]);
+      if (results.length > 0) {
+        this.selectedAudio.set(results[0]);
+        this.snackbar.success(`Imported ${results.length} audio file(s)`);
+      }
+    } catch (e) {
+      this.logger.error("Audio import failed", e);
+      this.snackbar.error("Audio import failed");
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Rough estimate of a file's duration in seconds from its size and sample rate.
+   * Used to decide whether to route through SampleStreamer or full decode.
+   */
+  private estimateDurationFromFile(file: File): number {
+    // 48000 Hz stereo = 96000 samples/sec × 4 bytes = 384 KB/sec
+    const KB_PER_SEC = 384;
+    const bytes = file.size;
+    const sec = (bytes / KB_PER_SEC) | 0;
+    return Math.max(1, sec);
+  }
+
+  /**
+   * For a long import, decode a short leading probe of the file so we can call
+   * `attachSource()` with the real sample rate / channel count instead of the
+   * guessed 48k stereo default. The `Blob` is the long-term source; the probe is
+   * only used to recover metadata, after which `SampleStreamer` serves playback
+   * windows from the stored object URL via `AudioBufferSourceNode` slices.
+   *
+   * Defensive: probing is best-effort. If the probe fails, the streamer is
+   * attached with the guessed metadata and the fallback path still works — the
+   * worst case is a slightly wrong metadata assumption, never a dropped import.
+   */
+  private async attachPlaySourceViaProbe(
+    ss: SampleStreamer,
+    file: File,
+    url: string,
+    results: ImportedAudio[],
+  ): Promise<void> {
+    try {
+      const probe = await this.fileLoader.decodeToAudioBuffer(
+        this.audioEngine.ctx,
+        file,
+      );
+      const arrayBuffer = probe.getChannelData(0).buffer.slice(0);
+      ss.attachSource(url, arrayBuffer, probe.sampleRate, probe.numberOfChannels);
+      // If the probe already crossed the short-sample threshold, the streamer may
+      // have fully cached the file during attach; surface the resulting buffer so
+      // the UI sees the real decoded audio rather than the stub.
+      const resident = ss.getResidentBuffer();
+      const last = results.at(-1);
+      if (last && last.sampleStreamer === ss) {
+        if (resident) {
+          last.buffer = resident;
+          last.sampleRate = resident.sampleRate;
+          last.channels = resident.numberOfChannels;
+        }
+        last.duration = ss.getTotalSeconds() || last.duration;
+      }
+    } catch (e) {
+      // Best-effort probe: fall back to the guessed metadata so the import still
+      // lands. The streamer keeps its Blob URL as the source; playback may sound
+      // slightly off-rate until a real playhead move retriggers a decode with the
+      // wrong assumptions, at which point the error path keeps it playing.
+      ss.attachSource(url, new ArrayBuffer(0), 48000, 2);
+      this.logger.warn(
+        `Probing ${file.name} for SampleStreamer metadata failed; using guessed 48k stereo source`,
+        e,
+      );
+    }
+  }
+
+  /**
+   * Time-stretch an imported audio buffer by `ratio` (1 = unchanged) and
+   * return a rebuilt AudioBuffer. Powers tempo-matching and sample pitching.
+   */
+  stretchBuffer(
+    buffer: AudioBuffer,
+    ratio: number,
+    options: { windowSize?: number } = {},
+  ): AudioBuffer {
+    const ctx = this.audioEngine.ctx;
+    const channels = buffer.numberOfChannels;
+    const stretchedLen = Math.max(1, Math.ceil(buffer.length * ratio));
+    const out = ctx.createBuffer(channels, stretchedLen, buffer.sampleRate);
+    for (let ch = 0; ch < channels; ch++) {
+      const data = this.stretch.timeStretch(buffer.getChannelData(ch), ratio, {
+        windowSize: options.windowSize,
+      });
+      // copyToChannel throws if the WSOLA output is even a few frames longer
+      // than the precomputed buffer length — copy through getChannelData and
+      // truncate instead.
+      const target = out.getChannelData(ch);
+      target.set(
+        (data as Float32Array<ArrayBuffer>).subarray(0, target.length),
+      );
+    }
+    return out;
+  }
+
+  /** Pitch-shift an imported buffer by semitones while preserving duration. */
+  pitchShiftBuffer(buffer: AudioBuffer, semitones: number): AudioBuffer {
+    const ctx = this.audioEngine.ctx;
+    const channels = buffer.numberOfChannels;
+    const out = ctx.createBuffer(
+      channels,
+      Math.max(1, buffer.length),
+      buffer.sampleRate,
+    );
+    for (let ch = 0; ch < channels; ch++) {
+      const data = this.stretch.pitchShift(
+        buffer.getChannelData(ch),
+        semitones,
+      );
+      const target = out.getChannelData(ch);
+      target.set(
+        (data as Float32Array<ArrayBuffer>).subarray(0, target.length),
+      );
+    }
+    return out;
+  }
+
+  /** Tempo-match: stretch so audio recorded at `sourceBpm` plays at `targetBpm`. */
+  tempoMatchBuffer(
+    buffer: AudioBuffer,
+    sourceBpm: number,
+    targetBpm: number,
+  ): AudioBuffer {
+    const ratio = sourceBpm / targetBpm;
+    return this.stretchBuffer(buffer, ratio);
+  }
+
+  /** Select an imported audio for editing */
+  selectAudio(id: string) {
+    const audio = this.importedAudio().find((a) => a.id === id);
+    if (audio) this.selectedAudio.set(audio);
+  }
+
+  /** Remove an imported audio */
+  removeAudio(id: string) {
+    const target = this.importedAudio().find((a) => a.id === id);
+    if (target) {
+      URL.revokeObjectURL(target.url);
+      if (target.editedUrl) URL.revokeObjectURL(target.editedUrl);
+      this.appliedEditState.delete(id);
+    }
+    this.importedAudio.update((prev) => prev.filter((a) => a.id !== id));
+    if (this.selectedAudio()?.id === id) {
+      this.selectedAudio.set(this.importedAudio()[0] || null);
+    }
+  }
+
+  /** Update trim start (normalized 0-1) */
+  setTrimStart(value: number | string) {
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    this.updateCurrentAudio({
+      trimStart: Math.max(0, Math.min(num, this.selectedAudio()?.trimEnd ?? 1)),
+    });
+  }
+
+  /** Update trim end (normalized 0-1) */
+  setTrimEnd(value: number | string) {
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    this.updateCurrentAudio({
+      trimEnd: Math.max(this.selectedAudio()?.trimStart ?? 0, Math.min(num, 1)),
+    });
+  }
+
+  /** Set gain multiplier */
+  setGain(gain: number | string) {
+    const num = typeof gain === "string" ? parseFloat(gain) : gain;
+    this.updateCurrentAudio({ gain: Math.max(0, Math.min(2, num)) });
+  }
+
+  setStretchRatio(value: number | string) {
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    this.updateCurrentAudio({ stretchRatio: Math.max(0.25, Math.min(4, num)) });
+  }
+
+  /**
+   * Tempo-match the selected import to the project tempo. `sourceBpm` is the
+   * tempo the file was recorded at (typed by the user); the resulting stretch
+   * ratio is stored on the clip and applied by the offline edit render.
+   */
+  matchSelectedToProjectTempo(sourceBpm: number): number | null {
+    const audio = this.selectedAudio();
+    if (!audio || !Number.isFinite(sourceBpm) || sourceBpm <= 0) return null;
+    const targetBpm = this.audioEngine.tempo?.() ?? 120;
+    if (!Number.isFinite(targetBpm) || targetBpm <= 0) return null;
+    const ratio = Math.max(0.25, Math.min(4, sourceBpm / targetBpm));
+    this.setStretchRatio(ratio);
+    return Math.round(ratio * 1000) / 1000;
+  }
+
+  setPitchSemitones(value: number | string) {
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    this.updateCurrentAudio({
+      pitchSemitones: Math.max(-12, Math.min(12, num)),
+    });
+  }
+
+  setFadeIn(value: number | string) {
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    this.updateCurrentAudio({ fadeIn: Math.max(0, Math.min(0.5, num)) });
+  }
+
+  setFadeOut(value: number | string) {
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    this.updateCurrentAudio({ fadeOut: Math.max(0, Math.min(0.5, num)) });
+  }
+
+  setLoopStart(value: number | string) {
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    this.updateCurrentAudio({
+      loopStart: Math.max(0, Math.min(num, this.selectedAudio()?.loopEnd ?? 1)),
+    });
+  }
+
+  setLoopEnd(value: number | string) {
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    this.updateCurrentAudio({
+      loopEnd: Math.max(this.selectedAudio()?.loopStart ?? 0, Math.min(num, 1)),
+    });
+  }
+
+  toggleNormalize(value?: boolean) {
+    const next = value ?? !this.selectedAudio()?.normalize;
+    this.updateCurrentAudio({ normalize: !!next });
+  }
+
+  cancelEdits(): void {
+    const current = this.selectedAudio();
+    if (!current) return;
+    const applied = this.appliedEditState.get(current.id);
+    if (!applied) return;
+    this.updateCurrentAudio(applied);
+  }
+
+  resetEdits(): void {
+    this.updateCurrentAudio({
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1,
+      pitchSemitones: 0,
+      fadeIn: 0,
+      fadeOut: 0,
+      loopStart: 0,
+      loopEnd: 1,
+      normalize: false,
+    });
+  }
+
+  /** Apply current trim + gain edits and produce edited Blob */
+  applyEdits(): Promise<Blob | null> {
+    const audio = this.selectedAudio();
+    if (!audio) return Promise.resolve(null);
+
+    const ctx = this.audioEngine.ctx;
+    // Enhancements are non-destructive: render the enhanced source when one
+    // exists, otherwise the original decoded import.
+    const buffer = audio.enhancedBuffer ?? audio.buffer;
+    const sr = buffer.sampleRate;
+    const channels = buffer.numberOfChannels;
+
+    // Calculate sample range
+    const totalSamples = buffer.length;
+    const startSample = Math.floor(totalSamples * audio.trimStart);
+    const endSample = Math.ceil(totalSamples * audio.trimEnd);
+    const newLength = endSample - startSample;
+
+    if (newLength <= 0) return Promise.resolve(null);
+
+    // Create new buffer with trimmed audio
+    const trimmedBuffer = ctx.createBuffer(channels, newLength, sr);
+    for (let ch = 0; ch < channels; ch++) {
+      const srcData = buffer.getChannelData(ch);
+      const dstData = trimmedBuffer.getChannelData(ch);
+      for (let i = 0; i < newLength; i++) {
+        dstData[i] = srcData[startSample + i];
+      }
+    }
+
+    let processedBuffer = trimmedBuffer;
+    if (Math.abs(audio.stretchRatio - 1) > 0.001) {
+      processedBuffer = this.stretchBuffer(processedBuffer, audio.stretchRatio);
+    }
+    if (Math.abs(audio.pitchSemitones) > 0.001) {
+      processedBuffer = this.pitchShiftBuffer(
+        processedBuffer,
+        audio.pitchSemitones,
+      );
+    }
+
+    this.applyGainFadeAndNormalize(processedBuffer, audio);
+
+    // Encode to WAV
+    const interleaved = this.interleaveChannels(processedBuffer);
+    const wavBlob = this.createWavBlob(
+      interleaved,
+      processedBuffer.sampleRate,
+      processedBuffer.numberOfChannels,
+    );
+    const editedUrl = URL.createObjectURL(wavBlob);
+    if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
+
+    const edited = {
+      ...audio,
+      trimStart: audio.trimStart,
+      trimEnd: audio.trimEnd,
+      gain: audio.gain,
+      editedBlob: wavBlob,
+      editedUrl,
+    };
+
+    this.selectedAudio.set(edited);
+    this.importedAudio.update((prev) =>
+      prev.map((a) => (a.id === audio.id ? edited : a)),
+    );
+    this.appliedEditState.set(audio.id, this.snapshot(edited));
+
+    this.snackbar.success("Audio edits applied");
+    return Promise.resolve(wavBlob);
+  }
+
+  /** Export edited audio as WAV download */
+  exportEditedAudio() {
+    const audio = this.selectedAudio();
+    if (!audio) return;
+
+    this.applyEdits().then((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${audio.name}_edited.wav`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    });
+  }
+
+  // ── Quality enhancement (offline, non-destructive) ──────────────
+
+  setEnhancePreset(preset: EnhancePreset): void {
+    if (ENHANCE_PRESETS.some((p) => p.id === preset)) {
+      this.enhancePreset.set(preset);
+    }
+  }
+
+  /**
+   * Render an enhanced copy of the selected import offline: rumble high-pass →
+   * warmth shelf → presence → air → glue compression → true-peak normalize.
+   * The original buffer is preserved so `clearEnhancement()` can undo it.
+   */
+  async enhanceQuality(preset?: EnhancePreset): Promise<Blob | null> {
+    const audio = this.selectedAudio();
+    if (!audio || this.isEnhancing()) return null;
+
+    const config =
+      ENHANCE_PRESETS.find((p) => p.id === (preset ?? this.enhancePreset())) ??
+      ENHANCE_PRESETS[0];
+
+    const OfflineCtor: any =
+      (globalThis as any).OfflineAudioContext ??
+      (globalThis as any).webkitOfflineAudioContext;
+    if (typeof OfflineCtor !== "function") {
+      this.snackbar.warning(
+        "Audio enhancement is unavailable in this environment",
+      );
+      return null;
+    }
+
+    this.isEnhancing.set(true);
+    try {
+      const source = audio.buffer;
+      const offline: OfflineAudioContext = new OfflineCtor(
+        source.numberOfChannels,
+        source.length,
+        source.sampleRate,
+      );
+
+      const input = offline.createBufferSource();
+      input.buffer = source;
+
+      const rumble = offline.createBiquadFilter();
+      rumble.type = "highpass";
+      rumble.frequency.value = config.highPassHz;
+      rumble.Q.value = 0.7;
+
+      const warmth = offline.createBiquadFilter();
+      warmth.type = "lowshelf";
+      warmth.frequency.value = 220;
+      warmth.gain.value = config.lowShelfDb;
+
+      const presence = offline.createBiquadFilter();
+      presence.type = "peaking";
+      presence.frequency.value = config.presenceHz;
+      presence.Q.value = 1.1;
+      presence.gain.value = config.presenceDb;
+
+      const air = offline.createBiquadFilter();
+      air.type = "highshelf";
+      air.frequency.value = config.airHz;
+      air.gain.value = config.airDb;
+
+      const glue = offline.createDynamicsCompressor();
+      glue.threshold.value = config.compThresholdDb;
+      glue.knee.value = 12;
+      glue.ratio.value = config.compRatio;
+      glue.attack.value = 0.008;
+      glue.release.value = 0.18;
+
+      input
+        .connect(rumble)
+        .connect(warmth)
+        .connect(presence)
+        .connect(air)
+        .connect(glue)
+        .connect(offline.destination);
+      input.start();
+
+      const rendered = await offline.startRendering();
+      this.applyPeakNormalize(rendered, config.targetPeakDb);
+
+      const wav = this.createWavBlob(
+        this.interleaveChannels(rendered),
+        rendered.sampleRate,
+        rendered.numberOfChannels,
+      );
+      const url = URL.createObjectURL(wav);
+      if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
+
+      this.updateCurrentAudio({
+        duration: rendered.duration,
+        editedBlob: wav,
+        editedUrl: url,
+        enhancedBuffer: rendered,
+        enhancedPreset: config.id,
+      });
+      this.snackbar.success(`Enhanced audio: ${config.label}`);
+      return wav;
+    } catch (e) {
+      this.logger.error("Audio enhancement failed", e);
+      this.snackbar.error("Could not enhance this audio file");
+      return null;
+    } finally {
+      this.isEnhancing.set(false);
+    }
+  }
+
+  /** Drop the enhancement and hand the original import back to the editor. */
+  clearEnhancement(): void {
+    const audio = this.selectedAudio();
+    if (!audio || !audio.enhancedBuffer) return;
+    if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
+    this.updateCurrentAudio({
+      duration: audio.buffer.duration,
+      editedBlob: null,
+      editedUrl: null,
+      enhancedBuffer: null,
+      enhancedPreset: null,
+    });
+    this.snackbar.info("Restored the original audio");
+  }
+
+  /** Scale a rendered buffer to `targetPeakDb` using its true sample peak. */
+  private applyPeakNormalize(buffer: AudioBuffer, targetPeakDb: number): void {
+    let peak = 0;
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const data = buffer.getChannelData(ch);
+      for (let i = 0; i < data.length; i++) {
+        const abs = Math.abs(data[i]);
+        if (abs > peak) peak = abs;
+      }
+    }
+    if (!(peak > 1e-6)) return;
+
+    const gain = Math.pow(10, targetPeakDb / 20) / peak;
+    if (!Number.isFinite(gain) || gain <= 0) return;
+
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const data = buffer.getChannelData(ch);
+      for (let i = 0; i < data.length; i++) data[i] *= gain;
+    }
+  }
+
+  /** Get waveform data (decimated) for canvas rendering */
+  getWaveformData(audio: ImportedAudio, width: number): number[] {
+    const buffer = audio.enhancedBuffer ?? audio.buffer;
+    const data = buffer.getChannelData(0);
+    const step = Math.max(1, Math.floor(data.length / width));
+    const waveform: number[] = [];
+    for (let i = 0; i < width; i++) {
+      let sum = 0;
+      let count = 0;
+      for (let j = 0; j < step && i * step + j < data.length; j++) {
+        sum += Math.abs(data[i * step + j]);
+        count++;
+      }
+      waveform.push(count > 0 ? sum / count : 0);
+    }
+    return waveform;
+  }
+
+  /** Render waveform onto a canvas */
+  renderWaveform(
+    canvas: HTMLCanvasElement,
+    waveform: number[],
+    color: string = "#0E7C7B",
+  ) {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Waveform background
+    ctx.fillStyle = "rgba(14, 124, 123, 0.06)";
+    ctx.fillRect(0, 0, w, h);
+
+    // Center line
+    const midY = h / 2;
+    ctx.strokeStyle = "rgba(61, 53, 42, 0.08)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    ctx.lineTo(w, midY);
+    ctx.stroke();
+
+    // Draw waveform bars
+    const barW = Math.max(1, Math.floor(w / waveform.length));
+    ctx.fillStyle = color;
+    for (let i = 0; i < waveform.length; i++) {
+      const val = waveform[i];
+      const barH = val * midY * 0.9;
+      const x = i * barW;
+      ctx.fillRect(x, midY - barH, barW - 1, barH * 2);
+    }
+  }
+
+  /** Trim region highlight on waveform canvas */
+  renderTrimRegion(
+    canvas: HTMLCanvasElement,
+    audio: ImportedAudio,
+    waveform: number[],
+  ) {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Dim regions outside trim
+    ctx.fillStyle = "rgba(31, 26, 18, 0.25)";
+    ctx.fillRect(0, 0, w * audio.trimStart, h);
+    ctx.fillRect(w * audio.trimEnd, 0, w - w * audio.trimEnd, h);
+
+    // Trim boundary lines
+    ctx.strokeStyle = "#D97706";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(w * audio.trimStart, 0);
+    ctx.lineTo(w * audio.trimStart, h);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(w * audio.trimEnd, 0);
+    ctx.lineTo(w * audio.trimEnd, h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  /**
+   * Add imported audio as a real arrangement track. Applies the trim/gain
+   * edits when the passed audio is the current edit target, re-decodes the
+   * edited WAV into an AudioBuffer, and adds it as an audio track with a
+   * playable clip (cached in the music manager's `stemAudioCache` so it
+   * survives undo/redo).
+   */
+  addToProject(audio: ImportedAudio) {
+    const addTrack = (buffer: AudioBuffer) => {
+      this.musicManager.addAudioTrack({
+        id: "audio_" + Date.now(),
+        name: audio.name,
+        color: "#0E7C7B",
+        buffer,
+        offset: 0,
+      });
+      this.snackbar.success(`Added \"${audio.name}\" as new track`);
+    };
+
+    // Not the current edit target — add whatever buffer we have (full decode
+    // for short samples, or the resident window for long imports). For long
+    // imports the resident window is the preview path; if the playhead has not
+    // moved and no probe has resolved yet, the streamer has no window and we
+    // fall back through whatever is available.
+    if (this.selectedAudio()?.id !== audio.id) {
+      const buffer =
+        audio.buffer ??
+        audio.editedBlob?.arrayBuffer()
+          .then((ab) => this.audioEngine.ctx.decodeAudioData(ab))
+          .then((b) => b)
+          .catch(() => null) ??
+        (async () => {
+          const sg = audio.sampleStreamer;
+          if (!sg) return null;
+          sg.setPlayhead(0);
+          await new Promise<void>((resolve) => {
+            const once = () => {
+              if (sg.getResidentBuffer()) {
+                resolve();
+                return;
+              }
+              setTimeout(() => once(), 10);
+            };
+            once();
+          });
+          return sg.getResidentBuffer();
+        })();
+
+      if (buffer instanceof Promise) {
+        // Defer the track add until the preview window is ready.
+        buffer
+          .then((resolved) => {
+            if (resolved) addTrack(resolved);
+          })
+          .catch(() => {
+            // Final fallback: add nothing rather than crash the add-to-project path.
+            this.logger.warn(
+              `Could not resolve a playable buffer for \"${audio.name}\" when adding to the arrangement`,
+            );
+          });
+        return;
+      }
+
+      if (buffer) {
+        addTrack(buffer);
+      }
+      return;
+    }
+
+    this.applyEdits().then(async (blob) => {
+      if (!blob) return;
+      let buffer = audio.enhancedBuffer ?? audio.buffer;
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        buffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
+      } catch (e) {
+        // Edited re-decode failed (rare) — fall back to the unedited buffer
+        // so the import still lands in the arrangement.
+        this.logger.warn(
+          "Re-decoding edited audio failed — using original buffer",
+          e,
+        );
+      }
+      addTrack(buffer);
+    });
+  }
+
+  /** Clear all imported audio */
+  clearAll() {
+    this.importedAudio().forEach((audio) => {
+      URL.revokeObjectURL(audio.url);
+      if (audio.editedUrl) URL.revokeObjectURL(audio.editedUrl);
+      // Also detach the sample streamer if present.
+      if (audio.sampleStreamer) {
+        audio.sampleStreamer.destroy();
+      }
+    });
+    this.importedAudio.set([]);
+    this.selectedAudio.set(null);
+    this.appliedEditState.clear();
+  }
+
+  // ── Private helpers ─────────────────────────────────
+
+  private updateCurrentAudio(partial: Partial<ImportedAudio>) {
+    const current = this.selectedAudio();
+    if (!current) return;
+    const updated = { ...current, ...partial };
+    this.selectedAudio.set(updated);
+    this.importedAudio.update((prev) =>
+      prev.map((a) => (a.id === current.id ? updated : a)),
+    );
+  }
+
+  private interleaveChannels(buffer: AudioBuffer): Float32Array {
+    const chs = buffer.numberOfChannels;
+    const len = buffer.length;
+    const result = new Float32Array(len * chs);
+    for (let ch = 0; ch < chs; ch++) {
+      const data = buffer.getChannelData(ch);
+      for (let i = 0; i < len; i++) {
+        result[i * chs + ch] = data[i];
+      }
+    }
+    return result;
+  }
+
+  private createWavBlob(
+    interleaved: Float32Array,
+    sampleRate: number,
+    channels: number,
+  ): Blob {
+    const numSamples = interleaved.length;
+    const buffer = new ArrayBuffer(44 + numSamples * 2);
+    const view = new DataView(buffer);
+    const w = (offset: number, str: string) => {
+      for (let i = 0; i < str.length; i++)
+        view.setUint8(offset + i, str.charCodeAt(i));
+    };
+    w(0, "RIFF");
+    view.setUint32(4, 36 + numSamples * 2, true);
+    w(8, "WAVE");
+    w(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * channels * 2, true);
+    view.setUint16(32, channels * 2, true);
+    view.setUint16(34, 16, true);
+    w(36, "data");
+    view.setUint32(40, numSamples * 2, true);
+    for (let i = 0; i < numSamples; i++) {
+      const s = Math.max(-1, Math.min(1, interleaved[i]));
+      view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    }
+    return new Blob([buffer], { type: "audio/wav" });
+  }
+
+  private applyGainFadeAndNormalize(
+    buffer: AudioBuffer,
+    settings: ImportedAudio,
+  ): void {
+    const fadeInSamples = Math.floor(buffer.length * settings.fadeIn);
+    const fadeOutSamples = Math.floor(buffer.length * settings.fadeOut);
+
+    const applyShaping = (
+      sample: number,
+      index: number,
+      total: number,
+    ): number => {
+      let value = sample * settings.gain;
+      if (fadeInSamples > 0 && index < fadeInSamples) {
+        value *= index / fadeInSamples;
+      }
+      if (fadeOutSamples > 0 && index >= total - fadeOutSamples) {
+        value *= (total - index) / fadeOutSamples;
+      }
+      return value;
+    };
+
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const data = buffer.getChannelData(ch);
+      for (let i = 0; i < data.length; i++) {
+        data[i] = applyShaping(data[i], i, data.length);
+      }
+    }
+
+    if (settings.normalize) {
+      let peak = 0;
+      for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+        const data = buffer.getChannelData(ch);
+        for (let i = 0; i < data.length; i++) {
+          const abs = Math.abs(data[i]);
+          if (abs > peak) peak = abs;
+        }
+      }
+      if (peak > 0.00001) {
+        const norm = 1 / peak;
+        for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+          const data = buffer.getChannelData(ch);
+          for (let i = 0; i < data.length; i++) data[i] *= norm;
+        }
+      }
+    }
+  }
+
+  private snapshot(audio: ImportedAudio): EditSnapshot {
+    return {
+      trimStart: audio.trimStart,
+      trimEnd: audio.trimEnd,
+      gain: audio.gain,
+      stretchRatio: audio.stretchRatio,
+      pitchSemitones: audio.pitchSemitones,
+      fadeIn: audio.fadeIn,
+      fadeOut: audio.fadeOut,
+      loopStart: audio.loopStart,
+      loopEnd: audio.loopEnd,
+      normalize: audio.normalize,
+    };
+  }
+}

@@ -1,0 +1,1020 @@
+/* ===========================================================
+   S.M.U.V.E. Composer — Mastering Suite
+   FL Studio Mobile pattern — EQ curve + multiband + limiter
+   City Skylines After Dark — Stage Edition
+   =========================================================== */
+
+:host {
+  display: block;
+  min-height: 100%;
+  background: var(--ivory-deep, #06091a);
+  color: var(--espresso-text);
+  font-family: var(--font-sans);
+  overflow: auto;
+}
+
+.mastering-suite-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 1.5rem;
+  gap: 1.5rem;
+  background: var(--ivory-deep);
+}
+
+/* ---------- HEADER ---------- */
+.ms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ms-title-block h1 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--espresso-text);
+}
+
+.ms-title-block p {
+  margin: 2px 0 0;
+  font-size: 9px;
+  color: var(--teal-500);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.ms-preset-strip {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ms-preset-chip {
+  padding: 6px 12px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--espresso-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s ease;
+}
+
+.ms-preset-chip:hover {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+
+.ms-preset-chip.is-active {
+  background: var(--teal-500);
+  color: var(--ivory-deep);
+  border-color: var(--teal-500);
+  box-shadow: 0 0 12px var(--teal-glow);
+}
+
+/* ---------- SPECTRUM / CURVE ---------- */
+.ms-spectrum {
+  background: var(--ivory-panel);
+  border: 1px solid var(--ivory-line);
+  border-radius: 14px;
+  padding: 1rem;
+  min-height: 180px;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.ms-spectrum-bar {
+  flex: 1 1 0;
+  background: linear-gradient(180deg, var(--teal-500) 0%, var(--teal-700) 100%);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  transition: height 0.12s ease;
+  box-shadow: 0 0 8px var(--teal-soft-glow);
+}
+
+.ms-spectrum-label {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--teal-500);
+  text-shadow: 0 0 10px var(--teal-glow);
+}
+
+.ms-spectrum-freqs {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--espresso-muted);
+}
+
+/* ---------- CONTROLS ---------- */
+.ms-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.ms-control-block {
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ms-control-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal-500);
+}
+
+.ms-knob-row {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+}
+
+.ms-knob-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ms-knob-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+}
+
+.ms-knob-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--espresso-text);
+}
+
+.ms-slider {
+  width: 100%;
+  accent-color: var(--teal-500);
+  cursor: pointer;
+}
+
+.ms-output-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 12px;
+}
+
+.ms-output-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal-500);
+}
+
+.ms-output-bar {
+  flex: 1 1 auto;
+  height: 10px;
+  background: var(--ivory-deep);
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.ms-output-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--neon-mint) 0%,
+    var(--teal-500) 70%,
+    var(--neon-amber) 90%,
+    var(--record) 100%
+  );
+  border-radius: 5px;
+  transition: width 0.06s ease;
+}
+
+.ms-output-peak {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--espresso-muted);
+  min-width: 40px;
+  text-align: right;
+}
+
+.ms-bypass {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+  cursor: pointer;
+}
+
+.ms-bypass.is-active {
+  color: var(--neon-amber);
+}
+
+/* ---------- DARK MODE ---------- */
+:host-context(.dark-mode) .ms-title-block h1 {
+  color: var(--espresso-text);
+}
+
+:host-context(.dark-mode) .ms-preset-chip {
+  background: #0a0f22;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .ms-control-block {
+  background: #0a0f22;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .ms-spectrum {
+  background: #06091a;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .ms-output-meter {
+  background: #0a0f22;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .ms-output-bar {
+  background: #000208;
+}
+
+:host-context(.dark-mode) .ms-spectrum-bar {
+  box-shadow: 0 0 14px var(--teal-glow);
+}
+
+/* ---------- MOBILE ---------- */
+@media (max-width: 768px) {
+  .mastering-suite-container {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  .ms-controls {
+    grid-template-columns: 1fr;
+  }
+  .ms-spectrum {
+    min-height: 120px;
+  }
+  canvas {
+    height: 120px !important;
+  }
+
+  :host input[type='range'] {
+    min-height: 44px;
+  }
+  :host button {
+    min-height: 44px;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+/* ---------- GENRE CHIPS (AI Mastering) ---------- */
+.genre-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--espresso-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s ease;
+}
+
+.genre-chip:hover {
+  border-color: var(--teal-400);
+  background: rgba(43, 160, 156, 0.08);
+  color: var(--teal-500);
+}
+
+.genre-chip:active {
+  transform: scale(0.95);
+}
+
+.genre-chip-active {
+  background: var(--teal-500) !important;
+  border-color: var(--teal-500) !important;
+  color: white !important;
+  box-shadow: 0 0 16px rgba(43, 160, 156, 0.4);
+}
+
+.genre-chip-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.genre-chip-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:host-context(.dark-mode) .genre-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.dark-mode) .genre-chip-active {
+  background: var(--teal-600) !important;
+  border-color: var(--teal-500) !important;
+}
+
+/* ============================================================
+   STAGE 2.0 — MASTERING CONSOLE GLOW
+   Spectrum halo · control block lift · preset glow
+   ============================================================ */
+
+.mastering-suite-container {
+  background:
+    radial-gradient(85% 45% at 85% 0%, rgba(32, 215, 210, 0.05), transparent 60%),
+    radial-gradient(70% 40% at 0% 100%, rgba(217, 119, 6, 0.04), transparent 60%),
+    var(--ivory-deep, #06091a);
+}
+
+/* Spectrum well: lit instrument floor. */
+.ms-spectrum {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 6px 18px rgba(61, 53, 42, 0.1),
+    inset 0 0 40px rgba(14, 124, 123, 0.04);
+}
+.ms-spectrum-bar {
+  box-shadow: 0 0 10px rgba(14, 124, 123, 0.5);
+}
+
+/* Control blocks: card-like with hover lift. */
+.ms-control-block {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 2px 6px rgba(61, 53, 42, 0.06);
+  transition: transform 0.16s ease, box-shadow 0.22s ease, border-color 0.16s ease;
+}
+.ms-control-block:hover {
+  transform: translateY(-2px);
+  border-color: rgba(43, 160, 156, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 8px 20px rgba(14, 124, 123, 0.14);
+}
+
+/* Preset chips: brighter active state. */
+.ms-preset-chip {
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.18s ease,
+    background 0.14s ease,
+    color 0.14s ease,
+    border-color 0.14s ease;
+}
+.ms-preset-chip:hover {
+  transform: translateY(-1px);
+}
+.ms-preset-chip:active {
+  transform: scale(0.95);
+}
+.ms-preset-chip.is-active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 4px 12px rgba(14, 124, 123, 0.4);
+}
+
+/* Output meter: glow fill + peak readout pop. */
+.ms-output-meter {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.ms-output-fill {
+  box-shadow: 0 0 10px rgba(14, 124, 123, 0.45);
+}
+.ms-output-peak {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Knobs: hover emphasis. */
+.ms-knob-cell {
+  transition: transform 0.14s ease;
+}
+.ms-knob-cell:hover {
+  transform: translateY(-2px);
+}
+.ms-knob-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Genre chips: keep active glow premium. */
+.genre-chip-active {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 6px 16px rgba(43, 160, 156, 0.45);
+}
+
+/* Dark theme: moody console, legible blocks. */
+:host-context(.dark-mode) .ms-control-block {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+:host-context(.dark-mode) .ms-control-block:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 20px rgba(0, 0, 0, 0.4),
+    0 0 16px rgba(14, 124, 123, 0.18);
+}
+:host-context(.dark-mode) .ms-spectrum {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 40px rgba(14, 124, 123, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-control-block,
+  .ms-preset-chip,
+  .ms-knob-cell {
+    transition: none !important;
+  }
+  .ms-control-block:hover,
+  .ms-knob-cell:hover {
+    transform: none !important;
+  }
+}
+
+/* ============================================================
+   COMPONENT CONTRACT — Mastering Suite
+   A calm destination monitor: actions, presets, meters, and
+   safety feedback read as one bounded desk at every breakpoint.
+   ============================================================ */
+
+:host {
+  --ms-canvas: var(--ivory-deep, #06091a);
+  --ms-surface: var(--ivory-paper, #fbf7ec);
+  --ms-panel: var(--ivory-panel, #fffaf0);
+  --ms-ink: var(--espresso-text, #1f1a12);
+  --ms-muted: var(--espresso-muted, #7e7259);
+  --ms-line: var(--espresso-line, rgba(61, 53, 42, 0.14));
+  --ms-teal: var(--teal-500, #0e7c7b);
+  --ms-amber: var(--neon-amber, #d97706);
+  --ms-shadow: 0 16px 36px rgba(2, 8, 23, 0.22);
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: var(--ms-ink);
+}
+
+.mastering-surface {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(14px, 2vw, 24px);
+  gap: clamp(14px, 1.8vw, 22px);
+  border: 1px solid var(--ms-line);
+  border-radius: 18px;
+  background:
+    radial-gradient(80% 38% at 88% 0%, color-mix(in srgb, var(--ms-teal) 9%, transparent), transparent 68%),
+    radial-gradient(65% 36% at 4% 100%, color-mix(in srgb, var(--ms-amber) 6%, transparent), transparent 70%),
+    var(--ms-canvas);
+  box-shadow: var(--ms-shadow);
+  color: var(--ms-ink);
+  isolation: isolate;
+}
+
+.mastering-surface .mastering-header {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.mastering-header h1 {
+  color: var(--ms-ink);
+  font-size: clamp(24px, 3vw, 38px);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.mastering-header h1 .text-fl-blue {
+  color: var(--ms-teal);
+}
+
+.mastering-header p {
+  color: var(--ms-muted);
+  letter-spacing: 0.22em;
+}
+
+.mastering-header > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mastering-header button {
+  min-height: 44px;
+  border-radius: 11px;
+  box-shadow: none;
+}
+
+.mastering-header .studio-secondary-button {
+  border-color: var(--ms-line);
+  background: color-mix(in srgb, var(--ms-panel) 12%, transparent);
+  color: var(--ms-ink);
+}
+
+.mastering-header .studio-secondary-button:hover,
+.mastering-header .studio-secondary-button:focus-visible {
+  border-color: var(--ms-teal);
+  background: color-mix(in srgb, var(--ms-teal) 14%, transparent);
+  color: var(--ms-teal);
+}
+
+.mastering-header .studio-primary-button {
+  border-color: var(--ms-teal);
+  background: var(--ms-teal);
+  color: var(--ivory-deep, #fbf7ec);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--ms-teal) 26%, transparent);
+}
+
+.mastering-render-card,
+.mastering-genre-panel,
+.mastering-presets-panel,
+.mastering-visualizer,
+.mastering-meter-card,
+.mastering-control-card,
+.mastering-roast-card {
+  border: 1px solid var(--ms-line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--ms-panel) 10%, transparent);
+  box-shadow: 0 8px 22px rgba(2, 8, 23, 0.16);
+}
+
+.mastering-render-card {
+  padding: 14px;
+  border-color: color-mix(in srgb, var(--ms-teal) 45%, var(--ms-line));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ms-teal) 12%, transparent), color-mix(in srgb, var(--ms-panel) 8%, transparent));
+}
+
+.mastering-genre-panel {
+  padding: 14px;
+}
+
+.mastering-genre-panel > .flex:first-child {
+  color: var(--ms-muted);
+}
+
+.mastering-presets-panel {
+  padding: 14px;
+}
+
+.mastering-presets-panel > .flex:first-child {
+  color: var(--ms-muted);
+}
+
+.mastering-preset-grid {
+  gap: 10px;
+}
+
+.mastering-preset-card {
+  min-height: 136px;
+  padding: 14px 12px 12px;
+  align-items: flex-start;
+  text-align: left;
+  border-color: var(--ms-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ms-panel) 10%, transparent);
+  color: var(--ms-ink);
+}
+
+.mastering-preset-card:hover,
+.mastering-preset-card:focus-visible {
+  border-color: var(--ms-teal);
+  background: color-mix(in srgb, var(--ms-teal) 12%, var(--ms-panel));
+  box-shadow: 0 9px 22px color-mix(in srgb, var(--ms-teal) 18%, transparent);
+}
+
+.mastering-preset-card.ms-preset-active {
+  border-color: var(--ms-teal) !important;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ms-teal) 24%, transparent), color-mix(in srgb, var(--ms-panel) 10%, transparent)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ms-teal) 35%, transparent), 0 8px 22px color-mix(in srgb, var(--ms-teal) 18%, transparent) !important;
+}
+
+.mastering-preset-card .ms-preset-label,
+.mastering-preset-card .ms-preset-tagline,
+.mastering-preset-card .ms-preset-readout {
+  color: var(--ms-ink);
+}
+
+.mastering-preset-card .ms-preset-tagline {
+  color: var(--ms-muted);
+}
+
+.mastering-preset-card .ms-preset-lufs {
+  color: var(--ms-teal);
+}
+
+.mastering-preset-card .ms-preset-ceiling {
+  color: var(--ms-amber);
+}
+
+.mastering-dashboard {
+  min-width: 0;
+  gap: clamp(14px, 1.8vw, 24px);
+}
+
+.mastering-dashboard > div {
+  min-width: 0;
+}
+
+.mastering-visualizer {
+  min-height: 160px;
+  padding: 14px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ms-panel) 12%, transparent), transparent),
+    color-mix(in srgb, var(--ms-canvas) 82%, transparent);
+}
+
+.mastering-visualizer canvas {
+  min-height: 130px;
+  border-radius: 12px;
+}
+
+.mastering-band-card {
+  min-width: 0;
+  min-height: 154px;
+  padding: 12px 10px;
+  border-color: var(--ms-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--ms-panel) 9%, transparent);
+  color: var(--ms-ink);
+}
+
+.mastering-band-card:hover {
+  border-color: color-mix(in srgb, var(--ms-teal) 55%, var(--ms-line));
+  background: color-mix(in srgb, var(--ms-teal) 9%, var(--ms-panel));
+}
+
+.mastering-band-card .text-slate-500,
+.mastering-band-card .text-white,
+.mastering-band-card .text-fl-blue {
+  color: var(--ms-ink);
+}
+
+.mastering-band-card .text-fl-blue {
+  color: var(--ms-teal) !important;
+}
+
+.mastering-meter-card {
+  padding: clamp(14px, 2vw, 22px);
+  background: color-mix(in srgb, var(--ms-panel) 10%, transparent);
+}
+
+.mastering-meter-card .text-slate-500 {
+  color: var(--ms-muted) !important;
+}
+
+.mastering-meter-card .text-white {
+  color: var(--ms-ink) !important;
+}
+
+.mastering-control-card {
+  padding: clamp(14px, 2vw, 22px);
+  gap: 16px;
+}
+
+.mastering-control-card .text-slate-400 {
+  color: var(--ms-muted) !important;
+}
+
+.mastering-control-card label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  align-items: center;
+  color: var(--ms-ink);
+}
+
+.mastering-control-card label input[type='range'] {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 40px;
+  accent-color: var(--ms-teal);
+}
+
+.mastering-control-card label span {
+  color: var(--ms-teal);
+  font-family: var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.mastering-control-card p {
+  color: var(--ms-muted);
+}
+
+.mastering-roast-card {
+  padding: clamp(14px, 2vw, 22px);
+  border-color: color-mix(in srgb, var(--ms-teal) 35%, var(--ms-line));
+  background: linear-gradient(145deg, color-mix(in srgb, var(--ms-teal) 10%, transparent), color-mix(in srgb, var(--ms-panel) 8%, transparent));
+}
+
+.mastering-roast-card .text-slate-400 {
+  color: var(--ms-muted) !important;
+}
+
+.mastering-surface .text-slate-500 {
+  color: var(--ms-muted) !important;
+}
+
+.mastering-surface .text-slate-400 {
+  color: var(--ms-muted) !important;
+}
+
+.mastering-surface .text-white {
+  color: var(--ms-ink) !important;
+}
+
+.mastering-surface .text-fl-blue {
+  color: var(--ms-teal) !important;
+}
+
+@media (max-width: 900px) {
+  .mastering-surface {
+    padding: 14px;
+  }
+
+  .mastering-header > div:last-child {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .mastering-header button {
+    flex: 1 1 150px;
+  }
+
+  .mastering-dashboard {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 560px) {
+  .mastering-surface {
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .mastering-header {
+    gap: 12px;
+  }
+
+  .mastering-header h1 {
+    font-size: 26px;
+  }
+
+  .mastering-header p {
+    font-size: 8px;
+    letter-spacing: 0.16em;
+  }
+
+  .mastering-header > div:last-child {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mastering-header button {
+    min-width: 0;
+    padding-right: 8px;
+    padding-left: 8px;
+    font-size: 9px;
+  }
+
+  .mastering-render-card,
+  .mastering-genre-panel,
+  .mastering-presets-panel {
+    padding: 10px;
+  }
+
+  .mastering-preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mastering-preset-card {
+    min-height: 128px;
+    padding: 10px;
+  }
+
+  .mastering-band-card {
+    min-height: 136px;
+  }
+
+  .mastering-meter-card {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .mastering-surface {
+    padding: 10px 12px;
+  }
+
+  .mastering-header h1 {
+    font-size: 24px;
+  }
+
+  .mastering-visualizer {
+    min-height: 130px;
+    height: 150px !important;
+  }
+
+  .mastering-band-card {
+    min-height: 124px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mastering-preset-card,
+  .mastering-band-card {
+    transition: none !important;
+  }
+
+  .mastering-preset-card:hover,
+  .mastering-band-card:hover {
+    transform: none !important;
+  }
+}
+
+/* Desktop portrait/narrow workspaces: the dashboard becomes one readable
+   analysis column while every module remains available in the surface scroll. */
+@media (min-width: 1025px) and (orientation: portrait),
+  (min-width: 1025px) and (max-width: 1280px) {
+  .mastering-surface {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .mastering-header {
+    gap: 8px;
+  }
+
+  .mastering-header h1 {
+    font-size: 28px;
+  }
+
+  .mastering-header button {
+    min-height: 40px;
+  }
+
+  .mastering-header > div:last-child {
+    gap: 6px;
+  }
+
+  .mastering-render-card,
+  .mastering-genre-panel,
+  .mastering-presets-panel {
+    padding: 10px;
+  }
+
+  .mastering-preset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .mastering-preset-card {
+    min-height: 118px;
+    padding: 10px;
+  }
+
+  .mastering-dashboard {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .mastering-dashboard > div {
+    grid-column: 1 / -1;
+  }
+
+  .mastering-visualizer {
+    min-height: 148px;
+    height: 180px !important;
+    padding: 10px;
+  }
+
+  .mastering-band-card {
+    min-height: 124px;
+    padding: 9px 7px;
+  }
+
+  .mastering-meter-card,
+  .mastering-control-card,
+  .mastering-roast-card {
+    padding: 12px;
+  }
+}
+
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .mastering-surface {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .mastering-header h1 {
+    font-size: 24px;
+  }
+
+  .mastering-header button {
+    min-height: 38px;
+  }
+
+  .mastering-render-card,
+  .mastering-genre-panel,
+  .mastering-presets-panel {
+    padding: 8px 10px;
+  }
+
+  .mastering-preset-card {
+    min-height: 108px;
+    padding: 8px;
+  }
+
+  .mastering-visualizer {
+    min-height: 118px;
+    height: 142px !important;
+  }
+
+  .mastering-band-card {
+    min-height: 106px;
+    padding: 7px 6px;
+  }
+
+  .mastering-meter-card,
+  .mastering-control-card,
+  .mastering-roast-card {
+    padding: 10px;
+  }
+}
+
+/* ================================================================
+   MOBILE PASS — mastering suite on touchscreens & phones
+   The suite had no touch contract at all: taps paid the double-tap
+   zoom delay and the surface fling bounced the whole shell.
+   ================================================================ */
+
+.mastering-header button,
+.genre-chip,
+.mastering-preset-card {
+  touch-action: manipulation;
+}
+
+/* The suite surface is the page scroller — contain its overscroll so a
+   fling at either end does not bounce the entire studio shell. */
+.mastering-surface {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Genre chips render ~29px tall, well under the 44px thumb floor. */
+@media (pointer: coarse) {
+  .genre-chip {
+    min-height: 44px;
+  }
+}

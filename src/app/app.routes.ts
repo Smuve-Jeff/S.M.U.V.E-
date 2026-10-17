@@ -1,0 +1,360 @@
+import { Routes } from '@angular/router';
+import { authChildGuard } from './services/auth.guard';
+
+const protectedRoutes: Routes = [
+  { path: 'adaptive-profile', loadComponent: () => import('./components/artist-adaptive-dashboard/artist-adaptive-dashboard.component').then((m) => m.ArtistAdaptiveDashboardComponent) },
+  { path: 'artist-coach', loadComponent: () => import('./components/artist-ai-coach/artist-ai-coach.component').then((m) => m.ArtistAiCoachComponent) },
+  {
+    path: 'hub',
+    loadComponent: () =>
+      import('./hub/hub.component').then((m) => m.HubComponent),
+  },
+  {
+    path: 'studio',
+    loadComponent: () =>
+      import('./studio/studio.component').then((m) => m.StudioComponent),
+  },
+  {
+    path: 'vocal-suite',
+    loadComponent: () =>
+      import('./studio/vocal-suite/vocal-suite.component').then(
+        (m) => m.VocalSuiteComponent
+      ),
+  },
+  {
+    path: 'profile',
+    loadComponent: () =>
+      import('./components/profile-editor/profile-editor.component').then(
+        (m) => m.ProfileEditorComponent
+      ),
+  },
+  {
+    path: 'journey',
+    loadComponent: () =>
+      import('./components/journey/journey.component').then(
+        (m) => m.JourneyComponent
+      ),
+  },
+  {
+    path: 'tha-spot',
+    loadComponent: () =>
+      import('./components/tha-spot/tha-spot.component').then(
+        (m) => m.ThaSpotComponent
+      ),
+  },
+  {
+    path: 'tha-spot/browse',
+    loadComponent: () =>
+      import('./components/tha-spot/tha-spot.component').then(
+        (m) => m.ThaSpotComponent
+      ),
+  },
+  {
+    path: 'tha-spot/room/:id',
+    loadComponent: () =>
+      import('./components/tha-spot/tha-spot.component').then(
+        (m) => m.ThaSpotComponent
+      ),
+  },
+  {
+    path: 'tha-spot/game/:id',
+    loadComponent: () =>
+      import('./components/tha-spot/tha-spot.component').then(
+        (m) => m.ThaSpotComponent
+      ),
+  },
+  {
+    path: 'gaming-hub',
+    redirectTo: 'tha-spot',
+    pathMatch: 'full',
+  },
+  {
+    path: 'practice',
+    loadComponent: () =>
+      import('./components/practice-space/practice-space.component').then(
+        (m) => m.PracticeSpaceComponent
+      ),
+  },
+  {
+    path: 'analytics',
+    loadComponent: () =>
+      import('./components/analytics-dashboard/analytics-dashboard.component').then(
+        (m) => m.AnalyticsDashboardComponent
+      ),
+  },
+  {
+    path: 'strategy',
+    loadComponent: () =>
+      import('./components/strategy-hub/strategy-hub.component').then(
+        (m) => m.StrategyHubComponent
+      ),
+  },
+  {
+    path: 'career',
+    loadComponent: () =>
+      import('./components/career-hub/career-hub.component').then(
+        (m) => m.CareerHubComponent
+      ),
+  },
+  {
+    path: 'projects',
+    loadComponent: () =>
+      import('./components/projects/projects.component').then(
+        (m) => m.ProjectsComponent
+      ),
+  },
+  {
+    path: 'release-pipeline',
+    loadComponent: () =>
+      import('./components/release-pipeline/release-pipeline.component').then(
+        (m) => m.ReleasePipelineComponent
+      ),
+  },
+  {
+    path: 'produce',
+    loadComponent: () =>
+      import('./components/ai-produce/ai-produce.component').then(
+        (m) => m.AiProduceComponent
+      ),
+  },
+  {
+    path: 'command-center',
+    loadComponent: () =>
+      import('./components/command-center/command-center.component').then(
+        (m) => m.CommandCenterComponent
+      ),
+  },
+  {
+    path: 'neural-foundry',
+    loadComponent: () =>
+      import('./neural-foundry/neural-foundry.component').then(
+        (m) => m.NeuralFoundryComponent
+      ),
+  },
+  {
+    path: 'business-suite',
+    loadComponent: () =>
+      import('./components/business-suite/business-suite.component').then(
+        (m) => m.BusinessSuiteComponent
+      ),
+  },
+  {
+    path: 'business-pipeline/:id',
+    loadComponent: () =>
+      import('./components/business-pipeline-detail/business-pipeline-detail.component').then(
+        (m) => m.BusinessPipelineDetailComponent
+      ),
+  },
+  {
+    path: 'knowledge-base',
+    loadComponent: () =>
+      import('./components/knowledge-base/knowledge-base.component').then(
+        (m) => m.KnowledgeBaseComponent
+      ),
+  },
+  {
+    path: 'lyric-editor',
+    loadComponent: () =>
+      import('./components/lyric-editor/lyric-editor.component').then(
+        (m) => m.LyricEditorComponent
+      ),
+  },
+  {
+    path: 'remix-arena',
+    loadComponent: () =>
+      import('./components/remix-arena/remix-arena.component').then(
+        (m) => m.RemixArenaComponent
+      ),
+  },
+  {
+    path: 'image-video-lab',
+    loadComponent: () =>
+      import('./components/image-video-lab/image-video-lab.component').then(
+        (m) => m.ImageVideoLabComponent
+      ),
+  },
+  {
+    path: 'settings',
+    loadComponent: () =>
+      import('./components/settings/settings.component').then(
+        (m) => m.SettingsComponent
+      ),
+  },
+  {
+    path: 'inbox',
+    loadComponent: () =>
+      import('./components/challenge-inbox/challenge-inbox.component').then(
+        (m) => m.ChallengeInboxComponent
+      ),
+  },
+  {
+    path: 'turntable',
+    redirectTo: 'dj',
+    pathMatch: 'full',
+  },
+  {
+    path: 'decks',
+    redirectTo: 'dj',
+    pathMatch: 'full',
+  },
+  {
+    path: 'dj',
+    loadComponent: () =>
+      import('./studio/dj-deck/dj-deck.component').then(
+        (m) => m.DjDeckComponent
+      ),
+  },
+  {
+    path: 'piano-roll',
+    loadComponent: () =>
+      import('./studio/piano-roll/piano-roll.component').then(
+        (m) => m.PianoRollComponent
+      ),
+  },
+  {
+    path: 'canvas-piano-roll',
+    loadComponent: () =>
+      import('./components/piano-roll/piano-roll.component').then(
+        (m) => m.PianoRollComponent
+      ),
+  },
+  {
+    path: 'mixer',
+    loadComponent: () =>
+      import('./studio/mixer/mixer.component').then((m) => m.MixerComponent),
+  },
+  {
+    path: 'drum-machine',
+    loadComponent: () =>
+      import('./studio/drum-machine/drum-machine.component').then(
+        (m) => m.DrumMachineComponent
+      ),
+  },
+  {
+    path: 'performance',
+    loadComponent: () =>
+      import('./studio/performer/performer.component').then(
+        (m) => m.PerformerComponent
+      ),
+  },
+  {
+    path: 'mastering',
+    loadComponent: () =>
+      import('./studio/mastering-suite/mastering-suite.component').then(
+        (m) => m.MasteringSuiteComponent
+      ),
+  },
+  {
+    path: 'artist/:name',
+    loadComponent: () =>
+      import('./components/artist-landing/artist-landing.component').then(
+        (m) => m.ArtistLandingComponent
+      ),
+  },
+  {
+    path: 'networking',
+    loadComponent: () =>
+      import('./components/tha-spot/tha-spot.component').then(
+        (m) => m.ThaSpotComponent
+      ),
+  },
+  {
+    path: 'player',
+    loadComponent: () =>
+      import('./hub/hub.component').then((m) => m.HubComponent),
+  },
+  {
+    path: 'image-editor',
+    loadComponent: () =>
+      import('./components/image-video-lab/image-video-lab.component').then(
+        (m) => m.ImageVideoLabComponent
+      ),
+  },
+  {
+    path: 'video-editor',
+    loadComponent: () =>
+      import('./components/image-video-lab/image-video-lab.component').then(
+        (m) => m.ImageVideoLabComponent
+      ),
+  },
+  {
+    path: 'cowrite',
+    loadComponent: () =>
+      import('./components/cowrite-studio/cowrite-studio.component').then(
+        (m) => m.CowriteStudioComponent
+      ),
+  },
+  {
+    path: 'artist-development',
+    loadComponent: () =>
+      import('./components/artist-development-hub/artist-development-hub.component').then(
+        (m) => m.ArtistDevelopmentHubComponent
+      ),
+  },
+  {
+    path: 'dev-hub',
+    redirectTo: 'artist-development',
+    pathMatch: 'full',
+  },
+  {
+    path: 'store',
+    loadComponent: () =>
+      import('./components/storefront/storefront.component').then(
+        (m) => m.StorefrontComponent
+      ),
+  },
+  {
+    path: 'products',
+    loadComponent: () =>
+      import('./components/products/products.component').then(
+        (m) => m.ProductsComponent
+      ),
+  },
+  {
+    path: 'onboarding/tour',
+    loadComponent: () =>
+      import(
+        './components/first-beat-tour/first-beat-tour.component'
+      ).then((m) => m.FirstBeatTourComponent),
+  },
+  {
+    path: 'cloud',
+    loadComponent: () =>
+      import('./components/cloud-vault/cloud-vault.component').then(
+        (m) => m.CloudVaultComponent
+      ),
+  },
+  {
+    path: 'timeline',
+    loadComponent: () =>
+      import('./components/session-timeline/session-timeline.component').then(
+        (m) => m.SessionTimelineComponent
+      ),
+  },
+  { path: '', redirectTo: 'hub', pathMatch: 'full' },
+  { path: '**', redirectTo: 'hub' },
+];
+
+export const routes: Routes = [
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./components/login/login.component').then(
+        (m) => m.LoginComponent
+      ),
+  },
+  {
+    // Account recovery: request a single-use reset link, or redeem one from
+    // `/reset-password?token=...` (the URL the API emails).
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./components/reset-password/reset-password.component').then(
+        (m) => m.ResetPasswordComponent
+      ),
+  },
+  {
+    path: '',
+    canActivateChild: [authChildGuard],
+    children: protectedRoutes,
+  },
+];

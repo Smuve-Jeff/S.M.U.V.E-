@@ -1,0 +1,2058 @@
+<div
+  class="profile-editor-view bg-black/95 min-h-screen text-slate-100 font-mono relative overflow-x-hidden"
+>
+  <div class="absolute inset-0 pointer-events-none overflow-hidden">
+    <div
+      class="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-brand-primary/5 to-transparent"
+    ></div>
+    <div
+      class="absolute -top-24 -right-24 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px]"
+    ></div>
+  </div>
+
+  <div
+    *ngIf="editableProfile().headerImage"
+    class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+  >
+    <img
+      [src]="editableProfile().headerImage"
+      class="w-full h-full object-cover"
+    />
+    <div
+      class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+    ></div>
+  </div>
+  <header
+    class="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5 p-4 sm:p-6 flex flex-wrap gap-4 justify-between items-center"
+  >
+    <div class="flex items-center gap-3 sm:gap-6 min-w-0">
+      <div
+        class="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-2xl bg-gradient-to-br from-brand-primary to-emerald-600 flex items-center justify-center shadow-lg shadow-brand-primary/20"
+      >
+        <i class="fas fa-user-shield text-white text-lg sm:text-xl"></i>
+      </div>
+      <div class="min-w-0">
+        <h1
+          class="text-lg sm:text-2xl font-black tracking-tighter uppercase italic text-white"
+        >
+          Executive Artist Profile
+        </h1>
+        <div
+          class="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase mt-1"
+        >
+          <span
+            [class.text-brand-primary]="saveStatus() === 'saved'"
+            [class.text-red-400]="saveStatus() === 'failed'"
+          >
+            {{ saveStatusLabel() }}
+          </span>
+          <span class="opacity-20">|</span>
+          <span class="text-brand-primary"
+            >NEURAL STRENGTH: {{ optimizationScore() }}%</span
+          >
+        </div>
+        <p
+          *ngIf="saveStatus() === 'failed' && saveError()"
+          class="text-[10px] font-bold uppercase tracking-[0.16em] text-red-400/80 mt-2"
+        >
+          {{ saveError() }}
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4 w-full sm:w-auto">
+      <button
+        (click)="saveProfile()"
+        [disabled]="saveStatus() === 'saving'"
+        class="w-full sm:w-auto px-5 sm:px-8 py-3 bg-brand-primary hover:bg-emerald-400 disabled:opacity-50 text-black font-black uppercase text-[10px] sm:text-xs rounded-full tracking-[0.15em] sm:tracking-[0.2em] transition-all shadow-lg shadow-brand-primary/30"
+      >
+        Commit Neural Protocol
+      </button>
+    </div>
+  </header>
+
+  <!-- p-8/gap-8 starved the phone column (244px of content inside 390px):
+       the padding steps up with the viewport instead. -->
+  <div
+    class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-5 sm:gap-8 p-4 sm:p-8 relative z-10"
+  >
+    <aside class="w-full lg:w-72 space-y-6">
+      <!-- Under lg the pane list is a one-line scrolling chip rail: the
+           stacked full-width rows were an 874px wall above the editor. -->
+      <nav
+        class="profile-nav bg-white/5 border border-white/5 rounded-3xl p-2 sm:p-4 flex flex-row lg:flex-col gap-2 overflow-x-auto overflow-y-hidden lg:overflow-hidden"
+      >
+        <button
+          *ngFor="let section of sections"
+          (click)="activeSection.set(section.id)"
+          [class.active-nav]="activeSection() === section.id"
+          class="flex items-center gap-2 lg:gap-4 px-4 py-2.5 lg:px-6 lg:py-4 rounded-full lg:rounded-2xl shrink-0 whitespace-nowrap lg:w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+        >
+          <i
+            class="fas {{ section.icon }} text-lg"
+            [class.text-brand-primary]="activeSection() === section.id"
+          ></i>
+          <span class="flex-none lg:flex-1 text-left">{{ section.label }}</span>
+          <span
+            *ngIf="section.elements.length"
+            class="text-[9px] font-black tabular-nums"
+            [ngClass]="
+              coverageFor(section.id).score >= 75
+                ? 'text-brand-primary'
+                : coverageFor(section.id).score >= 40
+                  ? 'text-amber-400'
+                  : 'text-slate-600'
+            "
+            [attr.aria-label]="section.label + ' completion'">
+            {{ coverageFor(section.id).score }}%
+          </span>
+        </button>
+      </nav>
+
+      <div
+        class="profile-intel p-5 sm:p-8 bg-brand-primary/5 border border-brand-primary/10 rounded-3xl"
+      >
+        <h4
+          class="text-[9px] font-black uppercase text-brand-primary tracking-[0.3em] mb-4"
+        >
+          Strategic Intel
+        </h4>
+        <div class="space-y-4">
+          <div
+            *ngFor="let brief of intelligenceBriefs().slice(0, 2)"
+            class="space-y-1"
+          >
+            <h5 class="text-[10px] font-black text-white uppercase">
+              {{ brief.title }}
+            </h5>
+            <p class="text-[9px] text-slate-500 uppercase leading-relaxed">
+              {{ brief.content }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main
+      class="flex-1 bg-white/5 rounded-[1.5rem] lg:rounded-[2.5rem] border border-white/5 p-5 sm:p-8 lg:p-10 backdrop-blur-md relative min-h-[70vh]"
+    >
+      <section
+        *ngIf="onboarding.shouldShow()"
+        class="mb-8 rounded-[2rem] border border-brand-primary/20 bg-brand-primary/5 px-6 py-5"
+      >
+        <div
+          class="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+        >
+          <div>
+            <p
+              class="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary"
+            >
+              Guided profile setup
+            </p>
+            <p class="text-sm text-slate-300 mt-3 leading-relaxed">
+              Complete your identity signals here, then launch the questionnaire
+              so Studio, Strategy, and Release surfaces can adapt to your
+              workflow.
+            </p>
+          </div>
+          <button
+            (click)="showQuestionnaire.set(true)"
+            class="px-5 py-3 rounded-full bg-brand-primary text-black text-[10px] font-black uppercase tracking-[0.2em]"
+          >
+            Open questionnaire
+          </button>
+        </div>
+      </section>
+
+      <div [ngSwitch]="activeSection()" class="relative z-10 space-y-12">
+        <!-- ─── PROFILE MASTERY ──────────────────────────────── -->
+        <div *ngSwitchCase="'mastery'" class="space-y-8 animate-fade-in">
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Profile Mastery
+            </h2>
+            <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-2">
+              Every element S.M.U.V.E. reads — scored from this draft, pane by
+              pane.
+            </p>
+          </header>
+
+          <div class="identity-panel p-8" *ngIf="mastery() as m">
+            <div class="flex flex-wrap items-center justify-between gap-6">
+              <div>
+                <div
+                  class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]"
+                >
+                  Module completion
+                </div>
+                <div class="text-5xl font-black text-white mt-2">
+                  {{ m.overall }}%
+                </div>
+                <div
+                  class="text-[9px] font-black uppercase tracking-[0.3em] mt-2"
+                  [ngClass]="m.calibrated ? 'text-brand-primary' : 'text-amber-400'"
+                >
+                  {{ m.calibrated ? 'All panes calibrated' : 'Calibration in progress' }}
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  *ngFor="let weak of m.weakest"
+                  (click)="focusSection(weak.id)"
+                  class="px-5 py-4 rounded-2xl border border-white/10 bg-black/40 text-left hover:border-brand-primary/40 transition-all"
+                >
+                  <div
+                    class="text-[9px] font-black text-white uppercase tracking-widest"
+                  >
+                    {{ weak.label }}
+                  </div>
+                  <div class="text-[9px] text-amber-400 font-bold uppercase mt-1">
+                    {{ weak.score }}% — {{ weak.missing.length }} missing
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div
+              *ngIf="m.nextActions.length"
+              class="mt-6 pt-6 border-t border-white/5"
+            >
+              <div
+                class="text-[9px] font-black text-brand-primary uppercase tracking-[0.3em] mb-3"
+              >
+                Highest-value next actions
+              </div>
+              <ul class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <li
+                  *ngFor="let action of m.nextActions"
+                  class="text-[11px] text-slate-300 flex gap-2"
+                >
+                  <i class="fas fa-arrow-right text-brand-primary text-[8px] mt-1"></i>
+                  <span>{{ action }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <section class="identity-panel p-6 sm:p-8 border-brand-secondary/20" *ngIf="nextSteps().length">
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-5">
+              <div>
+                <div class="text-[10px] font-black text-brand-secondary uppercase tracking-[0.25em]">
+                  Your S.M.U.V.E. action queue
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed mt-2 max-w-2xl">
+                  Ranked from your stated artist contract, official pathway, and missing evidence. Choose a move and S.M.U.V.E. takes you to the exact profile control that improves its advice.
+                </p>
+              </div>
+              <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                {{ nextSteps().length }} priority moves
+              </span>
+            </div>
+            <div class="space-y-3">
+              <button
+                *ngFor="let step of nextSteps(); let i = index"
+                type="button"
+                (click)="focusNextStep(step)"
+                class="w-full flex items-start gap-4 p-4 rounded-xl bg-black/40 border border-white/5 text-left hover:border-brand-primary/40 transition-all"
+              >
+                <span class="w-7 h-7 shrink-0 rounded-full bg-brand-primary/15 text-brand-primary text-[10px] font-black flex items-center justify-center">{{ i + 1 }}</span>
+                <span class="flex-1">
+                  <span class="block text-[10px] font-black text-white uppercase tracking-widest">{{ step.title }}</span>
+                  <span class="block text-[11px] text-slate-400 leading-relaxed mt-1">{{ step.detail }}</span>
+                  <span class="inline-block mt-2 text-[8px] font-black uppercase tracking-widest text-brand-primary">Open {{ coverageFor(step.target).label }}</span>
+                </span>
+                <i class="fas fa-arrow-right text-brand-primary text-[10px] mt-2"></i>
+              </button>
+            </div>
+          </section>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" *ngIf="mastery() as m">
+            <button
+              *ngFor="let section of m.sections"
+              (click)="focusSection(section.id)"
+              class="identity-panel p-6 text-left hover:border-brand-primary/30 transition-all"
+            >
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <div class="flex items-center gap-3">
+                  <i class="fas {{ section.icon }} text-brand-primary"></i>
+                  <span
+                    class="text-[10px] font-black text-white uppercase tracking-widest"
+                  >
+                    {{ section.label }}
+                  </span>
+                </div>
+                <span class="text-sm font-black text-white">
+                  {{ section.score }}%
+                </span>
+              </div>
+              <p class="text-[10px] text-slate-500 uppercase leading-relaxed mb-3">
+                {{ section.purpose }}
+              </p>
+              <div class="h-1 rounded-full bg-white/5 overflow-hidden mb-3">
+                <div
+                  class="h-full bg-brand-primary"
+                  [style.width.%]="section.score"
+                ></div>
+              </div>
+              <div
+                *ngIf="section.missing.length"
+                class="text-[9px] text-amber-400/80 uppercase font-bold"
+              >
+                Missing: {{ section.missing.join(' · ') }}
+              </div>
+              <div
+                *ngIf="!section.missing.length"
+                class="text-[9px] text-brand-primary uppercase font-bold"
+              >
+                Complete — {{ section.present }}/{{ section.total }} elements
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div *ngSwitchCase="'basic'" class="space-y-10 animate-fade-in">
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Identity & Vision
+            </h2>
+          </header>
+
+          <section
+            class="identity-panel p-10 mb-10 flex flex-col md:flex-row items-center gap-10 border-brand-secondary/20 shadow-[0_0_50px_rgba(168,85,247,0.05)]"
+          >
+            <div class="w-full md:w-1/2">
+              <h2
+                class="text-3xl font-black italic uppercase text-brand-secondary mb-2"
+              >
+                Strategic DNA
+              </h2>
+              <p
+                class="text-[10px] text-slate-500 font-black tracking-[0.3em] uppercase mb-8"
+              >
+                Neural Expertise Calibration & Multi-Dimensional Trajectory
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div
+                  *ngFor="
+                    let item of [
+                      { key: 'production', label: 'Production' },
+                      { key: 'songwriting', label: 'Songwriting' },
+                      { key: 'marketing', label: 'Marketing' },
+                      { key: 'business', label: 'Business' },
+                      { key: 'legal', label: 'Legal' },
+                      { key: 'performance', label: 'Performance' },
+                    ]
+                  "
+                  class="bg-black/40 p-3 rounded-xl border border-white/5 flex flex-col gap-1"
+                >
+                  <span
+                    class="text-[8px] font-black text-slate-500 uppercase"
+                    >{{ item.label }}</span
+                  >
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-black text-white"
+                      >{{
+                        editableProfile().expertise[$any(item.key)] || 0
+                      }}.0</span
+                    >
+                    <div class="flex gap-0.5">
+                      <div
+                        *ngFor="let i of [1, 2, 3, 4, 5]"
+                        class="w-1.5 h-3 rounded-sm border border-white/10"
+                        [class.bg-brand-secondary]="
+                          (editableProfile().expertise[$any(item.key)] || 0) >=
+                          i * 2
+                        "
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="w-full md:w-1/2 flex justify-center">
+              <app-radar-chart
+                [expertise]="editableProfile().expertise"
+                class="w-64 h-64"
+              ></app-radar-chart>
+            </div>
+          </section>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <app-form-field label="Artist / Stage Name">
+              <input
+                type="text"
+                [(ngModel)]="editableProfile().artistName"
+                class="executive-input"
+              />
+            </app-form-field>
+            <app-form-field label="Location">
+              <input
+                type="text"
+                [(ngModel)]="editableProfile().location"
+                placeholder="Global HQ / City, Country"
+                class="executive-input"
+              />
+            </app-form-field>
+            <app-form-field label="Primary Genre">
+              <select
+                [(ngModel)]="editableProfile().primaryGenre"
+                class="executive-input"
+              >
+                <option *ngFor="let g of allGenres" [value]="g">{{ g }}</option>
+              </select>
+            </app-form-field>
+            <app-form-field label="Official Website">
+              <input
+                type="text"
+                [(ngModel)]="editableProfile().website"
+                class="executive-input"
+                placeholder="https://yourartistdomain.com"
+              />
+            </app-form-field>
+            <app-form-field label="PRO / IPI">
+              <input
+                type="text"
+                [(ngModel)]="editableProfile().proIpi"
+                class="executive-input"
+                placeholder="IPI / CAE number"
+              />
+            </app-form-field>
+          </div>
+
+          <section
+            *ngIf="editableProfile().profileSetupCompleted"
+            class="space-y-8 animate-fade-in"
+          >
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="identity-panel flex flex-col items-center gap-6 p-10">
+                <h3
+                  class="text-sm font-black uppercase text-white tracking-widest"
+                >
+                  Artist Avatar
+                </h3>
+                <div
+                  class="relative group cursor-pointer"
+                  [class.pointer-events-none]="uploadingImage()"
+                  [class.opacity-60]="uploadingImage()"
+                  (click)="avatarUpload.click()"
+                >
+                  <div
+                    class="w-32 h-32 rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-brand-primary transition-all shadow-2xl"
+                  >
+                    <img
+                      *ngIf="editableProfile().avatarImage"
+                      [src]="editableProfile().avatarImage"
+                      class="w-full h-full object-cover"
+                    />
+                    <div
+                      *ngIf="!editableProfile().avatarImage"
+                      class="w-full h-full bg-white/5 flex items-center justify-center"
+                    >
+                      <i class="fas fa-camera text-3xl text-slate-700"></i>
+                    </div>
+                  </div>
+                  <div
+                    class="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-3xl"
+                  >
+                    <span class="text-[10px] font-black uppercase text-white"
+                      >{{ uploadingImage() ? 'Uploading…' : 'Upload' }}</span
+                    >
+                  </div>
+                  <input
+                    #avatarUpload
+                    type="file"
+                    class="hidden"
+                    (change)="onImageSelected($event, 'avatarImage')"
+                    accept="image/*"
+                  />
+                </div>
+                <p
+                  class="text-[9px] text-slate-500 uppercase tracking-widest text-center"
+                >
+                  Recommended: 1024x1024 PNG/JPG
+                </p>
+              </div>
+
+              <div class="identity-panel flex flex-col items-center gap-6 p-10">
+                <h3
+                  class="text-sm font-black uppercase text-white tracking-widest"
+                >
+                  Header Backdrop
+                </h3>
+                <div
+                  class="relative group cursor-pointer w-full"
+                  [class.pointer-events-none]="uploadingImage()"
+                  [class.opacity-60]="uploadingImage()"
+                  (click)="headerUpload.click()"
+                >
+                  <div
+                    class="w-full h-32 rounded-3xl overflow-hidden border-2 border-white/10 group-hover:border-brand-primary transition-all shadow-2xl"
+                  >
+                    <img
+                      *ngIf="editableProfile().headerImage"
+                      [src]="editableProfile().headerImage"
+                      class="w-full h-full object-cover"
+                    />
+                    <div
+                      *ngIf="!editableProfile().headerImage"
+                      class="w-full h-full bg-white/5 flex items-center justify-center"
+                    >
+                      <i class="fas fa-image text-3xl text-slate-700"></i>
+                    </div>
+                  </div>
+                  <div
+                    class="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all rounded-3xl"
+                  >
+                    <span class="text-[10px] font-black uppercase text-white"
+                      >{{ uploadingImage() ? 'Uploading…' : 'Upload' }}</span
+                    >
+                  </div>
+                  <input
+                    #headerUpload
+                    type="file"
+                    class="hidden"
+                    (change)="onImageSelected($event, 'headerImage')"
+                    accept="image/*"
+                  />
+                </div>
+                <p
+                  class="text-[9px] text-slate-500 uppercase tracking-widest text-center"
+                >
+                  Recommended: 1920x600 Cinematic Aspect
+                </p>
+              </div>
+            </div>
+
+            <div class="identity-panel p-10">
+              <div class="flex items-center justify-between mb-8">
+                <div>
+                  <h3
+                    class="text-sm font-black uppercase text-white tracking-widest"
+                  >
+                    Press Gallery
+                  </h3>
+                  <p
+                    class="text-[9px] text-slate-500 uppercase tracking-widest mt-1"
+                  >
+                    Managed visual assets for media & promoters
+                  </p>
+                </div>
+                <button
+                  (click)="galleryUpload.click()"
+                  class="connector-action"
+                >
+                  Deploy New Asset
+                </button>
+                <input
+                  #galleryUpload
+                  type="file"
+                  class="hidden"
+                  (change)="addToGallery($event)"
+                  accept="image/*"
+                />
+              </div>
+
+              <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div
+                  *ngFor="
+                    let img of editableProfile().pressGallery;
+                    let i = index
+                  "
+                  class="relative group aspect-square rounded-2xl overflow-hidden border border-white/10"
+                >
+                  <img [src]="img" class="w-full h-full object-cover" />
+                  <div
+                    class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"
+                  >
+                    <button
+                      (click)="removeFromGallery(i)"
+                      class="w-8 h-8 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                    >
+                      <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+                <div
+                  *ngIf="
+                    !editableProfile().pressGallery ||
+                    editableProfile().pressGallery.length === 0
+                  "
+                  class="col-span-full py-12 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-3"
+                >
+                  <i class="fas fa-images text-slate-800 text-3xl"></i>
+                  <span
+                    class="text-[9px] font-black uppercase tracking-widest text-slate-600"
+                    >No assets deployed to gallery</span
+                  >
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="space-y-4">
+            <label
+              class="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]"
+              >Core Expertise</label
+            >
+            <div class="flex flex-wrap gap-2">
+              <button
+                *ngFor="let skill of skillsList"
+                (click)="toggleChip('skills', skill)"
+                [class.chip-active]="editableProfile().skills?.includes(skill)"
+                class="chip"
+              >
+                {{ skill }}
+              </button>
+            </div>
+
+            <div class="flex gap-4 mt-10 border-t border-white/5 pt-10">
+              <button
+                (click)="exportArchive()"
+                class="px-6 py-2 bg-slate-800 text-slate-300 text-[10px] font-black uppercase rounded-lg hover:bg-slate-700 transition-colors"
+              >
+                Export Archive
+              </button>
+              <label
+                class="px-6 py-2 bg-slate-800 text-slate-300 text-[10px] font-black uppercase rounded-lg hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Import Archive
+                <input
+                  type="file"
+                  (change)="onProfileImport($event)"
+                  class="hidden"
+                  accept=".json"
+                />
+              </label>
+            </div>
+
+            <p
+              *ngIf="archiveNotice() as notice"
+              class="text-[10px] font-bold uppercase tracking-[0.16em] mt-4"
+              [class.text-brand-primary]="notice.kind === 'ok'"
+              [class.text-red-400]="notice.kind === 'error'"
+            >
+              {{ notice.text }}
+            </p>
+          </section>
+        </div>
+
+        <div
+          *ngSwitchCase="'identity-console'"
+          class="space-y-10 animate-fade-in"
+        >
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Artist Identity Console
+            </h2>
+            <p
+              class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-2"
+            >
+              Unified connector telemetry, fingerprint scoring, and review
+              actions.
+            </p>
+          </header>
+
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <article class="identity-card">
+              <span class="identity-label">Trust Score</span>
+              <strong class="identity-score"
+                >{{ identityPreview().fingerprint.trustScore }}%</strong
+              >
+              <p class="identity-copy">
+                {{ identityPreview().fingerprint.changeSummary[0] }}
+              </p>
+            </article>
+            <article class="identity-card">
+              <span class="identity-label">Resolution Confidence</span>
+              <strong class="identity-score"
+                >{{ identityPreview().resolution.confidenceScore }}%</strong
+              >
+              <p class="identity-copy">
+                {{ identityPreview().resolution.explainability[0] }}
+              </p>
+            </article>
+            <article class="identity-card">
+              <span class="identity-label">Review Queue</span>
+              <strong class="identity-score">{{
+                identityPreview().sync.queueDepth
+              }}</strong>
+              <p class="identity-copy">
+                Pending connector refresh jobs and manual reviews.
+              </p>
+            </article>
+          </div>
+
+          <section class="identity-panel">
+            <div
+              class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6"
+            >
+              <div>
+                <h3 class="text-lg font-black uppercase text-white">
+                  Connector Matrix
+                </h3>
+                <p
+                  class="text-[10px] uppercase tracking-[0.2em] text-slate-500 mt-1"
+                >
+                  Official vs unofficial presence across launch connectors
+                </p>
+              </div>
+              <button
+                (click)="saveProfile()"
+                [disabled]="saveStatus() === 'saving'"
+                class="px-6 py-3 bg-brand-primary text-black rounded-full text-[10px] font-black uppercase tracking-[0.2em] disabled:opacity-50"
+              >
+                Refresh Full Identity Graph
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              <article
+                *ngFor="let connector of connectorMatrix()"
+                class="connector-row"
+              >
+                <div>
+                  <div class="flex items-center gap-3">
+                    <h4 class="text-sm font-black uppercase text-white">
+                      {{ connector.connector }}
+                    </h4>
+                    <span
+                      class="connector-pill"
+                      [class.connector-pill--good]="connector.official"
+                    >
+                      {{ connector.verification }}
+                    </span>
+                  </div>
+                  <p
+                    class="text-[10px] uppercase tracking-[0.16em] text-slate-500 mt-2"
+                  >
+                    STATUS: {{ connector.status }} · HEALTH:
+                    {{ connector.health }} · AUDIENCE: {{ connector.audience }}
+                  </p>
+                </div>
+                <button
+                  (click)="queueConnectorRefresh(connector.connector)"
+                  class="connector-action"
+                >
+                  Queue Refresh
+                </button>
+              </article>
+            </div>
+          </section>
+
+          <section class="identity-panel" *ngIf="syncLog().length > 0">
+            <h3 class="text-lg font-black uppercase text-white mb-4">
+              Connector Activity
+            </h3>
+            <div class="space-y-2">
+              <p
+                *ngFor="let entry of syncLog()"
+                class="text-[10px] uppercase tracking-[0.16em] text-slate-400"
+              >
+                {{ entry }}
+              </p>
+            </div>
+          </section>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <section class="identity-panel">
+              <h3 class="text-lg font-black uppercase text-white mb-6">
+                Fingerprint Risk Flags
+              </h3>
+              <div class="space-y-3">
+                <div
+                  *ngFor="
+                    let risk of identityPreview().fingerprint.riskFlags;
+                    trackBy: trackRisk
+                  "
+                  class="risk-row"
+                >
+                  <i class="fas fa-triangle-exclamation text-brand-primary"></i>
+                  <span>{{ risk }}</span>
+                </div>
+                <p
+                  *ngIf="identityPreview().fingerprint.riskFlags.length === 0"
+                  class="text-[10px] uppercase tracking-[0.16em] text-slate-500"
+                >
+                  No active risk flags. Identity graph is aligned for
+                  automation.
+                </p>
+              </div>
+            </section>
+
+            <section class="identity-panel">
+              <h3 class="text-lg font-black uppercase text-white mb-6">
+                Next Best Actions
+              </h3>
+              <div class="space-y-4">
+                <article
+                  *ngFor="let action of topIdentityActions()"
+                  class="action-row"
+                >
+                  <div class="flex items-center justify-between gap-4">
+                    <h4 class="text-sm font-black uppercase text-white">
+                      {{ action.title }}
+                    </h4>
+                    <span
+                      class="text-[10px] text-brand-primary font-black uppercase"
+                    >
+                      {{ action.impactScore }} / {{ action.confidenceScore }}
+                    </span>
+                  </div>
+                  <p class="text-[11px] text-slate-300 leading-relaxed">
+                    {{ action.description }}
+                  </p>
+                  <p
+                    class="text-[9px] uppercase tracking-[0.16em] text-slate-500"
+                  >
+                    {{ action.actionLabel }} · {{ action.evidence[0] }}
+                  </p>
+                </article>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div *ngSwitchCase="'persona'" class="space-y-6 animate-fade-in">
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              S.M.U.V.E Persona Control
+            </h2>
+            <p
+              class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-2"
+            >
+              Select how S.M.U.V.E communicates with you — each persona has a
+              unique tone, intensity, and management style.
+            </p>
+          </header>
+
+          <section class="identity-panel p-8 border-brand-secondary/25 space-y-6">
+            <div>
+              <div class="text-[10px] font-black text-brand-secondary uppercase tracking-[0.2em]">
+                Artist Operating Contract
+              </div>
+              <h3 class="text-xl font-black uppercase text-white mt-2">
+                Define what S.M.U.V.E. must protect
+              </h3>
+              <p class="text-[11px] text-slate-400 leading-relaxed mt-2 max-w-3xl">
+                These are your explicit rules for every production note, lyric idea, campaign, and release decision. They override generic genre assumptions and update the live fine-tune below before you commit.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label class="space-y-2 md:col-span-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Signature sound</span>
+                <textarea rows="2" [ngModel]="editableProfile().musicalJourney?.signatureSound || ''" (ngModelChange)="updateProfileField('musicalJourney.signatureSound', $event)" placeholder="Describe the sound only you should be making." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Creative tension</span>
+                <textarea rows="3" [ngModel]="blueprintValue('signatureTension')" (ngModelChange)="updateBlueprint('signatureTension', $event)" placeholder="The contradiction that makes your point of view impossible to replace." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Lived-world details</span>
+                <textarea rows="3" [ngModel]="blueprintValue('livedWorldDetails')" (ngModelChange)="updateBlueprint('livedWorldDetails', $event)" placeholder="Places, objects, rituals, memories, and language only you can name." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Sonic non-negotiables</span>
+                <textarea rows="3" [ngModel]="blueprintValue('sonicNonNegotiables')" (ngModelChange)="updateBlueprint('sonicNonNegotiables', $event)" placeholder="What must never be polished, removed, copied, or traded away." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Recognition cue</span>
+                <textarea rows="3" [ngModel]="blueprintValue('recognitionCue')" (ngModelChange)="updateBlueprint('recognitionCue', $event)" placeholder="The first sound, image, phrase, or feeling listeners should recognize." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2 md:col-span-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Artistic intent</span>
+                <textarea rows="2" [ngModel]="blueprintValue('artisticIntent')" (ngModelChange)="updateBlueprint('artisticIntent', $event)" placeholder="What should a listener feel, confront, or carry after engaging with your work?" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+              <label class="space-y-2 md:col-span-2">
+                <span class="text-[9px] font-black text-brand-primary uppercase tracking-[0.18em]">Collaboration boundaries</span>
+                <textarea rows="2" [ngModel]="blueprintValue('collaborationBoundaries')" (ngModelChange)="updateBlueprint('collaborationBoundaries', $event)" placeholder="Credit, ownership, creative, and working boundaries S.M.U.V.E. must respect." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <!-- Live fine-tune preview: what S.M.U.V.E. adapts from this draft -->
+          <div
+            class="identity-panel p-8 border-brand-primary/20"
+            *ngIf="finetunePreview() as ft"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div>
+                <div
+                  class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]"
+                >
+                  Artist Fine-Tune Preview
+                </div>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+                  S.M.U.V.E. adapts every role to this draft, not to a genre
+                  stereotype.
+                </p>
+              </div>
+              <div class="text-right">
+                <div class="text-2xl font-black text-white">
+                  {{ ft.knowledge.completeness }}%
+                </div>
+                <div
+                  class="text-[9px] font-bold uppercase tracking-widest"
+                  [ngClass]="
+                    ft.knowledge.state === 'calibrated'
+                      ? 'text-brand-primary'
+                      : 'text-amber-400'
+                  "
+                >
+                  {{ ft.knowledge.state }}
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div
+                *ngFor="let r of ft.roles"
+                class="p-4 rounded-xl bg-black/40 border border-white/5"
+              >
+                <div
+                  class="text-[9px] font-black text-brand-secondary uppercase tracking-[0.2em] mb-1"
+                >
+                  {{ r.role }}
+                </div>
+                <p class="text-[11px] text-slate-300 leading-relaxed">
+                  {{ r.directive }}
+                </p>
+              </div>
+            </div>
+
+            <div
+              *ngIf="ft.knowledge.missing.length"
+              class="mt-4 pt-4 border-t border-white/5"
+            >
+              <div
+                class="text-[9px] font-black text-amber-400 uppercase tracking-[0.2em] mb-2"
+              >
+                Signals S.M.U.V.E. still needs
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  *ngFor="let missing of ft.knowledge.missing"
+                  class="text-[9px] px-2 py-1 rounded-full bg-amber-400/10 text-amber-300 uppercase font-bold"
+                >
+                  {{ missing }}
+                </span>
+              </div>
+            </div>
+
+            <div
+              *ngIf="ft.tips.length"
+              class="mt-4 pt-4 border-t border-white/5"
+            >
+              <div
+                class="text-[9px] font-black text-brand-secondary uppercase tracking-[0.2em] mb-2"
+              >
+                Adaptive tips from this profile
+              </div>
+              <ul class="space-y-1">
+                <li
+                  *ngFor="let tip of ft.tips"
+                  class="text-[11px] text-slate-400 flex gap-2"
+                >
+                  <i class="fas fa-lightbulb text-brand-secondary text-[8px] mt-1"></i>
+                  <span>{{ tip }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <div
+              *ngIf="ft.knowledge.differentiators.length"
+              class="mt-4 pt-4 border-t border-white/5"
+            >
+              <div
+                class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] mb-2"
+              >
+                Differentiation anchors in use
+              </div>
+              <ul class="space-y-1">
+                <li
+                  *ngFor="let d of ft.knowledge.differentiators"
+                  class="text-[11px] text-slate-400 flex gap-2"
+                >
+                  <i class="fas fa-bolt text-brand-primary text-[8px] mt-1"></i>
+                  <span>{{ d }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <button
+              *ngFor="let p of personaOptions"
+              (click)="selectPersona(p)"
+              class="p-6 rounded-2xl border-2 text-left transition-all"
+              [class.border-brand-primary]="activePersonaId() === p.id"
+              [class.border-white/5]="activePersonaId() !== p.id"
+              [style.--hover-color]="p.color"
+              [style.background]="
+                activePersonaId() === p.id
+                  ? p.color + '12'
+                  : 'rgba(255,255,255,0.02)'
+              "
+            >
+              <div class="text-3xl mb-3">{{ p.icon }}</div>
+              <h3 class="text-sm font-black uppercase text-white mb-1">
+                {{ p.name }}
+              </h3>
+              <p class="text-[9px] text-slate-400 leading-relaxed mb-3">
+                {{ p.description }}
+              </p>
+              <span
+                class="text-[8px] font-bold uppercase tracking-widest"
+                [style.color]="p.color"
+                >{{ p.intensityLabel }}</span
+              >
+            </button>
+          </div>
+
+          <div class="identity-panel p-8">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-lg font-black uppercase text-white">
+                  Interactive Preview
+                </h3>
+                <p
+                  class="text-[10px] text-slate-500 uppercase tracking-widest mt-1"
+                >
+                  See how your selected persona responds in real-time
+                </p>
+              </div>
+              <button
+                (click)="showPersonaSelector.set(true)"
+                class="px-6 py-3 bg-brand-primary text-black rounded-full text-[10px] font-black uppercase tracking-[0.2em] hover:scale-105 transition-all"
+              >
+                Open Persona Lab
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <div
+                class="w-2 h-2 rounded-full"
+                class="bg-green-400"
+              ></div>
+              <span
+                class="text-[10px] text-slate-400 uppercase tracking-widest"
+              >
+                Current Persona:
+                <strong class="text-white">{{ activePersonaId() }}</strong>
+              </span>
+            </div>
+          </div>
+
+          <app-persona-selector
+            *ngIf="showPersonaSelector()"
+            [selectedPersona]="activePersonaId()"
+            (select)="onPersonaSelected($event)"
+            (close)="showPersonaSelector.set(false)"
+          ></app-persona-selector>
+        </div>
+
+        <!-- ─── ONLINE FINGERPRINT ───────────────────────────── -->
+        <div *ngSwitchCase="'fingerprint'" class="space-y-8 animate-fade-in">
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Online Fingerprint
+            </h2>
+            <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-2">
+              For Artists dashboards, rights organisations, delivery, and
+              analytics — recorded, verified, and owned by the artist.
+            </p>
+          </header>
+
+          <div
+            class="identity-panel p-6 border-brand-primary/20 flex flex-wrap items-center justify-between gap-4"
+          >
+            <div>
+              <div
+                class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em]"
+              >
+                {{ experienceTrackLabel() }}
+              </div>
+              <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-2">
+                S.M.U.V.E. judges this from evidence — releases, links,
+                registrations, and live history — never from a label.
+              </p>
+            </div>
+            <div class="text-right">
+              <div class="text-3xl font-black text-white">
+                {{ fingerprintReadout().overall }}%
+              </div>
+              <div class="text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                Fingerprint coverage
+              </div>
+            </div>
+          </div>
+
+          <!-- Beginners with nothing online yet get a plan, not a wall of fields -->
+          <div
+            class="identity-panel p-8 border-amber-400/20"
+            *ngIf="!fingerprintReadout().hasFingerprint"
+          >
+            <div
+              class="text-[10px] font-black text-amber-400 uppercase tracking-[0.3em] mb-2"
+            >
+              No online fingerprint yet
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed mb-5">
+              That is a starting position, not a problem. Nothing here needs a
+              finished catalogue, a manager, or a budget — work the list in
+              order and each step unlocks the next.
+            </p>
+            <div class="space-y-3">
+              <div
+                *ngFor="let step of fingerprintPlan()"
+                class="p-4 rounded-xl bg-black/40 border border-white/5"
+              >
+                <div class="flex items-start gap-3">
+                  <span
+                    class="w-6 h-6 rounded-full bg-amber-400/15 text-amber-300 text-[10px] font-black flex items-center justify-center shrink-0"
+                  >
+                    {{ step.order }}
+                  </span>
+                  <div class="flex-1">
+                    <div
+                      class="text-[10px] font-black text-white uppercase tracking-widest"
+                    >
+                      {{ step.title }}
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed mt-1">
+                      {{ step.detail }}
+                    </p>
+                    <a
+                      *ngIf="step.destination as destination"
+                      [href]="destination.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-flex items-center gap-2 mt-2 text-[9px] font-black uppercase tracking-widest text-brand-primary"
+                    >
+                      <i class="fas fa-arrow-up-right-from-square"></i>
+                      {{ destination.label }} — {{ destination.why }}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Established artists get consolidation steps instead -->
+          <div
+            class="identity-panel p-8"
+            *ngIf="fingerprintReadout().hasFingerprint && fingerprintPlan().length"
+          >
+            <div
+              class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-4"
+            >
+              Consolidation plan
+            </div>
+            <ul class="space-y-3">
+              <li
+                *ngFor="let step of fingerprintPlan()"
+                class="text-[11px] text-slate-300 flex gap-3"
+              >
+                <i class="fas fa-arrow-right text-brand-primary text-[8px] mt-1"></i>
+                <span
+                  ><strong class="text-white uppercase text-[10px]">{{ step.title }}</strong>
+                  — {{ step.detail }}</span
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div
+            *ngFor="let group of fingerprintGroups()"
+            class="identity-panel p-8"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <h3
+                class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em]"
+              >
+                {{ group.label }}
+              </h3>
+              <span class="text-[9px] font-black text-slate-500 uppercase">
+                {{ group.coverage?.present || 0 }}/{{ group.coverage?.total || 0 }}
+                claimed
+              </span>
+            </div>
+
+            <div class="space-y-3">
+              <div
+                *ngFor="let destination of group.destinations"
+                class="p-4 rounded-xl border bg-black/40 transition-all"
+                [class.border-brand-primary/40]="destination.link"
+                [class.border-white/5]="!destination.link"
+              >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div class="flex-1 min-w-[14rem]">
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="text-[10px] font-black text-white uppercase tracking-widest"
+                      >
+                        {{ destination.label }}
+                      </span>
+                      <span
+                        *ngIf="destination.link?.verified"
+                        class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-brand-primary/15 text-brand-primary"
+                      >
+                        Verified
+                      </span>
+                      <span
+                        *ngIf="destination.link && !destination.link.verified"
+                        class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300"
+                      >
+                        Unverified
+                      </span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-relaxed mt-1">
+                      {{ destination.why }}
+                    </p>
+                    <a
+                      *ngIf="destination.link"
+                      [href]="destination.link.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-[9px] text-brand-primary font-bold uppercase tracking-widest break-all"
+                    >
+                      {{ destination.link.url }}
+                    </a>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button
+                      *ngIf="!destination.link"
+                      (click)="beginFingerprintLink(destination.id)"
+                      class="px-4 py-2 rounded-full bg-brand-primary/15 text-brand-primary text-[9px] font-black uppercase tracking-widest"
+                    >
+                      Add link
+                    </button>
+                    <ng-container *ngIf="destination.link">
+                      <button
+                        (click)="toggleFingerprintVerified(destination.id, !destination.link.verified)"
+                        class="px-4 py-2 rounded-full border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-300"
+                      >
+                        {{ destination.link.verified ? 'Unverify' : 'Verify' }}
+                      </button>
+                      <button
+                        (click)="removeFingerprintLink(destination.id)"
+                        class="px-4 py-2 rounded-full border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-500"
+                      >
+                        Remove
+                      </button>
+                    </ng-container>
+                  </div>
+                </div>
+
+                <div
+                  *ngIf="fingerprintLink?.id === destination.id"
+                  class="mt-4 pt-4 border-t border-white/5 space-y-3"
+                >
+                  <input
+                    type="url"
+                    [(ngModel)]="fingerprintUrl"
+                    placeholder="https://…"
+                    class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
+                  />
+                  <label class="flex items-center gap-3 text-[10px] text-slate-400">
+                    <input
+                      type="checkbox"
+                      [(ngModel)]="fingerprintVerified"
+                      class="accent-emerald-400"
+                    />
+                    This account is confirmed as the artist’s own
+                  </label>
+                  <div class="flex gap-2">
+                    <button
+                      (click)="saveFingerprintLink()"
+                      class="px-5 py-2 rounded-full bg-brand-primary text-black text-[9px] font-black uppercase tracking-widest"
+                    >
+                      Save link
+                    </button>
+                    <button
+                      (click)="cancelFingerprintLink()"
+                      class="px-5 py-2 rounded-full border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-400"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── OFFICIAL MUSIC HISTORY ──────────────────────── -->
+        <div *ngSwitchCase="'music-history'" class="space-y-8 animate-fade-in">
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Official Music History
+            </h2>
+            <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-2">
+              S.M.U.V.E. keeps the release record in order — dates,
+              identifiers, delivery, credits, and ownership.
+            </p>
+          </header>
+
+          <div class="identity-panel p-8" *ngIf="historyReport() as history">
+            <div class="flex flex-wrap items-center justify-between gap-6">
+              <div>
+                <div
+                  class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]"
+                >
+                  Documentation health
+                </div>
+                <div class="text-4xl font-black text-white mt-2">
+                  {{ history.averageCompleteness }}%
+                </div>
+                <div class="text-[9px] uppercase font-bold tracking-widest text-slate-500 mt-2">
+                  {{ history.releases.length }} works ·
+                  {{ history.undated }} undated
+                </div>
+              </div>
+              <div class="flex-1 min-w-[16rem] space-y-2">
+                <div
+                  *ngFor="let issue of history.timelineIssues"
+                  class="text-[10px] text-amber-400/90 flex gap-2"
+                >
+                  <i class="fas fa-triangle-exclamation text-[8px] mt-1"></i>
+                  <span>{{ issue }}</span>
+                </div>
+                <div
+                  *ngIf="!history.timelineIssues.length"
+                  class="text-[10px] text-brand-primary flex gap-2"
+                >
+                  <i class="fas fa-check text-[8px] mt-1"></i>
+                  <span>Timeline is consistent and ordered.</span>
+                </div>
+                <div
+                  *ngIf="history.gaps.length"
+                  class="text-[9px] text-slate-500 uppercase font-bold pt-2"
+                >
+                  Gaps: {{ history.gaps.join(' · ') }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Official catalog uplink: identifiers, delivery, monitoring -->
+          <div class="identity-panel p-8 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-6">
+              <div>
+                <div
+                  class="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]"
+                >
+                  Catalog uplink
+                </div>
+                <div class="text-4xl font-black text-white mt-2">
+                  {{ catalogUplink().score }}%
+                </div>
+                <div
+                  class="text-[9px] uppercase font-bold tracking-widest text-slate-500 mt-2"
+                >
+                  {{ catalogUplink().totals.withIsrc }}/{{ catalogUplink().totals.works }} ISRC ·
+                  {{ catalogUplink().totals.withIswc }}/{{ catalogUplink().totals.works }} ISWC ·
+                  {{ catalogUplink().totals.withUpc }}/{{ catalogUplink().totals.works }} UPC
+                </div>
+                <div
+                  class="text-[9px] uppercase font-bold tracking-widest mt-1"
+                  [class.text-emerald-400]="
+                    catalogUplink().totals.monitored === catalogUplink().totals.live
+                  "
+                  [class.text-amber-400]="
+                    catalogUplink().totals.monitored !== catalogUplink().totals.live
+                  "
+                >
+                  {{ catalogUplink().totals.monitored }}/{{ catalogUplink().totals.live }} live works monitored
+                </div>
+              </div>
+              <div class="flex-1 min-w-[16rem] space-y-2">
+                <div
+                  *ngFor="let priority of catalogUplink().priorities"
+                  class="text-[10px] text-amber-400/90 flex gap-2"
+                >
+                  <i class="fas fa-satellite-dish text-[8px] mt-1"></i>
+                  <span>{{ priority }}</span>
+                </div>
+                <div
+                  *ngIf="!catalogUplink().priorities.length"
+                  class="text-[10px] text-brand-primary flex gap-2"
+                >
+                  <i class="fas fa-check text-[8px] mt-1"></i>
+                  <span
+                    >Every work is identified, delivered, and monitorable.</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            *ngIf="!historyReleases().length"
+            class="identity-panel p-10 text-center"
+          >
+            <p class="text-sm text-slate-400 leading-relaxed">
+              No releases recorded yet. Add the first work in
+              <strong class="text-white">Catalog Assets</strong> and it will
+              appear here with its documentation checklist.
+            </p>
+          </div>
+
+          <div class="space-y-4">
+            <div
+              *ngFor="let release of historyReleases()"
+              class="identity-panel p-6"
+            >
+              <div class="flex flex-wrap items-start justify-between gap-4">
+                <div class="flex-1 min-w-[16rem]">
+                  <div class="text-sm font-black text-white uppercase">
+                    {{ release.title || 'Untitled work' }}
+                  </div>
+                  <div
+                    class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-1"
+                  >
+                    {{ release.releaseDate || 'Release date missing' }}
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-lg font-black text-white">
+                    {{ release.completeness }}%
+                  </div>
+                  <div class="text-[8px] font-black uppercase text-slate-500">
+                    documented
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                <input
+                  type="date"
+                  [ngModel]="release.releaseDate || ''"
+                  (ngModelChange)="updateReleaseField(release.id, 'releaseDate', $event)"
+                  class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
+                />
+                <select
+                  [ngModel]="releaseField(release.id, 'releaseType')"
+                  (ngModelChange)="updateReleaseField(release.id, 'releaseType', $event)"
+                  class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
+                >
+                  <option value="">Release type…</option>
+                  <option *ngFor="let type of releaseTypes" [value]="type">
+                    {{ type }}
+                  </option>
+                </select>
+                <input
+                  type="text"
+                  [ngModel]="releaseField(release.id, 'distributor') || ''"
+                  (ngModelChange)="updateReleaseField(release.id, 'distributor', $event)"
+                  placeholder="Distributor"
+                  class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
+                />
+                <input
+                  type="text"
+                  [ngModel]="releaseField(release.id, 'isrc') || ''"
+                  (ngModelChange)="updateReleaseField(release.id, 'isrc', $event)"
+                  placeholder="ISRC"
+                  class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
+                />
+                <input
+                  type="text"
+                  [ngModel]="releaseField(release.id, 'iswc') || ''"
+                  (ngModelChange)="updateReleaseField(release.id, 'iswc', $event)"
+                  placeholder="ISWC"
+                  class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
+                />
+                <input
+                  type="text"
+                  [ngModel]="releaseField(release.id, 'upc') || ''"
+                  (ngModelChange)="updateReleaseField(release.id, 'upc', $event)"
+                  placeholder="UPC"
+                  class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
+                />
+                <input
+                  type="text"
+                  [ngModel]="releasePlatformsText(release.id)"
+                  (ngModelChange)="setReleasePlatforms(release.id, $event)"
+                  placeholder="Platforms (comma separated)"
+                  class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
+                />
+                <input
+                  type="text"
+                  [ngModel]="releaseField(release.id, 'credits') || ''"
+                  (ngModelChange)="updateReleaseField(release.id, 'credits', $event)"
+                  placeholder="Credits"
+                  class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
+                />
+                <input
+                  type="text"
+                  [ngModel]="releaseField(release.id, 'splitSheetRef') || ''"
+                  (ngModelChange)="updateReleaseField(release.id, 'splitSheetRef', $event)"
+                  placeholder="Split sheet reference"
+                  class="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-[11px] text-white"
+                />
+              </div>
+
+              <div
+                *ngIf="release.missing.length"
+                class="mt-3 text-[9px] text-amber-400/80 uppercase font-bold"
+              >
+                Still needed: {{ release.missing.join(' · ') }}
+              </div>
+              <div
+                *ngIf="!release.missing.length"
+                class="mt-3 text-[9px] text-brand-primary uppercase font-bold"
+              >
+                Fully documented
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── PRODUCTION TOOLCHAIN ─────────────────────────── -->
+        <div *ngSwitchCase="'production-tools'" class="space-y-8 animate-fade-in">
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Production Toolchain
+            </h2>
+            <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-2">
+              The real equipment, DAW, services, and operator skill S.M.U.V.E.
+              must produce around.
+            </p>
+          </header>
+
+          <div class="identity-panel p-8 space-y-6">
+            <div *ngFor="let chip of toolChipGroups" class="space-y-3">
+              <h3
+                class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]"
+              >
+                {{ chip.label }}
+              </h3>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  *ngFor="let option of chip.options"
+                  (click)="toggleChip(chip.field, option)"
+                  class="px-4 py-2 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all"
+                  [class.chip-active]="hasChip(chip.field, option)"
+                  [class.border-white/10]="!hasChip(chip.field, option)"
+                  [class.text-slate-500]="!hasChip(chip.field, option)"
+                >
+                  {{ option }}
+                </button>
+              </div>
+            </div>
+
+            <div class="pt-6 border-t border-white/5">
+              <h3
+                class="text-[10px] font-black text-brand-secondary uppercase tracking-[0.2em] mb-4"
+              >
+                Expertise Levels
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  *ngFor="let skill of expertiseKeys"
+                  class="flex items-center justify-between gap-4"
+                >
+                  <label
+                    class="text-[10px] font-black uppercase tracking-widest text-slate-400"
+                    [attr.for]="'expertise-' + skill"
+                  >
+                    {{ skill }}
+                  </label>
+                  <input
+                    [id]="'expertise-' + skill"
+                    type="range"
+                    min="0"
+                    max="10"
+                    [ngModel]="expertiseValue(skill)"
+                    (ngModelChange)="setExpertise(skill, $event)"
+                    class="flex-1 accent-emerald-400"
+                  />
+                  <span class="text-[10px] font-black text-white w-6 text-right">
+                    {{ expertiseValue(skill) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── SYNC & LICENSING ─────────────────────────────── -->
+        <div *ngSwitchCase="'sync-licensing'" class="space-y-8 animate-fade-in">
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Sync & Licensing
+            </h2>
+            <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-2">
+              Supervisors buy clearance, versions, and stems — not just songs.
+            </p>
+          </header>
+
+          <div class="identity-panel p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <label class="space-y-2" *ngFor="let toggle of syncToggles">
+              <span
+                class="text-[10px] font-black uppercase text-brand-primary tracking-[0.2em] block"
+              >
+                {{ toggle.label }}
+              </span>
+              <select
+                [ngModel]="toggle.field === 'isSyncReady' ? syncReadinessValue() : syncValue(toggle.field)"
+                (ngModelChange)="setSyncField(toggle.field, $event)"
+                class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
+              >
+                <option *ngFor="let option of toggle.options" [ngValue]="option">
+                  {{ option }}
+                </option>
+              </select>
+            </label>
+
+            <label class="space-y-2">
+              <span
+                class="text-[10px] font-black uppercase text-brand-primary tracking-[0.2em] block"
+              >
+                Sync catalogue size
+              </span>
+              <input
+                type="number"
+                min="0"
+                [ngModel]="syncValue('catalogSize')"
+                (ngModelChange)="setSyncField('catalogSize', $event)"
+                class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
+              />
+            </label>
+
+            <label class="space-y-2 md:col-span-2">
+              <span
+                class="text-[10px] font-black uppercase text-brand-primary tracking-[0.2em] block"
+              >
+                Pitch keywords (comma separated)
+              </span>
+              <input
+                type="text"
+                [ngModel]="syncKeywordsText()"
+                (ngModelChange)="setSyncKeywords($event)"
+                placeholder="late-night drive, hopeful resolve, documentary"
+                class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
+              />
+            </label>
+
+            <div *ngFor="let flag of syncFlags" class="flex items-center gap-3">
+              <input
+                type="checkbox"
+                [id]="flag.field"
+                [ngModel]="syncFlagValue(flag.field)"
+                (ngModelChange)="setSyncFlag(flag.field, $event)"
+                class="accent-emerald-400"
+              />
+              <label
+                [attr.for]="flag.field"
+                class="text-[10px] font-black uppercase tracking-widest text-slate-400"
+              >
+                {{ flag.label }}
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── LEGAL INFRASTRUCTURE ─────────────────────────── -->
+        <div
+          *ngSwitchCase="'legal-infrastructure'"
+          class="space-y-8 animate-fade-in"
+        >
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Legal Infrastructure
+            </h2>
+            <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em] mt-2">
+              Ownership, registration, and entity protection behind the
+              catalogue.
+            </p>
+          </header>
+
+          <div class="identity-panel p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <label class="space-y-2" *ngFor="let field of legalSelects">
+              <span
+                class="text-[10px] font-black uppercase text-brand-primary tracking-[0.2em] block"
+              >
+                {{ field.label }}
+              </span>
+              <select
+                [ngModel]="legalValue(field.field)"
+                (ngModelChange)="setLegalField(field.field, $event)"
+                class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
+              >
+                <option *ngFor="let option of field.options" [ngValue]="option">
+                  {{ option }}
+                </option>
+              </select>
+            </label>
+
+            <label class="space-y-2">
+              <span
+                class="text-[10px] font-black uppercase text-brand-primary tracking-[0.2em] block"
+              >
+                PRO name
+              </span>
+              <input
+                type="text"
+                [ngModel]="editableProfile().proName || ''"
+                (ngModelChange)="updateProfileField('proName', $event)"
+                placeholder="ASCAP / BMI / PRS"
+                class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
+              />
+            </label>
+
+            <div class="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="registered-works"
+                [ngModel]="legalFlag('hasRegisteredWorks')"
+                (ngModelChange)="setLegalFlag('hasRegisteredWorks', $event)"
+                class="accent-emerald-400"
+              />
+              <label
+                for="registered-works"
+                class="text-[10px] font-black uppercase tracking-widest text-slate-400"
+              >
+                Works registered
+              </label>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="incorporated"
+                [ngModel]="legalFlag('isIncorporated')"
+                (ngModelChange)="setLegalFlag('isIncorporated', $event)"
+                class="accent-emerald-400"
+              />
+              <label
+                for="incorporated"
+                class="text-[10px] font-black uppercase tracking-widest text-slate-400"
+              >
+                Incorporated entity
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div
+          *ngSwitchCase="'genre-deep-dive'"
+          class="space-y-10 animate-fade-in"
+        >
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Genre Intelligence
+            </h2>
+          </header>
+
+          <div class="protocol-tile">
+            <div
+              class="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center animate-pulse mx-auto mb-6"
+            >
+              <i class="fas fa-brain text-brand-primary text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-black uppercase text-white italic mb-2">
+              Neural Fine-Tune Protocol
+            </h3>
+            <p
+              class="text-[10px] text-slate-400 uppercase tracking-widest mb-8"
+            >
+              Initialize conversational deep-dive to calibrate your sonic
+              trajectory.
+            </p>
+            <button
+              (click)="showQuestionnaire.set(true)"
+              class="px-10 py-4 bg-brand-primary text-black text-xs font-black uppercase tracking-[0.2em] rounded-full hover:scale-105 transition-all shadow-xl shadow-brand-primary/20"
+            >
+              Launch Protocol v2.0
+            </button>
+          </div>
+        </div>
+
+        <div *ngSwitchCase="'catalog'" class="animate-fade-in">
+          <app-catalog-manager></app-catalog-manager>
+        </div>
+
+        <div *ngSwitchCase="'touring'" class="space-y-10 animate-fade-in">
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Touring & Live
+            </h2>
+          </header>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            <app-form-field label="Frequency">
+              <select
+                [(ngModel)]="editableProfile().performancesPerYear"
+                class="executive-input"
+              >
+                <option value="None">None</option>
+                <option value="1-5">1-5</option>
+                <option value="6-20">6-20</option>
+                <option value="20-50">20-50</option>
+                <option value="50+">50+</option>
+              </select>
+            </app-form-field>
+            <app-form-field label="Travel">
+              <select
+                [(ngModel)]="editableProfile().touringDetails.travelPreference"
+                class="executive-input"
+              >
+                <option *ngFor="let opt of travelOptions" [value]="opt">
+                  {{ opt }}
+                </option>
+              </select>
+            </app-form-field>
+          </div>
+        </div>
+
+        <div *ngSwitchCase="'business'" class="space-y-10 animate-fade-in">
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Business & Financials
+            </h2>
+          </header>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <article class="identity-card">
+              <span class="identity-label">Total Revenue</span>
+              <strong class="identity-score">{{
+                editableProfile().financials.totalRevenue | currency
+              }}</strong>
+            </article>
+            <article class="identity-card">
+              <span class="identity-label">Pending Payouts</span>
+              <strong class="identity-score text-brand-primary">{{
+                editableProfile().financials.pendingPayouts | currency
+              }}</strong>
+            </article>
+          </div>
+
+          <section class="identity-panel">
+            <h3 class="text-lg font-black uppercase text-white mb-6">
+              Linked Accounts
+            </h3>
+            <div class="space-y-3">
+              <div
+                *ngFor="let acc of editableProfile().financials.accounts"
+                class="connector-row"
+              >
+                <div>
+                  <h4 class="text-sm font-black uppercase text-white">
+                    {{ acc.provider }}
+                  </h4>
+                  <p
+                    class="text-[10px] text-slate-500 uppercase tracking-widest"
+                  >
+                    {{ acc.accountName }} • {{ acc.status }}
+                  </p>
+                </div>
+                <span class="text-white font-bold">{{
+                  acc.balance | currency
+                }}</span>
+              </div>
+              <p
+                *ngIf="editableProfile().financials.accounts.length === 0"
+                class="text-xs text-slate-500 italic"
+              >
+                No financial accounts linked.
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <div *ngSwitchCase="'team'" class="space-y-10 animate-fade-in">
+          <div
+            *ngIf="editableProfile().headerImage"
+            class="absolute top-0 left-0 w-full h-80 z-0 opacity-40 pointer-events-none"
+          >
+            <img
+              [src]="editableProfile().headerImage"
+              class="w-full h-full object-cover"
+            />
+            <div
+              class="absolute inset-0 bg-gradient-to-b from-transparent via-black/60 to-black"
+            ></div>
+          </div>
+          <header class="border-b border-white/5 pb-6">
+            <h2 class="text-3xl font-black italic uppercase text-brand-primary">
+              Professional Team
+            </h2>
+          </header>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <article
+              *ngFor="let member of editableProfile().team"
+              class="identity-card"
+            >
+              <div class="flex items-start justify-between">
+                <div
+                  class="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-4"
+                >
+                  <i class="fas fa-user text-slate-400"></i>
+                </div>
+                <button
+                  type="button"
+                  (click)="removeTeamMember(member.id)"
+                  [attr.aria-label]="'Remove ' + member.name"
+                  class="w-8 h-8 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                >
+                  <i class="fas fa-trash-alt text-xs"></i>
+                </button>
+              </div>
+              <h4 class="text-white font-black uppercase tracking-tight">
+                {{ member.name }}
+              </h4>
+              <p
+                class="text-[10px] text-brand-primary font-bold uppercase tracking-widest"
+              >
+                {{ member.role }}
+              </p>
+            </article>
+
+            <form
+              *ngIf="addingTeamMember()"
+              (ngSubmit)="deployTeamMember()"
+              class="border-2 border-brand-primary/40 rounded-[2rem] p-8 flex flex-col gap-6"
+            >
+              <app-form-field label="Name">
+                <input
+                  type="text"
+                  class="executive-input"
+                  placeholder="Full name"
+                  [ngModelOptions]="{ standalone: true }"
+                  [ngModel]="teamMemberDraft().name"
+                  (ngModelChange)=
+                    "teamMemberDraft.set({ name: $event, role: teamMemberDraft().role })"
+                />
+              </app-form-field>
+              <app-form-field label="Role">
+                <input
+                  type="text"
+                  class="executive-input"
+                  placeholder="Manager, Engineer, Agent"
+                  [ngModelOptions]="{ standalone: true }"
+                  [ngModel]="teamMemberDraft().role"
+                  (ngModelChange)=
+                    "teamMemberDraft.set({ name: teamMemberDraft().name, role: $event })"
+                />
+              </app-form-field>
+              <div class="flex gap-3">
+                <button
+                  type="submit"
+                  [disabled]="!teamMemberDraft().name.trim()"
+                  class="px-6 py-3 bg-brand-primary text-black rounded-full text-[10px] font-black uppercase tracking-[0.2em] disabled:opacity-40"
+                >
+                  Deploy
+                </button>
+                <button
+                  type="button"
+                  (click)="cancelTeamMember()"
+                  class="px-6 py-3 border border-white/10 text-slate-400 rounded-full text-[10px] font-black uppercase tracking-[0.2em] hover:text-white"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+
+            <button
+              *ngIf="!addingTeamMember()"
+              (click)="openTeamMemberForm()"
+              class="border-2 border-dashed border-white/10 rounded-[2rem] p-8 flex flex-col items-center justify-center gap-3 hover:border-brand-primary/50 transition-all group"
+            >
+              <i
+                class="fas fa-plus text-slate-600 group-hover:text-brand-primary"
+              ></i>
+              <span
+                class="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-white"
+                >Deploy Team Member</span
+              >
+            </button>
+          </div>
+        </div>
+        <div *ngSwitchDefault class="py-20 text-center">
+          <p class="text-slate-600 uppercase text-xs tracking-[0.3em] italic">
+            Section encrypted or under construction.
+          </p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!--
+    Overlays live outside the `<main>` panel on purpose. That panel carries
+    `backdrop-blur-md`, and `backdrop-filter` makes an element the containing
+    block for its `position: fixed` descendants — nesting the questionnaire
+    here trapped its full-screen overlay inside the panel (it rendered at the
+    panel's offset and width instead of covering the viewport), leaving the
+    top of the modal behind the app shell where it could not be clicked.
+  -->
+  <app-artist-questionnaire
+    *ngIf="showQuestionnaire()"
+    (close)="showQuestionnaire.set(false)"
+    (complete)="editableProfile.set($event)"
+  >
+  </app-artist-questionnaire>
+  <app-uplink-console
+    *ngIf="showUplink()"
+    [retryPayload]="editableProfile()"
+    (close)="showUplink.set(false)"
+  ></app-uplink-console>
+</div>

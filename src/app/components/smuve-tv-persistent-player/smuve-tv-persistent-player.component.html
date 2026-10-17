@@ -1,0 +1,84 @@
+<div
+  class="smuve-tv-persistent"
+  [class.is-visible]="player.isFloating() || player.isPip()"
+  [class.is-pip]="player.isPip()"
+  aria-live="polite"
+>
+  <div #fallbackHost class="smuve-tv-fallback-host">
+    <video
+      #persistentVideo
+      class="smuve-tv-persistent-video"
+      [class.on]="player.ready()"
+      playsinline
+      preload="none"
+      [muted]="!player.audioOn()"
+      aria-label="S.M.U.V.E. TV persistent channel player"
+    ></video>
+  </div>
+
+  <section
+    *ngIf="player.isFloating() || player.isPip()"
+    class="smuve-tv-dock"
+    role="region"
+    aria-label="S.M.U.V.E. TV persistent player"
+  >
+    <header class="smuve-tv-dock-header">
+      <div class="smuve-tv-dock-brand">
+        <span class="smuve-tv-dock-mark" aria-hidden="true">S</span>
+        <div>
+          <strong>S.M.U.V.E. TV</strong>
+          <span>{{ player.activeChannel()?.name ?? 'Channel' }}</span>
+        </div>
+      </div>
+      <span class="smuve-tv-dock-status" [class.is-pip]="player.isPip()">
+        <span class="smuve-tv-dock-dot" aria-hidden="true"></span>
+        {{ player.isPip() ? 'PICTURE-IN-PICTURE' : 'FLOATING PLAYER' }}
+      </span>
+    </header>
+
+    <div class="smuve-tv-dock-now">
+      <span class="smuve-tv-dock-kicker">CH {{ player.activeChannel()?.number }}</span>
+      <strong>{{ player.activeFeed()?.name ?? 'Station scene' }}</strong>
+      <small *ngIf="player.activeFeed() as feed">
+        {{ feed.operator }} · {{ feed.source }}
+      </small>
+    </div>
+
+    <p *ngIf="player.error()" class="smuve-tv-dock-error" role="status">
+      {{ player.error() }}
+    </p>
+
+    <div class="smuve-tv-dock-actions">
+      <button
+        type="button"
+        class="smuve-tv-dock-button is-primary"
+        (click)="togglePictureInPicture()"
+        [attr.aria-label]="
+          player.isPip() ? 'Dock S.M.U.V.E. TV player' : 'Picture in picture'
+        "
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">
+          {{ player.isPip() ? 'picture_in_picture_alt_close' : 'picture_in_picture_alt' }}
+        </span>
+        {{ player.isPip() ? 'DOCK TV' : 'TRY PIP' }}
+      </button>
+      <button
+        type="button"
+        class="smuve-tv-dock-button"
+        (click)="openGuide()"
+        aria-label="Open S.M.U.V.E. TV guide"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+        GUIDE
+      </button>
+      <button
+        type="button"
+        class="smuve-tv-dock-button is-icon"
+        (click)="close()"
+        aria-label="Close S.M.U.V.E. TV player"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </div>
+  </section>
+</div>

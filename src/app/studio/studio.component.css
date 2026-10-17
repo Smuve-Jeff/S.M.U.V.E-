@@ -1,0 +1,4662 @@
+/* ===========================================================
+   S.M.U.V.E. Composer Ivory + Teal — Studio Shell 2.0
+   Premium Aesthetics · Glassmorphism · Depth Layers
+   Inspired by FL Studio Mobile + Logic Pro + Ableton Live
+   =========================================================== */
+
+/* ── Shared mobile UX base — applies to all sub-components ── */
+@import url('./shared/studio-mobile.css');
+/* ── Sprint 1 follow-up: panel-interior micro-interactions ── */
+@import url('./shell-panel-polish.css');
+/* ── Design refinement layer 2.1: pro DAW benchmark pass (touch + desktop) ── */
+@import url('./design-refinement.css');
+/* NOTE: subcomponent-refinement.css is intentionally NOT imported here.
+   It styles dj-deck / mixer internals, which emulated view encapsulation
+   keeps out of the shell's reach. It is registered in dj-deck.component.ts
+   and mixer.component.ts styleUrls instead. */
+/* ── Sub-component extension: DJ booth + mixer refinement pass ── */
+
+/* ── PREMIUM AMBIENT BACKGROUND ── */
+:host {
+  --studio-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+.comp-canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  background:
+    radial-gradient(ellipse 80% 40% at 20% 50%, rgba(14, 124, 123, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 30%, rgba(217, 119, 6, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 80%, rgba(14, 124, 123, 0.03) 0%, transparent 50%);
+}
+
+:host-context(.dark-mode) .comp-canvas::before,
+.dark-mode .comp-canvas::before {
+  opacity: 0.25;
+  background:
+    radial-gradient(ellipse 80% 40% at 20% 50%, rgba(0, 229, 255, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 30%, rgba(255, 149, 0, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 80%, rgba(0, 229, 255, 0.04) 0%, transparent 50%);
+}
+
+/* Keep interaction affordances consistent across desktop and touch layouts. */
+.comp-shell button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+@media (max-width: 768px) {
+  .comp-shell input,
+  .comp-shell select,
+  .comp-shell textarea {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comp-shell .comp-topbar,
+  .comp-shell .comp-topbar-left > *,
+  .comp-shell .comp-topbar-center,
+  .comp-shell .comp-topbar-right > *,
+  .comp-shell .comp-topbar-tools > *,
+  .comp-shell .comp-topbar-tools > .comp-desktop-tools > * {
+    animation: none !important;
+  }
+}
+
+:host {
+  display: block;
+  height: 100%;
+  min-height: 0;
+  /* Fill the slot the shell gives us, not the raw viewport: on desktop the
+     Studio is a child of the content column (sidebar + app top bar sit beside
+     it), so `100vw` made the shell 224px wider than the column at 1440px and
+     the route host clipped that strip — the top bar's right cluster and the
+     status bar's right edge were off screen. Full-page mode (mobile) supplies
+     a viewport-sized column, so `100%` covers that case too. */
+  width: 100%;
+  max-width: 100%;
+  background-color: var(--ivory-bg);
+  color: var(--espresso-text);
+  overflow: hidden;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The routed Studio host fills the bounded content column supplied by the
+   application shell. Avoid a hard-coded desktop subtraction: the global
+   header/footer can change height with responsive chrome, and the column
+   already knows the exact remaining space. */
+@media (min-width: 769px) {
+  :host {
+    height: 100%;
+    max-height: 100%;
+  }
+}
+
+/* Studio is a full-page route on phones and portrait/landscape tablets. The
+   app shell collapses its global chrome there, so the host owns the complete
+   dynamic viewport (including the 390px landscape case). */
+@media (max-width: 1024px) {
+  :host {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+}
+
+.comp-shell {
+  --studio-header-height: 72px;
+  /* Project status bar that sits above the topbar. Shell chrome is
+     status + header, so anything anchored below the chrome can read both. */
+  --studio-status-height: 28px;
+  --studio-rail-width: 200px;
+  --studio-rail-collapsed-width: 56px;
+  --studio-footer-height: 48px;
+  --studio-mobile-dock-height: 72px;
+  --studio-radius-sm: 10px;
+  --studio-radius-md: 14px;
+  --studio-radius-lg: 18px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  min-height: 0;
+  /* Hidden would still scroll programmatically to offscreen closed panels,
+     shifting every open panel when focus/scrollIntoView runs. */
+  overflow: clip;
+}
+
+/* ---------- TOPBAR ---------- */
+.comp-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 72px;
+  min-height: 72px;
+  padding: 0 16px;
+  background: var(--ivory-paper);
+  border-bottom: 1px solid var(--espresso-line);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6),
+    0 2px 8px rgba(61, 53, 42, 0.06);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 30;
+  /* === Sprint 1 polish: cascading entrance on mount === */
+  animation: comp-topbar-slide-down 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+@keyframes comp-topbar-slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Cascade each tool button + transport bar for a staggered entrance */
+.comp-topbar-left > *,
+.comp-topbar-center,
+.comp-topbar-right > *,
+.comp-topbar-tools > * {
+  animation: comp-pill-fade 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+@keyframes comp-pill-fade {
+  from { transform: translateY(-6px); opacity: 0; }
+  to   { transform: translateY(0);  opacity: 1; }
+}
+.comp-topbar-right > *:nth-child(1) { animation-delay: 60ms; }
+.comp-topbar-right > *:nth-child(2) { animation-delay: 110ms; }
+.comp-topbar-right > *:nth-child(3) { animation-delay: 160ms; }
+.comp-topbar-right > *:nth-child(4) { animation-delay: 210ms; }
+.comp-topbar-right > *:nth-child(5) { animation-delay: 260ms; }
+.comp-topbar-right > *:nth-child(6) { animation-delay: 310ms; }
+.comp-topbar-right > *:nth-child(7) { animation-delay: 360ms; }
+.comp-topbar-tools > *:nth-child(1) { animation-delay: 420ms; }
+.comp-topbar-tools > *:nth-child(2) { animation-delay: 460ms; }
+.comp-topbar-tools > *:nth-child(3) { animation-delay: 500ms; }
+.comp-topbar-tools > *:nth-child(4) { animation-delay: 540ms; }
+.comp-topbar-tools > *:nth-child(5) { animation-delay: 580ms; }
+.comp-topbar-tools > *:nth-child(6) { animation-delay: 620ms; }
+.comp-topbar-tools > *:nth-child(7) { animation-delay: 660ms; }
+
+/* The desktop tools live inside a `display: contents` wrapper on phones
+   (see studio-shell-refinement.css). That wrapper never renders a box, so
+   the buttons carry the staggered entrance themselves — the desktop
+   entrance stays exactly as it was before the wrapper existed. */
+.comp-topbar-tools > .comp-desktop-tools > * {
+  animation: comp-pill-fade 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(1) { animation-delay: 460ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(2) { animation-delay: 500ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(3) { animation-delay: 540ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(4) { animation-delay: 580ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(5) { animation-delay: 620ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(6) { animation-delay: 660ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(7) { animation-delay: 700ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(8) { animation-delay: 740ms; }
+.comp-topbar-tools > .comp-desktop-tools > *:nth-child(9) { animation-delay: 780ms; }
+
+.comp-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.comp-topbar-center {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.comp-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* The transport is the shell's primary control surface. Give its complete
+   persistent row priority on desktop; secondary header utilities remain
+   scrollable when the viewport narrows instead of clipping the More control
+   or the BPM/position readouts.
+   In desktop portrait or narrower snap widths (1025px - 1280px), relax min-width
+   so the right utility cluster and transport remain visible without horizontal clipping. */
+@media (min-width: 1025px) {
+  .comp-topbar-center {
+    min-width: min(500px, 46vw);
+    overflow: visible;
+  }
+
+  .comp-topbar-right {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1280px), (min-width: 1025px) and (orientation: portrait) {
+  .comp-topbar-center {
+    min-width: 0;
+    max-width: 48vw;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .comp-topbar-center::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.comp-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.comp-brand:hover,
+.comp-brand:focus-visible {
+  background: rgba(14, 124, 123, 0.08);
+}
+
+.comp-brand-mark {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--teal-500) 0%, var(--teal-700) 100%);
+  display: grid;
+  place-items: center;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset,
+    0 4px 10px rgba(14, 124, 123, 0.25);
+  animation: brand-shimmer 4s ease-in-out infinite;
+}
+@keyframes brand-shimmer {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.4) inset, 0 4px 10px rgba(14,124,123,0.25); }
+  50% { box-shadow: 0 0 0 1px rgba(255,255,255,0.6) inset, 0 4px 16px rgba(14,124,123,0.4); }
+}
+.comp-brand-mark::after {
+  content: '♪';
+  color: white;
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 1;
+}
+.comp-brand-pulse {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--orange);
+  top: -2px;
+  right: -2px;
+  animation: comp-pulse 1.6s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--orange-glow);
+}
+
+@keyframes comp-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+}
+
+.comp-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+.comp-brand-name {
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--espresso-text);
+}
+.comp-brand-tag {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--teal-500);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+/* ---------- ICON BUTTONS ---------- */
+.comp-icon-btn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--espresso-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.comp-icon-btn:hover,
+.comp-icon-btn:focus-visible {
+  background: rgba(14, 124, 123, 0.08);
+  border-color: rgba(14, 124, 123, 0.18);
+  color: var(--teal-500);
+}
+.comp-icon-btn:active,
+.comp-icon-btn.comp-active {
+  background: var(--teal-500);
+  color: white;
+  border-color: var(--teal-500);
+  transform: scale(0.94);
+}
+.comp-icon-btn.comp-ai-btn {
+  position: relative;
+  background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+  color: white;
+  border-color: transparent;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 4px 12px rgba(14, 124, 123, 0.3);
+}
+.comp-icon-btn.comp-ai-btn:hover,
+.comp-icon-btn.comp-ai-btn:focus-visible {
+  background: linear-gradient(135deg, var(--teal-400), var(--teal-600));
+  color: white;
+  transform: translateY(-1px);
+}
+.comp-ai-pip {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--orange);
+  border: 2px solid var(--ivory-paper);
+  animation: comp-pulse 1.6s ease-in-out infinite;
+}
+
+/* ---------- MAIN LAYOUT ---------- */
+.comp-main {
+  flex: 1 1 auto;
+  display: flex;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  background: var(--ivory-bg);
+}
+
+/* ---------- DESKTOP RAIL (FL Studio side rail) ---------- */
+.comp-rail {
+  width: 88px;
+  background: var(--ivory-paper);
+  border-right: 1px solid var(--espresso-line);
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 4px;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.comp-rail.comp-rail-collapsed {
+  width: 56px;
+}
+
+/* Scrollable view list — the flat 22-item rail used to overflow a
+   non-scrolling container, so every stage below the fold was clipped and
+   unreachable on short desktop/tablet windows. */
+.comp-rail-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.comp-rail-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.comp-rail-scroll::-webkit-scrollbar-thumb {
+  background: rgba(14, 124, 123, 0.35);
+  border-radius: 3px;
+}
+.comp-rail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.comp-rail-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px 2px;
+  border-top: 1px solid var(--espresso-line);
+  color: var(--espresso-muted);
+}
+.comp-rail-group:first-child .comp-rail-group-head {
+  border-top: none;
+  padding-top: 2px;
+}
+.comp-rail-group-head .material-symbols-outlined {
+  font-size: 13px;
+  color: var(--teal-700);
+}
+.comp-rail-group-title {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.comp-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 52px;
+  -webkit-tap-highlight-color: transparent;
+}
+.comp-rail-item:hover,
+.comp-rail-item:focus-visible {
+  background: rgba(14, 124, 123, 0.06);
+  color: var(--teal-500);
+}
+.comp-rail-item:active,
+.comp-rail-item.comp-rail-active {
+  background: linear-gradient(180deg, var(--teal-100), var(--teal-200));
+  color: var(--teal-700);
+  border-color: var(--teal-500);
+  box-shadow: inset 0 -2px 0 var(--teal-500);
+}
+.comp-rail-item .material-symbols-outlined {
+  font-size: 22px;
+}
+/* Rail collapse control stays pinned below the scroll area. */
+.comp-rail-collapse {
+  margin-top: auto;
+  background: transparent;
+  color: var(--espresso-muted);
+  flex-shrink: 0;
+}
+
+/* Hidden rail items (views that shouldn't appear in the sidebar) */
+.comp-rail-hidden {
+  display: none !important;
+}
+
+/* ── MIDI Widget in Side Rail ─────────────────────────── */
+.comp-rail-widget {
+  margin: 4px 0;
+  padding: 0;
+  border-top: 1px solid var(--espresso-line);
+  border-bottom: 1px solid var(--espresso-line);
+}
+.comp-rail-widget .midi-widget {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 8px 10px !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+.comp-rail-widget .midi-widget-header {
+  margin-bottom: 4px !important;
+}
+.comp-rail-widget .midi-widget-header .material-symbols-outlined {
+  font-size: 16px !important;
+}
+.comp-rail-widget .midi-widget-title {
+  font-size: 8px !important;
+  letter-spacing: 0.12em !important;
+}
+.comp-rail-widget .midi-widget-dot {
+  width: 6px !important;
+  height: 6px !important;
+}
+.comp-rail-widget .midi-widget-list {
+  gap: 2px !important;
+}
+.comp-rail-widget .midi-device-item {
+  padding: 3px 4px !important;
+  font-size: 10px !important;
+  border-radius: 6px !important;
+}
+.comp-rail-widget .midi-device-item .material-symbols-outlined {
+  font-size: 13px !important;
+}
+.comp-rail-widget .midi-device-name {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+}
+.comp-rail-widget .midi-note-display {
+  margin-top: 4px !important;
+  padding: 4px 6px !important;
+  border-radius: 6px !important;
+}
+.comp-rail-widget .midi-note-value {
+  font-size: 11px !important;
+}
+.comp-rail-widget .midi-note-vel {
+  font-size: 8px !important;
+}
+
+/* Collapsed rail: hide widget */
+.comp-rail.comp-rail-collapsed .comp-rail-widget {
+  display: none;
+}
+
+/* Dark mode rail widget */
+:host-context(.dark-mode) .comp-rail-widget .midi-widget,
+.dark-mode .comp-rail-widget .midi-widget {
+  background: transparent !important;
+}
+
+/* ---------- STAGE MARQUEE (concert visual) ---------- */
+/* ── STAGE MARQUEE GLOW ── */
+.comp-stage-marquee {
+  margin: 0;
+  padding: 8px 16px;
+  background: linear-gradient(
+    90deg,
+    rgba(14, 124, 123, 0.04),
+    rgba(217, 119, 6, 0.03),
+    rgba(14, 124, 123, 0.04)
+  );
+  border-bottom: 1px solid rgba(180, 200, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(180, 200, 255, 0.04),
+    0 1px 8px rgba(14, 124, 123, 0.06);
+  position: relative;
+  overflow-y: auto; overflow-x: hidden;
+}
+.comp-stage-marquee::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--teal-500), var(--orange), var(--teal-500), transparent);
+  opacity: 0.35;
+  animation: marquee-shimmer 3s ease-in-out infinite;
+}
+@keyframes marquee-shimmer {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* ── CANVAS DEPTH GRID (subtle, ambient) ── */
+.comp-canvas {
+  flex: 1 1 auto;
+  overflow: auto;
+  position: relative;
+  background: var(--ivory-bg);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+:host-context(.dark-mode) .comp-canvas,
+.dark-mode .comp-canvas {
+  background:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px),
+    #0d0b08;
+  background-size: 32px 32px;
+}
+.comp-view {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.comp-view > * {
+  flex: 1 1 auto;
+}
+
+/* Mobile compact mode — rail hidden. Portrait tablets (769–1024) keep the
+   real rail (the drawer's opener button is hidden at this width, so hiding
+   the rail too would strand the artist without a view selector), and their
+   rail is compacted below instead. */
+.comp-shell.comp-compact .comp-rail {
+  display: none;
+}
+
+/* ── Portrait tablet: mobile drawer, desktop canvas ──
+   showMobileNav() is true (drawer renders), but the drawer opener in the
+   topbar is hidden above 768px by the device-tier visibility rules — the
+   artist gets the drawer with no way to open it. Give the tier an explicit
+   opener and a narrow rail. */
+.comp-shell.comp-mobile-nav:not(.comp-compact) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-topbar,
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-topbar-tools,
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-stage-marquee,
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-footer {
+  grid-column: 1 / -1;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-main {
+  grid-column: 1 / -1;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-rail {
+  display: flex;
+  width: 64px;
+  min-width: 64px;
+  padding: 8px 4px;
+  gap: 4px;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-rail .comp-rail-label {
+  font-size: 7px;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact)
+  .comp-rail
+  .comp-rail-item {
+  min-height: 52px;
+  padding: 8px 2px;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-rail-widget {
+  display: none;
+}
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-fab {
+  bottom: 20px;
+  right: 16px;
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* The drawer renders on this tier, so its topbar opener must be visible
+     (the device-tier rule in studio-shell-refinement.css stops at 1024px;
+     this is the belt-and-braces guarantee inside the shell itself). */
+  .comp-shell.comp-mobile-nav:not(.comp-compact)
+    button[class~='md:hidden'] {
+    display: grid;
+  }
+}
+
+/* ── Studio shell dark mode canvas ── */
+:host-context(.dark-mode) .comp-canvas,
+.dark-mode .comp-canvas {
+  background: #14110b;
+}
+
+/* ── Mobile panel safe-area adjustment ── */
+@media (max-width: 768px) {
+  /* Keep the full-screen Studio usable beneath Android's gesture/navigation bar. */
+  :host {
+    height: 100svh;
+    height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .comp-shell {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .comp-panel {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .comp-panel-body {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  /* Ensure mobile nav bar doesn't overlap system gesture bar */
+  .comp-bottombar {
+    padding-bottom: max(env(safe-area-inset-bottom, 8px), 10px);
+  }
+}
+
+/* ── ENHANCED GLASS PANELS ── */
+.comp-panel {
+  background: rgba(252, 250, 245, 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+:host-context(.dark-mode) .comp-panel,
+.dark-mode .comp-panel {
+  background: rgba(20, 17, 11, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ---------- BOTTOM TAB BAR (Mobile) ---------- */
+.comp-bottombar {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  /* Grow with the gesture/notch inset instead of clipping the 48px tabs:
+     a fixed height with border-box padding would shrink the tab content
+     area on phones with a large safe-area-inset-bottom. */
+  height: auto;
+  min-height: calc(
+    var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+  );
+  padding: 6px 4px max(env(safe-area-inset-bottom, 6px), 8px);
+  background: var(--ivory-paper);
+  border-top: 1px solid var(--espresso-line);
+  box-shadow: 0 -2px 10px rgba(61, 53, 42, 0.08);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+}
+.comp-tab {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  padding: 4px 2px;
+  position: relative;
+  border-radius: 10px;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 48px;
+}
+.comp-tab .material-symbols-outlined {
+  font-size: 22px;
+}
+.comp-tab-label {
+  line-height: 1;
+}
+.comp-tab:active {
+  transform: scale(0.94);
+}
+.comp-tab-indicator {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  background: var(--teal-500);
+  border-radius: 0 0 3px 3px;
+  transition:
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.comp-tab-active {
+  color: var(--teal-500);
+  background: linear-gradient(180deg, rgba(14,124,123,0.08) 0%, transparent 100%);
+}
+.comp-tab-active .comp-tab-indicator {
+  width: 80%;
+  left: 10%;
+  box-shadow:
+    0 0 8px var(--teal-glow),
+    0 0 16px rgba(14, 124, 123, 0.2);
+}
+.comp-tab {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.comp-tab:hover {
+  color: var(--teal-400);
+  background: rgba(14, 124, 123, 0.04);
+}
+
+/* ---------- MOBILE DRAWER ---------- */
+.comp-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(82vw, 320px);
+  background: var(--ivory-paper);
+  border-right: 1px solid var(--espresso-line);
+  z-index: 60;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 24px rgba(61, 53, 42, 0.18);
+}
+.comp-drawer-open {
+  transform: translateX(0);
+}
+.comp-drawer-hidden {
+  display: none !important;
+}
+
+.comp-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--espresso-line);
+}
+
+.comp-drawer-title {
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--espresso-text);
+}
+
+.comp-drawer-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 4px;
+  flex: 1 1 auto;
+}
+
+.comp-drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--espresso-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.comp-drawer-item:hover,
+.comp-drawer-item:focus-visible {
+  background: rgba(14, 124, 123, 0.08);
+}
+.comp-drawer-active {
+  background: var(--teal-100);
+  color: var(--teal-700);
+  border-color: var(--teal-500);
+}
+.comp-drawer-item .material-symbols-outlined {
+  font-size: 22px;
+}
+
+.comp-drawer-footer {
+  padding: 16px;
+  border-top: 1px solid var(--espresso-line);
+}
+
+.comp-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 26, 18, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 50;
+}
+
+/* ---------- FAB ---------- */
+.comp-fab {
+  position: fixed;
+  bottom: calc(
+    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 16px
+  );
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+  color: white;
+  border: none;
+  display: grid;
+  place-items: center;
+  z-index: 40;
+  cursor: pointer;
+  box-shadow:
+    0 8px 24px rgba(14, 124, 123, 0.36),
+    0 0 0 4px rgba(255, 255, 255, 0.8);
+  transition: transform 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.comp-fab:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+.comp-fab:active {
+  transform: scale(0.92);
+}
+.comp-fab .material-symbols-outlined {
+  font-size: 26px;
+}
+
+.comp-shell.comp-compact .comp-fab {
+  /* This rule is the authoritative FAB position on phones (it outranks the
+     base `.comp-fab`), so the dock clearance lives here: the FAB must clear
+     the bottom nav *and* the portrait transport dock that sits on top of it.
+     `--transport-dock-height` only exists in the portrait tier — landscape
+     resolves the fallback and keeps the pre-dock geometry. */
+  bottom: calc(
+    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) +
+      var(--transport-dock-height, 0px) + 16px
+  );
+}
+
+/* Desktop: push FAB up so it doesn't conflict with viewport */
+@media (min-width: 1024px) {
+  .comp-fab {
+    bottom: 24px;
+    right: 24px;
+  }
+}
+
+/* ---------- HEADER / FOOTER COLLAPSE ---------- */
+.comp-shell.comp-header-collapsed .comp-topbar {
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  border-bottom: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.comp-shell.comp-header-collapsed .comp-stage-marquee {
+  display: none;
+}
+
+.comp-shell.comp-header-collapsed .comp-header-toggle {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  background: var(--ivory-paper);
+  border: 1px solid var(--espresso-line);
+  box-shadow: 0 2px 8px rgba(61, 53, 42, 0.18);
+  /* The button carries the `hidden md:grid` utilities, so below 768px the
+     browser hides it — and with the topbar at height 0 that would strand the
+     user with no transport bar and no way back after rotating a phone from
+     landscape to portrait. The restore affordance must always outrank the
+     responsive utility. */
+  display: grid;
+  opacity: 1;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.comp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 40px;
+  padding: 0 16px;
+  background: var(--ivory-paper);
+  border-top: 1px solid var(--espresso-line);
+  box-shadow:
+    0 -1px 0 rgba(255, 255, 255, 0.6),
+    0 -2px 8px rgba(61, 53, 42, 0.06);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 30;
+  transition:
+    height 0.2s ease,
+    padding 0.2s ease,
+    visibility 0.2s ease;
+}
+
+.comp-shell.comp-footer-collapsed .comp-footer {
+  height: 0;
+  min-height: 0;
+  padding: 0 16px;
+  overflow: hidden;
+  border-top: none;
+  /* `visibility` rather than `opacity`: an ancestor's opacity is applied to the
+     whole subtree as a group, so `opacity: 0` here also erased the restore
+     button (which is a child of this footer) and left a collapsed bar that
+     could only be brought back by reloading. visibility can be re-enabled by a
+     descendant, and still collapses the bar. */
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.comp-shell.comp-footer-collapsed .comp-footer-toggle {
+  position: fixed;
+  bottom: 8px;
+  right: 8px;
+  z-index: 100;
+  background: var(--ivory-paper);
+  border: 1px solid var(--espresso-line);
+  box-shadow: 0 -2px 8px rgba(61, 53, 42, 0.18);
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.comp-footer-left,
+.comp-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.comp-footer-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.comp-footer-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+}
+
+/* ── Elegant copyright mark ── */
+.comp-footer-mark {
+  font-family:
+    var(--font-brand), 'Cormorant Garamond', 'Georgia', 'Times New Roman',
+    serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--teal-500);
+  line-height: 1;
+  opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+
+/* ── Elegant brand name — Marcellus wordmark ── */
+.comp-footer-brand .comp-footer-brand-name {
+  font-family: var(--font-brand);
+  font-size: 14px;
+  font-weight: 400;
+  font-style: normal;
+  color: var(--espresso-text);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1;
+  /* Marcellus is optical-size-free; a hair of extra tracking keeps the
+     wordmark airy at 14px while staying crisp on low-DPR Android. */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  transition: color 0.3s ease;
+}
+
+/* ── Elegant "Presents" ── */
+.comp-footer-brand .comp-footer-brand-byline {
+  font-family:
+    var(--font-brand), 'Inter', 'Public Sans', system-ui, sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--espresso-muted);
+  opacity: 0.68;
+  line-height: 1;
+}
+
+/* ── Thin decorative accent line ── */
+.comp-footer-brand::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--teal-500), transparent);
+  opacity: 0.5;
+  align-self: center;
+  margin-right: 4px;
+  transition:
+    width 0.5s ease,
+    opacity 0.5s ease;
+}
+
+/* ── Hover refinement ── */
+.comp-footer-brand:hover .comp-footer-mark {
+  opacity: 1;
+}
+
+.comp-footer-brand:hover .comp-footer-brand-name {
+  color: var(--teal-500);
+}
+
+.comp-footer-brand:hover::before {
+  width: 28px;
+  opacity: 0.8;
+}
+
+.comp-footer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--ivory-panel);
+  border: 1px solid var(--espresso-line);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--espresso-text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.comp-footer-chip .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--teal-500);
+}
+
+/* Highlight chips that report external-state (OUT / hardware connected) */
+.comp-footer-chip:has(.material-symbols-outlined) {
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+/* ================================================
+   HARDWARE BADGE — topbar "cable" indicator
+   ================================================ */
+.comp-hw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: linear-gradient(
+    135deg,
+    var(--teal-100),
+    rgba(14, 124, 123, 0.06)
+  );
+  border: 1px solid var(--teal-500);
+  border-radius: 999px;
+  color: var(--teal-700);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.comp-hw-badge .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--teal-500);
+}
+
+.comp-hw-badge.pulse {
+  animation: comp-hw-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes comp-hw-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(14, 124, 123, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(14, 124, 123, 0);
+  }
+}
+
+/* ================================================
+   DARK MODE — Hardware badge visibility boost
+   ================================================ */
+:host-context(.dark-mode) .comp-hw-badge,
+.dark-mode .comp-hw-badge {
+  background: linear-gradient(135deg, rgba(93, 196, 194, 0.18), transparent);
+  color: var(--teal-300);
+}
+
+/* ---------- SIDE PANEL / RAIL SCROLL & COLLAPSE ---------- */
+.comp-rail {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--teal-500) transparent;
+}
+
+.comp-rail::-webkit-scrollbar {
+  width: 4px;
+}
+
+.comp-rail::-webkit-scrollbar-thumb {
+  background: var(--teal-500);
+  border-radius: 2px;
+}
+
+/* ---------- PORTRAIT / LANDSCAPE FIT-TO-SCREEN ---------- */
+@media (max-width: 768px) and (orientation: portrait) {
+  .comp-shell {
+    /* 68px, not 64: the tab bar's own padding (6px top + 8px bottom) plus a
+       53px tab row is 68px, and the nav's `min-height` only *wins* over that
+       content when the variable is at least as large. At 64px the nav stayed
+       content-sized (68px) while the dock offset used 64px, leaving the dock
+       4px over the nav — or a 4px gap once a safe-area inset applied. At 68px
+       both read the same value and the seam is exact on any inset. */
+    --mobile-nav-height: 68px;
+    /* The phone topbar is 48px (set below). Keep the shell variable honest so
+       anything anchored to the header — the save-failure alert in
+       studio-redesign.css — lands under the real chrome, not the 72px
+       desktop value. */
+    --studio-header-height: 48px;
+    /* Height of the thumb-zone transport dock (68px transport bar + 2px of
+       dock padding top and bottom), used both to size the dock and to reserve
+       exactly the space it occupies above the bottom nav — if these two ever
+       disagree, the dock covers the last rows of a view or leaves a gap. */
+    --transport-dock-height: 72px;
+  }
+
+  .comp-topbar {
+    height: 48px;
+    padding: 0 10px;
+    /* Keep the fixed dock in the header's stacking context above the
+       onboarding footer (z-index: 50), while remaining below app overlays. */
+    z-index: 55;
+    /* The mount animation applies `transform` to the topbar for 0.4s, which
+       would make it the containing block for the fixed transport dock below
+       and park the dock near the top until the animation finished. */
+    animation: none;
+  }
+
+  /* ============================================================
+     THUMB-ZONE TRANSPORT DOCK (portrait phones)
+
+     Portrait phones are held one-handed, so only the bottom edge of the
+     screen is reliably reachable. Every professional mobile DAW puts the
+     transport there (FL Studio Mobile, BandLab, GarageBand, Koala); the
+     transport lived in the top row here, ~120px out of reach, while the top
+     bar took 30% of the screen. Docking it frees the top row for the brand
+     and tools and puts play/record/tempo under the thumb.
+
+     Landscape is deliberately NOT docked: a landscape phone is held with
+     both hands, so its top edge is already reachable, and its 412px of height
+     cannot spare a 68px dock.
+     ============================================================ */
+  .comp-topbar-center {
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    max-width: none;
+    min-height: var(--transport-dock-height);
+    padding: 2px max(8px, env(safe-area-inset-left, 0px)) 2px
+      max(8px, env(safe-area-inset-right, 0px));
+    background: var(--ivory-paper);
+    border-top: 1px solid var(--espresso-line);
+    box-shadow: 0 -6px 18px rgba(61, 53, 42, 0.12);
+    /* Above the canvas, FAB, and onboarding footer (50), but below the
+       assistant/drawer/panel overlays (70–80). */
+    z-index: 55;
+    animation: none;
+  }
+
+  .comp-topbar-center::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Reserve the dock's footprint so no view's bottom row hides behind it. */
+  .comp-main {
+    padding-bottom: var(--transport-dock-height);
+  }
+
+  /* Decorative marquee: hidden on portrait phones, where the 24px buys real
+     canvas and nothing in it is interactive (aria-hidden decoration). */
+  .comp-stage-marquee {
+    display: none;
+  }
+
+  .comp-footer {
+    display: none;
+  }
+
+  .comp-bottombar {
+    min-height: calc(
+      var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  /* The FAB's dock clearance is set by `.comp-shell.comp-compact .comp-fab`
+     (which outranks `.comp-fab` here), so no override is needed. */
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+  .comp-shell {
+    /* 62px, not 52: the tab bar's own padding (6px top + 8px bottom) plus its
+       48px tab row makes the nav 62px tall regardless of the variable, so a
+       52px value left anything anchored to --mobile-nav-height (the FAB, the
+       drawer) sitting flush against the nav with no clearance. Matches the
+       portrait tier's own accounting. */
+    --mobile-nav-height: 62px;
+  }
+
+  .comp-topbar {
+    height: 44px;
+    padding: 0 10px;
+  }
+
+  .comp-topbar-center {
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .comp-topbar-center::-webkit-scrollbar {
+    display: none;
+  }
+
+  .comp-stage-marquee {
+    display: none;
+  }
+
+  .comp-footer {
+    height: 34px;
+    padding: 0 10px;
+  }
+
+  .comp-footer-brand .comp-footer-brand-byline {
+    display: none;
+  }
+  .comp-footer-brand::before {
+    width: 12px;
+  }
+
+  .comp-bottombar {
+    min-height: calc(
+      var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  .comp-fab {
+    bottom: calc(
+      var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 10px
+    );
+  }
+
+  /* A landscape phone is the tightest workspace in the app (~44px topbar +
+     ~48px tool row out of ~360px), so give it the same collapse control the
+     768px+ tier already has. */
+  .comp-header-toggle {
+    display: grid;
+  }
+}
+
+/* ---------- SHORT LANDSCAPE: RECLAIM THE STATUS BAR ---------- */
+/* A phone on its side has ~360-420px of height and the desktop-ish shell is
+   still used from 769px up, so the 34-38px footer would cost ~10% of the only
+   axis that is scarce. Portrait already hides it; short landscape does too.
+   The footer only carries brand/view/BPM chips — the transport bar keeps the
+   transport readouts. */
+@media (max-width: 932px) and (orientation: landscape) and (max-height: 480px) {
+  .comp-footer {
+    display: none;
+  }
+}
+
+/* ---------- DESKTOP CHROME FIT-TO-SCREEN ---------- */
+@media (min-width: 1024px) {
+  .comp-shell {
+    max-height: 100%;
+  }
+
+  .comp-main {
+    min-height: 0;
+  }
+
+  .comp-canvas {
+    overflow: auto;
+  }
+
+  .comp-footer {
+    height: 44px;
+  }
+}
+
+/* ---------- SMALL DESKTOP / LARGE TABLET ---------- */
+@media (min-width: 769px) and (max-width: 1023px) {
+  .comp-topbar {
+    height: 52px;
+    /* 769-1023px in landscape is often a phone, so keep the rail and status
+       bar clear of the notch / gesture strip. */
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+
+  .comp-topbar-center {
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .comp-topbar-center::-webkit-scrollbar {
+    display: none;
+  }
+
+  .comp-footer {
+    height: 38px;
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+}
+
+/* ---------- FOCUS-VISIBLE / MOTION ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .comp-tab-indicator,
+  .comp-drawer,
+  .comp-fab,
+  .comp-brand-pulse {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ================================================
+   DARK MODE — Studio Shell overrides
+   ================================================ */
+:host-context(.dark-mode) {
+  background-color: #14110b;
+}
+
+.dark-mode .comp-topbar,
+:host-context(.dark-mode) .comp-topbar {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04),
+    0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .comp-fab,
+:host-context(.dark-mode) .comp-fab {
+  box-shadow:
+    0 8px 24px rgba(14, 124, 123, 0.4),
+    0 0 0 4px rgba(31, 26, 18, 0.8);
+}
+
+.dark-mode .comp-bottombar,
+:host-context(.dark-mode) .comp-bottombar {
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .comp-drawer,
+:host-context(.dark-mode) .comp-drawer {
+  box-shadow: 2px 0 24px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .comp-backdrop,
+:host-context(.dark-mode) .comp-backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.dark-mode .comp-icon-btn:hover,
+:host-context(.dark-mode) .comp-icon-btn:hover,
+.dark-mode .comp-rail-item:hover,
+:host-context(.dark-mode) .comp-rail-item:hover {
+  background: rgba(93, 196, 194, 0.12);
+}
+
+.dark-mode .comp-rail-item:active,
+:host-context(.dark-mode) .comp-rail-item:active,
+.dark-mode .comp-rail-item.comp-rail-active,
+:host-context(.dark-mode) .comp-rail-item.comp-rail-active {
+  background: linear-gradient(
+    180deg,
+    var(--teal-100),
+    rgba(93, 196, 194, 0.28)
+  );
+  color: var(--teal-300);
+}
+
+.dark-mode .comp-drawer-item:hover,
+:host-context(.dark-mode) .comp-drawer-item:hover,
+.dark-mode .comp-brand:hover,
+:host-context(.dark-mode) .comp-brand:hover {
+  background: rgba(93, 196, 194, 0.12);
+}
+
+/* ============================================================
+   PRO PRODUCTION: MOBILE ENHANCEMENTS
+   ============================================================ */
+@media (max-width: 768px) {
+  .comp-shell {
+    --pro-spacing: 4px;
+  }
+
+  .comp-main {
+    padding: var(--pro-spacing);
+  }
+
+  /* Tighter rail for more canvas */
+  .comp-rail {
+    width: 48px;
+  }
+
+  .comp-rail-label {
+    display: none;
+  }
+
+  /* High-density grid for mobile production */
+  .comp-view {
+    border-radius: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    /* Effective touch-action is the INTERSECTION of the target and every
+       ancestor, so `pan-y` here would strip horizontal panning from the whole
+       view subtree: the piano-roll grid, score ruler, mixer rail, drum step
+       rows, sampler keyboard and sound browser chips all scroll horizontally
+       with `overflow-x: auto` and would become unreachable on a phone. Keep
+       both axes panable; drag surfaces that must own the gesture (knobs,
+       faders, jog wheels, XY pads) still declare `touch-action: none` for
+       themselves and that always wins. */
+    touch-action: pan-x pan-y;
+  }
+
+  /* Android phone header: keep the transport and one primary assistant
+     action reachable instead of letting the status/control cluster push the
+     brand off-screen. Secondary controls remain available in Stage Map. */
+  .comp-topbar {
+    min-width: 0;
+    gap: 6px;
+    padding-left: max(8px, env(safe-area-inset-left, 0px));
+    padding-right: max(8px, env(safe-area-inset-right, 0px));
+  }
+
+  .comp-topbar-left,
+  .comp-topbar-center,
+  .comp-topbar-right {
+    min-width: 0;
+  }
+
+  .comp-topbar-left {
+    flex: 1 1 auto;
+    gap: 6px;
+  }
+
+  .comp-topbar-right {
+    flex: 0 0 auto;
+    gap: 4px;
+  }
+
+  .comp-topbar-right > .comp-now-performing,
+  .comp-topbar-right > .comp-hw-badge,
+  .comp-topbar-right > .comp-beginner-toggle,
+  .comp-topbar-right > .comp-icon-btn:not(.comp-ai-btn),
+  .comp-topbar-right > .comp-presence {
+    display: none;
+  }
+
+  .comp-topbar-right > .comp-arm-audio {
+    max-width: 44px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .comp-brand-text {
+    min-width: 0;
+  }
+
+  .comp-brand-name {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+  }
+
+  .comp-topbar-center {
+    flex: 0 1 auto;
+    max-width: 42vw;
+    overflow-x: auto;
+  }
+
+  .comp-topbar-tools {
+    /* Landscape phones put the gesture bar / notch on a side edge, so the
+       tool row needs the same inset treatment as the topbar and dock. */
+    padding-left: max(8px, env(safe-area-inset-left, 0px));
+    padding-right: max(8px, env(safe-area-inset-right, 0px));
+    gap: 3px;
+  }
+
+  .comp-tool-btn {
+    min-height: 40px;
+    padding: 6px 8px;
+  }
+
+  .comp-kbd {
+    display: none;
+  }
+
+  .comp-panel,
+  .comp-drawer {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .comp-panel {
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .comp-panel-header {
+    min-height: 56px;
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+
+  .comp-panel-body {
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+
+  .comp-drawer {
+    width: min(86vw, 340px);
+  }
+
+  .comp-bottombar {
+    touch-action: manipulation;
+    padding-left: max(4px, env(safe-area-inset-left, 0px));
+    padding-right: max(4px, env(safe-area-inset-right, 0px));
+  }
+}
+
+/* ===========================================================
+   TOPBAR TOOLS — AI Mix, REC, INFO, SAVE, EXPORT buttons
+   =========================================================== */
+.comp-topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  background: var(--ivory-paper);
+  border-bottom: 1px solid var(--espresso-line);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.comp-topbar-tools::-webkit-scrollbar {
+  display: none;
+}
+
+.comp-tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  position: relative;
+  white-space: nowrap;
+}
+.comp-tool-btn:hover {
+  background: rgba(14, 124, 123, 0.06);
+  color: var(--teal-500);
+}
+.comp-tool-btn:active {
+  transform: scale(0.95);
+}
+.comp-tool-btn.comp-tool-active {
+  background: var(--teal-500);
+  color: white;
+  border-color: var(--teal-500);
+}
+.comp-tool-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+.comp-tool-label {
+  line-height: 1;
+}
+.comp-tool-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--orange);
+  color: white;
+  font-size: 9px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ivory-paper);
+}
+
+/* ===========================================================
+   PANEL SYSTEM — slide-in from right
+   Used by AI Mix, Recording, Project Metadata panels
+   =========================================================== */
+.comp-panel {
+  /* Keep workspace dialogs inside the Studio stacking context, below neither
+     the app header nor outside its clipped desktop canvas. */
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(92vw, 380px);
+  height: 100%;
+  background: var(--ivory-paper);
+  border-left: 1px solid var(--espresso-line);
+  z-index: 80;
+  transform: translateX(105%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(61, 53, 42, 0.15);
+}
+.comp-panel.comp-panel-open {
+  transform: translateX(0);
+}
+/* Panel backdrop scrim (backdrop must render below panel z-index:80) */
+.comp-panel-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(31, 26, 18, 0.35);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 75;
+  animation: comp-fade-in 0.2s ease;
+}
+
+@keyframes comp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Dark mode panel backdrop ── */
+:host-context(.dark-mode) .comp-panel-backdrop,
+.dark-mode .comp-panel-backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.comp-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--espresso-line);
+  flex-shrink: 0;
+}
+.comp-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--espresso-text);
+}
+.comp-panel-title .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--teal-500);
+}
+.comp-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 24px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===========================================================
+   AI MIX PANEL
+   =========================================================== */
+.comp-aimix-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+}
+.comp-aimix-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+.comp-aimix-ring-inner {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--ivory-paper);
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.comp-aimix-score-val {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--teal-500);
+  font-family: var(--font-mono);
+}
+.comp-aimix-score-label {
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--espresso-muted);
+}
+
+.comp-aimix-analyze {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  border-radius: 10px;
+  color: var(--espresso-text);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.comp-aimix-analyze:hover {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+  color: var(--teal-700);
+}
+.comp-aimix-analyze .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.comp-aimix-section {
+  margin-top: 12px;
+}
+.comp-aimix-section-title {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--teal-500);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.comp-aimix-track {
+  background: var(--ivory-panel);
+  border: 1px solid var(--espresso-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+.comp-aimix-track-name {
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--espresso-text);
+  margin-bottom: 4px;
+}
+.comp-aimix-track-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.comp-aimix-tag {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--ivory-bg);
+  border: 1px solid var(--espresso-line);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--espresso-muted);
+}
+.comp-aimix-tag-dark {
+  background: rgba(61, 53, 42, 0.15);
+  color: #5c513e;
+}
+.comp-aimix-tag-bright {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+}
+.comp-aimix-tag-balanced {
+  background: rgba(14, 124, 123, 0.1);
+  color: var(--teal-500);
+}
+.comp-aimix-tag-complex {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
+}
+
+.comp-aimix-track-role {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--teal-500);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.comp-aimix-track-role .material-symbols-outlined {
+  font-size: 12px;
+}
+
+.comp-aimix-bar {
+  height: 3px;
+  background: var(--espresso-line);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.comp-aimix-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal-500), var(--teal-300));
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.comp-aimix-suggestion {
+  background: var(--ivory-panel);
+  border: 1px solid var(--espresso-line);
+  border-left: 3px solid var(--teal-500);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+.comp-aimix-sug-critical {
+  border-left-color: var(--record);
+}
+.comp-aimix-sug-rec {
+  border-left-color: var(--orange);
+}
+.comp-aimix-sug-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.comp-aimix-sug-icon {
+  font-size: 14px;
+  color: var(--teal-500);
+}
+.comp-aimix-sug-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--espresso-text);
+  flex: 1;
+}
+.comp-aimix-sug-sev {
+  font-size: 7px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--teal-100);
+  color: var(--teal-500);
+}
+.comp-aimix-sug-sev.critical {
+  background: rgba(185, 28, 28, 0.1);
+  color: #b91c1c;
+}
+.comp-aimix-sug-desc {
+  font-size: 10px;
+  color: var(--espresso-muted);
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+.comp-aimix-sug-values {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--espresso-muted);
+  margin-top: 4px;
+}
+.comp-aimix-sug-target {
+  color: var(--teal-500);
+  font-weight: 800;
+}
+
+/* ===========================================================
+   RECORDING MODE PANEL
+   =========================================================== */
+.comp-rec-modes {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.comp-rec-mode {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  border-radius: 10px;
+  background: var(--ivory-panel);
+  border: 1px solid var(--espresso-line);
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.comp-rec-mode:hover {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+}
+.comp-rec-mode-active {
+  background: var(--record) !important;
+  color: white !important;
+  border-color: var(--record) !important;
+}
+.comp-rec-mode .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.comp-rec-section {
+  margin-top: 8px;
+}
+.comp-rec-section .comp-aimix-section-title {
+  margin-bottom: 6px;
+  display: block;
+}
+
+.comp-rec-punch-controls {
+  background: var(--ivory-panel);
+  border: 1px solid var(--espresso-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.comp-rec-punch-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.comp-rec-punch-row label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--espresso-text);
+  min-width: 50px;
+}
+.comp-rec-input {
+  width: 70px;
+  height: 32px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-bg);
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--espresso-text);
+  text-align: center;
+}
+.comp-rec-input:focus {
+  border-color: var(--teal-500);
+  outline: none;
+}
+
+.comp-rec-punch-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.comp-rec-punch-btn {
+  flex: 1;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  color: var(--espresso-text);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.comp-rec-punch-btn:hover {
+  background: var(--teal-100);
+}
+.comp-rec-punch-armed {
+  background: var(--record) !important;
+  color: white !important;
+  border-color: var(--record) !important;
+  animation: rec-pulse 1s ease-in-out infinite;
+}
+@keyframes rec-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+.comp-rec-status-label {
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--record);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+/* Comp-capture problems (input unavailable, take discarded) shown inline
+   instead of a silently empty take list. */
+.comp-rec-error {
+  color: var(--warning, #f59e0b);
+}
+
+.comp-rec-comp-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.comp-rec-comp-btn {
+  flex: 1;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--espresso-line);
+  background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.comp-rec-comp-btn:hover {
+  filter: brightness(1.1);
+}
+.comp-rec-comp-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.comp-rec-takes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.comp-rec-take {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ivory-panel);
+  border: 1px solid var(--espresso-line);
+  font-size: 10px;
+  transition: all 0.12s;
+}
+.comp-rec-take-selected {
+  border-color: var(--teal-500);
+  background: var(--teal-50);
+}
+.comp-rec-take-muted {
+  opacity: 0.5;
+}
+.comp-rec-take-num {
+  font-weight: 800;
+  color: var(--espresso-text);
+  flex: 1;
+}
+.comp-rec-take-meta {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--espresso-muted);
+}
+.comp-rec-take-action {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  border: 1px solid var(--espresso-line);
+  background: transparent;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--espresso-muted);
+  display: grid;
+  place-items: center;
+  transition: all 0.12s;
+}
+.comp-rec-take-action:hover {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+
+.comp-rec-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--espresso-text);
+  cursor: pointer;
+}
+.comp-rec-toggle input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--teal-500);
+}
+
+/* ===========================================================
+   PROJECT METADATA PANEL
+   =========================================================== */
+.comp-meta-field {
+  margin-bottom: 12px;
+}
+.comp-meta-field label {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--espresso-muted);
+  margin-bottom: 4px;
+}
+.comp-meta-input {
+  width: 100%;
+  height: 38px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--espresso-text);
+}
+.comp-meta-input:focus {
+  border-color: var(--teal-500);
+  outline: none;
+}
+
+.comp-meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.comp-meta-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.comp-meta-chip:hover {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+}
+.comp-meta-chip.active {
+  background: var(--teal-500);
+  color: white;
+  border-color: var(--teal-500);
+}
+
+.comp-meta-hint {
+  display: block;
+  font-size: 9px;
+  color: var(--espresso-muted);
+  margin-top: 4px;
+}
+
+.comp-meta-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+.comp-meta-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  color: var(--espresso-text);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.comp-meta-action-btn:hover {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+  color: var(--teal-700);
+}
+.comp-meta-action-btn .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--teal-500);
+}
+
+/* Glass-v42 Professional Styling */
+.glass-pro {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(52, 245, 197, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.neon-border {
+  position: relative;
+}
+
+.neon-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(52, 245, 197, 0.3),
+    transparent
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── Toolbar KBD shortcut badges ────────────────────── */
+.comp-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 4px;
+  margin-left: 3px;
+  border-radius: 3px;
+  background: rgba(61, 53, 42, 0.08);
+  border: 1px solid rgba(61, 53, 42, 0.12);
+  font-size: 7px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--espresso-muted);
+  line-height: 1.3;
+  opacity: 0.7;
+  pointer-events: none;
+  user-select: none;
+}
+.comp-tool-btn:hover .comp-kbd {
+  opacity: 1;
+  background: rgba(14, 124, 123, 0.12);
+  border-color: rgba(14, 124, 123, 0.25);
+  color: var(--teal-500);
+}
+
+/* ── Recording mode indicator on tool buttons ───────── */
+.comp-tool-rec {
+  position: relative;
+}
+.comp-tool-rec-punch {
+  color: var(--red, #dc2626);
+}
+.comp-tool-rec-comp {
+  color: var(--amber, #d97706);
+}
+.comp-tool-rec.comp-tool-active .comp-tool-label {
+  color: var(--teal-500);
+}
+.comp-tool-status-pip {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid var(--espresso-line);
+}
+.comp-tool-status-punch {
+  background: var(--red, #dc2626);
+  border-color: var(--red, #dc2626);
+  animation: comp-pulse 1s ease-in-out infinite;
+}
+.comp-tool-status-comp {
+  background: var(--amber, #d97706);
+  border-color: var(--amber, #d97706);
+  animation: comp-pulse 1.2s ease-in-out infinite;
+}
+
+/* ── Footer recording mode chip ─────────────────────── */
+.comp-footer-rec {
+  border-color: var(--teal-500);
+  background: rgba(14, 124, 123, 0.08);
+}
+.comp-footer-rec-punch {
+  border-color: var(--red, #dc2626);
+  color: var(--red, #dc2626);
+}
+.comp-footer-rec-comp {
+  border-color: var(--amber, #d97706);
+  color: var(--amber, #d97706);
+}
+
+/* ── AI Mix Spectrum Analyzer ───────────────────────── */
+.comp-aimix-spectrum {
+  padding: 0;
+  margin-bottom: 12px;
+}
+.comp-aimix-canvas {
+  width: 100%;
+  height: 80px;
+  border-radius: 8px;
+  background: var(--espresso-bg, rgba(31, 26, 18, 0.06));
+  display: block;
+}
+.comp-aimix-spectrum-label {
+  display: block;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+  text-align: center;
+  padding: 4px 0 0;
+  opacity: 0.5;
+}
+
+/* Dark mode spectrum analyzer */
+:host-context(.dark-mode) .comp-aimix-canvas {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* ── AI Chord Suggestions ──────────────────────────── */
+.comp-chord-genre-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.comp-chord-genre-label {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--espresso-muted);
+  flex-shrink: 0;
+}
+.comp-chord-genre-select {
+  flex: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  color: var(--espresso-text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.comp-chord-genre-select:focus {
+  border-color: var(--teal-500);
+  box-shadow: 0 0 0 2px rgba(14, 124, 123, 0.15);
+}
+
+.comp-chord-progression {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.comp-chord-chord {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--espresso-line);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.comp-chord-chord:hover {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.15);
+}
+.comp-chord-chord:active {
+  transform: scale(0.95);
+}
+.comp-chord-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--espresso-text);
+}
+.comp-chord-apply {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--teal-500);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.comp-chord-chord:hover .comp-chord-apply {
+  opacity: 1;
+}
+
+/* Dark mode chord progression */
+:host-context(.dark-mode) .comp-chord-genre-select {
+  background: rgba(31, 26, 18, 0.5);
+  border-color: rgba(93, 196, 194, 0.2);
+  color: var(--ivory-100);
+}
+:host-context(.dark-mode) .comp-chord-chord {
+  background: rgba(31, 26, 18, 0.4);
+  border-color: rgba(93, 196, 194, 0.15);
+}
+:host-context(.dark-mode) .comp-chord-chord:hover {
+  background: rgba(14, 124, 123, 0.2);
+  border-color: var(--teal-500);
+}
+
+/* ── Comp Take Playback ────────────────────────────── */
+.comp-rec-take-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--espresso-line);
+  color: var(--teal-500);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+.comp-rec-take-play:hover {
+  background: var(--teal-500);
+  color: white;
+  border-color: var(--teal-500);
+  transform: scale(1.1);
+}
+.comp-rec-take-play:active {
+  transform: scale(0.9);
+}
+.comp-rec-take-playing {
+  background: var(--orange, #d97706) !important;
+  border-color: var(--orange, #d97706) !important;
+  color: white !important;
+  animation: comp-pulse 0.8s ease-in-out infinite;
+}
+.comp-rec-take-play .material-symbols-outlined {
+  font-size: 14px;
+  font-variation-settings: 'FILL' 1;
+}
+
+/* ── Export Takes Button ───────────────────────────── */
+.comp-rec-export-takes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--ivory-panel);
+  border: 1px dashed var(--teal-500);
+  color: var(--teal-500);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.comp-rec-export-takes:hover {
+  background: var(--teal-100);
+  border-style: solid;
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.12);
+}
+.comp-rec-export-takes:active {
+  transform: scale(0.97);
+}
+.comp-rec-export-takes .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* Dark mode export button */
+:host-context(.dark-mode) .comp-rec-export-takes {
+  background: rgba(31, 26, 18, 0.4);
+  border-color: rgba(93, 196, 194, 0.3);
+}
+:host-context(.dark-mode) .comp-rec-export-takes:hover {
+  background: rgba(14, 124, 123, 0.15);
+}
+
+/* ── Export Comp Button (assembled bounce) ───────────────────── */
+.comp-rec-export-comp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--teal-500);
+  border: 1px solid var(--teal-500);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.comp-rec-export-comp:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.2);
+}
+.comp-rec-export-comp:active {
+  transform: scale(0.97);
+}
+.comp-rec-export-comp .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* Dark mode export comp button */
+:host-context(.dark-mode) .comp-rec-export-comp {
+  background: rgba(14, 124, 123, 0.85);
+  border-color: rgba(93, 196, 194, 0.4);
+}
+
+/* ── Chord Voicing Controls ────────────────────────── */
+.comp-chord-voicing {
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+.comp-chord-voicing-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.comp-chord-voicing-btn {
+  flex: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--espresso-line);
+  background: transparent;
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.comp-chord-voicing-btn:hover {
+  background: rgba(14, 124, 123, 0.06);
+  border-color: var(--teal-500);
+}
+.comp-chord-voicing-btn.active {
+  background: var(--teal-500);
+  color: white;
+  border-color: var(--teal-500);
+}
+
+.comp-chord-voicing-preview {
+  background: rgba(14, 124, 123, 0.04);
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 40px;
+}
+.comp-chord-keys {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  min-height: 24px;
+}
+.comp-chord-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  background: rgba(14, 124, 123, 0.15);
+  font-size: 6px;
+  transition: all 0.15s ease;
+}
+.comp-chord-key-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal-500);
+}
+.comp-chord-key.voicing-root .comp-chord-key-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--orange, #d97706);
+}
+.comp-chord-key.voicing-third .comp-chord-key-dot {
+  background: var(--amber, #f59e0b);
+}
+.comp-chord-key.voicing-fifth .comp-chord-key-dot {
+  background: var(--teal-300, #5dc4c2);
+}
+.comp-chord-preview-label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--espresso-muted);
+  margin-top: 6px;
+  opacity: 0.7;
+}
+
+/* Dark mode chord voicing */
+:host-context(.dark-mode) .comp-chord-voicing-preview {
+  background: rgba(93, 196, 194, 0.06);
+}
+:host-context(.dark-mode) .comp-chord-key {
+  background: rgba(93, 196, 194, 0.12);
+}
+
+/* ── Import Audio Panel ────────────────────────────── */
+.comp-import-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.comp-import-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--espresso-line);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.comp-import-item:hover {
+  border-color: var(--teal-500);
+  background: rgba(14, 124, 123, 0.04);
+}
+.comp-import-item.selected {
+  border-color: var(--teal-500);
+  background: var(--teal-100);
+}
+.comp-import-item .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--teal-500);
+}
+.comp-import-name {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--espresso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.comp-import-meta {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--espresso-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+.comp-import-remove {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--espresso-muted);
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.12s ease;
+}
+.comp-import-remove:hover {
+  opacity: 1;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+.comp-import-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  color: var(--espresso-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+.comp-import-editor {
+  margin-top: 4px;
+}
+.comp-import-waveform {
+  margin: 8px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.comp-import-canvas {
+  width: 100%;
+  height: 60px;
+  display: block;
+  background: rgba(14, 124, 123, 0.03);
+  border-radius: 6px;
+}
+.comp-import-number {
+  width: 64px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  color: var(--espresso-text);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+.comp-import-match-btn {
+  flex-shrink: 0;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.comp-import-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.comp-import-slider-label {
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--espresso-muted);
+  min-width: 52px;
+  flex-shrink: 0;
+}
+.comp-import-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  background: var(--espresso-line);
+  outline: none;
+}
+.comp-import-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--teal-500);
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+.comp-import-select {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  color: var(--espresso-text);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.comp-import-select:focus {
+  outline: none;
+  border-color: var(--teal-500);
+}
+.comp-import-slider-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--espresso-muted);
+  min-width: 36px;
+  text-align: right;
+}
+
+/* Dark mode import */
+:host-context(.dark-mode) .comp-import-item {
+  background: rgba(31, 26, 18, 0.4);
+}
+:host-context(.dark-mode) .comp-import-item.selected {
+  background: rgba(14, 124, 123, 0.15);
+}
+
+/* ── Component Recording Source Selector ───────────── */
+.comp-rec-src-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.comp-rec-src-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  border-radius: 8px;
+  background: var(--ivory-paper);
+  border: 1px solid var(--espresso-line);
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.comp-rec-src-btn:hover {
+  border-color: var(--teal-500);
+  background: rgba(14, 124, 123, 0.04);
+  color: var(--teal-500);
+}
+.comp-rec-src-btn.active {
+  background: var(--teal-100);
+  border-color: var(--teal-500);
+  color: var(--teal-700);
+  box-shadow: inset 0 -2px 0 var(--teal-500);
+}
+.comp-rec-src-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+.comp-rec-src-label {
+  line-height: 1;
+}
+.comp-rec-src-badge {
+  font-size: 10px;
+  line-height: 1;
+}
+.comp-meta-action-btn.recording-active {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: white !important;
+  animation: comp-pulse 1s ease-in-out infinite;
+}
+
+/* Dark mode recording source */
+:host-context(.dark-mode) .comp-rec-src-btn {
+  background: rgba(31, 26, 18, 0.4);
+}
+:host-context(.dark-mode) .comp-rec-src-btn.active {
+  background: rgba(14, 124, 123, 0.2);
+}
+
+/* ============================================================
+   STUDIO UI/UX FIXES — Mobile safe-area, canvas overflow,
+   keyboard viewport, dark mode consistency
+   ============================================================ */
+
+/* ── Prevent sub-components from overflowing canvas on Chrome Desktop ── */
+.comp-view > :first-child {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── Mobile keyboard viewport handling ── */
+@media (max-height: 500px) {
+  .comp-topbar {
+    height: 40px;
+    padding: 0 8px;
+  }
+  .comp-topbar-tools {
+    display: none;
+  }
+  .comp-stage-marquee {
+    display: none;
+  }
+  .comp-footer {
+    height: 32px;
+    padding: 0 8px;
+  }
+  .comp-bottombar {
+    height: 44px;
+  }
+  .comp-panel {
+    top: 0;
+    height: 100%;
+  }
+}
+
+/* Short *phone* viewports (landscape phones, and any phone with the keyboard
+   open) still need the tools row: on the compact tier that row owns the only
+   MORE trigger for the STUDIO TOOLS sheet, so the block above — which hides
+   the row outright — also removed the entry point to save/export, AI Mix,
+   recording, project info, Insights and appearance. Collapse the row to just
+   that one trigger instead of hiding it. Scoped to <=768px so the desktop
+   tier keeps its original behaviour. */
+@media (max-height: 500px) and (max-width: 768px) {
+  .comp-shell .comp-topbar-tools {
+    display: flex;
+    min-height: 32px;
+    padding: 2px 6px;
+  }
+
+  .comp-shell .comp-topbar-tools .comp-tool-btn.comp-tool-more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 3px 9px;
+  }
+}
+
+/* ── Chrome Desktop: ensure canvas fills viewport ── */
+@media (min-width: 1024px) and (min-height: 600px) {
+  .comp-canvas {
+    min-height: 480px;
+  }
+  .comp-view {
+    min-height: 400px;
+  }
+}
+
+/* ── Dark mode transition smoothing ── */
+.comp-shell,
+.comp-topbar,
+.comp-main,
+.comp-rail,
+.comp-canvas,
+.comp-footer,
+.comp-bottombar,
+.comp-panel,
+.comp-drawer,
+.comp-backdrop {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* ── Fix panel stacking context on mobile ── */
+.comp-shell.comp-compact .comp-panel {
+  width: 100vw;
+  max-width: 100vw;
+}
+.comp-shell.comp-compact .comp-panel.comp-panel-open {
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Ensure browser drawer doesn't clip on narrow screens ── */
+@media (max-width: 480px) {
+  .comp-panel {
+    width: 100vw;
+    max-width: 100vw;
+  }
+}
+
+/* ── Dark mode canvas background consistency ── */
+:host-context(.dark-mode) .comp-canvas,
+.dark-mode .comp-canvas {
+  background: #14110b;
+}
+:host-context(.dark-mode) .comp-view,
+.dark-mode .comp-view {
+  background: transparent;
+}
+
+/* ── Reduced motion: eliminate all transitions ── */
+@media (prefers-reduced-motion: reduce) {
+  .comp-shell,
+  .comp-topbar,
+  .comp-main,
+  .comp-rail,
+  .comp-canvas,
+  .comp-footer,
+  .comp-bottombar,
+  .comp-panel,
+  .comp-drawer,
+  .comp-backdrop {
+    transition: none !important;
+  }
+  .comp-drawer {
+    transition: none !important;
+  }
+  .comp-panel {
+    transition: none !important;
+  }
+}
+
+/* ═══ HOME NAVIGATION BUTTON ═══════════════════════════════ */
+.comp-rail-home {
+  border-bottom: 2px solid var(--teal-500, #0e7c7b);
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+}
+
+.comp-rail-home .material-symbols-outlined {
+  color: var(--teal-500, #0e7c7b);
+}
+
+.comp-rail-home:hover {
+  background: color-mix(in srgb, var(--teal-500) 10%, transparent);
+}
+
+/* ═══ BEGINNER / PRO TOGGLE ═══════════════════════════════ */
+.comp-beginner-toggle {
+  position: relative;
+}
+
+.comp-beginner-toggle .comp-theme-chip {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.comp-beginner-active {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: #fff !important;
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+}
+
+.comp-beginner-active .comp-theme-chip {
+  color: #fff;
+}
+
+/* ═══ BEGINNER WIZARD VIEW ════════════════════════════════ */
+.comp-beginner-view {
+  min-height: 100%;
+  overflow-y: auto; overflow-x: hidden;
+}
+
+/* Mobile home tab now shares the standard .comp-tab look — the bespoke
+   accent was retired with the 6-slot bottom-bar redesign. */
+
+/* ═══ MOBILE RESPONSIVE ADJUSTMENTS ═══════════════════════ */
+@media (max-width: 768px) {
+  .comp-beginner-toggle .comp-theme-chip {
+    display: none;
+  }
+}
+
+
+/* Sprint B2 Phase 2: presence header pill + peer-cursor overlay */
+
+.comp-presence {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(14, 124, 123, 0.10);
+  border: 1px solid rgba(14, 124, 123, 0.35);
+  margin-left: 4px;
+  height: 28px;
+}
+
+.comp-session-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(31, 26, 18, 0.10);
+  color: var(--espresso-200, #3d352a);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.comp-session-chip .material-symbols-outlined {
+  font-size: 12px;
+  color: var(--teal-600, #0a5f5e);
+}
+
+.comp-session-code { text-transform: uppercase; }
+
+.comp-peer-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0e7c7b 0%, #5dc4c2 100%);
+  color: #fbf7ec;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border: 1.5px solid rgba(251, 247, 236, 0.75);
+  box-shadow: 0 1px 4px rgba(14, 124, 123, 0.25);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.comp-peer-avatar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(14, 124, 123, 0.45);
+}
+
+.comp-peer-talking {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 0 2px rgba(14, 124, 123, 0.95),
+    0 0 12px rgba(93, 196, 194, 0.85);
+}
+
+.comp-peer-talking-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #c2b295;
+  border: 1.5px solid rgba(251, 247, 236, 0.95);
+  transition: background 100ms ease, transform 100ms ease;
+}
+
+.comp-peer-talking .comp-peer-talking-dot {
+  background: #10b981;
+  transform: scale(1.15);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.85);
+}
+
+.comp-peer-overflow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(31, 26, 18, 0.18);
+  color: #fbf7ec;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.comp-voice-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(217, 119, 6, 0.18);
+  color: #d97706;
+  margin-left: 4px;
+  animation: pulse-warm 1.6s ease-in-out infinite;
+}
+
+.comp-voice-chip .material-symbols-outlined { font-size: 14px; }
+
+.peer-cursor-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+}
+
+.peer-cursor {
+  position: absolute;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transform: translate(-2px, -2px);
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.peer-cursor-arrow {
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(135deg, #0e7c7b 0%, #5dc4c2 100%);
+  clip-path: polygon(0 0, 14px 0, 0 14px);
+  border-radius: 2px;
+  filter: drop-shadow(0 1px 2px rgba(31, 26, 18, 0.35));
+}
+
+.peer-cursor-name {
+  margin-top: 2px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(31, 26, 18, 0.78);
+  color: #fbf7ec;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  opacity: 0.85;
+  transition: opacity 150ms ease;
+}
+
+.peer-cursor:hover .peer-cursor-name { opacity: 1; }
+
+/* END Sprint B2 Phase 2 */
+
+/* ===========================================================
+   STUDIO INSIGHTS PANEL — north-star + competitor gap backlog
+   =========================================================== */
+.comp-insights-lede {
+  margin: 0 0 14px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--espresso-muted);
+}
+
+.comp-insights-section {
+  margin-bottom: 18px;
+}
+
+.comp-insights-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.comp-insights-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--espresso-line);
+  background: rgba(14, 124, 123, 0.04);
+}
+
+.comp-insights-metric-val {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--teal-500);
+  letter-spacing: -0.02em;
+}
+
+.comp-insights-metric-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+}
+
+.comp-insights-gap {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--espresso-line);
+}
+
+.comp-insights-gap:last-child {
+  border-bottom: none;
+}
+
+.comp-insights-gap-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.comp-insights-gap-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--espresso-text);
+}
+
+.comp-insights-gap-weight {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  color: var(--espresso-muted);
+}
+
+.comp-insights-gap-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--espresso-line);
+  overflow: hidden;
+}
+
+.comp-insights-gap-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--teal-500), #5dc4c2);
+  transition: width 0.25s ease;
+}
+
+.comp-insights-gap-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--espresso-muted);
+}
+
+.comp-insights-gap-delta {
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--orange, #e07a3d);
+}
+
+.comp-insights-gap-delta.comp-insights-gap-lead {
+  color: var(--teal-500);
+}
+
+.comp-insights-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.comp-insights-events li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(61, 53, 42, 0.04);
+  font-size: 11px;
+}
+
+.comp-insights-events code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--espresso-text);
+  word-break: break-all;
+}
+
+.comp-insights-events span {
+  font-weight: 800;
+  color: var(--teal-500);
+  font-variant-numeric: tabular-nums;
+}
+
+.comp-insights-empty {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--espresso-muted);
+  font-style: italic;
+}
+
+.comp-insights-coach {
+  border: 1px solid var(--espresso-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(93, 196, 194, 0.1),
+    rgba(224, 122, 61, 0.06)
+  );
+  margin-bottom: 8px;
+}
+
+.comp-insights-coach:last-child {
+  margin-bottom: 0;
+}
+
+.comp-insights-coach-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.comp-insights-coach-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--espresso-text);
+}
+
+.comp-insights-coach-dismiss {
+  border: 0;
+  background: transparent;
+  color: var(--espresso-muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  display: inline-flex;
+  border-radius: 6px;
+}
+
+.comp-insights-coach-dismiss .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.comp-insights-coach-dismiss:hover,
+.comp-insights-coach-dismiss:focus-visible {
+  color: var(--espresso-text);
+  outline: 2px solid var(--teal-500);
+  outline-offset: 1px;
+}
+
+.comp-insights-coach-reason {
+  margin: 6px 0 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--espresso-muted);
+}
+
+.comp-insights-coach-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.comp-insights-coach-cat {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--teal-500);
+}
+
+.comp-insights-coach-cta,
+.comp-insights-probe-btn {
+  border: 0;
+  border-radius: 999px;
+  background: var(--teal-500);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 7px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comp-insights-coach-cta:hover,
+.comp-insights-probe-btn:hover,
+.comp-insights-coach-cta:focus-visible,
+.comp-insights-probe-btn:focus-visible {
+  filter: brightness(1.05);
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+.comp-insights-coach-cta:disabled,
+.comp-insights-probe-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.comp-insights-probe-btn {
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
+  background: linear-gradient(90deg, var(--teal-500), #3a9e9c);
+}
+
+.comp-insights-probe-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+:host-context(.dark-mode) .comp-insights-metric,
+.dark-mode .comp-insights-metric {
+  background: rgba(93, 196, 194, 0.08);
+}
+
+:host-context(.dark-mode) .comp-insights-events li,
+.dark-mode .comp-insights-events li {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:host-context(.dark-mode) .comp-insights-coach,
+.dark-mode .comp-insights-coach {
+  background: linear-gradient(
+    135deg,
+    rgba(93, 196, 194, 0.12),
+    rgba(255, 255, 255, 0.03)
+  );
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.comp-import-preview {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.comp-import-smart {
+  margin-top: 10px;
+  padding: 8px;
+  border: 1px solid rgba(14, 124, 123, 0.2);
+  border-radius: 10px;
+}
+
+.comp-import-smart-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.comp-import-smart-ready {
+  color: #0e7c7b;
+  font-weight: 700;
+}
+
+.comp-import-smart-disabled {
+  color: rgba(72, 57, 35, 0.74);
+  text-align: right;
+}
+
+/* ==============================================
+   PROJECT MENU (Desktop Dropdown)
+   ============================================== */
+.comp-project-menu {
+  position: absolute;
+  top: 100%;
+  left: 64px;
+  background: rgba(20, 17, 11, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--espresso-line);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  max-width: calc(100vw - 80px);
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.comp-project-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--espresso-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.comp-project-menu-item:hover,
+.comp-project-menu-item:focus {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.comp-project-menu-item:focus {
+  outline: 2px solid var(--teal-400, #2ba09c);
+  outline-offset: -2px;
+}
+
+.comp-project-menu-item .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--teal-500);
+}
+.comp-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: transparent;
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   GOOGLE PLAY BENCHMARK: 1-TAP CREATE BUTTON & CATEGORIZED DRAWER
+   BandLab / FL Studio Mobile ergonomic touch design
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* Topbar 1-Tap CREATE Button */
+.comp-tool-create {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.22) 0%, rgba(14, 124, 123, 0.35) 100%) !important;
+  border-color: rgba(45, 212, 191, 0.45) !important;
+  color: #5eead4 !important;
+  box-shadow: 0 0 12px rgba(20, 184, 166, 0.2);
+}
+
+.comp-tool-create:hover,
+.comp-tool-create:active {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.35) 0%, rgba(14, 124, 123, 0.5) 100%) !important;
+  border-color: rgba(94, 234, 212, 0.7) !important;
+  box-shadow: 0 0 18px rgba(20, 184, 166, 0.4);
+}
+
+.comp-tool-badge-smart {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  color: #031317;
+  font-weight: 800;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* Bottombar Center CREATE Hero Button (Mobile Touch) */
+.comp-tab-create-hero {
+  flex: 1.2 1 0;
+  background: linear-gradient(135deg, #0e7c7b 0%, #14b8a6 100%) !important;
+  color: #ffffff !important;
+  border-radius: 14px !important;
+  margin: 4px 6px !important;
+  box-shadow: 0 4px 16px rgba(20, 184, 166, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  position: relative;
+  overflow: hidden;
+  transform: translateY(-2px);
+  min-height: 48px;
+  font-weight: 800;
+}
+
+.comp-tab-create-hero:active {
+  transform: translateY(1px) scale(0.96) !important;
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
+}
+
+.comp-create-hero-icon {
+  font-size: 24px !important;
+  color: #ffffff;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+}
+
+.comp-tab-create-hero .comp-tab-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ffffff;
+}
+
+.comp-create-pill-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Categorized Drawer Navigation */
+.comp-drawer-create-hero {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.18) 0%, rgba(14, 124, 123, 0.25) 100%);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  text-align: left;
+  margin-bottom: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.comp-drawer-create-hero:active {
+  transform: scale(0.98);
+}
+
+.comp-drawer-create-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #5eead4;
+  background: rgba(20, 184, 166, 0.2);
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.comp-drawer-create-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin-bottom: 2px;
+}
+
+.comp-drawer-create-desc {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.comp-drawer-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.comp-drawer-category-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comp-drawer-category-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.comp-drawer-cat-icon {
+  font-size: 16px !important;
+  color: var(--teal-400, #2dd4bf);
+}
+
+.comp-drawer-category-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--teal-400, #2dd4bf);
+}
+
+.comp-drawer-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.comp-drawer-grid-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  min-height: 48px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--espresso-text, #cbd5e1);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.comp-drawer-grid-btn:hover,
+.comp-drawer-grid-btn:focus-visible {
+  background: rgba(20, 184, 166, 0.12);
+  border-color: rgba(45, 212, 191, 0.3);
+  color: #f1f5f9;
+}
+
+.comp-drawer-grid-btn:active {
+  transform: scale(0.97);
+}
+
+.comp-drawer-grid-btn.comp-drawer-active {
+  background: rgba(20, 184, 166, 0.22);
+  border-color: var(--teal-400, #2dd4bf);
+  color: #5eead4;
+  font-weight: 700;
+}
+
+.comp-drawer-grid-btn .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--teal-400, #2dd4bf);
+  flex-shrink: 0;
+}
+
+.comp-drawer-grid-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.comp-drawer-grid-pill {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(20, 184, 166, 0.25);
+  color: #5eead4;
+}
+
+/* ===========================================================
+   CLOUD VERSION HISTORY PANEL
+   =========================================================== */
+/* Panels are bounded by the Studio shell, already below app navigation. */
+.comp-versions-panel {
+  top: 0;
+  height: 100%;
+}
+.comp-versions-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.comp-versions-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 14px 16px;
+}
+.comp-versions-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--espresso-muted);
+}
+.comp-versions-empty {
+  margin: 0;
+  padding: 14px 4px;
+  font-size: 12px;
+  color: var(--espresso-muted);
+  text-align: center;
+}
+.comp-versions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.comp-versions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+}
+:host-context(.dark-mode) .comp-versions-row,
+.dark-mode .comp-versions-row {
+  background: rgba(255, 255, 255, 0.04);
+}
+.comp-versions-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.comp-versions-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--espresso-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.comp-versions-sub {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--espresso-muted);
+}
+.comp-versions-restore {
+  flex-shrink: 0;
+}
+
+/* ===========================================================
+   SETS BROWSER PANEL (local project workspaces)
+   =========================================================== */
+.comp-sets-panel {
+  top: 0;
+  height: 100%;
+}
+.comp-sets-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.comp-sets-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.comp-sets-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.comp-sets-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  color: var(--espresso-text);
+  text-align: left;
+}
+.comp-sets-action .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--teal-700);
+  flex-shrink: 0;
+}
+.comp-sets-action strong {
+  display: block;
+  font-size: 12.5px;
+}
+.comp-sets-action small {
+  display: block;
+  font-size: 10px;
+  color: var(--espresso-muted);
+}
+.comp-sets-action-primary {
+  border-color: rgba(14, 124, 123, 0.4);
+  background: linear-gradient(
+    140deg,
+    rgba(14, 124, 123, 0.12),
+    rgba(14, 124, 123, 0.03)
+  );
+}
+.comp-sets-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--espresso-muted);
+}
+.comp-sets-empty {
+  margin: 0;
+  padding: 14px 4px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--espresso-muted);
+  text-align: center;
+}
+.comp-sets-error {
+  margin: 0;
+  font-size: 12px;
+  color: #b42318;
+}
+.comp-sets-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.comp-sets-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.comp-sets-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--espresso-line);
+  background: rgba(255, 255, 255, 0.55);
+  text-align: left;
+}
+.comp-sets-row-current .comp-sets-open {
+  border-color: var(--teal-500);
+  box-shadow: inset 3px 0 0 var(--teal-500);
+}
+.comp-sets-mark {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--espresso-line);
+  flex-shrink: 0;
+}
+.comp-sets-row-current .comp-sets-mark {
+  background: var(--teal-500);
+  box-shadow: 0 0 8px rgba(14, 124, 123, 0.5);
+}
+.comp-sets-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.comp-sets-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--espresso-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.comp-sets-current-pill {
+  flex-shrink: 0;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(14, 124, 123, 0.14);
+  color: var(--teal-700);
+}
+.comp-sets-sub,
+.comp-sets-stamp {
+  font-size: 11px;
+  color: var(--espresso-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.comp-sets-stamp {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.comp-sets-delete {
+  flex: 0 0 auto;
+  width: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  border: 1px solid var(--espresso-line);
+  background: rgba(255, 255, 255, 0.55);
+  color: #b42318;
+}
+.comp-sets-open:disabled,
+.comp-sets-delete:disabled,
+.comp-sets-action:disabled {
+  opacity: 0.55;
+}
+
+:host-context(.dark-mode) .comp-sets-action,
+:host-context(.dark-mode) .comp-sets-open,
+:host-context(.dark-mode) .comp-sets-delete,
+.dark-mode .comp-sets-action,
+.dark-mode .comp-sets-open,
+.dark-mode .comp-sets-delete {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ===========================================================
+   MOBILE QUICK-START LANE — base geometry + 1-tap instrumentals
+
+   The lane previously carried only shadow/atmosphere rules, so on a phone
+   it rendered as raw stacked blocks. This gives it the intended
+   BandLab-style starter card, the one-tap instrumental chips, and the
+   finishing path that follows a loaded groove.
+   =========================================================== */
+.comp-mobile-start {
+  margin: 10px 12px 2px;
+  padding: 14px 14px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--espresso-line);
+  background: linear-gradient(160deg, var(--ivory-paper), var(--ivory-bg));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.comp-mobile-start-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.comp-mobile-start-kicker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.comp-mobile-start-kicker {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal-700);
+}
+.comp-mobile-start-badge {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: rgba(14, 124, 123, 0.12);
+  color: var(--teal-700);
+  border: 1px solid rgba(14, 124, 123, 0.24);
+}
+.comp-mobile-start-copy h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.15;
+}
+.comp-mobile-start-copy p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--espresso-muted);
+}
+.comp-mobile-start-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  color: var(--espresso-text);
+  text-align: left;
+  min-width: 0;
+}
+.comp-mobile-start-action .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--teal-700);
+  flex-shrink: 0;
+}
+.comp-mobile-start-action strong {
+  display: block;
+  font-size: 12.5px;
+}
+.comp-mobile-start-action small {
+  display: block;
+  font-size: 10px;
+  color: var(--espresso-muted);
+}
+.comp-mobile-start-hero {
+  background: linear-gradient(140deg, var(--teal-700), var(--teal-500));
+  border-color: transparent;
+  color: #fff;
+}
+.comp-mobile-start-hero .material-symbols-outlined {
+  color: #fff;
+}
+.comp-mobile-start-hero small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.comp-mobile-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.comp-mobile-quick-hint {
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--espresso-muted);
+}
+.comp-mobile-quick-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.comp-mobile-quick-chips::-webkit-scrollbar {
+  display: none;
+}
+.comp-mobile-quick-chip {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  color: var(--espresso-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+.comp-mobile-quick-chip:active {
+  transform: scale(0.97);
+}
+.comp-mobile-quick-glyph {
+  font-size: 16px;
+}
+.comp-mobile-quick-bpm {
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(14, 124, 123, 0.12);
+  color: var(--teal-700);
+}
+
+.comp-mobile-next {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--espresso-line);
+}
+.comp-mobile-next-kicker {
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--espresso-muted);
+}
+.comp-mobile-next-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-paper);
+  color: var(--espresso-text);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+.comp-mobile-next-btn .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--teal-700);
+}
+
+:host-context(.dark-mode) .comp-mobile-start,
+.dark-mode .comp-mobile-start {
+  background: linear-gradient(160deg, rgba(26, 22, 14, 0.98), #14110b);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+:host-context(.dark-mode) .comp-mobile-start-action,
+:host-context(.dark-mode) .comp-mobile-quick-chip,
+:host-context(.dark-mode) .comp-mobile-next-btn,
+.dark-mode .comp-mobile-start-action,
+.dark-mode .comp-mobile-quick-chip,
+.dark-mode .comp-mobile-next-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f5f7fb;
+}
+:host-context(.dark-mode) .comp-mobile-start-copy p,
+:host-context(.dark-mode) .comp-mobile-start-action small,
+.dark-mode .comp-mobile-start-copy p,
+.dark-mode .comp-mobile-start-action small {
+  color: #9aa5b5;
+}
+
+/* ===========================================================
+   COMPACT-MOBILE TOOLS SHEET — the topbar MORE button's surface
+
+   One bottom sheet owns every command the phone chrome no longer
+   shows inline: create, mix, record, save/export, session, share and
+   appearance. It only ever displays inside the compact-mobile tier
+   (see studio-shell-refinement.css for the trigger visibility), and
+   `display: none` while closed keeps the duplicate labels out of the
+   accessibility tree, so nothing here shadows the desktop controls.
+   =========================================================== */
+.comp-tools-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: rgba(31, 26, 18, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.comp-tools-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  display: none;
+  flex-direction: column;
+  /* `dvh`, not `vh`: with the mobile URL bar showing, `78vh` measures the
+     LARGE viewport and pushed the sheet's last row (and its safe-area
+     padding) under the browser chrome. The vh line is the older-browser
+     fallback, matching the shell's own 100svh/100dvh pattern. */
+  max-height: min(78vh, 560px);
+  max-height: min(78dvh, 560px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--ivory-paper);
+  border-top: 1px solid var(--espresso-line);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -14px 44px rgba(31, 26, 18, 0.32);
+}
+
+@media (max-width: 768px) {
+  .comp-tools-sheet.comp-tools-sheet-open {
+    display: flex;
+    animation: comp-tools-sheet-up 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+}
+
+@keyframes comp-tools-sheet-up {
+  from {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.comp-tools-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--espresso-line);
+}
+
+.comp-tools-sheet-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--teal-700);
+}
+
+.comp-tools-sheet-title .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.comp-tools-sheet-close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--espresso-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.comp-tools-sheet-close:hover,
+.comp-tools-sheet-close:active {
+  background: rgba(14, 124, 123, 0.08);
+  color: var(--teal-700);
+}
+
+.comp-tools-sheet-body {
+  display: grid;
+  gap: 14px;
+  padding: 12px 14px 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.comp-tools-sheet-group {
+  display: grid;
+  gap: 8px;
+}
+
+.comp-tools-sheet-label {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: var(--espresso-muted);
+}
+
+.comp-tools-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.comp-tools-sheet-btn {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  column-gap: 8px;
+  row-gap: 1px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--espresso-text);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease,
+    background 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.comp-tools-sheet-btn:hover,
+.comp-tools-sheet-btn:focus-visible {
+  background: rgba(14, 124, 123, 0.08);
+}
+
+.comp-tools-sheet-btn:active {
+  transform: scale(0.97);
+}
+
+.comp-tools-sheet-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+
+.comp-tools-sheet-btn .material-symbols-outlined {
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 20px;
+  color: var(--teal-700);
+}
+
+.comp-tools-sheet-btn strong {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.comp-tools-sheet-btn small {
+  font-size: 9px;
+  line-height: 1.2;
+  color: var(--espresso-muted);
+  overflow-wrap: anywhere;
+}
+
+.comp-tools-sheet-btn.comp-tools-sheet-on {
+  border-color: var(--teal-500);
+  background: var(--teal-100);
+}
+
+.comp-tools-sheet-btn:focus-visible,
+.comp-tools-sheet-close:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}

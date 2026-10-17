@@ -1,0 +1,2247 @@
+:host {
+  display: block;
+  min-height: 100%;
+  width: 100%;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+canvas {
+  /*
+   * Smooth resampling, not `pixelated`. The monitor's backing store is a real
+   * capture resolution (up to 1920 px) shown at whatever width the layout gives
+   * it, so a nearest-neighbour downscale shredded the viewfinder into aliased
+   * noise that read as a broken camera feed.
+   */
+  image-rendering: auto;
+  /* Keep the program monitor above the live camera sink. */
+  position: relative;
+  z-index: 1;
+}
+
+.production-upgrade-bar {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.9),
+    rgba(15, 23, 42, 0.65)
+  );
+}
+
+.production-upgrade-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.upgrade-eyebrow,
+.blueprint-label,
+.production-mode-label,
+.delivery-preset-meta,
+.production-directive-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 800;
+}
+
+.upgrade-eyebrow,
+.blueprint-label {
+  color: #10b981;
+}
+
+.upgrade-title {
+  color: #e2e8f0;
+  font-size: clamp(1.25rem, 2vw, 1.85rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.upgrade-description {
+  color: #94a3b8;
+  max-width: 72rem;
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+.production-mode-grid,
+.production-blueprint-grid,
+.delivery-preset-row,
+.production-directives-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.production-mode-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.production-mode-card,
+.delivery-preset-card,
+.production-directive-row,
+.blueprint-stat {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.production-mode-card,
+.delivery-preset-card {
+  display: grid;
+  gap: 0.35rem;
+  text-align: left;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.production-mode-card.active,
+.delivery-preset-card.active {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.08);
+  box-shadow: 0 14px 34px rgba(16, 185, 129, 0.1);
+}
+
+.production-mode-description,
+.delivery-preset-copy,
+.production-directive-detail {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.production-mode-label,
+.delivery-preset-name,
+.blueprint-value {
+  color: #e2e8f0;
+}
+
+.production-blueprint-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.blueprint-stat {
+  padding: 0.9rem 1rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.blueprint-value {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.delivery-preset-row {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.delivery-preset-name {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.production-directives-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.director-console,
+.broadcast-console {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 1rem;
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.08), rgba(15, 23, 42, 0.72));
+}
+
+.broadcast-console {
+  border-color: rgba(56, 189, 248, 0.2);
+  background: linear-gradient(145deg, rgba(14, 165, 233, 0.08), rgba(15, 23, 42, 0.72));
+}
+
+.director-console-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.director-console-title {
+  margin-top: 0.2rem;
+  color: #f8fafc;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.director-state {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  padding: 0.3rem 0.55rem;
+  color: #94a3b8;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.director-state.busy {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+.director-field {
+  display: grid;
+  gap: 0.35rem;
+  color: #94a3b8;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.director-field textarea,
+.director-field select,
+.director-field input,
+.command-row input,
+.broadcast-input-grid input {
+  width: 100%;
+  /* Field-level touch floor: the platform select and command inputs are
+     tapped directly, so they clear the 44px-class minimum too. */
+  min-height: 2.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 0.65rem;
+  padding: 0.6rem 0.7rem;
+  background: rgba(2, 6, 23, 0.5);
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  letter-spacing: normal;
+  text-transform: none;
+  outline: none;
+}
+
+.director-field textarea:focus,
+.director-field select:focus,
+.command-row input:focus,
+.broadcast-input-grid input:focus {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+}
+
+.director-actions,
+.command-row,
+.broadcast-input-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.director-actions-compact {
+  gap: 0.35rem;
+}
+
+.director-button {
+  /* 2.75rem ≈ 44px thumb target on phones; desktop relaxes at 768px. */
+  min-height: 2.75rem;
+  flex: 1 1 8rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.65rem;
+  padding: 0.45rem 0.6rem;
+  background: rgba(148, 163, 184, 0.05);
+  color: #cbd5e1;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+.director-button:active:not(:disabled) {
+  border-color: rgba(16, 185, 129, 0.55);
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+}
+
+@media (hover: hover) {
+  .director-button:hover:not(:disabled),
+  .director-button.active {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+  }
+}
+
+/* Keep the active identity without hover on touch-only devices. */
+.director-button.active {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+@media (min-width: 768px) {
+  .director-button {
+    min-height: 2.2rem;
+  }
+}
+
+.director-button-primary {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.14);
+  color: #34d399;
+}
+
+.director-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.director-plan-card,
+.command-console {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  border-radius: 0.7rem;
+  background: rgba(2, 6, 23, 0.36);
+}
+
+.director-plan-title {
+  color: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.director-plan-card p {
+  color: #94a3b8;
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.director-plan-meta,
+.command-console-label {
+  color: #10b981;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.director-plan-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.command-row input {
+  flex: 1 1 12rem;
+}
+
+.command-row .director-button {
+  flex: 0 0 auto;
+}
+
+.broadcast-input-grid > input {
+  flex: 1 1 8rem;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.safe-zone-toggle {
+  border-radius: 999px;
+  min-height: 2.75rem;
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  padding: 0.45rem 0.8rem;
+  color: #10b981;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.production-directive-row {
+  padding: 0.9rem 1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+/*
+  Lane labels stick to the left edge of the lane viewport, so panning a long
+  timeline never loses track of which lane you are on. Horizontal only: adding a
+  vertical offset here would also pin the label to the scroller's top edge once
+  the lanes scroll vertically, detaching it from its own lane.
+
+  `sticky` (not `absolute`) is the whole point — an absolutely positioned label
+  travels with the clips and leaves the viewport on the first pan.
+*/
+.track-label {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  height: 100%;
+}
+
+/*
+  The timeline's control strip is a single row that scrolls sideways — it never
+  wraps. Wrapping is what used to starve the lanes: on a phone (and on any
+  desktop narrow enough to fold the tools) the wrapped rows pushed the tracks
+  past the section's fixed height, and the overflow was clipped with no way to
+  scroll to the third lane.
+*/
+.timeline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  /*
+   * Wraps, never scrolls sideways. The strip used to be a single nowrap row
+   * with `overflow-x: auto`, which on a 360 px phone parked CUT, DUPLICATE,
+   * DELETE, MARK, PREV and NEXT outside the section's `overflow: hidden` box
+   * behind a horizontal scroll nobody can see. Wrapping costs a row of height
+   * (the section is content-sized now) and hides nothing.
+   */
+  flex-wrap: wrap;
+  min-width: 0;
+  overflow: visible;
+  padding-bottom: 0.2rem;
+}
+
+/*
+  `flex: 0 1 auto` (not `0 0 auto`): a 528 px toolbar has to be allowed to
+  shrink to the phone's head width, or it overflows and its own right-hand
+  controls are clipped. It wraps internally once it is narrower than its
+  contents.
+*/
+.timeline-head > * {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.timeline-toolbar,
+.selected-clip-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* Musical unit, so it reads as distinct from the seconds beside it. */
+.selected-clip-bars {
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.08);
+  white-space: nowrap;
+}
+
+.timeline-toolbar {
+  min-height: 2.75rem;
+}
+
+.timeline-toggle,
+.selected-clip-toolbar,
+.timeline-tool,
+.marker-input {
+  color: #94a3b8;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timeline-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  gap: 0.35rem;
+  margin-right: auto;
+  /* The label wraps the checkbox, so the label is the real tap target —
+     padding here lifts the whole toggle to a thumb-sized hit area. */
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.45rem;
+  touch-action: manipulation;
+}
+
+.timeline-toggle input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: #10b981;
+}
+
+.timeline-tool,
+.selected-clip-toolbar button,
+.selected-clip-toolbar select,
+.marker-input {
+  /* 1.8rem ≈ 29px was too short for reliable thumbs; 44px-class targets on
+     touch breakpoints, desktop stays compact. */
+  min-height: 2.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 0.45rem;
+  padding: 0.3rem 0.45rem;
+  background: rgba(148, 163, 184, 0.05);
+  touch-action: manipulation;
+}
+
+@media (min-width: 768px) {
+  .timeline-tool,
+  .selected-clip-toolbar button,
+  .selected-clip-toolbar select,
+  .marker-input {
+    min-height: 2rem;
+  }
+}
+
+.timeline-tool:hover,
+.selected-clip-toolbar button:hover {
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #10b981;
+}
+
+@media (hover: none) {
+  .timeline-tool:hover,
+  .selected-clip-toolbar button:hover {
+    border-color: rgba(148, 163, 184, 0.18);
+    color: inherit;
+  }
+
+  .timeline-tool:active,
+  .selected-clip-toolbar button:active {
+    border-color: rgba(16, 185, 129, 0.55);
+    color: #10b981;
+  }
+}
+
+.timeline-tool-danger {
+  color: #f87171;
+}
+
+.marker-input {
+  width: 7rem;
+  text-transform: none;
+  letter-spacing: normal;
+  outline: none;
+}
+
+.selected-clip-toolbar {
+  min-height: 2.75rem;
+  color: #64748b;
+}
+
+.selected-clip-name {
+  max-width: 13rem;
+  overflow: hidden;
+  color: #10b981;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-ruler {
+  position: relative;
+  height: 1.6rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  /*
+   * Touch scrub surface: `touch-action: none` is required on Android Chrome —
+   * without it the browser treats a horizontal touch drag as a scroll gesture,
+   * fires pointercancel, and the press-drag scrub dies mid-gesture.
+   */
+  touch-action: none;
+}
+
+/*
+ * Clip drags ride the same pointer path as the ruler. Without this, Android
+ * Chrome hands the gesture to the scroller (pointercancel) after a few pixels,
+ * so clips can only be moved with a mouse, never a finger.
+ */
+.clip-block {
+  touch-action: none;
+}
+
+/*
+ * Pinch viewport: native one-finger panning stays with the browser
+ * (`pan-x pan-y`), while two-finger contact is tracked in JS for pinch-zoom.
+ * `pan-x pan-y` (vs plain `auto`) also stops the browser's native pinch-zoom
+ * from fighting the custom scale inside this scroller.
+ */
+.timeline-scroller-touch {
+  /*
+   * Content-sized, so the ruler and all three lanes are always laid out in
+   * full: nothing is hidden behind a vertical scroll, and a vertical finger
+   * drag chains to the page (the shell's scroll container) instead of dying
+   * inside the lane viewport. Horizontal panning — a 72,000 px wide timeline —
+   * still belongs to this element, and the two-finger pinch is JS-side.
+   */
+  flex: 0 0 auto;
+  touch-action: pan-x pan-y;
+}
+
+/*
+ * Zoom controls. 1.5rem buttons were 24px — under half the 44px minimum
+ * thumb target; enlarged and made finger-friendly across breakpoints.
+ */
+.zoom-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.zoom-button {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.05);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.zoom-button:active {
+  border-color: rgba(16, 185, 129, 0.55);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+@media (hover: hover) {
+  .zoom-button:hover {
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #10b981;
+    background: rgba(148, 163, 184, 0.1);
+  }
+}
+
+.timeline-tick,
+.timeline-marker {
+  position: absolute;
+  top: 0;
+  height: 1.6rem;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
+  padding-left: 0.25rem;
+  color: #64748b;
+  font-size: 0.52rem;
+  text-align: left;
+}
+
+.timeline-tick.bar {
+  border-left-color: rgba(16, 185, 129, 0.55);
+  color: #10b981;
+}
+
+/*
+ * Marker chips. Height raised 1.2rem → 2.2rem: 19px chips were roughly half
+ * the minimum Android thumb target, and adjacent chips were 2–3px apart,
+ * making mis-taps routine. Padding gives adjacent markers real separation.
+ */
+.timeline-marker {
+  top: 0.05rem;
+  z-index: 25;
+  width: max-content;
+  max-width: 8rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 0.45rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Tap affordance on touch; hover states stay pointer-only. */
+  touch-action: manipulation;
+}
+
+.timeline-marker:active {
+  background: rgba(245, 158, 11, 0.38);
+}
+
+@media (hover: hover) {
+  .timeline-marker:hover {
+    background: rgba(245, 158, 11, 0.3);
+  }
+}
+
+@media (min-width: 768px) {
+  .production-upgrade-bar {
+    padding: 1.25rem 2rem 1.5rem;
+  }
+}
+
+/* ── Android / mobile viewer fixes ─────────────────────────── */
+
+/* On small screens the production-upgrade-bar content can overflow;
+   make it independently scrollable instead of clipping. */
+@media (max-width: 1024px) {
+  :host {
+    /* Allow the host to scroll on mobile so the whole cinema-engine
+       is accessible even with a compact viewport height. */
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .production-upgrade-bar {
+    /* Restrict vertical growth and make it scrollable on mobile */
+    max-height: 40vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .production-mode-grid {
+    /* 2-column grid on phones instead of auto-fit to avoid overflow */
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .delivery-preset-row {
+    /* Single column on phones for readability */
+    grid-template-columns: 1fr;
+  }
+
+  .production-blueprint-grid {
+    /* 2-column on phones */
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.camera-status-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(148, 163, 184, 0.9);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.camera-status-chip.live {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.camera-status-chip.error {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.camera-error {
+  font-size: 0.62rem;
+  line-height: 1.5;
+  font-weight: 700;
+  color: #f87171;
+}
+
+/* Neutral explanatory copy for the sidebar consoles. */
+.panel-detail {
+  font-size: 0.62rem;
+  line-height: 1.5;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.camera-warning {
+  font-size: 0.62rem;
+  line-height: 1.5;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.camera-retry-chip {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  /* One-tap recovery is the panic button — give it a full thumb target. */
+  min-height: 2.75rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(6px);
+  touch-action: manipulation;
+  color: #fbbf24;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.camera-retry-chip:hover:not(:disabled) {
+  border-color: rgba(251, 191, 36, 0.85);
+  background: rgba(251, 191, 36, 0.16);
+}
+
+.camera-retry-chip:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Spin is reserved for in-flight work, so a stuck retry is visible at a glance. */
+.spin {
+  display: inline-block;
+  animation: camera-retry-spin 0.9s linear infinite;
+}
+
+@keyframes camera-retry-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+
+.export-window {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.export-window-label {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.export-window-select {
+  height: 2.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.05);
+  color: #e2e8f0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0 0.5rem;
+}
+
+.export-window-select:disabled {
+  opacity: 0.5;
+}
+
+@media (min-width: 768px) {
+  .export-window-select {
+    height: 3rem;
+  }
+}
+
+/* ── Projects (long-form persistence) ──────────────────────── */
+
+.project-console {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 1rem;
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.project-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-card {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 0.75rem;
+  background: rgba(148, 163, 184, 0.04);
+  transition: all 0.2s ease;
+}
+
+@media (hover: hover) {
+  .project-card:hover {
+    border-color: rgba(16, 185, 129, 0.35);
+  }
+}
+
+/* The open project is the one a save will overwrite, so it has to be obvious. */
+.project-card.active {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.project-open {
+  display: grid;
+  min-height: 2.75rem;
+  gap: 0.2rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  background: none;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.project-name {
+  color: #e2e8f0;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-meta {
+  color: #64748b;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.project-warning {
+  color: #fbbf24;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.project-delete {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 2.4rem ≈ 38px was a near-miss tap target; clear the 44px floor. */
+  width: 2.75rem;
+  border: 0;
+  border-left: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 0 0.75rem 0.75rem 0;
+  background: none;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+@media (hover: hover) {
+  .project-delete:hover {
+    background: rgba(248, 113, 113, 0.12);
+    color: #f87171;
+  }
+}
+
+.project-delete:active {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+/* ── Program monitor ─────────────────────────────────────────── */
+
+.monitor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem;
+  /*
+   * Never `flex-grow`. This section used to expand into the leftover of a
+   * stretched flex row, which became ~1.1k px of dead space wrapped around a
+   * 358 px monitor card on a 900-tall desktop. The monitor's box is derived
+   * from its width now, so the section is exactly as tall as its contents.
+   */
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.monitor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.monitor-head-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.monitor-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+}
+
+.monitor-tabs {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(2, 6, 23, 0.55);
+}
+
+.monitor-tab {
+  /* 36px was under the touch floor for the surface switch operators hit most. */
+  min-height: 2.75rem;
+  padding: 0.35rem 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: rgba(148, 163, 184, 0.85);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.monitor-tab.active {
+  background: rgba(16, 185, 129, 0.16);
+  color: #10b981;
+}
+
+.monitor-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.monitor-badge {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.9);
+  background: rgba(148, 163, 184, 0.06);
+  white-space: nowrap;
+}
+
+.monitor-badge.live {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.monitor-badge-time {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: 0.04em;
+}
+
+.monitor-frame {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+/*
+  Width-driven at every viewport, with the aspect ratio supplied by the
+  component: the delivery preset shapes the composite, the live stream's own
+  geometry shapes the viewfinder.
+
+  Width is the one axis that is always definite, so `width: 100%` plus
+  `aspect-ratio` always produces a correctly shaped frame. Height-driven sizing
+  required a definite parent height, and no ancestor in the shell chain ever
+  supplies one — `height: 100%` silently resolved to `auto`, `max-width` then
+  clamped a box whose height had already been decided, and a 2.39:1 preset
+  rendered as a 0.88:1 monitor on a 1920-wide desktop.
+
+  `--monitor-ratio` is the active ratio published by the component (the inline
+  `aspect-ratio` reads the very same signal, so the two can never disagree).
+  Because the card is width-driven, a portrait ratio — a 9:16 phone feed or a
+  vertical vlog preset — would otherwise build a frame 2.5× taller than the
+  screen: capping the *width* at 68vh × ratio keeps `aspect-ratio` intact, where
+  capping the height would distort the box.
+*/
+.monitor-card {
+  position: relative;
+  width: 100%;
+  height: auto;
+  max-width: min(100%, calc(68vh * var(--monitor-ratio, 1.7778)));
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: #000;
+  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
+}
+
+/*
+  The flip control sits on the picture itself: that is where a thumb already
+  is, and it names the angle it will switch to, so the tap is never a guess.
+  Kept at the 44px touch floor for Android gloves-and-thumbs use.
+*/
+.monitor-flip {
+  position: absolute;
+  z-index: 4;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.75rem;
+  max-width: calc(100% - 1.5rem);
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(2, 6, 23, 0.7);
+  backdrop-filter: blur(6px);
+  color: #10b981;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.monitor-flip span:last-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.monitor-flip:active:not(:disabled) {
+  background: rgba(16, 185, 129, 0.26);
+}
+
+.monitor-flip:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+@media (hover: hover) {
+  .monitor-flip:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.22);
+  }
+}
+
+/* Stacking: viewfinder (0) → composite (1) → native player (2) → overlays (3). */
+.monitor-canvas,
+.monitor-viewfinder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.monitor-canvas {
+  z-index: 1;
+  /*
+   * The backing store is a real capture resolution shown at layout size, so
+   * smooth resampling — not `pixelated` — keeps the viewfinder from aliasing.
+   */
+  image-rendering: auto;
+  transition: opacity 0.2s ease;
+}
+
+.monitor-canvas.monitor-hidden {
+  opacity: 0;
+}
+
+/*
+ * The live sink has to keep decoding in every monitor state. Hiding it outright
+ * (`display: none`, a 1px box, `visibility: hidden`) stops the decoder on
+ * Android Chrome and leaves the viewfinder black while the badge reads LIVE, so
+ * the inactive state is a 1% fade instead.
+ */
+.monitor-viewfinder {
+  z-index: 0;
+  opacity: 0.01;
+  pointer-events: none;
+  background: #000;
+  transition: opacity 0.2s ease;
+}
+
+.monitor-viewfinder.viewfinder-active {
+  opacity: 1;
+}
+
+.monitor-viewfinder.mirrored {
+  transform: scaleX(-1);
+}
+
+.monitor-player {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  object-fit: contain;
+  touch-action: manipulation;
+}
+
+.monitor-player-tag {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 3.6rem;
+  transform: translateX(-50%);
+  max-width: 80%;
+  overflow: hidden;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(6px);
+  color: #10b981;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.monitor-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  text-align: center;
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(15, 23, 42, 0.7),
+    rgba(2, 6, 23, 0.94)
+  );
+}
+
+.monitor-empty .material-symbols-outlined {
+  font-size: 2rem;
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.monitor-empty-title {
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+}
+
+.monitor-empty-copy {
+  max-width: 26rem;
+  font-size: 0.68rem;
+  line-height: 1.5;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.monitor-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  margin-top: 0.35rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.monitor-empty-cta:active:not(:disabled) {
+  background: rgba(16, 185, 129, 0.26);
+}
+
+.monitor-empty-cta:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.monitor-rec {
+  position: absolute;
+  z-index: 3;
+  top: 0.85rem;
+  right: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 70%;
+  overflow: hidden;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(6px);
+  color: #10b981;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.monitor-rec-dot {
+  flex: 0 0 auto;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.monitor-rec.recording {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #f87171;
+}
+
+.monitor-rec.recording .monitor-rec-dot {
+  animation: monitor-rec-pulse 1s ease-in-out infinite;
+}
+
+@keyframes monitor-rec-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.monitor-hud {
+  position: absolute;
+  z-index: 3;
+  inset: auto 0.85rem 0.85rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.monitor-transport,
+.monitor-source-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(2, 6, 23, 0.68);
+  backdrop-filter: blur(6px);
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.monitor-transport.live {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #f87171;
+}
+
+.monitor-dot {
+  flex: 0 0 auto;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.monitor-transport-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(2, 6, 23, 0.5);
+}
+
+.monitor-transport-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(148, 163, 184, 0.05);
+  color: #e2e8f0;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.monitor-transport-button:active:not(:disabled) {
+  transform: scale(0.96);
+  background: rgba(16, 185, 129, 0.16);
+}
+
+.monitor-transport-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.monitor-transport-primary {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.16);
+  color: #10b981;
+}
+
+.monitor-scrub {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* The scrub track is the seek target; 28px was a thumb-width miss. */
+  height: 2.75rem;
+  accent-color: #10b981;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.monitor-readout {
+  flex: 0 0 auto;
+  min-width: 3.6rem;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.62rem;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+@media (hover: hover) {
+  .monitor-transport-button:hover:not(:disabled) {
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #10b981;
+  }
+
+  .monitor-empty-cta:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.22);
+  }
+}
+
+/* ── Capture deck ────────────────────────────────────────────── */
+
+.capture-deck {
+  /* Never let the deck be squeezed out by the monitor above it. */
+  flex: 0 0 auto;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.9),
+    rgba(15, 23, 42, 0.6)
+  );
+}
+
+.capture-deck-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.capture-deck-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.capture-deck-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+}
+
+.capture-deck-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 0.75rem;
+  /*
+   * `start`, not `stretch`: the shutter column was being stretched to the
+   * height of the settings/tray column (255 px tall photo and record buttons).
+   */
+  align-items: start;
+}
+
+.capture-shutters {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.capture-shutter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 4.25rem;
+  min-height: 4.25rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.05);
+  color: #e2e8f0;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.1s ease;
+}
+
+.capture-shutter:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.capture-shutter:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.capture-shutter .material-symbols-outlined {
+  font-size: 1.5rem;
+}
+
+.capture-shutter-label {
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.capture-shutter-photo {
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #10b981;
+}
+
+.capture-shutter-record {
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #f87171;
+}
+
+.capture-shutter-record.recording {
+  border-color: rgba(248, 113, 113, 0.7);
+  background: rgba(248, 113, 113, 0.16);
+  animation: monitor-rec-pulse 1.1s ease-in-out infinite;
+}
+
+.capture-shutter.active {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+}
+
+.capture-settings {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+  min-width: 0;
+}
+
+.capture-field {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.capture-field-label {
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.capture-select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(2, 6, 23, 0.6);
+  color: #e2e8f0;
+  font-size: 0.66rem;
+}
+
+.capture-select:disabled {
+  opacity: 0.5;
+}
+
+.capture-toggles {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+/*
+  Angle rail: every input the device exposes, one tap apart. It scrolls
+  horizontally rather than wrapping so a multi-camera desktop panel never
+  pushes the shutter buttons off a phone screen.
+*/
+.capture-angles {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.capture-angle-rail {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.15rem;
+}
+
+.capture-angle {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.06);
+  color: rgba(226, 232, 240, 0.85);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.capture-angle .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+.capture-angle.active {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+}
+
+.capture-angle:active:not(:disabled) {
+  background: rgba(16, 185, 129, 0.22);
+}
+
+.capture-angle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (hover: hover) {
+  .capture-angle:hover:not(:disabled) {
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #10b981;
+  }
+}
+
+.capture-toggle {
+  flex: 1 1 auto;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.05);
+  color: rgba(226, 232, 240, 0.85);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.capture-toggle.active {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+}
+
+.capture-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.capture-tray {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(2, 6, 23, 0.45);
+}
+
+.capture-tray-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.capture-tray-count {
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 0.1rem 0.45rem;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.capture-tray-empty {
+  margin: 0;
+  font-size: 0.64rem;
+  line-height: 1.5;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.capture-tray-list {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 0 0.15rem;
+  list-style: none;
+  overflow-x: auto;
+  /* No scroll chaining: a horizontal drag in the tray must not move the page. */
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.capture-card {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 0.3rem;
+  width: 9.5rem;
+}
+
+.capture-thumb {
+  width: 100%;
+  height: 3.4rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: #000;
+  object-fit: cover;
+}
+
+.capture-meta {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.capture-name {
+  overflow: hidden;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.capture-sub {
+  overflow: hidden;
+  font-size: 0.54rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.capture-card-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.capture-card-actions button {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.05);
+  color: #e2e8f0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.capture-card-actions button .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+.capture-detail {
+  margin: 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+@media (hover: hover) {
+  .capture-shutter:hover:not(:disabled) {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  .capture-card-actions button:hover {
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #10b981;
+  }
+}
+
+/* ── Touch / narrow layouts ──────────────────────────────────── */
+
+@media (max-width: 1023px) {
+  .monitor-section {
+    padding: 0.75rem;
+  }
+
+  .capture-deck-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .capture-shutters {
+    justify-content: center;
+  }
+
+  .capture-shutter {
+    width: 4.75rem;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Access sweep — complete reachability for phones, tablets, and short desktop
+   viewports, at the sizes a thumb actually hits.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/*
+  Controls the template styles with utilities alone (the lane/option selects and
+  FX sliders in the side panels) still have to clear the 44px touch floor.
+  Checkboxes are left alone: the label wrapping them carries the target.
+*/
+.cinema-shell select,
+.cinema-shell input[type='text'],
+.cinema-shell input[type='number'],
+.cinema-shell input[type='range'] {
+  min-height: 2.75rem;
+}
+
+/*
+  Header actions wrap instead of overflowing: a 320px-wide phone cannot fit the
+  capture window, the transport toggle, and EXPORT on one line, and an overflow
+  here would push the page sideways.
+*/
+.header-actions {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/*
+  Clips are the primary drag target and a lane is only 40px tall, so the grab
+  area is widened past the painted block instead of making the block chunky.
+*/
+.clip-block::before {
+  content: '';
+  position: absolute;
+  inset: -0.5rem -0.2rem;
+}
+
+@media (max-width: 1023px) {
+  /* A 24px-tall clip is a coin flip on a phone; the lane has room for 32. */
+  .clip-block {
+    height: 2rem;
+    top: 0.25rem;
+  }
+
+  /*
+    The ruler is the scrub surface (press-and-drag), not a decoration, so on
+    touch widths it clears the same 44px floor as every other control instead
+    of being a 26px strip a thumb has to aim at.
+  */
+  .timeline-ruler {
+    height: 2.75rem;
+  }
+}
+
+/*
+  Scroll model — the module flows inside the shell's single scroll surface.
+
+  The module declared an app-style fixed layout (`h-full` + `overflow: hidden`
+  on the shell, the workspace and the timeline section) on the assumption that
+  an ancestor hands it a definite height. Nothing in the shell chain does:
+  `.content-scroll-container` is `h-full` against a content-sized parent, so
+  every `height: 100%` below it resolved to `auto`. What was left was circular
+  sizing — the side panel stack (~2.4k px) stretched the flex row, the monitor
+  section's `flex-grow` swallowed the leftover as dead space, and the page grew
+  to 2.8–4.2k px with its panels fighting nested scrollers that could not move.
+
+  So the module grows instead of pretending to be a viewport, the shell's
+  scroll container scrolls the whole thing in one gesture, and no panel is
+  clipped along the way. On `lg` the columns stay side by side (`items-start`),
+  so neither column's height forces dead space into the other.
+*/
+:host {
+  min-height: 100%;
+}
+
+.cinema-shell,
+.cinema-workspace,
+.cinema-main,
+.cinema-aside,
+.timeline-section {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.cinema-shell {
+  min-height: 100%;
+}
+
+/*
+  The `lg` column split keeps working, but the taller column no longer stretches
+  the shorter one: the side panels are ~2.4k px on a wide screen and used to drag
+  the main column to that height, which is what fed the monitor's dead space.
+*/
+.cinema-workspace {
+  align-items: stretch;
+}
+
+@media (min-width: 1024px) {
+  .cinema-workspace {
+    align-items: flex-start;
+  }
+}
+
+/*
+  Timeline shell: auto height, so a wrapped control strip can never squeeze the
+  lanes out of the box. The lanes themselves are content-sized (see
+  `.timeline-scroller-touch`).
+*/
+.timeline-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 0 0 auto;
+}
+
+/*
+  Phones, small tablets, and short desktop viewports: the chrome above the
+  workspace (header + production blueprint) gets tighter so the monitor is not
+  pushed a full screen down.
+*/
+@media (max-width: 1023.98px), (max-height: 900px) {
+  .cinema-shell header {
+    padding: 0.9rem 1rem 0.6rem;
+  }
+
+  .production-upgrade-bar {
+    gap: 0.75rem;
+    padding: 0.85rem 1rem 1rem;
+  }
+
+  .upgrade-title {
+    font-size: 1.05rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .monitor-head {
+    align-items: flex-start;
+  }
+
+  .monitor-card {
+    border-radius: 0.75rem;
+  }
+
+  .monitor-transport-bar {
+    flex-wrap: wrap;
+  }
+
+  .monitor-scrub {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .monitor-readout {
+    text-align: left;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Phone-only disclosures — the production blueprint and every side-panel group
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/*
+  On a phone the stacked module is ~4.1k px: the primary workspace (monitor,
+  deck, timeline) is the first ~1.8k of it and the side-panel stack is the rest.
+  Every group below is a disclosure on the stacked layout and open by default on
+  desktop, where the column has the height to spend.
+
+  The mechanism is deliberately CSS-gated rather than state-gated: a group can
+  read "collapsed" in the component and still render in full at `lg`, so a phone
+  collapse can never follow the operator onto a wide screen (and a stray tap
+  cannot hide a desktop tool).
+
+  `[data-section-head]` marks the one child that stays visible — the heading
+  row, which carries the toggle. It is an attribute, not a class, so marking an
+  existing heading cannot drag styling along with it.
+*/
+.section-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Holds a heading's existing trailing control plus the toggle. On desktop the
+   toggle is hidden, so this wrapper is transparent. */
+.section-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.08);
+  color: #e2e8f0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.section-toggle .material-symbols-outlined {
+  font-size: 1.15rem;
+  transition: transform 0.2s ease;
+}
+
+/* State lives on the button, so the chevron points the right way wherever the
+   toggle sits. */
+.section-toggle[aria-expanded='false'] .material-symbols-outlined {
+  transform: rotate(-90deg);
+}
+
+@media (hover: hover) {
+  .section-toggle:hover:not(:disabled) {
+    border-color: rgba(16, 185, 129, 0.45);
+    color: #10b981;
+  }
+}
+
+.section-toggle:active:not(:disabled) {
+  background: rgba(16, 185, 129, 0.16);
+}
+
+/*
+  The stacked layout — phones, portrait tablets, and any short viewport, the
+  same breakpoint the module's one-scroll-surface rule uses.
+*/
+@media (max-width: 1023.98px), (max-height: 900px) {
+  .section-toggle {
+    display: inline-flex;
+  }
+
+  .section-collapsed > :not([data-section-head]) {
+    display: none;
+  }
+}
+
+/*
+  FX rack groups.
+
+  Each group is a bordered card of dials so the matrix reads as a rack rather
+  than as one long column of identical sliders, and every control keeps the same
+  touch floor as the rest of the module.
+*/
+.fx-rack {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 0.75rem;
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.fx-rack-title {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #10b981;
+  margin: 0;
+}
+
+.fx-dial {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.fx-dial-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-main, #e2e8f0);
+}
+
+.fx-dial-value {
+  font-variant-numeric: tabular-nums;
+  color: rgba(16, 185, 129, 0.9);
+}
+
+/* Every dial and picker holds the module's touch floor. */
+.fx-rack input[type='range'],
+.fx-rack select,
+.fx-rack input[type='text'],
+.fx-rack textarea,
+.cutdown-button {
+  min-height: 44px;
+}
+
+.fx-rack textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+/*
+  Social cutdowns read as delivery cards: platform name over its frame and
+  length, so the picker is a list of destinations rather than abstract presets.
+*/
+.cutdown-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.6rem;
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--text-main, #e2e8f0);
+  text-align: left;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.cutdown-name {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cutdown-meta {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(148, 163, 184, 0.9);
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .cutdown-button:hover {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.12);
+  }
+}
+
+.cutdown-button:active {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+.fx-rack select,
+.fx-rack input[type='text'],
+.fx-rack textarea {
+  width: 100%;
+  padding: 0 0.5rem;
+}
+
+.fx-rack textarea {
+  padding: 0.5rem;
+}

@@ -1,0 +1,16 @@
+{
+    "preset_name": "Lo-Fi Acid Bass",
+    "category": "synth",
+    "parameters": {
+        "wave_type": "square",
+        "cutoff_hz": 800,
+        "resonance_q": 8.0,
+        "attack_sec": 0.005,
+        "decay_sec": 0.15,
+        "sustain_level": 0.2,
+        "release_sec": 0.1,
+        "use_lfo": false,
+        "drive": 3.5,
+        "bit_depth": 6
+    }
+}

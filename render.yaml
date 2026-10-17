@@ -1,0 +1,59 @@
+# Render Blueprint — S.M.U.V.E. unified web service (Angular + Express API)
+#
+# One Render service hosts BOTH the compiled Angular bundle (Build/browser) and
+# the Express API (Build/api) through the unified entrypoint src/server.ts, so
+# the frontend and API share one origin. window.env derives API_URL from
+# location.origin at runtime — no CORS, no separate API hostname.
+#
+# Deploy steps:
+#   1. Push this repo to GitHub.
+#   2. In Render: New → Blueprint → connect the GitHub repo.
+#   3. Render provisions the web service + Postgres below and deploys.
+#   4. Attach the custom domains (smuvejeffpresents.com / www.smuvejeffpresents.com)
+#      in the service's Settings → Custom Domains so the app is served same-origin.
+#
+# Notes:
+#   - The free Postgres plan expires after 30 days — upgrade or re-provision
+#     for long-lived data.
+#   - Free web services sleep after ~15 min of inactivity (wakes on request).
+
+services:
+  - type: web
+    name: smuve-api
+    runtime: node
+    plan: free
+    rootDir: .
+    # install:legacy = npm install --legacy-peer-deps (more tolerant of
+    # peer-dep/lockfile drift than strict npm ci for this monorepo).
+    buildCommand: npm run install:legacy && npm run build && npm run build:server
+    # Migrations run during startup after the new build is available. Keeping
+    # them out of preDeploy prevents a failed/slow DB migration from blocking
+    # the service build and leaves the previous healthy revision serving.
+    startCommand: npm run start:unified
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        value: https://smuvejeffpresents.com,https://www.smuvejeffpresents.com
+      - key: JWT_SECRET
+        generateValue: true
+      # Account-recovery email (Plunk). PLUNK_API_KEY must be the project's
+      # SECRET key (sk_*) — public keys (pk_*) are only accepted by
+      # /v1/track. Set both values in the Render dashboard; neither is
+      # committed to the repo.
+      - key: PLUNK_API_KEY
+        sync: false
+      # Must be an address on a domain verified in the Plunk project.
+      - key: PLUNK_FROM_EMAIL
+        sync: false
+      - key: PLUNK_FROM_NAME
+        value: S.M.U.V.E. 2.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smuve-postgres
+          property: connectionString
+
+databases:
+  - name: smuve-postgres
+    plan: free

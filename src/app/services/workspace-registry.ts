@@ -1,0 +1,441 @@
+import { MainViewMode } from './user-context.service';
+
+export type WorkspaceCategory =
+  | 'CORE'
+  | 'STRATEGY'
+  | 'CREATIVE'
+  | 'COMMUNITY'
+  | 'UTILITY'
+  | 'ARTIST';
+
+export interface ViewConfig {
+  mode: MainViewMode;
+  label: string;
+  description: string;
+  icon: string;
+  category: WorkspaceCategory;
+}
+
+export interface WorkspaceConfig extends ViewConfig {
+  routePath: string;
+  mobilePrimary?: boolean;
+  hidden?: boolean;
+  aliasOf?: MainViewMode;
+  related?: MainViewMode[];
+}
+
+export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
+  {
+    mode: 'hub',
+    routePath: '/hub',
+    label: 'Label Hub',
+    description: 'Coordinate releases, assets, and day-to-day executive moves.',
+    icon: 'grid_view',
+    category: 'CORE',
+    mobilePrimary: true,
+    related: ['profile', 'projects', 'release-pipeline', 'analytics'],
+  },
+  {
+    mode: 'adaptive-profile',
+    routePath: '/adaptive-profile',
+    label: 'Adaptive Profile',
+    description: 'See how S.M.U.V.E. understands and adapts to your music.',
+    icon: 'fingerprint',
+    category: 'ARTIST',
+    mobilePrimary: true,
+    related: ['profile', 'artist-coach', 'strategy'],
+  },
+  {
+    mode: 'artist-coach',
+    routePath: '/artist-coach',
+    label: 'Artist Coach',
+    description: 'Personalized guidance based on your profile, genre, and stage.',
+    icon: 'school',
+    category: 'ARTIST',
+    mobilePrimary: true,
+    related: ['adaptive-profile', 'profile', 'strategy'],
+  },
+  {
+    mode: 'studio',
+    routePath: '/studio',
+    label: 'Studio',
+    description:
+      'Build, mix, and refine production sessions with live control.',
+    icon: 'token',
+    category: 'CORE',
+    mobilePrimary: true,
+    related: ['piano-roll', 'vocal-suite', 'practice', 'lyric-editor'],
+  },
+  {
+    mode: 'vocal-suite',
+    routePath: '/vocal-suite',
+    label: 'Vocal Suite',
+    description:
+      'Record, edit, and polish vocal performances through each stage.',
+    icon: 'neurology',
+    category: 'CORE',
+    related: ['studio', 'practice', 'lyric-editor'],
+  },
+  {
+    mode: 'piano-roll',
+    routePath: '/piano-roll',
+    label: 'Piano Roll',
+    description:
+      'Compose, edit, and route arrangements with the full rack and mix dock.',
+    icon: 'piano',
+    category: 'CORE',
+    related: [
+      'studio',
+      'canvas-piano-roll',
+      'vocal-suite',
+      'lyric-editor',
+    ],
+  },
+  {
+    mode: 'canvas-piano-roll',
+    routePath: '/canvas-piano-roll',
+    label: 'Canvas Piano Roll',
+    description:
+      'Sketch notes on a lightweight canvas grid with direct velocity editing.',
+    icon: 'piano',
+    category: 'CREATIVE',
+    hidden: true,
+    related: ['piano-roll', 'studio', 'drum-machine'],
+  },
+  {
+    mode: 'mixer',
+    routePath: '/mixer',
+    label: 'Mixer',
+    description: 'Pro console for elite-level balancing and mastering.',
+    icon: 'equalizer',
+    category: 'CORE',
+    related: ['studio', 'mastering'],
+  },
+  {
+    mode: 'drum-machine',
+    routePath: '/drum-machine',
+    label: 'Drum Machine',
+    description: 'Advanced percussion sequencing and rhythm synthesis.',
+    icon: 'reorder',
+    category: 'CORE',
+    related: ['studio', 'piano-roll'],
+  },
+  {
+    mode: 'performance',
+    routePath: '/performance',
+    label: 'Performance',
+    description: 'Live scene launching and clip triggers for elite shows.',
+    icon: 'grid_on',
+    category: 'CORE',
+    related: ['studio', 'mixer'],
+  },
+  {
+    mode: 'mastering',
+    routePath: '/mastering',
+    label: 'Mastering',
+    description: 'Final stage sonic hardening and loudness optimization.',
+    icon: 'waves',
+    category: 'CORE',
+    related: ['studio', 'mixer'],
+  },
+  {
+    mode: 'lyric-editor',
+    routePath: '/lyric-editor',
+    label: 'Lyric Editor',
+    description: 'Write hooks, verses, and concepts without leaving the stack.',
+    icon: 'lyrics',
+    category: 'CREATIVE',
+    related: ['studio', 'vocal-suite', 'strategy'],
+  },
+  {
+    mode: 'practice',
+    routePath: '/practice',
+    label: 'Practice Space',
+    description: 'Rehearse, drill, and turn guidance into repeatable routines.',
+    icon: 'sports_martial_arts',
+    category: 'CORE',
+    related: ['studio', 'vocal-suite', 'career'],
+  },
+  {
+    mode: 'profile',
+    routePath: '/profile',
+    label: 'Profile',
+    description:
+      'Manage artist identity, preferences, and personalized settings.',
+    icon: 'person',
+    category: 'CORE',
+    mobilePrimary: true,
+    related: ['hub', 'strategy', 'career', 'settings', 'adaptive-profile'],
+  },
+  {
+    mode: 'projects',
+    routePath: '/projects',
+    label: 'Projects',
+    description: 'Track releases, tasks, and delivery readiness in one place.',
+    icon: 'folder_managed',
+    category: 'CORE',
+    related: ['hub', 'release-pipeline', 'analytics'],
+  },
+  {
+    mode: 'release-pipeline',
+    routePath: '/release-pipeline',
+    label: 'Release Pipeline',
+    description:
+      'Move tracks from production through launch with stage visibility.',
+    icon: 'rocket_launch',
+    category: 'CORE',
+    related: ['projects', 'strategy', 'analytics', 'business-suite'],
+  },
+  {
+    mode: 'strategy',
+    routePath: '/strategy',
+    label: 'Intel Lab',
+    description: 'Activate AI strategy, market intelligence, and audit flows.',
+    icon: 'analytics',
+    category: 'STRATEGY',
+    mobilePrimary: true,
+    related: ['career', 'analytics', 'knowledge-base', 'release-pipeline', 'artist-coach'],
+  },
+  {
+    mode: 'career',
+    routePath: '/career',
+    label: 'Career Board',
+    description:
+      'Track opportunities, growth priorities, and business momentum.',
+    icon: 'business_center',
+    category: 'STRATEGY',
+    related: ['strategy', 'analytics', 'profile', 'adaptive-profile'],
+  },
+  {
+    mode: 'analytics',
+    routePath: '/analytics',
+    label: 'Analytics',
+    description: 'Review audience, growth, and performance signals.',
+    icon: 'monitoring',
+    category: 'STRATEGY',
+    related: ['strategy', 'release-pipeline', 'career'],
+  },
+  {
+    mode: 'knowledge-base',
+    routePath: '/knowledge-base',
+    label: 'Knowledge Base',
+    description: 'Capture directives, reference material, and AI-led insights.',
+    icon: 'library_books',
+    category: 'STRATEGY',
+    related: ['strategy', 'profile', 'career'],
+  },
+  {
+    mode: 'image-video-lab',
+    routePath: '/image-video-lab',
+    label: 'Image & Video Lab',
+    description: 'Produce cover art, visual concepts, and video timelines.',
+    icon: 'movie',
+    category: 'CREATIVE',
+    related: ['projects', 'release-pipeline', 'strategy'],
+  },
+  {
+    mode: 'remix-arena',
+    routePath: '/remix-arena',
+    label: 'Remix Arena',
+    description:
+      'Collaborate on remixes and live coding sessions in real time.',
+    icon: 'queue_music',
+    category: 'CREATIVE',
+    related: ['studio', 'tha-spot', 'projects'],
+  },
+  {
+    mode: 'business-suite',
+    routePath: '/business-suite',
+    label: 'Business Suite',
+    description:
+      'Organize business infrastructure, legal flows, and operations.',
+    icon: 'apartment',
+    category: 'UTILITY',
+    related: ['release-pipeline', 'career', 'strategy'],
+  },
+  {
+    mode: 'business-pipeline',
+    routePath: '/business-suite',
+    label: 'Business Pipeline',
+    description: 'Review pipeline stage details and execute attached actions.',
+    icon: 'account_tree',
+    category: 'UTILITY',
+    hidden: true,
+    related: ['business-suite', 'strategy', 'career'],
+  },
+  {
+    mode: 'tha-spot',
+    routePath: '/tha-spot',
+    label: 'Tha Spot',
+    description: 'Step into community, discovery, and social session play.',
+    icon: 'sports_esports',
+    category: 'COMMUNITY',
+    related: ['remix-arena', 'hub', 'career'],
+  },
+  {
+    mode: 'settings',
+    routePath: '/settings',
+    label: 'Settings',
+    description: 'Tune performance, visuals, sync, and security behavior.',
+    icon: 'settings',
+    category: 'UTILITY',
+    related: ['profile', 'hub'],
+  },
+  {
+    mode: 'login',
+    routePath: '/login',
+    label: 'Login',
+    description: 'Authorize access into the S.M.U.V.E. control network.',
+    icon: 'login',
+    category: 'UTILITY',
+    hidden: true,
+  },
+  {
+    mode: 'dj',
+    routePath: '/dj',
+    label: 'DJ',
+    description: 'Launch the immersive dual-deck mixing surface.',
+    icon: 'token',
+    category: 'CORE',
+    hidden: true,
+    aliasOf: 'studio',
+  },
+  {
+    mode: 'player',
+    routePath: '/hub',
+    label: 'Player',
+    description: 'Alias for Label Hub.',
+    icon: 'grid_view',
+    category: 'CORE',
+    hidden: true,
+    aliasOf: 'hub',
+  },
+  {
+    mode: 'image-editor',
+    routePath: '/image-video-lab',
+    label: 'Image Editor',
+    description: 'Alias for Image & Video Lab.',
+    icon: 'movie',
+    category: 'CREATIVE',
+    hidden: true,
+    aliasOf: 'image-video-lab',
+  },
+  {
+    mode: 'video-editor',
+    routePath: '/image-video-lab',
+    label: 'Video Editor',
+    description: 'Alias for Image & Video Lab.',
+    icon: 'movie',
+    category: 'CREATIVE',
+    hidden: true,
+    aliasOf: 'image-video-lab',
+  },
+  {
+    mode: 'networking',
+    routePath: '/tha-spot',
+    label: 'Networking',
+    description: 'Alias for Tha Spot.',
+    icon: 'sports_esports',
+    category: 'COMMUNITY',
+    hidden: true,
+    aliasOf: 'tha-spot',
+  },
+  {
+    mode: 'produce',
+    routePath: '/produce',
+    label: 'AI Produce',
+    description: 'End-to-end AI-assisted production from idea to master.',
+    icon: 'auto_awesome',
+    category: 'STRATEGY',
+    related: ['studio', 'release-pipeline', 'strategy'],
+  },
+  {
+    mode: 'timeline',
+    routePath: '/timeline',
+    label: 'Session Timeline',
+    description:
+      'Replay, branch, merge, and rewind every session checkpoint.',
+    icon: 'timeline',
+    category: 'CORE',
+    related: ['studio', 'cloud', 'hub'],
+  },
+  {
+    mode: 'cloud',
+    routePath: '/cloud',
+    label: 'Cloud Vault',
+    description: 'Sync, restore, and manage remote session snapshots.',
+    icon: 'cloud',
+    category: 'UTILITY',
+    related: ['hub', 'timeline', 'settings'],
+  },
+  {
+    mode: 'store',
+    routePath: '/store',
+    label: 'Storefront',
+    description: 'Browse plugins, packs, and community releases.',
+    icon: 'storefront',
+    category: 'COMMUNITY',
+    related: ['hub', 'produce', 'tha-spot'],
+  },
+  {
+    mode: 'inbox',
+    routePath: '/inbox',
+    label: 'Challenge Inbox',
+    description: 'Accept challenges, messages, and community callouts.',
+    icon: 'inbox',
+    category: 'COMMUNITY',
+    related: ['hub', 'tha-spot', 'remix-arena'],
+  },
+  {
+    mode: 'cowrite',
+    routePath: '/cowrite',
+    label: 'Cowrite Studio',
+    description: 'Co-write sessions with partners and AI in real time.',
+    icon: 'edit_note',
+    category: 'CREATIVE',
+    related: ['studio', 'lyric-editor', 'vocal-suite'],
+  },
+  {
+    mode: 'artist-development',
+    routePath: '/artist-development',
+    label: 'Artist Development',
+    description:
+      'Grow identity, positioning, and long-term artist momentum.',
+    icon: 'trending_up',
+    category: 'STRATEGY',
+    related: ['career', 'strategy', 'profile'],
+  },
+  {
+    mode: 'command-center',
+    routePath: '/command-center',
+    label: 'Command Center',
+    description:
+      'Run the AI terminal, upgrade queue, and strategic decrees as one feed.',
+    icon: 'terminal',
+    category: 'STRATEGY',
+    related: ['neural-foundry', 'strategy', 'analytics'],
+  },
+  {
+    mode: 'neural-foundry',
+    routePath: '/neural-foundry',
+    label: 'Neural Foundry',
+    description: 'Unlock neural upgrades and track their activation progress.',
+    icon: 'psychology',
+    category: 'STRATEGY',
+    related: ['command-center', 'strategy', 'produce'],
+  },
+  {
+    mode: 'journey',
+    routePath: '/journey',
+    label: 'Artist Journey',
+    description:
+      'Walk the artist dossier from origin story through production DNA.',
+    icon: 'route',
+    category: 'CORE',
+    related: ['profile', 'career', 'strategy'],
+  },
+];
+
+export const WORKSPACE_INDEX = new Map(
+  WORKSPACE_REGISTRY.map((workspace) => [workspace.mode, workspace])
+);

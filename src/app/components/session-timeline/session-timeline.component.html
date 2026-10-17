@@ -1,0 +1,520 @@
+<section class="sh-shell" aria-labelledby="sh-title">
+  <header class="sh-header">
+    <div class="sh-header-text">
+      <p class="sh-eyebrow">SPRINT&nbsp;D2&nbsp;·&nbsp;SESSION&nbsp;REPLAY</p>
+      <h1 id="sh-title">Project&nbsp;Version&nbsp;History</h1>
+      <p class="sh-lede">
+        Git-style checkpoint graph for the current project. Branch,
+        rewind, replay, and restore — every edit becomes a node you
+        can return to.
+      </p>
+    </div>
+    <div class="sh-header-actions">
+      <button
+        type="button"
+        class="sh-btn sh-btn-ghost"
+        (click)="goBack()"
+        aria-label="Back to hub"
+      >← Hub</button>
+    </div>
+  </header>
+
+  <div class="sh-status-strip" role="status" aria-live="polite">
+    <span class="sh-meta">Branches</span>
+    <strong>{{ branches().length }}</strong>
+    <span class="sh-divider" aria-hidden="true">|</span>
+    <span class="sh-meta">Active</span>
+    <strong>{{ activeBranchId() ? (activeBranchId() | slice:0:12) + '…' : '—' }}</strong>
+    <span class="sh-divider" aria-hidden="true">|</span>
+    <span class="sh-meta">Checkpoints</span>
+    <strong>{{ checkpoints().length }}</strong>
+    <span class="sh-divider" aria-hidden="true">|</span>
+    <span class="sh-meta">Snapshots</span>
+    <strong>{{ chapters().length }}</strong>
+  </div>
+
+  <div class="sh-grid">
+    <!-- CHECKPOINT INTAKE -->
+    <article class="sh-card sh-intake" aria-labelledby="sh-intake-title">
+      <header class="sh-card-head">
+        <h2 id="sh-intake-title">Add checkpoint</h2>
+        <span class="sh-pill">RECORD</span>
+      </header>
+      <label class="sh-field">
+        <span class="sh-field-label">Project ID</span>
+        <input
+          type="text"
+          [ngModel]="projectId()"
+          (ngModelChange)="projectId.set($event)"
+          aria-label="Project identifier"
+        />
+      </label>
+      <label class="sh-field">
+        <span class="sh-field-label">Label</span>
+        <input
+          type="text"
+          [ngModel]="draftLabel()"
+          (ngModelChange)="draftLabel.set($event)"
+          aria-label="Checkpoint label"
+        />
+      </label>
+      <label class="sh-field">
+        <span class="sh-field-label">Payload (JSON)</span>
+        <textarea
+          rows="3"
+          [ngModel]="draftPayload()"
+          (ngModelChange)="draftPayload.set($event)"
+          aria-label="Payload as JSON"
+        ></textarea>
+      </label>
+      <div class="sh-action-row">
+        <button
+          type="button"
+          class="sh-btn sh-btn-primary"
+          (click)="addCheckpoint()"
+        >Record checkpoint</button>
+      </div>
+    </article>
+
+    <!-- BRANCHES -->
+    <article class="sh-card sh-branches" aria-labelledby="sh-branches-title">
+      <header class="sh-card-head">
+        <h2 id="sh-branches-title">Branches</h2>
+        <span class="sh-pill">{{ branches().length }}</span>
+      </header>
+      <ul class="sh-branch-list">
+        <li
+          class="sh-branch-row"
+          *ngFor="let branch of branches(); trackBy: trackById"
+          [class.is-active]="branch.id === activeBranchId()"
+        >
+          <div class="sh-branch-meta">
+            <strong>{{ branch.name }}</strong>
+            <span class="sh-mono">{{ branch.id | slice:0:14 }}…</span>
+            <span class="sh-mute">
+              Forked from
+              {{ branch.forkFromCheckpointId
+                ? ((branch.forkFromCheckpointId | slice:0:12) + '…')
+                : '—' }}
+            </span>
+          </div>
+          <div class="sh-action-row">
+            <button
+              *ngIf="branch.id !== activeBranchId()"
+              type="button"
+              class="sh-btn sh-btn-primary"
+              (click)="switchBranch(branch.id)"
+            >Switch</button>
+            <button
+              *ngIf="branch.id !== activeBranchId()"
+              type="button"
+              class="sh-btn"
+              (click)="deleteBranch(branch)"
+            >Delete</button>
+            <span
+              *ngIf="branch.id === activeBranchId()"
+              class="sh-pill sh-pill-active"
+            >Active</span>
+          </div>
+        </li>
+      </ul>
+      <div class="sh-branch-form">
+        <input
+          type="text"
+          placeholder="new branch name"
+          [ngModel]="newBranchName()"
+          (ngModelChange)="newBranchName.set($event)"
+          aria-label="New branch name"
+        />
+        <button
+          type="button"
+          class="sh-btn"
+          (click)="createBranch()"
+        >Fork at head</button>
+      </div>
+    </article>
+
+    <!-- TIMELINE -->
+    <article class="sh-card sh-timeline" aria-labelledby="sh-timeline-title">
+      <header class="sh-card-head">
+        <h2 id="sh-timeline-title">Checkpoint timeline</h2>
+        <span class="sh-pill">{{ checkpoints().length }}</span>
+      </header>
+      <p class="sh-empty" *ngIf="checkpoints().length === 0">
+        No checkpoints yet — record one above to start the branch.
+      </p>
+      <ol class="sh-timeline-list" *ngIf="checkpoints().length > 0">
+        <li
+          class="sh-timeline-row"
+          *ngFor="let cp of checkpoints(); trackBy: trackByCheckpoint"
+        >
+          <span
+            class="sh-dot"
+            [class.is-snapshot]="cp.isFullSnapshot"
+            [attr.aria-label]="
+              cp.isFullSnapshot ? 'Full snapshot checkpoint' : 'Delta checkpoint'
+            "
+          ></span>
+          <div class="sh-timeline-meta">
+            <span class="sh-mono">{{ cp.id | slice:0:14 }}…</span>
+            <strong>{{ cp.label }}</strong>
+            <span class="sh-mute">{{ cp.at | date: 'shortTime' }}</span>
+          </div>
+          <div class="sh-action-row">
+            <button
+              type="button"
+              class="sh-btn sh-btn-mini"
+              (click)="rewind(cp.id)"
+            >Rewind</button>
+          </div>
+        </li>
+      </ol>
+    </article>
+
+    <!-- REPLAY PANEL -->
+    <article class="sh-card sh-replay" aria-labelledby="sh-replay-title">
+      <header class="sh-card-head">
+        <h2 id="sh-replay-title">Replay</h2>
+        <span class="sh-pill">{{ replayIndex() + 1 }} / {{ replayEvents().length }}</span>
+      </header>
+      <p class="sh-empty" *ngIf="replayEvents().length === 0">
+        Add at least one checkpoint to enable replay.
+      </p>
+      <div class="sh-replay-body" *ngIf="replayEvents().length > 0">
+        <div class="sh-replay-progress">
+          <span
+            class="sh-replay-tick"
+            *ngFor="let ev of replayEvents(); let i = index; trackBy: trackById"
+            [class.is-on]="i <= replayIndex()"
+          ></span>
+        </div>
+        <div class="sh-replay-meta">
+          <strong>{{ currentReplay()?.label }}</strong>
+          <span class="sh-mute">
+            index {{ currentReplay()?.index }} of {{ currentReplay()?.total }}
+          </span>
+          <pre class="sh-replay-json">{{ currentReplay()?.payload | json }}</pre>
+        </div>
+        <div class="sh-action-row">
+          <button
+            type="button"
+            class="sh-btn sh-btn-primary"
+            (click)="toggleReplay()"
+            [attr.aria-pressed]="isReplaying()"
+          >
+            {{ isReplaying() ? 'Pause replay' : 'Start replay' }}
+          </button>
+        </div>
+      </div>
+      <div class="sh-diff-list" *ngIf="diffSelected().length > 0">
+        <h3>Diff (first → last):</h3>
+        <ul>
+          <li
+            class="sh-diff-row"
+            *ngFor="let d of diffSelected()"
+          >
+            <span class="sh-mono">{{ d.field }}</span>
+            <span class="sh-diff-meta">
+              <code>{{ d.before | json }}</code>
+              <span class="sh-arrow" aria-hidden="true">→</span>
+              <code>{{ d.after | json }}</code>
+            </span>
+          </li>
+        </ul>
+      </div>
+    </article>
+
+    <!-- SPRINT D4 — MERGE GRAPH VIZ -->
+    <article class="sh-card sh-graph" aria-labelledby="sh-graph-title">
+      <header class="sh-card-head">
+        <h2 id="sh-graph-title">Merge graph</h2>
+        <span class="sh-pill">
+          {{ graph().nodes.length }} nodes · {{ graph().edges.length }} edges
+        </span>
+      </header>
+      <p class="sh-empty" *ngIf="graph().nodes.length === 0">
+        No checkpoints yet — record one to draw the graph.
+      </p>
+      <div class="sh-graph-legend" aria-hidden="true">
+        <span class="sh-legend-item">
+          <span class="sh-legend-dot is-snapshot"></span> snapshot
+        </span>
+        <span class="sh-legend-item">
+          <span class="sh-legend-dot"></span> delta
+        </span>
+        <span class="sh-legend-item">
+          <span class="sh-legend-dot is-merge"></span> merge
+        </span>
+        <span class="sh-legend-item">
+          <span class="sh-legend-line is-fork"></span> fork
+        </span>
+        <span class="sh-legend-item">
+          <span class="sh-legend-line is-merge"></span> merge
+        </span>
+        <span class="sh-legend-item">
+          <span class="sh-legend-line is-cherry"></span> cherry
+        </span>
+      </div>
+      <svg
+        class="sh-graph-svg"
+        [attr.viewBox]="graphSvgViewBox()"
+        role="img"
+        [attr.aria-label]="'Merge graph with ' + graph().nodes.length + ' checkpoints'"
+      >
+        <!-- lane headers -->
+        <g class="sh-graph-lanes" aria-hidden="true">
+          <text
+            *ngFor="let branchId of graphLaneKeys()"
+            [attr.x]="laneHeaderX(branchId)"
+            [attr.y]="graphPadY - 8"
+            class="sh-graph-lane-label"
+            text-anchor="middle"
+          >{{ graph().branchNames[branchId] }}</text>
+        </g>
+        <!-- edges -->
+        <g class="sh-graph-edges" aria-hidden="true">
+          <path
+            *ngFor="let edge of graph().edges; trackBy: trackEdge"
+            [attr.d]="graphEdgePath(edge)"
+            [class.is-linear]="edge.kind === 'linear'"
+            [class.is-fork]="edge.kind === 'fork'"
+            [class.is-merge]="edge.kind === 'merge'"
+            [class.is-cherry]="edge.kind === 'cherry'"
+            class="sh-graph-edge"
+          />
+          <text
+            *ngFor="let edge of graph().edges; trackBy: trackEdge"
+            [attr.x]="edgeLabelPos(edge).x"
+            [attr.y]="edgeLabelPos(edge).y"
+            class="sh-graph-edge-label"
+            text-anchor="middle"
+          >{{ edgeKindLabel(edge.kind) }}</text>
+        </g>
+        <!-- nodes -->
+        <g class="sh-graph-nodes">
+          <circle
+            *ngFor="let node of graph().nodes; trackBy: trackGraphNode"
+            [attr.cx]="graphPos(node).x"
+            [attr.cy]="graphPos(node).y"
+            [attr.r]="graphNodeRadius(node)"
+            [class.is-snapshot]="node.isFullSnapshot && !node.isMergeNode"
+            [class.is-merge]="node.isMergeNode"
+            class="sh-graph-node"
+            role="button"
+            tabindex="0"
+            [attr.title]="graphNodeTitle(node)"
+            [attr.aria-label]="graphNodeAria(node)"
+            (click)="rewind(node.checkpointId)"
+            (keydown.enter)="rewind(node.checkpointId)"
+            (keydown.space)="rewind(node.checkpointId)"
+          />
+        </g>
+      </svg>
+    </article>
+
+    <!-- SPRINT D3 — MERGE / REBASE / CHERRY-PICK -->
+    <article class="sh-card sh-merge" aria-labelledby="sh-merge-title">
+      <header class="sh-card-head">
+        <h2 id="sh-merge-title">Branch operations</h2>
+        <span class="sh-pill">
+          {{ pendingMerge() ? 'CONFLICT' : 'IDLE' }}
+        </span>
+      </header>
+
+      <!-- Conflict modal (D3) -->
+      <ng-container *ngIf="pendingMerge() as pending">
+        <p class="sh-empty" style="border-color: rgba(255, 184, 0, 0.5);">
+          {{ pending.conflicts.length }} conflict{{
+            pending.conflicts.length === 1 ? '' : 's'
+          }} need resolution before the merge can complete.
+        </p>
+        <div class="sh-conflict-resolver">
+          <div
+            class="sh-conflict-row"
+            *ngFor="let marker of pending.conflicts; trackBy: trackById"
+          >
+            <div class="sh-conflict-head">
+              <span class="sh-mono">{{ marker.field }}</span>
+              <span class="sh-mute">
+                base <code>{{ marker.base | json }}</code>
+              </span>
+            </div>
+            <div class="sh-conflict-picks">
+              <label class="sh-pick">
+                <input
+                  type="radio"
+                  [name]="'pick-' + marker.field"
+                  [checked]="conflictPicks()[marker.field]?.pick === 'mine' || !conflictPicks()[marker.field]"
+                  (change)="pickConflict(marker, 'mine')"
+                />
+                <span>Mine <code>{{ marker.mine | json }}</code></span>
+              </label>
+              <label class="sh-pick">
+                <input
+                  type="radio"
+                  [name]="'pick-' + marker.field"
+                  [checked]="conflictPicks()[marker.field]?.pick === 'theirs'"
+                  (change)="pickConflict(marker, 'theirs')"
+                />
+                <span>Theirs <code>{{ marker.theirs | json }}</code></span>
+              </label>
+              <label class="sh-pick">
+                <input
+                  type="radio"
+                  [name]="'pick-' + marker.field"
+                  [checked]="conflictPicks()[marker.field]?.pick === 'custom'"
+                  (change)="pickConflict(marker, 'custom')"
+                />
+                <span>Custom</span>
+                <input
+                  type="text"
+                  class="sh-pick-input"
+                  placeholder="value (JSON)"
+                  [disabled]="conflictPicks()[marker.field]?.pick !== 'custom'"
+                  (input)="customConflictValue(marker, $any($event.target).value)"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="sh-action-row">
+            <button
+              type="button"
+              class="sh-btn sh-btn-primary"
+              (click)="submitResolve()"
+            >Resolve &amp; commit</button>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Three-way merge form -->
+      <fieldset class="sh-fieldset" *ngIf="!pendingMerge()">
+        <legend>3-way merge</legend>
+        <div class="sh-field">
+          <span class="sh-field-label">Source branch</span>
+          <select
+            [ngModel]="mergeSource()"
+            (ngModelChange)="setMergeSource($event)"
+            aria-label="Source branch"
+          >
+            <option
+              *ngFor="let b of branches()"
+              [value]="b.id"
+            >{{ b.name }}</option>
+          </select>
+        </div>
+        <div class="sh-field">
+          <span class="sh-field-label">Target branch</span>
+          <select
+            [ngModel]="mergeTarget()"
+            (ngModelChange)="setMergeTarget($event)"
+            aria-label="Target branch"
+          >
+            <option
+              *ngFor="let b of branches()"
+              [value]="b.id"
+            >{{ b.name }}</option>
+          </select>
+        </div>
+        <div class="sh-action-row">
+          <button
+            type="button"
+            class="sh-btn sh-btn-primary"
+            (click)="runMerge()"
+            [disabled]="!mergeSource() || !mergeTarget() || mergeSource() === mergeTarget()"
+          >Three-way merge</button>
+          <button
+            type="button"
+            class="sh-btn"
+            (click)="runRebase()"
+            [disabled]="!mergeSource() || !mergeTarget() || mergeSource() === mergeTarget()"
+          >Rebase → target</button>
+        </div>
+      </fieldset>
+
+      <!-- Cherry-pick form -->
+      <fieldset class="sh-fieldset" *ngIf="!pendingMerge()">
+        <legend>Cherry-pick</legend>
+        <div class="sh-field">
+          <span class="sh-field-label">Source branch</span>
+          <select
+            [ngModel]="mergeSource()"
+            (ngModelChange)="setMergeSource($event)"
+            aria-label="Source branch for cherry-pick"
+          >
+            <option
+              *ngFor="let b of branches()"
+              [value]="b.id"
+            >{{ b.name }}</option>
+          </select>
+        </div>
+        <div class="sh-field">
+          <span class="sh-field-label">Source checkpoint</span>
+          <select
+            [ngModel]="cherryPickSourceCheckpoint()"
+            (ngModelChange)="setCherryPickSourceCheckpoint($event)"
+            aria-label="Checkpoint on source branch"
+          >
+            <option value="">— pick checkpoint —</option>
+            <option
+              *ngFor="let cp of checkpoints(); trackBy: trackByCheckpoint"
+              [value]="cp.id"
+            >
+              {{ cp.label }} · {{ cp.id | slice: 0: 10 }}…
+            </option>
+          </select>
+        </div>
+        <div class="sh-field">
+          <span class="sh-field-label">Target branch</span>
+          <select
+            [ngModel]="cherryPickTarget()"
+            (ngModelChange)="setCherryPickTarget($event)"
+            aria-label="Target branch for cherry-pick"
+          >
+            <option
+              *ngFor="let b of branches()"
+              [value]="b.id"
+            >{{ b.name }}</option>
+          </select>
+        </div>
+        <div class="sh-action-row">
+          <button
+            type="button"
+            class="sh-btn"
+            (click)="runCherryPick()"
+            [disabled]="!mergeSource() || !cherryPickSourceCheckpoint() || !cherryPickTarget()"
+          >Cherry-pick onto target</button>
+        </div>
+      </fieldset>
+    </article>
+
+    <!-- CLOUD RESTORE -->
+    <article class="sh-card sh-cloud" aria-labelledby="sh-cloud-title">
+      <header class="sh-card-head">
+        <h2 id="sh-cloud-title">Restore from cloud vault</h2>
+        <span class="sh-pill">{{ cloudSnapshots().length }}</span>
+      </header>
+      <p class="sh-empty" *ngIf="cloudSnapshots().length === 0">
+        No remote snapshots yet. Push a project from
+        <a routerLink="/cloud" (click)="goBack()">/cloud</a>
+        to populate this list.
+      </p>
+      <ul class="sh-cloud-list" *ngIf="cloudSnapshots().length > 0">
+        <li
+          class="sh-cloud-row"
+          *ngFor="let snap of cloudSnapshots(); trackBy: trackById"
+        >
+          <div class="sh-cloud-meta">
+            <strong>{{ snap.title }}</strong>
+            <span class="sh-mono">{{ snap.projectId }}</span>
+            <span class="sh-mute">v{{ snap.version }} · {{ snap.deviceId }}</span>
+          </div>
+          <button
+            type="button"
+            class="sh-btn sh-btn-mini"
+            (click)="restoreFromCloud(snap)"
+          >Restore</button>
+        </li>
+      </ul>
+    </article>
+  </div>
+</section>

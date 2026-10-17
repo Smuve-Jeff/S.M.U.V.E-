@@ -1,0 +1,357 @@
+/* ===========================================================
+   S.M.U.V.E. Composer — Performance Grid (Clip Launcher)
+   City Skylines After Dark — Stage Edition
+   =========================================================== */
+
+.performance-grid-container {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--ivory-deep, #06091a);
+  overflow-y: auto; overflow-x: hidden;
+}
+
+/* Grid layout */
+.perf-grid-layout {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  align-content: start;
+}
+
+/* Clip cell */
+.clip-cell-v42 {
+  aspect-ratio: 1;
+  cursor: pointer;
+  background: linear-gradient(
+    180deg,
+    var(--ivory-paper) 0%,
+    var(--ivory-panel) 100%
+  );
+  border: 2px solid var(--ivory-line);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.12s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+  min-height: 80px;
+  position: relative;
+  box-shadow: var(--shadow-ivory-sm);
+}
+
+.clip-cell-v42:hover {
+  border-color: var(--teal-500);
+  box-shadow:
+    var(--shadow-ivory-md),
+    0 0 16px var(--teal-soft-glow);
+  transform: translateY(-2px);
+}
+
+.clip-cell-v42.active {
+  border-color: var(--teal-500);
+  box-shadow:
+    0 0 0 2px var(--teal-soft-glow),
+    0 0 28px var(--teal-glow);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--teal-500) 20%, var(--ivory-paper)) 0%,
+    var(--ivory-paper) 100%
+  );
+}
+
+.clip-cell-v42:active {
+  transform: scale(0.96);
+}
+
+.cell-led-v42 {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--espresso-muted);
+  border: 1px solid var(--ivory-line);
+}
+
+.cell-led-v42.glowing {
+  background: var(--teal-500);
+  box-shadow: 0 0 10px var(--teal-glow);
+  border-color: var(--teal-300);
+  animation: cellLedPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes cellLedPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 8px var(--teal-glow);
+  }
+  50% {
+    box-shadow:
+      0 0 18px var(--teal-glow),
+      0 0 24px var(--teal-soft-glow);
+  }
+}
+
+.cell-name {
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--espresso-text);
+}
+
+.cell-type {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--espresso-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Music bar animations */
+.animate-music-bar-1 {
+  animation: musicBar 0.8s ease-in-out infinite;
+}
+.animate-music-bar-2 {
+  animation: musicBar 0.5s ease-in-out infinite;
+}
+.animate-music-bar-3 {
+  animation: musicBar 0.7s ease-in-out infinite;
+}
+
+@keyframes musicBar {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 12px;
+  }
+}
+
+/* Scrollbar */
+.grid-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.grid-scroll::-webkit-scrollbar-track {
+  background: var(--ivory-deep);
+}
+.grid-scroll::-webkit-scrollbar-thumb {
+  background: var(--teal-500);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+/* ---------- DARK MODE ---------- */
+:host-context(.dark-mode) .clip-cell-v42 {
+  background: linear-gradient(180deg, #0a0f22 0%, #06091a 100%);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.dark-mode) .clip-cell-v42:hover {
+  border-color: var(--teal-500);
+}
+
+:host-context(.dark-mode) .clip-cell-v42.active {
+  border-color: var(--teal-500);
+  box-shadow:
+    0 0 0 2px var(--teal-soft-glow),
+    0 0 32px var(--teal-glow);
+  background: linear-gradient(
+    180deg,
+    rgba(102, 240, 255, 0.16) 0%,
+    #0a0f22 100%
+  );
+}
+
+@media (max-width: 768px) {
+  .perf-grid-layout {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 10px;
+  }
+  .clip-cell-v42 {
+    min-height: 64px;
+  }
+}
+
+@media (max-width: 480px) {
+  .perf-grid-layout {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STAGE 2.0 — Performance Grid · Launchpad polish
+   ═══════════════════════════════════════════════════════════ */
+.perf-grid-layout {
+  scrollbar-width: thin;
+  scrollbar-color: var(--teal-500) transparent;
+}
+
+.clip-cell-v42 {
+  transition:
+    transform 0.12s cubic-bezier(0.34, 1.3, 0.64, 1),
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.clip-cell-v42:hover {
+  transform: translateY(-3px);
+}
+
+.clip-cell-v42.active {
+  animation: pg-cell-pop 240ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes pg-cell-pop {
+  0% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.clip-cell-v42.active .cell-name {
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+}
+
+.cell-led-v42 {
+  transition:
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.cell-led-v42.glowing {
+  animation: cellLedPulse 1.2s ease-in-out infinite,
+    pg-led-spin 3s linear infinite;
+}
+
+@keyframes pg-led-spin {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+.animate-music-bar-1,
+.animate-music-bar-2,
+.animate-music-bar-3 {
+  will-change: height;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clip-cell-v42.active,
+  .cell-led-v42.glowing {
+    animation: none;
+  }
+  .animate-music-bar-1,
+  .animate-music-bar-2,
+  .animate-music-bar-3 {
+    animation: none;
+  }
+}
+
+/* Captured scenes get a faint green tint so empty vs launchable is obvious. */
+.clip-cell-v42.has-content:not(.active) {
+  border-color: rgba(34, 197, 94, 0.25) !important;
+}
+
+.clip-cell-v42.has-content:not(.active):hover {
+  border-color: rgba(34, 197, 94, 0.55) !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   REDESIGN — LAUNCH GRID COVERAGE
+   Column/header scaffolding, clip labels and the per-clip LED had
+   no presentation layer of their own. Styling only: launch
+   quantization, clip triggering and scene state are untouched.
+   ════════════════════════════════════════════════════════════ */
+
+.grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 56px;
+}
+
+.grid-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  min-width: 0;
+}
+
+.grid-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.grid-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 96px;
+}
+
+.clip-label {
+  color: var(--espresso-muted, #94a3c8);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* Scene LED: filled when the slot is armed, hollow when it is empty. */
+.clip-led-v42 {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--ivory-deep, #06091a);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--teal-500, #00e5ff) 26%, transparent);
+}
+
+.clip-cell-v42.active .clip-led-v42 {
+  background: var(--teal-500, #00e5ff);
+  box-shadow: 0 0 8px var(--teal-glow, rgba(0, 229, 255, 0.28));
+}
+
+.clip-overlay {
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+@media (pointer: coarse) {
+  .clip-cell-v42 {
+    min-height: 88px;
+  }
+}
+
+@media (forced-colors: active) {
+  .clip-cell-v42.active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}

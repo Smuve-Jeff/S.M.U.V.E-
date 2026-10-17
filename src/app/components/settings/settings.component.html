@@ -1,0 +1,2035 @@
+<div class="settings-container animate-fade-in">
+  <div class="glass-v42 rounded-3xl overflow-hidden shadow-v42-xl">
+    <div class="p-8 border-b border-border bg-background-alt/30">
+      <div class="flex items-center gap-4 w-full">
+        <div class="flex flex-col">
+          <h1
+            class="text-2xl font-black text-text-main tracking-tight uppercase"
+          >
+            Executive_Settings
+            <span class="text-brand-primary text-sm ml-2">v2.0</span>
+          </h1>
+          <p
+            class="text-[10px] text-text-dim font-bold tracking-[0.3em] uppercase mt-2"
+          >
+            Configuration and System Synchronization
+          </p>
+        </div>
+        <button
+          (click)="showHowTo.set(true)"
+          class="ml-auto flex items-center gap-2 px-4 py-2 bg-brand-primary/10 border border-brand-primary/20 text-brand-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary/20 transition-all"
+        >
+          <span class="text-lg">?</span>
+          How To Use
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div
+      class="flex border-b border-border bg-background/50 overflow-x-auto no-scrollbar"
+    >
+      <button
+        (click)="setTab('ui')"
+        [class.active-tab]="activeTab() === 'ui'"
+        class="settings-tab"
+      >
+        Interface
+      </button>
+      <button
+        (click)="setTab('audio')"
+        [class.active-tab]="activeTab() === 'audio'"
+        class="settings-tab"
+      >
+        Audio Engine
+      </button>
+      <button
+        (click)="setTab('ai')"
+        [class.active-tab]="activeTab() === 'ai'"
+        class="settings-tab"
+      >
+        Intelligence
+      </button>
+      <button
+        (click)="setTab('studio')"
+        [class.active-tab]="activeTab() === 'studio'"
+        class="settings-tab"
+      >
+        Studio Pro
+      </button>
+      <button
+        (click)="setTab('dj')"
+        [class.active-tab]="activeTab() === 'dj'"
+        class="settings-tab"
+      >
+        DJ Deck
+      </button>
+      <button
+        (click)="setTab('security')"
+        [class.active-tab]="activeTab() === 'security'"
+        class="settings-tab"
+      >
+        Security
+      </button>
+      <button
+        (click)="setTab('permissions')"
+        [class.active-tab]="activeTab() === 'permissions'"
+        class="settings-tab"
+      >
+        Permissions
+      </button>
+      <button
+        (click)="setTab('storage')"
+        [class.active-tab]="activeTab() === 'storage'"
+        class="settings-tab"
+      >
+        Storage
+      </button>
+      <button
+        (click)="setTab('hardware')"
+        [class.active-tab]="activeTab() === 'hardware'"
+        class="settings-tab"
+      >
+        Hardware
+      </button>
+    </div>
+
+    <div
+      class="p-8 settings-content-area custom-scrollbar overflow-y-auto max-h-[70vh]"
+    >
+      <!-- Interface Section -->
+      <div
+        *ngIf="activeTab() === 'ui'"
+        class="flex flex-col gap-6 animate-enter"
+      >
+        <div class="setting-group">
+          <label class="setting-label">Active Theme Mode</label>
+          <p class="text-xs text-text-dim">
+            Keep the shell, settings surfaces, and workspace chrome aligned to
+            the same appearance profile.
+          </p>
+          <div class="grid gap-3 mt-2 md:grid-cols-2">
+            <button
+              *ngFor="let theme of themeOptions()"
+              (click)="updateSetting('ui', 'theme', theme.name)"
+              [class.theme-active]="settings().ui.theme === theme.name"
+              class="theme-btn theme-card"
+            >
+              <span class="theme-card-topline">
+                <span class="theme-name">{{ theme.name }} Mode</span>
+                <span
+                  class="theme-current"
+                  *ngIf="settings().ui.theme === theme.name"
+                >
+                  Active
+                </span>
+              </span>
+              <span class="theme-card-preview" aria-hidden="true">
+                <span
+                  class="theme-swatch"
+                  [style.background]="theme.primary"
+                ></span>
+                <span
+                  class="theme-swatch"
+                  [style.background]="theme.accent"
+                ></span>
+                <span
+                  class="theme-swatch"
+                  [style.background]="theme.blue"
+                ></span>
+                <span
+                  class="theme-swatch"
+                  [style.background]="theme.neutral"
+                ></span>
+              </span>
+              <span class="theme-description">
+                {{
+                  theme.name === 'Dark'
+                    ? 'Executive night palette with high-contrast glass panels.'
+                    : 'Bright control surface with clean editorial contrast.'
+                }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Appearance Snapshot</label>
+          <div class="grid gap-3 md:grid-cols-3 mt-2">
+            <div
+              *ngFor="let item of appearanceSummary()"
+              class="appearance-summary-card"
+            >
+              <span class="appearance-summary-label">{{ item.label }}</span>
+              <strong class="appearance-summary-value">{{ item.value }}</strong>
+              <p class="appearance-summary-detail">{{ item.detail }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Beginner Guidance Mode</h3>
+            <p class="text-xs text-text-dim">
+              Keep guided prompts and simplified next steps visible while you build your artist profile.
+            </p>
+          </div>
+          <button
+            (click)="updateSetting('ui', 'beginnerMode', !settings().ui.beginnerMode)"
+            class="toggle-btn"
+            [class.on]="settings().ui.beginnerMode"
+            [attr.aria-label]="'Beginner guidance ' + (settings().ui.beginnerMode ? 'enabled' : 'disabled')"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Performance Mode</h3>
+            <p class="text-xs text-text-dim">Optimize for lower CPU usage.</p>
+          </div>
+          <button
+            (click)="
+              updateSetting(
+                'ui',
+                'performanceMode',
+                !settings().ui.performanceMode
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().ui.performanceMode"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">HUD Overlay</h3>
+            <p class="text-xs text-text-dim">
+              Toggle heritage scanline visuals.
+            </p>
+          </div>
+          <button
+            (click)="updateSetting('ui', 'showScanlines', !settings().ui.showScanlines)"
+            class="toggle-btn"
+            [class.on]="settings().ui.showScanlines"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Profile → S.M.U.V.E. Context</label>
+          <p class="text-xs text-text-dim">
+            These counts are recorded profile evidence only. S.M.U.V.E. uses them to tune production, strategy, and career guidance; it does not infer missing facts.
+          </p>
+          <div class="grid gap-3 md:grid-cols-3 mt-2">
+            <div class="appearance-summary-card">
+              <span class="appearance-summary-label">Artist</span>
+              <strong class="appearance-summary-value">{{ profileAlignment().artist }}</strong>
+              <p class="appearance-summary-detail">{{ profileAlignment().journeyStage }}</p>
+            </div>
+            <div class="appearance-summary-card">
+              <span class="appearance-summary-label">Recorded signals</span>
+              <strong class="appearance-summary-value">{{ profileAlignment().recordedSignals }}</strong>
+              <p class="appearance-summary-detail">Journey and identity evidence</p>
+            </div>
+            <div class="appearance-summary-card">
+              <span class="appearance-summary-label">Official footprint</span>
+              <strong class="appearance-summary-value">{{ profileAlignment().officialLinks }} links · {{ profileAlignment().catalogItems }} works</strong>
+              <p class="appearance-summary-detail">No analytics are implied by a link alone</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Guidance & Quick Links</label>
+          <p class="text-xs text-text-dim">
+            Keep production guidance here while the home surface stays focused
+            on music controls.
+          </p>
+          <div class="grid gap-3 md:grid-cols-2 mt-2">
+            <button
+              (click)="
+                openExternalLink('https://github.com/Smuve-Jeff/S.M.U.V.E-')
+              "
+              class="guide-link-btn"
+            >
+              <span class="material-symbols-outlined text-sm">link</span>
+              <span>Project Repository</span>
+            </button>
+            <button
+              (click)="
+                openExternalLink(
+                  'https://github.com/Smuve-Jeff/S.M.U.V.E-/blob/main/README.md'
+                )
+              "
+              class="guide-link-btn"
+            >
+              <span class="material-symbols-outlined text-sm">menu_book</span>
+              <span>User Guide</span>
+            </button>
+            <button
+              (click)="uiService.navigateToView('studio')"
+              class="guide-link-btn"
+            >
+              <span class="material-symbols-outlined text-sm">music_note</span>
+              <span>Open Studio</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audio Section -->
+      <div
+        *ngIf="activeTab() === 'audio'"
+        class="flex flex-col gap-6 animate-enter"
+      >
+        <div class="setting-group">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <label class="setting-label">Audio Interface Routing</label>
+              <p class="text-xs text-text-dim mt-1">
+                Manage recording input and monitoring output from Settings.
+              </p>
+            </div>
+            <button
+              (click)="refreshAudioInputs()"
+              class="px-3 py-1.5 rounded-lg border border-border text-[10px] uppercase font-black tracking-widest text-text-dim hover:text-brand-primary hover:border-brand-primary/40 transition-all"
+            >
+              Refresh
+            </button>
+          </div>
+          <div class="permissions-grid mt-3">
+            <label class="block">
+              <span class="setting-label">Input Device</span>
+              <select
+                class="smuve-input w-full mt-2"
+                [ngModel]="selectedAudioInputId()"
+                (ngModelChange)="selectAudioInput($event)"
+              >
+                <option [ngValue]="null">Auto Select</option>
+                <option
+                  *ngFor="let device of audioInputDevices()"
+                  [value]="device.deviceId"
+                >
+                  {{ device.label }} [{{ device.type }}]
+                </option>
+              </select>
+            </label>
+            <div>
+              <span class="setting-label">Output Monitor</span>
+              <div class="flex gap-2 mt-2">
+                <button
+                  (click)="setOutputMode('speakers')"
+                  class="px-4 py-2 rounded-lg border text-[10px] uppercase font-black tracking-widest transition-all"
+                  [class.btn-active]="audioEngine.outputMode() === 'speakers'"
+                  [class.border-border]="
+                    audioEngine.outputMode() !== 'speakers'
+                  "
+                >
+                  Speakers
+                </button>
+                <button
+                  (click)="setOutputMode('headphones')"
+                  class="px-4 py-2 rounded-lg border text-[10px] uppercase font-black tracking-widest transition-all"
+                  [class.btn-active]="audioEngine.outputMode() === 'headphones'"
+                  [class.border-border]="
+                    audioEngine.outputMode() !== 'headphones'
+                  "
+                >
+                  Headphones
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── Audio Devices Routing — output + input + monitor blend ─── -->
+        <div class="setting-group audio-devices-group">          <h4
+            class="setting-subhead">Audio Devices</h4>
+          <p class="setting-help">
+            Pick where audio is routed, which mic is captured, and how the
+            monitor blend mixes input with playback. Auto-adjust refreshes the
+            master EQ profile whenever a device is added or removed.
+          </p>
+
+          <label class="setting-label"
+            >Output Device ({{ audioEngine.outputDeviceName() }})</label
+          >
+          <div class="audio-device-row">
+            <select
+              class="smuve-select"
+              aria-label="Audio output device"
+              [ngModel]="audioEngine.selectedOutputDeviceId()"
+              (ngModelChange)="selectOutputDevice($event)"
+              [disabled]="!audioEngine.outputDevices().length"
+            >
+              <option value="">System default output</option>
+              <option
+                *ngFor="let d of audioEngine.outputDevices()"
+                [value]="d.deviceId"
+              >
+                {{ d.label }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="setting-btn"
+              (click)="refreshOutputs()"
+              aria-label="Re-scan audio output devices"
+              title="Re-scan audio output devices"
+            >
+              <span class="material-symbols-outlined">refresh</span>
+              Rescan
+            </button>
+          </div>
+          <p class="setting-help" *ngIf="!audioEngine.supportsSinkId()">
+            ⚠ This browser cannot switch output sinks live — selection is
+            informational only.
+          </p>
+          <p
+            class="setting-help"
+            *ngIf="audioEngine.outputDevices().length === 0"
+          >
+            Plug in a USB audio interface, DAC, or Bluetooth output to see it
+            listed here.
+          </p>
+
+          <label class="setting-label">
+            Input Microphone ({{ microphoneService.inputDeviceName() }})
+          </label>
+          <div class="audio-device-row">
+            <select
+              class="smuve-select"
+              aria-label="Input microphone device"
+              [ngModel]="selectedAudioInputId()"
+              (ngModelChange)="selectAudioInput($event)"
+            >
+              <option
+                *ngFor="let d of audioInputDevices()"
+                [value]="d.deviceId"
+              >
+                {{ d.label }}
+                <ng-container *ngIf="d.type === 'interface'"
+                  >· interface</ng-container
+                >
+                <ng-container *ngIf="d.type === 'headset'"
+                  >· headset</ng-container
+                >
+              </option>
+            </select>
+            <button
+              type="button"
+              class="setting-btn"
+              (click)="refreshAudioInputs()"
+              aria-label="Re-scan audio inputs"
+              title="Re-scan audio input devices"
+            >
+              <span class="material-symbols-outlined">refresh</span>
+              Rescan
+            </button>
+          </div>
+
+          <label class="setting-label">
+            Microphone Input Gain ({{
+              (microphoneService.micInputGain() * 100).toFixed(0)
+            }}%)
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="2"
+            step="0.05"
+            [ngModel]="microphoneService.micInputGain()"
+            (ngModelChange)="setMicGain($event)"
+            class="smuve-slider w-full mt-2"
+            aria-label="Microphone input gain, 0 to 200 percent"
+          />
+
+          <label class="setting-label">
+            Monitor Blend · input vs playback ({{ monitorBlendPct() }}%)
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            [ngModel]="audioEngine.monitorBlend()"
+            (ngModelChange)="setMonitorBlend($event)"
+            class="smuve-slider w-full mt-2"
+            aria-label="Monitor blend between input and playback, 0 to 100 percent"
+          />
+
+          <div class="audio-device-toggle-row">
+            <label class="setting-toggle">
+              <input
+                type="checkbox"
+                [ngModel]="audioEngine.autoAdjustEnabled()"
+                (ngModelChange)="setAutoAdjust($event)"
+              />
+              <span>Auto-adjust EQ profile when output device changes</span>
+            </label>
+          </div>
+          <p class="setting-help">
+            Currently active EQ profile:
+            <strong>{{ audioEngine.outputProfileLabel() }}</strong>
+          </p>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label"
+            >Master Gain ({{
+              (settings().audio.masterVolume * 100).toFixed(0)
+            }}%)</label
+          >
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            [ngModel]="settings().audio.masterVolume"
+            (ngModelChange)="updateSetting('audio', 'masterVolume', $event)"
+            class="smuve-slider w-full mt-2"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+          <div class="setting-group">
+            <label class="setting-label">Sampling Rate</label>
+            <p class="text-[10px] text-text-dim mt-1">Requested setting is saved for the next engine session. Active browser context: {{ audioEngine.nativeSampleRate }} Hz.</p>
+            <select
+              [ngModel]="settings().audio.sampleRate"
+              (ngModelChange)="updateSetting('audio', 'sampleRate', $event)"
+              class="smuve-input w-full mt-2"
+            >
+              <option [value]="44100">44.1 kHz</option>
+              <option [value]="48000">48.0 kHz</option>
+              <option [value]="96000">96.0 kHz</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label class="setting-label">Process Buffer</label>
+            <select
+              [ngModel]="settings().audio.bufferSize"
+              (ngModelChange)="updateSetting('audio', 'bufferSize', $event)"
+              class="smuve-input w-full mt-2"
+            >
+              <option [value]="128">128 samples</option>
+              <option [value]="256">256 samples</option>
+              <option [value]="512">512 samples</option>
+              <option [value]="1024">1024 samples</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Export Container</h3>
+            <p class="text-xs text-text-dim">Primary render format.</p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              *ngFor="let fmt of ['wav', 'mp3', 'webm']"
+              (click)="updateSetting('audio', 'defaultExportFormat', fmt)"
+              [class.btn-active]="settings().audio.defaultExportFormat === fmt"
+              class="px-4 py-1.5 rounded-lg border border-border text-[10px] uppercase font-bold text-text-dim"
+            >
+              {{ fmt }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Strategic Section -->
+      <div
+        *ngIf="activeTab() === 'ai'"
+        class="flex flex-col gap-6 animate-enter"
+      >          <div class="setting-group">
+            <label class="setting-label">Evidence-First AI Contract</label>
+            <p class="text-xs text-text-dim mt-1">S.M.U.V.E. can adapt its tone and depth, but it must distinguish recorded profile facts from recommendations, assumptions, and missing data.</p>
+            <div class="mt-3 grid gap-2 md:grid-cols-3 text-[10px] uppercase tracking-widest font-bold">
+              <span class="px-3 py-2 rounded-lg bg-green-500/10 text-green-600">Recorded facts: allowed</span>
+              <span class="px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-600">Recommendations: labeled</span>
+              <span class="px-3 py-2 rounded-lg bg-red-500/10 text-red-600">Fabricated metrics: blocked</span>
+            </div>
+          </div>
+
+        <div class="setting-group">
+            <label class="setting-label">Advisor Behavioral Persona</label>
+          <p class="text-xs text-text-dim mt-1">
+            The advisor combines this preference with the recorded artist context above. It will ask for missing evidence instead of inventing audience, catalog, or platform data.
+          </p>
+          <p class="text-[10px] text-text-dim mb-2">
+            Configure how the S.M.U.V.E. AI communicates with you. The
+            S.M.U.V.E. Prime character is the shipped default — it only changes
+            when you explicitly pick another mode here.
+          </p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+            <button
+              type="button"
+              *ngFor="let p of personaOptions"
+              (click)="updateSetting('ai', 'commanderPersona', p.id)"
+              [class.persona-active]="activePersonaId() === p.id"
+              [title]="p.title + ' — ' + p.description"
+              class="persona-btn"
+            >
+              {{ p.label }}
+              <span
+                *ngIf="p.isOminous"
+                class="block text-[8px] font-black uppercase tracking-widest text-brand-primary/70 mt-1"
+                >Default</span
+              >
+            </button>
+          </div>
+          <p class="text-[10px] text-text-dim mt-3">
+            Active mode:
+            <strong class="text-white">{{ activePersonaId() }}</strong>
+          </p>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Intelligence Conversational Tier</label>
+          <p class="text-[10px] text-text-dim mb-2">
+            Higher tiers enable deeper analytical depth and more complex
+            reasoning.
+          </p>
+          <div class="grid grid-cols-3 gap-3 mt-2">
+            <button
+              *ngFor="let t of ['Standard', 'Elite', 'SUPREME']"
+              (click)="updateSetting('ai', 'aiConversationalTier', t)"
+              [class.persona-active]="settings().ai.aiConversationalTier === t"
+              class="persona-btn"
+            >
+              {{ t }}
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">V8.2 Persona Intensity</h3>
+            <p class="text-xs text-text-dim">
+              Enable maximum strategic arrogance and blunt critique modes.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting(
+                'ai',
+                'aiPersonaIntensityEnabled',
+                !settings().ai.aiPersonaIntensityEnabled
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().ai.aiPersonaIntensityEnabled"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Explicit Language</h3>
+            <p class="text-xs text-text-dim">
+              Lets S.M.U.V.E. swear like a ruthless studio boss. ON by default — it
+              is part of the S.M.U.V.E. Prime voice. Turn it off and the vocabulary
+              cleans up while the arrogance, menace, and savagery stay exactly as
+              they are.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="updateSetting('ai', 'aiProfanityEnabled', !settings().ai.aiProfanityEnabled)"
+            class="toggle-btn"
+            [class.on]="settings().ai.aiProfanityEnabled"
+            [attr.aria-pressed]="settings().ai.aiProfanityEnabled"
+            aria-label="Toggle explicit language"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">S.M.U.V.E. Prime Full-Control Mode</h3>
+            <p class="text-xs text-text-dim">
+              Grants S.M.U.V.E. command authority over this entire application: it
+              navigates, drives the studio and mixer, manages tracks and projects,
+              changes its own persona settings, and runs exports on your behalf.
+              Irreversible or outward-facing actions — deleting work, publishing,
+              sending, spending — still confirm first. Off by default; granting it
+              is entirely your call (also available in chat via /ai totalcontrol).
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="updateSetting('ai', 'aiTotalControlEnabled', !settings().ai.aiTotalControlEnabled)"
+            class="toggle-btn"
+            [class.on]="settings().ai.aiTotalControlEnabled"
+            [attr.aria-pressed]="settings().ai.aiTotalControlEnabled"
+            aria-label="Toggle S.M.U.V.E. Prime full-control mode"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">AI Knowledge Base Write Access</h3>
+            <p class="text-xs text-text-dim">
+              Allow the system to autonomously learn from your session
+              interactions.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting('ai', 'kbWriteAccess', !settings().ai.kbWriteAccess)
+            "
+            class="toggle-btn"
+            [class.on]="settings().ai.kbWriteAccess"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <!-- Voice Shape-Shift is permanent & default — S.M.U.V.E. identity -->
+        <div class="setting-item bg-brand-primary/5 border-brand-primary/20">
+          <div>
+            <h3 class="setting-title">Voice Shape-Shift <span class="text-[9px] text-brand-primary font-black uppercase tracking-widest ml-2">Permanent</span></h3>
+            <p class="text-xs text-text-dim mt-1">
+              S.M.U.V.E. dynamically cycles vocal pitch, timbre, and tone on every
+              spoken reply — deep bass to high soprano, every sentence a different
+              speaker. This signature voice-morphing engine is always active and
+              cannot be disabled.
+            </p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="w-2 h-2 rounded-full bg-brand-primary animate-pulse shadow-v42-sm"></span>
+            <span class="text-[10px] font-black uppercase tracking-widest text-brand-primary">Active</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Active Executive Audit</h3>
+            <p class="text-xs text-text-dim">
+              Background analysis during creative sessions.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting(
+                'ai',
+                'autoAuditEnabled',
+                !settings().ai.autoAuditEnabled
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().ai.autoAuditEnabled"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Studio Pro Section -->
+      <div
+        *ngIf="activeTab() === 'studio'"
+        class="flex flex-col gap-6 animate-enter"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="setting-group">
+            <label class="setting-label">Default Quantize Resolution</label>
+            <p class="text-[10px] text-text-dim mb-2">
+              Base grid resolution for MIDI and arrangement snapping.
+            </p>
+            <select
+              [ngModel]="settings().studio.defaultQuantize"
+              (ngModelChange)="updateSetting('studio', 'defaultQuantize', $event)"
+              class="smuve-input w-full"
+            >
+              <option value="1/4">1/4 Note</option>
+              <option value="1/8">1/8 Note</option>
+              <option value="1/16">1/16 Note</option>
+              <option value="1/32">1/32 Note</option>
+            </select>
+          </div>
+
+          <div class="setting-group">
+            <label class="setting-label">Latency Compensation (ms)</label>
+            <p class="text-[10px] text-text-dim mb-2">
+              Adjust for audio interface buffer lag during recording.
+            </p>
+            <input
+              type="number"
+              [ngModel]="settings().studio.latencyCompensation"
+              (ngModelChange)="
+                updateSetting('studio', 'latencyCompensation', $event)
+              "
+              class="smuve-input w-full"
+            />
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                class="guide-link-btn"
+                (click)="calibrateLatencyCompensation()"
+                [disabled]="latencyCalibrationRunning()"
+              >
+                <span class="material-symbols-outlined">tune</span>
+                <span>{{
+                  latencyCalibrationRunning()
+                    ? 'Calibrating…'
+                    : 'Calibrate This Device'
+                }}</span>
+              </button>
+              <span class="text-[10px] text-text-dim">
+                Live path
+                {{ audioLatency.snapshot().totalLatencyMs | number: '1.0-0' }}
+                ms · applied {{ audioLatency.appliedCompensationMs() }} ms
+              </span>
+            </div>
+            <p
+              class="mt-2 text-[10px] text-text-dim"
+              *ngIf="audioLatency.lastCalibration() as calibration"
+            >
+              Last calibration: {{ calibration.measuredLatencyMs }} ms path ·
+              ×{{ calibration.benchmarkSpeedRatio | number: '1.1-2' }} render
+            </p>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Intelligent Auto-Mix</h3>
+            <p class="text-xs text-text-dim">
+              Enable neural-driven leveling and frequency balancing across
+              tracks.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting(
+                'studio',
+                'autoMixEnabled',
+                !settings().studio.autoMixEnabled
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().studio.autoMixEnabled"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">High-Fidelity Offline Export</h3>
+            <p class="text-xs text-text-dim">
+              Apply S.M.U.V.E. Polish and 32-bit float rendering on export.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting(
+                'studio',
+                'highFidelityExport',
+                !settings().studio.highFidelityExport
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().studio.highFidelityExport"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Stage FX Ambience</h3>
+            <p class="text-xs text-text-dim">
+              Ambient aurora, marquee sheens and pulse animations across the
+              Studio. Turn OFF for calm mode — saves battery and CPU on low-end
+              devices. Mirrored to the Studio's FX button automatically.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting(
+                'studio',
+                'stageFxEnabled',
+                !settings().studio.stageFxEnabled
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().studio.stageFxEnabled"
+            [attr.aria-label]="
+              'Stage FX ambience ' +
+              (settings().studio.stageFxEnabled ? 'enabled' : 'disabled')
+            "
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- DJ Deck Section -->
+      <div
+        *ngIf="activeTab() === 'dj'"
+        class="flex flex-col gap-6 animate-enter"
+      >
+        <div class="setting-group">
+          <label class="setting-label">Crossfader Curve</label>
+          <div class="grid grid-cols-4 gap-2 mt-2">
+            <button
+              *ngFor="let curve of ['linear', 'power', 'exp', 'cut']"
+              (click)="updateSetting('dj', 'crossfaderCurve', curve)"
+              [class.bg-brand-primary]="
+                settings().dj.crossfaderCurve === curve
+              "
+              [class.text-white]="
+                settings().dj.crossfaderCurve === curve
+              "
+              class="px-3 py-2 border border-border rounded-lg text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-all"
+            >
+              {{ curve }}
+            </button>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">
+              Hamster Mode (Reverse Crossfader)
+            </h3>
+            <p class="text-xs text-text-dim">
+              Swap the orientation of the crossfader channels.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting(
+                'dj',
+                'hamsterMode',
+                !settings().dj.hamsterMode
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().dj.hamsterMode"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Vinyl Platter Simulation</h3>
+            <p class="text-xs text-text-dim">
+              Enable realistic inertia and scratching physics on deck platters.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting('dj', 'vinylMode', !settings().dj.vinylMode)
+            "
+            class="toggle-btn"
+            [class.on]="settings().dj.vinylMode"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Visual Cue Points</h3>
+            <p class="text-xs text-text-dim">
+              Overlay hot-cue indicators directly on the spinning platter.
+            </p>
+          </div>
+          <button
+            (click)="
+              updateSetting(
+                'dj',
+                'visualCuePoints',
+                !settings().dj.visualCuePoints
+              )
+            "
+            class="toggle-btn"
+            [class.on]="settings().dj.visualCuePoints"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Security Section -->
+      <div
+        *ngIf="activeTab() === 'security'"
+        class="flex flex-col gap-8 animate-enter"
+      >
+        <!-- Security Score Dashboard -->
+        <div
+          class="bg-background-alt/40 p-6 rounded-3xl border border-border flex flex-col md:flex-row items-center gap-8 mb-8"
+        >
+          <div class="relative w-32 h-32 flex items-center justify-center">
+            <svg class="w-full h-full transform -rotate-90">
+              <circle
+                cx="64"
+                cy="64"
+                r="58"
+                stroke="currentColor"
+                stroke-width="8"
+                fill="transparent"
+                class="text-background-alt"
+              ></circle>
+              <circle
+                cx="64"
+                cy="64"
+                r="58"
+                stroke="currentColor"
+                stroke-width="8"
+                fill="transparent"
+                [attr.stroke-dasharray]="364"
+                [attr.stroke-dashoffset]="364 - (364 * securityAudit().score) / 100"
+                [class]="
+                  securityAudit().status === 'FORTIFIED'
+                    ? 'text-brand-primary'
+                    : securityAudit().status === 'VULNERABLE'
+                      ? 'text-yellow-500'
+                      : 'text-red-500'
+                "
+                class="transition-all duration-1000 ease-out"
+              ></circle>
+            </svg>
+            <div class="absolute flex flex-col items-center">
+              <span class="text-2xl font-black text-text-main">{{
+                securityAudit().score
+              }}</span>
+              <span class="text-[8px] font-bold uppercase tracking-widest text-text-dim"
+                >Score</span
+              >
+            </div>
+          </div>
+          <div class="flex-1 text-center md:text-left">
+            <h2
+              class="text-xl font-black uppercase tracking-tight mb-2"
+              [class]="
+                securityAudit().status === 'FORTIFIED'
+                  ? 'text-brand-primary'
+                  : securityAudit().status === 'VULNERABLE'
+                    ? 'text-yellow-500'
+                    : 'text-red-500'
+              "
+            >
+              {{ securityAudit().status }}_PROTOCOL
+            </h2>
+            <div class="flex flex-col gap-2">
+              <div
+                *ngFor="let alert of securityAudit().alerts"
+                class="text-[10px] font-bold uppercase tracking-tighter flex items-center gap-2"
+              >
+                <span
+                  class="w-1.5 h-1.5 rounded-full"
+                  [class]="alert.includes('CRITICAL') ? 'bg-red-500' : 'bg-yellow-500'"
+                ></span>
+                {{ alert }}
+              </div>
+            </div>
+          </div>
+          <button
+            (click)="exportData()"
+            class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+          >
+            Download_Data_Export
+          </button>
+        </div>
+
+        <!-- Core Security Toggles -->
+        <div class="permissions-grid">
+          <div
+            class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+          >
+            <div>
+              <h3 class="setting-title">Two-Factor Auth</h3>
+              <p class="text-xs text-text-dim">Shield access with 2FA.</p>
+            </div>
+            <button
+              (click)="toggleTwoFactor(!settings().security.twoFactorEnabled)"
+              class="toggle-btn"
+              [class.on]="settings().security.twoFactorEnabled"
+            >
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+
+          <div
+            class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+          >
+            <div>
+              <h3 class="setting-title">E2E Encryption</h3>
+              <p class="text-xs text-text-dim">Secure neural data streams.</p>
+            </div>
+            <button
+              (click)="
+                updateSetting(
+                  'security',
+                  'endToEndEncryption',
+                  !settings().security.endToEndEncryption
+                )
+              "
+              class="toggle-btn"
+              [class.on]="settings().security.endToEndEncryption"
+            >
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+
+          <div
+            class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+          >
+            <div>
+              <h3 class="setting-title">Biometric Lock</h3>
+              <p class="text-xs text-text-dim">Use system biometric verification.</p>
+            </div>
+            <button
+              (click)="
+                updateSetting(
+                  'security',
+                  'biometricLock',
+                  !settings().security.biometricLock
+                )
+              "
+              class="toggle-btn"
+              [class.on]="settings().security.biometricLock"
+            >
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+
+          <div
+            class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+          >
+            <div>
+              <h3 class="setting-title">Audit Logging</h3>
+              <p class="text-xs text-text-dim">Record all security events.</p>
+            </div>
+            <button
+              (click)="
+                updateSetting(
+                  'security',
+                  'auditLogEnabled',
+                  !settings().security.auditLogEnabled
+                )
+              "
+              class="toggle-btn"
+              [class.on]="settings().security.auditLogEnabled"
+            >
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="twoFactorSetup() as setup" class="setting-group bg-brand-primary/5 border border-brand-primary/20 rounded-2xl p-4">
+          <h4 class="setting-subhead">2FA Enrollment Secret</h4>
+          <p class="text-xs text-text-dim mt-1">Add this secret to an authenticator app. It is shown once in this session; do not share it.</p>
+          <code class="block mt-3 break-all text-xs font-mono text-brand-primary">{{ setup.secret }}</code>
+          <p class="text-[10px] text-text-dim mt-3">Authenticator URI ready: {{ setup.qrCodeUri }}</p>
+          <div class="flex flex-wrap gap-2 mt-4">
+            <input
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="6-digit code"
+              [ngModel]="twoFactorCode()"
+              (ngModelChange)="twoFactorCode.set($event)"
+              class="smuve-input flex-1 min-w-[9rem]"
+              aria-label="Authenticator verification code"
+            />
+            <button type="button" (click)="confirmTwoFactor()" class="setting-btn">
+              Verify &amp; activate
+            </button>
+          </div>
+        </div>
+
+        <!-- 2FA Recovery Codes -->
+        <div class="security-module">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-1 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-primary mr-2"></span>
+            Recovery_Codes
+          </h4>
+          <p class="text-xs text-text-dim mb-4">
+            Single-use codes that restore access if the authenticator is lost.
+            <span class="text-brand-primary font-bold"
+              >{{ backupCodesRemaining() }}</span
+            >
+            unused.
+          </p>
+
+          <!-- One-time display: these exact codes never render twice. -->
+          <div
+            *ngIf="backupCodes().length"
+            class="bg-background/40 border border-brand-primary/30 rounded-2xl p-4"
+          >
+            <p class="text-[10px] font-black uppercase tracking-widest text-brand-primary mb-3">
+              Save these now — they will not be shown again
+            </p>
+            <div class="grid grid-cols-2 gap-2">
+              <code
+                *ngFor="let code of backupCodes()"
+                class="text-xs font-mono tracking-wider text-text-main bg-background-alt/40 rounded-lg px-2 py-1"
+                >{{ code }}</code
+              >
+            </div>
+            <div class="flex flex-wrap gap-2 mt-4">
+              <button
+                type="button"
+                (click)="copyBackupCodes()"
+                class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+              >
+                Copy_all
+              </button>
+              <button
+                type="button"
+                (click)="downloadBackupCodes()"
+                class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+              >
+                Download_txt
+              </button>
+              <button
+                type="button"
+                (click)="dismissBackupCodes()"
+                class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+              >
+                I_saved_them
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="!backupCodes().length" class="flex flex-col gap-3">
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                (click)="generateBackupCodes()"
+                class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+              >
+                Generate_codes
+              </button>
+              <button
+                *ngIf="backupCodesRemaining() > 0"
+                type="button"
+                (click)="revokeBackupCodes()"
+                class="px-4 py-2 glass-v42 border border-red-500/40 rounded-xl text-[10px] font-bold uppercase tracking-widest text-red-400 hover:border-red-500 transition-colors"
+              >
+                Revoke_all
+              </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <input
+                type="text"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="XXXXX-XXXXX"
+                [ngModel]="backupCodeInput()"
+                (ngModelChange)="backupCodeInput.set($event)"
+                class="smuve-input flex-1 min-w-[9rem] font-mono uppercase"
+                aria-label="Recovery code"
+              />
+              <button
+                type="button"
+                (click)="redeemBackupCode()"
+                class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+              >
+                Redeem
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Secure Channel Verification -->
+        <div class="security-module">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-1 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-primary mr-2"></span>
+            Secure_Channel
+          </h4>
+          <p class="text-xs text-text-dim mb-4">
+            Confirms the address on this account actually belongs to you.
+            <!-- The server is the authority: an unverified session never
+                 claims otherwise, and nothing here flips the flag locally. -->
+            <span
+              class="font-bold"
+              [class.text-brand-primary]="channelVerified()"
+              [class.text-brand-danger]="!channelVerified()"
+              >{{ channelVerified() ? 'Verified' : 'Not verified' }}</span
+            >.
+          </p>
+
+          <div *ngIf="channelVerified()" class="text-xs text-text-dim">
+            Verification lasts for the life of the address. Change your email
+            and it will need confirming again.
+          </div>
+
+          <div *ngIf="!channelVerified()" class="flex flex-col gap-3">
+            <button
+              type="button"
+              (click)="sendChannelCode()"
+              [disabled]="channelBusy()"
+              class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors disabled:opacity-50"
+            >
+              Send_verification_code
+            </button>
+            <div class="flex flex-wrap gap-2">
+              <input
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                placeholder="6-digit code"
+                [ngModel]="channelCode()"
+                (ngModelChange)="channelCode.set($event)"
+                class="smuve-input flex-1 min-w-[9rem]"
+                aria-label="Email verification code"
+              />
+              <button
+                type="button"
+                (click)="confirmChannelCode()"
+                [disabled]="channelBusy()"
+                class="setting-btn"
+              >
+                Confirm_&amp;_verify
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Credential Rotation -->
+        <div class="security-module">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-1 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-secondary mr-2"></span>
+            Credential_Rotation
+          </h4>
+          <p class="text-xs text-text-dim mb-4">
+            Rotate the account password. Your current password is required, so a
+            hijacked session cannot silently take the account over.
+            <span *ngIf="settings().security.passwordUpdatedAt" class="block mt-1">
+              Last rotated
+              {{ settings().security.passwordUpdatedAt | date: 'mediumDate' }}.
+            </span>
+          </p>
+
+          <button
+            type="button"
+            (click)="togglePasswordChange()"
+            class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+          >
+            {{ passwordChangeOpen() ? 'Cancel_rotation' : 'Change_password' }}
+          </button>
+
+          <div *ngIf="passwordChangeOpen()" class="flex flex-col gap-3 mt-4">
+            <input
+              type="password"
+              autocomplete="current-password"
+              placeholder="Current password"
+              [ngModel]="passwordCurrent()"
+              (ngModelChange)="passwordCurrent.set($event)"
+              class="smuve-input w-full"
+              aria-label="Current password"
+            />
+            <input
+              type="password"
+              autocomplete="new-password"
+              placeholder="New password"
+              [ngModel]="passwordNew()"
+              (ngModelChange)="passwordNew.set($event)"
+              class="smuve-input w-full"
+              aria-label="New password"
+            />
+            <input
+              type="password"
+              autocomplete="new-password"
+              placeholder="Confirm new password"
+              [ngModel]="passwordConfirm()"
+              (ngModelChange)="passwordConfirm.set($event)"
+              class="smuve-input w-full"
+              aria-label="Confirm new password"
+            />
+
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-2">
+                <div
+                  class="flex-1 h-1.5 rounded-full bg-background-alt/60 overflow-hidden"
+                >
+                  <div
+                    class="h-full transition-all duration-300"
+                    [ngClass]="
+                      passwordPolicy().valid
+                        ? 'bg-brand-primary'
+                        : 'bg-yellow-500'
+                    "
+                    [style.width.%]="passwordPolicy().score"
+                  ></div>
+                </div>
+                <span class="text-[9px] font-black text-text-dim uppercase tracking-widest"
+                  >{{ passwordPolicy().score }}%</span
+                >
+              </div>
+              <div
+                *ngFor="let failure of passwordPolicy().failures"
+                class="text-[10px] font-bold uppercase tracking-tight text-yellow-500"
+              >
+                • {{ failure }}
+              </div>
+              <div
+                *ngIf="passwordPolicy().valid"
+                class="text-[10px] font-bold uppercase tracking-tight text-brand-primary"
+              >
+                • Policy satisfied
+              </div>
+            </div>
+
+            <button
+              type="button"
+              (click)="changePassword()"
+              [disabled]="passwordBusy()"
+              class="px-4 py-2 glass-v42 border border-brand-primary/40 rounded-xl text-[10px] font-bold uppercase tracking-widest text-brand-primary hover:border-brand-primary transition-colors disabled:opacity-50"
+            >
+              {{ passwordBusy() ? 'Rotating…' : 'Update_password' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Idle Auto-Lock -->
+        <div class="security-module">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h4
+                class="text-sm font-black text-text-main uppercase tracking-widest mb-1 flex items-center"
+              >
+                <span class="w-1 h-4 bg-brand-primary mr-2"></span>
+                Idle_Auto_Lock
+              </h4>
+              <p class="text-xs text-text-dim">
+                Locks the shell and drops volatile secrets after inactivity.
+                Countdown:
+                <span class="text-brand-primary font-bold">{{ autoLockLabel() }}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              (click)="
+                updateSetting(
+                  'security',
+                  'autoLockEnabled',
+                  !settings().security.autoLockEnabled
+                )
+              "
+              class="toggle-btn"
+              [class.on]="settings().security.autoLockEnabled"
+            >
+              <div class="toggle-handle"></div>
+            </button>
+          </div>
+
+          <div class="mt-4">
+            <label class="setting-label">Idle window (minutes)</label>
+            <input
+              type="number"
+              min="1"
+              max="240"
+              [ngModel]="settings().security.autoLockMinutes"
+              (ngModelChange)="updateSetting('security', 'autoLockMinutes', $event)"
+              class="smuve-input w-full mt-2"
+            />
+          </div>
+
+          <div class="flex flex-wrap gap-2 mt-4">
+            <button
+              type="button"
+              (click)="lockSessionNow()"
+              class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+            >
+              Lock_now
+            </button>
+            <button
+              type="button"
+              (click)="unlockSession()"
+              class="px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+            >
+              Unlock_after_verification
+            </button>
+          </div>
+        </div>
+
+        <!-- Privacy / leak controls -->
+        <div class="security-module">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-1 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-secondary mr-2"></span>
+            Privacy_Leak_Controls
+          </h4>
+          <p class="text-xs text-text-dim mb-4">
+            Decide what leaves this device and this account. Off is the private
+            setting and the default.
+          </p>
+          <div class="permissions-grid">
+            <div
+              class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+            >
+              <div>
+                <h3 class="setting-title">Activity Status</h3>
+                <p class="text-xs text-text-dim">
+                  Broadcast live presence and what you are working on.
+                </p>
+              </div>
+              <button
+                type="button"
+                (click)="
+                  updateSetting(
+                    'security',
+                    'shareActivityStatus',
+                    !settings().security.shareActivityStatus
+                  )
+                "
+                class="toggle-btn"
+                [class.on]="settings().security.shareActivityStatus"
+              >
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+            <div
+              class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+            >
+              <div>
+                <h3 class="setting-title">Artist Discovery</h3>
+                <p class="text-xs text-text-dim">
+                  Let other artists find and contact this account.
+                </p>
+              </div>
+              <button
+                type="button"
+                (click)="
+                  updateSetting(
+                    'security',
+                    'allowCollaboratorDiscovery',
+                    !settings().security.allowCollaboratorDiscovery
+                  )
+                "
+                class="toggle-btn"
+                [class.on]="settings().security.allowCollaboratorDiscovery"
+              >
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+            <div
+              class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+            >
+              <div>
+                <h3 class="setting-title">Anonymous Diagnostics</h3>
+                <p class="text-xs text-text-dim">
+                  Share crash and performance data. Off keeps it on-device.
+                </p>
+              </div>
+              <button
+                type="button"
+                (click)="
+                  updateSetting(
+                    'security',
+                    'anonymousTelemetry',
+                    !settings().security.anonymousTelemetry
+                  )
+                "
+                class="toggle-btn"
+                [class.on]="settings().security.anonymousTelemetry"
+              >
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">Session Timeout (Seconds)</label>
+          <input
+            type="number"
+            [ngModel]="settings().security.sessionTimeout"
+            (ngModelChange)="updateSetting('security', 'sessionTimeout', $event)"
+            class="smuve-input w-full mt-2"
+          />
+        </div>
+
+        <!-- Session Management -->
+        <div class="security-module">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-primary mr-2"></span> Active_Sessions
+          </h4>
+          <div class="flex flex-col gap-2">
+            <div
+              *ngFor="let sess of securityService.sessions()"
+              class="flex justify-between items-center bg-background/40 p-3 rounded-lg border border-border/50"
+            >
+              <div class="flex flex-col">
+                <span class="text-[11px] font-bold text-text-main">{{
+                  sess.device_name
+                }}</span>
+                <span class="text-[9px] text-text-dim uppercase tracking-tighter"
+                  >{{ sess.location }} • {{ sess.last_active | date: 'short' }}</span
+                >
+              </div>
+              <button
+                (click)="revokeSession(sess.session_id)"
+                class="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline px-2 py-1"
+              >
+                Revoke
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Audit Log -->
+        <div class="security-module">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-secondary mr-2"></span>
+            Security_Audit_Log
+          </h4>
+          <div
+            class="bg-background/20 rounded-xl border border-border overflow-hidden"
+          >
+            <table class="w-full text-left text-[10px] uppercase">
+              <thead class="bg-background-alt/50 border-b border-border">
+                <tr>
+                  <th class="p-3 font-black tracking-widest text-text-dim">Event</th>
+                  <th class="p-3 font-black tracking-widest text-text-dim">
+                    Details
+                  </th>
+                  <th class="p-3 font-black tracking-widest text-text-dim">
+                    Timestamp
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let log of securityService.logs()"
+                  class="border-b border-border/30 hover:bg-background/40"
+                >
+                  <td class="p-3 font-bold text-brand-primary">
+                    {{ log.event_type }}
+                  </td>
+                  <td class="p-3 text-text-dim">{{ log.description }}</td>
+                  <td class="p-3 text-text-dim">
+                    {{ log.created_at | date: 'shortTime' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="mt-8 flex flex-wrap gap-4 border-t border-border pt-8">
+          <button
+            (click)="profileService.exportProfile()"
+            class="px-6 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary"
+          >
+            Export_Profile_Data
+          </button>
+          <label
+            class="px-6 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary cursor-pointer"
+          >
+            Import_Profile_Data
+            <input
+              type="file"
+              (change)="onProfileImport($event)"
+              class="hidden"
+              accept=".json"
+            />
+          </label>
+        </div>
+
+        <div class="mt-8 p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
+          <h4
+            class="text-red-500 font-bold uppercase text-[10px] tracking-widest mb-2"
+          >
+            Danger_Node
+          </h4>
+          <p class="text-xs text-text-dim mb-4">
+            Wiping the executive profile is irreversible and deletes all neural
+            sync data.
+          </p>
+          <button
+            (click)="purgeProfile()"
+            class="px-6 py-2 bg-red-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest hover:bg-red-600 transition-colors shadow-sm"
+          >
+            Execute Profile Purge
+          </button>
+        </div>
+      </div>
+
+      <!-- Permissions Management -->
+      <div
+        *ngIf="activeTab() === 'permissions'"
+        class="flex flex-col gap-8 animate-enter"
+      >
+        <div class="bg-background-alt/30 p-6 rounded-3xl border border-border">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-6 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-primary mr-2"></span>
+            System_Permission_Matrix
+          </h4>
+
+          <div class="permissions-grid">
+            <div
+              *ngFor="let p of permissionService.permissions()"
+              class="p-4 bg-background/40 rounded-2xl border border-border/50 flex flex-col gap-3"
+            >
+              <div class="flex justify-between items-start">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl">{{ p.icon }}</span>
+                  <div>
+                    <h5 class="text-xs font-black text-text-main uppercase">
+                      {{ p.label }}
+                    </h5>
+                    <div class="flex items-center gap-1.5">
+                      <span
+                        class="w-1.5 h-1.5 rounded-full"
+                        [class]="
+                          p.status === 'granted'
+                            ? 'bg-green-500'
+                            : p.status === 'denied'
+                              ? 'bg-red-500'
+                              : 'bg-yellow-500'
+                        "
+                      ></span>
+                      <span
+                        class="text-[9px] font-bold uppercase tracking-widest text-text-dim"
+                        >{{ p.status }}</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <button
+                  *ngIf="p.status !== 'granted' && p.status !== 'unsupported'"
+                  (click)="requestPermission(p.name)"
+                  class="px-3 py-1 bg-brand-primary text-white text-[9px] font-black uppercase rounded-lg hover:bg-brand-primary-alt transition-colors"
+                >
+                  Enable
+                </button>
+              </div>
+              <p class="text-[10px] text-text-dim leading-relaxed">
+                {{ p.description }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Storage Management -->
+      <div
+        *ngIf="activeTab() === 'storage'"
+        class="flex flex-col gap-8 animate-enter"
+      >
+        <div class="bg-background-alt/30 p-8 rounded-3xl border border-border">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-8 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-secondary mr-2"></span>
+            Local_Storage_Analytics
+          </h4>
+
+          <div
+            class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8"
+            *ngIf="storageStats()"
+          >
+            <div class="flex flex-col gap-2">
+              <span
+                class="text-[9px] font-bold text-text-dim uppercase tracking-widest"
+                >Total Quota</span
+              >
+              <span class="text-2xl font-black text-text-main"
+                >{{
+                  (storageStats()?.totalBytes || 0) / 1024 / 1024 / 1024
+                    | number: '1.1-1'
+                }}
+                GB</span
+              >
+            </div>
+            <div class="flex flex-col gap-2">
+              <span
+                class="text-[9px] font-bold text-text-dim uppercase tracking-widest"
+                >Used Space</span
+              >
+              <span class="text-2xl font-black text-brand-secondary"
+                >{{
+                  (storageStats()?.usedBytes || 0) / 1024 / 1024 | number: '1.0-0'
+                }}
+                MB</span
+              >
+            </div>
+            <div class="flex flex-col gap-2">
+              <span
+                class="text-[9px] font-bold text-text-dim uppercase tracking-widest"
+                >Utilization</span
+              >
+              <span class="text-2xl font-black text-text-main"
+                >{{ storageStats()?.percentUsed | number: '1.1-1' }}%</span
+              >
+            </div>
+          </div>
+
+          <div class="w-full storage-progress-bar h-2 rounded-full mb-8">
+            <div
+              class="h-full storage-progress-fill transition-all duration-1000"
+              [style.width.%]="storageStats()?.percentUsed"
+            ></div>
+          </div>
+
+          <div class="flex flex-wrap gap-4">
+            <button
+              (click)="updateStorageStats()"
+              class="px-6 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-secondary"
+            >
+              Recalculate_Usage
+            </button>
+            <button
+              (click)="forceSync()"
+              class="px-6 py-2 bg-brand-primary/10 border border-brand-primary/20 text-brand-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary/20"
+            >
+              Force_Cloud_Sync
+            </button>
+            <button
+              (click)="clearCache()"
+              class="px-6 py-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-yellow-500/20"
+            >
+              Purge_Local_Cache
+            </button>
+          </div>
+        </div>
+
+        <div class="permissions-grid">
+          <div class="p-6 bg-background-alt/20 rounded-2xl border border-border">
+            <h5 class="text-xs font-black text-text-main uppercase mb-2">
+              Cloud_Synchronization
+            </h5>
+            <p class="text-[10px] text-text-dim mb-4 leading-relaxed">
+              Profile settings and local project assets are managed here. Cloud availability depends on the authenticated sync result; this panel does not claim a live connection without one.
+            </p>
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-brand-primary"></div>
+              <span class="text-[9px] font-bold uppercase tracking-widest text-text-main"
+                >Profile_State_Loaded</span
+              >
+            </div>
+          </div>
+          <div class="p-6 bg-background-alt/20 rounded-2xl border border-border">
+            <h5 class="text-xs font-black text-text-main uppercase mb-2">
+              Edge_Caching
+            </h5>
+            <p class="text-[10px] text-text-dim mb-4 leading-relaxed">
+              Frequently accessed high-fidelity samples are stored in your local
+              edge node for sub-millisecond playback response.
+            </p>
+            <div class="flex items-center gap-2">
+              <span
+                class="text-[9px] font-bold uppercase tracking-widest text-text-dim"
+                >Cache_Usage: measured above</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hardware Management -->
+      <div
+        *ngIf="activeTab() === 'hardware'"
+        class="flex flex-col gap-8 animate-enter"
+      >
+        <!-- Hardware Status Overview -->
+        <div class="bg-background-alt/30 p-6 rounded-3xl border border-border">
+          <div class="flex items-start justify-between gap-3">
+            <h4 class="text-sm font-black text-text-main uppercase tracking-widest mb-6 flex items-center">
+              <span class="w-1 h-4 bg-brand-primary mr-2"></span>
+              Hardware_Status_Matrix
+            </h4>
+            <button type="button" (click)="refreshHardware()" class="setting-btn">Rescan all</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div
+              class="p-4 bg-background/40 rounded-2xl border border-border/50 flex flex-col gap-2"
+            >
+              <span
+                class="text-[9px] font-bold text-text-dim uppercase tracking-widest"
+                >Audio Interface</span
+              >
+              <div class="flex items-center gap-2">
+                <div
+                  [class]="
+                    hardwareService.status().audioInterfaceConnected
+                      ? 'w-2 h-2 rounded-full bg-green-500 animate-pulse'
+                      : 'w-2 h-2 rounded-full bg-red-500'
+                  "
+                ></div>
+                <span class="text-xs font-black text-text-main">
+                  {{
+                    hardwareService.status().audioInterfaceConnected
+                      ? hardwareService.status().activeInterfaceName || 'Connected'
+                      : 'Not Detected'
+                  }}
+                </span>
+              </div>
+            </div>
+            <div
+              class="p-4 bg-background/40 rounded-2xl border border-border/50 flex flex-col gap-2"
+            >
+              <span
+                class="text-[9px] font-bold text-text-dim uppercase tracking-widest"
+                >MIDI Devices</span
+              >
+              <div class="flex items-center gap-2">
+                <div
+                  [class]="
+                    hardwareService.status().midiDevicesConnected > 0
+                      ? 'w-2 h-2 rounded-full bg-green-500 animate-pulse'
+                      : 'w-2 h-2 rounded-full bg-yellow-500'
+                  "
+                ></div>
+                <span class="text-xs font-black text-text-main">
+                  {{ hardwareService.status().midiDevicesConnected }} Connected
+                </span>
+              </div>
+            </div>
+            <div
+              class="p-4 bg-background/40 rounded-2xl border border-border/50 flex flex-col gap-2"
+            >
+              <span
+                class="text-[9px] font-bold text-text-dim uppercase tracking-widest"
+                >Gamepad</span
+              >
+              <div class="flex items-center gap-2">
+                <div
+                  [class]="
+                    hardwareService.status().gamepadConnected
+                      ? 'w-2 h-2 rounded-full bg-green-500 animate-pulse'
+                      : 'w-2 h-2 rounded-full bg-yellow-500'
+                  "
+                ></div>
+                <span class="text-xs font-black text-text-main">
+                  {{
+                    hardwareService.status().gamepadConnected
+                      ? 'Controller Linked'
+                      : 'No Controller'
+                  }}
+                </span>
+              </div>
+              <span class="text-[9px] text-text-dim uppercase">{{ hardwareService.status().recordReady ? 'Record path ready' : 'No input path' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MIDI Devices -->
+        <div class="bg-background-alt/30 p-6 rounded-3xl border border-border">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-secondary mr-2"></span>
+            MIDI_Hardware
+          </h4>
+          <p class="text-[10px] text-text-dim mb-4">
+            S.M.U.V.E. automatically detects connected MIDI keyboards and DJ
+            controllers. MIDI note input is routed to the active instrument in
+            the Studio. DJ controller mapping is handled by the DJ MIDI service
+            with customizable MIDI Learn.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              class="setting-item bg-background/30 p-4 rounded-xl border border-border"
+            >
+              <div>
+                <h3 class="setting-title">MIDI Clock Output</h3>
+                <p class="text-xs text-text-dim">
+                  Send 24 PPQN clock pulses to external MIDI hardware synced to
+                  the transport.
+                </p>
+              </div>
+              <button
+                (click)="
+                  audioEngine.midiClockEnabled.set(!audioEngine.midiClockEnabled())
+                "
+                class="toggle-btn"
+                [class.on]="audioEngine.midiClockEnabled()"
+              >
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio Input Devices -->
+        <div class="bg-background-alt/30 p-6 rounded-3xl border border-border">
+          <h4
+            class="text-sm font-black text-text-main uppercase tracking-widest mb-4 flex items-center"
+          >
+            <span class="w-1 h-4 bg-brand-accent mr-2"></span>
+            Audio_Input_Devices
+          </h4>
+          <p class="text-[10px] text-text-dim mb-4">
+            All detected audio input devices including built-in microphones, USB
+            interfaces, headsets, and MIDI devices.
+          </p>
+          <div class="flex flex-col gap-2">
+            <div
+              *ngFor="let device of audioInputDevices()"
+              class="flex justify-between items-center bg-background/40 p-3 rounded-lg border border-border/50"
+            >
+              <div class="flex flex-col">
+                <span class="text-[11px] font-bold text-text-main">{{
+                  device.label
+                }}</span>
+                <span class="text-[9px] text-text-dim uppercase tracking-tighter">
+                  {{ device.type }}
+                  <span
+                    *ngFor="let cap of device.capabilities"
+                    class="ml-1 px-1.5 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-[8px]"
+                    >{{ cap }}</span
+                  >
+                </span>
+              </div>
+              <span
+                *ngIf="device.isDefault"
+                class="text-[8px] font-bold text-brand-primary uppercase tracking-widest"
+                >Default</span
+              >
+            </div>
+            <p
+              *ngIf="audioInputDevices().length === 0"
+              class="text-xs text-text-dim text-center py-4"
+            >
+              No audio input devices detected. Connect a microphone or audio
+              interface and click Refresh.
+            </p>
+          </div>
+          <button
+            (click)="refreshAudioInputs()"
+            class="mt-4 px-4 py-2 glass-v42 border border-border rounded-xl text-[10px] font-bold uppercase tracking-widest hover:border-brand-primary transition-colors"
+          >
+            Refresh Devices
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <app-how-to-overlay
+      *ngIf="showHowTo()"
+      (close)="showHowTo.set(false)"
+    ></app-how-to-overlay>
+    <!-- Settings now save immediately — no floating commit button needed -->
+  </div>
+</div>

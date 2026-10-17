@@ -1,0 +1,46 @@
+/* ============================================================
+   STUDIO MOBILE BASE 2.0 — shell touch ergonomics
+   Imported by studio.component.css, so every rule here is scoped to the
+   Studio shell template (emulated encapsulation keeps it out of child
+   components). Cross-surface mobile contracts — tokens, focus rings,
+   overflow clipping, coarse-pointer targets, reduced motion — live in
+   src/studio-redesign-global.css instead.
+   ============================================================ */
+
+/* ── Universal touch feedback & highlight prevention ── */
+button,
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* ── Canvas surfaces own their pointer gestures ── */
+canvas {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Touch targets: 32px base on desktop, 44px floor on phones ── */
+button {
+  min-height: 32px;
+}
+
+/* ── Compact mobile: 44px target floor (Apple HIG / Material) ── */
+@media (max-width: 768px) {
+  button {
+    min-height: 44px;
+  }
+
+  /* Vertical scroll containers: momentum scroll on iOS */
+  [class~='overflow-auto'],
+  [class~='overflow-y-auto'],
+  [class~='overflow-x-auto'] {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide native scrollbars in horizontal chip rails */
+  [class*='-chip']:not(:focus-visible)::-webkit-scrollbar {
+    display: none;
+  }
+}

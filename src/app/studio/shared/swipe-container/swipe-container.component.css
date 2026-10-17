@@ -1,0 +1,18 @@
+.swipe-container {
+  width: 100%;
+  min-height: 100%;
+}
+
+.swipe-container:not(.is-disabled) {
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  will-change: transform;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-container:not(.is-disabled) {
+    scroll-behavior: auto;
+  }
+}

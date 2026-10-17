@@ -1,0 +1,147 @@
+<section
+    class="plugin-store studio-workspace-surface plugin-store-surface"
+    aria-label="WASM plugin store"
+  >
+  <header class="ps-header studio-context-toolbar">
+    <div class="ps-header-icon">
+      <span class="material-symbols-outlined">extension</span>
+    </div>
+    <div class="ps-header-copy">
+      <h1 class="ps-title">WASM Plugin Store</h1>
+      <p class="ps-sub">
+        Sandboxed DSP plugins — WebAssembly kernels when supported, automatic
+        JS fallback everywhere else. Toggle them on and they join the
+        S.M.U.V.E Polish chain on export.
+      </p>
+      <div class="ps-runtime">
+        <span
+          class="ps-runtime-badge"
+          [class.ps-runtime-wasm]="wasmSupported()"
+          [class.ps-runtime-js]="!wasmSupported()"
+        >
+          <span class="material-symbols-outlined">{{
+            wasmSupported() ? 'memory' : 'code'
+          }}</span>
+          {{ wasmSupported() ? 'WebAssembly ready' : 'JS fallback kernels' }}
+        </span>
+        <label
+          class="ps-import-btn"
+          role="button"
+          tabindex="0"
+          title="Import a .smuveplugin file from the community"
+          (keydown.enter)="triggerImportKeyboard($event)"
+          (keydown.space)="triggerImportKeyboard($event)"
+        >
+          <span class="material-symbols-outlined">file_open</span>
+          Import Plugin
+          <input type="file" accept=".smuveplugin,.json" (change)="importPlugin($event)" hidden />
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <div class="ps-grid studio-module-scroll">
+    <article
+      *ngFor="let plugin of catalog"
+      class="ps-card"
+      [class.ps-card-enabled]="isEnabled(plugin.id)"
+    >
+      <div class="ps-card-top">
+        <div class="ps-card-icon">
+          <span class="material-symbols-outlined">{{ plugin.icon }}</span>
+        </div>
+        <span class="ps-category">{{ plugin.category }}</span>
+        <span class="ps-version">v{{ plugin.version }}</span>
+      </div>
+
+      <h2 class="ps-card-name">{{ plugin.name }}</h2>
+      <p class="ps-card-desc">{{ plugin.description }}</p>
+
+      <div class="ps-kernel-line">
+        <span class="material-symbols-outlined">bolt</span>
+        kernel: <code>{{ plugin.kernelName }}</code>
+        <span class="ps-author">by {{ plugin.author }}</span>
+      </div>
+
+      <div class="ps-params">
+        <label
+          *ngFor="let param of plugin.params"
+          class="ps-param"
+        >
+          <span class="ps-param-label">
+            {{ param.label }}
+            <b>{{ valuesFor(plugin.id)[param.id] ?? param.default }}{{
+              param.unit ? ' ' + param.unit : ''
+            }}</b>
+          </span>
+          <input
+            type="range"
+            [min]="param.min"
+            [max]="param.max"
+            [step]="param.step"
+            [value]="valuesFor(plugin.id)[param.id] ?? param.default"
+            (input)="onParamChange(plugin.id, param.id, $event)"
+          />
+        </label>
+      </div>
+
+      <div class="ps-card-actions">
+        <button
+          type="button"
+          class="ps-toggle"
+          [class.ps-toggle-on]="isEnabled(plugin.id)"
+          (click)="toggle(plugin)"
+          [attr.aria-pressed]="isEnabled(plugin.id)"
+        >
+          <span class="material-symbols-outlined">{{
+            isEnabled(plugin.id) ? 'power_settings_new' : 'power_off'
+          }}</span>
+          {{ isEnabled(plugin.id) ? 'Enabled' : 'Enable' }}
+        </button>
+        <button
+          type="button"
+          class="ps-export-btn"
+          (click)="exportPlugin(plugin)"
+          [attr.aria-label]="'Export ' + plugin.name + ' as a shareable .smuveplugin file'"
+          title="Export as a shareable .smuveplugin file"
+        >
+          <span class="material-symbols-outlined">ios_share</span>
+          Share
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <!-- Community catalog — plugins imported from .smuveplugin files -->
+  <section class="ps-community" *ngIf="community.length > 0" aria-label="Community plugins">
+    <h2 class="ps-community-title">
+      <span class="material-symbols-outlined">groups</span>
+      Community Plugins
+    </h2>
+    <div class="ps-community-list studio-module-scroll">
+      <div
+        *ngFor="let item of community"
+        class="ps-community-row"
+      >
+        <span class="ps-community-icon material-symbols-outlined">{{
+          item.manifest.icon || 'extension'
+        }}</span>
+        <div class="ps-community-copy">
+          <b>{{ item.manifest.name }}</b>
+          <small>{{ item.manifest.author }} · v{{ item.manifest.version }} · {{
+            item.manifest.category
+          }}</small>
+        </div>
+        <button
+          type="button"
+          class="ps-community-remove"
+          (click)="removeCommunity(item)"
+          [attr.aria-label]="'Remove community plugin ' + item.manifest.name"
+          title="Remove this community plugin"
+        >
+          <span class="material-symbols-outlined">delete</span>
+        </button>
+      </div>
+    </div>
+  </section>
+</section>

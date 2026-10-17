@@ -1,0 +1,221 @@
+<div
+  class="take-lane"
+  role="group"
+  [attr.aria-label]="'Take lane for track'"
+>
+  <div class="take-lane-head">
+    <span class="take-lane-title">TAKES</span>
+    <span class="take-lane-count" *ngIf="takes().length > 0">
+      {{ takes().length }}
+    </span>
+    <button
+      type="button"
+      class="tl-btn tl-punch"
+      [class.armed]="punchIn()"
+      (click)="togglePunchIn()"
+      [attr.aria-pressed]="punchIn()"
+      [attr.aria-label]="
+        punchIn()
+          ? 'Disarm punch-in for this track'
+          : 'Arm punch-in for this track'
+      "
+      [attr.title]="
+        punchIn()
+          ? 'Punch-in armed — next record stop stamps a take'
+          : 'Punch-in off — arm to stamp a take on record stop'
+      "
+    >
+      <span class="material-symbols-outlined">radio_button_checked</span>
+    </button>
+    <button
+      type="button"
+      class="tl-btn tl-stamp"
+      (click)="stampTake()"
+      [attr.aria-label]="'Stamp a take from the current notes'"
+      [attr.title]="'Stamp a take from the current note region'"
+    >
+      <span class="material-symbols-outlined">note_add</span>
+    </button>
+    <button
+      type="button"
+      class="tl-btn tl-comp"
+      [class.armed]="compMode()"
+      (click)="toggleCompMode()"
+      [attr.aria-pressed]="compMode()"
+      [attr.aria-label]="
+        compMode()
+          ? 'Exit comp mode — chip taps select active take'
+          : 'Enter comp mode — chip taps build the comp stack'
+      "
+      [attr.title]="
+        compMode()
+          ? 'Comp mode on — tap takes in order, then APPLY'
+          : 'Comp mode off — tap to build a comp stack'
+      "
+    >
+      <span class="material-symbols-outlined">layers</span>
+    </button>
+    <button
+      type="button"
+      class="tl-btn tl-sections"
+      [class.armed]="sectionMode()"
+      (click)="toggleSectionMode()"
+      [attr.aria-pressed]="sectionMode()"
+      [attr.aria-label]="
+        sectionMode()
+          ? 'Exit section mode'
+          : 'Enter section mode — pick a take then tap bars'
+      "
+      [attr.title]="
+        sectionMode()
+          ? 'Section mode on — pick a take, then tap bars to assign'
+          : 'Section mode off — bar-by-bar comp assignment'
+      "
+    >
+      <span class="material-symbols-outlined">stacked_bar_chart</span>
+    </button>
+  </div>
+
+  <div class="take-list" *ngIf="takes().length > 0; else emptyTake">
+    <button
+      *ngFor="let take of takes()"
+      type="button"
+      class="take-chip"
+      [class.active]="take.id === activeTakeId()"
+      [class.in-comp]="compMode() && compOrderOf(take.id) !== null"
+      (click)="onChipTap(take.id)"
+      [attr.aria-pressed]="
+        compMode()
+          ? compOrderOf(take.id) !== null
+          : take.id === activeTakeId()
+      "
+      [attr.title]="
+        compMode()
+          ? (compOrderOf(take.id) !== null
+              ? take.label + ' — tap to remove from comp'
+              : take.label + ' — tap to add to comp')
+          : take.label +
+            (take.noteCount !== undefined
+              ? ' · ' + take.noteCount + ' notes'
+              : '')
+      "
+    >
+      <span class="take-chip-badge" *ngIf="compOrderOf(take.id) !== null">
+        {{ compOrderOf(take.id) }}
+      </span>
+      <span class="take-chip-label">{{ take.label }}</span>
+      <span class="take-chip-meta" *ngIf="take.noteCount !== undefined">
+        {{ take.noteCount }}n
+      </span>
+      <span class="take-chip-region" *ngIf="formatRegion(take)">
+        {{ formatRegion(take) }}
+      </span>
+      <span
+        class="take-chip-del"
+        role="button"
+        tabindex="0"
+        (click)="deleteTake(take.id, $event)"
+        (keydown.enter)="deleteTake(take.id, $event)"
+        [attr.aria-label]="'Delete ' + take.label"
+        [attr.title]="'Delete ' + take.label"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </span>
+    </button>
+  </div>
+  <ng-template #emptyTake>
+    <div class="take-empty">
+      No takes yet — arm punch-in &amp; record, or tap +
+    </div>
+  </ng-template>
+
+  <!-- Sprint A3 Phase 4 — comp stack strip (visible in comp mode) -->
+  <div class="comp-strip" *ngIf="compMode()">
+    <span class="comp-strip-label">COMP</span>
+    <span class="comp-strip-order" *ngIf="compStack().length > 0">
+      {{ compStack().length }} layered
+    </span>
+    <button
+      type="button"
+      class="comp-btn comp-apply"
+      (click)="applyComp()"
+      [disabled]="compStack().length === 0"
+      [attr.aria-label]="'Apply comp to track'"
+      [attr.title]="'Merge stacked takes into the track (later wins)'"
+    >
+      APPLY
+    </button>
+    <button
+      type="button"
+      class="comp-btn comp-clear"
+      (click)="clearComp()"
+      [disabled]="compStack().length === 0"
+      [attr.aria-label]="'Clear comp stack'"
+      [attr.title]="'Clear the comp stack'"
+    >
+      CLEAR
+    </button>
+  </div>
+
+  <!-- Sprint A3 Phase 5 — sectional comp strip (visible in section mode) -->
+  <div class="section-strip" *ngIf="sectionMode()">
+    <div class="section-strip-head">
+      <span class="comp-strip-label">SECTIONS</span>
+      <span class="comp-strip-order" *ngIf="pickedTakeId() !== null">
+        assigning {{ labelFor(pickedTakeId()!) }}
+      </span>
+      <span class="comp-strip-order" *ngIf="sections().length > 0">
+        {{ sections().length }} assigned
+      </span>
+      <button
+        type="button"
+        class="comp-btn comp-clear"
+        (click)="clearSections()"
+        [disabled]="sections().length === 0"
+        [attr.aria-label]="'Clear all sections'"
+        [attr.title]="'Clear all section assignments'"
+      >
+        CLEAR
+      </button>
+      <button
+        type="button"
+        class="comp-btn comp-apply"
+        (click)="applySections()"
+        [disabled]="sections().length === 0"
+        [attr.aria-label]="'Bake sections into track'"
+        [attr.title]="'Merge section takes into the working track notes'"
+      >
+        BAKE
+      </button>
+    </div>
+    <div class="section-bars" role="group" aria-label="Bars">
+      <button
+        *ngFor="let bar of sectionBarColumns()"
+        type="button"
+        class="section-bar"
+        [class.assigned]="sectionForBar(bar) !== undefined"
+        [class.picked]="sectionForBar(bar)?.takeId === pickedTakeId()"
+        (click)="assignBar(bar)"
+        [attr.aria-label]="
+          sectionForBar(bar)
+            ? 'Bar ' + bar + ' uses ' + labelFor(sectionForBar(bar)!.takeId) + ' — tap to change'
+            : 'Bar ' + bar + ' unassigned'
+        "
+        [attr.title]="
+          sectionForBar(bar)
+            ? labelFor(sectionForBar(bar)!.takeId) + ' plays bar ' + bar
+            : 'Bar ' + bar + ' — tap to assign ' +
+              (pickedTakeId() !== null ? labelFor(pickedTakeId()!) : 'a picked take')
+        "
+      >
+        <span class="section-bar-num">{{ bar }}</span>
+        <span class="section-bar-take" *ngIf="sectionForBar(bar)">
+          {{ labelFor(sectionForBar(bar)!.takeId) }}
+        </span>
+      </button>
+    </div>
+    <p class="section-hint" *ngIf="sections().length === 0">
+      Pick a take chip, then tap bars to assign that take to each bar.
+    </p>
+  </div>
+</div>

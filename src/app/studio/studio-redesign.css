@@ -1,0 +1,161 @@
+/* ============================================================
+   S.M.U.V.E. Studio redesign foundation
+   Explicit shell layers, status language, and responsive contracts.
+   ============================================================ */
+
+.studio-project-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--studio-status-height, 28px);
+  padding: 4px 12px;
+  flex: 0 0 auto;
+  background: var(--espresso-paper, #f8faf8);
+  color: var(--teal-700, #0f766e);
+  border-bottom: 1px solid var(--espresso-line, #cbd5e1);
+  font-size: 11px;
+  font-weight: 700;
+}
+.studio-project-status .material-symbols-outlined { font-size: 15px; }
+.studio-project-status-dirty { color: #b45309; }
+:host-context(.dark-mode) .studio-project-status { background: #111d24; color: #a7f3d0; }
+:host-context(.dark-mode) .studio-project-status-dirty { color: #fcd34d; }
+
+.studio-save-warning {
+  position: absolute;
+  /* Sit below the project status bar + studio header. At top: 12px this alert
+     covered the status bar and the topbar, hiding the project menu / save /
+     export controls it is asking the artist to use. Both heights are shell
+     variables, so it also tracks the compact desktop tiers (56px / 52px). */
+  top: calc(
+    var(--studio-status-height, 28px) + var(--studio-header-height, 72px) + 8px
+  );
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(680px, calc(100% - 24px));
+  padding: 12px 16px;
+  border: 1px solid #b45309;
+  border-radius: 14px;
+  background: #fffbeb;
+  color: #78350f;
+  box-shadow: 0 8px 32px #0003;
+  font-size: 13px;
+}
+.studio-save-warning span:nth-child(2) { flex: 1; min-width: 0; }
+.studio-save-warning button {
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  font-weight: 700;
+}
+.studio-save-warning button:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+@media (max-width: 600px) {
+  .studio-save-warning {
+    flex-wrap: wrap;
+    /* Phones: narrower than the desktop 680px cap so the alert stays clear of
+       the transport dock and the floating action button. */
+    width: calc(100% - 20px);
+    max-width: none;
+    padding: 10px 12px;
+  }
+  .studio-save-warning span:nth-child(2) { flex-basis: calc(100% - 40px); }
+}
+
+.studio-workspace-frame {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.studio-workspace-navigation {
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--espresso-line) transparent;
+}
+
+.studio-primary-canvas {
+  min-width: 0;
+  min-height: 0;
+  isolation: isolate;
+  overscroll-behavior: contain;
+}
+
+.studio-context-toolbar {
+  min-width: 0;
+  min-height: 44px;
+  scrollbar-width: none;
+}
+
+.studio-context-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.studio-global-status-bar {
+  min-height: var(--studio-footer-height, 48px);
+}
+
+.studio-global-status-bar .comp-footer-center {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.studio-global-status-bar .comp-footer-center::-webkit-scrollbar {
+  display: none;
+}
+
+.studio-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.studio-status-chip[data-state='saved'],
+.studio-status-chip[data-state='ready'],
+.studio-status-chip[data-state='playing'] {
+  border-color: rgba(14, 124, 123, 0.42);
+  color: var(--teal-700);
+}
+
+.studio-status-chip[data-state='recording'] {
+  border-color: rgba(220, 38, 38, 0.42);
+  color: #b91c1c;
+}
+
+.studio-status-chip[data-state='blocked'] {
+  border-color: rgba(217, 119, 6, 0.5);
+  color: #a16207;
+}
+
+:host-context(.dark-mode) .studio-status-chip,
+.dark-mode .studio-status-chip {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--espresso-muted);
+}
+
+@media (max-width: 768px) {
+  .studio-context-toolbar {
+    min-height: 44px;
+  }
+
+  .studio-global-status-bar {
+    min-height: 40px;
+  }
+}

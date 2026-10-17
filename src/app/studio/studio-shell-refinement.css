@@ -1,0 +1,1011 @@
+/*
+ * S.M.U.V.E. STAGE — Studio shell refinement
+ *
+ * Additive only: the existing Studio component owns layout, navigation,
+ * state, and audio behavior. This layer improves the surface system without
+ * changing bindings or view logic.
+ */
+
+:host {
+  --stage-ink: #1f1a12;
+  --stage-muted: #7e7259;
+  --stage-line: rgba(61, 53, 42, 0.14);
+  --stage-line-soft: rgba(61, 53, 42, 0.08);
+  --stage-teal: #0e7c7b;
+  --stage-teal-bright: #2ba09c;
+  --stage-orange: #d97706;
+  --stage-paper: var(--ivory-paper, #fbf7ec);
+  --stage-canvas: var(--ivory-bg, #f5efe0);
+  --stage-shadow: 0 16px 38px rgba(61, 53, 42, 0.09);
+  --stage-focus: #075e5d;
+  display: block;
+  isolation: isolate;
+}
+
+.comp-shell {
+  --shell-gap: clamp(8px, 1vw, 16px);
+  /* The Studio is a bounded child workspace. A viewport-sized minimum here
+     makes the route host grow to the full page and reintroduces document
+     scrolling underneath the shell. */
+  min-height: 0;
+  background:
+    radial-gradient(circle at 82% 4%, rgba(93, 196, 194, 0.14), transparent 28%),
+    radial-gradient(circle at 10% 100%, rgba(217, 119, 6, 0.06), transparent 30%),
+    var(--stage-canvas);
+  color: var(--stage-ink);
+}
+
+/* Keep the transport hierarchy calm: glass is a surface treatment, not a
+   competing panel.
+
+   The frosted layer lives on a pseudo-element rather than on `.comp-topbar`
+   itself. `backdrop-filter` creates a containing block for `position: fixed`
+   descendants, so having it on the bar anchored the portrait-phone transport
+   dock (a fixed child) to the topbar's own edge — the dock rendered ~80px
+   ABOVE the viewport top instead of above the bottom nav. Transparent bar
+   background + tint-and-blur on the layer keeps the exact same look. */
+.comp-topbar {
+  min-width: 0;
+  min-height: 56px;
+  background: transparent;
+  border-bottom-color: var(--stage-line);
+  box-shadow: 0 6px 22px rgba(61, 53, 42, 0.06);
+}
+
+.comp-topbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--stage-paper) 92%, transparent);
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  pointer-events: none;
+}
+
+.comp-topbar-left,
+.comp-topbar-center,
+.comp-topbar-right {
+  min-width: 0;
+}
+
+.comp-topbar-center {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.comp-topbar-center::-webkit-scrollbar,
+.comp-topbar-right::-webkit-scrollbar,
+.comp-topbar-tools::-webkit-scrollbar {
+  display: none;
+}
+
+.comp-topbar-right {
+  max-width: min(42vw, 520px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.comp-topbar-right > * {
+  flex: 0 0 auto;
+}
+
+/* A second, quieter command row. It remains scrollable on narrow Android
+   screens instead of wrapping into a tall, distracting toolbar. */
+.comp-topbar-tools {
+  min-height: 42px;
+  padding: 5px clamp(8px, 1.4vw, 18px);
+  gap: 5px;
+  background: color-mix(in srgb, var(--stage-paper) 88%, transparent);
+  border-bottom-color: var(--stage-line-soft);
+  box-shadow: 0 3px 12px rgba(61, 53, 42, 0.035);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.comp-tool-btn {
+  min-height: 32px;
+  border-color: transparent;
+  border-radius: 9px;
+  padding: 6px 10px;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease,
+    transform 160ms ease;
+}
+
+.comp-tool-btn:hover,
+.comp-tool-btn:focus-visible {
+  border-color: rgba(14, 124, 123, 0.22);
+  background: rgba(14, 124, 123, 0.08);
+}
+
+.comp-tool-btn.comp-tool-active {
+  box-shadow: 0 5px 14px rgba(14, 124, 123, 0.16);
+}
+
+/* Main stage frame: the rail reads as navigation, the canvas reads as the
+   instrument. */
+.comp-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: var(--shell-gap);
+  padding: var(--shell-gap);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.25), transparent 36%),
+    transparent;
+}
+
+.comp-rail {
+  width: clamp(184px, 14vw, 220px);
+  min-width: 184px;
+  padding: 10px 8px;
+  gap: 5px;
+  border: 1px solid var(--stage-line);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--stage-paper) 94%, transparent);
+  box-shadow: var(--stage-shadow);
+  scrollbar-color: var(--stage-teal) transparent;
+}
+
+.comp-rail.comp-rail-collapsed {
+  width: 56px;
+  min-width: 56px;
+}
+
+.comp-rail-item {
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease,
+    transform 160ms ease;
+}
+
+.comp-rail-item:hover,
+.comp-rail-item:focus-visible {
+  border-color: rgba(14, 124, 123, 0.18);
+  background: rgba(14, 124, 123, 0.07);
+}
+
+.comp-rail-item.comp-rail-active {
+  border-color: rgba(14, 124, 123, 0.28);
+  background: linear-gradient(145deg, rgba(14, 124, 123, 0.16), rgba(93, 196, 194, 0.06));
+  color: var(--stage-teal);
+  box-shadow: inset 3px 0 0 var(--stage-teal), 0 4px 12px rgba(14, 124, 123, 0.08);
+}
+
+.comp-rail-home {
+  margin-bottom: 4px;
+  border-bottom-color: rgba(14, 124, 123, 0.28);
+}
+
+.comp-canvas {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--stage-line);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 22%),
+    var(--stage-canvas);
+  box-shadow: var(--stage-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.48);
+  scrollbar-color: rgba(14, 124, 123, 0.65) transparent;
+  scrollbar-width: thin;
+}
+
+.comp-view {
+  min-width: 0;
+  min-height: 100%;
+  padding: clamp(10px, 1.25vw, 20px);
+}
+
+.comp-view > :first-child {
+  min-width: 0;
+  min-height: 0;
+  border-radius: 16px;
+}
+
+.comp-stage-marquee {
+  min-height: 25px;
+  border-bottom: 1px solid var(--stage-line-soft);
+  background: linear-gradient(90deg, rgba(14, 124, 123, 0.06), transparent 42%, rgba(217, 119, 6, 0.05));
+  color: var(--stage-muted);
+  letter-spacing: 0.13em;
+}
+
+/* Footer is a status rail, not another workspace. */
+.comp-footer {
+  min-height: 42px;
+  margin: 0 var(--shell-gap) var(--shell-gap);
+  padding: 0 clamp(10px, 1.4vw, 18px);
+  border: 1px solid var(--stage-line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--stage-paper) 94%, transparent);
+  box-shadow: 0 8px 20px rgba(61, 53, 42, 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.comp-footer-chip {
+  min-height: 26px;
+  border-color: var(--stage-line-soft);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Keep full-screen panels comfortable around Android cutouts and Chrome's
+   dynamic viewport. */
+.comp-panel,
+.comp-drawer {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.comp-panel-body,
+.comp-drawer-nav {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.comp-panel-body {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Desktop Chrome: make the composition feel like a focused production desk. */
+@media (min-width: 1280px) {
+  .comp-main {
+    padding: clamp(12px, 1.25vw, 22px);
+  }
+
+  .comp-canvas {
+    border-radius: 22px;
+  }
+
+  .comp-view {
+    padding: clamp(14px, 1.5vw, 26px);
+  }
+
+  .comp-topbar-tools {
+    padding-inline: clamp(14px, 2vw, 28px);
+  }
+}
+
+/* Tablet / landscape Android: preserve usable canvas width without showing a
+   desktop rail that steals the whole screen. */
+@media (min-width: 769px) and (max-width: 1100px) {
+  .comp-main {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .comp-rail {
+    width: 68px;
+    min-width: 68px;
+    padding-inline: 6px;
+  }
+
+  .comp-rail-label,
+  .comp-rail-widget {
+    display: none;
+  }
+
+  .comp-topbar-right {
+    max-width: 30vw;
+  }
+}
+
+/* Android portrait: thumb-first hierarchy. The active view owns the canvas;
+   the bottom dock owns navigation; secondary commands become icon-first. */
+@media (max-width: 768px) {
+  .comp-shell {
+    --shell-gap: 6px;
+    min-height: 0;
+  }
+
+  .comp-topbar {
+    min-height: 54px;
+    height: auto;
+    padding: 6px 8px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .comp-topbar-left {
+    flex: 0 0 auto;
+    gap: 5px;
+  }
+
+  .comp-topbar-center {
+    order: 3;
+    flex: 1 1 100%;
+    flex-basis: 100%;
+    justify-content: flex-start;
+    padding: 2px 0 1px;
+    /* The transport takes its own full-width row here, so the 42vw cap the
+       base sheet applies (for the shared-row layout) must not win: at 42vw
+       a phone showed ~170px of a 1500px transport rail. */
+    max-width: 100%;
+  }
+
+  .comp-topbar-right {
+    flex: 1 1 auto;
+    max-width: none;
+    justify-content: flex-end;
+    gap: 3px;
+  }
+
+  .comp-topbar-right .comp-now-performing,
+  .comp-topbar-right .comp-hw-badge,
+  .comp-topbar-right .comp-presence {
+    display: none;
+  }
+
+  .comp-brand {
+    gap: 7px;
+    padding-inline: 3px;
+  }
+
+  .comp-brand-mark {
+    width: 30px;
+    height: 30px;
+  }
+
+  .comp-brand-name {
+    font-size: 11px;
+  }
+
+  .comp-brand-tag {
+    font-size: 7px;
+  }
+
+  .comp-icon-btn {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    min-height: 42px;
+    border-radius: 11px;
+  }
+
+  .comp-topbar-tools {
+    min-height: 42px;
+    padding: 4px 8px;
+    gap: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .comp-tool-btn {
+    min-height: 36px;
+    padding: 7px 11px;
+    scroll-snap-align: start;
+  }
+
+  .comp-tool-label,
+  .comp-tool-btn .comp-kbd {
+    display: none;
+  }
+
+  .comp-tool-btn .material-symbols-outlined {
+    font-size: 19px;
+  }
+
+  .comp-stage-marquee {
+    min-height: 22px;
+    padding: 3px 10px;
+    font-size: 8px;
+  }
+
+  .comp-main {
+    gap: var(--shell-gap);
+    padding: var(--shell-gap);
+    padding-bottom: var(--transport-dock-height, 0px);
+  }
+
+  .comp-canvas {
+    border-radius: 16px;
+    box-shadow: 0 8px 22px rgba(61, 53, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+
+  .comp-view {
+    padding: 7px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .comp-footer {
+    display: none;
+  }
+
+  .comp-bottombar {
+    height: 68px;
+    min-height: 68px;
+    padding: 6px 6px max(8px, env(safe-area-inset-bottom, 8px));
+    background: color-mix(in srgb, var(--stage-paper) 96%, transparent);
+    border-top-color: var(--stage-line);
+    box-shadow: 0 -8px 24px rgba(61, 53, 42, 0.1);
+    backdrop-filter: blur(18px) saturate(1.1);
+    -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  }
+
+  .comp-tab {
+    min-width: 52px;
+    min-height: 52px;
+    margin: 0 2px;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    gap: 4px;
+    font-size: 8px;
+  }
+
+  .comp-tab .material-symbols-outlined {
+    font-size: 22px;
+  }
+
+  .comp-tab-active {
+    border-color: rgba(14, 124, 123, 0.2);
+    background: rgba(14, 124, 123, 0.09);
+    color: var(--stage-teal);
+  }
+
+  .comp-tab-indicator {
+    top: auto;
+    bottom: 2px;
+    height: 3px;
+    border-radius: 3px;
+  }
+
+  .comp-tab-more {
+    color: var(--stage-orange);
+  }
+
+  .comp-drawer {
+    width: min(88vw, 360px);
+    padding-top: env(safe-area-inset-top, 0px);
+    background: color-mix(in srgb, var(--stage-paper) 98%, transparent);
+    box-shadow: 10px 0 36px rgba(61, 53, 42, 0.2);
+  }
+
+  .comp-drawer-header {
+    min-height: 64px;
+    padding-inline: 16px;
+    border-bottom-color: var(--stage-line);
+  }
+
+  .comp-drawer-item {
+    min-height: 48px;
+    margin: 2px 10px;
+    border-radius: 12px;
+  }
+
+  .comp-drawer-footer {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .comp-fab {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
+  }
+}
+
+/* Small phones: preserve labels for primary nav, hide only non-essential
+   status text, and never create a horizontal page overflow. */
+@media (max-width: 390px) {
+  .comp-brand-text {
+    display: none;
+  }
+
+  .comp-now-playing span:last-child,
+  .comp-arm-audio span:last-child {
+    display: none;
+  }
+
+  .comp-topbar-right {
+    gap: 1px;
+  }
+
+  .comp-icon-btn {
+    width: 39px;
+    min-width: 39px;
+  }
+
+  .comp-tab-label {
+    font-size: 7px;
+  }
+}
+
+/* Landscape Android: use the short viewport efficiently and keep the dock
+   shallow enough for the creative surface. */
+@media (max-width: 900px) and (orientation: landscape) {
+  .comp-topbar {
+    min-height: 64px;
+    height: 64px;
+    padding-block: 0;
+  }
+
+  .comp-topbar-center {
+    order: initial;
+    flex-basis: auto;
+    padding: 0;
+    /* Landscape keeps the single shared row, so the transport goes back to
+       sharing the width with the tool cluster. */
+    max-width: 42vw;
+  }
+
+  .comp-topbar-tools {
+    min-height: 36px;
+    padding-block: 2px;
+  }
+
+  .comp-stage-marquee {
+    display: none;
+  }
+
+  .comp-main {
+    padding: 5px;
+  }
+
+  .comp-view {
+    padding: 5px;
+  }
+
+  .comp-bottombar {
+    height: 54px;
+    min-height: 54px;
+    padding-block: 3px;
+  }
+
+  .comp-tab {
+    min-height: 44px;
+  }
+
+  .comp-tab .material-symbols-outlined {
+    font-size: 19px;
+  }
+
+  .comp-tab-label {
+    display: none;
+  }
+}
+
+/* A short landscape phone has one usable row: keep the transport fully
+   readable by reducing the surrounding chrome to its essential controls.
+   The workspace still exposes the complete desktop utility set when the
+   viewport has room. */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
+  .comp-topbar-left {
+    flex: 0 0 auto;
+    width: 42px;
+  }
+
+  .comp-topbar-left > button[class~='md:hidden'] {
+    display: none;
+  }
+
+  .comp-topbar-left .comp-header-toggle,
+  .comp-topbar-left .comp-brand-text {
+    display: none;
+  }
+
+  .comp-topbar-center {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .comp-topbar-right {
+    flex: 0 0 48px;
+    width: 48px;
+    max-width: 48px;
+    overflow: hidden;
+  }
+
+  .comp-topbar-right > :not(.comp-ai-btn) {
+    display: none;
+  }
+}
+
+/* Dark/focus themes retain the same hierarchy with higher contrast. */
+:host-context(.dark-mode) {
+  --stage-ink: #f5f7fb;
+  --stage-muted: #9aa5b5;
+  --stage-line: rgba(255, 255, 255, 0.11);
+  --stage-line-soft: rgba(255, 255, 255, 0.07);
+  --stage-paper: #11161e;
+  --stage-canvas: #080b10;
+  --stage-shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
+  --stage-focus: #8ce8e3;
+}
+
+:host-context(.focus-mode) {
+  --stage-ink: #f7f8fb;
+  --stage-muted: #9ca9b8;
+  --stage-line: rgba(255, 255, 255, 0.12);
+  --stage-line-soft: rgba(255, 255, 255, 0.075);
+  --stage-paper: #171c25;
+  --stage-canvas: #0d121a;
+  --stage-shadow: 0 18px 42px rgba(0, 0, 0, 0.23);
+  --stage-focus: #a7f3ee;
+}
+
+:host-context(.dark-mode) .comp-shell,
+:host-context(.focus-mode) .comp-shell {
+  background:
+    radial-gradient(circle at 82% 4%, rgba(32, 215, 210, 0.1), transparent 30%),
+    radial-gradient(circle at 10% 100%, rgba(255, 173, 71, 0.06), transparent 30%),
+    var(--stage-canvas);
+}
+
+:host-context(.dark-mode) .comp-canvas,
+:host-context(.focus-mode) .comp-canvas {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 22%),
+    var(--stage-canvas);
+}
+
+:host-context(.dark-mode) .comp-footer-chip,
+:host-context(.focus-mode) .comp-footer-chip {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+/* Keyboard and motion accessibility. */
+.comp-shell :focus-visible {
+  outline: 2px solid var(--stage-focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 1px var(--stage-paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comp-shell *,
+  .comp-shell *::before,
+  .comp-shell *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Final Android pass: keep every scroll surface independently usable and
+   prevent the fixed dock/drawers from stealing the gesture area. */
+@media (max-width: 768px) {
+  .comp-shell {
+    min-height: 0;
+    height: 100svh;
+    height: 100dvh;
+  }
+
+  .comp-main {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .comp-canvas {
+    min-height: 0;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .comp-drawer {
+    height: 100svh;
+    height: 100dvh;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 4px);
+  }
+
+  .comp-drawer-nav {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 12px;
+  }
+
+  .comp-panel {
+    width: min(100vw, 380px);
+    max-width: 100%;
+    height: 100%;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .comp-panel-header {
+    min-height: 56px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+
+  .comp-panel-body {
+    min-height: 0;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .comp-mobile-start {
+    flex-shrink: 0;
+  }
+
+  .comp-shell {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .comp-canvas {
+    scroll-padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ============================================================
+   DEVICE-TIER VISIBILITY OF THE TOPBAR CONTROLS
+
+   These buttons carry Tailwind's `md:hidden` / `hidden md:grid` utilities,
+   but the utilities never applied: `.comp-icon-btn` sets `display: grid` in
+   the base sheet, and an encapsulated component rule
+   (`.comp-icon-btn[_ngcontent-…]`) outranks a bare utility class. The result
+   was the worst of both tiers — the drawer opener showed on desktop, where
+   it opens a drawer that is not rendered at all (a dead control), and the
+   desktop controls showed up on phones.
+
+   Spelling the tiers out keeps the intent readable and enforced.
+   ============================================================ */
+/* Desktop: the slide-out drawer is mobile-only (uiService.showMobileNav()),
+   and above 1024px the rail covers view navigation, so the drawer opener has
+   nothing to open here. Portrait tablets (769–1024) DO render the drawer and
+   get an explicit opener from the portrait-tablet block, so they are exempt.
+   (`[class~="md:hidden"]` avoids escaping the Tailwind colon and still
+   outranks `.comp-icon-btn[_ngcontent-…]`.) */
+@media (min-width: 1025px) {
+  .comp-shell button[class~='md:hidden'] {
+    display: none;
+  }
+}
+
+/* Phones: the transport strip is the primary surface, so nothing else claims
+   the row. The header collapse control stays — the shell's chrome (transport
+   + tool row + AI band) takes ~29% of a 412x915 screen, so maximizing the
+   canvas is a phone feature, not a desktop one. */
+@media (max-width: 768px) {
+  .comp-shell .comp-icon-btn.comp-header-toggle {
+    display: grid;
+  }
+}
+
+/* Portrait tablets (769–1024px, taller than wide): the drawer renders, so its
+   opener must too — the rule above intentionally stops at 1024px. */
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
+  .comp-shell button[class~='md:hidden'] {
+    display: grid;
+  }
+}
+
+/* ============================================================
+   PHONE TOOLBAR COLLAPSE — one MORE button, one tools sheet
+
+   The nine-button context toolbar collapses into a single MORE trigger on
+   phones; every command it carried lives in the tools sheet
+   (studio.component.html → MOBILE TOOLS SHEET). Desktop and portrait
+   tablet keep the full toolbar: `.comp-desktop-tools` is `display: contents`
+   there, so its buttons stay direct flex children of `.comp-topbar-tools`
+   and the desktop layout is unchanged.
+
+   The secondary topbar cluster is already phone-demoted by the compact tier
+   in studio.component.css (`.comp-topbar-right > .comp-icon-btn:not(
+   .comp-ai-btn)`), and those commands surface in the same tools sheet.
+   ============================================================ */
+.comp-shell .comp-desktop-tools {
+  display: contents;
+}
+
+/* Desktop / tablet: the MORE trigger is compact-mobile-only chrome. Its
+   sheet is physically impossible to open from here (the trigger is gone),
+   and the sheet's own `display: none` base rule keeps it out of the way
+   even if a resize left its signal set. */
+@media (min-width: 769px) {
+  .comp-shell .comp-tool-btn.comp-tool-more {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .comp-shell .comp-desktop-tools {
+    display: none;
+  }
+
+  /* Keep the label on the MORE button: the compact tier hides tool labels,
+     but a bare tune icon on the tool row read as decoration, not as the
+     entry to every secondary command. */
+  .comp-shell .comp-tool-btn.comp-tool-more .comp-tool-label {
+    display: inline;
+  }
+}
+
+@media (max-width: 768px) and (prefers-color-scheme: dark) {
+  .comp-mobile-start {
+    background: linear-gradient(135deg, rgba(17, 22, 30, 0.98), rgba(10, 35, 38, 0.94));
+    border-color: rgba(93, 196, 194, 0.24);
+  }
+
+  .comp-mobile-start h2,
+  .comp-mobile-start-action {
+    color: #f5f7fb;
+  }
+
+  .comp-mobile-start p,
+  .comp-mobile-start-action small {
+    color: #9aa5b5;
+  }
+
+  .comp-mobile-start-action {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+/* ============================================================
+   DESKTOP PORTRAIT MONITOR & WINDOW SPLIT (1025px+ Portrait / 1025-1280px)
+   ============================================================ */
+@media (min-width: 1025px) and (orientation: portrait), (min-width: 1025px) and (max-width: 1280px) {
+  .comp-shell {
+    --studio-rail-width: 68px;
+  }
+
+  .comp-topbar {
+    padding-inline: 10px;
+    gap: 8px;
+  }
+
+  .comp-topbar-left {
+    gap: 8px;
+  }
+
+  .comp-brand-tag {
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .comp-topbar-center {
+    max-width: 48vw;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .comp-topbar-right {
+    max-width: 38vw;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .comp-topbar-right .comp-now-performing span:last-child {
+    display: none;
+  }
+
+  .comp-topbar-tools {
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-inline: 8px;
+    gap: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .comp-tool-btn {
+    min-height: 32px;
+    padding: 5px 8px;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+
+  .comp-tool-btn .comp-kbd {
+    display: none;
+  }
+
+  .comp-rail {
+    width: 68px !important;
+    min-width: 68px !important;
+    padding: 8px 4px;
+    gap: 4px;
+  }
+
+  .comp-rail-item {
+    min-height: 52px;
+    padding: 6px 2px;
+    font-size: 8px;
+  }
+
+  .comp-rail-item .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  .comp-rail-widget {
+    display: none;
+  }
+
+  .comp-main {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .comp-view {
+    padding: 10px;
+  }
+}
+
+/* ============================================================
+   DESKTOP COMPACT LANDSCAPE HEIGHT (<880px Viewport Height)
+   Standard laptop / 1080p landscape chrome height optimization
+   ============================================================ */
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 880px) {
+  .comp-shell {
+    --studio-header-height: 56px;
+    --studio-footer-height: 38px;
+  }
+
+  .comp-topbar {
+    height: 56px;
+    min-height: 56px;
+    padding-inline: 12px;
+  }
+
+  .comp-topbar-tools {
+    min-height: 34px;
+    padding-block: 2px;
+    padding-inline: 12px;
+  }
+
+  .comp-tool-btn {
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .comp-tool-btn .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  .comp-stage-marquee {
+    display: none;
+  }
+
+  .comp-main {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .comp-view {
+    padding: 10px 12px;
+  }
+
+  .comp-footer {
+    min-height: 36px;
+    margin-bottom: 6px;
+    padding-inline: 10px;
+  }
+
+  .comp-footer-chip {
+    min-height: 22px;
+    font-size: 10px;
+  }
+}
+
+/* Very compact desktop landscape (e.g. 1366x768 or split horizontal windows < 700px height) */
+@media (min-width: 1025px) and (orientation: landscape) and (max-height: 720px) {
+  .comp-shell {
+    --studio-header-height: 52px;
+  }
+
+  .comp-topbar {
+    height: 52px;
+    min-height: 52px;
+  }
+
+  .comp-topbar-tools {
+    min-height: 30px;
+    padding-block: 1px;
+  }
+
+  .comp-tool-btn {
+    min-height: 26px;
+    padding: 3px 6px;
+  }
+
+  .comp-tool-btn .comp-kbd {
+    display: none;
+  }
+
+  .comp-footer {
+    display: none;
+  }
+}
