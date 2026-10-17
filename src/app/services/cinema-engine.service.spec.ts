@@ -47,6 +47,43 @@ describe('CinemaEngineService', () => {
     await expect(service.measureVideo(file)).resolves.toBeNull();
   });
 
+  it('captures a poster frame 10% into the take', async () => {
+    const captureThumbnail = jest
+      .spyOn(CinemaEngine.prototype, 'captureThumbnail')
+      .mockResolvedValue({
+        blob: new Blob(),
+        url: 'blob:poster',
+        width: 240,
+        height: 135,
+        time: 4.7,
+        type: 'image/jpeg',
+      });
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [CinemaEngineService] });
+    const service = TestBed.inject(CinemaEngineService);
+
+    await expect(service.capturePoster(file)).resolves.toEqual({
+      url: 'blob:poster',
+      width: 240,
+      height: 135,
+    });
+    expect(captureThumbnail).toHaveBeenCalledWith(
+      file,
+      expect.objectContaining({ at: 0.1, timeIsFraction: true })
+    );
+  });
+
+  it('returns null when a frame cannot be decoded', async () => {
+    jest
+      .spyOn(CinemaEngine.prototype, 'captureThumbnail')
+      .mockRejectedValue(new Error('Unsupported media'));
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [CinemaEngineService] });
+    const service = TestBed.inject(CinemaEngineService);
+
+    await expect(service.capturePoster(file)).resolves.toBeNull();
+  });
+
   it('treats an unknown duration as no measurement at all', async () => {
     const service = createService(
       jest.fn(async () => ({

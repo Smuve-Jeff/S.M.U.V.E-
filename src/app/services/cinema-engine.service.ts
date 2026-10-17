@@ -25,6 +25,31 @@ export class CinemaEngineService {
   }
 
   /**
+   * Capture a poster frame from a picked file.
+   *
+   * The frame is taken 10% into the take rather than at 0, where a phone video
+   * often opens on a black fade. Returns null when the host cannot decode the
+   * file; the clip then renders exactly as it did before posters existed.
+   */
+  async capturePoster(
+    file: File,
+    timeoutMs = 5000
+  ): Promise<{ url: string; width: number; height: number } | null> {
+    try {
+      const shot = await this.engine.captureThumbnail(file, {
+        at: 0.1,
+        timeIsFraction: true,
+        maxWidth: 240,
+        maxHeight: 135,
+        timeoutMs,
+      });
+      return shot?.url ? { url: shot.url, width: shot.width, height: shot.height } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Measure a picked file.
    *
    * Returns null rather than throwing: a codec this WebView cannot decode is a

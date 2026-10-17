@@ -18,6 +18,7 @@ import {
   CameraCaptureService,
 } from '../../services/camera-capture.service';
 import { CinemaProjectService } from '../../services/cinema-project.service';
+import { CinemaEngineService } from '../../services/cinema-engine.service';
 import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
 import { createDefaultEffects } from '../../services/video-engine.service';
 
@@ -167,6 +168,16 @@ describe('ImageVideoLabComponent', () => {
         },
       ]),
       safeZoneEnabled: signal(true),
+      // Audio overlay surface: the bed, its fader, its loop switch.
+      audioOverlay: signal<{ name: string; url: string; duration: number } | null>(
+        null
+      ),
+      audioOverlayVolume: signal(0.8),
+      audioOverlayLoop: signal(true),
+      loadAudioOverlay: jest.fn(),
+      clearAudioOverlay: jest.fn(),
+      setAudioOverlayVolume: jest.fn(),
+      setAudioOverlayLoop: jest.fn(),
       lowerThird: signal({ enabled: false, title: '', subtitle: '' }),
       countdownRemaining: signal<number | null>(null),
       countdownLabel: jest.fn().mockReturnValue(null),
@@ -499,6 +510,11 @@ describe('ImageVideoLabComponent', () => {
       refresh: jest.fn(async () => []),
     };
 
+    const cinemaEngine = {
+      measureVideo: jest.fn(async () => null),
+      capturePoster: jest.fn(async () => null),
+    };
+
     const speechSynthesis = {
       speak: jest.fn(),
       cancel: jest.fn(),
@@ -523,6 +539,7 @@ describe('ImageVideoLabComponent', () => {
         { provide: CameraCaptureService, useValue: camera },
         { provide: CinemaProjectService, useValue: cinemaProjects },
         { provide: SpeechSynthesisService, useValue: speechSynthesis },
+        { provide: CinemaEngineService, useValue: cinemaEngine },
       ],
     })
       .overrideComponent(ImageVideoLabComponent, {
@@ -544,6 +561,7 @@ describe('ImageVideoLabComponent', () => {
     return {
       component,
       videoEngine,
+      cinemaEngine,
       camera,
       exportService,
       cinemaProjects,
@@ -696,6 +714,178 @@ describe('ImageVideoLabComponent', () => {
         }),
       })
     );
+  });
+
+  it('places a phone video on the visual lane', async () => {
+    const { component, videoEngine } = await createComponent();
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'take.mp4', type: 'video/mp4' }] },
+    });
+
+    expect(videoEngine.addClip).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({
+        name: 'take.mp4',
+        type: 'video',
+        source: 'upload',
+      })
+    );
+    expect(component.aiFeedback()).toContain('UPLOAD SUCCESS');
+  });
+
+  it('classifies a gallery take that arrives with no MIME type', async () => {
+    const { component, videoEngine } = await createComponent();
+
+    // Android's document provider hands over an empty type for many gallery
+    // videos; the suffix is the only signal the file carries.
+    await component.onFileUpload({
+      target: { files: [{ name: 'camera-roll.MOV', type: '' }] },
+    });
+
+    expect(videoEngine.addClip).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ name: 'camera-roll.MOV', type: 'video' })
+    );
+  });
+
+  it('re-arms the picker so the same take can be chosen twice', async () => {
+    const { component } = await createComponent();
+    const input = {
+      files: [{ name: 'take.mp4', type: 'video/mp4' }],
+      value: 'C:\\fakepath\\take.mp4',
+    };
+
+    await component.onFileUpload({ target: input });
+
+    // A picker left holding its previous value emits no second change event,
+    // which is indistinguishable from a dead upload button on a phone.
+    expect(input.value).toBe('');
+  });
+
+  it('names a file that is neither a video nor an image', async () => {
+    const { component, videoEngine } = await createComponent();
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'contract.pdf', type: 'application/pdf' }] },
+    });
+
+    expect(videoEngine.addClip).not.toHaveBeenCalled();
+    expect(component.aiFeedback()).toContain('UNSUPPORTED FILE: CONTRACT.PDF');
+  });
+
+  it('reports a bed the browser cannot decode instead of failing silently', async () => {
+    const { component, videoEngine } = await createComponent();
+    videoEngine.loadAudioOverlay.mockRejectedValueOnce(
+      new Error('EncodingError')
+    );
+
+    await component.onAudioOverlayUpload({
+      target: { files: [{ name: 'take.flac', type: 'audio/flac' }], value: 'x' },
+    });
+
+    expect(component.audioOverlayError()).toContain('Could not read take.flac');
+    expect(component.aiFeedback()).toContain('AUDIO OVERLAY FAILED');
+  });
+
+  it('drives the bed fader and loop switch through the engine', async () => {
+    const { component, videoEngine } = await createComponent();
+
+    component.setAudioOverlayLevel('42');
+    expect(videoEngine.setAudioOverlayVolume).toHaveBeenCalledWith(0.42);
+
+    component.toggleAudioOverlayLoop();
+    expect(videoEngine.setAudioOverlayLoop).toHaveBeenCalledWith(false);
+
+    component.removeAudioOverlay();
+    expect(videoEngine.clearAudioOverlay).toHaveBeenCalled();
+  });
+
+  it('takes the measured length of a phone video from the cinema engine', async () => {
+    const { component, videoEngine, cinemaEngine } = await createComponent();
+    videoEngine.addClip.mockReturnValue('clip-measured');
+    videoEngine.findClip.mockReturnValue({
+      id: 'clip-measured',
+      effects: { trimStart: 0, trimEnd: 0, speed: 1 },
+    } as never);
+    cinemaEngine.measureVideo.mockResolvedValueOnce({
+      duration: 47.2,
+      width: 1920,
+      height: 1080,
+      aspectRatio: 1.7778,
+      type: 'video/mp4',
+      size: 1024,
+      filename: 'camera-roll.mp4',
+    });
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'camera-roll.mp4', type: 'video/mp4' }] },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // A two-minute take must not land as the preset's few seconds.
+    expect(videoEngine.updateClip).toHaveBeenCalledWith(
+      'clip-measured',
+      expect.objectContaining({ duration: 47.2 })
+    );
+    expect(component.aiFeedback()).toContain('0:47');
+    expect(component.aiFeedback()).toContain('1920×1080');
+  });
+
+  it('puts the captured frame on the clip it belongs to', async () => {
+    const { component, videoEngine, cinemaEngine } = await createComponent();
+    videoEngine.addClip.mockReturnValue('clip-postered');
+    videoEngine.findClip.mockReturnValue({ id: 'clip-postered' } as never);
+    cinemaEngine.capturePoster.mockResolvedValueOnce({
+      url: 'blob:poster',
+      width: 240,
+      height: 135,
+    });
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'take.mp4', type: 'video/mp4' }] },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(cinemaEngine.capturePoster).toHaveBeenCalled();
+    expect(component.clipPoster('clip-postered')).toBe('blob:poster');
+    // A clip with no frame keeps the plain bar it always had.
+    expect(component.clipPoster('another-clip')).toBeNull();
+  });
+
+  it('releases a frame whose clip was deleted while it decoded', async () => {
+    const { component, videoEngine, cinemaEngine } = await createComponent();
+    const revoke = jest.spyOn(URL, 'revokeObjectURL');
+    videoEngine.addClip.mockReturnValue('clip-gone');
+    // The clip vanished between the pick and the decode finishing.
+    videoEngine.findClip.mockReturnValue(null);
+    cinemaEngine.capturePoster.mockResolvedValueOnce({
+      url: 'blob:orphan',
+      width: 240,
+      height: 135,
+    });
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'take.mp4', type: 'video/mp4' }] },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(revoke).toHaveBeenCalledWith('blob:orphan');
+    expect(component.clipPoster('clip-gone')).toBeNull();
+  });
+
+  it('keeps the preset length when the engine cannot read the file', async () => {
+    const { component, videoEngine, cinemaEngine } = await createComponent();
+    videoEngine.addClip.mockReturnValue('clip-fallback');
+    cinemaEngine.measureVideo.mockResolvedValueOnce(null);
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'take.mkv', type: 'video/x-matroska' }] },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(cinemaEngine.measureVideo).toHaveBeenCalled();
+    expect(videoEngine.updateClip).not.toHaveBeenCalled();
   });
 
   it('clicks on the timeline seek the playhead proportionally', async () => {

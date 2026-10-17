@@ -44,6 +44,7 @@ import {
   VoiceoverLine,
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
+import { CinemaEngineService } from '../../services/cinema-engine.service';
 import { CinemaProjectService } from '../../services/cinema-project.service';
 import {
   CAPTURE_QUALITIES,
@@ -125,6 +126,37 @@ const MAX_RULER_TICKS = 120;
 /** Countdown length when the host fires the broadcast cue. */
 const BROADCAST_CUE_SECONDS = 3;
 /**
+ * Suffixes used to place a picked file when the browser reports no MIME type.
+ * Android's document provider routinely hands over an empty `type` for gallery
+ * videos, so the suffix is the only signal those takes carry.
+ */
+const INGEST_VIDEO_SUFFIXES = [
+  'mp4',
+  'm4v',
+  'mov',
+  'webm',
+  'ogv',
+  'ogg',
+  'mkv',
+  'avi',
+  '3gp',
+  '3g2',
+  'mts',
+  'm2ts',
+  'ts',
+];
+const INGEST_IMAGE_SUFFIXES = [
+  'jpg',
+  'jpeg',
+  'png',
+  'gif',
+  'webp',
+  'avif',
+  'bmp',
+  'heic',
+  'heif',
+];
+/**
  * Longest edge of the program monitor's backing store, in px. The monitor used
  * to keep the browser default 300×150 buffer, so the live camera feed and every
  * clip were composited into a thumbnail and stretched to fit the preview — which
@@ -170,6 +202,8 @@ interface PinchState {
 })
 export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private logger = inject(LoggingService);
+  /** Measures a picked take with the bundled cinema engine. */
+  private cinemaEngine = inject(CinemaEngineService);
   private aiService = inject(AiService);
   private userContext = inject(UserContextService);
   public videoEngine = inject(VideoEngineService);
@@ -308,6 +342,22 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return next;
     });
   };
+
+  /**
+   * Poster frames for ingested takes, keyed by clip id.
+   *
+   * Kept beside the clip rather than on it: a poster is a session-scoped blob,
+   * and a saved project must not reopen pointing at a dead object URL.
+   */
+  clipPosters = signal<ReadonlyMap<string, string>>(new Map());
+
+  /** Poster for a clip, or null while the engine is still reading its take. */
+  clipPoster(clipId: string): string | null {
+    return this.clipPosters().get(clipId) ?? null;
+  }
+
+  /** Why the last audio-overlay import failed, if it did. */
+  audioOverlayError = signal('');
 
   /** Stills and takes captured this session, newest first. */
   captures = signal<CinemaCapture[]>([]);
@@ -3755,41 +3805,198 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
   }
 
+  /**
+   * Ingest a shot picked from the device.
+   *
+   * A phone gallery is the normal way this module is fed, and Android's file
+   * provider hands the WebView a File whose `type` is empty far more often than
+   * a desktop drop does (.mov from a camera roll, .3gp from a recorder, anything
+   * delivered through content://). Classifying on the suffix when the MIME is
+   * missing keeps those takes on the visual lane instead of mislabelling them,
+   * and a file that is neither a video nor an image is named back to the
+   * operator instead of silently becoming a clip that will never paint.
+   */
   async onFileUpload(event: any) {
-    const file = event.target.files?.[0];
+    const input = event?.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    // Re-arm the picker: without this, choosing the same take twice emits no
+    // change event, which on a phone reads exactly like a dead upload control.
+    if (input) input.value = '';
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    this.ownedObjectUrls.add(url);
-    const targetTrackId = file.type.startsWith('image/') ? 't2' : 't1';
-    const clipType: VideoClip['type'] = file.type.startsWith('image/')
-      ? 'image'
-      : 'video';
+
+    const kind = this.classifyIngest(file);
+    if (!kind) {
+      this.aiFeedback.set(
+        `UNSUPPORTED FILE: ${file.name.toUpperCase()} IS NOT A VIDEO OR IMAGE. PICK A VIDEO FROM YOUR GALLERY OR FILES.`
+      );
+      return;
+    }
+
+    const targetTrackId = kind === 'image' ? 't2' : 't1';
+    const clipType: VideoClip['type'] = kind;
     const duration = this.resolveIngestDuration();
 
-    this.videoEngine.addClip(targetTrackId, {
-      name: file.name,
-      url: url,
-      startTime: this.videoEngine.currentTime(),
+    const url = URL.createObjectURL(file);
+    try {
+      this.ownedObjectUrls.add(url);
+      const clipId = this.videoEngine.addClip(targetTrackId, {
+        name: file.name,
+        url,
+        startTime: this.videoEngine.currentTime(),
+        duration,
+        offset: 0,
+        type: clipType,
+        source: 'upload',
+        effects: createDefaultEffects({
+          upscale: this.highQualityEnhancer(),
+          bgRemoval: false,
+          noiseReduction: false,
+          brightness: 1,
+          contrast: 1,
+          filter: this.selectedFilter(),
+          transition: this.selectedTransition(),
+          transitionDuration: this.transitionDuration(),
+          trimStart: this.resolveTrimAmount(duration),
+          trimEnd: this.resolveTrimAmount(duration),
+        }),
+      });
+      this.aiFeedback.set(
+        `UPLOAD SUCCESS: ${file.name} mapped into the ${this.activePreset().name} workflow.`
+      );
+      // The clip is on the timeline already; the measured length replaces the
+      // preset fallback as soon as the engine has read the file's header.
+      if (kind === 'video') void this.enrichIngestedVideo(clipId, file);
+    } catch (error) {
+      // Nothing reached the timeline, so the blob must not stay alive.
+      this.ownedObjectUrls.delete(url);
+      URL.revokeObjectURL(url);
+      this.logger.error('Video ingest failed', error);
+      this.aiFeedback.set(
+        `UPLOAD FAILED: ${file.name.toUpperCase()} COULD NOT BE ADDED. TRY A SMALLER FILE OR ANOTHER TAKE.`
+      );
+    }
+  }
+
+  /**
+   * Read everything the engine can tell us about a picked take.
+   *
+   * Sequential on purpose: metadata and poster each open the file in their own
+   * <video>, and a phone should not be asked to decode two at once.
+   */
+  private async enrichIngestedVideo(clipId: string, file: File): Promise<void> {
+    await this.adoptMeasuredDuration(clipId, file);
+    await this.captureClipPoster(clipId, file);
+  }
+
+  /** Put a captured frame on the clip so the lane reads as footage, not bars. */
+  private async captureClipPoster(clipId: string, file: File): Promise<void> {
+    const poster = await this.cinemaEngine.capturePoster(file);
+    if (!poster) return;
+
+    // The clip may have been deleted while the frame was decoding; a poster
+    // with no clip would keep its blob alive for the rest of the session.
+    if (!this.videoEngine.findClip(clipId)) {
+      URL.revokeObjectURL(poster.url);
+      return;
+    }
+
+    this.ownedObjectUrls.add(poster.url);
+    this.clipPosters.update((posters) => {
+      const next = new Map(posters);
+      next.set(clipId, poster.url);
+      return next;
+    });
+  }
+
+  /**
+   * Replace a freshly ingested clip's preset length with the take's real one.
+   *
+   * A phone video is as long as it is; laying eight seconds of a two-minute
+   * take on the timeline taught the operator to distrust the import. The trim
+   * amounts are resolved against the measured length at the same time so the
+   * clip's fades stay proportional.
+   */
+  private async adoptMeasuredDuration(
+    clipId: string,
+    file: File
+  ): Promise<void> {
+    const metadata = await this.cinemaEngine.measureVideo(file);
+    if (!metadata) return;
+
+    const clip = this.videoEngine.findClip(clipId);
+    if (!clip) return;
+
+    const duration = Math.max(
+      MIN_ACTIVE_CLIP_DURATION,
+      Math.min(metadata.duration, this.videoEngine.duration())
+    );
+    this.videoEngine.updateClip(clipId, {
       duration,
-      offset: 0,
-      type: clipType,
-      source: 'upload',
-      effects: createDefaultEffects({
-        upscale: this.highQualityEnhancer(),
-        bgRemoval: false,
-        noiseReduction: false,
-        brightness: 1,
-        contrast: 1,
-        filter: this.selectedFilter(),
-        transition: this.selectedTransition(),
-        transitionDuration: this.transitionDuration(),
+      effects: {
+        ...clip.effects,
         trimStart: this.resolveTrimAmount(duration),
         trimEnd: this.resolveTrimAmount(duration),
-      }),
+      },
     });
     this.aiFeedback.set(
-      `UPLOAD SUCCESS: ${file.name} mapped into the ${this.activePreset().name} workflow.`
+      `UPLOAD SUCCESS: ${file.name} · ${this.formatSeconds(duration)} · ${metadata.width}×${metadata.height} mapped into the ${this.activePreset().name} workflow.`
     );
+  }
+
+  /** Resolve a picked file to the lane it belongs on: MIME first, then suffix. */
+  private classifyIngest(file: File): 'video' | 'image' | null {
+    const mime = (file.type || '').toLowerCase();
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('image/')) return 'image';
+
+    const suffix = (file.name || '').split('.').pop()?.toLowerCase() ?? '';
+    if (INGEST_VIDEO_SUFFIXES.includes(suffix)) return 'video';
+    if (INGEST_IMAGE_SUFFIXES.includes(suffix)) return 'image';
+    return null;
+  }
+
+  // ── Audio overlay (music / voice bed from the device) ──────────────────
+
+  /** The bed fader's position in percent, for the template. */
+  audioOverlayPercent(): number {
+    return Math.round(this.videoEngine.audioOverlayVolume() * 100);
+  }
+
+  async onAudioOverlayUpload(event: any) {
+    const input = event?.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+    if (input) input.value = '';
+    if (!file) return;
+
+    this.audioOverlayError.set('');
+    try {
+      const overlay = await this.videoEngine.loadAudioOverlay(file);
+      this.aiFeedback.set(
+        `AUDIO OVERLAY: ${overlay.name.toUpperCase()} IS BEDDED UNDER THE CUT.`
+      );
+    } catch (error) {
+      this.logger.error('Audio overlay failed to decode', error);
+      this.audioOverlayError.set(
+        `Could not read ${file.name}. Use a WAV, MP3, M4A or OGG file.`
+      );
+      this.aiFeedback.set(
+        'AUDIO OVERLAY FAILED. CONVERT THE FILE TO WAV, MP3 OR M4A AND TRY AGAIN.'
+      );
+    }
+  }
+
+  setAudioOverlayLevel(percent: number | string) {
+    this.videoEngine.setAudioOverlayVolume(Number(percent) / 100);
+  }
+
+  toggleAudioOverlayLoop() {
+    this.videoEngine.setAudioOverlayLoop(!this.videoEngine.audioOverlayLoop());
+  }
+
+  removeAudioOverlay() {
+    this.videoEngine.clearAudioOverlay();
+    this.audioOverlayError.set('');
+    this.aiFeedback.set('AUDIO OVERLAY CLEARED. THE CUT PLAYS ON ITS OWN SCORE.');
   }
 
   // ── Camera uplink (live capture into the timeline) ─────────────────────
