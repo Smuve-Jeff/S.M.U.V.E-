@@ -816,6 +816,15 @@
                     (pointerup)="onClipPointerUp($event)"
                     (pointercancel)="onClipPointerUp($event)"
                   >
+                    @if (clipPoster(clip.id); as poster) {
+                      <img
+                        class="clip-poster"
+                        [src]="poster"
+                        alt=""
+                        aria-hidden="true"
+                        draggable="false"
+                      />
+                    }
                     <span
                       class="text-[8px] md:text-[9px] font-bold text-text-main truncate"
                       >{{ clip.name }}</span

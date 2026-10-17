@@ -343,6 +343,19 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     });
   };
 
+  /**
+   * Poster frames for ingested takes, keyed by clip id.
+   *
+   * Kept beside the clip rather than on it: a poster is a session-scoped blob,
+   * and a saved project must not reopen pointing at a dead object URL.
+   */
+  clipPosters = signal<ReadonlyMap<string, string>>(new Map());
+
+  /** Poster for a clip, or null while the engine is still reading its take. */
+  clipPoster(clipId: string): string | null {
+    return this.clipPosters().get(clipId) ?? null;
+  }
+
   /** Why the last audio-overlay import failed, if it did. */
   audioOverlayError = signal('');
 
@@ -3852,7 +3865,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       );
       // The clip is on the timeline already; the measured length replaces the
       // preset fallback as soon as the engine has read the file's header.
-      if (kind === 'video') void this.adoptMeasuredDuration(clipId, file);
+      if (kind === 'video') void this.enrichIngestedVideo(clipId, file);
     } catch (error) {
       // Nothing reached the timeline, so the blob must not stay alive.
       this.ownedObjectUrls.delete(url);
@@ -3862,6 +3875,37 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         `UPLOAD FAILED: ${file.name.toUpperCase()} COULD NOT BE ADDED. TRY A SMALLER FILE OR ANOTHER TAKE.`
       );
     }
+  }
+
+  /**
+   * Read everything the engine can tell us about a picked take.
+   *
+   * Sequential on purpose: metadata and poster each open the file in their own
+   * <video>, and a phone should not be asked to decode two at once.
+   */
+  private async enrichIngestedVideo(clipId: string, file: File): Promise<void> {
+    await this.adoptMeasuredDuration(clipId, file);
+    await this.captureClipPoster(clipId, file);
+  }
+
+  /** Put a captured frame on the clip so the lane reads as footage, not bars. */
+  private async captureClipPoster(clipId: string, file: File): Promise<void> {
+    const poster = await this.cinemaEngine.capturePoster(file);
+    if (!poster) return;
+
+    // The clip may have been deleted while the frame was decoding; a poster
+    // with no clip would keep its blob alive for the rest of the session.
+    if (!this.videoEngine.findClip(clipId)) {
+      URL.revokeObjectURL(poster.url);
+      return;
+    }
+
+    this.ownedObjectUrls.add(poster.url);
+    this.clipPosters.update((posters) => {
+      const next = new Map(posters);
+      next.set(clipId, poster.url);
+      return next;
+    });
   }
 
   /**

@@ -512,6 +512,7 @@ describe('ImageVideoLabComponent', () => {
 
     const cinemaEngine = {
       measureVideo: jest.fn(async () => null),
+      capturePoster: jest.fn(async () => null),
     };
 
     const speechSynthesis = {
@@ -829,6 +830,48 @@ describe('ImageVideoLabComponent', () => {
     );
     expect(component.aiFeedback()).toContain('0:47');
     expect(component.aiFeedback()).toContain('1920×1080');
+  });
+
+  it('puts the captured frame on the clip it belongs to', async () => {
+    const { component, videoEngine, cinemaEngine } = await createComponent();
+    videoEngine.addClip.mockReturnValue('clip-postered');
+    videoEngine.findClip.mockReturnValue({ id: 'clip-postered' } as never);
+    cinemaEngine.capturePoster.mockResolvedValueOnce({
+      url: 'blob:poster',
+      width: 240,
+      height: 135,
+    });
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'take.mp4', type: 'video/mp4' }] },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(cinemaEngine.capturePoster).toHaveBeenCalled();
+    expect(component.clipPoster('clip-postered')).toBe('blob:poster');
+    // A clip with no frame keeps the plain bar it always had.
+    expect(component.clipPoster('another-clip')).toBeNull();
+  });
+
+  it('releases a frame whose clip was deleted while it decoded', async () => {
+    const { component, videoEngine, cinemaEngine } = await createComponent();
+    const revoke = jest.spyOn(URL, 'revokeObjectURL');
+    videoEngine.addClip.mockReturnValue('clip-gone');
+    // The clip vanished between the pick and the decode finishing.
+    videoEngine.findClip.mockReturnValue(null);
+    cinemaEngine.capturePoster.mockResolvedValueOnce({
+      url: 'blob:orphan',
+      width: 240,
+      height: 135,
+    });
+
+    await component.onFileUpload({
+      target: { files: [{ name: 'take.mp4', type: 'video/mp4' }] },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(revoke).toHaveBeenCalledWith('blob:orphan');
+    expect(component.clipPoster('clip-gone')).toBeNull();
   });
 
   it('keeps the preset length when the engine cannot read the file', async () => {
