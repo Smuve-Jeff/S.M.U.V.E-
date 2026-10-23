@@ -1,30 +1,40 @@
-import { Injectable, inject, signal, computed, effect, OnDestroy } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { io, Socket } from 'socket.io-client';
-import { GameService, isOnlineMultiplayerGame } from './game.service';
-import { UserProfileService } from '../services/user-profile.service';
-import { NotificationService } from '../services/notification.service';
-import { HapticService } from '../services/haptic.service';
-import { TokenService } from '../services/token.service';
-import { ShareableInviteService, InviteMode } from '../services/shareable-invite.service';
-import { Game } from './game';
-import { APP_SECURITY_CONFIG } from '../app.security';
+import {
+  Injectable,
+  inject,
+  signal,
+  computed,
+  effect,
+  OnDestroy,
+} from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { io, Socket } from "socket.io-client";
+import { GameService, isOnlineMultiplayerGame } from "./game.service";
+import { UserProfileService } from "../services/user-profile.service";
+import { NotificationService } from "../services/notification.service";
+import { HapticService } from "../services/haptic.service";
+import { TokenService } from "../services/token.service";
+import {
+  ShareableInviteService,
+  InviteMode,
+} from "../services/shareable-invite.service";
+import { Game } from "./game";
+import { APP_SECURITY_CONFIG } from "../app.security";
 
 // ── Matchmaking Types (same shape as server-side payloads) ──
 
 export type LobbyStatus =
-  | 'idle'
-  | 'searching'
-  | 'matched'
-  | 'ready'
-  | 'in-progress'
-  | 'cancelled';
+  | "idle"
+  | "searching"
+  | "matched"
+  | "ready"
+  | "in-progress"
+  | "cancelled";
 export type ChallengeStatus =
-  | 'pending'
-  | 'accepted'
-  | 'rejected'
-  | 'expired'
-  | 'cancelled';
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "expired"
+  | "cancelled";
 
 export interface ServerChallenge {
   id: number;
@@ -133,8 +143,8 @@ export interface SplitScreenSession {
   gameName: string;
   hostId: string;
   guestId: string;
-  role: 'host' | 'guest';
-  status: 'lobby' | 'ready' | 'in-progress' | 'ended';
+  role: "host" | "guest";
+  status: "lobby" | "ready" | "in-progress" | "ended";
   created: number;
 }
 
@@ -143,7 +153,7 @@ export interface SplitScreenSnapshot {
   progress?: number;
   level?: string;
   position?: { x: number; y: number };
-  turn?: 'host' | 'guest';
+  turn?: "host" | "guest";
   ts: number;
 }
 
@@ -153,13 +163,13 @@ export interface SplitScreenSnapshot {
  * made lobbies/presence/challenges live on a different server than chat.
  */
 const SERVER_URL = (() => {
-  if (typeof window === 'undefined') return 'https://smuvejeffpresents.com';
-  return APP_SECURITY_CONFIG.api_url.replace(/\/api\/?$/, '');
+  if (typeof window === "undefined") return "https://smuvejeffpresents.com";
+  return APP_SECURITY_CONFIG.api_url.replace(/\/api\/?$/, "");
 })();
 
 function serverToClientChallenge(
   sc: ServerChallenge,
-  resolveGameName?: (gameId: string) => string | undefined
+  resolveGameName?: (gameId: string) => string | undefined,
 ): PlayerChallenge {
   return {
     id: `chal-${sc.id}`,
@@ -170,13 +180,13 @@ function serverToClientChallenge(
     gameId: sc.gameId,
     gameName: resolveGameName?.(sc.gameId) || sc.gameId,
     status: sc.status as ChallengeStatus,
-    message: sc.message || '',
+    message: sc.message || "",
     created: sc.timestamp,
     expiresAt: sc.timestamp + 7 * 24 * 60 * 60 * 1000,
   };
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class MatchmakingService implements OnDestroy {
   private http = inject(HttpClient);
   private gameService = inject(GameService);
@@ -222,7 +232,7 @@ export class MatchmakingService implements OnDestroy {
    * Consumed once by the Tha Spot component which then enters confirmLaunch.
    */
   readonly partyLaunch = signal<{ gameId: string; partyId: string } | null>(
-    null
+    null,
   );
   /** lobby id of a server-provisioned challenge/matchmaking room this device
    * joined. Only those rooms are torn down on game close — a regular co-op
@@ -237,9 +247,10 @@ export class MatchmakingService implements OnDestroy {
    * the cabinet and launches it — without this the accept flow was a
    * dead-end toast and neither player ever entered a shared session.
    */
-  readonly acceptedChallenge = signal<{ gameId: string; challengeId: string } | null>(
-    null
-  );
+  readonly acceptedChallenge = signal<{
+    gameId: string;
+    challengeId: string;
+  } | null>(null);
   /** Challenge id this device accepted locally, so the echoed
    * `challenge_response` for our own accept never double-launches. */
   private lastAcceptedChallengeId: string | null = null;
@@ -289,14 +300,14 @@ export class MatchmakingService implements OnDestroy {
 
   // ── Persistent Lobby Chat ──
   readonly lobbyChatMessages = signal<LobbyChatMessage[]>([]);
-  private readonly LOBBY_CHAT_PREFIX = 'smuve_lobby_chat_';
+  private readonly LOBBY_CHAT_PREFIX = "smuve_lobby_chat_";
 
   // ── Lobby Replay Recording ──
   readonly lobbyReplaySnapshots = signal<GameStateSnapshot[]>([]);
   readonly isReplaying = signal(false);
   readonly replayCurrentIndex = signal(0);
   private replayTimerId: any = null;
-  private readonly REPLAY_PREFIX = 'smuve_lobby_replay_';
+  private readonly REPLAY_PREFIX = "smuve_lobby_replay_";
 
   // ── Game State Sync ──
   readonly gameStateUpdates = signal<GameStateUpdate[]>([]);
@@ -306,7 +317,7 @@ export class MatchmakingService implements OnDestroy {
   readonly isSpectating = signal(false);
   readonly spectateTargetLobby = signal<CoOpLobby | null>(null);
   readonly inProgressLobbies = computed(() =>
-    this.activeLobbies().filter((l) => l.status === 'in-progress')
+    this.activeLobbies().filter((l) => l.status === "in-progress"),
   );
   readonly spectatorReactions = signal<SpectatorReaction[]>([]);
   readonly spectatorChatMessages = signal<LobbyChatMessage[]>([]);
@@ -318,10 +329,10 @@ export class MatchmakingService implements OnDestroy {
   >({});
 
   readonly playerId = computed(
-    () => this.profile.profile().id || 'local-player'
+    () => this.profile.profile().id || "local-player",
   );
   readonly playerName = computed(
-    () => this.profile.profile().artistName || 'Unknown Player'
+    () => this.profile.profile().artistName || "Unknown Player",
   );
 
   constructor() {
@@ -366,7 +377,7 @@ export class MatchmakingService implements OnDestroy {
    */
   async shareGame(
     gameId: string,
-    mode: InviteMode = 'online'
+    mode: InviteMode = "online",
   ): Promise<string | null> {
     const game = this.gameService.getGameById(gameId);
     const intent = this.shares.buildShareIntent({
@@ -380,7 +391,7 @@ export class MatchmakingService implements OnDestroy {
   }
 
   /** Always returns the URL string (no dispatch). Useful for QR or copy-only UIs. */
-  buildShareableGameLink(gameId: string, mode: InviteMode = 'online'): string {
+  buildShareableGameLink(gameId: string, mode: InviteMode = "online"): string {
     return this.shares.buildPublicShareUrl({
       gameId,
       mode,
@@ -392,11 +403,11 @@ export class MatchmakingService implements OnDestroy {
   startSplitScreenLobby(gameId: string): SplitScreenSession | null {
     const game = this.gameService.getGameById(gameId);
     if (!game) {
-      this.notify.show('GAME_NOT_FOUND — cannot start split-screen', 'warning');
+      this.notify.show("GAME_NOT_FOUND — cannot start split-screen", "warning");
       return null;
     }
     if (!this.socket?.connected) {
-      this.notify.show('SOCKET OFFLINE — sharing link only', 'warning');
+      this.notify.show("SOCKET OFFLINE — sharing link only", "warning");
     }
     const lobbyId = `split_${Date.now()}_${this.playerId().slice(0, 8)}`;
     const session: SplitScreenSession = {
@@ -404,15 +415,15 @@ export class MatchmakingService implements OnDestroy {
       gameId,
       gameName: game.name || gameId,
       hostId: this.playerId(),
-      guestId: '',
-      role: 'host',
-      status: 'lobby',
+      guestId: "",
+      role: "host",
+      status: "lobby",
       created: Date.now(),
     };
     this.activeSplitLobby.set(session);
-    this.socket?.emit('split_screen_register', {
+    this.socket?.emit("split_screen_register", {
       lobbyId,
-      role: 'host',
+      role: "host",
     });
     return session;
   }
@@ -426,27 +437,27 @@ export class MatchmakingService implements OnDestroy {
    */
   joinSplitScreenLobby(
     lobbyId: string,
-    opts?: { gameId?: string; gameName?: string }
+    opts?: { gameId?: string; gameName?: string },
   ): SplitScreenSession | null {
-    const gameId = opts?.gameId || '';
+    const gameId = opts?.gameId || "";
     const gameName =
       opts?.gameName ||
       this.gameService.getGameById(gameId)?.name ||
-      (gameId ? gameId : 'Lobby');
+      (gameId ? gameId : "Lobby");
     const session: SplitScreenSession = {
       id: lobbyId,
       gameId,
       gameName,
-      hostId: '',
+      hostId: "",
       guestId: this.playerId(),
-      role: 'guest',
-      status: 'lobby',
+      role: "guest",
+      status: "lobby",
       created: Date.now(),
     };
     this.activeSplitLobby.set(session);
-    this.socket?.emit('split_screen_register', {
+    this.socket?.emit("split_screen_register", {
       lobbyId,
-      role: 'guest',
+      role: "guest",
     });
     return session;
   }
@@ -455,23 +466,23 @@ export class MatchmakingService implements OnDestroy {
   exitSplitScreen(): void {
     const cur = this.activeSplitLobby();
     if (!cur) return;
-    this.socket?.emit('split_screen_drop', { lobbyId: cur.id });
+    this.socket?.emit("split_screen_drop", { lobbyId: cur.id });
     this.activeSplitLobby.set(null);
     this.latestSplitScreenSnapshots.set({});
   }
 
   /** Broadcast the local game-state snapshot to the split-screen peer. */
-  pushSplitScreenSnapshot(snapshot: Omit<SplitScreenSnapshot, 'ts'>): void {
+  pushSplitScreenSnapshot(snapshot: Omit<SplitScreenSnapshot, "ts">): void {
     const cur = this.activeSplitLobby();
     if (!cur) {
-      console.debug('[SplitScreen] no active lobby — drop snapshot');
+      console.debug("[SplitScreen] no active lobby — drop snapshot");
       return;
     }
     if (!this.socket?.connected) {
-      console.debug('[SplitScreen] socket offline — drop snapshot');
+      console.debug("[SplitScreen] socket offline — drop snapshot");
       return;
     }
-    this.socket?.emit('split_screen_sync', {
+    this.socket?.emit("split_screen_sync", {
       lobbyId: cur.id,
       snapshot: { ...snapshot, ts: Date.now() },
     });
@@ -486,42 +497,42 @@ export class MatchmakingService implements OnDestroy {
       // Fresh token on EVERY (re)connect attempt — the server verifies
       // handshake.auth.token and disconnects unauthenticated sockets.
       auth: (cb) => cb({ token: this.tokenService.jwtToken() ?? undefined }),
-      transports: ['websocket', 'polling'],
+      transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 2000,
     });
     this.socket = sock;
 
-    sock.on('connect', () => {
-      console.log('[Matchmaking] Socket.io connected:', this.socket?.id);
+    sock.on("connect", () => {
+      console.log("[Matchmaking] Socket.io connected:", this.socket?.id);
       this.connected.set(true);
       // Flush any lobby join that arrived before the connection was ready.
       if (this.pendingPartyJoin) {
         const partyId = this.pendingPartyJoin;
         this.pendingPartyJoin = null;
-        this.socket?.emit('join_party', { partyId });
+        this.socket?.emit("join_party", { partyId });
       }
       // Register presence + request inbox sync.
       // Same payload contract as SocialNetworkingService.register_presence
       // (userId + metadata) so the backend indexes us on the same socket.
-      this.socket?.emit('register_presence', {
+      this.socket?.emit("register_presence", {
         userId: this.playerId(),
         metadata: {
           artistName: this.playerName(),
           primaryGenre: this.profile.profile().primaryGenre,
           avatarImage: this.profile.profile().avatarImage,
-          status: 'online',
+          status: "online",
         },
       });
-      this.socket?.emit('request_inbox_sync');
+      this.socket?.emit("request_inbox_sync");
       // Re-join a split-screen session that survived a socket reconnect:
       // the server cleans the disconnected socket's slot, so re-registering
       // (idempotent) re-fills it and re-broadcasts ready to the peer.
       const pendingSplit = this.activeSplitLobby();
       if (pendingSplit && !this.pendingSplitRejoin) {
         this.pendingSplitRejoin = true;
-        this.socket?.emit('split_screen_register', {
+        this.socket?.emit("split_screen_register", {
           lobbyId: pendingSplit.id,
           role: pendingSplit.role,
         });
@@ -533,15 +544,15 @@ export class MatchmakingService implements OnDestroy {
       }
     });
 
-    sock.on('disconnect', (reason) => {
-      console.log('[Matchmaking] Socket.io disconnected:', reason);
+    sock.on("disconnect", (reason) => {
+      console.log("[Matchmaking] Socket.io disconnected:", reason);
       this.connected.set(false);
       // Server severed the connection (invalid/expired token) — drop the
       // socket and remember the rejected token so the constructor effect
       // does NOT immediately rebuild into the same rejection loop.
       // The `this.socket === sock` guard ensures a stale handler can never
       // tear down a newer socket created after a re-login.
-      if (reason === 'io server disconnect' && this.socket === sock) {
+      if (reason === "io server disconnect" && this.socket === sock) {
         this.lastRejectedToken = this.tokenService.jwtToken();
         this.socket = null;
         sock.disconnect();
@@ -550,8 +561,8 @@ export class MatchmakingService implements OnDestroy {
 
     // After the built-in retries are exhausted socket.io gives up silently
     // and the session stays dead forever. Tear down so we can re-dial once.
-    sock.on('reconnect_failed', () => {
-      console.warn('[Matchmaking] Reconnect failed — scheduling a fresh dial');
+    sock.on("reconnect_failed", () => {
+      console.warn("[Matchmaking] Reconnect failed — scheduling a fresh dial");
       if (this.socket === sock) {
         this.socket = null;
         sock.disconnect();
@@ -567,21 +578,21 @@ export class MatchmakingService implements OnDestroy {
       }
     });
 
-    this.socket.on('connect_error', (err) => {
-      console.error('[Matchmaking] Socket.io connect error:', err.message);
+    this.socket.on("connect_error", (err) => {
+      console.error("[Matchmaking] Socket.io connect error:", err.message);
       this.connected.set(false);
     });
 
     // ── Inbound events ──
 
-    this.socket.on('users_online', (users: any[]) => {
+    this.socket.on("users_online", (users: any[]) => {
       this.onlineUsers.set(users);
     });
 
     // Authoritative lobby directory. The server owns party state and
     // broadcasts the FULL list on every mutation + on connect; we REPLACE
     // local accumulation so stale/ghost lobbies can never linger.
-    this.socket.on('lobby_list', (lobbies: ServerParty[]) => {
+    this.socket.on("lobby_list", (lobbies: ServerParty[]) => {
       if (!Array.isArray(lobbies)) return;
       const mapped = lobbies.map((party) => this.partyToLobby(party));
       this.activeLobbies.set(mapped);
@@ -594,8 +605,10 @@ export class MatchmakingService implements OnDestroy {
             serverCopy.playerIds.map((userId, index) => ({
               userId,
               artistName:
-                index === 0 ? serverCopy.hostName : 'PLAYER_' + userId.slice(0, 6),
-            }))
+                index === 0
+                  ? serverCopy.hostName
+                  : "PLAYER_" + userId.slice(0, 6),
+            })),
           );
         } else {
           // Server no longer knows our lobby — it was closed/expired.
@@ -615,38 +628,44 @@ export class MatchmakingService implements OnDestroy {
             resolved.playerIds.map((userId, index) => ({
               userId,
               artistName:
-                index === 0 ? resolved.hostName : 'PLAYER_' + userId.slice(0, 6),
-            }))
+                index === 0
+                  ? resolved.hostName
+                  : "PLAYER_" + userId.slice(0, 6),
+            })),
           );
           this.isSearching.set(false);
         }
       }
     });
 
-    this.socket.on('challenge_inbox_sync', (challenges: ServerChallenge[]) => {
+    this.socket.on("challenge_inbox_sync", (challenges: ServerChallenge[]) => {
       const mapped = challenges.map((c) =>
-        serverToClientChallenge(c, (id) => this.gameService.getGameById(id)?.name)
+        serverToClientChallenge(
+          c,
+          (id) => this.gameService.getGameById(id)?.name,
+        ),
       );
       this.myChallenges.set(mapped.filter((c) => c.toId === this.playerId()));
       this.outgoingChallenges.set(
-        mapped.filter((c) => c.fromId === this.playerId())
+        mapped.filter((c) => c.fromId === this.playerId()),
       );
     });
 
-    this.socket.on('incoming_challenge', (sc: ServerChallenge) => {
-      const challenge = serverToClientChallenge(sc, (id) =>
-        this.gameService.getGameById(id)?.name
+    this.socket.on("incoming_challenge", (sc: ServerChallenge) => {
+      const challenge = serverToClientChallenge(
+        sc,
+        (id) => this.gameService.getGameById(id)?.name,
       );
       this.myChallenges.update((c) => [...c, challenge]);
       this.haptic.medium();
       this.notify.show(
         `${challenge.fromName} challenges you to ${challenge.gameName}!`,
-        'info'
+        "info",
       );
     });
 
     this.socket.on(
-      'challenge_response',
+      "challenge_response",
       (data: {
         id: number;
         responderId: string;
@@ -657,17 +676,17 @@ export class MatchmakingService implements OnDestroy {
       }) => {
         // Server sends 'accepted' | 'declined' (older clients said 'rejected').
         const mappedStatus: ChallengeStatus =
-          data.status === 'accepted'
-            ? 'accepted'
-            : data.status === 'declined' || data.status === 'rejected'
-              ? 'rejected'
+          data.status === "accepted"
+            ? "accepted"
+            : data.status === "declined" || data.status === "rejected"
+              ? "rejected"
               : (data.status as ChallengeStatus);
         this.outgoingChallenges.update((c) =>
           c.map((ch) =>
-            ch.id === `chal-${data.id}` ? { ...ch, status: mappedStatus } : ch
-          )
+            ch.id === `chal-${data.id}` ? { ...ch, status: mappedStatus } : ch,
+          ),
         );
-        if (mappedStatus === 'accepted') {
+        if (mappedStatus === "accepted") {
           // Challenger side: the recipient accepted — jump into the game.
           // Skip our own echo (the responder already launched locally).
           if (this.lastAcceptedChallengeId !== `chal-${data.id}`) {
@@ -678,45 +697,46 @@ export class MatchmakingService implements OnDestroy {
           }
           // The server provisions a shared lobby room on accept; join it so
           // score sync / lobby chat flow. Idempotent (alreadyMember guard).
-          if (typeof data.partyId === 'string' && data.partyId) {
+          if (typeof data.partyId === "string" && data.partyId) {
             this.joinResolvedLobby(data.partyId);
           }
           this.notify.show(
             `Challenge accepted — launching ${data.gameId}`,
-            'success'
+            "success",
           );
-        } else if (mappedStatus === 'rejected') {
-          this.notify.show(`Challenge declined`, 'warning');
+        } else if (mappedStatus === "rejected") {
+          this.notify.show(`Challenge declined`, "warning");
         }
-      }
+      },
     );
 
-    this.socket.on('challenge_persisted', (sc: ServerChallenge) => {
+    this.socket.on("challenge_persisted", (sc: ServerChallenge) => {
       // Server confirmed persistence — update local ID
-      const challenge = serverToClientChallenge(sc, (id) =>
-        this.gameService.getGameById(id)?.name
+      const challenge = serverToClientChallenge(
+        sc,
+        (id) => this.gameService.getGameById(id)?.name,
       );
       this.outgoingChallenges.update((c) =>
         c.map((ch) =>
-          ch.fromId === sc.fromUserId && !ch.id.startsWith('chal-')
+          ch.fromId === sc.fromUserId && !ch.id.startsWith("chal-")
             ? challenge
-            : ch
-        )
+            : ch,
+        ),
       );
     });
 
-    this.socket.on('party_created', (data: ServerParty) => {
+    this.socket.on("party_created", (data: ServerParty) => {
       const lobby = this.partyToLobby(data);
       this.myLobby.set(lobby);
       this.activeLobbies.update((l) => [...l, lobby]);
       this.partyMembers.set(data.members);
       this.isSearching.set(true);
       this.initLobbyChat(lobby.id);
-      this.notify.show(`Co-op lobby created for ${lobby.gameName}`, 'success');
+      this.notify.show(`Co-op lobby created for ${lobby.gameName}`, "success");
     });
 
     this.socket.on(
-      'party_invite',
+      "party_invite",
       (data: {
         fromUserId: string;
         fromUserName: string;
@@ -725,13 +745,13 @@ export class MatchmakingService implements OnDestroy {
       }) => {
         this.notify.show(
           `${data.fromUserName} invited you to join a ${data.gameId} lobby`,
-          'info'
+          "info",
         );
-      }
+      },
     );
 
     this.socket.on(
-      'user_joined_party',
+      "user_joined_party",
       (data: { userId: string; artistName: string }) => {
         this.partyMembers.update((m) => {
           if (m.find((p) => p.userId === data.userId)) return m;
@@ -753,12 +773,12 @@ export class MatchmakingService implements OnDestroy {
           ns.delete(data.userId);
           return ns;
         });
-      }
+      },
     );
 
-    this.socket.on('user_left_party', (data: { userId: string }) => {
+    this.socket.on("user_left_party", (data: { userId: string }) => {
       this.partyMembers.update((m) =>
-        m.filter((p) => p.userId !== data.userId)
+        m.filter((p) => p.userId !== data.userId),
       );
       const lobby = this.myLobby();
       if (lobby) {
@@ -772,9 +792,9 @@ export class MatchmakingService implements OnDestroy {
             newHostName =
               newHostId === this.playerId()
                 ? this.playerName()
-                : 'PLAYER_' + newHostId.slice(0, 6);
+                : "PLAYER_" + newHostId.slice(0, 6);
             if (newHostId === this.playerId()) {
-              this.notify.show('YOU ARE NOW THE LOBBY HOST', 'info');
+              this.notify.show("YOU ARE NOW THE LOBBY HOST", "info");
               this.haptic.medium();
             }
           }
@@ -798,7 +818,7 @@ export class MatchmakingService implements OnDestroy {
     });
 
     this.socket.on(
-      'party_join_failed',
+      "party_join_failed",
       (data: { partyId: string; reason: string }) => {
         // Server rejected the join (lobby gone or full) — reset UI state so
         // the user isn't stuck watching a lobby that will never accept them.
@@ -808,17 +828,17 @@ export class MatchmakingService implements OnDestroy {
         }
         this.removeLobbyFromState(data.partyId);
         this.notify.show(
-          data.reason === 'lobby_full'
-            ? 'LOBBY IS FULL'
-            : 'LOBBY NO LONGER AVAILABLE',
-          'warning'
+          data.reason === "lobby_full"
+            ? "LOBBY IS FULL"
+            : "LOBBY NO LONGER AVAILABLE",
+          "warning",
         );
-      }
+      },
     );
 
     // ── Host Transfer Event ──
     this.socket.on(
-      'host_transferred',
+      "host_transferred",
       (data: { partyId: string; newHostId: string; newHostName: string }) => {
         const lobby = this.myLobby();
         if (lobby && lobby.id === data.partyId) {
@@ -830,74 +850,74 @@ export class MatchmakingService implements OnDestroy {
           this.myLobby.set(updated);
           this.updateLobbyInState(updated);
           if (data.newHostId === this.playerId()) {
-            this.notify.show('YOU ARE NOW THE LOBBY HOST', 'info');
+            this.notify.show("YOU ARE NOW THE LOBBY HOST", "info");
             this.haptic.medium();
           }
         }
-      }
+      },
     );
 
     // ── Ready-Up Events ──
     this.socket.on(
-      'player_ready',
+      "player_ready",
       (data: { userId: string; partyId: string }) => {
         this.setPlayerReady(data.userId, true);
-      }
+      },
     );
 
     this.socket.on(
-      'player_unready',
+      "player_unready",
       (data: { userId: string; partyId: string }) => {
         this.setPlayerReady(data.userId, false);
-      }
+      },
     );
 
     this.socket.on(
-      'all_players_ready',
+      "all_players_ready",
       (data: { partyId: string; gameId: string }) => {
         this.notify.show(
           `All players ready for ${data.gameId} — launch now!`,
-          'success'
+          "success",
         );
-      }
+      },
     );
 
     this.socket.on(
-      'party_launch_game',
+      "party_launch_game",
       (data: { partyId: string; gameId: string }) => {
         this.notify.show(
           `Party leader launched ${data.gameId} — joining now!`,
-          'success'
+          "success",
         );
         // Drive the cabinet launch on every member — the old handler only
         // toasted and nobody ever actually navigated into the game.
         this.partyLaunch.set({ gameId: data.gameId, partyId: data.partyId });
-      }
+      },
     );
 
     this.socket.on(
-      'match_found',
+      "match_found",
       (data: { opponentId: string; gameId: string; partyId?: string }) => {
         this.matchFound.set(data);
         this.isSearching.set(false);
         this.haptic.medium();
         // The queue matcher provisions a shared lobby; join it so the match
         // actually syncs (score updates, chat, spectate discovery).
-        if (typeof data.partyId === 'string' && data.partyId) {
+        if (typeof data.partyId === "string" && data.partyId) {
           this.joinResolvedLobby(data.partyId);
         }
         this.notify.show(
           `Match found! Opponent ready for ${data.gameId}`,
-          'success'
+          "success",
         );
-      }
+      },
     );
 
     // Server provisions a real lobby room when a challenge is ACCEPTED
     // (both sides receive this). Joining it puts both players in the same
     // party room so the launched cabinet syncs live state.
     this.socket.on(
-      'challenge_lobby_ready',
+      "challenge_lobby_ready",
       (data: {
         partyId: string;
         gameId: string;
@@ -917,18 +937,18 @@ export class MatchmakingService implements OnDestroy {
         // Eagerly adopt the lobby so broadcastGameState works the moment the
         // cabinet opens — the authoritative lobby_list copy replaces it when
         // it arrives.
-        this.myLobby.set({ ...lobby, status: 'in-progress' });
-        this.updateLobbyInState({ ...lobby, status: 'in-progress' });
+        this.myLobby.set({ ...lobby, status: "in-progress" });
+        this.updateLobbyInState({ ...lobby, status: "in-progress" });
         this.isSearching.set(false);
         this.joinResolvedLobby(data.partyId);
-      }
+      },
     );
 
     // A resolved challenge/matchmaking lobby ends when either player leaves
     // or disconnects — the survivor must exit the cabinet cleanly instead of
     // sitting in a room that no longer exists server-side.
     this.socket.on(
-      'party_ended',
+      "party_ended",
       (data: { partyId: string; reason: string }) => {
         if (this.resolvedMatchLobbyId === data.partyId) {
           this.resolvedMatchLobbyId = null;
@@ -941,16 +961,16 @@ export class MatchmakingService implements OnDestroy {
         }
         this.removeLobbyFromState(data.partyId);
         this.notify.show(
-          data.reason === 'player_left'
-            ? 'OPPONENT LEFT — MATCH ENDED'
-            : 'MATCH ENDED',
-          'warning'
+          data.reason === "player_left"
+            ? "OPPONENT LEFT — MATCH ENDED"
+            : "MATCH ENDED",
+          "warning",
         );
-      }
+      },
     );
 
     // ── Lobby Chat Events ──
-    this.socket.on('lobby_chat_message', (msg: LobbyChatMessage) => {
+    this.socket.on("lobby_chat_message", (msg: LobbyChatMessage) => {
       const lobby = this.myLobby();
       if (lobby && msg.lobbyId === lobby.id) {
         this.lobbyChatMessages.update((m) => {
@@ -962,7 +982,7 @@ export class MatchmakingService implements OnDestroy {
     });
 
     // ── Game State Sync Events ──
-    this.socket.on('game_state_update', (update: GameStateUpdate) => {
+    this.socket.on("game_state_update", (update: GameStateUpdate) => {
       this.gameStateUpdates.update((u) => [...u.slice(-100), update]);
       this.latestGameState.update((s) => ({
         ...s,
@@ -971,7 +991,7 @@ export class MatchmakingService implements OnDestroy {
     });
 
     // ── Replay Recording Events ──
-    this.socket.on('replay_snapshot', (snapshot: GameStateSnapshot) => {
+    this.socket.on("replay_snapshot", (snapshot: GameStateSnapshot) => {
       const lobby = this.myLobby();
       if (lobby && snapshot.lobbyId === lobby.id) {
         this.lobbyReplaySnapshots.update((s) => [...s, snapshot]);
@@ -980,7 +1000,7 @@ export class MatchmakingService implements OnDestroy {
     });
 
     // ── Spectator reaction events (emoji from spectators of in-progress lobbies) ──
-    this.socket.on('spectator_reaction', (r: SpectatorReaction) => {
+    this.socket.on("spectator_reaction", (r: SpectatorReaction) => {
       this.spectatorReactions.update((list) => {
         // De-dupe by reaction id
         if (list.find((x) => x.id === r.id)) return list;
@@ -991,13 +1011,13 @@ export class MatchmakingService implements OnDestroy {
       // Auto-clear after 4s for UI flash
       setTimeout(() => {
         this.spectatorReactions.update((list) =>
-          list.filter((x) => x.id !== r.id)
+          list.filter((x) => x.id !== r.id),
         );
       }, 4000);
     });
 
     // ── Spectator chat messages (live chat in spectator overlay) ──
-    this.socket.on('spectator_chat_message', (msg: LobbyChatMessage) => {
+    this.socket.on("spectator_chat_message", (msg: LobbyChatMessage) => {
       this.spectatorChatMessages.update((list) => {
         if (list.find((x) => x.id === msg.id)) return list;
         return [...list, msg].slice(-100);
@@ -1005,23 +1025,23 @@ export class MatchmakingService implements OnDestroy {
     });
 
     // ── Shareable game invite socket events (live path; mirrors REST) ──
-    sock.on('game_invite_issued', (record: any) => {
+    sock.on("game_invite_issued", (record: any) => {
       this.shares.lastIssued.set(record);
-      this.notify.show('INVITE READY — SEND IT TO A FRIEND', 'success');
+      this.notify.show("INVITE READY — SEND IT TO A FRIEND", "success");
     });
 
     sock.on(
-      'split_screen_snapshot',
+      "split_screen_snapshot",
       (data: { lobbyId: string; fromUserId: string; snapshot: any }) => {
         this.latestSplitScreenSnapshots.update((map) => ({
           ...map,
           [data.fromUserId]: data.snapshot,
         }));
-      }
+      },
     );
 
     sock.on(
-      'split_screen_ready',
+      "split_screen_ready",
       (data: { lobbyId: string; hostId: string; guestId: string }) => {
         const cur = this.activeSplitLobby();
         if (!cur || cur.id !== data.lobbyId) return;
@@ -1036,50 +1056,47 @@ export class MatchmakingService implements OnDestroy {
                 ...slot,
                 hostId: data.hostId,
                 guestId: data.guestId,
-                status: pairFull ? 'ready' : 'lobby',
+                status: pairFull ? "ready" : "lobby",
               }
-            : slot
+            : slot,
         );
         if (pairFull) {
-          this.notify.show('SPLIT-SCREEN PEER CONNECTED', 'success');
+          this.notify.show("SPLIT-SCREEN PEER CONNECTED", "success");
         }
-      }
+      },
     );
 
     // A third device tried to claim the occupied guest slot — keep it
     // visible instead of silently rejecting the tap.
-    sock.on('split_screen_pair_full', (data: { lobbyId: string }) => {
+    sock.on("split_screen_pair_full", (data: { lobbyId: string }) => {
       const cur = this.activeSplitLobby();
       if (!cur || cur.id !== data.lobbyId) return;
-      this.notify.show(
-        'SPLIT-SCREEN SESSION FULL — 2 DEVICES MAX',
-        'warning'
-      );
+      this.notify.show("SPLIT-SCREEN SESSION FULL — 2 DEVICES MAX", "warning");
     });
 
     sock.on(
-      'split_screen_role_assigned',
+      "split_screen_role_assigned",
       (data: {
         lobbyId: string;
-        role: 'host' | 'guest';
-        requestedRole: 'host' | 'guest';
+        role: "host" | "guest";
+        requestedRole: "host" | "guest";
       }) => {
         const cur = this.activeSplitLobby();
         if (!cur || cur.id !== data.lobbyId) return;
         if (data.role !== data.requestedRole) {
           this.notify.show(
             `HOST SLOT ALREADY TAKEN — JOINED AS ${data.role.toUpperCase()}`,
-            'warning'
+            "warning",
           );
         }
         this.activeSplitLobby.update((slot) =>
-          slot ? { ...slot, role: data.role } : slot
+          slot ? { ...slot, role: data.role } : slot,
         );
-      }
+      },
     );
 
     sock.on(
-      'split_screen_ended',
+      "split_screen_ended",
       (data: { lobbyId: string; reason?: string }) => {
         const cur = this.activeSplitLobby();
         if (!cur || cur.id !== data.lobbyId) return;
@@ -1088,12 +1105,12 @@ export class MatchmakingService implements OnDestroy {
         // previous peer's last snapshot before fresh data arrives.
         this.latestSplitScreenSnapshots.set({});
         this.notify.show(
-          data.reason === 'peer_disconnected'
-            ? 'SPLIT-SCREEN PEER DISCONNECTED'
-            : 'SPLIT-SCREEN SESSION ENDED',
-          'warning'
+          data.reason === "peer_disconnected"
+            ? "SPLIT-SCREEN PEER DISCONNECTED"
+            : "SPLIT-SCREEN SESSION ENDED",
+          "warning",
         );
-      }
+      },
     );
   }
 
@@ -1102,11 +1119,11 @@ export class MatchmakingService implements OnDestroy {
   createLobby(gameId: string, maxPlayers = 4): CoOpLobby {
     this.haptic.light();
     if (!this.socket?.connected) {
-      this.notify.show('Connection lost — cannot create lobby', 'warning');
+      this.notify.show("Connection lost — cannot create lobby", "warning");
       return this.fallbackCreateLobby(gameId, maxPlayers);
     }
     const partyId = `party_${Date.now()}_${this.playerId().slice(0, 8)}`;
-    this.socket.emit('create_party', { partyId, gameId });
+    this.socket.emit("create_party", { partyId, gameId });
     // Return a placeholder; actual lobby set via party_created event
     return {
       id: partyId,
@@ -1114,7 +1131,7 @@ export class MatchmakingService implements OnDestroy {
       hostName: this.playerName(),
       gameId,
       gameName: gameId,
-      status: 'searching',
+      status: "searching",
       playerIds: [this.playerId()],
       maxPlayers,
       created: Date.now(),
@@ -1130,7 +1147,7 @@ export class MatchmakingService implements OnDestroy {
       hostName: this.playerName(),
       gameId,
       gameName: gameId,
-      status: 'searching',
+      status: "searching",
       playerIds: [this.playerId()],
       maxPlayers,
       created: Date.now(),
@@ -1141,7 +1158,7 @@ export class MatchmakingService implements OnDestroy {
     this.activeLobbies.update((l) => [...l, lobby]);
     this.isSearching.set(true);
     this.initLobbyChat(lobby.id);
-    this.notify.show(`Co-op lobby created for ${lobby.gameName}`, 'success');
+    this.notify.show(`Co-op lobby created for ${lobby.gameName}`, "success");
     return lobby;
   }
 
@@ -1155,9 +1172,9 @@ export class MatchmakingService implements OnDestroy {
     // Live-catalog ids only — earlier lists referenced retired titles
     // ('1v1-lol-elite', 'shell-shockers-elite', 'bullet-force-elite',
     // 'basketball-stars-elite') that do not exist in the feed.
-    'shell-shockers-web-elite',
-    'ev-io-web-elite',
-    'zombsroyale-io-multiplayer',
+    "shell-shockers-web-elite",
+    "ev-io-web-elite",
+    "zombsroyale-io-multiplayer",
   ] as const;
 
   /** Multiplayer titles currently in the live catalog (sync cache). */
@@ -1182,7 +1199,7 @@ export class MatchmakingService implements OnDestroy {
 
     // 1) Look for an existing lobby with open slots
     const openLobbies = this.activeLobbies()
-      .filter((l) => l.status !== 'in-progress' && l.status !== 'cancelled')
+      .filter((l) => l.status !== "in-progress" && l.status !== "cancelled")
       .filter((l) => l.playerIds.length < l.maxPlayers)
       .sort((a, b) => b.playerIds.length - a.playerIds.length); // most full first
 
@@ -1190,7 +1207,7 @@ export class MatchmakingService implements OnDestroy {
       const target = openLobbies[0];
       this.joinLobby(target.id);
       this.isQuickPlaying.set(false);
-      this.notify.show(`Quick-play: joined ${target.gameName}`, 'success');
+      this.notify.show(`Quick-play: joined ${target.gameName}`, "success");
       return;
     }
 
@@ -1216,7 +1233,7 @@ export class MatchmakingService implements OnDestroy {
       // Nothing playable in the catalog and no fallback — surface it rather
       // than silently creating a lobby for an undefined title.
       this.isQuickPlaying.set(false);
-      this.notify.show('NO MULTIPLAYER GAMES AVAILABLE', 'warning');
+      this.notify.show("NO MULTIPLAYER GAMES AVAILABLE", "warning");
       return;
     }
 
@@ -1241,11 +1258,11 @@ export class MatchmakingService implements OnDestroy {
   startReadyCheck(): void {
     const lobby = this.myLobby();
     if (!lobby || !this.isHost()) {
-      this.notify.show('Only the host can start the ready check', 'warning');
+      this.notify.show("Only the host can start the ready check", "warning");
       return;
     }
     if (lobby.playerIds.length < 2) {
-      this.notify.show('Need at least 2 players for a match', 'warning');
+      this.notify.show("Need at least 2 players for a match", "warning");
       return;
     }
     // Auto-set host ready
@@ -1253,12 +1270,12 @@ export class MatchmakingService implements OnDestroy {
       this.toggleReady();
     }
     // Emit ready-check signal to all lobby members
-    this.socket?.emit('ready_check_start', {
+    this.socket?.emit("ready_check_start", {
       partyId: lobby.id,
       hostId: this.playerId(),
     });
     this.startCountdown();
-    this.notify.show('Ready check started — 5 seconds!', 'info');
+    this.notify.show("Ready check started — 5 seconds!", "info");
   }
 
   /**
@@ -1268,15 +1285,15 @@ export class MatchmakingService implements OnDestroy {
   joinSpectate(lobbyId: string): void {
     const lobby = this.inProgressLobbies().find((l) => l.id === lobbyId);
     if (!lobby) {
-      this.notify.show('Lobby not found or no longer in progress', 'warning');
+      this.notify.show("Lobby not found or no longer in progress", "warning");
       return;
     }
     this.isSpectating.set(true);
     this.spectateTargetLobby.set(lobby);
-    this.socket?.emit('join_spectate', { lobbyId, userId: this.playerId() });
+    this.socket?.emit("join_spectate", { lobbyId, userId: this.playerId() });
     this.spectatorReactions.set([]);
     this.spectatorChatMessages.set([]);
-    this.notify.show(`Spectating ${lobby.gameName}`, 'info');
+    this.notify.show(`Spectating ${lobby.gameName}`, "info");
   }
 
   joinLobby(lobbyId: string): CoOpLobby | null {
@@ -1285,10 +1302,10 @@ export class MatchmakingService implements OnDestroy {
       // Remember the intent and join the moment the socket connects instead
       // of failing outright — deep links opened mid-reconnect still land.
       this.pendingPartyJoin = lobbyId;
-      this.notify.show('CONNECTING — JOINING LOBBY WHEN READY', 'info');
+      this.notify.show("CONNECTING — JOINING LOBBY WHEN READY", "info");
       return this.activeLobbies().find((l) => l.id === lobbyId) ?? null;
     }
-    this.socket.emit('join_party', { partyId: lobbyId });
+    this.socket.emit("join_party", { partyId: lobbyId });
     return this.activeLobbies().find((l) => l.id === lobbyId) ?? null;
   }
 
@@ -1319,7 +1336,7 @@ export class MatchmakingService implements OnDestroy {
     if (this.resolvedMatchLobbyId !== lobby.id) return;
     this.resolvedMatchLobbyId = null;
     this.cancelCountdown();
-    this.socket?.emit('leave_party', { partyId: lobby.id });
+    this.socket?.emit("leave_party", { partyId: lobby.id });
     this.removeLobbyFromState(lobby.id);
     this.myLobby.set(null);
     this.isSearching.set(false);
@@ -1328,18 +1345,18 @@ export class MatchmakingService implements OnDestroy {
   private fallbackJoinLobby(lobbyId: string): CoOpLobby | null {
     const lobby = this.activeLobbies().find((l) => l.id === lobbyId);
     if (!lobby) {
-      this.notify.show('Lobby not found', 'warning');
+      this.notify.show("Lobby not found", "warning");
       return null;
     }
     if (lobby.playerIds.length >= lobby.maxPlayers) {
-      this.notify.show('Lobby is full', 'warning');
+      this.notify.show("Lobby is full", "warning");
       return null;
     }
     const updated: CoOpLobby = {
       ...lobby,
       playerIds: [...new Set([...lobby.playerIds, this.playerId()])],
       status:
-        lobby.playerIds.length + 1 >= lobby.maxPlayers ? 'ready' : 'searching',
+        lobby.playerIds.length + 1 >= lobby.maxPlayers ? "ready" : "searching",
     };
     this.updateLobbyInState(updated);
     this.initLobbyChat(lobbyId);
@@ -1351,7 +1368,7 @@ export class MatchmakingService implements OnDestroy {
     if (this.resolvedMatchLobbyId === lobbyId) {
       this.resolvedMatchLobbyId = null;
     }
-    this.socket?.emit('leave_party', { partyId: lobbyId });
+    this.socket?.emit("leave_party", { partyId: lobbyId });
     this.removeLobbyFromState(lobbyId);
     if (this.myLobby()?.id === lobbyId) {
       this.myLobby.set(null);
@@ -1383,14 +1400,14 @@ export class MatchmakingService implements OnDestroy {
         ns.add(this.playerId());
         return ns;
       });
-      this.socket?.emit('player_ready', { partyId: lobby.id });
+      this.socket?.emit("player_ready", { partyId: lobby.id });
     } else {
       this.readyPlayers.update((s) => {
         const ns = new Set(s);
         ns.delete(this.playerId());
         return ns;
       });
-      this.socket?.emit('player_unready', { partyId: lobby.id });
+      this.socket?.emit("player_unready", { partyId: lobby.id });
       // Cancel countdown if someone un-readies
       this.cancelCountdown();
     }
@@ -1444,15 +1461,15 @@ export class MatchmakingService implements OnDestroy {
 
   readonly lobbyInviteLink = computed(() => {
     const lobby = this.myLobby();
-    if (!lobby) return '';
+    if (!lobby) return "";
     // Share links must use the SAME param contract the deep-link parser
     // understands (?game=…&mode=co-op&partyId=…). The old ?partyId-only
     // link landed recipients on the hub with no join prompt at all.
     const params = new URLSearchParams();
-    params.set('game', lobby.gameId);
-    params.set('mode', 'co-op');
-    params.set('partyId', lobby.id);
-    params.set('mission', lobby.gameName);
+    params.set("game", lobby.gameId);
+    params.set("mode", "co-op");
+    params.set("partyId", lobby.id);
+    params.set("mission", lobby.gameName);
     return `${window.location.origin}/tha-spot?${params.toString()}`;
   });
 
@@ -1461,10 +1478,10 @@ export class MatchmakingService implements OnDestroy {
     if (!link) return false;
     try {
       navigator.clipboard.writeText(link);
-      this.notify.show('LOBBY INVITE LINK COPIED', 'success');
+      this.notify.show("LOBBY INVITE LINK COPIED", "success");
       return true;
     } catch {
-      this.notify.show('FAILED TO COPY LINK', 'warning');
+      this.notify.show("FAILED TO COPY LINK", "warning");
       return false;
     }
   }
@@ -1477,7 +1494,7 @@ export class MatchmakingService implements OnDestroy {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'S.M.U.V.E. Co-Op Lobby',
+          title: "S.M.U.V.E. Co-Op Lobby",
           text,
           url: link,
         });
@@ -1490,23 +1507,23 @@ export class MatchmakingService implements OnDestroy {
   }
 
   pendingLobbyChallenges = computed(() =>
-    this.myChallenges().filter((c) => c.status === 'pending')
+    this.myChallenges().filter((c) => c.status === "pending"),
   );
 
   launchGameFromParty(gameId: string): void {
     const lobby = this.myLobby();
     if (!lobby) return;
     // Move lobby to in-progress for spectator discovery
-    const updated: CoOpLobby = { ...lobby, status: 'in-progress' };
+    const updated: CoOpLobby = { ...lobby, status: "in-progress" };
     this.myLobby.set(updated);
     this.updateLobbyInState(updated);
     // ── Auto-record: record initial snapshot on game launch ──
     this.recordGameSnapshot(
-      { event: 'GAME_LAUNCH', gameId, playerCount: lobby.playerIds.length },
-      'Game Launch'
+      { event: "GAME_LAUNCH", gameId, playerCount: lobby.playerIds.length },
+      "Game Launch",
     );
-    this.socket?.emit('party_launch_game', { partyId: lobby.id, gameId });
-    this.socket?.emit('party_started', { partyId: lobby.id, gameId });
+    this.socket?.emit("party_launch_game", { partyId: lobby.id, gameId });
+    this.socket?.emit("party_started", { partyId: lobby.id, gameId });
     // Drive the actual cabinet launch locally too — the ready-check countdown
     // previously ended here with nothing opening the game.
     this.partyLaunch.set({ gameId, partyId: lobby.id });
@@ -1518,16 +1535,18 @@ export class MatchmakingService implements OnDestroy {
     toUserId: string,
     toName: string,
     gameId: string,
-    message = "Challenge accepted! Let's battle!"
-  ): PlayerChallenge {
+    message = "Challenge accepted! Let's battle!",
+  ): PlayerChallenge | null {
     this.haptic.light();
-    if (!this.socket?.connected) {
-      this.notify.show(
-        'Connection lost — challenge may not deliver',
-        'warning'
-      );
+    if (!toUserId || toUserId === this.playerId() || !gameId) {
+      this.notify.show("Choose another player and a valid game", "warning");
+      return null;
     }
-    this.socket?.emit('challenge_player', {
+    if (!this.socket?.connected) {
+      this.notify.show("Connection lost — challenge was not sent", "warning");
+      return null;
+    }
+    this.socket.emit("challenge_player", {
       toUserId,
       gameId,
       message,
@@ -1541,19 +1560,21 @@ export class MatchmakingService implements OnDestroy {
       toName,
       gameId,
       gameName: this.gameService.getGameById(gameId)?.name || gameId,
-      status: 'pending',
+      status: "pending",
       message,
       created: Date.now(),
       expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
     };
+    // This legacy method is not wired into Tha Spot's current send control;
+    // do not claim server persistence before a server acknowledgement.
     this.outgoingChallenges.update((c) => [...c, challenge]);
-    this.notify.show(`Challenge sent to ${toName}`, 'success');
+    this.notify.show(`Challenge sent to ${toName}`, "success");
     return challenge;
   }
 
   acceptChallenge(challengeId: string): void {
     this.haptic.medium();
-    const numericId = challengeId.startsWith('chal-')
+    const numericId = challengeId.startsWith("chal-")
       ? challengeId.slice(5)
       : challengeId;
     const token = this.tokenService.jwtToken();
@@ -1562,23 +1583,23 @@ export class MatchmakingService implements OnDestroy {
     this.http
       .post(
         `${SERVER_URL}/api/users/${this.playerId()}/challenges/${numericId}/respond`,
-        { status: 'accepted' },
+        { status: "accepted" },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       )
       .subscribe({
-        next: () => {
+        next: (record: any) => {
           this.lastAcceptedChallengeId = challengeId;
           this.myChallenges.update((c) =>
             c.map((ch) =>
               ch.id === challengeId
-                ? { ...ch, status: 'accepted' as ChallengeStatus }
-                : ch
-            )
+                ? { ...ch, status: "accepted" as ChallengeStatus }
+                : ch,
+            ),
           );
           const challenge = this.myChallenges().find(
-            (ch) => ch.id === challengeId
+            (ch) => ch.id === challengeId,
           );
           // Responder side: drive the actual game launch. The challenger
           // gets the same signal via the challenge_response socket event.
@@ -1588,11 +1609,11 @@ export class MatchmakingService implements OnDestroy {
               challengeId,
             });
           }
-          this.notify.show('Challenge accepted — launching...', 'success');
+          this.notify.show("Challenge accepted — launching...", "success");
         },
         error: (err) => {
-          console.error('Accept challenge error:', err);
-          this.notify.show('Failed to accept challenge', 'warning');
+          console.error("Accept challenge error:", err);
+          this.notify.show("Failed to accept challenge", "warning");
         },
       });
   }
@@ -1604,7 +1625,7 @@ export class MatchmakingService implements OnDestroy {
 
   rejectChallenge(challengeId: string): void {
     this.haptic.light();
-    const numericId = challengeId.startsWith('chal-')
+    const numericId = challengeId.startsWith("chal-")
       ? challengeId.slice(5)
       : challengeId;
     const token = this.tokenService.jwtToken();
@@ -1613,24 +1634,24 @@ export class MatchmakingService implements OnDestroy {
     this.http
       .post(
         `${SERVER_URL}/api/users/${this.playerId()}/challenges/${numericId}/respond`,
-        { status: 'declined' },
+        { status: "declined" },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       )
       .subscribe({
         next: () => {
           this.myChallenges.update((c) =>
             c.map((ch) =>
               ch.id === challengeId
-                ? { ...ch, status: 'rejected' as ChallengeStatus }
-                : ch
-            )
+                ? { ...ch, status: "rejected" as ChallengeStatus }
+                : ch,
+            ),
           );
-          this.notify.show('Challenge declined', 'info');
+          this.notify.show("Challenge declined", "info");
         },
         error: (err) => {
-          console.error('Reject challenge error:', err);
+          console.error("Reject challenge error:", err);
         },
       });
   }
@@ -1640,8 +1661,8 @@ export class MatchmakingService implements OnDestroy {
   queueForMatch(gameId: string): void {
     this.haptic.light();
     this.isSearching.set(true);
-    this.socket?.emit('queue_for_match', { gameId });
-    this.notify.show(`Searching for opponent in ${gameId}...`, 'info');
+    this.socket?.emit("queue_for_match", { gameId });
+    this.notify.show(`Searching for opponent in ${gameId}...`, "info");
   }
 
   /** Clear stale match-found/searching state so a new queue starts clean. */
@@ -1652,7 +1673,7 @@ export class MatchmakingService implements OnDestroy {
 
   cancelMatchQueue(gameId: string): void {
     this.clearMatchState();
-    this.socket?.emit('cancel_match', { gameId });
+    this.socket?.emit("cancel_match", { gameId });
   }
 
   // ── Persistent Lobby Chat ──
@@ -1671,7 +1692,7 @@ export class MatchmakingService implements OnDestroy {
     this.lobbyChatMessages.update((m) => [...m, msg]);
     this.saveLobbyChatHistory(lobby.id);
     // Also emit via socket for live sync
-    this.socket?.emit('lobby_chat_message', msg);
+    this.socket?.emit("lobby_chat_message", msg);
   }
 
   private loadLobbyChatHistory(lobbyId: string): void {
@@ -1693,7 +1714,7 @@ export class MatchmakingService implements OnDestroy {
       const msgs = this.lobbyChatMessages();
       localStorage.setItem(
         this.LOBBY_CHAT_PREFIX + lobbyId,
-        JSON.stringify(msgs.slice(-50))
+        JSON.stringify(msgs.slice(-50)),
       );
     } catch {
       /* storage full */
@@ -1712,7 +1733,7 @@ export class MatchmakingService implements OnDestroy {
     if (!this.isSpectating()) return;
     if (!lobbyId || !emoji) return;
     const r: SpectatorReaction = {
-      id: 'react-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      id: "react-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
       lobbyId,
       fromUserId: this.playerId(),
       fromUserName: this.playerName(),
@@ -1721,10 +1742,10 @@ export class MatchmakingService implements OnDestroy {
     };
     // Locally flash + emit
     this.spectatorReactions.update((list) => [...list, r].slice(-50));
-    this.socket?.emit('spectator_reaction', r);
+    this.socket?.emit("spectator_reaction", r);
     setTimeout(() => {
       this.spectatorReactions.update((list) =>
-        list.filter((x) => x.id !== r.id)
+        list.filter((x) => x.id !== r.id),
       );
     }, 4000);
     this.haptic.light();
@@ -1735,7 +1756,7 @@ export class MatchmakingService implements OnDestroy {
     if (!this.isSpectating() || !lobbyId || !text.trim()) return;
     const msg: LobbyChatMessage = {
       id:
-        'spec-msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        "spec-msg-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6),
       lobbyId,
       fromUserId: this.playerId(),
       fromUserName: this.playerName(),
@@ -1743,7 +1764,7 @@ export class MatchmakingService implements OnDestroy {
       timestamp: Date.now(),
     };
     this.spectatorChatMessages.update((list) => [...list, msg].slice(-100));
-    this.socket?.emit('spectator_chat_message', msg);
+    this.socket?.emit("spectator_chat_message", msg);
   }
 
   /** Record a game state snapshot for the current lobby */
@@ -1762,7 +1783,7 @@ export class MatchmakingService implements OnDestroy {
     this.lobbyReplaySnapshots.update((s) => [...s, snapshot]);
     this.saveReplayHistory(lobby.id);
     // Broadcast to lobby peers
-    this.socket?.emit('replay_snapshot', snapshot);
+    this.socket?.emit("replay_snapshot", snapshot);
   }
 
   /** Load replay history from localStorage for a given lobby */
@@ -1786,7 +1807,7 @@ export class MatchmakingService implements OnDestroy {
       const snaps = this.lobbyReplaySnapshots();
       localStorage.setItem(
         this.REPLAY_PREFIX + lobbyId,
-        JSON.stringify(snaps.slice(-200))
+        JSON.stringify(snaps.slice(-200)),
       );
     } catch {
       /* storage full */
@@ -1798,12 +1819,12 @@ export class MatchmakingService implements OnDestroy {
     this.loadReplayHistory(lobbyId);
     const snaps = this.lobbyReplaySnapshots();
     if (snaps.length === 0) {
-      this.notify.show('No replay data available for this lobby', 'warning');
+      this.notify.show("No replay data available for this lobby", "warning");
       return;
     }
     this.isReplaying.set(true);
     this.replayCurrentIndex.set(0);
-    this.notify.show(`Replaying ${snaps.length} snapshots`, 'info');
+    this.notify.show(`Replaying ${snaps.length} snapshots`, "info");
 
     // Auto-advance replay frames
     this.replayTimerId = setInterval(() => {
@@ -1862,27 +1883,27 @@ export class MatchmakingService implements OnDestroy {
       [this.playerId()]: update,
     }));
     // Broadcast to lobby
-    this.socket?.emit('game_state_update', update);
+    this.socket?.emit("game_state_update", update);
   }
 
   // ── Spectator Mode ──
 
   startSpectateLobby(lobbyId: string): void {
     const lobby = this.activeLobbies().find((l) => l.id === lobbyId);
-    if (!lobby || lobby.status !== 'in-progress') {
-      this.notify.show('Lobby is not currently playing', 'warning');
+    if (!lobby || lobby.status !== "in-progress") {
+      this.notify.show("Lobby is not currently playing", "warning");
       return;
     }
     this.isSpectating.set(true);
     this.spectateTargetLobby.set(lobby);
-    this.socket?.emit('spectate_lobby', { partyId: lobbyId });
-    this.notify.show(`Spectating ${lobby.gameName} lobby`, 'info');
+    this.socket?.emit("spectate_lobby", { partyId: lobbyId });
+    this.notify.show(`Spectating ${lobby.gameName} lobby`, "info");
   }
 
   stopSpectateLobby(): void {
     const lobby = this.spectateTargetLobby();
     if (lobby) {
-      this.socket?.emit('stop_spectating', { partyId: lobby.id });
+      this.socket?.emit("stop_spectating", { partyId: lobby.id });
     }
     this.isSpectating.set(false);
     this.spectateTargetLobby.set(null);
@@ -1892,7 +1913,7 @@ export class MatchmakingService implements OnDestroy {
 
   findLobbiesForGame(gameId: string): CoOpLobby[] {
     return this.activeLobbies().filter(
-      (l) => l.gameId === gameId && l.status === 'searching'
+      (l) => l.gameId === gameId && l.status === "searching",
     );
   }
 
@@ -1909,7 +1930,7 @@ export class MatchmakingService implements OnDestroy {
   // ── Helpers ──
 
   private partyToLobby(party: ServerParty): CoOpLobby {
-    const gameId = party.gameId ?? 'global';
+    const gameId = party.gameId ?? "global";
     return {
       id: party.partyId,
       hostId: party.leaderId,
@@ -1917,7 +1938,7 @@ export class MatchmakingService implements OnDestroy {
       gameId,
       gameName: this.gameService.getGameById(gameId)?.name || gameId,
 
-      status: 'searching',
+      status: "searching",
       playerIds: party.members.map((m) => m.userId),
       maxPlayers: 4,
       created: Date.now(),
@@ -1928,7 +1949,7 @@ export class MatchmakingService implements OnDestroy {
 
   private updateLobbyInState(lobby: CoOpLobby): void {
     this.activeLobbies.update((lobbies) =>
-      lobbies.map((l) => (l.id === lobby.id ? lobby : l))
+      lobbies.map((l) => (l.id === lobby.id ? lobby : l)),
     );
     if (this.myLobby()?.id === lobby.id) {
       this.myLobby.set(lobby);
@@ -1937,7 +1958,7 @@ export class MatchmakingService implements OnDestroy {
 
   private removeLobbyFromState(lobbyId: string): void {
     this.activeLobbies.update((lobbies) =>
-      lobbies.filter((l) => l.id !== lobbyId)
+      lobbies.filter((l) => l.id !== lobbyId),
     );
     if (this.myLobby()?.id === lobbyId) {
       this.myLobby.set(null);

@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { NextFunction, Request, Response } from "express";
 import { parseIdParam } from "@/lib";
 import { authenticate } from "@/middleware/auth";
-import { emitChallengeResponse } from "@/socket";
+import { emitChallengeCreated, emitChallengeResponse } from "@/socket";
 import {
   addFriend,
   assertOwnershipOrAdmin,
@@ -15,6 +15,7 @@ import {
   listMessageThread,
   listNotifications,
   markNotificationRead,
+  persistNotification,
   removeFriend,
   respondToChallenge,
   respondToFriendRequest,
@@ -117,8 +118,37 @@ router.post("/:userId/challenges", own, async (req, res) => {
     toUserId: req.body?.toUserId,
     gameId: req.body?.gameId,
     gameName: req.body?.gameName,
+    message: req.body?.message,
   });
-  res.status(201).json(created);
+  if (created.isNew) {
+    try {
+      await persistNotification({
+        userId: created.toUserId,
+        type: "challenge_incoming",
+        title: "🎮 Game Challenge",
+        body: `${created.fromUserName || req.params.userId} challenged you to ${created.gameName || created.gameId}`,
+        payload: {
+          challengeId: created.id,
+          fromUserId: req.params.userId,
+          gameId: created.gameId,
+          gameTitle: created.gameName,
+        },
+      });
+    } catch (err) {
+      // Challenge persistence is authoritative; notification failure must not
+      // hide the saved challenge or prevent realtime delivery.
+      console.error("Challenge notification persist failed:", err);
+    }
+    try {
+      emitChallengeCreated({
+        ...created,
+        fromUserId: req.params.userId,
+      });
+    } catch (err) {
+      console.error("Challenge create emit failed:", err);
+    }
+  }
+  res.status(created.isNew ? 201 : 200).json(created);
 });
 
 // POST /api/users/:userId/challenges/:challengeId/respond — { status }
@@ -144,25 +174,18 @@ router.post(
 // GET /api/users/:userId/notifications?unreadOnly=
 router.get("/:userId/notifications", own, async (req, res) => {
   res.json(
-    await listNotifications(
-      req.params.userId,
-      req.query.unreadOnly === "true",
-    ),
+    await listNotifications(req.params.userId, req.query.unreadOnly === "true"),
   );
 });
 
 // POST /api/users/:userId/notifications/:notifId/read
-router.post(
-  "/:userId/notifications/:notifId/read",
-  own,
-  async (req, res) => {
-    res.json(
-      await markNotificationRead(
-        req.params.userId,
-        parseIdParam(req.params.notifId, "notifId"),
-      ),
-    );
-  },
-);
+router.post("/:userId/notifications/:notifId/read", own, async (req, res) => {
+  res.json(
+    await markNotificationRead(
+      req.params.userId,
+      parseIdParam(req.params.notifId, "notifId"),
+    ),
+  );
+});
 
 export default router;

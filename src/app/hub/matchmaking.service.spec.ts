@@ -1,32 +1,32 @@
-import { TestBed } from '@angular/core/testing';
-import { MatchmakingService } from './matchmaking.service';
-import { GameService } from './game.service';
-import { UserProfileService } from '../services/user-profile.service';
-import { NotificationService } from '../services/notification.service';
-import { HapticService } from '../services/haptic.service';
-import { TokenService } from '../services/token.service';
-import { ShareableInviteService } from '../services/shareable-invite.service';
-import { signal } from '@angular/core';
-import { io } from 'socket.io-client';
+import { TestBed } from "@angular/core/testing";
+import { MatchmakingService } from "./matchmaking.service";
+import { GameService } from "./game.service";
+import { UserProfileService } from "../services/user-profile.service";
+import { NotificationService } from "../services/notification.service";
+import { HapticService } from "../services/haptic.service";
+import { TokenService } from "../services/token.service";
+import { ShareableInviteService } from "../services/shareable-invite.service";
+import { signal } from "@angular/core";
+import { io } from "socket.io-client";
 
-jest.mock('socket.io-client', () => ({
+jest.mock("socket.io-client", () => ({
   io: jest.fn(),
 }));
 
-describe('MatchmakingService resolved-match lobby flows', () => {
+describe("MatchmakingService resolved-match lobby flows", () => {
   let service: MatchmakingService;
   let handlers = new Map<string, (payload: any) => void>();
   let emitMock: jest.Mock;
 
   const tokenServiceMock = {
-    jwtToken: jest.fn(() => 'jwt-token'),
+    jwtToken: jest.fn(() => "jwt-token"),
   };
   const profileMock = {
     profile: () => ({
-      id: 'user-1',
-      artistName: 'Artist One',
-      primaryGenre: 'Hip Hop',
-      avatarImage: '',
+      id: "user-1",
+      artistName: "Artist One",
+      primaryGenre: "Hip Hop",
+      avatarImage: "",
     }),
   };
   const notifyMock = { show: jest.fn() };
@@ -56,7 +56,7 @@ describe('MatchmakingService resolved-match lobby flows', () => {
       emit: emitMock,
       disconnect: jest.fn(),
       connected: true,
-      id: 'sock-1',
+      id: "sock-1",
     };
     (io as unknown as jest.Mock).mockReturnValue(fakeSocket);
 
@@ -83,92 +83,106 @@ describe('MatchmakingService resolved-match lobby flows', () => {
     handlers.get(event)?.(payload);
   }
 
-  it('adopts a queue-matched lobby from lobby_list when the cache was empty', () => {
+  it("adopts a queue-matched lobby from lobby_list when the cache was empty", () => {
     // The matchmaking flow: match_found provisions a party and we emit
     // join_party, but the party is NOT in the local directory cache yet
     // (fresh login / reconnect). joinResolvedLobby's eager myLobby set can't
     // fire — this is the exact race the old lobby_list handler lost: it only
     // updated myLobby when myLobby was ALREADY set.
-    serverEvent('match_found', {
-      opponentId: 'user-2',
-      gameId: 'street-fighter-alpha-3-elite-master',
-      partyId: 'party-42',
+    serverEvent("match_found", {
+      opponentId: "user-2",
+      gameId: "street-fighter-alpha-3-elite-master",
+      partyId: "party-42",
     });
-    expect(emitMock).toHaveBeenCalledWith('join_party', { partyId: 'party-42' });
+    expect(emitMock).toHaveBeenCalledWith("join_party", {
+      partyId: "party-42",
+    });
     expect(service.myLobby()).toBeNull(); // cache empty → no eager set
 
     // The authoritative directory now includes the provisioned party.
-    serverEvent('lobby_list', [
+    serverEvent("lobby_list", [
       {
-        partyId: 'party-42',
-        leaderId: 'user-2',
+        partyId: "party-42",
+        leaderId: "user-2",
         members: [
-          { userId: 'user-2', artistName: 'Artist Two' },
-          { userId: 'user-1', artistName: 'Artist One' },
+          { userId: "user-2", artistName: "Artist Two" },
+          { userId: "user-1", artistName: "Artist One" },
         ],
-        gameId: 'street-fighter-alpha-3-elite-master',
+        gameId: "street-fighter-alpha-3-elite-master",
       },
     ]);
 
-    expect(service.myLobby()?.id).toBe('party-42');
-    expect(service.myLobby()?.playerIds).toEqual(['user-2', 'user-1']);
+    expect(service.myLobby()?.id).toBe("party-42");
+    expect(service.myLobby()?.playerIds).toEqual(["user-2", "user-1"]);
     expect(service.isSearching()).toBe(false);
     expect(service.isHost()).toBe(false);
   });
 
-  it('joins the provisioned party on challenge accept and records the resolved id', () => {
-    serverEvent('challenge_lobby_ready', {
-      partyId: 'party-9',
-      gameId: 'tekken-3-elite',
-      challengeId: '12',
-      challengerId: 'user-2',
-      opponentId: 'user-1',
+  it("does not create a challenge when the socket is unavailable", () => {
+    const socket = (io as unknown as jest.Mock).mock.results[0]?.value;
+    socket.connected = false;
+    expect(service.sendChallenge("user-2", "Artist Two", "game-1")).toBeNull();
+    expect(emitMock).not.toHaveBeenCalledWith(
+      "challenge_player",
+      expect.anything(),
+    );
+  });
+
+  it("joins the provisioned party on challenge accept and records the resolved id", () => {
+    serverEvent("challenge_lobby_ready", {
+      partyId: "party-9",
+      gameId: "tekken-3-elite",
+      challengeId: "12",
+      challengerId: "user-2",
+      opponentId: "user-1",
     });
-    expect(emitMock).toHaveBeenCalledWith('join_party', { partyId: 'party-9' });
+    expect(emitMock).toHaveBeenCalledWith("join_party", { partyId: "party-9" });
     // resolvedMatchLobbyId is private — observable effect: endCurrentMatch
     // must tear the room down. myLobby is eager-set by challenge_lobby_ready,
     // so endCurrentMatch leaves the resolved party.
-    expect(service.myLobby()?.gameId).toBe('tekken-3-elite');
+    expect(service.myLobby()?.gameId).toBe("tekken-3-elite");
     service.endCurrentMatch();
-    expect(emitMock).toHaveBeenCalledWith('leave_party', { partyId: 'party-9' });
+    expect(emitMock).toHaveBeenCalledWith("leave_party", {
+      partyId: "party-9",
+    });
     expect(service.myLobby()).toBeNull();
   });
 
-  it('matches the direct join path (lobby already cached) without races', () => {
+  it("matches the direct join path (lobby already cached) without races", () => {
     // Lobby is already in the directory before the accept event arrives.
-    serverEvent('lobby_list', [
+    serverEvent("lobby_list", [
       {
-        partyId: 'party-5',
-        leaderId: 'user-2',
+        partyId: "party-5",
+        leaderId: "user-2",
         members: [
-          { userId: 'user-2', artistName: 'Artist Two' },
-          { userId: 'user-1', artistName: 'Artist One' },
+          { userId: "user-2", artistName: "Artist Two" },
+          { userId: "user-1", artistName: "Artist One" },
         ],
-        gameId: 'ev-io-web-elite',
+        gameId: "ev-io-web-elite",
       },
     ]);
     expect(service.myLobby()).toBeNull(); // we're not in it yet
 
-    serverEvent('challenge_lobby_ready', {
-      partyId: 'party-5',
-      gameId: 'ev-io-web-elite',
-      challengeId: '3',
-      challengerId: 'user-2',
-      opponentId: 'user-1',
+    serverEvent("challenge_lobby_ready", {
+      partyId: "party-5",
+      gameId: "ev-io-web-elite",
+      challengeId: "3",
+      challengerId: "user-2",
+      opponentId: "user-1",
     });
-    expect(service.myLobby()?.id).toBe('party-5');
-    expect(emitMock).toHaveBeenCalledWith('join_party', { partyId: 'party-5' });
+    expect(service.myLobby()?.id).toBe("party-5");
+    expect(emitMock).toHaveBeenCalledWith("join_party", { partyId: "party-5" });
   });
 
-  it('clears a resolved lobby on party_ended', () => {
-    serverEvent('challenge_lobby_ready', {
-      partyId: 'party-21',
-      gameId: 'shell-shockers-web-elite',
-      challengeId: '99',
-      challengerId: 'user-2',
-      opponentId: 'user-1',
+  it("clears a resolved lobby on party_ended", () => {
+    serverEvent("challenge_lobby_ready", {
+      partyId: "party-21",
+      gameId: "shell-shockers-web-elite",
+      challengeId: "99",
+      challengerId: "user-2",
+      opponentId: "user-1",
     });
-    serverEvent('party_ended', { partyId: 'party-21', reason: 'player_left' });
+    serverEvent("party_ended", { partyId: "party-21", reason: "player_left" });
     expect(service.myLobby()).toBeNull();
     expect(service.isSearching()).toBe(false);
   });

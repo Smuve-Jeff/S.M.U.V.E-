@@ -80,7 +80,10 @@ export const invalidateBlockCache = (): void => {
 
 /** Load all directional block rows into the cache (TTL-bounded). */
 const loadBlockedPairs = async (): Promise<Map<string, Set<string>>> => {
-  if (blockCacheLoadedAt && Date.now() - blockCacheLoadedAt < BLOCK_CACHE_TTL_MS) {
+  if (
+    blockCacheLoadedAt &&
+    Date.now() - blockCacheLoadedAt < BLOCK_CACHE_TTL_MS
+  ) {
     return blockCache;
   }
   const rows = await AppDataSource.createQueryBuilder()
@@ -114,9 +117,7 @@ export const isEitherBlocked = async (
 ): Promise<boolean> => {
   if (a === b) return false;
   const cache = await loadBlockedPairs();
-  return (
-    (cache.get(a)?.has(b) ?? false) || (cache.get(b)?.has(a) ?? false)
-  );
+  return (cache.get(a)?.has(b) ?? false) || (cache.get(b)?.has(a) ?? false);
 };
 
 /** PUT /api/users/:userId/blocks/:blockedUserId */
@@ -131,8 +132,8 @@ export const blockUser = async (
   // raw insert values against the entity metadata, so column-name keys are
   // silently dropped and every column is emitted as DEFAULT (NOT NULL
   // violation). Property names map through the metadata to real columns.
-  await repo().blocks
-    .createQueryBuilder()
+  await repo()
+    .blocks.createQueryBuilder()
     .insert()
     .values({ userId, blockedUserId })
     .orIgnore()
@@ -235,26 +236,31 @@ export const searchUsers = async (opts: {
       loc: `%${opts.location}%`,
     });
   }
-  qb.orderBy(
-    `(p.profile_data->>'eliteScore')::int`,
-    "DESC",
-    "NULLS LAST",
-  ).take(20);
+  qb.orderBy(`(p.profile_data->>'eliteScore')::int`, "DESC", "NULLS LAST").take(
+    20,
+  );
   const rows = await qb.getMany();
-  return filterBlocked(opts.actorUserId || "", rows.map((r) => profileToOnlineUser(r)));
+  return filterBlocked(
+    opts.actorUserId || "",
+    rows.map((r) => profileToOnlineUser(r)),
+  );
 };
 
 /** GET /api/users/featured */
 export const featuredUsers = async (
   actorUserId?: string,
 ): Promise<OnlineUserRow[]> => {
-  const rows = await repo().profiles.createQueryBuilder("p")
+  const rows = await repo()
+    .profiles.createQueryBuilder("p")
     .where(`p.profile_data->>'profileSetupCompleted' = 'true'`)
     .andWhere(`p.profile_data->>'artistName' != 'Incognito'`)
     .orderBy("p.updated_at", "DESC")
     .take(10)
     .getMany();
-  return filterBlocked(actorUserId || "", rows.map((r) => profileToOnlineUser(r)));
+  return filterBlocked(
+    actorUserId || "",
+    rows.map((r) => profileToOnlineUser(r)),
+  );
 };
 
 // ─── Friends ─────────────────────────────────────────────────────────────────
@@ -311,7 +317,7 @@ export const addFriend = async (
     );
   }
   return { success: true };
-}
+};
 
 // Upsert the reverse row with ENTITY-PROPERTY keys (column-name keys would
 // be dropped by TypeORM's metadata validation and inserted as DEFAULT).
@@ -435,6 +441,8 @@ export interface ChallengeRow {
   message?: string | null;
   status: string;
   timestamp: number;
+  /** True only for the request that inserted this row; used to avoid duplicate notifications. */
+  isNew?: boolean;
 }
 
 const challengeToRow = (c: GameChallenge): ChallengeRow => ({
@@ -468,7 +476,8 @@ export const listChallenges = async (
   status?: string,
 ): Promise<ChallengeRow[]> => {
   await expireStaleChallenges(userId);
-  const qb = repo().challenges.createQueryBuilder("c")
+  const qb = repo()
+    .challenges.createQueryBuilder("c")
     .where("(c.to_user_id = :userId OR c.from_user_id = :userId)", { userId })
     .orderBy("c.created_at", "DESC")
     .take(50);
@@ -490,13 +499,42 @@ export const listChallenges = async (
 export const createChallenge = async (
   fromUserId: string,
   fromUserName: string | undefined,
-  input: { toUserId: string; gameId: string; gameName?: string },
+  input: {
+    toUserId: string;
+    gameId: string;
+    gameName?: string;
+    message?: string;
+  },
 ): Promise<ChallengeRow> => {
-  if (!input.toUserId || !input.gameId) {
+  if (
+    typeof input.toUserId !== "string" ||
+    !input.toUserId.trim() ||
+    typeof input.gameId !== "string" ||
+    !input.gameId.trim()
+  ) {
     throw new AppError(400, "toUserId and gameId are required");
   }
-  if (fromUserId === input.toUserId) {
+  const toUserId = input.toUserId.trim();
+  const gameId = input.gameId.trim();
+  if (fromUserId === toUserId) {
     throw new AppError(400, "Cannot challenge yourself");
+  }
+  input = { ...input, toUserId, gameId };
+  if (
+    input.gameId.length > 255 ||
+    (typeof input.gameName === "string" && input.gameName.length > 255) ||
+    (input.gameName != null && typeof input.gameName !== "string")
+  ) {
+    throw new AppError(
+      400,
+      "gameId and gameName must be valid strings of 255 characters or fewer",
+    );
+  }
+  if (
+    (typeof input.message === "string" && input.message.length > 2000) ||
+    (input.message != null && typeof input.message !== "string")
+  ) {
+    throw new AppError(400, "message must be 2000 characters or fewer");
   }
   // Mutual blocklist: either direction blocks challenge delivery.
   if (await isEitherBlocked(fromUserId, input.toUserId)) {
@@ -504,15 +542,16 @@ export const createChallenge = async (
   }
   const gameTitle =
     typeof input.gameName === "string" && input.gameName.trim()
-      ? input.gameName
+      ? input.gameName.trim()
       : input.gameId;
-  const existing = await repo().challenges.createQueryBuilder("c")
+  const existing = await repo()
+    .challenges.createQueryBuilder("c")
     .where(
       `c.from_user_id = :from AND c.to_user_id = :to AND c.game_id = :game AND c.status = 'pending'`,
       { from: fromUserId, to: input.toUserId, game: input.gameId },
     )
     .getOne();
-  if (existing) return challengeToRow(existing);
+  if (existing) return { ...challengeToRow(existing), isNew: false };
   try {
     const saved = await repo().challenges.save(
       repo().challenges.create({
@@ -521,20 +560,22 @@ export const createChallenge = async (
         toUserId: input.toUserId,
         gameId: input.gameId,
         gameTitle,
+        message: input.message?.trim() || null,
         status: "pending",
       }),
     );
-    return challengeToRow(saved);
+    return { ...challengeToRow(saved), isNew: true };
   } catch (err) {
     // Unique-violation race (socket + REST fired concurrently): return the
     // row the other writer won with instead of surfacing a 500.
-    const winner = await repo().challenges.createQueryBuilder("c")
+    const winner = await repo()
+      .challenges.createQueryBuilder("c")
       .where(
         `c.from_user_id = :from AND c.to_user_id = :to AND c.game_id = :game AND c.status = 'pending'`,
         { from: fromUserId, to: input.toUserId, game: input.gameId },
       )
       .getOne();
-    if (winner) return challengeToRow(winner);
+    if (winner) return { ...challengeToRow(winner), isNew: false };
     throw err;
   }
 };
@@ -559,12 +600,42 @@ export const respondToChallenge = async (
   // match from forming — otherwise blocking someone wouldn't stop them from
   // accepting an old challenge and dragging both sides into a shared lobby.
   if (await isEitherBlocked(challenge.fromUserId, challenge.toUserId)) {
-    throw new AppError(403, "Cannot respond to a challenge from a blocked user");
+    throw new AppError(
+      403,
+      "Cannot respond to a challenge from a blocked user",
+    );
   }
-  challenge.status = status;
-  challenge.respondedAt = new Date();
-  await repo().challenges.save(challenge);
-  return challengeToRow(challenge);
+  if (challenge.status !== "pending") {
+    if (challenge.status === status) return challengeToRow(challenge);
+    throw new AppError(409, "Challenge has already been resolved");
+  }
+
+  // Resolve atomically. A read-then-save lets simultaneous accept/decline
+  // requests overwrite one another and can provision conflicting match state.
+  const respondedAt = new Date();
+  const result = await repo()
+    .challenges.createQueryBuilder()
+    .update(GameChallenge)
+    .set({ status, respondedAt, updatedAt: respondedAt })
+    .where(
+      "id = :challengeId AND to_user_id = :userId AND status = 'pending'",
+      { challengeId, userId: challenge.toUserId },
+    )
+    .execute();
+  if (!result.affected) {
+    // A concurrent identical response is idempotent; a conflicting response
+    // is not. Re-read once rather than emitting a false success to the client.
+    const current = await repo().challenges.findOneBy({ id: challengeId });
+    if (current?.status === status) return challengeToRow(current);
+    throw new AppError(409, "Challenge has already been resolved");
+  }
+
+  return challengeToRow({
+    ...challenge,
+    status,
+    respondedAt,
+    updatedAt: respondedAt,
+  });
 };
 
 // ─── Room chat (persisted) ──────────────────────────────────────────────────

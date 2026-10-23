@@ -5,31 +5,31 @@ import {
   signal,
   computed,
   inject,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { ActivatedRoute, Router } from "@angular/router";
+import { Subscription } from "rxjs";
 import {
   ChallengeInboxService,
   ChallengeRecord,
   AppNotification,
-} from '../../services/challenge-inbox.service';
-import { SocialNetworkingService } from '../../services/social-networking.service';
-import { UserProfileService } from '../../services/user-profile.service';
-import { SnackbarService } from '../../services/snackbar.service';
-import { TokenService } from '../../services/token.service';
-import { GameService } from '../../hub/game.service';
-import { APP_SECURITY_CONFIG } from '../../app.security';
+} from "../../services/challenge-inbox.service";
+import { SocialNetworkingService } from "../../services/social-networking.service";
+import { UserProfileService } from "../../services/user-profile.service";
+import { SnackbarService } from "../../services/snackbar.service";
+import { TokenService } from "../../services/token.service";
+import { GameService } from "../../hub/game.service";
+import { APP_SECURITY_CONFIG } from "../../app.security";
 
-type Tab = 'pending' | 'accepted' | 'declined' | 'all';
+type Tab = "pending" | "accepted" | "declined" | "all";
 
 @Component({
-  selector: 'app-challenge-inbox',
+  selector: "app-challenge-inbox",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './challenge-inbox.component.html',
-  styleUrls: ['./challenge-inbox.component.css'],
+  templateUrl: "./challenge-inbox.component.html",
+  styleUrls: ["./challenge-inbox.component.css"],
 })
 export class ChallengeInboxComponent implements OnInit, OnDestroy {
   inbox = inject(ChallengeInboxService);
@@ -41,14 +41,14 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
   router = inject(Router);
   route = inject(ActivatedRoute);
 
-  activeTab = signal<Tab>('pending');
+  activeTab = signal<Tab>("pending");
   loading = this.inbox.loading;
 
   tabs: { id: Tab; label: string }[] = [
-    { id: 'pending', label: 'PENDING' },
-    { id: 'accepted', label: 'ACCEPTED' },
-    { id: 'declined', label: 'DECLINED' },
-    { id: 'all', label: 'ALL' },
+    { id: "pending", label: "PENDING" },
+    { id: "accepted", label: "ACCEPTED" },
+    { id: "declined", label: "DECLINED" },
+    { id: "all", label: "ALL" },
   ];
 
   filteredChallenges = computed<ChallengeRecord[]>(() => {
@@ -56,13 +56,13 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
     const me = this.profileService.profile().id;
     const all = this.inbox.challenges();
     const mine =
-      tab === 'all'
+      tab === "all"
         ? all
         : all.filter(
             (c) =>
-              c.status === tab && (c.toUserId === me || c.fromUserId === me)
+              c.status === tab && (c.toUserId === me || c.fromUserId === me),
           );
-    if (tab === 'all')
+    if (tab === "all")
       return mine.filter((c) => c.toUserId === me || c.fromUserId === me);
     return mine.sort((a, b) => b.timestamp - a.timestamp);
   });
@@ -73,6 +73,7 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
 
   private subs: Subscription[] = [];
   private socketBound = false;
+  private readonly routeSub = new Subscription();
   /** Handler refs so teardown removes ONLY this component's listeners. */
   private readonly onInboxSync = (records: ChallengeRecord[]) => {
     this.inbox.onChallengeInboxSync(records);
@@ -81,16 +82,30 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
     this.inbox.onNotificationSync(records);
   };
   private readonly onChallengeResponse = (resp: any) => {
-    // Response confirmed for a challenge I sent; refresh
-    this.inbox.loadInbox('all').catch(() => {});
+    const me = this.profileService.profile().id;
+    // This event is broadcast to both parties; only the challenger should
+    // receive response copy. A response to the challenge I accepted is not
+    // a second incoming notification for me.
+    if (!resp || resp.fromUserId !== me) return;
+    void this.inbox.loadInbox("all").then(() => {
+      if (resp.status === "accepted") {
+        const challenge = this.inbox
+          .challenges()
+          .find((record) => record.id === resp.id);
+        if (challenge)
+          this.router.navigate(["/tha-spot"], {
+            queryParams: { gameId: challenge.gameId },
+          });
+      }
+    });
     this.snackbarService.info(
-      `CHALLENGE RESPONSE: ${resp.status?.toUpperCase() || 'UPDATE'}`
+      `CHALLENGE RESPONSE: ${resp.status?.toUpperCase() || "UPDATE"}`,
     );
   };
 
   async ngOnInit() {
     // Bind the socket so challenges can fire challenges via socket
-    const socket: any = (this.social as any).socket;
+    const socket: any = this.social.getSocket();
     if (socket && !this.socketBound) {
       this.inbox.bindSocket(socket);
       this.socketBound = true;
@@ -99,42 +114,45 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
     // Listen for inbox + notification sync events from server (auto-delivered
     // on register_presence; or via request_inbox_sync).
     if (socket) {
-      socket.on('challenge_inbox_sync', this.onInboxSync);
-      socket.on('notification_sync', this.onNotifSync);
-      socket.on('challenge_response', this.onChallengeResponse);
+      socket.on("challenge_inbox_sync", this.onInboxSync);
+      socket.on("notification_sync", this.onNotifSync);
+      socket.on("challenge_response", this.onChallengeResponse);
     }
 
     // Handle deep link: /inbox?challenge=true&gameId=...&from=...
-    this.route.queryParamMap.subscribe((params) => {
-      const challenge = params.get('challenge');
-      if (challenge === 'true') {
-        const gameId = params.get('gameId') || '';
-        const fromName = params.get('fromName') || 'A rival';
-        if (gameId) {
-          this.snackbarService.info(
-            `INCOMING CHALLENGE FROM ${fromName.toUpperCase()} // ${gameId.toUpperCase()}`
-          );
+    this.routeSub.add(
+      this.route.queryParamMap.subscribe((params) => {
+        const challenge = params.get("challenge");
+        if (challenge === "true") {
+          const gameId = params.get("gameId") || "";
+          const fromName = params.get("fromName") || "A rival";
+          if (gameId) {
+            this.snackbarService.info(
+              `INCOMING CHALLENGE FROM ${fromName.toUpperCase()} // ${gameId.toUpperCase()}`,
+            );
+          }
+          this.activeTab.set("pending");
         }
-        this.activeTab.set('pending');
-      }
-    });
+      }),
+    );
 
     await Promise.all([
-      this.inbox.loadInbox('all'),
+      this.inbox.loadInbox("all"),
       this.inbox.loadNotifications(true),
     ]);
   }
 
   ngOnDestroy() {
-    const socket: any = (this.social as any).socket;
+    const socket: any = this.social.getSocket();
     if (socket) {
       // NOTE: `off(event, handler)` — WITHOUT the handler ref, Socket.IO
       // removes EVERY listener for the event, silently killing other
       // components' handlers (Tha Spot's challenge banner included).
-      socket.off('challenge_inbox_sync', this.onInboxSync);
-      socket.off('notification_sync', this.onNotifSync);
-      socket.off('challenge_response', this.onChallengeResponse);
+      socket.off("challenge_inbox_sync", this.onInboxSync);
+      socket.off("notification_sync", this.onNotifSync);
+      socket.off("challenge_response", this.onChallengeResponse);
     }
+    this.routeSub.unsubscribe();
     this.subs.forEach((s) => s.unsubscribe());
   }
 
@@ -143,13 +161,15 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
   }
 
   async accept(challenge: ChallengeRecord) {
-    await this.inbox.respondToChallenge(challenge.id, 'accepted');
-    this.snackbarService.success('CHALLENGE ACCEPTED');
+    const saved = await this.inbox.respondToChallenge(challenge.id, "accepted");
+    if (saved) this.snackbarService.success("CHALLENGE ACCEPTED");
+    else this.snackbarService.error("CHALLENGE RESPONSE FAILED — PLEASE RETRY");
   }
 
   async decline(challenge: ChallengeRecord) {
-    await this.inbox.respondToChallenge(challenge.id, 'declined');
-    this.snackbarService.info('CHALLENGE DECLINED');
+    const saved = await this.inbox.respondToChallenge(challenge.id, "declined");
+    if (saved) this.snackbarService.info("CHALLENGE DECLINED");
+    else this.snackbarService.error("CHALLENGE RESPONSE FAILED — PLEASE RETRY");
   }
 
   async markRead(n: AppNotification) {
@@ -159,7 +179,7 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
 
   async refreshAll() {
     await Promise.all([
-      this.inbox.loadInbox('all'),
+      this.inbox.loadInbox("all"),
       this.inbox.loadNotifications(false),
     ]);
   }
@@ -167,7 +187,7 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
   relativeTime(ts: number): string {
     const diff = Date.now() - ts;
     const m = Math.floor(diff / 60000);
-    if (m < 1) return 'just now';
+    if (m < 1) return "just now";
     if (m < 60) return `${m}m ago`;
     const h = Math.floor(m / 60);
     if (h < 24) return `${h}h ago`;
@@ -189,9 +209,9 @@ export class ChallengeInboxComponent implements OnInit, OnDestroy {
     // Prefer canonical title from the GameService when available to avoid
     // showing raw slugs or ids. Fall back to the legacy slug formatter.
     const game = this.gameService.getGameById?.(gameId);
-    if (game && typeof game.name === 'string' && game.name.trim() !== '') {
+    if (game && typeof game.name === "string" && game.name.trim() !== "") {
       return game.name;
     }
-    return (gameId || '').toUpperCase().replace(/-/g, ' ');
+    return (gameId || "").toUpperCase().replace(/-/g, " ");
   }
 }

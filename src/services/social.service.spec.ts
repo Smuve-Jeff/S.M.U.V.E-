@@ -50,6 +50,8 @@ const makeRepo = () => ({
     andWhere: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    set: jest.fn().mockReturnThis(),
     getOne: jest.fn().mockResolvedValue(null),
     getMany: jest.fn().mockResolvedValue([]),
     getRawMany: jest.fn().mockResolvedValue([]),
@@ -109,7 +111,9 @@ import {
 } from "./social.service";
 
 /** Mock the block-cache loader rows returned by the shared query-builder chain. */
-const setBlockRows = (rows: Array<{ userId: string; blockedUserId: string }>) => {
+const setBlockRows = (
+  rows: Array<{ userId: string; blockedUserId: string }>,
+) => {
   (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce({
     select: jest.fn().mockReturnThis(),
     from: jest.fn().mockReturnThis(),
@@ -121,7 +125,9 @@ describe("profile service", () => {
   beforeEach(() => jest.clearAllMocks());
 
   it("loads a raw profile blob", async () => {
-    repos.profiles.findOneBy.mockResolvedValue({ profileData: { artistName: "Jeff" } });
+    repos.profiles.findOneBy.mockResolvedValue({
+      profileData: { artistName: "Jeff" },
+    });
     await expect(getProfile("user-1")).resolves.toEqual({ artistName: "Jeff" });
   });
 
@@ -166,10 +172,51 @@ describe("challenge service", () => {
     expect(record.timestamp).toBeGreaterThan(0);
   });
 
+  it("normalizes challenge ids and trims the stored message/title", async () => {
+    repos.challenges.save.mockImplementation(async (value: any) => ({
+      ...value,
+      id: 55,
+      createdAt: new Date(),
+    }));
+    const record = await createChallenge("u1", "Jeff", {
+      toUserId: " u2 ",
+      gameId: " pacman ",
+      gameName: " PAC-MAN ",
+      message: "  ready?  ",
+    });
+    expect(record.toUserId).toBe("u2");
+    expect(record.gameId).toBe("pacman");
+    expect(repos.challenges.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toUserId: "u2",
+        gameId: "pacman",
+        gameTitle: "PAC-MAN",
+        message: "ready?",
+      }),
+    );
+  });
+
   it("rejects challenges without a target", async () => {
     await expect(
       createChallenge("u1", "Jeff", { toUserId: "", gameId: "pacman" }),
     ).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it("rejects oversized challenge fields before database access", async () => {
+    await expect(
+      createChallenge("u1", "Jeff", {
+        toUserId: "u2",
+        gameId: "g".repeat(256),
+      }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    await expect(
+      createChallenge("u1", "Jeff", {
+        toUserId: "u2",
+        gameId: "pacman",
+        message: "x".repeat(2001),
+      }),
+    ).rejects.toMatchObject({ statusCode: 400 });
+    expect(repos.challenges.save).not.toHaveBeenCalled();
   });
 
   it("rejects self-challenges", async () => {
@@ -243,11 +290,83 @@ describe("challenge service", () => {
     expect(record.id).toBe(12);
   });
 
+  it("rejects an already resolved challenge and does not save it again", async () => {
+    repos.challenges.findOneBy.mockResolvedValue({
+      id: 41,
+      fromUserId: "u2",
+      toUserId: "u1",
+      gameId: "pacman",
+      status: "declined",
+      createdAt: new Date(),
+    });
+    await expect(
+      respondToChallenge(41, "accepted", "u1"),
+    ).rejects.toMatchObject({ statusCode: 409 });
+    expect(repos.challenges.save).not.toHaveBeenCalled();
+  });
+
+  it("updates a pending challenge with a conditional atomic write", async () => {
+    const challenge = {
+      id: 42,
+      fromUserId: "u2",
+      toUserId: "u1",
+      gameId: "pacman",
+      status: "pending",
+      createdAt: new Date(),
+    };
+    repos.challenges.findOneBy.mockResolvedValue(challenge);
+    const builder = {
+      update: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      execute: jest.fn().mockResolvedValue({ affected: 1 }),
+    };
+    (repos.challenges.createQueryBuilder as jest.Mock).mockReturnValue(builder);
+    const record = await respondToChallenge(42, "accepted", "u1");
+    expect(builder.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "accepted",
+        respondedAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      }),
+    );
+    expect(builder.where).toHaveBeenCalledWith(
+      "id = :challengeId AND to_user_id = :userId AND status = 'pending'",
+      { challengeId: 42, userId: "u1" },
+    );
+    expect(record.status).toBe("accepted");
+    expect(repos.challenges.save).not.toHaveBeenCalled();
+  });
+
   it("rejects challenges against a blocked player (mutual)", async () => {
     setBlockRows([{ userId: "u2", blockedUserId: "u1" }]);
     await expect(
       createChallenge("u1", "Jeff", { toUserId: "u2", gameId: "pacman" }),
     ).rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it("returns conflict if an atomic response loses a concurrent race", async () => {
+    const pending = {
+      id: 43,
+      fromUserId: "u2",
+      toUserId: "u1",
+      gameId: "pacman",
+      status: "pending",
+      createdAt: new Date(),
+    };
+    repos.challenges.findOneBy
+      .mockResolvedValueOnce(pending)
+      .mockResolvedValueOnce({ ...pending, status: "declined" });
+    const builder = {
+      update: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      execute: jest.fn().mockResolvedValue({ affected: 0 }),
+    };
+    (repos.challenges.createQueryBuilder as jest.Mock).mockReturnValue(builder);
+    await expect(
+      respondToChallenge(43, "accepted", "u1"),
+    ).rejects.toMatchObject({ statusCode: 409 });
   });
 
   it("rejects a response when a block was placed after the challenge", async () => {
@@ -292,7 +411,10 @@ describe("blocklist service", () => {
     (repos.blocks.createQueryBuilder as jest.Mock).mockReturnValue(builder);
     await blockUser("u1", "u2");
     expect(repos.blocks.createQueryBuilder).toHaveBeenCalled();
-    expect(builder.values).toHaveBeenCalledWith({ userId: "u1", blockedUserId: "u2" });
+    expect(builder.values).toHaveBeenCalledWith({
+      userId: "u1",
+      blockedUserId: "u2",
+    });
     expect(builder.orIgnore).toHaveBeenCalled();
     expect(builder.execute).toHaveBeenCalled();
   });
@@ -323,7 +445,9 @@ describe("blocklist service", () => {
         },
       ]),
     };
-    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce(builder as never);
+    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce(
+      builder as never,
+    );
     const rows = await listBlockedUsers("u1");
     expect(rows).toEqual([
       { userId: "u2", artistName: "Rival", primaryGenre: "Hip Hop" },
@@ -363,7 +487,9 @@ describe("blocklist service", () => {
         },
       ]),
     };
-    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce(builder as never);
+    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce(
+      builder as never,
+    );
     const rows = await listBlockedUsers("u1");
     expect(rows[0]).toEqual({
       userId: "u9",
@@ -393,7 +519,9 @@ describe("blocklist service", () => {
         },
       ]),
     };
-    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce(builder as never);
+    (AppDataSource.createQueryBuilder as jest.Mock).mockReturnValueOnce(
+      builder as never,
+    );
     setBlockRows([]); // block cache consulted by filterBlocked inside listFriends
     const rows = await listFriends("u1");
     expect(rows).toEqual([

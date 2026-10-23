@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import { io as ioClient } from "socket.io-client";
 import jwt from "jsonwebtoken";
 import {
+  createChallenge,
   isEitherBlocked,
   listRoomMessages,
   persistRoomMessage,
@@ -52,7 +53,20 @@ jest.mock("@/database/data-source", () => {
 });
 
 jest.mock("@/services", () => ({
-  createChallenge: jest.fn(async () => ({ id: 1, gameName: "GAME" })),
+  createChallenge: jest.fn(
+    async (fromUserId: string, fromUserName: string, input: any) => ({
+      id: 1,
+      fromUserId,
+      fromUserName,
+      toUserId: input.toUserId,
+      gameId: input.gameId,
+      gameName: input.gameName || "GAME",
+      message: input.message || null,
+      status: "pending",
+      timestamp: Date.now(),
+      isNew: true,
+    }),
+  ),
   createStudioSession: jest.fn(async () => ({ id: "sess_1" })),
   upsertSessionMember: jest.fn(async () => undefined),
   hasStudioPermission: jest.fn(async () => true),
@@ -181,6 +195,7 @@ jest.setTimeout(15000);
 describe("socket.io handshake + JWT auth", () => {
   let httpServer: ReturnType<typeof createServer>;
   let port: number;
+  const clients: ReturnType<typeof ioClient>[] = [];
 
   beforeAll(async () => {
     httpServer = createServer();
@@ -190,13 +205,33 @@ describe("socket.io handshake + JWT auth", () => {
   });
 
   afterAll(async () => {
+    clients.forEach((client) => client.close());
+    clients.length = 0;
     await new Promise<void>((resolve) => httpServer.close(() => resolve()));
   });
 
   const url = () => `http://localhost:${port}`;
+  const mk = (id: number) => {
+    const client = ioClient(url(), {
+      auth: {
+        token: jwt.sign({ userId: id, role: "user" }, process.env.JWT_SECRET!),
+      },
+      transports: ["websocket", "polling"],
+    });
+    clients.push(client);
+    return client;
+  };
+  const connect = (client: ReturnType<typeof mk>) =>
+    new Promise<void>((resolve, reject) => {
+      client.once("connect", () => resolve());
+      client.once("connect_error", (error) => reject(error));
+    });
 
   it("accepts a client that presents a valid JWT", (done) => {
-    const token = jwt.sign({ userId: 42, role: "user" }, process.env.JWT_SECRET!);
+    const token = jwt.sign(
+      { userId: 42, role: "user" },
+      process.env.JWT_SECRET!,
+    );
     const client = ioClient(url(), {
       auth: { token },
       transports: ["websocket", "polling"],
@@ -239,7 +274,7 @@ describe("socket.io handshake + JWT auth", () => {
     };
 
     client.on("connect", () =>
-      finish(new Error("unexpectedly connected without a token"))
+      finish(new Error("unexpectedly connected without a token")),
     );
     client.on("connect_error", () => finish());
     client.on("disconnect", () => finish());
@@ -266,14 +301,17 @@ describe("socket.io handshake + JWT auth", () => {
     };
 
     client.on("connect", () =>
-      finish(new Error("unexpectedly connected with a garbage token"))
+      finish(new Error("unexpectedly connected with a garbage token")),
     );
     client.on("connect_error", () => finish());
     client.on("disconnect", () => finish());
   });
 
   it("delivers persisted room history on join_room", (done) => {
-    const token = jwt.sign({ userId: 90, role: "user" }, process.env.JWT_SECRET!);
+    const token = jwt.sign(
+      { userId: 90, role: "user" },
+      process.env.JWT_SECRET!,
+    );
     const client = ioClient(url(), {
       auth: { token },
       transports: ["websocket", "polling"],
@@ -311,9 +349,18 @@ describe("socket.io handshake + JWT auth", () => {
   });
 
   it("persists + broadcasts room messages with the server row id", (done) => {
-    const token = jwt.sign({ userId: 91, role: "user" }, process.env.JWT_SECRET!);
-    const clientA = ioClient(url(), { auth: { token }, transports: ["websocket", "polling"] });
-    const clientB = ioClient(url(), { auth: { token }, transports: ["websocket", "polling"] });
+    const token = jwt.sign(
+      { userId: 91, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const clientA = ioClient(url(), {
+      auth: { token },
+      transports: ["websocket", "polling"],
+    });
+    const clientB = ioClient(url(), {
+      auth: { token },
+      transports: ["websocket", "polling"],
+    });
     const timer = setTimeout(() => {
       clientA.close();
       clientB.close();
@@ -333,7 +380,10 @@ describe("socket.io handshake + JWT auth", () => {
         message: "yo lobby",
         timestamp: 5678,
       });
-      clientA.emit("send_room_message", { roomId: "lobby-y", message: "yo lobby" });
+      clientA.emit("send_room_message", {
+        roomId: "lobby-y",
+        message: "yo lobby",
+      });
     };
     clientA.on("connect", () => clientA.emit("join_room", "lobby-y"));
     clientB.on("connect", () => clientB.emit("join_room", "lobby-y"));
@@ -350,7 +400,11 @@ describe("socket.io handshake + JWT auth", () => {
       clientA.close();
       clientB.close();
       expect(jest.mocked(persistRoomMessage)).toHaveBeenCalledWith(
-        expect.objectContaining({ roomId: "lobby-y", message: "yo lobby", userId: "91" }),
+        expect.objectContaining({
+          roomId: "lobby-y",
+          message: "yo lobby",
+          userId: "91",
+        }),
       );
       expect(data.id).toBe(42);
       expect(data.message).toBe("yo lobby");
@@ -359,10 +413,22 @@ describe("socket.io handshake + JWT auth", () => {
   });
 
   it("broadcasts the authoritative lobby_list when a party is created", (done) => {
-    const tokenA = jwt.sign({ userId: 101, role: "user" }, process.env.JWT_SECRET!);
-    const tokenB = jwt.sign({ userId: 102, role: "user" }, process.env.JWT_SECRET!);
-    const clientA = ioClient(url(), { auth: { token: tokenA }, transports: ["websocket", "polling"] });
-    const clientB = ioClient(url(), { auth: { token: tokenB }, transports: ["websocket", "polling"] });
+    const tokenA = jwt.sign(
+      { userId: 101, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const tokenB = jwt.sign(
+      { userId: 102, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const clientA = ioClient(url(), {
+      auth: { token: tokenA },
+      transports: ["websocket", "polling"],
+    });
+    const clientB = ioClient(url(), {
+      auth: { token: tokenB },
+      transports: ["websocket", "polling"],
+    });
     const timer = setTimeout(() => {
       clientA.close();
       clientB.close();
@@ -386,10 +452,22 @@ describe("socket.io handshake + JWT auth", () => {
   });
 
   it("drops DM delivery when either party is blocked", (done) => {
-    const tokenA = jwt.sign({ userId: 111, role: "user" }, process.env.JWT_SECRET!);
-    const tokenB = jwt.sign({ userId: 112, role: "user" }, process.env.JWT_SECRET!);
-    const clientA = ioClient(url(), { auth: { token: tokenA }, transports: ["websocket", "polling"] });
-    const clientB = ioClient(url(), { auth: { token: tokenB }, transports: ["websocket", "polling"] });
+    const tokenA = jwt.sign(
+      { userId: 111, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const tokenB = jwt.sign(
+      { userId: 112, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const clientA = ioClient(url(), {
+      auth: { token: tokenA },
+      transports: ["websocket", "polling"],
+    });
+    const clientB = ioClient(url(), {
+      auth: { token: tokenB },
+      transports: ["websocket", "polling"],
+    });
     const timer = setTimeout(() => {
       clientA.close();
       clientB.close();
@@ -433,7 +511,12 @@ describe("socket.io handshake + JWT auth", () => {
   it("rejects a full lobby with party_join_failed", (done) => {
     const mk = (id: number) =>
       ioClient(url(), {
-        auth: { token: jwt.sign({ userId: id, role: "user" }, process.env.JWT_SECRET!) },
+        auth: {
+          token: jwt.sign(
+            { userId: id, role: "user" },
+            process.env.JWT_SECRET!,
+          ),
+        },
         transports: ["websocket", "polling"],
       });
     const clients = [mk(201), mk(202), mk(203), mk(204), mk(205)];
@@ -473,7 +556,10 @@ describe("socket.io handshake + JWT auth", () => {
         connected++;
         if (connected === clients.length) {
           // Create first, THEN join — so no joiner can hit lobby_not_found.
-          clients[0].emit("create_party", { partyId: "party-full", gameId: "pacman" });
+          clients[0].emit("create_party", {
+            partyId: "party-full",
+            gameId: "pacman",
+          });
           setTimeout(() => {
             for (let i = 1; i < clients.length; i++) {
               clients[i].emit("join_party", { partyId: "party-full" });
@@ -485,10 +571,22 @@ describe("socket.io handshake + JWT auth", () => {
   });
 
   it("removes a user from their previous lobby when they join a new one", (done) => {
-    const tokenA = jwt.sign({ userId: 211, role: "user" }, process.env.JWT_SECRET!);
-    const tokenB = jwt.sign({ userId: 212, role: "user" }, process.env.JWT_SECRET!);
-    const clientA = ioClient(url(), { auth: { token: tokenA }, transports: ["websocket", "polling"] });
-    const clientB = ioClient(url(), { auth: { token: tokenB }, transports: ["websocket", "polling"] });
+    const tokenA = jwt.sign(
+      { userId: 211, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const tokenB = jwt.sign(
+      { userId: 212, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const clientA = ioClient(url(), {
+      auth: { token: tokenA },
+      transports: ["websocket", "polling"],
+    });
+    const clientB = ioClient(url(), {
+      auth: { token: tokenB },
+      transports: ["websocket", "polling"],
+    });
     let aReady = false;
     let bReady = false;
     const timer = setTimeout(() => {
@@ -516,7 +614,10 @@ describe("socket.io handshake + JWT auth", () => {
     clientB.on("user_joined_party", (data: { userId: string }) => {
       if (data.userId !== "212") return;
       // Switching lobbies must eject B from party-old first.
-      clientB.emit("create_party", { partyId: "party-second", gameId: "pacman" });
+      clientB.emit("create_party", {
+        partyId: "party-second",
+        gameId: "pacman",
+      });
     });
     clientA.on("user_left_party", (data: { userId: string }) => {
       if (data.userId !== "212") return;
@@ -530,7 +631,12 @@ describe("socket.io handshake + JWT auth", () => {
   it("keeps third-party devices out of a split-screen pair", (done) => {
     const mk = (id: number) =>
       ioClient(url(), {
-        auth: { token: jwt.sign({ userId: id, role: "user" }, process.env.JWT_SECRET!) },
+        auth: {
+          token: jwt.sign(
+            { userId: id, role: "user" },
+            process.env.JWT_SECRET!,
+          ),
+        },
         transports: ["websocket", "polling"],
       });
     const host = mk(221);
@@ -554,17 +660,26 @@ describe("socket.io handshake + JWT auth", () => {
     // host→guest snapshot still flows while the impostor path stays dead.
     host.on("connect", () => {
       setTimeout(() => {
-        host.emit("split_screen_register", { lobbyId: "split-cap", role: "host" });
+        host.emit("split_screen_register", {
+          lobbyId: "split-cap",
+          role: "host",
+        });
       }, 100);
     });
     host.on("split_screen_role_assigned", () => {
       setTimeout(() => {
-        guest.emit("split_screen_register", { lobbyId: "split-cap", role: "guest" });
+        guest.emit("split_screen_register", {
+          lobbyId: "split-cap",
+          role: "guest",
+        });
       }, 100);
     });
     guest.on("split_screen_ready", () => {
       setTimeout(() => {
-        third.emit("split_screen_register", { lobbyId: "split-cap", role: "guest" });
+        third.emit("split_screen_register", {
+          lobbyId: "split-cap",
+          role: "guest",
+        });
         third.emit("split_screen_sync", {
           lobbyId: "split-cap",
           snapshot: { score: 999, ts: Date.now() },
@@ -593,10 +708,22 @@ describe("socket.io handshake + JWT auth", () => {
   });
 
   it("bootstraps a late-joining split-screen guest with the cached peer snapshot", (done) => {
-    const tokenHost = jwt.sign({ userId: 221, role: "user" }, process.env.JWT_SECRET!);
-    const tokenGuest = jwt.sign({ userId: 222, role: "user" }, process.env.JWT_SECRET!);
-    const host = ioClient(url(), { auth: { token: tokenHost }, transports: ["websocket"] });
-    const guest = ioClient(url(), { auth: { token: tokenGuest }, transports: ["websocket"] });
+    const tokenHost = jwt.sign(
+      { userId: 221, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const tokenGuest = jwt.sign(
+      { userId: 222, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const host = ioClient(url(), {
+      auth: { token: tokenHost },
+      transports: ["websocket"],
+    });
+    const guest = ioClient(url(), {
+      auth: { token: tokenGuest },
+      transports: ["websocket"],
+    });
     let settled = false;
     const finish = (err?: Error) => {
       if (settled) return;
@@ -606,12 +733,16 @@ describe("socket.io handshake + JWT auth", () => {
       done(err);
     };
     const timer = setTimeout(
-      () => finish(new Error("split-screen late-join bootstrap test timed out")),
+      () =>
+        finish(new Error("split-screen late-join bootstrap test timed out")),
       8000,
     );
     host.on("connect", () => {
       setTimeout(() => {
-        host.emit("split_screen_register", { lobbyId: "split-latejoin", role: "host" });
+        host.emit("split_screen_register", {
+          lobbyId: "split-latejoin",
+          role: "host",
+        });
       }, 100);
     });
     host.on("split_screen_role_assigned", () => {
@@ -622,7 +753,10 @@ describe("socket.io handshake + JWT auth", () => {
         snapshot: { level: "LV_03", score: 42, turn: "host", ts: Date.now() },
       });
       setTimeout(() => {
-        guest.emit("split_screen_register", { lobbyId: "split-latejoin", role: "guest" });
+        guest.emit("split_screen_register", {
+          lobbyId: "split-latejoin",
+          role: "guest",
+        });
       }, 250);
     });
     guest.on(
@@ -646,12 +780,24 @@ describe("socket.io handshake + JWT auth", () => {
   });
 
   it("rate-limits typing so bursts are dropped", (done) => {
-    const tokenA = jwt.sign({ userId: 121, role: "user" }, process.env.JWT_SECRET!);
-    const tokenB = jwt.sign({ userId: 122, role: "user" }, process.env.JWT_SECRET!);
+    const tokenA = jwt.sign(
+      { userId: 121, role: "user" },
+      process.env.JWT_SECRET!,
+    );
+    const tokenB = jwt.sign(
+      { userId: 122, role: "user" },
+      process.env.JWT_SECRET!,
+    );
     // Websocket-only: events sent in one synchronous burst are processed
     // back-to-back, so the sliding window is deterministic.
-    const clientA = ioClient(url(), { auth: { token: tokenA }, transports: ["websocket"] });
-    const clientB = ioClient(url(), { auth: { token: tokenB }, transports: ["websocket"] });
+    const clientA = ioClient(url(), {
+      auth: { token: tokenA },
+      transports: ["websocket"],
+    });
+    const clientB = ioClient(url(), {
+      auth: { token: tokenB },
+      transports: ["websocket"],
+    });
     const received: string[] = [];
     let settled = false;
     const finish = (err?: Error) => {
@@ -661,7 +807,10 @@ describe("socket.io handshake + JWT auth", () => {
       clientB.close();
       done(err);
     };
-    const timer = setTimeout(() => finish(new Error("typing rate-limit test timed out")), 7000);
+    const timer = setTimeout(
+      () => finish(new Error("typing rate-limit test timed out")),
+      7000,
+    );
     let aConnected = false;
     let bConnected = false;
     const maybeBurst = () => {
@@ -686,14 +835,22 @@ describe("socket.io handshake + JWT auth", () => {
         setTimeout(() => {
           clearTimeout(timer);
           if (received.length !== 3) {
-            finish(new Error(`rate limit failed — expected 3 deliveries, got ${received.length}`));
+            finish(
+              new Error(
+                `rate limit failed — expected 3 deliveries, got ${received.length}`,
+              ),
+            );
             return;
           }
           // After the window passes, a fresh event is delivered again.
           setTimeout(() => {
             clientA.emit("typing", { toUserId: "122", isTyping: false });
             setTimeout(() => {
-              finish(received.length === 4 ? undefined : new Error("rate limit did not reset after window"));
+              finish(
+                received.length === 4
+                  ? undefined
+                  : new Error("rate limit did not reset after window"),
+              );
             }, 500);
           }, 1100);
         }, 1500);
@@ -701,10 +858,100 @@ describe("socket.io handshake + JWT auth", () => {
     });
   });
 
+  it("persists challenge messages and returns a sender acknowledgement", (done) => {
+    const sender = mk(401);
+    const recipient = mk(402);
+    const deliveries: any[] = [];
+    const confirmations: any[] = [];
+    recipient.on("incoming_challenge", (record: any) =>
+      deliveries.push(record),
+    );
+    sender.on("challenge_persisted", (record: any) =>
+      confirmations.push(record),
+    );
+    Promise.all([connect(sender), connect(recipient)])
+      .then(() => {
+        sender.emit("register_presence", {
+          userId: "401",
+          metadata: { artistName: "PLAYER" },
+        });
+        recipient.emit("register_presence", {
+          userId: "402",
+          metadata: { artistName: "RIVAL" },
+        });
+        setTimeout(
+          () =>
+            sender.emit(
+              "challenge_player",
+              {
+                toUserId: "402",
+                gameId: "pacman",
+                message: "GG",
+                gameName: "PAC-MAN",
+              },
+              (ack: any) => {
+                try {
+                  expect(ack.ok).toBe(true);
+                  expect(deliveries).toHaveLength(1);
+                  expect(deliveries[0]).toMatchObject({
+                    fromUserId: "401",
+                    toUserId: "402",
+                    gameId: "pacman",
+                    message: "GG",
+                  });
+                  expect(confirmations).toHaveLength(1);
+                  expect(createChallenge).toHaveBeenCalledWith(
+                    "401",
+                    expect.any(String),
+                    expect.objectContaining({
+                      toUserId: "402",
+                      gameId: "pacman",
+                      message: "GG",
+                    }),
+                  );
+                  done();
+                } catch (err) {
+                  done(err);
+                }
+              },
+            ),
+          100,
+        );
+      })
+      .catch(done);
+  });
+
+  it("rejects self-challenges through the socket acknowledgement", (done) => {
+    const sender = mk(403);
+    sender.on("connect", () =>
+      sender.emit(
+        "challenge_player",
+        {
+          toUserId: "403",
+          gameId: "pacman",
+        },
+        (ack: any) => {
+          try {
+            expect(ack).toMatchObject({
+              ok: false,
+              error: "You cannot challenge yourself",
+            });
+            done();
+          } catch (err) {
+            done(err);
+          }
+        },
+      ),
+    );
+  });
+
   it("keeps a user present while any of their sockets is still connected", (done) => {
     // Social + matchmaking clients each hold their own socket for the same
     // user. Losing one must not delete presence while the other is alive.
-    const token = jwt.sign({ userId: 7, role: "user" }, process.env.JWT_SECRET!);
+    const token = jwt.sign(
+      { userId: 7, role: "user" },
+      process.env.JWT_SECRET!,
+    );
     const opts = { auth: { token }, transports: ["websocket", "polling"] };
     const clientA = ioClient(url(), opts);
     const clientB = ioClient(url(), opts);
@@ -742,9 +989,9 @@ describe("socket.io handshake + JWT auth", () => {
           done(
             sawStaleOffline
               ? new Error(
-                  "presence was dropped while another socket for the user remained connected"
+                  "presence was dropped while another socket for the user remained connected",
                 )
-              : undefined
+              : undefined,
           );
         }, 1000);
       }, 300);
@@ -753,8 +1000,8 @@ describe("socket.io handshake + JWT auth", () => {
     const failFast = (label: string) => {
       done(
         new Error(
-          `${label} failed to connect — cannot verify presence retention`
-        )
+          `${label} failed to connect — cannot verify presence retention`,
+        ),
       );
     };
 
@@ -771,7 +1018,10 @@ describe("socket.io handshake + JWT auth", () => {
   });
 
   it("ends the host live stream when their last socket disconnects", (done) => {
-    const token = jwt.sign({ userId: 777, role: "user" }, process.env.JWT_SECRET!);
+    const token = jwt.sign(
+      { userId: 777, role: "user" },
+      process.env.JWT_SECRET!,
+    );
     const client = ioClient(url(), {
       auth: { token },
       transports: ["websocket", "polling"],
@@ -788,7 +1038,10 @@ describe("socket.io handshake + JWT auth", () => {
       done(err);
     };
     timer = setTimeout(
-      () => finish(new Error("disconnect never triggered endLiveStream for a live host")),
+      () =>
+        finish(
+          new Error("disconnect never triggered endLiveStream for a live host"),
+        ),
       5000,
     );
     // Filter by unique host id so earlier tests on the shared mock do not count.
@@ -835,7 +1088,10 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
   const mkServer = (id: number) =>
     ioClient(url(), {
       auth: {
-        token: jwt.sign({ userId: id, role: "user" }, process['env'].JWT_SECRET!),
+        token: jwt.sign(
+          { userId: id, role: "user" },
+          process["env"].JWT_SECRET!,
+        ),
       },
       transports: ["websocket", "polling"],
     });
@@ -849,7 +1105,7 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
     new Promise<void>((resolve, reject) => {
       client.on("connect", () => resolve());
       client.on("connect_error", () =>
-        reject(new Error("test client failed to connect"))
+        reject(new Error("test client failed to connect")),
       );
     });
 
@@ -929,13 +1185,12 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
     const spect = mk(314);
     await Promise.all([connect(a), connect(b), connect(third), connect(spect)]);
 
-    const partyId =
-      provisionChallengeLobby({
-        id: 878,
-        fromUserId: "311",
-        toUserId: "312",
-        gameId: "mortal-kombat-2-elite",
-      })!;
+    const partyId = provisionChallengeLobby({
+      id: 878,
+      fromUserId: "311",
+      toUserId: "312",
+      gameId: "mortal-kombat-2-elite",
+    })!;
     a.emit("join_party", { partyId });
     b.emit("join_party", { partyId });
 
@@ -992,13 +1247,12 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
     const b = mk(322);
     await Promise.all([connect(a), connect(b)]);
 
-    const partyId =
-      provisionChallengeLobby({
-        id: 979,
-        fromUserId: "321",
-        toUserId: "322",
-        gameId: "rocket-league",
-      })!;
+    const partyId = provisionChallengeLobby({
+      id: 979,
+      fromUserId: "321",
+      toUserId: "322",
+      gameId: "rocket-league",
+    })!;
     a.emit("join_party", { partyId });
     b.emit("join_party", { partyId });
 
@@ -1022,13 +1276,12 @@ describe("resolved-match lobby provisioning + in-match relays", () => {
     const c = mk(331);
     const d = mk(332);
     await Promise.all([connect(c), connect(d)]);
-    const partyId2 =
-      provisionChallengeLobby({
-        id: 980,
-        fromUserId: "331",
-        toUserId: "332",
-        gameId: "rocket-league",
-      })!;
+    const partyId2 = provisionChallengeLobby({
+      id: 980,
+      fromUserId: "331",
+      toUserId: "332",
+      gameId: "rocket-league",
+    })!;
     c.emit("join_party", { partyId: partyId2 });
     d.emit("join_party", { partyId: partyId2 });
     const ended2: any[] = [];

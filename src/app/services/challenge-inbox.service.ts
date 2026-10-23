@@ -1,9 +1,9 @@
-import { Injectable, Injector, computed, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
-import { APP_SECURITY_CONFIG } from '../app.security';
-import { TokenService } from './token.service';
-import { UserProfileService } from './user-profile.service';
+import { Injectable, Injector, computed, inject, signal } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { firstValueFrom } from "rxjs";
+import { APP_SECURITY_CONFIG } from "../app.security";
+import { TokenService } from "./token.service";
+import { UserProfileService } from "./user-profile.service";
 
 export interface ChallengeRecord {
   id: number;
@@ -12,8 +12,9 @@ export interface ChallengeRecord {
   toUserId: string;
   gameId: string;
   message?: string | null;
-  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  status: "pending" | "accepted" | "declined" | "expired";
   timestamp: number;
+  isNew?: boolean;
 }
 
 export interface AppNotification {
@@ -26,7 +27,7 @@ export interface AppNotification {
   timestamp: number;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class ChallengeInboxService {
   private http = inject(HttpClient);
   private tokenService = inject(TokenService);
@@ -42,8 +43,11 @@ export class ChallengeInboxService {
    */
   private async resolveGameName(gameId: string): Promise<string> {
     try {
-      const { GameService } = await import('../hub/game.service');
+      const { GameService } = await import("../hub/game.service");
       const gameService = this.injector.get(GameService);
+      const cached = gameService.getGameById(gameId)?.name;
+      if (cached) return cached;
+      await gameService.loadFeedIfNeeded();
       return gameService.getGameById(gameId)?.name || gameId;
     } catch {
       return gameId;
@@ -54,20 +58,21 @@ export class ChallengeInboxService {
   notifications = signal<AppNotification[]>([]);
   loading = signal(false);
   lastSyncedAt = signal<number>(0);
+  lastChallengeError = signal<string | null>(null);
 
   pendingCount = computed(
     () =>
       this.challenges().filter(
-        (c) => c.status === 'pending' && c.toUserId === this.currentUserId()
-      ).length
+        (c) => c.status === "pending" && c.toUserId === this.currentUserId(),
+      ).length,
   );
 
   unreadCount = computed(
-    () => this.notifications().filter((n) => !n.read).length
+    () => this.notifications().filter((n) => !n.read).length,
   );
 
   private currentUserId(): string {
-    return this.profileService.profile().id || '';
+    return this.profileService.profile().id || "";
   }
 
   private authHeaders() {
@@ -80,30 +85,36 @@ export class ChallengeInboxService {
    * Used by both REST fetch and Socket.io sync.
    */
   mergeChallenges(records: ChallengeRecord[]) {
-    if (!records?.length) return;
+    if (!Array.isArray(records)) return;
     const byId = new Map<number, ChallengeRecord>();
     for (const existing of this.challenges()) byId.set(existing.id, existing);
-    for (const incoming of records) byId.set(incoming.id, incoming);
+    for (const incoming of records) {
+      if (incoming && Number.isFinite(incoming.id))
+        byId.set(incoming.id, incoming);
+    }
     const merged = Array.from(byId.values()).sort(
-      (a, b) => b.timestamp - a.timestamp
+      (a, b) => b.timestamp - a.timestamp,
     );
     this.challenges.set(merged);
     this.lastSyncedAt.set(Date.now());
   }
 
   mergeNotifications(records: AppNotification[]) {
-    if (!records?.length) return;
+    if (!Array.isArray(records)) return;
     const byId = new Map<number, AppNotification>();
     for (const existing of this.notifications())
       byId.set(existing.id, existing);
-    for (const incoming of records) byId.set(incoming.id, incoming);
+    for (const incoming of records) {
+      if (incoming && Number.isFinite(incoming.id))
+        byId.set(incoming.id, incoming);
+    }
     const merged = Array.from(byId.values()).sort(
-      (a, b) => b.timestamp - a.timestamp
+      (a, b) => b.timestamp - a.timestamp,
     );
     this.notifications.set(merged);
   }
 
-  async loadInbox(status: 'pending' | 'accepted' | 'declined' | 'all' = 'all') {
+  async loadInbox(status: "pending" | "accepted" | "declined" | "all" = "all") {
     const userId = this.currentUserId();
     if (!userId) return;
     this.loading.set(true);
@@ -111,12 +122,22 @@ export class ChallengeInboxService {
       const records = await firstValueFrom(
         this.http.get<ChallengeRecord[]>(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/challenges`,
-          { params: { status }, headers: this.authHeaders() }
-        )
+          { params: { status }, headers: this.authHeaders() },
+        ),
       );
-      this.mergeChallenges(records);
+      if (Array.isArray(records)) {
+        const byId = new Map<number, ChallengeRecord>();
+        for (const record of this.challenges()) byId.set(record.id, record);
+        for (const record of records) {
+          if (record && Number.isFinite(record.id)) byId.set(record.id, record);
+        }
+        this.challenges.set(
+          Array.from(byId.values()).sort((a, b) => b.timestamp - a.timestamp),
+        );
+        this.lastSyncedAt.set(Date.now());
+      }
     } catch (e) {
-      console.error('[ChallengeInbox] loadInbox failed', e);
+      console.error("[ChallengeInbox] loadInbox failed", e);
     } finally {
       this.loading.set(false);
     }
@@ -124,33 +145,39 @@ export class ChallengeInboxService {
 
   async respondToChallenge(
     challengeId: number,
-    status: 'accepted' | 'declined'
-  ) {
+    status: "accepted" | "declined",
+  ): Promise<boolean> {
     const userId = this.currentUserId();
-    if (!userId) return;
+    if (!userId) return false;
     try {
-      const res: any = await firstValueFrom(
+      const record: any = await firstValueFrom(
         this.http.post(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/challenges/${challengeId}/respond`,
           { status },
-          { headers: this.authHeaders() }
-        )
+          { headers: this.authHeaders() },
+        ),
       );
-      // Update local record optimistically
+      // The API row is authoritative; only update local state after success.
       this.challenges.update((list) =>
         list.map((c) =>
           c.id === challengeId
             ? {
                 ...c,
-                status,
-                timestamp: res?.challenge?.timestamp || Date.now(),
+                status: record?.status || status,
+                timestamp: record?.timestamp || c.timestamp,
               }
-            : c
-        )
+            : c,
+        ),
       );
+      this.lastChallengeError.set(null);
       await this.loadNotifications();
+      return true;
     } catch (e) {
-      console.error('[ChallengeInbox] respond failed', e);
+      console.error("[ChallengeInbox] respond failed", e);
+      this.lastChallengeError.set(
+        "Challenge response could not be saved. Try again.",
+      );
+      return false;
     }
   }
 
@@ -164,12 +191,12 @@ export class ChallengeInboxService {
           {
             params: { unreadOnly: String(unreadOnly) },
             headers: this.authHeaders(),
-          }
-        )
+          },
+        ),
       );
       this.mergeNotifications(records);
     } catch (e) {
-      console.error('[ChallengeInbox] loadNotifications failed', e);
+      console.error("[ChallengeInbox] loadNotifications failed", e);
     }
   }
 
@@ -178,18 +205,18 @@ export class ChallengeInboxService {
     if (!userId) return;
     // local optimistic update
     this.notifications.update((list) =>
-      list.map((n) => (n.id === notifId ? { ...n, read: true } : n))
+      list.map((n) => (n.id === notifId ? { ...n, read: true } : n)),
     );
     try {
       await firstValueFrom(
         this.http.post(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/notifications/${notifId}/read`,
           {},
-          { headers: this.authHeaders() }
-        )
+          { headers: this.authHeaders() },
+        ),
       );
     } catch (e) {
-      console.error('[ChallengeInbox] markRead failed', e);
+      console.error("[ChallengeInbox] markRead failed", e);
     }
   }
 
@@ -198,37 +225,165 @@ export class ChallengeInboxService {
    * UI updates come back via socket `challenge_inbox_sync` (recipient) or
    * local state (sender echo).
    */
-  async challengePlayer(toUserId: string, gameId: string) {
+  async challengePlayer(toUserId: string, gameId: string): Promise<boolean> {
     const fromUserId = this.currentUserId();
-    if (!fromUserId || !toUserId || !gameId) return;
+    if (!fromUserId || !toUserId || !gameId || fromUserId === toUserId) {
+      this.lastChallengeError.set("Choose another player and a valid game.");
+      return false;
+    }
     // Include resolved game title when emitting so the recipient gets a human
     // friendly name even if their client hasn't loaded the feed yet.
     const gameName = await this.resolveGameName(gameId);
-    this.emitChallenge(toUserId, gameId, gameName);
+    return this.emitChallenge(toUserId, gameId, gameName);
   }
 
   // direct emit helper so callers can also send via the existing socket
   private socket: any = null;
+  private socketHandlers?: {
+    incoming: (record: ChallengeRecord) => void;
+    persisted: (record: ChallengeRecord) => void;
+    response: (event: {
+      id: number;
+      status: ChallengeRecord["status"];
+      timestamp?: number;
+    }) => void;
+    error: (event: { message?: string }) => void;
+  };
   bindSocket(socket: any) {
+    if (this.socket === socket) return;
+    if (this.socket && this.socketHandlers) {
+      this.socket.off?.("incoming_challenge", this.socketHandlers.incoming);
+      this.socket.off?.("challenge_persisted", this.socketHandlers.persisted);
+      this.socket.off?.("challenge_response", this.socketHandlers.response);
+      this.socket.off?.("challenge_error", this.socketHandlers.error);
+    }
     this.socket = socket;
+    if (!socket?.on) return;
+    this.socketHandlers = {
+      incoming: (record) => this.mergeChallenges([record]),
+      persisted: (record) => {
+        this.mergeChallenges([record]);
+        if (record?.isNew === false) {
+          this.lastChallengeError.set(
+            "A pending challenge for this game already exists.",
+          );
+        }
+      },
+      error: (event) =>
+        this.lastChallengeError.set(
+          event?.message || "Challenge could not be sent",
+        ),
+      response: (event) => {
+        if (!event || !Number.isFinite(event.id)) return;
+        this.challenges.update((records) =>
+          records.map((record) =>
+            record.id === event.id
+              ? {
+                  ...record,
+                  status: event.status,
+                  timestamp: event.timestamp || record.timestamp,
+                }
+              : record,
+          ),
+        );
+      },
+    };
+    socket.on("incoming_challenge", this.socketHandlers.incoming);
+    socket.on("challenge_persisted", this.socketHandlers.persisted);
+    socket.on("challenge_response", this.socketHandlers.response);
+    socket.on("challenge_error", this.socketHandlers.error);
   }
-  private emitChallenge(toUserId: string, gameId: string, gameName?: string) {
+  private emitChallenge(
+    toUserId: string,
+    gameId: string,
+    gameName?: string,
+  ): Promise<boolean> {
     const socketLive =
       !!this.socket &&
-      typeof this.socket.emit === 'function' &&
-      this.socket.connected !== false;
+      typeof this.socket.emit === "function" &&
+      this.socket.connected === true;
     if (socketLive) {
-      // PRIMARY path only: the socket handler persists the challenge
-      // server-side. REST is NOT also fired here — doing both creates a
-      // duplicate challenge row (double-write) since both call
-      // createChallenge. The server-side dedupe (pending-unique guard) is
-      // the backstop for any concurrent retry.
-      this.socket.emit('challenge_player', { toUserId, gameId, gameName });
-      return;
+      // Server acknowledges only after persistence and delivery work has
+      // completed. On transport loss, REST is safe because server-side
+      // createChallenge deduplicates an identical pending challenge.
+      return new Promise((resolve) => {
+        let settled = false;
+        let acked = false;
+        let sawChallengeError = false;
+        let timeout: ReturnType<typeof setTimeout>;
+        let onChallengeError:
+          | ((event: { message?: string }) => void)
+          | undefined;
+        const onPersisted = (record: ChallengeRecord) => {
+          if (
+            !record ||
+            record.fromUserId !== this.currentUserId() ||
+            record.toUserId !== toUserId ||
+            record.gameId !== gameId
+          )
+            return;
+          this.mergeChallenges([record]);
+          if (record.isNew === false) {
+            this.lastChallengeError.set(
+              "A pending challenge for this game already exists.",
+            );
+          } else {
+            this.lastChallengeError.set(null);
+          }
+          finish(true);
+        };
+        const finish = (ok: boolean) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          this.socket?.off?.("challenge_persisted", onPersisted);
+          if (onChallengeError)
+            this.socket?.off?.("challenge_error", onChallengeError);
+          resolve(ok);
+        };
+        timeout = setTimeout(() => {
+          if (!acked && !sawChallengeError) {
+            acked = true;
+            void this.persistChallengeViaRest(toUserId, gameId, gameName).then(
+              finish,
+            );
+          }
+        }, 8000);
+        try {
+          this.socket.on?.("challenge_persisted", onPersisted);
+          onChallengeError = (event: { message?: string }) => {
+            if (acked || settled) return;
+            sawChallengeError = true;
+            acked = true;
+            this.lastChallengeError.set(
+              event?.message || "Challenge could not be sent",
+            );
+            finish(false);
+          };
+          this.socket.on?.("challenge_error", onChallengeError);
+          this.socket.emit(
+            "challenge_player",
+            { toUserId, gameId, gameName },
+            (result: { ok?: boolean; error?: string }) => {
+              if (settled) return;
+              acked = true;
+              if (result?.ok) {
+                finish(true);
+              } else if (result?.error) {
+                sawChallengeError = true;
+                this.lastChallengeError.set(result.error);
+                finish(false);
+              }
+            },
+          );
+        } catch {
+          finish(false);
+        }
+      });
     }
     // Fallback: socket unavailable — persist via REST so the challenge
     // survives and is delivered when the recipient next syncs.
-    this.persistChallengeViaRest(toUserId, gameId, gameName);
+    return this.persistChallengeViaRest(toUserId, gameId, gameName);
   }
 
   /**
@@ -238,28 +393,29 @@ export class ChallengeInboxService {
   async persistChallengeViaRest(
     toUserId: string,
     gameId: string,
-    gameName?: string
-  ) {
+    gameName?: string,
+  ): Promise<boolean> {
     const userId = this.currentUserId();
-    if (!userId) return;
+    if (!userId) return false;
     try {
-      await firstValueFrom(
-        this.http.post(
+      const record = await firstValueFrom(
+        this.http.post<ChallengeRecord>(
           `${APP_SECURITY_CONFIG.api_url}/users/${userId}/challenges`,
           {
             toUserId,
             gameId,
             gameName: gameName || (await this.resolveGameName(gameId)),
           },
-          { headers: this.authHeaders() }
-        )
+          { headers: this.authHeaders() },
+        ),
       );
+      this.mergeChallenges([record]);
+      this.lastChallengeError.set(null);
+      return true;
     } catch (e) {
-      // Silent fallback — socket path is primary. Log for debugging.
-      console.warn(
-        '[ChallengeInbox] REST challenge persist failed (socket primary):',
-        e
-      );
+      console.warn("[ChallengeInbox] REST challenge persist failed:", e);
+      this.lastChallengeError.set("Challenge could not be sent. Try again.");
+      return false;
     }
   }
 
