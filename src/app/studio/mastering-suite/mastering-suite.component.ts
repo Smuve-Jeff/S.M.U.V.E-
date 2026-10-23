@@ -18,6 +18,7 @@ import { AiMixAssistantService } from "../effects/ai-mix-assistant.service";
 import { ExportService } from "../../services/export.service";
 import { PluginStoreService } from "../../services/plugin-store.service";
 import { MusicManagerService } from "../../services/music-manager.service";
+import { ABSOLUTE_GATE_LUFS } from "../../services/loudness-meter";
 import { SpectrumAnalyzerComponent } from "../spectrum-analyzer/spectrum-analyzer.component";
 
 interface MasteringBand {
@@ -42,6 +43,18 @@ interface MasteringPreset {
   ratio: number;
   threshold: number;
   roastNote: string;
+}
+
+/** A measurable delivery destination (platform mastering guides). */
+interface DeliveryTarget {
+  id: string;
+  platform: string;
+  /** Integrated loudness the platform bills the master against, LUFS. */
+  targetLufs: number;
+  /** True-peak ceiling (dBTP) the delivery spec asks to stay under. */
+  ceilingDbtp: number;
+  /** One line of honest context for the artist. */
+  note: string;
 }
 
 @Component({
@@ -92,6 +105,217 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       return;
     }
     this.audioEngine.playAudition(this.renderedBufferRef, () => undefined);
+  }
+
+  // ── Reference-track A/B matching (parity gap §14) ─────────────────────
+
+  /** Name of the loaded commercial reference, or null while unloaded. */
+  referenceName = signal<string | null>(null);
+  /** BS.1770 stats measured from the reference with the same meter as the master. */
+  referenceStats = signal<null | {
+    peakDb: number;
+    truePeakDb: number;
+    rmsDb: number;
+    lufs: number;
+    lra: number;
+    durationSec: number;
+  }>(null);
+  referenceBusy = signal(false);
+  private referenceBuffer: AudioBuffer | null = null;
+
+  isReferenceLoaded(): boolean {
+    return this.referenceStats() !== null && this.referenceBuffer !== null;
+  }
+
+  /**
+   * Decode and measure a picked reference track.
+   *
+   * The reference is measured with `ExportService.analyzeBuffer` — the same
+   * BS.1770-4 meter that grades the mix — so the numbers an artist compares
+   * come from one instrument rather than two that happen to share a label.
+   */
+  async onReferenceChosen(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // Allow re-picking the same file after a fix without clearing the picker.
+    input.value = "";
+    if (!file) return;
+    const ctx = this.audioEngine.ctx;
+    if (!ctx || typeof ctx.decodeAudioData !== "function") {
+      this.snack.error("Reference import unavailable in this browser");
+      return;
+    }
+    this.referenceBusy.set(true);
+    try {
+      const bytes = await file.arrayBuffer();
+      const buffer: AudioBuffer = await ctx.decodeAudioData(bytes);
+      this.referenceBuffer = buffer;
+      this.referenceName.set(file.name);
+      const stats = this.exportService.analyzeBuffer(buffer);
+      this.referenceStats.set({
+        peakDb: stats.peakDb,
+        truePeakDb: stats.truePeakDb,
+        rmsDb: stats.rmsDb,
+        lufs: stats.lufs,
+        lra: stats.lra,
+        durationSec: stats.durationSec,
+      });
+      this.snack.success(
+        `Reference loaded · ${stats.lufs.toFixed(1)} LUFS · ${this.formatSeconds(stats.durationSec)}`,
+      );
+      this.haptic.medium();
+    } catch (err) {
+      this.referenceBuffer = null;
+      this.referenceName.set(null);
+      this.referenceStats.set(null);
+      this.snack.error(
+        "Reference import failed · " +
+          (err instanceof Error ? err.message.toLowerCase() : "unsupported audio"),
+      );
+    } finally {
+      this.referenceBusy.set(false);
+    }
+  }
+
+  /**
+   * dB the master needs to read the reference's integrated loudness.
+   *
+   * Null while either side is unmeasured (no reference, or the loudness meter
+   * has not rolled through the mix yet), so the Match button cannot act on a
+   * stale or fabricated number.
+   */
+  referenceDeltaDb(): number | null {
+    const ref = this.referenceStats();
+    const master = this.audioEngine.outputLufs();
+    if (!ref || ref.lufs <= ABSOLUTE_GATE_LUFS) return null;
+    if (!Number.isFinite(master) || master <= ABSOLUTE_GATE_LUFS) return null;
+    return Math.round((ref.lufs - master) * 10) / 10;
+  }
+
+  /** Apply the reference delta as master makeup (post-limiter ceiling intact). */
+  matchReferenceLoudness(): void {
+    const delta = this.referenceDeltaDb();
+    if (delta === null) {
+      this.snack.info("Roll the transport so the meter measures your master");
+      return;
+    }
+    if (delta === 0) {
+      this.snack.success("Master already reads the reference loudness");
+      return;
+    }
+    this.audioEngine.setMasterMakeupDb(delta);
+    this.snack.success(
+      `Loudness matched · ${Math.abs(delta).toFixed(1)} dB ${delta > 0 ? "up" : "down"}`,
+    );
+    this.haptic.medium();
+  }
+
+  /** A/B playhead: audition the reference without the master chain in the way. */
+  toggleReferenceAudition(): void {
+    const buffer = this.referenceBuffer;
+    if (!buffer) return;
+    if (this.audioEngine.auditionPlaying()) {
+      this.audioEngine.stopAudition();
+      return;
+    }
+    this.audioEngine.playAudition(buffer, () => undefined);
+  }
+
+  clearReference(): void {
+    if (this.referenceBuffer && this.audioEngine.auditionPlaying()) {
+      this.audioEngine.stopAudition();
+    }
+    this.referenceBuffer = null;
+    this.referenceName.set(null);
+    this.referenceStats.set(null);
+    // A reference match without the reference is a leftover make-up skew.
+    this.audioEngine.setMasterMakeupDb(0);
+    this.snack.info("Reference cleared · makeup 0 dB");
+  }
+
+  // ── Streaming delivery targets + conform (parity gap §14) ─────────────
+
+  /** Delivery target currently conformed to, for the chip highlight. */
+  activeDeliveryTargetId = signal<string | null>(null);
+
+  /**
+   * Delivery specs from the platforms' published mastering guides. Values are
+   * the numbers whose absence previously forced an artist to type targets by
+   * hand; if a platform revises its spec, this is the one place to update.
+   */
+  readonly deliveryTargets: DeliveryTarget[] = [
+    {
+      id: "spotify",
+      platform: "Spotify",
+      targetLufs: -14,
+      ceilingDbtp: -1,
+      note: "Streamed loud masters are quietly turned down, not turned up",
+    },
+    {
+      id: "apple",
+      platform: "Apple Music",
+      targetLufs: -16,
+      ceilingDbtp: -1,
+      note: "Tightest headroom on the big streamers — protects the Sound Check gain match",
+    },
+    {
+      id: "youtube",
+      platform: "YouTube",
+      targetLufs: -14,
+      ceilingDbtp: -1,
+      note: "Same integrated target as Spotify, mono-fallback monitoring on phones",
+    },
+    {
+      id: "podcast",
+      platform: "Podcast / spoken",
+      targetLufs: -16,
+      ceilingDbtp: -1.5,
+      note: "Speech-first spec; leave room for phone speaker intelligibility",
+    },
+    {
+      id: "club",
+      platform: "Club / loud",
+      targetLufs: -9,
+      ceilingDbtp: -0.3,
+      note: "Deliberately hot: play systems, not streamers, hear this one",
+    },
+  ];
+
+  /**
+   * Conform the master to a platform's delivery spec.
+   *
+   * Sets the integrated-loudness target and the true-peak ceiling (which
+   * routes to the live limiter), and — when the last Render &amp; Master pass
+   * has measured the bounce — applies the shortfall as master makeup so the
+   * next render lands on the target instead of just aiming at it.
+   */
+  applyDeliveryTarget(targetId: string): void {
+    const target = this.deliveryTargets.find((t) => t.id === targetId);
+    if (!target) return;
+
+    this.targetLufs.set(target.targetLufs);
+    this.safeCeiling.set(target.ceilingDbtp);
+    this.audioEngine.setMasteringTargets({
+      lufs: target.targetLufs,
+      truePeak: target.ceilingDbtp,
+    });
+    this.activeDeliveryTargetId.set(target.id);
+    this.activePresetId.set(null); // a platform spec beats a genre preset
+
+    const rendered = this.renderedLufs();
+    if (Number.isFinite(rendered) && rendered! > ABSOLUTE_GATE_LUFS) {
+      const makeup = Math.round((target.targetLufs - rendered!) * 10) / 10;
+      this.audioEngine.setMasterMakeupDb(Math.max(-12, Math.min(12, makeup)));
+      this.snack.success(
+        `${target.platform} conformed · target ${target.targetLufs} LUFS, ceiling ${target.ceilingDbtp} dBTP, makeup ${makeup > 0 ? "+" : ""}${makeup} dB`,
+      );
+    } else {
+      this.snack.success(
+        `${target.platform} conformed · target ${target.targetLufs} LUFS, ceiling ${target.ceilingDbtp} dBTP — render to measure the delta`,
+      );
+    }
+
+    this.haptic.medium();
   }
 
   /** Render seconds into a mm:ss label for the audition progress read-out. */
@@ -345,9 +569,6 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       threshold: preset.threshold,
       ratio: preset.ratio,
     });
-    (this.audioEngine as any).configureLimiter?.({
-      ceiling: preset.safeCeiling,
-    });
 
     // Apply per-band deltas (preserve current gain + delta)
     this.bands.update((arr) =>
@@ -362,9 +583,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       })),
     );
 
-    // Update live meters to reflect new LUFS target
-    this.lufsIntegrated.set(preset.targetLufs);
-    this.truePeak.set(preset.safeCeiling);
+    // Presets set goals; the separate live meters remain measurements from the master tap.
 
     this.masteringRoast.set(preset.roastNote);
     this.smartAssistSuggestion.set(

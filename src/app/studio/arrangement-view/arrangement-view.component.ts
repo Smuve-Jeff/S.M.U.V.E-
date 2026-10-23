@@ -91,6 +91,17 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   private timelineRenderer!: TimelineRenderer;
   private stopVisualTask: (() => void) | null = null;
   private isGlInitialized = false;
+  private activeClipGesture: {
+    pointerId: number;
+    clipId: string;
+    trackId: string;
+    mode: 'move' | 'trim-start' | 'trim-end' | 'slip';
+    startClientX: number;
+    initialStart: number;
+    initialLength: number;
+    initialOffset: number;
+    changed: boolean;
+  } | null = null;
 
   // ── Stem-Splitter UI state ───────────────────────────────
   stemOpen = signal(false);
@@ -175,7 +186,38 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   @ViewChild("gridViewport") gridViewport!: ElementRef<HTMLDivElement>;
   @ViewChild("glCanvas") glCanvas!: ElementRef<HTMLCanvasElement>;
 
-  bars = computed(() => Array.from({ length: 64 }, (_, i) => i));
+  /** Timeline floor: the classic 4-bar x 16 view, no longer a ceiling. */
+  private static readonly MIN_TIMELINE_BARS = 64;
+  /** Empty bars kept after the last event so there is always somewhere to draw. */
+  private static readonly TIMELINE_TAIL_BARS = 8;
+  /** Extra bars requested from the "+ 16 BARS" timeline control. */
+  extraTimelineBars = signal(0);
+
+  /** Last bar that holds a clip or note (or the song boundary), rounded up. */
+  readonly songEndBar = computed(() => {
+    let end = 0;
+    for (const track of this.tracks()) {
+      for (const clip of track.clips ?? []) {
+        end = Math.max(end, (clip.start ?? 0) + Math.max(0.001, clip.length ?? 4));
+      }
+      for (const note of track.notes ?? []) {
+        end = Math.max(end, ((note.step ?? 0) + (note.length ?? 0)) / 16);
+      }
+    }
+    return Math.ceil(end);
+  });
+
+  /** Rendered timeline length in bars: content, plus room to keep drawing. */
+  readonly totalBars = computed(() =>
+    Math.max(
+      ArrangementViewComponent.MIN_TIMELINE_BARS,
+      this.effectiveBars(),
+      this.songEndBar() + ArrangementViewComponent.TIMELINE_TAIL_BARS,
+      this.extraTimelineBars(),
+    ),
+  );
+
+  bars = computed(() => Array.from({ length: this.totalBars() }, (_, i) => i));
   playheadPos = computed(
     () => (this.musicManager.currentStep() / 16) * this.barWidth(),
   );
@@ -324,7 +366,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       y += th;
     }
 
-    const totalBars = 64;
+    const totalBars = this.totalBars();
     const playheadBar = (this.musicManager.currentStep() || 0) / 16;
 
     this.glRenderer.clear(0.02, 0.04, 0.09, 1.0);
@@ -389,7 +431,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     });
 
     if (hitClip) {
-      this.onClipPointerDown(e, hitTrack.id, hitClip);
+      this.onClipPointerDown(e, hitTrack.id, hitClip, barX);
     } else {
       this.onLanePointerDownWorld(hitTrack, barX);
     }
@@ -405,8 +447,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.markDirty();
   }
 
-  /** Clip click from WebGL hit test */
-  onClipPointerDown(e: PointerEvent, trackId: string, clip: StudioClip) {
+  /** Clip hit test and gesture start from the WebGL timeline. */
+  onClipPointerDown(e: PointerEvent, trackId: string, clip: StudioClip, barX = clip.start) {
     e.stopPropagation();
     this.selectTrack(trackId);
     if (this.activeTool() === "glue") {
@@ -418,9 +460,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       next.add(clip.id);
       this.selectedClipIds.set(next);
       this.markDirty();
-      if (next.size > 1) {
-        this.consolidateSelected();
-      }
+      if (next.size > 1) this.consolidateSelected();
       return;
     }
     if (!e.shiftKey) this.selectedClipIds.set(new Set([clip.id]));
@@ -430,12 +470,119 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       else next.add(clip.id);
       this.selectedClipIds.set(next);
     }
+
+    if (e.button !== 0 || e.shiftKey || this.editMode() === 'split') {
+      if (this.editMode() === 'split') this.musicManager.splitClip(trackId, clip.id, barX);
+      this.markDirty();
+      return;
+    }
+    if (this.editMode() === 'duplicate') {
+      this.musicManager.addClipToTrack(trackId, {
+        ...clip,
+        id: `clip_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        start: clip.start + clip.length,
+      });
+      this.markDirty();
+      return;
+    }
+    if (!['select', 'draw', 'trim', 'slip'].includes(this.editMode())) return;
+    const mode = this.editMode() === 'trim'
+      ? (barX < clip.start + clip.length / 2 ? 'trim-start' : 'trim-end')
+      : this.editMode() === 'slip' ? 'slip' : 'move';
+    const target = e.currentTarget as HTMLElement | null;
+    target?.setPointerCapture?.(e.pointerId);
+    this.activeClipGesture = {
+      pointerId: e.pointerId,
+      clipId: clip.id,
+      trackId,
+      mode,
+      startClientX: e.clientX,
+      initialStart: clip.start,
+      initialLength: clip.length,
+      initialOffset: clip.offset ?? 0,
+      changed: false,
+    };
+  }
+
+  onGridPointerMove(e: PointerEvent): void {
+    const gesture = this.activeClipGesture;
+    if (!gesture || gesture.pointerId !== e.pointerId) return;
+    const delta = (e.clientX - gesture.startClientX) / Math.max(1, this.barWidth());
+    const snapped = this.snapEnabled() ? Math.round(delta * 4) / 4 : delta;
+    const clip = this.findClipOwner(gesture.clipId)?.clip;
+    if (!clip) return;
+    const patch: Partial<StudioClip> = {};
+    if (gesture.mode === 'move') {
+      patch.start = Math.max(0, gesture.initialStart + snapped);
+    } else if (gesture.mode === 'trim-start') {
+      const start = Math.max(0, Math.min(gesture.initialStart + snapped, gesture.initialStart + gesture.initialLength - 0.25));
+      const shift = start - gesture.initialStart;
+      patch.start = start;
+      patch.length = gesture.initialLength - shift;
+      if (clip.type === 'audio') {
+        const secondsPerBar = 60 / this.musicManager.engine.tempo() * 4;
+        if (clip.clipStreamer) {
+          patch.clipOriginSeconds = Math.max(0, (clip.clipOriginSeconds ?? 0) + shift * secondsPerBar);
+        } else {
+          patch.offset = Math.max(0, gesture.initialOffset + shift * secondsPerBar);
+        }
+      }
+    } else if (gesture.mode === 'trim-end') {
+      patch.length = Math.max(0.25, gesture.initialLength + snapped);
+    } else if (clip.type === 'audio') {
+      const secondsPerBar = 60 / this.musicManager.engine.tempo() * 4;
+      if (clip.clipStreamer) {
+        patch.clipOriginSeconds = Math.max(0, (clip.clipOriginSeconds ?? 0) + snapped * secondsPerBar);
+      } else {
+        patch.offset = Math.max(0, gesture.initialOffset + snapped * secondsPerBar);
+      }
+    }
+    this.ensureTimelineCovers(
+      (patch.start ?? clip.start) + (patch.length ?? clip.length),
+    );
+    const changed = Object.entries(patch).some(([key, value]) => Math.abs(Number((clip as any)[key] ?? 0) - Number(value ?? 0)) > 0.001);
+    if (!changed) return;
+    this.musicManager.updateClip(gesture.trackId, gesture.clipId, patch);
+    gesture.changed = true;
     this.markDirty();
+  }
+
+  /** Grow the timeline by whole bars so a song can run past the classic 64. */
+  extendTimeline(bars = 16): void {
+    this.extraTimelineBars.update(
+      (current) => Math.max(current, this.totalBars()) + Math.max(1, Math.round(bars)),
+    );
+  }
+
+  /** Make sure the timeline reaches `endBar` before a clip is placed there. */
+  private ensureTimelineCovers(endBar: number): void {
+    const needed =
+      Math.ceil(endBar) + ArrangementViewComponent.TIMELINE_TAIL_BARS;
+    if (needed > this.totalBars()) this.extraTimelineBars.set(needed);
+  }
+
+  onGridPointerUp(e: PointerEvent): void {
+    if (this.activeClipGesture?.pointerId !== e.pointerId) return;
+    if (this.activeClipGesture.changed) this.haptic.light();
+    this.activeClipGesture = null;
   }
 
   /** Lane click to create clips from WebGL */
   onLanePointerDownWorld(track: TrackModel, barX: number) {
     this.selectTrack(track.id);
+
+    if (this.editMode() === 'draw') {
+      const bar = this.snapEnabled() ? Math.round(barX * 4) / 4 : barX;
+      this.musicManager.addClipToTrack(track.id, {
+        start: Math.max(0, bar),
+        length: 4,
+        type: track.type === 'midi' || track.type === 'drum' ? 'midi' : 'audio',
+      });
+      this.ensureTimelineCovers(bar + 4);
+      this.haptic.light();
+      this.markDirty();
+      return;
+    }
 
     if (this.activeTool() === "select") {
       let bar = barX;
@@ -1065,6 +1212,6 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   gridWidth() {
-    return 64 * this.barWidth();
+    return this.totalBars() * this.barWidth();
   }
 }

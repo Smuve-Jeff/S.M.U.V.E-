@@ -312,9 +312,9 @@ describe("AudioImportService (stretch engine)", () => {
   });
 
   it("forwards SampleStreamer clip admission fields when adding a long import to the project", () => {
-    const buf = makeBuffer(service.audioEngine.ctx, 48000 * 12, 440, 48000);
+    const buf = makeBuffer(service.audioEngine.ctx, 48000 * 40, 440, 48000);
     const streamer = createSampleStreamer({ maxResidentSeconds: 30 });
-    const pcm = new Float32Array(48000 * 12);
+    const pcm = new Float32Array(48000 * 40);
     pcm.set(buf.getChannelData(0));
     streamer.attachSource("blob:long", pcm.buffer, 48000, 1);
     streamer.setPlayhead(0);
@@ -325,7 +325,7 @@ describe("AudioImportService (stretch engine)", () => {
       buffer: streamer.getResidentBuffer(),
       blob: new Blob(),
       url: "blob:long",
-      duration: 12,
+      duration: 40,
       sampleRate: 48000,
       channels: 1,
       trimStart: 0,
@@ -353,8 +353,36 @@ describe("AudioImportService (stretch engine)", () => {
     const call = addAudioTrackMock.mock.calls[0][0];
     expect(call.clipStreamer).toBe(streamer);
     expect(call.clipOriginSeconds).toBe(0);
-    expect(call.clipLengthSeconds).toBeGreaterThan(0);
+    expect(call.clipLengthSeconds).toBeCloseTo(40, 3);
+    expect(call.buffer.duration).toBeLessThan(call.clipLengthSeconds);
     expect(call.clipSampleRate).toBe(48000);
     expect(call.clipChannels).toBe(1);
   });
+  it('streams PCM WAV windows and converts samples using the WAV header', () => {
+    const frames = 8;
+    const bytes = new ArrayBuffer(44 + frames * 4);
+    const view = new DataView(bytes);
+    const tag = (at: number, value: string) => [...value].forEach((c, i) => view.setUint8(at + i, c.charCodeAt(0)));
+    tag(0, 'RIFF'); view.setUint32(4, bytes.byteLength - 8, true); tag(8, 'WAVE');
+    tag(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+    view.setUint16(22, 2, true); view.setUint32(24, 4, true); view.setUint32(28, 16, true);
+    view.setUint16(32, 4, true); view.setUint16(34, 16, true); tag(36, 'data');
+    view.setUint32(40, frames * 4, true);
+    for (let frame = 0; frame < frames; frame++) {
+      view.setInt16(44 + frame * 4, frame * 1000, true);
+      view.setInt16(46 + frame * 4, -frame * 1000, true);
+    }
+    const streamer = createSampleStreamer({ maxResidentSeconds: 1 });
+    expect(streamer.attachWavSource('blob:test', bytes)).toBe(true);
+    expect(streamer.getDuration()).toBe(2);
+    streamer.setPlayhead(4);
+    const window = streamer.getResidentBuffer()!;
+    expect(window.numberOfChannels).toBe(2);
+    expect(window.sampleRate).toBe(4);
+    expect(window.duration).toBe(1);
+    expect(window.getChannelData(0)[0]).toBeCloseTo(0.061035, 4);
+    expect(window.getChannelData(1)[0]).toBeCloseTo(-0.061035, 4);
+    expect(streamer.getResidentOffsetSeconds()).toBe(0.5);
+  });
+
 });

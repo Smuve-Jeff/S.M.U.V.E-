@@ -16,6 +16,7 @@ import {
   MidiNoteEvent,
   MidiWriter,
 } from '../studio/midi-writer.util';
+import { buildZip, type ZipEntry } from '../studio/zip.util';
 
 /** Steps-per-beat grid used across the app (16th-note grid). */
 const STEPS_PER_BEAT = 4;
@@ -42,6 +43,7 @@ export interface ExportFormatInfo {
 
 export const EXPORT_FORMATS: ExportFormatInfo[] = [
   { id: 'wav', label: 'WAV 16-bit', ext: 'wav', mime: 'audio/wav' },
+  { id: 'wav24', label: 'WAV 24-bit', ext: 'wav', mime: 'audio/wav' },
   { id: 'mp3', label: 'MP3 192k', ext: 'mp3', mime: 'audio/mpeg', webCodecs: 'mp3' },
   { id: 'm4a', label: 'AAC (M4A)', ext: 'm4a', mime: 'audio/mp4', webCodecs: 'aac' },
   { id: 'opus', label: 'Opus (OGG)', ext: 'ogg', mime: 'audio/ogg', webCodecs: 'opus' },
@@ -72,22 +74,133 @@ export class ExportService {
    */
   private transportWasRolling = false;
 
-  async exportProjectWav(): Promise<Blob> {
-    this.logger.info('Starting offline PCM WAV export...');
-    const buffer = await this.renderProjectOffline();
-    const blob = await this.exportToFormat(buffer, 'wav');
-    this.downloadBlob(blob, `${(this.musicManager.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_')}_${Date.now()}.wav`);
+  /**
+   * Render the master mix to WAV.
+   *
+   * `bitDepth` defaults to 16 for the everyday mixdown; 24 is the delivery
+   * format for mixing/mastering, where the extra headroom survives the other
+   * engineer's gain staging. Filenames carry the depth so a 16-bit file and a
+   * 24-bit file of the same take cannot be confused in a download folder.
+   */
+  async exportProjectWav(
+    bitDepth: 16 | 24 = 16,
+    sampleRate: number = 44100
+  ): Promise<Blob> {
+    this.logger.info(
+      `Starting offline PCM WAV (${bitDepth}-bit, ${sampleRate} Hz) export...`
+    );
+    const buffer = await this.renderProjectOffline({ sampleRate });
+    const blob = await this.exportToFormat(
+      buffer,
+      bitDepth === 24 ? 'wav24' : 'wav'
+    );
+    const depthTag = bitDepth === 24 ? '_24bit' : '';
+    const rateTag = Math.round(sampleRate) === 44100 ? '' : `_${Math.round(sampleRate / 1000)}k`;
+    this.downloadBlob(blob, `${(this.musicManager.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_')}${depthTag}${rateTag}_${Date.now()}.wav`);
     return blob;
   }
 
+  /**
+   * Export the master mix plus one WAV stem per unmuted track, bundled in a
+   * single ZIP.
+   *
+   * Each stem is rendered through the same offline graph, at the same sample
+   * rate and with the same total length as the master, so the files line up
+   * sample-for-sample when a mix engineer drops them into another DAW. Solo is
+   * ignored for stems: a stem set that silently drops a soloed track is worse
+   * than no stem set. Muted tracks are still skipped.
+   *
+   * Stems are written at 24-bit: they are the files another engineer will gain
+   * stage and process, so they keep the extra 8 bits of resolution that a
+   * 16-bit stem would throw away before the first plug-in runs.
+   */
+  async exportStems(
+    options: { bitDepth?: 16 | 24; sampleRate?: number } = {}
+  ): Promise<Blob> {
+    const bitDepth = options.bitDepth ?? 24;
+    const sampleRate = options.sampleRate ?? 44100;
+    const projectName = (this.musicManager.projectName || 'Elite_Session').replace(/[^\w.-]/g, '_');
+    const tracks = this.musicManager
+      .tracks()
+      .filter((track) => !track.muted && track.type !== 'bus');
+    const entries: ZipEntry[] = [];
+    const usedNames = new Set<string>();
+    const uniqueName = (raw: string): string => {
+      const base = raw.replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'Track';
+      let name = `${projectName}_${base}.wav`;
+      let suffix = 2;
+      while (usedNames.has(name.toLowerCase())) {
+        name = `${projectName}_${base}_${suffix++}.wav`;
+      }
+      usedNames.add(name.toLowerCase());
+      return name;
+    };
+
+    const master = await this.renderProjectOffline({ sampleRate });
+    entries.push({
+      name: uniqueName('MASTER'),
+      data: new Uint8Array(await this.audioBufferToWav(master, bitDepth)),
+    });
+
+    for (const track of tracks) {
+      const stem = await this.renderProjectOffline({
+        onlyTrackIds: new Set([track.id]),
+        ignoreSolo: true,
+        sampleRate,
+      });
+      entries.push({
+        name: uniqueName(track.name || 'Track'),
+        data: new Uint8Array(await this.audioBufferToWav(stem, bitDepth)),
+      });
+    }
+
+    this.logger.info(`Exported ${entries.length} stems (master + ${tracks.length} tracks)`);
+    const zip = buildZip(entries);
+    this.downloadBlob(zip, `${projectName}_stems_${Date.now()}.zip`);
+    return zip;
+  }
+
   startLiveRecording() {
+    if (typeof MediaRecorder === 'undefined') {
+      throw new Error('Live recording is not supported in this browser (MediaRecorder missing).');
+    }
     const streamDest = this.engine.ctx.createMediaStreamDestination();
     this.engine.masterGain.connect(streamDest);
-    const recorder = new MediaRecorder(streamDest.stream);
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+    ];
+    const mimeType = candidates.find((type) =>
+      typeof MediaRecorder.isTypeSupported !== 'function' || MediaRecorder.isTypeSupported(type),
+    );
+    const recorder = new MediaRecorder(
+      streamDest.stream,
+      mimeType ? { mimeType } : undefined,
+    );
     const chunks: Blob[] = [];
-    recorder.ondataavailable = (e) => chunks.push(e.data);
-    const result = new Promise<Blob>((resolve) => {
-      recorder.onstop = () => resolve(new Blob(chunks, { type: 'audio/wav' }));
+    let settled = false;
+    const cleanup = () => {
+      try { this.engine.masterGain.disconnect(streamDest); } catch { /* already detached */ }
+      streamDest.stream.getTracks?.().forEach((track) => track.stop());
+    };
+    const result = new Promise<Blob>((resolve, reject) => {
+      recorder.ondataavailable = (e) => {
+        if (e.data?.size) chunks.push(e.data);
+      };
+      recorder.onstop = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        const actualMime = recorder.mimeType || mimeType || chunks[0]?.type || 'application/octet-stream';
+        resolve(new Blob(chunks, { type: actualMime }));
+      };
+      recorder.onerror = (event) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject((event as any)?.error ?? new Error('Live recording failed'));
+      };
     });
     recorder.start();
     return { recorder, result };
@@ -95,24 +208,48 @@ export class ExportService {
 
   // ── Sprint A6 — real offline render ─────────────────────────────────
 
+  /** Sample rates the exporter offers: music delivery plus video/broadcast. */
+  static readonly SAMPLE_RATES = [44100, 48000] as const;
+
   /**
    * Render the full arrangement into an AudioBuffer via OfflineAudioContext —
    * no live playback required, deterministic sample-accurate bounce. Each
    * unmuted MIDI track schedules oscillators (from its synthParams envelope)
    * for every note; results are mixed to stereo at the project tempo.
+   *
+   * `sampleRate` is a render property, not a post-process: the offline context
+   * is created at that rate, so an exported 48 kHz file is synthesised at
+   * 48 kHz rather than a 44.1 kHz bounce wearing a 48 kHz header.
    */
-  async renderProjectOffline(): Promise<AudioBuffer> {
+  async renderProjectOffline(
+    options: {
+      /** Render only these track ids (stems). Length still follows the song. */
+      onlyTrackIds?: ReadonlySet<string>;
+      /** Ignore the project's solo state — a stem set must contain every track. */
+      ignoreSolo?: boolean;
+      /** Delivery sample rate (default 44.1 kHz). */
+      sampleRate?: number;
+    } = {},
+  ): Promise<AudioBuffer> {
     const tempo = Math.max(20, Math.min(300, this.engine.tempo()));
     const tracks = this.musicManager.tracks();
     const lastEventStep = tracks.reduce((end, track) => Math.max(end,
       ...(track.notes ?? []).map((note) => note.step + note.length),
-      ...(track.clips ?? []).map((clip) => (clip.start + clip.length) * 16),
+      ...(track.clips ?? []).map((clip: any) => {
+        const clipSeconds = clip.clipLengthSeconds ?? clip.length * (60 / tempo) * 4;
+        return clip.start * 16 + clipSeconds / ((60 / tempo) / 4);
+      }),
     ), 0);
     const bars = Math.max(1, this.musicManager.activeLoopBars(), Math.ceil(lastEventStep / 16));
     const secondsPerBar = (60 / tempo) * 4;
     const totalSeconds = Math.max(1, bars * secondsPerBar + 1);
     if (!Number.isFinite(totalSeconds) || totalSeconds > 600) throw new Error('Offline export supports up to 10 minutes per render. Shorten the arrangement first.');
-    const sampleRate = 44100;
+    // Guard the context constructor: a NaN/0 rate throws deep inside WebAudio
+    // with a message that says nothing about the export.
+    const sampleRate =
+      Number.isFinite(options.sampleRate) && (options.sampleRate ?? 0) >= 8000
+        ? Math.round(options.sampleRate!)
+        : 44100;
 
     const offline = new OfflineAudioContext(2, Math.ceil(totalSeconds * sampleRate), sampleRate);
     const master = offline.createGain();
@@ -121,8 +258,14 @@ export class ExportService {
 
     const secondsPerStep = (60 / tempo) / STEPS_PER_BEAT;
 
-    const hasSolo = tracks.some((track) => track.soloed);
+    // A single-track render is a stem: solo on another track must not silence
+    // it, so `onlyTrackIds` implies `ignoreSolo`.
+    const hasSolo =
+      !options.ignoreSolo &&
+      !options.onlyTrackIds &&
+      tracks.some((track) => track.soloed);
     for (const track of tracks) {
+      if (options.onlyTrackIds && !options.onlyTrackIds.has(track.id)) continue;
       if (track.muted || (hasSolo && !track.soloed) || track.type === 'bus') continue;
       const channel = offline.createGain();
       channel.gain.value = Math.max(0, Math.min(1.5, track.gain ?? track.volume ?? 0.8));
@@ -131,24 +274,104 @@ export class ExportService {
         this.scheduleTrackNotes(offline, channel, track.notes ?? [],
           track.synthParams ?? { type: 'sine' }, secondsPerStep, track.pan ?? 0);
       }
-      const pan = offline.createStereoPanner();
-      pan.pan.value = Math.max(-1, Math.min(1, track.pan ?? 0));
-      pan.connect(channel);
       for (const clip of track.clips ?? []) {
         if (clip.type !== 'audio') continue;
-        const buffer = clip.audioData || (clip.audioRefId && this.musicManager.stemAudioCache.get(clip.audioRefId));
+        // One panner + one fade gain per clip: a clip's fade is its own
+        // envelope, so clips sharing a track cannot share a gain stage
+        // without one clip's fade doubling or muting the other.
+        const pan = offline.createStereoPanner();
+        pan.pan.value = Math.max(-1, Math.min(1, track.pan ?? 0));
+        const fader = offline.createGain();
+        pan.connect(fader);
+        fader.connect(channel);
+        const streamer = (clip as any).clipStreamer;
+        let buffer = clip.audioData || (clip.audioRefId && this.musicManager.stemAudioCache.get(clip.audioRefId));
+        let offset = Math.max(0, clip.offset ?? 0);
+        if (!buffer && streamer) {
+          const sampleRate = (clip as any).clipSampleRate || 48000;
+          streamer.setPlayhead(Math.max(0, ((clip as any).clipOriginSeconds || 0) * sampleRate));
+          buffer = streamer.getResidentBuffer();
+          offset = streamer.getResidentOffsetSeconds?.() ?? 0;
+        }
         if (!buffer) throw new Error(`Audio for “${track.name}” is unavailable. Restore or re-import the clip before export.`);
-        const source = offline.createBufferSource();
-        source.buffer = buffer;
-        source.connect(pan);
         const start = Math.max(0, clip.start * secondsPerBar);
-        const offset = Math.max(0, clip.offset ?? 0);
-        const duration = Math.min(clip.length * secondsPerBar, buffer.duration - offset);
-        if (duration > 0) source.start(start, offset, duration);
+        const duration = Math.min(
+          clip.clipLengthSeconds ?? clip.length * secondsPerBar,
+          streamer ? streamer.getRemainingSecondsFrom((clip as any).clipOriginSeconds || 0) : Math.max(0, buffer.duration - offset),
+        );
+        this.applyClipFade(fader.gain, start, duration, clip, secondsPerBar);
+        if (streamer) {
+          const sampleRate = (clip as any).clipSampleRate || 48000;
+          const sampleRateRatio = sampleRate / buffer.sampleRate;
+          const sourceRate = Math.max(0.01, (this.engine.tempo() / ((clip as any).originalBpm || this.engine.tempo())) * sampleRateRatio);
+          let elapsed = 0;
+          let sourcePosition = (clip as any).clipOriginSeconds || 0;
+          let currentBuffer: AudioBuffer | null = buffer;
+          let currentOffset = offset;
+          while (currentBuffer && elapsed < duration - 0.000001) {
+            const availableSeconds = Math.max(0, currentBuffer.duration - currentOffset);
+            const consumedSeconds = Math.min((duration - elapsed) * sourceRate, availableSeconds);
+            if (consumedSeconds <= 0.000001) break;
+            const source = offline.createBufferSource();
+            source.buffer = currentBuffer;
+            source.playbackRate.setValueAtTime(sourceRate, start + elapsed);
+            source.connect(pan);
+            source.start(start + elapsed, currentOffset, consumedSeconds);
+            elapsed += consumedSeconds / sourceRate;
+            sourcePosition += consumedSeconds / sampleRateRatio;
+            if (elapsed < duration - 0.000001) {
+              streamer.setPlayhead(sourcePosition * sampleRate);
+              currentBuffer = streamer.getResidentBuffer();
+              currentOffset = streamer.getResidentOffsetSeconds?.() ?? 0;
+            }
+          }
+        } else {
+          const source = offline.createBufferSource();
+          source.buffer = buffer;
+          source.connect(pan);
+          if (duration > 0) source.start(start, offset, duration);
+        }
       }
     }
 
     return offline.startRendering();
+  }
+
+  /**
+   * Write an audio clip's fade-in/fade-out envelope onto its own gain stage.
+   *
+   * Phase F2 added fades to the arrangement, but only the live sampler applied
+   * them, so a bounced fade came out as a hard edge. The clamps, the linear
+   * ramps and the "fade-out never starts before the fade-in ends" rule are
+   * copied from `AudioEngineService.triggerSampler` so the export measures the
+   * same envelope the artist heard.
+   */
+  private applyClipFade(
+    gain: AudioParam,
+    start: number,
+    duration: number,
+    clip: { length: number; fadeIn?: number; fadeOut?: number },
+    secondsPerBar: number
+  ): void {
+    const safeDuration = Math.max(0.001, duration);
+    // Fades are stored in bars, like `start`/`length`; the clamp matches live.
+    const fadeIn = Math.max(
+      0,
+      Math.min(Math.min(clip.fadeIn ?? 0, clip.length) * secondsPerBar, safeDuration)
+    );
+    const fadeOut = Math.max(
+      0,
+      Math.min(Math.min(clip.fadeOut ?? 0, clip.length) * secondsPerBar, safeDuration)
+    );
+
+    gain.setValueAtTime(0, start);
+    if (fadeIn > 0) gain.linearRampToValueAtTime(1, start + fadeIn);
+    else gain.setTargetAtTime(1, start, 0.005);
+    if (fadeOut > 0) {
+      const fadeStart = start + Math.max(fadeIn, safeDuration - fadeOut);
+      gain.setValueAtTime(1, fadeStart);
+      gain.linearRampToValueAtTime(0, start + safeDuration);
+    }
   }
 
   /**
@@ -230,8 +453,11 @@ export class ExportService {
   ): Promise<Blob> {
     const info = EXPORT_FORMATS.find((f) => f.id === format) ?? EXPORT_FORMATS[0];
 
-    if (info.id === 'wav') {
-      const wav = await this.audioBufferToWav(buffer);
+    if (info.id === 'wav' || info.id === 'wav24') {
+      const wav = await this.audioBufferToWav(
+        buffer,
+        info.id === 'wav24' ? 24 : 16
+      );
       return new Blob([wav], { type: 'audio/wav' });
     }
 
@@ -330,7 +556,10 @@ export class ExportService {
     return new Blob(chunks, { type: info.mime });
   }
 
-  async audioBufferToWav(buffer: AudioBuffer): Promise<ArrayBuffer> {
+  async audioBufferToWav(
+    buffer: AudioBuffer,
+    bitDepth: 16 | 24 = 16
+  ): Promise<ArrayBuffer> {
     const channels: Float32Array[] = [];
     for (let i = 0; i < buffer.numberOfChannels; i++) {
       channels.push(buffer.getChannelData(i));
@@ -338,11 +567,14 @@ export class ExportService {
     // WavEncoder takes one planar Float32Array per channel and interleaves
     // internally; handing it a pre-interleaved buffer alongside a channel
     // count > 1 throws for stereo renders.
-    const blob = WavEncoder.encode(
-      channels,
-      channels.length,
-      buffer.sampleRate
-    );
+    const blob =
+      bitDepth === 24
+        ? WavEncoder.encodeMultiChannel(
+            channels,
+            'wav-24',
+            buffer.sampleRate
+          )
+        : WavEncoder.encode(channels, channels.length, buffer.sampleRate);
     return await blob.arrayBuffer();
   }
 

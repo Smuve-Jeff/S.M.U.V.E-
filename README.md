@@ -48,7 +48,7 @@ public routes.
 | `/mixer` | Mixer | Channel strips, sends, VCA rack, honest metering |
 | `/drum-machine` | Drum Machine | Step grid, swing, humanize, probability |
 | `/performance` | Performance | MIDI pad grid, velocity layers, pressure pads |
-| `/mastering` | Mastering Suite | Spectrum analysis, soft-clip, limiting, AI mix master |
+| `/mastering` | Mastering Suite | Spectrum analysis, soft-clip, limiting, AI mix master, reference-track A/B with loudness matching, one-tap delivery-target conform |
 | `/vocal-suite` | Vocal Suite | Capture, comping, and vocal enhancement |
 | `/dj` | DJ Booth | Two-deck mixer with crossfader, platters, stems (`/turntable`, `/decks` alias here) |
 | `/lyric-editor` | Lyric Editor | Writing and lyric ideation |
@@ -99,7 +99,8 @@ becomes a one-tap quick-start lane.
 - Bundle import validates metadata, tracks, audio assets (>256 MiB rejected), structure,
   and automation before replacing a session.
 - Export renders offline through `OfflineAudioContext` (deterministic WAV, honors
-  solo/mute/gain/pan), with MIDI import/export alongside.
+  solo/mute/gain/pan and clip fades), at 16/24-bit and 44.1/48 kHz, with 24-bit
+  per-track stems at the same rate and MIDI import/export alongside.
 
 #### Engines
 
@@ -308,6 +309,7 @@ Factory presets live in `presets/`.
 | --- | --- |
 | [`docs/MASTER_PLAN.md`](docs/MASTER_PLAN.md) | Competitor-beating feature plan and prioritization |
 | [`docs/STUDIO_QUALITY_SWEEP.md`](docs/STUDIO_QUALITY_SWEEP.md) | Studio audit, repairs, and verification evidence |
+| [`docs/STUDIO_PLAY_PARITY_AUDIT.md`](docs/STUDIO_PLAY_PARITY_AUDIT.md) | Per-component comparison against Play Store DAWs, with gaps and backlog |
 | [`docs/PLAY_STORE_DEPLOY.md`](docs/PLAY_STORE_DEPLOY.md) | Android release checklist |
 | [`docs/DESKTOP_DEPLOY.md`](docs/DESKTOP_DEPLOY.md) | Electron packaging |
 | [`docs/CAPACITOR_PLUGIN_AUDIT.md`](docs/CAPACITOR_PLUGIN_AUDIT.md) | Native plugin inventory |
