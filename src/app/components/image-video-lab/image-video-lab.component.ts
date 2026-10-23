@@ -102,8 +102,44 @@ const AI_CLIP_DURATION_OTHER = 6;
 /** Real-time capture windows offered for the canvas video export. */
 const EXPORT_WINDOW_OPTIONS = [5, 10, 30, 60];
 const DEFAULT_EXPORT_WINDOW = 10;
-/** Longest edge of a captured camera still, in px. */
-const CAMERA_STILL_MAX_WIDTH = 1920;
+
+/**
+ * Raster the master is captured at. The program monitor is capped at
+ * 1080p-class so idle frames stay cheap (`PREVIEW_MAX_EDGE`); the export must
+ * not inherit that cap, or a preset called "CinemaScope 4K" ships a 1920x803
+ * file while the UI calls it 4K.
+ */
+export type ExportScale = 'auto' | '1080p' | '1440p' | '2160p';
+
+export const EXPORT_SCALES: readonly { id: ExportScale; label: string }[] = [
+  { id: 'auto', label: 'Auto - preset' },
+  { id: '1080p', label: '1080p' },
+  { id: '1440p', label: '1440p' },
+  { id: '2160p', label: '4K UHD' },
+];
+
+/** Longest edge each manual export rung may use, in px. */
+const EXPORT_SCALE_EDGES: Record<Exclude<ExportScale, 'auto'>, number> = {
+  '1080p': 1920,
+  '1440p': 2560,
+  '2160p': 3840,
+};
+/** Absolute ceiling for one exported frame, whatever a preset declares. */
+const EXPORT_MAX_EDGE = 4096;
+/** Whole-raster ceiling: past this a canvas costs more than a phone has. */
+const EXPORT_MAX_PIXELS = 8_300_000;
+/** Bits per encoded pixel-second - the camera recorder's own tuning. */
+const EXPORT_BITS_PER_PIXEL = 0.12;
+const EXPORT_MIN_BITS_PER_SECOND = 6_000_000;
+const EXPORT_MAX_BITS_PER_SECOND = 60_000_000;
+/** Frame rates offered for a capture. */
+export const EXPORT_FRAME_RATES = [30, 60] as const;
+/** Idle repaint interval while nothing is moving, in ms. */
+const IDLE_REPAINT_INTERVAL_MS = 250;
+/** Just the geometry a paint helper reads - a real canvas, or a scaled frame. */
+type FrameGeometry = { width: number; height: number };
+/** Fallback still width when the bound track reports no geometry. */
+const CAMERA_STILL_FALLBACK_WIDTH = 1920;
 /** Sub-millisecond delta — closer than any real frame boundary, so skip the seek. */
 const EXACT_SEEK_EPSILON_SECONDS = 0.001;
 /**
@@ -286,6 +322,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Seconds of real-time timeline captured per video export. */
   exportWindow = signal(DEFAULT_EXPORT_WINDOW);
   exportProgress = signal(0);
+  /** Raster target for the master, independent of the preview's 1080p cap. */
+  exportScale = signal<ExportScale>('auto');
+  /** Capture frame rate for the master. */
+  exportFps = signal<number>(30);
   cameraTakeCount = signal(0);
   /** Clip under edit — the target of split / duplicate / delete / lane moves. */
   selectedClipId = signal<string | null>(null);
@@ -299,6 +339,38 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   readonly livePlatforms = LIVE_STREAM_PLATFORMS;
   readonly exportWindowOptions = EXPORT_WINDOW_OPTIONS;
   readonly captureQualities = CAPTURE_QUALITIES;
+  readonly exportScales = EXPORT_SCALES;
+  readonly exportFrameRates = EXPORT_FRAME_RATES;
+
+  /** Master raster for the next take, derived from the delivery preset. */
+  exportDimensions = computed(() => this.resolveExportDimensions());
+
+  /** Encoder target for that raster, shown before a take starts. */
+  exportBitrate = computed(() => {
+    const { width, height } = this.exportDimensions();
+    const raw = Math.round(
+      width * height * this.exportFps() * EXPORT_BITS_PER_PIXEL
+    );
+    return Math.min(
+      EXPORT_MAX_BITS_PER_SECOND,
+      Math.max(EXPORT_MIN_BITS_PER_SECOND, raw)
+    );
+  });
+
+  /** One-line statement of what the next download will be. */
+  exportSummary = computed(() => {
+    const { width, height } = this.exportDimensions();
+    return (
+      width +
+      'x' +
+      height +
+      ' - ' +
+      this.exportFps() +
+      'fps - ' +
+      Math.round(this.exportBitrate() / 1_000_000) +
+      ' Mbps'
+    );
+  });
   /** Which surface the program monitor is showing. */
   monitorSource = signal<'program' | 'camera'>('program');
   /**
@@ -420,6 +492,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   private canvasCtx: CanvasRenderingContext2D | null = null;
   private animFrame: number | null = null;
   /**
+   * Detached master raster used while a take is recording. The preview stays
+   * capped and keeps its operator HUD; this surface is painted clean and at the
+   * preset's real resolution, and it is what the recorder captures.
+   */
+  private exportCanvas: HTMLCanvasElement | null = null;
+  private exportCtx: CanvasRenderingContext2D | null = null;
+  private exportActive = false;
+  /** Clips already tapped for audio, so an element is never wired twice. */
+  private readonly clipAudioRouted = new WeakSet<HTMLVideoElement>();
+  /**
    * Decoded <img>/<video> elements keyed by clip url so the preview paints the
    * clip's real media instead of an abstract gradient.
    */
@@ -429,6 +511,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   >();
   /** Object URLs minted by this component (camera takes) — revoked on destroy. */
   private readonly ownedObjectUrls = new Set<string>();
+  /** Take downloads, named for the container the recorder actually produced. */
+  private readonly takeFileNames = new Map<string, string>();
   /**
    * Footage that arrived with a project opened this session, keyed by the id on
    * the clip. Clips made in this session are not listed here: their bytes are
@@ -741,6 +825,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // `canvas.width` resets the 2D context.
     this.syncPreviewResolution();
     this.canvasCtx = this.previewCanvas.nativeElement.getContext('2d');
+    this.tuneContext(this.canvasCtx);
     this.syncCameraElement();
     this.syncNativePlayer();
     this.syncTimelineViewport();
@@ -792,6 +877,88 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     if (width > 0 && height > 0) return width / height;
     if (preset.width > 0 && preset.height > 0) return preset.width / preset.height;
     return 16 / 9;
+  }
+
+  /**
+   * Every surface in this module resamples: 4K source media lands in a 1080p
+   * monitor, and a 4K master is mirrored into a phone-sized preview. Chrome's
+   * default smoothing quality is `low`, so ask for `high` once per context.
+   */
+  private tuneContext(ctx: CanvasRenderingContext2D | null): void {
+    if (!ctx) return;
+    ctx.imageSmoothingEnabled = true;
+    try {
+      ctx.imageSmoothingQuality = 'high';
+    } catch {
+      // Older hosts ignore the property; smoothing stays on.
+    }
+  }
+
+  /**
+   * Master raster for the next take.
+   *
+   * Starts from the preset's own geometry (or the armed cutdown), then trims it
+   * to the requested rung and the device ceiling. A preset is never upscaled: a
+   * 1080p preset asked for 4K stays 1080p rather than shipping interpolated
+   * pixels called a master.
+   */
+  private resolveExportDimensions(): { width: number; height: number } {
+    const cutdown = this.cutdownAspect();
+    const preset = this.activePreset();
+    const ratio = cutdown
+      ? this.parseRatio(cutdown.ratio)
+      : this.resolveAspectRatio(preset);
+    const declaredWidth = cutdown ? cutdown.width : preset.width;
+    const declaredHeight = Math.round(
+      (declaredWidth || PREVIEW_MAX_EDGE) / (ratio || 16 / 9)
+    );
+    const longEdge = Math.max(declaredWidth, declaredHeight);
+    const budget = Math.min(longEdge, this.resolveExportEdge());
+    const scale = longEdge > 0 ? Math.min(1, budget / longEdge) : 1;
+    let width = Math.max(2, Math.round((declaredWidth * scale) / 2) * 2);
+    let height = Math.max(2, Math.round((declaredHeight * scale) / 2) * 2);
+    // Whole-raster guard: a very wide frame can pass the edge test and still be
+    // more canvas than the host can composite at frame rate.
+    const pixels = width * height;
+    if (pixels > EXPORT_MAX_PIXELS) {
+      const squeeze = Math.sqrt(EXPORT_MAX_PIXELS / pixels);
+      width = Math.max(2, Math.round((width * squeeze) / 2) * 2);
+      height = Math.max(2, Math.round((height * squeeze) / 2) * 2);
+    }
+    return { width, height };
+  }
+
+  /**
+   * Longest edge the master may use. `auto` reads the device instead of
+   * guessing: a phone whose browser reports 4 GB cannot composite a 4K frame at
+   * 30 fps, and silently trying is what turns a take into a slideshow.
+   */
+  private resolveExportEdge(): number {
+    const scale = this.exportScale();
+    if (scale !== 'auto') {
+      return Math.min(EXPORT_MAX_EDGE, EXPORT_SCALE_EDGES[scale]);
+    }
+    const memory = Number(
+      typeof navigator !== 'undefined'
+        ? (navigator as Navigator & { deviceMemory?: number }).deviceMemory
+        : undefined
+    );
+    const coarse =
+      typeof matchMedia === 'function' &&
+      matchMedia('(pointer: coarse)').matches;
+    const edge =
+      Number.isFinite(memory) && memory > 0
+        ? memory <= 2
+          ? 1280
+          : memory <= 4
+            ? 1920
+            : memory <= 8
+              ? 2560
+              : 3840
+        : coarse
+          ? 2560
+          : 3840;
+    return Math.min(EXPORT_MAX_EDGE, edge);
   }
 
   // ── Timeline viewport (zoom + scroll) ─────────────────────────────────
@@ -2071,7 +2238,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         id: 'take-' + clip.id,
         kind: 'video' as const,
         name: clip.name,
-        fileName: clip.name.replace(/[^a-zA-Z0-9._-]+/g, '_') + '.webm',
+        fileName:
+          this.takeFileNames.get(clip.url) ??
+          clip.name.replace(/[^a-zA-Z0-9._-]+/g, '_') + '.webm',
         url: clip.url,
         blob: null,
         width: 0,
@@ -2083,6 +2252,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       }));
     return [...this.captures(), ...takes];
   });
+
+  /**
+   * Still width follows the capture quality the operator picked: a 4K take
+   * pinned at 3840 was previously photographed at 1920, so the shutter quietly
+   * returned half the detail of the recording beside it.
+   */
+  private resolveStillMaxWidth(): number {
+    return this.camera.frameSettings()?.width || CAMERA_STILL_FALLBACK_WIDTH;
+  }
 
   /**
    * Photo shutter.
@@ -2100,7 +2278,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
     const shot = await this.camera.capturePhoto(
       this.cameraFeed?.nativeElement,
-      { maxWidth: CAMERA_STILL_MAX_WIDTH }
+      { maxWidth: this.resolveStillMaxWidth() }
     );
     if (!shot) {
       // No sensor implementation, or a feed that has not painted yet. The canvas
@@ -2230,7 +2408,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       name: input.name,
       fileName:
         input.name.replace(/[^a-zA-Z0-9._-]+/g, '_') +
-        (input.kind === 'photo' ? '.jpg' : '.webm'),
+        '.' +
+        this.extensionForMime(
+          input.blob?.type,
+          input.kind === 'photo' ? 'jpg' : 'webm'
+        ),
       url: input.url,
       blob: input.blob,
       width: input.width ?? 0,
@@ -2263,21 +2445,103 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       : Math.max(1, Math.round(bytes / 1024)) + ' KB';
   }
 
+  /**
+   * Paint loop.
+   *
+   * Frames are only worth producing while something moves: a paused timeline
+   * with no camera would otherwise repaint a 1920x1080 canvas sixty times a
+   * second for a picture that cannot change, which is measurable heat and
+   * battery on a phone. While a take is recording the clean master surface is
+   * painted instead and mirrored into the monitor, so the file comes from
+   * exactly what the operator is watching.
+   */
   private startCanvasLoop() {
-    const render = () => {
-      if (this.canvasCtx) {
-        this.renderPreview();
+    let lastPaint = 0;
+    let lastSignature = '';
+    /**
+     * Everything that changes what a stopped frame looks like. Scrubbing with
+     * the transport paused never sets `isPlaying`, so without this the monitor
+     * would only refresh on the idle tick and a drag would feel stuck.
+     */
+    const signature = () =>
+      [
+        this.videoEngine.currentTime(),
+        this.monitorSource(),
+        this.camera.status(),
+        this.activePreset().id,
+        this.videoEngine.productionMode(),
+        this.videoEngine
+          .tracks()
+          .map((track) => track.clips.length)
+          .join(','),
+      ].join('|');
+    const render = (timestamp = 0) => {
+      const canvas = this.previewCanvas?.nativeElement;
+      const ctx = this.canvasCtx;
+      if (canvas && ctx && typeof document !== 'undefined' && !document.hidden) {
+        const live =
+          this.exportActive ||
+          this.videoEngine.isPlaying() ||
+          this.camera.isLive();
+        const current = live ? '' : signature();
+        if (
+          !live &&
+          current === lastSignature &&
+          timestamp - lastPaint < IDLE_REPAINT_INTERVAL_MS
+        ) {
+          this.animFrame = requestAnimationFrame(render);
+          return;
+        }
+        lastPaint = timestamp;
+        lastSignature = current;
+        if (this.exportActive && this.exportCanvas && this.exportCtx) {
+          this.paintFrame(this.exportCanvas, this.exportCtx, true);
+          this.mirrorExportIntoPreview(canvas, ctx);
+        } else {
+          this.paintFrame(canvas, ctx, false);
+        }
       }
       this.animFrame = requestAnimationFrame(render);
     };
-    render();
+    this.animFrame = requestAnimationFrame(render);
   }
 
-  private renderPreview() {
-    if (!this.canvasCtx) return;
-    const ctx = this.canvasCtx;
-    const canvas = this.previewCanvas.nativeElement;
+  /** Downscale the clean master into the monitor so the preview tracks it. */
+  private mirrorExportIntoPreview(
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D
+  ): void {
+    if (!this.exportCanvas) return;
+    this.tuneContext(ctx);
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.filter = 'none';
+    ctx.drawImage(this.exportCanvas, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
 
+  /** Paint the operator view once (the loop's non-export path). */
+  private renderPreview() {
+    const canvas = this.previewCanvas?.nativeElement;
+    if (!this.canvasCtx || !canvas) return;
+    this.paintFrame(canvas, this.canvasCtx, false);
+  }
+
+  /**
+   * Paint one frame.
+   *
+   * `clean` is the master path: programme graphics (titles, lower third,
+   * countdown) stay, because they are part of the picture, but every operator
+   * diagnostic - scanlines, corner brackets, transport badge, preset label,
+   * camera name, safe-zone guides and the per-clip uplink readout - is
+   * suppressed, so a downloaded file is not a screenshot of the editor.
+   */
+  private paintFrame(
+    canvas: HTMLCanvasElement,
+    ctx: CanvasRenderingContext2D,
+    clean: boolean
+  ): void {
+    this.tuneContext(ctx);
     ctx.fillStyle = '#020617';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -2323,6 +2587,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           );
         }
 
+        // Operator diagnostics never reach the master: they are the editor's
+        // instrument readings, not picture.
+        if (clean) return;
         ctx.save();
         ctx.globalAlpha = 1;
         ctx.filter = 'none';
@@ -2349,8 +2616,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
 
     this.pauseIdleMedia(activeClips);
-    this.drawHUD(ctx, canvas);
-    this.drawCameraDiagnostic(ctx, canvas, liveFeed);
+    this.drawBroadcastGraphics(ctx, canvas);
+    if (!clean) {
+      this.drawDiagnostics(ctx, canvas);
+      this.drawCameraDiagnostic(ctx, canvas, liveFeed);
+    }
   }
 
   /** The detached scratch layer every clip is painted onto before compositing. */
@@ -2853,6 +3123,25 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   /**
+   * Route a clip's own soundtrack into the export mix.
+   *
+   * A timeline video used to be muted and never touched the audio graph, so an
+   * exported master carried the studio score and nothing else - a take with a
+   * conversation in it downloaded silent. A `MediaElementSource` re-routes the
+   * element into WebAudio (the speakers no longer hear it directly) through a
+   * gain that stays at zero until a take is actually recording.
+   */
+  private routeClipAudio(video: HTMLVideoElement): void {
+    if (this.clipAudioRouted.has(video)) return;
+    if (!this.exportService.connectClipAudio(video)) return;
+    this.clipAudioRouted.add(video);
+    // The source node owns the element's output now, so `muted` would silence
+    // the very audio the master is meant to capture.
+    video.muted = false;
+    video.volume = 1;
+  }
+
+  /**
    * Resolve (and lazily decode) a clip's real media element. Only same-origin
    * `blob:`/`data:` sources are used so the preview canvas stays untainted for
    * the `captureStream()` video export.
@@ -2883,6 +3172,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     video.loop = true;
     video.playsInline = true;
     video.preload = 'auto';
+    this.routeClipAudio(video);
     this.playQuietly(video);
     this.mediaCache.set(url, video);
     return video;
@@ -3603,7 +3893,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     );
   }
 
-  private drawHUD(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
+  /**
+   * Operator diagnostics: brackets, scanlines, transport badge, preset label,
+   * safe-zone guides. Instrument markings, never picture - the master path
+   * skips this whole surface.
+   */
+  private drawDiagnostics(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement
+  ) {
     ctx.strokeStyle = '#10b98144';
     ctx.lineWidth = 1;
     const size = 30;
@@ -3646,17 +3944,39 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       );
       ctx.setLineDash([]);
     }
+  }
 
-    // Broadcast graphics live in the program feed, so whatever the host sees on
-    // the monitor is exactly what the export and the stream carry.
-    this.drawLowerThird(ctx, canvas);
-    this.drawCountdown(ctx, canvas);
+  /**
+   * Programme graphics: titles, the streamer strap and the go-live countdown.
+   * These belong to the picture, so the monitor and the master both carry them.
+   * They are laid out in a 1920-wide design space and scaled up, so a 4K take
+   * gets a 4K strap instead of a phone-sized one in the corner.
+   */
+  private drawBroadcastGraphics(
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement
+  ): void {
+    const scale = canvas.width > 0 ? canvas.width / PREVIEW_MAX_EDGE : 1;
+    if (Math.abs(scale - 1) < 0.01) {
+      this.drawLowerThird(ctx, canvas);
+      this.drawCountdown(ctx, canvas);
+      return;
+    }
+    const design = {
+      width: Math.round(canvas.width / scale),
+      height: Math.round(canvas.height / scale),
+    };
+    ctx.save();
+    ctx.scale(scale, scale);
+    this.drawLowerThird(ctx, design);
+    this.drawCountdown(ctx, design);
+    ctx.restore();
   }
 
   /** Streamer lower third — name plate, topic, or sponsor strap. */
   private drawLowerThird(
     ctx: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement
+    canvas: FrameGeometry
   ): void {
     const { enabled, title, subtitle } = this.videoEngine.lowerThird();
     if (!enabled || !title.trim()) return;
@@ -3694,7 +4014,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Go-live cue: a full-frame countdown the whole room can read. */
   private drawCountdown(
     ctx: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement
+    canvas: FrameGeometry
   ): void {
     const label = this.countdownLabel();
     if (!label) return;
@@ -3724,25 +4044,49 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   async exportVideo() {
     if (this.isExporting()) return;
     const seconds = this.exportWindow();
-    const canvas = this.previewCanvas.nativeElement;
+    const { width, height } = this.exportDimensions();
+    const fps = this.exportFps();
+
+    const master = this.ensureExportCanvas(width, height);
+    if (!master) {
+      this.aiFeedback.set(
+        'THIS BROWSER COULD NOT ALLOCATE AN EXPORT CANVAS AT ' +
+          width +
+          'x' +
+          height +
+          '.'
+      );
+      return;
+    }
 
     this.isExporting.set(true);
     this.exportProgress.set(0);
     this.aiFeedback.set(
-      `INITIALIZING ${seconds}s MULTI-STREAM EXPORT. STAND BY FOR ELITE CAPTURE.`
+      `INITIALIZING ${seconds}s EXPORT AT ${width}x${height} ${fps}FPS. STAND BY FOR ELITE CAPTURE.`
     );
 
     const wasPlaying = this.videoEngine.isPlaying();
     let session: {
       recorder: { stop: () => void };
       result: Promise<Blob>;
+      mimeType?: string | null;
     };
+    // Paint once before the recorder opens, so the take does not begin on the
+    // blank canvas a freshly allocated surface starts out as.
+    this.paintFrame(master.canvas, master.ctx, true);
+
     try {
-      session = await this.exportService.startVideoExport(canvas, {
-        fps: 30,
+      session = await this.exportService.startVideoExport(master.canvas, {
+        fps,
         withAudio: true,
+        bitsPerSecond: this.exportBitrate(),
       });
+      // From here the recorder captures the clean master, and the monitor shows
+      // a mirror of it instead of the diagnostic view.
+      this.exportActive = true;
+      this.exportService.setClipAudioLevel(1);
     } catch (error: any) {
+      this.releaseExportCanvas();
       this.isExporting.set(false);
       this.logger.error('Video export failed to start', error);
       this.aiFeedback.set(
@@ -3785,12 +4129,19 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       }
 
       this.exportProgress.set(100);
+      // Name the file for the container the recorder actually muxed: Safari
+      // muxes MP4, and a `.webm` extension on an MP4 makes the download
+      // unopenable outside the browser.
+      const extension = this.extensionForMime(
+        session.mimeType || blob.type,
+        'webm'
+      );
       this.exportService.downloadBlob(
         blob,
-        `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${Date.now()}.webm`
+        `smuve_${this.videoEngine.productionMode()}_${this.activePreset().id}_${Date.now()}.${extension}`
       );
       this.aiFeedback.set(
-        `VIDEO EXPORT CAPTURE COMPLETE. ${this.activePreset().target.toUpperCase()} MASTER IS READY FOR DEPLOYMENT.`
+        `VIDEO EXPORT COMPLETE - ${width}x${height} ${fps}FPS ${extension.toUpperCase()} MASTER IS READY FOR DEPLOYMENT.`
       );
     } catch (error: any) {
       clearTimeout(stopTimer);
@@ -3801,8 +4152,64 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         'VIDEO EXPORT FAILED. TRY A SHORTER CAPTURE WINDOW.'
       );
     } finally {
+      this.releaseExportCanvas();
       this.isExporting.set(false);
     }
+  }
+
+  /**
+   * Allocate (or resize) the detached master surface for one take, and return
+   * the context already tuned for high-quality resampling.
+   */
+  private ensureExportCanvas(
+    width: number,
+    height: number
+  ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null {
+    if (typeof document === 'undefined') return null;
+    if (!this.exportCanvas) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      this.exportCanvas = canvas;
+      this.exportCtx = ctx;
+    }
+    const canvas = this.exportCanvas;
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+      // Assigning either dimension resets the context state.
+      this.exportCtx = canvas.getContext('2d');
+    }
+    const ctx = this.exportCtx;
+    if (!ctx) return null;
+    this.tuneContext(ctx);
+    return { canvas, ctx };
+  }
+
+  /** Drop the master surface and its pixels once a take is over. */
+  private releaseExportCanvas(): void {
+    this.exportActive = false;
+    this.exportService.setClipAudioLevel(0);
+    if (this.exportCanvas) {
+      this.exportCanvas.width = 1;
+      this.exportCanvas.height = 1;
+    }
+    this.exportCanvas = null;
+    this.exportCtx = null;
+  }
+
+  /** File extension that matches the bytes the browser actually produced. */
+  private extensionForMime(
+    mime: string | null | undefined,
+    fallback: string
+  ): string {
+    const type = (mime || '').toLowerCase();
+    if (type.includes('mp4')) return 'mp4';
+    if (type.includes('webm')) return 'webm';
+    if (type.includes('ogg')) return 'ogg';
+    if (type.includes('jpeg') || type.includes('jpg')) return 'jpg';
+    if (type.includes('png')) return 'png';
+    return fallback;
   }
 
   /**
@@ -4084,7 +4491,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
 
     const dataUrl = this.camera.captureFrame(this.cameraFeed?.nativeElement, {
-      maxWidth: CAMERA_STILL_MAX_WIDTH,
+      maxWidth: this.resolveStillMaxWidth(),
     });
     if (!dataUrl) {
       this.aiFeedback.set(
@@ -4139,6 +4546,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.ownedObjectUrls.add(url);
       this.cameraTakeCount.update((count) => count + 1);
       const takeName = `Camera Take ${this.cameraTakeCount()}`;
+      this.takeFileNames.set(
+        url,
+        takeName.replace(/[^a-zA-Z0-9._-]+/g, '_') +
+          '.' +
+          this.extensionForMime(blob.type, 'webm')
+      );
       this.videoEngine.addClip('t1', {
         name: takeName,
         url,

@@ -578,6 +578,18 @@ canvas {
  */
 .clip-block {
   touch-action: none;
+  /*
+   * The clip is the drag target, so on a phone it clears the 44px thumb floor
+   * (2.75rem) inside the 48px lane. Desktop keeps the compact 32px strip, where
+   * the pointer is precise and the lane height is scarce.
+   */
+  min-height: 2.75rem;
+}
+
+@media (min-width: 768px) {
+  .clip-block {
+    min-height: 0;
+  }
 }
 
 /*
@@ -829,9 +841,28 @@ canvas {
   }
 }
 
+.header-actions {
+  /* Raster, rate and window controls stack on a phone instead of overflowing. */
+  flex-wrap: wrap;
+}
+
 .export-window {
   display: grid;
   gap: 0.15rem;
+}
+
+/*
+ * What the next download will actually be. The master raster is no longer the
+ * preview's 1080p cap, so the operator gets the numbers before the take starts
+ * instead of discovering them in a filename.
+ */
+.export-summary {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+  white-space: nowrap;
 }
 
 .export-window-label {

@@ -60,6 +60,9 @@ export class ExportService {
   /** True while a canvas capture is recording. */
   private isCapturing = signal(false);
 
+  /** Sum of every tapped timeline clip's audio; zero unless a take is rolling. */
+  private clipAudioTap: GainNode | null = null;
+
   /**
    * Whether the timeline transport was rolling when the live capture started.
    *
@@ -398,8 +401,19 @@ export class ExportService {
    */
   async startVideoExport(
     canvas: HTMLCanvasElement,
-    options: { fps?: number; withAudio?: boolean; bitsPerSecond?: number } = {}
-  ): Promise<{ recorder: { stop: () => void }; result: Promise<Blob> }> {
+    options: {
+      fps?: number;
+      withAudio?: boolean;
+      bitsPerSecond?: number;
+      /** Clip sound to sum into the master, when the callsite has any. */
+      clipAudio?: AudioNode | null;
+    } = {}
+  ): Promise<{
+    recorder: { stop: () => void };
+    result: Promise<Blob>;
+    /** Container the recorder actually muxed, for the download's extension. */
+    mimeType: string | null;
+  }> {
     if (typeof MediaRecorder === 'undefined') {
       throw new Error(
         'Video export is not supported in this browser (MediaRecorder missing).'
@@ -420,11 +434,11 @@ export class ExportService {
         : [];
 
     // Fold the live master bus into the recording so the exported master keeps
-    // its score instead of shipping silent frames.
+    // its score instead of shipping silent frames, and sum any clip sound on top
+    // of it: a take with dialogue in it used to download silent.
     if (options.withAudio !== false) {
       try {
-        const audioTrack =
-          this.engine.getMasterStream().stream.getAudioTracks()[0];
+        const audioTrack = this.buildExportAudioTrack(options.clipAudio);
         if (audioTrack) stream.addTrack(audioTrack);
       } catch (err) {
         this.logger.warn('Video export is running without an audio track', err);
@@ -476,7 +490,86 @@ export class ExportService {
         },
       },
       result,
+      mimeType,
     };
+  }
+
+  /**
+   * Tap a timeline clip's own soundtrack for the master.
+   *
+   * A clip element is muted and never touches the audio graph, so a take with
+   * dialogue in it exported silent. This routes the element through WebAudio
+   * (the speakers stop hearing it directly) into a gain that stays at zero until
+   * a take actually records, so preview playback is unchanged.
+   *
+   * @returns false when the host cannot tap the element — cross-origin media
+   * without CORS, or a host without `createMediaElementSource`.
+   */
+  connectClipAudio(element: HTMLMediaElement): boolean {
+    try {
+      const ctx = this.engine.ctx;
+      if (!ctx || typeof ctx.createMediaElementSource !== 'function') {
+        return false;
+      }
+      if (!this.clipAudioTap) {
+        this.clipAudioTap = ctx.createGain();
+        this.clipAudioTap.gain.value = 0;
+      }
+      const source = ctx.createMediaElementSource(element);
+      source.connect(this.clipAudioTap);
+      return true;
+    } catch (err) {
+      this.logger.warn('Clip audio could not be tapped for export', err);
+      return false;
+    }
+  }
+
+  /** Open or close the clip-audio tap around a take. */
+  setClipAudioLevel(level: number): void {
+    if (!this.clipAudioTap) return;
+    this.clipAudioTap.gain.value = Math.max(0, Math.min(1, level));
+  }
+
+  /**
+   * One audio track carrying everything the master should hear.
+   *
+   * The studio bus is re-sourced into a fresh destination so clip audio can be
+   * summed with it — `MediaRecorder` records the stream's tracks as they were
+   * when it started, so the mix has to exist before the take rolls. Returns null
+   * when the host cannot build the mix (older WebViews, test doubles), letting
+   * the caller fall back to the plain master track.
+   */
+  private buildExportAudioTrack(
+    clipAudio?: AudioNode | null
+  ): MediaStreamTrack | null {
+    // Read the bus before touching a destination: when the audio graph is not
+    // up yet this throws, and the caller turns that into a video-only capture
+    // rather than a second attempt that would mask the failure.
+    const master = this.engine.getMasterStream()?.stream;
+    const plain = master?.getAudioTracks?.()[0] ?? null;
+    const tap = clipAudio ?? this.clipAudioTap;
+    const ctx = this.engine.ctx;
+    if (
+      !ctx ||
+      typeof ctx.createMediaStreamDestination !== 'function' ||
+      typeof MediaStream === 'undefined'
+    ) {
+      return plain;
+    }
+    try {
+      const destination = ctx.createMediaStreamDestination();
+      if (typeof ctx.createMediaStreamSource === 'function' && master) {
+        ctx.createMediaStreamSource(master).connect(destination);
+      }
+      if (tap) tap.connect(destination);
+      return destination.stream?.getAudioTracks?.()[0] ?? plain;
+    } catch (err) {
+      this.logger.warn(
+        'Export audio mix unavailable — recording the plain master',
+        err
+      );
+      return plain;
+    }
   }
 
   /**

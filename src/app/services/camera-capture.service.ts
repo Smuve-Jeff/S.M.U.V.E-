@@ -97,6 +97,12 @@ const IDEAL_HEIGHT = 1080;
 const IDEAL_FRAME_RATE = 30;
 /** Highest frame rate we ever ask for; phones rarely expose more. */
 const MAX_FRAME_RATE = 60;
+/**
+ * Ceiling for `Auto`: once a device advertises its sensor size the request
+ * follows it, capped here so a 8K-capable tablet does not ask for a stream no
+ * encoder on the host can mux.
+ */
+const MAX_CAPTURE_EDGE = 3840;
 /** Legacy default used when the bound track reports no usable geometry. */
 const RECORDER_VIDEO_BITS_PER_SECOND = 12_000_000;
 /**
@@ -514,17 +520,25 @@ export class CameraCaptureService implements OnDestroy {
     this.lastError.set(null);
     this.previewWarning.set(null);
 
-    const target = this.qualityTarget();
+    const pinned = this.qualityTarget();
+    // "Auto" used to pin 1080p even after the device announced a larger sensor,
+    // so a 4K phone shot a cropped 2MP-class stream. Once the ceiling is known,
+    // ask for it; before the first bind, stay on the safe default.
+    const target = pinned ?? this.autoResolutionTarget();
     const constraints: MediaStreamConstraints = {
       audio: false,
       video: {
         // A pinned quality asks for the exact class and accepts a 25% shortfall,
         // so a device that cannot hit 4K still binds instead of failing closed.
         width: target
-          ? { ideal: target.width, min: Math.round(target.width * 0.75) }
+          ? pinned
+            ? { ideal: target.width, min: Math.round(target.width * 0.75) }
+            : { ideal: target.width }
           : { ideal: IDEAL_WIDTH },
         height: target
-          ? { ideal: target.height, min: Math.round(target.height * 0.75) }
+          ? pinned
+            ? { ideal: target.height, min: Math.round(target.height * 0.75) }
+            : { ideal: target.height }
           : { ideal: IDEAL_HEIGHT },
         frameRate: { ideal: IDEAL_FRAME_RATE, max: MAX_FRAME_RATE },
         ...(targetDevice && targetDevice !== 'default'
@@ -1057,6 +1071,13 @@ export class CameraCaptureService implements OnDestroy {
       this.facingMode.set(settings.facingMode);
     }
 
+    // `Auto` can only know the sensor once a track exists, so the first bind is
+    // still the safe 1080p ask. Escalate that same track to the ceiling it just
+    // reported instead of waiting for the operator to stop and start again.
+    if (source === 'camera' && this.quality() === 'auto') {
+      void this.escalateAutoCapture(track);
+    }
+
     // The OS can revoke or steal the device at any time (call, another app,
     // screen lock). Mirror that into the status instead of showing a frozen
     // frame that looks like a hung app.
@@ -1129,6 +1150,46 @@ export class CameraCaptureService implements OnDestroy {
     });
     this.chunks = [];
     resolver(blob.size > 0 ? blob : null);
+  }
+
+  /**
+   * Raise a just-bound track to the sensor ceiling `Auto` implies.
+   *
+   * Best-effort: a device that cannot retarget keeps its granted geometry, and
+   * a failure stays silent because the viewfinder is already live and usable.
+   */
+  private async escalateAutoCapture(track?: MediaStreamTrack): Promise<void> {
+    if (typeof track?.applyConstraints !== 'function') return;
+    const target = this.autoResolutionTarget();
+    const granted = this.frameSettings();
+    if (!target || !granted) return;
+    // A small gap is not worth the rebind hiccup: only escalate when the sensor
+    // is meaningfully larger than the frame that was actually granted.
+    if (target.width * target.height < granted.width * granted.height * 1.5) {
+      return;
+    }
+    try {
+      await track.applyConstraints({
+        width: { ideal: target.width },
+        height: { ideal: target.height },
+      });
+      this.refreshFrameSettings(track);
+    } catch {
+      /* the granted geometry stays - it is still a usable picture */
+    }
+  }
+
+  /**
+   * "Auto — device best": the sensor ceiling the bound device advertised, capped
+   * to what the recorder can mux. Null until a device has reported one.
+   */
+  private autoResolutionTarget(): { width: number; height: number } | null {
+    const caps = this.deviceCapabilities();
+    if (!caps || caps.width <= 0 || caps.height <= 0) return null;
+    return {
+      width: Math.min(caps.width, MAX_CAPTURE_EDGE),
+      height: Math.min(caps.height, MAX_CAPTURE_EDGE),
+    };
   }
 
   /** Resolution target for the pinned quality, or null for `auto`. */

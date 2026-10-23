@@ -223,6 +223,38 @@ describe('ExportService', () => {
     ).rejects.toThrow(/Canvas capture/);
   });
 
+  it('sums a tapped clip into the export track and reports its container', async () => {
+    audioEngineMock.ctx.createMediaStreamDestination.mockReturnValueOnce({
+      stream: { getAudioTracks: () => [{ id: 'mix-audio' }] },
+    });
+    const addTrack = jest.fn();
+    const canvas = {
+      captureStream: jest.fn().mockReturnValue({ addTrack }),
+    } as unknown as HTMLCanvasElement;
+    const clipAudio = { connect: jest.fn() };
+
+    const session = await service.startVideoExport(canvas, {
+      clipAudio: clipAudio as unknown as AudioNode,
+    });
+
+    // The clip's own soundtrack has to reach the recording, or a take with
+    // dialogue in it downloads silent.
+    expect(clipAudio.connect).toHaveBeenCalled();
+    expect(addTrack).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'mix-audio' })
+    );
+    // The caller names the file from this, so it cannot guess `.webm`.
+    expect(session.mimeType).toMatch(/webm/);
+
+    session.recorder.stop();
+    await session.result;
+  });
+
+  it('declines a clip it cannot tap instead of throwing', () => {
+    expect(service.connectClipAudio({} as HTMLMediaElement)).toBe(false);
+    expect(() => service.setClipAudioLevel(1)).not.toThrow();
+  });
+
   /**
    * A capture always rolls the timeline, but it can also end on a path the
    * caller's capture window never sees. The transport has to be handed back

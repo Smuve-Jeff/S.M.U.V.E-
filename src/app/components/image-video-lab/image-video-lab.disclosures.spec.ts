@@ -132,6 +132,23 @@ describe('ImageVideoLabComponent section disclosures', () => {
       expect(toggle).toContain('min-height: 2.75rem');
       expect(toggle).toContain('min-width: 2.75rem');
     });
+
+    it('keeps clip drag targets at the thumb floor', () => {
+      // A clip is dragged by its own body, so a 24px strip was a miss-and-move-
+      // the-playhead hazard on a phone.
+      expect(blocksFor('.clip-block').join(' ')).toContain(
+        'min-height: 2.75rem'
+      );
+      expect(template).toContain('h-11 md:h-8');
+      // The lane grows with the clip instead of cropping it.
+      expect(template).toContain('class="h-12 bg-background/50');
+    });
+
+    it('offers the master raster and rate beside the capture window', () => {
+      expect(template).toContain('aria-label="Export resolution"');
+      expect(template).toContain('aria-label="Export frame rate"');
+      expect(template).toContain('{{ exportSummary() }}');
+    });
   });
 
   describe('fold state', () => {

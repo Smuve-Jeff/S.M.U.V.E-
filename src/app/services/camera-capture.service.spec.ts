@@ -1203,6 +1203,53 @@ describe('CameraCaptureService', () => {
       expect(service.maxResolutionLabel()).toBe('Up to 3840×2160 @ 60fps');
     });
 
+    it('asks Auto for the sensor ceiling once the device reported it', async () => {
+      const { stream } = streamWith(
+        { width: 1920, height: 1080, frameRate: 30 },
+        { width: { max: 3840 }, height: { max: 2160 }, frameRate: { max: 60 } }
+      );
+      const mediaDevices = installMediaDevices({
+        getUserMedia: jest.fn(async () => stream),
+      });
+      const service = createService();
+
+      await service.start();
+      service.stop();
+      await service.start();
+
+      const constraints = mediaDevices.getUserMedia.mock
+        .calls[1][0] as MediaStreamConstraints;
+      // Auto used to pin 1080p even after the device announced a 4K sensor, so a
+      // capable phone recorded a 2MP-class stream.
+      expect(constraints.video).toEqual(
+        expect.objectContaining({
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
+        })
+      );
+    });
+
+    it('escalates an Auto bind to the ceiling the device just reported', async () => {
+      const { stream, track } = streamWith(
+        { width: 1920, height: 1080, frameRate: 30 },
+        { width: { max: 3840 }, height: { max: 2160 }, frameRate: { max: 60 } }
+      );
+      const applyConstraints = jest.fn(async () => undefined);
+      (track as unknown as { applyConstraints: jest.Mock }).applyConstraints =
+        applyConstraints;
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const service = createService();
+
+      await service.start();
+
+      // Waiting for a second start would leave every real session on the 1080p
+      // first bind, because a user opens the camera once.
+      expect(applyConstraints).toHaveBeenCalledWith({
+        width: { ideal: 3840 },
+        height: { ideal: 2160 },
+      });
+    });
+
     it('takes the still off the sensor with ImageCapture when it is there', async () => {
       const { stream } = makeStream();
       installMediaDevices({ getUserMedia: jest.fn(async () => stream) });

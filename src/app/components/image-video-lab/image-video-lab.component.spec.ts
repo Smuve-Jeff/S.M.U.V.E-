@@ -474,6 +474,8 @@ describe('ImageVideoLabComponent', () => {
     const exportService = {
       startVideoExport: jest.fn(),
       downloadBlob: jest.fn(),
+      connectClipAudio: jest.fn(() => false),
+      setClipAudioLevel: jest.fn(),
     };
 
     /**
@@ -1779,6 +1781,21 @@ describe('ImageVideoLabComponent', () => {
       expect(component.aiFeedback()).toContain('SENSOR STILL');
     });
 
+    it('grabs the still at the resolution the stream was granted', async () => {
+      const { component, camera } = await createComponent();
+      await component.toggleCamera();
+      // A 4K take pinned at 3840 used to be photographed at 1920, so the shutter
+      // returned half the detail of the recording beside it.
+      camera.frameSettings.set({ width: 3840, height: 2160 });
+
+      await component.captureCameraPhoto();
+
+      expect(camera.capturePhoto).toHaveBeenCalledWith(
+        expect.any(HTMLVideoElement),
+        { maxWidth: 3840 }
+      );
+    });
+
     it('falls back to the canvas grab when no sensor still is available', async () => {
       const { component, camera, videoEngine } = await createComponent();
       await component.toggleCamera();
@@ -2302,6 +2319,21 @@ describe('ImageVideoLabComponent', () => {
       handle.writes.length = 0;
       renderFrame();
       expect(handle.writes).toEqual([5.5]);
+    });
+
+    it('taps a clip\u2019s own soundtrack so it reaches an exported master', async () => {
+      const { videoEngine, renderFrame, exportService } =
+        await createComponent();
+      const videos = installVideoElement();
+      exportService.connectClipAudio.mockReturnValue(true);
+      videoEngine.getActiveClips.mockReturnValue([createVideoClip()]);
+
+      renderFrame();
+
+      expect(exportService.connectClipAudio).toHaveBeenCalledWith(videos[0]);
+      // The source node owns the element's output once tapped, so leaving it
+      // muted would silence the very track the master is meant to carry.
+      expect(videos[0].muted).toBe(false);
     });
 
     it('parks clips that are no longer under the playhead', async () => {
@@ -3235,6 +3267,7 @@ describe('ImageVideoLabComponent', () => {
         result: new Promise<Blob>((resolve) => {
           completeExport = resolve;
         }),
+        mimeType: 'video/webm;codecs=vp9,opus',
       }));
       return {
         recorderStop,
@@ -3242,7 +3275,7 @@ describe('ImageVideoLabComponent', () => {
       };
     };
 
-    it('records the user-selected capture window off the preview canvas', async () => {
+    it('records the user-selected capture window off the master canvas', async () => {
       const { component, videoEngine, exportService } =
         await createComponent();
       const { recorderStop, complete } = installRecorder(exportService);
@@ -3255,7 +3288,7 @@ describe('ImageVideoLabComponent', () => {
 
       expect(exportService.startVideoExport).toHaveBeenCalledWith(
         expect.any(HTMLCanvasElement),
-        { fps: 30, withAudio: true }
+        { fps: 30, withAudio: true, bitsPerSecond: expect.any(Number) }
       );
       expect(videoEngine.seek).toHaveBeenCalledWith(0);
       expect(videoEngine.play).toHaveBeenCalledTimes(1);
@@ -3276,7 +3309,73 @@ describe('ImageVideoLabComponent', () => {
       );
       expect(component.exportProgress()).toBe(100);
       expect(component.isExporting()).toBe(false);
-      expect(component.aiFeedback()).toContain('VIDEO EXPORT CAPTURE COMPLETE');
+      expect(component.aiFeedback()).toContain('VIDEO EXPORT COMPLETE');
+    });
+
+    it('captures a clean master at the preset raster, not the preview cap', async () => {
+      const { component, exportService } = await createComponent();
+      const { complete } = installRecorder(exportService);
+      jest.useFakeTimers();
+
+      const run = component.exportVideo();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const mastered = exportService.startVideoExport.mock
+        .calls[0][0] as HTMLCanvasElement;
+      // A preset called "4K" must not download a 1920-wide file just because
+      // the program monitor is capped there.
+      expect(mastered).not.toBe(component.previewCanvas.nativeElement);
+      expect({ width: mastered.width, height: mastered.height }).toEqual({
+        width: 3840,
+        height: 1606,
+      });
+      expect(exportService.setClipAudioLevel).toHaveBeenCalledWith(1);
+
+      jest.advanceTimersByTime(component.exportWindow() * 1000);
+      complete(new Blob(['video-bytes'], { type: 'video/webm' }));
+      await run;
+
+      // The tap closes again so preview playback is not doubled after a take.
+      expect(exportService.setClipAudioLevel).toHaveBeenLastCalledWith(0);
+    });
+
+    it('honours a manual raster rung and rates the encoder for it', async () => {
+      const { component } = await createComponent();
+
+      component.exportScale.set('1080p');
+      expect(component.exportDimensions()).toEqual({ width: 1920, height: 804 });
+
+      component.exportFps.set(60);
+      expect(component.exportSummary()).toContain('1920x804 - 60fps');
+      expect(component.exportSummary()).toContain('Mbps');
+      expect(component.exportBitrate()).toBeGreaterThan(6_000_000);
+    });
+
+    it('names the download for the container the browser actually muxed', async () => {
+      const { component, exportService } = await createComponent();
+      let finish: ((blob: Blob) => void) | null = null;
+      exportService.startVideoExport.mockImplementationOnce(() => ({
+        recorder: { stop: jest.fn() },
+        result: new Promise<Blob>((resolve) => {
+          finish = resolve;
+        }),
+        mimeType: 'video/mp4',
+      }));
+      jest.useFakeTimers();
+
+      const run = component.exportVideo();
+      await Promise.resolve();
+      await Promise.resolve();
+      jest.advanceTimersByTime(component.exportWindow() * 1000);
+      finish?.(new Blob(['mp4-bytes'], { type: 'video/mp4' }));
+      await run;
+
+      // A `.webm` name on MP4 bytes is unopenable outside the browser.
+      expect(exportService.downloadBlob).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/\.mp4$/)
+      );
     });
 
     it('reports a no-frames export honestly and resets progress', async () => {
