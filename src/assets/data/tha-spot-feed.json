@@ -28386,6 +28386,252 @@
         "accentStart": "#dc2626",
         "accentEnd": "#450a0a"
       }
+    },
+    {
+      "id": "wave5-final-fantasy-tactics",
+      "name": "Final Fantasy Tactics",
+      "url": "https://www.retrogames.cc/embed/41787-final-fantasy-tactics.html",
+      "description": "Tactical grid-based RPG from Square: a story of politics, war and class-based battles. PS1 cabinet streaming in the browser.",
+      "genre": "RPG",
+      "rating": 4.6,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41787-final-fantasy-tactics.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41787-final-fantasy-tactics.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "RPG",
+        "Tactics",
+        "PS1",
+        "Retro",
+        "Classic"
+      ],
+      "art": {
+        "eyebrow": "Square Classic",
+        "accentStart": "#6366f1",
+        "accentEnd": "#1e1b4b"
+      },
+      "aiBriefing": "The deepest tactical RPG of the PS1 era, with a dense story and job system.",
+      "aiSupportLevel": "Neural"
+    },
+    {
+      "id": "wave5-xenogears",
+      "name": "Xenogears",
+      "url": "https://www.retrogames.cc/embed/43086-xenogears-disc-1.html",
+      "description": "Sci-fi JRPG epic with giant mechs and a famously deep story. PS1 cabinet streaming in the browser (Disc 1).",
+      "genre": "RPG",
+      "rating": 4.6,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43086-xenogears-disc-1.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43086-xenogears-disc-1.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "RPG",
+        "JRPG",
+        "PS1",
+        "Retro",
+        "Classic"
+      ],
+      "art": {
+        "eyebrow": "Squaresoft Classic",
+        "accentStart": "#0ea5e9",
+        "accentEnd": "#0c4a6e"
+      },
+      "aiBriefing": "A sprawling sci-fi JRPG with mechs, philosophy and a cult following.",
+      "aiSupportLevel": "Neural"
+    },
+    {
+      "id": "wave5-lufia",
+      "name": "Lufia & The Fortress of Doom",
+      "url": "https://www.retrogames.cc/embed/24921-lufia-the-fortress-of-doom-usa.html",
+      "description": "Classic SNES turn-based adventure to save the world from the Sinistrals. Streaming in the browser via the RetroGames emulator.",
+      "genre": "RPG",
+      "rating": 4.6,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/24921-lufia-the-fortress-of-doom-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/24921-lufia-the-fortress-of-doom-usa.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "RPG",
+        "SNES",
+        "Retro",
+        "Classic"
+      ],
+      "art": {
+        "eyebrow": "Neverland Classic",
+        "accentStart": "#14b8a6",
+        "accentEnd": "#134e4a"
+      },
+      "aiBriefing": "A turn-based SNES adventure with a memorable dungeon-puzzle fortress.",
+      "aiSupportLevel": "Neural"
+    },
+    {
+      "id": "wave5-paper-minecraft",
+      "name": "Paper Minecraft",
+      "url": "https://www.crazygames.com/game/paper-minecraft",
+      "description": "Popular 2D sandbox survival and creative game inspired by Minecraft. Opens in a new tab on CrazyGames.",
+      "genre": "Adventure",
+      "rating": 4.6,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "inlinePolicy": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "approvedExternalUrl": "https://www.crazygames.com/game/paper-minecraft",
+        "trustNote": "Publisher page opens in a new tab; no embed contract promised."
+      },
+      "badgeIds": [
+        "modern"
+      ],
+      "tags": [
+        "Adventure",
+        "Sandbox",
+        "Survival",
+        "Modern"
+      ],
+      "art": {
+        "eyebrow": "Browser Sandbox",
+        "accentStart": "#22c55e",
+        "accentEnd": "#14532d"
+      }
+    },
+    {
+      "id": "wave5-prison-escape",
+      "name": "Prison Escape",
+      "url": "https://www.crazygames.com/game/prison-escape-lnj",
+      "description": "Browser escape adventure with stealth, item hunting, puzzles and mini-games. Opens in a new tab on CrazyGames.",
+      "genre": "Adventure",
+      "rating": 4.6,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "inlinePolicy": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "approvedExternalUrl": "https://www.crazygames.com/game/prison-escape-lnj",
+        "trustNote": "Publisher page opens in a new tab; no embed contract promised."
+      },
+      "badgeIds": [
+        "modern"
+      ],
+      "tags": [
+        "Adventure",
+        "Puzzle",
+        "Escape",
+        "Modern"
+      ],
+      "art": {
+        "eyebrow": "Browser Escape",
+        "accentStart": "#64748b",
+        "accentEnd": "#0f172a"
+      }
+    },
+    {
+      "id": "wave5-trace",
+      "name": "TRACE",
+      "url": "https://www.crazygames.com/game/trace",
+      "description": "Well-rated point-and-click escape adventure about solving hidden puzzles. Opens in a new tab on CrazyGames.",
+      "genre": "Adventure",
+      "rating": 4.6,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "inlinePolicy": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "approvedExternalUrl": "https://www.crazygames.com/game/trace",
+        "trustNote": "Publisher page opens in a new tab; no embed contract promised."
+      },
+      "badgeIds": [
+        "modern"
+      ],
+      "tags": [
+        "Adventure",
+        "Puzzle",
+        "Point and Click",
+        "Modern"
+      ],
+      "art": {
+        "eyebrow": "Browser Puzzle",
+        "accentStart": "#a855f7",
+        "accentEnd": "#3b0764"
+      }
+    },
+    {
+      "id": "wave5-metamon",
+      "name": "Metamon",
+      "url": "https://poki.com/en/g/metamon",
+      "description": "Creature-collecting RPG: catch, battle, upgrade and evolve monsters. Free on Poki with no download or login. Opens in a new tab.",
+      "genre": "RPG",
+      "rating": 4.6,
+      "playersOnline": 5000,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "inlinePolicy": "external-only",
+        "controls": [
+          "Standard Keyboard"
+        ],
+        "approvedExternalUrl": "https://poki.com/en/g/metamon",
+        "trustNote": "Publisher page opens in a new tab; no embed contract promised."
+      },
+      "badgeIds": [
+        "modern"
+      ],
+      "tags": [
+        "RPG",
+        "Creature",
+        "Collecting",
+        "Modern"
+      ],
+      "art": {
+        "eyebrow": "Browser RPG",
+        "accentStart": "#f43f5e",
+        "accentEnd": "#4c0519"
+      }
     }
   ],
   "recommendationRails": [
