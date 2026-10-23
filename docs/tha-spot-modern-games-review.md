@@ -56,3 +56,36 @@ The audit decodes every unique runtime image in an actual browser, including loc
 Final checks: 940 runtime image sources decoded successfully (867 original title-art fallbacks); all nine card-to-publisher launch paths passed; the spotlight rendered nine loaded covers at 1440px and 390px without page overflow; six related Jest suites passed 149 tests; TypeScript passed.
 
 Gameplay limitation: PolyTrack's actual Run game control was exercised on itch.io and loaded version 0.6.3, but this headless host could not create its WebGL renderer. Hardware-accelerated gameplay is therefore unverified, not counted as a pass. Publisher-page accessibility and launch routing do not prove completion of gameplay sessions, latency, multiplayer population, or long-term CDN availability. Most archive rows now have distinct original title artwork, **not authenticated official covers**. This was an artwork-wide audit, not a fresh playability or legal audit of every legacy cabinet. No production build, deployment, commit or push is part of this request.
+
+## 999-title catalogue refresh (2026-10-23)
+
+The five retired shelves — Boardgames, Cooking, Dress-Up, Educational, and Puzzle — were removed rather than re-filled with more of the same. The replacement selection is deliberately a different library:
+
+| Genre | Titles |
+| --- | --- |
+| Shooting | 16 |
+| Co-op | 14 |
+| Sports | 14 |
+| Fighting | 14 |
+| Open World | 14 |
+| Adventure | 10 |
+| Horror | 7 |
+| Racing | 6 |
+| Action | 6 |
+| RPG | 5 |
+| Survival | 4 |
+| Platformer | 3 |
+| Battle Royale | 1 |
+| Strategy | 1 |
+
+**115 new titles.** Examples include Marvel Rivals, Battlefield 6, Helldivers 2, Arc Raiders, Lethal Company, R.E.P.O., Peak, Palworld, Monster Hunter Wilds, EA Sports FC 26, NBA 2K26, Madden NFL 26, MLB The Show 25, WWE 2K25, Forza Horizon 5, F1 25, Mario Kart World, Tekken 8, Street Fighter 6, Mortal Kombat 1, Fatal Fury: City of the Wolves, 2XKO, Smash Ultimate, Indiana Jones and the Great Circle, Astro Bot, Hollow Knight: Silksong, Hades II, Clair Obscur: Expedition 33, Final Fantasy VII Rebirth, Baldur's Gate 3, Cyberpunk 2077, Kingdom Come: Deliverance II, Ghost of Yōtei, Assassin's Creed Shadows, Phasmophobia, and Silent Hill 2.
+
+Retired rows: 52 JSON archive entries (44 Puzzle, 3 Boardgames, 3 Dress-Up, 1 Cooking, 1 Educational) and four CrazyGames puzzle cabinets (The Impossible Quiz, Sugar Sugar 1–3). No new row uses a retired genre; the Strategy room's `Puzzle` rule was removed with the shelf.
+
+All 115 additions are **official publisher or store destinations and launch externally only**. They are not embedded, redistributed, or claimed to be playable in an iframe: the launch contract opens the publisher page after the domain confirmation, so the hub never frames a page it cannot host. Cards use generated catalogue title art because no publisher cover was asserted for these rows.
+
+New premium rails: **Online co-op squad**, **Fight night**, and **Next-wave spotlight**. The allowlist now includes every next-wave title, and the retired puzzle IDs were removed from the web-classics rail and the allowlist.
+
+Catalog arithmetic: 815 JSON archive rows + 9 modern browser titles + 8 Poki cabinets + 52 CrazyGames cabinets + 115 next-wave titles = **999 unique runtime titles**. The compiled fallback mirror is regenerated from the JSON with `node scripts/sync-tha-spot-feed.cjs`.
+
+Verified: `npx tsc --noEmit -p tsconfig.json`; `npx jest src/app/hub --runInBand` (99 tests, 5 suites); `npm run build`; and a direct module audit confirming 115 next-wave rows, 115 unique IDs, zero retired genres, and 999 unique IDs across all five sources. `npx eslint` still reports the repository's pre-existing Prettier quote-style failures on untouched files as well as changed ones, so lint is not a clean gate in this checkout.

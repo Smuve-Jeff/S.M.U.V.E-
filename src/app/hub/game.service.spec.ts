@@ -220,7 +220,18 @@ describe('GameService', () => {
     httpMock.expectOne('assets/data/tha-spot-feed.json').flush(mockFeed);
     const games = await pending;
 
-    expect(games.map((game) => game.name)).toEqual(['Quest Relay']);
+    const names = games.map((game) => game.name);
+    expect(names).toContain('Quest Relay');
+    // Every cabinet that comes back must match the RPG room through its
+    // primary genre or one of the RPG room tags, including the new-wave rows.
+    const rpgLabels = ['rpg', 'action rpg', 'jrpg'];
+    expect(
+      games.every(
+        (game) =>
+          rpgLabels.includes((game.genre ?? '').toLowerCase()) ||
+          (game.tags ?? []).some((tag) => rpgLabels.includes(tag.toLowerCase()))
+      )
+    ).toBe(true);
   });
 
   it('allows online multiplayer cabinets to match co-op and PvP room rules even without a tag', async () => {
@@ -371,25 +382,41 @@ describe('GameService', () => {
     const games = await pending;
 
     // The merged Shooting facet must surface every synonym variant without
-    // touching the game's primary genre.
-    expect(games.map((game) => game.id).sort()).toEqual([
-      'cg-buildnow-gg',
-      'cg-deadshot-io',
-      'cg-kirka-io',
-      'cg-kour-io',
-      'cg-narrow-one',
-      'cg-rooftop-snipers-2',
-      'cg-subway-clash-3d',
-      'cg-time-shooter-2',
-      'cg-voxiom-io',
-      'cg-winter-clash-3d',
-      'fps-engine',
-      'modern-hazmob',
-      'modern-skillwarz',
-      'modern-veck-io',
-      'shmup',
-      'shoot-arcade',
-    ]);
+    // touching the game's primary genre. Keep the established names and add
+    // the next-wave shooters without turning this into a brittle full-list
+    // snapshot.
+    const ids = games.map((game) => game.id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        'cg-buildnow-gg',
+        'cg-deadshot-io',
+        'cg-kirka-io',
+        'cg-kour-io',
+        'cg-narrow-one',
+        'cg-rooftop-snipers-2',
+        'cg-subway-clash-3d',
+        'cg-time-shooter-2',
+        'cg-voxiom-io',
+        'cg-winter-clash-3d',
+        'fps-engine',
+        'modern-hazmob',
+        'modern-skillwarz',
+        'modern-veck-io',
+        'shmup',
+        'shoot-arcade',
+        'spot-battlefield-6',
+        'spot-marvel-rivals',
+        'spot-helldivers-2',
+      ])
+    );
+    const shootingLabels = new Set(['shooting', 'fps', 'shooter']);
+    expect(
+      games.every(
+        (game) =>
+          shootingLabels.has((game.genre ?? '').toLowerCase()) ||
+          (game.tags ?? []).some((tag) => shootingLabels.has(tag.toLowerCase()))
+      )
+    ).toBe(true);
     expect(games.find((game) => game.id === 'fps-engine')?.genre).toBe('FPS');
     expect(games.find((game) => game.id === 'shmup')?.genre).toBe('Shooter');
   });
@@ -411,10 +438,18 @@ describe('GameService', () => {
     });
     const games = await pending;
 
-    expect(games.map((game) => game.name)).toEqual([
-      'Madalin Cars Multiplayer',
-      'Street Sandbox',
-    ]);
+    const names = games.map((game) => game.name);
+    expect(names).toEqual(
+      expect.arrayContaining(['Madalin Cars Multiplayer', 'Street Sandbox'])
+    );
+    // Every row in the Open World facet must match through its primary genre
+    // or its Open World tag; the next-wave open worlds join the same facet.
+    expect(
+      games.every(
+        (game) =>
+          game.genre === 'Open World' || (game.tags ?? []).includes('Open World')
+      )
+    ).toBe(true);
     // The tag-facet match must not rewrite the cabinet's primary genre.
     expect(
       games.find((game) => game.name === 'Street Sandbox')?.genre
@@ -486,7 +521,7 @@ describe('GameService', () => {
       .error(new ProgressEvent('network-error'));
     const games = await pending;
 
-    expect(games).toHaveLength(940);
+    expect(games).toHaveLength(999);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('rocket-league');
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
@@ -524,12 +559,12 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(940);
+    expect(games).toHaveLength(999);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'rocket-league')).toBe(true);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'gta-online')).toBe(true);
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
-    expect(new Set(games.map((game) => game.id)).size).toBe(940);
+    expect(new Set(games.map((game) => game.id)).size).toBe(999);
   });
 
   it('keeps every premium launch target explicit and truthful', async () => {
@@ -624,7 +659,7 @@ describe('GameService', () => {
     const games = await pending;
 
     // Production-sized feeds retain the archive with the reviewed premium shelf first.
-    expect(games).toHaveLength(940);
+    expect(games).toHaveLength(999);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('gta-online');
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('poki-temple-run-2');
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('battlefield');
@@ -706,6 +741,7 @@ describe('GameService', () => {
       }
     }
     expect(feed.games.find((game) => game.id === 'cg-run-3')?.image).toContain('imgs.crazygames.com/run3b.png');
+    expect(feed.games.find((game) => game.id === 'spot-the-first-descendant')?.image).toContain('cdn.akamai.steamstatic.com/steam/apps/2074920/header.jpg');
   });
 
   it('gives every premium shelf game real cover art', async () => {
@@ -783,13 +819,9 @@ describe('GameService', () => {
       ['cg-ludo-online', 'ludo-online'],
       ['cg-slice-master', 'slice-master'],
       ['cg-getting-over-it', 'getting-over-it'],
-      ['cg-impossible-quiz', 'the-impossible-quiz'],
       ['cg-five-nights-at-freddys', 'five-nights-at-freddys'],
       ['cg-stick-war', 'stick-war'],
       ['cg-stick-war-2', 'stick-war-2'],
-      ['cg-sugar-sugar', 'sugar-sugar'],
-      ['cg-sugar-sugar-2', 'sugar-sugar-2'],
-      ['cg-sugar-sugar-3', 'sugar-sugar-3'],
       ['cg-table-tennis-world-tour', 'table-tennis-world-tour'],
     ];
 
@@ -817,7 +849,7 @@ describe('GameService', () => {
     const webCabinets = feed.games.filter((game) =>
       game.id.startsWith('cg-')
     );
-    expect(webCabinets.length).toBe(56);
+    expect(webCabinets.length).toBe(52);
     for (const game of webCabinets) {
       expect(game.sessionObjectives?.length ?? 0).toBeGreaterThanOrEqual(2);
       expect(game.controlHints?.length ?? 0).toBeGreaterThanOrEqual(2);
@@ -874,7 +906,7 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(940);
+    expect(games).toHaveLength(999);
     expect(new Set(games.map((game) => game.id)).size).toBe(games.length);
     // Only premium ids that are actually present in the feed must occupy the
     // premium-first prefix; the premium allowlist is larger than the feed, so

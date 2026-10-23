@@ -17,6 +17,7 @@ import { CURATED_POKI_GAMES, MODERN_BROWSER_GAMES } from './tha-spot-curated-gam
 import { gameArtFallback, resolveGameArt } from './game-art';
 import { REVIEWED_GAME_COVERS } from './tha-spot-game-covers';
 import { CURATED_CRAZYGAMES_GAMES } from './tha-spot-crazygames-catalog';
+import { GENRE_REFRESH_GAMES } from './tha-spot-genre-refresh-catalog';
 import {
   PREMIUM_ACTIVE_GAME_IDS,
   PREMIUM_RECOMMENDATION_RAILS,
@@ -924,7 +925,12 @@ function normalizeRecommendationRail(
 
 function mergeCuratedGames(feed: ThaSpotFeed): ThaSpotFeed {
   const existingIds = new Set((feed.games || []).map((game) => game.id));
-  const curated = [...MODERN_BROWSER_GAMES, ...CURATED_POKI_GAMES, ...CURATED_CRAZYGAMES_GAMES].filter(
+  const curated = [
+    ...MODERN_BROWSER_GAMES,
+    ...CURATED_POKI_GAMES,
+    ...CURATED_CRAZYGAMES_GAMES,
+    ...GENRE_REFRESH_GAMES,
+  ].filter(
     (game) => {
       if (existingIds.has(game.id)) return false;
       existingIds.add(game.id);

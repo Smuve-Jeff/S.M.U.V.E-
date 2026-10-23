@@ -1701,43 +1701,7 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
         'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
     },
     art: { eyebrow: 'Hammer Climb', accentStart: '#fcd34d', accentEnd: '#78350f' },
-  },
-  {
-    id: 'cg-impossible-quiz',
-    name: 'The Impossible Quiz',
-    url: 'https://www.crazygames.com/embed/the-impossible-quiz',
-    description:
-      'The cult trick-question gauntlet: lateral thinking, puns, and outright traps across 110 questions where the obvious answer is always wrong.',
-    genre: 'Puzzle',
-    rating: 4.5,
-    playersOnline: 13000,
-    availability: 'Online',
-    tags: ['Puzzle', 'Trivia', 'Classic', 'Modern', 'CrazyGames'],
-    badgeIds: ['modern', 'classic'],
-    multiplayerType: 'None',
-    sessionObjectives: [
-      'Clear the first ten trick questions',
-      'Beat a question without using a skip',
-      'Reach the mid-run checkpoint',
-    ],
-    controlHints: [
-      'Click an answer, or type where the question asks',
-      'Read every word — the wording is the puzzle',
-    ],
-    aiBriefing:
-      'A quiz built to punish assumptions. Slow down, take the question literally, and remember that skips are a resource you can only spend seven times.',
-    launchConfig: {
-      approvedEmbedUrl: 'https://www.crazygames.com/embed/the-impossible-quiz',
-      approvedExternalUrl: 'https://www.crazygames.com/embed/the-impossible-quiz',
-      embedMode: 'inline',
-      controls: ['Mouse', 'Keyboard'],
-      modes: ['Solo'],
-      trustNote:
-        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
-    },
-    art: { eyebrow: 'Trick Quiz', accentStart: '#fde047', accentEnd: '#a16207' },
-  },
-  {
+  },  {
     id: 'cg-five-nights-at-freddys',
     name: "Five Nights at Freddy's",
     url: 'https://www.crazygames.com/embed/five-nights-at-freddys',
@@ -1843,113 +1807,7 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
         'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
     },
     art: { eyebrow: 'Siege Sequel', accentStart: '#cbd5e1', accentEnd: '#1e293b' },
-  },
-  {
-    id: 'cg-sugar-sugar',
-    name: 'Sugar, Sugar',
-    url: 'https://www.crazygames.com/embed/sugar-sugar',
-    description:
-      'The beloved browser puzzle: draw lines to funnel falling sugar into every cup, then refine your route for a cleaner, faster pour.',
-    genre: 'Puzzle',
-    rating: 4.6,
-    playersOnline: 11000,
-    availability: 'Online',
-    tags: ['Puzzle', 'Physics', 'Casual', 'Classic', 'CrazyGames'],
-    badgeIds: ['modern', 'classic', 'staff-pick'],
-    multiplayerType: 'None',
-    sessionObjectives: [
-      'Fill every cup on the board',
-      'Finish a level without wasting sugar',
-      'Clear a level using fewer drawn lines',
-    ],
-    controlHints: [
-      'Drag to draw a line, release to drop the sugar',
-      'Use the eraser to redraw a bad funnel',
-    ],
-    aiBriefing:
-      'A physics puzzle about routing, not speed. Sketch the whole path before releasing sugar — mid-level redraws usually cost more than a slow, deliberate funnel.',
-    launchConfig: {
-      approvedEmbedUrl: 'https://www.crazygames.com/embed/sugar-sugar',
-      approvedExternalUrl: 'https://www.crazygames.com/embed/sugar-sugar',
-      embedMode: 'inline',
-      controls: ['Mouse', 'Touch'],
-      modes: ['Solo'],
-      trustNote:
-        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
-    },
-    art: { eyebrow: 'Pour Puzzle', accentStart: '#fda4af', accentEnd: '#9f1239' },
-  },
-  {
-    id: 'cg-sugar-sugar-2',
-    name: 'Sugar, Sugar 2',
-    url: 'https://www.crazygames.com/embed/sugar-sugar-2',
-    description:
-      'The sequel adds colour-sorting: route matching sugar into matching cups and split streams before they mix.',
-    genre: 'Puzzle',
-    rating: 4.5,
-    playersOnline: 8000,
-    availability: 'Online',
-    tags: ['Puzzle', 'Physics', 'Casual', 'Classic', 'CrazyGames'],
-    badgeIds: ['modern', 'classic'],
-    multiplayerType: 'None',
-    sessionObjectives: [
-      'Fill every colour-matched cup',
-      'Split a stream without cross-contaminating it',
-      'Clear a colour-sorting board first try',
-    ],
-    controlHints: [
-      'Draw ramps to separate colours before they merge',
-      'Re-route from the top down, not the bottom up',
-    ],
-    aiBriefing:
-      'Colour routing raises the stakes on the original. Plan the split in the top third of the board first; by the midpoint the streams are already too tangled to redirect.',
-    launchConfig: {
-      approvedEmbedUrl: 'https://www.crazygames.com/embed/sugar-sugar-2',
-      approvedExternalUrl: 'https://www.crazygames.com/embed/sugar-sugar-2',
-      embedMode: 'inline',
-      controls: ['Mouse', 'Touch'],
-      modes: ['Solo'],
-      trustNote:
-        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
-    },
-    art: { eyebrow: 'Colour Sort', accentStart: '#f9a8d4', accentEnd: '#9d174d' },
-  },
-  {
-    id: 'cg-sugar-sugar-3',
-    name: 'Sugar, Sugar 3',
-    url: 'https://www.crazygames.com/embed/sugar-sugar-3',
-    description:
-      'The most devious routing puzzle in the series: tighter boards, tighter timing, and funnels that punish a single wasted line.',
-    genre: 'Puzzle',
-    rating: 4.4,
-    playersOnline: 7000,
-    availability: 'Online',
-    tags: ['Puzzle', 'Physics', 'Casual', 'Modern', 'CrazyGames'],
-    badgeIds: ['modern'],
-    multiplayerType: 'None',
-    sessionObjectives: [
-      'Clear an advanced routing board',
-      'Solve a level with no wasted sugar',
-      'Finish a level using a single continuous line',
-    ],
-    controlHints: [
-      'Zoom the view before drawing tight funnels',
-      'Undo early — late redraws cost the whole route',
-    ],
-    aiBriefing:
-      'Precision routing with almost no margin. Draw the final segment first and work backwards to the source; the tight boards are solved from the cup, not the top.',
-    launchConfig: {
-      approvedEmbedUrl: 'https://www.crazygames.com/embed/sugar-sugar-3',
-      approvedExternalUrl: 'https://www.crazygames.com/embed/sugar-sugar-3',
-      embedMode: 'inline',
-      controls: ['Mouse', 'Touch'],
-      modes: ['Solo'],
-      trustNote:
-        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
-    },
-    art: { eyebrow: 'Tight Routing', accentStart: '#fbcfe8', accentEnd: '#831843' },
-  },
-  {
+  },  {
     id: 'cg-table-tennis-world-tour',
     name: 'Table Tennis World Tour',
     url: 'https://www.crazygames.com/embed/table-tennis-world-tour',

@@ -8,6 +8,7 @@
  * polished popular web destinations with truthful external launch contracts.
  */
 import { MODERN_BROWSER_GAMES } from './tha-spot-curated-games';
+import { GENRE_REFRESH_GAMES } from './tha-spot-genre-refresh-catalog';
 
 export const PREMIUM_ACTIVE_GAME_IDS = [
   ...MODERN_BROWSER_GAMES.map((game) => game.id),
@@ -15,8 +16,6 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
   'battlefield',
   'remix-arena',
   'neon-drift',
-  'vinyl-vault',
-  'cipher-surge',
   'tempo-lockdown',
   'halo-combat-evolved',
   'tekken-4-tribute',
@@ -93,13 +92,9 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
   'cg-ludo-online',
   'cg-slice-master',
   'cg-getting-over-it',
-  'cg-impossible-quiz',
   'cg-five-nights-at-freddys',
   'cg-stick-war',
   'cg-stick-war-2',
-  'cg-sugar-sugar',
-  'cg-sugar-sugar-2',
-  'cg-sugar-sugar-3',
   'cg-table-tennis-world-tour',
 
   // Current-generation destination titles
@@ -138,6 +133,10 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
   'nba-pro-3d',
   'nfl-redzone-rush',
   'boxing-heavyweight',
+
+  // Next-wave catalog: non-swapped genres only (multiplayer, co-op, sports,
+  // fighting, adventure, open world, RPG, racing, horror, action, strategy).
+  ...GENRE_REFRESH_GAMES.map((game) => game.id),
 ] as const;
 
 export const PREMIUM_RECOMMENDATION_RAILS = [
@@ -236,9 +235,7 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
       'cg-run-3',
       'cg-paper-minecraft',
       'cg-fireboy-watergirl',
-      'cg-sugar-sugar',
       'cg-getting-over-it',
-      'cg-impossible-quiz',
       'cg-worlds-hardest-game',
       'cg-duck-life-4',
     ],
@@ -323,5 +320,60 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
       'spider-man',
     ],
     maxItems: 9,
+  },
+  {
+    id: 'premium-online-coop',
+    title: 'Online co-op squad',
+    subtitle: 'Drop in with friends: raids, expeditions, and survival runs.',
+    gameIds: [
+      'spot-helldivers-2',
+      'spot-arc-raiders',
+      'spot-lethal-company',
+      'spot-repo',
+      'spot-peak',
+      'spot-palworld',
+      'spot-enshrouded',
+      'spot-monster-hunter-wilds',
+      'spot-space-marine-2',
+      'spot-deep-rock-galactic',
+    ],
+    maxItems: 10,
+  },
+  {
+    id: 'premium-fight-night',
+    title: 'Fight night',
+    subtitle: 'Ranked duels, tag teams, and platform fighters.',
+    gameIds: [
+      'spot-tekken-8',
+      'spot-street-fighter-6',
+      'spot-mortal-kombat-1',
+      'spot-fatal-fury-cotw',
+      'spot-2xko',
+      'spot-virtua-fighter-5-revo',
+      'spot-guilty-gear-strive',
+      'spot-smash-ultimate',
+      'spot-brawlhalla',
+      'spot-rivals-of-aether-2',
+    ],
+    maxItems: 10,
+  },
+  {
+    id: 'premium-next-wave',
+    title: 'Next-wave spotlight',
+    subtitle:
+      'The new selection across multiplayer, adventure, sports, and open world.',
+    gameIds: [
+      'spot-marvel-rivals',
+      'spot-helldivers-2',
+      'spot-kingdom-come-2',
+      'spot-ea-sports-fc-26',
+      'spot-tekken-8',
+      'spot-indiana-jones-great-circle',
+      'spot-forza-horizon-5',
+      'spot-clair-obscur',
+      'spot-phasmophobia',
+      'spot-hades-2',
+    ],
+    maxItems: 10,
   },
 ] as const;

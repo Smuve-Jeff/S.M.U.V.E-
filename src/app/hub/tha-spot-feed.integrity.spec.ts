@@ -543,7 +543,6 @@ describe('Tha Spot feed integrity', () => {
     // Previously mismarked cabinets must now be explicit external launches
     // with a real target.
     for (const id of [
-      'wordle-daily',
       'skribbl-io-multiplayer',
       'gartic-phone-multiplayer',
       'slither-io-multiplayer',
@@ -614,9 +613,9 @@ describe('Tha Spot feed integrity', () => {
       'rg-43447-paper-mario-multiplayer',
       'rg-44138-mario-party-3-starstruck',
       'rg-24978-wario-land-ii',
-      'rg-20337-yoshis-cookie',
-      'rg-46481-vs-dr-mario',
     ];
+    // Dr. Mario and Yoshi's Cookie were retired with the Puzzle shelf rather
+    // than kept as Mario spin-offs inside the new selection.
 
     for (const id of marioSeriesIds) {
       const game = games.find((entry) => entry.id === id);
@@ -671,12 +670,9 @@ describe('Tha Spot feed integrity', () => {
     const mp3 = games.find((entry) => entry.id === 'rg-44138-mario-party-3-starstruck');
     expect(mp3?.url).toContain('44138-mario-party-3-starstruck');
     expect(mp3?.url).not.toContain('playable-');
-
-    // Dr. Mario must be the arcade VS. System version.
-    const drmario = games.find((entry) => entry.id === 'rg-46481-vs-dr-mario');
-    expect(drmario?.url).toContain('46481-vs-dr-mario');
-    expect(drmario?.url).not.toContain('dr-garfield');
-    expect(drmario?.url).not.toContain('dr-smol');
+    // Dr. Mario and Yoshi's Cookie were retired with the Puzzle shelf; the
+    // remaining Mario entries above still cover the platforming, RPG, party,
+    // racing, and Wario branches.
   });
 
   it('keeps saga flagship cabinets on authentic retail versions', () => {
