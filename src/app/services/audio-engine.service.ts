@@ -902,6 +902,11 @@ export class AudioEngineService {
         this._preMasterGain.disconnect(this.masterToneLowShelf);
 
         workletNode.port.postMessage({ slot: 'preset', payload: 'smuve' });
+        workletNode.port.postMessage({
+          slot: 'limiter',
+          action: 'configure',
+          payload: { ceilingDb: this.masteringTargets.truePeak },
+        });
         this.masterWorkletNode = workletNode;
         this._masterWorkletLoaded = true;
         this.masterWorkletActive.set(true);
@@ -2666,57 +2671,79 @@ export class AudioEngineService {
         typeof (bufferOrStreamer as unknown as SampleStreamer).advancePlayhead ===
           'function');
 
-    const buffer = isStreamer
-      ? this.sampleStreamerToWindow(
-          bufferOrStreamer as SampleStreamer,
-          clipOriginSeconds,
-          sampleRate
-        )
-      : (bufferOrStreamer as AudioBuffer);
+    const streamer = isStreamer ? bufferOrStreamer as SampleStreamer : null;
+    const buffer = streamer
+      ? this.sampleStreamerToWindow(streamer, clipOriginSeconds, sampleRate)
+      : bufferOrStreamer as AudioBuffer;
+    if (!buffer) return;
+    const initialOffset = streamer
+      ? Math.max(0, clipOriginSeconds - (streamer.getResidentStartSeconds?.() ?? 0))
+      : 0;
 
-    if (!buffer) {
-      return;
-    }
-
-    const source = this.ctx.createBufferSource();
-    source.buffer = buffer;
-    source.playbackRate.setValueAtTime(playbackRate, time);
     const panner = this.ctx.createStereoPanner();
     panner.pan.setValueAtTime(pan, time);
     const gain = this.ctx.createGain();
-
     const safeDuration = Math.max(0.001, duration);
     const fadeIn = Math.max(0, Math.min(fadeInSec || 0, safeDuration));
     const fadeOut = Math.max(0, Math.min(fadeOutSec || 0, safeDuration));
-
     gain.gain.setValueAtTime(0, time);
-    if (fadeIn > 0) {
-      // Linear fade-in to full velocity
-      gain.gain.linearRampToValueAtTime(velocity, time + fadeIn);
-    } else {
-      gain.gain.setTargetAtTime(velocity, time, 0.005);
-    }
-
+    if (fadeIn > 0) gain.gain.linearRampToValueAtTime(velocity, time + fadeIn);
+    else gain.gain.setTargetAtTime(velocity, time, 0.005);
     if (fadeOut > 0) {
       const fadeStart = time + Math.max(fadeIn, safeDuration - fadeOut);
       gain.gain.setValueAtTime(velocity, fadeStart);
       gain.gain.linearRampToValueAtTime(0, time + safeDuration);
     } else {
-      // Ensure the sustain level holds until the very end to avoid a click
       gain.gain.setValueAtTime(velocity, time + safeDuration - 0.001);
     }
-
-    source.connect(panner);
     panner.connect(gain);
     gain.connect(this.getTrackOutput(trackId.toString()));
-    source.start(time);
-    source.stop(time + safeDuration + 0.01);
 
-    if (isStreamer) {
-      const advanceSec = clipLengthSeconds > 0 ? clipLengthSeconds : safeDuration;
-      (bufferOrStreamer as SampleStreamer).advancePlayhead(
-        advanceSec * (sampleRate || 48000)
-      );
+    if (!streamer) {
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.setValueAtTime(playbackRate, time);
+      source.connect(panner);
+      source.start(time);
+      source.stop(time + safeDuration + 0.01);
+      return;
+    }
+
+    // Schedule adjacent resident windows so long streamed clips continue beyond
+    // the first bounded buffer without decoding/retaining the entire source.
+    const rate = Math.max(0.01, playbackRate || 1);
+    const sr = sampleRate || streamer.getSampleRate();
+    const remainingSeconds = typeof streamer.getRemainingSecondsFrom === 'function'
+      ? streamer.getRemainingSecondsFrom(clipOriginSeconds)
+      : Math.max(0, streamer.getDuration?.() - clipOriginSeconds || buffer.duration - initialOffset);
+    const playableDuration = Math.min(safeDuration, remainingSeconds / rate);
+    let elapsed = 0;
+    let sourcePosition = Math.max(0, clipOriginSeconds || 0);
+    let currentBuffer: AudioBuffer | null = buffer;
+    let isFirstWindow = true;
+    while (elapsed < playableDuration - 0.000001 && currentBuffer) {
+      const residentStartSeconds = typeof streamer.getResidentStartSeconds === 'function'
+        ? streamer.getResidentStartSeconds()
+        : 0;
+      const offset = isFirstWindow
+        ? initialOffset
+        : Math.max(0, sourcePosition - residentStartSeconds);
+      const available = Math.max(0, currentBuffer.duration - offset);
+      const consumed = Math.min((playableDuration - elapsed) * rate, available);
+      if (consumed <= 0.000001) break;
+      const source = this.ctx.createBufferSource();
+      source.buffer = currentBuffer;
+      source.playbackRate.setValueAtTime(rate, time + elapsed);
+      source.connect(panner);
+      source.start(time + elapsed, offset, consumed);
+      const playedSeconds = consumed / rate;
+      elapsed += playedSeconds;
+      sourcePosition += consumed;
+      isFirstWindow = false;
+      if (elapsed < playableDuration - 0.000001) {
+        streamer.setPlayhead(sourcePosition * sr);
+        currentBuffer = streamer.getResidentBuffer();
+      }
     }
   }
 
@@ -3399,14 +3426,19 @@ export class AudioEngineService {
   calculatePlaybackRate(bpm: number) {
     return this.tempo() / bpm;
   }
-  setMasteringTargets(targets: { lufs: number; truePeak: number }) {
-    this.masteringTargets = { ...targets };
-    // Apply a safe ceiling through the limiter/compressor chain
-    this.compressor.threshold.setTargetAtTime(
-      targets.lufs,
-      this.ctx.currentTime,
-      0.05
-    );
+  setMasteringTargets(targets: Partial<{ lufs: number; truePeak: number }>) {
+    const next = {
+      lufs: Number.isFinite(targets.lufs)
+        ? Math.max(-36, Math.min(-5, targets.lufs!))
+        : this.masteringTargets.lufs,
+      truePeak: Number.isFinite(targets.truePeak)
+        ? Math.max(-6, Math.min(-0.01, targets.truePeak!))
+        : this.masteringTargets.truePeak,
+    };
+    this.masteringTargets = next;
+    // LUFS is a measured program target, not a compressor threshold. Apply
+    // the independent peak ceiling to the active limiter path instead.
+    this.setMasterLimiterThreshold(next.truePeak);
   }
   getMasteringTargets() {
     return { ...this.masteringTargets };
@@ -3472,42 +3504,47 @@ export class AudioEngineService {
 
   configureCompressor(p: any) {
     if (!this.compressor) return;
-    if (p?.threshold !== undefined)
-      this.compressor.threshold.setTargetAtTime(
-        p.threshold,
-        this.ctx.currentTime,
-        0.01
-      );
-    if (p?.ratio !== undefined)
-      this.compressor.ratio.setTargetAtTime(
-        p.ratio,
-        this.ctx.currentTime,
-        0.01
-      );
-    if (p?.attack !== undefined)
-      this.compressor.attack.setTargetAtTime(
-        p.attack,
-        this.ctx.currentTime,
-        0.01
-      );
-    if (p?.release !== undefined)
-      this.compressor.release.setTargetAtTime(
-        p.release,
-        this.ctx.currentTime,
-        0.01
-      );
+    const threshold = p?.threshold === undefined
+      ? undefined
+      : clampFinite(p.threshold, -60, 0, -18);
+    const ratio = p?.ratio === undefined
+      ? undefined
+      : clampFinite(p.ratio, 1, 20, 4);
+    const attack = p?.attack === undefined
+      ? undefined
+      : clampFinite(p.attack, 0.001, 1, 0.01);
+    const release = p?.release === undefined
+      ? undefined
+      : clampFinite(p.release, 0.01, 3, 0.1);
+    if (this.masterWorkletActive()) {
+      this.configureMasterWorklet('compressor', 'configure', {
+        ...(threshold !== undefined ? { thresholdDb: threshold } : {}),
+        ...(ratio !== undefined ? { ratio } : {}),
+        ...(attack !== undefined ? { attack } : {}),
+        ...(release !== undefined ? { release } : {}),
+      });
+      return;
+    }
+    if (threshold !== undefined) this.compressor.threshold.setTargetAtTime(threshold, this.ctx.currentTime, 0.01);
+    if (ratio !== undefined) this.compressor.ratio.setTargetAtTime(ratio, this.ctx.currentTime, 0.01);
+    if (attack !== undefined) this.compressor.attack.setTargetAtTime(attack, this.ctx.currentTime, 0.01);
+    if (release !== undefined) this.compressor.release.setTargetAtTime(release, this.ctx.currentTime, 0.01);
   }
 
   configureLimiter(p: any) {
     if (!this.limiter) return;
-    if (p?.threshold !== undefined)
-      this.limiter.threshold.setTargetAtTime(
-        p.threshold,
-        this.ctx.currentTime,
-        0.05
-      );
-    if (p?.ratio !== undefined)
-      this.limiter.ratio.setTargetAtTime(p.ratio, this.ctx.currentTime, 0.05);
+    const threshold = p?.threshold === undefined
+      ? undefined
+      : clampFinite(p.threshold, -6, -0.01, -0.5);
+    if (this.masterWorkletActive()) {
+      if (threshold !== undefined) {
+        this.masteringTargets = { ...this.masteringTargets, truePeak: threshold };
+        this.configureMasterWorklet('limiter', 'configure', { ceilingDb: threshold });
+      }
+      return;
+    }
+    if (threshold !== undefined) this.limiter.threshold.setTargetAtTime(threshold, this.ctx.currentTime, 0.05);
+    if (p?.ratio !== undefined) this.limiter.ratio.setTargetAtTime(p.ratio, this.ctx.currentTime, 0.05);
   }
 
   /**
@@ -3542,14 +3579,44 @@ export class AudioEngineService {
   }
 
   /**
+   * Reference-matching makeup stage.
+   *
+   * A dB offset applied at `_preMasterGain`, the one gain stage that sits in
+   * front of BOTH the worklet chain and the fallback chain, so the loudness a
+   * reference A/B match asks for survives whichever master path is live. The
+   * limiter downstream keeps any made-up peak inside the configured true-peak
+   * ceiling, so louder never means clipping.
+   */
+  private masterMakeupDb = 0;
+
+  setMasterMakeupDb(db: number): void {
+    const clamped = Number.isFinite(db) ? Math.max(-12, Math.min(12, db)) : 0;
+    this.masterMakeupDb = clamped;
+    this._preMasterGain.gain.setTargetAtTime(
+      Math.pow(10, clamped / 20),
+      this.ctx.currentTime,
+      0.05,
+    );
+  }
+
+  /** Currently applied reference-matching makeup, in dB (0 = neutral). */
+  getMasterMakeupDb(): number {
+    return this.masterMakeupDb;
+  }
+
+  /**
    * Set the master limiter threshold (dB). Routes to the worklet limiter when
    * active, otherwise the fallback chain limiter node.
    */
   setMasterLimiterThreshold(db: number): void {
+    const clamped = Number.isFinite(db)
+      ? Math.max(-6, Math.min(-0.01, db))
+      : this.masteringTargets.truePeak;
+    this.masteringTargets = { ...this.masteringTargets, truePeak: clamped };
     if (this.masterWorkletActive()) {
-      this.configureMasterWorklet('limiter', 'configure', { thresholdDb: db });
+      this.configureMasterWorklet('limiter', 'configure', { ceilingDb: clamped });
     } else {
-      this.limiter.threshold.setTargetAtTime(db, this.ctx.currentTime, 0.05);
+      this.limiter.threshold.setTargetAtTime(clamped, this.ctx.currentTime, 0.05);
     }
   }
 
@@ -3886,7 +3953,7 @@ export class AudioEngineService {
   getMasterStream(): MediaStreamAudioDestinationNode {
     if (!this.recordingDestination) {
       this.recordingDestination = this.ctx.createMediaStreamDestination();
-      this.limiter.connect(this.recordingDestination);
+      this.masterOutput.connect(this.recordingDestination);
     }
     return this.recordingDestination;
   }

@@ -183,6 +183,131 @@
     </div>
   </section>
 
+  <!-- Reference-track A/B: load a commercial master, compare, match loudness -->
+  <section
+    class="mb-4 rounded-3xl bg-cyan-500/10 border border-cyan-500/30 p-4 flex flex-col gap-2 mastering-reference-card"
+    aria-label="Reference track A B matching"
+  >
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-cyan-300">compare_arrows</span>
+      <h3 class="text-[10px] font-black uppercase tracking-widest text-white/80">
+        Reference A/B
+      </h3>
+      <span
+        *ngIf="referenceName()"
+        class="text-[10px] font-mono text-cyan-200 truncate flex-1"
+        [title]="referenceName()!"
+      >{{ referenceName() }}</span>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <label
+        class="px-3 py-2 bg-cyan-500 tactile-v42 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-cyan-500/20 hover:scale-105 transition-all cursor-pointer"
+        [class.pointer-events-none]="referenceBusy()"
+      >
+        {{ referenceBusy() ? 'DECODING…' : 'LOAD REFERENCE' }}
+        <input
+          class="hidden"
+          type="file"
+          accept="audio/*"
+          (change)="onReferenceChosen($event)"
+          [disabled]="referenceBusy()"
+        />
+      </label>
+      <button
+        *ngIf="isReferenceLoaded()"
+        type="button"
+        class="px-3 py-2 bg-white/5 border border-cyan-500/40 tactile-v42 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-all"
+        (click)="toggleReferenceAudition()"
+        [attr.aria-pressed]="audioEngine.auditionPlaying()"
+      >
+        {{ audioEngine.auditionPlaying() ? 'STOP A/B' : 'A/B PLAY' }}
+      </button>
+      <button
+        *ngIf="isReferenceLoaded()"
+        type="button"
+        class="px-3 py-2 bg-white/5 border border-white/20 tactile-v42 text-white/70 text-[10px] font-black uppercase tracking-widest rounded-full hover:scale-105 transition-all"
+        (click)="clearReference()"
+      >
+        CLEAR
+      </button>
+    </div>
+
+    <div *ngIf="referenceStats() as s" class="grid grid-cols-3 gap-2">
+      <div class="rounded-xl bg-white/5 border border-cyan-500/20 p-2 text-center">
+        <div class="text-[8px] font-black text-cyan-300/70 uppercase tracking-widest">Ref LUFS</div>
+        <div class="text-lg font-black text-white font-mono">{{ s.lufs }}</div>
+      </div>
+      <div class="rounded-xl bg-white/5 border border-cyan-500/20 p-2 text-center">
+        <div class="text-[8px] font-black text-cyan-300/70 uppercase tracking-widest">Ref TP</div>
+        <div class="text-lg font-black text-white font-mono">{{ s.truePeakDb }} dBFS</div>
+      </div>
+      <div class="rounded-xl bg-white/5 border border-cyan-500/20 p-2 text-center">
+        <div class="text-[8px] font-black text-cyan-300/70 uppercase tracking-widest">Length</div>
+        <div class="text-lg font-black text-white font-mono">{{ formatSeconds(s.durationSec) }}</div>
+      </div>
+    </div>
+
+    <div
+      *ngIf="isReferenceLoaded()"
+      class="flex flex-wrap items-center gap-2 pt-1 border-t border-cyan-500/20"
+    >
+      <div class="text-[10px] font-mono text-cyan-200 flex-1" aria-live="polite">
+        @if (referenceDeltaDb() === null) {
+          Roll the transport to measure your master
+        } @else {
+          {{ referenceDeltaDb()! > 0 ? '+' : '' }}{{ referenceDeltaDb() }} dB to
+          match the reference
+        }
+      </div>
+      <button
+        type="button"
+        class="px-3 py-2 bg-cyan-500 tactile-v42 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-cyan-500/20 hover:scale-105 transition-all"
+        [class.opacity-50]="referenceDeltaDb() === null"
+        [class.pointer-events-none]="referenceDeltaDb() === null"
+        (click)="matchReferenceLoudness()"
+        title="Apply the measured shortfall as master makeup (limiter ceiling still holds)"
+      >
+        MATCH LOUDNESS
+      </button>
+    </div>
+  </section>
+
+  <!-- Streaming delivery targets: tap a platform, targets + limiter conform -->
+  <section
+    class="mb-4 rounded-3xl bg-indigo-500/10 border border-indigo-500/30 p-4 flex flex-col gap-2 mastering-delivery-card"
+    aria-label="Streaming delivery targets"
+  >
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-indigo-300">cloud_upload</span>
+      <h3 class="text-[10px] font-black uppercase tracking-widest text-white/80">
+        Delivery Targets
+      </h3>
+      <span class="text-[9px] text-white/50 font-mono">
+        tap to conform targets + limiter ceiling
+      </span>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <button
+        *ngFor="let t of deliveryTargets"
+        type="button"
+        class="px-3 py-2 rounded-2xl border text-left min-w-[8rem] transition-all hover:scale-105 tactile-v42"
+        [class.bg-indigo-500/30]="activeDeliveryTargetId() === t.id"
+        [class.border-indigo-400]="activeDeliveryTargetId() === t.id"
+        [class.bg-white/5]="activeDeliveryTargetId() !== t.id"
+        [class.border-white/10]="activeDeliveryTargetId() !== t.id"
+        (click)="applyDeliveryTarget(t.id)"
+        [title]="t.note"
+      >
+        <div class="text-[10px] font-black text-white/90">{{ t.platform }}</div>
+        <div class="text-[11px] font-mono text-indigo-200">
+          {{ t.targetLufs }} LUFS · {{ t.ceilingDbtp }} dBTP
+        </div>
+      </button>
+    </div>
+  </section>
+
   <!-- Genre selector for AI mastering -->
   <section class="mb-4 mastering-genre-panel" aria-label="Genre selector for AI Mastering">
     <div class="flex items-center gap-2 mb-2">
@@ -326,7 +451,7 @@
         <div class="flex flex-col gap-1">
           <span
             class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
-            >Integrated_LUFS</span
+            >Live_Integrated_LUFS</span
           >
           <span class="text-3xl font-black text-white italic">{{
             lufsIntegrated()
@@ -341,7 +466,7 @@
         <div class="flex flex-col gap-1">
           <span
             class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
-            >True_Peak_dBFS</span
+            >Live_True_Peak_dBFS</span
           >
           <span class="text-3xl font-black text-white italic">{{
             truePeak()
@@ -356,14 +481,14 @@
         <div class="flex flex-col gap-1">
           <span
             class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
-            >Loudness_Range</span
+            >Live_Loudness_Range</span
           >
           <span class="text-3xl font-black text-white italic">{{ lra() }}</span>
         </div>
         <div class="flex flex-col gap-1">
           <span
             class="text-[8px] font-black text-slate-500 uppercase tracking-widest"
-            >Phase_Correlation</span
+            >Live_Phase_Correlation</span
           >
           <span class="text-3xl font-black text-white italic">{{
             correlation()

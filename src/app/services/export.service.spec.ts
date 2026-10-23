@@ -84,13 +84,15 @@ describe('ExportService (Sprint A6)', () => {
     expect(share).toHaveBeenCalledWith(expect.objectContaining({ type: 'audio/wav' }), expect.stringMatching(/\.wav$/));
   });
 
-  it('EXPORT_FORMATS covers wav/mp3/m4a/opus with extensions and mimes', () => {
+  it('EXPORT_FORMATS covers wav/wav24/mp3/m4a/opus with extensions and mimes', () => {
     expect(EXPORT_FORMATS.map((f) => f.id)).toEqual([
       'wav',
+      'wav24',
       'mp3',
       'm4a',
       'opus',
     ]);
+    expect(EXPORT_FORMATS.find((f) => f.id === 'wav24')?.ext).toBe('wav');
     expect(EXPORT_FORMATS.find((f) => f.id === 'mp3')?.mime).toBe('audio/mpeg');
     expect(EXPORT_FORMATS.find((f) => f.id === 'opus')?.ext).toBe('ogg');
   });
@@ -176,6 +178,64 @@ describe('ExportService (Sprint A6)', () => {
     expect(view.getInt16(44, true)).toBeGreaterThan(16000);
     expect(view.getInt16(46, true)).toBeLessThan(-16000);
     expect(view.getInt16(48, true)).toBeGreaterThan(16000);
+  });
+
+  it('audioBufferToWav(…, 24) writes packed 24-bit stereo frames', async () => {
+    const stereo: any = {
+      numberOfChannels: 2,
+      sampleRate: 48000,
+      length: 4,
+      getChannelData: (c: number) =>
+        c === 0
+          ? new Float32Array([0.5, 0, 0, 0])
+          : new Float32Array([-0.5, 0, 0, 0]),
+    };
+    const buf = await svc.audioBufferToWav(stereo, 24);
+    const view = new DataView(buf);
+
+    // 44-byte canonical header (no WAVEFORMATEXTENSIBLE), 24 bits/sample.
+    expect(String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3))).toBe('RIFF');
+    expect(view.getUint16(34, true)).toBe(24); // bits per sample
+    expect(view.getUint16(32, true)).toBe(6); // block align = 2 ch * 3 bytes
+    expect(view.getUint32(28, true)).toBe(48000 * 6); // byte rate
+    expect(view.getUint32(40, true)).toBe(4 * 2 * 3); // data chunk bytes
+
+    // Packed little-endian 24-bit: +0.5 → 0x400000, -0.5 → 0xC00000.
+    expect([view.getUint8(44), view.getUint8(45), view.getUint8(46)]).toEqual([
+      0x00, 0x00, 0x40,
+    ]);
+    expect([view.getUint8(47), view.getUint8(48), view.getUint8(49)]).toEqual([
+      0x00, 0x00, 0xc0,
+    ]);
+  });
+
+  it('exportToFormat(wav24) ships 24-bit audio and is larger than the 16-bit file', async () => {
+    const blob16 = await svc.exportToFormat(fakeBuffer, 'wav', 16);
+    const blob24 = await svc.exportToFormat(fakeBuffer, 'wav24', 24);
+    expect(blob24.type).toBe('audio/wav');
+    // 3 bytes/sample vs 2 — same frame count, 1.5× the payload.
+    expect(blob24.size).toBe(Math.round((blob16.size - 44) * 1.5) + 44);
+  });
+
+  it('exportProjectWav(16, 48000) renders at 48 kHz and tags the file', async () => {
+    const render = jest.spyOn(svc, 'renderProjectOffline').mockResolvedValueOnce(fakeBuffer);
+    const download = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
+    const blob = await svc.exportProjectWav(16, 48000);
+    expect(render).toHaveBeenCalledWith({ sampleRate: 48000 });
+    expect(download).toHaveBeenCalledWith(
+      blob,
+      expect.stringMatching(/_48k_\d+\.wav$/)
+    );
+  });
+
+  it('exportProjectWav(24) renders once and names the file as 24-bit', async () => {
+    jest.spyOn(svc, 'renderProjectOffline').mockResolvedValueOnce(fakeBuffer);
+    const download = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
+    const blob = await svc.exportProjectWav(24);
+    expect(svc.renderProjectOffline).toHaveBeenCalledTimes(1);
+    expect(download).toHaveBeenCalledWith(blob, expect.stringMatching(/_24bit_\d+\.wav$/));
+    const view = new DataView(await blob.arrayBuffer());
+    expect(view.getUint16(34, true)).toBe(24);
   });
 
   describe('mastering analysis (Phase 2)', () => {
