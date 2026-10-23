@@ -27368,6 +27368,652 @@
         "accentStart": "#f59e0b",
         "accentEnd": "#7c2d12"
       }
+    },
+    {
+      "id": "resident-evil-ps1",
+      "name": "Resident Evil",
+      "url": "https://www.retrogames.cc/embed/42875-resident-evil.html",
+      "description": "The 1996 mansion that invented survival horror: fixed cameras, ink ribbons, and the Jill sandwich. PlayStation cabinet streaming in the browser.",
+      "genre": "Horror",
+      "rating": 4.9,
+      "playersOnline": 520,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/42875-resident-evil.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/42875-resident-evil.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Horror",
+        "Retro",
+        "PS1",
+        "Classic",
+        "Survival"
+      ],
+      "art": {
+        "eyebrow": "PS1 Elite",
+        "accentStart": "#f87171",
+        "accentEnd": "#7f1d1d"
+      }
+    },
+    {
+      "id": "tekken-ps1",
+      "name": "Tekken",
+      "url": "https://www.retrogames.cc/embed/41513-tekken.html",
+      "description": "The 1995 arcade original that launched a dynasty — Kazuya, Heihachi, Nina, and the King of Iron Fist Tournament. PlayStation cabinet streaming in the browser.",
+      "genre": "Fighting",
+      "rating": 4.8,
+      "playersOnline": 490,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41513-tekken.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41513-tekken.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Fighting",
+        "Retro",
+        "PS1",
+        "Classic",
+        "Arcade"
+      ],
+      "art": {
+        "eyebrow": "PS1 Elite",
+        "accentStart": "#fb7185",
+        "accentEnd": "#881337"
+      }
+    },
+    {
+      "id": "crash-bash-ps1",
+      "name": "Crash Bash",
+      "url": "https://www.retrogames.cc/embed/40085-crash-bash.html",
+      "description": "Naughty Dog’s four-player party spin-off: Polar Push, Crate Crush, and couch chaos. PlayStation cabinet streaming in the browser.",
+      "genre": "Party",
+      "rating": 4.6,
+      "playersOnline": 350,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40085-crash-bash.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/40085-crash-bash.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Party",
+        "Retro",
+        "PS1",
+        "Classic",
+        "Multiplayer"
+      ],
+      "art": {
+        "eyebrow": "PS1 Elite",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#78350f"
+      }
+    },
+    {
+      "id": "gran-turismo-ps1",
+      "name": "Gran Turismo",
+      "url": "https://www.retrogames.cc/embed/41826-gran-turismo.html",
+      "description": "The 1997 Real Driving Simulator that changed racing games: licence tests, tuning, and 140 cars. PlayStation cabinet streaming in the browser.",
+      "genre": "Racing",
+      "rating": 4.9,
+      "playersOnline": 560,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/41826-gran-turismo.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/41826-gran-turismo.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Racing",
+        "Retro",
+        "PS1",
+        "Classic",
+        "Simulation"
+      ],
+      "art": {
+        "eyebrow": "PS1 Elite",
+        "accentStart": "#38bdf8",
+        "accentEnd": "#0c4a6e"
+      }
+    },
+    {
+      "id": "syphon-filter-ps1",
+      "name": "Syphon Filter",
+      "url": "https://www.retrogames.cc/embed/40805-syphon-filter.html",
+      "description": "Where it all began for Gabe Logan: the 1999 stealth-action original with the taser that never gets old. PlayStation cabinet streaming in the browser.",
+      "genre": "Stealth",
+      "rating": 4.8,
+      "playersOnline": 420,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/40805-syphon-filter.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/40805-syphon-filter.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Stealth",
+        "Retro",
+        "PS1",
+        "Classic",
+        "Tactical"
+      ],
+      "art": {
+        "eyebrow": "PS1 Elite",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "medal-of-honor-ps1",
+      "name": "Medal of Honor",
+      "url": "https://www.retrogames.cc/embed/43819-medal-of-honor-usa.html",
+      "description": "Spielberg’s 1999 WWII shooter that set the template for the genre — Omaha Beach rushes and stealth in occupied France. PlayStation cabinet streaming in the browser.",
+      "genre": "Shooting",
+      "rating": 4.7,
+      "playersOnline": 460,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43819-medal-of-honor-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/43819-medal-of-honor-usa.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Shooting",
+        "Retro",
+        "PS1",
+        "Classic",
+        "FPS"
+      ],
+      "art": {
+        "eyebrow": "PS1 Elite",
+        "accentStart": "#a3e635",
+        "accentEnd": "#3f6212"
+      }
+    },
+    {
+      "id": "rogue-squadron-n64",
+      "name": "Star Wars: Rogue Squadron",
+      "url": "https://www.retrogames.cc/embed/32617-star-wars-rogue-squadron-usa.html",
+      "description": "Factor 5’s N64 classic: snowspeeders on Hoth, AT-AT tripping, and the best Star Wars dogfighting of its generation. N64 cabinet streaming in the browser.",
+      "genre": "Action",
+      "rating": 4.8,
+      "playersOnline": 390,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32617-star-wars-rogue-squadron-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32617-star-wars-rogue-squadron-usa.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Action",
+        "Retro",
+        "N64",
+        "Classic",
+        "Flight"
+      ],
+      "art": {
+        "eyebrow": "N64 Elite",
+        "accentStart": "#facc15",
+        "accentEnd": "#713f12"
+      }
+    },
+    {
+      "id": "kirbys-adventure-nes",
+      "name": "Kirby's Adventure",
+      "url": "https://www.retrogames.cz/play_316-NES.php",
+      "description": "The 1993 NES swan song that gave Kirby his copy abilities — a late-era masterpiece. NES cabinet streaming in the browser.",
+      "genre": "Platformer",
+      "rating": 4.8,
+      "playersOnline": 410,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_316-NES.php",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_316-NES.php"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Platformer",
+        "Retro",
+        "NES",
+        "Classic",
+        "Nintendo"
+      ],
+      "art": {
+        "eyebrow": "NES Elite",
+        "accentStart": "#f9a8d4",
+        "accentEnd": "#831843"
+      }
+    },
+    {
+      "id": "castlevania-iii-nes",
+      "name": "Castlevania III: Dracula's Curse",
+      "url": "https://www.retrogames.cz/play_766-NES.php",
+      "description": "The NES peak of the series: branching paths, three allies, and Trevor Belmont’s whip. NES cabinet streaming in the browser.",
+      "genre": "Platformer",
+      "rating": 4.9,
+      "playersOnline": 380,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cz/play_766-NES.php",
+        "approvedExternalUrl": "https://www.retrogames.cz/play_766-NES.php"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Platformer",
+        "Retro",
+        "NES",
+        "Classic",
+        "Action"
+      ],
+      "art": {
+        "eyebrow": "NES Elite",
+        "accentStart": "#c084fc",
+        "accentEnd": "#581c87"
+      }
+    },
+    {
+      "id": "qbert-arcade",
+      "name": "Q*bert (Arcade)",
+      "url": "https://www.retrogames.cc/embed/34147-q-bert-us-set-1.html",
+      "description": "Gottlieb’s 1982 isometric pyramid-hopper — pure, punishing, and endlessly quotable. Verified arcade cabinet streaming in the browser.",
+      "genre": "Arcade Classic",
+      "rating": 4.7,
+      "playersOnline": 330,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/34147-q-bert-us-set-1.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/34147-q-bert-us-set-1.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Arcade",
+        "Retro",
+        "Classic",
+        "Puzzle"
+      ],
+      "art": {
+        "eyebrow": "Gottlieb GOAT",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "paperboy-arcade",
+      "name": "Paperboy (Arcade)",
+      "url": "https://www.retrogames.cc/embed/44960-paperboy-rev-3.html",
+      "description": "Atari’s 1985 suburban gauntlet: deliver the news, dodge lawnmowers, break a window or three. Verified cabinet streaming in the browser.",
+      "genre": "Arcade Classic",
+      "rating": 4.6,
+      "playersOnline": 300,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/44960-paperboy-rev-3.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/44960-paperboy-rev-3.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Arcade",
+        "Retro",
+        "Classic",
+        "Action"
+      ],
+      "art": {
+        "eyebrow": "Atari GOAT",
+        "accentStart": "#fbbf24",
+        "accentEnd": "#78350f"
+      }
+    },
+    {
+      "id": "tmnt-arcade-1989",
+      "name": "Teenage Mutant Ninja Turtles (Arcade)",
+      "url": "https://www.retrogames.cc/embed/10268-teenage-mutant-ninja-turtles-world-4-players.html",
+      "description": "Konami’s 1989 four-player pizza-fuelled brawler — the arcade queue classic. Verified cabinet streaming in the browser.",
+      "genre": "Beat 'em up",
+      "rating": 4.9,
+      "playersOnline": 780,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10268-teenage-mutant-ninja-turtles-world-4-players.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/10268-teenage-mutant-ninja-turtles-world-4-players.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Arcade",
+        "Retro",
+        "Classic",
+        "Co-op",
+        "Beat 'em up"
+      ],
+      "art": {
+        "eyebrow": "Konami GOAT",
+        "accentStart": "#4ade80",
+        "accentEnd": "#14532d"
+      }
+    },
+    {
+      "id": "xmen-arcade",
+      "name": "X-Men (Arcade)",
+      "url": "https://www.retrogames.cc/embed/10733-x-men-4-players-ver-ubb.html",
+      "description": "Konami’s 1992 mutant brawler with Colossus, Wolverine, Storm, and Dazzler — the six-player cabinet legend. Verified cabinet streaming in the browser.",
+      "genre": "Beat 'em up",
+      "rating": 4.8,
+      "playersOnline": 540,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "secure_mode": "wasm",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/10733-x-men-4-players-ver-ubb.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/10733-x-men-4-players-ver-ubb.html"
+      },
+      "badgeIds": [
+        "classic"
+      ],
+      "tags": [
+        "Arcade",
+        "Retro",
+        "Classic",
+        "Co-op",
+        "Beat 'em up"
+      ],
+      "art": {
+        "eyebrow": "Konami GOAT",
+        "accentStart": "#facc15",
+        "accentEnd": "#713f12"
+      }
+    },
+    {
+      "id": "icon-bloons-td",
+      "name": "Bloons TD",
+      "url": "https://www.crazygames.com/game/bloons-tower-defense",
+      "description": "Ninja Kiwi’s monkey-vs-balloon tower defence phenomenon — build a maze, upgrade paths, pop everything. Free in the browser, no download.",
+      "genre": "Strategy",
+      "rating": 4.7,
+      "playersOnline": 6800,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "inlinePolicy": "external-only",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedExternalUrl": "https://www.crazygames.com/game/bloons-tower-defense",
+        "trustNote": "Publisher page opens in a new tab; free to play, no subscription required."
+      },
+      "badgeIds": [
+        "modern"
+      ],
+      "tags": [
+        "Strategy",
+        "Tower Defense",
+        "Free",
+        "Modern",
+        "Casual"
+      ],
+      "art": {
+        "eyebrow": "Free Elite",
+        "accentStart": "#f97316",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "icon-kingdom-rush",
+      "name": "Kingdom Rush",
+      "url": "https://www.crazygames.com/game/kingdom-rush",
+      "description": "Ironhide’s definitive tower-defence campaign: four towers, hero spells, and gorgeous hand-drawn battlefields. Free and instantly playable.",
+      "genre": "Strategy",
+      "rating": 4.8,
+      "playersOnline": 5200,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "inlinePolicy": "external-only",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedExternalUrl": "https://www.crazygames.com/game/kingdom-rush",
+        "trustNote": "Publisher page opens in a new tab; free to play, no subscription required."
+      },
+      "badgeIds": [
+        "modern"
+      ],
+      "tags": [
+        "Strategy",
+        "Tower Defense",
+        "Free",
+        "Modern",
+        "Fantasy"
+      ],
+      "art": {
+        "eyebrow": "Free Elite",
+        "accentStart": "#60a5fa",
+        "accentEnd": "#1e3a8a"
+      }
+    },
+    {
+      "id": "icon-happy-wheels",
+      "name": "Happy Wheels",
+      "url": "https://www.crazygames.com/game/happy-wheels",
+      "description": "Jim Bonacci’s legendary ragdoll obstacle-course game — excessive, absurd, and still the benchmark for physics comedy. Free in the browser.",
+      "genre": "Casual",
+      "rating": 4.6,
+      "playersOnline": 4700,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "inlinePolicy": "external-only",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedExternalUrl": "https://www.crazygames.com/game/happy-wheels",
+        "trustNote": "Publisher page opens in a new tab; free to play, no subscription required."
+      },
+      "badgeIds": [
+        "modern"
+      ],
+      "tags": [
+        "Physics",
+        "Casual",
+        "Free",
+        "Modern",
+        "Ragdoll"
+      ],
+      "art": {
+        "eyebrow": "Free Elite",
+        "accentStart": "#f87171",
+        "accentEnd": "#7f1d1d"
+      }
+    },
+    {
+      "id": "icon-age-of-war",
+      "name": "Age of War",
+      "url": "https://www.crazygames.com/game/age-of-war",
+      "description": "The beloved evolution-brawler: spawn cavemen, level up through the ages, and wreck the enemy base. Free flash-era classic, still working.",
+      "genre": "Strategy",
+      "rating": 4.6,
+      "playersOnline": 3900,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "inlinePolicy": "external-only",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedExternalUrl": "https://www.crazygames.com/game/age-of-war",
+        "trustNote": "Publisher page opens in a new tab; free to play, no subscription required."
+      },
+      "badgeIds": [
+        "modern"
+      ],
+      "tags": [
+        "Strategy",
+        "Defense",
+        "Free",
+        "Classic",
+        "Casual"
+      ],
+      "art": {
+        "eyebrow": "Free Elite",
+        "accentStart": "#a3e635",
+        "accentEnd": "#3f6212"
+      }
+    },
+    {
+      "id": "icon-papas-freezeria",
+      "name": "Papa’s Freezeria",
+      "url": "https://www.crazygames.com/game/papas-freezeria",
+      "description": "The iconic time-management ice-cream shop game — build sundaes, nail the order, keep the queue moving. Free in the browser.",
+      "genre": "Simulation",
+      "rating": 4.7,
+      "playersOnline": 6100,
+      "availability": "Online",
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "external-only",
+        "inlinePolicy": "external-only",
+        "controls": [
+          "Standard Keyboard",
+          "Gamepad Support"
+        ],
+        "approvedExternalUrl": "https://www.crazygames.com/game/papas-freezeria",
+        "trustNote": "Publisher page opens in a new tab; free to play, no subscription required."
+      },
+      "badgeIds": [
+        "modern"
+      ],
+      "tags": [
+        "Simulation",
+        "Management",
+        "Free",
+        "Classic",
+        "Casual"
+      ],
+      "art": {
+        "eyebrow": "Free Elite",
+        "accentStart": "#f9a8d4",
+        "accentEnd": "#831843"
+      }
     }
   ],
   "recommendationRails": [
