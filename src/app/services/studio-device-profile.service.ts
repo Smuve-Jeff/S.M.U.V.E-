@@ -256,10 +256,19 @@ export class StudioDeviceProfileService {
    * hosts without an engine at all) degrade silently.
    */
   private applyToEngine(): void {
-    const { tier, capabilityPressure } = this.profile();
+    const { tier, capabilityPressure, budget } = this.profile();
     try {
       if (typeof this.engine?.updateAdaptivePerformance === 'function') {
         this.engine.updateAdaptivePerformance(capabilityPressure);
+      }
+      // The voice ceiling travels the same road: this profile imports the
+      // engine (the reverse would be a construction cycle), so the
+      // classified `budget().maxVoices` is pushed down and enforced in
+      // `AudioEngineService`'s live voice path. Guarded like the tier push
+      // so test doubles without the method — and hosts without an engine —
+      // degrade silently.
+      if (typeof this.engine?.setVoiceBudget === 'function') {
+        this.engine.setVoiceBudget(budget.maxVoices);
       }
       this.logger?.info(
         `StudioDeviceProfile: classified as ${tier} (pressure ${capabilityPressure}).`

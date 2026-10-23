@@ -2311,6 +2311,8 @@ export class MusicManagerService {
             ),
             type: 'audio',
             audioRefId: r.clipId,
+            reversed: false,
+            clipGain: 1.0,
           } as any);
         });
         this.tracks.set(newTracks);
@@ -2334,6 +2336,9 @@ export class MusicManagerService {
     clipLengthSeconds?: number;
     clipSampleRate?: number;
     clipChannels?: number;
+    reversed?: boolean;
+    clipGain?: number;
+    importReversedFlag?: boolean;
   }): void {
     const trackId = opts.id || 'audio_' + Date.now();
     const clipId = 'clip_' + Date.now();
@@ -2362,6 +2367,8 @@ export class MusicManagerService {
           start: opts.offset || 0,
           length: Math.max(1, barsAtBpm),
           type: 'audio',
+          // `playStep` resolves the clip's audio via audioRefId -> stemAudioCache;
+          // without this the dispatch block is skipped entirely.
           audioRefId: clipId,
           ...(opts.clipStreamer
             ? {
@@ -2374,6 +2381,13 @@ export class MusicManagerService {
                   opts.clipChannels ?? opts.buffer.numberOfChannels ?? 2,
               }
             : {}),
+          ...(opts.clipStreamer
+            ? {}
+            : {
+                reversed: (opts as any).reversed ?? false,
+                clipGain: (opts as any).clipGain ?? 1.0,
+                importReversedFlag: false,
+              }),
         } as any,
       ],
       notes: [],
@@ -2566,14 +2580,24 @@ export class MusicManagerService {
                 (clip as any).clipOriginSeconds ?? 0,
                 (clip as any).clipLengthSeconds ?? clipDur,
                 (clip as any).clipSampleRate ?? 48000,
-                (clip as any).clipChannels ?? 2
+                (clip as any).clipChannels ?? 2,
               );
             } else {
+              const reversedClip = (clip as any).reversed && !(
+                (clip as any).clipStreamer
+              );
+              const playbackBuffer = reversedClip
+                ? this.engine.reverseBuffer(
+                    audioData as AudioBuffer,
+                    (channelIndex, src) =>
+                      src.getChannelData(channelIndex).slice().reverse(),
+                  )
+                : audioData;
               this.engine.triggerSampler(
                 t.id,
-                audioData,
+                playbackBuffer,
                 swungTime,
-                t.gain,
+                (t.gain * ((clip as any).clipGain ?? 1.0)),
                 t.pan,
                 clipDur,
                 rate,

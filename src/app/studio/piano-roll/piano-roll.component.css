@@ -456,6 +456,11 @@
 .pr-velocity .pr-gl-canvas--velocity {
   position: static;
   display: block;
+  /* Fill the lane's responsive height (80px desktop / 90px phone /
+     58px landscape) so the rendered bars, the drag mapping and the GL
+     projection all agree. A hardcoded canvas height left a dead strip on
+     phones and overflowed the shorter landscape lane. */
+  height: 100%;
 }
 
 .pr-grid-focus-cell {

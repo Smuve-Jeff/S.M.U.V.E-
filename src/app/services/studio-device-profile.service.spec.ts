@@ -25,6 +25,7 @@ const signals = (
 
 class StubEngine {
   updateAdaptivePerformance = jest.fn();
+  setVoiceBudget = jest.fn();
 }
 
 class StubLogger {
@@ -186,6 +187,23 @@ describe('StudioDeviceProfileService · capability classifier', () => {
     it('re-applies the tier on refresh()', () => {
       sut.refresh();
       expect(engine.updateAdaptivePerformance).toHaveBeenCalledTimes(2);
+    });
+
+    it('pushes the classified voice ceiling into the engine', () => {
+      // The engine cannot import this profile (it would close a construction
+      // cycle), so budget().maxVoices travels down the same road as the tier.
+      expect(engine.setVoiceBudget).toHaveBeenCalledTimes(1);
+      expect(engine.setVoiceBudget).toHaveBeenCalledWith(
+        sut.profile().budget.maxVoices
+      );
+    });
+
+    it('re-pushes the ceiling on refresh()', () => {
+      sut.refresh();
+      expect(engine.setVoiceBudget).toHaveBeenCalledTimes(2);
+      expect(engine.setVoiceBudget).toHaveBeenLastCalledWith(
+        sut.profile().budget.maxVoices
+      );
     });
 
     it('degrades silently when the engine cannot adapt', () => {

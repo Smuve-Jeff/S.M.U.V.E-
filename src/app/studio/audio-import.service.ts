@@ -1062,6 +1062,88 @@ export class AudioImportService {
     });
   }
 
+  /**
+   * Reverse the currently selected imported audio in place. Only operates on
+   * clips that have a decodable AudioBuffer (short samples and the decoded
+   * fallback for long imports); streamed-only long imports are intentionally
+   * a no-op because a SampleStreamer cannot be replayed backwards without
+   * breaking its referential-window guarantees.
+   *
+   * The reversal is durable: the edited Blob is rewritten so subsequent edits,
+   * re-decodes and add-to-project both see the backwards material, and the
+   * ImportedAudio flags record that the on-disk representation is already
+   * reversed so applyEdits does not try to reverse it again.
+   */
+  reverseSelectedAudio(): void {
+    const current = this.selectedAudio();
+    if (!current) return;
+
+    // Streamed-only long imports cannot be reversed in place.
+    if (current.sampleStreamer && !current.buffer && !current.enhancedBuffer) {
+      this.logger.info(
+        `Skipping in-place reverse for streamed-only import \"${current.name}\"`,
+      );
+      return;
+    }
+
+    const source =
+      current.enhancedBuffer ??
+      current.buffer ??
+      null;
+
+    if (!source) {
+      this.logger.warn(
+        `Cannot reverse \"${current.name}\" — no decodable buffer available`,
+      );
+      return;
+    }
+
+    const reversed = this.audioEngine.reverseBuffer(
+      source,
+      (channelIndex, src) => src.getChannelData(channelIndex).slice().reverse(),
+    );
+
+    // Rewrite the edited blob so the reversed PCM survives re-decode and
+    // add-to-project. The interleaving helper on this service is private and
+    // mirrors the WAV writer's layout, so reuse it.
+    const interleaved = this.interleaveChannels(reversed);
+    const newBlob = this.createWavBlob(
+      interleaved,
+      reversed.sampleRate,
+      reversed.numberOfChannels,
+    );
+
+    if (current.editedBlob) {
+      URL.revokeObjectURL(current.editedUrl ?? '');
+    }
+    const newUrl = URL.createObjectURL(newBlob);
+    this.updateCurrentAudio({
+      editedBlob: newBlob,
+      editedUrl: newUrl,
+      enhancedBuffer: null,
+      enhancedPreset: null,
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1,
+      pitchSemitones: 0,
+      fadeIn: 0,
+      fadeOut: 0,
+      normalize: false,
+      loopStart: 0,
+      loopEnd: 0,
+    });
+
+    // Mark the import as already reversed so applyEdits() does not attempt to
+    // reverse it again on the next edit round-trip.
+    const canonical = this.selectedAudio();
+    if (canonical) {
+      (canonical as any).importReversedFlag = true;
+    }
+
+    this.snackbar.success(`Reversed \"${current.name}\"`);
+  }
+
   /** Clear all imported audio */
   clearAll() {
     this.importedAudio().forEach((audio) => {

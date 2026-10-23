@@ -1126,51 +1126,55 @@ describe('AudioEngineService.setMasterToneEq (idempotent master tone stage)', ()
 // nothing. Both entry points now run `buildVoiceGraph`.
 // =====================================================================
 
+// Shared by the voice-parity and device-budget suites below. Deliberately a
+// bare `Object.create(AudioEngineService.prototype)` instance: that is the
+// shape several suites here use, and it never runs field initialisers — the
+// budget's lazy `ensureLiveVoices()` exists to survive exactly this.
+function makeVoiceHarness() {
+  const makeParam = () => ({
+    value: 0,
+    setValueAtTime: jest.fn(),
+    setTargetAtTime: jest.fn(),
+    exponentialRampToValueAtTime: jest.fn(),
+    linearRampToValueAtTime: jest.fn(),
+  });
+  const makeNode = () => {
+    const node: any = {
+      gain: makeParam(),
+      frequency: makeParam(),
+      detune: makeParam(),
+      pan: makeParam(),
+      Q: makeParam(),
+      type: 'sine',
+      disconnect: jest.fn(),
+      start: jest.fn(),
+      stop: jest.fn(),
+    };
+    node.connect = jest.fn(() => node);
+    return node;
+  };
+
+  const ctx: any = {
+    currentTime: 0,
+    sampleRate: 44100,
+    createGain: jest.fn(() => makeNode()),
+    createOscillator: jest.fn(() => makeNode()),
+    createBiquadFilter: jest.fn(() => makeNode()),
+    createStereoPanner: jest.fn(() => makeNode()),
+  };
+
+  const svc = Object.create(AudioEngineService.prototype) as any;
+  svc.ctx = ctx;
+  svc.isRecording = () => false;
+  svc.getTrackOutput = jest.fn(() => ({ tag: 'trackOut' }));
+  const osc = makeNode();
+  svc.createAntialiasedOscillator = jest.fn(() => osc);
+  return { svc, ctx, osc };
+}
+
+const dest = () => ({ connect: jest.fn() }) as any;
+
 describe('AudioEngineService.buildVoiceGraph (live/offline voice parity)', () => {
-  function makeVoiceHarness() {
-    const makeParam = () => ({
-      value: 0,
-      setValueAtTime: jest.fn(),
-      setTargetAtTime: jest.fn(),
-      exponentialRampToValueAtTime: jest.fn(),
-      linearRampToValueAtTime: jest.fn(),
-    });
-    const makeNode = () => {
-      const node: any = {
-        gain: makeParam(),
-        frequency: makeParam(),
-        detune: makeParam(),
-        pan: makeParam(),
-        Q: makeParam(),
-        type: 'sine',
-        disconnect: jest.fn(),
-        start: jest.fn(),
-        stop: jest.fn(),
-      };
-      node.connect = jest.fn(() => node);
-      return node;
-    };
-
-    const ctx: any = {
-      currentTime: 0,
-      sampleRate: 44100,
-      createGain: jest.fn(() => makeNode()),
-      createOscillator: jest.fn(() => makeNode()),
-      createBiquadFilter: jest.fn(() => makeNode()),
-      createStereoPanner: jest.fn(() => makeNode()),
-    };
-
-    const svc = Object.create(AudioEngineService.prototype) as any;
-    svc.ctx = ctx;
-    svc.isRecording = () => false;
-    svc.getTrackOutput = jest.fn(() => ({ tag: 'trackOut' }));
-    const osc = makeNode();
-    svc.createAntialiasedOscillator = jest.fn(() => osc);
-    return { svc, ctx, osc };
-  }
-
-  const dest = () => ({ connect: jest.fn() }) as any;
-
   it('is the single path both live playback and the offline bounce run', () => {
     const { svc, ctx } = makeVoiceHarness();
     const spy = jest.spyOn(svc, 'buildVoiceGraph');
@@ -1374,5 +1378,118 @@ describe('clampFinite', () => {
     expect(clampFinite(undefined, 0, 1, 0.5)).toBe(0.5);
     expect(clampFinite('nonsense', 0, 1, 0.5)).toBe(0.5);
     expect(clampFinite(Number.NaN, 0, 1, 0.5)).toBe(0.5);
+  });
+});
+
+// =====================================================================
+// Device voice budget — the enforcement half of StudioDeviceProfileService.
+//
+// The classifier publishes `budget().maxVoices`; these cases pin that the
+// live path (`triggerAttack` → `buildVoiceGraph`) actually obeys it: the
+// ceiling holds, the oldest voice is stolen at the ceiling, finished voices
+// expire instead of squatting on a slot, and the offline bounce is never
+// throttled by the interactive ceiling.
+// =====================================================================
+
+describe('AudioEngineService · device voice budget (budget().maxVoices)', () => {
+  it('caps concurrent live voices at the ceiling and steals the oldest', () => {
+    const { svc, ctx } = makeVoiceHarness();
+    svc.setVoiceBudget(2);
+
+    svc.triggerAttack('t1', 220, 0, 0.8, 1, 1, 0, 0, 0, {});
+    svc.triggerAttack('t2', 330, 0, 0.8, 1, 1, 0, 0, 0, {});
+    svc.triggerAttack('t3', 440, 0, 0.8, 1, 1, 0, 0, 0, {});
+
+    expect(svc.activeVoiceCount()).toBe(2);
+
+    // The steal cut the OLDEST voice (t1): its VCA got the click-free early
+    // decay at the current time, and t2 — which also occupies a slot — was
+    // left alone.
+    const vca1 = ctx.createGain.mock.results[0].value;
+    const vca2 = ctx.createGain.mock.results[1].value;
+    expect(vca1.gain.setTargetAtTime).toHaveBeenCalledWith(0.0001, 0, 0.005);
+    expect(vca2.gain.setTargetAtTime).not.toHaveBeenCalledWith(
+      0.0001,
+      0,
+      0.005
+    );
+  });
+
+  it('lets a finished voice expire instead of counting it against the ceiling', () => {
+    const { svc, ctx } = makeVoiceHarness();
+    svc.setVoiceBudget(1);
+
+    svc.triggerAttack('t1', 220, 0, 0.8, 0.1, 1, 0, 0, 0, {});
+    expect(svc.activeVoiceCount()).toBe(1);
+
+    // t1's percussive envelope ends at 0 + 0.1 (duration) + 0.1 (release)
+    // + 0.1 (tail) = 0.3 — by 0.5 it has finished on its own.
+    ctx.currentTime = 0.5;
+    svc.triggerAttack('t2', 330, 0.5, 0.8, 0.1, 1, 0, 0, 0, {});
+
+    // Pruned, not stolen: t1 was never cut early, and t2 holds the slot.
+    expect(svc.activeVoiceCount()).toBe(1);
+    const vca1 = ctx.createGain.mock.results[0].value;
+    expect(vca1.gain.setTargetAtTime).not.toHaveBeenCalledWith(
+      0.0001,
+      0.5,
+      0.005
+    );
+  });
+
+  it('never counts the offline bounce against the interactive ceiling', () => {
+    const { svc, ctx } = makeVoiceHarness();
+    svc.setVoiceBudget(1);
+
+    svc.scheduleOfflineNote(ctx, dest(), 220, 0, 0.8, 1, {}, 0);
+    svc.scheduleOfflineNote(ctx, dest(), 330, 0, 0.8, 1, {}, 0);
+
+    // Both export voices were built in full; neither registered a slot.
+    expect(ctx.createGain).toHaveBeenCalledTimes(2);
+    expect(svc.activeVoiceCount()).toBe(0);
+  });
+
+  it('sheds voices immediately when the ceiling is lowered', () => {
+    const { svc, ctx } = makeVoiceHarness();
+
+    svc.triggerAttack('t1', 220, 0, 0.8, 1, 1, 0, 0, 0, {});
+    svc.triggerAttack('t2', 330, 0, 0.8, 1, 1, 0, 0, 0, {});
+    expect(svc.activeVoiceCount()).toBe(2);
+
+    svc.setVoiceBudget(1);
+
+    // The new ceiling applies now — not at the next note — and the oldest
+    // of the two sounding voices is the one shed.
+    expect(svc.activeVoiceCount()).toBe(1);
+    const vca1 = ctx.createGain.mock.results[0].value;
+    expect(vca1.gain.setTargetAtTime).toHaveBeenCalledWith(0.0001, 0, 0.005);
+  });
+
+  it('ignores a non-finite or sub-1 ceiling instead of resetting it', () => {
+    const { svc } = makeVoiceHarness();
+    svc.setVoiceBudget(4);
+    svc.setVoiceBudget(Number.NaN);
+    svc.setVoiceBudget(0);
+    svc.setVoiceBudget(-3);
+
+    for (let i = 0; i < 5; i++) {
+      svc.triggerAttack(`t${i}`, 220 + i, 0, 0.8, 1, 1, 0, 0, 0, {});
+    }
+
+    // Still the last valid ceiling (4) — not reset to the default 32 and
+    // not silently widened by the bad pushes.
+    expect(svc.activeVoiceCount()).toBe(4);
+  });
+
+  it('keeps the desktop ceiling (32) until a device profile classifies', () => {
+    const { svc } = makeVoiceHarness();
+
+    // DEFAULT_LIVE_VOICE_BUDGET mirrors STUDIO_AUDIO_BUDGETS.high.maxVoices,
+    // so an unclassified host behaves exactly as it did before this feature.
+    for (let i = 0; i < 33; i++) {
+      svc.triggerAttack(`t${i}`, 100 + i, 0, 0.8, 1, 1, 0, 0, 0, {});
+    }
+
+    expect(svc.activeVoiceCount()).toBe(32);
   });
 });

@@ -54,6 +54,18 @@ export interface StudioClip {
    * exposed in the arrangement keep behaving.
    */
   patternSlotId?: string | null;
+  /** Phase L — clip-level playback gain (linear, 1 = track gain). Applied in the
+   *  sampler path and in the offline render/editor, so a clip sounds quieter/louder
+   *  before the track fader and the master.
+   */
+  clipGain?: number;
+  /** Phase L — reverse the clip's sample order at playback. No-op on streamed
+   *  clips (SampleStreamer cannot be replayed backwards), which keeps the existing
+   *  referential-window integrity for long imports.
+   */
+  reversed?: boolean;
+  /** Internal flag set by the audio-import path when we reverse a clip in place. */
+  importReversedFlag?: boolean;
   /** Phase H — SampleStreamer admission fields for long imported stems. */
   clipStreamer?: unknown;
   clipOriginSeconds?: number;
