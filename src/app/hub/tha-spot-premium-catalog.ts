@@ -127,15 +127,28 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
     maxItems: 9,
   },
   {
-    id: 'premium-official-franchise-games',
-    title: 'Official franchise browser games',
+    id: 'premium-vintage-icons',
+    title: 'Arcade & console legends',
     subtitle:
-      'Free licensed games on official Nickelodeon and LEGO kids pages — no download or purchase.',
-    gameIds: MODERN_BROWSER_GAMES.filter(
-      (game) =>
-        game.tags?.includes('Official Nickelodeon') ||
-        game.tags?.includes('Official LEGO')
-    ).map((game) => game.id),
+      'Vintage icons from the arcade and 8-bit eras — pong, invaders, vector shooters, and brawlers.',
+    gameIds: [
+      'arcade-pong',
+      'arcade-space-invaders',
+      'arcade-tempest',
+      'arcade-defender',
+      'arcade-robotron-2084',
+      'arcade-missile-command',
+      'arcade-marble-madness',
+      'arcade-smash-tv',
+      'arcade-burgertime',
+      'arcade-zaxxon',
+      'arcade-scramble',
+      'arcade-star-wars',
+      'arcade-spy-hunter',
+      'arcade-hang-on',
+      'arcade-raiden',
+      'arcade-dragons-lair',
+    ],
     maxItems: 12,
   },
   {

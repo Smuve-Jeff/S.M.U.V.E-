@@ -160,21 +160,39 @@ describe('Tha Spot feed integrity', () => {
   const rooms = feed.rooms ?? [];
   const games = feed.games ?? [];
 
-  it('keeps the newly added official franchise games in action, racing, sports, and adventure categories', () => {
-    const franchiseGames = MODERN_BROWSER_GAMES.filter(
-      (game) =>
-        game.tags?.includes('Official Nickelodeon') ||
-        game.tags?.includes('Official LEGO')
-    );
-    expect(franchiseGames.every((game) =>
-      ['Action', 'Sports', 'Adventure', 'Racing'].includes(game.genre ?? '')
-    )).toBe(true);
-    expect(franchiseGames.every((game) =>
-      !/boardgame|educat|cook\b|dress\s*up|puzzle/i.test(game.name + ' ' + game.description)
-    )).toBe(true);
+  it('ships the vintage icon set with authentic, frameable arcade cabinets', () => {
+    const vintageIcons: Array<[string, string, string]> = [
+      ['arcade-pong', '45006-pong-rev-e-ttl', 'Sports'],
+      ['arcade-space-invaders', '34370-space-invaders-tv-version-rev-1', 'Shooting'],
+      ['arcade-tempest', '45016-tempest-rev-3-revised-hardware', 'Shooting'],
+      ['arcade-missile-command', '45455-missile-command-rev-3', 'Shooting'],
+      ['arcade-marble-madness', '43513-marble-madness-set-1', 'Arcade Classic'],
+      ['arcade-smash-tv', '45011-smash-t-v-rev-8-00', 'Shooting'],
+      ['arcade-robotron-2084', '35031-robotron-2084-usa', 'Shooting'],
+      ['arcade-defender', '44959-defender-red-label', 'Shooting'],
+      ['arcade-burgertime', '33227-burger-time-data-east-set-1', 'Arcade Classic'],
+      ['arcade-spy-hunter', '44961-spy-hunter', 'Racing'],
+      ['arcade-zaxxon', '34778-zaxxon-set-1-rev-d', 'Shooting'],
+      ['arcade-scramble', '9771-scramble', 'Shooting'],
+      ['arcade-star-wars', '43485-star-wars-rev-1', 'Shooting'],
+      ['arcade-hang-on', '8752-hang-on', 'Racing'],
+      ['arcade-raiden', '9616-raiden-set-1', 'Shooting'],
+      ['arcade-dragons-lair', '24641-dragon-s-lair-usa', 'Adventure'],
+    ];
+
+    for (const [id, cabinet, genre] of vintageIcons) {
+      const game = games.find((entry) => entry.id === id);
+      expect(game).toBeTruthy();
+      expect(game?.url).toContain(cabinet);
+      expect(game?.genre).toBe(genre);
+      expect(game?.launchConfig?.embedMode).toBe('inline');
+      expect(game?.launchConfig?.approvedEmbedUrl).toBe(game?.url);
+      expect(game?.launchConfig?.approvedExternalUrl).toBe(game?.url);
+      expect(game?.tags).toContain('Classic');
+    }
   });
 
-  it('keeps the merged catalogue above 1,064 unique games and includes official free licensed browser games', () => {
+  it('keeps the merged catalogue above 1,064 unique games and adds iconic modern browser titles', () => {
     const curatedGames = [
       ...MODERN_BROWSER_GAMES,
       ...CURATED_POKI_GAMES,
@@ -187,41 +205,21 @@ describe('Tha Spot feed integrity', () => {
       knownIds.add(game.id);
       return true;
     });
-    const licensedGames = MODERN_BROWSER_GAMES.filter(
-      (game) =>
-        game.tags?.includes('Official Nickelodeon') ||
-        game.tags?.includes('Official LEGO')
-    );
-    const nickelodeonGames = licensedGames.filter((game) =>
-      game.tags?.includes('Official Nickelodeon')
-    );
-    const legoGames = licensedGames.filter((game) =>
-      game.tags?.includes('Official LEGO')
+    const modernIcons = MODERN_BROWSER_GAMES.filter((game) =>
+      ['modern-retro-bowl', 'modern-crossy-road'].includes(game.id)
     );
 
-    expect(mergedGames).toHaveLength(1091);
+    expect(mergedGames).toHaveLength(1089);
     expect(knownIds.size).toBe(mergedGames.length);
-    expect(nickelodeonGames.map((game) => game.id)).toEqual([
-      'modern-nick-spongebob-run',
-      'modern-nick-basketball-stars',
-      'modern-nick-tmnt-pizza-quest',
-      'modern-nick-spongemania',
-      'modern-nick-spongebobs-next-big-adventure',
-      'modern-nick-rock-collector',
-      'modern-nick-survival-of-the-loudest',
+    expect(modernIcons.map((game) => game.id)).toEqual([
+      'modern-retro-bowl',
+      'modern-crossy-road',
     ]);
-    expect(legoGames.map((game) => game.id)).toEqual([
-      'modern-lego-ninjago-the-quest',
-      'modern-lego-speed-champions',
-      'modern-lego-gloom-busters',
-      'modern-lego-guardians-of-the-galaxy',
-    ]);
-    for (const game of licensedGames) {
-      expect(game.url).toMatch(/^https:\/\/(www\.nick\.com|kids\.lego\.com)\//);
+    for (const game of modernIcons) {
+      expect(game.url.startsWith('https://poki.com/en/g/')).toBe(true);
       expect(game.launchConfig?.approvedExternalUrl).toBe(game.url);
       expect(game.launchConfig?.embedMode).toBe('external-only');
-      expect(game.description).toMatch(/^Free official (Nick\.com|LEGO)/);
-      expect(game.genre).not.toMatch(/puzzle|educat|cooking|dress up|board/i);
+      expect(game.rating).toBeGreaterThan(4);
     }
   });
 
