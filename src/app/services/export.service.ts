@@ -299,6 +299,17 @@ export class ExportService {
           clip.clipLengthSeconds ?? clip.length * secondsPerBar,
           streamer ? streamer.getRemainingSecondsFrom((clip as any).clipOriginSeconds || 0) : Math.max(0, buffer.duration - offset),
         );
+        // Phase L: clip-level gain and reverse land here with the live path.
+        const clipGain = (clip as any).clipGain ?? 1.0;
+        const reversedClip = (clip as any).reversed && !streamer;
+        const playbackBuffer = reversedClip
+          ? this.engine.reverseBuffer(
+              buffer as AudioBuffer,
+              (channelIndex, src) =>
+                src.getChannelData(channelIndex).slice().reverse(),
+            )
+          : buffer;
+        fader.gain.setValueAtTime(clipGain, start);
         this.applyClipFade(fader.gain, start, duration, clip, secondsPerBar);
         if (streamer) {
           const sampleRate = (clip as any).clipSampleRate || 48000;
@@ -327,7 +338,7 @@ export class ExportService {
           }
         } else {
           const source = offline.createBufferSource();
-          source.buffer = buffer;
+          source.buffer = playbackBuffer as AudioBuffer;
           source.connect(pan);
           if (duration > 0) source.start(start, offset, duration);
         }

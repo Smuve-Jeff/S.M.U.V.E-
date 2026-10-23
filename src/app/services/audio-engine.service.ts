@@ -2758,6 +2758,32 @@ export class AudioEngineService {
     return streamer.getResidentBuffer() ?? null;
   }
 
+
+  /**
+   * Reverse an AudioBuffer in place by producing a new buffer whose per-channel
+   * PCM is the source playback buffer flipped in time. Used only when a clip is
+   * reversed and has no SampleStreamer, so the resulting buffer is durably cached
+   * by `stemAudioCache` and reused by both the live path and the export path.
+   *
+   * The `channels` callback is intentionally supplied by the caller so this helper
+   * stays oblivious to the source layout (raw Float32Array[] vs the streamed-window
+   * layout) and remains a pure transform.
+   */
+  reverseBuffer(
+    source: AudioBuffer,
+    channelFactory: (channelIndex: number, source: AudioBuffer) => Float32Array,
+  ): AudioBuffer {
+    const out = this.ctx.createBuffer(
+      source.numberOfChannels,
+      source.length,
+      source.sampleRate,
+    );
+    for (let c = 0; c < source.numberOfChannels; c++) {
+      out.getChannelData(c).set(channelFactory(c, source).slice());
+    }
+    return out;
+  }
+
   getTrackOutput(id: string): GainNode {
     if (!this.trackPhaseNodes.has(id)) {
       // Complete Pro Signal Chain
