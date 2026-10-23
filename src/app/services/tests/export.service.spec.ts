@@ -350,6 +350,131 @@ describe("ExportService", () => {
     );
   });
 
+  /**
+   * Render one audio clip through the offline bounce and hand back every gain
+   * the mocked context created, so an envelope test can pick out the clip's
+   * fader (the only stage carrying ramps / a target approach).
+   */
+  async function renderClipGains(clip: Record<string, unknown>) {
+    const gains: any[] = [];
+    const offline = {
+      destination: {},
+      createGain: jest.fn(() => {
+        const node = {
+          gain: {
+            value: 1,
+            setValueAtTime: jest.fn(),
+            linearRampToValueAtTime: jest.fn(),
+            setTargetAtTime: jest.fn(),
+          },
+          connect: jest.fn(),
+        };
+        gains.push(node);
+        return node;
+      }),
+      createStereoPanner: jest.fn(() => ({
+        pan: { value: 0 },
+        connect: jest.fn(),
+      })),
+      createBufferSource: jest.fn(() => ({
+        buffer: null,
+        connect: jest.fn(),
+        playbackRate: { setValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+      })),
+      startRendering: jest.fn().mockResolvedValue({}),
+    };
+    const original = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn(() => offline);
+    (service as any).engine.masterGain = { gain: { value: 1 } };
+    (service as any).engine.tempo = jest.fn(() => 120);
+    (service as any).musicManager.activeLoopBars = jest.fn(() => 4);
+    (service as any).musicManager.tracks = jest.fn(() => [
+      {
+        id: "vo",
+        name: "Vocal",
+        type: "audio",
+        muted: false,
+        soloed: false,
+        gain: 1,
+        pan: 0,
+        notes: [],
+        clips: [clip],
+      },
+    ]);
+    try {
+      await service.renderProjectOffline();
+    } finally {
+      if (original === undefined) {
+        delete (globalThis as any).OfflineAudioContext;
+      } else {
+        (globalThis as any).OfflineAudioContext = original;
+      }
+    }
+    return gains;
+  }
+
+  it("applies clip-level gain as the fade envelope's ceiling in the bounce", async () => {
+    // Phase L regression: clipGain used to be stamped with a standalone
+    // setValueAtTime(0.5, 0) that the envelope's own setValueAtTime(0, 0)
+    // overwrote at the same instant — every ramp then targeted 1 and the
+    // clip gain silently vanished from the export.
+    const gains = await renderClipGains({
+      type: "audio",
+      start: 0,
+      length: 4,
+      fadeIn: 1,
+      fadeOut: 1,
+      clipGain: 0.5,
+      audioData: { duration: 8, sampleRate: 44100 },
+    });
+
+    const fader = gains.find(
+      (node) => node.gain.linearRampToValueAtTime.mock.calls.length > 0,
+    );
+    expect(fader).toBeTruthy();
+    // 120 BPM → 2 s per bar: the envelope is 0 → 0.5 over the 2 s fade-in,
+    // holds at clipGain, then 0.5 → 0 over the last 2 s — the live
+    // triggerSampler shape with velocity = t.gain * clipGain (gain 1 here).
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(1, 0, 0);
+    expect(fader!.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(
+      1,
+      0.5,
+      2,
+    );
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(2, 0.5, 6);
+    expect(fader!.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(
+      2,
+      0,
+      8,
+    );
+  });
+
+  it("applies clip-level gain when the clip has no fades", async () => {
+    const gains = await renderClipGains({
+      type: "audio",
+      start: 0,
+      length: 4,
+      clipGain: 0.5,
+      audioData: { duration: 8, sampleRate: 44100 },
+    });
+
+    const fader = gains.find(
+      (node) => node.gain.setTargetAtTime.mock.calls.length > 0,
+    );
+    expect(fader).toBeTruthy();
+    // The no-fade branch mirrors triggerSampler: zero the stage, then a
+    // 5 ms approach to clipGain — not to full scale.
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(1, 0, 0);
+    expect(fader!.gain.setTargetAtTime).toHaveBeenNthCalledWith(
+      1,
+      0.5,
+      0,
+      0.005,
+    );
+  });
+
   it("renders a 48 kHz master at 48 kHz instead of relabelling a 44.1 kHz bounce", async () => {
     const offline = {
       destination: {},

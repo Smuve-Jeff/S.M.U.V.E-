@@ -309,8 +309,11 @@ export class ExportService {
                 src.getChannelData(channelIndex).slice().reverse(),
             )
           : buffer;
-        fader.gain.setValueAtTime(clipGain, start);
-        this.applyClipFade(fader.gain, start, duration, clip, secondsPerBar);
+        // clipGain is the fade envelope's PEAK (this export's channel stage
+        // already carries track.gain), exactly as the live path composes it
+        // into triggerSampler's velocity — not a value to stamp before the
+        // envelope, which overwrote it at the same instant.
+        this.applyClipFade(fader.gain, start, duration, clip, secondsPerBar, clipGain);
         if (streamer) {
           const sampleRate = (clip as any).clipSampleRate || 48000;
           const sampleRateRatio = sampleRate / buffer.sampleRate;
@@ -356,13 +359,23 @@ export class ExportService {
    * ramps and the "fade-out never starts before the fade-in ends" rule are
    * copied from `AudioEngineService.triggerSampler` so the export measures the
    * same envelope the artist heard.
+   *
+   * `peak` is the clip-level gain (`clip.clipGain`): the full-level the
+   * envelope reaches. The live path composes the same product into
+   * triggerSampler's velocity (`t.gain * clipGain`; this export carries
+   * `track.gain` on the channel stage instead), so the bounce must peak at
+   * the same value. A standalone `setValueAtTime(clipGain, start)` used to
+   * run before this call and was immediately overwritten by the envelope's
+   * own `setValueAtTime(0, start)` at the same instant — every ramp then
+   * targeted 1 and clip gain silently vanished from exports.
    */
   private applyClipFade(
     gain: AudioParam,
     start: number,
     duration: number,
     clip: { length: number; fadeIn?: number; fadeOut?: number },
-    secondsPerBar: number
+    secondsPerBar: number,
+    peak: number = 1
   ): void {
     const safeDuration = Math.max(0.001, duration);
     // Fades are stored in bars, like `start`/`length`; the clamp matches live.
@@ -376,11 +389,11 @@ export class ExportService {
     );
 
     gain.setValueAtTime(0, start);
-    if (fadeIn > 0) gain.linearRampToValueAtTime(1, start + fadeIn);
-    else gain.setTargetAtTime(1, start, 0.005);
+    if (fadeIn > 0) gain.linearRampToValueAtTime(peak, start + fadeIn);
+    else gain.setTargetAtTime(peak, start, 0.005);
     if (fadeOut > 0) {
       const fadeStart = start + Math.max(fadeIn, safeDuration - fadeOut);
-      gain.setValueAtTime(1, fadeStart);
+      gain.setValueAtTime(peak, fadeStart);
       gain.linearRampToValueAtTime(0, start + safeDuration);
     }
   }
