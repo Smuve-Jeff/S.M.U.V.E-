@@ -421,13 +421,18 @@ half of the low-power item:
   boundaries, the safe fallback for browsers that report nothing, the
   AudioWorklet/Data-Saver downgrades, and the engine wiring.
 
-**Still open on this item:** nothing consumes `budget()` to actually *enforce*
-the voice/effects ceilings yet. The integration point is the instrument
-constructors, which hardcode polyphony today
-(`wavetable-synth.ts:45` `super(audioContext, 10)`, `drum-machine.ts:27`
-`super(context, 32)`, `advanced-synth.ts:82` `super(audioContext, 8)`); they take
-an `AudioContext`, not DI, so enforcement needs a small factory/service that
-injects the budget at construction time.
+**Voice ceiling — closed.** The integration point this audit first suggested
+(the `Instrument` constructors) turned out to be dead code: those subclasses
+are imported only by `synth-classes.spec.ts`, while every audible note runs
+`AudioEngineService.triggerAttack` → `buildVoiceGraph`. Enforcement lives
+there instead: `StudioDeviceProfileService.applyToEngine()` pushes
+`budget().maxVoices` down the same road it already walks for
+`updateAdaptivePerformance`; the live path prunes expired voices and steals
+the oldest one whenever the ceiling is full; and `setVoiceBudget()` sheds
+voices immediately when a re-classification lowers the ceiling. The offline
+bounce passes no voice handle, so an export is never throttled by the
+interactive ceiling. **Still open on this item:** `maxActiveEffects` and
+`maxTracks` have no enforcer yet.
 
 ### 9e. Auxiliary audio-graph policy (`AuxAudioContextService`)
 
