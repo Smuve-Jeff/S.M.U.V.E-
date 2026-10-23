@@ -404,9 +404,9 @@ describe('GameService', () => {
         'modern-veck-io',
         'shmup',
         'shoot-arcade',
-        'spot-battlefield-6',
-        'spot-marvel-rivals',
-        'spot-helldivers-2',
+        'spot-bulletforce',
+        'spot-fragen',
+        'spot-specialopsgo',
       ])
     );
     const shootingLabels = new Set(['shooting', 'fps', 'shooter']);
@@ -522,10 +522,10 @@ describe('GameService', () => {
     const games = await pending;
 
     expect(games).toHaveLength(999);
-    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('rocket-league');
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('spot-bulletforce');
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
-    expect(service.getGameById('rocket-league')?.id).toBe('rocket-league');
+    expect(service.getGameById('spot-bulletforce')?.id).toBe('spot-bulletforce');
     expect(service.getGameById('rg-44097-super-mario-bros')?.id).toBe(
       'rg-44097-super-mario-bros'
     );
@@ -541,8 +541,8 @@ describe('GameService', () => {
 
     expect(sports.length).toBeGreaterThanOrEqual(5);
     for (const expectedId of [
-      'rocket-league',
-      'fifa-24',
+      'spot-basketballleague',
+      'spot-sportsminibattles',
       'poki-retro-bowl',
       'nba-pro-3d',
       'nfl-redzone-rush',
@@ -560,8 +560,8 @@ describe('GameService', () => {
     const games = await pending;
 
     expect(games).toHaveLength(999);
-    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'rocket-league')).toBe(true);
-    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'gta-online')).toBe(true);
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'spot-bulletforce')).toBe(true);
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'spot-basketballleague')).toBe(true);
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
     expect(new Set(games.map((game) => game.id)).size).toBe(999);
@@ -660,12 +660,9 @@ describe('GameService', () => {
 
     // Production-sized feeds retain the archive with the reviewed premium shelf first.
     expect(games).toHaveLength(999);
-    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('gta-online');
+    expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('spot-bulletforce');
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('poki-temple-run-2');
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('battlefield');
-    expect(games.find((game) => game.id === 'gta-online')?.image).toBe(
-      'assets/games/gta-online.svg'
-    );
     // Owned cabinets carry original S.M.U.V.E. banner art on the shelf.
     expect(games.find((game) => game.id === 'battlefield')?.image).toBe(
       'assets/games/battlefield.svg'
@@ -741,7 +738,7 @@ describe('GameService', () => {
       }
     }
     expect(feed.games.find((game) => game.id === 'cg-run-3')?.image).toContain('imgs.crazygames.com/run3b.png');
-    expect(feed.games.find((game) => game.id === 'spot-the-first-descendant')?.image).toContain('cdn.akamai.steamstatic.com/steam/apps/2074920/header.jpg');
+    expect(decodeURIComponent(feed.games.find((game) => game.id === 'spot-bulletforce')?.image ?? '')).toContain('<title>Bullet Force</title>');
   });
 
   it('gives every premium shelf game real cover art', async () => {

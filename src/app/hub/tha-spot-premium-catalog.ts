@@ -4,8 +4,8 @@
  * The JSON feed remains the source/archive so it can be refreshed without
  * losing history, but the UI must not present an unreviewed provider dump as
  * the product catalog. Keep this list intentionally small and reviewable:
- * owned cabinets, modern browser-native games, official current titles, and
- * polished popular web destinations with truthful external launch contracts.
+ * owned cabinets and browser-native or free browser-game destinations with
+ * truthful launch contracts.
  */
 import { MODERN_BROWSER_GAMES } from './tha-spot-curated-games';
 import { GENRE_REFRESH_GAMES } from './tha-spot-genre-refresh-catalog';
@@ -97,31 +97,6 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
   'cg-stick-war-2',
   'cg-table-tennis-world-tour',
 
-  // Current-generation destination titles
-  'gta-online',
-  'sea-of-thieves',
-  'destiny-2',
-  'warframe',
-  'apex-legends',
-  'valorant',
-  'rainbow-six-siege',
-  'rocket-league',
-  'fortnite',
-  'minecraft',
-  'fifa-24',
-  'call-of-duty',
-  'mobile-legends',
-  'madden-nfl-25',
-  'nba-2k26',
-  'fable',
-  'x-men',
-  'batman-arkham-city',
-  'spider-man',
-  'red-dead-redemption',
-  'elden-ring',
-  'elder-scrolls',
-  'nemesis-roman-empire',
-
   // Premium genre coverage for action, adventure, RPG, and sports
   'tomb-runner',
   'moto-x3m',
@@ -133,9 +108,6 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
   'nba-pro-3d',
   'nfl-redzone-rush',
   'boxing-heavyweight',
-
-  // Next-wave catalog: non-swapped genres only (multiplayer, co-op, sports,
-  // fighting, adventure, open world, RPG, racing, horror, action, strategy).
   ...GENRE_REFRESH_GAMES.map((game) => game.id),
 ] as const;
 
@@ -157,15 +129,14 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
   {
     id: 'premium-open-world',
     title: 'Open-world drop zone',
-    subtitle: 'Shared worlds, exploration, and long-session momentum.',
+    subtitle: 'Browser worlds, exploration, and sandbox sessions.',
     gameIds: [
       'minecraft-classic',
-      'gta-online',
-      'sea-of-thieves',
-      'minecraft',
       'slow-roads-webgl',
+      'poki-vectaria-io',
+      'cg-paper-minecraft',
     ],
-    maxItems: 5,
+    maxItems: 4,
   },
   {
     id: 'premium-action-adventure',
@@ -185,14 +156,10 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
     title: 'RPG depth runs',
     subtitle: 'Progression, raids, builds, and campaign-minded sessions.',
     gameIds: [
-      'warframe',
-      'destiny-2',
+      'spot-warlordsfantasyrpg',
+      'spot-growrpg',
       'mythic-raid-online',
       'tower-defense',
-      'poki-monkey-mart',
-      'elden-ring',
-      'fable',
-      'nemesis-roman-empire',
     ],
     maxItems: 8,
   },
@@ -201,8 +168,8 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
     title: 'Sports arena',
     subtitle: 'Competitive football, hoops, and quick-play sports energy.',
     gameIds: [
-      'rocket-league',
-      'fifa-24',
+      'poki-soccer-skills-world-cup',
+      'poki-soccer-league',
       'cg-haxball',
       'cg-8-ball-billiards-classic',
       'cg-table-tennis-world-tour',
@@ -260,15 +227,11 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
   {
     id: 'premium-couch-coop',
     title: 'Couch co-op & 2-player',
-    subtitle: 'Share the keyboard — duels, co-op runs, and party chaos.',
+    subtitle: 'Share the keyboard — browser co-op runs and local duels.',
     gameIds: [
       'cg-tank-trouble',
       'cg-fireboy-watergirl',
-      'cg-bad-ice-cream-4',
-      'cg-gun-mayhem-2',
-      'cg-raft-wars',
-      'cg-money-movers',
-      'cg-12-minibattles',
+      'spot-poorbunny',
       'cg-rooftop-snipers-2',
     ],
     maxItems: 8,
@@ -290,90 +253,35 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
   {
     id: 'premium-versus',
     title: 'Versus signal',
-    subtitle: 'Tactical pressure, battle royale drops, and head-to-head play.',
+    subtitle: 'Browser shooters, arena drops, and head-to-head play.',
     gameIds: [
       'battlefield',
       'venge-io-webgl',
       'zombsroyale-io-multiplayer',
-      'apex-legends',
-      'valorant',
-      'rainbow-six-siege',
-      'tekken-4-tribute',
-      'call-of-duty',
-      'mobile-legends',
+      'cg-kour-io',
+      'cg-deadshot-io',
     ],
-    maxItems: 9,
+    maxItems: 8,
   },
   {
     id: 'premium-iconic-now',
     title: 'Iconic right now',
-    subtitle: 'Recognizable worlds and modern social destinations.',
+    subtitle: 'Recognizable browser worlds and quick-play hits.',
     gameIds: [
-      'fortnite',
-      'minecraft',
-      'rocket-league',
+      'minecraft-classic',
       'poki-subway-surfers',
       'poki-friday-night-funkin',
       'poki-crossy-road',
-      'red-dead-redemption',
-      'elder-scrolls',
-      'spider-man',
+      'cg-run-3',
+      'spot-polytrack',
     ],
-    maxItems: 9,
+    maxItems: 7,
   },
   {
-    id: 'premium-online-coop',
-    title: 'Online co-op squad',
-    subtitle: 'Drop in with friends: raids, expeditions, and survival runs.',
-    gameIds: [
-      'spot-helldivers-2',
-      'spot-arc-raiders',
-      'spot-lethal-company',
-      'spot-repo',
-      'spot-peak',
-      'spot-palworld',
-      'spot-enshrouded',
-      'spot-monster-hunter-wilds',
-      'spot-space-marine-2',
-      'spot-deep-rock-galactic',
-    ],
-    maxItems: 10,
-  },
-  {
-    id: 'premium-fight-night',
-    title: 'Fight night',
-    subtitle: 'Ranked duels, tag teams, and platform fighters.',
-    gameIds: [
-      'spot-tekken-8',
-      'spot-street-fighter-6',
-      'spot-mortal-kombat-1',
-      'spot-fatal-fury-cotw',
-      'spot-2xko',
-      'spot-virtua-fighter-5-revo',
-      'spot-guilty-gear-strive',
-      'spot-smash-ultimate',
-      'spot-brawlhalla',
-      'spot-rivals-of-aether-2',
-    ],
-    maxItems: 10,
-  },
-  {
-    id: 'premium-next-wave',
-    title: 'Next-wave spotlight',
-    subtitle:
-      'The new selection across multiplayer, adventure, sports, and open world.',
-    gameIds: [
-      'spot-marvel-rivals',
-      'spot-helldivers-2',
-      'spot-kingdom-come-2',
-      'spot-ea-sports-fc-26',
-      'spot-tekken-8',
-      'spot-indiana-jones-great-circle',
-      'spot-forza-horizon-5',
-      'spot-clair-obscur',
-      'spot-phasmophobia',
-      'spot-hades-2',
-    ],
-    maxItems: 10,
+    id: 'premium-free-browser-play',
+    title: 'Free browser play',
+    subtitle: 'No install or purchase required; open a game page and play. Accounts are optional.',
+    gameIds: GENRE_REFRESH_GAMES.map((game) => game.id),
+    maxItems: 115,
   },
 ] as const;
