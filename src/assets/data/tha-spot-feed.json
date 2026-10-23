@@ -4112,10 +4112,10 @@
     {
       "id": "super-mario-world-elite-master",
       "name": "Super Mario World (SNES)",
-      "url": "https://www.retrogames.cz/play_245-SNES.php",
+      "url": "https://www.retrogames.cc/embed/16847-super-mario-world-usa.html",
       "genre": "Platformer",
       "rating": 4.7,
-      "description": "Play Super Mario World online — the authentic 1990 SNES masterpiece that launched Dinosaur Land, streaming via the RetroGames.cz emulator.",
+      "description": "Play Super Mario World online — the authentic 1990 SNES release with all 96 exits of Dinosaur Land, streamed from the original cartridge ROM.",
       "tags": [
         "Platformer",
         "Retro",
@@ -4128,10 +4128,10 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_245-SNES.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_245-SNES.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16847-super-mario-world-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16847-super-mario-world-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "availability": "Online",
       "image": "assets/hub/home-backdrop-command.png",
@@ -9254,7 +9254,7 @@
       "id": "rg-44214-super-mario-kart-world",
       "name": "Super Mario Kart (SNES)",
       "genre": "Racing",
-      "description": "Play Super Mario Kart online — the authentic 1992 SNES original that invented kart racing, streaming via the RetroGames.cz emulator.",
+      "description": "Play Super Mario Kart online — the authentic 1992 SNES original with Mode 7 racing, battle mode, and split-screen two-player.",
       "tags": [
         "Racing",
         "Retro",
@@ -9268,12 +9268,12 @@
       ],
       "playersOnline": 564,
       "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cz/play_789-SNES.php",
+      "url": "https://www.retrogames.cc/embed/16887-super-mario-kart-usa.html",
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_789-SNES.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_789-SNES.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16887-super-mario-kart-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16887-super-mario-kart-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "accentStart": "#1e1b4b",
@@ -19456,6 +19456,68 @@
       }
     },
     {
+      "id": "super-mario-bros-3-nes",
+      "name": "Super Mario Bros. 3",
+      "url": "https://www.retrogames.cc/embed/16680-super-mario-bros-3-usa.html",
+      "genre": "Platformer",
+      "description": "Play Super Mario Bros. 3 online — the authentic 1988 NES masterpiece with the Tanooki suit, airships, and eight kingdoms, streamed from the original cartridge ROM.",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "NES",
+        "Classic"
+      ],
+      "availability": "Online",
+      "rating": 4.9,
+      "playersOnline": 820,
+      "badgeIds": [
+        "classic"
+      ],
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16680-super-mario-bros-3-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16680-super-mario-bros-3-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "yoshis-island-snes",
+      "name": "Super Mario World 2: Yoshi’s Island",
+      "url": "https://www.retrogames.cc/embed/16890-super-mario-world-2-yoshi-s-island-usa.html",
+      "genre": "Platformer",
+      "description": "Play Yoshi’s Island online — the authentic 1995 SNES prequel with the crayon art style, egg throwing, and Baby Mario. Runs from the original cartridge ROM.",
+      "tags": [
+        "Platformer",
+        "Retro",
+        "SNES",
+        "Classic"
+      ],
+      "availability": "Online",
+      "rating": 4.8,
+      "playersOnline": 540,
+      "badgeIds": [
+        "classic"
+      ],
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16890-super-mario-world-2-yoshi-s-island-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16890-super-mario-world-2-yoshi-s-island-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
       "id": "rg-46228-super-mario-bros-2-lost-levels",
       "name": "Super Mario Bros. 2 — The Lost Levels",
       "genre": "Platformer",
@@ -19504,10 +19566,11 @@
       }
     },
     {
-      "id": "rg-45027-super-mario-rpg-enhanced",
-      "name": "Super Mario RPG",
+      "id": "super-mario-rpg-snes",
+      "name": "Super Mario RPG: Legend of the Seven Stars",
+      "url": "https://www.retrogames.cc/embed/18627-super-mario-rpg-legend-of-the-seven-stars-usa.html",
       "genre": "RPG",
-      "description": "The beloved SNES collaboration between Square and Nintendo — turn-based Mario RPG with timed hits, isometric exploration, and a whimsical story. Play it online via the RetroGames emulator.",
+      "description": "Play Super Mario RPG online — the authentic 1996 Square/Nintendo SNES collaboration with timed hits and isometric exploration. The fan-made “Enhanced” hack is gone.",
       "tags": [
         "RPG",
         "Retro",
@@ -19516,22 +19579,29 @@
       ],
       "availability": "Online",
       "rating": 4.9,
+      "playersOnline": 720,
       "badgeIds": [
         "classic"
       ],
       "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/45027-super-mario-rpg-enhanced.html",
       "launchConfig": {
         "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/45027-super-mario-rpg-enhanced.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/45027-super-mario-rpg-enhanced.html"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18627-super-mario-rpg-legend-of-the-seven-stars-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/18627-super-mario-rpg-legend-of-the-seven-stars-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
       }
     },
     {
-      "id": "rg-43447-paper-mario-multiplayer",
+      "id": "paper-mario-n64",
       "name": "Paper Mario",
+      "url": "https://www.retrogames.cc/embed/32120-paper-mario-usa.html",
       "genre": "RPG",
-      "description": "The N64 cult classic — turn-based combat with stylish action commands, a paper-thin world, and a heartwarming story. Play it online via the RetroGames emulator.",
+      "description": "Play Paper Mario online — the authentic 2000 N64 adventure with action-command battles and the flat paper world. The “Multiplayer” hack is gone.",
       "tags": [
         "RPG",
         "Retro",
@@ -19540,22 +19610,29 @@
       ],
       "availability": "Online",
       "rating": 4.7,
+      "playersOnline": 610,
       "badgeIds": [
         "classic"
       ],
       "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/43447-paper-mario-multiplayer-1-2.html",
       "launchConfig": {
         "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/43447-paper-mario-multiplayer-1-2.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/43447-paper-mario-multiplayer-1-2.html"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32120-paper-mario-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32120-paper-mario-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
       }
     },
     {
-      "id": "rg-44138-mario-party-3-starstruck",
+      "id": "mario-party-3-n64",
       "name": "Mario Party 3",
+      "url": "https://www.retrogames.cc/embed/32906-mario-party-3-usa.html",
       "genre": "Party",
-      "description": "The N64 board-game party classic — roll dice, steal stars, and sabotage friends across 70+ mini-games. Play it online via the RetroGames emulator.",
+      "description": "Play Mario Party 3 online — the authentic 2001 N64 board-game finale with 70+ mini-games and four-player couch play. The “StarStruck” mod is gone.",
       "tags": [
         "Party",
         "Retro",
@@ -19564,15 +19641,21 @@
       ],
       "availability": "Online",
       "rating": 4.6,
+      "playersOnline": 480,
       "badgeIds": [
         "classic"
       ],
       "image": "assets/hub/home-backdrop-command.png",
-      "url": "https://www.retrogames.cc/embed/44138-mario-party-3-starstruck.html",
       "launchConfig": {
         "embedMode": "inline",
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/44138-mario-party-3-starstruck.html",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/44138-mario-party-3-starstruck.html"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32906-mario-party-3-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32906-mario-party-3-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
       }
     },
     {
@@ -20468,8 +20551,8 @@
     {
       "id": "super-mario-land-gb",
       "name": "Super Mario Land",
-      "url": "https://www.retrogames.cz/play_145-GameBoy.php",
-      "description": "Play Super Mario Land online — the authentic 1989 Game Boy debut of Mario on handheld, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/16871-super-mario-land-world.html",
+      "description": "Play Super Mario Land online — the authentic 1989 Game Boy debut of Mario on handheld, streamed from the original cartridge ROM.",
       "genre": "Platformer",
       "rating": 4.6,
       "playersOnline": 420,
@@ -20484,10 +20567,10 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_145-GameBoy.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_145-GameBoy.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16871-super-mario-land-world.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16871-super-mario-land-world.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -20499,8 +20582,8 @@
     {
       "id": "super-mario-64",
       "name": "Super Mario 64",
-      "url": "https://www.retrogames.cz/play_978-N64.php",
-      "description": "Play Super Mario 64 online — the authentic 1996 N64 launch title that defined 3D platforming, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/32112-super-mario-64-usa.html",
+      "description": "Play Super Mario 64 online — the authentic 1996 N64 launch title that defined 3D platforming, streamed from the original cartridge ROM.",
       "genre": "Platformer",
       "rating": 4.9,
       "playersOnline": 940,
@@ -20516,10 +20599,10 @@
         "featured"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_978-N64.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_978-N64.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32112-super-mario-64-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32112-super-mario-64-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -20531,8 +20614,8 @@
     {
       "id": "zelda-nes",
       "name": "The Legend of Zelda",
-      "url": "https://www.retrogames.cz/play_068-NES.php",
-      "description": "Play The Legend of Zelda online — the authentic 1986 NES original that started the Hyrule saga, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/16778-legend-of-zelda-the-usa.html",
+      "description": "Play The Legend of Zelda online — the authentic 1986 NES original that started the Hyrule saga, streamed from the original cartridge ROM.",
       "genre": "Adventure",
       "rating": 4.8,
       "playersOnline": 610,
@@ -20547,10 +20630,10 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_068-NES.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_068-NES.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16778-legend-of-zelda-the-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16778-legend-of-zelda-the-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -20562,8 +20645,8 @@
     {
       "id": "zelda-ii-nes",
       "name": "Zelda II: The Adventure of Link",
-      "url": "https://www.retrogames.cz/play_126-NES.php",
-      "description": "Play Zelda II: The Adventure of Link online — the authentic 1987 NES side-scrolling sequel, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/22227-zelda-ii-the-adventure-of-link-usa.html",
+      "description": "Play Zelda II online — the authentic 1988 NES side-scrolling sequel with RPG levelling and palace dungeons.",
       "genre": "Adventure",
       "rating": 4.4,
       "playersOnline": 390,
@@ -20579,10 +20662,10 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_126-NES.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_126-NES.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22227-zelda-ii-the-adventure-of-link-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22227-zelda-ii-the-adventure-of-link-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -20594,8 +20677,8 @@
     {
       "id": "zelda-alttp-snes",
       "name": "The Legend of Zelda: A Link to the Past",
-      "url": "https://www.retrogames.cz/play_283-SNES.php",
-      "description": "Play The Legend of Zelda: A Link to the Past online — the authentic 1991 SNES masterpiece of the Hyrule saga, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/22709-legend-of-zelda-the-a-link-to-the-past-usa.html",
+      "description": "Play A Link to the Past online — the authentic 1991 SNES classic with the Light and Dark Worlds, streamed from the original cartridge ROM.",
       "genre": "Adventure",
       "rating": 4.9,
       "playersOnline": 880,
@@ -20611,10 +20694,10 @@
         "staff-pick"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_283-SNES.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_283-SNES.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/22709-legend-of-zelda-the-a-link-to-the-past-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/22709-legend-of-zelda-the-a-link-to-the-past-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -20626,8 +20709,8 @@
     {
       "id": "zelda-links-awakening-gb",
       "name": "The Legend of Zelda: Link’s Awakening",
-      "url": "https://www.retrogames.cz/play_977-GameBoy.php",
-      "description": "Play The Legend of Zelda: Link’s Awakening online — the authentic 1993 Game Boy journey through Koholint Island, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/16792-legend-of-zelda-the-link-s-awakening-usa-europe.html",
+      "description": "Play Link’s Awakening online — the authentic 1993 Game Boy adventure on Koholint Island, streamed from the original cartridge ROM.",
       "genre": "Adventure",
       "rating": 4.7,
       "playersOnline": 460,
@@ -20642,10 +20725,10 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_977-GameBoy.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_977-GameBoy.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/16792-legend-of-zelda-the-link-s-awakening-usa-europe.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/16792-legend-of-zelda-the-link-s-awakening-usa-europe.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -20657,8 +20740,8 @@
     {
       "id": "zelda-oot-n64",
       "name": "The Legend of Zelda: Ocarina of Time",
-      "url": "https://www.retrogames.cz/play_984-N64.php",
-      "description": "Play The Legend of Zelda: Ocarina of Time online — the authentic 1998 N64 legend of time and destiny, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/32145-legend-of-zelda-the-ocarina-of-time-usa-rev-b.html",
+      "description": "Play Ocarina of Time online — the authentic 1998 N64 masterpiece, streamed from the original cartridge ROM (Rev B).",
       "genre": "Adventure",
       "rating": 5,
       "playersOnline": 1200,
@@ -20676,10 +20759,10 @@
         "staff-pick"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_984-N64.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_984-N64.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32145-legend-of-zelda-the-ocarina-of-time-usa-rev-b.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32145-legend-of-zelda-the-ocarina-of-time-usa-rev-b.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -20691,8 +20774,8 @@
     {
       "id": "zelda-majoras-mask-n64",
       "name": "The Legend of Zelda: Majora’s Mask",
-      "url": "https://www.retrogames.cz/play_1065-N64.php",
-      "description": "Play The Legend of Zelda: Majora’s Mask online — the authentic 2000 N64 race against the moon, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/32111-legend-of-zelda-the-majoras-mask-usa.html",
+      "description": "Play Majora’s Mask online — the authentic 2000 N64 sequel with the three-day Termina cycle, streamed from the original cartridge ROM.",
       "genre": "Adventure",
       "rating": 4.8,
       "playersOnline": 720,
@@ -20707,10 +20790,10 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_1065-N64.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_1065-N64.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32111-legend-of-zelda-the-majoras-mask-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32111-legend-of-zelda-the-majoras-mask-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -20718,6 +20801,99 @@
         "accentEnd": "#7c2d12"
       },
       "image": "assets/hub/home-backdrop-command.png"
+    },
+    {
+      "id": "zelda-oracle-of-ages-gbc",
+      "name": "The Legend of Zelda: Oracle of Ages",
+      "url": "https://www.retrogames.cc/embed/18217-legend-of-zelda-the-oracle-of-ages-usa.html",
+      "genre": "Adventure",
+      "description": "Play Oracle of Ages online — the authentic 2001 Game Boy Color puzzle-focused quest through Labrynna’s past and present, streamed from the original cartridge ROM.",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "GBC",
+        "Puzzle"
+      ],
+      "availability": "Online",
+      "rating": 4.6,
+      "playersOnline": 300,
+      "badgeIds": [
+        "classic"
+      ],
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18217-legend-of-zelda-the-oracle-of-ages-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/18217-legend-of-zelda-the-oracle-of-ages-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "zelda-oracle-of-seasons-gbc",
+      "name": "The Legend of Zelda: Oracle of Seasons",
+      "url": "https://www.retrogames.cc/embed/18945-legend-of-zelda-the-oracle-of-seasons-europe-en-fr-de-es-it.html",
+      "genre": "Adventure",
+      "description": "Play Oracle of Seasons online — the authentic 2001 Game Boy Color action quest that shifts Holodrum’s four seasons, streamed from the original cartridge ROM.",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "GBC",
+        "Action"
+      ],
+      "availability": "Online",
+      "rating": 4.6,
+      "playersOnline": 290,
+      "badgeIds": [
+        "classic"
+      ],
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/18945-legend-of-zelda-the-oracle-of-seasons-europe-en-fr-de-es-it.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/18945-legend-of-zelda-the-oracle-of-seasons-europe-en-fr-de-es-it.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      }
+    },
+    {
+      "id": "zelda-minish-cap-gba",
+      "name": "The Legend of Zelda: The Minish Cap",
+      "url": "https://www.retrogames.cc/embed/19454-the-legend-of-zelda-the-minish-cap-e-independent.html",
+      "genre": "Adventure",
+      "description": "Play The Minish Cap online — the authentic 2004 GBA adventure with the shrinking Ezlo cap and Picori-sized dungeons, streamed from the original cartridge ROM.",
+      "tags": [
+        "Adventure",
+        "Retro",
+        "GBA",
+        "Classic"
+      ],
+      "availability": "Online",
+      "rating": 4.7,
+      "playersOnline": 410,
+      "badgeIds": [
+        "classic"
+      ],
+      "image": "assets/hub/home-backdrop-command.png",
+      "launchConfig": {
+        "embedMode": "inline",
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/19454-the-legend-of-zelda-the-minish-cap-e-independent.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/19454-the-legend-of-zelda-the-minish-cap-e-independent.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
+      },
+      "art": {
+        "eyebrow": "Verified Cabinet",
+        "accentStart": "#f59e0b",
+        "accentEnd": "#7c2d12"
+      }
     },
     {
       "id": "sonic-1-genesis",
@@ -20847,8 +21023,8 @@
     {
       "id": "pokemon-red-gb",
       "name": "Pokémon Red Version",
-      "url": "https://www.retrogames.cz/play_285-GameBoy.php",
-      "description": "Play Pokémon Red Version online — the authentic 1996 Game Boy beginning of the Pokémon journey, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/25991-pokemon-red-version-usa-europe.html",
+      "description": "Play Pokémon Red online — the authentic 1998 Game Boy release, streamed from the original cartridge ROM.",
       "genre": "RPG",
       "rating": 4.9,
       "playersOnline": 1500,
@@ -20864,10 +21040,10 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_285-GameBoy.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_285-GameBoy.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/25991-pokemon-red-version-usa-europe.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/25991-pokemon-red-version-usa-europe.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -20879,8 +21055,8 @@
     {
       "id": "pokemon-blue-gb",
       "name": "Pokémon Blue Version",
-      "url": "https://www.retrogames.cz/play_284-GameBoy.php",
-      "description": "Play Pokémon Blue Version online — the authentic 1996 Game Boy counterpart to Red, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/25021-pokemon-blue-version-usa-europe.html",
+      "description": "Play Pokémon Blue online — the authentic 1998 Game Boy release, streamed from the original cartridge ROM.",
       "genre": "RPG",
       "rating": 4.9,
       "playersOnline": 1420,
@@ -20896,10 +21072,10 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_284-GameBoy.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_284-GameBoy.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/25021-pokemon-blue-version-usa-europe.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/25021-pokemon-blue-version-usa-europe.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -20911,8 +21087,8 @@
     {
       "id": "pokemon-snap-n64",
       "name": "Pokémon Snap",
-      "url": "https://www.retrogames.cz/play_1090-N64.php",
-      "description": "Play Pokémon Snap online — the authentic 1999 N64 photo safari through the Pokémon islands, streaming via the RetroGames.cz emulator.",
+      "url": "https://www.retrogames.cc/embed/32209-pokemon-snap-usa.html",
+      "description": "Play Pokémon Snap online — the authentic 1999 N64 photo-safari spin-off, streamed from the original cartridge ROM.",
       "genre": "Shooting",
       "rating": 4.6,
       "playersOnline": 380,
@@ -20928,10 +21104,10 @@
         "classic"
       ],
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cz/play_1090-N64.php",
         "embedMode": "inline",
-        "trustNote": "Authentic retail cabinet via RetroGames.cz — verified to serve without frame-blocking headers.",
-        "approvedExternalUrl": "https://www.retrogames.cz/play_1090-N64.php"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/32209-pokemon-snap-usa.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/32209-pokemon-snap-usa.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "Verified Cabinet",
@@ -24004,36 +24180,35 @@
       "aiSupportLevel": "Advanced"
     },
     {
-      "id": "mario-kart-sc-gba-elite",
-      "name": "Mario Kart Super Circuit XXL (GBA Hack)",
-      "url": "https://www.retrogames.cc/embed/46320-mario-kart-super-circuit-xxl.html",
+      "id": "mario-kart-super-circuit-gba",
+      "name": "Mario Kart: Super Circuit",
+      "url": "https://www.retrogames.cc/embed/27771-mario-kart-super-circuit-e-cezar.html",
       "genre": "Racing",
-      "description": "Play Mario Kart Super Circuit XXL online — a fan ROM hack of GBA Mario Kart: Super Circuit, streaming via the RetroGames emulator. Not the authentic 2001 release.",
-      "rating": 4.5,
-      "playersOnline": 5800,
-      "availability": "Online",
+      "description": "Play Mario Kart: Super Circuit online — the authentic 2001 GBA entry with 40 tracks and 20 SNES courses, streamed from the original cartridge ROM. The “XXL” hack is gone.",
       "tags": [
         "Racing",
         "GBA",
         "Mario",
-        "Multiplayer",
-        "ROM Hack"
+        "Multiplayer"
       ],
+      "availability": "Online",
+      "rating": 4.5,
+      "playersOnline": 890,
       "badgeIds": [
         "classic"
       ],
+      "image": "assets/hub/home-backdrop-command.png",
       "launchConfig": {
-        "approvedEmbedUrl": "https://www.retrogames.cc/embed/46320-mario-kart-super-circuit-xxl.html",
         "embedMode": "inline",
-        "secure_mode": "wasm",
-        "approvedExternalUrl": "https://www.retrogames.cc/embed/46320-mario-kart-super-circuit-xxl.html"
+        "approvedEmbedUrl": "https://www.retrogames.cc/embed/27771-mario-kart-super-circuit-e-cezar.html",
+        "approvedExternalUrl": "https://www.retrogames.cc/embed/27771-mario-kart-super-circuit-e-cezar.html",
+        "trustNote": "Authentic retail cabinet streamed by the RetroGames emulator — verified to serve the original ROM without frame-blocking headers."
       },
       "art": {
         "eyebrow": "GBA Racing",
         "accentStart": "#ff0066",
         "accentEnd": "#660033"
-      },
-      "image": "assets/hub/home-backdrop-command.png"
+      }
     },
     {
       "id": "madden-nfl-99-n64",

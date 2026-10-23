@@ -288,7 +288,7 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
       "snes-rock-n-roll-racing",
       'skribbl-io-multiplayer',
       'gartic-phone-multiplayer',
-      'rg-44138-mario-party-3-starstruck',
+      'mario-party-3-n64',
       'crash-bash-ps1',
     ],
     maxItems: 12,
