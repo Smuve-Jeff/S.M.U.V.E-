@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
+import { CURATED_CRAZYGAMES_GAMES } from './tha-spot-crazygames-catalog';
+import { CURATED_POKI_GAMES, MODERN_BROWSER_GAMES } from './tha-spot-curated-games';
+import { GENRE_REFRESH_GAMES } from './tha-spot-genre-refresh-catalog';
 
 const MINIMUM_EXPECTED_GAMES = 4;
 
@@ -156,6 +159,113 @@ describe('Tha Spot feed integrity', () => {
   };
   const rooms = feed.rooms ?? [];
   const games = feed.games ?? [];
+
+  it('ships the vintage icon set with authentic, frameable arcade cabinets', () => {
+    const vintageIcons: Array<[string, string, string]> = [
+      ['arcade-pong', '45006-pong-rev-e-ttl', 'Sports'],
+      ['arcade-space-invaders', '34370-space-invaders-tv-version-rev-1', 'Shooting'],
+      ['arcade-tempest', '45016-tempest-rev-3-revised-hardware', 'Shooting'],
+      ['arcade-missile-command', '45455-missile-command-rev-3', 'Shooting'],
+      ['arcade-marble-madness', '43513-marble-madness-set-1', 'Arcade Classic'],
+      ['arcade-smash-tv', '45011-smash-t-v-rev-8-00', 'Shooting'],
+      ['arcade-robotron-2084', '35031-robotron-2084-usa', 'Shooting'],
+      ['arcade-defender', '44959-defender-red-label', 'Shooting'],
+      ['arcade-burgertime', '33227-burger-time-data-east-set-1', 'Arcade Classic'],
+      ['arcade-spy-hunter', '44961-spy-hunter', 'Racing'],
+      ['arcade-zaxxon', '34778-zaxxon-set-1-rev-d', 'Shooting'],
+      ['arcade-scramble', '9771-scramble', 'Shooting'],
+      ['arcade-star-wars', '43485-star-wars-rev-1', 'Shooting'],
+      ['arcade-hang-on', '8752-hang-on', 'Racing'],
+      ['arcade-raiden', '9616-raiden-set-1', 'Shooting'],
+      ['arcade-dragons-lair', '24641-dragon-s-lair-usa', 'Adventure'],
+    ];
+
+    for (const [id, cabinet, genre] of vintageIcons) {
+      const game = games.find((entry) => entry.id === id);
+      expect(game).toBeTruthy();
+      expect(game?.url).toContain(cabinet);
+      expect(game?.genre).toBe(genre);
+      expect(game?.launchConfig?.embedMode).toBe('inline');
+      expect(game?.launchConfig?.approvedEmbedUrl).toBe(game?.url);
+      expect(game?.launchConfig?.approvedExternalUrl).toBe(game?.url);
+      expect(game?.tags).toContain('Classic');
+    }
+  });
+
+  it('rebuilds Agility and Party around known icons and expands adventure and multiplayer coverage', () => {
+    const agility = games.filter((game) => game.genre === 'Agility');
+    expect(agility.some((game) => game.id.startsWith('gd-'))).toBe(false);
+    for (const id of [
+      'arcade-buster-bros',
+      'arcade-snow-bros-2',
+      'genesis-rainbow-islands-extra',
+      'genesis-new-zealand-story',
+      'turbografx-parasol-stars',
+      'nes-lode-runner',
+      'arcade-hyper-sports',
+      'doodle-jump-web',
+    ]) {
+      expect(agility.some((game) => game.id === id)).toBe(true);
+    }
+
+    const party = games.filter((game) => game.genre === 'Party');
+    for (const id of [
+      'turbografx-bomberman-93',
+      'n64-bomberman-64',
+      'snes-micro-machines',
+      "snes-rock-n-roll-racing",
+    ]) {
+      expect(party.some((game) => game.id === id)).toBe(true);
+    }
+
+    const adventure = games.filter((game) => game.genre === 'Adventure');
+    for (const id of ['nes-maniac-mansion', 'nes-shadowgate', 'nes-deja-vu']) {
+      expect(adventure.some((game) => game.id === id)).toBe(true);
+    }
+
+    // The new console co-op picks must stay discoverable in the co-op room.
+    const coOp = games.filter((game) =>
+      ['arcade-buster-bros', 'arcade-snow-bros-2', 'turbografx-parasol-stars', 'snes-micro-machines'].includes(
+        game.id ?? ''
+      )
+    );
+    expect(coOp).toHaveLength(4);
+    for (const game of coOp) {
+      const tags = (game.tags ?? []).map((tag) => tag.toLowerCase());
+      expect(tags).toContain('multiplayer');
+    }
+  });
+
+  it('keeps the merged catalogue above 1,064 unique games and adds iconic modern browser titles', () => {
+    const curatedGames = [
+      ...MODERN_BROWSER_GAMES,
+      ...CURATED_POKI_GAMES,
+      ...CURATED_CRAZYGAMES_GAMES,
+      ...GENRE_REFRESH_GAMES,
+    ];
+    const knownIds = new Set<string>();
+    const mergedGames = [...games, ...curatedGames].filter((game) => {
+      if (knownIds.has(game.id)) return false;
+      knownIds.add(game.id);
+      return true;
+    });
+    const modernIcons = MODERN_BROWSER_GAMES.filter((game) =>
+      ['modern-retro-bowl', 'modern-crossy-road'].includes(game.id)
+    );
+
+    expect(mergedGames).toHaveLength(1098);
+    expect(knownIds.size).toBe(mergedGames.length);
+    expect(modernIcons.map((game) => game.id)).toEqual([
+      'modern-retro-bowl',
+      'modern-crossy-road',
+    ]);
+    for (const game of modernIcons) {
+      expect(game.url.startsWith('https://poki.com/en/g/')).toBe(true);
+      expect(game.launchConfig?.approvedExternalUrl).toBe(game.url);
+      expect(game.launchConfig?.embedMode).toBe('external-only');
+      expect(game.rating).toBeGreaterThan(4);
+    }
+  });
 
   it('keeps every library entry uniquely identifiable', () => {
     const ids = games.map((game) => game.id);
@@ -595,23 +705,26 @@ describe('Tha Spot feed integrity', () => {
     }
   });
 
-  it('keeps the Super Mario series complete and correctly targeted', () => {
-    // Core Super Mario series entries must exist and point at authentic
-    // retail cabinets. Super Mario World / Super Mario Kart have no
-    // authentic cabinet on RetroGames.cc (only ROM hacks), so they play
-    // the verified frameable RetroGames.cz originals; every other entry
-    // uses its authentic retrogames.cc /embed/ cabinet. No fan hacks or
-    // lookalikes substituted.
+  it('keeps the Super Mario series complete and on authentic cabinets', () => {
+    // RetroGames.cz retired every Nintendo first-party page ("not considered
+    // abandonware"), which is why Super Mario World, Kart and 64 stopped
+    // booting. The series now runs on the still-live authentic retail embeds
+    // on RetroGames.cc. No fan hack (StarStruck, Multiplayer, Enhanced, XXL)
+    // and no dead cz page may remain.
     const marioSeriesIds = [
       'rg-44097-super-mario-bros',
+      'super-mario-bros-3-nes',
       'rg-46228-super-mario-bros-2-lost-levels',
-      'super-mario-world-elite-master',
-      'rg-44214-super-mario-kart-world',
-      'mario-kart-sc-gba-elite',
       'rg-43686-vs-super-mario-bros',
-      'rg-45027-super-mario-rpg-enhanced',
-      'rg-43447-paper-mario-multiplayer',
-      'rg-44138-mario-party-3-starstruck',
+      'super-mario-world-elite-master',
+      'yoshis-island-snes',
+      'rg-44214-super-mario-kart-world',
+      'mario-kart-super-circuit-gba',
+      'super-mario-64',
+      'super-mario-land-gb',
+      'super-mario-rpg-snes',
+      'paper-mario-n64',
+      'mario-party-3-n64',
       'rg-24978-wario-land-ii',
     ];
     // Dr. Mario and Yoshi's Cookie were retired with the Puzzle shelf rather
@@ -622,57 +735,53 @@ describe('Tha Spot feed integrity', () => {
       expect(game).toBeTruthy();
       const primary = game?.launchConfig?.approvedEmbedUrl || game?.url || '';
       const external = game?.launchConfig?.approvedExternalUrl || '';
+      expect(primary).toContain('retrogames.cc/embed/');
       expect(external).toBe(primary);
+      expect(game?.tags).not.toContain('ROM Hack');
     }
 
-    // Super Mario World must be the authentic 1990 retail SNES release, not
-    // the Super "Mario" World fan hack previously served from RetroGames.cc.
-    const smw = games.find((entry) => entry.id === 'super-mario-world-elite-master');
-    expect(smw?.url).toBe('https://www.retrogames.cz/play_245-SNES.php');
-    expect(smw?.name).toContain('Super Mario World');
-    expect(smw?.tags).not.toContain('ROM Hack');
-
-    // Super Mario Kart must be the authentic 1992 retail SNES release; the
-    // redundant "Deluxe"/"World" fan hacks are gone from the catalog.
-    const smk = games.find((entry) => entry.id === 'rg-44214-super-mario-kart-world');
-    expect(smk?.url).toBe('https://www.retrogames.cz/play_789-SNES.php');
-    expect(smk?.name).toBe('Super Mario Kart (SNES)');
-    expect(games.some((entry) => entry.id === 'rg-43860-super-mario-kart-deluxe')).toBe(
-      false
-    );
-    expect(
-      games.some((entry) => entry.id === 'rg-43860-super-mario-kart-deluxe')
-    ).toBe(false);
-
-    // Mario Kart: Super Circuit authentic GBA cabinets do not exist on any
-    // frameable provider, so the XXL fan hack remains clearly labeled.
-    const mkSc = games.find((entry) => entry.id === 'mario-kart-sc-gba-elite');
-    expect(mkSc?.name).toContain('XXL');
-    expect(mkSc?.tags).toContain('ROM Hack');
-
-    // Super Mario RPG must not point at a fan hack (e.g. Armageddon).
-    const smrpg = games.find((entry) => entry.id === 'rg-45027-super-mario-rpg-enhanced');
-    expect(smrpg?.url).toContain('45027-super-mario-rpg-enhanced');
-    expect(smrpg?.url).not.toContain('armageddon');
-    expect(smrpg?.url).not.toContain('revolution');
+    // Each entry must point at the authentic retail cabinet for its release.
+    const authenticCabinet: Array<[string, string]> = [
+      ['super-mario-world-elite-master', '16847-super-mario-world-usa'],
+      ['rg-44214-super-mario-kart-world', '16887-super-mario-kart-usa'],
+      ['super-mario-64', '32112-super-mario-64-usa'],
+      ['super-mario-land-gb', '16871-super-mario-land-world'],
+      ['super-mario-bros-3-nes', '16680-super-mario-bros-3-usa'],
+      ['yoshis-island-snes', '16890-super-mario-world-2-yoshi-s-island-usa'],
+      ['super-mario-rpg-snes', '18627-super-mario-rpg-legend-of-the-seven-stars-usa'],
+      ['paper-mario-n64', '32120-paper-mario-usa'],
+      ['mario-party-3-n64', '32906-mario-party-3-usa'],
+      ['mario-kart-super-circuit-gba', '27771-mario-kart-super-circuit-e-cezar'],
+    ];
+    for (const [id, cabinet] of authenticCabinet) {
+      const game = games.find((entry) => entry.id === id);
+      expect(game?.url).toContain(cabinet);
+    }
 
     // VS. Super Mario Bros must be the arcade VS. System cabinet.
     const vsmb = games.find((entry) => entry.id === 'rg-43686-vs-super-mario-bros');
     expect(vsmb?.url).toContain('43686-vs-super-mario-bros');
 
-    // Paper Mario must be the N64 version, not a randomizer or hack.
-    const pmario = games.find((entry) => entry.id === 'rg-43447-paper-mario-multiplayer');
-    expect(pmario?.url).toContain('43447-paper-mario-multiplayer');
-    expect(pmario?.url).not.toContain('randomizer');
-    expect(pmario?.url).not.toContain('master-quest');
+    // The retired hacks are gone by id and by URL.
+    for (const retired of [
+      'rg-45027-super-mario-rpg-enhanced',
+      'rg-43447-paper-mario-multiplayer',
+      'rg-44138-mario-party-3-starstruck',
+      'mario-kart-sc-gba-elite',
+      'rg-43860-super-mario-kart-deluxe',
+    ]) {
+      expect(games.some((entry) => entry.id === retired)).toBe(false);
+    }
+    for (const game of games) {
+      expect(game.url || '').not.toMatch(
+        /starstruck|paper-mario-multiplayer|super-mario-rpg-enhanced|super-circuit-xxl/
+      );
+    }
 
-    // Mario Party 3 must be the actual cabinet, not a character mod.
-    const mp3 = games.find((entry) => entry.id === 'rg-44138-mario-party-3-starstruck');
-    expect(mp3?.url).toContain('44138-mario-party-3-starstruck');
-    expect(mp3?.url).not.toContain('playable-');
-    // Dr. Mario and Yoshi's Cookie were retired with the Puzzle shelf; the
-    // remaining Mario entries above still cover the platforming, RPG, party,
-    // racing, and Wario branches.
+    // No Mario cabinet may point back at a retired RetroGames.cz page.
+    for (const game of games.filter((entry) => /mario/i.test(entry.name || ''))) {
+      expect(game.url || '').not.toContain('retrogames.cz');
+    }
   });
 
   it('keeps saga flagship cabinets on authentic retail versions', () => {
@@ -692,9 +801,10 @@ describe('Tha Spot feed integrity', () => {
       ['dbz-super-butouden-3-snes', '23298-dragon-ball-z-super-butouden-3-japan', 'Super Butouden 3'],
       ['mgs-ps1', '43266-metal-gear-solid-disc-1', 'Metal Gear Solid'],
       ['mgs-gbc', '26934-metal-gear-solid-usa', 'Metal Gear Solid'],
+      // Authentic retail SNES cabinets now served by RetroGames.cc.
+      ['super-mario-world-elite-master', '16847-super-mario-world-usa', 'Super Mario World'],
+      ['rg-44214-super-mario-kart-world', '16887-super-mario-kart-usa', 'Super Mario Kart'],
       // Authentic retail SNES cabinets only served by RetroGames.cz.
-      ['super-mario-world-elite-master', 'play_245-SNES.php', 'Super Mario World'],
-      ['rg-44214-super-mario-kart-world', 'play_789-SNES.php', 'Super Mario Kart'],
       ['mmx-classic', 'play_865-SNES.php', 'Mega Man X'],
       ['mega-man-x3-elite-master', 'play_933-SNES.php', 'Mega Man X3'],
     ];
@@ -749,19 +859,22 @@ describe('Tha Spot feed integrity', () => {
     // DBZ SNES fighters, Metal Gear Solid) are now present with authentic
     // retail cabinets that are verified frameable.
     const required: Record<string, string> = {
-      'zelda-nes': 'play_068-NES.php',
-      'zelda-ii-nes': 'play_126-NES.php',
-      'zelda-alttp-snes': 'play_283-SNES.php',
-      'zelda-links-awakening-gb': 'play_977-GameBoy.php',
-      'zelda-oot-n64': 'play_984-N64.php',
-      'zelda-majoras-mask-n64': 'play_1065-N64.php',
+      'zelda-nes': '16778-legend-of-zelda-the-usa',
+      'zelda-ii-nes': '22227-zelda-ii-the-adventure-of-link-usa',
+      'zelda-alttp-snes': '22709-legend-of-zelda-the-a-link-to-the-past-usa',
+      'zelda-links-awakening-gb': '16792-legend-of-zelda-the-link-s-awakening-usa-europe',
+      'zelda-oot-n64': '32145-legend-of-zelda-the-ocarina-of-time-usa-rev-b',
+      'zelda-majoras-mask-n64': '32111-legend-of-zelda-the-majoras-mask-usa',
+      'zelda-oracle-of-ages-gbc': '18217-legend-of-zelda-the-oracle-of-ages-usa',
+      'zelda-oracle-of-seasons-gbc': '18945-legend-of-zelda-the-oracle-of-seasons',
+      'zelda-minish-cap-gba': '19454-the-legend-of-zelda-the-minish-cap',
       'sonic-1-genesis': 'play_117-Genesis.php',
       'sonic-spinball-genesis': 'play_1757-Genesis.php',
       'sonic-3d-blast-genesis': 'play_507-Genesis.php',
       'sonic-triple-trouble-gg': 'play_1240-GameGear.php',
-      'pokemon-red-gb': 'play_285-GameBoy.php',
-      'pokemon-blue-gb': 'play_284-GameBoy.php',
-      'pokemon-snap-n64': 'play_1090-N64.php',
+      'pokemon-red-gb': '25991-pokemon-red-version-usa-europe',
+      'pokemon-blue-gb': '25021-pokemon-blue-version-usa-europe',
+      'pokemon-snap-n64': '32209-pokemon-snap-usa',
       'mega-man-x2-snes': 'play_895-SNES.php',
       'mega-man-7-snes': 'play_904-SNES.php',
       'sf2-turbo-snes': 'play_1133-SNES.php',
@@ -769,8 +882,8 @@ describe('Tha Spot feed integrity', () => {
       'super-double-dragon-snes': 'play_925-SNES.php',
       'dbz-dragon-power-nes': 'play_1243-NES.php',
       'snakes-revenge-nes': 'play_1119-NES.php',
-      'super-mario-land-gb': 'play_145-GameBoy.php',
-      'super-mario-64': 'play_978-N64.php',
+      'super-mario-land-gb': '16871-super-mario-land-world',
+      'super-mario-64': '32112-super-mario-64-usa',
     };
 
     for (const [id, cabinet] of Object.entries(required)) {
@@ -787,7 +900,7 @@ describe('Tha Spot feed integrity', () => {
           (g.name ?? '').toLowerCase().includes(needle) ||
           (g.id ?? '').toLowerCase().includes(needle)
       ).length;
-    expect(count('zelda')).toBeGreaterThanOrEqual(6);
+    expect(count('zelda')).toBeGreaterThanOrEqual(9);
     expect(count('sonic')).toBeGreaterThanOrEqual(5);
     expect(count('pokemon')).toBeGreaterThanOrEqual(4);
     expect(count('mega man x')).toBeGreaterThanOrEqual(3);
