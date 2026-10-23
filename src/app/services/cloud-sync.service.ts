@@ -474,17 +474,26 @@ export class CloudSyncService {
     // only a fallback for snapshots that carry no data (defensive — every
     // push stores its payload, so snapshot.data is normally present).
     const restoredPayload = snapshot.data ?? localPayload;
+    if (restoredPayload === undefined || restoredPayload === null) {
+      throw new Error('The selected cloud version has no restorable project data.');
+    }
+    const latest = this.cloud.listSnapshots(projectId)[0];
     const manifest: ProjectManifest = {
       projectId,
-      version: snapshot.version + 1,
+      version: Math.max(latest?.version ?? 0, snapshot.version) + 1,
       lastModified: Date.now(),
       authorDeviceId: this.deviceId(),
       deviceName: this.deviceName(),
       title: snapshot.title,
-      byteSize: snapshot.byteSize,
+      byteSize: this.byteSize(restoredPayload),
     };
+    // Stage the restore at remote+1 so the deterministic push below lands
+    // above every snapshot the cloud already holds.
     await this.persistManifest(projectId, manifest);
-    await this.push(projectId, snapshot.title, restoredPayload);
+    const status = await this.push(projectId, snapshot.title, restoredPayload);
+    if (status !== 'success') {
+      throw new Error(`Could not preserve the restored version in cloud history (${status}).`);
+    }
   }
 
   /** Pull the cloud's latest snapshots into the local index. */

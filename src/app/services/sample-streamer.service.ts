@@ -47,6 +47,14 @@ export class SampleStreamer {
   private sourceArrayBuffer: ArrayBuffer | null = null;
   private sourceSampleRate = 48000;
   private sourceChannels = 2;
+  private wavPcm: {
+    dataOffset: number;
+    dataLength: number;
+    blockAlign: number;
+    bitsPerSample: number;
+    format: number;
+  } | null = null;
+  private residentStartFrame = 0;
 
   /** Cached decoded AudioBuffer — the current preview window. */
   private residentBuffer: AudioBuffer | null = null;
@@ -73,6 +81,8 @@ export class SampleStreamer {
     this.sourceArrayBuffer = arrayBuffer;
     this.sourceSampleRate = sampleRate;
     this.sourceChannels = channels;
+    this.wavPcm = null;
+    this.residentStartFrame = 0;
     this.sourceToken++;
     // Invalidate any stale resident window.
     this.residentBuffer = null;
@@ -84,12 +94,71 @@ export class SampleStreamer {
     }
   }
 
+  /** Attach an uncompressed PCM/IEEE-float WAV without decoding the whole file. */
+  attachWavSource(url: string, arrayBuffer: ArrayBuffer): boolean {
+    if (arrayBuffer.byteLength < 12) return false;
+    const view = new DataView(arrayBuffer);
+    const readTag = (offset: number) => String.fromCharCode(
+      view.getUint8(offset), view.getUint8(offset + 1),
+      view.getUint8(offset + 2), view.getUint8(offset + 3),
+    );
+    if (readTag(0) !== 'RIFF' || readTag(8) !== 'WAVE') return false;
+
+    let format = 0;
+    let channels = 0;
+    let sampleRate = 0;
+    let blockAlign = 0;
+    let bitsPerSample = 0;
+    let dataOffset = -1;
+    let dataLength = 0;
+    for (let offset = 12; offset + 8 <= arrayBuffer.byteLength;) {
+      const tag = readTag(offset);
+      const size = view.getUint32(offset + 4, true);
+      const body = offset + 8;
+      if (body + size > arrayBuffer.byteLength) return false;
+      if (tag === 'fmt ' && size >= 16) {
+        format = view.getUint16(body, true);
+        channels = view.getUint16(body + 2, true);
+        sampleRate = view.getUint32(body + 4, true);
+        blockAlign = view.getUint16(body + 12, true);
+        bitsPerSample = view.getUint16(body + 14, true);
+      } else if (tag === 'data') {
+        dataOffset = body;
+        dataLength = size;
+      }
+      offset = body + size + (size & 1);
+    }
+
+    const supportedBits = [8, 16, 24, 32].includes(bitsPerSample);
+    if (
+      ![1, 3].includes(format) || !channels || !sampleRate || !blockAlign ||
+      dataOffset < 0 || !supportedBits || (format === 3 && bitsPerSample !== 32) ||
+      blockAlign < channels * bitsPerSample / 8
+    ) return false;
+
+    this.sourceUrl = url;
+    this.sourceArrayBuffer = arrayBuffer;
+    this.sourceSampleRate = sampleRate;
+    this.sourceChannels = channels;
+    this.wavPcm = { dataOffset, dataLength, blockAlign, bitsPerSample, format };
+    this.sourceToken++;
+    this.residentBuffer = null;
+    this.residentDuration = 0;
+    this.residentStartFrame = 0;
+    this.playheadFrame = 0;
+    this.expiredSliceIds.clear();
+    this.onResidentChange?.(null, 0);
+    return true;
+  }
+
   /** Detach the current source (e.g. tab discard, new import). */
   detachSource(): void {
     this.sourceUrl = null;
     this.sourceArrayBuffer = null;
+    this.wavPcm = null;
     this.residentBuffer = null;
     this.residentDuration = 0;
+    this.residentStartFrame = 0;
     this.playheadFrame = 0;
     this.expiredSliceIds.clear();
     if (this.onResidentChange) {
@@ -108,15 +177,104 @@ export class SampleStreamer {
     return this.getTotalFrames() / this.sourceSampleRate;
   }
 
+  /** Source seconds remaining from an absolute playhead position. */
+  getRemainingSecondsFrom(playheadSeconds: number): number {
+    return Math.max(0, this.getDuration() - Math.max(0, playheadSeconds));
+  }
+
+  /** Offset within the current resident window corresponding to the playhead. */
+  getResidentOffsetSeconds(): number {
+    return Math.max(0, (this.playheadFrame - this.residentStartFrame) / this.sourceSampleRate);
+  }
+
+  getResidentStartSeconds(): number {
+    return this.residentStartFrame / this.sourceSampleRate;
+  }
+
+  getSampleRate(): number {
+    return this.sourceSampleRate;
+  }
+
+  getChannelCount(): number {
+    return this.sourceChannels;
+  }
+
+  /** Usable source seconds remaining from the playhead in the resident window. */
+  getResidentRemainingSeconds(): number {
+    return Math.max(0, this.residentDuration - this.getResidentOffsetSeconds());
+  }
+
   private getTotalFrames(): number {
     if (!this.sourceArrayBuffer) return 0;
+    if (this.wavPcm) return Math.floor(this.wavPcm.dataLength / this.wavPcm.blockAlign);
     const bytesPerFrame = Math.max(4, this.sourceChannels * 4);
     return Math.floor(this.sourceArrayBuffer.byteLength / bytesPerFrame);
   }
 
+  private createAudioBuffer(channels: Float32Array[], sampleRate: number): AudioBuffer | null {
+    const length = channels[0]?.length ?? 0;
+    if (!length) return null;
+    const AudioBufferCtor: typeof AudioBuffer | undefined = (globalThis as any).AudioBuffer;
+    if (typeof AudioBufferCtor === 'function') {
+      try {
+        const buffer = new AudioBufferCtor({ numberOfChannels: channels.length, length, sampleRate });
+        channels.forEach((data, index) => buffer.getChannelData(index).set(data));
+        return buffer;
+      } catch {
+        // Unit tests and older hosts can use the AudioBuffer-shaped fallback.
+      }
+    }
+    return {
+      sampleRate,
+      length,
+      duration: length / sampleRate,
+      numberOfChannels: channels.length,
+      getChannelData: (channel: number) => channels[Math.max(0, Math.min(channel, channels.length - 1))],
+      copyFromChannel: () => {},
+      copyToChannel: () => {},
+    } as unknown as AudioBuffer;
+  }
+
+  private buildWavWindowBuffer(startFrame: number, endFrame: number): AudioBuffer | null {
+    const wav = this.wavPcm;
+    const source = this.sourceArrayBuffer;
+    if (!wav || !source) return null;
+    const totalFrames = this.getTotalFrames();
+    const start = Math.max(0, Math.min(startFrame, totalFrames));
+    const end = Math.max(start, Math.min(endFrame, totalFrames));
+    const frameCount = end - start;
+    if (!frameCount) return null;
+    const view = new DataView(source);
+    const out = Array.from({ length: this.sourceChannels }, () => new Float32Array(frameCount));
+    const bytesPerSample = wav.bitsPerSample / 8;
+    const baseOffset = wav.dataOffset + start * wav.blockAlign;
+    for (let frame = 0; frame < frameCount; frame++) {
+      for (let channel = 0; channel < this.sourceChannels; channel++) {
+        const offset = baseOffset + frame * wav.blockAlign + channel * bytesPerSample;
+        let sample: number;
+        if (wav.format === 3) {
+          sample = view.getFloat32(offset, true);
+        } else if (wav.bitsPerSample === 8) {
+          sample = (view.getUint8(offset) - 128) / 128;
+        } else if (wav.bitsPerSample === 16) {
+          sample = view.getInt16(offset, true) / 32768;
+        } else if (wav.bitsPerSample === 24) {
+          let value = view.getUint8(offset) | (view.getUint8(offset + 1) << 8) | (view.getUint8(offset + 2) << 16);
+          if (value & 0x800000) value |= 0xff000000;
+          sample = value / 8388608;
+        } else {
+          sample = view.getInt32(offset, true) / 2147483648;
+        }
+        out[channel][frame] = Number.isFinite(sample) ? sample : 0;
+      }
+    }
+    return this.createAudioBuffer(out, this.sourceSampleRate);
+  }
+
   private buildPcmWindowBuffer(startFrame: number, endFrame: number): AudioBuffer | null {
     if (!this.sourceArrayBuffer || this.sourceArrayBuffer.byteLength < 4) return null;
-    // Detect RIFF/Ogg/fLaC/ID3 container headers; those go through decodeAudioData.
+    if (this.wavPcm) return this.buildWavWindowBuffer(startFrame, endFrame);
+    // Detect compressed containers; these must never be treated as raw PCM.
     const magic = new Uint8Array(this.sourceArrayBuffer, 0, Math.min(4, this.sourceArrayBuffer.byteLength));
     const tag = String.fromCharCode(...magic);
     if (tag === 'RIFF' || tag === 'OggS' || tag === 'fLaC' || tag === 'ID3\u0003' || tag.startsWith('ID3')) {
@@ -153,7 +311,9 @@ export class SampleStreamer {
     const channelData: Float32Array[] = [];
     for (let ch = 0; ch < channels; ch++) {
       const out = new Float32Array(frameCount);
-      const slice = pcm.subarray(clampedStart, clampedStart + frameCount);
+      const channelsInPcm = Math.floor(pcm.length / Math.max(1, totalFrames));
+      const sourceChannel = Math.min(ch, Math.max(0, channelsInPcm - 1));
+      const slice = pcm.subarray(sourceChannel * totalFrames + clampedStart, sourceChannel * totalFrames + clampedStart + frameCount);
       out.set(slice);
       channelData.push(out);
     }
@@ -189,6 +349,7 @@ export class SampleStreamer {
     if (syncWindow) {
       this.residentBuffer = syncWindow;
       this.residentDuration = syncWindow.duration;
+      this.residentStartFrame = startFrame;
       if (this.onResidentChange) {
         this.onResidentChange(syncWindow, syncWindow.duration);
       }
@@ -219,6 +380,7 @@ export class SampleStreamer {
     ctx.decodeAudioData(chunkArrayBuffer).then((buffer) => {
       // If this is a very short file (below the short-sample threshold), fully decode and cache the whole thing so the worklet sampler can play it without per-slice decoding.
       const totalDurationSec = buffer.duration;
+      this.residentStartFrame = startFrame;
       if (totalDurationSec <= this.shortSampleThresholdSeconds) {
         // Fully cache the short sample; keep only one resident buffer.
         this.residentBuffer = buffer;
@@ -237,6 +399,7 @@ export class SampleStreamer {
       // Long import: keep a bounded window.
       this.residentBuffer = buffer;
       this.residentDuration = totalDurationSec;
+      this.residentStartFrame = startFrame;
 
       // Trim the left edge so we don't keep growing the resident buffer indefinitely if the playhead keeps moving right.
       if (startFrame > 0 && this.residentBuffer) {
@@ -271,7 +434,7 @@ export class SampleStreamer {
 
   /** Get the current playhead position in seconds. */
   getPlayheadSeconds(): number {
-    return (this.playheadFrame / (this.sourceSampleRate || 48000)) | 0;
+    return this.playheadFrame / (this.sourceSampleRate || 48000);
   }
 
   /** Get the total duration of the source in seconds, or 0 if no source. */

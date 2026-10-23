@@ -235,13 +235,38 @@ export class MusicManagerService {
    * default 64-step seed. Result is clamped to a minimum of 16 (1 bar) so
    * pattern-mode fallback below never produces a 0-length song.
    */
+  /**
+   * Last occupied bar in the arrangement (clips and notes), rounded up.
+   * Song length must follow the content, not the 64-bar default loop, or a
+   * clip dragged past bar 64 would play but never be reachable by the loop
+   * markers and playback would stop before it.
+   */
+  readonly arrangementEndBar = computed(() => {
+    let end = 0;
+    for (const track of this.tracks()) {
+      for (const clip of track.clips ?? []) {
+        end = Math.max(end, (clip.start ?? 0) + Math.max(0.001, clip.length ?? 4));
+      }
+      for (const note of track.notes ?? []) {
+        end = Math.max(end, ((note.step ?? 0) + (note.length ?? 0)) / 16);
+      }
+    }
+    return Math.ceil(end);
+  });
+
   private structureSongLengthEffect = effect(() => {
     const sections = this.structure() ?? [];
     const fromStructure = sections.reduce(
       (sum, s) => sum + Math.max(0, s?.length ?? 0),
       0
     );
-    const bars = Math.max(4, fromStructure, this.activeLoopBars());
+    // +1 bar so the final bar's tail is inside the song, not clipped by it.
+    const bars = Math.max(
+      4,
+      fromStructure,
+      this.activeLoopBars(),
+      this.arrangementEndBar() + 1
+    );
     this.engine.setSongLengthSteps(bars * 16);
   });
   activeLoopBars = signal(64);

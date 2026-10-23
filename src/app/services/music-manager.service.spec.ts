@@ -994,6 +994,23 @@ describe('MusicManagerService live plugin insert wiring', () => {
     expect(service.tracks().map((t) => t.id)).toEqual(['track-1']);
   });
 
+  it('reports the last occupied bar so song length follows the arrangement', () => {
+    service.addAudioTrack({
+      id: 'track-far',
+      name: 'Outro',
+      color: '#0E7C7B',
+      buffer: { duration: 4, sampleRate: 48000, numberOfChannels: 1 } as AudioBuffer,
+      offset: 0,
+    });
+    service.addClipToTrack('track-far', {
+      start: 90,
+      length: 4,
+      name: 'Far clip',
+    });
+
+    expect(service.arrangementEndBar()).toBe(94);
+  });
+
   it('stamps clipStreamer admission fields on addAudioTrack and dispatches streamed vs classic clips in playStep', () => {
     const triggerSampler = jest.fn();
     (service as any).engine.triggerSampler = triggerSampler;

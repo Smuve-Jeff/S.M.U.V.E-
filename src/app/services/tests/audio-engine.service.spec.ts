@@ -272,11 +272,14 @@ describe('AudioEngineService', () => {
     expect(source.start).toHaveBeenCalledWith(2);
   });
 
-  it('should schedule a SampleStreamer resident window and advance its playhead', () => {
+  it('should schedule a SampleStreamer resident window at the requested source offset', () => {
     const windowBuffer = { duration: 12, sampleRate: 48000 } as AudioBuffer;
     const streamer = {
       setPlayhead: jest.fn(),
       getResidentBuffer: jest.fn(() => windowBuffer),
+      getResidentStartSeconds: jest.fn(() => 0),
+      getSampleRate: jest.fn(() => 48000),
+      getRemainingSecondsFrom: jest.fn(() => 6),
       advancePlayhead: jest.fn(),
     } as any;
 
@@ -300,8 +303,27 @@ describe('AudioEngineService', () => {
       mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
     expect(streamer.setPlayhead).toHaveBeenCalledWith(2 * 48000);
     expect(source.buffer).toBe(windowBuffer);
-    expect(source.start).toHaveBeenCalledWith(1.5);
-    expect(streamer.advancePlayhead).toHaveBeenCalledWith(4 * 48000);
+    expect(source.start).toHaveBeenCalledWith(1.5, 2, 4);
+    expect(streamer.advancePlayhead).not.toHaveBeenCalled();
+  });
+
+  it('schedules a streamed clip as contiguous resident windows up to source end', () => {
+    const first = { duration: 4, sampleRate: 48000 } as AudioBuffer;
+    const second = { duration: 4, sampleRate: 48000 } as AudioBuffer;
+    const streamer = {
+      setPlayhead: jest.fn(),
+      getResidentBuffer: jest.fn().mockReturnValueOnce(first).mockReturnValueOnce(second),
+      getResidentStartSeconds: jest.fn().mockReturnValueOnce(0).mockReturnValue(4),
+      getDuration: jest.fn(() => 8),
+      getSampleRate: jest.fn(() => 48000),
+      getRemainingSecondsFrom: jest.fn(() => 8),
+      advancePlayhead: jest.fn(),
+    } as any;
+    service.triggerSampler(1, streamer, 0, 1, 0, 8, 1, 0, 0, 0, 8, 48000, 2);
+    const sources = mockAudioContext.createBufferSource.mock.results.map((result: any) => result.value);
+    expect(sources.at(-2).start).toHaveBeenCalledWith(0, 0, 4);
+    expect(sources.at(-1).start).toHaveBeenCalledWith(4, 0, 4);
+    expect(streamer.setPlayhead).toHaveBeenLastCalledWith(4 * 48000);
   });
 
   it('should schedule metronome and step callbacks with lookahead timing', () => {
@@ -378,7 +400,18 @@ describe('AudioEngineService', () => {
     const targets = service.getMasteringTargets();
     expect(targets.lufs).toBe(-13);
     expect(targets.truePeak).toBe(-0.2);
-    expect(compressorNode.threshold.setTargetAtTime).toHaveBeenCalled();
+    // The compressor/limiter share one mock node here, so the meaningful check
+    // is that the ceiling was written and the LUFS target never was.
+    expect(compressorNode.threshold.setTargetAtTime).toHaveBeenCalledWith(
+      -0.2,
+      mockAudioContext.currentTime,
+      0.05
+    );
+    expect(compressorNode.threshold.setTargetAtTime).not.toHaveBeenCalledWith(
+      -13,
+      expect.anything(),
+      expect.anything()
+    );
   });
 
   // ── DJ booth deck path ──────────────────────────────────────────────

@@ -290,6 +290,14 @@
         {{ snapEnabled() ? 'SNAP ON' : 'SNAP OFF' }}
       </button>
       <button
+        (click)="extendTimeline(16)"
+        class="mini-btn tactile-v42 executive-glass timeline-extend-btn"
+        title="Grow the arrangement timeline by 16 bars"
+        aria-label="Add 16 bars to the arrangement timeline"
+      >
+        + 16 BARS
+      </button>
+      <button
         (click)="createGroup()"
         class="mini-btn tactile-v42 executive-glass"
       >
@@ -435,6 +443,9 @@
       (touchmove)="onGridTouchMove($event)"
       (touchend)="onGridTouchEnd()"
       (pointerdown)="onGridPointerDown($event)"
+      (pointermove)="onGridPointerMove($event)"
+      (pointerup)="onGridPointerUp($event)"
+      (pointercancel)="onGridPointerUp($event)"
       (wheel)="onGridWheel($event)"
     >
       <canvas
@@ -452,7 +463,7 @@
     >
       <app-automation-curve-editor
         [barWidth]="barWidth()"
-        [totalBars]="effectiveBars()"
+        [totalBars]="totalBars()"
         [trackId]="musicManager.selectedTrackId()"
         (openBezierEditor)="openBezierEditor.emit($event)"
       ></app-automation-curve-editor>
