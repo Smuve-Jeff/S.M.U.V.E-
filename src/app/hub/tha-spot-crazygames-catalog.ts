@@ -1,27 +1,73 @@
 import { Game } from './game';
 
 /**
- * Curated CrazyGames catalog (web-source expansion wave).
+ * Curated CrazyGames catalog, mixing verified inline /embed/ titles with
+ * external-only game pages where the provider has no assumed iframe contract.
+ * Inline claims are reserved for tested first-party embed endpoints; ordinary
+ * /game/ pages open externally. No game files are redistributed.
  *
- * Every title below was verified playable before inclusion: the provider's
- * /embed/ endpoint answered HTTP 200 with no X-Frame-Options / CSP
- * frame-ancestors blocking, so these play inline inside the cabinet iframe.
- * The same URL serves as the external fallback, mirroring the RetroGames
- * launch contract. CrazyGames is already a trusted cabinet host
- * (games.crazygames.com) — www.crazygames.com/embed/ is the same provider's
- * first-party embedding endpoint.
+ * These are modern browser games filling genre gaps the emulation archive
+ * cannot serve (browser-native co-op, party, .io PvP, and modern runners).
  *
- * These are modern, widely known, high-quality browser games filling genre
- * gaps the emulation archive cannot serve (browser-native co-op, party,
- * .io PvP, puzzle-platformer co-op, modern endless runners).
- *
- * Second wave (below): the couch-co-op, party, and iconic-classics shelf.
- * Every /embed/ URL in this wave was re-probed and answered HTTP 200 with no
- * frame-blocking headers before inclusion, same contract as wave one. These
- * rows also ship the full session briefing (objectives, control hints, AI
- * briefing) so the launch preview reads like a real cabinet, not a link card.
+ * The catalog rows include a session briefing (objectives, control hints,
+ * AI briefing) for the launch preview.
  */
 export const CURATED_CRAZYGAMES_GAMES: Game[] = [
+  {
+    id: 'cg-iron-legion',
+    sessionObjectives: ['Capture a team objective', 'Unlock a tank upgrade', 'Survive a battle'],
+    controlHints: ['WASD to move; mouse to aim and fire', 'Use cover to protect your tank'],
+    aiBriefing: 'Team tank combat. Push objectives with allies, use cover, and choose upgrades for your play style.',
+    name: 'Iron Legion', url: 'https://www.crazygames.com/game/iron-legion',
+    description: 'Tank combat with online team battles, objectives, vehicle upgrades, and offline PvE practice.', genre: 'Action', rating: 4.6, availability: 'Online',
+    tags: ['Action', 'Tanks', 'Multiplayer', 'PvP', 'Team Battle', 'CrazyGames'], badgeIds: ['modern', 'featured'], multiplayerType: 'Server',
+    launchConfig: { approvedExternalUrl: 'https://www.crazygames.com/game/iron-legion', embedMode: 'external-only', controls: ['Keyboard', 'Mouse'], modes: ['Online Team Battle', 'Offline PvE'], trustNote: 'Official CrazyGames game page.' }, art: { eyebrow: 'Tank Warfare', accentStart: '#a3e635', accentEnd: '#365314' },
+  },
+  {
+    id: 'cg-zombie-hunters-online', sessionObjectives: ['Clear a wave with teammates', 'Complete an objective', 'Upgrade equipment'],
+    controlHints: ['WASD to move; mouse to aim and shoot', 'Stay close enough to support teammates'],
+    aiBriefing: 'Co-op survival shooter. Prioritize objectives and support teammates during firefights.',
+    name: 'Zombie Hunters Online', url: 'https://www.crazygames.com/game/zombie-hunters-online',
+    description: 'Cooperative online zombie action: team up, complete objectives, and survive increasingly dangerous waves.', genre: 'Action', rating: 4.55, availability: 'Online',
+    tags: ['Action', 'Shooting', 'Co-op', 'Multiplayer', 'Survival', 'CrazyGames'], badgeIds: ['modern', 'staff-pick'], multiplayerType: 'Server',
+    launchConfig: { approvedExternalUrl: 'https://www.crazygames.com/game/zombie-hunters-online', embedMode: 'external-only', controls: ['Keyboard', 'Mouse'], modes: ['Online Co-op'], trustNote: 'Official CrazyGames game page.' }, art: { eyebrow: 'Co-op Survival', accentStart: '#84cc16', accentEnd: '#14532d' },
+  },
+  {
+    id: 'cg-jump-guys', sessionObjectives: ['Qualify through an obstacle course', 'Pass a rival', 'Finish without falling'],
+    controlHints: ['WASD to move; Space to jump', 'Time jumps around moving hazards'],
+    aiBriefing: 'Multiplayer obstacle-course racing. Read platform cycles and use straightaways to pass the pack.',
+    name: 'Jump Guys', url: 'https://www.crazygames.com/game/jump-guys',
+    description: 'Race other players through colorful 3D obstacle courses packed with moving hazards and tricky jumps.', genre: 'Sports', rating: 4.25, availability: 'Online',
+    tags: ['Sports', 'Racing', 'Platformer', 'Multiplayer', 'CrazyGames'], badgeIds: ['modern', 'trending'], multiplayerType: 'Server',
+    launchConfig: { approvedExternalUrl: 'https://www.crazygames.com/game/jump-guys', embedMode: 'external-only', controls: ['Keyboard'], modes: ['Online Multiplayer'], trustNote: 'Official CrazyGames game page.' }, art: { eyebrow: 'Obstacle Race', accentStart: '#38bdf8', accentEnd: '#1e3a8a' },
+  },
+  {
+    id: 'cg-ships-3d', sessionObjectives: ['Join a naval battle', 'Coordinate an attack', 'Survive a match'],
+    controlHints: ['Use keyboard controls shown in-game to steer and fire', 'Coordinate positioning with your team'],
+    aiBriefing: 'Online naval combat. Control your ship deliberately and help the team secure the battle.',
+    name: 'Ships 3D', url: 'https://www.crazygames.com/game/ships-3d',
+    description: 'Multiplayer naval battles with team play, customizable ships, and open-water combat against other players.', genre: 'Action', rating: 4.7, availability: 'Online',
+    tags: ['Action', 'Naval Combat', 'Multiplayer', 'PvP', 'Team Battle', 'CrazyGames'], badgeIds: ['modern', 'featured'], multiplayerType: 'Server',
+    launchConfig: { approvedExternalUrl: 'https://www.crazygames.com/game/ships-3d', embedMode: 'external-only', controls: ['Keyboard', 'Mouse'], modes: ['Online Team Battle'], trustNote: 'Official CrazyGames game page.' }, art: { eyebrow: 'Naval Combat', accentStart: '#22d3ee', accentEnd: '#164e63' },
+  },
+  {
+    id: 'cg-ragdoll-archers', sessionObjectives: ['Win an archery duel', 'Unlock new equipment', 'Land a well-aimed shot'],
+    controlHints: ['Aim and shoot with the mouse', 'Move to dodge incoming arrows'],
+    aiBriefing: 'Physics-based archery duels. Keep moving and aim for clean releases.',
+    name: 'Ragdoll Archers', url: 'https://www.crazygames.com/game/ragdoll-archers',
+    description: 'Physics-based archery combat with unlockable gear, solo challenges, and two-player duels.', genre: 'Fighting', rating: 4.55, availability: 'Online',
+    tags: ['Fighting', 'Action', 'Archery', 'Local Versus', 'CrazyGames'], badgeIds: ['modern', 'featured'], multiplayerType: 'P2P',
+    launchConfig: { approvedExternalUrl: 'https://www.crazygames.com/game/ragdoll-archers', embedMode: 'external-only', controls: ['Keyboard', 'Mouse'], modes: ['Solo', 'Local Versus'], trustNote: 'Official CrazyGames game page.' }, art: { eyebrow: 'Archery Duel', accentStart: '#f97316', accentEnd: '#7c2d12' },
+  },
+  {
+    id: 'cg-geometry-dash-online', sessionObjectives: ['Complete a level run', 'Time jumps to the music', 'Improve a run'],
+    controlHints: ['Click, tap, or press space to jump', 'Watch the obstacle rhythm'],
+    aiBriefing: 'Rhythm action platforming. Read the obstacle pattern, stay with the beat, and time each jump.',
+    name: 'Geometry Dash Online', url: 'https://www.crazygames.com/game/geometry-dash-online',
+    description: 'Rhythm-driven action platforming through fast obstacle courses with responsive jump timing.', genre: 'Action', rating: 4.2, availability: 'Online',
+    tags: ['Action', 'Platformer', 'Rhythm', 'CrazyGames'], badgeIds: ['modern', 'staff-pick'], multiplayerType: 'None',
+    launchConfig: { approvedExternalUrl: 'https://www.crazygames.com/game/geometry-dash-online', embedMode: 'external-only', controls: ['Keyboard', 'Touch'], modes: ['Solo'], trustNote: 'Official CrazyGames game page.' }, art: { eyebrow: 'Rhythm Run', accentStart: '#a78bfa', accentEnd: '#4c1d95' },
+  },
   {
     id: 'cg-run-3',
     sessionObjectives: [
@@ -90,43 +136,6 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
         'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
     },
     art: { eyebrow: 'Sandbox Icon', accentStart: '#4ade80', accentEnd: '#166534' },
-  },
-  {
-    id: 'cg-fireboy-watergirl',
-    sessionObjectives: [
-      'Get both heroes to the exit together',
-      'Hold a lever so your partner can cross',
-      'Clear the temple without losing a hero',
-    ],
-    controlHints: [
-      'Player 1: arrow keys — Player 2: WASD',
-      'Never step in your opposite element — water kills Fireboy, lava kills Watergirl',
-    ],
-    aiBriefing:
-      'Co-op is mandatory here. Call your lever timings out loud: the partner piece of a puzzle is almost always a switch the other player has to hold.',
-    name: 'Fireboy and Watergirl',
-    url: 'https://www.crazygames.com/embed/fireboy-and-watergirl-the-forest-temple',
-    description:
-      'The definitive two-player co-op puzzle platformer: guide Fireboy and Watergirl through the Forest Temple using elemental switches, levers, and teamwork.',
-    genre: 'Adventure',
-    rating: 4.7,
-    playersOnline: 22000,
-    availability: 'Online',
-    tags: ['Adventure', 'Puzzle', 'Platformer', 'Co-op', 'Multiplayer', 'CrazyGames'],
-    badgeIds: ['modern', 'featured', 'staff-pick'],
-    multiplayerType: 'P2P',
-    launchConfig: {
-      approvedEmbedUrl:
-        'https://www.crazygames.com/embed/fireboy-and-watergirl-the-forest-temple',
-      approvedExternalUrl:
-        'https://www.crazygames.com/embed/fireboy-and-watergirl-the-forest-temple',
-      embedMode: 'inline',
-      controls: ['Keyboard'],
-      modes: ['Local Co-op', 'Solo'],
-      trustNote:
-        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
-    },
-    art: { eyebrow: 'Co-op Legend', accentStart: '#f87171', accentEnd: '#1d4ed8' },
   },
   {
     id: 'cg-narrow-one',
@@ -405,76 +414,6 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
         'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
     },
     art: { eyebrow: 'Party Pack', accentStart: '#c084fc', accentEnd: '#581c87' },
-  },
-  {
-    id: 'cg-bad-ice-cream',
-    sessionObjectives: [
-      'Clear every fruit on the stage',
-      'Trap a monster behind a built wall',
-      'Finish the stage with both players alive',
-    ],
-    controlHints: [
-      'Player 1: arrows — Player 2: WASD',
-      'Build walls to trap monsters, not only to shield yourself',
-    ],
-    aiBriefing:
-      'Co-op maze survival. Talk through wall placements: a wall that saves you can lock your partner in with a monster.',
-    name: 'Bad Ice-Cream',
-    url: 'https://www.crazygames.com/embed/bad-ice-cream',
-    description:
-      'Nitrome arcade favorite: freeze ice walls, dodge roaming enemies, and collect every fruit across handcrafted puzzle mazes.',
-    genre: 'Arcade',
-    rating: 4.6,
-    playersOnline: 10000,
-    availability: 'Online',
-    tags: ['Arcade', 'Puzzle', 'Nitrome', 'Multiplayer', 'CrazyGames'],
-    badgeIds: ['modern', 'staff-pick'],
-    multiplayerType: 'P2P',
-    launchConfig: {
-      approvedEmbedUrl: 'https://www.crazygames.com/embed/bad-ice-cream',
-      approvedExternalUrl: 'https://www.crazygames.com/embed/bad-ice-cream',
-      embedMode: 'inline',
-      controls: ['Keyboard'],
-      modes: ['Solo', 'Local Co-op'],
-      trustNote:
-        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
-    },
-    art: { eyebrow: 'Nitrome Classic', accentStart: '#67e8f9', accentEnd: '#155e75' },
-  },
-  {
-    id: 'cg-bad-ice-cream-2',
-    sessionObjectives: [
-      'Collect the full fruit set',
-      'Open a monster path with a timed wall break',
-      'Clear a stage without a respawn',
-    ],
-    controlHints: [
-      'Player 1: arrows — Player 2: WASD',
-      'Wall breaks can crush monsters as well as open routes',
-    ],
-    aiBriefing:
-      'The tougher co-op maze. Route the monsters first, then farm the fruit — a clean lane beats a fast grab every time.',
-    name: 'Bad Ice-Cream 2',
-    url: 'https://www.crazygames.com/embed/bad-ice-cream-2',
-    description:
-      'The sequel sharpens everything: new enemies, trickier mazes, more fruit orders, and two-player co-op frosting chaos.',
-    genre: 'Arcade',
-    rating: 4.5,
-    playersOnline: 9000,
-    availability: 'Online',
-    tags: ['Arcade', 'Puzzle', 'Nitrome', 'Multiplayer', 'CrazyGames'],
-    badgeIds: ['modern'],
-    multiplayerType: 'P2P',
-    launchConfig: {
-      approvedEmbedUrl: 'https://www.crazygames.com/embed/bad-ice-cream-2',
-      approvedExternalUrl: 'https://www.crazygames.com/embed/bad-ice-cream-2',
-      embedMode: 'inline',
-      controls: ['Keyboard'],
-      modes: ['Solo', 'Local Co-op'],
-      trustNote:
-        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
-    },
-    art: { eyebrow: 'Nitrome Sequel', accentStart: '#67e8f9', accentEnd: '#155e75' },
   },
   {
     id: 'cg-worlds-hardest-game',
@@ -857,41 +796,6 @@ export const CURATED_CRAZYGAMES_GAMES: Game[] = [
         'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
     },
     art: { eyebrow: 'Rooftop Rivalry', accentStart: '#94a3b8', accentEnd: '#0f172a' },
-  },
-  {
-    id: 'cg-money-movers',
-    sessionObjectives: [
-      'Smuggle one money bag out',
-      'Clear a floor without tripping the alarm',
-      'Escape with both brothers alive',
-    ],
-    controlHints: [
-      'Player 1: arrows — Player 2: WASD',
-      'One brother holds a switch while the other advances',
-    ],
-    aiBriefing:
-      'Designated-switch co-op: if a door is open, your partner is holding it. Never both advance — the heist fails when nobody is on the lever.',
-    name: 'Money Movers',
-    url: 'https://www.crazygames.com/embed/money-movers',
-    description:
-      'Two-player co-op heist platforming: swap between the brothers, trigger switches for each other, dodge guards, and smuggle the loot out together.',
-    genre: 'Adventure',
-    rating: 4.5,
-    playersOnline: 9000,
-    availability: 'Online',
-    tags: ['Adventure', 'Puzzle', 'Platformer', 'Co-op', 'Multiplayer', 'CrazyGames'],
-    badgeIds: ['modern', 'staff-pick'],
-    multiplayerType: 'P2P',
-    launchConfig: {
-      approvedEmbedUrl: 'https://www.crazygames.com/embed/money-movers',
-      approvedExternalUrl: 'https://www.crazygames.com/embed/money-movers',
-      embedMode: 'inline',
-      controls: ['Keyboard'],
-      modes: ['Local Co-op', 'Solo'],
-      trustNote:
-        'CrazyGames first-party /embed/ endpoint verified 200 with no frame-blocking headers.',
-    },
-    art: { eyebrow: 'Heist Duo', accentStart: '#4ade80', accentEnd: '#166534' },
   },
   {
     id: 'cg-wrestle-jump',

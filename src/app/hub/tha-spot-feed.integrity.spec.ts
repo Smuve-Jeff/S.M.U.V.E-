@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { THA_SPOT_FALLBACK_FEED } from './tha-spot-feed.fallback';
+import { CURATED_CRAZYGAMES_GAMES } from './tha-spot-crazygames-catalog';
+import { CURATED_POKI_GAMES, MODERN_BROWSER_GAMES } from './tha-spot-curated-games';
+import { GENRE_REFRESH_GAMES } from './tha-spot-genre-refresh-catalog';
 
 const MINIMUM_EXPECTED_GAMES = 4;
 
@@ -156,6 +159,71 @@ describe('Tha Spot feed integrity', () => {
   };
   const rooms = feed.rooms ?? [];
   const games = feed.games ?? [];
+
+  it('keeps the newly added official franchise games in action, racing, sports, and adventure categories', () => {
+    const franchiseGames = MODERN_BROWSER_GAMES.filter(
+      (game) =>
+        game.tags?.includes('Official Nickelodeon') ||
+        game.tags?.includes('Official LEGO')
+    );
+    expect(franchiseGames.every((game) =>
+      ['Action', 'Sports', 'Adventure', 'Racing'].includes(game.genre ?? '')
+    )).toBe(true);
+    expect(franchiseGames.every((game) =>
+      !/boardgame|educat|cook\b|dress\s*up|puzzle/i.test(game.name + ' ' + game.description)
+    )).toBe(true);
+  });
+
+  it('keeps the merged catalogue above 1,064 unique games and includes official free licensed browser games', () => {
+    const curatedGames = [
+      ...MODERN_BROWSER_GAMES,
+      ...CURATED_POKI_GAMES,
+      ...CURATED_CRAZYGAMES_GAMES,
+      ...GENRE_REFRESH_GAMES,
+    ];
+    const knownIds = new Set<string>();
+    const mergedGames = [...games, ...curatedGames].filter((game) => {
+      if (knownIds.has(game.id)) return false;
+      knownIds.add(game.id);
+      return true;
+    });
+    const licensedGames = MODERN_BROWSER_GAMES.filter(
+      (game) =>
+        game.tags?.includes('Official Nickelodeon') ||
+        game.tags?.includes('Official LEGO')
+    );
+    const nickelodeonGames = licensedGames.filter((game) =>
+      game.tags?.includes('Official Nickelodeon')
+    );
+    const legoGames = licensedGames.filter((game) =>
+      game.tags?.includes('Official LEGO')
+    );
+
+    expect(mergedGames).toHaveLength(1091);
+    expect(knownIds.size).toBe(mergedGames.length);
+    expect(nickelodeonGames.map((game) => game.id)).toEqual([
+      'modern-nick-spongebob-run',
+      'modern-nick-basketball-stars',
+      'modern-nick-tmnt-pizza-quest',
+      'modern-nick-spongemania',
+      'modern-nick-spongebobs-next-big-adventure',
+      'modern-nick-rock-collector',
+      'modern-nick-survival-of-the-loudest',
+    ]);
+    expect(legoGames.map((game) => game.id)).toEqual([
+      'modern-lego-ninjago-the-quest',
+      'modern-lego-speed-champions',
+      'modern-lego-gloom-busters',
+      'modern-lego-guardians-of-the-galaxy',
+    ]);
+    for (const game of licensedGames) {
+      expect(game.url).toMatch(/^https:\/\/(www\.nick\.com|kids\.lego\.com)\//);
+      expect(game.launchConfig?.approvedExternalUrl).toBe(game.url);
+      expect(game.launchConfig?.embedMode).toBe('external-only');
+      expect(game.description).toMatch(/^Free official (Nick\.com|LEGO)/);
+      expect(game.genre).not.toMatch(/puzzle|educat|cooking|dress up|board/i);
+    }
+  });
 
   it('keeps every library entry uniquely identifiable', () => {
     const ids = games.map((game) => game.id);

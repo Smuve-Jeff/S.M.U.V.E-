@@ -42,7 +42,6 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
   // Curated CrazyGames wave — verified inline web-source expansion
   'cg-run-3',
   'cg-paper-minecraft',
-  'cg-fireboy-watergirl',
   'cg-narrow-one',
   'cg-deadshot-io',
   'cg-subway-clash-3d',
@@ -51,8 +50,6 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
   'cg-duck-life-4',
   'cg-getaway-shootout',
   'cg-12-minibattles',
-  'cg-bad-ice-cream',
-  'cg-bad-ice-cream-2',
   'cg-worlds-hardest-game',
   'cg-murder',
   'cg-mutilate-a-doll-2',
@@ -66,7 +63,6 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
   'cg-soccer-physics',
   'cg-basketbros',
   'cg-rooftop-snipers-2',
-  'cg-money-movers',
   'cg-wrestle-jump',
   'cg-ping-pong-chaos',
   'cg-bubble-trouble',
@@ -97,6 +93,17 @@ export const PREMIUM_ACTIVE_GAME_IDS = [
   'cg-stick-war-2',
   'cg-table-tennis-world-tour',
 
+  'cg-iron-legion',
+  'cg-zombie-hunters-online',
+  'cg-jump-guys',
+  'cg-ships-3d',
+  'poki-party-time',
+  'poki-steal-a-brainrot',
+  'cg-escape-from-prison-multiplayer',
+  'cg-ragdoll-archers',
+  'cg-geometry-dash-online',
+  'cg-madalin-stunt-cars-2',
+  'cg-vortex-9',
   // Premium genre coverage for action, adventure, RPG, and sports
   'tomb-runner',
   'moto-x3m',
@@ -118,6 +125,18 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
     subtitle: '3D arenas, racing, sandbox worlds, and precision platforming — opens on the publisher site.',
     gameIds: MODERN_BROWSER_GAMES.map((game) => game.id),
     maxItems: 9,
+  },
+  {
+    id: 'premium-official-franchise-games',
+    title: 'Official franchise browser games',
+    subtitle:
+      'Free licensed games on official Nickelodeon and LEGO kids pages — no download or purchase.',
+    gameIds: MODERN_BROWSER_GAMES.filter(
+      (game) =>
+        game.tags?.includes('Official Nickelodeon') ||
+        game.tags?.includes('Official LEGO')
+    ).map((game) => game.id),
+    maxItems: 12,
   },
   {
     id: 'premium-studio-warmup',
@@ -201,7 +220,7 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
     gameIds: [
       'cg-run-3',
       'cg-paper-minecraft',
-      'cg-fireboy-watergirl',
+      'wave6-madalin-stunt-cars-2',
       'cg-getting-over-it',
       'cg-worlds-hardest-game',
       'cg-duck-life-4',
@@ -230,7 +249,6 @@ export const PREMIUM_RECOMMENDATION_RAILS = [
     subtitle: 'Share the keyboard — browser co-op runs and local duels.',
     gameIds: [
       'cg-tank-trouble',
-      'cg-fireboy-watergirl',
       'spot-poorbunny',
       'cg-rooftop-snipers-2',
     ],

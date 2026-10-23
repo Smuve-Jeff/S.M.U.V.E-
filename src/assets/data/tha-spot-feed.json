@@ -28632,6 +28632,467 @@
         "accentStart": "#f43f5e",
         "accentEnd": "#4c0519"
       }
+    },
+    {
+      "id": "cg-iron-legion",
+      "name": "Iron Legion",
+      "url": "https://www.crazygames.com/game/iron-legion",
+      "description": "Team-based tank combat with online battles, objectives, upgrades, and offline PvE.",
+      "genre": "Action",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "Server",
+      "tags": [
+        "Action",
+        "Tanks",
+        "Multiplayer",
+        "PvP",
+        "Team Battle",
+        "CrazyGames"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "WASD to move; mouse to aim and fire.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Team-based tank combat with online battles, objectives, upgrades, and offline PvE.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.crazygames.com/game/iron-legion",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Online Multiplayer"
+        ],
+        "trustNote": "Official CrazyGames game page; external launch is used because iframe permission is not assumed."
+      }
+    },
+    {
+      "id": "cg-zombie-hunters-online",
+      "name": "Zombie Hunters Online",
+      "url": "https://www.crazygames.com/game/zombie-hunters-online",
+      "description": "Team up online to complete objectives and survive increasingly dangerous zombie waves.",
+      "genre": "Action",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "Server",
+      "tags": [
+        "Action",
+        "Shooting",
+        "Co-op",
+        "Multiplayer",
+        "Survival",
+        "CrazyGames"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "WASD to move; mouse to aim and shoot.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Team up online to complete objectives and survive increasingly dangerous zombie waves.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.crazygames.com/game/zombie-hunters-online",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Online Multiplayer"
+        ],
+        "trustNote": "Official CrazyGames game page; external launch is used because iframe permission is not assumed."
+      }
+    },
+    {
+      "id": "cg-jump-guys",
+      "name": "Jump Guys",
+      "url": "https://www.crazygames.com/game/jump-guys",
+      "description": "Race other players through colorful 3D obstacle courses with moving hazards and jumps.",
+      "genre": "Sports",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "Server",
+      "tags": [
+        "Sports",
+        "Racing",
+        "Platformer",
+        "Multiplayer",
+        "CrazyGames"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "WASD to move; Space to jump.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Race other players through colorful 3D obstacle courses with moving hazards and jumps.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.crazygames.com/game/jump-guys",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Online Multiplayer"
+        ],
+        "trustNote": "Official CrazyGames game page; external launch is used because iframe permission is not assumed."
+      }
+    },
+    {
+      "id": "cg-ships-3d",
+      "name": "Ships 3D",
+      "url": "https://www.crazygames.com/game/ships-3d",
+      "description": "Multiplayer naval battles with team play, customizable ships, and open-water combat.",
+      "genre": "Action",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "Server",
+      "tags": [
+        "Action",
+        "Naval Combat",
+        "Multiplayer",
+        "PvP",
+        "Team Battle",
+        "CrazyGames"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "Use keyboard controls shown in game to steer and fire.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Multiplayer naval battles with team play, customizable ships, and open-water combat.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.crazygames.com/game/ships-3d",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Online Multiplayer"
+        ],
+        "trustNote": "Official CrazyGames game page; external launch is used because iframe permission is not assumed."
+      }
+    },
+    {
+      "id": "cg-ragdoll-archers",
+      "name": "Ragdoll Archers",
+      "url": "https://www.crazygames.com/game/ragdoll-archers",
+      "description": "Physics-based archery combat with unlockable gear, solo challenges, and two-player duels.",
+      "genre": "Fighting",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "None",
+      "tags": [
+        "Fighting",
+        "Action",
+        "Archery",
+        "Local Versus",
+        "CrazyGames"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "Aim and shoot with the mouse; move to dodge.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Physics-based archery combat with unlockable gear, solo challenges, and two-player duels.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.crazygames.com/game/ragdoll-archers",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "trustNote": "Official CrazyGames game page; external launch is used because iframe permission is not assumed."
+      }
+    },
+    {
+      "id": "cg-geometry-dash-online",
+      "name": "Geometry Dash Online",
+      "url": "https://www.crazygames.com/game/geometry-dash-online",
+      "description": "Rhythm-driven action platforming through fast obstacle courses with jump timing.",
+      "genre": "Action",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "None",
+      "tags": [
+        "Action",
+        "Platformer",
+        "Rhythm",
+        "CrazyGames"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "Click, tap, or press space to jump.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Rhythm-driven action platforming through fast obstacle courses with jump timing.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.crazygames.com/game/geometry-dash-online",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Solo"
+        ],
+        "trustNote": "Official CrazyGames game page; external launch is used because iframe permission is not assumed."
+      }
+    },
+    {
+      "id": "cg-madalin-stunt-cars-2",
+      "name": "Madalin Stunt Cars 2",
+      "url": "https://www.crazygames.com/game/madalin-stunt-cars-2",
+      "description": "Open-map driving and stunt racing with high-speed cars, ramps, and multiplayer rooms.",
+      "genre": "Racing",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "Server",
+      "tags": [
+        "Racing",
+        "Driving",
+        "Open World",
+        "Multiplayer",
+        "CrazyGames"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "WASD to drive; Space for handbrake.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Open-map driving and stunt racing with high-speed cars, ramps, and multiplayer rooms.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.crazygames.com/game/madalin-stunt-cars-2",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Online Multiplayer"
+        ],
+        "trustNote": "Official CrazyGames game page; external launch is used because iframe permission is not assumed."
+      }
+    },
+    {
+      "id": "cg-vortex-9",
+      "name": "Vortex 9",
+      "url": "https://www.crazygames.com/game/vortex-9",
+      "description": "Stylized third-person online arena shooter with team battles, colorful maps, and varied weapons.",
+      "genre": "Shooting",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "Server",
+      "tags": [
+        "Shooting",
+        "Action",
+        "Multiplayer",
+        "PvP",
+        "CrazyGames"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "WASD to move; mouse to aim and fire.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Stylized third-person online arena shooter with team battles, colorful maps, and varied weapons.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.crazygames.com/game/vortex-9",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Online Multiplayer"
+        ],
+        "trustNote": "Official CrazyGames game page; external launch is used because iframe permission is not assumed."
+      }
+    },
+    {
+      "id": "poki-party-time",
+      "name": "Party Time",
+      "url": "https://poki.com/en/g/party-time",
+      "description": "Colorful multiplayer obstacle-course platformer with multiple modes and online opponents.",
+      "genre": "Action",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "Server",
+      "tags": [
+        "Action",
+        "Platformer",
+        "Multiplayer",
+        "Poki"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "Use movement controls shown on the game page.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Colorful multiplayer obstacle-course platformer with multiple modes and online opponents.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://poki.com/en/g/party-time",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Online Multiplayer"
+        ],
+        "trustNote": "Official Poki game page; external launch is used because iframe permission is not assumed."
+      }
+    },
+    {
+      "id": "poki-steal-a-brainrot",
+      "name": "Steal a Brainrot",
+      "url": "https://poki.com/en/g/steal-a-brainrot",
+      "description": "Multiplayer action about collecting, raiding, and defending player bases, with private rooms.",
+      "genre": "Action",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "Server",
+      "tags": [
+        "Action",
+        "Multiplayer",
+        "Strategy",
+        "Poki"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "Use movement controls shown on the game page.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Multiplayer action about collecting, raiding, and defending player bases, with private rooms.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://poki.com/en/g/steal-a-brainrot",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Online Multiplayer"
+        ],
+        "trustNote": "Official Poki game page; external launch is used because iframe permission is not assumed."
+      }
+    },
+    {
+      "id": "cg-escape-from-prison-multiplayer",
+      "name": "Escape From Prison Multiplayer",
+      "url": "https://www.crazygames.com/game/escape-from-prison-multiplayer",
+      "description": "Multiplayer platform escape race through prison rooms, hazards, and obstacle courses.",
+      "genre": "Action",
+      "rating": 4.5,
+      "availability": "Online",
+      "multiplayerType": "Server",
+      "tags": [
+        "Action",
+        "Platformer",
+        "Multiplayer",
+        "CrazyGames"
+      ],
+      "badgeIds": [
+        "modern",
+        "featured"
+      ],
+      "sessionObjectives": [
+        "Start a session",
+        "Try a game mode",
+        "Complete a round or course"
+      ],
+      "controlHints": [
+        "Use keyboard movement and jump controls.",
+        "Follow the on-screen game instructions"
+      ],
+      "aiBriefing": "Multiplayer platform escape race through prison rooms, hazards, and obstacle courses.",
+      "launchConfig": {
+        "approvedExternalUrl": "https://www.crazygames.com/game/escape-from-prison-multiplayer",
+        "embedMode": "external-only",
+        "controls": [
+          "Keyboard"
+        ],
+        "modes": [
+          "Online Multiplayer"
+        ],
+        "trustNote": "Official CrazyGames game page; external launch is used because iframe permission is not assumed."
+      }
     }
   ],
   "recommendationRails": [
