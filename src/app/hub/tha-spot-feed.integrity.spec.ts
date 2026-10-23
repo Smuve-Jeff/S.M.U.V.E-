@@ -192,6 +192,50 @@ describe('Tha Spot feed integrity', () => {
     }
   });
 
+  it('rebuilds Agility and Party around known icons and expands adventure and multiplayer coverage', () => {
+    const agility = games.filter((game) => game.genre === 'Agility');
+    expect(agility.some((game) => game.id.startsWith('gd-'))).toBe(false);
+    for (const id of [
+      'arcade-buster-bros',
+      'arcade-snow-bros-2',
+      'genesis-rainbow-islands-extra',
+      'genesis-new-zealand-story',
+      'turbografx-parasol-stars',
+      'nes-lode-runner',
+      'arcade-hyper-sports',
+      'doodle-jump-web',
+    ]) {
+      expect(agility.some((game) => game.id === id)).toBe(true);
+    }
+
+    const party = games.filter((game) => game.genre === 'Party');
+    for (const id of [
+      'turbografx-bomberman-93',
+      'n64-bomberman-64',
+      'snes-micro-machines',
+      "snes-rock-n-roll-racing",
+    ]) {
+      expect(party.some((game) => game.id === id)).toBe(true);
+    }
+
+    const adventure = games.filter((game) => game.genre === 'Adventure');
+    for (const id of ['nes-maniac-mansion', 'nes-shadowgate', 'nes-deja-vu']) {
+      expect(adventure.some((game) => game.id === id)).toBe(true);
+    }
+
+    // The new console co-op picks must stay discoverable in the co-op room.
+    const coOp = games.filter((game) =>
+      ['arcade-buster-bros', 'arcade-snow-bros-2', 'turbografx-parasol-stars', 'snes-micro-machines'].includes(
+        game.id ?? ''
+      )
+    );
+    expect(coOp).toHaveLength(4);
+    for (const game of coOp) {
+      const tags = (game.tags ?? []).map((tag) => tag.toLowerCase());
+      expect(tags).toContain('multiplayer');
+    }
+  });
+
   it('keeps the merged catalogue above 1,064 unique games and adds iconic modern browser titles', () => {
     const curatedGames = [
       ...MODERN_BROWSER_GAMES,
@@ -209,7 +253,7 @@ describe('Tha Spot feed integrity', () => {
       ['modern-retro-bowl', 'modern-crossy-road'].includes(game.id)
     );
 
-    expect(mergedGames).toHaveLength(1089);
+    expect(mergedGames).toHaveLength(1093);
     expect(knownIds.size).toBe(mergedGames.length);
     expect(modernIcons.map((game) => game.id)).toEqual([
       'modern-retro-bowl',

@@ -525,7 +525,7 @@ describe('GameService', () => {
       .error(new ProgressEvent('network-error'));
     const games = await pending;
 
-    expect(games).toHaveLength(1089);
+    expect(games).toHaveLength(1093);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('spot-bulletforce');
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
@@ -563,12 +563,12 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(1089);
+    expect(games).toHaveLength(1093);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'spot-bulletforce')).toBe(true);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).some((game) => game.id === 'spot-basketballleague')).toBe(true);
     expect(games.some((game) => game.id === 'rg-44097-super-mario-bros')).toBe(true);
     expect(games.some((game) => game.url.includes('retrogames.cc'))).toBe(true);
-    expect(new Set(games.map((game) => game.id)).size).toBe(1089);
+    expect(new Set(games.map((game) => game.id)).size).toBe(1093);
   });
 
   it('keeps every premium launch target explicit and truthful', async () => {
@@ -663,7 +663,7 @@ describe('GameService', () => {
     const games = await pending;
 
     // Production-sized feeds retain the archive with the reviewed premium shelf first.
-    expect(games).toHaveLength(1089);
+    expect(games).toHaveLength(1093);
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('spot-bulletforce');
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('poki-temple-run-2');
     expect(games.slice(0, PREMIUM_ACTIVE_GAME_IDS.length).map((game) => game.id)).toContain('battlefield');
@@ -894,8 +894,9 @@ describe('GameService', () => {
     });
     expect(untagged).toEqual([]);
 
-    // The new online-lobby rail is populated, trimmed, and points only at
-    // cabinets that actually resolved.
+    // The party rail is populated, trimmed, and points only at rows that
+    // actually resolved. Retro cabinets stay inline while the social-deduction
+    // and drawing rooms open on their own publisher pages.
     const partyRail = feed.recommendationRails.find(
       (rail) => rail.id === 'premium-party-night'
     );
@@ -903,7 +904,9 @@ describe('GameService', () => {
     expect(partyRail!.gameIds.length).toBeGreaterThan(0);
     expect(partyRail!.gameIds.length).toBeLessThanOrEqual(partyRail!.maxItems);
     for (const id of partyRail!.gameIds) {
-      expect(byId.get(id)?.launchConfig?.embedMode).toBe('inline');
+      const game = byId.get(id);
+      expect(game?.launchConfig?.approvedExternalUrl).toBeTruthy();
+      expect(['inline', 'external-only']).toContain(game?.launchConfig?.embedMode);
     }
   });
 
@@ -933,7 +936,7 @@ describe('GameService', () => {
     );
     const games = await pending;
 
-    expect(games).toHaveLength(1089);
+    expect(games).toHaveLength(1093);
     expect(new Set(games.map((game) => game.id)).size).toBe(games.length);
     // Only premium ids that are actually present in the feed must occupy the
     // premium-first prefix; the premium allowlist is larger than the feed, so
