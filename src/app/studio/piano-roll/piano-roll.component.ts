@@ -975,9 +975,15 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const velViewport = this.velocityViewport?.nativeElement;
     if (velCanvas && velViewport) {
       const vw = velViewport.clientWidth;
+      // The lane height is responsive (80px desktop / 90px phone / 58px
+      // landscape), so the canvas reports its own height rather than a
+      // constant. Using clientHeight keeps the GL projection, the rendered
+      // bars and the drag mapping (which reads rect.height) in agreement on
+      // every breakpoint.
+      const vh = velCanvas.clientHeight || VELOCITY_LANE_HEIGHT;
       if (
         velCanvas.width !== Math.round(vw * dpr) ||
-        velCanvas.height !== Math.round(VELOCITY_LANE_HEIGHT * dpr)
+        velCanvas.height !== Math.round(vh * dpr)
       ) {
         this.glVelRenderer.resize();
       }
@@ -1004,7 +1010,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
         playheadStep,
         totalSteps,
         velCamera,
-        VELOCITY_LANE_HEIGHT,
+        vh,
         0,
       );
     }
