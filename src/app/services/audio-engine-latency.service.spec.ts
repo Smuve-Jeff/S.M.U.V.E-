@@ -1,6 +1,9 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { AudioEngineLatencyService } from './audio-engine-latency.service';
+import {
+  AudioEngineLatencyService,
+  readDeviceIdentity,
+} from './audio-engine-latency.service';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
 import { UserProfileService } from './user-profile.service';
@@ -27,6 +30,9 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
   let sut: AudioEngineLatencyService;
 
   beforeEach(() => {
+    // Device baselines live in localStorage; keep one test's persisted
+    // record from leaking into the next test's construction.
+    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         AudioEngineLatencyService,
@@ -238,5 +244,116 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
 
     expect(trimmed.length).toBe(1);
     expect(Array.from(trimmed.getChannelData(0))).toEqual([0]);
+  });
+
+  describe('device baseline persistence (parity audit §5)', () => {
+    const seededBaseline = JSON.stringify({
+      deviceModel: 'Pixel 8',
+      apiLevel: 34,
+      totalLatencyMs: 42,
+      benchmarkSpeedRatio: 3.5,
+      capturedAt: 1,
+    });
+
+    const configureWithProfile = (
+      latencyCompensation: number,
+      updateProfile = jest.fn().mockResolvedValue(undefined)
+    ) => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          AudioEngineLatencyService,
+          { provide: AudioEngineService, useValue: new StubEngine() },
+          { provide: LoggingService, useValue: new StubLogger() },
+          {
+            provide: UserProfileService,
+            useValue: {
+              profile: signal({
+                settings: { studio: { latencyCompensation } },
+              }),
+              updateProfile,
+            },
+          },
+        ],
+      });
+      return {
+        service: TestBed.inject(AudioEngineLatencyService),
+        updateProfile,
+      };
+    };
+
+    it('readDeviceIdentity parses model and API level off the Android UA', () => {
+      const identity = readDeviceIdentity({
+        userAgent:
+          'Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/UP1A.231005.007) ' +
+          'AppleWebKit/537.36 (KHTML, like Gecko)',
+      });
+      expect(identity.deviceModel).toBe('Pixel 8');
+      expect(identity.apiLevel).toBe(34);
+    });
+
+    it('readDeviceIdentity reports the platform with no API level off-Android', () => {
+      const identity = readDeviceIdentity({
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        platform: 'MacIntel',
+      });
+      expect(identity.deviceModel).toBe('MacIntel');
+      expect(identity.apiLevel).toBeNull();
+    });
+
+    it('persists a calibration run as a baseline a fresh session reloads', async () => {
+      const first = await sut.calibrateFromCurrentDevice(0.1);
+
+      const stored = sut.storedBaseline();
+      expect(stored).not.toBeNull();
+      // Identity comes from whatever UA this environment reports — never a
+      // hardcoded guess the stored record could contradict.
+      const identity = readDeviceIdentity();
+      expect(stored!.deviceModel).toBe(identity.deviceModel);
+      expect(stored!.apiLevel).toBe(identity.apiLevel);
+      expect(stored!.totalLatencyMs).toBe(first.measuredLatencyMs);
+      expect(stored!.benchmarkSpeedRatio).toBe(first.benchmarkSpeedRatio);
+
+      // A fresh construction (next session) reloads the record from storage.
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          AudioEngineLatencyService,
+          { provide: AudioEngineService, useValue: new StubEngine() },
+          { provide: LoggingService, useValue: new StubLogger() },
+        ],
+      });
+      const reloaded = TestBed.inject(AudioEngineLatencyService);
+      expect(reloaded.storedBaseline()).toEqual(stored);
+    });
+
+    it('pre-fills compensation from a stored baseline when the profile has none', () => {
+      localStorage.setItem('smuve_device_latency_baseline', seededBaseline);
+      const { service, updateProfile } = configureWithProfile(0);
+
+      expect(service.storedBaseline()?.totalLatencyMs).toBe(42);
+      TestBed.flushEffects();
+
+      expect(updateProfile).toHaveBeenCalledTimes(1);
+      expect(updateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          settings: expect.objectContaining({
+            studio: expect.objectContaining({ latencyCompensation: 42 }),
+          }),
+        })
+      );
+    });
+
+    it('never overwrites a compensation the artist already set', () => {
+      localStorage.setItem('smuve_device_latency_baseline', seededBaseline);
+      const { service, updateProfile } = configureWithProfile(100);
+
+      TestBed.flushEffects();
+
+      expect(updateProfile).not.toHaveBeenCalled();
+      // The baseline itself is still surfaced — only the pre-fill is refused.
+      expect(service.storedBaseline()?.totalLatencyMs).toBe(42);
+      expect(service.getAppliedCompensationMs()).toBe(100);
+    });
   });
 });
