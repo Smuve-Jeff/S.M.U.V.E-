@@ -540,4 +540,252 @@ export const REVIEWED_GAME_COVERS: Readonly<
       "https://drop-assets.ea.com/images/XXdpWPVRWdrXdbp42bqaL/53d1cac67a11604dfd4d8bacba2d3eb0/DEAD-SPACE_Game-Box_KEY-ART.jpg?im=AspectCrop=(16,9),xPosition=0.56875,yPosition=0.20267857142857143",
     source: "https://www.ea.com/games/dead-space/dead-space",
   },
+  "music-rush": {
+    image: "https://img.gamepix.com/games/music-rush/cover/music-rush.png",
+    source: "https://www.gamepix.com/play/music-rush",
+  },
+  "chess-classic": {
+    image: "https://img.gamepix.com/games/chess-classic/cover/chess-classic.png",
+    source: "https://www.gamepix.com/play/chess-classic",
+  },
+  "basket-random": {
+    image: "https://img.gamepix.com/games/basket-random/cover/basket-random.png",
+    source: "https://www.gamepix.com/play/basket-random",
+  },
+  "soccer-random": {
+    image: "https://img.gamepix.com/games/soccer-random/cover/soccer-random.png",
+    source: "https://www.gamepix.com/play/soccer-random",
+  },
+  "solitaire-classic": {
+    image: "https://img.gamepix.com/games/solitaire-classic/cover/solitaire-classic.png",
+    source: "https://www.gamepix.com/play/solitaire-classic",
+  },
+  "moto-x3m": {
+    image: "https://img.gamepix.com/games/moto-x3m/cover/moto-x3m.png",
+    source: "https://www.gamepix.com/play/moto-x3m",
+  },
+  "tomb-runner": {
+    image: "https://img.gamepix.com/games/tomb-runner/cover/tomb-runner.png",
+    source: "https://www.gamepix.com/play/tomb-runner",
+  },
+  "8-ball-billiards": {
+    image: "https://img.gamepix.com/games/8-ball-billiards-classic/cover/8-ball-billiards-classic.png",
+    source: "https://www.gamepix.com/play/8-ball-billiards-classic",
+  },
+  "tactical-squad": {
+    image: "https://img.gamepix.com/games/special-strike-operations/cover/special-strike-operations.png",
+    source: "https://www.gamepix.com/play/special-strike-operations",
+  },
+  "special-strike": {
+    image: "https://img.gamepix.com/games/special-strike/cover/special-strike.png",
+    source: "https://www.gamepix.com/play/special-strike",
+  },
+  "basketball-master": {
+    image: "https://img.gamepix.com/games/basketball-master/cover/basketball-master.png",
+    source: "https://www.gamepix.com/play/basketball-master",
+  },
+  "sniper-mission": {
+    image: "https://img.gamepix.com/games/sniper-clash-3d/cover/sniper-clash-3d.png",
+    source: "https://www.gamepix.com/play/sniper-clash-3d",
+  },
+  "tower-defense": {
+    image: "https://img.gamepix.com/games/tower-defense/cover/tower-defense.png",
+    source: "https://www.gamepix.com/play/tower-defense",
+  },
+  "ludo-legend": {
+    image: "https://img.gamepix.com/games/ludo-legend/cover/ludo-legend.png",
+    source: "https://www.gamepix.com/play/ludo-legend",
+  },
+  "zombie-idle-defense": {
+    image: "https://img.gamepix.com/games/zombie-idle-defense/cover/zombie-idle-defense.png",
+    source: "https://www.gamepix.com/play/zombie-idle-defense",
+  },
+  "arena-clash": {
+    image: "https://img.gamepix.com/games/clash-of-armour/cover/clash-of-armour.png",
+    source: "https://www.gamepix.com/play/clash-of-armour",
+  },
+  "mythic-raid-online": {
+    image: "https://img.gamepix.com/games/raid-heroes-total-war/cover/raid-heroes-total-war.png",
+    source: "https://www.gamepix.com/play/raid-heroes-total-war",
+  },
+  "nba-pro-3d": {
+    image: "https://img.gamepix.com/games/basketball-stars/cover/basketball-stars.png",
+    source: "https://www.gamepix.com/play/basketball-stars",
+  },
+  "nfl-redzone-rush": {
+    image: "https://img.gamepix.com/games/touchdown-rush/cover/touchdown-rush.png",
+    source: "https://www.gamepix.com/play/touchdown-rush",
+  },
+  "boxing-heavyweight": {
+    image: "https://img.gamepix.com/games/boxing-stars/cover/boxing-stars.png",
+    source: "https://www.gamepix.com/play/boxing-stars",
+  },
+  "3d-chess-elite": {
+    image: "https://img.gamepix.com/games/chess-grandmaster/cover/chess-grandmaster.png",
+    source: "https://www.gamepix.com/play/chess-grandmaster",
+  },
+  "venge-io-pro-elite": {
+    image: "https://img.gamepix.com/games/venge-io/cover/venge-io.png",
+    source: "https://www.gamepix.com/play/venge-io",
+  },
+  "shell-shockers-pro-elite": {
+    image: "https://img.gamepix.com/games/shell-shockers/cover/shell-shockers.png",
+    source: "https://www.gamepix.com/play/shell-shockers",
+  },
+  "helix-jump-frenzy": {
+    image: "https://img.gamepix.com/games/helix-jump/cover/helix-jump.png",
+    source: "https://www.gamepix.com/play/helix-jump",
+  },
+  "smash-karts-web-elite": {
+    image: "https://img.gamepix.com/games/smash-karts/cover/smash-karts.png",
+    source: "https://www.gamepix.com/play/smash-karts",
+  },
+  "drift-hunters-web-elite": {
+    image: "https://img.gamepix.com/games/drift-hunters/cover/drift-hunters.png",
+    source: "https://www.gamepix.com/play/drift-hunters",
+  },
+  "paper-io-2-web-elite": {
+    image: "https://img.gamepix.com/games/paper-io-2/cover/paper-io-2.png",
+    source: "https://www.gamepix.com/play/paper-io-2",
+  },
+  "fruit-ninja-web-elite": {
+    image: "https://img.gamepix.com/games/fruit-ninja/cover/fruit-ninja.png",
+    source: "https://www.gamepix.com/play/fruit-ninja",
+  },
+  "slope-web-elite": {
+    image: "https://img.gamepix.com/games/slope/cover/slope.png",
+    source: "https://www.gamepix.com/play/slope",
+  },
+  "jetpack-joyride-web": {
+    image: "https://img.gamepix.com/games/jetpack-joyride/cover/jetpack-joyride.png",
+    source: "https://www.gamepix.com/play/jetpack-joyride",
+  },
+  "tunnel-rush-web": {
+    image: "https://img.gamepix.com/games/tunnel-rush/cover/tunnel-rush.png",
+    source: "https://www.gamepix.com/play/tunnel-rush",
+  },
+  "paper-io-web": {
+    image: "https://img.gamepix.com/games/paper-io/cover/paper-io.png",
+    source: "https://www.gamepix.com/play/paper-io",
+  },
+  "hole-io-web": {
+    image: "https://img.gamepix.com/games/hole-io/cover/hole-io.png",
+    source: "https://www.gamepix.com/play/hole-io",
+  },
+  "punch-hero-web": {
+    image: "https://img.gamepix.com/games/punch-hero/cover/punch-hero.png",
+    source: "https://www.gamepix.com/play/punch-hero",
+  },
+  "piano-tiles-web": {
+    image: "https://img.gamepix.com/games/piano-tiles/cover/piano-tiles.png",
+    source: "https://www.gamepix.com/play/piano-tiles",
+  },
+  "doodle-jump-web": {
+    image: "https://img.gamepix.com/games/doodle-jump/cover/doodle-jump.png",
+    source: "https://www.gamepix.com/play/doodle-jump",
+  },
+  "8-ball-pool-web": {
+    image: "https://img.gamepix.com/games/8-ball-pool-game/cover/8-ball-pool-game.png",
+    source: "https://www.gamepix.com/play/8-ball-pool-game",
+  },
+  "rooftop-snipers-web": {
+    image: "https://img.gamepix.com/games/rooftop-snipers/cover/rooftop-snipers.png",
+    source: "https://www.gamepix.com/play/rooftop-snipers",
+  },
+  "volley-random-web": {
+    image: "https://img.gamepix.com/games/volley-random/cover/volley-random.png",
+    source: "https://www.gamepix.com/play/volley-random",
+  },
+  "bloxd-io-web": {
+    image: "https://img.gamepix.com/games/bloxd-io/cover/bloxd-io.png",
+    source: "https://www.gamepix.com/play/bloxd-io",
+  },
+  "gp-air-hockey": {
+    image: "https://img.gamepix.com/games/air-hockey/cover/air-hockey.png",
+    source: "https://www.gamepix.com/play/air-hockey",
+  },
+  "gp-kick": {
+    image: "https://img.gamepix.com/games/kick/cover/kick.png",
+    source: "https://www.gamepix.com/play/kick",
+  },
+  "gp-arena": {
+    image: "https://img.gamepix.com/games/arena/cover/arena.png",
+    source: "https://www.gamepix.com/play/arena",
+  },
+  "gp-shooter": {
+    image: "https://img.gamepix.com/games/shooter/cover/shooter.png",
+    source: "https://www.gamepix.com/play/shooter",
+  },
+  "gp-shooting-range": {
+    image: "https://img.gamepix.com/games/shooting-range/cover/shooting-range.png",
+    source: "https://www.gamepix.com/play/shooting-range",
+  },
+  "gp-survive": {
+    image: "https://img.gamepix.com/games/survive/cover/survive.png",
+    source: "https://www.gamepix.com/play/survive",
+  },
+  "gp-color-runner": {
+    image: "https://img.gamepix.com/games/color-runner/cover/color-runner.png",
+    source: "https://www.gamepix.com/play/color-runner",
+  },
+  "gp-runner": {
+    image: "https://img.gamepix.com/games/runner/cover/runner.png",
+    source: "https://www.gamepix.com/play/runner",
+  },
+  "gp-underwater": {
+    image: "https://img.gamepix.com/games/underwater/cover/underwater.png",
+    source: "https://www.gamepix.com/play/underwater",
+  },
+  "gp-slime": {
+    image: "https://img.gamepix.com/games/slime/cover/slime.png",
+    source: "https://www.gamepix.com/play/slime",
+  },
+  "gp-fish": {
+    image: "https://img.gamepix.com/games/fish/cover/fish.png",
+    source: "https://www.gamepix.com/play/fish",
+  },
+  "gp-car-game": {
+    image: "https://img.gamepix.com/games/car-game/cover/car-game.png",
+    source: "https://www.gamepix.com/play/car-game",
+  },
+  "gp-mine": {
+    image: "https://img.gamepix.com/games/mine/cover/mine.png",
+    source: "https://www.gamepix.com/play/mine",
+  },
+  "gp-rage": {
+    image: "https://img.gamepix.com/games/rage/cover/rage.png",
+    source: "https://www.gamepix.com/play/rage",
+  },
+  "gp-speed": {
+    image: "https://img.gamepix.com/games/speed/cover/speed.png",
+    source: "https://www.gamepix.com/play/speed",
+  },
+  "gp-zombies": {
+    image: "https://img.gamepix.com/games/zombies/cover/zombies.png",
+    source: "https://www.gamepix.com/play/zombies",
+  },
+  "gp-warzone": {
+    image: "https://img.gamepix.com/games/warzone/cover/warzone.png",
+    source: "https://www.gamepix.com/play/warzone",
+  },
+  "gp-inferno": {
+    image: "https://img.gamepix.com/games/inferno/cover/inferno.png",
+    source: "https://www.gamepix.com/play/inferno",
+  },
+  "gp-bouncing-ball": {
+    image: "https://img.gamepix.com/games/bouncing-ball/cover/bouncing-ball.png",
+    source: "https://www.gamepix.com/play/bouncing-ball",
+  },
+  "gp-golf": {
+    image: "https://img.gamepix.com/games/golf/cover/golf.png",
+    source: "https://www.gamepix.com/play/golf",
+  },
+  "gp-basketball": {
+    image: "https://img.gamepix.com/games/basketball/cover/basketball.png",
+    source: "https://www.gamepix.com/play/basketball",
+  },
+  "gp-soccer": {
+    image: "https://img.gamepix.com/games/soccer/cover/soccer.png",
+    source: "https://www.gamepix.com/play/soccer",
+  },
 };
