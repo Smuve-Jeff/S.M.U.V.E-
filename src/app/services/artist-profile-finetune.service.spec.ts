@@ -212,7 +212,12 @@ describe('ArtistProfileFinetuneService', () => {
   let profileSignal: ReturnType<typeof signal<UserProfile>>;
 
   beforeEach(() => {
-    profileSignal = signal<UserProfile>({ primaryGenre: 'Hip Hop' } as UserProfile);
+    profileSignal = signal<UserProfile>({
+      primaryGenre: 'Hip Hop',
+      settings: {
+        security: { shareProfileAnswersWithAi: true },
+      },
+    } as UserProfile);
     TestBed.configureTestingModule({
       providers: [
         ArtistProfileFinetuneService,
@@ -237,7 +242,7 @@ describe('ArtistProfileFinetuneService', () => {
   });
 
   it('compiles a calibrated profile into role-specific adaptation', () => {
-    profileSignal.set(strongProfile);
+    profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true } } } as any);
     const knowledge = service.knowledge();
 
     expect(knowledge.state).toBe('calibrated');
@@ -255,6 +260,7 @@ describe('ArtistProfileFinetuneService', () => {
   it('calibrates level to the explicit expertise profile without stereotyping genre', () => {
     const profile = {
       ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: true } },
       expertiseLevels: { production: 2, marketing: 4, mastering: 1, audioEngineering: 3 },
       primaryGenre: 'Afrobeats / jazz fusion',
       musicalJourney: {
@@ -273,6 +279,8 @@ describe('ArtistProfileFinetuneService', () => {
   it('treats the artist-authored operating contract as prompt context and a legal boundary', () => {
     const profile = {
       ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: true } },
+      settings: { security: { shareProfileAnswersWithAi: true } },
       musicalJourney: {
         ...(strongProfile as any).musicalJourney,
         musicBlueprint: {
@@ -290,8 +298,27 @@ describe('ArtistProfileFinetuneService', () => {
     );
   });
 
+  it('honors the artist opt-out for profile answers in AI directives and tips', () => {
+    profileSignal.set({
+      ...strongProfile,
+      settings: {
+        ...(strongProfile as any).settings,
+        security: {
+          ...((strongProfile as any).settings?.security || {}),
+          shareProfileAnswersWithAi: false,
+        },
+      },
+    } as UserProfile);
+
+    expect(service.promptBlock()).toContain('opted out of sharing profile answers');
+    expect(service.promptBlock()).not.toContain('kitchen light and train platforms');
+    expect(service.promptBlock()).not.toContain('Window Light');
+    expect(service.directiveFor('songwriter').directive).toContain('general guidance only');
+    expect(service.tips().join(' ')).toContain('Profile answers are private from AI');
+  });
+
   it('keeps every role inside the artist guardrails and away from imitation', () => {
-    profileSignal.set(strongProfile);
+    profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true } } } as any);
     const legal = service.directiveFor('legal');
     const voice = service.voiceSpec();
 
@@ -302,7 +329,7 @@ describe('ArtistProfileFinetuneService', () => {
   });
 
   it('surfaces profile-derived tips and prompt context', () => {
-    profileSignal.set(strongProfile);
+    profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true } } } as any);
     const tips = service.tips();
     const block = service.promptBlock();
 
@@ -319,7 +346,7 @@ describe('ArtistProfileFinetuneService', () => {
 
   describe('online presence awareness', () => {
     it('knows an established artist’s verified official footprint', () => {
-      profileSignal.set(strongProfile);
+      profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true } } } as any);
       const knowledge = service.knowledge();
       const presence = knowledge.presence;
 
@@ -341,6 +368,7 @@ describe('ArtistProfileFinetuneService', () => {
 
     it('never tells a beginner to optimise dashboards they do not have', () => {
       profileSignal.set({
+        settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } },
         artistName: 'First Take',
         primaryGenre: 'Hip Hop',
         catalog: [],
@@ -366,7 +394,7 @@ describe('ArtistProfileFinetuneService', () => {
     });
 
     it('routes a beginner toward the plan instead of dashboards or analytics', () => {
-      profileSignal.set({ artistName: 'First Take', primaryGenre: 'Hip Hop' } as UserProfile);
+      profileSignal.set({ artistName: 'First Take', primaryGenre: 'Hip Hop', settings: { security: { shareProfileAnswersWithAi: true } } } as any);
 
       const promotion = service.directiveFor('promotion');
       expect(promotion.tips.join(' ')).toContain(
@@ -382,6 +410,7 @@ describe('ArtistProfileFinetuneService', () => {
 
     it('flags an unverified or undocumented presence for an artist already online', () => {
       profileSignal.set({
+        settings: { security: { shareProfileAnswersWithAi: true } },
         artistName: 'Half Set Up',
         primaryGenre: 'Pop',
         catalog: [{ id: 'x', title: 'Untitled' }],
@@ -418,7 +447,7 @@ describe('ArtistProfileFinetuneService', () => {
 
   describe('official pathway awareness', () => {
     it('tells S.M.U.V.E. the single next step and why it matters', () => {
-      profileSignal.set({ primaryGenre: 'Hip Hop' } as UserProfile);
+      profileSignal.set({ primaryGenre: 'Hip Hop', settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
 
       const knowledge = service.knowledge();
       const pathway = knowledge.pathway;
@@ -437,7 +466,7 @@ describe('ArtistProfileFinetuneService', () => {
     });
 
     it('names real areas the artist is not yet official in', () => {
-      profileSignal.set({ primaryGenre: 'Hip Hop' } as UserProfile);
+      profileSignal.set({ primaryGenre: 'Hip Hop', settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
       const pathway = service.knowledge().pathway;
 
       expect(pathway.unofficialAreas).toContain('Official Presence');
@@ -446,7 +475,7 @@ describe('ArtistProfileFinetuneService', () => {
     });
 
     it('advances the next step as the artist completes work', () => {
-      profileSignal.set({ artistName: 'Nova' } as UserProfile);
+      profileSignal.set({ artistName: 'Nova', settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
       expect(service.knowledge().pathway.nextStep).not.toBe(
         'Lock the official artist name'
       );
@@ -455,6 +484,7 @@ describe('ArtistProfileFinetuneService', () => {
       // surface that exact gap as the next step, with a real destination.
       profileSignal.set({
         ...strongProfile,
+        settings: { security: { shareProfileAnswersWithAi: true } },
         website: 'https://northstar.example',
         artistIdentity: {
           ...(strongProfile as any).artistIdentity,
@@ -470,7 +500,7 @@ describe('ArtistProfileFinetuneService', () => {
     });
 
     it('marks a fully official artist as complete with no next step', () => {
-      profileSignal.set(officialProfile);
+      profileSignal.set({ ...officialProfile, settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
       const knowledge = service.knowledge();
 
       expect(knowledge.pathway.stage).toBe('official');
@@ -483,7 +513,7 @@ describe('ArtistProfileFinetuneService', () => {
     });
 
     it('leads the tip queue with the pathway step instead of a competing priority', () => {
-      profileSignal.set({ primaryGenre: 'Hip Hop' } as UserProfile);
+      profileSignal.set({ primaryGenre: 'Hip Hop', settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
       const next = service.knowledge().pathway.nextStep;
       const tips = service.tips();
 
@@ -492,16 +522,16 @@ describe('ArtistProfileFinetuneService', () => {
       expect(tips[0]).toContain('0% complete');
 
       // A complete pathway stops competing with itself for priority.
-      profileSignal.set(officialProfile);
+      profileSignal.set({ ...officialProfile, settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
       expect(service.tips().join(' ')).not.toContain('next step:');
     });
 
     it('forbids roles from proposing priorities that conflict with the pathway', () => {
-      profileSignal.set({ primaryGenre: 'Hip Hop' } as UserProfile);
+      profileSignal.set({ primaryGenre: 'Hip Hop', settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
       const manager = service.directiveFor('manager');
       expect(manager.guardrails.join(' ')).toContain('Lock the official artist name');
 
-      profileSignal.set(officialProfile);
+      profileSignal.set({ ...officialProfile, settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
       const complete = service.directiveFor('manager');
       expect(complete.guardrails.join(' ')).toContain('pathway is complete');
     });

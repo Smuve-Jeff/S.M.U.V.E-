@@ -563,6 +563,46 @@ describe("blocklist service", () => {
     expect(result.map((u) => u.userId)).toEqual(["u3"]);
   });
 
+  it("searchUsers excludes discovery opt-outs and protects hidden location details", async () => {
+    const builder = {
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([
+        {
+          userId: "u3",
+          profileData: {
+            artistName: "Nova",
+            primaryGenre: "Electronic",
+            avatarImage: "avatar",
+            location: "Private city",
+            settings: { security: { shareProfileInDiscovery: false, hideSensitiveProfileDetails: true } },
+          },
+        },
+        {
+          userId: "u4",
+          profileData: {
+            artistName: "Kai",
+            primaryGenre: "Soul",
+            avatarImage: "avatar2",
+            location: "Private city",
+            settings: { security: { shareProfileInDiscovery: true, hideSensitiveProfileDetails: true } },
+          },
+        },
+      ]),
+    };
+    repos.profiles.createQueryBuilder = jest.fn(() => builder);
+
+    const results = await searchUsers({ actorUserId: "u1", location: "Private" });
+
+    expect(builder.andWhere).toHaveBeenCalledWith(expect.stringContaining("allowCollaboratorDiscovery"));
+    expect(builder.andWhere).toHaveBeenCalledWith(expect.stringContaining("hideSensitiveProfileDetails"), { loc: "%Private%" });
+    expect(results).toEqual([
+      { userId: "u3", artistName: undefined, primaryGenre: undefined, avatarImage: undefined, location: undefined, profileSetupCompleted: false },
+      { userId: "u4", artistName: "Kai", primaryGenre: "Soul", avatarImage: "avatar2", location: undefined, profileSetupCompleted: false },
+    ]);
+  });
+
   it("searchUsers hides blocked users from results", async () => {
     setBlockRows([{ userId: "u1", blockedUserId: "u2" }]);
     repos.profiles.createQueryBuilder = jest.fn(() => ({

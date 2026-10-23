@@ -252,7 +252,7 @@ export class ArtistProfileModuleService {
       icon: 'fa-file-contract',
       purpose: 'Ownership, registration, and entity protection.',
       elements: [
-        { label: 'registered works', test: (p) => p.legalInfrastructure?.hasRegisteredWorks === true, weight: 5 },
+        { label: 'registered works', test: (p) => p.legalInfrastructure?.hasRegisteredWorks === true || p.legalInfrastructure?.hasRegisteredWorks === 'Yes', weight: 5 },
         { label: 'PRO affiliation', test: (p) => hasText(p.legalInfrastructure?.proAffiliation) && p.legalInfrastructure?.proAffiliation !== 'None', weight: 5 },
         { label: 'PRO name and IPI', test: (p) => hasText(p.proName) || hasText(p.proIpi), weight: 4 },
         { label: 'standard split sheet', test: (p) => hasText(p.legalInfrastructure?.hasStandardSplitSheet) && p.legalInfrastructure?.hasStandardSplitSheet !== 'Never', weight: 4 },

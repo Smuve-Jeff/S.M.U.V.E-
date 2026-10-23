@@ -227,14 +227,36 @@ export class UserProfileService {
     next.id = this.activeUserId();
     this.store.setProfile(next);
     try {
+      // Turning off AI sharing is a hard opt-out, including legacy profiles
+      // where the preference has never been explicitly set.
+      if (current.settings?.security?.shareProfileAnswersWithAi === true &&
+          next.settings?.security?.shareProfileAnswersWithAi !== true) {
+        this.clearCachedProfileKnowledge(next);
+      }
       // Save under the real user id so the local backup and the cloud sync
-      // (which enforces ownership on the backend) use the same key. Previously
-      // this hardcoded 'current', which made cloud saves 403 and orphaned the
-      // local backup from the id-keyed load path.
+      // (which enforces ownership on the backend) use the same key.
       await this.db.saveUserProfile(next, this.activeUserId());
     } catch (e) {
       this.logger.error('Profile save failed', e);
     }
+  }
+
+  private clearCachedProfileKnowledge(profile: UserProfile): void {
+    const kb = profile.knowledgeBase;
+    if (!kb) return;
+    const profileDerivedIds = new Set([
+      'kb-profile-identity',
+      'kb-profile-goals',
+      'kb-profile-studio',
+      'kb-profile-expertise',
+    ]);
+    profile.knowledgeBase = {
+      ...kb,
+      dataPoints: (kb.dataPoints || []).filter((point: any) =>
+        !profileDerivedIds.has(point?.id)
+      ),
+      genreAnalysis: {},
+    };
   }
 
   async acquireUpgrade(u: any) {

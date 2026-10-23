@@ -56,6 +56,9 @@ describe('SettingsComponent', () => {
             biometricLock: false,
             auditLogEnabled: false,
             sessionTimeout: 3600,
+            shareProfileAnswersWithAi: false,
+            shareProfileAnswersPublicly: false,
+            shareThirdPartyLinksPublicly: false,
           },
         },
       }),
@@ -282,6 +285,31 @@ describe('SettingsComponent', () => {
         }),
       })
     );
+  });
+
+  it('persists the explicit AI, biography, and third-party link privacy choices', async () => {
+    const { component } = await createComponent();
+    const updateProfile = TestBed.inject(UserProfileService).updateProfile as jest.Mock;
+
+    component.updateSetting('security', 'shareProfileAnswersWithAi', true);
+    component.updateSetting('security', 'shareProfileAnswersPublicly', true);
+    component.updateSetting('security', 'shareThirdPartyLinksPublicly', true);
+
+    expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({
+      settings: expect.objectContaining({
+        security: expect.objectContaining({ shareProfileAnswersWithAi: true }),
+      }),
+    }));
+    expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({
+      settings: expect.objectContaining({
+        security: expect.objectContaining({ shareProfileAnswersPublicly: true }),
+      }),
+    }));
+    expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({
+      settings: expect.objectContaining({
+        security: expect.objectContaining({ shareThirdPartyLinksPublicly: true }),
+      }),
+    }));
   });
 
   it('keeps beginner guidance backed by the profile and local mirror', async () => {

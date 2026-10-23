@@ -1,6 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { UserProfile, UserProfileService } from './user-profile.service';
 import { ArtistProfileFinetuneService, ArtistProfileKnowledge } from './artist-profile-finetune.service';
+import { initialProfile } from './user-profile.service';
 import { buildMusicalDnaContext, readMusicalDna } from '../types/musical-dna.types';
 
 export interface GenreAdaptationProfile {
@@ -237,6 +238,41 @@ export class ArtistAdaptiveEngineService {
   readonly adaptationState = computed(() => this.buildAdaptationState(this.profileService.profile()));
 
   buildAdaptationState(profile: UserProfile | null | undefined): ArtistAdaptationState {
+    if (profile?.settings?.security?.shareProfileAnswersWithAi !== true) {
+      const safeProfile = {
+        ...initialProfile,
+        artistName: 'Private artist',
+        primaryGenre: 'Artist-defined',
+        musicalJourney: {
+          ...initialProfile.musicalJourney,
+          musicBlueprint: { ...initialProfile.musicalJourney.musicBlueprint },
+        },
+        settings: {
+          ...initialProfile.settings,
+          ai: { ...initialProfile.settings.ai, shareProfileAnswersWithAi: false } as any,
+          security: {
+            ...initialProfile.settings.security,
+            hideSensitiveProfileDetails: true,
+            shareProfileAnswersWithAi: false,
+          },
+        } as any,
+      } as UserProfile;
+      const knowledge = this.finetune.compileProfile(safeProfile);
+      const genreProfile = this.detectGenreProfile(safeProfile, knowledge);
+      return {
+        profile: safeProfile,
+        knowledge,
+        genreProfile,
+        musicalDnaContext: '',
+        productionDirective: 'Use general production advice only; profile answers are private.',
+        businessStrategy: 'Use general business guidance only; profile answers are private.',
+        liveReadiness: { score: 0, gaps: [], nextMove: 'Ask before personalizing with artist answers.' },
+        syncReadiness: { score: 0, clearanceModel: '', missingAssets: [] },
+        aiPersonaDirectives: { producer: 'General advice only.', songwriter: 'General advice only.', manager: 'General advice only.', ar: 'General advice only.' },
+        nextPrioritizedAction: 'Ask the artist before using profile answers for personalized advice.',
+        warningsAndProtections: ['Artist profile answers are private from AI by the artist’s setting.'],
+      };
+    }
     const knowledge = this.finetune.compileProfile(profile);
     const genreProfile = this.detectGenreProfile(profile, knowledge);
     const dnaContext = buildMusicalDnaContext(profile);
@@ -322,15 +358,17 @@ export class ArtistAdaptiveEngineService {
 
   private assessLiveReadiness(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): { score: number; gaps: string[]; nextMove: string } {
     if (!profile) return { score: 0, gaps: [], nextMove: '' };
-    const readiness = profile.touringDetails?.isTourReady || 'Studio Only';
-    const hasBackline = profile.touringDetails?.hasBackline === 'Yes';
-    const regions = profile.touringDetails?.regions || [];
-    const catalogSize = profile.catalog?.length || 0;
+    const readiness = String(profile.touringDetails?.isTourReady || 'Studio Only');
+    const backline = String(profile.touringDetails?.hasBackline || 'No');
+    const hasBackline = /^(yes|partial|available)$/i.test(backline);
+    const regions = Array.isArray(profile.touringDetails?.regions) ? profile.touringDetails.regions : [];
+    const catalogSize = Array.isArray(profile.catalog) ? profile.catalog.length : 0;
     let score = 0;
     const gaps: string[] = [];
 
-    if (/^(ready to tour|tour ready)$/i.test(readiness)) score += 40;
-    else if (/^(can perform|performance ready)$/i.test(readiness)) score += 20;
+    if (/^(global ready|ready to tour|tour ready)$/i.test(readiness)) score += 40;
+    else if (/^(regional ready|can perform|performance ready)$/i.test(readiness)) score += 30;
+    else if (/^local gigs$/i.test(readiness)) score += 20;
     if (hasBackline) score += 20;
     else gaps.push(`Backline: genre-typical needs are ${genre.livePerformance.typicalBacklineNeeds.join(', ')}`);
     if (regions.length > 0) score += 20;
@@ -350,23 +388,31 @@ export class ArtistAdaptiveEngineService {
 
   private assessSyncReadiness(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): { score: number; clearanceModel: string; missingAssets: string[] } {
     if (!profile) return { score: 0, clearanceModel: '', missingAssets: [] };
-    const syncReady = profile.syncDetails?.isSyncReady || 'Not Started';
-    const hasClean = profile.syncDetails?.hasCleanVersions || false;
-    const hasInstrumentals = profile.syncDetails?.hasInstrumentals || false;
+    const syncReady = String(profile.syncDetails?.isSyncReady || 'Not Started');
+    const hasClean = profile.syncDetails?.hasCleanVersions;
+    const hasInstrumentals = profile.syncDetails?.hasInstrumentals;
     const hasStems = profile.syncDetails?.hasStems || 'No';
-    const oneStop = profile.syncDetails?.oneStopClearance || false;
+    const oneStop = profile.syncDetails?.oneStopClearance;
     let score = 0;
     const missingAssets: string[] = [];
 
-    if (/^(ready|sync ready|ready to pitch)$/i.test(syncReady)) score += 25;
-    else if (syncReady === 'In Progress') score += 12;
-    if (hasClean === true) score += 15;
+    // Rank the exact questionnaire/editor vocabulary rather than silently
+    // treating every selected readiness tier as an unknown answer.
+    if (syncReady === 'One-Stop Qualified') score += 25;
+    else if (syncReady === 'Full Stem Mastery') score += 18;
+    else if (syncReady === 'Basics Ready' || /^(ready|sync ready|ready to pitch)$/i.test(syncReady)) score += 10;
+    else if (syncReady === 'In Progress') score += 5;
+
+    if (hasClean === true || /^yes$/i.test(String(hasClean))) score += 15;
     else missingAssets.push('Clean versions (no profanity)');
-    if (hasInstrumentals === true) score += 15;
+    if (hasInstrumentals === true || /^yes$/i.test(String(hasInstrumentals))) score += 15;
     else missingAssets.push('Instrumental versions');
-    if (hasStems === true || /^(yes|all|full stems)$/i.test(String(hasStems))) score += 20;
-    else missingAssets.push('Stems (individual tracks)');
-    if (oneStop === true) score += 25;
+    if (hasStems === true || /^(partial|full multitrack|yes|all|full stems)$/i.test(String(hasStems))) {
+      score += /^partial$/i.test(String(hasStems)) ? 10 : 20;
+    } else {
+      missingAssets.push('Stems (individual tracks)');
+    }
+    if (oneStop === true || /^yes$/i.test(String(oneStop))) score += 25;
     else missingAssets.push('One-stop clearance (sample resolution)');
 
     return {

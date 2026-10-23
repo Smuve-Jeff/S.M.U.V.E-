@@ -540,12 +540,14 @@
           type="button"
           (click)="next()"
           class="eq-nav-next"
+          [disabled]="isAnalyzing()"
+          [attr.aria-busy]="isAnalyzing()"
           [style.background]="currentPhaseInfo().color"
-        >{{ isLastQuestion() ? '✨ Complete Profile' : currentQuestion() ? 'Next →' : 'Next Phase →' }}</button>
+        >{{ isAnalyzing() ? 'Analyzing…' : isLastQuestion() ? '✨ Complete Profile' : currentQuestion() ? 'Next →' : 'Next Phase →' }}</button>
       </nav>
       <footer class="eq-results-actions" *ngIf="analysisResult() && !isAnalyzing()">
-        <button type="button" (click)="applyChanges()" class="eq-btn-primary">
-          <span>✓</span> COMMIT NEURAL REALIGNMENT
+        <button type="button" (click)="applyChanges()" [disabled]="isCommitting()" class="eq-btn-primary">
+          <span>✓</span> {{ isCommitting() ? 'COMMITTING…' : 'COMMIT NEURAL REALIGNMENT' }}
         </button>
         <button type="button" (click)="requestClose()" class="eq-btn-ghost">
           DISCARD & EXIT

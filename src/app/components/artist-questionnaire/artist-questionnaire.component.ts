@@ -21,6 +21,7 @@ import { InteractionDialogService } from '../../services/interaction-dialog.serv
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { animate, style, transition, trigger } from '@angular/animations';
 import type { StrategicSignals } from '../../types/profile.types';
+import { isOfflineAiText } from '../../../ai-manager.contract';
 import { questionnaireReadLine } from '../../services/artist-profile-read';
 import { SMUVE_PERSONAS } from '../../types/persona.types';
 import {
@@ -114,6 +115,7 @@ export class ArtistQuestionnaireComponent {
   aiCoachAnswer = signal('');
   aiCoachBusy = signal(false);
   private aiCoachRequest = 0;
+  readonly isCommitting = signal(false);
   readonly aiCoachPrompts = [
     'What should I prioritize next?',
     'How can I make this identity more distinctive?',
@@ -396,16 +398,17 @@ export class ArtistQuestionnaireComponent {
     this.aiCoachBusy.set(true);
     this.aiCoachAnswer.set('');
     const current = this.currentQuestion();
-    const currentAnswer = current ? this.getValue(current.field) : undefined;
+    const shareAnswers = this.profileDraft().settings?.security?.shareProfileAnswersWithAi === true;
+    const currentAnswer = shareAnswers && current ? this.getValue(current.field) : undefined;
     const context = [
-      `Artist: ${this.profileDraft().artistName || 'unnamed artist'}`,
-      `Genre: ${this.profileDraft().primaryGenre || 'not selected'}`,
+      shareAnswers ? `Artist: ${this.profileDraft().artistName || 'unnamed artist'}` : 'Artist identity: withheld by privacy setting',
+      shareAnswers ? `Genre: ${this.profileDraft().primaryGenre || 'not selected'}` : 'Genre: withheld by privacy setting',
       `Current phase: ${this.currentPhaseInfo().title}`,
       current ? `Current prompt: ${current.text}` : '',
       currentAnswer !== undefined && currentAnswer !== ''
         ? `Current answer: ${JSON.stringify(currentAnswer)}`
         : '',
-      `Profile completion: ${this.totalProgress()}%`,
+      shareAnswers ? `Profile completion: ${this.totalProgress()}%` : '',
     ]
       .filter(Boolean)
       .join('\n');
@@ -415,12 +418,16 @@ export class ArtistQuestionnaireComponent {
         this.buildCoachPrompt(prompt, context)
       );
       if (requestId !== this.aiCoachRequest) return;
-      this.aiCoachAnswer.set(answer?.trim() || 'No signal returned. Try a more specific question.');
+      const response = answer?.trim() || 'No signal returned. Try a more specific question.';
+      const userFacingResponse = isOfflineAiText(response)
+        ? 'S.M.U.V.E. is offline. Your draft is safe—continue the uplink and retry shortly.'
+        : response;
+      this.aiCoachAnswer.set(userFacingResponse);
       this.aiChatLog.update((logs) =>
         [
           ...logs,
           { type: 'system' as const, text: `ARTIST QUERY: ${prompt}` },
-          { type: 'adaptation' as const, text: answer?.trim() || 'No signal returned.' },
+          { type: 'adaptation' as const, text: userFacingResponse },
         ].slice(-20)
       );
     } catch {
@@ -442,15 +449,17 @@ export class ArtistQuestionnaireComponent {
    * on answers already given instead of asking the artist to restate them.
    */
   private buildCoachPrompt(prompt: string, context: string): string {
-    const report = this.intelligenceReport();
-    const reading = [
+    const profile = this.profileDraft();
+    const shareAnswers = profile.settings?.security?.shareProfileAnswersWithAi === true;
+    const report = shareAnswers ? this.intelligenceReport() : null;
+    const reading = report ? [
       report.strengths[0] ? `- Strength: ${report.strengths[0]}` : '',
       report.weaknesses[0] ? `- Gap: ${report.weaknesses[0]}` : '',
       report.nextBestMoves[0] ? `- Next move: ${report.nextBestMoves[0]}` : '',
       `- Differentiation score: ${report.differentiationScore}/100`,
     ]
       .filter(Boolean)
-      .join('\n');
+      .join('\n') : '- Profile-derived strengths, gaps, and next moves withheld by privacy setting.';
 
     return [
       'You are S.M.U.V.E. 2.0, running the Artist DNA Uplink interview.',
@@ -487,6 +496,7 @@ export class ArtistQuestionnaireComponent {
 
   /** Navigate to next question/phase */
   async next() {
+    if (this.isAnalyzing() || this.analysisResult()) return;
     const qs = this.currentPhaseQuestions();
     const q = this.currentQuestion();
 
@@ -562,40 +572,45 @@ export class ArtistQuestionnaireComponent {
 
   /** Finalize all phases and generate AI analysis */
   async finalize() {
+    if (this.isAnalyzing() || this.analysisResult()) return;
     this.isAnalyzing.set(true);
     const draft = this.profileDraft();
 
     try {
-      const analysis = await this.engine.generateAIAnalysis(draft);
-      // Keep the local evidence report alongside model output so AI can never
-      // hide missing identity signals behind a polished generic persona.
-      this.analysisResult.set({
-        ...analysis,
-        intelligence: this.intelligenceReport(),
-      });
+      try {
+        const analysis = await this.engine.generateAIAnalysis(draft);
+        // Keep the local evidence report alongside model output so AI can never
+        // hide missing identity signals behind a polished generic persona.
+        this.analysisResult.set({
+          ...analysis,
+          intelligence: this.intelligenceReport(),
+        });
+      } catch {
+        this.aiChatLog.update((logs) => [
+          ...logs,
+          {
+            type: 'system',
+            text: '⚠️ AI analysis encountered an error. Using local intelligence.',
+          },
+        ]);
+        this.analysisResult.set({
+          persona: await this.engine.synthesizePersona(draft),
+          breakdown: this.strengthBreakdown(),
+          intelligence: this.intelligenceReport(),
+          recommendations: [],
+          insights: [],
+        });
+      }
       this.showPersonaCard.set(true);
-    } catch (e) {
-      this.aiChatLog.update((logs) => [
-        ...logs,
-        {
-          type: 'system',
-          text: '⚠️ AI analysis encountered an error. Using local intelligence.',
-        },
-      ]);
-      this.analysisResult.set({
-        persona: await this.engine.synthesizePersona(draft),
-        breakdown: this.strengthBreakdown(),
-        intelligence: this.intelligenceReport(),
-        recommendations: [],
-        insights: [],
-      });
+    } finally {
+      this.isAnalyzing.set(false);
     }
-
-    this.isAnalyzing.set(false);
   }
 
   /** Apply profile changes and commit */
   async applyChanges() {
+    if (this.isCommitting() || this.committed()) return;
+    this.isCommitting.set(true);
     this.showUplink.set(true);
     const draft = this.profileDraft();
     const completedProfile: UserProfile = {
@@ -605,10 +620,14 @@ export class ArtistQuestionnaireComponent {
       profileSetupCompletedAt: Date.now(),
     };
 
-    const success = await this.uplinkService.initiateUplink(completedProfile);
-    if (success) {
-      this.committed.set(true);
-      this.complete.emit(completedProfile);
+    try {
+      const success = await this.uplinkService.initiateUplink(completedProfile);
+      if (success) {
+        this.committed.set(true);
+        this.complete.emit(completedProfile);
+      }
+    } finally {
+      this.isCommitting.set(false);
     }
   }
 
@@ -656,17 +675,17 @@ export class ArtistQuestionnaireComponent {
     // Qualified'. Award by rank so a lower answer cannot outscore a higher one,
     // and so the top two tiers are actually reachable.
     const syncRank: Record<string, number> = {
-      'Basics Ready': 25,
-      'Full Stem Mastery': 40,
-      'One-Stop Qualified': 50,
+      'Basics Ready': 10,
+      'Full Stem Mastery': 18,
+      'One-Stop Qualified': 25,
     };
     s.syncViability += syncRank[String(p.syncDetails?.isSyncReady)] ?? 0;
     // Stems availability is graded too ('No' | 'Partial' | 'Full Multitrack',
     // the profile editor's catalog). The old check looked for 'Everything
     // Archived', which nothing writes, so stem prep never scored.
     const stems = String(p.syncDetails?.hasStems ?? '');
-    if (stems === 'Full Multitrack') s.syncViability += 25;
-    else if (stems === 'Partial') s.syncViability += 12;
+    if (stems === 'Full Multitrack') s.syncViability += 20;
+    else if (stems === 'Partial') s.syncViability += 10;
 
     // Touring readiness is a graded scale too (q29): 'Studio Only' → 'Global
     // Ready'. Ranked so 'Global Ready' is the ceiling rather than the only

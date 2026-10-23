@@ -12,26 +12,26 @@
       <h1 class="al-artist-name">
         {{ artistName() || profile().artistName || 'Unknown Artist' }}
       </h1>
-      <p class="al-genre-tag">{{ profile().primaryGenre }}</p>
+      <p class="al-genre-tag">{{ publicAnswersEnabled() ? profile().primaryGenre : 'Independent artist' }}</p>
       <div class="al-header-meta">
         <span class="al-meta-chip" *ngIf="personaSynthesis()?.archetype">
           <span class="al-chip-icon">⚔️</span>
           {{ personaSynthesis()?.archetype }}
         </span>
-        <span class="al-meta-chip">
+        <span class="al-meta-chip" *ngIf="publicAnswersEnabled() && journey()?.marketPosition">
           <span class="al-chip-icon">📍</span>
-          {{ journey()?.marketPosition || 'Independent' }}
+          {{ journey()?.marketPosition }}
         </span>
-        <span class="al-meta-chip">
+        <span class="al-meta-chip" *ngIf="publicAnswersEnabled() && journey()?.primarySuccessMetric">
           <span class="al-chip-icon">🎯</span>
-          {{ journey()?.primarySuccessMetric || 'Creative Satisfaction' }}
+          {{ journey()?.primarySuccessMetric }}
         </span>
       </div>
     </div>
   </header>
 
   <!-- Persona Synthesis Card -->
-  <section class="al-persona-card" *ngIf="personaSynthesis()">
+  <section class="al-persona-card" *ngIf="publicAnswersEnabled() && publicIdentityEnabled() && personaSynthesis()">
     <div class="al-persona-glow"></div>
     <div class="al-persona-header">
       <h2>S.M.U.V.E PERSONA SYNTHESIS</h2>
@@ -77,7 +77,7 @@
   </section>
 
   <!-- Strength Meter -->
-  <section class="al-strength-section">
+  <section class="al-strength-section" *ngIf="publicAnswersEnabled()">
     <h2 class="al-section-title">ARTIST PROFILE STRENGTH</h2>
     <div class="al-strength-grid">
       <div
@@ -121,7 +121,7 @@
   </section>
 
   <!-- Signature Sound -->
-  <section class="al-sound-section" *ngIf="personaSynthesis()">
+  <section class="al-sound-section" *ngIf="publicAnswersEnabled() && publicIdentityEnabled() && personaSynthesis()">
     <h2 class="al-section-title">SONIC SIGNATURE</h2>
     <div class="al-sound-card">
       <div class="al-sound-bar">
@@ -141,7 +141,7 @@
   </section>
 
   <!-- Strategic Insights -->
-  <section class="al-insights-section" *ngIf="strategicInsights().length">
+  <section class="al-insights-section" *ngIf="publicAnswersEnabled() && strategicInsights().length">
     <h2 class="al-section-title">STRATEGIC DIRECTIVES</h2>
     <div class="al-insights-list">
       <div
@@ -178,7 +178,7 @@
   </section>
 
   <!-- Featured Track (Music Player) -->
-  <section class="al-track-section" *ngIf="featuredTrack()">
+  <section class="al-track-section" *ngIf="publicIdentityEnabled() && featuredTrack()">
     <h2 class="al-section-title">FEATURED RELEASE</h2>
     <div class="al-track-card">
       <div class="al-track-waveform">
@@ -223,7 +223,7 @@
   </section>
 
   <!-- Streaming & Social Links -->
-  <section class="al-social-section">
+  <section class="al-social-section" *ngIf="settingsLinksEnabled()">
     <h2 class="al-section-title">FIND ME ON</h2>
     <div class="al-social-grid">
       @for (link of socialLinks(); track link.url) {
@@ -249,7 +249,7 @@
   </section>
 
   <!-- Musical Journey -->
-  <section class="al-journey-section" *ngIf="journey()">
+  <section class="al-journey-section" *ngIf="publicAnswersEnabled() && publicIdentityEnabled() && journey()">
     <h2 class="al-section-title">MUSICAL JOURNEY</h2>
     <div class="al-journey-grid">
       <div class="al-journey-stat">

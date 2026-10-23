@@ -212,6 +212,8 @@ export class ProfileEditorComponent implements OnInit {
     'Marketer',
   ];
   readonly travelOptions = ['Van', 'Bus', 'Flight', 'Private'];
+  readonly tourReadinessOptions = ['Studio Only', 'Local Gigs', 'Regional Ready', 'Global Ready'];
+  readonly backlineOptions = ['No', 'Partial', 'Yes'];
   readonly brandVoices = [
     'Mysterious',
     'Aggressive',
@@ -347,6 +349,7 @@ export class ProfileEditorComponent implements OnInit {
   fingerprintLink: any = null;
   fingerprintUrl = '';
   fingerprintVerified = false;
+  fingerprintLinkError = signal<string | null>(null);
 
   /** Seed the add-link form with the destination's real claim/sign-in page. */
   beginFingerprintLink(destinationId: string): void {
@@ -354,20 +357,26 @@ export class ProfileEditorComponent implements OnInit {
     this.fingerprintLink = destination ?? null;
     this.fingerprintUrl = destination?.url ?? '';
     this.fingerprintVerified = false;
+    this.fingerprintLinkError.set(null);
   }
 
   cancelFingerprintLink(): void {
     this.fingerprintLink = null;
     this.fingerprintUrl = '';
     this.fingerprintVerified = false;
+    this.fingerprintLinkError.set(null);
   }
 
   saveFingerprintLink(): void {
     const destination = this.fingerprintLink;
     if (!destination) return;
-    const url = String(this.fingerprintUrl || '').trim() || destination.url;
+    const result = this.fingerprint.validateLinkUrl(this.fingerprintUrl || destination.url);
+    if (result.ok === false) {
+      this.fingerprintLinkError.set(result.error);
+      return;
+    }
     this.editableProfile.update((draft) =>
-      this.fingerprint.upsertLink(draft, destination.id, url, this.fingerprintVerified)
+      this.fingerprint.upsertLink(draft, destination.id, result.url, this.fingerprintVerified)
     );
     this.cancelFingerprintLink();
   }
@@ -1090,31 +1099,35 @@ export class ProfileEditorComponent implements OnInit {
     this.showPersonaSelector.set(false);
   }
 
+  setTouringRegions(value: string): void {
+    const regions = String(value || '')
+      .split(',')
+      .map((region) => region.trim())
+      .filter(Boolean);
+    this.updateProfileField('touringDetails.regions', regions);
+  }
+
+  touringRegionsText(): string {
+    const regions = this.editableProfile().touringDetails?.regions;
+    return Array.isArray(regions) ? regions.join(', ') : '';
+  }
+
   updateProfileField(field: string, value: any) {
     const parts = field.split('.');
-    this.editableProfile.update((p) => {
-      const updated = { ...p };
-      let current: any = updated;
-      for (let i = 0; i < parts.length - 1; i++) {
-        const part = parts[i];
-        if (
-          part === '__proto__' ||
-          part === 'constructor' ||
-          part === 'prototype'
-        )
-          continue;
-        if (!current[part]) current[part] = {};
-        current = current[part];
-      }
-      const lastPart = parts[parts.length - 1];
-      if (
-        lastPart !== '__proto__' &&
-        lastPart !== 'constructor' &&
-        lastPart !== 'prototype'
-      ) {
-        current[lastPart] = value;
-      }
-      return updated;
+    const blocked = new Set(['__proto__', 'constructor', 'prototype']);
+    if (!parts.length || parts.some((part) => !part || blocked.has(part))) return;
+
+    this.editableProfile.update((profile) => {
+      const setPath = (source: any, index: number): any => {
+        const key = parts[index];
+        const current = source && typeof source === 'object' ? source : {};
+        if (index === parts.length - 1) return { ...current, [key]: value };
+        return {
+          ...current,
+          [key]: setPath(current[key], index + 1),
+        };
+      };
+      return setPath(profile, 0);
     });
   }
 }

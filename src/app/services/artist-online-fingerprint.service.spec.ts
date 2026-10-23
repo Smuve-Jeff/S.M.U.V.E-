@@ -214,6 +214,21 @@ describe('ArtistOnlineFingerprintService', () => {
       expect(twice.officialArtistProfiles?.[0].verified).toBe(false);
     });
 
+    it('allows only public HTTP(S) URLs without credentials or executable schemes', () => {
+      expect(service.validateLinkUrl('https://artists.spotify.com/nova')).toEqual({
+        ok: true,
+        url: 'https://artists.spotify.com/nova',
+      });
+      expect(service.validateLinkUrl('javascript:alert(1)').ok).toBe(false);
+      expect(service.validateLinkUrl('data:text/html,hello').ok).toBe(false);
+      expect(service.validateLinkUrl('https://user:pass@example.com').ok).toBe(false);
+      expect(service.validateLinkUrl('http://localhost/private').ok).toBe(false);
+      expect(service.validateLinkUrl('http://192.168.1.25/profile').ok).toBe(false);
+      expect(service.validateLinkUrl('not a url').ok).toBe(false);
+      expect(() => service.upsertLink(emergingArtist(), SPOTIFY, 'javascript:alert(1)')).toThrow();
+      expect(() => service.upsertLink(emergingArtist(), 'unknown-service', 'https://example.com')).toThrow();
+    });
+
     it('labels the link from the registry, not from user input', () => {
       const next = service.upsertLink(
         emergingArtist() as UserProfile,

@@ -58,6 +58,16 @@ export class ArtistAiCoachService {
   private generateCoachPrompts(profile: UserProfile | null | undefined, adaptation: ArtistAdaptationState): CoachPrompt[] {
     const prompts: CoachPrompt[] = [];
     if (!profile) return prompts;
+    if (profile.settings?.security?.shareProfileAnswersWithAi !== true) {
+      return [{
+        role: 'producer',
+        title: 'General artist guidance',
+        urgency: 'medium',
+        prompt: 'Provide general music guidance only. The artist has not authorized profile-answer sharing with AI. Ask before using any artist-specific profile facts.',
+        context: 'Profile answers withheld by privacy setting.',
+        actionItems: ['Ask for permission before personalized profile coaching.'],
+      }];
+    }
     const genre = adaptation.genreProfile;
     const knowledge = adaptation.knowledge;
 
@@ -125,11 +135,23 @@ export class ArtistAiCoachService {
   }
 
   private generateReleaseStrategy(profile: UserProfile | null | undefined, adaptation: ArtistAdaptationState): ReleaseStrategy {
+    const shareAnswers = profile?.settings?.security?.shareProfileAnswersWithAi === true;
+    const privateDetails = profile?.settings?.security?.hideSensitiveProfileDetails !== false;
     const genre = adaptation.genreProfile;
     const knowledge = adaptation.knowledge;
     const catalogSize = profile?.catalog?.length || 0;
     const releaseType = 'Artist-selected format';
     const targetDate = 'Not scheduled — confirm finished songs, capacity and delivery lead time';
+
+    if (!shareAnswers) {
+      return {
+        nextRelease: { type: releaseType, targetDate, format: [], strategy: 'Profile answers withheld by privacy setting; ask before personalizing release advice.' },
+        catalogStrategy: 'Profile-derived catalogue details are private.',
+        marketingApproach: 'Profile-derived audience and brand details are private.',
+        revenueTargets: [],
+        successMetrics: [],
+      };
+    }
 
     return {
       nextRelease: {
@@ -138,7 +160,7 @@ export class ArtistAiCoachService {
         format: knowledge.sync.hasStems ? ['Master', 'Clean', 'Instrumental', 'Stems'] : ['Master', 'Clean', 'Instrumental'],
         strategy: `${releaseType} release targeting ${genre.businessPlaybook.incomeStreamPriority[0]}. Lead with: ${knowledge.audience.recognitionCue || 'the signature sound'}.`,
       },
-      catalogStrategy: `Develop ${knowledge.sonic.subgenres[0] || genre.label} at ${knowledge.business.velocity || 'a sustainable artist-selected cadence'}. ${catalogSize} catalog items recorded; drafts do not prove release readiness.`,
+      catalogStrategy: `Develop ${knowledge.sonic.subgenres[0] || genre.label} at ${privateDetails ? knowledge.business.velocity || 'a sustainable artist-selected cadence' : 'a sustainable artist-selected cadence'}. ${catalogSize} catalog items recorded; drafts do not prove release readiness.`,
       marketingApproach: `Lead with the artist's own voice and lived-world story. Avoid generic ${genre.label} tropes. Use: ${knowledge.audience.visualAesthetic?.[0] || 'define visual language'}.`,
       revenueTargets: (knowledge.business.streams.length ? knowledge.business.streams : genre.businessPlaybook.incomeStreamPriority).slice(0, 3),
       successMetrics: [
@@ -153,6 +175,9 @@ export class ArtistAiCoachService {
   private generatePrioritizedActions(profile: UserProfile | null | undefined, adaptation: ArtistAdaptationState): string[] {
     const actions: string[] = [];
     if (!profile) return actions;
+    if (profile.settings?.security?.shareProfileAnswersWithAi !== true) {
+      return ['Profile-specific actions are withheld. Ask permission before using artist profile answers.'];
+    }
     const knowledge = adaptation.knowledge;
     const live = adaptation.liveReadiness;
     const sync = adaptation.syncReadiness;
@@ -185,7 +210,9 @@ export class ArtistAiCoachService {
     if (!profile) return opportunities;
     const genre = adaptation.genreProfile;
     const knowledge = adaptation.knowledge;
+    const hideSensitive = profile.settings?.security?.hideSensitiveProfileDetails !== false;
 
+    if (hideSensitive) return opportunities;
     if (profile.team?.length === 0) {
       opportunities.push(`No team recorded — consider: ${genre.businessPlaybook.releaseStrategy.includes('album') ? 'producer, engineer, mixer' : 'collaborator, engineer'}`);
     }
@@ -202,6 +229,9 @@ export class ArtistAiCoachService {
   }
 
   private generateWarnings(profile: UserProfile | null | undefined, adaptation: ArtistAdaptationState): string[] {
+    if (profile?.settings?.security?.hideSensitiveProfileDetails !== false) {
+      return ['Sensitive profile details are withheld from AI coaching by privacy setting.'];
+    }
     return adaptation.warningsAndProtections;
   }
 }

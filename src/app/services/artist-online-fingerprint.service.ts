@@ -335,6 +335,34 @@ export class ArtistOnlineFingerprintService {
     };
   }
 
+  /** Validate an externally opened link before it enters a stored profile. */
+  validateLinkUrl(value: unknown): { ok: true; url: string } | { ok: false; error: string } {
+    const trimmed = String(value ?? '').trim();
+    if (!trimmed) return { ok: false, error: 'Enter a profile URL.' };
+    if (trimmed.length > 2048) return { ok: false, error: 'URL is too long.' };
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        return { ok: false, error: 'Only HTTP or HTTPS profile links are allowed.' };
+      }
+      const host = parsed.hostname.toLowerCase();
+      const isPrivateAddress = host === 'localhost' || host === '::1' ||
+        /^127\./.test(host) || /^10\./.test(host) ||
+        /^192\.168\./.test(host) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+        /^169\.254\./.test(host);
+      if (isPrivateAddress) {
+        return { ok: false, error: 'Enter a public web address.' };
+      }
+      if (!parsed.hostname || parsed.username || parsed.password) {
+        return { ok: false, error: 'Enter a valid public profile URL without embedded credentials.' };
+      }
+      return { ok: true, url: parsed.href };
+    } catch {
+      return { ok: false, error: 'Enter a valid HTTP or HTTPS URL.' };
+    }
+  }
+
   /** Add or update a recorded link without duplicating the same destination. */
   upsertLink(
     profile: UserProfile,
@@ -343,8 +371,11 @@ export class ArtistOnlineFingerprintService {
     verified = false
   ): UserProfile {
     const destination = this.destination(destinationId);
-    const label = destination?.label ?? destinationId;
-    const trimmed = String(url || '').trim();
+    if (!destination) throw new Error('Unknown profile destination.');
+    const validation = this.validateLinkUrl(url);
+    if (validation.ok === false) throw new Error(validation.error);
+    const label = destination.label;
+    const trimmed = validation.url;
     const existing = Array.isArray(profile.officialArtistProfiles)
       ? profile.officialArtistProfiles
       : [];

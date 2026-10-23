@@ -73,13 +73,25 @@ describe('ArtistLandingComponent', () => {
    * who had never claimed them, and every one of those buttons pointed at "#".
    */
   describe('public platform links', () => {
-    it('shows no platform buttons for an artist with nothing recorded', async () => {
+    it('shows no profile-derived public content or links by default', async () => {
+      profile.set({
+        artistName: 'Nova',
+        website: 'https://nova.example',
+        officialArtistProfiles: [{ id: 'spotify-for-artists', destinationId: 'spotify-for-artists', url: 'https://artists.spotify.com/nova' }],
+        catalog: [{ id: 'release-1', title: 'Private unreleased track' }],
+        musicalJourney: { ultimateVision: 'private vision' },
+      } as unknown as UserProfile);
+
       const { component, text, anchors } = await createComponent();
 
       expect(component.socialLinks()).toEqual([]);
+      expect(component.aiBio()).toBe('');
+      expect(component.featuredTrack()).toBeNull();
+      expect(component.strengthMeter().overall).toBe(0);
       expect(anchors().length).toBe(0);
-      expect(text()).toContain('Online');
-      expect(text()).toContain('Fingerprint');
+      expect(text()).not.toContain('private vision');
+      expect(text()).not.toContain('Private unreleased track');
+      expect(text()).toContain('Independent artist');
     });
 
     it('does not treat the services chip list as platform presence', async () => {
@@ -94,10 +106,27 @@ describe('ArtistLandingComponent', () => {
       expect(anchors().length).toBe(0);
     });
 
-    it('renders the links the artist recorded, pointing at their own URLs', async () => {
+    it('hides third-party links unless public sharing is explicitly enabled', async () => {
       profile.set({
         artistName: 'Nova',
         website: 'https://novaflux.example.com',
+        settings: { security: { shareThirdPartyLinksPublicly: false } },
+        officialArtistProfiles: [
+          { id: 'spotify-for-artists', destinationId: 'spotify-for-artists', url: 'https://artists.spotify.com/nova' },
+        ],
+      } as unknown as UserProfile);
+
+      const { component, anchors } = await createComponent();
+
+      expect(component.socialLinks()).toEqual([]);
+      expect(anchors().length).toBe(0);
+    });
+
+    it('renders opted-in third-party links, pointing at their own URLs', async () => {
+      profile.set({
+        artistName: 'Nova',
+        website: 'https://novaflux.example.com',
+        settings: { security: { shareThirdPartyLinksPublicly: true } },
         officialArtistProfiles: [
           {
             id: 'spotify-for-artists',
@@ -124,12 +153,39 @@ describe('ArtistLandingComponent', () => {
       const hrefs = anchors().map((anchor) => anchor.getAttribute('href'));
       expect(hrefs).toContain('https://artists.spotify.com/nova');
       expect(hrefs).toContain('https://chartmetric.com/artist/nova');
-      expect(hrefs).toContain('https://novaflux.example.com');
+      expect(hrefs).toContain('https://novaflux.example.com/');
       // Every rendered link is navigable: no dead "#" buttons on a public page.
       expect(hrefs.every((href) => href && href.startsWith('https://'))).toBe(
         true
       );
       expect(text()).toContain('Spotify for Artists');
+    });
+
+    it('hides answer-derived biography unless public biography sharing is enabled', async () => {
+      profile.set({
+        artistName: 'Nova',
+        settings: { security: { shareProfileAnswersPublicly: false } },
+        musicalJourney: { originStory: 'community', ultimateVision: 'private answer' },
+      } as unknown as UserProfile);
+
+      const { component } = await createComponent();
+
+      expect(component.aiBio()).toBe('');
+    });
+
+    it('shows answer-derived biography only after explicit opt-in', async () => {
+      profile.set({
+        artistName: 'Nova',
+        settings: { security: { shareProfileAnswersPublicly: true, shareProfileInDiscovery: true } },
+        musicalJourney: { originStory: 'community', ultimateVision: 'Build a local scene' },
+        catalog: [{ id: 'track-1', title: 'Publicly shared release' }],
+      } as unknown as UserProfile);
+
+      const { component } = await createComponent();
+
+      expect(component.aiBio()).toContain('community');
+      expect(component.aiBio()).toContain('Build a local scene');
+      expect(component.featuredTrack()?.title).toBe('Publicly shared release');
     });
 
     it('drops an unusable address rather than printing a dead button', async () => {
@@ -157,6 +213,7 @@ describe('ArtistLandingComponent', () => {
     it('lists each address once, even when recorded twice', async () => {
       profile.set({
         artistName: 'Nova',
+        settings: { security: { shareThirdPartyLinksPublicly: true } },
         officialArtistProfiles: [
           {
             id: 'spotify-for-artists',

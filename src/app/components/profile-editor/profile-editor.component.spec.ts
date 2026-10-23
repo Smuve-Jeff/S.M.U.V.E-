@@ -210,6 +210,10 @@ describe('ProfileEditorComponent', () => {
       artistName: 'Nova',
       primaryGenre: 'Hip Hop',
       team: [],
+      settings: {
+        ...initialProfile.settings,
+        security: { ...initialProfile.settings.security, shareProfileAnswersWithAi: true },
+      },
     });
     userProfileService = {
       profile,
@@ -320,6 +324,21 @@ describe('ProfileEditorComponent', () => {
       expect(component.syncReadinessValue()).toBe('Not Started');
     });
 
+    it('keeps primary identity edits in the signal-backed draft', async () => {
+      const { fixture, component } = await createComponent();
+      component.activeSection.set('basic');
+      fixture.detectChanges();
+
+      const name = fixture.nativeElement.querySelector('input.executive-input') as HTMLInputElement;
+      name.value = 'Nova Vale';
+      name.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+
+      expect(component.editableProfile().artistName).toBe('Nova Vale');
+      expect(component.mastery().sections.find((section) => section.id === 'basic')?.score)
+        .toBeGreaterThan(0);
+    });
+
     it('captures sync readiness and legal infrastructure', async () => {
       const { fixture, component } = await createComponent();
 
@@ -336,13 +355,25 @@ describe('ProfileEditorComponent', () => {
 
       component.activeSection.set('legal-infrastructure');
       component.setLegalField('proAffiliation', 'ASCAP');
-      component.setLegalFlag('hasRegisteredWorks', true);
+      component.setLegalField('hasRegisteredWorks', 'Yes');
       fixture.detectChanges();
 
       expect(component.legalValue('proAffiliation')).toBe('ASCAP');
       expect(component.coverageFor('legal-infrastructure').missing).toEqual(
         expect.not.arrayContaining(['PRO affiliation', 'registered works'])
       );
+    });
+
+    it('edits touring readiness and regions as owned profile evidence', async () => {
+      const { component } = await createComponent();
+      component.updateProfileField('touringDetails.isTourReady', 'Regional Ready');
+      component.updateProfileField('touringDetails.hasBackline', 'Partial');
+      component.setTouringRegions('Southeast, Midwest');
+
+      expect(component.editableProfile().touringDetails.isTourReady).toBe('Regional Ready');
+      expect(component.editableProfile().touringDetails.hasBackline).toBe('Partial');
+      expect(component.editableProfile().touringDetails.regions).toEqual(['Southeast', 'Midwest']);
+      expect(component.coverageFor('touring').missing).not.toContain('target regions');
     });
 
     it('builds a profile-specific action queue and routes each move to its owner pane', async () => {
@@ -540,8 +571,13 @@ describe('ProfileEditorComponent', () => {
 
       component.beginFingerprintLink('spotify-for-artists');
       expect(component.fingerprintUrl).toBe('https://artists.spotify.com');
-      component.fingerprintUrl = 'https://artists.spotify.com/nova';
+      component.fingerprintUrl = 'javascript:alert(1)';
       component.fingerprintVerified = true;
+      component.saveFingerprintLink();
+      expect(component.editableProfile().officialArtistProfiles).toEqual([]);
+      expect(component.fingerprintLinkError()).toContain('HTTP or HTTPS');
+
+      component.fingerprintUrl = 'https://artists.spotify.com/nova';
       component.saveFingerprintLink();
 
       const stored = component.editableProfile().officialArtistProfiles ?? [];

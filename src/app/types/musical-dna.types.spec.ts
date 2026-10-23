@@ -25,6 +25,7 @@ const blank = (): UserProfile =>
       studio: { defaultQuantize: '1/16', autoMixEnabled: false },
       audio: {},
       dj: { crossfaderCurve: 'power' },
+      security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false },
     },
     catalog: [],
     recommendationHistory: [],
@@ -89,6 +90,7 @@ const observedOnly = (): UserProfile =>
       studio: { defaultQuantize: '1/32', autoMixEnabled: true, smartSheet: { mode: 'trap' } },
       audio: { sampleRate: 96000 },
       dj: { crossfaderCurve: 'cut', vinylMode: true },
+      security: { shareProfileAnswersWithAi: true },
     },
   }) as unknown as UserProfile;
 

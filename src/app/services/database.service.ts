@@ -37,11 +37,20 @@ export class DatabaseService {
   }
 
   async saveUserProfile(profile: UserProfile, userId: string): Promise<void> {
+    const keepBackup = profile.settings?.security?.keepLocalProfileBackup !== false;
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(
-        this.getProfileBackupKey(userId),
-        JSON.stringify(profile)
-      );
+      try {
+        if (keepBackup) {
+          localStorage.setItem(
+            this.getProfileBackupKey(userId),
+            JSON.stringify(profile)
+          );
+        } else {
+          localStorage.removeItem(this.getProfileBackupKey(userId));
+        }
+      } catch (error) {
+        this.logger.warn('Local profile backup unavailable; cloud sync will continue.', error);
+      }
     }
 
     if (userId && typeof navigator !== 'undefined' && navigator.onLine) {
@@ -73,11 +82,17 @@ export class DatabaseService {
           )
         );
         if (profile) {
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem(
-              this.getProfileBackupKey(userId),
-              JSON.stringify(profile)
-            );
+          if (typeof localStorage !== 'undefined' && profile.settings?.security?.keepLocalProfileBackup !== false) {
+            try {
+              localStorage.setItem(
+                this.getProfileBackupKey(userId),
+                JSON.stringify(profile)
+              );
+            } catch (error) {
+              this.logger.warn('Could not refresh local profile backup.', error);
+            }
+          } else if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem(this.getProfileBackupKey(userId));
           }
           return profile;
         }
@@ -90,13 +105,37 @@ export class DatabaseService {
     }
 
     if (typeof localStorage === 'undefined') return null;
+    // When the cloud profile records backup-off, discard a stale local copy and
+    // never silently revive it offline.
+    if (localStorage.getItem(this.getProfileBackupKey(userId))) {
+      try {
+        const localProfile = JSON.parse(localStorage.getItem(this.getProfileBackupKey(userId)) || 'null');
+        if (localProfile?.settings?.security?.keepLocalProfileBackup === false) return null;
+      } catch {
+        localStorage.removeItem(this.getProfileBackupKey(userId));
+      }
+    }
     // Backwards compatibility: older builds saved under the generic
     // 'current' key, so fall back to it when the id-keyed backup is absent.
-    const backup =
-      localStorage.getItem(this.getProfileBackupKey(userId)) ||
-      localStorage.getItem(this.getProfileBackupKey('current')) ||
-      localStorage.getItem(this.getProfileBackupKey());
-    return backup ? JSON.parse(backup) : null;
+    // Never fall back to the shared legacy keys for a real account id: those
+    // keys predate account-scoped storage and can contain another signed-in
+    // person's profile on a shared browser.
+    const backup = userId === 'current'
+      ? localStorage.getItem(this.getProfileBackupKey(userId)) ||
+        localStorage.getItem(this.getProfileBackupKey())
+      : localStorage.getItem(this.getProfileBackupKey(userId));
+    if (!backup) return null;
+    try {
+      const parsed = JSON.parse(backup);
+      if (parsed?.settings?.security?.keepLocalProfileBackup === false) {
+        localStorage.removeItem(this.getProfileBackupKey(userId));
+        return null;
+      }
+      return parsed;
+    } catch (error) {
+      this.logger.warn('Discarding unreadable local profile backup.', error);
+      return null;
+    }
   }
 
   async saveProject(

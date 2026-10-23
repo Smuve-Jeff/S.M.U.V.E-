@@ -84,6 +84,18 @@ export interface AppSettings {
     allowCollaboratorDiscovery: boolean;
     /** Privacy: send anonymous diagnostics/telemetry off the device. */
     anonymousTelemetry: boolean;
+    /** Privacy: allow profile-answer context to be included in AI requests. */
+    shareProfileAnswersWithAi: boolean;
+    /** Privacy: show profile-answer-derived biography and story on the public artist page. */
+    shareProfileAnswersPublicly: boolean;
+    /** Privacy: show third-party artist links on the public artist page. */
+    shareThirdPartyLinksPublicly: boolean;
+    /** Privacy: allow profile information in collaborator discovery results. */
+    shareProfileInDiscovery: boolean;
+    /** Privacy: hide location, roster and business details from discovery results. */
+    hideSensitiveProfileDetails: boolean;
+    /** Privacy: retain profile answers in this account's local browser backup. */
+    keepLocalProfileBackup: boolean;
   };
 }
 
@@ -302,6 +314,11 @@ export function buildArtistMusicContext(
   profile: UserProfile | null | undefined
 ): string {
   if (!profile) return '';
+  const shareAnswers = profile.settings?.security?.shareProfileAnswersWithAi === true;
+  if (!shareAnswers) {
+    return '- Profile answers: private (artist opted out of sharing answers with AI).';
+  }
+
   const j = profile.musicalJourney || ({} as MusicalJourney);
   const bp = j.musicBlueprint || ({} as ArtistMusicBlueprint);
   const cap = (v: unknown, max = 240): string => {
@@ -333,8 +350,14 @@ export function buildArtistMusicContext(
     if (value) lines.push(`- ${label}: ${value}`);
   };
 
-  push('Artist', cap(profile.artistName, 80));
-  push('Genre', cap(profile.primaryGenre, 60));
+  // Keep profile-derived identity out of prompts unless explicitly opted in.
+  if (profile.settings?.security?.shareProfileInDiscovery === true) {
+    push('Artist', cap(profile.artistName, 80));
+    push('Genre', cap(profile.primaryGenre, 60));
+  } else {
+    push('Artist', 'Private artist');
+    push('Genre', 'Artist-defined');
+  }
   push('Subgenres', list(j.subgenres));
   push('Roles', list(profile.expertise?.roles ?? j.roles));
   push('Influences', list(j.musicalInfluences));
@@ -344,13 +367,16 @@ export function buildArtistMusicContext(
   push('Signature gear', cap(j.signatureGear, 120));
   push('Vocal range', cap(j.vocalRange, 60));
   push('Tempo zone', cap(j.preferredBpmRange, 30));
+  const hideSensitive = profile.settings?.security?.hideSensitiveProfileDetails !== false;
   push('Market position', cap(j.marketPosition, 60));
   push('Release velocity', cap(j.releaseVelocity, 60));
   push('Success metric', cap(j.primarySuccessMetric, 60));
-  push('Current focus', cap(j.currentFocus));
-  push('Biggest challenge', cap(j.biggestChallenge));
-  push('Collaboration goals', cap(j.collaborationGoals));
-  push('Ultimate vision', cap(j.ultimateVision));
+  if (!hideSensitive) {
+    push('Current focus', cap(j.currentFocus));
+    push('Biggest challenge', cap(j.biggestChallenge));
+    push('Collaboration goals', cap(j.collaborationGoals));
+    push('Ultimate vision', cap(j.ultimateVision));
+  }
 
   // Sonic blueprint — the deep musical make-up collected by q55–q69.
   push('Vocal/instrument delivery', cap(bp.vocalDelivery, 120));
@@ -362,21 +388,23 @@ export function buildArtistMusicContext(
   push('Mixing priorities', list(bp.mixingPriorities));
   push('Reference tracks', list(bp.referenceTracks, 8));
   push('Audience profile', cap(bp.audienceProfile));
-  push('Collaboration boundaries', cap(bp.collaborationBoundaries));
-  push('Artistic intent', cap(bp.artisticIntent));
-  push('Signature tension', cap(bp.signatureTension));
-  push('Lived-world details', cap(bp.livedWorldDetails));
-  push('Sonic non-negotiables', cap(bp.sonicNonNegotiables));
-  push('Recognition cue', cap(bp.recognitionCue));
+  if (!hideSensitive) {
+    push('Collaboration boundaries', cap(bp.collaborationBoundaries));
+    push('Artistic intent', cap(bp.artisticIntent));
+    push('Signature tension', cap(bp.signatureTension));
+    push('Lived-world details', cap(bp.livedWorldDetails));
+    push('Sonic non-negotiables', cap(bp.sonicNonNegotiables));
+    push('Recognition cue', cap(bp.recognitionCue));
+  }
 
   // Learned fingerprint: declared answers reconciled against works, settings
   // and decisions. Appended last so the explicit profile still leads.
-  const dna = buildMusicalDnaContext(profile);
+  const dna = hideSensitive ? '' : buildMusicalDnaContext(profile);
   if (dna) lines.push('', dna);
 
   // The ordered lesson plan for the weakest axes — S.M.U.V.E. leads with
   // these instead of defaulting to generic advice.
-  const teaching = buildMusicalDnaTeachingContext(profile);
+  const teaching = hideSensitive ? '' : buildMusicalDnaTeachingContext(profile);
   if (teaching) lines.push('', teaching);
 
   return lines.join('\n');
@@ -561,6 +589,12 @@ export const initialProfile: UserProfile = {
       shareActivityStatus: false,
       allowCollaboratorDiscovery: true,
       anonymousTelemetry: false,
+      shareProfileAnswersWithAi: false,
+      shareProfileAnswersPublicly: false,
+      shareThirdPartyLinksPublicly: false,
+      shareProfileInDiscovery: true,
+      hideSensitiveProfileDetails: true,
+      keepLocalProfileBackup: true,
     },
   },
   artistName: 'New Artist',

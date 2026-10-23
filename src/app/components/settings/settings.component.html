@@ -1508,7 +1508,7 @@
               <div>
                 <h3 class="setting-title">Artist Discovery</h3>
                 <p class="text-xs text-text-dim">
-                  Let other artists find and contact this account.
+                  Allow other artists to find and contact this account through collaborator search.
                 </p>
               </div>
               <button
@@ -1523,6 +1523,72 @@
                 class="toggle-btn"
                 [class.on]="settings().security.allowCollaboratorDiscovery"
               >
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+            <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+              <div>
+                <h3 class="setting-title">AI profile answers</h3>
+                <p class="text-xs text-text-dim">
+                  Allow artist profile answers to be included in AI requests to personalize replies. Off withholds profile answers from AI-powered features; check the AI provider’s own data-retention terms when enabled.
+                </p>
+              </div>
+              <button type="button" (click)="updateSetting('security', 'shareProfileAnswersWithAi', !settings().security.shareProfileAnswersWithAi)" class="toggle-btn" [class.on]="settings().security.shareProfileAnswersWithAi" aria-label="Toggle sharing artist profile answers with AI">
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+            <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+              <div>
+                <h3 class="setting-title">Public artist biography</h3>
+                <p class="text-xs text-text-dim">
+                  Show the biography and story generated from your profile answers on your public artist page. Off keeps those answers private there.
+                </p>
+              </div>
+              <button type="button" (click)="updateSetting('security', 'shareProfileAnswersPublicly', !settings().security.shareProfileAnswersPublicly)" class="toggle-btn" [class.on]="settings().security.shareProfileAnswersPublicly" aria-label="Toggle public artist biography">
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+            <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+              <div>
+                <h3 class="setting-title">Third-party profile links</h3>
+                <p class="text-xs text-text-dim">
+                  Show your website and linked music, rights, and analytics profiles on your public artist page.
+                </p>
+              </div>
+              <button type="button" (click)="updateSetting('security', 'shareThirdPartyLinksPublicly', !settings().security.shareThirdPartyLinksPublicly)" class="toggle-btn" [class.on]="settings().security.shareThirdPartyLinksPublicly" aria-label="Toggle public third-party profile links">
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+            <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+              <div>
+                <h3 class="setting-title">Discovery profile</h3>
+                <p class="text-xs text-text-dim">
+                  Include your public artist name, genre, and avatar in artist search results.
+                </p>
+              </div>
+              <button type="button" (click)="updateSetting('security', 'shareProfileInDiscovery', !settings().security.shareProfileInDiscovery)" class="toggle-btn" [class.on]="settings().security.shareProfileInDiscovery" aria-label="Toggle profile visibility in artist discovery">
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+            <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+              <div>
+                <h3 class="setting-title">Hide sensitive discovery details</h3>
+                <p class="text-xs text-text-dim">
+                  Keep location, business, roster, and private answer data out of discovery.
+                </p>
+              </div>
+              <button type="button" (click)="updateSetting('security', 'hideSensitiveProfileDetails', !settings().security.hideSensitiveProfileDetails)" class="toggle-btn" [class.on]="settings().security.hideSensitiveProfileDetails" aria-label="Toggle hiding sensitive profile details">
+                <div class="toggle-handle"></div>
+              </button>
+            </div>
+            <div class="setting-item bg-background/30 p-4 rounded-xl border border-border">
+              <div>
+                <h3 class="setting-title">Local profile backup</h3>
+                <p class="text-xs text-text-dim">
+                  Keep an account-scoped copy on this browser for offline recovery. Turning off removes the local backup and skips browser storage.
+                </p>
+              </div>
+              <button type="button" (click)="updateSetting('security', 'keepLocalProfileBackup', !settings().security.keepLocalProfileBackup)" class="toggle-btn" [class.on]="settings().security.keepLocalProfileBackup" aria-label="Toggle local profile backup">
                 <div class="toggle-handle"></div>
               </button>
             </div>

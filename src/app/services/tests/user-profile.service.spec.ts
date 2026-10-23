@@ -70,6 +70,37 @@ describe('UserProfileService', () => {
     service = TestBed.inject(UserProfileService);
   });
 
+  it('removes cached profile-derived knowledge when AI profile sharing is disabled', async () => {
+    const current = {
+      ...initialProfile,
+      knowledgeBase: {
+        ...initialProfile.knowledgeBase,
+        dataPoints: [
+          { id: 'kb-profile-identity', artistName: 'Nova' },
+          { id: 'unrelated-learning', value: 'keep' },
+        ],
+        genreAnalysis: { 'private genre': { titles: ['private track'] } },
+      },
+      settings: {
+        ...initialProfile.settings,
+        security: { ...initialProfile.settings.security, shareProfileAnswersWithAi: true },
+      },
+    };
+    service['store'].setProfile(current as any);
+
+    await service.updateProfile({
+      settings: { ...current.settings, security: { ...current.settings.security, shareProfileAnswersWithAi: false } },
+    });
+
+    expect(service.profile().knowledgeBase.dataPoints).toEqual([
+      { id: 'unrelated-learning', value: 'keep' },
+    ]);
+    expect(service.profile().knowledgeBase.genreAnalysis).toEqual({});
+    expect(savedProfiles.at(-1)?.profile.knowledgeBase.dataPoints).toEqual([
+      { id: 'unrelated-learning', value: 'keep' },
+    ]);
+  });
+
   it('persists acquisition state and a matching history entry', async () => {
     await service.acquireUpgrade({
       title: 'Mastering Engine', type: 'Software', recommendationId: 'mastering',

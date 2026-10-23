@@ -52,12 +52,39 @@ export class ArtistLandingComponent implements OnDestroy {
   artistName = signal('');
   profile = this.userProfileService.profile;
 
-  personaSynthesis = computed(
-    () => this.profile().musicalJourney?.personaSynthesis
+  publicAnswersEnabled = computed(
+    () => this.profile().settings?.security?.shareProfileAnswersPublicly === true
   );
-  journey = computed(() => this.profile().musicalJourney);
+
+  publicIdentityEnabled = computed(
+    () => this.profile().settings?.security?.shareProfileInDiscovery === true
+  );
+
+  settingsLinksEnabled = computed(
+    () => this.profile().settings?.security?.shareThirdPartyLinksPublicly === true
+  );
+
+  personaSynthesis = computed(() =>
+    this.publicAnswersEnabled()
+      ? this.profile().musicalJourney?.personaSynthesis
+      : undefined
+  );
+  journey = computed(() =>
+    this.publicAnswersEnabled() ? this.profile().musicalJourney : undefined
+  );
 
   strengthMeter = computed(() => {
+    if (!this.publicAnswersEnabled()) {
+      return {
+        identityClarity: 0,
+        musicalDepth: 0,
+        technicalAbility: 0,
+        businessReadiness: 0,
+        brandDefinition: 0,
+        aiIntegration: 0,
+        overall: 0,
+      };
+    }
     return this.questionnaireEngine.calculateStrength(this.profile());
   });
 
@@ -101,50 +128,57 @@ export class ArtistLandingComponent implements OnDestroy {
     }> = [];
 
     const push = (label: string, url: unknown, icon: string, color: string) => {
-      const value = typeof url === 'string' ? url.trim() : '';
-      // Only real, navigable addresses: a button that goes nowhere is worse
-      // than no button on the artist's public page.
-      if (!/^https?:\/\//i.test(value) || seen.has(value)) return;
-      seen.add(value);
-      links.push({ label, url: value, icon, color });
+      const validation = this.fingerprint.validateLinkUrl(url);
+      if (validation.ok === false) return;
+      if (seen.has(validation.url)) return;
+      seen.add(validation.url);
+      links.push({ label, url: validation.url, icon, color });
     };
 
-    (profile.officialArtistProfiles || []).forEach((link: any) => {
-      const destinationId = String(link?.destinationId || '');
-      const destination = this.fingerprint.destination(destinationId);
-      const style = PLATFORM_STYLE[destinationId] || {
-        icon: '🔗',
-        color: '#0E7C7B',
-      };
-      push(
-        destination?.label || destinationId || 'Official profile',
-        link?.url,
-        style.icon,
-        style.color
-      );
-    });
+    const security = profile.settings?.security;
+    if (security?.shareThirdPartyLinksPublicly === true) {
+      (profile.officialArtistProfiles || []).forEach((link: any) => {
+        const destinationId = String(link?.destinationId || '');
+        const destination = this.fingerprint.destination(destinationId);
+        const style = PLATFORM_STYLE[destinationId] || {
+          icon: '🔗',
+          color: '#0E7C7B',
+        };
+        push(
+          destination?.label || destinationId || 'Official profile',
+          link?.url,
+          style.icon,
+          style.color
+        );
+      });
 
-    push(
-      'Website',
-      profile.website || profile.artistIdentity?.core?.officialWebsite,
-      '🌐',
-      '#0E7C7B'
-    );
+      push(
+        'Website',
+        profile.website || profile.artistIdentity?.core?.officialWebsite,
+        '🌐',
+        '#0E7C7B'
+      );
+    }
 
     return links;
   });
 
   strategicInsights = computed(() =>
-    this.aiService.getUpgradeRecommendations().slice(0, 4)
+    this.publicAnswersEnabled()
+      ? this.aiService.getUpgradeRecommendations().slice(0, 4)
+      : []
   );
 
   aiBio = computed(() => {
-    const j = this.journey();
-    const synth = this.personaSynthesis();
+    const profile = this.profile();
+    const security = profile.settings?.security;
+    if (security?.shareProfileAnswersPublicly !== true || security?.shareProfileInDiscovery === false) return '';
+    const j = profile.musicalJourney;
+    const synth = j?.personaSynthesis;
     if (!j) return '';
 
     const parts: string[] = [];
-    parts.push(`${this.profile().artistName || 'This artist'} is `);
+    parts.push(`${profile.artistName || 'This artist'} is `);
 
     if (synth?.archetype) {
       const arch = synth.archetype.split(' — ')[0] || synth.archetype;
@@ -152,7 +186,7 @@ export class ArtistLandingComponent implements OnDestroy {
     }
 
     parts.push(
-      `an independent ${this.profile().primaryGenre?.toLowerCase() || 'music'} artist `
+      `an independent ${profile.primaryGenre?.toLowerCase() || 'music'} artist `
     );
 
     if (j.originStory) {
@@ -203,6 +237,7 @@ export class ArtistLandingComponent implements OnDestroy {
   });
 
   featuredTrack = computed(() => {
+    if (!this.publicAnswersEnabled() || !this.publicIdentityEnabled()) return null;
     const catalog = this.profile().catalog || [];
     return catalog.length > 0 ? catalog[0] : null;
   });

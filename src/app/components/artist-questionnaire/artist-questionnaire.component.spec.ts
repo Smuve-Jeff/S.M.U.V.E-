@@ -12,6 +12,7 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
     artistName: 'Nova',
     primaryGenre: 'Electronic',
     musicalJourney: {},
+    settings: { security: { shareProfileAnswersWithAi: true } },
     expertise: {},
     strategicGoals: [],
   } as any;
@@ -80,6 +81,35 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
     );
     expect(component.aiCoachAnswer()).toContain('Prioritize');
     expect(component.aiCoachBusy()).toBe(false);
+  });
+
+  it('withholds identity and profile answers from the AI copilot by default', async () => {
+    component.profileDraft.set({
+      ...profile,
+      settings: { security: { shareProfileAnswersWithAi: false } },
+    });
+    component.aiCoachQuestion.set('What should I do next?');
+    aiService.getAIResponse.mockResolvedValue('General guidance.');
+
+    await component.askAiCoach();
+
+    const prompt = aiService.getAIResponse.mock.calls[0][0] as string;
+    expect(prompt).toContain('Artist identity: withheld');
+    expect(prompt).not.toContain('Artist: Nova');
+    expect(prompt).not.toContain('Genre: Electronic');
+    expect(prompt).toContain('Profile-derived strengths, gaps, and next moves withheld');
+  });
+
+  it('turns the AI offline sentinel into a useful retry message', async () => {
+    aiService.getAIResponse.mockResolvedValue(
+      'Strategic Link Severed. Offline processing active.'
+    );
+    component.aiCoachQuestion.set('What should I prioritize?');
+
+    await component.askAiCoach();
+
+    expect(component.aiCoachAnswer()).toContain('S.M.U.V.E. is offline');
+    expect(component.aiCoachAnswer()).toContain('draft is safe');
   });
 
   it('keeps the S.M.U.V.E. character and the draft reading inside the coach prompt', async () => {
@@ -219,6 +249,24 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
     await component.requestClose();
     expect(dialog.confirm).not.toHaveBeenCalled();
     expect(closed).toHaveBeenCalledTimes(1);
+  });
+
+  it('prevents a second profile commit while the first is still pending', async () => {
+    let resolveCommit!: (success: boolean) => void;
+    const uplink = TestBed.inject(UplinkService) as any;
+    uplink.initiateUplink.mockReturnValue(
+      new Promise<boolean>((resolve) => (resolveCommit = resolve))
+    );
+
+    const first = component.applyChanges();
+    await component.applyChanges();
+    expect(uplink.initiateUplink).toHaveBeenCalledTimes(1);
+    expect(component.isCommitting()).toBe(true);
+
+    resolveCommit(true);
+    await first;
+    expect(component.isCommitting()).toBe(false);
+    expect(component.committed()).toBe(true);
   });
 
   it('does not issue duplicate requests while the copilot is busy', async () => {

@@ -207,12 +207,15 @@ const profileToOnlineUser = (
   extra: Partial<OnlineUserRow> = {},
 ): OnlineUserRow => {
   const d = (p.profileData ?? {}) as Record<string, unknown>;
+  const security = (d.settings as any)?.security ?? {};
+  const shareProfile = security.shareProfileInDiscovery !== false;
+  const hideSensitive = security.hideSensitiveProfileDetails !== false;
   return {
     userId: p.userId,
-    artistName: (d.artistName as string) || undefined,
-    primaryGenre: (d.primaryGenre as string) || undefined,
-    avatarImage: (d.avatarImage as string) || undefined,
-    location: (d.location as string) || undefined,
+    artistName: shareProfile ? (d.artistName as string) || undefined : undefined,
+    primaryGenre: shareProfile ? (d.primaryGenre as string) || undefined : undefined,
+    avatarImage: shareProfile ? (d.avatarImage as string) || undefined : undefined,
+    location: shareProfile && !hideSensitive ? (d.location as string) || undefined : undefined,
     profileSetupCompleted: d.profileSetupCompleted === true,
     ...extra,
   };
@@ -225,6 +228,9 @@ export const searchUsers = async (opts: {
   actorUserId?: string;
 }): Promise<OnlineUserRow[]> => {
   const qb = repo().profiles.createQueryBuilder("p");
+  qb.andWhere(
+    `COALESCE(p.profile_data->'settings'->'security'->>'allowCollaboratorDiscovery', 'true') <> 'false'`,
+  );
   if (opts.q && typeof opts.q === "string") {
     qb.andWhere(
       `(p.profile_data->>'artistName' ILIKE :q OR p.profile_data->>'primaryGenre' ILIKE :q)`,
@@ -232,9 +238,10 @@ export const searchUsers = async (opts: {
     );
   }
   if (opts.location && typeof opts.location === "string") {
-    qb.andWhere(`p.profile_data->>'location' ILIKE :loc`, {
-      loc: `%${opts.location}%`,
-    });
+    qb.andWhere(
+      `(p.profile_data->'settings'->'security'->>'hideSensitiveProfileDetails' = 'false' AND p.profile_data->>'location' ILIKE :loc)`,
+      { loc: `%${opts.location}%` },
+    );
   }
   qb.orderBy(`(p.profile_data->>'eliteScore')::int`, "DESC", "NULLS LAST").take(
     20,
@@ -254,6 +261,9 @@ export const featuredUsers = async (
     .profiles.createQueryBuilder("p")
     .where(`p.profile_data->>'profileSetupCompleted' = 'true'`)
     .andWhere(`p.profile_data->>'artistName' != 'Incognito'`)
+    .andWhere(
+      `COALESCE(p.profile_data->'settings'->'security'->>'allowCollaboratorDiscovery', 'true') <> 'false'`,
+    )
     .orderBy("p.updated_at", "DESC")
     .take(10)
     .getMany();

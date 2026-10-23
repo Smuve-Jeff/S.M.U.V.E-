@@ -13,6 +13,7 @@ import { buildArtistMusicContext } from '../types/profile.types';
 
 function profileWith(overrides: Record<string, any>): any {
   const base = JSON.parse(JSON.stringify(initialProfile)) as any;
+  base.settings = { ...base.settings, security: { ...base.settings?.security, shareProfileAnswersWithAi: true } };
   const apply = (obj: any, path: string, value: any) => {
     const parts = path.split('.');
     let cur = obj;

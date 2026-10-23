@@ -393,21 +393,24 @@
             <app-form-field label="Artist / Stage Name">
               <input
                 type="text"
-                [(ngModel)]="editableProfile().artistName"
+                [ngModel]="editableProfile().artistName"
+                (ngModelChange)="updateProfileField('artistName', $event)"
                 class="executive-input"
               />
             </app-form-field>
             <app-form-field label="Location">
               <input
                 type="text"
-                [(ngModel)]="editableProfile().location"
+                [ngModel]="editableProfile().location"
+                (ngModelChange)="updateProfileField('location', $event)"
                 placeholder="Global HQ / City, Country"
                 class="executive-input"
               />
             </app-form-field>
             <app-form-field label="Primary Genre">
               <select
-                [(ngModel)]="editableProfile().primaryGenre"
+                [ngModel]="editableProfile().primaryGenre"
+                (ngModelChange)="updateProfileField('primaryGenre', $event)"
                 class="executive-input"
               >
                 <option *ngFor="let g of allGenres" [value]="g">{{ g }}</option>
@@ -416,7 +419,8 @@
             <app-form-field label="Official Website">
               <input
                 type="text"
-                [(ngModel)]="editableProfile().website"
+                [ngModel]="editableProfile().website"
+                (ngModelChange)="updateProfileField('website', $event)"
                 class="executive-input"
                 placeholder="https://yourartistdomain.com"
               />
@@ -424,7 +428,8 @@
             <app-form-field label="PRO / IPI">
               <input
                 type="text"
-                [(ngModel)]="editableProfile().proIpi"
+                [ngModel]="editableProfile().proIpi"
+                (ngModelChange)="updateProfileField('proIpi', $event)"
                 class="executive-input"
                 placeholder="IPI / CAE number"
               />
@@ -1231,7 +1236,7 @@
                       {{ destination.why }}
                     </p>
                     <a
-                      *ngIf="destination.link"
+                      *ngIf="destination.link && fingerprint.validateLinkUrl(destination.link.url).ok"
                       [href]="destination.link.url"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -1275,14 +1280,20 @@
                     placeholder="https://…"
                     class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
                   />
+                  <p *ngIf="fingerprintLinkError()" class="text-xs text-red-400" role="alert">
+                    {{ fingerprintLinkError() }}
+                  </p>
                   <label class="flex items-center gap-3 text-[10px] text-slate-400">
                     <input
                       type="checkbox"
                       [(ngModel)]="fingerprintVerified"
                       class="accent-emerald-400"
                     />
-                    This account is confirmed as the artist’s own
+                    I have confirmed that this public account belongs to me
                   </label>
+                  <p class="text-[9px] text-slate-500">
+                    Only the link and your self-reported confirmation are saved. S.M.U.V.E. does not connect to or authenticate with this service.
+                  </p>
                   <div class="flex gap-2">
                     <button
                       (click)="saveFingerprintLink()"
@@ -1722,21 +1733,20 @@
               />
             </label>
 
-            <div class="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="registered-works"
-                [ngModel]="legalFlag('hasRegisteredWorks')"
-                (ngModelChange)="setLegalFlag('hasRegisteredWorks', $event)"
-                class="accent-emerald-400"
-              />
-              <label
-                for="registered-works"
-                class="text-[10px] font-black uppercase tracking-widest text-slate-400"
+            <label class="space-y-2">
+              <span class="text-[10px] font-black uppercase text-brand-primary tracking-[0.2em] block">
+                Copyright registration
+              </span>
+              <select
+                [ngModel]="legalValue('hasRegisteredWorks')"
+                (ngModelChange)="setLegalField('hasRegisteredWorks', $event)"
+                class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white"
               >
-                Works registered
-              </label>
-            </div>
+                <option [ngValue]="'No'">No — not yet</option>
+                <option [ngValue]="'Partial'">Some — in progress</option>
+                <option [ngValue]="'Yes'">Yes — registered</option>
+              </select>
+            </label>
 
             <div class="flex items-center gap-3">
               <input
@@ -1827,7 +1837,8 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
             <app-form-field label="Frequency">
               <select
-                [(ngModel)]="editableProfile().performancesPerYear"
+                [ngModel]="editableProfile().performancesPerYear"
+                (ngModelChange)="updateProfileField('performancesPerYear', $event)"
                 class="executive-input"
               >
                 <option value="None">None</option>
@@ -1839,13 +1850,41 @@
             </app-form-field>
             <app-form-field label="Travel">
               <select
-                [(ngModel)]="editableProfile().touringDetails.travelPreference"
+                [ngModel]="editableProfile().touringDetails.travelPreference"
+                (ngModelChange)="updateProfileField('touringDetails.travelPreference', $event)"
                 class="executive-input"
               >
                 <option *ngFor="let opt of travelOptions" [value]="opt">
                   {{ opt }}
                 </option>
               </select>
+            </app-form-field>
+            <app-form-field label="Live readiness">
+              <select
+                [ngModel]="editableProfile().touringDetails.isTourReady"
+                (ngModelChange)="updateProfileField('touringDetails.isTourReady', $event)"
+                class="executive-input"
+              >
+                <option *ngFor="let level of tourReadinessOptions" [ngValue]="level">{{ level }}</option>
+              </select>
+            </app-form-field>
+            <app-form-field label="Backline">
+              <select
+                [ngModel]="editableProfile().touringDetails.hasBackline"
+                (ngModelChange)="updateProfileField('touringDetails.hasBackline', $event)"
+                class="executive-input"
+              >
+                <option *ngFor="let option of backlineOptions" [ngValue]="option">{{ option }}</option>
+              </select>
+            </app-form-field>
+            <app-form-field label="Target regions (comma-separated)">
+              <input
+                type="text"
+                [ngModel]="touringRegionsText()"
+                (ngModelChange)="setTouringRegions($event)"
+                placeholder="Midwest, Northeast"
+                class="executive-input"
+              />
             </app-form-field>
           </div>
         </div>

@@ -57,6 +57,7 @@ describe('AiService', () => {
             aiMimicEnabled: false,
             aiProfanityEnabled: false,
           },
+          security: { shareProfileAnswersWithAi: true },
         },
         tasks: [],
         skills: [],
@@ -219,6 +220,7 @@ describe('AiService', () => {
   });
 
   const calibratedProfile = {
+      settings: { security: { shareProfileAnswersWithAi: true } },
       artistName: 'Nova Vale',
       primaryGenre: 'Electronic',
       location: 'Atlanta',

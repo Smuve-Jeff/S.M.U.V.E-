@@ -209,6 +209,15 @@ export class ArtistProfileFinetuneService {
 
   /** Role directive for an arbitrary profile (draft preview). */
   directiveForProfile(role: FinetuneRole, profile: UserProfile | null | undefined): RoleDirective {
+    if (profile?.settings?.security?.shareProfileAnswersWithAi !== true) {
+      return {
+        role,
+        profileState: 'foundational',
+        directive: 'Use general guidance only. The artist opted out of sharing profile answers with AI.',
+        tips: ['Ask before using artist-specific profile answers.'],
+        guardrails: ['Respect the artist’s profile privacy preference.'],
+      };
+    }
     const knowledge = this.compile(profile);
     const { directive, tips } = this.buildRole(role, knowledge);
     const missing = knowledge.missing.slice(0, 3).join('; ') || 'n/a';
@@ -225,7 +234,17 @@ export class ArtistProfileFinetuneService {
 
   /** Role-specific operating directive derived from the artist’s own evidence. */
   directiveFor(role: FinetuneRole): RoleDirective {
-    const knowledge = this.knowledge();
+    const profile = this.profileService.profile();
+    if (profile.settings?.security?.shareProfileAnswersWithAi !== true) {
+      return {
+        role,
+        profileState: 'foundational',
+        directive: 'Use general guidance only. The artist opted out of sharing profile answers with AI; do not infer, repeat, or rely on profile details.',
+        tips: ['Ask before using artist-specific answers or context.'],
+        guardrails: ['Respect the artist’s AI profile-data privacy preference.'],
+      };
+    }
+    const knowledge = this.compile(profile);
     const guardrails = this.guardrails(knowledge);
     const { directive, tips } = this.buildRole(role, knowledge);
     const missing = knowledge.missing.slice(0, 3).join('; ') || 'n/a';
@@ -243,6 +262,14 @@ export class ArtistProfileFinetuneService {
 
   /** How S.M.U.V.E. should sound when writing as or for this artist. */
   voiceSpec(): ArtistVoiceSpec {
+    if (this.profileService.profile().settings?.security?.shareProfileAnswersWithAi !== true) {
+      return {
+        tone: 'Clear, general, and respectful of the artist’s privacy choice.',
+        vocabulary: 'Do not use profile-specific vocabulary.',
+        imagery: [],
+        avoid: ['Repeating or inferring artist profile answers.'],
+      };
+    }
     const knowledge = this.knowledge();
     return {
       tone: knowledge.craft.productionPhilosophy
@@ -278,7 +305,12 @@ export class ArtistProfileFinetuneService {
    * adapts production, songwriting, marketing, promotion, and legal answers.
    */
   promptBlock(): string {
-    const k = this.knowledge();
+    const profile = this.profileService.profile();
+    if (profile.settings?.security?.shareProfileAnswersWithAi !== true) {
+      return 'ARTIST PROFILE PRIVACY: the artist opted out of sharing profile answers with AI. Do not infer or restate personal profile answers; provide general guidance only and ask before using profile-specific details.';
+    }
+    const k = this.compile(profile);
+    const hideSensitive = profile.settings?.security?.hideSensitiveProfileDetails !== false;
     if (k.state === 'foundational') {
       // The presence line matters most here: a beginner must not be handed
       // dashboard or analytics tactics for accounts they have never created.
@@ -293,16 +325,26 @@ export class ArtistProfileFinetuneService {
       `GENRE CONTEXT: ${k.genre} is a reference frame, not an identity verdict; do not assume one genre technique fits every subgenre or artist. If the artist blends styles, preserve the blend and explain trade-offs rather than forcing a single genre template.`,
       `SKILL CALIBRATION: production=${k.expertise.production}; marketing=${k.expertise.marketing}; mastering=${k.expertise.mastering}; audioEngineering=${k.expertise.audioEngineering}. Explain unfamiliar concepts at the artist’s demonstrated level, offer an optional advanced path, and do not confuse a low self-rating with inability.`,
       'DOMAIN RESPONSE STANDARD: For production and music theory, state the musical goal, give a reversible starting experiment, and explain what to listen for; do not prescribe universal settings as rules. For business, marketing and promotion, distinguish stable principles from current platform policies, request current evidence before time-sensitive claims, tailor actions to the artist’s recorded audience, resources and goal, and never invent results.',
-      `ARTIST CONTRACT (explicit artist-authored instructions override generic genre defaults): intent=${k.audience.intent || 'not declared'}; tension=${k.identity.tension || 'not declared'}; livedWorld=${k.identity.livedWorld || 'not declared'}; recognitionCue=${k.audience.recognitionCue || 'not declared'}; collaborationBoundaries=${k.craft.collaborationBoundaries || 'not declared'}.`,
-      `ARTIST CONSTRAINTS: focus=${k.business.focus || 'unknown'}; goal=${k.business.successMetric || 'unknown'}; cadence=${k.business.velocity || 'unknown'}; sonicRule=${k.sonic.nonNegotiables || 'not declared'}; tempo=${k.sonic.tempoZone || 'not declared'}; audience=${k.audience.profile || 'not declared'}.`,
-      `DIFFERENTIATORS: ${k.differentiators.join(' | ') || 'none captured yet'}`,
+      hideSensitive
+        ? 'ARTIST CONTRACT: sensitive artist-authored narrative answers withheld by privacy setting.'
+        : `ARTIST CONTRACT (explicit artist-authored instructions override generic genre defaults): intent=${k.audience.intent || 'not declared'}; tension=${k.identity.tension || 'not declared'}; livedWorld=${k.identity.livedWorld || 'not declared'}; recognitionCue=${k.audience.recognitionCue || 'not declared'}; collaborationBoundaries=${k.craft.collaborationBoundaries || 'not declared'}.`,
+      hideSensitive
+        ? `ARTIST CONSTRAINTS: focus withheld; goal=${k.business.successMetric || 'unknown'}; cadence=${k.business.velocity || 'unknown'}; tempo=${k.sonic.tempoZone || 'not declared'}.`
+        : `ARTIST CONSTRAINTS: focus=${k.business.focus || 'unknown'}; goal=${k.business.successMetric || 'unknown'}; cadence=${k.business.velocity || 'unknown'}; sonicRule=${k.sonic.nonNegotiables || 'not declared'}; tempo=${k.sonic.tempoZone || 'not declared'}; audience=${k.audience.profile || 'not declared'}.`,
+      `DIFFERENTIATORS: ${hideSensitive ? 'withheld by privacy setting' : k.differentiators.join(' | ') || 'none captured yet'}`,
       `MISSING EVIDENCE: ${k.missing.join('; ') || 'none — profile is calibrated'}`,
       sections,
-      `STUDIO CHAIN: ${[...k.operations.equipment, ...k.operations.daw, ...k.operations.services].join(', ') || 'not captured'}`,
-      `ROSTER: ${k.operations.roster.join(' | ') || 'independent, no roster'}`,
-      `SYNC AND LEGAL: sync=${k.sync.readiness || 'unset'}, oneStop=${k.sync.oneStopClearance}, stems=${k.sync.hasStems}, worksRegistered=${k.legal.registeredWorks}, pro=${k.legal.proAffiliation || 'none'}, splitSheet=${k.legal.splitSheet || 'unknown'}, incorporated=${k.legal.incorporated}, trademark=${k.legal.trademark || 'none'}`,
-      `LIVE: readiness=${k.live.readiness || 'unset'}, regions=${k.live.regions.join(', ') || 'none'}, travel=${k.live.travel || 'unset'}, backline=${k.live.hasBackline}, showsPerYear=${k.live.performancesPerYear || 'unset'}`,
-      `CATALOGUE: ${k.operations.catalogSize} item(s), sync-ready=${k.sync.catalogSize}, releaseRecord=${k.presence.catalogAverageCompleteness}% documented, undated=${k.presence.undatedWorks}, historyIssues=${k.presence.historyIssues.join(' | ') || 'none'}`,
+      `STUDIO CHAIN: ${hideSensitive ? [...k.operations.equipment, ...k.operations.daw, ...k.operations.services].join(', ') || 'not captured' : 'withheld by privacy setting'}`,
+      `ROSTER: ${hideSensitive ? 'withheld by privacy setting' : k.operations.roster.join(' | ') || 'independent, no roster'}`,
+      hideSensitive
+        ? 'SYNC AND LEGAL: sensitive business and legal details withheld by privacy setting.'
+        : `SYNC AND LEGAL: sync=${k.sync.readiness || 'unset'}, oneStop=${k.sync.oneStopClearance}, stems=${k.sync.hasStems}, worksRegistered=${k.legal.registeredWorks}, pro=${k.legal.proAffiliation || 'none'}, splitSheet=${k.legal.splitSheet || 'unknown'}, incorporated=${k.legal.incorporated}, trademark=${k.legal.trademark || 'none'}`,
+      hideSensitive
+        ? 'LIVE: location and performance details withheld by privacy setting.'
+        : `LIVE: readiness=${k.live.readiness || 'unset'}, regions=${k.live.regions.join(', ') || 'none'}, travel=${k.live.travel || 'unset'}, backline=${k.live.hasBackline}, showsPerYear=${k.live.performancesPerYear || 'unset'}`,
+      hideSensitive
+        ? `CATALOGUE: ${k.operations.catalogSize} item(s); detailed release and rights metadata withheld by privacy setting.`
+        : `CATALOGUE: ${k.operations.catalogSize} item(s), sync-ready=${k.sync.catalogSize}, releaseRecord=${k.presence.catalogAverageCompleteness}% documented, undated=${k.presence.undatedWorks}, historyIssues=${k.presence.historyIssues.join(' | ') || 'none'}`,
       this.presenceLine(k),
       this.pathwayLine(k),
       `VOICE: ${voice.tone} ${voice.vocabulary}`,
@@ -324,6 +366,12 @@ export class ArtistProfileFinetuneService {
    */
   private pathwayLine(k: ArtistProfileKnowledge): string {
     const p = k.pathway;
+    if (this.profileService.profile().settings?.security?.shareProfileAnswersWithAi !== true) {
+      return 'OFFICIAL PATHWAY: profile information withheld by AI privacy setting.';
+    }
+    if (this.profileService.profile().settings?.security?.hideSensitiveProfileDetails !== false) {
+      return 'OFFICIAL PATHWAY: private profile details withheld by privacy setting. Ask before providing personalized account or business advice.';
+    }
     if (!p.nextStep) {
       return `OFFICIAL PATHWAY: every area is official (${p.overall}%). Protect the record and keep it current as new releases go out.`;
     }
@@ -342,6 +390,12 @@ export class ArtistProfileFinetuneService {
   }
 
   private presenceLine(k: ArtistProfileKnowledge): string {
+    if (this.profileService.profile().settings?.security?.shareProfileAnswersWithAi !== true) {
+      return 'ONLINE PRESENCE: profile information withheld by AI privacy setting.';
+    }
+    if (this.profileService.profile().settings?.security?.hideSensitiveProfileDetails !== false) {
+      return 'ONLINE PRESENCE: account links and ownership details withheld by privacy setting.';
+    }
     const p = k.presence;
     if (p.track === 'emerging' && !p.hasFingerprint) {
       return `ONLINE PRESENCE: none yet — the artist is a beginner with no official profiles. Do not reference dashboards, analytics, or royalty statements they do not have. Start from: ${p.nextStep || 'first release through a free distributor'}.`;
@@ -358,11 +412,17 @@ export class ArtistProfileFinetuneService {
 
   /** Concrete, profile-derived actions the artist can act on today. */
   tips(): string[] {
+    if (this.profileService.profile().settings?.security?.shareProfileAnswersWithAi !== true) {
+      return ['Profile answers are private from AI. Ask before providing artist-specific coaching.'];
+    }
     return this.tipsFor(this.knowledge());
   }
 
   /** Tips for an arbitrary profile, so drafts can preview them before commit. */
   tipsForProfile(profile: UserProfile | null | undefined): string[] {
+    if (profile?.settings?.security?.shareProfileAnswersWithAi !== true) {
+      return ['Profile answers are private from AI. Ask before providing artist-specific coaching.'];
+    }
     return this.tipsFor(this.compile(profile));
   }
 
@@ -474,13 +534,18 @@ export class ArtistProfileFinetuneService {
   }
 
   private guardrails(k: ArtistProfileKnowledge): string[] {
+    if (this.profileService.profile().settings?.security?.shareProfileAnswersWithAi !== true) {
+      return ['Do not use or repeat artist profile answers; ask before personalized profile use.'];
+    }
     return [
       'Never invent biography, audience data, achievements, or credits.',
       'Treat reference tracks as learning references, not imitation targets.',
       'Keep every recommendation inside the artist’s stated intent and boundaries.',
-      k.state === 'calibrated'
-        ? 'Use the completed profile directly instead of asking the artist to restate it.'
-        : `Ask for missing evidence before high-confidence claims: ${k.missing.slice(0, 3).join('; ') || 'n/a'}.`,
+      this.profileService.profile().settings?.security?.shareProfileAnswersWithAi !== true
+        ? 'Do not use artist profile answers; the artist opted out of sharing them with AI.'
+        : k.state === 'calibrated'
+          ? 'Use the completed profile directly instead of asking the artist to restate it.'
+          : `Ask for missing evidence before high-confidence claims: ${k.missing.slice(0, 3).join('; ') || 'n/a'}.`,
       'Legal output is drafting guidance, not representation — flag anything needing a licensed attorney in the artist’s jurisdiction.',
       k.pathway.nextStep
         ? `Do not propose priorities that conflict with the pathway step “${k.pathway.nextStep}” unless the artist explicitly redirects.`
