@@ -56,6 +56,11 @@ export class AnalyticsDashboardComponent {
     'Discord Exclusive: Early listen for the next single.',
   ];
 
+  newWorkTitle = signal('');
+  newWorkId = signal('');
+  workError = signal('');
+  isSavingWork = signal(false);
+
   async updateIpi(ipi: string) {
     const profile = this.profileService.profile();
     await this.profileService.updateProfile({
@@ -67,7 +72,68 @@ export class AnalyticsDashboardComponent {
     });
   }
 
-  async addWorkId(title: string, id: string) {
+  /**
+   * Register a work the artist typed in.
+   *
+   * The old button added "Untitled Work" with the id "PENDING" and marked it
+   * "Verified" — a fake registration for a fake work. Entries are now checked
+   * for a title and a real identifier, and stay labelled self-reported until a
+   * PRO actually confirms them.
+   */
+  async registerWork() {
+    if (this.isSavingWork()) return;
+    const title = this.newWorkTitle().trim();
+    const workId = this.newWorkId().trim();
+
+    if (!title) {
+      this.workError.set('Add the work title before registering it.');
+      return;
+    }
+    if (!workId) {
+      this.workError.set(
+        'Add the ISWC or PRO work ID so the registration can be matched later.'
+      );
+      return;
+    }
+    const profile = this.profileService.profile();
+    const currentPro = profile.proData || {
+      ipiNumber: '',
+      workIds: [],
+      affiliations: [],
+    };
+    if (
+      currentPro.workIds.some(
+        (work: any) =>
+          String(work.id).trim().toLowerCase() === workId.toLowerCase()
+      )
+    ) {
+      this.workError.set(`${workId} is already registered.`);
+      return;
+    }
+
+    this.workError.set('');
+    this.isSavingWork.set(true);
+    try {
+      await this.profileService.updateProfile({
+        ...profile,
+        proData: {
+          ...currentPro,
+          workIds: [
+            ...currentPro.workIds,
+            { title, id: workId, status: 'Self-reported' },
+          ],
+        },
+      });
+      this.newWorkTitle.set('');
+      this.newWorkId.set('');
+    } catch {
+      this.workError.set('Work could not be saved. Try again.');
+    } finally {
+      this.isSavingWork.set(false);
+    }
+  }
+
+  async removeWork(index: number) {
     const profile = this.profileService.profile();
     const currentPro = profile.proData || {
       ipiNumber: '',
@@ -78,14 +144,10 @@ export class AnalyticsDashboardComponent {
       ...profile,
       proData: {
         ...currentPro,
-        workIds: [...currentPro.workIds, { title, id, status: 'Verified' }],
+        workIds: currentPro.workIds.filter(
+          (_: any, workIndex: number) => workIndex !== index
+        ),
       },
     });
-  }
-
-  getMathMax(arr: number[]): number {
-    if (!arr.length) return 1;
-    const max = Math.max(...arr);
-    return max > 0 ? max : 1;
   }
 }

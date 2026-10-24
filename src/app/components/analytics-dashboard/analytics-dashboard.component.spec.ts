@@ -10,14 +10,23 @@ describe('AnalyticsDashboardComponent', () => {
     overrides: Partial<AnalyticsService> = {}
   ) => {
     TestBed.resetTestingModule();
+    const analytics =
+      Object.keys(overrides).length > 0 ? overrides : new AnalyticsService();
+    const profile = signal<any>({
+      artistName: 'Nova',
+      proData: { ipiNumber: '', workIds: [], affiliations: [] },
+    });
+    const updateProfile = jest.fn(async (patch: any) => {
+      profile.update((current) => ({ ...current, ...patch }));
+    });
     await TestBed.configureTestingModule({
       imports: [AnalyticsDashboardComponent],
       providers: [
         provideRouter([]),
-        { provide: AnalyticsService, useValue: overrides },
+        { provide: AnalyticsService, useValue: analytics },
         {
           provide: UserProfileService,
-          useValue: { profile: signal({ artistName: 'Nova' }) },
+          useValue: { profile, updateProfile },
         },
       ],
     }).compileComponents();
@@ -27,6 +36,8 @@ describe('AnalyticsDashboardComponent', () => {
     return {
       fixture,
       component: fixture.componentInstance,
+      profile,
+      updateProfile,
       text: () => (fixture.nativeElement as HTMLElement).textContent ?? '',
     };
   };
@@ -104,6 +115,88 @@ describe('AnalyticsDashboardComponent', () => {
       expect(text()).toContain('4,200');
       expect(text()).toContain('+6.5%');
       expect(text()).not.toContain('No analytics source connected');
+    });
+  });
+
+  /**
+   * "+ Register Work" used to add an "Untitled Work" with the id "PENDING"
+   * and stamp it "Verified" — a fake registration for a work nobody entered.
+   */
+  describe('PRO work registry', () => {
+    it('starts empty and says so instead of inventing a work', async () => {
+      const { component, text } = await createComponent();
+
+      expect(component.proData().workIds).toEqual([]);
+      expect(text()).toContain('No works registered yet');
+      expect(text()).not.toContain('Untitled Work');
+      expect(text()).not.toContain('PENDING');
+    });
+
+    it('requires a title and a work ID before registering', async () => {
+      const { component, updateProfile } = await createComponent();
+
+      await component.registerWork();
+      expect(component.workError()).toContain('title');
+
+      component.newWorkTitle.set('Midnight Run');
+      await component.registerWork();
+      expect(component.workError()).toContain('ISWC or PRO work ID');
+      expect(updateProfile).not.toHaveBeenCalled();
+    });
+
+    it('registers the work as self-reported, not verified', async () => {
+      const { component, fixture, profile, text } = await createComponent();
+
+      component.newWorkTitle.set('Midnight Run');
+      component.newWorkId.set('T-1234567890');
+      await component.registerWork();
+      fixture.detectChanges();
+
+      expect(profile().proData.workIds).toEqual([
+        { title: 'Midnight Run', id: 'T-1234567890', status: 'Self-reported' },
+      ]);
+      expect(component.newWorkTitle()).toBe('');
+      expect(component.newWorkId()).toBe('');
+      expect(text()).toContain('Midnight Run');
+      expect(text()).toContain('Self-reported');
+      expect(text()).not.toContain('Verified');
+    });
+
+    it('refuses a duplicate work ID', async () => {
+      const { component, updateProfile } = await createComponent();
+
+      component.newWorkTitle.set('Midnight Run');
+      component.newWorkId.set('T-1234567890');
+      await component.registerWork();
+
+      component.newWorkTitle.set('Midnight Run (Remix)');
+      component.newWorkId.set('t-1234567890');
+      await component.registerWork();
+
+      expect(updateProfile).toHaveBeenCalledTimes(1);
+      expect(component.workError()).toContain('already registered');
+    });
+
+    it('removes a work while keeping the IPI number', async () => {
+      const { component, profile } = await createComponent();
+      profile.update((current: any) => ({
+        ...current,
+        proData: {
+          ipiNumber: '00123456789',
+          affiliations: [],
+          workIds: [
+            { title: 'One', id: 'A1', status: 'Self-reported' },
+            { title: 'Two', id: 'A2', status: 'Self-reported' },
+          ],
+        },
+      }));
+
+      await component.removeWork(0);
+
+      expect(profile().proData.workIds).toEqual([
+        { title: 'Two', id: 'A2', status: 'Self-reported' },
+      ]);
+      expect(profile().proData.ipiNumber).toBe('00123456789');
     });
   });
 

@@ -108,4 +108,90 @@ describe('JourneyComponent', () => {
     component.prev();
     expect(component.activeStep()).toBe(1);
   });
+
+  it('auto-saves the section whenever the artist advances or retreats', () => {
+    component.profile.update((p) => ({ ...p, artistName: 'Midnight Cassette' }));
+    updateProfile.mockClear();
+
+    component.next();
+    expect(updateProfile).toHaveBeenCalledTimes(1);
+    expect(component.justSaved()).toBe(true);
+
+    updateProfile.mockClear();
+    component.prev();
+    expect(updateProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('only allows jumping to steps already reached', () => {
+    component.next();
+    component.next();
+    expect(component.maxStepReached()).toBe(2);
+
+    component.jumpTo(0);
+    expect(component.activeStep()).toBe(0);
+
+    // The dossier is forward-only until walked to.
+    component.jumpTo(4);
+    expect(component.activeStep()).toBe(0);
+  });
+
+  it('marks key sections complete from real profile evidence', () => {
+    expect(component.stepComplete().filter(Boolean).length).toBe(0);
+
+    component.profile.update((p) => ({
+      ...p,
+      artistName: 'Midnight Cassette',
+      primaryGenre: 'Trap Soul',
+      skills: ['Producer'],
+      musicalJourney: {
+        ...p.musicalJourney,
+        experienceLevel: 'Advanced',
+        preferredBpmRange: '90-120',
+        currentFocus: 'Finish the debut EP',
+      },
+    }));
+
+    const complete = component.stepComplete();
+    expect(complete.slice(0, 4).every(Boolean)).toBe(true);
+    expect(component.completedCount()).toBe(4);
+  });
+
+  it('finalizes the dossier with a persisted profile and a confirmation', () => {
+    updateProfile.mockClear();
+
+    component.initializeJourney();
+
+    expect(updateProfile).toHaveBeenCalledTimes(1);
+    expect(component.initialized()).toBe(true);
+    expect(component.justSaved()).toBe(false);
+  });
+
+  it('moves between sections with the arrow keys, but never while typing', () => {
+    const inField = {
+      key: 'ArrowRight',
+      target: { tagName: 'INPUT' },
+      preventDefault: jest.fn(),
+    };
+    component.onArrowKey(inField as any);
+    expect(component.activeStep()).toBe(0);
+    expect(inField.preventDefault).not.toHaveBeenCalled();
+
+    const forward = {
+      key: 'ArrowRight',
+      target: { tagName: 'DIV' },
+      preventDefault: jest.fn(),
+    };
+    component.onArrowKey(forward as any);
+    expect(component.activeStep()).toBe(1);
+    expect(forward.preventDefault).toHaveBeenCalled();
+
+    const back = {
+      key: 'ArrowLeft',
+      target: { tagName: 'DIV' },
+      preventDefault: jest.fn(),
+    };
+    component.onArrowKey(back as any);
+    expect(component.activeStep()).toBe(0);
+    expect(back.preventDefault).toHaveBeenCalled();
+  });
 });

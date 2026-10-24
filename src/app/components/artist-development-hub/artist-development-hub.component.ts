@@ -207,6 +207,48 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   showAddRelease = this.dev.showAddRelease;
   newReleaseForm = this.dev.newReleaseForm;
 
+  /** Live text filter over the discography: name, type or status. */
+  catalogQuery = signal('');
+
+  filteredCatalog = computed(() => {
+    const query = this.catalogQuery().trim().toLowerCase();
+    const releases = this.catalog();
+    if (!query) return releases;
+    return releases.filter(
+      (release) =>
+        release.name.toLowerCase().includes(query) ||
+        release.type.toLowerCase().includes(query) ||
+        release.status.toLowerCase().includes(query)
+    );
+  });
+
+  /**
+   * Whether the active filter hides every release, to explain the empty grid.
+   * The template checks the no-releases state first, so an empty catalog keeps
+   * its own message and this only answers "nothing matched the query".
+   */
+  catalogFilterEmpty = computed(
+    () =>
+      this.catalogQuery().trim().length > 0 &&
+      this.filteredCatalog().length === 0
+  );
+
+  /** One-tap panel jumps for the header, instead of hunting accordions. */
+  readonly quickPanels: {
+    panel: HubPanel;
+    label: string;
+    icon: string;
+  }[] = [
+    { panel: 'pathway', label: 'Pathway', icon: 'route' },
+    { panel: 'fingerprint', label: 'Fingerprint', icon: 'fingerprint' },
+    { panel: 'pro', label: 'PRO', icon: 'gavel' },
+    { panel: 'dsp', label: 'DSP', icon: 'bar_chart' },
+    { panel: 'money', label: 'Money', icon: 'savings' },
+    { panel: 'social', label: 'Social', icon: 'share' },
+    { panel: 'catalog', label: 'Catalog', icon: 'album' },
+    { panel: 'release', label: 'Pipeline', icon: 'route' },
+  ];
+
   readonly organizationOptions = [
     'BMI',
     'ASCAP',

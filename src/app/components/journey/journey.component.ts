@@ -1,4 +1,11 @@
-import { Component, inject, signal, effect } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  computed,
+  effect,
+  HostListener,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -31,6 +38,44 @@ export class JourneyComponent {
     { title: 'The Vision', subtitle: 'Mapping the future' },
     { title: 'The Legacy', subtitle: 'Finalizing the dossier' },
   ];
+
+  /** Highest step reached this session — earlier steps stay clickable. */
+  maxStepReached = signal(0);
+
+  /** Signals that the wizard auto-saved the current step's answers. */
+  justSaved = signal(false);
+  private savedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Shows once the dossier is initialized, with hand-off actions. */
+  initialized = signal(false);
+
+  /**
+   * Per-step completeness, computed from the live profile so the header dots
+   * and the footer counter only ever state what is actually answered.
+   */
+  stepComplete = computed<boolean[]>(() => {
+    const p = this.profile();
+    const journey = p.musicalJourney || ({} as UserProfile['musicalJourney']);
+    // A fresh profile ships the placeholder name and the default genre. Those
+    // are not answers the artist gave, so nothing counts as complete until
+    // they have claimed the dossier with a real name.
+    const identified =
+      Boolean((p.artistName || '').trim()) &&
+      (p.artistName || '').trim() !== 'New Artist';
+    return [
+      identified && Boolean(journey.experienceLevel),
+      identified && Boolean((p.primaryGenre || '').trim()),
+      identified &&
+        Boolean(journey.preferredBpmRange) &&
+        (p.skills?.length || 0) > 0,
+      identified && Boolean((journey.currentFocus || '').trim()),
+      false,
+    ];
+  });
+
+  completedCount = computed(
+    () => this.stepComplete().filter(Boolean).length
+  );
 
   // Genre options — shared with the Artist DNA Uplink questionnaire so the
   // catalog can never drift between the two surfaces.
@@ -90,11 +135,59 @@ export class JourneyComponent {
   }
 
   next() {
-    if (this.activeStep() < this.steps.length - 1)
+    if (this.activeStep() < this.steps.length - 1) {
+      // Auto-save each section as the artist moves on, so walking away can
+      // never lose what was typed on an earlier step.
+      this.updateProfile();
+      this.flashSaved();
       this.activeStep.update((s) => s + 1);
+      this.maxStepReached.update((m) => Math.max(m, this.activeStep()));
+    }
   }
   prev() {
-    if (this.activeStep() > 0) this.activeStep.update((s) => s - 1);
+    if (this.activeStep() > 0) {
+      this.updateProfile();
+      this.flashSaved();
+      this.activeStep.update((s) => s - 1);
+    }
+  }
+
+  /** Jump to any step already reached; the dossier step stays forward-only. */
+  jumpTo(step: number) {
+    if (step < 0 || step > this.maxStepReached() || step === this.activeStep())
+      return;
+    this.updateProfile();
+    this.flashSaved();
+    this.activeStep.set(step);
+  }
+
+  private flashSaved() {
+    this.justSaved.set(true);
+    if (this.savedTimer) clearTimeout(this.savedTimer);
+    this.savedTimer = setTimeout(() => this.justSaved.set(false), 1600);
+  }
+
+  /**
+   * Arrow-key navigation between sections. Guarded against form controls so
+   * moving a caret in a text field never steals the interaction.
+   */
+  @HostListener('document:keydown', ['$event'])
+  onArrowKey(event: KeyboardEvent) {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+    const target = event.target as HTMLElement | null;
+    const tag = target?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (event.key === 'ArrowRight') {
+      if (this.activeStep() < this.steps.length - 1) {
+        this.next();
+        event.preventDefault();
+      }
+    } else if (event.key === 'ArrowLeft') {
+      if (this.activeStep() > 0) {
+        this.prev();
+        event.preventDefault();
+      }
+    }
   }
 
   /** Split comma-separated text into a trimmed, de-duplicated string array. */
@@ -152,5 +245,17 @@ export class JourneyComponent {
 
   hasProductionStyle(style: string): boolean {
     return (this.profile().productionStyles || []).includes(style);
+  }
+
+  /**
+   * Finalize the dossier: persist everything and confirm the hand-off, then
+   * surface the surfaces that consume what was just answered.
+   */
+  initializeJourney() {
+    this.updateProfile();
+    this.justSaved.set(false);
+    if (this.savedTimer) clearTimeout(this.savedTimer);
+    this.savedTimer = null;
+    this.initialized.set(true);
   }
 }

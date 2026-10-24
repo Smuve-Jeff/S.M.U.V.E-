@@ -322,4 +322,35 @@ describe('ArtistDevelopmentHubComponent', () => {
     });
     expect(text()).toContain('Can run in parallel');
   });
+
+  it('filters the catalog live by title, type or status', async () => {
+    const { fixture, component } = await createComponent();
+
+    component.openPanel('catalog');
+    fixture.detectChanges();
+
+    component.catalogQuery.set('releases that cannot exist');
+    expect(component.filteredCatalog().length).toBe(0);
+    expect(component.catalogFilterEmpty()).toBe(true);
+
+    component.catalogQuery.set('');
+    expect(component.filteredCatalog().length).toBe(
+      component.catalog().length
+    );
+    expect(component.catalogFilterEmpty()).toBe(false);
+  });
+
+  it('surfaces one-tap jumps to every hub panel', async () => {
+    const { fixture, component } = await createComponent();
+
+    expect(component.quickPanels.length).toBe(8);
+
+    component.openPanel('money');
+    fixture.detectChanges();
+    expect(component.activePanel()).toBe('money');
+
+    component.openPanel('pro');
+    fixture.detectChanges();
+    expect(component.activePanel()).toBe('pro');
+  });
 });

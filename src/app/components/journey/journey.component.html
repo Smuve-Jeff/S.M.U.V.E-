@@ -18,17 +18,30 @@
       class="p-6 md:p-10 border-b border-border bg-surface/40 backdrop-blur-md"
     >
       <div class="flex items-center gap-2 mb-6">
-        <div
+        <button
           *ngFor="let s of steps; let i = index"
-          class="flex-grow h-1.5 rounded-full transition-all duration-500"
+          (click)="jumpTo(i)"
+          [title]="s.title + (stepComplete()[i] ? ' · section complete' : '')"
+          [attr.disabled]="i > maxStepReached() ? '' : null"
+          class="flex-grow h-1.5 rounded-full transition-all duration-500 cursor-pointer"
           [class.bg-brand-primary]="i <= activeStep()"
           [class.bg-border]="i > activeStep()"
-        ></div>
+          [class.opacity-40]="i > maxStepReached()"
+          [style.min-width]="'1rem'"
+        ></button>
       </div>
-      <span
-        class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2 block"
-        >Step 0{{ activeStep() + 1 }} / 0{{ steps.length }}</span
-      >
+      <div class="flex items-center justify-between mb-2">
+        <span
+          class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] block"
+          >Step 0{{ activeStep() + 1 }} / 0{{ steps.length }}</span
+        >
+        <span
+          class="text-[9px] font-black uppercase tracking-widest transition-opacity duration-300"
+          [class.text-emerald-400]="justSaved()"
+          [class.text-transparent]="!justSaved()"
+          >✓ Progress auto-saved</span
+        >
+      </div>
       <h1
         class="text-2xl md:text-4xl font-black tracking-tighter text-text-main uppercase italic leading-none mb-2"
       >
@@ -75,15 +88,23 @@
             class="text-[10px] font-black text-text-dim uppercase tracking-widest"
             >Experience Level</label
           >
-          <select
-            [(ngModel)]="profile().musicalJourney.experienceLevel"
-            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
-          >
-            <option value="" disabled>SELECT YOUR LEVEL...</option>
-            <option *ngFor="let level of experienceLevels" [value]="level">
-              {{ level }}
-            </option>
-          </select>
+        <div class="mt-2 flex items-center gap-2 text-[9px] text-text-dim uppercase tracking-widest">
+          <span
+            class="w-2 h-2 rounded-full inline-block"
+            [class.bg-emerald-400]="stepComplete()[0]"
+            [class.bg-border]="!stepComplete()[0]"
+          ></span>
+          {{ completedCount() }}/4 key sections answered
+        </div>
+        <select
+          [(ngModel)]="profile().musicalJourney.experienceLevel"
+          class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+        >
+          <option value="" disabled>SELECT YOUR LEVEL...</option>
+          <option *ngFor="let level of experienceLevels" [value]="level">
+            {{ level }}
+          </option>
+        </select>
         </div>
       </div>
 
@@ -320,12 +341,53 @@
             "{{ profile().bio }}"
           </p>
         </div>
-        <button
-          (click)="updateProfile()"
-          class="w-full btn-pro btn-pro-primary py-4 text-xs font-black tracking-[0.2em]"
-        >
-          INITIALIZE NEURAL LINK
-        </button>
+        @if (initialized()) {
+          <div
+            class="material-depth p-6 border border-emerald-500/40 bg-emerald-500/5 space-y-3 text-center"
+          >
+            <span
+              class="material-symbols-outlined text-emerald-400 text-3xl"
+              >verified</span
+            >
+            <h3
+              class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]"
+            >
+              Neural Link Established
+            </h3>
+            <p class="text-[10px] text-text-dim leading-relaxed">
+              Your Artist Journey dossier is saved to your profile. Every answer
+              now drives the Official Pathway, the Command Center strategy and
+              the Development Hub.
+            </p>
+            <div class="flex flex-wrap justify-center gap-2 pt-1">
+              <a
+                routerLink="/artist-development"
+                class="px-4 py-2 rounded-xl bg-brand-primary text-black text-[9px] font-black uppercase tracking-widest"
+              >
+                Open Development Hub
+              </a>
+              <a
+                routerLink="/command-center"
+                class="px-4 py-2 rounded-xl border border-brand-primary/30 text-brand-primary text-[9px] font-black uppercase tracking-widest"
+              >
+                Open Command Center
+              </a>
+              <button
+                (click)="initialized.set(false)"
+                class="px-4 py-2 rounded-xl border border-border text-text-dim text-[9px] font-black uppercase tracking-widest"
+              >
+                Keep Editing
+              </button>
+            </div>
+          </div>
+        } @else if (!initialized()) {
+          <button
+            (click)="initializeJourney()"
+            class="w-full btn-pro btn-pro-primary py-4 text-xs font-black tracking-[0.2em]"
+          >
+            INITIALIZE NEURAL LINK
+          </button>
+        }
       </div>
     </div>
 

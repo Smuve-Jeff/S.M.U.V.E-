@@ -49,6 +49,36 @@ export interface OutreachPacket {
   renderAsMarkdown: boolean;
 }
 
+/**
+ * A label, sync agency or curator pitch the artist has actually sent.
+ *
+ * Persisted on the profile so the pipeline survives a reload and syncs with
+ * the account. `date` is the ISO day the pitch was submitted.
+ */
+export type CareerPitchStatus = 'Pending' | 'Reviewing' | 'Signed' | 'Passed';
+
+export interface CareerPitch {
+  id: string;
+  labelName: string;
+  demoUrl: string;
+  /** ISO date (yyyy-mm-dd) the pitch went out. */
+  date: string;
+  status: CareerPitchStatus;
+  /** Bumped whenever the status changes, for ordering the activity feed. */
+  updatedAt: number;
+}
+
+/** A room the artist is tracking for the live circuit. */
+export type VenueBookingStatus = 'Available' | 'Pending' | 'Confirmed';
+
+export interface CareerVenue {
+  id: string;
+  name: string;
+  location: string;
+  capacity: number;
+  bookingStatus: VenueBookingStatus;
+}
+
 export interface CareerCharter {
   id: string;
   releaseId: string;

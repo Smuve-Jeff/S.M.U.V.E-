@@ -17,6 +17,25 @@
       </p>
     </div>
     <div class="flex items-center gap-3">
+      <!-- Quick-jump panel chips -->
+      <div class="hidden lg:flex items-center gap-1.5">
+        @for (quick of quickPanels; track quick.panel) {
+          <button
+            (click)="openPanel(quick.panel)"
+            class="flex items-center gap-1 px-3 py-2 rounded-xl border border-white/10 text-[8px] font-black uppercase tracking-widest transition-all"
+            [class.text-violet-300]="activePanel() === quick.panel"
+            [class.border-violet-500/40]="activePanel() === quick.panel"
+            [class.bg-violet-500/10]="activePanel() === quick.panel"
+            [class.text-slate-400]="activePanel() !== quick.panel"
+            [class.hover:text-white]="activePanel() !== quick.panel"
+          >
+            <span class="material-symbols-outlined text-[12px]">{{
+              quick.icon
+            }}</span>
+            {{ quick.label }}
+          </button>
+        }
+      </div>
       <button
         (click)="scanNow()"
         [disabled]="isScanning()"
@@ -1305,16 +1324,23 @@
               </div>
 
               @if (editingSocialIndex() === i) {
-                <div class="flex gap-2 mt-2">
+                <div class="space-y-2 mt-2">
                   <input
                     [(ngModel)]="socialHandleInput"
                     type="text"
                     placeholder="Your handle/username"
-                    class="flex-1 bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[8px] text-white placeholder:text-slate-700"
+                    class="w-full bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[8px] text-white placeholder:text-slate-700"
+                  />
+                  <input
+                    [(ngModel)]="socialUrlInput"
+                    type="text"
+                    placeholder="Profile URL (optional — auto-built if empty)"
+                    class="w-full bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[8px] text-white placeholder:text-slate-700"
                   />
                   <button
                     (click)="connectSocial(i)"
-                    class="px-3 py-1.5 bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-[7px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/30 transition-all"
+                    [disabled]="!socialHandleInput().trim()"
+                    class="w-full px-3 py-1.5 bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-[7px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Connect
                   </button>
@@ -1353,6 +1379,26 @@
 
     @if (activePanel() === 'catalog') {
       <div class="space-y-3">
+        <!-- Catalog search -->
+        <div class="relative">
+          <input
+            [ngModel]="catalogQuery()"
+            (ngModelChange)="catalogQuery.set($event)"
+            type="text"
+            placeholder="Filter releases by title, type or status..."
+            class="w-full bg-brand-dark/40 border border-white/10 rounded-xl px-4 py-2 text-[10px] text-white placeholder:text-slate-700 focus:border-cyan-500/40 outline-none transition-all"
+            data-testid="catalog-filter"
+          />
+          @if (catalogQuery().length > 0) {
+            <button
+              (click)="catalogQuery.set('')"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all"
+            >
+              × Clear
+            </button>
+          }
+        </div>
+
         <!-- Existing releases -->
         @if (catalog().length === 0) {
           <div class="text-center py-6 text-slate-600">
@@ -1361,9 +1407,19 @@
               catalog.
             </p>
           </div>
+        } @else if (catalogFilterEmpty()) {
+          <div
+            class="text-center py-6 text-slate-500 border border-white/5 rounded-2xl"
+            data-testid="catalog-filter-empty"
+          >
+            <p class="text-[10px]">
+              No releases match "{{ catalogQuery() }}". Try another title or
+              status.
+            </p>
+          </div>
         }
 
-        @for (rel of catalog(); track rel.id) {
+        @for (rel of filteredCatalog(); track rel.id) {
           <div
             class="bg-brand-dark/40 rounded-2xl p-4 cursor-pointer hover:bg-brand-dark/60 transition-all"
             (click)="selectRelease(rel.id)"
@@ -1474,9 +1530,18 @@
               placeholder="Artist name"
               class="w-full bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[8px] text-white placeholder:text-slate-700"
             />
+            @if (!newReleaseForm().name.trim()) {
+              <p
+                class="text-[8px] text-amber-400/80"
+                data-testid="release-form-hint"
+              >
+                A release needs a title before it can be created.
+              </p>
+            }
             <button
               (click)="addRelease()"
-              class="w-full py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-[8px] font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-500/30 transition-all"
+              [disabled]="!newReleaseForm().name.trim()"
+              class="w-full py-2 bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-[8px] font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-500/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Create Release
             </button>
