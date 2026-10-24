@@ -1066,6 +1066,55 @@ legible on desktop without enlarging the row. */
   color: #0b0b12;
 }
 
+/* ---------- LFO wave / target pickers ----------
+Both were sized by their own text: the wave buttons came out 4×8 around a 5px
+glyph and the three targets 12×8 — the smallest controls in the studio, on
+every device. They also had no active state (the template's `.is-active` class
+matched no rule), so the chosen modulator shape was invisible. */
+.lfo-wave-btn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  color: var(--rack-muted);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lfo-wave-btn .lfo-wave-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.lfo-target-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  color: var(--rack-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.lfo-wave-btn:hover,
+.lfo-target-btn:hover {
+  color: var(--rack-teal);
+}
+
+.lfo-wave-btn.is-active,
+.lfo-target-btn.is-active {
+  background: color-mix(in srgb, var(--rack-teal) 22%, transparent);
+  border-color: color-mix(in srgb, var(--rack-teal) 55%, transparent);
+  color: var(--rack-teal);
+}
+
 @media (pointer: coarse), (max-width: 768px) {
   .channel-ms-stack {
     flex-direction: row;
@@ -1093,5 +1142,67 @@ legible on desktop without enlarging the row. */
     min-height: 44px;
     font-size: 11px;
     font-weight: 800;
+  }
+
+  /* ---------- Row actions: 44px hit areas at 36px visual size ----------
+  Clone / move / delete share one row with the nameplate, the M/S pair and the
+  meter stack; four 44px boxes would not fit beside them at 390px. The visual
+  box stays 36px and an ::after spreads the target to 44px. The 4px gap means
+  neighbouring targets meet edge to edge instead of overlapping, so a tap is
+  never ambiguous. */
+  .channel-rack-actions button {
+    position: relative;
+  }
+  .channel-rack-actions button::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+
+  /* The instrument selector is a 7px line above the pattern: a tap on it
+  should open the instrument fly-out, not select the track. */
+  .channel-rack-instrument {
+    min-height: 44px;
+    padding: 4px 6px;
+    font-size: 10px;
+    opacity: 1;
+  }
+  .channel-rack-instrument .material-symbols-outlined {
+    font-size: 14px;
+  }
+
+  /* ---------- LFO wave / target ----------
+  4×8 in 5px type was the smallest control in the studio: the wave buttons are
+  the only way to pick the modulator shape, and the targets the only way to say
+  what it modulates. */
+  .lfo-wave-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .lfo-wave-btn .lfo-wave-icon {
+    font-size: 16px;
+  }
+  .lfo-wave-btn .lfo-wave-label {
+    font-size: 8px;
+  }
+  .lfo-target-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  /* ---------- Step pads and faders ----------
+  A step stays 24px wide so a bar's 16 steps keep fitting the lane, but it was
+  38px tall — under the thumb minimum on the one surface the rack exists for.
+  The two faders are drag targets that were 32px tall. */
+  .channel-rack-step-cell {
+    height: 44px;
+  }
+  .channel-rack-meter-stack .rack-fader-pro,
+  .lfo-fader {
+    height: 44px;
+    padding-block: 6px;
   }
 }

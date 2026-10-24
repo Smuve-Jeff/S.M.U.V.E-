@@ -197,6 +197,42 @@ renderer as an argument; the bars appear on both tiers for the first time.
 - **Channel Rack bar pager** (`‹ 1 2 3 4 ›`) went 30×30 with 7px numbers →
   44×44 with 11px numbers, in a rail that needs no scroll (284 = 284).
 
+**Third pass** — the rack's inner controls, the Piano Roll's automation/CC band
+and the transport's export sheet:
+
+- **Channel Rack instrument selector** was a 7px line at 28px tall → 44px tall,
+  10px type, full opacity (it was 0.78).
+- **Channel Rack row actions** (clone / move up / down / delete) share a row
+  with the nameplate, the 44px M/S pair and the 68px meter stack, so four 44px
+  boxes would not fit beside them at 390px. The visual box stays 36px and an
+  `::after` spreads the hit area to 44px; the 4px gap makes neighbouring
+  targets meet edge to edge rather than overlap. Verified with
+  `elementFromPoint`: a 36px button is still hit 20px from its centre and the
+  parent takes over at 23px.
+- **LFO wave / target** were 4×8 (a 5px glyph in a zero-padding button) and
+  12×8 — the smallest controls in the studio — and had **no active state at
+  all**: the template's `.is-active` class matched no rule, so the chosen
+  waveform was invisible. They are now 22×22 / 34×22 on desktop and 44×44 on
+  touch, 12–16px glyphs, with an active fill; tapping them moves the patch
+  (`wave: triangle`, `target: pitch` in the check run).
+- **Step pads** stay 24px wide so a bar's 16 steps still fit the lane, but went
+  38 → 44px tall; **both faders** (volume, LFO rate) 32 → 44px.
+- **Piano Roll automation/CC band**: automation chips 36×42 → 44×44, CC lane
+  toggles 37×44 → 44×44, Bezier 38 → 44 tall, MIDI OUT select 34×24 → 44×44,
+  REC 56×24 → 63×44, and the MIDI OUT label 56×15 → 56×44 (it is the select's
+  `label[for]`). Both bands scroll horizontally, so the extra width costs no
+  lane width. The view is now down to **4 controls under 44px**, all of them
+  shell chrome (38px AI-band chips, 36px snackbar close).
+- **Transport export sheet** rows 42 → 44px. On a phone this `<details>` sheet
+  is the only route to WAV, stems, MIDI and share; seven rows now scroll inside
+  the 68vh sheet rather than one of them sitting under the thumb minimum.
+
+One placement issue remains in the rack: the LFO panel lives *inside* the
+horizontally scrolling step rail (at 390px it starts at x=493 in a 699px lane
+with a 350px viewport), so it needs a sideways scroll to reach at all. That is
+a layout question — the panel wants its own row under the steps on phones — not
+a size one, so it is left for a deliberate change.
+
 ---
 
 ## 3. P1 — open, device-visible defects
@@ -468,12 +504,13 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
    Performer and Sound Browser~~ — done in §2.3. Effects Rack and Plugins
    verified as already compliant. Remaining: Arrangement's beginner gate and the
    Sample Library filter rail.
-4. ~~44dp touch-target sweep: Channel Rack mute/solo, DJ loop chips, Drum
-   Machine strip toggles, bar pager, Sound Browser card actions, Piano Roll
-   tools/Lock~~ — done in §2.5. Remaining: the Channel Rack row actions
-   (move/clone/delete 36×36), its instrument selector (28px) and its LFO
-   micro-buttons (4×8), the Piano Roll automation/CC band (REC 24px, MIDI OUT
-   select 24px, lane toggles 36–42px), and the shell's 42px export menu rows.
+4. ~~44dp touch-target sweep~~ — done in §2.5 for the Channel Rack (M/S, bar
+   pager, instrument selector, row actions, LFO pickers, step pads, faders), the
+   DJ loop chips, the Drum Machine strip toggles, the Sound Browser card
+   actions, the Piano Roll tools/Lock and its automation/CC band, and the
+   transport export sheet. Remaining cross-cutting: the shell's 36px AI-band
+   chips and 36px snackbar close. Remaining layout: give the Channel Rack's LFO
+   panel its own row instead of parking it inside the step rail.
 5. ~~Restore a 40px key rail and a collapsible velocity lane in the phone Piano
    Roll~~ — done in §2.3/§2.5. Remaining: keep the toolbar sticky while the
    grid scrolls.
@@ -526,6 +563,10 @@ real cloud sync, Play Billing, DAWproject.
 | Sound Browser card actions, 390×844 | preview / favourite / similar 44×44, no pairwise overlap (`playFav`, `playSimilar`, `favSimilar` all false), 244 → 11 controls under 44px |
 | Piano Roll tools + Lock, 360 / 390 | disclosure 44×44, Lock 66×44 with a 20px box, checkbox tap flips `scaleLockEnabled`; tool row fits (333=333, 373=373) |
 | Channel Rack bar pager, 390×844 | `‹ 1 2 3 4 ›` 44×44 at 11px, rail needs no scroll (284=284) |
+| Channel Rack inner controls, 390×844 | instrument 145×44, LFO wave 44×44, LFO target 44–56×44, step pads 24×44, faders 40–129×44; row actions 36px visual with a 44px hit area (hit at +20px, parent at +23px) |
+| LFO patch change, 390×844 (touch) | tapping wave 2 / target 2 sets `wave: triangle`, `target: pitch`, and both read as `.is-active` |
+| Piano Roll automation/CC band, 390×844 | 44×44 for automation chips, CC toggles, Bezier, MIDI OUT label and select, REC (63×44); view has 4 sub-44 controls left, all shell chrome |
+| Transport export sheet, 390×844 | 7 rows at 166×44 inside the 560px sheet; sheet scrolls (612 > 558), no document overflow |
 
 The clipping, contrast, scale-chip and touch-target repairs are CSS-only apart
 from the Drum Machine's inline styles moving into its stylesheet. The phone-first

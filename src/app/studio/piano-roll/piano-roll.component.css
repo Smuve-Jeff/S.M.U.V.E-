@@ -2292,6 +2292,47 @@ and that word is 9px tall. */
   .pr-scale-lock span {
     font-size: 11px;
   }
+
+  /* ---------- Automation + CC band ----------
+  These bands scroll horizontally, so a wider chip costs no lane width. The
+  automation chips were 36px wide and the CC band's REC / MIDI-OUT controls
+  24px tall, i.e. a fifth of a thumb. */
+  .pr-auto-param,
+  .pr-cc-toggle-btn {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 10px;
+  }
+
+  .pr-bezier-btn {
+    min-height: 44px;
+    font-size: 10px;
+  }
+
+  .pr-cc-out-select {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 10px;
+  }
+
+  /* The label is the select's tap target: `label[for]` focuses it. */
+  .pr-cc-out-label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 9px;
+  }
+
+  .pr-cc-rec {
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 10px;
+  }
+
+  .pr-cc-rec .pr-cc-rec-dot {
+    width: 9px;
+    height: 9px;
+  }
 }
 
 /* 360px-class Android phones: the five tool buttons, zoom pair and disclosure

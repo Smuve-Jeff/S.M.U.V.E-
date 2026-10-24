@@ -1441,6 +1441,13 @@
     min-height: 44px;
   }
 
+  /* The export menu is a bottom sheet on a phone and its rows are the only
+     route to WAV, stems and MIDI: 42px was the last sub-44 row in the
+     transport. */
+  .ctb-export-actions .ctb-dropdown-action {
+    min-height: 44px;
+  }
+
   /* The primary action is reachable with a thumb even mid-session. */
   .ctb-play {
     width: 52px;
