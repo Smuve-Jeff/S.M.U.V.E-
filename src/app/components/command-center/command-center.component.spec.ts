@@ -160,4 +160,46 @@ describe('CommandCenterComponent', () => {
       openSpy.mockRestore();
     }
   });
+
+  it('logs every executed command into a recappable history', async () => {
+    await component.handleCommand('status');
+    await component.handleCommand('/intel');
+    await component.handleCommand('status');
+
+    expect(component.commandHistory()[0]).toBe('/intel');
+    expect(component.commandHistory()).toContain('status');
+  });
+
+  it('recalls executed commands with the arrow keys', async () => {
+    const run = async (
+      key: string,
+      value: string
+    ): Promise<[string, HTMLInputElement]> => {
+      const input = document.createElement('input') as HTMLInputElement;
+      input.value = value;
+      component.recallHistory({ key, target: input, preventDefault: () => {} } as any);
+      return [key, input];
+    };
+
+    await component.handleCommand('protect the release window');
+    await component.handleCommand('status');
+
+    await run('ArrowUp', '');
+    expect(component.commandHistory()[0]).toBe('status');
+
+    await run('ArrowUp', 'status');
+    expect(component.commandHistory()[1]).toBe('protect the release window');
+
+    await run('ArrowDown', 'protect the release window');
+    expect(component.commandHistory()[0]).toBe('status');
+  });
+
+  it('clears the terminal buffer without losing the neural link', () => {
+    component.clearTerminal();
+
+    expect(component.terminalLogs().length).toBe(1);
+    expect(component.terminalLogs()[0].message).toContain('CLEARED');
+    expect(component.terminalLogs()[0].type).toBe('system');
+    expect(component.commandHistory().length).toBe(0);
+  });
 });

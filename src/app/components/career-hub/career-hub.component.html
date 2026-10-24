@@ -43,51 +43,72 @@
               </div>
             </div>
             <div class="h-48 md:h-64 relative w-full overflow-hidden">
-              <div class="absolute inset-0 flex items-end">
-                <svg viewBox="0 0 1000 300" class="w-full h-full opacity-40">
-                  <defs>
-                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="0%"
-                        stop-color="#10b981"
-                        stop-opacity="0.3"
-                      ></stop>
-                      <stop
-                        offset="100%"
-                        stop-color="#10b981"
-                        stop-opacity="0"
-                      ></stop>
-                    </linearGradient>
-                    <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stop-color="#10b981"></stop>
-                      <stop offset="100%" stop-color="#38bdf8"></stop>
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M0 250 Q 150 150, 250 180 T 450 100 T 650 140 T 850 40 T 1000 60 V 300 H 0 Z"
-                    fill="url(#areaGrad)"
-                  ></path>
-                  <path
-                    d="M0 250 Q 150 150, 250 180 T 450 100 T 650 140 T 850 40 T 1000 60"
-                    fill="none"
-                    stroke="url(#lineGrad)"
-                    stroke-width="4"
-                  ></path>
-                  <g class="nodes">
-                    <circle cx="250" cy="180" fill="#fff" r="4"></circle>
-                    <circle cx="450" cy="100" fill="#fff" r="4"></circle>
-                    <circle cx="650" cy="140" fill="#fff" r="4"></circle>
-                    <circle
-                      class="animate-ping"
-                      cx="850"
-                      cy="40"
-                      fill="#ec5b13"
-                      r="6"
-                    ></circle>
-                    <circle cx="850" cy="40" fill="#fff" r="4"></circle>
-                  </g>
-                </svg>
-              </div>
+              @if (trajectory(); as chart) {
+                <div class="absolute inset-0 flex items-end">
+                  <svg viewBox="0 0 1000 300" class="w-full h-full opacity-70">
+                    <defs>
+                      <linearGradient
+                        id="areaGrad"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stop-color="#10b981"
+                          stop-opacity="0.3"
+                        ></stop>
+                        <stop
+                          offset="100%"
+                          stop-color="#10b981"
+                          stop-opacity="0"
+                        ></stop>
+                      </linearGradient>
+                      <linearGradient
+                        id="lineGrad"
+                        x1="0"
+                        y1="0"
+                        x2="1"
+                        y2="0"
+                      >
+                        <stop offset="0%" stop-color="#10b981"></stop>
+                        <stop offset="100%" stop-color="#38bdf8"></stop>
+                      </linearGradient>
+                    </defs>
+                    <path [attr.d]="chart.area" fill="url(#areaGrad)"></path>
+                    <path
+                      [attr.d]="chart.line"
+                      fill="none"
+                      stroke="url(#lineGrad)"
+                      stroke-width="4"
+                    ></path>
+                    @for (point of chart.points; track $index) {
+                      <circle
+                        [attr.cx]="point.x"
+                        [attr.cy]="point.y"
+                        fill="#fff"
+                        r="4"
+                      ></circle>
+                      <title>{{ point.score }}% readiness</title>
+                    }
+                  </svg>
+                </div>
+              } @else {
+                <div
+                  class="absolute inset-0 flex flex-col items-center justify-center text-center gap-2 px-6"
+                >
+                  <span
+                    class="material-symbols-outlined text-slate-600 !text-3xl"
+                    >show_chart</span
+                  >
+                  <p class="text-xs text-slate-500 max-w-sm leading-relaxed">
+                    Log two strategic audits and this matrix plots your real
+                    readiness curve over time. Nothing is drawn until there is
+                    history to draw.
+                  </p>
+                </div>
+              }
             </div>
           </div>
 
@@ -98,34 +119,60 @@
             <h3 class="text-sm font-bold text-white uppercase mb-6">
               Revenue Forecasting (AI Projected)
             </h3>
-            <div class="grid grid-cols-3 gap-4">
-              <div
-                *ngFor="let f of revenueForecast()"
-                class="bg-black/40 p-4 rounded-xl border border-white/5"
-              >
+            @if (hasRevenue()) {
+              <p class="text-[10px] text-slate-500 mb-4">
+                Estimates scale from the
+                {{ formatMoney(trackedRevenue()) }} already recorded on the
+                profile. They are projections, not reported payouts.
+              </p>
+              <div class="grid grid-cols-3 gap-4">
                 <div
-                  class="text-[8px] font-black text-slate-500 uppercase mb-1"
+                  *ngFor="let f of revenueForecast()"
+                  class="bg-black/40 p-4 rounded-xl border border-white/5"
                 >
-                  {{ f.month }} Estimate
-                </div>
-                <div class="text-lg font-black text-brand-primary italic">
-                  {{ formatCurrency(f.amount) }}
+                  <div
+                    class="text-[8px] font-black text-slate-500 uppercase mb-1"
+                  >
+                    {{ f.month }} Estimate
+                  </div>
+                  <div class="text-lg font-black text-brand-primary italic">
+                    {{ formatCurrency(f.amount) }}
+                  </div>
                 </div>
               </div>
-            </div>
+            } @else {
+              <p class="text-xs text-slate-500 leading-relaxed">
+                No revenue is recorded yet, so there is nothing to project.
+                Add a payout on the profile's financial panes and the estimates
+                appear here.
+              </p>
+            }
           </div>
 
           <div
             class="col-span-12 lg:col-span-12 glass-v42 shadow-v42-xl rounded-2xl md:rounded-3xl p-6 border glass-v42 shadow-v42-xl border-white/10"
           >
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
               <h3 class="text-sm font-bold text-white uppercase">
                 Strategic Audit
               </h3>
-              <span class="text-2xl font-black text-brand-primary italic"
-                >{{ strategicAudit().score }}%</span
-              >
+              <div class="flex items-center gap-4">
+                <span class="text-2xl font-black text-brand-primary italic"
+                  >{{ strategicAudit().score }}%</span
+                >
+                <button
+                  type="button"
+                  (click)="recordAudit()"
+                  [disabled]="isRecordingAudit()"
+                  class="text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-lg border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 transition-colors disabled:opacity-50"
+                >
+                  {{ isRecordingAudit() ? 'Logging…' : 'Log This Audit' }}
+                </button>
+              </div>
             </div>
+            @if (auditError()) {
+              <p class="text-[10px] text-red-400 mb-4">{{ auditError() }}</p>
+            }
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h4
@@ -176,7 +223,7 @@
           <div
             class="col-span-12 lg:col-span-4 glass-v42 shadow-v42-xl rounded-2xl md:rounded-3xl p-6 md:p-8 border glass-v42 shadow-v42-xl border-white/10 flex flex-col"
           >
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center justify-between mb-4">
               <h2
                 class="text-sm md:text-base font-bold text-white uppercase tracking-tight"
               >
@@ -184,66 +231,124 @@
               </h2>
               <span
                 class="text-[9px] md:text-[10px] font-black text-slate-500 bg-white/5 px-2 py-1 rounded"
-                >{{ submissions().length }} SUBMITTED</span
+                >{{ pitchCounts().all }} TRACKED</span
               >
             </div>
+
+            <div class="flex flex-wrap gap-2 mb-4" role="group" aria-label="Pitch status filter">
+              @for (filter of pitchFilters; track filter.key) {
+                <button
+                  type="button"
+                  (click)="setPitchFilter(filter.key)"
+                  [attr.aria-pressed]="pitchFilter() === filter.key"
+                  class="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border transition-colors"
+                  [class.border-brand-primary]="pitchFilter() === filter.key"
+                  [class.text-brand-primary]="pitchFilter() === filter.key"
+                  [class.bg-brand-primary/10]="pitchFilter() === filter.key"
+                  [class.border-white/10]="pitchFilter() !== filter.key"
+                  [class.text-slate-500]="pitchFilter() !== filter.key"
+                >
+                  {{ filter.label }} {{ pitchCounts()[filter.key] }}
+                </button>
+              }
+            </div>
+
             <div
               class="space-y-3 flex-grow overflow-y-auto max-h-[250px] md:max-h-[300px] no-scrollbar pr-2"
             >
-              @for (sub of submissions(); track sub.labelName) {
+              @for (sub of filteredPitches(); track sub.id) {
                 <div
                   class="p-4 rounded-2xl bg-black/20 border glass-v42 shadow-v42-xl border-white/10 hover:border-brand-primary/30 transition-all group/item"
                 >
-                  <div class="flex justify-between items-start mb-2">
-                    <h4 class="text-sm font-bold text-white">
+                  <div class="flex justify-between items-start gap-2 mb-2">
+                    <h4 class="text-sm font-bold text-white break-words">
                       {{ sub.labelName }}
                     </h4>
                     <span
-                      class="text-[9px] font-bold px-2 py-0.5 rounded-full"
-                      [class.bg-brand-warning/10]="sub.status === 'Reviewing'"
-                      [class.text-brand-warning]="sub.status === 'Reviewing'"
-                      [class.bg-brand-muted/10]="sub.status === 'Pending'"
-                      [class.text-brand-muted]="sub.status === 'Pending'"
+                      class="text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0"
+                      [ngClass]="pitchStatusClass(sub.status)"
                       >{{ sub.status }}</span
                     >
                   </div>
-                  <div class="text-[10px] text-slate-500 mb-3 truncate">
-                    {{ sub.demoUrl }}
-                  </div>
-                  <div class="flex items-center justify-between">
+                  <a
+                    class="text-[10px] text-slate-500 mb-3 truncate block hover:text-brand-primary"
+                    [href]="sub.demoUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >{{ sub.demoUrl }}</a
+                  >
+                  <div class="flex items-center justify-between gap-2">
                     <span
                       class="text-[9px] font-mono tracking-tight text-slate-500"
                       >{{ sub.date }}</span
                     >
-                    <button
-                      class="text-[9px] font-black text-brand-primary uppercase opacity-0 group-hover/item:opacity-100 transition-all"
-                    >
-                      Recall
-                    </button>
+                    <div class="flex items-center gap-2">
+                      <select
+                        [ngModel]="sub.status"
+                        (ngModelChange)="setPitchStatus(sub.id, $event)"
+                        aria-label="Pitch status"
+                        class="bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-[9px] font-black uppercase text-slate-300 outline-none focus:border-brand-primary"
+                      >
+                        @for (status of pitchStatuses; track status) {
+                          <option [value]="status">{{ status }}</option>
+                        }
+                      </select>
+                      <button
+                        type="button"
+                        (click)="recallPitch(sub)"
+                        aria-label="Recall pitch"
+                        class="text-[9px] font-black text-brand-primary uppercase hover:underline"
+                      >
+                        Recall
+                      </button>
+                    </div>
                   </div>
                 </div>
               }
+
+              @if (!pitchCounts().all) {
+                <p class="text-xs text-slate-500 leading-relaxed py-4">
+                  No pitches tracked yet. Add the first label or curator below;
+                  S.M.U.V.E. won't invent one for you.
+                </p>
+              } @else if (!filteredPitches().length) {
+                <p class="text-xs text-slate-500 leading-relaxed py-4">
+                  No {{ pitchFilter().toLowerCase() }} pitches. Switch the
+                  filter to see the rest of the pipeline.
+                </p>
+              }
             </div>
+
             <div
               class="mt-8 pt-6 border-t glass-v42 shadow-v42-xl border-white/10 space-y-4"
             >
               <input
                 type="text"
-                [(ngModel)]="newLabel"
-                placeholder="Label Name"
+                [ngModel]="newLabel()"
+                (ngModelChange)="newLabel.set($event)"
+                placeholder="Label / curator name"
+                aria-label="Label or curator name"
                 class="w-full bg-black/40 border glass-v42 shadow-v42-xl border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all text-white outline-none"
               />
               <input
-                type="text"
-                [(ngModel)]="newDemo"
-                placeholder="Demo Link"
+                type="url"
+                [ngModel]="newDemo()"
+                (ngModelChange)="newDemo.set($event)"
+                placeholder="https://link.to/your-demo"
+                aria-label="Demo link"
                 class="w-full bg-black/40 border glass-v42 shadow-v42-xl border-white/10 rounded-xl px-4 py-2 text-xs focus:border-brand-primary transition-all text-white outline-none"
               />
+              @if (pitchError()) {
+                <p class="text-[10px] text-red-400 leading-relaxed">
+                  {{ pitchError() }}
+                </p>
+              }
               <button
                 (click)="submitToLabel()"
-                class="w-full btn-elegant btn-elegant-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3 h-auto"
+                [disabled]="isSavingPitch()"
+                class="w-full btn-elegant btn-elegant-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3 h-auto disabled:opacity-50"
               >
-                Submit Proposal
+                {{ isSavingPitch() ? 'Submitting…' : 'Submit Proposal' }}
               </button>
             </div>
           </div>
@@ -258,15 +363,13 @@
                 Live Circuit
               </h3>
             </div>
-            <div class="space-y-4">
-              @for (v of venues(); track v.name) {
+            <div class="space-y-3">
+              @for (v of venues(); track v.id) {
                 <div
-                  class="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all"
+                  class="flex items-center justify-between gap-3 p-3 rounded-xl hover:bg-white/5 transition-all"
                 >
-                  <div class="flex-grow">
-                    <div
-                      class="text-xs font-bold text-white truncate max-w-[150px] md:max-w-none"
-                    >
+                  <div class="flex-grow min-w-0">
+                    <div class="text-xs font-bold text-white truncate">
                       {{ v.name }}
                     </div>
                     <div
@@ -275,16 +378,77 @@
                       {{ v.location }} • {{ v.capacity }} CAP
                     </div>
                   </div>
-                  <span
-                    class="text-[8px] font-black px-2 py-1 rounded bg-brand-primary/10 text-brand-primary uppercase border border-brand-primary/20 shrink-0"
-                    >{{ v.bookingStatus }}</span
-                  >
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      (click)="cycleVenueStatus(v)"
+                      [ngClass]="venueStatusClass(v.bookingStatus)"
+                      class="text-[8px] font-black px-2 py-1 rounded uppercase border hover:brightness-125 transition-all"
+                      [attr.aria-label]="
+                        'Change booking status for ' + v.name
+                      "
+                    >
+                      {{ v.bookingStatus }}
+                    </button>
+                    <button
+                      type="button"
+                      (click)="removeVenue(v)"
+                      [attr.aria-label]="'Stop tracking ' + v.name"
+                      class="material-symbols-outlined !text-base text-slate-600 hover:text-red-400 transition-colors"
+                    >
+                      close
+                    </button>
+                  </div>
                 </div>
               }
+              @if (!venues().length) {
+                <p class="text-xs text-slate-500 leading-relaxed">
+                  No rooms tracked yet. Add the venues you are pitching so the
+                  circuit stays in one place.
+                </p>
+              }
+            </div>
+
+            <div class="mt-6 pt-5 border-t border-white/10 space-y-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  [ngModel]="newVenueName()"
+                  (ngModelChange)="newVenueName.set($event)"
+                  placeholder="Venue name"
+                  aria-label="Venue name"
+                  class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-primary"
+                />
+                <input
+                  type="text"
+                  [ngModel]="newVenueLocation()"
+                  (ngModelChange)="newVenueLocation.set($event)"
+                  placeholder="City / region"
+                  aria-label="Venue city or region"
+                  class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-primary"
+                />
+              </div>
+              <input
+                type="number"
+                min="1"
+                [ngModel]="newVenueCapacity()"
+                (ngModelChange)="newVenueCapacity.set($event)"
+                placeholder="Capacity"
+                aria-label="Venue capacity"
+                class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-primary"
+              />
+              @if (venueError()) {
+                <p class="text-[10px] text-red-400">{{ venueError() }}</p>
+              }
+              <button
+                type="button"
+                (click)="addVenue()"
+                class="w-full btn-elegant btn-elegant-secondary text-[9px] font-black uppercase tracking-widest py-2.5 h-auto"
+              >
+                + Track Venue
+              </button>
             </div>
           </div>
-
-          <!-- Revenue / Stats -->
 
           <!-- Strategic Signals & Market Readiness -->
           <div
@@ -373,45 +537,100 @@
                 Legal & Rights
               </h3>
             </div>
-            <div class="space-y-4">
-              <div
-                *ngFor="let split of profile().financials.splitSheets"
-                class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 group/split"
-              >
-                <div>
-                  <div class="text-xs font-bold text-white">
-                    {{ split.title }}
-                  </div>
+            <div class="space-y-3">
+              @for (split of financials().splitSheets ?? []; track split.id) {
+                <div class="rounded-xl bg-white/5 border border-white/5">
                   <div
-                    class="text-[9px] text-slate-500 uppercase tracking-widest"
+                    class="flex items-center justify-between gap-2 p-3 group/split"
                   >
-                    {{ split.status }} • {{ split.updatedAt | date }}
+                    <div class="min-w-0">
+                      <div class="text-xs font-bold text-white truncate">
+                        {{ split.title }}
+                      </div>
+                      <div
+                        class="text-[9px] text-slate-500 uppercase tracking-widest"
+                      >
+                        {{ split.status }} • {{ split.updatedAt | date }}
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span class="text-[10px] font-black text-brand-primary"
+                        >{{ split.splits?.length || 0 }} PARTIES</span
+                      >
+                      <button
+                        type="button"
+                        (click)="toggleSplitDetails(split.id)"
+                        class="text-[9px] font-black text-slate-400 hover:text-white uppercase underline-offset-2 hover:underline"
+                      >
+                        {{
+                          expandedSplitId() === split.id ? 'Hide' : 'View'
+                        }}
+                      </button>
+                    </div>
                   </div>
+                  @if (expandedSplitId() === split.id) {
+                    <div class="px-3 pb-3 space-y-1">
+                      @for (party of split.splits ?? []; track party.role) {
+                        <div
+                          class="flex items-center justify-between text-[10px] text-slate-400"
+                        >
+                          <span
+                            >{{ party.name }} ·
+                            <span class="uppercase">{{ party.role }}</span></span
+                          >
+                          <span class="font-mono">{{ party.percentage }}%</span>
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-[10px] font-black text-brand-primary"
-                    >{{ split.splits?.length || 0 }} PARTIES</span
-                  >
-                  <button
-                    class="text-[9px] font-black text-slate-400 hover:text-white uppercase opacity-0 group-hover/split:opacity-100 transition-all"
-                  >
-                    View
-                  </button>
+              }
+              @if (!financials().splitSheets?.length) {
+                <div class="text-center py-6 opacity-40 italic text-xs">
+                  No split sheets generated.
                 </div>
-              </div>
-              <div
-                *ngIf="profile().financials.splitSheets.length === 0"
-                class="text-center py-6 opacity-30 italic text-xs"
-              >
-                No split sheets generated.
-              </div>
+              }
             </div>
-            <button
-              (click)="generateSplitSheet()"
-              class="w-full mt-6 btn-elegant btn-elegant-secondary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3 h-auto"
-            >
-              Generate Digital Split Sheet
-            </button>
+
+            <div class="mt-6 pt-5 border-t border-white/10 space-y-3">
+              <input
+                type="text"
+                [ngModel]="splitTitle()"
+                (ngModelChange)="splitTitle.set($event)"
+                placeholder="Track title"
+                aria-label="Split sheet track title"
+                class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-primary"
+              />
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  [ngModel]="splitCollaborator()"
+                  (ngModelChange)="splitCollaborator.set($event)"
+                  placeholder="Collaborator name"
+                  aria-label="Collaborator name"
+                  class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-primary"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  [ngModel]="splitPercent()"
+                  (ngModelChange)="splitPercent.set($event)"
+                  placeholder="Your share %"
+                  aria-label="Your share percentage"
+                  class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-primary"
+                />
+              </div>
+              @if (splitError()) {
+                <p class="text-[10px] text-red-400">{{ splitError() }}</p>
+              }
+              <button
+                (click)="generateSplitSheet()"
+                class="w-full btn-elegant btn-elegant-secondary text-[9px] md:text-[10px] font-black uppercase tracking-widest py-3 h-auto"
+              >
+                Generate Digital Split Sheet
+              </button>
+            </div>
           </div>
 
           <div
@@ -423,17 +642,21 @@
               <div
                 class="text-[8px] md:text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] md:tracking-[0.3em] mb-2"
               >
-                Q3 Revenue
+                Tracked Revenue
               </div>
               <div
                 class="text-xl md:text-3xl font-black text-white italic tracking-tighter"
               >
-                4.5K
+                {{ formatMoney(trackedRevenue()) }}
               </div>
               <div
                 class="text-[7px] md:text-[8px] text-brand-primary/60 font-bold mt-1 uppercase"
               >
-                +18% vs PREV
+                {{
+                  pendingPayouts() > 0
+                    ? formatMoney(pendingPayouts()) + ' PENDING'
+                    : 'NO PAYOUTS PENDING'
+                }}
               </div>
             </div>
             <div
@@ -442,17 +665,17 @@
               <div
                 class="text-[8px] md:text-[9px] font-black text-accent-magenta uppercase tracking-[0.2em] md:tracking-[0.3em] mb-2"
               >
-                Fan Growth
+                Open Pitches
               </div>
               <div
                 class="text-xl md:text-3xl font-black text-white italic tracking-tighter"
               >
-                +12.4%
+                {{ openPitchCount() }}
               </div>
               <div
                 class="text-[7px] md:text-[8px] text-accent-magenta/60 font-bold mt-1 uppercase"
               >
-                HYPER-GROWTH
+                {{ pitchCounts().Signed }} SIGNED
               </div>
             </div>
           </div>
@@ -464,56 +687,45 @@
             <h3
               class="text-[11px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em]"
             >
-              Real-Time Activity Feed
+              Career Activity Ledger
             </h3>
-            <button
-              class="text-brand-primary text-[10px] font-bold uppercase hover:underline"
-            >
-              View Ledger
-            </button>
+            <span class="text-[10px] font-bold text-slate-600 uppercase">
+              From your record
+            </span>
           </div>
-          <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-            <div
-              class="min-w-[260px] md:min-w-[300px] p-4 glass-v42 shadow-v42-xl rounded-xl flex items-center gap-4 border-r-2 border-accent-purple/30"
-            >
-              <div
-                class="size-10 md:size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-accent-magenta shrink-0"
-              >
-                <span class="material-symbols-outlined !text-xl md:!text-2xl"
-                  >output</span
+          @if (activityFeed().length) {
+            <div class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+              @for (entry of activityFeed(); track entry.id) {
+                <div
+                  class="min-w-[260px] md:min-w-[300px] p-4 glass-v42 shadow-v42-xl rounded-xl flex items-center gap-4 border-r-2 border-accent-purple/30"
                 >
-              </div>
-              <div class="flex flex-col">
-                <span
-                  class="text-white font-bold text-xs md:text-sm truncate max-w-[150px]"
-                  >Main_Theme_V4_Final</span
-                >
-                <span class="text-slate-500 text-[10px]"
-                  >Render Complete • 2m ago</span
-                >
-              </div>
+                  <div
+                    class="size-10 md:size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-accent-magenta shrink-0"
+                  >
+                    <span
+                      class="material-symbols-outlined !text-xl md:!text-2xl"
+                      >{{ entry.icon }}</span
+                    >
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span
+                      class="text-white font-bold text-xs md:text-sm truncate max-w-[150px]"
+                      >{{ entry.title }}</span
+                    >
+                    <span class="text-slate-500 text-[10px] truncate"
+                      >{{ entry.detail }} •
+                      {{ entry.at | date: 'short' }}</span
+                    >
+                  </div>
+                </div>
+              }
             </div>
-            <div
-              class="min-w-[260px] md:min-w-[300px] p-4 glass-v42 shadow-v42-xl rounded-xl flex items-center gap-4"
-            >
-              <div
-                class="size-10 md:size-12 rounded-lg bg-extreme-titanium flex items-center justify-center text-brand-primary shrink-0"
-              >
-                <span class="material-symbols-outlined !text-xl md:!text-2xl"
-                  >smart_toy</span
-                >
-              </div>
-              <div class="flex flex-col">
-                <span
-                  class="text-white font-bold text-xs md:text-sm truncate max-w-[150px]"
-                  >Strategic Pivot Match</span
-                >
-                <span class="text-slate-500 text-[10px]"
-                  >AI Opportunity Found • 12m ago</span
-                >
-              </div>
-            </div>
-          </div>
+          } @else {
+            <p class="text-xs text-slate-500 leading-relaxed">
+              No career activity recorded yet. Pitches, split sheets and logged
+              audits appear here as you add them.
+            </p>
+          }
         </div>
       </section>
 

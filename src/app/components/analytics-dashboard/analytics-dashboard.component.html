@@ -166,34 +166,79 @@
             >
               Registered Works (ISWC/PRO IDs)
             </div>
-            <button
-              class="text-[9px] font-black text-brand-primary uppercase tracking-widest hover:underline"
-              (click)="addWorkId('Untitled Work', 'PENDING')"
+            <span
+              class="text-[9px] font-black text-silver-dim uppercase tracking-widest"
+              >{{ proData().workIds.length }} ON FILE</span
             >
-              + Register Work
-            </button>
           </div>
           <div class="space-y-3">
             <div
-              *ngFor="let work of proData().workIds"
-              class="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5"
+              *ngFor="let work of proData().workIds; let i = index"
+              class="flex items-center justify-between gap-3 p-4 rounded-xl bg-white/5 border border-white/5"
             >
               <div
-                class="text-sm font-bold text-white uppercase italic tracking-tight"
+                class="text-sm font-bold text-white uppercase italic tracking-tight min-w-0 truncate"
               >
                 {{ work.title }}
               </div>
-              <div class="flex items-center gap-4">
+              <div class="flex items-center gap-4 shrink-0">
                 <div class="text-[10px] font-mono text-silver-dim">
                   {{ work.id }}
                 </div>
                 <div
-                  class="text-[8px] font-black px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary border border-brand-primary/20"
+                  class="text-[8px] font-black px-2 py-0.5 rounded bg-white/5 text-silver-dim border border-white/10"
                 >
                   {{ work.status }}
                 </div>
+                <button
+                  type="button"
+                  (click)="removeWork(i)"
+                  [attr.aria-label]="'Remove ' + work.title"
+                  class="material-symbols-outlined !text-base text-silver-dim hover:text-red-400 transition-colors"
+                >
+                  close
+                </button>
               </div>
             </div>
+            @if (!proData().workIds.length) {
+              <p class="text-xs text-silver-dim leading-relaxed">
+                No works registered yet. Add a title and its ISWC or PRO work
+                ID once the registration exists — S.M.U.V.E. won't stamp a
+                placeholder as verified.
+              </p>
+            }
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-white/10 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                type="text"
+                [ngModel]="newWorkTitle()"
+                (ngModelChange)="newWorkTitle.set($event)"
+                aria-label="Work title"
+                placeholder="Work title"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-primary"
+              />
+              <input
+                type="text"
+                [ngModel]="newWorkId()"
+                (ngModelChange)="newWorkId.set($event)"
+                aria-label="ISWC or PRO work ID"
+                placeholder="ISWC / PRO work ID"
+                class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none focus:border-brand-primary"
+              />
+            </div>
+            @if (workError()) {
+              <p class="text-[10px] text-red-400">{{ workError() }}</p>
+            }
+            <button
+              type="button"
+              (click)="registerWork()"
+              [disabled]="isSavingWork()"
+              class="w-full text-[9px] font-black uppercase tracking-widest py-2.5 rounded-xl border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/10 transition-colors disabled:opacity-50"
+            >
+              {{ isSavingWork() ? 'Saving…' : '+ Register Work' }}
+            </button>
           </div>
         </div>
       </div>

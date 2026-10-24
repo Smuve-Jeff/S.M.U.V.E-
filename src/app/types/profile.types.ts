@@ -5,6 +5,7 @@ import {
   UpgradeRecommendation,
 } from './ai.types';
 import { MarketingCampaign } from './marketing.types';
+import { CareerPitch, CareerVenue } from './career.types';
 import {
   buildMusicalDnaContext,
   buildMusicalDnaTeachingContext,
@@ -496,6 +497,10 @@ export interface UserProfile {
   team: TeamMember[];
   marketingCampaigns: MarketingCampaign[];
   financials: ProfessionalFinancials;
+  /** Label/curator pitches the artist has sent, tracked by the Career hub. */
+  careerPitches?: CareerPitch[];
+  /** Live-circuit rooms the artist is tracking. */
+  careerVenues?: CareerVenue[];
   catalog: CatalogItem[];
   artistIdentity: ArtistIdentityState;
   avatarImage?: string;
@@ -670,6 +675,8 @@ export const initialProfile: UserProfile = {
     splitSheets: [],
     revenueHistory: [],
   },
+  careerPitches: [],
+  careerVenues: [],
   catalog: [],
   artistIdentity: createInitialArtistIdentity('New Artist', 'Hip Hop'),
   strategicHealthScore: 0,

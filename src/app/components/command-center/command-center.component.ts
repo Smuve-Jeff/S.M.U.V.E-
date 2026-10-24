@@ -3,6 +3,9 @@ import {
   inject,
   signal,
   computed,
+  effect,
+  ElementRef,
+  viewChild,
   OnInit,
   OnDestroy,
 } from '@angular/core';
@@ -16,6 +19,7 @@ import {
 } from '../../types/ai.types';
 
 interface TerminalLog {
+  id: number;
   timestamp: number;
   type: 'command' | 'system' | 'response';
   message: string;
@@ -56,9 +60,83 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   private decreePollId: ReturnType<typeof setInterval> | null = null;
   private terminalIntervalId: ReturnType<typeof setInterval> | null = null;
 
+  /** Monotonic log ids so equal-millisecond entries never collide in track. */
+  private nextLogId = 1;
+
+  // Command history for ↑/↓ recall, mirroring a real HUD terminal.
+  commandHistory = signal<string[]>([]);
+  private historyIndex = signal(-1);
+  private draft = '';
+
+  /** One-tap strategic commands surfaced as chips above the input. */
+  readonly quickCommands = [
+    { label: 'Status', command: 'status' },
+    { label: 'Intel', command: '/intel' },
+    { label: 'Reference Modulation', command: 'reference modulation' },
+    { label: 'Release Window', command: 'protect the release window' },
+  ];
+
+  private terminalOutput = viewChild<ElementRef<HTMLElement>>('terminalOutput');
+
+  constructor() {
+    effect(() => {
+      // Keep the newest directive in view: every append scrolls the HUD
+      // stream to the bottom, like a real terminal hum.
+      this.terminalLogs().length;
+      const el = this.terminalOutput()?.nativeElement;
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+  }
+
   ngOnInit() {
     this.startTerminalSimulation();
     this.loadStrategicRecommendations();
+  }
+
+  /** Recall the previous/next executed command from this session. */
+  recallHistory(event: KeyboardEvent): void {
+    const history = this.commandHistory();
+    if (!history.length) return;
+    const index = this.historyIndex();
+    if (event.key === 'ArrowUp') {
+      this.historyIndex.set(Math.min(index + 1, history.length - 1));
+    } else if (event.key === 'ArrowDown') {
+      const next = index - 1;
+      if (next < 0) {
+        this.historyIndex.set(-1);
+        this.restoreDraft(event.target as HTMLInputElement);
+        return;
+      }
+      this.historyIndex.set(next);
+    } else {
+      return;
+    }
+    const recalled = history[this.historyIndex()];
+    const input = event.target as HTMLInputElement;
+    if (this.historyIndex() === history.length - 1 && index === -1) {
+      this.draft = input.value;
+    }
+    input.value = recalled ?? '';
+    event.preventDefault();
+  }
+
+  private restoreDraft(input: HTMLInputElement) {
+    input.value = this.draft;
+    this.draft = '';
+  }
+
+  clearTerminal() {
+    this.terminalLogs.set([
+      {
+        id: this.nextLogId++,
+        timestamp: Date.now(),
+        type: 'system',
+        message: 'TERMINAL BUFFER CLEARED. AWAITING ORDERS.',
+      },
+    ]);
+    this.commandHistory.set([]);
+    this.historyIndex.set(-1);
+    this.draft = '';
   }
 
   async loadStrategicRecommendations() {
@@ -87,6 +165,7 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
           this.terminalLogs.update((logs) => [
             ...logs,
             {
+              id: this.nextLogId++,
               timestamp: Date.now(),
               type: 'system',
               message: decrees[currentLine],
@@ -102,23 +181,37 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   }
 
   async handleCommand(command: string) {
-    if (!command.trim()) return;
+    const trimmed = command.trim();
+    if (!trimmed) return;
+
+    // Freshly-executed commands become the top of the recall stack. A repeat
+    // keeps its existing slot instead of duplicating, so recalling a command
+    // never fills the stack with copies of itself.
+    if (!this.commandHistory().includes(trimmed)) {
+      this.commandHistory.update((history) =>
+        [trimmed, ...history].slice(0, 20)
+      );
+    }
+    this.historyIndex.set(-1);
+    this.draft = '';
 
     this.terminalLogs.update((logs) => [
       ...logs,
       {
+        id: this.nextLogId++,
         timestamp: Date.now(),
         type: 'command',
-        message: command.toUpperCase(),
+        message: trimmed.toUpperCase(),
       },
     ]);
 
-    const response = await this.aiService.processCommand(command);
+    const response = await this.aiService.processCommand(trimmed);
 
     setTimeout(() => {
       this.terminalLogs.update((logs) => [
         ...logs,
         {
+          id: this.nextLogId++,
           timestamp: Date.now(),
           type: 'response',
           message: response,
@@ -139,6 +232,7 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
     this.terminalLogs.update((logs) => [
       ...logs,
       {
+        id: this.nextLogId++,
         timestamp: Date.now(),
         type: 'system',
         message: `ALERT: INTEGRATING ${rec.title.toUpperCase()}. SYNCING NEURAL PATHWAYS.`,
@@ -186,6 +280,7 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
     this.terminalLogs.update((logs) => [
       ...logs,
       {
+        id: this.nextLogId++,
         timestamp: Date.now(),
         type: 'system',
         message: `INITIALIZING OPERATION: ${srec.action.toUpperCase()}...`,
