@@ -2296,3 +2296,53 @@ canvas {
 .fx-rack textarea {
   padding: 0.5rem;
 }
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Display Lab — calibration and hardware upgrade path
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.lab-upgrade-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 1rem 1.25rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.6));
+}
+
+.lab-upgrade-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+.lab-upgrade-card {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 1rem;
+}
+
+.lab-upgrade-card h3 {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.lab-upgrade-card ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  list-style: disc;
+}
+
+.lab-upgrade-card li + li {
+  margin-top: 0.25rem;
+}

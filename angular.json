@@ -78,7 +78,8 @@
             "host": "0.0.0.0",
             "allowedHosts": [
               "smuvejeffpresents.com",
-              "www.smuvejeffpresents.com"
+              "www.smuvejeffpresents.com",
+              "pv-eedd75c07dd4-8bd7e0c1-c61b-4a75-bd93-93955f3a3da4.style.dev"
             ]
           },
           "configurations": {
