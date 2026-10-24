@@ -121,6 +121,7 @@ describe("TransportBarComponent", () => {
           provide: ExportService,
           useValue: {
             exportProjectWav: jest.fn(),
+            exportStems: jest.fn(),
             exportProjectMidi: jest.fn(),
             downloadBlob: jest.fn(),
             exportAndShare: jest.fn(),
@@ -200,6 +201,26 @@ describe("TransportBarComponent", () => {
     expect(mockAudioEngine.playbackLoopEnabled()).toBe(true);
     component.clearLoopRegion();
     expect(mockAudioEngine.playbackLoopEnabled()).toBe(false);
+  });
+
+  it('exports at the chosen delivery rate and tags the label', async () => {
+    expect(component.exportRateLabel()).toBe('44.1 kHz');
+    component.toggleExportSampleRate();
+    expect(component.exportSampleRate()).toBe(48000);
+    expect(component.exportRateLabel()).toBe('48 kHz');
+
+    const exportWav = jest
+      .spyOn(TestBed.inject(ExportService), 'exportProjectWav')
+      .mockResolvedValueOnce(new Blob(['wav'], { type: 'audio/wav' }));
+    await component.exportWav();
+    expect(exportWav).toHaveBeenCalledWith(16, 48000);
+
+    // The rate is not a WAV-only setting: stems carry it too.
+    const exportStems = jest
+      .spyOn(TestBed.inject(ExportService), 'exportStems')
+      .mockResolvedValueOnce(new Blob(['zip'], { type: 'application/zip' }));
+    await component.exportStems();
+    expect(exportStems).toHaveBeenCalledWith({ bitDepth: 24, sampleRate: 48000 });
   });
 
   it('surfaces render failures and clears the exporting busy state', async () => {

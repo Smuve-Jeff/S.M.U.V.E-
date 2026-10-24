@@ -506,7 +506,24 @@
   <!-- Export and Ideas actions -->
   <div class="ctb-group ctb-export-actions" role="group" aria-label="Export and share">
     <button type="button" class="ctb-dropdown-action" aria-label="Export WAV" (click)="exportWav()" [disabled]="isExporting()">
-      <span class="material-symbols-outlined">download</span> Export WAV
+      <span class="material-symbols-outlined">download</span> Export WAV (16-bit)
+    </button>
+    <button type="button" class="ctb-dropdown-action" aria-label="Export WAV 24-bit" (click)="exportWav24()" [disabled]="isExporting()">
+      <span class="material-symbols-outlined">download</span> Export WAV (24-bit)
+    </button>
+    <button type="button" class="ctb-dropdown-action" aria-label="Export stems" (click)="exportStems()" [disabled]="isExporting()">
+      <span class="material-symbols-outlined">library_music</span> Export Stems (.zip)
+    </button>
+    <button
+      type="button"
+      class="ctb-dropdown-action"
+      [attr.aria-label]="'Export sample rate ' + exportRateLabel() + ' — click to switch'"
+      [attr.aria-pressed]="exportSampleRate() === 48000"
+      (click)="toggleExportSampleRate()"
+      [disabled]="isExporting()"
+    >
+      <span class="material-symbols-outlined">graphic_eq</span>
+      Export rate: {{ exportRateLabel() }}
     </button>
     <button type="button" class="ctb-dropdown-action" aria-label="Export MIDI" (click)="exportMidi()">
       <span class="material-symbols-outlined">music_note</span> Export MIDI

@@ -45,6 +45,14 @@ export class TransportBarComponent {
   /** Real history stack — bound so Undo/Redo buttons actually reverse mutations. */
   readonly history = inject(HistoryService);
   isExporting = signal(false);
+  /**
+   * Delivery sample rate for WAV mixdowns and stems.
+   *
+   * 44.1 kHz matches music delivery; 48 kHz is what video editors, broadcast
+   * and most Android audio stacks expect, so an export can meet either spec
+   * without a second round trip through a converter.
+   */
+  exportSampleRate = signal<44100 | 48000>(44100);
 
   /** Ideas generator — one-tap 4-bar starter recipes. */
   public readonly ideas = inject(IdeasGeneratorService);
@@ -473,13 +481,61 @@ export class TransportBarComponent {
     return at === 0 ? 0 : Math.floor((Date.now() - at) / 1000);
   }
 
+  /** Human label for the chosen delivery rate (44100 → “44.1 kHz”). */
+  exportRateLabel(): string {
+    return this.exportSampleRate() === 48000 ? '48 kHz' : '44.1 kHz';
+  }
+
+  /** Flip the delivery rate between the two specs the exporter offers. */
+  toggleExportSampleRate(): void {
+    if (this.isExporting()) return;
+    this.exportSampleRate.update((rate) => (rate === 44100 ? 48000 : 44100));
+    this.haptic.light();
+    this.snack.info(`Export rate → ${this.exportRateLabel()}`);
+  }
+
   async exportWav() {
     if (this.isExporting()) return;
     this.isExporting.set(true);
     try {
-      await this.exportService.exportProjectWav();
+      await this.exportService.exportProjectWav(16, this.exportSampleRate());
     } catch (error) {
       this.snack.error('WAV export failed · ' + (error instanceof Error ? error.message : 'unknown error'));
+    } finally {
+      this.isExporting.set(false);
+    }
+  }
+
+  /** 24-bit mixdown — the delivery format for mixing and mastering. */
+  async exportWav24() {
+    if (this.isExporting()) return;
+    this.isExporting.set(true);
+    try {
+      await this.exportService.exportProjectWav(24, this.exportSampleRate());
+    } catch (error) {
+      this.snack.error('24-bit WAV export failed · ' + (error instanceof Error ? error.message : 'unknown error'));
+    } finally {
+      this.isExporting.set(false);
+    }
+  }
+
+  /** Export master + per-track stems as one ZIP for mixing/collaboration. */
+  async exportStems() {
+    if (this.isExporting()) return;
+    this.isExporting.set(true);
+    try {
+      await this.exportService.exportStems({
+        bitDepth: 24,
+        sampleRate: this.exportSampleRate(),
+      });
+      this.snack.success(
+        `Stems exported · .zip (master + one 24-bit WAV per track at ${this.exportRateLabel()})`,
+      );
+      this.haptic.medium();
+    } catch (error) {
+      this.snack.error(
+        'Stem export failed · ' + (error instanceof Error ? error.message : 'unknown error'),
+      );
     } finally {
       this.isExporting.set(false);
     }

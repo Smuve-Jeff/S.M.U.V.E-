@@ -290,16 +290,18 @@ class MasterLimiter {
   }
 
   process(sampleL, sampleR) {
-    const threshold = dbToLin(this.thresholdDb);
+    const threshold = dbToLin(Math.min(this.thresholdDb, this.ceilingDb));
     const ceiling = dbToLin(this.ceilingDb);
     const peak = Math.max(Math.abs(sampleL), Math.abs(sampleR));
     const desiredGain = peak > threshold ? threshold / peak : 1.0;
 
+    // Gain reduction may recover slowly, but it must attack immediately and
+    // the output ceiling is a hard bound, including during release.
     this.gainReduction = this.gainReduction > desiredGain
       ? this.releaseCoeff * this.gainReduction + (1 - this.releaseCoeff) * desiredGain
       : desiredGain;
 
-    const finalGain = this.gainReduction * ceiling / threshold;
+    const finalGain = Math.min(this.gainReduction, ceiling / Math.max(peak, 1e-12));
     return [
       clamp(sampleL * finalGain, -1, 1),
       clamp(sampleR * finalGain, -1, 1),

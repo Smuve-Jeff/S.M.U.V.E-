@@ -1,11 +1,11 @@
-import { TestBed } from '@angular/core/testing';
-import { ExportService } from '../export.service';
-import { AudioEngineService } from '../audio-engine.service';
-import { MusicManagerService } from '../music-manager.service';
-import { LoggingService } from '../logging.service';
-import { VideoEngineService } from '../video-engine.service';
+import { TestBed } from "@angular/core/testing";
+import { ExportService } from "../export.service";
+import { AudioEngineService } from "../audio-engine.service";
+import { MusicManagerService } from "../music-manager.service";
+import { LoggingService } from "../logging.service";
+import { VideoEngineService } from "../video-engine.service";
 
-describe('ExportService', () => {
+describe("ExportService", () => {
   let service: ExportService;
   let audioEngineMock: any;
   let mediaRecorderMock: any;
@@ -17,7 +17,7 @@ describe('ExportService', () => {
     const mockCtx = {
       sampleRate: 44100,
       currentTime: 0,
-      state: 'running',
+      state: "running",
       destination: {} as any,
       createGain: jest.fn().mockReturnValue({
         gain: {
@@ -49,7 +49,7 @@ describe('ExportService', () => {
       }),
       resume: jest.fn(),
       createOscillator: jest.fn().mockReturnValue({
-        type: 'sine',
+        type: "sine",
         frequency: { setValueAtTime: jest.fn(), value: 440 },
         connect: jest.fn(),
         start: jest.fn(),
@@ -74,6 +74,7 @@ describe('ExportService', () => {
       isPlaying: jest.fn().mockReturnValue(false),
       isRecording: jest.fn().mockReturnValue(false),
       tempo: jest.fn().mockReturnValue(124),
+      scheduleOfflineNote: jest.fn(),
       getMasterStream: jest.fn().mockReturnValue({
         stream: { getAudioTracks: jest.fn().mockReturnValue([]) },
       }),
@@ -85,24 +86,24 @@ describe('ExportService', () => {
       ondataavailable: ((event: { data: Blob }) => void) | null = null;
       onstop: (() => void) | null = null;
       onerror: ((event: { error: Error }) => void) | null = null;
-      mimeType = 'audio/webm';
-      state = 'inactive';
+      mimeType = "audio/webm";
+      state = "inactive";
       constructor(
         public stream: MediaStream,
-        public options: MediaRecorderOptions = {}
+        public options: MediaRecorderOptions = {},
       ) {
         recorders.push(this);
       }
       start = jest.fn(() => {
-        this.state = 'recording';
+        this.state = "recording";
       });
       stop = jest.fn(() => {
-        this.state = 'inactive';
-        this.ondataavailable?.({ data: new Blob(['sample']) });
+        this.state = "inactive";
+        this.ondataavailable?.({ data: new Blob(["sample"]) });
         this.onstop?.();
       });
       fail = jest.fn((error: Error) => {
-        this.state = 'inactive';
+        this.state = "inactive";
         this.onerror?.({ error });
       });
     };
@@ -139,11 +140,11 @@ describe('ExportService', () => {
     service = TestBed.inject(ExportService);
   });
 
-  it('should be created', () => {
+  it("should be created", () => {
     expect(service).toBeTruthy();
   });
 
-  it('should correctly encode AudioBuffer to WAV', async () => {
+  it("should correctly encode AudioBuffer to WAV", async () => {
     const sampleRate = 44100;
     const length = 100;
     const buffer = {
@@ -157,16 +158,16 @@ describe('ExportService', () => {
     const view = new DataView(wavArrayBuffer);
 
     // Check RIFF header
-    expect(view.getUint8(0)).toBe('R'.charCodeAt(0));
-    expect(view.getUint8(1)).toBe('I'.charCodeAt(0));
-    expect(view.getUint8(2)).toBe('F'.charCodeAt(0));
-    expect(view.getUint8(3)).toBe('F'.charCodeAt(0));
+    expect(view.getUint8(0)).toBe("R".charCodeAt(0));
+    expect(view.getUint8(1)).toBe("I".charCodeAt(0));
+    expect(view.getUint8(2)).toBe("F".charCodeAt(0));
+    expect(view.getUint8(3)).toBe("F".charCodeAt(0));
 
     // Check WAVE header
-    expect(view.getUint8(8)).toBe('W'.charCodeAt(0));
-    expect(view.getUint8(9)).toBe('A'.charCodeAt(0));
-    expect(view.getUint8(10)).toBe('V'.charCodeAt(0));
-    expect(view.getUint8(11)).toBe('E'.charCodeAt(0));
+    expect(view.getUint8(8)).toBe("W".charCodeAt(0));
+    expect(view.getUint8(9)).toBe("A".charCodeAt(0));
+    expect(view.getUint8(10)).toBe("V".charCodeAt(0));
+    expect(view.getUint8(11)).toBe("E".charCodeAt(0));
 
     // Check audio format at offset 20 (1 = PCM)
     expect(view.getUint16(20, true)).toBe(1);
@@ -178,7 +179,506 @@ describe('ExportService', () => {
     expect(view.getUint16(34, true)).toBe(16);
   });
 
-  it('starts live recording and creates a media stream destination', () => {
+  it("offline export schedules every resident window of a long streamed clip", async () => {
+    const first = { duration: 4, sampleRate: 44100 } as AudioBuffer;
+    const second = { duration: 4, sampleRate: 44100 } as AudioBuffer;
+    const streamer = {
+      setPlayhead: jest.fn(),
+      getResidentBuffer: jest
+        .fn()
+        .mockReturnValueOnce(first)
+        .mockReturnValueOnce(second),
+      getResidentOffsetSeconds: jest.fn(() => 0),
+      getRemainingSecondsFrom: jest.fn(() => 8),
+    };
+    const starts: number[][] = [];
+    const offline = {
+      destination: {},
+      createGain: jest.fn(() => ({
+        gain: {
+          value: 1,
+          setValueAtTime: jest.fn(),
+          linearRampToValueAtTime: jest.fn(),
+          setTargetAtTime: jest.fn(),
+        },
+        connect: jest.fn(),
+      })),
+      createStereoPanner: jest.fn(() => ({
+        pan: { value: 0 },
+        connect: jest.fn(),
+      })),
+      createBufferSource: jest.fn(() => ({
+        buffer: null,
+        connect: jest.fn(),
+        playbackRate: { setValueAtTime: jest.fn() },
+        start: (...args: number[]) => starts.push(args),
+      })),
+      startRendering: jest.fn().mockResolvedValue({}),
+    };
+    const originalOfflineAudioContext = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn(() => offline);
+    (service as any).engine.masterGain = { gain: { value: 1 } };
+    (service as any).engine.tempo = jest.fn(() => 120);
+    (service as any).musicManager.tracks = jest.fn(() => [
+      {
+        id: "stream-track",
+        name: "Long sample",
+        type: "audio",
+        muted: false,
+        soloed: false,
+        gain: 1,
+        pan: 0,
+        notes: [],
+        clips: [
+          {
+            type: "audio",
+            start: 0,
+            length: 8,
+            clipStreamer: streamer,
+            clipOriginSeconds: 0,
+            clipLengthSeconds: 8,
+            clipSampleRate: 44100,
+          },
+        ],
+      },
+    ]);
+    (service as any).musicManager.activeLoopBars = jest.fn(() => 2);
+
+    try {
+      await service.renderProjectOffline();
+    } finally {
+      if (originalOfflineAudioContext === undefined) {
+        delete (globalThis as any).OfflineAudioContext;
+      } else {
+        (globalThis as any).OfflineAudioContext = originalOfflineAudioContext;
+      }
+    }
+
+    expect(starts).toEqual([
+      [0, 0, 4],
+      [4, 0, 4],
+    ]);
+    expect(streamer.setPlayhead).toHaveBeenLastCalledWith(4 * 44100);
+  });
+
+  it("bounces an audio clip's fades instead of exporting a hard edge", async () => {
+    const gains: any[] = [];
+    const offline = {
+      destination: {},
+      createGain: jest.fn(() => {
+        const node = {
+          gain: {
+            value: 1,
+            setValueAtTime: jest.fn(),
+            linearRampToValueAtTime: jest.fn(),
+            setTargetAtTime: jest.fn(),
+          },
+          connect: jest.fn(),
+        };
+        gains.push(node);
+        return node;
+      }),
+      createStereoPanner: jest.fn(() => ({
+        pan: { value: 0 },
+        connect: jest.fn(),
+      })),
+      createBufferSource: jest.fn(() => ({
+        buffer: null,
+        connect: jest.fn(),
+        playbackRate: { setValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+      })),
+      startRendering: jest.fn().mockResolvedValue({}),
+    };
+    const original = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn(() => offline);
+    (service as any).engine.masterGain = { gain: { value: 1 } };
+    (service as any).engine.tempo = jest.fn(() => 120);
+    (service as any).musicManager.activeLoopBars = jest.fn(() => 4);
+    (service as any).musicManager.tracks = jest.fn(() => [
+      {
+        id: "vo",
+        name: "Vocal",
+        type: "audio",
+        muted: false,
+        soloed: false,
+        gain: 1,
+        pan: 0,
+        notes: [],
+        clips: [
+          {
+            type: "audio",
+            start: 0,
+            length: 4,
+            fadeIn: 1,
+            fadeOut: 1,
+            audioData: { duration: 8, sampleRate: 44100 },
+          },
+        ],
+      },
+    ]);
+
+    try {
+      await service.renderProjectOffline();
+    } finally {
+      if (original === undefined) {
+        delete (globalThis as any).OfflineAudioContext;
+      } else {
+        (globalThis as any).OfflineAudioContext = original;
+      }
+    }
+
+    // 120 BPM → 2 s per bar: the 1-bar fades are 2 s inside the 8 s clip, so
+    // the envelope is 0→1 over 0–2 s and 1→0 over 6–8 s — the live sampler's
+    // ramps, now present in the bounce.
+    const fader = gains.find(
+      (node) => node.gain.linearRampToValueAtTime.mock.calls.length > 0,
+    );
+    expect(fader).toBeTruthy();
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(1, 0, 0);
+    expect(fader!.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(
+      1,
+      1,
+      2,
+    );
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(2, 1, 6);
+    expect(fader!.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(
+      2,
+      0,
+      8,
+    );
+  });
+
+  /**
+   * Render one audio clip through the offline bounce and hand back every gain
+   * the mocked context created, so an envelope test can pick out the clip's
+   * fader (the only stage carrying ramps / a target approach).
+   */
+  async function renderClipGains(clip: Record<string, unknown>) {
+    const gains: any[] = [];
+    const offline = {
+      destination: {},
+      createGain: jest.fn(() => {
+        const node = {
+          gain: {
+            value: 1,
+            setValueAtTime: jest.fn(),
+            linearRampToValueAtTime: jest.fn(),
+            setTargetAtTime: jest.fn(),
+          },
+          connect: jest.fn(),
+        };
+        gains.push(node);
+        return node;
+      }),
+      createStereoPanner: jest.fn(() => ({
+        pan: { value: 0 },
+        connect: jest.fn(),
+      })),
+      createBufferSource: jest.fn(() => ({
+        buffer: null,
+        connect: jest.fn(),
+        playbackRate: { setValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+      })),
+      startRendering: jest.fn().mockResolvedValue({}),
+    };
+    const original = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn(() => offline);
+    (service as any).engine.masterGain = { gain: { value: 1 } };
+    (service as any).engine.tempo = jest.fn(() => 120);
+    (service as any).musicManager.activeLoopBars = jest.fn(() => 4);
+    (service as any).musicManager.tracks = jest.fn(() => [
+      {
+        id: "vo",
+        name: "Vocal",
+        type: "audio",
+        muted: false,
+        soloed: false,
+        gain: 1,
+        pan: 0,
+        notes: [],
+        clips: [clip],
+      },
+    ]);
+    try {
+      await service.renderProjectOffline();
+    } finally {
+      if (original === undefined) {
+        delete (globalThis as any).OfflineAudioContext;
+      } else {
+        (globalThis as any).OfflineAudioContext = original;
+      }
+    }
+    return gains;
+  }
+
+  it("applies clip-level gain as the fade envelope's ceiling in the bounce", async () => {
+    // Phase L regression: clipGain used to be stamped with a standalone
+    // setValueAtTime(0.5, 0) that the envelope's own setValueAtTime(0, 0)
+    // overwrote at the same instant — every ramp then targeted 1 and the
+    // clip gain silently vanished from the export.
+    const gains = await renderClipGains({
+      type: "audio",
+      start: 0,
+      length: 4,
+      fadeIn: 1,
+      fadeOut: 1,
+      clipGain: 0.5,
+      audioData: { duration: 8, sampleRate: 44100 },
+    });
+
+    const fader = gains.find(
+      (node) => node.gain.linearRampToValueAtTime.mock.calls.length > 0,
+    );
+    expect(fader).toBeTruthy();
+    // 120 BPM → 2 s per bar: the envelope is 0 → 0.5 over the 2 s fade-in,
+    // holds at clipGain, then 0.5 → 0 over the last 2 s — the live
+    // triggerSampler shape with velocity = t.gain * clipGain (gain 1 here).
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(1, 0, 0);
+    expect(fader!.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(
+      1,
+      0.5,
+      2,
+    );
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(2, 0.5, 6);
+    expect(fader!.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(
+      2,
+      0,
+      8,
+    );
+  });
+
+  it("applies clip-level gain when the clip has no fades", async () => {
+    const gains = await renderClipGains({
+      type: "audio",
+      start: 0,
+      length: 4,
+      clipGain: 0.5,
+      audioData: { duration: 8, sampleRate: 44100 },
+    });
+
+    const fader = gains.find(
+      (node) => node.gain.setTargetAtTime.mock.calls.length > 0,
+    );
+    expect(fader).toBeTruthy();
+    // The no-fade branch mirrors triggerSampler: zero the stage, then a
+    // 5 ms approach to clipGain — not to full scale.
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(1, 0, 0);
+    expect(fader!.gain.setTargetAtTime).toHaveBeenNthCalledWith(
+      1,
+      0.5,
+      0,
+      0.005,
+    );
+  });
+
+  it("renders a 48 kHz master at 48 kHz instead of relabelling a 44.1 kHz bounce", async () => {
+    const offline = {
+      destination: {},
+      createGain: jest.fn(() => ({
+        gain: { value: 1 },
+        connect: jest.fn(),
+      })),
+      createStereoPanner: jest.fn(() => ({
+        pan: { value: 0 },
+        connect: jest.fn(),
+      })),
+      createBufferSource: jest.fn(() => ({
+        buffer: null,
+        connect: jest.fn(),
+        playbackRate: { setValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+      })),
+      startRendering: jest.fn().mockResolvedValue({}),
+    };
+    const contexts: any[][] = [];
+    const original = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn((...args: any[]) => {
+      contexts.push(args);
+      return offline;
+    });
+    (service as any).engine.masterGain = { gain: { value: 1 } };
+    (service as any).engine.tempo = jest.fn(() => 120);
+    (service as any).musicManager.activeLoopBars = jest.fn(() => 2);
+    (service as any).musicManager.tracks = jest.fn(() => []);
+
+    try {
+      await service.renderProjectOffline({ sampleRate: 48000 });
+    } finally {
+      if (original === undefined) {
+        delete (globalThis as any).OfflineAudioContext;
+      } else {
+        (globalThis as any).OfflineAudioContext = original;
+      }
+    }
+
+    // 2 bars at 120 BPM = 4 s, plus the 1 s tail: 5 s of frames at 48 kHz.
+    expect(contexts).toEqual([[2, 5 * 48000, 48000]]);
+  });
+
+  it("renders only the requested tracks and can ignore solo for a stem set", async () => {
+    const offline = {
+      destination: {},
+      createGain: jest.fn(() => ({
+        gain: {
+          value: 1,
+          setValueAtTime: jest.fn(),
+          linearRampToValueAtTime: jest.fn(),
+          setTargetAtTime: jest.fn(),
+        },
+        connect: jest.fn(),
+      })),
+      createStereoPanner: jest.fn(() => ({
+        pan: { value: 0 },
+        connect: jest.fn(),
+      })),
+      createBufferSource: jest.fn(() => ({
+        buffer: null,
+        connect: jest.fn(),
+        playbackRate: { setValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+      })),
+      startRendering: jest.fn().mockResolvedValue({}),
+    };
+    const original = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn(() => offline);
+    const schedule = audioEngineMock.scheduleOfflineNote as jest.Mock;
+    schedule.mockClear();
+    (service as any).engine.masterGain = { gain: { value: 1 } };
+    (service as any).engine.tempo = jest.fn(() => 120);
+    (service as any).musicManager.activeLoopBars = jest.fn(() => 2);
+    (service as any).musicManager.tracks = jest.fn(() => [
+      {
+        id: "a",
+        name: "Lead",
+        type: "midi",
+        muted: false,
+        soloed: false,
+        gain: 1,
+        pan: 0,
+        synthParams: { type: "sine" },
+        clips: [],
+        notes: [{ midi: 60, step: 0, length: 4, velocity: 0.8 }],
+      },
+      {
+        id: "b",
+        name: "Soloed pad",
+        type: "midi",
+        muted: false,
+        soloed: true,
+        gain: 1,
+        pan: 0,
+        synthParams: { type: "sine" },
+        clips: [],
+        notes: [{ midi: 67, step: 0, length: 4, velocity: 0.8 }],
+      },
+    ]);
+
+    try {
+      // Stem render: one track, even though the other track is soloed.
+      await service.renderProjectOffline({ onlyTrackIds: new Set(["a"]) });
+      expect(schedule).toHaveBeenCalledTimes(1);
+
+      // Full render with solo respected: only the soloed pad.
+      schedule.mockClear();
+      await service.renderProjectOffline();
+      expect(schedule).toHaveBeenCalledTimes(1);
+
+      // Full render ignoring solo: every track.
+      schedule.mockClear();
+      await service.renderProjectOffline({ ignoreSolo: true });
+      expect(schedule).toHaveBeenCalledTimes(2);
+    } finally {
+      if (original === undefined) {
+        delete (globalThis as any).OfflineAudioContext;
+      } else {
+        (globalThis as any).OfflineAudioContext = original;
+      }
+    }
+  });
+
+  it("exportStems bundles the master plus one WAV per unmuted track", async () => {
+    const stemBuffer = {
+      numberOfChannels: 1,
+      sampleRate: 44100,
+      length: 32,
+      getChannelData: () => new Float32Array(32).fill(0.25),
+    } as unknown as AudioBuffer;
+    jest.spyOn(service, "renderProjectOffline").mockResolvedValue(stemBuffer);
+    const download = jest
+      .spyOn(service, "downloadBlob")
+      .mockImplementation(() => {});
+    (service as any).musicManager.tracks = () => [
+      {
+        id: "t1",
+        name: "Lead",
+        type: "midi",
+        muted: false,
+        notes: [],
+        clips: [],
+      },
+      {
+        id: "t2",
+        name: "Vocal",
+        type: "audio",
+        muted: false,
+        notes: [],
+        clips: [],
+      },
+      {
+        id: "t3",
+        name: "Muted",
+        type: "midi",
+        muted: true,
+        notes: [],
+        clips: [],
+      },
+      {
+        id: "bus1",
+        name: "Drum Bus",
+        type: "bus",
+        muted: false,
+        notes: [],
+        clips: [],
+      },
+    ];
+
+    const wavDepth = jest.spyOn(service, "audioBufferToWav");
+    const zip = await service.exportStems();
+
+    // Stems are delivery files, so every entry is written at 24-bit.
+    expect(wavDepth).toHaveBeenCalledTimes(3);
+    expect(wavDepth.mock.calls.every(([, depth]) => depth === 24)).toBe(true);
+
+    // Master + the two audible tracks; muted tracks and buses are skipped.
+    expect(service.renderProjectOffline).toHaveBeenCalledTimes(3);
+    expect(service.renderProjectOffline).toHaveBeenNthCalledWith(1, {
+      sampleRate: 44100,
+    });
+    expect(service.renderProjectOffline).toHaveBeenNthCalledWith(2, {
+      onlyTrackIds: new Set(["t1"]),
+      ignoreSolo: true,
+      sampleRate: 44100,
+    });
+    expect(service.renderProjectOffline).toHaveBeenNthCalledWith(3, {
+      onlyTrackIds: new Set(["t2"]),
+      ignoreSolo: true,
+      sampleRate: 44100,
+    });
+    expect(zip.type).toBe("application/zip");
+    expect(zip.size).toBeGreaterThan(0);
+    expect(download).toHaveBeenCalledWith(
+      zip,
+      expect.stringMatching(/_stems_\d+\.zip$/),
+    );
+  });
+
+  it("starts live recording and creates a media stream destination", () => {
     const { recorder, result } = service.startLiveRecording();
 
     expect(audioEngineMock.ctx.createMediaStreamDestination).toHaveBeenCalled();
@@ -190,7 +690,7 @@ describe('ExportService', () => {
     return expect(result).resolves.toBeInstanceOf(Blob);
   });
 
-  it('can stop a live recording and receive a blob', async () => {
+  it("can stop a live recording and receive a blob", async () => {
     const { recorder, result } = service.startLiveRecording();
 
     recorder.stop();
@@ -198,7 +698,7 @@ describe('ExportService', () => {
     expect(blob).toBeInstanceOf(Blob);
   });
 
-  it('captures the preview canvas into a real video recording', async () => {
+  it("captures the preview canvas into a real video recording", async () => {
     const canvas = {
       captureStream: jest.fn().mockReturnValue({ addTrack: jest.fn() }),
     } as unknown as HTMLCanvasElement;
@@ -209,7 +709,7 @@ describe('ExportService', () => {
 
     expect(canvas.captureStream).toHaveBeenCalledWith(30);
     expect(recorder).toBeDefined();
-    expect(typeof recorder.stop).toBe('function');
+    expect(typeof recorder.stop).toBe("function");
 
     recorder.stop();
     const blob = await result;
@@ -217,15 +717,15 @@ describe('ExportService', () => {
     expect(blob.size).toBeGreaterThan(0);
   });
 
-  it('refuses a canvas that cannot be captured', async () => {
+  it("refuses a canvas that cannot be captured", async () => {
     await expect(
-      service.startVideoExport({} as HTMLCanvasElement)
+      service.startVideoExport({} as HTMLCanvasElement),
     ).rejects.toThrow(/Canvas capture/);
   });
 
-  it('sums a tapped clip into the export track and reports its container', async () => {
+  it("sums a tapped clip into the export track and reports its container", async () => {
     audioEngineMock.ctx.createMediaStreamDestination.mockReturnValueOnce({
-      stream: { getAudioTracks: () => [{ id: 'mix-audio' }] },
+      stream: { getAudioTracks: () => [{ id: "mix-audio" }] },
     });
     const addTrack = jest.fn();
     const canvas = {
@@ -241,7 +741,7 @@ describe('ExportService', () => {
     // dialogue in it downloads silent.
     expect(clipAudio.connect).toHaveBeenCalled();
     expect(addTrack).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'mix-audio' })
+      expect.objectContaining({ id: "mix-audio" }),
     );
     // The caller names the file from this, so it cannot guess `.webm`.
     expect(session.mimeType).toMatch(/webm/);
@@ -250,7 +750,7 @@ describe('ExportService', () => {
     await session.result;
   });
 
-  it('declines a clip it cannot tap instead of throwing', () => {
+  it("declines a clip it cannot tap instead of throwing", () => {
     expect(service.connectClipAudio({} as HTMLMediaElement)).toBe(false);
     expect(() => service.setClipAudioLevel(1)).not.toThrow();
   });
@@ -260,36 +760,36 @@ describe('ExportService', () => {
    * caller's capture window never sees. The transport has to be handed back
    * either way, otherwise the timeline is left rolling with no export to show.
    */
-  describe('transport handoff around a capture', () => {
+  describe("transport handoff around a capture", () => {
     const canvas = () =>
       ({
         captureStream: jest.fn().mockReturnValue({ addTrack: jest.fn() }),
       }) as unknown as HTMLCanvasElement;
 
-    it('stops the timeline when the recorder ends before the capture window', async () => {
+    it("stops the timeline when the recorder ends before the capture window", async () => {
       // Transport idle before the take: it must be idle again afterwards.
       videoEngineMock.isPlaying.mockReturnValue(false);
 
       const { result } = await service.startVideoExport(canvas());
-      recorders[0].fail(new Error('display track ended'));
+      recorders[0].fail(new Error("display track ended"));
 
-      await expect(result).rejects.toThrow('display track ended');
+      await expect(result).rejects.toThrow("display track ended");
       expect(videoEngineMock.pause).toHaveBeenCalled();
       expect(videoEngineMock.play).not.toHaveBeenCalled();
     });
 
-    it('resumes the timeline when it was rolling before the take', async () => {
+    it("resumes the timeline when it was rolling before the take", async () => {
       videoEngineMock.isPlaying.mockReturnValue(true);
 
       const { result } = await service.startVideoExport(canvas());
-      recorders[0].fail(new Error('recorder crashed'));
+      recorders[0].fail(new Error("recorder crashed"));
 
-      await expect(result).rejects.toThrow('recorder crashed');
+      await expect(result).rejects.toThrow("recorder crashed");
       expect(videoEngineMock.pause).toHaveBeenCalled();
       expect(videoEngineMock.play).toHaveBeenCalled();
     });
 
-    it('hands the transport back after a normal stop without resuming', async () => {
+    it("hands the transport back after a normal stop without resuming", async () => {
       videoEngineMock.isPlaying.mockReturnValue(false);
 
       const { recorder, result } = await service.startVideoExport(canvas());
@@ -297,7 +797,7 @@ describe('ExportService', () => {
       await result;
 
       // A late `onerror` must not roll the timeline a second time.
-      recorders[0].fail(new Error('late error'));
+      recorders[0].fail(new Error("late error"));
 
       expect(videoEngineMock.pause).toHaveBeenCalledTimes(1);
       expect(videoEngineMock.play).not.toHaveBeenCalled();

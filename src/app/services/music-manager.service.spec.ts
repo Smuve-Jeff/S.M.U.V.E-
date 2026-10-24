@@ -994,6 +994,23 @@ describe('MusicManagerService live plugin insert wiring', () => {
     expect(service.tracks().map((t) => t.id)).toEqual(['track-1']);
   });
 
+  it('reports the last occupied bar so song length follows the arrangement', () => {
+    service.addAudioTrack({
+      id: 'track-far',
+      name: 'Outro',
+      color: '#0E7C7B',
+      buffer: { duration: 4, sampleRate: 48000, numberOfChannels: 1 } as AudioBuffer,
+      offset: 0,
+    });
+    service.addClipToTrack('track-far', {
+      start: 90,
+      length: 4,
+      name: 'Far clip',
+    });
+
+    expect(service.arrangementEndBar()).toBe(94);
+  });
+
   it('stamps clipStreamer admission fields on addAudioTrack and dispatches streamed vs classic clips in playStep', () => {
     const triggerSampler = jest.fn();
     (service as any).engine.triggerSampler = triggerSampler;
@@ -1008,6 +1025,8 @@ describe('MusicManagerService live plugin insert wiring', () => {
       setPlayhead: jest.fn(),
       getResidentBuffer: jest.fn(() => mockBuffer),
       advancePlayhead: jest.fn(),
+      getSampleRate: jest.fn(() => 48000),
+      getChannelCount: jest.fn(() => 1),
     } as any;
 
     service.addAudioTrack({
@@ -1021,7 +1040,14 @@ describe('MusicManagerService live plugin insert wiring', () => {
       clipLengthSeconds: 12,
       clipSampleRate: 48000,
       clipChannels: 1,
+      reversed: false,
+      clipGain: 1.0,
+      importReversedFlag: false,
     });
+
+    // Verify the streamed clip still carries clipStreamer after construction so
+    // playStep can dispatch through the streamer path.
+    expect(service.tracks().find((t) => t.id === 'track-streamed')!.clips[0].clipStreamer).toBe(streamer);
 
     const added = service.tracks().find((t) => t.id === 'track-streamed')!;
     const clip: any = added.clips[0];
@@ -1057,14 +1083,49 @@ describe('MusicManagerService live plugin insert wiring', () => {
       color: '#E11D48',
       buffer: mockBuffer,
       offset: 0,
+      clipStreamer: null,
+      reversed: false,
+      clipGain: 1.0,
     });
-    service.tracks.update((ts) =>
-      ts.filter((t) => t.id === 'track-classic')
-    );
     service.playStep(0, 1.0, 0.125);
     expect(triggerSampler).toHaveBeenCalledWith(
       'track-classic',
       mockBuffer,
+      1.0,
+      0.8,
+      0,
+      expect.any(Number),
+      1,
+      0,
+      0
+    );
+
+    // Reversed classic clip (no clipStreamer) — engine.reverseBuffer flips the
+    // source buffer and triggerSampler receives the reversed AudioBuffer.
+    triggerSampler.mockClear();
+    const classicClipId = service.tracks().find((t) => t.id === 'track-classic')!.clips[0].id;
+    service.updateClip('track-classic', classicClipId, { reversed: true });
+    const mockReversedBuffer = {
+      duration: 12,
+      sampleRate: 48000,
+      numberOfChannels: 1,
+      getChannelData: jest.fn((channelIndex: number) =>
+        mockBuffer.getChannelData(channelIndex).slice().reverse()
+      ),
+    } as any;
+    (service as any).engine.reverseBuffer = jest.fn(
+      (source: AudioBuffer, channelFactory: (channelIndex: number, src: AudioBuffer) => Float32Array) =>
+        mockReversedBuffer
+    );
+
+    service.playStep(0, 1.0, 0.125);
+    expect((service as any).engine.reverseBuffer).toHaveBeenCalledWith(
+      mockBuffer,
+      expect.any(Function)
+    );
+    expect(triggerSampler).toHaveBeenCalledWith(
+      'track-classic',
+      mockReversedBuffer,
       1.0,
       0.8,
       0,

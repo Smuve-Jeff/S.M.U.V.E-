@@ -203,21 +203,27 @@ scoped in `docs/CAPACITOR_PLUGIN_AUDIT.md:42`), the
 `FOREGROUND_SERVICE_MICROPHONE` permission and a `microphone` FGS declaration.
 That is native work this repository cannot verify without an Android build.
 
-## 5. Audio I/O permissions & device compatibility — **PARTIAL**
+## 5. Audio I/O permissions & device compatibility — **COVERED**
 
 Capture already asks for the right constraints — `echoCancellation: false`,
 `noiseSuppression: false`, `autoGainControl: false`
 (`studio-recording-engine.service.ts:62-70`) — which is what a DAW needs and
 what most web apps get wrong. A headless/no-mic host is classified as an
 environment, not a fault (`NotFoundError` → warn, `:118`).
-**Open:** the touchy part is measurement, and it is unmeasured. There is no
-recorded per-device latency baseline. `AudioEngineLatencyService` can already
-capture `baseLatency`/`outputLatency` and its headroom hint
-(`audio-engine-latency.service.ts:126`), and the
-`latencyCompensation` profile setting exists — but nothing writes a baseline
-from a real device run. **Fix:** an in-app "calibrate this device" action that
-persists `{ deviceModel, apiLevel, totalLatencyMs, benchmarkSpeedRatio }` into
-the profile, then use it to pre-fill compensation.
+**Measurement — closed.** The Settings "Calibrate This Device" action already
+ran `calibrateFromCurrentDevice()`, but the run died with the tab: only the
+single `latencyCompensation` number reached the profile. The run now also
+persists a durable per-device baseline —
+`{ deviceModel, apiLevel, totalLatencyMs, benchmarkSpeedRatio, capturedAt }`,
+identity from `readDeviceIdentity()` (Android UA → model + API level; other
+platforms report their platform and a null API level rather than a guess) —
+into localStorage (`smuve_device_latency_baseline`), reloaded on construction
+into `storedBaseline()`. An effect pre-fills
+`settings.studio.latencyCompensation` from that baseline the first time a
+profile settles in with compensation still 0; a value the artist already set
+is never overwritten, and a fresh calibration run marks itself applied so it
+cannot echo back. 5 unit tests pin the UA parsing, the persist/reload cycle,
+the pre-fill and the non-zero guard.
 
 ## 6. UX polish & touch ergonomics — **PARTIAL**
 
@@ -273,7 +279,7 @@ first bank is commercially distributed.
 | P1 | **Shipped in this pass:** device-class detection driving the adaptive engine tier (§9) | 1, 3 | — | Low-end devices stop booting the full budget |
 | P1 | ~~Cap the "extra AudioContext" count / pass `latencyHint` at the six non-engine call sites~~ **shipped (§9e)** | 1, 3 | — | Every auxiliary graph states its latency intent; decode work shares one context; call/separation graphs are released |
 | P1 | ~~Sample streaming for long imports (bounded preview + windowed playback)~~ **shipped (§2)**: `SampleStreamer` resident window + clip-streamer admission & playback coupling | 2 | — | Multi-stem projects on low-RAM devices |
-| P1 | Device calibration run persisted into the profile (latency baseline per model/API level) | 5 | 1 d | Accurate record compensation without guesswork |
+| P1 | ~~Device calibration run persisted into the profile (latency baseline per model/API level)~~ **shipped (§5)**: durable per-device baseline + compensation pre-fill | 5 | — | Accurate record compensation without guesswork |
 | P2 | Piano-roll / arrangement / mixer touch ergonomics pass | 6 | 2–3 d | Visible polish; table stakes vs the leaders |
 | P2 | Granular / convolution / wavetable kernels to WASM with SIMD | 7 | 3–5 d | Quality + CPU on the heaviest instruments |
 | P2 | `LICENSE` + third-party notices + AD_ID decision | 8 | 0.5 d | Play Data Safety + legal hygiene |
@@ -421,13 +427,18 @@ half of the low-power item:
   boundaries, the safe fallback for browsers that report nothing, the
   AudioWorklet/Data-Saver downgrades, and the engine wiring.
 
-**Still open on this item:** nothing consumes `budget()` to actually *enforce*
-the voice/effects ceilings yet. The integration point is the instrument
-constructors, which hardcode polyphony today
-(`wavetable-synth.ts:45` `super(audioContext, 10)`, `drum-machine.ts:27`
-`super(context, 32)`, `advanced-synth.ts:82` `super(audioContext, 8)`); they take
-an `AudioContext`, not DI, so enforcement needs a small factory/service that
-injects the budget at construction time.
+**Voice ceiling — closed.** The integration point this audit first suggested
+(the `Instrument` constructors) turned out to be dead code: those subclasses
+are imported only by `synth-classes.spec.ts`, while every audible note runs
+`AudioEngineService.triggerAttack` → `buildVoiceGraph`. Enforcement lives
+there instead: `StudioDeviceProfileService.applyToEngine()` pushes
+`budget().maxVoices` down the same road it already walks for
+`updateAdaptivePerformance`; the live path prunes expired voices and steals
+the oldest one whenever the ceiling is full; and `setVoiceBudget()` sheds
+voices immediately when a re-classification lowers the ceiling. The offline
+bounce passes no voice handle, so an export is never throttled by the
+interactive ceiling. **Still open on this item:** `maxActiveEffects` and
+`maxTracks` have no enforcer yet.
 
 ### 9e. Auxiliary audio-graph policy (`AuxAudioContextService`)
 

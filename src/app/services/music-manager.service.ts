@@ -235,13 +235,38 @@ export class MusicManagerService {
    * default 64-step seed. Result is clamped to a minimum of 16 (1 bar) so
    * pattern-mode fallback below never produces a 0-length song.
    */
+  /**
+   * Last occupied bar in the arrangement (clips and notes), rounded up.
+   * Song length must follow the content, not the 64-bar default loop, or a
+   * clip dragged past bar 64 would play but never be reachable by the loop
+   * markers and playback would stop before it.
+   */
+  readonly arrangementEndBar = computed(() => {
+    let end = 0;
+    for (const track of this.tracks()) {
+      for (const clip of track.clips ?? []) {
+        end = Math.max(end, (clip.start ?? 0) + Math.max(0.001, clip.length ?? 4));
+      }
+      for (const note of track.notes ?? []) {
+        end = Math.max(end, ((note.step ?? 0) + (note.length ?? 0)) / 16);
+      }
+    }
+    return Math.ceil(end);
+  });
+
   private structureSongLengthEffect = effect(() => {
     const sections = this.structure() ?? [];
     const fromStructure = sections.reduce(
       (sum, s) => sum + Math.max(0, s?.length ?? 0),
       0
     );
-    const bars = Math.max(4, fromStructure, this.activeLoopBars());
+    // +1 bar so the final bar's tail is inside the song, not clipped by it.
+    const bars = Math.max(
+      4,
+      fromStructure,
+      this.activeLoopBars(),
+      this.arrangementEndBar() + 1
+    );
     this.engine.setSongLengthSteps(bars * 16);
   });
   activeLoopBars = signal(64);
@@ -2286,6 +2311,8 @@ export class MusicManagerService {
             ),
             type: 'audio',
             audioRefId: r.clipId,
+            reversed: false,
+            clipGain: 1.0,
           } as any);
         });
         this.tracks.set(newTracks);
@@ -2309,6 +2336,9 @@ export class MusicManagerService {
     clipLengthSeconds?: number;
     clipSampleRate?: number;
     clipChannels?: number;
+    reversed?: boolean;
+    clipGain?: number;
+    importReversedFlag?: boolean;
   }): void {
     const trackId = opts.id || 'audio_' + Date.now();
     const clipId = 'clip_' + Date.now();
@@ -2337,6 +2367,8 @@ export class MusicManagerService {
           start: opts.offset || 0,
           length: Math.max(1, barsAtBpm),
           type: 'audio',
+          // `playStep` resolves the clip's audio via audioRefId -> stemAudioCache;
+          // without this the dispatch block is skipped entirely.
           audioRefId: clipId,
           ...(opts.clipStreamer
             ? {
@@ -2349,6 +2381,13 @@ export class MusicManagerService {
                   opts.clipChannels ?? opts.buffer.numberOfChannels ?? 2,
               }
             : {}),
+          ...(opts.clipStreamer
+            ? {}
+            : {
+                reversed: (opts as any).reversed ?? false,
+                clipGain: (opts as any).clipGain ?? 1.0,
+                importReversedFlag: false,
+              }),
         } as any,
       ],
       notes: [],
@@ -2541,14 +2580,24 @@ export class MusicManagerService {
                 (clip as any).clipOriginSeconds ?? 0,
                 (clip as any).clipLengthSeconds ?? clipDur,
                 (clip as any).clipSampleRate ?? 48000,
-                (clip as any).clipChannels ?? 2
+                (clip as any).clipChannels ?? 2,
               );
             } else {
+              const reversedClip = (clip as any).reversed && !(
+                (clip as any).clipStreamer
+              );
+              const playbackBuffer = reversedClip
+                ? this.engine.reverseBuffer(
+                    audioData as AudioBuffer,
+                    (channelIndex, src) =>
+                      src.getChannelData(channelIndex).slice().reverse(),
+                  )
+                : audioData;
               this.engine.triggerSampler(
                 t.id,
-                audioData,
+                playbackBuffer,
                 swungTime,
-                t.gain,
+                (t.gain * ((clip as any).clipGain ?? 1.0)),
                 t.pan,
                 clipDur,
                 rate,

@@ -1,5 +1,5 @@
 export type WavBitDepth = 16 | 24 | 32;
-export type WavFormat = "wav-16" | "wav-32" | "wav-32-float";
+export type WavFormat = "wav-16" | "wav-24" | "wav-32" | "wav-32-float";
 
 export class WavEncoder {
   static encode(
@@ -22,7 +22,7 @@ export class WavEncoder {
 
   /**
    * Encode multi-channel audio to WAV with selectable bit depth.
-   * Supports 16-bit PCM, 32-bit PCM, and 32-bit float IEEE 754.
+   * Supports 16-bit PCM, 24-bit PCM, 32-bit PCM, and 32-bit float IEEE 754.
    */
   static encodeMultiChannel(
     channels: Float32Array[],
@@ -38,6 +38,14 @@ export class WavEncoder {
           numChannels,
           sampleRate,
           16,
+          false,
+        );
+      case "wav-24":
+        return WavEncoder.encodeInternal(
+          channels,
+          numChannels,
+          sampleRate,
+          24,
           false,
         );
       case "wav-32":

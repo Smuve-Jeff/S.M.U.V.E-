@@ -1,4 +1,4 @@
-import { Injectable, signal, inject, computed } from '@angular/core';
+import { Injectable, signal, inject, computed, effect } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
 import { UserProfileService } from './user-profile.service';
@@ -60,6 +60,111 @@ export interface LatencyCalibrationResult {
   capturedAt: number;
 }
 
+/**
+ * A calibration run as recorded for THIS device (parity audit §5). The
+ * residual gap was never the number written into settings — it was that
+ * nothing durable came out of a real device run: `lastCalibration` died
+ * with the tab, so there was no per-model/API baseline to reason about or
+ * to pre-fill from on the next session.
+ */
+export interface DeviceLatencyBaseline {
+  /** Best-effort model string from the UA, e.g. `Pixel 8`. */
+  deviceModel: string;
+  /** Android API level when the UA exposes it; null on other platforms. */
+  apiLevel: number | null;
+  /** Round-trip latency the engine reported at capture time, in ms. */
+  totalLatencyMs: number;
+  /** Offline render speed ratio from the same run. */
+  benchmarkSpeedRatio: number;
+  /** Epoch ms of the run. */
+  capturedAt: number;
+}
+
+/** localStorage key for the device baseline — device-local by nature. */
+const DEVICE_BASELINE_KEY = 'smuve_device_latency_baseline';
+
+/** Android release → API level for the releases a UA can report. */
+const ANDROID_API_LEVELS: Record<string, number> = {
+  '16': 36,
+  '15': 35,
+  '14': 34,
+  '13': 33,
+  '12L': 32,
+  '12': 31,
+  '11': 30,
+  '10': 29,
+  '9': 28,
+  '8.1': 27,
+  '8': 26,
+  '7.1': 25,
+  '7': 24,
+  '6': 23,
+  '5.1': 22,
+  '5': 21,
+};
+
+/**
+ * Identify the device a calibration ran on. The Android UA carries both the
+ * release and the model — `(Linux; Android 14; Pixel 8 Build/…)` — which is
+ * exactly the `{ deviceModel, apiLevel }` pair the audit asks for. Other
+ * platforms report their platform name and a null API level rather than a
+ * guess, so a stored baseline is never silently mislabelled.
+ */
+export function readDeviceIdentity(
+  source: any = typeof navigator !== 'undefined' ? navigator : {}
+): { deviceModel: string; apiLevel: number | null } {
+  const ua = String(source?.userAgent ?? '');
+  const android = /Android\s+([\d.]+L?)\s*;\s*([^;)]+)/.exec(ua);
+  if (android) {
+    const model = android[2].replace(/\s+Build\/.*$/, '').trim();
+    return {
+      deviceModel: model || 'Unknown Android device',
+      apiLevel: ANDROID_API_LEVELS[android[1]] ?? null,
+    };
+  }
+  const platform = String(
+    source?.userAgentData?.platform ?? source?.platform ?? ''
+  ).trim();
+  return { deviceModel: platform || 'Unknown device', apiLevel: null };
+}
+
+/** Load this device's stored baseline; corrupt storage reads as absent. */
+function readStoredBaseline(): DeviceLatencyBaseline | null {
+  try {
+    const raw = localStorage.getItem(DEVICE_BASELINE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      !parsed ||
+      typeof parsed.totalLatencyMs !== 'number' ||
+      !Number.isFinite(parsed.totalLatencyMs) ||
+      typeof parsed.benchmarkSpeedRatio !== 'number'
+    ) {
+      return null;
+    }
+    return {
+      deviceModel: String(parsed.deviceModel ?? 'Unknown device'),
+      apiLevel: typeof parsed.apiLevel === 'number' ? parsed.apiLevel : null,
+      totalLatencyMs: parsed.totalLatencyMs,
+      benchmarkSpeedRatio: parsed.benchmarkSpeedRatio,
+      capturedAt: Number(parsed.capturedAt) || 0,
+    };
+  } catch {
+    // Locked, unavailable or corrupt storage must never break calibration.
+    return null;
+  }
+}
+
+/** Persist this device's baseline; failure keeps the in-memory signal. */
+function writeStoredBaseline(baseline: DeviceLatencyBaseline): void {
+  try {
+    localStorage.setItem(DEVICE_BASELINE_KEY, JSON.stringify(baseline));
+  } catch {
+    // Quota/privacy-mode failures only cost cross-session pre-fill; the
+    // compensation the artist just accepted is already in the profile.
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AudioEngineLatencyService {
   private engine = inject(AudioEngineService);
@@ -72,6 +177,12 @@ export class AudioEngineLatencyService {
   readonly recentBenchmarks = signal<BenchmarkResult[]>([]);
   /** Most recent per-device calibration run. */
   readonly lastCalibration = signal<LatencyCalibrationResult | null>(null);
+  /** Baseline persisted by the last calibration run on this device. */
+  readonly storedBaseline = signal<DeviceLatencyBaseline | null>(
+    readStoredBaseline()
+  );
+  /** One-shot guard: the baseline pre-fill runs at most once per session. */
+  private baselinePrefillDone = false;
   /** Latest full profile summary — recomputed on demand. */
   readonly profileSummary = computed<ProfileSummary>(() =>
     this.buildSummary()
@@ -95,6 +206,38 @@ export class AudioEngineLatencyService {
       if (typeof window !== 'undefined') {
         window.setInterval(() => this.snapshot.set(this.captureSnapshot()), 1500);
       }
+    });
+
+    // Pre-fill compensation from this device's stored baseline the first
+    // time a profile settles in with no compensation of its own — the
+    // audit's "use it to pre-fill compensation" half. A value the artist
+    // already chose (anything non-zero) is never touched, no baseline means
+    // a no-op, and the guard keeps the attempt to once per session.
+    effect(() => {
+      const userProfile = this.userProfile;
+      const baseline = this.storedBaseline();
+      const profile = userProfile?.profile();
+      const current = Number(
+        profile?.settings?.studio?.latencyCompensation ?? 0
+      );
+      if (this.baselinePrefillDone || !baseline || !profile?.settings) return;
+      if (!userProfile || !Number.isFinite(current) || current !== 0) return;
+      this.baselinePrefillDone = true;
+      const settings = profile.settings;
+      void Promise.resolve(
+        userProfile.updateProfile({
+          ...profile,
+          settings: {
+            ...settings,
+            studio: {
+              ...settings.studio,
+              latencyCompensation: baseline.totalLatencyMs,
+            },
+          },
+        })
+      ).catch((error) =>
+        this.logger.warn('Latency baseline pre-fill failed', error)
+      );
     });
   }
 
@@ -255,6 +398,20 @@ export class AudioEngineLatencyService {
       capturedAt: Date.now(),
     };
     this.lastCalibration.set(result);
+    // Persist the run as THIS device's baseline: identity + latency +
+    // render ratio, durable across sessions (parity audit §5). A fresh run
+    // is also the source of truth, so the pre-fill never echoes it back.
+    const identity = readDeviceIdentity();
+    const baseline: DeviceLatencyBaseline = {
+      deviceModel: identity.deviceModel,
+      apiLevel: identity.apiLevel,
+      totalLatencyMs: result.measuredLatencyMs,
+      benchmarkSpeedRatio: result.benchmarkSpeedRatio,
+      capturedAt: result.capturedAt,
+    };
+    this.storedBaseline.set(baseline);
+    writeStoredBaseline(baseline);
+    this.baselinePrefillDone = true;
     return result;
   }
 

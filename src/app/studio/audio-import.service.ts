@@ -199,8 +199,11 @@ export class AudioImportService {
           let buffer: AudioBuffer | null = null;
           let duration = 0;
           let ss: SampleStreamer | null = null;
+          let url = '';
 
-          if (estimatedSec > 10) {
+          const isStreamableWav = file.name.toLowerCase().endsWith('.wav') &&
+            estimatedSec > 10;
+          if (estimatedSec > 10 && !this.isCompressedAudio(file)) {
             // Long import: use SampleStreamer for bounded-preview playback.
             ss = createSampleStreamer({
               maxResidentSeconds: 30,
@@ -224,15 +227,26 @@ export class AudioImportService {
             // whatever we learn (defaults to 48k stereo when probing is unavailable).
             buffer = null;
             duration = estimatedSec;
-            const url = URL.createObjectURL(file);
-            void this.attachPlaySourceViaProbe(ss, file, url, results);
+            url = URL.createObjectURL(file);
+            if (isStreamableWav) {
+              const sourceBytes = await file.arrayBuffer();
+              if (ss.attachWavSource(url, sourceBytes)) {
+                ss.setPlayhead(0);
+                buffer = ss.getResidentBuffer();
+                duration = ss.getDuration();
+              } else {
+                void this.attachPlaySourceViaProbe(ss, file, url, results);
+              }
+            } else {
+              void this.attachPlaySourceViaProbe(ss, file, url, results);
+            }
           } else {
             // Short sample: fully decode and cache.
             buffer = await this.fileLoader.decodeToAudioBuffer(ctx, file);
             duration = buffer.duration;
           }
 
-          const url = URL.createObjectURL(file);
+          if (!url) url = URL.createObjectURL(file);
 
           const imported: ImportedAudio = {
             id: `import_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -241,8 +255,8 @@ export class AudioImportService {
             blob: file,
             url,
             duration,
-            sampleRate: buffer?.sampleRate ?? 48000,
-            channels: buffer?.numberOfChannels ?? 2,
+            sampleRate: ss?.getSampleRate() ?? buffer?.sampleRate ?? 48000,
+            channels: ss?.getChannelCount() ?? buffer?.numberOfChannels ?? 2,
             trimStart: 0,
             trimEnd: 1,
             gain: 1.0,
@@ -257,7 +271,7 @@ export class AudioImportService {
             editedUrl: null,
             enhancedBuffer: null,
             enhancedPreset: null,
-            sampleStreamer: estimatedSec > 10 ? (ss || null) : null,
+            sampleStreamer: ss,
           };
           results.push(imported);
           this.appliedEditState.set(imported.id, this.snapshot(imported));
@@ -285,11 +299,20 @@ export class AudioImportService {
    * Used to decide whether to route through SampleStreamer or full decode.
    */
   private estimateDurationFromFile(file: File): number {
-    // 48000 Hz stereo = 96000 samples/sec × 4 bytes = 384 KB/sec
-    const KB_PER_SEC = 384;
-    const bytes = file.size;
-    const sec = (bytes / KB_PER_SEC) | 0;
-    return Math.max(1, sec);
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const compressedBitrate = /^(mp3|ogg|m4a|aac)$/.test(extension ?? '') ? 192_000 : null;
+    // Use a typical stereo PCM16 WAV rate (48 kHz × 16-bit × 2 channels).
+    // This estimate only chooses the streaming path; WAV metadata determines
+    // the actual sample rate, channels and duration once attached.
+    const bytesPerSecond = compressedBitrate ? compressedBitrate / 8 :
+      extension === 'wav' ? 192_000 : 384_000;
+    return Math.max(1, file.size / bytesPerSecond);
+  }
+
+  /** Compressed containers cannot be window-decoded by byte offset safely. */
+  private isCompressedAudio(file: File): boolean {
+    return /\.(mp3|ogg|flac|aiff|m4a)$/i.test(file.name) ||
+      /^(audio\/(mpeg|ogg|flac|mp4|aac)|application\/ogg)$/i.test(file.type);
   }
 
   /**
@@ -886,25 +909,41 @@ export class AudioImportService {
    * survives undo/redo).
    */
   addToProject(audio: ImportedAudio) {
-    const addTrack = (buffer: AudioBuffer) => {
-      const originSeconds = Math.max(0, (audio.trimStart || 0) * (audio.duration || buffer.duration));
-      const clipLengthSeconds = Math.max(
-        0.001,
-        buffer.duration || (audio.duration * Math.max(0.01, (audio.trimEnd ?? 1) - (audio.trimStart ?? 0))),
-      );
+    const isUnmodified =
+      audio.trimStart === 0 &&
+      audio.trimEnd === 1 &&
+      audio.gain === 1 &&
+      Math.abs(audio.stretchRatio - 1) <= 0.001 &&
+      Math.abs(audio.pitchSemitones) <= 0.001 &&
+      audio.fadeIn === 0 &&
+      audio.fadeOut === 0 &&
+      !audio.normalize &&
+      !audio.enhancedBuffer;
+
+    const addTrack = (buffer: AudioBuffer, streamOriginal = false) => {
+      const streamer = streamOriginal ? audio.sampleStreamer : null;
+      const originSeconds = streamer
+        ? Math.max(0, (audio.trimStart || 0) * (audio.duration || buffer.duration))
+        : 0;
+      const clipLengthSeconds = streamer
+        ? streamer.getRemainingSecondsFrom(originSeconds)
+        : Math.max(
+            0.001,
+            buffer.duration || (audio.duration * Math.max(0.01, (audio.trimEnd ?? 1) - (audio.trimStart ?? 0))),
+          );
       this.musicManager.addAudioTrack({
         id: "audio_" + Date.now(),
         name: audio.name,
         color: "#0E7C7B",
         buffer,
         offset: 0,
-        ...(audio.sampleStreamer
+        ...(streamer
           ? {
-              clipStreamer: audio.sampleStreamer,
+              clipStreamer: streamer,
               clipOriginSeconds: originSeconds,
               clipLengthSeconds,
-              clipSampleRate: buffer.sampleRate || audio.sampleRate || 48000,
-              clipChannels: buffer.numberOfChannels || audio.channels || 2,
+              clipSampleRate: streamer.getSampleRate() || buffer.sampleRate || audio.sampleRate || 48000,
+              clipChannels: streamer.getChannelCount() || buffer.numberOfChannels || audio.channels || 2,
             }
           : {}),
       });
@@ -964,7 +1003,9 @@ export class AudioImportService {
         audio.sampleStreamer?.getResidentBuffer() ??
         null;
       if (immediate) {
-        addTrack(immediate);
+        const streamOriginal = !!audio.sampleStreamer && isUnmodified &&
+          immediate === audio.sampleStreamer.getResidentBuffer();
+        addTrack(immediate, streamOriginal);
         return;
       }
       void resolveFallbackBuffer()
@@ -982,20 +1023,10 @@ export class AudioImportService {
     // Long imports with default (untouched) trim/gain/stretch/pitch settings can
     // be added directly from their resident window without an extra WAV encode/decode
     // round-trip.
-    const isUnmodified =
-      audio.trimStart === 0 &&
-      audio.trimEnd === 1 &&
-      audio.gain === 1 &&
-      Math.abs(audio.stretchRatio - 1) <= 0.001 &&
-      Math.abs(audio.pitchSemitones) <= 0.001 &&
-      audio.fadeIn === 0 &&
-      audio.fadeOut === 0 &&
-      !audio.normalize &&
-      !audio.enhancedBuffer;
     if (audio.sampleStreamer && isUnmodified) {
       const resident = audio.sampleStreamer.getResidentBuffer() ?? audio.buffer;
       if (resident) {
-        addTrack(resident);
+        addTrack(resident, true);
         return;
       }
     }
@@ -1029,6 +1060,88 @@ export class AudioImportService {
         addTrack(buffer);
       }
     });
+  }
+
+  /**
+   * Reverse the currently selected imported audio in place. Only operates on
+   * clips that have a decodable AudioBuffer (short samples and the decoded
+   * fallback for long imports); streamed-only long imports are intentionally
+   * a no-op because a SampleStreamer cannot be replayed backwards without
+   * breaking its referential-window guarantees.
+   *
+   * The reversal is durable: the edited Blob is rewritten so subsequent edits,
+   * re-decodes and add-to-project both see the backwards material, and the
+   * ImportedAudio flags record that the on-disk representation is already
+   * reversed so applyEdits does not try to reverse it again.
+   */
+  reverseSelectedAudio(): void {
+    const current = this.selectedAudio();
+    if (!current) return;
+
+    // Streamed-only long imports cannot be reversed in place.
+    if (current.sampleStreamer && !current.buffer && !current.enhancedBuffer) {
+      this.logger.info(
+        `Skipping in-place reverse for streamed-only import \"${current.name}\"`,
+      );
+      return;
+    }
+
+    const source =
+      current.enhancedBuffer ??
+      current.buffer ??
+      null;
+
+    if (!source) {
+      this.logger.warn(
+        `Cannot reverse \"${current.name}\" — no decodable buffer available`,
+      );
+      return;
+    }
+
+    const reversed = this.audioEngine.reverseBuffer(
+      source,
+      (channelIndex, src) => src.getChannelData(channelIndex).slice().reverse(),
+    );
+
+    // Rewrite the edited blob so the reversed PCM survives re-decode and
+    // add-to-project. The interleaving helper on this service is private and
+    // mirrors the WAV writer's layout, so reuse it.
+    const interleaved = this.interleaveChannels(reversed);
+    const newBlob = this.createWavBlob(
+      interleaved,
+      reversed.sampleRate,
+      reversed.numberOfChannels,
+    );
+
+    if (current.editedBlob) {
+      URL.revokeObjectURL(current.editedUrl ?? '');
+    }
+    const newUrl = URL.createObjectURL(newBlob);
+    this.updateCurrentAudio({
+      editedBlob: newBlob,
+      editedUrl: newUrl,
+      enhancedBuffer: null,
+      enhancedPreset: null,
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1,
+      pitchSemitones: 0,
+      fadeIn: 0,
+      fadeOut: 0,
+      normalize: false,
+      loopStart: 0,
+      loopEnd: 0,
+    });
+
+    // Mark the import as already reversed so applyEdits() does not attempt to
+    // reverse it again on the next edit round-trip.
+    const canonical = this.selectedAudio();
+    if (canonical) {
+      (canonical as any).importReversedFlag = true;
+    }
+
+    this.snackbar.success(`Reversed \"${current.name}\"`);
   }
 
   /** Clear all imported audio */

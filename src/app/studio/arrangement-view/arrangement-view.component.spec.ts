@@ -37,6 +37,8 @@ describe("ArrangementViewComponent", () => {
     selectedTrackId: signal("1"),
     currentStep: signal(0),
     ensureTrack: jest.fn(),
+    addClipToTrack: jest.fn(),
+    splitClip: jest.fn(),
     removeTrack: jest.fn(),
     removeClip: jest.fn(),
     toggleMute: jest.fn(),
@@ -87,7 +89,10 @@ describe("ArrangementViewComponent", () => {
       imports: [ArrangementViewComponent, CommonModule, FormsModule],
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
-        { provide: MusicManagerService, useValue: mockMusicManager },
+        {
+          provide: MusicManagerService,
+          useValue: { ...mockMusicManager, engine: { tempo: signal(124) } },
+        },
         {
           provide: AudioEngineService,
           useValue: { tempo: signal(124), visualStep: signal(0) },
@@ -140,6 +145,145 @@ describe("ArrangementViewComponent", () => {
     const camera = renderSpy.mock.calls[0][4];
     expect(camera).toEqual({ scrollX: 0, scrollY: 0, zoom: 1 });
     (component as any).isGlInitialized = false;
+  });
+
+  it("moves, trims and slips clips using the selected edit tool", () => {
+    const clip: any = {
+      id: "clip-drag",
+      name: "Audio",
+      start: 1,
+      length: 4,
+      type: "audio",
+      offset: 0,
+    };
+    mockMusicManager.tracks.set([
+      { id: "1", name: "Audio", clips: [clip], mute: false, solo: false },
+    ]);
+    const capture = { setPointerCapture: jest.fn() } as any;
+    (component as any).gridViewport = {
+      nativeElement: { getBoundingClientRect: () => ({ width: 200 }) },
+    };
+    (component as any).glCanvas = {
+      nativeElement: { getBoundingClientRect: () => ({ width: 200 }) },
+    };
+    const down = {
+      stopPropagation: jest.fn(),
+      button: 0,
+      shiftKey: false,
+      pointerId: 8,
+      clientX: 100,
+      currentTarget: capture,
+    } as any;
+    component.setEditMode("select");
+    component.onClipPointerDown(down, "1", clip, 2);
+    expect(capture.setPointerCapture).toHaveBeenCalledWith(8);
+    component.onGridPointerMove({ pointerId: 8, clientX: 150 } as any);
+    expect(mockMusicManager.updateClip).toHaveBeenLastCalledWith(
+      "1",
+      "clip-drag",
+      { start: 1.25 },
+    );
+    component.onGridPointerUp({ pointerId: 8 } as any);
+
+    mockMusicManager.updateClip.mockClear();
+    component.setEditMode("trim");
+    component.onClipPointerDown(
+      { ...down, clientX: 100 } as any,
+      "1",
+      clip,
+      1.5,
+    );
+    component.onGridPointerMove({ pointerId: 8, clientX: 150 } as any);
+    expect(mockMusicManager.updateClip).toHaveBeenLastCalledWith(
+      "1",
+      "clip-drag",
+      {
+        start: 1.25,
+        length: 3.75,
+        offset: 0.25 * (60 / 124) * 4,
+      },
+    );
+    component.onGridPointerUp({ pointerId: 8 } as any);
+
+    mockMusicManager.updateClip.mockClear();
+    component.setEditMode("slip");
+    component.onClipPointerDown({ ...down, clientX: 100 } as any, "1", clip, 2);
+    component.onGridPointerMove({ pointerId: 8, clientX: 150 } as any);
+    expect(mockMusicManager.updateClip).toHaveBeenLastCalledWith(
+      "1",
+      "clip-drag",
+      {
+        offset: 0.25 * (60 / 124) * 4,
+      },
+    );
+    component.onGridPointerUp({ pointerId: 8 } as any);
+  });
+
+  it("splits clips from the split edit mode and duplicates from the duplicate mode", () => {
+    const clip: any = {
+      id: "clip-1",
+      name: "Lead",
+      start: 0,
+      length: 4,
+      type: "midi",
+    };
+    mockMusicManager.tracks.set([
+      { id: "1", name: "Lead", clips: [clip], mute: false, solo: false },
+    ]);
+    const down = {
+      stopPropagation: jest.fn(),
+      button: 0,
+      shiftKey: false,
+      pointerId: 2,
+      clientX: 100,
+      currentTarget: null,
+    } as any;
+    component.setEditMode("split");
+    component.onClipPointerDown(down, "1", clip, 2);
+    expect(mockMusicManager.splitClip).toHaveBeenCalledWith("1", "clip-1", 2);
+    component.setEditMode("duplicate");
+    component.onClipPointerDown(down, "1", clip, 2);
+    expect(mockMusicManager.addClipToTrack).toHaveBeenCalledWith(
+      "1",
+      expect.objectContaining({
+        start: 4,
+        length: 4,
+        id: expect.not.stringMatching("clip-1"),
+      }),
+    );
+  });
+
+  it("grows the timeline past the classic 64 bars as the song needs it", () => {
+    expect(component.totalBars()).toBe(64);
+
+    mockMusicManager.tracks.set([
+      {
+        id: "1",
+        name: "Lead",
+        clips: [
+          { id: "clip-90", start: 90, length: 4, name: "Outro", type: "midi" },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+
+    expect(component.songEndBar()).toBe(94);
+    expect(component.totalBars()).toBeGreaterThanOrEqual(102);
+    expect(component.gridWidth()).toBe(
+      component.totalBars() * component.barWidth(),
+    );
+
+    component.extendTimeline(16);
+    expect(component.totalBars()).toBeGreaterThanOrEqual(118);
+  });
+
+  it("extends the timeline when a clip is drawn past the end", () => {
+    component.setEditMode("draw");
+    component.onLanePointerDownWorld({ id: "1", type: "midi" } as any, 70);
+
+    expect(mockMusicManager.addClipToTrack).toHaveBeenCalled();
+    expect(component.totalBars()).toBeGreaterThanOrEqual(78);
   });
 
   it("applies a two-finger pinch to the timeline zoom", () => {
