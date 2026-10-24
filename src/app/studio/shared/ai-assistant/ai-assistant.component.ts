@@ -24,6 +24,7 @@ import { HapticService } from "../../../services/haptic.service";
 import { SnackbarService } from "../../../services/snackbar.service";
 import { ProjectWorkspaceService } from "../../project-workspace.service";
 import { UserProfileService } from "../../../services/user-profile.service";
+import { ArtistProfileFinetuneService } from "../../../services/artist-profile-finetune.service";
 import {
   getPersonaOption,
   personaOfflineVoice,
@@ -99,6 +100,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   private snack = inject(SnackbarService);
   private workspace = inject(ProjectWorkspaceService);
   private userProfile = inject(UserProfileService);
+  private artistFinetune = inject(ArtistProfileFinetuneService);
   private speechRecognition = inject(SpeechRecognitionService);
   private speechSynthesis = inject(SpeechSynthesisService);
   private replyCounter = 0;
@@ -479,7 +481,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       getPersonaOption(
         this.userProfile.profile().settings?.ai?.commanderPersona,
       ).directive,
-      `ARTIST PROFILE — adapt suggestions to this artist's declared sound, goals, constraints, and learned Musical DNA; treat absent details as unknown, not facts:\n${buildArtistMusicContext(this.userProfile.profile()) || "Profile incomplete; ask concise calibration questions before making artist-specific assumptions."}`,
+      // One shared heading: this panel used to claim full artist context with a
+      // fallback that could never fire (the context builder never returns '').
+      `${this.artistFinetune.contextHeading(this.userProfile.profile())}\nAdapt suggestions to this artist's declared sound, goals, constraints, and learned Musical DNA; treat absent details as unknown, not facts:\n${buildArtistMusicContext(this.userProfile.profile()) || "No profile answers captured yet — ask concise calibration questions before making artist-specific assumptions."}`,
       "Answer concisely in plain language. Name the session evidence, the risk, and the concrete repair or experiment. When appropriate, end with one profile-aligned next step.",
       "",
       "LIVE SESSION STATE:",
@@ -864,7 +868,12 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!text.trim()) return;
     this.speechSynthesis.speak(text, {
       conversationId: `studio-chat-${++this.replyCounter}`,
-      shapeShift: false,
+      // Per-sentence voice rotation is the permanent S.M.U.V.E. identity (the
+      // persona can be swapped, never muted), so studio replies shift entity
+      // every sentence exactly like the chat. Pinning one stable voice here
+      // made the studio panel the only surface that sounded human.
+      shapeShift:
+        this.userProfile.profile().settings?.ai?.aiVoiceShapeShiftEnabled ?? true,
     });
     this.voiceNotice.set("");
   }

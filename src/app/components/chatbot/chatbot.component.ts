@@ -859,13 +859,18 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const evidence = calibration
       ? `${calibration.completeness}% evidence`
       : 'no shared evidence';
-    const contextHeading = !shareAnswers
-      ? 'ARTIST PROFILE CONTEXT — PRIVATE (the artist withheld their profile answers; keep guidance general and ask before using profile details):'
-      : calibration?.state === 'calibrated'
-        ? `COMPLETE ARTIST CONTEXT — CALIBRATED (${evidence}) — calibrate every production, marketing, and strategy answer to this; never ask the artist to repeat it:`
-        : calibration?.state === 'partial'
-          ? `ARTIST PROFILE CONTEXT — PARTIAL (${evidence}) — calibrate to this, but treat every gap as a gap and never as an assumption:`
-          : `ARTIST PROFILE CONTEXT — FOUNDATIONAL (${evidence}) — keep advice foundational until the questionnaire is finished; capture what is missing instead of inventing it:`;
+    // The compiler owns the label now (one heading across chat, the studio
+    // assistant and the model system prompt); the chain below only runs when a
+    // host mounts the chat without the compiler and still labels honestly.
+    const contextHeading =
+      this.artistFinetune?.contextHeading?.(profile) ??
+      (!shareAnswers
+        ? 'ARTIST PROFILE CONTEXT — PRIVATE (the artist withheld their profile answers; keep guidance general and ask before using profile details):'
+        : calibration?.state === 'calibrated'
+          ? `COMPLETE ARTIST CONTEXT — CALIBRATED (${evidence}) — calibrate every production, marketing, and strategy answer to this; never ask the artist to repeat it:`
+          : calibration?.state === 'partial'
+            ? `ARTIST PROFILE CONTEXT — PARTIAL (${evidence}) — calibrate to this, but treat every gap as a gap and never as an assumption:`
+            : `ARTIST PROFILE CONTEXT — FOUNDATIONAL (${evidence}) — keep advice foundational until the questionnaire is finished; capture what is missing instead of inventing it:`);
     const contextBody =
       buildArtistMusicContext(profile) ||
       'No profile answers captured yet — keep advice foundational until the questionnaire is finished.';

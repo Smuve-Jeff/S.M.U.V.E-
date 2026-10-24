@@ -258,6 +258,51 @@ describe('ArtistProfileFinetuneService', () => {
     });
   });
 
+  it('labels the shared prompt heading from the real calibration state', () => {
+    expect(service.contextHeading(profileSignal())).toContain(
+      'ARTIST PROFILE CONTEXT — FOUNDATIONAL'
+    );
+
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: true } },
+    } as any);
+    expect(service.contextHeading(profileSignal())).toContain(
+      'COMPLETE ARTIST CONTEXT — CALIBRATED (100% evidence)'
+    );
+
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: false } },
+    } as any);
+    const privateHeading = service.contextHeading(profileSignal());
+    expect(privateHeading).toContain('ARTIST PROFILE CONTEXT — PRIVATE');
+    expect(privateHeading).not.toContain('CALIBRATED');
+  });
+
+  it('compiles the voice spec from the draft, not the committed profile', () => {
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: true } },
+    } as any);
+    const draft = {
+      ...profileSignal(),
+      musicalJourney: {
+        ...(profileSignal().musicalJourney ?? {}),
+        productionPhilosophy: 'Let the room play the song',
+      },
+    } as UserProfile;
+
+    expect(service.voiceSpecFor(draft).tone).toContain(
+      'Let the room play the song'
+    );
+    // The committed profile still carries its own voice — reading it would hand
+    // the profile editor a preview that ignores everything just typed.
+    expect(service.voiceSpec().tone).not.toContain(
+      'Let the room play the song'
+    );
+  });
+
   it('reports sharing false when the artist opted out of AI profile answers', () => {
     profileSignal.set({
       ...strongProfile,

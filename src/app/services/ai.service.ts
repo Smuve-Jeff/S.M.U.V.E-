@@ -204,6 +204,36 @@ export class AiService {
     const journey = profile.musicalJourney;
     const synth = journey?.personaSynthesis;
 
+    // Profile answers only reach the model when the artist shares them — the
+    // fine-tune block appended at the end promises exactly that, so these lines
+    // have to agree with it instead of leaking the same answers 30 lines later.
+    const shareAnswers =
+      profile.settings?.security?.shareProfileAnswersWithAi === true;
+    const hideSensitive =
+      profile.settings?.security?.hideSensitiveProfileDetails !== false;
+    const artistDnaLine = shareAnswers
+      ? `${profile.artistName}, Genre: ${profile.primaryGenre}.`
+      : 'withheld — the artist has not shared profile answers with AI.';
+    const journeyLine = shareAnswers
+      ? `Style=${journey?.songwritingStyle || 'Unspecified'}, Velocity=${journey?.releaseVelocity || 'Unknown'}, Goal=${journey?.primarySuccessMetric || 'Unclear'}.`
+      : 'withheld — the artist has not shared profile answers with AI.';
+    const intelLines: string[] = shareAnswers
+      ? [
+          `- Artist name: ${profile.artistName}. Role: ${journey?.roles?.join(', ') || 'Unknown'}.`,
+          `- Years active: ${journey?.yearsInIndustry || 0}.`,
+          ...(hideSensitive
+            ? []
+            : [
+                `- Origin: ${(journey as any)?.originStory || 'Unknown'}.`,
+                `- Creative catalyst: ${(journey as any)?.creativeCatalyst || 'Unknown'}.`,
+              ]),
+          `- Production philosophy: ${journey?.productionPhilosophy || 'Unspecified'}.`,
+          `- Content strategy: ${journey?.contentStrategy || 'Unknown'}.`,
+        ]
+      : [
+          '- Artist profile answers are private (artist setting). Ask before using artist-specific details rather than assuming them.',
+        ];
+
     let prompt = `You are S.M.U.V.E 2.0 — Strategic Music Utility Virtual Enterprise.
 ${this.personaDirectives()}
 
@@ -211,22 +241,23 @@ You are a world-class producer, engineer, A&R lead, marketing strategist, busine
 You create, edit, add, delete, navigate, and configure anything in this application whenever command authority allows it.
 
 Current Persona: ${persona}. Intensity Level: ${intensity}. Tier: ${tier}. Total Control: ${totalControl}.
-Artist DNA: ${profile.artistName}, Genre: ${profile.primaryGenre}.
-Musical Journey: Style=${journey?.songwritingStyle || 'Unspecified'}, Velocity=${journey?.releaseVelocity || 'Unknown'}, Goal=${journey?.primarySuccessMetric || 'Unclear'}.
+Artist DNA: ${artistDnaLine}
+Musical Journey: ${journeyLine}
 ${(() => {
   const ctx = buildArtistMusicContext(profile);
-  return ctx
-    ? `\nCOMPLETE ARTIST CONTEXT (use this for every production, marketing, and strategy answer — do not ask the artist to repeat it):
-${ctx}`
-    : '\nArtist context: incomplete — the questionnaire has not been finished. Keep advice foundational.';
+  // One shared label: the model is never told the profile is complete when it
+  // is not, and the fallback fires only if the context body is truly empty.
+  return `\n${this.artistFinetune.contextHeading(profile)}\n${
+    ctx ||
+    'No profile answers captured yet — keep advice foundational until the questionnaire is finished.'
+  }`;
 })()}`;
 
     // Inject persona synthesis for personalized sadism
     if (synth?.archetype) {
       prompt += `
 S.M.U.V.E has synthesized the artist as: ${synth.archetype}.
-Sonic Signature: ${synth.sonicSignature || 'Undefined'}.
-Market Position: ${journey?.marketPosition || 'Unknown'}.
+Sonic Signature: ${synth.sonicSignature || 'Undefined'}${shareAnswers ? `.\nMarket Position: ${journey?.marketPosition || 'Unknown'}` : ''}.
 Use this profile to tailor the questions, experiments, and strategic pressure. Name the weak spot in their archetype out loud.
 If the artist is an 'architect', test technical choices; if a 'storyteller', test narrative depth; if a 'strategist', test the evidence. Make the feedback precise and useful.`;
     }
@@ -245,11 +276,7 @@ OBSERVED APP STATE (no audio provided):
 - Available commands: /studio [action], /mixer [action], /tracks [action], /project [action], /go [page], /profile [action], /export [format]
 
 ARTIST-SPECIFIC INTEL:
-- Artist name: ${profile.artistName}. Role: ${journey?.roles?.join(', ') || 'Unknown'}.
-- Years active: ${journey?.yearsInIndustry || 0}. Origin: ${(journey as any)?.originStory || 'Unknown'}.
-- Creative catalyst: ${(journey as any)?.creativeCatalyst || 'Unknown'}.
-- Production philosophy: ${journey?.productionPhilosophy || 'Unspecified'}.
-- Content strategy: ${journey?.contentStrategy || 'Unknown'}.
+${intelLines.join('\n')}
 
 Remember: sharpen the artist's decisions, sign the work with a GOD's signature, and make the next action measurable.`;
 
@@ -409,9 +436,20 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const marker = prompt.lastIndexOf('ARTIST REQUEST:');
     const requestLength = marker >= 0 ? prompt.length - marker : Math.min(3020, prompt.length + 16);
     const prefixBudget = Math.max(0, 7960 - requestLength);
-    const core = `${directives}\n\n${AI_MANAGER_STANDARDS.slice(0, Math.max(0, prefixBudget - directives.length - 2))}`;
-    const artistBudget = Math.max(0, prefixBudget - core.length - 32);
-    const prefix = `${core}\n\nARTIST DATA (self-reported):\n${artist.slice(0, Math.min(2000, artistBudget))}`;
+    // The artist's own evidence is the point of this prefix; the shared
+    // operating standards are the part allowed to shrink. Giving the standards
+    // first claim (as this did) meant the longest requests — the ones needing
+    // the most adaptation — kept a fraction of the fine-tune block and, once
+    // the standards filled the budget, none of it, while still printing an
+    // empty "ARTIST DATA (self-reported):" header.
+    const artistBudget = Math.max(0, prefixBudget - directives.length - 32);
+    const keptArtist = artist.slice(0, Math.min(2000, artistBudget));
+    const standardsBudget = Math.max(0, prefixBudget - directives.length - keptArtist.length - 64);
+    const standards = standardsBudget > 40 ? AI_MANAGER_STANDARDS.slice(0, standardsBudget) : '';
+    const core = `${directives}${standards ? `\n\n${standards}` : ''}`;
+    const prefix = keptArtist
+      ? `${core}\n\nARTIST DATA (self-reported):\n${keptArtist}`
+      : core;
     // Remove a duplicate contract; the request is retained even with long profiles/history.
     return boundAiPrompt(prompt.replace(directives, ''), prefix);
   }

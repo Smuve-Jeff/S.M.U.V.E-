@@ -145,7 +145,9 @@ export class ProfileEditorComponent implements OnInit {
       knowledge,
       roles,
       tips: this.artistFinetune.tipsForProfile(draft),
-      voice: this.artistFinetune.voiceSpec(),
+      // The draft's voice, not the committed profile's — the panel promises
+      // "what S.M.U.V.E. would fine-tune from the current draft".
+      voice: this.artistFinetune.voiceSpecFor(draft),
     };
   });
 

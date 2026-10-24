@@ -147,6 +147,27 @@ describe("AiAssistantComponent voice communication", () => {
     expect(prompt).toContain("You are the Encouraging Mentor");
   });
 
+  it("labels the studio prompt with the shared calibration heading", async () => {
+    profileService.profile.mockReturnValue({
+      ...initialProfile,
+      settings: {
+        ...initialProfile.settings,
+        security: { shareProfileAnswersWithAi: true },
+      },
+    });
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    component.userInput.set("How do I improve my bass?");
+    await component.sendMessage();
+
+    const prompt = ai.getAIResponse.mock.calls[0][0] as string;
+    // One heading across chat, this panel and the model system prompt — the
+    // old line claimed full artist context with an unreachable fallback.
+    expect(prompt).toContain("ARTIST PROFILE CONTEXT");
+    expect(prompt).not.toContain("Profile incomplete; ask concise calibration questions");
+    expect(prompt).toContain("ARTIST REQUEST: How do I improve my bass?");
+  });
+
   it("uses the selected persona for deterministic offline advice", () => {
     profileService.profile.mockReturnValue({
       ...initialProfile,
@@ -171,7 +192,12 @@ describe("AiAssistantComponent voice communication", () => {
     component.readAssistantMessage("The bass is masking the kick.");
     expect(synthesis.speak).toHaveBeenCalledWith(
       "The bass is masking the kick.",
-      expect.objectContaining({ conversationId: expect.any(String) }),
+      // Per-sentence voice rotation is the permanent S.M.U.V.E. identity, so
+      // the studio panel shifts entity too — it used to pin one stable voice.
+      expect.objectContaining({
+        conversationId: expect.any(String),
+        shapeShift: true,
+      }),
     );
     component.stopVoiceOutput();
     expect(synthesis.cancel).toHaveBeenCalled();

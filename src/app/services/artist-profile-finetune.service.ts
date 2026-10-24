@@ -280,9 +280,19 @@ export class ArtistProfileFinetuneService {
     };
   }
 
-  /** How S.M.U.V.E. should sound when writing as or for this artist. */
+  /** How S.M.U.V.E. should sound when writing as or for this artist (live profile). */
   voiceSpec(): ArtistVoiceSpec {
-    if (this.profileService.profile().settings?.security?.shareProfileAnswersWithAi !== true) {
+    return this.voiceSpecFor(this.profileService.profile());
+  }
+
+  /**
+   * Voice spec for an arbitrary profile — including an unsaved draft. The
+   * profile editor previews "what S.M.U.V.E. would fine-tune from the current
+   * draft", so reading the committed profile here would show the artist a voice
+   * panel that ignores everything they just typed.
+   */
+  voiceSpecFor(profile: UserProfile | null | undefined): ArtistVoiceSpec {
+    if (profile?.settings?.security?.shareProfileAnswersWithAi !== true) {
       return {
         tone: 'Clear, general, and respectful of the artist’s privacy choice.',
         vocabulary: 'Do not use profile-specific vocabulary.',
@@ -290,7 +300,7 @@ export class ArtistProfileFinetuneService {
         avoid: ['Repeating or inferring artist profile answers.'],
       };
     }
-    const knowledge = this.knowledge();
+    const knowledge = this.compile(profile);
     return {
       tone: knowledge.craft.productionPhilosophy
         ? `Mirror the artist’s stated philosophy: ${knowledge.craft.productionPhilosophy}`
@@ -318,6 +328,31 @@ export class ArtistProfileFinetuneService {
           : []),
       ],
     };
+  }
+
+  /**
+   * The one labelled heading that goes above the artist context in every prompt
+   * builder (chat, studio assistant, model system prompt). Shared so no surface
+   * can tell the model a profile is complete when it is not, and so the label
+   * always carries the same evidence percentage and privacy verdict.
+   */
+  contextHeading(profile: UserProfile | null | undefined): string {
+    const share =
+      profile?.settings?.security?.shareProfileAnswersWithAi === true;
+    const k = this.compile(profile);
+    const evidence = profile
+      ? `${k.completeness}% evidence`
+      : 'no shared evidence';
+    if (!share) {
+      return 'ARTIST PROFILE CONTEXT — PRIVATE (the artist withheld their profile answers; keep guidance general and ask before using profile details):';
+    }
+    if (k.state === 'calibrated') {
+      return `COMPLETE ARTIST CONTEXT — CALIBRATED (${evidence}) — calibrate every production, marketing, and strategy answer to this; never ask the artist to repeat it:`;
+    }
+    if (k.state === 'partial') {
+      return `ARTIST PROFILE CONTEXT — PARTIAL (${evidence}) — calibrate to this, but treat every gap as a gap and never as an assumption:`;
+    }
+    return `ARTIST PROFILE CONTEXT — FOUNDATIONAL (${evidence}) — keep advice foundational until the questionnaire is finished; capture what is missing instead of inventing it:`;
   }
 
   /**

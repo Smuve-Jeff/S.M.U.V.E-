@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { AiService, UpgradeRecommendation } from '../ai.service';
+import { ArtistProfileFinetuneService } from '../artist-profile-finetune.service';
 import { UserProfileService } from '../user-profile.service';
 import { UserContextService } from '../user-context.service';
 import { AnalyticsService } from '../analytics.service';
@@ -441,6 +442,47 @@ describe('AiService', () => {
     expect(prompt).toContain('LEGAL:');
   });
 
+  it('keeps the ominous persona contract while gating profile answers', () => {
+    (userProfileServiceMock.profile as any).set(calibratedProfile);
+    const prompt = service.personaSystemPrompt;
+
+    expect(prompt).toContain('ARTIST-SPECIFIC INTEL');
+    expect(prompt).toContain('Artist name: Nova Vale');
+    expect(prompt).toContain('COMPLETE ARTIST CONTEXT — CALIBRATED');
+    // The character contract is untouched by the privacy gate.
+    expect(prompt).toContain('Current Persona:');
+    expect(prompt).toContain("GOD's signature");
+  });
+
+  it('withholds profile answers from the persona prompt when the artist opted out', () => {
+    const profile = (userProfileServiceMock.profile as any)();
+    (userProfileServiceMock.profile as any).set({
+      ...profile,
+      settings: {
+        ...profile.settings,
+        security: { shareProfileAnswersWithAi: false },
+      },
+    });
+
+    const prompt = service.personaSystemPrompt;
+
+    expect(prompt).toContain('ARTIST PROFILE CONTEXT — PRIVATE');
+    expect(prompt).toContain(
+      'Artist profile answers are private (artist setting)'
+    );
+    expect(prompt).toContain('withheld — the artist has not shared profile answers with AI');
+    // The answers themselves must not reach the model while they are promised
+    // to be withheld 30 lines below.
+    expect(prompt).not.toContain('Artist name: Test Artist');
+    expect(prompt).not.toContain('Artist DNA: Test Artist, Genre');
+    expect(prompt).not.toContain('Content strategy:');
+    // …and the fine-tune block still states the privacy rule to the model.
+    expect(prompt).toContain('opted out of sharing profile answers');
+    // Persona contract survives untouched.
+    expect(prompt).toContain('Current Persona:');
+    expect(prompt).toContain('CAPABILITIES');
+  });
+
   it('should get an AI response using the AIAgent', async () => {
     const requestPromise = service.getAIResponse(
       'Provide a detailed analysis of the Test Upgrade upgrade.'
@@ -815,6 +857,31 @@ describe('AiService', () => {
     expect(request.request.body.prompt).toContain('Keep MY room tone.');
     expect(request.request.body.prompt).toContain('MUSIC MANAGER OPERATING STANDARD');
     expect(request.request.body.prompt).toContain('ARTIST DATA');
+    request.flush({ text: 'Answer' });
+    await pending;
+  });
+
+  it('keeps the whole artist fine-tune block even on the longest request', async () => {
+    // The prefix budget used to be handed to the shared operating standards
+    // first, so the longest requests (which need the most adaptation) kept the
+    // smallest slice of the artist's own calibration.
+    const finetune = TestBed.inject(ArtistProfileFinetuneService);
+    const tail = 'TIP QUEUE: the first move for this artist.';
+    jest
+      .spyOn(finetune, 'promptBlock')
+      .mockReturnValue(
+        `ARTIST PROFILE FINE-TUNE (calibrated, 100% evidence) — adapt every answer to this artist: ${'calibration detail '.repeat(90)} ${tail}`
+      );
+
+    const pending = service.getAIResponse(
+      `ARTIST REQUEST: ${'detail '.repeat(400)}`
+    );
+    const request = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+    const prompt: string = request.request.body.prompt;
+    expect(prompt.length).toBeLessThanOrEqual(8000);
+    // Every character of the adaptation survives, not just its opening line.
+    expect(prompt).toContain(tail);
+    expect(prompt).toContain('ARTIST DATA (self-reported):');
     request.flush({ text: 'Answer' });
     await pending;
   });

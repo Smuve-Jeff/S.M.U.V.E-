@@ -476,6 +476,24 @@ describe('ProfileEditorComponent', () => {
       expect(fixture.nativeElement).toBeTruthy();
     });
 
+    it('shows the draft voice in the preview instead of the committed profile voice', async () => {
+      const { component } = await createComponent();
+
+      component.editableProfile.update((draft) => ({
+        ...draft,
+        musicalJourney: {
+          ...draft.musicalJourney,
+          productionPhilosophy: 'Let the room play the song',
+        },
+      }));
+
+      // The panel promises "what S.M.U.V.E. would fine-tune from the current
+      // draft"; it used to read the committed profile and ignore the edit.
+      expect(component.finetunePreview().voice.tone).toContain(
+        'Let the room play the song'
+      );
+    });
+
     it('rewrites the role directives and anchors as the draft gains artist evidence', async () => {
       const { fixture, component, show, text } = await createComponent();
       show('persona');

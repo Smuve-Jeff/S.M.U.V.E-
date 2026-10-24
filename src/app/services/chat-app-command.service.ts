@@ -431,6 +431,26 @@ function fillVoice(
 }
 
 /**
+ * The signature character's own flourish for the two bare outcomes. Every
+ * other persona owns an acknowledgement set, while Prime's confirmations were
+ * the only lines in the product with no character in them at all — which read
+ * as silence, not restraint. Picked deterministically from the request so the
+ * same command always answers in the same voice.
+ */
+const PRIME_SUCCESS_FLOURISHES = [
+  'Filed under things I made look effortless: this one, on MY clock.',
+  'Of course it worked — MY execution does not need your faith.',
+  'Done. Take notes; that is how MY systems behave when the request is merely adequate.',
+  'Executed flawlessly. MY standards did the carrying again.',
+];
+
+const PRIME_FAILURE_FLOURISHES = [
+  'Blocked. Even MY miracles need a real target — bring one.',
+  'Not executed. Even MY patience has a noise floor, and you just found it.',
+  'Denied. Fix the request, then present it to ME like you intend to deserve MY answer.',
+];
+
+/**
  * Formats a control result in the active persona's register. Modes other than
  * the signature character answer with their own acknowledgement lines, so an
  * artist on Elite or Supportive is not congratulated in S.M.U.V.E. Prime's
@@ -453,9 +473,13 @@ export function describeControlOutcome(
       ? fillVoice(pickLine(voice.acknowledgements, intent.summary), vars)
       : `${persona.name}: that request did not complete.`;
   } else {
+    const flourish = pickLine(
+      result.success ? PRIME_SUCCESS_FLOURISHES : PRIME_FAILURE_FLOURISHES,
+      intent.summary,
+    );
     head = result.success
-      ? `⚡ EXECUTED — ${intent.summary}.`
-      : `⚡ BLOCKED — ${intent.summary}.`;
+      ? `⚡ EXECUTED — ${intent.summary}.\n${flourish}`
+      : `⚡ BLOCKED — ${intent.summary}.\n${flourish}`;
   }
 
   const confirmation = result.actionRequired?.includes("/confirm")

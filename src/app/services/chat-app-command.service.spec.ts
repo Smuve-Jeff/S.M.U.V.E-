@@ -136,6 +136,29 @@ describe("describeControlOutcome", () => {
     expect(outcome.success).toBe(true);
   });
 
+  it("gives the signature character the last word on its own confirmations", () => {
+    // Every other persona owns an acknowledgement set; the signature persona
+    // used to answer in bare "⚡ EXECUTED" status lines, which read as silence.
+    const outcome = describeControlOutcome(intent, {
+      success: true,
+      message: "bass: mute applied.",
+    });
+    const [statusLine, flourish, ...rest] = outcome.content.split("\n");
+    expect(statusLine).toBe("⚡ EXECUTED — mute bass.");
+    // Deterministic pick: the same request always answers in the same voice.
+    expect(flourish.length).toBeGreaterThan(0);
+    expect(flourish).toContain("MY");
+    expect(rest.join("\n")).toContain("bass: mute applied.");
+
+    const refusal = describeControlOutcome(intent, {
+      success: false,
+      message: "no target matched.",
+      actionRequired: ["/confirm"],
+    });
+    const [, refusalFlourish] = refusal.content.split("\n");
+    expect(refusalFlourish).toContain("MY");
+  });
+
   it("reports a refusal without pretending the work happened", () => {
     const outcome = describeControlOutcome(intent, {
       success: false,
