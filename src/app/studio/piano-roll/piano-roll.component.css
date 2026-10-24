@@ -412,6 +412,14 @@
 /* Stage 2.1 — key sidebar is tap-to-audition: fire on pointerdown without
    double-tap-zoom latency, and never select the key label text. */
 .pr-key {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 6px;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
@@ -1697,6 +1705,17 @@
 .pr-cc-toggle-btn.active {
   color: #051414;
 }
+/*
+ * This redesign block repaints every chip with a near-black background after
+ * the base `.pr-scale-chip.active { background: var(--teal-500) }` rule, so the
+ * active state kept only its dark `color` — the selected scale (Major, Minor,
+ * Blues …) rendered as dark text on a dark chip and read as an empty pill in
+ * the 390px toolbar. Restore the active fill at this later point.
+ */
+.pr-scale-chip.active,
+:host-context(.dark-mode) .pr-scale-chip.active {
+  background: var(--teal-500);
+}
 .pr-detect-btn {
   min-height: 38px;
   box-shadow: 0 4px 12px rgba(14, 124, 123, 0.14);
@@ -1770,6 +1789,34 @@
   padding: 4px 14px;
   background: rgba(4, 7, 15, 0.6);
   color: rgba(231, 236, 240, 0.78);
+}
+
+/* Phone-only "Tools" disclosure. Hidden on desktop/tablet, where the full
+   tool rail is affordable. */
+.pr-phone-tools {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(32, 215, 210, 0.32);
+  border-radius: 9px;
+  background: rgba(8, 16, 26, 0.9);
+  color: #cfe6ee;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.pr-phone-tools .material-symbols-outlined {
+  font-size: 17px;
+}
+.pr-phone-tools.active {
+  border-color: rgba(32, 215, 210, 0.7);
+  background: rgba(32, 215, 210, 0.2);
+  color: #eafcff;
 }
 
 @media (max-width: 768px) {
@@ -2099,5 +2146,126 @@ right-aligned controls stay tappable. */
 @media (max-width: 1024px) and (orientation: landscape) {
   .pr-key-scale-bar {
     padding-right: 64px;
+  }
+}
+
+/* ---------- PHONE: INSTRUMENT FIRST ----------
+On a 390px phone the full rail stack (snap, quantize, tempo, key/scale) pushed
+the note grid 50px below the viewport. The grid is the instrument, so the rail
+is disclosed by the Tools button and the grid is guaranteed most of the view. */
+@media (max-width: 768px) {
+  .pr-phone-tools {
+    display: inline-flex;
+    margin-left: auto;
+  }
+
+  .pr-secondary {
+    display: none;
+  }
+  .pr-shell.pr-tools-open .pr-secondary {
+    display: contents;
+  }
+
+  .pr-secondary-panel {
+    display: none;
+  }
+  .pr-shell.pr-tools-open .pr-selection-status {
+    display: block;
+  }
+  .pr-shell.pr-tools-open .pr-key-scale-bar {
+    display: flex;
+  }
+
+  /* Keep the compact header to one row where it fits; the tools rail wraps
+     only when the viewport is genuinely too narrow for it. */
+  .pr-header {
+    padding: 8px 10px;
+    gap: 6px;
+    align-items: center;
+  }
+  .pr-header-tools {
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+  .pr-header-tools .pr-tool {
+    width: 38px;
+    height: 38px;
+  }
+  .pr-header-left {
+    min-width: 0;
+    flex: 1 1 auto;
+    /* Keep the disclosure at the top of the header when the rail opens and
+       the header grows taller. */
+    align-self: flex-start;
+    align-items: center;
+  }
+  .pr-track-pill {
+    max-width: 132px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The grid keeps a real editing surface instead of collapsing to the
+     remaining sliver under the header. */
+  .pr-canvas-row {
+    flex-direction: row;
+    /* Definite height: the key rail's full column is ~1700px and would size an
+       auto-height row to its content, pushing every band below it off-screen. */
+    flex: 0 0 auto;
+    height: 60vh;
+    min-height: 0;
+  }
+
+  /* Note names are part of the instrument: keep a narrow key rail instead of
+     hiding it, so C4 and C5 are distinguishable while drawing. */
+  .pr-keys {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 44px;
+    width: 44px;
+  }
+  .pr-key {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .pr-header-left > .material-symbols-outlined {
+    display: none;
+  }
+  .pr-header-tools .pr-tool {
+    width: 36px;
+    height: 36px;
+  }
+  .pr-header-tools {
+    flex: 0 0 auto;
+    gap: 3px;
+  }
+  /* Icon-only toggle: five tool buttons, zoom and the toggle do not fit a
+     390px header with a word label, and an overflowing label is invisible. */
+  .pr-phone-tools {
+    width: 38px;
+    min-height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+  .pr-phone-tools span:not(.material-symbols-outlined) {
+    display: none;
+  }
+}
+
+/* 360px-class Android phones: the five tool buttons, zoom pair and disclosure
+   overflowed by 32px, pushing the chord tool off-screen. */
+@media (max-width: 380px) {
+  .pr-zoom-readout {
+    display: none;
+  }
+  .pr-header-tools .pr-tool {
+    width: 34px;
+    height: 34px;
+  }
+  .pr-header-tools {
+    gap: 3px;
   }
 }

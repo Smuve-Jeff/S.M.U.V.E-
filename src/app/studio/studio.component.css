@@ -3076,7 +3076,21 @@
   flex: 1 1 0;
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
+  /*
+   * Vertical, not both axes. `overflow: hidden` here outranks every view's own
+   * `:host { overflow-y: auto }` (two classes + :first-child beats one host
+   * attribute), so it silently turned each workspace into a fixed-height
+   * window on a non-scrolling canvas: the Mixer's lower strip half, the Drum
+   * Machine's step grid and the whole Piano Roll grid sat below the clip with
+   * scrollTop pinned at 0 — a finger swipe could not reach them on a 390px
+   * phone, and the same 22 controls were unreachable at 1440px. Horizontal
+   * stays clipped so a wide rack cannot push the shell sideways; the views'
+   * own inner rails still scroll horizontally.
+   */
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Mobile keyboard viewport handling ── */

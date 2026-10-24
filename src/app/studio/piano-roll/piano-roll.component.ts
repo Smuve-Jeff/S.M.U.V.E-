@@ -140,6 +140,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedKey = signal("C");
   selectedScale = signal("major");
   scaleLockEnabled = signal(false);
+  /** Phone-only: secondary tool rails (snap, quantize, tempo, key/scale). */
+  phoneToolsOpen = signal(false);
   snapOptions = [
     { label: "1/4", value: "1/4" as const },
     { label: "1/8", value: "1/8" as const },

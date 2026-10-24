@@ -3794,3 +3794,102 @@
     transform: none;
   }
 }
+
+/* ---------- PHONE: INSTRUMENT FIRST ----------
+The wrapped rack (201px) and the meter/waveform deck (365px) pushed the
+keyboard to y=818 — entirely below a 498px workspace. The rack keeps the
+instrument picker; its knobs/craft/modes and the live meters move behind one
+disclosure. Record arm, monitor and phantom stay visible. */
+.perf-phone-tools {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 0 9px;
+  border: 1px solid rgba(0, 229, 255, 0.32);
+  border-radius: 9px;
+  background: rgba(8, 16, 26, 0.9);
+  color: #cfeef5;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.perf-phone-tools .material-symbols-outlined {
+  font-size: 17px;
+}
+.perf-phone-tools {
+  margin-left: auto;
+}
+.perf-phone-tools.active {
+  border-color: rgba(0, 229, 255, 0.7);
+  background: rgba(0, 229, 255, 0.18);
+  color: #eafcff;
+}
+
+@media (max-width: 768px) {
+  .perf-phone-tools {
+    display: inline-flex;
+  }
+
+  /* Rack: instrument picker only. */
+  .perf-rack {
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: 6px 10px;
+  }
+  .perf-rack .rack-knobs,
+  .perf-rack .rack-craft,
+  .perf-rack .rack-modes {
+    display: none;
+  }
+  .perf-tools-open .perf-rack {
+    flex-wrap: wrap;
+  }
+  .perf-tools-open .perf-rack .rack-knobs,
+  .perf-tools-open .perf-rack .rack-craft,
+  .perf-tools-open .perf-rack .rack-modes {
+    display: flex;
+  }
+  .perf-rack .rack-instrument {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Meters and capture waveform move behind the disclosure; the arm/monitor
+     row stays so recording is never blocked. */
+  .perf-meter-deck .meter-strip,
+  .perf-meter-deck .perf-rec-waveform {
+    display: none;
+  }
+  .perf-tools-open .perf-meter-deck .meter-strip {
+    display: flex;
+  }
+  .perf-tools-open .perf-meter-deck .perf-rec-waveform {
+    display: block;
+  }
+  .perf-meter-deck {
+    flex-wrap: nowrap;
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .rec-transport {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .perf-header .brand-title p {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .perf-phone-tools {
+    padding: 0 7px;
+  }
+  .perf-phone-tools span:not(.material-symbols-outlined) {
+    display: none;
+  }
+}

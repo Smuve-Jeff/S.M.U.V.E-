@@ -89,6 +89,8 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
 
   viewMode = signal<ViewMode>("pipeline");
   currentStep = signal<PipelineStep>("setup");
+  /** Phone-only: the guidance HUD card (restored on demand). */
+  phoneGuidanceOpen = signal(false);
 
   isBypassed = signal(false);
   activeMasteringTab = signal<"eq" | "comp" | "exciter" | "limiter">("eq");

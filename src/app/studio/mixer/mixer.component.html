@@ -4,6 +4,7 @@
   [class.mix-view-strips]="mixerView() === 'strips'"
   [class.mix-view-sends]="mixerView() === 'sends'"
   [class.mix-view-routing]="mixerView() === 'routing'"
+  [class.mix-tools-open]="phoneToolsOpen()"
 >
   <header class="mix-header" role="banner">
     <div class="mix-header-title">
@@ -57,11 +58,24 @@
       <span class="material-symbols-outlined">auto_awesome</span>
       AI Mix
     </button>
+    <button
+      type="button"
+      class="mix-phone-tools"
+      [class.active]="phoneToolsOpen()"
+      (click)="phoneToolsOpen.set(!phoneToolsOpen())"
+      [attr.aria-expanded]="phoneToolsOpen()"
+      aria-controls="mix-secondary-tools"
+      aria-label="Toggle phase meter and VCA bus rack"
+    >
+      <span class="material-symbols-outlined">tune</span>
+      <span>Phase &amp; Buses</span>
+    </button>
   </header>
 
   <!-- Pro: Master Phase Correlation meter -->
   <section
-    class="mix-phase-bar glass-v42"
+    class="mix-phase-bar mix-secondary glass-v42"
+    id="mix-secondary-tools"
     aria-label="Master stereo phase correlation"
   >
     <div class="mix-phase-header">
@@ -115,7 +129,7 @@
   <!-- Sprint 2 +: VCA bus rack. Rendered above the strip list when at least one
        bus exists. Each bus is a row with name, fader (0..1.5), mute, count, delete. -->
   <section
-    class="mix-vca-rack"
+    class="mix-vca-rack mix-secondary"
     *ngIf="vcaBuses && vcaBuses.buses().length > 0"
     aria-label="VCA bus rack"
   >

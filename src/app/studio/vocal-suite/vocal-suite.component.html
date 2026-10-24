@@ -1,5 +1,6 @@
 <div
   class="vocal-suite-root min-h-screen bg-vocal-obsidian text-slate-100 font-sans selection:bg-vocal-fl-blue/30 flex flex-col relative overflow-hidden"
+  [class.vs-tools-open]="phoneGuidanceOpen()"
 >
   <!-- Dynamic HUD Background -->
   <div class="absolute inset-0 pointer-events-none opacity-20">
@@ -66,9 +67,21 @@
           Console
         </button>
       </nav>
+      <button
+        type="button"
+        class="vs-phone-tools"
+        [class.active]="phoneGuidanceOpen()"
+        (click)="phoneGuidanceOpen.set(!phoneGuidanceOpen())"
+        [attr.aria-expanded]="phoneGuidanceOpen()"
+        aria-controls="vs-guidance-hud"
+        aria-label="Toggle neural guidance card"
+      >
+        <span class="material-symbols-outlined">neurology</span>
+        <span>Guidance</span>
+      </button>
     </div>
 
-    <div class="flex items-center gap-4">
+    <div class="vs-hud-guidance flex items-center gap-4" id="vs-guidance-hud">
       <!-- S.M.U.V.E. Mini HUD -->
       <div
         class="bg-vocal-titanium/40 border border-vocal-fl-blue/20 rounded-xl px-4 py-2 flex items-center gap-3 cursor-pointer hover:border-vocal-primary transition-all"

@@ -1,6 +1,10 @@
-<div class="dm-shell studio-workspace-surface" data-studio-module="drum-machine">
+<div
+  class="dm-shell studio-workspace-surface"
+  data-studio-module="drum-machine"
+  [class.dm-tools-open]="phoneToolsOpen()"
+>
   <header class="dm-header" role="banner">
-    <div>
+    <div class="dm-header-title">
       <h1>Rhythm Unit<small>Drum Machine</small></h1>
       <div class="dm-header-eyebrow">
         <span class="material-symbols-outlined">graphic_eq</span>
@@ -26,6 +30,18 @@
       >
         <span class="material-symbols-outlined">auto_awesome</span>
         Evolve
+      </button>
+      <button
+        type="button"
+        class="dm-phone-tools"
+        [class.active]="phoneToolsOpen()"
+        (click)="phoneToolsOpen.set(!phoneToolsOpen())"
+        [attr.aria-expanded]="phoneToolsOpen()"
+        aria-controls="dm-secondary-tools"
+        aria-label="Toggle AI style, swing and groove controls"
+      >
+        <span class="material-symbols-outlined">tune</span>
+        <span>Style</span>
       </button>
     </div>
   </header>
@@ -53,7 +69,11 @@
   </section>
 
   <!-- Pro: AI Style picker (chip rail) + Swing slider -->
-  <section class="dm-style-bar" aria-label="AI style generator">
+  <section
+    class="dm-style-bar dm-secondary"
+    id="dm-secondary-tools"
+    aria-label="AI style generator"
+  >
     <div class="dm-style-bar-label">
       <span class="material-symbols-outlined">auto_awesome</span>
       AI Style

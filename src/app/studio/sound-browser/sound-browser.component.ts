@@ -31,6 +31,8 @@ export class SoundBrowserComponent {
   selectedTag = signal<string | null>(null);
   previewingId = signal<string | null>(null);
   showFavs = signal(false);
+  /** Phone-only: genre/mood filters, packs and recents (restored on demand). */
+  phoneFiltersOpen = signal(false);
   similarToId = signal<string | null>(null);
   private cardPreviewTimer: ReturnType<typeof setTimeout> | null = null;
   private longPressPresetId: string | null = null;

@@ -208,6 +208,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   // ── Pro: Swing slider ──────────────────────────────────────
   /** Swing 0..75% — pushes off-beat 16ths back */
   swingPercent = signal(20);
+  /** Phone-only: AI style, swing and groove rails (restored on demand). */
+  phoneToolsOpen = signal(false);
 
   // ── Phase F1: MPC-style Groove Templates ───────────────────
   /** Named groove presets (like MPC Swing, Dilla Feel, Shuffle)

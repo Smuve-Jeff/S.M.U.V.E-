@@ -61,6 +61,8 @@ export class PerformerComponent implements OnDestroy, OnInit {
   public readonly midiService = inject(DjMidiService);
 
   layout = signal<"keyboard" | "pads" | "matrix" | "macros">("keyboard");
+  /** Phone-only: rack knobs, live meters and the take waveform. */
+  phoneToolsOpen = signal(false);
   scenes = this.musicManager.performerScenes;
   smartChords = signal(false);
   /** Note-on velocity in MIDI units (0–127). Standard default is 100.

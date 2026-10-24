@@ -533,3 +533,94 @@ main input[type="checkbox"] {
     padding-block: 5px;
   }
 }
+
+/* ---------- PHONE: INSTRUMENT FIRST ----------
+The guidance HUD wrapped the header to 169px and the 2×2 step cards pushed the
+mic setup — the actual work — below the fold. Guidance becomes a disclosure and
+the four steps collapse to one row of tabs. */
+.vs-phone-tools {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid rgba(157, 0, 255, 0.35);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e9deff;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.vs-phone-tools .material-symbols-outlined {
+  font-size: 18px;
+}
+.vs-phone-tools.active {
+  border-color: rgba(157, 0, 255, 0.7);
+  background: rgba(157, 0, 255, 0.28);
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .vs-phone-tools {
+    display: inline-flex;
+  }
+
+  .vs-hud-guidance {
+    display: none;
+  }
+  .vs-tools-open .vs-hud-guidance {
+    display: flex;
+  }
+
+  .vs-hud-header {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .vs-hud-header h1 {
+    font-size: 1rem;
+  }
+  .vs-hud-header nav button {
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 9px;
+  }
+
+  /* Four compact step tabs instead of a 2×2 card grid. */
+  .vs-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .vs-steps button {
+    min-height: 52px;
+    padding: 6px 5px;
+  }
+
+  .vocal-suite-root main {
+    padding: 10px;
+  }
+  .vocal-suite-root main .p-8 {
+    padding: 14px;
+  }
+  .vocal-suite-root main .gap-12 {
+    gap: 16px;
+  }
+  .vocal-suite-root main .text-3xl {
+    font-size: 1.55rem;
+    line-height: 1.15;
+  }
+}
+
+@media (max-width: 420px) {
+  .vs-phone-tools {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .vs-phone-tools span:not(.material-symbols-outlined) {
+    display: none;
+  }
+}

@@ -4,7 +4,10 @@
   omnipresent take carousel for multi-take recording, L/R peak meters, monitor/phantom
   toggles, expressive pitch + mod sliders, and high-quality live instrument selection.
 -->
-<div class="performer-shell studio-workspace-surface performer-surface">
+<div
+  class="performer-shell studio-workspace-surface performer-surface"
+  [class.perf-tools-open]="phoneToolsOpen()"
+>
   <!-- ───────── TOP META BAR ───────── -->
   <header class="perf-header studio-context-toolbar performer-header">
     <div class="brand-row studio-horizontal-rail performer-brand-rail">
@@ -40,6 +43,18 @@
           }}</span>
         </span>
       </div>
+      <button
+        type="button"
+        class="perf-phone-tools"
+        [class.active]="phoneToolsOpen()"
+        (click)="phoneToolsOpen.set(!phoneToolsOpen())"
+        [attr.aria-expanded]="phoneToolsOpen()"
+        aria-controls="perf-secondary-tools"
+        aria-label="Toggle rack knobs, live meters and take waveform"
+      >
+        <span class="material-symbols-outlined">tune</span>
+        <span>Rack &amp; levels</span>
+      </button>
     </div>
 
     <div
@@ -550,6 +565,7 @@
   <!-- ───────── LIVE METERS (L/R PRO PEAK-HOLD) ───────── -->
   <section
     class="perf-meter-deck performer-meter-deck"
+    id="perf-secondary-tools"
     aria-label="Input and output meters"
   >
     <div class="meter-strip">

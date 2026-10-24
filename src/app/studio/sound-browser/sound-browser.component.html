@@ -1,10 +1,25 @@
-<div class="sb-shell studio-workspace-surface sound-browser-surface">
+<div
+  class="sb-shell studio-workspace-surface sound-browser-surface"
+  [class.sb-filters-open]="phoneFiltersOpen()"
+>
   <header class="sb-header studio-context-toolbar" role="banner">
     <div class="sb-title sound-browser-title">
       <div>
         <h1>Sound Matrix<small>Instruments &amp; Presets</small></h1>
       </div>
       <div class="sb-title-actions">
+        <button
+          type="button"
+          class="sb-phone-filters"
+          [class.active]="phoneFiltersOpen()"
+          (click)="phoneFiltersOpen.set(!phoneFiltersOpen())"
+          [attr.aria-expanded]="phoneFiltersOpen()"
+          aria-controls="sb-secondary-filters"
+          aria-label="Toggle genre, mood, pack and recent filters"
+        >
+          <span class="material-symbols-outlined">tune</span>
+          <span>Filters</span>
+        </button>
         <button
           type="button"
           class="sb-ai-btn"
@@ -33,7 +48,10 @@
     </div>
 
     <!-- Smart filters: Genre, Mood, Favorites -->
-    <div class="sb-smart-filters sound-browser-filters">
+    <div
+      class="sb-smart-filters sound-browser-filters sb-secondary"
+      id="sb-secondary-filters"
+    >
       <div class="sb-filter-chips studio-horizontal-rail">
         <button
           type="button"
@@ -146,7 +164,10 @@
     </div>
 
     <!-- ═══ SOUND PACKS SECTION ══════════════════════════ -->
-    <div class="sb-packs-section sound-browser-packs" *ngIf="!searchQuery()">
+    <div
+      class="sb-packs-section sound-browser-packs sb-secondary"
+      *ngIf="!searchQuery()"
+    >
       <div class="sb-packs-header">
         <span class="sb-packs-title">
           <span class="material-symbols-outlined">package_2</span>
@@ -241,7 +262,7 @@
 
     <!-- Recently used rail -->
     <div
-      class="sb-recent studio-horizontal-rail"
+      class="sb-recent studio-horizontal-rail sb-secondary"
       *ngIf="smartSound.recentSounds().length > 0 && !searchQuery()"
     >
       <span class="sb-recent-label">Recent</span>

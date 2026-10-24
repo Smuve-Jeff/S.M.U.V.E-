@@ -238,8 +238,16 @@
 }
 
 .mix-strip-name {
-  background: var(--espresso-text);
-  color: var(--teal-300);
+  /*
+   * A dark nameplate, not a light one. The plate used `--espresso-text` as its
+   * background — a token that holds the theme's *text* colour (#f1f5ff in the
+   * Night-Sky palette, #ececf0 in the flat FL-mobile theme) — while the label
+   * carried `--teal-300`, and the flat theme then repainted the label with
+   * `--fl-text`. Light-on-light made every channel name invisible on both
+   * 390px phones and 1440px desktop: a 54×23 blank white pill above PAN.
+   */
+  background: rgba(6, 9, 26, 0.88);
+  color: var(--espresso-text);
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
@@ -2051,5 +2059,95 @@
   .mix-phase-btn,
   .mix-vca-row {
     min-height: 44px;
+  }
+}
+
+/* ---------- PHONE: INSTRUMENT FIRST ----------
+The console header plus the stereo-phase card consumed roughly 300 of a
+498px phone view before the first channel strip. Phase is a master-stage
+readout, so it (and the VCA rack) move behind a disclosure; the strips open
+the workspace. */
+.mix-phone-tools {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid rgba(14, 124, 123, 0.3);
+  border-radius: 9px;
+  background: rgba(255, 253, 246, 0.92);
+  color: #24413d;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.mix-phone-tools .material-symbols-outlined {
+  font-size: 17px;
+}
+.mix-phone-tools.active {
+  border-color: rgba(14, 124, 123, 0.65);
+  background: rgba(14, 124, 123, 0.16);
+  color: #0b4a46;
+}
+
+@media (max-width: 768px) {
+  .mix-phone-tools {
+    display: inline-flex;
+  }
+
+  .mix-secondary {
+    display: none;
+  }
+  .mix-shell.mix-tools-open .mix-secondary {
+    display: block;
+  }
+
+  /* The "Console / Mixer" title repeats the navigation label and pushed the
+     strips down a row; two compact rows are enough. */
+  .mix-header {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .mix-header-title {
+    display: none;
+  }
+  /* One row: view switcher, AI mix and the phase/buses disclosure. */
+  .mix-segmented {
+    order: 0;
+    width: auto;
+    flex: 1 1 auto;
+  }
+  .mix-segmented button {
+    min-height: 42px;
+    padding-inline: 7px;
+    font-size: 10px;
+  }
+  .mix-ai-chip {
+    order: 1;
+    flex: 0 0 auto;
+    justify-content: center;
+    min-height: 42px;
+    padding-inline: 9px;
+    font-size: 10px;
+  }
+  .mix-phone-tools {
+    order: 2;
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 0 9px;
+  }
+}
+
+@media (max-width: 420px) {
+  .mix-phone-tools {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .mix-phone-tools span:not(.material-symbols-outlined) {
+    display: none;
   }
 }

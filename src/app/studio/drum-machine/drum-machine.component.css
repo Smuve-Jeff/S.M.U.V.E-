@@ -1947,3 +1947,130 @@
     padding-block: 7px;
   }
 }
+
+/* ---------- PHONE: INSTRUMENT FIRST ----------
+The AI style card, swing slider and groove rail rendered above the step grid,
+which pushed the sequencer 426px below the fold on a 390px phone. They are a
+"Style" disclosure now; the pads and steps open the workspace. */
+.dm-phone-tools {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(14, 124, 123, 0.32);
+  border-radius: 9px;
+  background: rgba(255, 253, 246, 0.92);
+  color: #24413d;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.dm-phone-tools .material-symbols-outlined {
+  font-size: 17px;
+}
+.dm-phone-tools.active {
+  border-color: rgba(14, 124, 123, 0.65);
+  background: rgba(14, 124, 123, 0.16);
+  color: #0b4a46;
+}
+
+@media (max-width: 768px) {
+  .dm-phone-tools {
+    display: inline-flex;
+    flex: 0 0 auto;
+  }
+
+  .dm-secondary {
+    display: none;
+  }
+  .dm-shell.dm-tools-open .dm-secondary {
+    display: block;
+  }
+
+  /* One row of header actions instead of a stacked block above the pads. */
+  .dm-header {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .dm-header-icons {
+    width: auto;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+  .dm-header-icons .btn-pro,
+  .dm-header-icons .dm-ai-chip {
+    flex: 0 1 auto;
+  }
+  .dm-header-eyebrow {
+    display: none;
+  }
+
+  /* One compact context row: tempo, bar and pattern actions in a line. The
+     "transport ready" sentence is redundant with the transport bar below the
+     workspace and cost a whole row on a phone. */
+  .dm-pattern-context {
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-height: 44px;
+    padding: 5px 9px;
+  }
+  .dm-pattern-context-status {
+    display: none;
+  }
+  .dm-pattern-actions {
+    width: auto;
+    margin-left: auto;
+    gap: 4px;
+  }
+  .dm-context-btn {
+    min-height: 38px;
+    padding: 0 9px;
+  }
+
+  /* Shorter pad tiles keep the sequencer within the first screen (the pads
+     stay 4-across and tappable). */
+  .dm-pads {
+    gap: 6px;
+    padding: 8px;
+  }
+  .dm-pad {
+    aspect-ratio: auto;
+    height: 60px;
+    min-height: 60px;
+    padding: 4px;
+  }
+  .dm-pad-tier {
+    display: none;
+  }
+  .dm-pad-name {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* The step grid needs the vertical budget more than a repeated title does.
+     The `> div:first-child` rule sets display: grid, so match its weight. */
+  .dm-header > div.dm-header-title {
+    display: none;
+  }
+  .dm-header {
+    padding: 7px 9px;
+  }
+  .dm-header-icons {
+    width: 100%;
+    flex-wrap: nowrap;
+  }
+  .dm-header-icons .btn-pro,
+  .dm-header-icons .dm-ai-chip {
+    flex: 1 1 0;
+    min-height: 44px;
+  }
+  .dm-phone-tools {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}

@@ -1631,3 +1631,66 @@
     padding-block: 7px;
   }
 }
+
+/* ---------- PHONE: INSTRUMENT FIRST ----------
+The header stack (genre, mood, favorites, packs, recents) grew to 490px, so the
+first preset card started at y=620 — seven pixels from the bottom of an 844px
+screen. Search and the category rail stay; the rest is a Filters disclosure. */
+.sb-phone-filters {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 9px;
+  border: 1px solid rgba(43, 160, 156, 0.32);
+  border-radius: 9px;
+  background: rgba(255, 253, 246, 0.85);
+  color: #1f4a47;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.sb-phone-filters .material-symbols-outlined {
+  font-size: 17px;
+}
+.sb-phone-filters.active {
+  border-color: rgba(43, 160, 156, 0.7);
+  background: rgba(43, 160, 156, 0.16);
+  color: #0b4a46;
+}
+
+@media (max-width: 760px) {
+  .sb-phone-filters {
+    display: inline-flex;
+  }
+
+  .sb-secondary {
+    display: none;
+  }
+  .sb-filters-open .sb-smart-filters {
+    display: flex;
+  }
+  .sb-filters-open .sb-packs-section {
+    display: grid;
+  }
+  .sb-filters-open .sb-recent {
+    display: flex;
+  }
+
+  .sb-header {
+    padding: 8px 10px;
+    gap: 7px;
+  }
+  .sb-title h1 {
+    font-size: 16px;
+  }
+  .sb-title small {
+    font-size: 8px;
+  }
+  .sb-cats {
+    min-height: 44px;
+  }
+}

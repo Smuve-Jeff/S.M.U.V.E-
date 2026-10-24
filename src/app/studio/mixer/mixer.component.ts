@@ -76,6 +76,8 @@ export class MixerComponent implements OnInit, OnDestroy {
    * Routing focuses the sidechain path.
    */
   mixerView = signal<"strips" | "sends" | "routing">("strips");
+  /** Phone-only: phase meter and VCA rack (restored on demand). */
+  phoneToolsOpen = signal(false);
   mobileInspectorOpen = signal(true);
 
   setMixerView(view: "strips" | "sends" | "routing"): void {

@@ -1,4 +1,8 @@
-<div class="pr-shell studio-workspace-surface piano-roll-surface" data-studio-module="piano-roll">
+<div
+  class="pr-shell studio-workspace-surface piano-roll-surface"
+  data-studio-module="piano-roll"
+  [class.pr-tools-open]="phoneToolsOpen()"
+>
   <!-- HEADER -->
   <header class="pr-header" role="banner">
     <div class="pr-header-left">
@@ -24,6 +28,18 @@
         <span class="material-symbols-outlined">arrow_outward</span>
         Linked · steps {{ range.startStep }}–{{ range.endStep }}
       </span>
+      <button
+        type="button"
+        class="pr-phone-tools"
+        [class.active]="phoneToolsOpen()"
+        (click)="phoneToolsOpen.set(!phoneToolsOpen())"
+        [attr.aria-expanded]="phoneToolsOpen()"
+        aria-controls="pr-secondary-tools"
+        aria-label="Toggle snap, quantize, tempo and key controls"
+      >
+        <span class="material-symbols-outlined">tune</span>
+        <span>Tools</span>
+      </button>
     </div>
 
     <div class="pr-header-tools" role="toolbar" aria-label="Editing tools">
@@ -106,6 +122,7 @@
       </button>
     </div>
 
+    <div class="pr-secondary" id="pr-secondary-tools">
     <div
       class="pr-tool-status"
       role="status"
@@ -243,14 +260,19 @@
         </button>
       </div>
     </div>
+    </div>
   </header>
 
-  <div class="pr-selection-status" aria-live="polite">
+  <div class="pr-selection-status pr-secondary-panel" aria-live="polite">
     {{ selectionAnnouncement() }}
   </div>
 
   <!-- KEY / SCALE SELECTOR BAR -->
-  <div class="pr-key-scale-bar" role="group" aria-label="Key and scale">
+  <div
+    class="pr-key-scale-bar pr-secondary-panel"
+    role="group"
+    aria-label="Key and scale"
+  >
     <span class="pr-ks-label">Key</span>
     <select
       class="pr-ks-select"
