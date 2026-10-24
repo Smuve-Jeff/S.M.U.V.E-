@@ -2266,6 +2266,34 @@ is disclosed by the Tools button and the grid is guaranteed most of the view. */
   }
 }
 
+/* ---------- TOUCH TARGETS (Piano Roll header + key/scale bar) ----------
+The tool row is already 44×44 at every phone width. What was not: the Tools
+disclosure (38×36) and the Lock control, which was a 13px checkbox inside a
+41×15 label — tapping the word was the only reliable way to arm the scale lock,
+and that word is 9px tall. */
+@media (pointer: coarse), (max-width: 768px) {
+  .pr-phone-tools {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+  .pr-scale-lock {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 8px;
+    gap: 6px;
+    border-radius: 8px;
+  }
+  .pr-scale-lock input[type='checkbox'] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+  }
+  .pr-scale-lock span {
+    font-size: 11px;
+  }
+}
+
 /* 360px-class Android phones: the five tool buttons, zoom pair and disclosure
    overflowed by 32px, pushing the chord tool off-screen. */
 @media (max-width: 380px) {

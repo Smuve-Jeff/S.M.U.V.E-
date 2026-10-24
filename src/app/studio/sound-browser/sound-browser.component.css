@@ -1414,11 +1414,14 @@
     opacity: 1;
   }
 
+  /* Card actions sit on top of the artwork, so they have to be reachable
+     without a hover reveal — and big enough to hit while the list scrolls
+     under the finger (the sweep measured 40×40, a thumb-miss at 77 cards). */
   .sb-card-play,
   .sb-card-fav,
   .sb-card-similar {
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
@@ -1440,7 +1443,7 @@
   }
 
   .sb-ai-btn {
-    min-height: 40px;
+    min-height: 44px;
     padding: 0 10px;
     font-size: 8px;
   }
@@ -1464,19 +1467,25 @@
     height: 58px;
   }
 
+  /* 8px inset + a 44px favourite + a 6px gap. At the old 48px offset the two
+     44px targets overlapped by 4px and the play button's corner sat on the
+     favourite's. */
   .sound-browser-card .sb-card-play {
     top: 9px;
-    right: 48px;
+    right: 58px;
   }
 
+  /* The card is 112–132px tall at this width, so the 44px favourite and the
+     44px similar action have to clear each other vertically: at 40px they met
+     edge to edge, and at 44px the corners overlapped. */
   .sound-browser-card .sb-card-fav {
-    top: 9px;
+    top: 6px;
     right: 8px;
   }
 
   .sound-browser-card .sb-card-similar {
     right: 8px;
-    bottom: 8px;
+    bottom: 4px;
   }
 
   .sb-similar {
@@ -1640,7 +1649,8 @@ screen. Search and the category rail stay; the rest is a Filters disclosure. */
   display: none;
   align-items: center;
   gap: 4px;
-  min-height: 40px;
+  /* A first-row control: 44px, like the search field and the AI button. */
+  min-height: 44px;
   padding: 0 9px;
   border: 1px solid rgba(43, 160, 156, 0.32);
   border-radius: 9px;

@@ -179,6 +179,24 @@ the bars were painted onto the note canvas at lane coordinates (y 0–130) and t
 lanes' own GL canvas only ever received `clear()`. It now takes the lane's
 renderer as an argument; the bars appear on both tiers for the first time.
 
+**Second pass** — the rest of the named rows:
+
+- **Sound Browser card actions** (preview / favourite / similar) went 40×40 →
+  44×44 and stay visible without hover on coarse pointers. 244 → 11 controls
+  under 44px in the view, and all 11 that remain belong to the shell (export
+  menu rows 42px, AI-band chips 36px, snackbar close 36px). The 44px pair needed
+  a new offset: at `right: 48px` the preview overlapped the favourite by 4px,
+  and the favourite's bottom corner met the similar button, so the row uses
+  58px and the two vertical insets moved to 6/4px.
+- **Piano Roll header** — the tool row was already 44×44 (the audit's 36px
+  numbers predate §2.3); the Tools disclosure was 38×36 → 44×44, and the Lock
+  control was a 13px checkbox in a 41×15 label → a 20px checkbox in a 66×44
+  label, verified by tapping the checkbox itself and reading
+  `scaleLockEnabled() = true`. Tool row still fits without scrolling at 360px
+  (333 = 333) and 390px (373 = 373).
+- **Channel Rack bar pager** (`‹ 1 2 3 4 ›`) went 30×30 with 7px numbers →
+  44×44 with 11px numbers, in a rail that needs no scroll (284 = 284).
+
 ---
 
 ## 3. P1 — open, device-visible defects
@@ -451,8 +469,11 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
    verified as already compliant. Remaining: Arrangement's beginner gate and the
    Sample Library filter rail.
 4. ~~44dp touch-target sweep: Channel Rack mute/solo, DJ loop chips, Drum
-   Machine strip toggles~~ — done in §2.5. Remaining: bar-edit cells, Sound
-   Browser card actions, Piano Roll zoom/tool row and the Lock checkbox.
+   Machine strip toggles, bar pager, Sound Browser card actions, Piano Roll
+   tools/Lock~~ — done in §2.5. Remaining: the Channel Rack row actions
+   (move/clone/delete 36×36), its instrument selector (28px) and its LFO
+   micro-buttons (4×8), the Piano Roll automation/CC band (REC 24px, MIDI OUT
+   select 24px, lane toggles 36–42px), and the shell's 42px export menu rows.
 5. ~~Restore a 40px key rail and a collapsible velocity lane in the phone Piano
    Roll~~ — done in §2.3/§2.5. Remaining: keep the toolbar sticky while the
    grid scrolls.
@@ -502,6 +523,9 @@ real cloud sync, Play Billing, DAWproject.
 | Velocity drawer, 360×640 / 768×360 | drawer h=156 / 142, lane 102 / 88px, close button on screen, no overflow |
 | Velocity bars | render on desktop (88px lane) and in the phone drawer; previously the lane was blank on both because the bars were drawn into the grid canvas |
 | Channel Rack mute/solo, DJ loop chips, drum strip toggles | 44×44 / 44×40 / 52×44 on touch; 14×14, 11×30 and 21px before |
+| Sound Browser card actions, 390×844 | preview / favourite / similar 44×44, no pairwise overlap (`playFav`, `playSimilar`, `favSimilar` all false), 244 → 11 controls under 44px |
+| Piano Roll tools + Lock, 360 / 390 | disclosure 44×44, Lock 66×44 with a 20px box, checkbox tap flips `scaleLockEnabled`; tool row fits (333=333, 373=373) |
+| Channel Rack bar pager, 390×844 | `‹ 1 2 3 4 ›` 44×44 at 11px, rail needs no scroll (284=284) |
 
 The clipping, contrast, scale-chip and touch-target repairs are CSS-only apart
 from the Drum Machine's inline styles moving into its stylesheet. The phone-first
