@@ -1,10 +1,9 @@
 # S.M.U.V.E. 2.0
 
-**Strategic Music Utility Virtual Enterprise — presented by Smuve Jeff**
+Strategic Music Utility Virtual Enterprise
 
-S.M.U.V.E. 2.0 is an artist operating system: a music-production Studio, an AI strategic
-partner, a cinema-style visual lab, release/business planning, and a gaming/community
-hub, all inside one Angular application with a shared shell and a real backend.
+S.M.U.V.E. 2.0  AI strategic partner, a cinema-style visual lab, release/business planning, and a gaming/community
+hub, all inside one Angular application
 
 It is built for independent artists who want to run the entire journey — record, mix,
 master, plan releases, grow a career, and unwind in the arcade — from one installable
