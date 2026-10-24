@@ -359,6 +359,10 @@ interface OfficialVideoPlayer {
   playVideo(): void;
   pauseVideo(): void;
   destroy(): void;
+  /** The platform's own clock, when it exposes one — the lower third reads it. */
+  getCurrentTime?: () => number;
+  /** The record's running time as the platform knows it, in seconds. */
+  getDuration?: () => number;
 }
 
 interface OfficialVideoApi {
@@ -472,9 +476,20 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    */
   @ViewChild('officialHost', { static: false })
   private officialHostRef?: ElementRef<HTMLElement>;
-  /** The host inside the broadcast overlay where the official player renders. */
-  @ViewChild('standaloneHost', { static: false })
+  /**
+   * The host inside the broadcast overlay where the official player renders.
+   *
+   * Declared as a setter because the element's arrival and departure are the
+   * moments a record has to be re-homed: the player is bound to one element, so
+   * entering or leaving the broadcast without this would either leave the
+   * record sounding behind the overlay or kill it with the overlay's markup.
+   */
   private standaloneHostRef?: ElementRef<HTMLElement>;
+  @ViewChild('standaloneHost', { static: false })
+  set standaloneHost(ref: ElementRef<HTMLElement> | undefined) {
+    this.standaloneHostRef = ref;
+    this.remountOfficialRecord();
+  }
 
   readonly categories = SMUVE_TV_CATEGORIES;
   readonly clock = smuveTvClock;
@@ -550,6 +565,16 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    * broadcast plays the whole thing through the artist's own frame.
    */
   standaloneEmbedUrl = signal<SafeResourceUrl | null>(null);
+
+  /**
+   * True while the platform's own player is what the room is hearing.
+   *
+   * The distinction the labels need: a record can be *listed* as a preview
+   * (Apple only licensed the clip) and still be on air in full through the
+   * artist's own upload. The badge and the lower third answer "what is
+   * audible right now", which is what the listener is reading them for.
+   */
+  officialOnAir = computed(() => !!this.standaloneEmbedUrl());
 
   /** The live feed tuned on this station, or null when it renders its own scene. */
   activeFeedId = signal<string>(
@@ -663,12 +688,18 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    */
   rotationPool = computed<SmuveTvRadioTrack[]>(() => {
     /*
-     * Only records this build can actually play are rotated. A catalogue record
-     * with no stream here is listed and linked instead — putting it in the bag
-     * would make the channel stall on something it can never play, and a run of
-     * those is indistinguishable from the source itself being gone.
+     * Only records this build can actually play are rotated. A record plays
+     * when it has a file (the artist's hosted master or an import) or an
+     * official upload — the artist's own complete recording, played through
+     * the platform that publishes it, which is the full-length source for
+     * every record Apple only clips. A record with none of those is listed and
+     * linked instead: putting it in the bag would make the channel stall on
+     * something it can never play, and a run of those is indistinguishable
+     * from the source itself being gone.
      */
-    const queue = this.radioQueue().filter((track) => !!(track.blob || track.url));
+    const queue = this.radioQueue().filter(
+      (track) => !!(track.blob || track.url || track.youtubeId)
+    );
     const masters = queue.filter((track) => !track.preview);
     return masters.length ? masters : queue;
   });
@@ -676,13 +707,16 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   /**
    * Records the station lists but cannot stream here.
    *
-   * These are the catalogue entries Apple does not carry, so there is no preview
-   * to play. They are what makes the station hold the artist's *complete*
-   * catalogue rather than the Apple subset, and each opens on a platform that
+   * These are the catalogue entries with neither a hosted file nor an official
+   * upload — the records only reachable on a platform that publishes them.
+   * They are what makes the station hold the artist's *complete* catalogue
+   * rather than any one store's subset, and each opens on a platform that
    * publishes the complete track.
    */
   catalogueOnly = computed<SmuveTvRadioTrack[]>(() =>
-    this.radioQueue().filter((track) => !track.blob && !track.url)
+    this.radioQueue().filter(
+      (track) => !track.blob && !track.url && !track.youtubeId
+    )
   );
 
   /**
@@ -716,9 +750,13 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   onAirLabel = computed(() => {
     const record = this.radioRecord();
     if (!record) return 'NOW PLAYING';
-    return record.preview
-      ? 'SMUVE JEFF RADIO \u00b7 OFFICIAL PREVIEW'
-      : 'SMUVE JEFF RADIO \u00b7 FULL RECORD';
+    // The label answers "what is audible right now": a record listed as a
+    // preview that is actually on air through the artist's own complete
+    // upload is a full record to the person listening to it.
+    if (record.preview && !this.officialOnAir()) {
+      return 'SMUVE JEFF RADIO \u00b7 OFFICIAL PREVIEW';
+    }
+    return 'SMUVE JEFF RADIO \u00b7 FULL RECORD';
   });
 
   /**
@@ -874,6 +912,20 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   private standaloneReadyTimer: number | null = null;
   /** Invalidated every time a new record takes the broadcast. */
   private standaloneToken = 0;
+  /**
+   * Set when the viewer paused the record through the transport, so the
+   * platform's own PAUSED report is obeyed instead of treated as a buffering
+   * hiccup the broadcast has to fight.
+   */
+  private officialPauseIntended = false;
+  /** When the record started sounding, for the clock while the platform's own
+   *  position is unavailable (or until it reports one). */
+  private officialStartedAtMs: number | null = null;
+  /** Elapsed accumulated before the last pause, so the clock resumes honestly. */
+  private officialElapsedBaseMs = 0;
+  /** The element the live player was mounted into, so a surface change can
+   *  re-home it instead of leaving it behind an overlay. */
+  private officialMountHost: HTMLElement | null = null;
   private nowTimerId: number | null = null;
   private frameId: number | null = null;
   private sceneTime = 0;
@@ -936,6 +988,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.nowTimerId = window.setInterval(() => {
       this.now.set(Date.now());
       this.tickNativeRadioProgress();
+      this.tickOfficialRecordProgress();
     }, 1000);
     document.addEventListener('fullscreenchange', this.fullscreenListener);
     document.addEventListener('webkitfullscreenchange', this.fullscreenListener);
@@ -1082,7 +1135,11 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
      */
     if (this.isRadioStation()) {
       if (this.isMusicPlaying()) {
-        this.stopRadio();
+        // When the record's own frame has the air, pausing the platform keeps
+        // the position: tearing the frame down would send the song back to
+        // its first bar on the next press.
+        if (this.officialOnAir()) this.pauseOfficialRecord();
+        else this.stopRadio();
         // The pause event does this too, but the badge must not wait on an
         // event a host might not deliver before the next render.
         this.isPlaying.set(false);
@@ -1172,6 +1229,30 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     if (!this.radioQueue().length) return;
 
     /*
+     * On the artist's station the record's own player can be the speaker: the
+     * official frame carries the whole song. It is paused and resumed here
+     * rather than through the element, which is deliberately silent while the
+     * frame is up — reading `audio.paused` there would see a stopped element
+     * and start a second engine underneath the record that is already on air.
+     */
+    if (this.isRadioStation()) {
+      if (this.officialOnAir()) {
+        if (this.isMusicPlaying()) this.pauseOfficialRecord();
+        else this.resumeOfficialRecord();
+        return;
+      }
+      const queued = this.musicTrack();
+      if (queued && this.canPlayFullRecord(queued)) {
+        this.musicError.set(null);
+        this.silenceStationAudio();
+        this.releaseNativeRadio();
+        this.officialPauseIntended = false;
+        this.playOfficialRecord(queued);
+        return;
+      }
+    }
+
+    /*
      * The native foreground player is the station's voice on Android. It has
      * no element to inspect, so the component's own playing flag — kept in
      * sync by the service's status events — is what the transport toggles.
@@ -1218,8 +1299,12 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
      * not stop: the station was tuned and stays tuned, and the record keeps
      * playing under the guide exactly as it would on any other station. Only
      * leaving the station itself (`tuneTo` elsewhere) takes the record down.
+     *
+     * The record is not torn down here — when the frame is what is carrying
+     * the sound, taking it down would silence the station the moment the
+     * listener looked at the guide. It is re-homed into the guide's own host
+     * instead, which is the element that stays on screen.
      */
-    this.closeStandaloneEmbed();
     this.radioStandalone.set(false);
     this.surfaceRef?.nativeElement.focus?.({ preventScroll: true });
   }
@@ -1250,6 +1335,12 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
       return;
     }
     if (this.radioStandalone()) {
+      // A record that is merely paused resumes where it stands; only a record
+      // that is gone from the air is put back on from the top of its place.
+      if (this.officialOnAir()) {
+        this.resumeOfficialRecord();
+        return;
+      }
       const current = this.musicTrack();
       this.playStandaloneRecord(current ?? this.nextRotationTrack());
       return;
@@ -1272,6 +1363,9 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
      */
     this.closeStandaloneEmbed();
     this.closeFullRecord();
+    this.officialStartedAtMs = null;
+    this.officialElapsedBaseMs = 0;
+    this.officialPauseIntended = false;
     // The native record pauses where it stands, exactly like the element, so
     // tuning back in resumes the queue instead of restarting the record.
     if (this.nativeRadioActive) {
@@ -1342,7 +1436,11 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.selectMusicTrack(next, true);
   }
 
-  selectMusicTrack(track: SmuveTvRadioTrack, autoplay = false): void {
+  selectMusicTrack(
+    track: SmuveTvRadioTrack,
+    autoplay = false,
+    options: { stationAudio?: boolean } = {}
+  ): void {
     const audio = this.musicRef?.nativeElement;
     if (!audio) return;
     // A new record is a new source: the previous one's official player goes with
@@ -1355,6 +1453,38 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     // playback (the element's `playing` event or the native status event), so
     // it can never name a track the engine refused.
     this.isMusicPlaying.set(false);
+    // A new record starts its own clock: the bar must not carry the previous
+    // record's playback position or running time onto it.
+    this.musicElapsedMs.set(0);
+    this.musicDurationMs.set(0);
+    this.officialElapsedBaseMs = 0;
+    // A fresh record starts playing; only a re-home keeps an earlier pause.
+    this.officialPauseIntended = false;
+
+    /*
+     * Full length first. On the artist's own station a record with an official
+     * upload goes on air through the platform that publishes the complete
+     * recording — the frame carries both the picture and the sound, so Apple's
+     * 30-second clip never stands in for a song that exists whole. This is
+     * also the only route for the records Apple does not carry at all: they
+     * have no stream here, but they do have a complete upload.
+     *
+     * Everything else uses the element below: hosted masters, imports, records
+     * with no upload, and the deliberate degrade when the platform's player
+     * refuses (`stationAudio`) — which must not loop back into this branch.
+     */
+    if (
+      autoplay &&
+      !options.stationAudio &&
+      this.isRadioStation() &&
+      this.canPlayFullRecord(track)
+    ) {
+      // The record's own player is about to be the only engine; the native
+      // notification must not keep the previous record sounding underneath it.
+      this.releaseNativeRadio();
+      this.playOfficialRecord(track);
+      return;
+    }
 
     const source = track.blob
       ? URL.createObjectURL(track.blob)
@@ -1376,11 +1506,6 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
      * fetched a bogus URL, and the element fired a spurious `error` event that
      * the rotation correctly read as a dead track.
      */
-    // A new record starts its own clock: the bar must not carry the previous
-    // record's playback position or running time onto it.
-    this.musicElapsedMs.set(0);
-    this.musicDurationMs.set(0);
-
     const previous = this.musicSource();
     this.musicSource.set(source);
 
@@ -1402,13 +1527,7 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
 
     // A record that cannot go native must not leave the previous native record
     // on air underneath it; the element is about to be the only engine.
-    if (this.nativeRadioActive) {
-      this.nativeRadioActive = false;
-      this.nativeRadioLoad = null;
-      this.nativeRadioPlayWhenReady = false;
-      this.resetNativeRadioProgress();
-      void this.radioBackground.destroy();
-    }
+    this.releaseNativeRadio();
 
     audio.src = source;
     audio.load();
@@ -1702,6 +1821,9 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   playFullRecord(track: SmuveTvRadioTrack): void {
     const videoId = track.youtubeId;
     if (!videoId || this.fullRecordActive()) return;
+    // The sound-carrying frame already has this record on screen. Raising a
+    // second one would put two players of the same song on the station.
+    if (this.officialOnAir()) return;
     // The display lives inside the player: with no screen there is nowhere to put
     // the record, so the station simply keeps its own scene.
     if (!this.officialHostRef?.nativeElement) return;
@@ -1739,28 +1861,142 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     if (!track) return;
     this.musicTrack.set(track);
     this.musicError.set(null);
+    this.officialPauseIntended = false;
     this.closeFullRecord();
 
     if (track.youtubeId && this.canPlayFullRecord(track)) {
-      void this.playStandaloneFullRecord(track);
+      void this.playOfficialRecord(track);
       return;
     }
     this.selectMusicTrack(track, true);
   }
 
+  /** The host the record belongs in for the surface the viewer is on. */
+  private officialHostForSurface(): HTMLElement | null {
+    const broadcast = this.radioStandalone()
+      ? this.standaloneHostRef?.nativeElement
+      : null;
+    return broadcast ?? this.officialHostRef?.nativeElement ?? null;
+  }
+
+  /** The 6-second "the platform never spoke" degrade, armed per attempt. */
+  private armOfficialReadyTimer(token: number, track: SmuveTvRadioTrack): void {
+    this.standaloneReadyTimer = window.setTimeout(() => {
+      if (token !== this.standaloneToken) return;
+      // A record the viewer paused is not a record the platform refused: the
+      // station must not start the clip because nothing reported playback.
+      if (this.officialPauseIntended) return;
+      this.fallbackToStationAudio(track);
+    }, 6000);
+  }
+
   /**
-   * The artist's own official upload, playing with sound in the broadcast.
+   * Re-homes a record that is already on air when the surface changes.
    *
-   * Apple clips a record; the artist's own upload is complete. The broadcast
-   * hands the speaker to the frame so the full record is what the room hears,
-   * and the platform's own player tells the rotation when the song ends.
+   * Entering the broadcast and leaving it both swap which host is on screen,
+   * and a player is bound to the element it was created in — so without this
+   * the record would keep playing behind an overlay the viewer cannot see, or
+   * die with the overlay's markup. The elapsed position is passed along, so
+   * the song resumes rather than restarting.
    */
-  private async playStandaloneFullRecord(track: SmuveTvRadioTrack): Promise<void> {
+  private remountOfficialRecord(): void {
+    const track = this.musicTrack();
+    if (!this.officialOnAir() || !track?.youtubeId) return;
+    // No completed mount yet: an attempt is still in flight, and re-homing it
+    // now would put two players of the same record in one host.
+    const current = this.officialMountHost;
+    if (!current) return;
+    const want = this.officialHostForSurface();
+    if (!want || want === current) return;
+    const startSeconds = Math.floor(this.musicElapsedMs() / 1000);
+    void this.playOfficialRecord(track, { startSeconds });
+  }
+
+  /** The viewer paused the record: stop the clock where it stands. */
+  private pauseOfficialRecord(): void {
+    this.officialPauseIntended = true;
+    this.freezeOfficialRecordProgress();
+    this.standalonePlayer?.pauseVideo();
+    this.isMusicPlaying.set(false);
+    if (this.isRadioStation()) this.isPlaying.set(false);
+    this.updateMediaSession();
+  }
+
+  /** The viewer asked for the record again. */
+  private resumeOfficialRecord(): void {
+    const player = this.standalonePlayer;
+    if (!player) {
+      // The frame is still mounting — onReady will start it — or it is gone,
+      // in which case the queued record goes back on air from here.
+      if (!this.officialOnAir()) {
+        const track = this.musicTrack();
+        if (track && this.canPlayFullRecord(track)) {
+          this.silenceStationAudio();
+          this.releaseNativeRadio();
+          void this.playOfficialRecord(track);
+        }
+      }
+      return;
+    }
+    this.officialPauseIntended = false;
+    if (this.officialStartedAtMs === null && this.musicTrack()) {
+      this.startOfficialRecordProgress(this.musicTrack()!);
+    }
+    player.playVideo();
+  }
+
+  /** Starts the record's clock the moment the platform confirms sound. */
+  private startOfficialRecordProgress(track: SmuveTvRadioTrack): void {
+    if (this.officialStartedAtMs !== null) return;
+    this.officialStartedAtMs = Date.now();
+    this.musicElapsedMs.set(Math.max(0, Math.round(this.officialElapsedBaseMs)));
+    const duration = track.durationMs ?? 0;
+    if (duration > 0) this.musicDurationMs.set(duration);
+  }
+
+  /** Accumulates the elapsed base across a pause, like the native clock. */
+  private freezeOfficialRecordProgress(): void {
+    if (this.officialStartedAtMs === null) return;
+    this.officialElapsedBaseMs += Date.now() - this.officialStartedAtMs;
+    this.officialStartedAtMs = null;
+  }
+
+  /**
+   * The artist's own official upload, playing with sound on whichever surface
+   * the station is showing.
+   *
+   * Apple clips a record; the artist's own upload is complete. The frame takes
+   * the speaker so the full record is what the room hears — on the lean-back
+   * broadcast and on the guide alike — and the platform's own player tells the
+   * rotation when the song ends.
+   *
+   * The host follows the surface: a record has to be mounted where the viewer
+   * can actually see it, so entering or leaving the broadcast re-homes the
+   * player instead of leaving it running behind an overlay.
+   */
+  private async playOfficialRecord(
+    track: SmuveTvRadioTrack,
+    options: { startSeconds?: number } = {}
+  ): Promise<void> {
     const videoId = track.youtubeId;
     if (!videoId) return;
 
     const token = ++this.standaloneToken;
     this.clearStandaloneTimers();
+    // A record that comes back keeps its place — and its pause, if the viewer
+    // left it paused: re-homing is not a reason to start playing again. the position already on the
+    // clock is where the platform is asked to seek, so tuning away and back —
+    // or leaving and re-entering the broadcast — is not a restart.
+    const startSeconds = Math.max(
+      0,
+      options.startSeconds ?? Math.floor(this.musicElapsedMs() / 1000)
+    );
+    this.officialStartedAtMs = null;
+    this.officialElapsedBaseMs = startSeconds * 1000;
+    this.officialMountHost = null;
+    // A muted display frame must never share the host with the player that is
+    // about to be created in it.
+    this.closeFullRecord();
 
     // The station's own player steps aside: the frame carries the sound.
     const audio = this.musicRef?.nativeElement;
@@ -1789,18 +2025,25 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const host = this.standaloneHostRef?.nativeElement ?? this.officialHostRef?.nativeElement;
+    const host = this.officialHostForSurface();
     if (!host) {
       this.fallbackToStationAudio(track);
       return;
     }
 
     this.destroyStandalonePlayer();
+    // Destroying the old player cleared the timers, so the degrade is armed
+    // again for the window where the frame has mounted but not yet spoken.
+    this.armOfficialReadyTimer(token, track);
+    this.officialMountHost = host;
     const states = api.PlayerState ?? OFFICIAL_STATES;
     try {
       this.standalonePlayer = new api.Player(host, {
         videoId,
         playerVars: {
+          // Re-homing a record picks it up where it was: the platform seeks on
+          // load, so leaving a surface is not the same as starting over.
+          ...(startSeconds ? { start: startSeconds } : {}),
           autoplay: 1,
           playsinline: 1,
           rel: 0,
@@ -1811,7 +2054,9 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
         },
         events: {
           onReady: () => {
-            if (token === this.standaloneToken) this.standalonePlayer?.playVideo();
+            if (token !== this.standaloneToken) return;
+            if (this.officialPauseIntended) return;
+            this.standalonePlayer?.playVideo();
           },
           onStateChange: (event) => {
             if (token !== this.standaloneToken) return;
@@ -1829,6 +2074,34 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * The record's clock, on the guide's existing one-second tick.
+   *
+   * The platform reports its own position when it exposes one; until it does,
+   * the component's own base keeps the lower third honest instead of leaving a
+   * bar stuck at zero beside a song the room can hear is three minutes long.
+   */
+  private tickOfficialRecordProgress(): void {
+    if (!this.officialOnAir() || !this.isMusicPlaying()) return;
+    const platformSeconds = this.standalonePlayer?.getCurrentTime?.();
+    const durationMs = this.musicDurationMs();
+    const elapsedMs =
+      platformSeconds != null && Number.isFinite(platformSeconds)
+        ? platformSeconds * 1000
+        : this.officialElapsedBaseMs +
+          (this.officialStartedAtMs !== null
+            ? Date.now() - this.officialStartedAtMs
+            : 0);
+    this.musicElapsedMs.set(
+      Math.max(
+        0,
+        Math.round(
+          durationMs > 0 ? Math.min(elapsedMs, durationMs) : elapsedMs
+        )
+      )
+    );
+  }
+
+  /**
    * The platform's own state, mapped onto the broadcast.
    *
    * Only `PLAYING` confirms the record is really on air; `ENDED` hands the
@@ -1842,8 +2115,18 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     if (state === states.PLAYING) {
       this.clearStandaloneTimers();
       this.consecutiveFailures = 0;
+      // A pause the viewer asked for wins over the platform's own report.
+      if (this.officialPauseIntended) {
+        this.standalonePlayer?.pauseVideo();
+        this.isMusicPlaying.set(false);
+        if (this.isRadioStation()) this.isPlaying.set(false);
+        return;
+      }
       this.isMusicPlaying.set(true);
       this.musicError.set(null);
+      if (this.isRadioStation()) this.isPlaying.set(true);
+      this.startOfficialRecordProgress(track);
+      this.updateMediaSession();
 
       // Safety net: if the platform never reports ENDED, the rotation still
       // moves on after the record's own running time.
@@ -1854,6 +2137,8 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
           if (this.standaloneToken !== endToken) return;
           this.destroyStandalonePlayer();
           this.standaloneEmbedUrl.set(null);
+          this.officialMountHost = null;
+          this.officialStartedAtMs = null;
           this.isMusicPlaying.set(false);
           this.advanceRotation();
         }, duration + 2000);
@@ -1861,8 +2146,18 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
       return;
     }
     if (state === states.PAUSED) {
+      if (this.officialPauseIntended) {
+        // The viewer paused it through the transport: obey, and let the clock
+        // stop where it stands instead of restarting it under a paused badge.
+        this.freezeOfficialRecordProgress();
+        this.isMusicPlaying.set(false);
+        if (this.isRadioStation()) this.isPlaying.set(false);
+        this.updateMediaSession();
+        return;
+      }
       // The broadcast has no controls: a pause the viewer did not cause is
       // the platform buffering, not a choice. Resume and keep the record on air.
+      if (this.officialStartedAtMs === null) this.startOfficialRecordProgress(track);
       this.standalonePlayer?.playVideo();
       return;
     }
@@ -1870,6 +2165,9 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
       this.clearStandaloneTimers();
       this.destroyStandalonePlayer();
       this.standaloneEmbedUrl.set(null);
+      this.officialMountHost = null;
+      this.officialStartedAtMs = null;
+      this.officialPauseIntended = false;
       this.isMusicPlaying.set(false);
       this.advanceRotation();
     }
@@ -1904,11 +2202,18 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
     this.clearStandaloneTimers();
     this.destroyStandalonePlayer();
     this.standaloneEmbedUrl.set(null);
-    this.selectMusicTrack(track, true);
+    this.officialMountHost = null;
+    this.officialStartedAtMs = null;
+    this.officialElapsedBaseMs = 0;
+    this.officialPauseIntended = false;
+    // `stationAudio` keeps this from re-entering the official branch: the
+    // frame already refused once, so the element has to take the record.
+    this.selectMusicTrack(track, true, { stationAudio: true });
   }
 
   private destroyStandalonePlayer(): void {
     this.clearStandaloneTimers();
+    this.officialMountHost = null;
     const player = this.standalonePlayer;
     this.standalonePlayer = null;
     if (!player) return;
@@ -1965,10 +2270,12 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
    * this station streams from a real source, so there is no third case.
    */
   trackBadge(track: SmuveTvRadioTrack): 'FULL' | 'PREVIEW' {
-    // A hosted master is whole by itself; an official upload is whole once the
-    // listener has actually brought it up, which is when this badge reads FULL.
+    // A hosted master is whole by itself. A catalogue record is a preview only
+    // while the clip is what is on air: once the platform's player is carrying
+    // the artist's own complete upload, this record is sounding in full and
+    // the badge has to say so.
     if (!track.preview) return 'FULL';
-    return this.fullRecordActive() && track.id === this.musicTrack()?.id
+    return this.officialOnAir() && track.id === this.musicTrack()?.id
       ? 'FULL'
       : 'PREVIEW';
   }
@@ -2120,6 +2427,22 @@ export class SmuveTvComponent implements AfterViewInit, OnDestroy {
   }
 
   /** TV has one speaker, so the radio and the station never play over each other. */
+  /**
+   * Hands the speaker back from the Android foreground player.
+   *
+   * Called before another engine takes the record — the element, or the
+   * record's own frame — so a notification can never keep the previous record
+   * sounding underneath the one now on air.
+   */
+  private releaseNativeRadio(): void {
+    if (!this.nativeRadioActive) return;
+    this.nativeRadioActive = false;
+    this.nativeRadioLoad = null;
+    this.nativeRadioPlayWhenReady = false;
+    this.resetNativeRadioProgress();
+    void this.radioBackground.destroy();
+  }
+
   private silenceStationAudio(): void {
     // The shared session owns the live feed; the synthesised bed is the only
     // thing this module still plays on its own speaker, so exactly one flag

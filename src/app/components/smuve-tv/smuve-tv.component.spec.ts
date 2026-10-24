@@ -693,44 +693,177 @@ describe('SmuveTvComponent', () => {
     const display = (): HTMLIFrameElement | null =>
       fixture.nativeElement.querySelector('.tv-player .tv-record iframe');
 
-    it("puts the record on the station's screen once it is on air", () => {
-      component.officialCatalogue.set([catalogued()]);
-      const { pause } = player();
+    /** Lets the injected loader promise and the re-home tick settle. */
+    const flush = async (): Promise<void> => {
+      for (let tick = 0; tick < 5; tick += 1) await Promise.resolve();
+    };
 
-      component.tuneToRadio();
-      // Nothing is on the screen until the channel's own audio confirms the
-      // record: a frame raised before the sound would be a picture of a record
-      // nobody is hearing.
-      expect(component.fullRecordActive()).toBe(false);
-      expect(display()).toBeNull();
+    /**
+     * Drives the platform's player without loading YouTube in jsdom.
+     *
+     * Every mount is recorded, so a test can tell the record that went on air
+     * from the one that was torn down when the surface changed.
+     */
+    const officialPlayer = () => {
+      const players: {
+        host: HTMLElement;
+        videoId: string;
+        playerVars: Record<string, unknown>;
+        events: Record<string, (event?: { data?: number }) => void>;
+        playVideo: jest.Mock;
+        pauseVideo: jest.Mock;
+        destroy: jest.Mock;
+      }[] = [];
+      const api = {
+        Player: jest.fn(
+          (
+            host: HTMLElement,
+            options: {
+              videoId: string;
+              playerVars: Record<string, unknown>;
+              events: Record<string, (event?: { data?: number }) => void>;
+            }
+          ) => {
+            const player = {
+              host,
+              videoId: options.videoId,
+              playerVars: options.playerVars,
+              events: options.events,
+              playVideo: jest.fn(),
+              pauseVideo: jest.fn(),
+              destroy: jest.fn(),
+            };
+            players.push(player);
+            return player;
+          }
+        ),
+        PlayerState: { PLAYING: 1, PAUSED: 2, ENDED: 0 },
+      };
+      component.officialApiLoader = async () => api as never;
+      return { api, players };
+    };
 
-      component.onMusicPlaying();
+    /** Tunes to the artist's station on the guide (no lean-back overlay). */
+    const tuneToRadioOnGuide = (): void => {
+      component.tuneTo(component.radioStation);
       fixture.detectChanges();
+    };
 
-      const frame = display();
-      expect(component.fullRecordActive()).toBe(true);
-      expect(frame).not.toBeNull();
-      expect(frame?.getAttribute('src')).toContain('/embed/IE-b3hMngfQ');
-      // Muted, so every browser starts it without a gesture, and the station's
-      // own player keeps the air — the record is never heard twice.
-      expect(frame?.getAttribute('src')).toContain('mute=1');
-      expect(pause).not.toHaveBeenCalled();
+    it("puts the artist's complete recording on air instead of the clip", async () => {
+      component.officialCatalogue.set([catalogued()]);
+      const { audio, play } = player();
+      const { players } = officialPlayer();
+
+      // Tuning the station in starts the record on the spot.
+      tuneToRadioOnGuide();
+      await flush();
+
+      const mounted = players[0];
+      expect(mounted).toBeDefined();
+      expect(mounted.videoId).toBe('IE-b3hMngfQ');
+      expect(component.officialOnAir()).toBe(true);
+      // The station's own player never starts: the frame carries the sound, so
+      // the 30-second clip is not what the room hears and nothing plays twice.
+      expect(play).not.toHaveBeenCalled();
+      expect(audio.paused).toBe(true);
+
+      mounted.events.onReady?.();
+      expect(mounted.playVideo).toHaveBeenCalled();
+      mounted.events.onStateChange?.({ data: 1 });
+
+      expect(component.isMusicPlaying()).toBe(true);
+      expect(component.isPlaying()).toBe(true);
+      // The whole record is on air, so the label says so.
+      expect(component.onAirLabel()).toBe('SMUVE JEFF RADIO \u00b7 FULL RECORD');
+      expect(component.trackBadge(component.musicTrack()!)).toBe('FULL');
+      // The record's own running time, not the clip's thirty seconds.
+      expect(component.musicDurationMs()).toBe(180000);
+      // The muted display frame is not what is showing the record.
+      expect(display()).toBeNull();
     });
 
-    it('takes the record off the screen when the channel moves on', () => {
+    it('re-homes the record into the broadcast instead of playing behind it', async () => {
       component.officialCatalogue.set([catalogued()]);
       player();
-      component.tuneToRadio();
+      const { players } = officialPlayer();
+
+      tuneToRadioOnGuide();
+      await flush();
+
+      component.enterRadio();
+      fixture.detectChanges();
+      await flush();
+
+      const mounted = players[players.length - 1];
+      expect(players.length).toBeGreaterThan(1);
+      // The guide's mount was handed over, not left sounding behind the overlay.
+      expect(players[0].destroy).toHaveBeenCalled();
+      expect(mounted.host.classList.contains('tv-broadcast-player')).toBe(true);
+    });
+
+    it('keeps the record where it stands across a pause', async () => {
+      component.officialCatalogue.set([catalogued()]);
+      player();
+      const { players } = officialPlayer();
+      tuneToRadioOnGuide();
+      await flush();
+      players[0].events.onStateChange?.({ data: 1 });
+      expect(component.isMusicPlaying()).toBe(true);
+
+      component.togglePlayback();
+
+      expect(players[0].pauseVideo).toHaveBeenCalled();
+      expect(component.isMusicPlaying()).toBe(false);
+      expect(component.isPlaying()).toBe(false);
+
+      component.togglePlayback();
+
+      // Resumed in place: the same mount, not the song from its first bar.
+      expect(players).toHaveLength(1);
+      expect(players[0].playVideo).toHaveBeenCalled();
+    });
+
+    it('falls back to the clip and labels it a preview when the frame refuses', async () => {
+      component.officialCatalogue.set([catalogued()]);
+      const { play } = player();
+      const { players } = officialPlayer();
+      tuneToRadioOnGuide();
+      await flush();
+
+      players[0].events.onError?.();
+
+      // The station's own player takes the record back and starts the clip.
+      expect(play).toHaveBeenCalled();
+      expect(component.officialOnAir()).toBe(false);
+
       component.onMusicPlaying();
       fixture.detectChanges();
+
+      // Degraded, and honest about it: the clip is audible, the upload is the
+      // picture, and the lower third says OFFICIAL PREVIEW.
+      expect(component.fullRecordActive()).toBe(true);
       expect(display()).not.toBeNull();
+      expect(display()?.getAttribute('src')).toContain('/embed/IE-b3hMngfQ');
+      expect(component.onAirLabel()).toBe(
+        'SMUVE JEFF RADIO \u00b7 OFFICIAL PREVIEW'
+      );
+    });
+
+    it('takes the record off the air when the channel moves on', async () => {
+      component.officialCatalogue.set([catalogued()]);
+      player();
+      const { players } = officialPlayer();
+      tuneToRadioOnGuide();
+      await flush();
+      players[0].events.onStateChange?.({ data: 1 });
+      expect(component.officialOnAir()).toBe(true);
 
       component.tuneTo(service.channels[0]);
       fixture.detectChanges();
 
       expect(component.isRadioStation()).toBe(false);
-      expect(component.fullRecordActive()).toBe(false);
-      expect(display()).toBeNull();
+      expect(component.officialOnAir()).toBe(false);
+      expect(players[0].destroy).toHaveBeenCalled();
     });
 
     it('keeps the record off the screen on every other station', () => {
@@ -851,6 +984,35 @@ describe('SmuveTvComponent', () => {
         if (next) drawn.add(next.id);
       }
       expect([...drawn]).toEqual(['apple-1']);
+    });
+
+    it('rotates the records only the official upload can play', async () => {
+      routeReads({
+        records: {
+          records: [
+            catalogueRecord(),
+            // Apple does not carry this one, so there is no clip — but the
+            // artist's own complete upload is exactly what the station plays.
+            catalogueRecord({
+              id: 'yt-only',
+              trackId: null,
+              title: 'Smile',
+              album: 'Single',
+              previewUrl: '',
+              youtubeId: '3tSxOuceqJo',
+            }),
+          ],
+        },
+      });
+
+      await component.loadCatalogue();
+
+      expect(component.rotationPool().map((track) => track.id)).toEqual([
+        'apple-1',
+        'yt-only',
+      ]);
+      // Nothing about it is unplayable any more, so nothing is left over.
+      expect(component.catalogueOnly()).toEqual([]);
     });
 
     it('stays quiet when every catalogued record needs an official page', async () => {

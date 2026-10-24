@@ -195,16 +195,17 @@
           and this is where it goes, over the station's own scene, for exactly as
           long as that record is the one on air.
 
-          The frame opens muted: a muted frame is the one every browser starts
-          without a gesture, so the record is on the screen rather than a black
-          rectangle waiting for a tap, and the sound stays with the station's own
-          player so nothing is ever heard twice. A record with no official upload
-          renders nothing here and keeps the scene.
+          Two things can be in here, and never both: the sound-carrying player
+          when the record has an official upload (the frame is the broadcast —
+          picture and sound together, so the whole song is what the room
+          hears), or the muted display frame in the degraded case where the
+          station's own player has the air on the 30-second clip. A record with
+          no official upload renders nothing here and keeps the scene.
         -->
         <div
           #officialHost
           class="tv-record"
-          [hidden]="!fullRecordEmbedUrl()"
+          [hidden]="!fullRecordEmbedUrl() && !officialOnAir()"
         >
           <iframe
             *ngIf="fullRecordEmbedUrl()"
