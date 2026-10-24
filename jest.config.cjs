@@ -6,6 +6,13 @@ module.exports = {
     stringifyContentPathRegex: '\\.html$',
   }),
   setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
+  // The workers themselves shut down in a few milliseconds, but Jest's parent
+  // process can take noticeably longer than the 500ms default to reap their
+  // exit events on a busy machine, which force-kills workers that already
+  // exited and prints the "failed to exit gracefully" warning. Give the parent
+  // room to collect those exits; a real leaked handle still exceeds this and
+  // still surfaces the warning.
+  workerGracefulExitTimeout: 3000,
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
     '<rootDir>/dist/',
