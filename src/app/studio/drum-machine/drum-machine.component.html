@@ -465,16 +465,6 @@
               class="dm-strip-toggle"
               [class.active]="graphTarget() === 'velocity'"
               (click)="graphTarget.set('velocity'); $event.stopPropagation()"
-              style="
-                padding: 2px 8px;
-                border-radius: 4px;
-                font-size: 8px;
-                font-weight: 800;
-                background: var(--ivory-paper);
-                border: 1px solid var(--ivory-line);
-                color: var(--espresso-muted);
-                cursor: pointer;
-              "
             >
               VEL
             </button>
@@ -483,16 +473,6 @@
               class="dm-strip-toggle"
               [class.active]="graphTarget() === 'probability'"
               (click)="graphTarget.set('probability'); $event.stopPropagation()"
-              style="
-                padding: 2px 8px;
-                border-radius: 4px;
-                font-size: 8px;
-                font-weight: 800;
-                background: var(--ivory-paper);
-                border: 1px solid var(--ivory-line);
-                color: var(--espresso-muted);
-                cursor: pointer;
-              "
             >
               PROB
             </button>

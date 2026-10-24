@@ -2,6 +2,7 @@
   class="pr-shell studio-workspace-surface piano-roll-surface"
   data-studio-module="piano-roll"
   [class.pr-tools-open]="phoneToolsOpen()"
+  [class.pr-velocity-open]="velocityDrawerOpen()"
 >
   <!-- HEADER -->
   <header class="pr-header" role="banner">
@@ -102,8 +103,10 @@
         type="button"
         class="pr-tool"
         [class.active]="editMode() === 'velocity'"
-        (click)="setEditMode('velocity')"
+        (click)="toggleVelocityTool()"
         [attr.aria-pressed]="editMode() === 'velocity'"
+        [attr.aria-expanded]="velocityDrawerOpen()"
+        aria-controls="pr-velocity-lane"
         [attr.aria-label]="'Velocity tool'"
         title="Velocity (V)"
       >
@@ -630,18 +633,36 @@
         >{{ sustainReleaseCount() }} ✕</span>
       </span>
     </div>
-    <div
-      class="pr-velocity"
-      #velocityViewport
-      (scroll)="onVelocityScroll($event)"
-      (pointerdown)="onVelocityPointerDown($event)"
-      (pointermove)="onVelocityPointerMove($event)"
-    >
-      <canvas
-        #glVelocityCanvas
-        class="pr-gl-canvas pr-gl-canvas--velocity"
-        [style.width.px]="gridWidth()"
-      ></canvas>
+    <!-- Velocity lane. On phones the wrapper becomes a bottom drawer, opened by
+         the Velocity tool; on desktop it is `display: contents` and the lane
+         keeps its place in the band stack. -->
+    <div class="pr-velocity-drawer" id="pr-velocity-lane">
+      <div class="pr-velocity-grip">
+        <span class="pr-velocity-grip-bar" aria-hidden="true"></span>
+        <span class="pr-velocity-title">Velocity</span>
+        <span class="pr-velocity-hint">Drag a bar</span>
+        <button
+          type="button"
+          class="pr-velocity-close"
+          (click)="closeVelocityDrawer()"
+          aria-label="Close velocity lane"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div
+        class="pr-velocity"
+        #velocityViewport
+        (scroll)="onVelocityScroll($event)"
+        (pointerdown)="onVelocityPointerDown($event)"
+        (pointermove)="onVelocityPointerMove($event)"
+      >
+        <canvas
+          #glVelocityCanvas
+          class="pr-gl-canvas pr-gl-canvas--velocity"
+          [style.width.px]="gridWidth()"
+        ></canvas>
+      </div>
     </div>
 
     <!-- Right inspector: a companion rail beside the grid, so it keeps the

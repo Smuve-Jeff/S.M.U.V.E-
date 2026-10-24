@@ -148,6 +148,37 @@ read as an empty pill on the 390px toolbar (`Major` at the default key). Adding
 the active fill in the later block (and for the dark-mode override, which is
 more specific) restores a readable selected state.
 
+### 2.5 P1 — the worst touch targets and the phone velocity lane
+
+**Channel Rack mute/solo** were 14×14 unlabelled squares — the smallest controls
+in the rack, and they read as two empty boxes. They now carry `M`/`S` letters,
+and on coarse pointers/≤768px they are 44×44 with a 6px gap, stacked
+horizontally beside the nameplate.
+
+**DJ Booth loop chips** were 11×30 with 7–8px type; the LPF/HPF switches
+27×34. Both are 44×40 minimum on coarse pointers, the chip row wraps instead of
+overflowing, and the labels stay legible at 9px.
+
+**Drum Machine strip toggles** (VEL / PROB) were 21px tall because their size
+lived in inline styles; the styles moved to `.dm-strip-toggle` and the pair is
+52×44 on touch, so choosing which parameter the step graph edits is a thumb
+target rather than a hairline.
+
+**Piano Roll velocity lane.** The lane was `display: none` below 768px, so the
+Velocity tool selected a mode with no surface. On phones the lane is now a
+drawer that rises over the bottom of the note grid when the Velocity tool is
+chosen (`aria-expanded` on the tool, a 44×40 close button, `touch-action: none`
+so a drag edits instead of scrolling). It is anchored to the transport dock via
+`--mobile-nav-height + --transport-dock-height`, so it never covers the
+transport, and the lane height is `clamp(96px, 16vh, 132px)` — 132px on a 844px
+phone, 102px on a 640px one where the chrome already costs 314px.
+
+While verifying the drawer, the lane turned out never to have rendered at all,
+phone or desktop: `renderVelocityLane()` drew through the *grid's* renderer, so
+the bars were painted onto the note canvas at lane coordinates (y 0–130) and the
+lanes' own GL canvas only ever received `clear()`. It now takes the lane's
+renderer as an argument; the bars appear on both tiers for the first time.
+
 ---
 
 ## 3. P1 — open, device-visible defects
@@ -207,17 +238,21 @@ Android/Material minimum; 48dp preferred):
 | Chord Editor | 24 | 7 | 0 | — |
 | Desktop Channel Rack | 121 | 121 | 87 | same controls, mouse-only density |
 
-The Channel Rack's mute/solo buttons are the single worst offender: 14×14px
+The Channel Rack's mute/solo buttons were the single worst offender: 14×14px
 squares with no label (one pair renders as two empty boxes in the screenshot).
-FL Mobile's mute/solo are ~36×28 with letters; Koala's pads are ≥ 48px.
+FL Mobile's mute/solo are ~36×28 with letters; Koala's pads are ≥ 48px. The
+three worst rows of this table — Channel Rack mute/solo, DJ loop chips and Drum
+Machine strip toggles — are now 44×44 / 44×40 / 52×44 on touch (§2.5); the
+percentages below are the pre-repair counts from the audit run.
 
-### 3.3 Phone Piano Roll still loses its velocity lane
+### 3.3 Phone Piano Roll velocity lane — closed (§2.5)
 
-The key rail is restored (§2.3) at 44px with legible note names. The velocity
-lane is still `display: none` at ≤ 768px, so dynamics can only be shaped through
-the Velocity tool. FL Mobile, Cubasis and BandLab all keep a velocity surface (or
-an always-available velocity mode) on phones; a collapsed velocity drawer would
-close the remaining gap.
+The key rail is restored (§2.3) at 44px with legible note names, and the
+velocity lane is now a drawer opened by the Velocity tool (§2.5). Remaining
+difference to FL Mobile and Cubasis: they show the lane permanently, and the
+lane here is 132px at most, so a long note's bars need a horizontal scroll.
+Landscape phones above 768px wide keep the in-flow lane the desktop tier uses
+(§2.3's landscape rule), which is already visible without a drawer.
 
 ### 3.4 Typography floor is too low
 
@@ -288,7 +323,7 @@ opposite of an onboarding screen's job.
 | --- | --- | --- | --- |
 | Arrangement | Beginner wizard by default; pro timeline behind "SHOW PRO MODE"; dense transport dock works | WebGL timeline, inspector docked; 64-bar ceiling removed | No tempo/time-signature map; no ripple edit; no freeze/bounce-in-place (FL/Cubasis have all three) |
 | Session (clip launcher) | Scene tabs scroll horizontally; launch targets ≥ 44 (0 under 44) | Scene grid + follow actions | Good; capture-to-arrangement still missing (BandLab/Ableton Note) |
-| Piano Roll | Grid below fold; key rail and velocity lane hidden; toolbar scrolls away | Grid fills; 44/44 controls under 44px | FL Mobile keeps keys + velocity; note repeat/arp only via AI panel, not a tool |
+| Piano Roll | Grid below fold; key rail hidden; toolbar scrolls away | Grid fills; 44/44 controls under 44px | FL Mobile keeps keys + velocity; note repeat/arp only via AI panel, not a tool |
 | Drum Machine | Style card before grid (grid at y=1053); 149/186 controls < 44 | Grid visible; 132 controls < 24px | Strong per-step depth (probability, ratchet, polymeter); groove chips scroll but no affordance |
 | Mixer | ~300px header before strips; strips clipped pre-fix; 6-char names | Empty console area with 3 tracks; faders clipped pre-fix | No group/bus faders or N sends (FL/Cubasis); phase panel is not a per-strip tool |
 | Channel Rack | 121/121 controls < 44; 150px empty well | 121/121 < 44; 87 < 24 | No meters, no reorder drag on touch verified |
@@ -415,10 +450,12 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
    Performer and Sound Browser~~ — done in §2.3. Effects Rack and Plugins
    verified as already compliant. Remaining: Arrangement's beginner gate and the
    Sample Library filter rail.
-4. 44dp touch-target sweep, starting with Channel Rack mute/solo, DJ loop chips,
-   Drum Machine strip toggles, and the Piano Roll tool row.
-5. Restore a 40px key rail and a collapsible velocity lane in the phone Piano
-   Roll; keep the toolbar sticky while the grid scrolls.
+4. ~~44dp touch-target sweep: Channel Rack mute/solo, DJ loop chips, Drum
+   Machine strip toggles~~ — done in §2.5. Remaining: bar-edit cells, Sound
+   Browser card actions, Piano Roll zoom/tool row and the Lock checkbox.
+5. ~~Restore a 40px key rail and a collapsible velocity lane in the phone Piano
+   Roll~~ — done in §2.3/§2.5. Remaining: keep the toolbar sticky while the
+   grid scrolls.
 6. 11px typography floor across Channel Rack, DJ, Mixer, Session and Performer.
 7. Mixer phone layout: compact correlation readout, wider strips or a focused
    single-strip mode, and a visible scroll gutter.
@@ -460,10 +497,19 @@ real cloud sync, Play Billing, DAWproject.
 | Performer sections | rack 201px → 84px, meter deck 365px → 61px |
 | Sound Browser header | 490px → 172px; first card y=620 → y=302 |
 | Desktop 1440×900 | rails still inline, disclosures `display: none`, no layout change |
+| Velocity drawer, 390×844 | drawer y=518 h=186 above the dock (704), lane 132px, canvas 4096×260 device px, close 44×40, no document overflow |
+| Velocity drag, 390×844 (touch) | press at 0.29 of the lane height → velocity 0.71 from 0.78, i.e. the measured lane height drives the mapping |
+| Velocity drawer, 360×640 / 768×360 | drawer h=156 / 142, lane 102 / 88px, close button on screen, no overflow |
+| Velocity bars | render on desktop (88px lane) and in the phone drawer; previously the lane was blank on both because the bars were drawn into the grid canvas |
+| Channel Rack mute/solo, DJ loop chips, drum strip toggles | 44×44 / 44×40 / 52×44 on touch; 14×14, 11×30 and 21px before |
 
-The clipping, contrast and scale-chip repairs are CSS-only. The phone-first
+The clipping, contrast, scale-chip and touch-target repairs are CSS-only apart
+from the Drum Machine's inline styles moving into its stylesheet. The phone-first
 layout adds one `signal` per component (default closed) plus a disclosure button
 and class bindings in six workspaces; desktop markup order and styling are
-untouched, and the Effects Rack and Plugins needed no change. The rest of
-the findings stay documented rather than patched so product decisions (touch
-sweep, velocity drawer, strip layout) remain deliberate.
+untouched, and the Effects Rack and Plugins needed no change. The velocity
+drawer adds one signal, one wrapper element and one argument to
+`renderVelocityLane`; desktop keeps `display: contents` on the wrapper, so the
+lane stays in the band stack. The rest of the findings stay documented rather
+than patched so product decisions (strip layout, typography floor) remain
+deliberate.

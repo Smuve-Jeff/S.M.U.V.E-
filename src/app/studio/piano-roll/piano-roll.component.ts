@@ -142,6 +142,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   scaleLockEnabled = signal(false);
   /** Phone-only: secondary tool rails (snap, quantize, tempo, key/scale). */
   phoneToolsOpen = signal(false);
+  /**
+   * Phone-only: the velocity lane as a bottom drawer.
+   *
+   * At phone widths the lane is hidden (it does not fit under a 60vh grid, and
+   * every in-flow slot after the grid — automation, CC lanes — pushed it past
+   * the fold), which left the Velocity tool selected with nothing to edit. The
+   * lane now slides up over the bottom of the grid whenever that tool is
+   * active, so the bars and the notes they belong to stay on screen together.
+   * Desktop ignores the flag: the wrapper is `display: contents` there and the
+   * lane keeps its normal 80px row.
+   */
+  velocityDrawerOpen = signal(false);
   snapOptions = [
     { label: "1/4", value: "1/4" as const },
     { label: "1/8", value: "1/8" as const },
@@ -1007,6 +1019,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
       this.glVelRenderer.clear(0.04, 0.06, 0.11, 1.0);
       this.prRenderer.renderVelocityLane(
+        this.glVelRenderer,
         prNotes.filter((n) => !n.isGhost),
         selVelMap,
         playheadStep,
@@ -1655,7 +1668,42 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   setEditMode(mode: PianoTool) {
     this.editMode.set(mode);
+    this.velocityDrawerOpen.set(mode === "velocity");
     this.haptic.light();
+    this.remeasureVelocityLane();
+  }
+
+  /** Velocity tool button: selects the tool, and on a phone toggles its drawer. */
+  toggleVelocityTool() {
+    if (this.editMode() === "velocity" && this.velocityDrawerOpen()) {
+      this.closeVelocityDrawer();
+      return;
+    }
+    this.setEditMode("velocity");
+  }
+
+  /**
+   * The drawer's own close button. It deliberately leaves the Velocity tool
+   * selected: the artist lowered the panel, they did not switch tools, so the
+   * next tap on the grid still edits velocities.
+   */
+  closeVelocityDrawer() {
+    this.velocityDrawerOpen.set(false);
+    this.remeasureVelocityLane();
+  }
+
+  /** Re-measure the lane's GL viewport on the next frame.
+   *
+   * The lane's height is owned by the drawer CSS, and the render loop only
+   * redraws a dirty renderer — without these two nudges the canvas kept its
+   * previous (zero-height, hidden) framebuffer and the drawer came up blank.
+   * `requestAnimationFrame` is feature-checked because the unit tests run in
+   * jsdom, which renders no frames. */
+  private remeasureVelocityLane() {
+    this.markDirty();
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => this.markDirty());
+    }
   }
 
   setKey(key: string) {

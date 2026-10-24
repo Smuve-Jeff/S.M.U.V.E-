@@ -2708,3 +2708,28 @@
     transition: none;
   }
 }
+
+/* ---------- TOUCH TARGETS ----------
+Loop length chips were 11×30 and the LPF/HPF switches 27×24 on a 390px phone
+(fonts 7–8px). Both are core performance controls, not readouts. */
+@media (pointer: coarse), (max-width: 768px) {
+  .loop-presets {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .loop-chip {
+    min-width: 44px;
+    min-height: 40px;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+  .filter-switch {
+    gap: 4px;
+  }
+  .filter-switch button {
+    min-width: 44px;
+    min-height: 40px;
+    padding: 0 8px;
+    font-size: 9px;
+  }
+}

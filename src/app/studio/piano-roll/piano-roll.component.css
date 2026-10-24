@@ -683,6 +683,17 @@
 }
 
 /* ----- VELOCITY LANE ----- */
+/* Desktop: the drawer wrapper is layout-transparent, so the lane sits in the
+   band stack exactly where it always did. */
+.pr-velocity-drawer {
+  display: contents;
+}
+
+/* The grip exists only while the lane is a drawer (see the phone tier). */
+.pr-velocity-grip {
+  display: none;
+}
+
 .pr-velocity {
   height: 80px;
   background: var(--ivory-panel);
@@ -2267,5 +2278,115 @@ is disclosed by the Tools button and the grid is guaranteed most of the view. */
   }
   .pr-header-tools {
     gap: 3px;
+  }
+}
+
+/* ---------- PHONE: VELOCITY DRAWER ----------
+The lane is hidden below 768px because it does not fit in the band stack: it
+lands after the automation and CC lanes, 659px down a 627px viewport. Selecting
+the Velocity tool therefore did nothing visible on a phone. The drawer lifts the
+lane over the bottom of the note grid, so a bar and the note it belongs to are
+on screen at the same time, and it sits on the transport dock rather than under
+it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there. */
+@media (max-width: 768px) {
+  .pr-shell.pr-velocity-open .pr-velocity-drawer {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    right: 0;
+    /* Bottom nav plus, on portrait phones, the transport dock above it.
+       Matches the FAB's clearance so the two never disagree. */
+    bottom: calc(
+      var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + var(
+          --transport-dock-height,
+          0px
+        )
+    );
+    z-index: 60;
+    background: var(--ivory-panel);
+    border-top: 2px solid var(--teal-500);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -14px 34px rgba(4, 8, 16, 0.6);
+    padding-bottom: 4px;
+  }
+
+  .pr-shell.pr-velocity-open .pr-velocity-grip {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* Room for the thumb, not the mouse: the whole strip is the handle. */
+    padding: 6px 4px 2px 14px;
+    touch-action: none;
+  }
+
+  .pr-shell.pr-velocity-open .pr-velocity-grip-bar {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 44px;
+    height: 3px;
+    margin-left: -22px;
+    border-radius: 2px;
+    background: rgba(14, 124, 123, 0.45);
+  }
+
+  .pr-shell.pr-velocity-open .pr-velocity-title {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--teal-500);
+  }
+
+  .pr-shell.pr-velocity-open .pr-velocity-hint {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    color: var(--espresso-muted);
+  }
+
+  .pr-shell.pr-velocity-open .pr-velocity-close {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 40px;
+    border: 1px solid var(--ivory-line);
+    border-radius: 10px;
+    background: var(--ivory-paper);
+    color: var(--espresso-text);
+    cursor: pointer;
+  }
+
+  .pr-shell.pr-velocity-open .pr-velocity-close .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  /* Re-enable the lane the phone tier above hides, at a height a thumb can
+     land on with intent (the drag maps 1.5 max velocity onto the full height). */
+  .pr-shell.pr-velocity-open .pr-velocity {
+    display: block;
+    /* Grows with the screen, but never so far that the notes disappear: on a
+       640px-tall phone the chrome above the grid is already 314px, and a fixed
+       132px lane left three note rows in view. */
+    height: clamp(96px, 16vh, 132px);
+    border-top: 1px solid var(--ivory-line);
+    /* A drag on a bar must edit, not scroll the dock. */
+    touch-action: none;
+  }
+}
+
+/* Landscape phones: 412px of height cannot spare a 200px sheet, and the
+   transport is not docked there, so the drawer is shallower and rides the nav. */
+@media (max-width: 768px) and (orientation: landscape) {
+  .pr-shell.pr-velocity-open .pr-velocity {
+    height: 88px;
+  }
+  .pr-shell.pr-velocity-open .pr-velocity-drawer {
+    bottom: calc(
+      var(--mobile-nav-height, 62px) + env(safe-area-inset-bottom, 0px)
+    );
   }
 }

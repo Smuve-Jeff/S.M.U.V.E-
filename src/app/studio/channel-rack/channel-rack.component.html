@@ -59,27 +59,31 @@
       ></div>
 
       <!-- Mute/Solo LED Controls -->
-      <div class="flex flex-col gap-1.5">
+      <div class="flex flex-col gap-1.5 channel-ms-stack">
         <button
           type="button"
           (click)="toggleMute(track); $event.stopPropagation()"
-          class="w-3.5 h-3.5 rounded-sm transition-all border border-black/40 shadow-inner"
+          class="w-3.5 h-3.5 rounded-sm transition-all border border-black/40 shadow-inner channel-ms-btn channel-ms-mute"
           [class.muted]="track.muted"
           [style.background-color]="track.muted ? '#ef4444' : '#1a1a24'"
           [attr.aria-label]="'Mute ' + track.name"
           [attr.aria-pressed]="track.muted"
           title="Mute"
-        ></button>
+        >
+          <span>M</span>
+        </button>
         <button
           type="button"
           (click)="toggleSolo(track); $event.stopPropagation()"
-          class="w-3.5 h-3.5 rounded-sm transition-all border border-black/40 shadow-inner"
+          class="w-3.5 h-3.5 rounded-sm transition-all border border-black/40 shadow-inner channel-ms-btn channel-ms-solo"
           [class.soloed]="track.soloed"
           [style.background-color]="track.soloed ? '#fbbf24' : '#1a1a24'"
           [attr.aria-label]="'Solo ' + track.name"
           [attr.aria-pressed]="track.soloed"
           title="Solo"
-        ></button>
+        >
+          <span>S</span>
+        </button>
       </div>
 
       <!-- Controls (Vol/Pan) -->

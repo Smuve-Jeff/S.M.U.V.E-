@@ -2074,3 +2074,31 @@ which pushed the sequencer 426px below the fold on a 390px phone. They are a
     justify-content: center;
   }
 }
+
+/* ---------- Strip toggle targets (VEL / PROB) ----------
+They were 21px tall because the size lived in inline styles; the pair selects
+which parameter the step graph edits and needs a real thumb target. */
+.dm-strip-toggle {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 800;
+  background: var(--ivory-paper);
+  border: 1px solid var(--ivory-line);
+  color: var(--espresso-muted);
+  cursor: pointer;
+}
+.dm-strip-toggle.active {
+  background: var(--teal-500);
+  border-color: var(--teal-500);
+  color: #06121a;
+}
+
+@media (pointer: coarse), (max-width: 768px) {
+  .dm-strip-toggle {
+    min-width: 52px;
+    min-height: 44px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+}

@@ -208,8 +208,15 @@ export class PianoRollRenderer {
     renderer.flush();
   }
 
-  /** Render the velocity lane below the piano roll */
+  /** Render the velocity lane below the piano roll.
+   *
+   * The lane owns its own GL canvas (and renderer) so it can be resized,
+   * scrolled and shown independently of the note grid — e.g. as the phone
+   * drawer. Drawing it through the grid's renderer painted the bars onto the
+   * note canvas at lane coordinates (y 0..130), which is why the lane stayed
+   * blank while the top rows of the grid picked up stray bars. */
   renderVelocityLane(
+    renderer: WebGLRenderer,
     notes: PianoRollNote[],
     selectedNoteVelocities: Map<string, number>,
     playheadStep: number,
@@ -218,7 +225,6 @@ export class PianoRollRenderer {
     laneHeight: number,
     laneTop: number,
   ): void {
-    const renderer = this.renderer;
     renderer.beginFrame(camera);
 
     // Background

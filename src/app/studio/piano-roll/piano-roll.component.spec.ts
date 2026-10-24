@@ -817,6 +817,74 @@ describe("PianoRollComponent", () => {
     expect(component.zoomPercent()).toBe(100);
   });
 
+  it("opens the velocity drawer with the Velocity tool and closes it on its own button", () => {
+    expect(component.velocityDrawerOpen()).toBe(false);
+
+    component.toggleVelocityTool();
+    expect(component.editMode()).toBe("velocity");
+    expect(component.velocityDrawerOpen()).toBe(true);
+
+    // The close button lowers the panel but leaves the tool selected. A second
+    // tap on the tool re-opens it, and a third lowers it again.
+    component.closeVelocityDrawer();
+    expect(component.editMode()).toBe("velocity");
+    expect(component.velocityDrawerOpen()).toBe(false);
+
+    component.toggleVelocityTool();
+    expect(component.velocityDrawerOpen()).toBe(true);
+    component.toggleVelocityTool();
+    expect(component.velocityDrawerOpen()).toBe(false);
+  });
+
+  it("picking another tool lowers the velocity drawer", () => {
+    component.setEditMode("velocity");
+    expect(component.velocityDrawerOpen()).toBe(true);
+
+    component.setEditMode("draw");
+    expect(component.velocityDrawerOpen()).toBe(false);
+  });
+
+  it("draws the velocity lane into its own GL canvas", () => {
+    const laneRender = jest.fn();
+    (component as any).isGlInitialized = true;
+    (component as any).glRenderer = {
+      resize: jest.fn(),
+      clear: jest.fn(),
+      markDirty: jest.fn(),
+      destroy: jest.fn(),
+    };
+    (component as any).prRenderer = {
+      setPixelsPerStep: jest.fn(),
+      setRowHeight: jest.fn(),
+      setMidiRange: jest.fn(),
+      render: jest.fn(),
+      // Drawing through the grid's renderer painted the bars onto the note
+      // canvas at lane coordinates instead of the lane, leaving the lane blank.
+      renderVelocityLane: laneRender,
+    };
+    const velRenderer = {
+      resize: jest.fn(),
+      clear: jest.fn(),
+      markDirty: jest.fn(),
+      destroy: jest.fn(),
+    };
+    (component as any).glVelRenderer = velRenderer;
+    (component as any).scrollContainer = {
+      nativeElement: {
+        clientWidth: 400,
+        clientHeight: 300,
+        scrollLeft: 0,
+        scrollTop: 0,
+      },
+    };
+
+    (component as any).renderPianoRoll();
+
+    expect(laneRender).toHaveBeenCalled();
+    expect(laneRender.mock.calls[0][0]).toBe(velRenderer);
+    (component as any).isGlInitialized = false;
+  });
+
   it("selectedNoteIsSlide stays true after re-selecting the same notes", () => {
     mockMusicManager.tracks.update((t) => [
       {

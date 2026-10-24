@@ -1043,3 +1043,41 @@ button[disabled] {
     min-height: 27px;
   }
 }
+
+/* ---------- Mute/Solo targets ----------
+Two 14×14 squares with no label were the smallest controls in the rack on a
+390px phone (and read as empty boxes). The letters also make the function
+legible on desktop without enlarging the row. */
+.channel-ms-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.channel-ms-btn span {
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.62);
+}
+.channel-ms-btn.muted span,
+.channel-ms-btn.soloed span {
+  color: #0b0b12;
+}
+
+@media (pointer: coarse), (max-width: 768px) {
+  .channel-ms-stack {
+    flex-direction: row;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .channel-ms-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+  .channel-ms-btn span {
+    font-size: 13px;
+  }
+}
