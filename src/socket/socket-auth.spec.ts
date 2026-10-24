@@ -643,15 +643,19 @@ describe("socket.io handshake + JWT auth", () => {
     const guest = mk(222);
     const third = mk(223);
     let settled = false;
+    let timer: ReturnType<typeof setTimeout>;
     const finish = (err?: Error) => {
       if (settled) return;
       settled = true;
+      // Drop the fail-safe timer so it cannot outlive the test and keep the
+      // Jest worker alive until it fires.
+      clearTimeout(timer);
       host.close();
       guest.close();
       third.close();
       done(err);
     };
-    const timer = setTimeout(
+    timer = setTimeout(
       () => finish(new Error("split-screen pair-capacity test timed out")),
       8000,
     );
@@ -725,14 +729,18 @@ describe("socket.io handshake + JWT auth", () => {
       transports: ["websocket"],
     });
     let settled = false;
+    let timer: ReturnType<typeof setTimeout>;
     const finish = (err?: Error) => {
       if (settled) return;
       settled = true;
+      // Drop the fail-safe timer so it cannot outlive the test and keep the
+      // Jest worker alive until it fires.
+      clearTimeout(timer);
       host.close();
       guest.close();
       done(err);
     };
-    const timer = setTimeout(
+    timer = setTimeout(
       () =>
         finish(new Error("split-screen late-join bootstrap test timed out")),
       8000,
