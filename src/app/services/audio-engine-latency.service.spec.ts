@@ -3,10 +3,14 @@ import { TestBed } from '@angular/core/testing';
 import {
   AudioEngineLatencyService,
   readDeviceIdentity,
+  resolveDeviceIdentity,
 } from './audio-engine-latency.service';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
 import { UserProfileService } from './user-profile.service';
+import { DatabaseService } from './database.service';
+import { ProfileStoreService } from './profile-store.service';
+import { initialProfile } from '../types/profile.types';
 
 class StubEngine {
   ctx = {
@@ -257,7 +261,8 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
 
     const configureWithProfile = (
       latencyCompensation: number,
-      updateProfile = jest.fn().mockResolvedValue(undefined)
+      updateProfile = jest.fn().mockResolvedValue(undefined),
+      studio: Record<string, unknown> = {}
     ) => {
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
@@ -269,8 +274,9 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
             provide: UserProfileService,
             useValue: {
               profile: signal({
-                settings: { studio: { latencyCompensation } },
+                settings: { studio: { latencyCompensation, ...studio } },
               }),
+              hydrated: signal(true),
               updateProfile,
             },
           },
@@ -299,6 +305,96 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
       });
       expect(identity.deviceModel).toBe('MacIntel');
       expect(identity.apiLevel).toBeNull();
+    });
+
+    it('readDeviceIdentity refuses to label the reduced Android UA as a device', () => {
+      // Chrome freezes every Android handset to "Android 10; K"; storing that
+      // as `{ deviceModel: 'K', apiLevel: 29 }` mislabels every modern phone.
+      const identity = readDeviceIdentity({
+        userAgent:
+          'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 ' +
+          '(KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36',
+        userAgentData: { platform: 'Android' },
+      });
+      expect(identity.deviceModel).toBe('Unknown Android device');
+      expect(identity.apiLevel).toBeNull();
+    });
+
+    it('resolveDeviceIdentity recovers model and API level from client hints', async () => {
+      const identity = await resolveDeviceIdentity({
+        userAgent:
+          'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 ' +
+          '(KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36',
+        userAgentData: {
+          platform: 'Android',
+          getHighEntropyValues: jest
+            .fn()
+            .mockResolvedValue({ model: 'Pixel 8', platformVersion: '14.0.0' }),
+        },
+      });
+      expect(identity.deviceModel).toBe('Pixel 8');
+      expect(identity.apiLevel).toBe(34);
+    });
+
+    it('resolveDeviceIdentity falls back to the UA when hints are refused', async () => {
+      const identity = await resolveDeviceIdentity({
+        userAgent:
+          'Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/UP1A.231005.007) ' +
+          'AppleWebKit/537.36 (KHTML, like Gecko)',
+        userAgentData: {
+          platform: 'Android',
+          getHighEntropyValues: jest
+            .fn()
+            .mockRejectedValue(new Error('user has not granted hints')),
+        },
+      });
+      expect(identity.deviceModel).toBe('Pixel 8');
+      expect(identity.apiLevel).toBe(34);
+    });
+
+    it('persists the hint-resolved identity instead of the reduced UA', async () => {
+      const hints = {
+        platform: 'Android',
+        getHighEntropyValues: jest
+          .fn()
+          .mockResolvedValue({ model: 'Pixel 8', platformVersion: '14.0.0' }),
+      };
+      Object.defineProperty(navigator, 'userAgentData', {
+        value: hints,
+        configurable: true,
+      });
+      try {
+        await sut.calibrateFromCurrentDevice(0.1);
+      } finally {
+        delete (navigator as any).userAgentData;
+      }
+
+      const stored = sut.storedBaseline();
+      expect(stored).not.toBeNull();
+      expect(stored!.deviceModel).toBe('Pixel 8');
+      expect(stored!.apiLevel).toBe(34);
+    });
+
+    it('reports a previously stored reduced-UA baseline honestly', () => {
+      // A record written before client hints existed must not keep claiming
+      // "K / API 29" — the identity reads as unknown, the timing survives.
+      localStorage.setItem(
+        'smuve_device_latency_baseline',
+        JSON.stringify({
+          deviceModel: 'K',
+          apiLevel: 29,
+          totalLatencyMs: 42,
+          benchmarkSpeedRatio: 3.5,
+          capturedAt: 1,
+        })
+      );
+      const { service } = configureWithProfile(0);
+
+      expect(service.storedBaseline()?.deviceModel).toBe(
+        'Unknown Android device'
+      );
+      expect(service.storedBaseline()?.apiLevel).toBeNull();
+      expect(service.storedBaseline()?.totalLatencyMs).toBe(42);
     });
 
     it('persists a calibration run as a baseline a fresh session reloads', async () => {
@@ -342,6 +438,75 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
           }),
         })
       );
+    });
+
+    it('pre-fills only after the profile hydrates, never over the placeholder', async () => {
+      localStorage.setItem('smuve_device_latency_baseline', seededBaseline);
+      const saveUserProfile = jest.fn().mockResolvedValue(undefined);
+      let resolveLoad!: (value: any) => void;
+      const loadUserProfile = jest.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveLoad = resolve;
+          })
+      );
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          AudioEngineLatencyService,
+          UserProfileService,
+          ProfileStoreService,
+          { provide: AudioEngineService, useValue: new StubEngine() },
+          { provide: LoggingService, useValue: new StubLogger() },
+          { provide: DatabaseService, useValue: { saveUserProfile, loadUserProfile } },
+        ],
+      });
+
+      // App boot: the profile request is in flight, the store still holds the
+      // stock placeholder (artist name, compensation 0) — so a pre-fill here
+      // would persist that placeholder over the artist's real profile.
+      const profiles = TestBed.inject(UserProfileService);
+      const load = profiles.loadProfile('user-1');
+      const service = TestBed.inject(AudioEngineLatencyService);
+      TestBed.flushEffects();
+
+      expect(service.storedBaseline()?.totalLatencyMs).toBe(42);
+      expect(profiles.hydrated()).toBe(false);
+      expect(saveUserProfile).not.toHaveBeenCalled();
+
+      // Hydration lands: the artist's own profile (compensation 0) installs.
+      resolveLoad({
+        ...JSON.parse(JSON.stringify(initialProfile)),
+        artistName: 'Real Artist',
+        settings: {
+          ...initialProfile.settings,
+          studio: { ...initialProfile.settings.studio, latencyCompensation: 0 },
+        },
+      });
+      await load;
+      TestBed.flushEffects();
+      await Promise.resolve();
+
+      expect(saveUserProfile).toHaveBeenCalledTimes(1);
+      const persisted = saveUserProfile.mock.calls[0][0];
+      expect(persisted.artistName).toBe('Real Artist');
+      expect(persisted.settings.studio.latencyCompensation).toBe(42);
+    });
+
+    it('honours the artist opt-out and leaves a 0 ms setting alone', () => {
+      localStorage.setItem('smuve_device_latency_baseline', seededBaseline);
+      const updateProfile = jest.fn().mockResolvedValue(undefined);
+      const { service } = configureWithProfile(0, updateProfile, {
+        autoLatencyCompensation: false,
+      });
+
+      TestBed.flushEffects();
+
+      expect(updateProfile).not.toHaveBeenCalled();
+      // The baseline is still surfaced; only the automatic write is refused.
+      expect(service.storedBaseline()?.totalLatencyMs).toBe(42);
+      expect(service.getAppliedCompensationMs()).toBe(0);
     });
 
     it('never overwrites a compensation the artist already set', () => {

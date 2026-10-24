@@ -255,6 +255,23 @@ describe('SettingsComponent', () => {
     );
   });
 
+  it('persists the opt-out from automatic latency pre-fill', async () => {
+    const { component } = await createComponent();
+    const profileService = TestBed.inject(UserProfileService) as {
+      updateProfile: jest.Mock;
+    };
+
+    component.updateSetting('studio' as any, 'autoLatencyCompensation', false);
+
+    expect(profileService.updateProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          studio: expect.objectContaining({ autoLatencyCompensation: false }),
+        }),
+      })
+    );
+  });
+
   it('loads security data on initialization', async () => {
     const { securityServiceMock } = await createComponent();
 

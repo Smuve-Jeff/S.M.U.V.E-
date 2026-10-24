@@ -148,6 +148,12 @@ export class UserProfileService {
 
   profile = this.store.profile;
 
+  /**
+   * Whether `profile()` is the artist's stored profile (or a seeded one for a
+   * new account) rather than the pre-load `initialProfile` placeholder.
+   */
+  hydrated = this.store.hydrated.asReadonly();
+
   // AuthService imports this service, so resolve it lazily to avoid a
   // circular-instantiation error (see AGENTS.md pattern #3).
   private get authService() {
@@ -189,6 +195,9 @@ export class UserProfileService {
         const freshProfile = normalizeImportedProfile({});
         this.store.setProfile({ ...freshProfile, id: key });
       }
+      // Only now is `profile()` the artist's own data; consumers that gate on
+      // hydration (e.g. the latency baseline pre-fill) can act.
+      this.store.markHydrated();
     } catch (e) {
       this.logger.error('Profile load failed', e);
     }

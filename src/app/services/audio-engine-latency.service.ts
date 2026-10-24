@@ -104,11 +104,21 @@ const ANDROID_API_LEVELS: Record<string, number> = {
 };
 
 /**
- * Identify the device a calibration ran on. The Android UA carries both the
- * release and the model — `(Linux; Android 14; Pixel 8 Build/…)` — which is
- * exactly the `{ deviceModel, apiLevel }` pair the audit asks for. Other
- * platforms report their platform name and a null API level rather than a
- * guess, so a stored baseline is never silently mislabelled.
+ * Chrome's reduced UA freezes every Android handset to `Android 10; K`, so the
+ * pair below names no real device — never store it as one.
+ */
+const REDUCED_UA_ANDROID_RELEASE = '10';
+const REDUCED_UA_ANDROID_MODEL = 'K';
+
+/**
+ * Identify the device from the UA alone. An un-reduced Android UA carries both
+ * the release and the model — `(Linux; Android 14; Pixel 8 Build/…)` — which is
+ * exactly the `{ deviceModel, apiLevel }` pair the audit asks for. Chrome's
+ * reduced UA (`Android 10; K`) names no device, so it reports an unknown
+ * Android device and a null API level rather than a wrongly-labelled one;
+ * `resolveDeviceIdentity()` recovers the real model via client hints when the
+ * host supports them. Other platforms report their platform name and a null
+ * API level rather than a guess.
  */
 export function readDeviceIdentity(
   source: any = typeof navigator !== 'undefined' ? navigator : {}
@@ -116,16 +126,72 @@ export function readDeviceIdentity(
   const ua = String(source?.userAgent ?? '');
   const android = /Android\s+([\d.]+L?)\s*;\s*([^;)]+)/.exec(ua);
   if (android) {
+    const release = android[1];
     const model = android[2].replace(/\s+Build\/.*$/, '').trim();
+    const reduced =
+      release === REDUCED_UA_ANDROID_RELEASE && model === REDUCED_UA_ANDROID_MODEL;
+    if (reduced) {
+      return { deviceModel: 'Unknown Android device', apiLevel: null };
+    }
     return {
       deviceModel: model || 'Unknown Android device',
-      apiLevel: ANDROID_API_LEVELS[android[1]] ?? null,
+      apiLevel: ANDROID_API_LEVELS[release] ?? null,
     };
   }
   const platform = String(
     source?.userAgentData?.platform ?? source?.platform ?? ''
   ).trim();
   return { deviceModel: platform || 'Unknown device', apiLevel: null };
+}
+
+/**
+ * Resolve the device a calibration ran on, preferring User-Agent Client Hints.
+ * The UA cannot name a modern Android handset (see above), but the
+ * high-entropy `model`/`platformVersion` hints can — they are just async and
+ * user-gated. Any unsupported host, refusal or rejection falls back to the
+ * pure UA parse, so a baseline is never worse off than before.
+ */
+export async function resolveDeviceIdentity(
+  source: any = typeof navigator !== 'undefined' ? navigator : {}
+): Promise<{ deviceModel: string; apiLevel: number | null }> {
+  const fallback = readDeviceIdentity(source);
+  const hints = source?.userAgentData;
+  if (!hints || typeof hints.getHighEntropyValues !== 'function') {
+    return fallback;
+  }
+  try {
+    const values = await hints.getHighEntropyValues(['model', 'platformVersion']);
+    const model = String(values?.model ?? '').trim();
+    if (!model) return fallback;
+    // `platformVersion` is the Android release ("14.0.0") on Android hosts and
+    // a platform build string elsewhere, so only a leading integer is meaningful.
+    const release = /^(\d+)/.exec(String(values?.platformVersion ?? '').trim());
+    return {
+      deviceModel: model,
+      apiLevel: release ? ANDROID_API_LEVELS[release[1]] ?? null : null,
+    };
+  } catch {
+    // Hints are optional; a refusal must not fail the calibration run.
+    return fallback;
+  }
+}
+
+/**
+ * Baselines written before client hints existed can still hold the reduced-UA
+ * placeholder (`K` / API 29). Report those honestly rather than as a device.
+ */
+function normalizeStoredIdentity(
+  deviceModel: string,
+  apiLevel: number | null
+): { deviceModel: string; apiLevel: number | null } {
+  const placeholderApiLevel = ANDROID_API_LEVELS[REDUCED_UA_ANDROID_RELEASE];
+  if (
+    deviceModel === REDUCED_UA_ANDROID_MODEL &&
+    apiLevel === placeholderApiLevel
+  ) {
+    return { deviceModel: 'Unknown Android device', apiLevel: null };
+  }
+  return { deviceModel, apiLevel };
 }
 
 /** Load this device's stored baseline; corrupt storage reads as absent. */
@@ -142,9 +208,12 @@ function readStoredBaseline(): DeviceLatencyBaseline | null {
     ) {
       return null;
     }
+    const identity = normalizeStoredIdentity(
+      String(parsed.deviceModel ?? 'Unknown device'),
+      typeof parsed.apiLevel === 'number' ? parsed.apiLevel : null
+    );
     return {
-      deviceModel: String(parsed.deviceModel ?? 'Unknown device'),
-      apiLevel: typeof parsed.apiLevel === 'number' ? parsed.apiLevel : null,
+      ...identity,
       totalLatencyMs: parsed.totalLatencyMs,
       benchmarkSpeedRatio: parsed.benchmarkSpeedRatio,
       capturedAt: Number(parsed.capturedAt) || 0,
@@ -208,20 +277,32 @@ export class AudioEngineLatencyService {
       }
     });
 
-    // Pre-fill compensation from this device's stored baseline the first
-    // time a profile settles in with no compensation of its own — the
-    // audit's "use it to pre-fill compensation" half. A value the artist
-    // already chose (anything non-zero) is never touched, no baseline means
-    // a no-op, and the guard keeps the attempt to once per session.
+    // Pre-fill compensation from this device's stored baseline the first time a
+    // HYDRATED profile has no compensation of its own — the audit's "use it to
+    // pre-fill compensation" half. Hydration is the gate: before `loadProfile()`
+    // resolves the store still holds `initialProfile`, whose compensation is 0,
+    // and writing through `updateProfile` would persist that placeholder (local
+    // backup + cloud sync) over the artist's real profile. A value the artist
+    // already chose (anything non-zero) is never touched, no baseline means a
+    // no-op, and the guard keeps the attempt to once per session.
     effect(() => {
       const userProfile = this.userProfile;
       const baseline = this.storedBaseline();
+      // Optional call so a test double without `hydrated` simply never
+      // pre-fills instead of throwing inside the effect.
+      const hydrated = userProfile?.hydrated?.() ?? false;
       const profile = userProfile?.profile();
       const current = Number(
         profile?.settings?.studio?.latencyCompensation ?? 0
       );
-      if (this.baselinePrefillDone || !baseline || !profile?.settings) return;
-      if (!userProfile || !Number.isFinite(current) || current !== 0) return;
+      // `false` is the artist's explicit opt-out; absent (older profiles) means
+      // the automatic pre-fill stays on.
+      const autoApply =
+        profile?.settings?.studio?.autoLatencyCompensation !== false;
+      if (!hydrated || !userProfile || !baseline || !profile?.settings) return;
+      if (!autoApply) return;
+      if (this.baselinePrefillDone || !Number.isFinite(current) || current !== 0)
+        return;
       this.baselinePrefillDone = true;
       const settings = profile.settings;
       void Promise.resolve(
@@ -401,7 +482,7 @@ export class AudioEngineLatencyService {
     // Persist the run as THIS device's baseline: identity + latency +
     // render ratio, durable across sessions (parity audit §5). A fresh run
     // is also the source of truth, so the pre-fill never echoes it back.
-    const identity = readDeviceIdentity();
+    const identity = await resolveDeviceIdentity();
     const baseline: DeviceLatencyBaseline = {
       deviceModel: identity.deviceModel,
       apiLevel: identity.apiLevel,

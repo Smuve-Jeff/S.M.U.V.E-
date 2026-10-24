@@ -20,6 +20,7 @@ describe('MusicManagerService clip glue workflows', () => {
     visualStep: signal(0),
     setSongLengthSteps: jest.fn(),
     triggerAttack: jest.fn(),
+    setBaseFaderGain: jest.fn(),
     onScheduleStep: undefined as any,
   };
 
@@ -223,6 +224,7 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
     visualStep: signal(0),
     setSongLengthSteps: jest.fn(),
     triggerAttack: jest.fn(),
+    setBaseFaderGain: jest.fn(),
     onScheduleStep: undefined as any,
   };
 
@@ -652,6 +654,7 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
       visualStep: signal(0),
       setSongLengthSteps: jest.fn(),
       triggerAttack: jest.fn(),
+    setBaseFaderGain: jest.fn(),
       onScheduleStep: undefined as any,
       getTrackEffectsRack: jest.fn(() => rack),
     };
@@ -822,6 +825,7 @@ describe('MusicManagerService recording teardown', () => {
             visualStep: signal(0),
             setSongLengthSteps: jest.fn(),
             triggerAttack: jest.fn(),
+    setBaseFaderGain: jest.fn(),
           },
         },
         { provide: ProjectService, useValue: { currentProject: signal(null) } },
@@ -932,6 +936,7 @@ describe('MusicManagerService live plugin insert wiring', () => {
             visualStep: signal(0),
             setSongLengthSteps: jest.fn(),
             triggerAttack: jest.fn(),
+    setBaseFaderGain: jest.fn(),
             installTrackPluginInsert,
             releaseTrackPluginInsert,
           },
@@ -1063,7 +1068,7 @@ describe('MusicManagerService live plugin insert wiring', () => {
       'track-streamed',
       streamer,
       0.5,
-      0.8,
+      1.0,
       0,
       expect.any(Number),
       1,
@@ -1092,7 +1097,7 @@ describe('MusicManagerService live plugin insert wiring', () => {
       'track-classic',
       mockBuffer,
       1.0,
-      0.8,
+      1.0,
       0,
       expect.any(Number),
       1,
@@ -1127,12 +1132,142 @@ describe('MusicManagerService live plugin insert wiring', () => {
       'track-classic',
       mockReversedBuffer,
       1.0,
-      0.8,
+      1.0,
       0,
       expect.any(Number),
       1,
       0,
       0
+    );
+  });
+
+  it('applies clip-level gain to streamed clips exactly as to buffered clips', () => {
+    // The offline bounce applies clipGain to every audio clip. Live playback
+    // used to pass bare track gain for streamed clips, so a long imported take
+    // with clipGain 0.5 played at full level but bounced at half.
+    const triggerSampler = jest.fn();
+    (service as any).engine.triggerSampler = triggerSampler;
+    (service as any).engine.calculatePlaybackRate = jest.fn(() => 1);
+    const setBaseFaderGain = (service as any).engine.setBaseFaderGain as jest.Mock;
+    setBaseFaderGain.mockClear();
+
+    const mockBuffer = {
+      duration: 12,
+      sampleRate: 48000,
+      numberOfChannels: 1,
+      getChannelData: jest.fn(() => new Float32Array(1)),
+    } as any;
+    const streamer = {
+      setPlayhead: jest.fn(),
+      getResidentBuffer: jest.fn(() => mockBuffer),
+      advancePlayhead: jest.fn(),
+      getSampleRate: jest.fn(() => 48000),
+      getChannelCount: jest.fn(() => 1),
+    } as any;
+
+    service.addAudioTrack({
+      id: 'streamed-gain',
+      name: 'Long Take',
+      color: '#0E7C7B',
+      buffer: mockBuffer,
+      offset: 0,
+      clipStreamer: streamer,
+      clipOriginSeconds: 0,
+      clipLengthSeconds: 12,
+      clipSampleRate: 48000,
+      clipChannels: 1,
+      clipGain: 0.5,
+    });
+
+    // The streamed clip must keep the clip gain the bounce will read.
+    const streamedClip = (service.tracks().find((t) => t.id === 'streamed-gain')!
+      .clips[0] as any);
+    expect(streamedClip.clipGain).toBe(0.5);
+    expect(streamedClip.reversed).toBeUndefined();
+
+    service.playStep(0, 0.5, 0.125);
+    // Track gain is applied once, on the fader, exactly like the bounce's
+    // channel gain; the voice peak carries clip gain only.
+    expect(setBaseFaderGain).toHaveBeenCalledWith('streamed-gain', 0.8);
+    expect(triggerSampler).toHaveBeenCalledWith(
+      'streamed-gain',
+      streamer,
+      0.5,
+      0.5,
+      0,
+      expect.any(Number),
+      1,
+      0,
+      0,
+      0,
+      12,
+      48000,
+      1
+    );
+
+    triggerSampler.mockClear();
+    service.addAudioTrack({
+      id: 'buffered-gain',
+      name: 'Short Take',
+      color: '#E11D48',
+      buffer: mockBuffer,
+      offset: 0,
+      clipStreamer: null,
+      clipGain: 0.5,
+    });
+    service.playStep(0, 1.0, 0.125);
+    // Same split as the streamed path above: fader = track gain, peak = clip
+    // gain — so live level matches the 0.8 × 0.5 bounce.
+    expect(setBaseFaderGain).toHaveBeenCalledWith('buffered-gain', 0.8);
+    expect(triggerSampler).toHaveBeenCalledWith(
+      'buffered-gain',
+      mockBuffer,
+      1.0,
+      0.5,
+      0,
+      expect.any(Number),
+      1,
+      0,
+      0
+    );
+  });
+
+  it('applies track gain once, on the fader, for note voices too', () => {
+    const triggerAttack = (service as any).engine.triggerAttack as jest.Mock;
+    const setBaseFaderGain = (service as any).engine.setBaseFaderGain as jest.Mock;
+    triggerAttack.mockClear();
+    setBaseFaderGain.mockClear();
+
+    service.tracks.update((tracks) =>
+      tracks.map((t) =>
+        t.id === 'track-1'
+          ? {
+              ...t,
+              gain: 0.5,
+              notes: [
+                { id: 'n1', step: 0, midi: 60, velocity: 0.75, length: 1 },
+              ] as any,
+            }
+          : t
+      )
+    );
+
+    service.playStep(0, 0, 0.125);
+
+    // The fader carries the track gain (the bounce's channel gain); folding it
+    // into the voice peak as well squared the live level once a fader moved.
+    expect(setBaseFaderGain).toHaveBeenCalledWith('track-1', 0.5);
+    expect(triggerAttack).toHaveBeenCalledWith(
+      'track-1',
+      expect.any(Number),
+      0,
+      0.75,
+      expect.any(Number),
+      1.0,
+      0,
+      0,
+      0,
+      undefined
     );
   });
 });

@@ -791,6 +791,21 @@
                 ms · applied {{ audioLatency.appliedCompensationMs() }} ms
               </span>
             </div>
+            <div class="audio-device-toggle-row mt-3">
+              <label class="setting-toggle">
+                <input
+                  type="checkbox"
+                  [ngModel]="settings().studio.autoLatencyCompensation !== false"
+                  (ngModelChange)="
+                    updateSetting('studio', 'autoLatencyCompensation', $event)
+                  "
+                />
+                <span>
+                  Reuse this device's last calibration automatically while
+                  compensation is 0 ms
+                </span>
+              </label>
+            </div>
             <p
               class="mt-2 text-[10px] text-text-dim"
               *ngIf="audioLatency.lastCalibration() as calibration"

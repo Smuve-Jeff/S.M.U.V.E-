@@ -215,15 +215,24 @@ ran `calibrateFromCurrentDevice()`, but the run died with the tab: only the
 single `latencyCompensation` number reached the profile. The run now also
 persists a durable per-device baseline —
 `{ deviceModel, apiLevel, totalLatencyMs, benchmarkSpeedRatio, capturedAt }`,
-identity from `readDeviceIdentity()` (Android UA → model + API level; other
-platforms report their platform and a null API level rather than a guess) —
+identity from `resolveDeviceIdentity()` — User-Agent Client Hints
+(`model`/`platformVersion`) where the host grants them, falling back to the UA.
+Chrome's reduced `Android 10; K` UA names no real handset, so it is recorded as
+an unknown Android device with a null API level rather than a fabricated model
+and release; other platforms report their platform and a null API level —
 into localStorage (`smuve_device_latency_baseline`), reloaded on construction
 into `storedBaseline()`. An effect pre-fills
 `settings.studio.latencyCompensation` from that baseline the first time a
-profile settles in with compensation still 0; a value the artist already set
-is never overwritten, and a fresh calibration run marks itself applied so it
-cannot echo back. 5 unit tests pin the UA parsing, the persist/reload cycle,
-the pre-fill and the non-zero guard.
+**hydrated** profile (`ProfileStoreService.hydrated`, set by
+`loadProfile()`) settles in with compensation still 0 — never against the
+pre-load placeholder, whose stock compensation of 0 would otherwise be writtenback over the artist's stored profile. A value the artist already set is never
+overwritten, and a fresh calibration run marks itself applied so it cannot
+echo back. Settings → Studio carries the explicit opt-out
+(`studio.autoLatencyCompensation`; absent counts as on for existing profiles),
+so a deliberate 0 ms is not re-filled behind the artist's back. 12 unit tests
+pin the UA parsing (including the reduced UA and the client-hint recovery), the
+persist/reload cycle, the hydration gate, the pre-fill, the opt-out and the
+non-zero guard.
 
 ## 6. UX polish & touch ergonomics — **PARTIAL**
 

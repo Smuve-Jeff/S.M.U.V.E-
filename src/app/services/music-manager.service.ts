@@ -2382,7 +2382,12 @@ export class MusicManagerService {
               }
             : {}),
           ...(opts.clipStreamer
-            ? {}
+            ? {
+                // A streamed clip carries clip gain but not reversal (its
+                // resident window plays un-reversed live and in the bounce),
+                // so both paths must still agree on the level.
+                clipGain: (opts as any).clipGain ?? 1.0,
+              }
             : {
                 reversed: (opts as any).reversed ?? false,
                 clipGain: (opts as any).clipGain ?? 1.0,
@@ -2425,6 +2430,13 @@ export class MusicManagerService {
     allTracks
       .filter((t) => !t.muted && (!hasSolo || t.soloed))
       .forEach((t) => {
+
+      // Track gain is one fader stage, exactly like the offline bounce's
+      // per-track channel gain. It used to be folded into every voice's peak as
+      // well, so once the artist moved the fader the live level became gain²
+      // while the bounce stayed at gain. Prime the fader (base × VCA) here and
+      // let voice peaks carry only velocity / clip gain.
+      this.engine.setBaseFaderGain(t.id, t.gain);
 
       // Sprint A3 Phase 4/5 — comp playback: a section-assigned take wins for
       // this step (sectional comp), else the active take snapshot, else the
@@ -2531,7 +2543,9 @@ export class MusicManagerService {
                 microTime,
                 n.velocity,
                 n.length * duration * lengthMul,
-                t.gain,
+                // Track gain lives on the fader primed above, never doubled
+                // into the voice peak.
+                1.0,
                 notePan,
                 0,
                 0,
@@ -2571,7 +2585,10 @@ export class MusicManagerService {
                 t.id,
                 (clip as any).clipStreamer,
                 swungTime,
-                t.gain,
+                // Clip gain only: track gain is the fader primed above, the
+                // same split the offline bounce uses (channel gain × clip
+                // gain). Streamed clips used to skip clip gain entirely.
+                (clip as any).clipGain ?? 1.0,
                 t.pan,
                 clipDur,
                 rate,
@@ -2597,7 +2614,7 @@ export class MusicManagerService {
                 t.id,
                 playbackBuffer,
                 swungTime,
-                (t.gain * ((clip as any).clipGain ?? 1.0)),
+                (clip as any).clipGain ?? 1.0,
                 t.pan,
                 clipDur,
                 rate,

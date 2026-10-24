@@ -31,6 +31,7 @@ describe('PianoRoll & ChannelRack Upgrades', () => {
       playSynth: jest.fn(),
       triggerAttack: jest.fn(),
       triggerSampler: jest.fn(),
+      setBaseFaderGain: jest.fn(),
       calculatePlaybackRate: () => 1,
       getContext: () => ({
         destination: {},

@@ -50,6 +50,12 @@ export interface AppSettings {
     defaultQuantize: string;
     autoMixEnabled: boolean;
     latencyCompensation: number;
+    /**
+     * Whether a stored per-device calibration baseline may pre-fill
+     * `latencyCompensation` on this profile. Absent counts as on, so existing
+     * profiles keep the behavior; setting it false is the artist's opt-out.
+     */
+    autoLatencyCompensation?: boolean;
     highFidelityExport: boolean;
     /** Stage FX ambience (aurora / marquee / sheens / pulses). Mirrored to
      *  localStorage `smuve_stage_fx` so the Studio shell and the global
@@ -565,6 +571,7 @@ export const initialProfile: UserProfile = {
       defaultQuantize: '1/16',
       autoMixEnabled: false,
       latencyCompensation: 0,
+      autoLatencyCompensation: true,
       highFidelityExport: true,
       stageFxEnabled: true,
       smartSheet: {},
