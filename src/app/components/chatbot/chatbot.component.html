@@ -29,6 +29,18 @@
           [title]="'Active persona: ' + personaLabel()"
           >{{ personaLabel() }} · v2.0 · Production · Marketing · Business</span
         >
+        <!-- Adaptation badge: rendered only once the profile is CALIBRATED
+             (and shared with AI), so the header never advertises an adaptation
+             the model cannot actually make. -->
+        <span
+          *ngIf="adaptedChip() as chip"
+          class="mt-1 w-fit px-2 py-0.5 bg-brand-primary/10 text-brand-primary text-[8px] font-black uppercase tracking-widest rounded border border-brand-primary/20"
+          [title]="chip.title"
+          [attr.aria-label]="
+            'Profile adapted: ' + chip.completeness + ' percent evidence, calibrated'
+          "
+          >ADAPTED · {{ chip.completeness }}%</span
+        >
       </div>
     </div>
     <div class="flex items-center gap-3">

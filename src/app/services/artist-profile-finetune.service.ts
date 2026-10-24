@@ -200,6 +200,26 @@ export class ArtistProfileFinetuneService {
   readonly knowledge = computed(() => this.compile(this.profileService.profile()));
 
   /**
+   * Live calibration of the artist's profile — the one source surfaces use when
+   * they must *say* how adapted they are (the chat context heading, the
+   * ADAPTED badge). `sharing` is false when the artist opted out of sharing
+   * answers with AI: nothing may advertise an adaptation the model cannot read.
+   */
+  readonly profileCalibration = computed<{
+    state: ArtistProfileKnowledge['state'];
+    completeness: number;
+    sharing: boolean;
+  }>(() => {
+    const profile = this.profileService.profile();
+    const k = this.knowledge();
+    return {
+      state: k.state,
+      completeness: k.completeness,
+      sharing: profile?.settings?.security?.shareProfileAnswersWithAi === true,
+    };
+  });
+
+  /**
    * Compiles any profile object — including an unsaved builder draft — so
    * surfaces can preview what S.M.U.V.E. would adapt to before committing.
    */

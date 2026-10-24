@@ -241,6 +241,35 @@ describe('ArtistProfileFinetuneService', () => {
     expect(service.directiveFor('producer').directive).toContain('foundational');
   });
 
+  it('publishes a live calibration that only reaches calibrated with a complete shared profile', () => {
+    expect(service.profileCalibration().state).toBe('foundational');
+    expect(service.profileCalibration().completeness).toBeLessThan(60);
+    expect(service.profileCalibration().sharing).toBe(true);
+
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: true } },
+    } as any);
+
+    expect(service.profileCalibration()).toEqual({
+      state: 'calibrated',
+      completeness: 100,
+      sharing: true,
+    });
+  });
+
+  it('reports sharing false when the artist opted out of AI profile answers', () => {
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: false } },
+    } as any);
+
+    // The evidence is still calibrated — but `sharing` is the gate every
+    // surface must check before advertising an adaptation.
+    expect(service.profileCalibration().state).toBe('calibrated');
+    expect(service.profileCalibration().sharing).toBe(false);
+  });
+
   it('compiles a calibrated profile into role-specific adaptation', () => {
     profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true } } } as any);
     const knowledge = service.knowledge();

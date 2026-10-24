@@ -198,6 +198,21 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     getPersonaOption(this.profile()?.settings?.ai?.commanderPersona).label
   );
 
+  /**
+   * Adaptation badge — shown ONLY once the profile has actually reached
+   * CALIBRATED and the artist shares answers with AI. Before that there is
+   * nothing to advertise, and a badge on a half-filled questionnaire would
+   * claim an adaptation the model cannot make.
+   */
+  readonly adaptedChip = computed(() => {
+    const calibration = this.artistFinetune?.profileCalibration?.();
+    if (!calibration?.sharing || calibration.state !== 'calibrated') return null;
+    return {
+      completeness: calibration.completeness,
+      title: `Calibrated: S.M.U.V.E has re-read your artist profile (${calibration.completeness}% evidence) and now leads every answer with your blueprint, references and boundaries.`,
+    };
+  });
+
   activeCommandCategory = signal<CommandCategory | null>(null);
   private conversationCounter = 0;
   private messageCounter = 0;
@@ -834,6 +849,26 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     // The committed reading, so the prompt can name the archetype it is
     // adapting to instead of guessing at one.
     const synth = profile.musicalJourney?.personaSynthesis;
+    // Live calibration of the profile. The heading used to be hard-labelled
+    // COMPLETE with an unreachable fallback (buildArtistMusicContext always
+    // returns at least the Artist/Genre lines), so a half-filled questionnaire
+    // read to the model as complete work.
+    const calibration = this.artistFinetune?.profileCalibration?.() ?? null;
+    const shareAnswers =
+      profile?.settings?.security?.shareProfileAnswersWithAi === true;
+    const evidence = calibration
+      ? `${calibration.completeness}% evidence`
+      : 'no shared evidence';
+    const contextHeading = !shareAnswers
+      ? 'ARTIST PROFILE CONTEXT — PRIVATE (the artist withheld their profile answers; keep guidance general and ask before using profile details):'
+      : calibration?.state === 'calibrated'
+        ? `COMPLETE ARTIST CONTEXT — CALIBRATED (${evidence}) — calibrate every production, marketing, and strategy answer to this; never ask the artist to repeat it:`
+        : calibration?.state === 'partial'
+          ? `ARTIST PROFILE CONTEXT — PARTIAL (${evidence}) — calibrate to this, but treat every gap as a gap and never as an assumption:`
+          : `ARTIST PROFILE CONTEXT — FOUNDATIONAL (${evidence}) — keep advice foundational until the questionnaire is finished; capture what is missing instead of inventing it:`;
+    const contextBody =
+      buildArtistMusicContext(profile) ||
+      'No profile answers captured yet — keep advice foundational until the questionnaire is finished.';
 
     return [
       'You are S.M.U.V.E 2.0 — the AI Music Manager and command-aware manager of this application.',
@@ -843,8 +878,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       'You operate this app through the slash-command surface (/studio, /mixer, /tracks, /project, /go, /export, /ai). When a command would move the session forward, hand it over instead of describing it.',
       'Reference real artists to extract non-copying production DNA. Never reproduce a living artist\u2019s exact lyrics or claim to be them.',
       '',
-      `COMPLETE ARTIST CONTEXT (calibrate every production, marketing, and strategy answer to this — never ask the artist to repeat it):
-${buildArtistMusicContext(profile) || 'Incomplete — keep advice foundational until the questionnaire is finished.'}`,
+      `${contextHeading}\n${contextBody}`,
       '',
       artistFineTune
         ? `S.M.U.V.E ARTIST FINE-TUNE — apply this existing profile compiler to every recommendation; the artist’s explicit request takes priority, and their sonic non-negotiables remain protected:\n${artistFineTune}`

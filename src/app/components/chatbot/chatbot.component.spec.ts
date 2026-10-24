@@ -20,6 +20,7 @@ describe('ChatbotComponent', () => {
   let aiServiceMock: any;
   let speechRecognitionServiceMock: any;
   let speechSynthesisServiceMock: any;
+  let finetuneMock: any;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -32,6 +33,17 @@ describe('ChatbotComponent', () => {
       conversationalTier: signal('Standard'),
       personaDirectives: jest.fn(() => 'Keep S.M.U.V.E. direct, precise, and in character.'),
       processCommand: jest.fn(),
+    };
+
+    // Mutable calibration signal: tests flip it to foundational/partial/
+    // calibrated and assert the chat prompt and ADAPTED badge follow.
+    finetuneMock = {
+      promptBlock: jest.fn(() => 'SONIC NON-NEGOTIABLE: preserve the room tone.'),
+      profileCalibration: signal({
+        state: 'foundational',
+        completeness: 12,
+        sharing: true,
+      }),
     };
 
     const uiServiceMock = {
@@ -102,7 +114,7 @@ describe('ChatbotComponent', () => {
         { provide: LoggingService, useValue: loggingServiceMock },
         {
           provide: ArtistProfileFinetuneService,
-          useValue: { promptBlock: jest.fn(() => 'SONIC NON-NEGOTIABLE: preserve the room tone.') },
+          useValue: finetuneMock,
         },
       ],
     }).compileComponents();
@@ -623,4 +635,99 @@ describe('ChatbotComponent', () => {
     expect(component.messages().at(-1)?.text).toContain('copyright.gov');
   });
 
+
+  it('labels the artist context with the profile\u2019s real calibration state', () => {
+    // Shared answers so the context block is not the private variant.
+    userProfileServiceMock.profile.set({
+      ...initialProfile,
+      settings: {
+        ...initialProfile.settings,
+        security: {
+          ...initialProfile.settings.security,
+          shareProfileAnswersWithAi: true,
+        },
+      },
+    });
+
+    const thin = (component as any).buildMasterPrompt('what is my first step?');
+    expect(thin).toContain('ARTIST PROFILE CONTEXT \u2014 FOUNDATIONAL');
+    expect(thin).toContain('keep advice foundational until the questionnaire is finished');
+
+    finetuneMock.profileCalibration.set({
+      state: 'partial',
+      completeness: 72,
+      sharing: true,
+    });
+    const partial = (component as any).buildMasterPrompt('what is my first step?');
+    expect(partial).toContain('ARTIST PROFILE CONTEXT \u2014 PARTIAL (72% evidence)');
+    expect(partial).toContain('never as an assumption');
+
+    finetuneMock.profileCalibration.set({
+      state: 'calibrated',
+      completeness: 100,
+      sharing: true,
+    });
+    const calibrated = (component as any).buildMasterPrompt('what is my first step?');
+    expect(calibrated).toContain('COMPLETE ARTIST CONTEXT \u2014 CALIBRATED (100% evidence)');
+    expect(calibrated).toContain('SONIC NON-NEGOTIABLE: preserve the room tone.');
+  });
+
+  it('falls back to the foundational heading when the compiler gives no calibration', () => {
+    userProfileServiceMock.profile.set({
+      ...initialProfile,
+      settings: {
+        ...initialProfile.settings,
+        security: {
+          ...initialProfile.settings.security,
+          shareProfileAnswersWithAi: true,
+        },
+      },
+    });
+    finetuneMock.profileCalibration = undefined;
+
+    const prompt = (component as any).buildMasterPrompt('what is my first step?');
+    expect(prompt).toContain('ARTIST PROFILE CONTEXT \u2014 FOUNDATIONAL');
+    expect(prompt).toContain('no shared evidence');
+  });
+
+  it('marks the context private while the artist has not shared profile answers', () => {
+    const prompt = (component as any).buildMasterPrompt('hello');
+    expect(prompt).toContain('ARTIST PROFILE CONTEXT \u2014 PRIVATE');
+    expect(prompt).not.toContain('CALIBRATED');
+  });
+
+  it('shows the ADAPTED badge only once the profile actually reaches calibrated', () => {
+    // Default: foundational — nothing to advertise yet.
+    expect(component.adaptedChip()).toBeNull();
+
+    finetuneMock.profileCalibration.set({
+      state: 'partial',
+      completeness: 72,
+      sharing: true,
+    });
+    expect(component.adaptedChip()).toBeNull();
+
+    finetuneMock.profileCalibration.set({
+      state: 'calibrated',
+      completeness: 100,
+      sharing: true,
+    });
+    expect(component.adaptedChip()).toEqual({
+      completeness: 100,
+      title: expect.stringContaining('re-read your artist profile'),
+    });
+
+    // …and it actually renders in the header, not just in the computed.
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('ADAPTED · 100%');
+
+    // Calibrated but withheld: the badge must not claim an adaptation the
+    // model cannot actually read.
+    finetuneMock.profileCalibration.set({
+      state: 'calibrated',
+      completeness: 100,
+      sharing: false,
+    });
+    expect(component.adaptedChip()).toBeNull();
+  });
 });
