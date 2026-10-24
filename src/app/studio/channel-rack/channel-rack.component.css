@@ -808,6 +808,15 @@ button[disabled] {
   background: color-mix(in srgb, var(--rack-ink) 7%, transparent);
 }
 
+/* The 16 pads live in their own row inside the panel, so the panel can wrap the
+   LFO underneath them on narrow cards (see the 900px block at the end). */
+.channel-rack-step-pads {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
 .channel-rack-step-cell {
   flex: 0 0 22px;
   width: 22px;
@@ -1204,5 +1213,50 @@ matched no rule), so the chosen modulator shape was invisible. */
   .lfo-fader {
     height: 44px;
     padding-block: 6px;
+  }
+}
+
+/* ---------- NARROW CARDS: the LFO panel gets its own row ----------
+The LFO panel used to sit beside the 16 pads *inside* the step panel, which is
+a horizontal scroller. On a 390px screen that put it at x=493 in a 699px panel
+whose viewport is 350px: the only route to a modulator was to swipe the step
+rail sideways, which nobody would guess. Below 900px the panel wraps: the pads
+keep the horizontal pan they need, the LFO panel takes a full-width row under
+them. Desktop keeps the inline panel. */
+@media (max-width: 900px) {
+  .channel-rack-step-grid {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  /* 16 pads do not fit a phone, so the pads keep their own pan — start-aligned,
+     so the overflow lands on the right where an LTR scroller can reach it. */
+  .channel-rack-step-pads {
+    flex: 1 1 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    justify-content: flex-start;
+    padding-bottom: 2px;
+    touch-action: pan-x;
+  }
+
+  /* The panel is ~216px tall, and a rack of eight channels cannot afford that
+     eight times on a phone, so only the selected channel shows its modulator —
+     selecting the card is the same tap that arms the panel for editing. */
+  .lfo-control-group {
+    flex: 1 1 100%;
+    width: 100%;
+    padding: 8px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--rack-ink) 18%, transparent);
+    display: none;
+  }
+
+  .channel-rack-channel.selected .lfo-control-group {
+    display: flex;
   }
 }

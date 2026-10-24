@@ -227,11 +227,22 @@ and the transport's export sheet:
   is the only route to WAV, stems, MIDI and share; seven rows now scroll inside
   the 68vh sheet rather than one of them sitting under the thumb minimum.
 
-One placement issue remains in the rack: the LFO panel lives *inside* the
-horizontally scrolling step rail (at 390px it starts at x=493 in a 699px lane
-with a 350px viewport), so it needs a sideways scroll to reach at all. That is
-a layout question — the panel wants its own row under the steps on phones — not
-a size one, so it is left for a deliberate change.
+**LFO placement (follow-up).** The panel used to sit beside the 16 pads
+*inside* the step panel, which is a horizontal scroller: at 390px it began at
+x=493 in a 699px panel with a 350px viewport, so the only route to a modulator
+was to swipe the step rail sideways. The pads now have their own row
+(`.channel-rack-step-pads`) inside that panel, and below 900px the panel wraps:
+the pads keep a horizontal pan of their own (459px of pads in a 336px viewport)
+and the LFO takes a full-width row under them at x=29. Because the panel is
+~216px tall and a rack of eight channels cannot afford that eight times, only
+the **selected** channel shows its modulator — selecting the card is the same
+tap that arms the panel. Tapping wave 3 / target 3 set `wave: square`,
+`target: volume`, and step taps still toggle notes (26 → 27 → 26) with the pads
+scrolled or not. Desktop is unchanged: pads and generator still share one
+inline panel.
+
+One placement item remains in this view: the ~150px empty well above the pads
+(§3.8), which is a redesign of the card rather than a size fix.
 
 ---
 
@@ -509,8 +520,8 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
    DJ loop chips, the Drum Machine strip toggles, the Sound Browser card
    actions, the Piano Roll tools/Lock and its automation/CC band, and the
    transport export sheet. Remaining cross-cutting: the shell's 36px AI-band
-   chips and 36px snackbar close. Remaining layout: give the Channel Rack's LFO
-   panel its own row instead of parking it inside the step rail.
+   chips and 36px snackbar close. The Channel Rack's LFO panel now has its own
+   row on narrow cards (§2.5).
 5. ~~Restore a 40px key rail and a collapsible velocity lane in the phone Piano
    Roll~~ — done in §2.3/§2.5. Remaining: keep the toolbar sticky while the
    grid scrolls.
@@ -567,6 +578,8 @@ real cloud sync, Play Billing, DAWproject.
 | LFO patch change, 390×844 (touch) | tapping wave 2 / target 2 sets `wave: triangle`, `target: pitch`, and both read as `.is-active` |
 | Piano Roll automation/CC band, 390×844 | 44×44 for automation chips, CC toggles, Bezier, MIDI OUT label and select, REC (63×44); view has 4 sub-44 controls left, all shell chrome |
 | Transport export sheet, 390×844 | 7 rows at 166×44 inside the 560px sheet; sheet scrolls (612 > 558), no document overflow |
+| Channel Rack LFO placement, 390×844 | LFO panel x=29 (was 493, off-screen), 336×216 full-width under the pads; pads pan 459 > 336 inside their own row; only the selected card shows it (selecting card 2 flips `display` to `none,flex,none`) |
+| Channel Rack steps after the wrap, 390×844 | tapping cell 3 toggles 26 → 27 → 26 notes; pads scroll 0 → 120 independently; desktop panel geometry unchanged (pads 427, LFO 176×100) |
 
 The clipping, contrast, scale-chip and touch-target repairs are CSS-only apart
 from the Drum Machine's inline styles moving into its stylesheet. The phone-first

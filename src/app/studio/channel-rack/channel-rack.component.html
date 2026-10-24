@@ -279,40 +279,44 @@
           (pointercancel)="endStepPaint()"
           (pointerleave)="endStepPaint()"
         >
-          <div
-            *ngFor="let step of laneSteps; let sIdx = index"
-            class="w-2.5 h-7 rounded-sm transition-all shadow-lg cursor-crosshair channel-rack-step-cell"
-            [attr.data-step-index]="sIdx"
-            [class.active]="cellLit(track, sIdx)"
-            [class.current-step]="cellNow(sIdx)"
-            [style.background-color]="
-              cellLit(track, sIdx)
-                ? track.color
-                : sIdx % 8 < 4
-                  ? 'rgba(255,255,255,0.06)'
-                  : 'rgba(255,255,255,0.02)'
-            "
-            (pointerdown)="startStepPaint(track, sIdx, $event); $event.stopPropagation()"
-            (pointerenter)="continueStepPaint(track, sIdx)"
-            (click)="$event.stopPropagation()"
-            (keydown.enter)="toggleStepCell(track, sIdx); $event.stopPropagation()"
-            (keydown.space)="
-              $event.preventDefault();
-              toggleStepCell(track, sIdx);
-              $event.stopPropagation()
-            "
-            tabindex="0"
-            role="button"
-            [attr.aria-label]="
-              track.name +
-              ' step ' +
-              (stepWindowBar() * 16 + sIdx + 1) +
-              ' of pattern · ' +
-              (cellLit(track, sIdx) ? 'active' : 'empty') +
-              (cellNow(sIdx) ? ' · currently playing' : '')
-            "
-            [attr.aria-pressed]="cellLit(track, sIdx)"
-          ></div>
+          <!-- Pads in their own row: on a phone the 16 steps pan inside this
+               box while the LFO panel wraps underneath it. -->
+          <div class="channel-rack-step-pads">
+            <div
+              *ngFor="let step of laneSteps; let sIdx = index"
+              class="w-2.5 h-7 rounded-sm transition-all shadow-lg cursor-crosshair channel-rack-step-cell"
+              [attr.data-step-index]="sIdx"
+              [class.active]="cellLit(track, sIdx)"
+              [class.current-step]="cellNow(sIdx)"
+              [style.background-color]="
+                cellLit(track, sIdx)
+                  ? track.color
+                  : sIdx % 8 < 4
+                    ? 'rgba(255,255,255,0.06)'
+                    : 'rgba(255,255,255,0.02)'
+              "
+              (pointerdown)="startStepPaint(track, sIdx, $event); $event.stopPropagation()"
+              (pointerenter)="continueStepPaint(track, sIdx)"
+              (click)="$event.stopPropagation()"
+              (keydown.enter)="toggleStepCell(track, sIdx); $event.stopPropagation()"
+              (keydown.space)="
+                $event.preventDefault();
+                toggleStepCell(track, sIdx);
+                $event.stopPropagation()
+              "
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="
+                track.name +
+                ' step ' +
+                (stepWindowBar() * 16 + sIdx + 1) +
+                ' of pattern · ' +
+                (cellLit(track, sIdx) ? 'active' : 'empty') +
+                (cellNow(sIdx) ? ' · currently playing' : '')
+              "
+              [attr.aria-pressed]="cellLit(track, sIdx)"
+            ></div>
+          </div>
 
         <!-- LFO Modulation -->
         <div
