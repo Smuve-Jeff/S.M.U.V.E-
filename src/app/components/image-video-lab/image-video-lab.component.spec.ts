@@ -349,6 +349,10 @@ describe('ImageVideoLabComponent', () => {
       width: number;
       height: number;
     } | null>(null);
+    /** Hardware lamp state, mirroring the capture service's own signals. */
+    const cameraFlash = signal(false);
+    const cameraTorchAvailable = signal(true);
+    const cameraTorchLit = signal(false);
     const camera = {
       stream: cameraStream,
       status: cameraStatus,
@@ -429,6 +433,13 @@ describe('ImageVideoLabComponent', () => {
         return true;
       }),
       frameSettings: cameraFrameSettings,
+      flash: cameraFlash,
+      torchAvailable: cameraTorchAvailable,
+      torchLit: cameraTorchLit,
+      setFlash: jest.fn(async (on: boolean) => {
+        cameraFlash.set(on && cameraTorchAvailable());
+        return cameraTorchAvailable();
+      }),
       switchFacing: jest.fn(async () => {
         cameraFacing.update((mode) =>
           mode === 'user' ? 'environment' : 'user'
@@ -1808,6 +1819,46 @@ describe('ImageVideoLabComponent', () => {
         't2',
         expect.objectContaining({ name: 'Camera Frame 1' })
       );
+    });
+
+    it('arms the hardware flash when the camera has a torch', async () => {
+      const { component, camera } = await createComponent();
+
+      await component.toggleCameraFlash();
+
+      expect(camera.setFlash).toHaveBeenCalledWith(true);
+      expect(component.aiFeedback()).toContain('FLASH ARMED');
+    });
+
+    it('says the camera has no torch instead of arming nothing', async () => {
+      const { component, camera } = await createComponent();
+      camera.torchAvailable.set(false);
+
+      await component.toggleCameraFlash();
+
+      expect(camera.setFlash).toHaveBeenCalledWith(true);
+      expect(camera.flash()).toBe(false);
+      expect(component.aiFeedback()).toContain('NO HARDWARE FLASH');
+    });
+
+    it('bursts the viewfinder for a photo the torch lights, and only then', async () => {
+      const { component, camera } = await createComponent();
+      await component.toggleCamera();
+
+      jest.useFakeTimers();
+      camera.flash.set(true);
+      await component.captureCameraPhoto();
+
+      // The torch points away from the operator, so the monitor is the only
+      // confirmation the light fired.
+      expect(component.cameraFlashBurst()).toBe(true);
+      jest.advanceTimersByTime(320);
+      expect(component.cameraFlashBurst()).toBe(false);
+
+      camera.flash.set(false);
+      await component.captureCameraPhoto();
+      expect(component.cameraFlashBurst()).toBe(false);
+      jest.useRealTimers();
     });
 
     it('refuses a photo while the camera is off', async () => {

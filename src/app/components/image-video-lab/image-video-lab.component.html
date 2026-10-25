@@ -275,6 +275,17 @@
             ></video>
 
             <!--
+              Hardware-flash burst. The torch throws its light forward, away from
+              the operator, so the monitor is the only confirmation the light
+              fired. Remounted per shot (@if) so the animation restarts instead
+              of sitting at its end state, and inert to the pointer so the
+              viewfinder controls behind it stay usable.
+            -->
+            @if (cameraFlashBurst()) {
+              <div class="monitor-flash-burst" aria-hidden="true"></div>
+            }
+
+            <!--
               Native player for the clip under the playhead. Full-bleed and with
               native controls: Chrome and Android get a user-gesture playback
               path, seek, fullscreen and volume that a canvas cannot provide.
@@ -590,6 +601,22 @@
             </div>
 
             <div class="capture-toggles">
+              <button
+                type="button"
+                class="capture-toggle"
+                [class.active]="camera.flash()"
+                [class.firing]="camera.torchLit()"
+                [attr.aria-pressed]="camera.flash()"
+                [disabled]="!camera.torchAvailable()"
+                [attr.title]="
+                  camera.torchAvailable()
+                    ? 'Fire the hardware torch for each photo'
+                    : 'This camera exposes no torch'
+                "
+                (click)="toggleCameraFlash()"
+              >
+                FLASH
+              </button>
               <button
                 type="button"
                 class="capture-toggle"

@@ -1685,6 +1685,44 @@ canvas {
   opacity: 0.5;
 }
 
+/*
+  Hardware-flash burst over the viewfinder. A single warm-white wash that peaks
+  within one frame and clears before the still reaches the tray: long enough to
+  read as a flash, short enough that the operator can keep framing. It never
+  catches the pointer, so the shutter stays reachable while it plays.
+*/
+.monitor-flash-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 42%,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 248, 235, 0.62) 38%,
+    rgba(255, 255, 255, 0) 76%
+  );
+  animation: monitor-flash-burst 320ms ease-out forwards;
+}
+
+@keyframes monitor-flash-burst {
+  0% {
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .monitor-flash-burst {
+    animation-duration: 200ms;
+  }
+}
+
 .capture-toggles {
   display: flex;
   gap: 0.35rem;
@@ -1778,6 +1816,14 @@ canvas {
   border-color: rgba(16, 185, 129, 0.45);
   background: rgba(16, 185, 129, 0.14);
   color: #10b981;
+}
+
+/* The window between arming the flash and the exposure: the button stays lit
+   while the torch is actually burning, so a stuck light is visible. */
+.capture-toggle.firing {
+  border-color: rgba(255, 248, 235, 0.7);
+  background: rgba(255, 248, 235, 0.22);
+  color: #fff8eb;
 }
 
 .capture-toggle:disabled {

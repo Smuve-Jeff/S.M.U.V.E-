@@ -1320,4 +1320,157 @@ describe('CameraCaptureService', () => {
       await expect(service.capturePhoto(video)).resolves.toBeNull();
     });
   });
+
+  describe('hardware flash', () => {
+    /**
+     * A stills camera with a lamp: `getCapabilities().torch` is what the OS
+     * reports, and `applyConstraints` is the only way to switch the LED. The
+     * stub keeps both so a test can advertise, refuse or accept a torch.
+     */
+    const flashStream = (capabilities: Record<string, unknown> = {}) => {
+      const track = {
+        stop: jest.fn(),
+        addEventListener: jest.fn(),
+        getSettings: jest.fn(() => ({
+          width: 1280,
+          height: 720,
+          frameRate: 30,
+          deviceId: 'cam-1',
+          facingMode: 'environment',
+        })),
+        getCapabilities: jest.fn(() => ({
+          width: { max: 1920 },
+          height: { max: 1080 },
+          frameRate: { max: 30 },
+          ...capabilities,
+        })),
+        applyConstraints: jest.fn(async () => undefined),
+      };
+      const stream = {
+        getTracks: () => [track],
+        getVideoTracks: () => [track],
+      };
+      return { stream: stream as unknown as MediaStream, track };
+    };
+
+    beforeEach(() => {
+      // jsdom has no 2D rasteriser, so the canvas fallback needs both halves
+      // stubbed for the exposure path to reach the torch calls.
+      jest
+        .spyOn(HTMLCanvasElement.prototype, 'getContext')
+        .mockReturnValue({
+          drawImage: jest.fn(),
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high',
+        } as unknown as CanvasRenderingContext2D);
+      Object.defineProperty(HTMLCanvasElement.prototype, 'toBlob', {
+        configurable: true,
+        value: (callback: BlobCallback) =>
+          callback(new Blob(['still'], { type: 'image/jpeg' })),
+      });
+    });
+
+    /** Only the torch requests — `start()` applies resolution constraints too. */
+    const torchCalls = (track: { applyConstraints: jest.Mock }) =>
+      track.applyConstraints.mock.calls.filter(
+        (call) => !!(call[0] as { advanced?: unknown })?.advanced
+      );
+
+    const decodedVideo = () => {
+      const video = document.createElement('video');
+      Object.defineProperty(video, 'videoWidth', {
+        configurable: true,
+        value: 1280,
+      });
+      Object.defineProperty(video, 'videoHeight', {
+        configurable: true,
+        value: 720,
+      });
+      return video;
+    };
+
+    it('reports a torch only when the bound track advertises one', async () => {
+      const { stream } = flashStream({ torch: true });
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const service = createService();
+
+      await service.start();
+
+      expect(service.torchAvailable()).toBe(true);
+      await expect(service.setFlash(true)).resolves.toBe(true);
+      expect(service.flash()).toBe(true);
+
+      service.stop();
+
+      // Releasing the stream must take the flash with it: the next device may be
+      // a webcam with no lamp at all, and an armed toggle would then lie.
+      expect(service.torchAvailable()).toBe(false);
+      expect(service.flash()).toBe(false);
+    });
+
+    it('refuses to arm a flash the device does not have', async () => {
+      const { stream } = flashStream();
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const service = createService();
+
+      await service.start();
+
+      expect(service.torchAvailable()).toBe(false);
+      await expect(service.setFlash(true)).resolves.toBe(false);
+      expect(service.flash()).toBe(false);
+    });
+
+    it('fires the torch around the exposure and releases it afterwards', async () => {
+      const { stream, track } = flashStream({ torch: true });
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const service = createService();
+      await service.start();
+      await service.setFlash(true);
+
+      const photo = await service.capturePhoto(decodedVideo(), { maxWidth: 640 });
+
+      expect(photo?.source).toBe('canvas');
+      // On for the shot, off again in the same turn: leaving the LED burning
+      // drains the battery and blinds the subject between takes.
+      expect(torchCalls(track)).toEqual([
+        [{ advanced: [{ torch: true }] }],
+        [{ advanced: [{ torch: false }] }],
+      ]);
+      expect(service.torchLit()).toBe(false);
+      // Arming survives the shot — the next photo should fire too.
+      expect(service.flash()).toBe(true);
+    });
+
+    it('leaves the torch alone for a still when the flash is disarmed', async () => {
+      const { stream, track } = flashStream({ torch: true });
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const service = createService();
+      await service.start();
+
+      await service.capturePhoto(decodedVideo());
+
+      expect(torchCalls(track)).toEqual([]);
+    });
+
+    it('stops offering the flash when the device rejects the torch', async () => {
+      const { stream, track } = flashStream({ torch: true });
+      track.applyConstraints.mockRejectedValue(new Error('Constraint not supported'));
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      const service = createService();
+      await service.start();
+      await service.setFlash(true);
+
+      await service.capturePhoto(decodedVideo());
+
+      // A device that advertises a torch and then refuses it is not flash
+      // capable; the toggle must disappear rather than fail on every shutter.
+      expect(service.torchAvailable()).toBe(false);
+      expect(service.flash()).toBe(false);
+      expect(service.torchLit()).toBe(false);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('torch on was rejected'),
+        expect.anything()
+      );
+    });
+  });
 });

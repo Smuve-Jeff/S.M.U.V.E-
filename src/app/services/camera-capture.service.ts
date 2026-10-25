@@ -120,6 +120,13 @@ const RECORDER_MAX_BITS_PER_SECOND = 40_000_000;
  */
 const PHOTO_CAPTURE_TIMEOUT_MS = 2500;
 
+/**
+ * How long the LED gets to reach full output before the sensor is read. Firing
+ * the torch and grabbing the frame in the same tick yields a photo that is
+ * still dark, which reads as "the flash did nothing".
+ */
+const TORCH_SETTLE_MS = 120;
+
 /** Container/codec preference order. WebM is what Chromium/Android WebView can mux. */
 const RECORDER_MIME_CANDIDATES = [
   'video/webm;codecs=vp9,opus',
@@ -233,6 +240,16 @@ export class CameraCaptureService implements OnDestroy {
   deviceCapabilities = signal<CameraFrameSettings | null>(null);
   /** Viewfinder mirror — on by default, matching every phone's selfie preview. */
   mirrored = signal(true);
+  /**
+   * The artist's flash preference for stills. It never fires on a device whose
+   * track reports no torch — the UI shows the toggle as unavailable instead of
+   * pretending a flash happened.
+   */
+  flash = signal(false);
+  /** Whether the bound video track advertises a hardware torch. */
+  torchAvailable = signal(false);
+  /** True only while the torch is lit for an exposure. */
+  torchLit = signal(false);
   isRecording = signal(false);
   recordingSeconds = signal(0);
   /** True while `retry()` is working through its attempts. */
@@ -568,6 +585,7 @@ export class CameraCaptureService implements OnDestroy {
     this.sourceType.set('camera');
     this.frameSettings.set(null);
     this.previewWarning.set(null);
+    this.applyTorchCapability(false);
   }
 
   async toggle(): Promise<boolean> {
@@ -929,10 +947,83 @@ export class CameraCaptureService implements OnDestroy {
     video?: HTMLVideoElement | null,
     options: { maxWidth?: number; quality?: number } = {}
   ): Promise<CapturedPhoto | null> {
-    return (
-      (await this.takeSensorPhoto()) ??
-      (await this.takeCanvasPhoto(video, options))
+    const releaseFlash = await this.fireFlash();
+    try {
+      return (
+        (await this.takeSensorPhoto()) ??
+        (await this.takeCanvasPhoto(video, options))
+      );
+    } finally {
+      await releaseFlash();
+    }
+  }
+
+  /**
+   * Arm or disarm the hardware flash for stills.
+   *
+   * Returns `false` when the device has no torch, so the caller can explain the
+   * situation instead of showing a toggle that does nothing.
+   */
+  async setFlash(on: boolean): Promise<boolean> {
+    if (!on) {
+      this.flash.set(false);
+      return true;
+    }
+    if (!this.torchAvailable()) {
+      this.flash.set(false);
+      return false;
+    }
+    this.flash.set(true);
+    return true;
+  }
+
+  /**
+   * Fire the torch for one exposure and hand back the step that releases it.
+   *
+   * The caller turns the light on, waits for the LED, captures, then restores in
+   * a `finally`, so a failed or abandoned capture never leaves the torch burning
+   * and draining the battery.
+   */
+  private async fireFlash(): Promise<() => Promise<void>> {
+    if (!this.flash() || !this.torchAvailable() || !this.mediaStream) {
+      return async () => {};
+    }
+    const lit = await this.setTorch(true);
+    if (!lit) return async () => {};
+    await new Promise<void>((resolve) => setTimeout(resolve, TORCH_SETTLE_MS));
+    return async () => {
+      await this.setTorch(false);
+    };
+  }
+
+  /** Low-level torch switch, guarded by the track's own constraints API. */
+  private async setTorch(on: boolean): Promise<boolean> {
+    const track = (
+      this.mediaStream?.getVideoTracks()[0] as
+        | (MediaStreamTrack & {
+            applyConstraints?: (constraints: MediaStreamConstraints) => Promise<void>;
+          })
+        | undefined
     );
+    if (!track || typeof track.applyConstraints !== 'function') return false;
+
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: on } as unknown as MediaTrackConstraintSet],
+      });
+      this.torchLit.set(on);
+      return true;
+    } catch (error) {
+      // A device that advertised a torch and then refuses it is not flash
+      // capable; stop offering it rather than failing on every shutter press.
+      this.logger.warn(
+        `Camera torch ${on ? 'on' : 'off'} was rejected by the device.`,
+        error
+      );
+      if (on) this.applyTorchCapability(false);
+      this.torchLit.set(false);
+      return false;
+    }
   }
 
   private async takeSensorPhoto(): Promise<CapturedPhoto | null> {
@@ -1238,8 +1329,25 @@ export class CameraCaptureService implements OnDestroy {
             }
           : null
       );
+      this.applyTorchCapability((capabilities as { torch?: unknown })?.torch);
     } catch {
       this.deviceCapabilities.set(null);
+      this.applyTorchCapability(false);
+    }
+  }
+
+  /**
+   * Latch the torch capability reported by the bound track. Hosts disagree about
+   * this field — Chrome reports a boolean, some builds omit it entirely — so only
+   * an explicit `true` counts as a flash. Losing the torch clears the artist's
+   * preference rather than leaving a toggle that can never fire.
+   */
+  private applyTorchCapability(reported: unknown): void {
+    const available = reported === true;
+    this.torchAvailable.set(available);
+    if (!available) {
+      this.flash.set(false);
+      this.torchLit.set(false);
     }
   }
 

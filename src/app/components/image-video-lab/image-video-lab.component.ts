@@ -140,6 +140,8 @@ const IDLE_REPAINT_INTERVAL_MS = 250;
 type FrameGeometry = { width: number; height: number };
 /** Fallback still width when the bound track reports no geometry. */
 const CAMERA_STILL_FALLBACK_WIDTH = 1920;
+/** How long the viewfinder shows the burst that goes with a hardware flash. */
+const FLASH_BURST_MS = 320;
 /** Sub-millisecond delta — closer than any real frame boundary, so skip the seek. */
 const EXACT_SEEK_EPSILON_SECONDS = 0.001;
 /**
@@ -328,6 +330,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Capture frame rate for the master. */
   exportFps = signal<number>(30);
   cameraTakeCount = signal(0);
+  /**
+   * True while the on-screen burst is showing. The torch itself is invisible to
+   * the operator from behind the lens, so the monitor confirms the shot fired.
+   */
+  cameraFlashBurst = signal(false);
+  private flashBurstTimer: ReturnType<typeof setTimeout> | null = null;
   /** Clip under edit — the target of split / duplicate / delete / lane moves. */
   selectedClipId = signal<string | null>(null);
   /** Voice direction: the transcript is matched against cinema commands. */
@@ -2277,6 +2285,12 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
 
+    // Only a shot that will actually fire the torch gets the burst; a burst on
+    // every photo would claim a light the device does not have.
+    if (this.camera.flash() && this.camera.torchAvailable()) {
+      this.fireCameraFlashBurst();
+    }
+
     const shot = await this.camera.capturePhoto(
       this.cameraFeed?.nativeElement,
       { maxWidth: this.resolveStillMaxWidth() }
@@ -2312,6 +2326,38 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
         (shot.source === 'image-capture' ? 'SENSOR' : 'CANVAS') +
         ' STILL CUT INTO THE OVERLAYS LANE.'
     );
+  }
+
+  /**
+   * Arm or disarm the hardware flash.
+   *
+   * The toggle is disabled without a torch, but the shuttered path can still be
+   * reached by keyboard, so this reports the refusal instead of silently
+   * pretending the light is on.
+   */
+  async toggleCameraFlash(): Promise<void> {
+    const armed = await this.camera.setFlash(!this.camera.flash());
+    if (!armed) {
+      this.aiFeedback.set(
+        'NO HARDWARE FLASH ON THIS CAMERA — THE SHOT IS LIT BY THE SCENE ALONE.'
+      );
+      return;
+    }
+    this.aiFeedback.set(
+      this.camera.flash()
+        ? 'FLASH ARMED — EVERY PHOTO FIRES THE TORCH FOR THE EXPOSURE.'
+        : 'FLASH OFF — THE TORCH STAYS DARK.'
+    );
+  }
+
+  /** Show the burst over the viewfinder for the length of the exposure. */
+  private fireCameraFlashBurst(): void {
+    if (this.flashBurstTimer !== null) clearTimeout(this.flashBurstTimer);
+    this.cameraFlashBurst.set(true);
+    this.flashBurstTimer = setTimeout(() => {
+      this.cameraFlashBurst.set(false);
+      this.flashBurstTimer = null;
+    }, FLASH_BURST_MS);
   }
 
   /** Retarget the capture resolution — and the recorder's bitrate with it. */
@@ -4777,6 +4823,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // Never leave the device light on: releasing the stream is the only way the
     // OS hands the camera back to other apps.
     this.camera.stop();
+    if (this.flashBurstTimer !== null) {
+      clearTimeout(this.flashBurstTimer);
+      this.flashBurstTimer = null;
+    }
     this.mediaCache.forEach((media) => {
       if (media instanceof HTMLVideoElement) {
         if (!media.paused) this.pauseQuietly(media);
