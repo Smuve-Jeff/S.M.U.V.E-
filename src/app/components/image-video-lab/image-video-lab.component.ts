@@ -286,6 +286,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     'chroma-boost': 0,
     scanlines: 0,
     glow: 0,
+    flash: 0,
   });
   /** Camera move staged for the selected clip. */
   selectedMotion = signal<ClipMotion>('none');
@@ -3008,6 +3009,31 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
           ctx.filter = 'blur(6px)';
           ctx.drawImage(layer, 0, 0, width, height);
           ctx.restore();
+          break;
+        }
+        case 'flash': {
+          // A direct on-camera flash: a hot core just above centre with a fast
+          // falloff, sitting on a thin wash that lifts the whole frame. Unlike
+          // the `flash` transition — which is a burst in time as a shot enters
+          // — this is a lighting look that stays on the clip, so it grades a
+          // still and a moving shot the same way.
+          const core = ctx.createRadialGradient(
+            width / 2,
+            height * 0.42,
+            0,
+            width / 2,
+            height * 0.42,
+            Math.max(width, height) * 0.75
+          );
+          core.addColorStop(0, `rgba(255, 255, 255, ${(value * 0.85).toFixed(3)})`);
+          core.addColorStop(0.45, `rgba(255, 248, 235, ${(value * 0.35).toFixed(3)})`);
+          core.addColorStop(1, 'rgba(255, 248, 235, 0)');
+          ctx.fillStyle = core;
+          ctx.fillRect(0, 0, width, height);
+
+          // The wash keeps the corners from staying muddy at low dial values.
+          ctx.fillStyle = `rgba(255, 252, 245, ${(value * 0.1).toFixed(3)})`;
+          ctx.fillRect(0, 0, width, height);
           break;
         }
       }

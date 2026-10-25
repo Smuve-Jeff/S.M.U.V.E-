@@ -2698,6 +2698,28 @@ describe('ImageVideoLabComponent', () => {
       expect(ctxStub.fillRect).toHaveBeenCalled();
     });
 
+    it('paints the flash effect as a lighting look on the frame', async () => {
+      const { videoEngine, renderFrame } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        createVideoClip({
+          effects: {
+            ...createVideoClip().effects,
+            fx: [{ id: 'flash', value: 0.7 }],
+          },
+        }),
+      ]);
+      (ctxStub.createRadialGradient as jest.Mock).mockClear();
+      (ctxStub.fillRect as jest.Mock).mockClear();
+
+      renderFrame();
+
+      // A hot core (radial falloff) plus a full-frame wash.
+      expect(ctxStub.createRadialGradient).toHaveBeenCalled();
+      expect(
+        (ctxStub.fillRect as jest.Mock).mock.calls.length
+      ).toBeGreaterThanOrEqual(2);
+    });
+
     it('ignores FX rack entries that are not real effects', async () => {
       const { videoEngine, renderFrame } = await createComponent();
       videoEngine.getActiveClips.mockReturnValue([

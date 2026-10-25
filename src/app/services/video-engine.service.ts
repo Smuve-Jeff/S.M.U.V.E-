@@ -165,7 +165,8 @@ export type ClipEffectId =
   | 'letterbox'
   | 'chroma-boost'
   | 'scanlines'
-  | 'glow';
+  | 'glow'
+  | 'flash';
 
 export interface ClipEffect {
   id: ClipEffectId;
@@ -368,6 +369,7 @@ export const CLIP_EFFECTS: {
   { id: 'chroma-boost', label: 'Chroma Boost', hint: 'Pushes saturation and colour separation' },
   { id: 'scanlines', label: 'Scanlines', hint: 'Broadcast CRT lines over the feed' },
   { id: 'glow', label: 'Glow', hint: 'Blooms the highlights' },
+  { id: 'flash', label: 'Flash', hint: 'Fires a hard frontal flash over the frame' },
 ];
 
 /**
