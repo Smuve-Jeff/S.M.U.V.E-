@@ -2345,7 +2345,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
     this.aiFeedback.set(
       this.camera.flash()
-        ? 'FLASH ARMED — EVERY PHOTO FIRES THE TORCH FOR THE EXPOSURE.'
+        ? 'FLASH ARMED — PHOTOS FIRE IT FOR THE EXPOSURE, TAKES KEEP IT LIT.'
         : 'FLASH OFF — THE TORCH STAYS DARK.'
     );
   }

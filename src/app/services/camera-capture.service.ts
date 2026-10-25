@@ -216,6 +216,11 @@ export class CameraCaptureService implements OnDestroy {
   private firstFrameTimer: ReturnType<typeof setTimeout> | null = null;
   private stopResolver: ((blob: Blob | null) => void) | null = null;
   private discardRecording = false;
+  /**
+   * True while the torch is lit for a take rather than for one exposure. The
+   * shutter must not release it mid-take, and the recorder's end must.
+   */
+  private torchHeldForTake = false;
   private recordingMimeType = 'video/webm';
   private recordingStartedAt = 0;
   private lastRecordingDuration = 0;
@@ -868,6 +873,9 @@ export class CameraCaptureService implements OnDestroy {
       this.lastRecordingDuration = 0;
       this.recordingStartedAt = Date.now();
       this.recordingSeconds.set(0);
+      // The recorder starts synchronously; the lamp is applied in the
+      // background so a slow LED cannot stall the take's first frame.
+      void this.holdTorchForTake();
       this.recordingTimer = setInterval(() => {
         this.recordingSeconds.update((s) => s + 1);
       }, 1000);
@@ -967,6 +975,8 @@ export class CameraCaptureService implements OnDestroy {
   async setFlash(on: boolean): Promise<boolean> {
     if (!on) {
       this.flash.set(false);
+      // Disarming during a take puts the lamp out: the artist asked for dark.
+      this.releaseTorchHold();
       return true;
     }
     if (!this.torchAvailable()) {
@@ -974,7 +984,37 @@ export class CameraCaptureService implements OnDestroy {
       return false;
     }
     this.flash.set(true);
+    // Arming mid-take should light the take already rolling, not wait for the
+    // next shutter press the recording will never use.
+    if (this.isRecording()) void this.holdTorchForTake();
     return true;
+  }
+
+  /**
+   * Light the torch for the length of a take.
+   *
+   * Unlike the stills pulse this is not bounded by `finally`: the take owns the
+   * lamp until `finishRecording` (or `stop`) releases it, so the light cannot
+   * drop out halfway through the shot.
+   */
+  private async holdTorchForTake(): Promise<void> {
+    if (!this.flash() || !this.torchAvailable() || !this.mediaStream) return;
+    const lit = await this.setTorch(true);
+    if (!lit) return;
+    if (!this.isRecording()) {
+      // The take ended before the lamp came up. A torch burning on a camera
+      // that is not recording is exactly the stuck light this guard prevents.
+      await this.setTorch(false);
+      return;
+    }
+    this.torchHeldForTake = true;
+  }
+
+  /** Put the take light out, if the take lit one. */
+  private releaseTorchHold(): void {
+    if (!this.torchHeldForTake) return;
+    this.torchHeldForTake = false;
+    void this.setTorch(false);
   }
 
   /**
@@ -988,6 +1028,9 @@ export class CameraCaptureService implements OnDestroy {
     if (!this.flash() || !this.torchAvailable() || !this.mediaStream) {
       return async () => {};
     }
+    // The take already holds the light; a still taken during it must not
+    // switch it off on the way out.
+    if (this.torchHeldForTake) return async () => {};
     const lit = await this.setTorch(true);
     if (!lit) return async () => {};
     await new Promise<void>((resolve) => setTimeout(resolve, TORCH_SETTLE_MS));
@@ -1222,6 +1265,7 @@ export class CameraCaptureService implements OnDestroy {
     }
     this.isRecording.set(false);
     this.mediaRecorder = null;
+    this.releaseTorchHold();
     this.lastRecordingDuration = this.recordingDurationSeconds();
     this.recordingSeconds.set(Math.max(0, Math.round(this.lastRecordingDuration)));
     this.recordingStartedAt = 0;
@@ -1348,6 +1392,7 @@ export class CameraCaptureService implements OnDestroy {
     if (!available) {
       this.flash.set(false);
       this.torchLit.set(false);
+      this.torchHeldForTake = false;
     }
   }
 

@@ -1452,6 +1452,98 @@ describe('CameraCaptureService', () => {
       expect(torchCalls(track)).toEqual([]);
     });
 
+    it('holds the torch for the whole take and releases it when it stops', async () => {
+      const { stream, track } = flashStream({ torch: true });
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      (globalThis as unknown as { MediaRecorder: unknown }).MediaRecorder =
+        FakeMediaRecorder;
+      const service = createService();
+      await service.start();
+      await service.setFlash(true);
+      const before = torchCalls(track).length;
+
+      expect(service.startRecording()).toBe(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // On for a take, off for a still. The stills pulse would drop the lamp a
+      // fifth of a second into a video that is supposed to stay lit.
+      expect(torchCalls(track).slice(before)).toEqual([
+        [{ advanced: [{ torch: true }] }],
+      ]);
+      expect(service.torchLit()).toBe(true);
+
+      await service.stopRecording();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(torchCalls(track).slice(before)).toEqual([
+        [{ advanced: [{ torch: true }] }],
+        [{ advanced: [{ torch: false }] }],
+      ]);
+      expect(service.torchLit()).toBe(false);
+    });
+
+    it('never lights a take on a camera without a torch', async () => {
+      const { stream, track } = flashStream();
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      (globalThis as unknown as { MediaRecorder: unknown }).MediaRecorder =
+        FakeMediaRecorder;
+      const service = createService();
+      await service.start();
+
+      // Nothing to arm, so the take simply records in the available light.
+      await expect(service.setFlash(true)).resolves.toBe(false);
+      expect(service.startRecording()).toBe(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(torchCalls(track)).toEqual([]);
+      expect(service.torchLit()).toBe(false);
+
+      await service.stopRecording();
+    });
+
+    it('does not put the take light out when a still is taken mid-take', async () => {
+      const { stream, track } = flashStream({ torch: true });
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      (globalThis as unknown as { MediaRecorder: unknown }).MediaRecorder =
+        FakeMediaRecorder;
+      const service = createService();
+      await service.start();
+      await service.setFlash(true);
+      service.startRecording();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const before = torchCalls(track).length;
+
+      const photo = await service.capturePhoto(decodedVideo());
+
+      expect(photo).not.toBeNull();
+      expect(torchCalls(track).slice(before)).toEqual([]);
+      expect(service.torchLit()).toBe(true);
+
+      await service.stopRecording();
+    });
+
+    it('lights a take that is already rolling when the flash is armed', async () => {
+      const { stream, track } = flashStream({ torch: true });
+      installMediaDevices({ getUserMedia: jest.fn(async () => stream) });
+      (globalThis as unknown as { MediaRecorder: unknown }).MediaRecorder =
+        FakeMediaRecorder;
+      const service = createService();
+      await service.start();
+      expect(service.startRecording()).toBe(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(torchCalls(track)).toEqual([]);
+
+      await service.setFlash(true);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Arming mid-take must light the take already running — waiting for the
+      // next shutter press would leave the whole recording dark.
+      expect(torchCalls(track)).toEqual([[{ advanced: [{ torch: true }] }]]);
+      expect(service.torchLit()).toBe(true);
+
+      await service.stopRecording();
+    });
+
     it('stops offering the flash when the device rejects the torch', async () => {
       const { stream, track } = flashStream({ torch: true });
       track.applyConstraints.mockRejectedValue(new Error('Constraint not supported'));
