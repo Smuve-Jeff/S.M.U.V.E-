@@ -25,6 +25,12 @@ import {
   RegistryPhase,
 } from '../../services/artist-registry-pathway.service';
 import { UserProfileService } from '../../services/user-profile.service';
+import { ArtistLifecycleService } from '../../services/artist-lifecycle.service';
+import {
+  LifecycleStatus,
+  LIFECYCLE_PHASE_ORDER,
+} from '../../types/artist-lifecycle.types';
+import { ReadinessState } from '../../types/release-readiness.types';
 import {
   ReleaseProject,
   ProductionTrack,
@@ -68,6 +74,7 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   private dialog = inject(InteractionDialogService);
   private pathwayService = inject(ArtistPathwayService);
   private registryPathwayService = inject(ArtistRegistryPathwayService);
+  private lifecycleService = inject(ArtistLifecycleService);
   private userProfile = inject(UserProfileService);
 
   /**
@@ -119,6 +126,76 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   nextQueue = computed(() =>
     this.pathwayService.todayList(this.userProfile.profile(), 3)
   );
+
+  /**
+   * The release currently in the pipeline. ReleasePipelineService persists it at
+   * `knowledgeBase.currentRelease`, so reading it here cannot disagree with the
+   * release workspace.
+   */
+  private activeRelease(): ReleaseProject | null {
+    const knowledgeBase = (this.userProfile.profile() as any)?.knowledgeBase;
+    return (knowledgeBase?.currentRelease as ReleaseProject) ?? null;
+  }
+
+  /** The lifecycle view over the pathway, plus readiness for that release. */
+  lifecycle = computed(() =>
+    this.lifecycleService.snapshot(
+      this.userProfile.profile(),
+      this.activeRelease()
+    )
+  );
+
+  readiness = computed(() => this.lifecycle().releaseReadiness);
+
+  readonly lifecyclePhaseOrder = LIFECYCLE_PHASE_ORDER;
+
+  lifecycleTone(status: LifecycleStatus): string {
+    switch (status) {
+      case 'on-track':
+        return 'border-emerald-500/30 bg-emerald-500/5';
+      case 'at-risk':
+        return 'border-amber-500/40 bg-amber-500/5';
+      default:
+        return 'border-white/10 bg-black/20';
+    }
+  }
+
+  lifecycleLabel(status: LifecycleStatus): string {
+    switch (status) {
+      case 'on-track':
+        return 'On track';
+      case 'at-risk':
+        return 'Blocked';
+      default:
+        return 'Needs work';
+    }
+  }
+
+  readinessTone(state: ReadinessState): string {
+    switch (state) {
+      case 'ready':
+        return 'text-emerald-400';
+      case 'almost':
+        return 'text-amber-400';
+      case 'not-ready':
+        return 'text-rose-400';
+      default:
+        return 'text-slate-400';
+    }
+  }
+
+  readinessLabel(state: ReadinessState): string {
+    switch (state) {
+      case 'ready':
+        return 'Ready';
+      case 'almost':
+        return 'Almost';
+      case 'not-ready':
+        return 'Not ready';
+      default:
+        return 'No data';
+    }
+  }
 
   completionTone(score: number): string {
     if (score === 100) return 'text-emerald-400';

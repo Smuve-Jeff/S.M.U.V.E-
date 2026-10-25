@@ -182,6 +182,128 @@
             </div>
           </div>
 
+          <!-- Artist lifecycle: the same pathway grouped into career phases -->
+          <div class="bg-brand-dark/40 border border-white/5 rounded-2xl p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div
+                class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-primary"
+              >
+                Artist lifecycle
+              </div>
+              <span
+                class="text-[7px] uppercase tracking-widest font-bold text-slate-500"
+              >
+                {{ lifecycle().overallScore }}% evidenced ·
+                {{ lifecycle().overallProvenance }}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">
+              @for (phase of lifecycle().phases; track phase.id) {
+                <div
+                  class="rounded-xl border px-3 py-2"
+                  [ngClass]="lifecycleTone(phase.status)"
+                >
+                  <div
+                    class="text-[7px] uppercase tracking-widest font-bold text-slate-400 truncate"
+                    [title]="phase.label"
+                  >
+                    {{ phase.label }}
+                  </div>
+                  <div class="text-sm font-black text-slate-200">
+                    {{ phase.score === null ? '—' : phase.score + '%' }}
+                  </div>
+                  <div
+                    class="text-[7px] uppercase tracking-widest text-slate-500"
+                  >
+                    {{ lifecycleLabel(phase.status) }}
+                  </div>
+                </div>
+              }
+            </div>
+
+            <p class="text-[10px] text-slate-400 leading-relaxed">
+              {{ lifecycle().summary }}
+            </p>
+
+            @if (lifecycle().risks.length) {
+              <ul class="space-y-1">
+                @for (risk of lifecycle().risks.slice(0, 3); track risk.message) {
+                  <li class="text-[9px] text-amber-300/90 leading-relaxed">
+                    {{ risk.message }}
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          <!-- Release readiness for the release actually in the pipeline -->
+          <div class="bg-brand-dark/40 border border-white/5 rounded-2xl p-5 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div
+                class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-primary"
+              >
+                Release readiness
+              </div>
+              <span
+                class="text-[7px] uppercase tracking-widest font-bold"
+                [ngClass]="readinessTone(readiness().state)"
+              >
+                {{ readiness().releaseName || 'No release' }} ·
+                {{ readinessLabel(readiness().state) }}
+              </span>
+            </div>
+
+            <p
+              class="text-[11px] font-black"
+              [ngClass]="readinessTone(readiness().state)"
+            >
+              {{ readiness().overallScore === null ? 'Not assessed' : readiness().overallScore + '% ready' }}
+            </p>
+            <p class="text-[10px] text-slate-400 leading-relaxed">
+              {{ readiness().verdict }}
+            </p>
+
+            @if (readiness().status === 'assessed') {
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                @for (check of readiness().checks; track check.id) {
+                  <div class="rounded-xl border border-white/5 bg-black/20 px-3 py-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <span
+                        class="text-[7px] uppercase tracking-widest font-bold text-slate-400"
+                      >
+                        {{ check.label }}
+                      </span>
+                      <span
+                        class="text-[7px] uppercase tracking-widest font-bold"
+                        [ngClass]="readinessTone(check.state)"
+                      >
+                        {{ readinessLabel(check.state) }}
+                      </span>
+                    </div>
+                    <div class="text-[10px] text-slate-300 mt-1">
+                      {{ check.score === null ? 'Not assessed' : check.score + '%' }}
+                    </div>
+                  </div>
+                }
+              </div>
+
+              @if (readiness().blockingGaps.length) {
+                <ul class="space-y-1">
+                  @for (gap of readiness().blockingGaps.slice(0, 3); track gap) {
+                    <li class="text-[9px] text-amber-300/90 leading-relaxed">
+                      {{ gap }}
+                    </li>
+                  }
+                </ul>
+              }
+            }
+
+            <p class="text-[8px] text-slate-500 leading-relaxed">
+              {{ readiness().provenanceNotes[0] }}
+            </p>
+          </div>
+
           <!-- Registry pathway: the genre-tuned route to an official fingerprint -->
           <div class="bg-brand-dark/40 border border-white/5 rounded-2xl p-5">
             <div class="flex flex-wrap items-start justify-between gap-3">

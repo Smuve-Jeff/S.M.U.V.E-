@@ -353,4 +353,84 @@ describe('ArtistDevelopmentHubComponent', () => {
     fixture.detectChanges();
     expect(component.activePanel()).toBe('pro');
   });
+
+  it('shows the lifecycle as phase health over the same pathway', async () => {
+    const { component, text } = await createComponent();
+
+    expect(component.lifecycle().phases.length).toBe(7);
+    expect(component.lifecycle().overallScore).toBe(
+      component.pathway().overall
+    );
+    expect(text()).toContain('Artist lifecycle');
+    expect(text()).toContain(component.lifecycle().summary);
+  });
+
+  it('says release readiness cannot be judged before a release exists', async () => {
+    const { component, text } = await createComponent();
+
+    expect(component.readiness().status).toBe('no-release');
+    expect(component.readiness().overallScore).toBeNull();
+    expect(text()).toContain('Release readiness');
+    expect(text()).toContain('No release is in the pipeline');
+    expect(text()).toContain('Not assessed');
+  });
+
+  it('scores readiness for the release stored in the pipeline', async () => {
+    profile.set({
+      primaryGenre: 'Ambient',
+      proName: 'ASCAP',
+      proIpi: '0011223344',
+      legalInfrastructure: { hasStandardSplitSheet: 'In Use' },
+      catalog: [
+        {
+          title: 'Window Light',
+          isrc: 'US-AAA-25-00001',
+          upc: '00123456789012',
+          releaseDate: '2025-02-01',
+          distributor: 'DistroKid',
+          platforms: ['Spotify'],
+        },
+      ],
+      knowledgeBase: {
+        currentRelease: {
+          id: 'rel-1',
+          name: 'Window Light',
+          type: 'Single',
+          description: 'One quiet single.',
+          status: 'Planning',
+          tracks: [
+            {
+              id: 'trk-1',
+              title: 'Window Light',
+              status: 'Completed',
+              stages: {
+                instrumental: 'Completed',
+                lyrics: 'Completed',
+                vocals: 'Completed',
+                mixing: 'Completed',
+                mastering: 'Completed',
+              },
+            },
+          ],
+          artworkUrl: 'https://cdn.example/art.png',
+          credits: {
+            artistName: 'North Star',
+            proName: 'ASCAP',
+            proIpi: '0011223344',
+            collaborators: [],
+          },
+          marketingCampaignId: 'camp-1',
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    } as any);
+
+    const { component, text } = await createComponent();
+
+    expect(component.readiness().status).toBe('assessed');
+    expect(component.readiness().state).toBe('ready');
+    expect(text()).toContain('100% ready');
+    expect(text()).toContain('Window Light');
+  });
 });
