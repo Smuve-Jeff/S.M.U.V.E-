@@ -1,6 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { AiService } from './ai.service';
+import { LoggingService } from './logging.service';
+import { MusicManagerService } from './music-manager.service';
 import { ArtistLifecycleService } from './artist-lifecycle.service';
 import { ArtistLifecycleCommandIntegrationService } from './artist-lifecycle-command-integration.service';
 import { CommandPaletteService, CommandPaletteAction } from './command-palette.service';
@@ -46,10 +51,23 @@ describe('Lifecycle next move agreement across surfaces', () => {
         { provide: UIService, useValue: { navigateToView: jest.fn() } },
         { provide: BusinessPipelineService, useValue: { activePipelines: signal([]) } },
         { provide: UserContextService, useValue: { setMainViewMode: jest.fn() } },
+        // The advisor reads the same snapshot inside AiService, so it is
+        // mounted here rather than verified in a separate spec.
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+        {
+          provide: MusicManagerService,
+          useValue: { tracks: signal([]), engine: { tempo: signal(120) } },
+        },
       ],
     });
 
     const lifecycle = TestBed.inject(ArtistLifecycleService);
+    const ai = TestBed.inject(AiService);
     TestBed.inject(ArtistLifecycleCommandIntegrationService);
     const fixture = TestBed.createComponent(BusinessSuiteComponent);
     fixture.detectChanges();
@@ -60,17 +78,24 @@ describe('Lifecycle next move agreement across surfaces', () => {
       return actions.find((action) => action.id === 'lifecycle-next-move');
     };
 
-    return { profileSignal, lifecycle, fixture, paletteMove };
+    return { profileSignal, lifecycle, ai, fixture, paletteMove };
   };
 
-  it('offers the same move in the palette and the business workspace', () => {
-    const { profileSignal, lifecycle, paletteMove, fixture } = setup(profile());
+  it('offers the same move in the palette, the advisor and the business workspace', () => {
+    const { profileSignal, lifecycle, ai, paletteMove, fixture } = setup(profile());
 
     const move = lifecycle.snapshot(profileSignal()).nextBestMove!;
     expect(move).not.toBeNull();
 
     const paletteAction = paletteMove();
     expect(paletteAction?.label).toBe(`Next move: ${move.title}`);
+
+    // The advisor's queue — the list its drawer renders — leads with the same
+    // recommendation, not a separately generated one.
+    ai.refreshAdvisorAdvice();
+    const advice = ai.advisorAdvice();
+    expect(advice[0]?.title).toBe(move.title);
+    expect(advice[0]?.sourceStepId).toBe(move.id);
 
     const suite = fixture.componentInstance;
     expect(suite.lifecycle().nextBestMove?.id).toBe(move.id);
@@ -82,7 +107,7 @@ describe('Lifecycle next move agreement across surfaces', () => {
   });
 
   it('moves every surface together when the profile changes', () => {
-    const { profileSignal, lifecycle, paletteMove, fixture } = setup(profile());
+    const { profileSignal, lifecycle, ai, paletteMove, fixture } = setup(profile());
 
     const before = lifecycle.snapshot(profileSignal()).nextBestMove!;
     expect(paletteMove()?.label).toBe(`Next move: ${before.title}`);
@@ -100,6 +125,11 @@ describe('Lifecycle next move agreement across surfaces', () => {
 
     fixture.detectChanges();
     expect(fixture.componentInstance.lifecycle().nextBestMove?.id).toBe(after.id);
+
+    ai.refreshAdvisorAdvice();
+    const advice = ai.advisorAdvice();
+    expect(advice[0]?.title).toBe(after.title);
+    expect(advice[0]?.sourceStepId).toBe(after.id);
   });
 
   it('passes the pipeline release to the shared snapshot, not just the profile', () => {
