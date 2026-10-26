@@ -128,7 +128,7 @@ describe('CreativeBusinessBridgeService', () => {
     expect(bridge.headline).toContain('Rights');
   });
 
-  it('treats a split reference on the release as verified, not merely stated', () => {
+  it('will not call a catalogue split verified when it records no coverage', () => {
     const bridge = service.assess(
       profile({
         catalog: [{ id: 'w1', title: 'Window Light', splitSheetRef: 'splits-window-light.pdf' }],
@@ -137,8 +137,11 @@ describe('CreativeBusinessBridgeService', () => {
     );
 
     const rights = byDimension(bridge, 'rights');
-    expect(rights.severity).toBe('clear');
-    expect(rights.provenance).toBe('verified');
+    // The reference is on file, but the app has no record of who it names, so
+    // it asks for confirmation instead of vouching for the lineup.
+    expect(rights.severity).toBe('watch');
+    expect(rights.provenance).toBe('inferred');
+    expect(rights.observation).toContain('in the catalogue');
     expect(rights.evidence.join(' ')).toContain('splits-window-light.pdf');
     expect(bridge.blocking).toEqual([]);
   });

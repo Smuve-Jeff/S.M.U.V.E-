@@ -309,7 +309,7 @@ describe('ReleasePipelineComponent', () => {
     expect(releaseService.recordSplitReference).toHaveBeenCalledWith(
       'splits/window-light-v2.pdf'
     );
-    expect(component.splitReferenceDraft()).toBe('');
+    expect(component.splitReferenceDraft()).toBeNull();
     expect(component.needsSplitReference()).toBe(false);
     const after = component
       .creativeBridge()
@@ -320,6 +320,30 @@ describe('ReleasePipelineComponent', () => {
       expect.stringContaining('cannot verify the document itself'),
       'info'
     );
+  });
+
+  it('prefills the split field with the reference already on file', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      splitSheetRef: 'splits/from-catalogue.pdf',
+      credits: {
+        artistName: 'North Star',
+        proName: 'ASCAP',
+        proIpi: '0011223344',
+        collaborators: ['Blue Nine'],
+      },
+    });
+
+    expect(component.splitReferenceText()).toBe('splits/from-catalogue.pdf');
+    // On file, but nobody recorded who it covers yet.
+    expect(component.needsSplitReference()).toBe(true);
+
+    await component.recordSplitReference();
+
+    expect(releaseService.recordSplitReference).toHaveBeenCalledWith(
+      'splits/from-catalogue.pdf'
+    );
+    expect(component.needsSplitReference()).toBe(false);
   });
 
   it('reopens the split when a collaborator the split does not name joins', async () => {

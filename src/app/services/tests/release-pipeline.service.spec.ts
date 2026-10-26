@@ -71,6 +71,71 @@ describe('ReleasePipelineService', () => {
     );
   });
 
+  /** A freshly injected instance, so a test can seed the profile before load. */
+  const rebootingWith = (profile: Record<string, unknown>) => {
+    profileServiceSpy.profile.set(profile);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        ReleasePipelineService,
+        { provide: UserProfileService, useValue: profileServiceSpy },
+        { provide: MarketingService, useValue: marketingServiceSpy },
+        { provide: LoggingService, useValue: { info: jest.fn(), error: jest.fn() } },
+      ],
+    });
+    return TestBed.inject(ReleasePipelineService);
+  };
+
+  it('adopts a catalogue split when the release has none', () => {
+    const fresh = rebootingWith({
+      artistName: 'Test Artist',
+      catalog: [{ id: 'w1', title: 'Test Album', splitSheetRef: 'SPLIT-2025-01' }],
+      knowledgeBase: {
+        currentRelease: {
+          id: 'rel-1',
+          name: 'test  album',
+          type: 'Album',
+          description: '',
+          status: 'Planning',
+          tracks: [],
+          credits: { artistName: 'Test Artist', collaborators: ['Rae'] },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    });
+
+    expect(fresh.activeRelease()?.splitSheetRef).toBe('SPLIT-2025-01');
+    // Adoption does not claim the split covers anyone; coverage has to be
+    // confirmed by recording it against the release.
+    expect(fresh.activeRelease()?.splitSheetFor).toBeUndefined();
+    expect(profileServiceSpy.updateProfile).not.toHaveBeenCalled();
+  });
+
+  it('keeps the release split when the catalogue holds a different reference', () => {
+    const fresh = rebootingWith({
+      artistName: 'Test Artist',
+      catalog: [{ id: 'w1', title: 'Test Album', splitSheetRef: 'SPLIT-OLD' }],
+      knowledgeBase: {
+        currentRelease: {
+          id: 'rel-1',
+          name: 'Test Album',
+          type: 'Album',
+          description: '',
+          status: 'Planning',
+          tracks: [],
+          credits: { artistName: 'Test Artist', collaborators: [] },
+          splitSheetRef: 'SPLIT-NEW',
+          splitSheetFor: [],
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      },
+    });
+
+    expect(fresh.activeRelease()?.splitSheetRef).toBe('SPLIT-NEW');
+  });
+
   it('mirrors a recorded split onto the matching catalogue entry', async () => {
     profileServiceSpy.profile.set({
       artistName: 'Test Artist',

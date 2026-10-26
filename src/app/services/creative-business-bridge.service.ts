@@ -160,82 +160,81 @@ export class CreativeBusinessBridgeService {
 
     if (splitRef) {
       /*
-       * A reference recorded on the release carries the collaborator list it was
-       * confirmed against. That list is what makes the reference checkable: a
-       * split recorded while the release was solo does not cover someone who
-       * joined afterwards, and the app must not keep calling it settled.
+       * A reference carries the collaborator list it was confirmed against. That
+       * list is what makes the reference checkable: a split recorded while the
+       * release was solo does not cover someone who joined afterwards, and the
+       * app must not keep calling it settled. A reference with no list — the
+       * catalogue's own records have none — is unverified coverage whichever
+       * surface holds it.
        */
-      if (releaseSplitRef) {
-        const confirmedFor = release.splitSheetFor ?? null;
-        if (!confirmedFor) {
-          return {
-            id: 'creative:rights',
-            dimension: 'rights',
-            label: CREATIVE_DIMENSION_LABEL.rights,
-            observation: `A split reference is recorded on "${release.name}", but nothing records which collaborators it covers.`,
-            consequence:
-              'A reference with no coverage list cannot be checked against the people who actually share this release, so its protection is assumed rather than shown.',
-            decision:
-              'Record the split reference again so it is confirmed against this collaborator list.',
-            severity: 'watch',
-            provenance: 'inferred',
-            evidence: [
-              ...sharedEvidence,
-              splitSource,
-              'release.splitSheetFor is empty.',
-            ],
-          };
-        }
+      const confirmedFor = releaseSplitRef
+        ? (release.splitSheetFor ?? null)
+        : null;
 
-        const covered = confirmedFor.map((name) => normalize(name));
-        const uncovered = collaborators.filter(
-          (name) => !covered.includes(normalize(name))
-        );
+      if (!confirmedFor) {
+        return {
+          id: 'creative:rights',
+          dimension: 'rights',
+          label: CREATIVE_DIMENSION_LABEL.rights,
+          observation: releaseSplitRef
+            ? `A split reference is recorded on "${release.name}", but nothing records which collaborators it covers.`
+            : `A split reference is recorded in the catalogue for "${release.name}", but nothing records which collaborators it covers.`,
+          consequence:
+            'A reference with no coverage list cannot be checked against the people who actually share this release, so its protection is assumed rather than shown.',
+          decision:
+            'Record the split on this release so it is confirmed against this collaborator list.',
+          severity: 'watch',
+          provenance: 'inferred',
+          evidence: [
+            ...sharedEvidence,
+            splitSource,
+            'release.splitSheetFor is empty.',
+          ],
+        };
+      }
 
-        if (uncovered.length) {
-          return {
-            id: 'creative:rights',
-            dimension: 'rights',
-            label: CREATIVE_DIMENSION_LABEL.rights,
-            observation: confirmedFor.length
-              ? `The split recorded for "${release.name}" was confirmed against ${confirmedFor.join(', ')}, and ${uncovered.join(', ')} ${uncovered.length === 1 ? 'is' : 'are'} not named in it.`
-              : `The split recorded for "${release.name}" was confirmed before ${uncovered.join(', ')} joined the release.`,
-            consequence:
-              'A split that does not name everyone splits nothing for the person it omits: that share is still unagreed, and the release can earn before it is settled.',
-            decision:
-              'Update the split so it names every collaborator, then record it here again.',
-            severity: 'blocking',
-            provenance: 'inferred',
-            evidence: [
-              ...sharedEvidence,
-              splitSource,
-              confirmedFor.length
-                ? `release.splitSheetFor = ${confirmedFor.join(', ')}`
-                : 'release.splitSheetFor is empty; the split predates this lineup.',
-              `Not named in the split: ${uncovered.join(', ')}`,
-            ],
-          };
-        }
+      const covered = confirmedFor.map((name) => normalize(name));
+      const uncovered = collaborators.filter(
+        (name) => !covered.includes(normalize(name))
+      );
+
+      if (uncovered.length) {
+        return {
+          id: 'creative:rights',
+          dimension: 'rights',
+          label: CREATIVE_DIMENSION_LABEL.rights,
+          observation: confirmedFor.length
+            ? `The split recorded for "${release.name}" was confirmed against ${confirmedFor.join(', ')}, and ${uncovered.join(', ')} ${uncovered.length === 1 ? 'is' : 'are'} not named in it.`
+            : `The split recorded for "${release.name}" was confirmed before ${uncovered.join(', ')} joined the release.`,
+          consequence:
+            'A split that does not name everyone splits nothing for the person it omits: that share is still unagreed, and the release can earn before it is settled.',
+          decision:
+            'Update the split so it names every collaborator, then record it here again.',
+          severity: 'blocking',
+          provenance: 'inferred',
+          evidence: [
+            ...sharedEvidence,
+            splitSource,
+            `release.splitSheetFor = ${confirmedFor.join(', ')}`,
+            `Not named in the split: ${uncovered.join(', ')}`,
+          ],
+        };
       }
 
       return {
         id: 'creative:rights',
         dimension: 'rights',
         label: CREATIVE_DIMENSION_LABEL.rights,
-        observation: `A split document is recorded for "${release.name}".`,
+        observation: `A split document is recorded for "${release.name}" and confirmed against this lineup.`,
         consequence: `${count === 1 ? 'The collaborator’s share is' : 'Every collaborator’s share is'} on paper before the money arrives, so the release can earn without renegotiating afterwards.`,
-        decision: releaseSplitRef
-          ? 'Keep the split covering this lineup as it stands.'
-          : 'Keep the split reference attached to the catalogue entry.',
+        decision: 'Keep the split covering this lineup as it stands.',
         severity: 'clear',
         provenance: 'verified',
-        evidence: releaseSplitRef
-          ? [
-              ...sharedEvidence,
-              splitSource,
-              `release.splitSheetFor = ${(release.splitSheetFor ?? []).join(', ') || 'no collaborators'}`,
-            ]
-          : [...sharedEvidence, splitSource],
+        evidence: [
+          ...sharedEvidence,
+          splitSource,
+          `release.splitSheetFor = ${confirmedFor.join(', ') || 'no collaborators'}`,
+        ],
       };
     }
 

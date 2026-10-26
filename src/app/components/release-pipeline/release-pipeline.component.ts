@@ -63,11 +63,22 @@ export class ReleasePipelineComponent {
   creativeBridge = computed(() => this.lifecycle().creativeBridge);
 
   /** Draft values for the consequences the workspace can actually settle. */
-  splitReferenceDraft = signal('');
+  splitReferenceDraft = signal<string | null>(null);
   proNameDraft = signal('');
   proIpiDraft = signal('');
   campaignDraft = signal('');
   collaboratorsDraft = signal<string | null>(null);
+
+  /**
+   * The split field shows the draft while it is being edited, and otherwise the
+   * reference already recorded for this release — including one adopted from the
+   * catalogue — so confirming coverage is an edit away.
+   */
+  splitReferenceText = computed(() => {
+    const draft = this.splitReferenceDraft();
+    if (draft !== null) return draft;
+    return this.releaseService.activeRelease()?.splitSheetRef ?? '';
+  });
 
   /** The collaborator field shows the draft while it is being edited. */
   collaboratorsText = computed(() => {
@@ -196,7 +207,7 @@ export class ReleasePipelineComponent {
    * statement rather than a verified document.
    */
   async recordSplitReference(): Promise<void> {
-    const reference = this.splitReferenceDraft().trim();
+    const reference = this.splitReferenceText().trim();
     if (!reference) {
       this.notify.show(
         'Enter the split document reference before recording it.',
@@ -205,7 +216,7 @@ export class ReleasePipelineComponent {
       return;
     }
     await this.releaseService.recordSplitReference(reference);
-    this.splitReferenceDraft.set('');
+    this.splitReferenceDraft.set(null);
     this.notify.show(
       'Split reference recorded. S.M.U.V.E. stores the reference and cannot verify the document itself.',
       'info'

@@ -30,8 +30,34 @@ export class ReleasePipelineService {
     const profile = this.profileService.profile();
     const current = (profile.knowledgeBase as any).currentRelease;
     if (current) {
-      this.activeRelease.set(current);
+      this.activeRelease.set(this.adoptingCatalogueSplit(profile, current));
     }
+  }
+
+  /**
+   * Adopts a split reference the catalogue already holds for this title, so one
+   * fact does not live twice. Adoption is in-memory only: the reference is
+   * written to the release on its next save, never as a side effect of loading.
+   *
+   * The adopted reference carries no coverage list, so the rights reading asks
+   * for confirmation instead of assuming it covers the current lineup.
+   */
+  private adoptingCatalogueSplit(
+    profile: UserProfile,
+    release: ReleaseProject
+  ): ReleaseProject {
+    if ((release.splitSheetRef || '').trim()) return release;
+
+    const target = normalizeTitle(release.name);
+    if (!target) return release;
+
+    const work = (profile.catalog ?? []).find(
+      (entry) => normalizeTitle(entry.title) === target
+    );
+    const reference = (work?.splitSheetRef || '').trim();
+    if (!reference) return release;
+
+    return { ...release, splitSheetRef: reference };
   }
 
   async initializeRelease(name: string, type: ReleaseType): Promise<void> {
