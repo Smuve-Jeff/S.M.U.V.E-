@@ -71,6 +71,60 @@ describe('ReleasePipelineService', () => {
     );
   });
 
+  it('mirrors a recorded split onto the matching catalogue entry', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [
+        { id: 'w1', title: 'Test Album', isrc: 'US-AAA-25-00001' },
+        { id: 'w2', title: 'Other Work' },
+      ],
+    });
+    await service.initializeRelease('test  album', 'Album');
+
+    await service.recordSplitReference('splits/test-album.pdf');
+
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    expect(saved.catalog.find((work: any) => work.id === 'w1')).toMatchObject({
+      splitSheetRef: 'splits/test-album.pdf',
+      isrc: 'US-AAA-25-00001',
+    });
+    expect(
+      saved.catalog.find((work: any) => work.id === 'w2').splitSheetRef
+    ).toBeUndefined();
+  });
+
+  it('does not invent a catalogue entry for a release with no matching work', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [{ id: 'w1', title: 'Other Work' }],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+
+    await service.recordSplitReference('splits/test-album.pdf');
+
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    expect(saved.catalog).toHaveLength(1);
+    expect(saved.catalog[0]).toMatchObject({ id: 'w1', title: 'Other Work' });
+    expect(saved.catalog[0].splitSheetRef).toBeUndefined();
+  });
+
+  it('leaves a catalogue split alone when the release records none', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [{ id: 'w1', title: 'Test Album', splitSheetRef: 'SPLIT-2025-01' }],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+
+    await service.addTrack('Intro');
+
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    expect(saved.catalog[0].splitSheetRef).toBe('SPLIT-2025-01');
+    expect(service.activeRelease()?.splitSheetRef).toBeUndefined();
+  });
+
   it('stamps a recorded split with the collaborators it was confirmed against', async () => {
     await service.initializeRelease('Test Album', 'Album');
     await service.updateCollaborators(['Blue Nine']);

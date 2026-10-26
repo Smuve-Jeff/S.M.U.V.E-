@@ -1,11 +1,17 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { UserProfileService } from './user-profile.service';
+import { UserProfile, UserProfileService } from './user-profile.service';
 import {
   ReleaseProject,
   ProductionTrack,
   ReleaseType,
 } from '../types/release.types';
 import { LoggingService } from './logging.service';
+
+/** Titles are matched the way the readiness and bridge readers match them. */
+const normalizeTitle = (value: unknown): string =>
+  typeof value === 'string'
+    ? value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+    : '';
 
 @Injectable({
   providedIn: 'root',
@@ -244,10 +250,42 @@ export class ReleasePipelineService {
     const profile = this.profileService.profile();
     await this.profileService.updateProfile({
       ...profile,
+      catalog: this.withCatalogueSplit(profile, release),
       knowledgeBase: {
         ...profile.knowledgeBase,
         currentRelease: release,
       } as any,
     });
+  }
+
+  /**
+   * Mirrors a recorded split reference onto the catalogue entry for the same
+   * title, so the two surfaces do not hold different versions of one rights
+   * fact. It only ever writes a reference the artist supplied for this release:
+   * a release with no split leaves the catalogue alone, and no catalogue entry
+   * is created for a title that has none.
+   */
+  private withCatalogueSplit(
+    profile: UserProfile,
+    release: ReleaseProject
+  ): UserProfile['catalog'] {
+    const catalog = profile.catalog ?? [];
+    const reference = (release.splitSheetRef || '').trim();
+    const target = normalizeTitle(release.name);
+    if (!reference || !target || !catalog.length) return catalog;
+
+    let changed = false;
+    const next = catalog.map((work) => {
+      if (normalizeTitle(work.title) !== target) return work;
+      if ((work.splitSheetRef || '').trim() === reference) return work;
+      changed = true;
+      return {
+        ...work,
+        splitSheetRef: reference,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    return changed ? next : catalog;
   }
 }
