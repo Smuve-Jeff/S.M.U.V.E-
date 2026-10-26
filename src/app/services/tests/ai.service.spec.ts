@@ -984,6 +984,39 @@ describe('AiService', () => {
       });
     });
 
+    it('reads an adopted catalogue split into the advisor snapshot', () => {
+      userProfileServiceMock.profile!.update((profile: any) => ({
+        ...profile,
+        catalog: [
+          { id: 'w1', title: 'Window Light', splitSheetRef: 'splits/window.pdf' },
+        ],
+        knowledgeBase: {
+          currentRelease: {
+            id: 'rel-parity',
+            name: 'Window Light',
+            type: 'Single',
+            description: 'One quiet single about leaving.',
+            status: 'Admin',
+            tracks: [],
+            credits: { artistName: 'Test Artist', collaborators: ['Blue Nine'] },
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      }));
+
+      // The stored release records no split, so this only matches the release
+      // workspace if the bridge resolves the catalogue reference the same way.
+      const rights = service
+        .lifecycleSnapshot()
+        .creativeBridge.consequences.find(
+          (entry) => entry.dimension === 'rights'
+        )!;
+
+      expect(rights.evidence.join(' ')).toContain('splits/window.pdf');
+      expect(rights.observation).toContain('nothing records which collaborators');
+    });
+
     it('tells the model what shipping the release commits the artist to', () => {
       expect(service.lifecycleAdvisorBrief()).toContain(
         'No release is in the pipeline'

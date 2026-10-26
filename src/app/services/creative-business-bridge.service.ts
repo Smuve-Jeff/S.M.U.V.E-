@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { UserProfile } from './user-profile.service';
 import { ReleaseProject } from '../types/release.types';
 import { CatalogItem } from '../types/profile.types';
+import { withAdoptedSplit } from './release-split.util';
 import {
   CREATIVE_DIMENSION_LABEL,
   CREATIVE_DIMENSION_ORDER,
@@ -62,9 +63,18 @@ export class CreativeBusinessBridgeService {
     }
 
     const works = ((profile as any)?.catalog ?? []) as CatalogItem[];
-    const work = this.matchCatalogWork(works, release.name);
+    /*
+     * Read the resolved release: a split reference the catalogue holds for the
+     * same title is adopted first, so a reading built straight from a stored
+     * profile (the advisor's snapshot) reports the same document the release
+     * workspace shows.
+     */
+    const resolved = withAdoptedSplit(profile, release) ?? release;
+    const splitAdopted =
+      (resolved.splitSheetRef || '') !== (release.splitSheetRef || '');
+    const work = this.matchCatalogWork(works, resolved.name);
     const consequences: CreativeConsequence[] = CREATIVE_DIMENSION_ORDER.map(
-      (dimension) => this.consequence(dimension, profile, release, work)
+      (dimension) => this.consequence(dimension, profile, resolved, work)
     );
 
     const blocking = consequences
@@ -77,13 +87,13 @@ export class CreativeBusinessBridgeService {
     return {
       generatedAt,
       status: 'assessed',
-      releaseId: release.id,
-      releaseName: release.name,
-      headline: this.headline(release, blocking, unclear),
+      releaseId: resolved.id,
+      releaseName: resolved.name,
+      headline: this.headline(resolved, blocking, unclear),
       consequences,
       blocking,
       unclear,
-      provenanceNotes: this.notes(work, unclear),
+      provenanceNotes: this.notes(work, unclear, splitAdopted),
     };
   }
 
@@ -116,14 +126,10 @@ export class CreativeBusinessBridgeService {
   ): CreativeConsequence {
     const collaborators = release.credits?.collaborators ?? [];
     const artist = (release.credits?.artistName || '').trim();
-    // The release's own reference wins: it was recorded against this release,
-    // while the catalogue entry may describe a different delivery of it.
-    const releaseSplitRef = (release.splitSheetRef || '').trim();
-    const catalogSplitRef = (work?.splitSheetRef || '').trim();
-    const splitRef = releaseSplitRef || catalogSplitRef;
-    const splitSource = releaseSplitRef
-      ? `release.splitSheetRef = "${releaseSplitRef}"`
-      : `catalog[].splitSheetRef = "${catalogSplitRef}"`;
+    // Adoption has already resolved the catalogue's reference onto the release
+    // when the release had none, so this one read covers both surfaces.
+    const splitRef = (release.splitSheetRef || '').trim();
+    const splitSource = `release.splitSheetRef = "${splitRef}"`;
     const profileSplit = (profile as any)?.legalInfrastructure
       ?.hasStandardSplitSheet;
     const splitHabit =
@@ -167,18 +173,14 @@ export class CreativeBusinessBridgeService {
        * catalogue's own records have none — is unverified coverage whichever
        * surface holds it.
        */
-      const confirmedFor = releaseSplitRef
-        ? (release.splitSheetFor ?? null)
-        : null;
+      const confirmedFor = release.splitSheetFor ?? null;
 
       if (!confirmedFor) {
         return {
           id: 'creative:rights',
           dimension: 'rights',
           label: CREATIVE_DIMENSION_LABEL.rights,
-          observation: releaseSplitRef
-            ? `A split reference is recorded on "${release.name}", but nothing records which collaborators it covers.`
-            : `A split reference is recorded in the catalogue for "${release.name}", but nothing records which collaborators it covers.`,
+          observation: `A split reference is recorded for "${release.name}", but nothing records which collaborators it covers.`,
           consequence:
             'A reference with no coverage list cannot be checked against the people who actually share this release, so its protection is assumed rather than shown.',
           decision:
@@ -661,10 +663,16 @@ export class CreativeBusinessBridgeService {
 
   private notes(
     work: CatalogItem | null,
-    unclear: CreativeDimensionId[]
+    unclear: CreativeDimensionId[],
+    splitAdopted: boolean
   ): string[] {
     const notes = [
       'Every consequence quotes the release project, the catalogue, or a named profile field. No distributor, DSP, royalty, or analytics feed is connected, so none of these readings is observed from a platform.',
+      ...(splitAdopted
+        ? [
+            'A split reference recorded on the catalogue work for this title was adopted as the release reference before anything was read, so no write was made and both surfaces report the same document.',
+          ]
+        : []),
       'Release readiness asks whether a release can be delivered; this asks what delivering it commits the artist to. Both read the same facts and never overwrite each other.',
       'This describes exposure in the recorded data. It is not legal, tax, or financial advice.',
     ];

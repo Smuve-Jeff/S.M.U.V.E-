@@ -128,7 +128,7 @@ describe('CreativeBusinessBridgeService', () => {
     expect(bridge.headline).toContain('Rights');
   });
 
-  it('will not call a catalogue split verified when it records no coverage', () => {
+  it('adopts a catalogue split for a stored release and still asks for coverage', () => {
     const bridge = service.assess(
       profile({
         catalog: [{ id: 'w1', title: 'Window Light', splitSheetRef: 'splits-window-light.pdf' }],
@@ -137,13 +137,16 @@ describe('CreativeBusinessBridgeService', () => {
     );
 
     const rights = byDimension(bridge, 'rights');
-    // The reference is on file, but the app has no record of who it names, so
-    // it asks for confirmation instead of vouching for the lineup.
+    // The reference is on file, but nothing records who it names, so the app
+    // asks for confirmation instead of vouching for the lineup.
     expect(rights.severity).toBe('watch');
     expect(rights.provenance).toBe('inferred');
-    expect(rights.observation).toContain('in the catalogue');
+    expect(rights.observation).toContain('nothing records which collaborators');
     expect(rights.evidence.join(' ')).toContain('splits-window-light.pdf');
     expect(bridge.blocking).toEqual([]);
+    expect(bridge.provenanceNotes.join(' ')).toContain(
+      'was adopted as the release reference'
+    );
   });
 
   it('reads a split reference recorded on the release itself', () => {

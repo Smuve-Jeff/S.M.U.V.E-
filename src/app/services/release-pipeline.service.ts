@@ -6,12 +6,7 @@ import {
   ReleaseType,
 } from '../types/release.types';
 import { LoggingService } from './logging.service';
-
-/** Titles are matched the way the readiness and bridge readers match them. */
-const normalizeTitle = (value: unknown): string =>
-  typeof value === 'string'
-    ? value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
-    : '';
+import { normalizeReleaseTitle, withAdoptedSplit } from './release-split.util';
 
 @Injectable({
   providedIn: 'root',
@@ -30,34 +25,11 @@ export class ReleasePipelineService {
     const profile = this.profileService.profile();
     const current = (profile.knowledgeBase as any).currentRelease;
     if (current) {
-      this.activeRelease.set(this.adoptingCatalogueSplit(profile, current));
+      // Adoption is in-memory only: the reference is written to the release on
+      // its next save, never as a side effect of loading. The bridge resolves
+      // the same reference itself, so the two surfaces cannot disagree.
+      this.activeRelease.set(withAdoptedSplit(profile, current) ?? current);
     }
-  }
-
-  /**
-   * Adopts a split reference the catalogue already holds for this title, so one
-   * fact does not live twice. Adoption is in-memory only: the reference is
-   * written to the release on its next save, never as a side effect of loading.
-   *
-   * The adopted reference carries no coverage list, so the rights reading asks
-   * for confirmation instead of assuming it covers the current lineup.
-   */
-  private adoptingCatalogueSplit(
-    profile: UserProfile,
-    release: ReleaseProject
-  ): ReleaseProject {
-    if ((release.splitSheetRef || '').trim()) return release;
-
-    const target = normalizeTitle(release.name);
-    if (!target) return release;
-
-    const work = (profile.catalog ?? []).find(
-      (entry) => normalizeTitle(entry.title) === target
-    );
-    const reference = (work?.splitSheetRef || '').trim();
-    if (!reference) return release;
-
-    return { ...release, splitSheetRef: reference };
   }
 
   async initializeRelease(name: string, type: ReleaseType): Promise<void> {
@@ -297,12 +269,12 @@ export class ReleasePipelineService {
   ): UserProfile['catalog'] {
     const catalog = profile.catalog ?? [];
     const reference = (release.splitSheetRef || '').trim();
-    const target = normalizeTitle(release.name);
+    const target = normalizeReleaseTitle(release.name);
     if (!reference || !target || !catalog.length) return catalog;
 
     let changed = false;
     const next = catalog.map((work) => {
-      if (normalizeTitle(work.title) !== target) return work;
+      if (normalizeReleaseTitle(work.title) !== target) return work;
       if ((work.splitSheetRef || '').trim() === reference) return work;
       changed = true;
       return {
