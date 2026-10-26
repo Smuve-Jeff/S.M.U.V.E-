@@ -36,7 +36,25 @@ export class DatabaseService {
       : 'smuve_user_profile_backup';
   }
 
+  /**
+   * Persists a profile under `userId`'s keys (local backup + cloud).
+   *
+   * Ownership is enforced here as well as in `UserProfileService`, so no caller
+   * — present or future — can write one account's record into another account's
+   * slot by passing a session-derived key. A profile with no stamp (a stock or
+   * freshly imported record) is allowed through, because there is no owner to
+   * compare and the caller stamps it as part of saving.
+   */
   async saveUserProfile(profile: UserProfile, userId: string): Promise<void> {
+    const owner = typeof profile?.id === 'string' ? profile.id.trim() : '';
+    const destination = typeof userId === 'string' ? userId.trim() : '';
+    if (owner && destination && owner !== destination) {
+      this.logger.warn(
+        'Profile save refused: the record is stamped with a different account than the destination key.'
+      );
+      return;
+    }
+
     const keepBackup = profile.settings?.security?.keepLocalProfileBackup !== false;
     if (typeof localStorage !== 'undefined') {
       try {
