@@ -148,7 +148,7 @@ describe('ArtistDevelopmentHubComponent', () => {
     expect(component.totalFollowers()).toBe(0);
   });
 
-  it('labels illustrative figures once a release exists', async () => {
+  it('records figures as self-reported once a release exists', async () => {
     localStorage.setItem(
       'smuve_catalog',
       JSON.stringify([
@@ -169,9 +169,18 @@ describe('ArtistDevelopmentHubComponent', () => {
     component.activePanel.set('dsp');
     fixture.detectChanges();
 
+    // A delivered release alone produces no numbers; the artist must enter them.
     expect(component.hasDeliveredWork()).toBe(true);
-    expect(component.dspAnalytics()?.source).toBe('sample');
-    expect(text()).toContain('Illustrative figures');
+    expect(component.dspAnalytics()).toBeNull();
+    expect(text()).toContain('does not generate figures');
+
+    component.updateDspForm('streams', 1200);
+    component.recordDspReading();
+    fixture.detectChanges();
+
+    expect(component.dspAnalytics()?.source).toBe('self-reported');
+    expect(component.totalStreams()).toBe(1200);
+    expect(text()).toContain('Self-reported from your own dashboard');
   });
 
   it('reports an official artist as complete in every area', async () => {

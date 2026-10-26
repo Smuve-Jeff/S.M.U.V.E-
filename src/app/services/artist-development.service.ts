@@ -39,25 +39,53 @@ export interface DspPlatform {
   followers: number;
   monthlyListeners: number;
   playlistAdds: number;
-  growthRate: number;
+  /** `null` when the artist did not report a growth figure for this platform. */
+  growthRate: number | null;
   lastUpdated: string;
+}
+
+/** One platform reading as the artist types it in from their own dashboard. */
+export interface DspReadingInput {
+  name: string;
+  url?: string;
+  streams?: number;
+  followers?: number;
+  monthlyListeners?: number;
+  playlistAdds?: number;
+  growthRate?: number;
 }
 
 export interface DspAnalytics {
   /**
    * Where the numbers came from.
-   * - `connected`: read from a real dashboard the artist linked.
-   * - `sample`: illustrative only, and must be labelled that way in the UI.
+   * - `connected`: read from a linked dashboard (no connector ships today).
+   * - `self-reported`: entered by the artist from a dashboard they can see.
+   *
+   * There is deliberately no illustrative mode. The generator that used to roll
+   * random stream counts is gone: an invented listener figure is worse than a
+   * blank panel, and no label makes it useful.
    */
-  source: 'connected' | 'sample';
+  source: 'connected' | 'self-reported';
   totalStreams: number;
   totalFollowers: number;
   totalPlaylistAdds: number;
-  monthlyGrowth: number;
+  /** `null` until two readings exist to compare. */
+  monthlyGrowth: number | null;
   platforms: DspPlatform[];
   topTerritories: { country: string; streams: number; percentage: number }[];
   weeklyTrend: { date: string; streams: number }[];
 }
+
+/** Platform dashboards an artist can read numbers from. */
+export const DSP_PLATFORMS = [
+  'Spotify',
+  'Apple Music',
+  'YouTube Music',
+  'SoundCloud',
+  'Tidal',
+  'Amazon Music',
+  'Bandcamp',
+] as const;
 
 // ── Social Link Hub ───────────────────────────────────────
 
@@ -187,116 +215,77 @@ export class ArtistDevelopmentService {
   }
 
   /**
-   * Illustrative DSP figures for releases that exist.
+   * Records platform figures the artist read from their own dashboard.
    *
-   * Returns `null` when the artist has nothing delivered, because a fabricated
-   * listener count is worse than no number at all. Even when data is produced it
-   * is tagged `sample` so the UI can label it and nobody mistakes it for a
-   * connected dashboard.
+   * This replaces a generator that rolled random stream and follower counts and
+   * labelled them "illustrative". There is no analytics connector in this app, so
+   * the only honest source is the artist. Non-numeric or negative inputs are
+   * treated as unreported rather than guessed, and reporting is refused outright
+   * while nothing has been delivered — the numbers would have nothing behind
+   * them.
    */
-  generateDspAnalytics(): DspAnalytics | null {
+  recordDspAnalytics(readings: DspReadingInput[]): DspAnalytics | null {
     if (!this.hasDeliveredWork()) {
       this.dspAnalytics.set(null);
       return null;
     }
 
-    const baseStreams = Math.floor(Math.random() * 50000 + 1000);
+    const count = (value: unknown): number => {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 0;
+    };
+    const today = new Date().toISOString().split('T')[0];
+    const platforms: DspPlatform[] = readings
+      .filter((reading) => String(reading?.name || '').trim().length > 0)
+      .map((reading) => ({
+        name: String(reading.name).trim(),
+        url: reading.url || '',
+        streams: count(reading.streams),
+        followers: count(reading.followers),
+        monthlyListeners: count(reading.monthlyListeners),
+        playlistAdds: count(reading.playlistAdds),
+        growthRate:
+          typeof reading.growthRate === 'number' &&
+          Number.isFinite(reading.growthRate)
+            ? reading.growthRate
+            : null,
+        lastUpdated: today,
+      }));
+
+    if (!platforms.length) {
+      this.dspAnalytics.set(null);
+      return null;
+    }
+
+    const sum = (pick: (platform: DspPlatform) => number): number =>
+      platforms.reduce((total, platform) => total + pick(platform), 0);
 
     const dsp: DspAnalytics = {
-      source: 'sample',
-      totalStreams: baseStreams,
-      totalFollowers: Math.floor(baseStreams * 0.08),
-      totalPlaylistAdds: Math.floor(baseStreams * 0.03),
-      monthlyGrowth: Math.random() * 15 + 1,
-      platforms: [
-        {
-          name: 'Spotify',
-          url: 'https://open.spotify.com',
-          streams: Math.floor(baseStreams * 0.45),
-          followers: Math.floor(baseStreams * 0.035),
-          monthlyListeners: Math.floor(baseStreams * 0.12),
-          playlistAdds: Math.floor(baseStreams * 0.015),
-          growthRate: Math.random() * 12,
-          lastUpdated: new Date().toISOString().split('T')[0],
-        },
-        {
-          name: 'Apple Music',
-          url: 'https://music.apple.com',
-          streams: Math.floor(baseStreams * 0.25),
-          followers: Math.floor(baseStreams * 0.02),
-          monthlyListeners: Math.floor(baseStreams * 0.08),
-          playlistAdds: Math.floor(baseStreams * 0.008),
-          growthRate: Math.random() * 10,
-          lastUpdated: new Date().toISOString().split('T')[0],
-        },
-        {
-          name: 'SoundCloud',
-          url: 'https://soundcloud.com',
-          streams: Math.floor(baseStreams * 0.15),
-          followers: Math.floor(baseStreams * 0.015),
-          monthlyListeners: Math.floor(baseStreams * 0.05),
-          playlistAdds: Math.floor(baseStreams * 0.005),
-          growthRate: Math.random() * 8,
-          lastUpdated: new Date().toISOString().split('T')[0],
-        },
-        {
-          name: 'YouTube Music',
-          url: 'https://music.youtube.com',
-          streams: Math.floor(baseStreams * 0.1),
-          followers: Math.floor(baseStreams * 0.008),
-          monthlyListeners: Math.floor(baseStreams * 0.04),
-          playlistAdds: Math.floor(baseStreams * 0.002),
-          growthRate: Math.random() * 6,
-          lastUpdated: new Date().toISOString().split('T')[0],
-        },
-        {
-          name: 'Tidal',
-          url: 'https://tidal.com',
-          streams: Math.floor(baseStreams * 0.05),
-          followers: Math.floor(baseStreams * 0.002),
-          monthlyListeners: Math.floor(baseStreams * 0.01),
-          playlistAdds: Math.floor(baseStreams * 0.001),
-          growthRate: Math.random() * 4,
-          lastUpdated: new Date().toISOString().split('T')[0],
-        },
-      ],
-      topTerritories: [
-        {
-          country: 'United States',
-          streams: Math.floor(baseStreams * 0.35),
-          percentage: 35,
-        },
-        {
-          country: 'United Kingdom',
-          streams: Math.floor(baseStreams * 0.12),
-          percentage: 12,
-        },
-        {
-          country: 'Canada',
-          streams: Math.floor(baseStreams * 0.08),
-          percentage: 8,
-        },
-        {
-          country: 'Germany',
-          streams: Math.floor(baseStreams * 0.06),
-          percentage: 6,
-        },
-        {
-          country: 'Australia',
-          streams: Math.floor(baseStreams * 0.04),
-          percentage: 4,
-        },
-      ],
-      weeklyTrend: Array.from({ length: 12 }, (_, i) => ({
-        date: new Date(Date.now() - (11 - i) * 7 * 86400000)
-          .toISOString()
-          .split('T')[0],
-        streams: Math.floor(baseStreams * (0.05 + Math.random() * 0.1)),
-      })),
+      source: 'self-reported',
+      totalStreams: sum((platform) => platform.streams),
+      totalFollowers: sum((platform) => platform.followers),
+      totalPlaylistAdds: sum((platform) => platform.playlistAdds),
+      // Growth needs a previous reading to compare against; one entry is not one.
+      monthlyGrowth: null,
+      platforms,
+      // Territories and weekly trends are dashboard-specific breakdowns this app
+      // cannot derive from per-platform totals, so they stay empty rather than
+      // being modelled.
+      topTerritories: [],
+      weeklyTrend: [],
     };
 
     this.dspAnalytics.set(dsp);
+    this.saveToStorage('smuve_dsp_analytics', dsp);
     return dsp;
+  }
+
+  /** Removes recorded figures so the artist can start over honestly. */
+  clearDspAnalytics(): void {
+    this.dspAnalytics.set(null);
+    try {
+      localStorage.removeItem('smuve_dsp_analytics');
+    } catch {}
   }
 
   // ── Social Link Hub ───────────────────────────────────
@@ -580,10 +569,16 @@ export class ArtistDevelopmentService {
     if (cat) this.catalog.set(cat);
 
     const dsp = this.loadFromStorage<DspAnalytics>('smuve_dsp_analytics');
-    // Stored sample figures belong to a previous catalogue state; drop them once
-    // the artist has nothing delivered, so stale fake numbers cannot linger.
-    if (dsp && this.hasDeliveredWork()) this.dspAnalytics.set(dsp);
-    else this.dspAnalytics.set(null);
+    // Two ways stored figures have to go: the artist has nothing delivered, or
+    // the record was written by the old random generator (`source: 'sample'`).
+    // Neither may survive into a panel that reads as real analytics.
+    const isSelfReported =
+      dsp?.source === 'self-reported' || dsp?.source === 'connected';
+    if (dsp && isSelfReported && this.hasDeliveredWork()) {
+      this.dspAnalytics.set(dsp);
+    } else {
+      this.dspAnalytics.set(null);
+    }
 
     const fp = this.loadFromStorage<DigitalFingerprint>(
       'smuve_digital_fingerprint'

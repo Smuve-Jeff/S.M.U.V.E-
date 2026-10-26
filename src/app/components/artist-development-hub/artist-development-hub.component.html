@@ -1001,13 +1001,73 @@
             </button>
           </div>
         }
+        <!-- The only honest source of platform figures: the artist's dashboard -->
+        <ng-template #dspRecordForm>
+          <div class="bg-black/30 border border-white/10 rounded-2xl p-4 space-y-2 mt-3">
+            <div
+              class="text-[8px] font-black uppercase tracking-widest text-slate-400"
+            >
+              Record figures from your dashboard
+            </div>
+            <select
+              [ngModel]="dspForm().platform"
+              (ngModelChange)="updateDspForm('platform', $event)"
+              aria-label="Platform"
+              class="w-full bg-brand-dark border border-white/10 rounded-lg px-3 py-1.5 text-[9px] text-white"
+            >
+              @for (platform of dspPlatforms; track platform) {
+                <option [value]="platform">{{ platform }}</option>
+              }
+            </select>
+            <div class="grid grid-cols-3 gap-2">
+              <input
+                type="number"
+                min="0"
+                [ngModel]="dspForm().streams"
+                (ngModelChange)="updateDspForm('streams', $event)"
+                placeholder="Streams"
+                aria-label="Streams"
+                class="bg-brand-dark border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-white placeholder:text-slate-700"
+              />
+              <input
+                type="number"
+                min="0"
+                [ngModel]="dspForm().monthlyListeners"
+                (ngModelChange)="updateDspForm('monthlyListeners', $event)"
+                placeholder="Monthly"
+                aria-label="Monthly listeners"
+                class="bg-brand-dark border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-white placeholder:text-slate-700"
+              />
+              <input
+                type="number"
+                min="0"
+                [ngModel]="dspForm().followers"
+                (ngModelChange)="updateDspForm('followers', $event)"
+                placeholder="Followers"
+                aria-label="Followers"
+                class="bg-brand-dark border border-white/10 rounded-lg px-2 py-1.5 text-[9px] text-white placeholder:text-slate-700"
+              />
+            </div>
+            <button
+              (click)="recordDspReading()"
+              class="w-full py-2 bg-brand-primary/20 border border-brand-primary/30 rounded-xl text-[8px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary/30 transition-all"
+            >
+              Save reading
+            </button>
+            <p class="text-[8px] text-slate-500 leading-relaxed">
+              Saved as self-reported. S.M.U.V.E. cannot verify these numbers —
+              only a distributor or platform connection could.
+            </p>
+          </div>
+        </ng-template>
+
         @if (dspAnalytics(); as dsp) {
           <div class="space-y-3">
             <div
-              *ngIf="dsp.source === 'sample'"
               class="bg-amber-500/10 border border-amber-500/25 rounded-xl px-3 py-2 text-[8px] font-black uppercase tracking-widest text-amber-300"
             >
-              Illustrative figures — no analytics account is connected yet
+              Self-reported from your own dashboard — no platform has verified
+              these figures
             </div>
             <!-- Overview stats -->
             <div class="grid grid-cols-3 gap-2">
@@ -1033,7 +1093,7 @@
               </div>
               <div class="bg-brand-dark/40 rounded-xl p-3 text-center">
                 <div class="text-sm font-black text-emerald-400">
-                  {{ dsp.monthlyGrowth.toFixed(1) }}%
+                  {{ dsp.monthlyGrowth === null ? '—' : dsp.monthlyGrowth.toFixed(1) + '%' }}
                 </div>
                 <div
                   class="text-[6px] text-slate-500 uppercase tracking-widest font-bold"
@@ -1069,19 +1129,23 @@
                     </div>
                     <div
                       class="text-[7px]"
-                      [class.text-emerald-400]="p.growthRate > 0"
-                      [class.text-red-400]="p.growthRate < 0"
+                      [class.text-emerald-400]="(p.growthRate ?? 0) > 0"
+                      [class.text-red-400]="(p.growthRate ?? 0) < 0"
                     >
-                      {{ p.growthRate > 0 ? '+' : ''
-                      }}{{ p.growthRate.toFixed(1) }}%
+                      @if (p.growthRate === null) {
+                        Growth not reported
+                      } @else {
+                        {{ p.growthRate > 0 ? '+' : ''
+                        }}{{ p.growthRate.toFixed(1) }}%
+                      }
                     </div>
                   </div>
                 </div>
               }
             </div>
 
-            <!-- Weekly trend -->
-            <div>
+            <!-- Weekly trend — only when the dashboard reported a breakdown -->
+            <div *ngIf="dsp.weeklyTrend.length">
               <h3
                 class="text-[8px] text-slate-500 uppercase tracking-widest font-black mb-1.5"
               >
@@ -1110,8 +1174,8 @@
               </div>
             </div>
 
-            <!-- Top territories -->
-            <div>
+            <!-- Top territories — never modelled from platform totals -->
+            <div *ngIf="dsp.topTerritories.length">
               <h3
                 class="text-[8px] text-slate-500 uppercase tracking-widest font-black mb-1"
               >
@@ -1136,17 +1200,24 @@
               }
             </div>
 
+            <ng-container *ngTemplateOutlet="dspRecordForm"></ng-container>
+
             <button
-              (click)="refreshDsp()"
-              class="w-full py-2 bg-brand-primary/20 border border-brand-primary/30 rounded-xl text-[8px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary/30 transition-all"
+              (click)="clearDsp()"
+              class="w-full py-2 bg-transparent border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest text-slate-400 hover:border-rose-500/40 hover:text-rose-300 transition-all"
             >
-              Refresh Analytics
+              Clear recorded figures
             </button>
           </div>
-        } @else {
-          <div class="text-center py-8 text-slate-600">
-            <p class="text-[10px]">No analytics data available.</p>
+        } @else if (hasDeliveredWork()) {
+          <div class="text-center py-6 text-slate-500">
+            <p class="text-[10px] leading-relaxed">
+              Nothing recorded yet. S.M.U.V.E. does not generate figures — read
+              the numbers from your Spotify for Artists, Apple Music for Artists
+              or distributor dashboard and enter them below.
+            </p>
           </div>
+          <ng-container *ngTemplateOutlet="dspRecordForm"></ng-container>
         }
       }
     </div>

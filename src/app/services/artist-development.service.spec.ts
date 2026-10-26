@@ -178,13 +178,7 @@ describe('ArtistDevelopmentService (dev-hub)', () => {
     );
   });
 
-  it('offers no analytics figures at all until a work is delivered', () => {
-    expect(sut.hasDeliveredWork()).toBe(false);
-    expect(sut.generateDspAnalytics()).toBeNull();
-    expect(sut.dspAnalytics()).toBeNull();
-  });
-
-  it('tags generated figures as sample data once a delivery exists', () => {
+  const deliveredRelease = () =>
     sut.addRelease({
       id: 'rel-1',
       name: 'First Single',
@@ -199,19 +193,67 @@ describe('ArtistDevelopmentService (dev-hub)', () => {
       visualsUrl: '',
     });
 
-    expect(sut.hasDeliveredWork()).toBe(true);
-    const dsp = sut.generateDspAnalytics();
-    expect(dsp).not.toBeNull();
-    // Sample numbers must never be mistakable for a connected dashboard.
-    expect(dsp?.source).toBe('sample');
-    expect(dsp?.totalStreams).toBeGreaterThan(0);
+  it('records no analytics at all until a work is delivered', () => {
+    expect(sut.hasDeliveredWork()).toBe(false);
+    expect(
+      sut.recordDspAnalytics([{ name: 'Spotify', streams: 1200 }])
+    ).toBeNull();
+    expect(sut.dspAnalytics()).toBeNull();
   });
 
-  it('discards stored figures once the artist has nothing delivered', () => {
-    // A previous session left sample numbers behind with no catalogue to back them.
+  it('stores artist-entered figures as self-reported, never as sample data', () => {
+    deliveredRelease();
+
+    expect(sut.hasDeliveredWork()).toBe(true);
+    const dsp = sut.recordDspAnalytics([
+      { name: 'Spotify', streams: 1200, followers: 40, monthlyListeners: 300 },
+      { name: 'Apple Music', streams: 800, followers: 10 },
+    ]);
+
+    expect(dsp).not.toBeNull();
+    expect(dsp?.source).toBe('self-reported');
+    expect(dsp?.totalStreams).toBe(2000);
+    expect(dsp?.totalFollowers).toBe(50);
+    // Growth needs a comparison the app does not have.
+    expect(dsp?.monthlyGrowth).toBeNull();
+    // Territorial and weekly breakdowns cannot be derived from totals.
+    expect(dsp?.topTerritories).toEqual([]);
+    expect(dsp?.weeklyTrend).toEqual([]);
+  });
+
+  it('treats unusable readings as unreported instead of guessing a number', () => {
+    deliveredRelease();
+
+    const dsp = sut.recordDspAnalytics([
+      { name: 'Spotify', streams: -50, followers: Number.NaN },
+    ]);
+
+    expect(dsp?.totalStreams).toBe(0);
+    expect(dsp?.totalFollowers).toBe(0);
+    expect(dsp?.platforms[0].growthRate).toBeNull();
+  });
+
+  it('discards figures left behind by the old random generator', () => {
+    deliveredRelease();
     localStorage.setItem(
       'smuve_dsp_analytics',
       JSON.stringify({ source: 'sample', totalStreams: 48000, platforms: [] })
+    );
+
+    sut.loadAll();
+
+    // A delivered release is not enough to make invented numbers acceptable.
+    expect(sut.dspAnalytics()).toBeNull();
+  });
+
+  it('discards stored figures once the artist has nothing delivered', () => {
+    localStorage.setItem(
+      'smuve_dsp_analytics',
+      JSON.stringify({
+        source: 'self-reported',
+        totalStreams: 48000,
+        platforms: [],
+      })
     );
 
     sut.loadAll();

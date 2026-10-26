@@ -10,6 +10,7 @@ import {
   DspAnalytics,
   SocialAccount,
   DigitalFingerprint,
+  DSP_PLATFORMS,
 } from '../../services/artist-development.service';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import {
@@ -338,9 +339,8 @@ export class ArtistDevelopmentHubComponent implements OnInit {
 
   ngOnInit() {
     this.dev.loadAll();
-    // Only produce figures for releases that exist — an artist with nothing out
-    // must not be shown invented listener counts.
-    if (!this.dspAnalytics()) this.dev.generateDspAnalytics();
+    // Nothing is generated here. Figures only exist once the artist records what
+    // their own dashboard reports; until then the panel says so.
   }
 
   setPanel(panel: HubPanel) {
@@ -514,9 +514,48 @@ export class ArtistDevelopmentHubComponent implements OnInit {
   }
 
   // ── DSP Analytics ─────────────────────────────────────
+  //
+  // S.M.U.V.E. has no DSP connector, so the only honest source is the artist
+  // reading their own dashboard. The previous "Refresh Analytics" button rolled
+  // random numbers and labelled them illustrative.
 
-  refreshDsp() {
-    this.dev.generateDspAnalytics();
+  readonly dspPlatforms = DSP_PLATFORMS;
+  dspForm = signal({
+    platform: DSP_PLATFORMS[0] as string,
+    streams: 0,
+    monthlyListeners: 0,
+    followers: 0,
+  });
+
+  updateDspForm(field: 'platform' | 'streams' | 'monthlyListeners' | 'followers', value: any): void {
+    this.dspForm.update((form) => ({ ...form, [field]: value }));
+  }
+
+  /** Adds one platform reading, replacing an earlier reading for that platform. */
+  recordDspReading(): void {
+    const form = this.dspForm();
+    const existing = this.dspAnalytics()?.platforms ?? [];
+    const others = existing.filter((platform) => platform.name !== form.platform);
+    const recorded = this.dev.recordDspAnalytics([
+      ...others,
+      {
+        name: form.platform,
+        streams: form.streams,
+        monthlyListeners: form.monthlyListeners,
+        followers: form.followers,
+      },
+    ]);
+    if (!recorded) return;
+    this.dspForm.set({
+      platform: form.platform,
+      streams: 0,
+      monthlyListeners: 0,
+      followers: 0,
+    });
+  }
+
+  clearDsp(): void {
+    this.dev.clearDspAnalytics();
   }
 
   // ── Money & Royalties ─────────────────────────────────
