@@ -31,8 +31,8 @@ export class ReleasePipelineComponent {
   newReleaseName = signal('');
   newReleaseType = signal<ReleaseType>('Album');
 
-  distributionProgress = signal(0);
-  isDistributing = signal(false);
+  /** The delivery handoff sheet. Nothing here uploads anything. */
+  showHandoff = signal(false);
 
   /** Track the genre / mood for charter generation so we don't drift
    *  from the release's identity. Defaults are anchored on the user's
@@ -115,19 +115,79 @@ export class ReleasePipelineComponent {
     this.releaseService.updateTrackStage(trackId, stage, 'Completed');
   }
 
-  async triggerDistribution() {
-    this.isDistributing.set(true);
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += Math.random() * 15;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-        this.releaseService.updateStatus('Released');
-        setTimeout(() => this.isDistributing.set(false), 2000);
-      }
-      this.distributionProgress.set(progress);
-    }, 500);
+  /**
+   * The exact package a distributor needs, pulled from the release project and
+   * the matching catalogue record. Fields the artist has not recorded stay
+   * `null` — filling them with plausible values would be the same lie as the
+   * fake progress bar this replaced.
+   */
+  deliveryPackage = computed(() => {
+    const release = this.releaseService.activeRelease();
+    if (!release) return null;
+    const works = this.profileService.profile().catalog ?? [];
+    const target = (release.name || '').trim().toLowerCase();
+    const work =
+      works.find(
+        (item) => (item.title || '').trim().toLowerCase() === target
+      ) ?? null;
+    return {
+      release: release.name,
+      type: release.type,
+      artist: release.credits?.artistName ?? null,
+      tracks: release.tracks.map((track) => track.title),
+      isrc: work?.isrc ?? null,
+      upc: work?.upc ?? null,
+      releaseDate: work?.releaseDate ?? null,
+      distributor: work?.distributor ?? null,
+      platforms: work?.platforms ?? [],
+      artwork: release.artworkUrl ?? null,
+      readiness: this.readiness().overallScore,
+    };
+  });
+
+  /**
+   * Opens the handoff sheet. S.M.U.V.E. has no distributor connection, so this
+   * cannot deliver a release — it packages what the artist must upload and
+   * records only what the artist confirms.
+   */
+  openHandoff(): void {
+    if (!this.canLaunch()) {
+      this.notify.show(
+        'Clear the blocking readiness gaps before handing this release off.',
+        'warning'
+      );
+      return;
+    }
+    this.showHandoff.set(true);
+  }
+
+  closeHandoff(): void {
+    this.showHandoff.set(false);
+  }
+
+  copyDeliveryPackage(): void {
+    const pack = this.deliveryPackage();
+    if (!pack) return;
+    this.copyText(JSON.stringify(pack, null, 2));
+  }
+
+  /** Status moves only on an explicit artist statement, never on a timer. */
+  async markSubmittedToDistributor(): Promise<void> {
+    await this.releaseService.updateStatus('Distributing');
+    this.showHandoff.set(false);
+    this.notify.show(
+      'Recorded as submitted to your distributor. S.M.U.V.E. cannot confirm delivery — no distributor feed is connected.',
+      'info'
+    );
+  }
+
+  async markLiveOnDsps(): Promise<void> {
+    await this.releaseService.updateStatus('Released');
+    this.showHandoff.set(false);
+    this.notify.show(
+      'Marked live — artist-confirmed. No DSP or analytics feed verified this.',
+      'info'
+    );
   }
 
   // ============================================================
