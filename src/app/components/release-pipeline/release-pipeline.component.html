@@ -172,6 +172,76 @@
       </p>
     </section>
 
+    <!-- Creative → business bridge: what shipping this release commits you to -->
+    <section
+      class="bg-brand-surface/20 border border-white/10 rounded-3xl p-6 md:p-8 space-y-4"
+      aria-label="Creative to business bridge"
+    >
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <span
+            class="text-[9px] font-black uppercase tracking-[0.3em] text-brand-primary"
+            >Creative → business</span
+          >
+          <h2 class="text-lg font-black text-white uppercase italic tracking-tight mt-1">
+            What this release commits you to
+          </h2>
+        </div>
+        @if (creativeBridge().blocking.length) {
+          <span
+            class="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-rose-500/30 text-rose-300"
+          >
+            {{ creativeBridge().blocking.length }} to settle
+          </span>
+        }
+      </div>
+
+      <p class="text-sm text-slate-300 leading-relaxed">
+        {{ creativeBridge().headline }}
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        @for (entry of creativeBridge().consequences; track entry.dimension) {
+          <article
+            class="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 space-y-2"
+            [attr.data-testid]="'creative-' + entry.dimension"
+          >
+            <header class="flex items-center justify-between gap-2">
+              <span class="text-[9px] uppercase tracking-widest font-black text-slate-400">
+                {{ entry.label }}
+              </span>
+              <span
+                class="text-[9px] uppercase tracking-widest font-black"
+                [ngClass]="creativeTone(entry.severity)"
+              >
+                {{ creativeLabel(entry.severity) }}
+              </span>
+            </header>
+            <p class="text-[11px] text-slate-200 leading-relaxed">
+              {{ entry.observation }}
+            </p>
+            <p class="text-[11px] text-slate-400 leading-relaxed italic">
+              {{ entry.consequence }}
+            </p>
+            <p class="text-[11px] text-brand-primary leading-relaxed">
+              → {{ entry.decision }}
+            </p>
+            <ul class="space-y-0.5">
+              @for (item of entry.evidence; track item) {
+                <li class="text-[9px] text-slate-500 leading-relaxed">
+                  · {{ item }}
+                </li>
+              }
+            </ul>
+          </article>
+        }
+      </div>
+
+      <p class="text-[9px] text-slate-500 leading-relaxed">
+        {{ creativeBridge().provenanceNotes[0] }}
+      </p>
+    </section>
+
     <!-- Sprint B4 — Career Charter launcher + panel -->
     <section class="charter-card"
       *ngIf="releaseService.activeRelease() as release">

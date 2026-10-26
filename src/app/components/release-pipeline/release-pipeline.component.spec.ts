@@ -187,6 +187,38 @@ describe('ReleasePipelineComponent', () => {
     expect(pack.distributor).toBeNull();
   });
 
+  it('shows what shipping the release commits the artist to, not only whether it ships', async () => {
+    const { component, fixture } = await setup(readyRelease());
+
+    const bridge = component.creativeBridge();
+    expect(bridge.status).toBe('assessed');
+    expect(bridge.consequences).toHaveLength(6);
+
+    const panel = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="creative-rights"]'
+    );
+    expect(panel?.textContent).toContain('Rights');
+  });
+
+  it('carries collaborator shares into the workspace consequence', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      credits: {
+        artistName: 'North Star',
+        proName: 'ASCAP',
+        proIpi: '0011223344',
+        collaborators: ['Blue Nine'],
+      },
+    });
+
+    const rights = component
+      .creativeBridge()
+      .consequences.find((entry) => entry.dimension === 'rights')!;
+
+    expect(rights.observation).toContain('1 collaborator');
+    expect(rights.severity).not.toBe('clear');
+  });
+
   it('reads identifiers from the matching catalogue record', async () => {
     const { component } = await setup(readyRelease());
 

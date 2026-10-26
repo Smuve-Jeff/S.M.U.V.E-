@@ -8,6 +8,7 @@ import {
 import { ArtistIntelligenceService } from './artist-intelligence.service';
 import { ReleaseReadinessService } from './release-readiness.service';
 import { GrowthReadinessService } from './growth-readiness.service';
+import { CreativeBusinessBridgeService } from './creative-business-bridge.service';
 import { ReleaseProject } from '../types/release.types';
 import {
   ArtistLifecycleMove,
@@ -47,6 +48,7 @@ export class ArtistLifecycleService {
   private intelligence = inject(ArtistIntelligenceService);
   private releaseReadiness = inject(ReleaseReadinessService);
   private growthReadiness = inject(GrowthReadinessService);
+  private creativeBridge = inject(CreativeBusinessBridgeService);
 
   /** The phase a pathway area belongs to. */
   phaseForArea(area: PathwayArea): LifecyclePhaseId {
@@ -121,6 +123,7 @@ export class ArtistLifecycleService {
       supportingMoves,
       risks,
       releaseReadiness: this.releaseReadiness.assess(profile, release),
+      creativeBridge: this.creativeBridge.assess(profile, release),
       growth,
       differentiationScore: report.differentiationScore,
       summary,

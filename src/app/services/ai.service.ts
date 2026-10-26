@@ -1522,6 +1522,28 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       });
     }
 
+    // Creative → business consequences. Only the ones that must be settled
+    // before delivery are pushed, and never more than two, so the advisor does
+    // not turn one release into a wall of warnings.
+    const bridge = snapshot.creativeBridge;
+    if (bridge.status === 'assessed') {
+      bridge.consequences
+        .filter((entry) => entry.severity === 'blocking')
+        .slice(0, 2)
+        .forEach((entry) => {
+          advice.push({
+            id: `lifecycle:creative:${entry.dimension}:${bridge.releaseId}`,
+            title: `${entry.label}: settle this before "${bridge.releaseName}" ships`,
+            description: `${entry.consequence} ${entry.decision}`,
+            priority: 'high',
+            action: { type: 'navigate', payload: '/release-pipeline' },
+            phase: LIFECYCLE_PHASE_LABEL.release,
+            provenance: entry.provenance,
+            evidence: entry.evidence,
+          });
+        });
+    }
+
     return advice.filter(
       (item) => !this.dismissedAdviceIds.has(item.id)
     );
@@ -1588,9 +1610,35 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       snapshot.releaseReadiness.status === 'assessed'
         ? `- Release "${snapshot.releaseReadiness.releaseName}": ${snapshot.releaseReadiness.verdict}`
         : '- No release is in the pipeline, so release readiness cannot be scored.',
+      this.creativeBridgeBrief(snapshot),
       'Lead with the single next best move unless the artist asks for something else, and name the pathway step as the reason. Never restate these counts as listeners, revenue, delivery status, or legal certainty.',
     ];
     return lines.filter(Boolean).join('\n');
+  }
+
+  /**
+   * The creative → business consequences of the release in the pipeline.
+   *
+   * One line, so the model can connect a music decision to its business
+   * consequence without being handed a second scoreboard. A dimension with no
+   * recorded fact is named as unjudged rather than described as safe.
+   */
+  private creativeBridgeBrief(snapshot: ArtistLifecycleSnapshot): string {
+    const bridge = snapshot.creativeBridge;
+    if (bridge.status !== 'assessed') {
+      return '- No release is in the pipeline, so no creative decision can be translated into a business consequence.';
+    }
+    const blocking = bridge.consequences.filter(
+      (entry) => entry.severity === 'blocking'
+    );
+    const judged = bridge.consequences.length - bridge.unclear.length;
+    const lead = blocking.length
+      ? `- Creative → business for "${bridge.releaseName}": ${blocking.length} dimension(s) must be settled before delivery — ${blocking[0].observation} ${blocking[0].consequence}`
+      : `- Creative → business for "${bridge.releaseName}": no unresolved exposure in the ${judged} of ${bridge.consequences.length} dimensions the app can judge.`;
+    const unknown = bridge.unclear.length
+      ? ` ${bridge.unclear.length} dimension(s) cannot be judged from what is recorded.`
+      : '';
+    return `${lead}${unknown} Quote these as consequences of the artist’s own release; never as legal, financial, or platform certainty.`;
   }
 
   /**

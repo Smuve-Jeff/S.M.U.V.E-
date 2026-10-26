@@ -1,6 +1,7 @@
 import type { PathwayArea, PathwayReadout } from '../services/artist-pathway.service';
 import type { ReleaseReadiness } from './release-readiness.types';
 import type { GrowthReadiness } from './growth-readiness.types';
+import type { CreativeBusinessBridge } from './creative-business.types';
 
 /**
  * The artist lifecycle is a view over the Official Artist Pathway, not a second
@@ -183,6 +184,12 @@ export interface ArtistLifecycleSnapshot {
    * second score of the growth phase, whose score remains its pathway steps.
    */
   growth: GrowthReadiness;
+  /**
+   * What the release in the pipeline commits the artist to, in the six
+   * business dimensions. Carried here so every surface that reads the snapshot
+   * sees the same consequences the release workspace shows.
+   */
+  creativeBridge: CreativeBusinessBridge;
   /** The creative-differentiation score the profile supports, 0-100. */
   differentiationScore: number;
   /** Two sentences the UI can show verbatim. */

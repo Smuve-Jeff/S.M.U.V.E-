@@ -9,6 +9,7 @@ import { ArtistLifecycleService } from '../../services/artist-lifecycle.service'
 import { UserProfileService } from '../../services/user-profile.service';
 import { ReadinessState } from '../../types/release-readiness.types';
 import { LIFECYCLE_PHASE_LABEL } from '../../types/artist-lifecycle.types';
+import { CreativeSeverity } from '../../types/creative-business.types';
 import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 
@@ -54,6 +55,13 @@ export class ReleasePipelineComponent {
   );
   readiness = computed(() => this.lifecycle().releaseReadiness);
 
+  /**
+   * What shipping this release commits the artist to in rights, schedule,
+   * audience, legal, monetization and growth. It comes from the same snapshot
+   * readiness does, so the workspace cannot show two accounts of the release.
+   */
+  creativeBridge = computed(() => this.lifecycle().creativeBridge);
+
   /** Delivery is impossible while a blocking check is unmet. */
   canLaunch = computed(() => this.readiness().blockingGaps.length === 0);
 
@@ -81,6 +89,32 @@ export class ReleasePipelineComponent {
         return 'text-amber-400';
       case 'not-ready':
         return 'text-rose-400';
+      default:
+        return 'text-slate-400';
+    }
+  }
+
+  creativeLabel(severity: CreativeSeverity): string {
+    switch (severity) {
+      case 'blocking':
+        return 'Settle first';
+      case 'watch':
+        return 'Weigh it';
+      case 'clear':
+        return 'Clear';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  creativeTone(severity: CreativeSeverity): string {
+    switch (severity) {
+      case 'blocking':
+        return 'text-rose-300';
+      case 'watch':
+        return 'text-amber-300';
+      case 'clear':
+        return 'text-emerald-300';
       default:
         return 'text-slate-400';
     }

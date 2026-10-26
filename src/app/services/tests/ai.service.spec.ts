@@ -951,6 +951,65 @@ describe('AiService', () => {
         expect(item.provenance).not.toBe('sampled');
       });
     });
+
+    it('raises an undocumented collaborator share as a release consequence', () => {
+      userProfileServiceMock.profile!.update((profile: any) => ({
+        ...profile,
+        knowledgeBase: {
+          currentRelease: {
+            id: 'rel-advisor',
+            name: 'Window Light',
+            type: 'Single',
+            description: 'One quiet single about leaving.',
+            status: 'Admin',
+            tracks: [],
+            credits: { artistName: 'Test Artist', collaborators: ['Blue Nine'] },
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      }));
+
+      const advice = service.refreshAdvisorAdvice();
+      const creative = advice.find((item) =>
+        item.id.startsWith('lifecycle:creative:rights')
+      );
+
+      expect(creative).toBeDefined();
+      expect(creative!.title).toContain('Rights');
+      expect(creative!.evidence?.join(' ')).toContain('collaborators = 1');
+      expect(creative!.action).toEqual({
+        type: 'navigate',
+        payload: '/release-pipeline',
+      });
+    });
+
+    it('tells the model what shipping the release commits the artist to', () => {
+      expect(service.lifecycleAdvisorBrief()).toContain(
+        'No release is in the pipeline'
+      );
+
+      userProfileServiceMock.profile!.update((profile: any) => ({
+        ...profile,
+        knowledgeBase: {
+          currentRelease: {
+            id: 'rel-brief',
+            name: 'Window Light',
+            type: 'Single',
+            description: 'One quiet single about leaving.',
+            status: 'Admin',
+            tracks: [],
+            credits: { artistName: 'Test Artist', collaborators: [] },
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        },
+      }));
+
+      const brief = service.lifecycleAdvisorBrief();
+      expect(brief).toContain('Creative → business for "Window Light"');
+      expect(brief).toContain('never as legal, financial, or platform certainty');
+    });
   });
 
 });
