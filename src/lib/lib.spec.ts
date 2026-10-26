@@ -15,6 +15,11 @@ describe("stampProfileOwner", () => {
     });
   });
 
+  it("produces a blob the write guard accepts", () => {
+    const repaired = stampProfileOwner({ id: "u2", artistName: "Nova" }, "u1");
+    expect(() => assertProfileBelongsTo(repaired, "u1")).not.toThrow();
+  });
+
   it("returns matching, unstamped and non-object values unchanged", () => {
     const matching = { id: "u1", artistName: "Nova" };
     expect(stampProfileOwner(matching, "u1")).toBe(matching);
