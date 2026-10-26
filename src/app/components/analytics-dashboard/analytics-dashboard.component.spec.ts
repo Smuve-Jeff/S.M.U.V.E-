@@ -207,7 +207,7 @@ describe('AnalyticsDashboardComponent', () => {
       expect(service.hasLiveData()).toBe(false);
       expect(service.overallGrowth()).toBe(0);
       service.metrics().forEach((metric) => {
-        expect(metric.source).toBe('sample');
+        expect(metric.source).toBe('unavailable');
         expect(metric.value).toBe(0);
         expect(metric.history).toEqual([]);
       });

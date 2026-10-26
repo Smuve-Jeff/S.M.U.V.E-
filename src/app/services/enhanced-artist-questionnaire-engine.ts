@@ -57,10 +57,18 @@ export interface PhaseInfo {
   color: string;
 }
 
+/**
+ * The live read shown as the artist answers.
+ *
+ * There is deliberately no `confidence` score here. It used to be
+ * `70 + Math.random() * 25`, which is a number about nothing: it did not reflect
+ * the answer, the profile, or any check, and a later surface could easily have
+ * displayed it as certainty. If a real measure is added, it must be derived from
+ * evidence and named for what it measures.
+ */
 export interface AIQuestionResponse {
   observation: string;
   adaptation: string;
-  confidence: number;
 }
 
 export interface PersonaSynthesis {
@@ -2464,11 +2472,7 @@ export class EnhancedArtistQuestionnaireEngine {
       ? `S.M.U.V.E_ADAPTATION: ${question.aiContextHint}`
       : `NEURAL_PATHWAY_ESTABLISHED_FOR_${question.field.toUpperCase()}`;
 
-    return {
-      observation,
-      adaptation,
-      confidence: Math.round(70 + Math.random() * 25),
-    };
+    return { observation, adaptation };
   }
 
   /** Generate a comprehensive AI analysis after questionnaire completion */

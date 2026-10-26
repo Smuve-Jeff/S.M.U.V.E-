@@ -1,7 +1,14 @@
 import { Injectable, signal, computed } from '@angular/core';
 
-/** Where a figure came from. S.M.U.V.E. never presents an estimate as a fact. */
-export type MetricSource = 'sample' | 'connected';
+/**
+ * Where a figure came from. S.M.U.V.E. never presents an estimate as a fact.
+ *
+ * `unavailable` means no source has reported the metric at all — it is not
+ * illustrative data. It was previously called `sample`, which read as "these are
+ * sample numbers" and invited exactly the invented figures this service was
+ * fixed to stop showing.
+ */
+export type MetricSource = 'unavailable' | 'connected';
 
 export interface GrowthMetric {
   label: string;
@@ -22,7 +29,7 @@ const unknownMetric = (label: string): GrowthMetric => ({
   value: 0,
   trend: 0,
   history: [],
-  source: 'sample',
+  source: 'unavailable',
 });
 
 /**
