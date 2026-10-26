@@ -321,14 +321,34 @@ describe('CreativeBusinessBridgeService', () => {
     expect(byDimension(owned, 'growth').observation).toContain('1 official link');
   });
 
-  it('says when no catalogue entry matched, instead of inventing one', () => {
+  it('follows a linked work instead of the release title', () => {
+    const bridge = service.assess(
+      profile({
+        catalog: [
+          { id: 'w1', title: 'Window Light', splitSheetRef: 'splits/window.pdf' },
+          { id: 'w2', title: 'Window Light (Single Edit)' },
+        ],
+      }),
+      release({
+        name: 'Window Light (Single Edit)',
+        catalogWorkId: 'w1',
+        credits: { artistName: 'North Star', collaborators: ['Blue Nine'] },
+      })
+    );
+
+    const rights = byDimension(bridge, 'rights');
+    expect(rights.evidence.join(' ')).toContain('splits/window.pdf');
+    expect(rights.severity).toBe('watch');
+  });
+
+  it('says when no catalogue work matched, instead of inventing one', () => {
     const bridge = service.assess(
       profile({ catalog: [{ id: 'w9', title: 'Something Else', splitSheetRef: 'x.pdf' }] }),
       release()
     );
 
     expect(bridge.provenanceNotes.join(' ')).toContain(
-      'No catalogue entry matched this release name'
+      'No catalogue work is linked'
     );
     expect(byDimension(bridge, 'rights').provenance).not.toBe('verified');
   });

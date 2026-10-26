@@ -168,6 +168,34 @@ export class ReleasePipelineService {
     await this.saveToProfile(updated);
   }
 
+  /** Links this release to the catalogue work it actually is. */
+  async linkCatalogWork(workId: string): Promise<void> {
+    const current = this.activeRelease();
+    const id = (workId || '').trim();
+    if (!current || !id) return;
+
+    const updated: ReleaseProject = {
+      ...current,
+      catalogWorkId: id,
+      updatedAt: Date.now(),
+    };
+
+    this.activeRelease.set(updated);
+    await this.saveToProfile(updated);
+  }
+
+  /** Drops the link; readings fall back to matching the title again. */
+  async unlinkCatalogWork(): Promise<void> {
+    const current = this.activeRelease();
+    if (!current || !current.catalogWorkId) return;
+
+    const updated: ReleaseProject = { ...current, updatedAt: Date.now() };
+    delete updated.catalogWorkId;
+
+    this.activeRelease.set(updated);
+    await this.saveToProfile(updated);
+  }
+
   /**
    * Points the release at a campaign the artist already built. Readiness and
    * the creative-to-business bridge both read this reference, so attaching is
@@ -257,11 +285,11 @@ export class ReleasePipelineService {
   }
 
   /**
-   * Mirrors a recorded split reference onto the catalogue entry for the same
-   * title, so the two surfaces do not hold different versions of one rights
-   * fact. It only ever writes a reference the artist supplied for this release:
-   * a release with no split leaves the catalogue alone, and no catalogue entry
-   * is created for a title that has none.
+   * Mirrors a recorded split reference onto the catalogue work for this release,
+   * so the two surfaces do not hold different versions of one rights fact. The
+   * work is the linked one when the artist linked it, otherwise the title match.
+   * It only ever writes a reference the artist supplied: a release with no split
+   * leaves the catalogue alone, and no work is created when nothing matches.
    */
   private withCatalogueSplit(
     profile: UserProfile,
@@ -269,12 +297,20 @@ export class ReleasePipelineService {
   ): UserProfile['catalog'] {
     const catalog = profile.catalog ?? [];
     const reference = (release.splitSheetRef || '').trim();
+    if (!reference || !catalog.length) return catalog;
+
+    // A linked release writes to the work it points at. Without a link the app
+    // writes to every title match, which is all it could do before linking.
+    const linkedId = (release.catalogWorkId || '').trim();
     const target = normalizeReleaseTitle(release.name);
-    if (!reference || !target || !catalog.length) return catalog;
+    if (!linkedId && !target) return catalog;
 
     let changed = false;
     const next = catalog.map((work) => {
-      if (normalizeReleaseTitle(work.title) !== target) return work;
+      const isTarget = linkedId
+        ? work.id === linkedId
+        : normalizeReleaseTitle(work.title) === target;
+      if (!isTarget) return work;
       if ((work.splitSheetRef || '').trim() === reference) return work;
       changed = true;
       return {

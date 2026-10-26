@@ -44,6 +44,12 @@ export interface ReleaseProject {
    */
   splitSheetRef?: string;
   /**
+   * The catalogue work this release is, when the artist has said so. Linking is
+   * what keeps a retitled release attached to its ISRC, split reference, and
+   * delivery metadata, which title matching alone would lose.
+   */
+  catalogWorkId?: string;
+  /**
    * The collaborator names that reference was recorded against. Kept so a split
    * cannot keep reading as settled after someone it does not name joins the
    * release. Absent on references recorded before coverage was tracked.

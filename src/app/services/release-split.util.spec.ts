@@ -1,4 +1,8 @@
-import { normalizeReleaseTitle, withAdoptedSplit } from './release-split.util';
+import {
+  findCatalogWork,
+  normalizeReleaseTitle,
+  withAdoptedSplit,
+} from './release-split.util';
 import { ReleaseProject } from '../types/release.types';
 import { UserProfile } from './user-profile.service';
 
@@ -58,6 +62,34 @@ describe('release-split.util', () => {
     expect(
       withAdoptedSplit(profile([{ title: 'Window Light', splitSheetRef: '  ' }]), own)
     ).toBe(own);
+  });
+
+  it('matches a release to its work by an explicit link, whatever it is called', () => {
+    const renamed = release({ name: 'Window Light (Single Edit)', catalogWorkId: 'w1' });
+    const catalog = [
+      { id: 'w1', title: 'Window Light', splitSheetRef: 'SPLIT-2025-01' },
+      { id: 'w2', title: 'Window Light (Single Edit)' },
+    ];
+
+    expect(findCatalogWork(profile(catalog), renamed)?.id).toBe('w1');
+    expect(withAdoptedSplit(profile(catalog), renamed)?.splitSheetRef).toBe(
+      'SPLIT-2025-01'
+    );
+  });
+
+  it('falls back to the title when the link points at a work that is gone', () => {
+    const stale = release({ catalogWorkId: 'w9' });
+
+    expect(
+      findCatalogWork(profile([{ id: 'w1', title: 'Window Light' }]), stale)?.id
+    ).toBe('w1');
+  });
+
+  it('reports no work when nothing is linked and no title matches', () => {
+    expect(
+      findCatalogWork(profile([{ id: 'w1', title: 'Other Work' }]), release())
+    ).toBeNull();
+    expect(findCatalogWork(profile([]), null)).toBeNull();
   });
 
   it('passes an absent release through rather than inventing one', () => {

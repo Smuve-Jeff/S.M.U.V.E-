@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { UserProfile } from './user-profile.service';
 import { ReleaseProject } from '../types/release.types';
 import { CatalogItem } from '../types/profile.types';
-import { withAdoptedSplit } from './release-split.util';
+import { findCatalogWork, withAdoptedSplit } from './release-split.util';
 import {
   CREATIVE_DIMENSION_LABEL,
   CREATIVE_DIMENSION_ORDER,
@@ -62,7 +62,6 @@ export class CreativeBusinessBridgeService {
       };
     }
 
-    const works = ((profile as any)?.catalog ?? []) as CatalogItem[];
     /*
      * Read the resolved release: a split reference the catalogue holds for the
      * same title is adopted first, so a reading built straight from a stored
@@ -72,7 +71,7 @@ export class CreativeBusinessBridgeService {
     const resolved = withAdoptedSplit(profile, release) ?? release;
     const splitAdopted =
       (resolved.splitSheetRef || '') !== (release.splitSheetRef || '');
-    const work = this.matchCatalogWork(works, resolved.name);
+    const work = findCatalogWork(profile, resolved) as CatalogItem | null;
     const consequences: CreativeConsequence[] = CREATIVE_DIMENSION_ORDER.map(
       (dimension) => this.consequence(dimension, profile, resolved, work)
     );
@@ -638,15 +637,6 @@ export class CreativeBusinessBridgeService {
     };
   }
 
-  private matchCatalogWork(
-    works: CatalogItem[],
-    releaseName: string
-  ): CatalogItem | null {
-    const target = normalize(releaseName);
-    if (!target) return null;
-    return works.find((work) => normalize(work.title) === target) ?? null;
-  }
-
   private headline(
     release: ReleaseProject,
     blocking: CreativeDimensionId[],
@@ -678,7 +668,7 @@ export class CreativeBusinessBridgeService {
     ];
     if (!work) {
       notes.push(
-        'No catalogue entry matched this release name, so identifiers, split references, and dates are judged from the release project alone.',
+        'No catalogue work is linked to this release and no entry matched its name, so identifiers, split references, and dates are judged from the release project alone.',
       );
     }
     if (unclear.length) {

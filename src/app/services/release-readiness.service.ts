@@ -6,6 +6,7 @@ import {
   ReadinessState,
   ReleaseReadiness,
 } from '../types/release-readiness.types';
+import { findCatalogWork } from './release-split.util';
 
 /** The catalogue fields readiness can actually check against. */
 interface CatalogWork {
@@ -20,9 +21,6 @@ interface CatalogWork {
 
 /** Fields a distributor rejects a delivery without. */
 const DELIVERY_IDENTIFIERS = ['ISRC', 'UPC', 'Release date', 'Distributor'];
-
-const normalize = (value: string): string =>
-  value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 const present = (value: unknown): boolean => {
   if (value === null || value === undefined) return false;
@@ -65,8 +63,7 @@ export class ReleaseReadinessService {
       };
     }
 
-    const works = ((profile as any)?.catalog ?? []) as CatalogWork[];
-    const work = this.matchCatalogWork(works, release.name);
+    const work = findCatalogWork(profile, release) as CatalogWork | null;
     const checks: ReadinessCheck[] = [
       this.productionCheck(release),
       this.metadataCheck(release, work),
@@ -112,17 +109,6 @@ export class ReleaseReadinessService {
       verdict: this.verdict(state, release, blockingGaps, checks),
       provenanceNotes: this.notes(work, checks),
     };
-  }
-
-  private matchCatalogWork(
-    works: CatalogWork[],
-    releaseName: string
-  ): CatalogWork | null {
-    const target = normalize(releaseName || '');
-    if (!target) return null;
-    return (
-      works.find((work) => normalize(work.title || '') === target) ?? null
-    );
   }
 
   private productionCheck(release: ReleaseProject): ReadinessCheck {
@@ -361,7 +347,7 @@ export class ReleaseReadinessService {
     ];
     if (!work) {
       notes.push(
-        'No catalogue entry matched this release name, so identifiers, date, and distributor are judged from the release project alone.'
+        'No catalogue work is linked to this release and no entry matched its name, so identifiers, date, and distributor are judged from the release project alone. Link the release to its catalogue work to carry them over.'
       );
     }
     const unscored = checks.filter((check) => check.score === null).length;

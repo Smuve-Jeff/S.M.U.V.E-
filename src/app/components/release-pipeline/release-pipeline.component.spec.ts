@@ -113,6 +113,8 @@ describe('ReleasePipelineComponent', () => {
     updateCollaborators: jest.Mock;
     attachCampaign: jest.Mock;
     detachCampaign: jest.Mock;
+    linkCatalogWork: jest.Mock;
+    unlinkCatalogWork: jest.Mock;
   };
   let notify: { show: jest.Mock };
 
@@ -178,6 +180,18 @@ describe('ReleasePipelineComponent', () => {
           ...current,
           credits: { ...current.credits, proName, proIpi },
         });
+      }),
+      linkCatalogWork: jest.fn(async (workId: string) => {
+        const current = activeRelease();
+        if (!current) return;
+        activeRelease.set({ ...current, catalogWorkId: workId.trim() });
+      }),
+      unlinkCatalogWork: jest.fn(async () => {
+        const current = activeRelease();
+        if (!current) return;
+        const next = { ...current };
+        delete next.catalogWorkId;
+        activeRelease.set(next);
       }),
       attachCampaign: jest.fn(async (campaignId: string) => {
         const current = activeRelease();
@@ -536,6 +550,51 @@ describe('ReleasePipelineComponent', () => {
     expect(releaseService.recordProRegistration).not.toHaveBeenCalled();
     expect(notify.show).toHaveBeenCalledWith(
       expect.stringContaining('A PRO and an IPI are both needed'),
+      'warning'
+    );
+  });
+
+  it('keeps a renamed release attached to its linked work', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      name: 'Window Light (Single Edit)',
+      catalogWorkId: 'w1',
+    });
+
+    expect(component.linkedCatalogWork()?.title).toBe('Window Light');
+    // Before linking, a renamed release finds nothing by title alone.
+    expect(component.deliveryPackage()!.isrc).toBe('US-AAA-25-00001');
+    expect(component.deliveryPackage()!.distributor).toBe('DistroKid');
+  });
+
+  it('links and unlinks a catalogue work without inventing identifiers', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      name: 'Window Light (Single Edit)',
+    });
+
+    expect(component.deliveryPackage()!.isrc).toBeNull();
+    expect(component.linkedCatalogWork()).toBeNull();
+
+    component.catalogWorkDraft.set('w1');
+    await component.linkCatalogWork();
+
+    expect(releaseService.linkCatalogWork).toHaveBeenCalledWith('w1');
+    expect(component.deliveryPackage()!.isrc).toBe('US-AAA-25-00001');
+
+    await component.unlinkCatalogWork();
+
+    expect(component.deliveryPackage()!.isrc).toBeNull();
+  });
+
+  it('will not link without a selected work', async () => {
+    const { component } = await setup(readyRelease());
+
+    await component.linkCatalogWork();
+
+    expect(releaseService.linkCatalogWork).not.toHaveBeenCalled();
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('Select a catalogue work'),
       'warning'
     );
   });

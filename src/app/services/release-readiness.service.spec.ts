@@ -23,6 +23,7 @@ describe('ReleaseReadinessService', () => {
       marketingCampaigns: [{ id: 'camp-1', name: 'Window Push' }],
       catalog: [
         {
+          id: 'w1',
           title: 'Window Light',
           isrc: 'US-AAA-25-00001',
           upc: '00123456789012',
@@ -130,7 +131,7 @@ describe('ReleaseReadinessService', () => {
     expect(metadata.provenance).toBe('inferred');
     expect(metadata.gaps.join(' ')).toContain('isrc');
     expect(readiness.provenanceNotes.join(' ')).toContain(
-      'No catalogue entry matched'
+      'No catalogue work is linked'
     );
   });
 
@@ -168,6 +169,17 @@ describe('ReleaseReadinessService', () => {
     expect(rights.score).toBe(67);
     expect(rights.gaps.join(' ')).toContain('splits');
     expect(withoutSplits.state).toBe('not-ready');
+  });
+
+  it('reads a release through its linked work even when the titles differ', () => {
+    const readiness = service.assess(
+      profile(),
+      release({ name: 'Window Light (Single Edit)', catalogWorkId: 'w1' })
+    );
+    const metadata = readiness.checks.find((c) => c.id === 'metadata')!;
+
+    expect(metadata.provenance).toBe('verified');
+    expect(metadata.score).toBe(100);
   });
 
   it('does not count a campaign that no longer exists', () => {

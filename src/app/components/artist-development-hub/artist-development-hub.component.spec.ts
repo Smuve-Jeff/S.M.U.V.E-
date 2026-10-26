@@ -390,8 +390,11 @@ describe('ArtistDevelopmentHubComponent', () => {
       proName: 'ASCAP',
       proIpi: '0011223344',
       legalInfrastructure: { hasStandardSplitSheet: 'In Use' },
+      // The campaign check only counts a campaign the profile still holds.
+      marketingCampaigns: [{ id: 'camp-1', name: 'Window Push' }],
       catalog: [
         {
+          id: 'w1',
           title: 'Window Light',
           isrc: 'US-AAA-25-00001',
           upc: '00123456789012',

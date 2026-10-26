@@ -79,6 +79,8 @@ describe('ArtistLifecycleService', () => {
           splitSheetRef: 'SPLIT-2025-01',
         },
       ],
+      // The campaign check only counts a campaign the profile still holds.
+      marketingCampaigns: [{ id: 'camp-1', name: 'Window Push' }],
       officialArtistProfiles: [
         {
           id: 'distrokid',

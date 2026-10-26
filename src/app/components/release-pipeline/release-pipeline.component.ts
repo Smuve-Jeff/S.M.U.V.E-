@@ -10,6 +10,7 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { ReadinessState } from '../../types/release-readiness.types';
 import { LIFECYCLE_PHASE_LABEL } from '../../types/artist-lifecycle.types';
 import { CreativeSeverity } from '../../types/creative-business.types';
+import { findCatalogWork } from '../../services/release-split.util';
 import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 
@@ -68,6 +69,19 @@ export class ReleasePipelineComponent {
   proIpiDraft = signal('');
   campaignDraft = signal('');
   collaboratorsDraft = signal<string | null>(null);
+  catalogWorkDraft = signal('');
+
+  /** Catalogue works the artist can link this release to. */
+  catalogOptions = computed(
+    () => this.profileService.profile().catalog ?? []
+  );
+
+  /** The linked work, when the release points at one that still exists. */
+  linkedCatalogWork = computed(() => {
+    const id = this.releaseService.activeRelease()?.catalogWorkId;
+    if (!id) return null;
+    return this.catalogOptions().find((work) => work.id === id) ?? null;
+  });
 
   /**
    * The split field shows the draft while it is being edited, and otherwise the
@@ -326,6 +340,32 @@ export class ReleasePipelineComponent {
   }
 
   /**
+   * Links this release to its catalogue work, so a renamed release keeps its
+   * identifiers, date, distributor, and split reference.
+   */
+  async linkCatalogWork(): Promise<void> {
+    const id = this.catalogWorkDraft();
+    if (!id) {
+      this.notify.show('Select a catalogue work before linking it.', 'warning');
+      return;
+    }
+    await this.releaseService.linkCatalogWork(id);
+    this.catalogWorkDraft.set('');
+    this.notify.show(
+      'Release linked to its catalogue work. Every reading now uses that work, whatever the release is called.',
+      'info'
+    );
+  }
+
+  async unlinkCatalogWork(): Promise<void> {
+    await this.releaseService.unlinkCatalogWork();
+    this.notify.show(
+      'Link removed. Readings fall back to matching the release title.',
+      'info'
+    );
+  }
+
+  /**
    * The exact package a distributor needs, pulled from the release project and
    * the matching catalogue record. Fields the artist has not recorded stay
    * `null` — filling them with plausible values would be the same lie as the
@@ -334,12 +374,7 @@ export class ReleasePipelineComponent {
   deliveryPackage = computed(() => {
     const release = this.releaseService.activeRelease();
     if (!release) return null;
-    const works = this.profileService.profile().catalog ?? [];
-    const target = (release.name || '').trim().toLowerCase();
-    const work =
-      works.find(
-        (item) => (item.title || '').trim().toLowerCase() === target
-      ) ?? null;
+    const work = findCatalogWork(this.profileService.profile(), release);
     return {
       release: release.name,
       type: release.type,

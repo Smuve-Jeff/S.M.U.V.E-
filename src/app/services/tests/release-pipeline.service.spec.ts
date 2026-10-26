@@ -136,6 +136,47 @@ describe('ReleasePipelineService', () => {
     expect(fresh.activeRelease()?.splitSheetRef).toBe('SPLIT-NEW');
   });
 
+  it('links a release to its catalogue work and back', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+
+    await service.linkCatalogWork('  w7  ');
+    expect(service.activeRelease()?.catalogWorkId).toBe('w7');
+
+    await service.unlinkCatalogWork();
+    expect(service.activeRelease()?.catalogWorkId).toBeUndefined();
+  });
+
+  it('ignores a blank catalogue link', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+
+    await service.linkCatalogWork('   ');
+
+    expect(service.activeRelease()?.catalogWorkId).toBeUndefined();
+  });
+
+  it('writes a split to the linked work, not to the title match', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [
+        { id: 'w1', title: 'Test Album' },
+        { id: 'w7', title: 'Something Else Entirely' },
+      ],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+    await service.linkCatalogWork('w7');
+
+    await service.recordSplitReference('splits/renamed.pdf');
+
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    expect(saved.catalog.find((work: any) => work.id === 'w7')).toMatchObject({
+      splitSheetRef: 'splits/renamed.pdf',
+    });
+    expect(
+      saved.catalog.find((work: any) => work.id === 'w1').splitSheetRef
+    ).toBeUndefined();
+  });
+
   it('mirrors a recorded split onto the matching catalogue entry', async () => {
     profileServiceSpy.profile.set({
       artistName: 'Test Artist',
