@@ -379,6 +379,40 @@ describe('ArtistLifecycleService', () => {
     });
   });
 
+  describe('growth evidence', () => {
+    it('carries the inventory without turning it into a second score', () => {
+      const snapshot = service.snapshot(beginner());
+
+      expect(snapshot.growth.total).toBe(6);
+      expect(snapshot.growth.evidenced).toBe(0);
+      expect(snapshot.growth.dimensions.every((entry) => entry.state === 'missing')).toBe(
+        true
+      );
+      expect('score' in snapshot.growth).toBe(false);
+      // The phase score still counts pathway steps, whatever the inventory says.
+      const growthPhase = snapshot.phases.find((phase) => phase.id === 'growth')!;
+      expect(growthPhase.score).toBe(
+        Math.round((growthPhase.completed / growthPhase.total) * 100)
+      );
+      expect(
+        snapshot.provenanceNotes.some((note) =>
+          note.includes('growth signals are recorded')
+        )
+      ).toBe(true);
+    });
+
+    it('counts growth evidence the profile actually holds', () => {
+      const snapshot = service.snapshot(official());
+
+      const owned = snapshot.growth.dimensions.find(
+        (entry) => entry.id === 'owned-channel'
+      )!;
+      expect(owned.state).toBe('evidenced');
+      expect(owned.evidence[0]).toBe('https://northstar.example');
+      expect(snapshot.growth.evidenced).toBeGreaterThan(0);
+    });
+  });
+
   describe('release readiness', () => {
     const readyRelease = (): ReleaseProject => ({
       id: 'rel-1',

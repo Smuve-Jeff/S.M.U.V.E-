@@ -197,6 +197,26 @@
           }
         </ul>
       }
+      <div class="lifecycle-growth">
+        <div class="lifecycle-growth-heading">
+          <p class="hub-kicker">
+            GROWTH EVIDENCE // {{ lifecycle().growth.evidenced }} OF {{ lifecycle().growth.total }} RECORDED
+          </p>
+          <p>{{ lifecycle().growth.notes[0] }}</p>
+        </div>
+        <ul class="lifecycle-growth-list">
+          @for (dimension of lifecycle().growth.dimensions; track dimension.id) {
+            <li
+              [class.is-missing]="dimension.state === 'missing'"
+              [class.is-partial]="dimension.state === 'partial'"
+              [attr.title]="dimension.why"
+            >
+              <strong>{{ dimension.label }}</strong>
+              <span>{{ dimension.state === 'evidenced' ? dimension.evidence[0] : dimension.gap }}</span>
+            </li>
+          }
+        </ul>
+      </div>
       @if (lifecycle().releaseReadiness.status === 'assessed') {
         <p class="lifecycle-release-signal">
           Release · {{ lifecycle().releaseReadiness.releaseName }} · {{ lifecycle().releaseReadiness.overallScore === null ? 'not assessed' : lifecycle().releaseReadiness.overallScore + '% readiness' }} — {{ lifecycle().releaseReadiness.verdict }}

@@ -1,5 +1,6 @@
 import type { PathwayArea, PathwayReadout } from '../services/artist-pathway.service';
 import type { ReleaseReadiness } from './release-readiness.types';
+import type { GrowthReadiness } from './growth-readiness.types';
 
 /**
  * The artist lifecycle is a view over the Official Artist Pathway, not a second
@@ -177,6 +178,11 @@ export interface ArtistLifecycleSnapshot {
    * release it reports `status: 'no-release'` rather than an empty score.
    */
   releaseReadiness: ReleaseReadiness;
+  /**
+   * The named growth signals the profile holds. Counts dimensions; it is not a
+   * second score of the growth phase, whose score remains its pathway steps.
+   */
+  growth: GrowthReadiness;
   /** The creative-differentiation score the profile supports, 0-100. */
   differentiationScore: number;
   /** Two sentences the UI can show verbatim. */

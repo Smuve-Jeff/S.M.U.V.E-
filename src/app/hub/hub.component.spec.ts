@@ -206,6 +206,22 @@ describe('HubComponent', () => {
     expect(component.lifecycleMove()?.title).toBe(ranked?.title ?? undefined);
   });
 
+  it('inventories growth signals without a second score', () => {
+    const growth = component.lifecycle().growth;
+    const text = fixture.nativeElement.textContent || '';
+
+    expect(growth.total).toBe(6);
+    expect(text).toContain(
+      `GROWTH EVIDENCE // ${growth.evidenced} OF ${growth.total} RECORDED`
+    );
+    // Each dimension states either the recorded evidence or the exact gap.
+    growth.dimensions.forEach((dimension) => {
+      expect(text).toContain(dimension.label);
+      expect(dimension.state === 'evidenced' ? dimension.evidence.length : Boolean(dimension.gap)).toBeTruthy();
+    });
+    expect('score' in growth).toBe(false);
+  });
+
   it('navigates to spotlight routes from the landing page', async () => {
     const router = TestBed.inject(Router);
     const navigateSpy = jest

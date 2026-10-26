@@ -7,6 +7,7 @@ import {
 } from './artist-pathway.service';
 import { ArtistIntelligenceService } from './artist-intelligence.service';
 import { ReleaseReadinessService } from './release-readiness.service';
+import { GrowthReadinessService } from './growth-readiness.service';
 import { ReleaseProject } from '../types/release.types';
 import {
   ArtistLifecycleMove,
@@ -45,6 +46,7 @@ export class ArtistLifecycleService {
   private pathway = inject(ArtistPathwayService);
   private intelligence = inject(ArtistIntelligenceService);
   private releaseReadiness = inject(ReleaseReadinessService);
+  private growthReadiness = inject(GrowthReadinessService);
 
   /** The phase a pathway area belongs to. */
   phaseForArea(area: PathwayArea): LifecyclePhaseId {
@@ -92,6 +94,7 @@ export class ArtistLifecycleService {
       : [];
 
     const risks = this.buildRisks(phases, readout.overall, report.differentiationScore);
+    const growth = this.growthReadiness.assess(profile);
 
     const officialAreas = readout.areas.filter(
       (area) => area.standing === 'official'
@@ -118,12 +121,15 @@ export class ArtistLifecycleService {
       supportingMoves,
       risks,
       releaseReadiness: this.releaseReadiness.assess(profile, release),
+      growth,
       differentiationScore: report.differentiationScore,
       summary,
       provenanceNotes: this.buildProvenanceNotes(
         phases,
         readout.completedSteps,
-        readout.totalSteps
+        readout.totalSteps,
+        growth.evidenced,
+        growth.total
       ),
     };
   }
@@ -274,10 +280,13 @@ export class ArtistLifecycleService {
   private buildProvenanceNotes(
     phases: ArtistLifecyclePhase[],
     completedSteps: number,
-    totalSteps: number
+    totalSteps: number,
+    growthEvidenced: number,
+    growthTotal: number
   ): string[] {
     const notes = [
       'Phase scores count evidenced pathway steps. No streaming, analytics, or royalty feed is connected yet, so nothing here is sampled from a platform.',
+      `${growthEvidenced} of ${growthTotal} growth signals are recorded on the profile; the growth phase score itself still counts pathway steps only.`,
     ];
     if (completedSteps === 0 && totalSteps > 0) {
       notes.push(
