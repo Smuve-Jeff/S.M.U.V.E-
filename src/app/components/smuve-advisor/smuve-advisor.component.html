@@ -42,6 +42,47 @@
       </div>
     </div>
 
+    <!-- Lifecycle transitions observed since the app opened -->
+    <div
+      *ngIf="transitions().length"
+      class="p-3 border-b border-border space-y-2"
+      aria-label="Lifecycle changes observed since the app opened"
+    >
+      <p class="text-[9px] font-bold uppercase tracking-widest text-text-dim">
+        Changed since you opened
+      </p>
+      <div
+        *ngFor="let alert of transitions(); trackBy: trackAlertId"
+        class="rounded-lg border border-brand-primary/25 bg-brand-primary/5 p-3"
+      >
+        <div class="flex items-start justify-between gap-2">
+          <p class="text-xs font-semibold text-text-main">{{ alert.title }}</p>
+          <button
+            (click)="dismissTransition(alert.id)"
+            class="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center hover:bg-white/10 transition-colors"
+            aria-label="Dismiss lifecycle change"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-text-dim mt-1 leading-snug">
+          {{ alert.message }}
+        </p>
+        <p
+          *ngIf="alert.evidence.length"
+          class="text-[10px] text-text-dim/70 mt-1 leading-snug"
+        >
+          Evidence: {{ alert.evidence.slice(0, 2).join(' · ') }}
+        </p>
+        <button
+          (click)="openTransition(alert)"
+          class="mt-2 text-[10px] font-bold uppercase tracking-widest text-brand-primary hover:underline"
+        >
+          Open
+        </button>
+      </div>
+    </div>
+
     <!-- Advice List -->
     <div class="p-2 max-h-96 overflow-y-auto space-y-2">
       <ng-container *ngIf="advice().length > 0; else noAdvice">

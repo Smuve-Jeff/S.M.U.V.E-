@@ -5,6 +5,10 @@ import { AiService } from '../../services/ai.service';
 import { AdvisorAdvice } from '../../types/ai.types';
 import { UserContextService } from '../../services/user-context.service';
 import { CommandPaletteService } from '../../services/command-palette.service';
+import {
+  ArtistLifecycleAlertService,
+  LifecycleAlert,
+} from '../../services/artist-lifecycle-alert.service';
 
 // We assume AdvisorAdvice might have a structure like this:
 // export interface AdvisorAdvice {
@@ -30,8 +34,16 @@ export class SmuveAdvisorComponent implements OnInit {
   private userContext = inject(UserContextService);
   private router = inject(Router);
   private commandPalette = inject(CommandPaletteService);
+  private lifecycleAlerts = inject(ArtistLifecycleAlertService);
 
   advice = this.aiService.advisorAdvice;
+
+  /**
+   * Transitions the lifecycle watcher observed. These sit beside the standing
+   * advice so the artist can tell "what to do" from "what changed", and each
+   * one carries the snapshot values that raised it.
+   */
+  transitions = this.lifecycleAlerts.alerts;
   isOpen = signal(false);
 
   ngOnInit() {
@@ -119,5 +131,20 @@ export class SmuveAdvisorComponent implements OnInit {
 
   trackById(_index: number, item: AdvisorAdvice): string | number {
     return item?.id ?? _index;
+  }
+
+  trackAlertId(_index: number, alert: LifecycleAlert): string {
+    return alert.id;
+  }
+
+  /** Opens the workspace that owns the change, then closes the drawer. */
+  openTransition(alert: LifecycleAlert): void {
+    this.lifecycleAlerts.dismiss(alert.id);
+    this.isOpen.set(false);
+    this.router.navigateByUrl(alert.actionRoute);
+  }
+
+  dismissTransition(id: string): void {
+    this.lifecycleAlerts.dismiss(id);
   }
 }
