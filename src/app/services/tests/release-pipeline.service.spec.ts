@@ -154,6 +154,58 @@ describe('ReleasePipelineService', () => {
     expect(service.activeRelease()?.catalogWorkId).toBeUndefined();
   });
 
+  it('creates a catalogue work from what the release records and links it', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+    await service.recordSplitReference('splits/test-album.pdf');
+
+    const result = await service.createCatalogWorkFromRelease();
+
+    expect(result?.created).toBe(true);
+    expect(service.activeRelease()?.catalogWorkId).toBe(result!.workId);
+
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    const work = saved.catalog.find((entry: any) => entry.id === result!.workId);
+    expect(work).toMatchObject({
+      title: 'Test Album',
+      artist: 'Test Artist',
+      releaseType: 'Album',
+      splitSheetRef: 'splits/test-album.pdf',
+    });
+    // Nothing the release does not record is filled in.
+    expect(work.isrc).toBeUndefined();
+    expect(work.upc).toBeUndefined();
+    expect(work.distributor).toBeUndefined();
+    expect(work.releaseDate).toBeUndefined();
+    expect(saved.knowledgeBase.currentRelease.catalogWorkId).toBe(
+      result!.workId
+    );
+  });
+
+  it('links the existing work instead of creating a duplicate', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [{ id: 'w-9', title: 'Test Album' }],
+    });
+    await service.initializeRelease('test album', 'Album');
+
+    const result = await service.createCatalogWorkFromRelease();
+
+    expect(result).toEqual({ workId: 'w-9', created: false });
+    expect(service.activeRelease()?.catalogWorkId).toBe('w-9');
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    expect(saved.catalog).toHaveLength(1);
+  });
+
+  it('returns nothing to create without an active release', async () => {
+    expect(await service.createCatalogWorkFromRelease()).toBeNull();
+  });
+
   it('writes a split to the linked work, not to the title match', async () => {
     profileServiceSpy.profile.set({
       artistName: 'Test Artist',

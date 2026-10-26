@@ -115,6 +115,7 @@ describe('ReleasePipelineComponent', () => {
     detachCampaign: jest.Mock;
     linkCatalogWork: jest.Mock;
     unlinkCatalogWork: jest.Mock;
+    createCatalogWorkFromRelease: jest.Mock;
   };
   let notify: { show: jest.Mock };
 
@@ -181,6 +182,10 @@ describe('ReleasePipelineComponent', () => {
           credits: { ...current.credits, proName, proIpi },
         });
       }),
+      createCatalogWorkFromRelease: jest.fn(async () => ({
+        workId: 'cat-new',
+        created: true,
+      })),
       linkCatalogWork: jest.fn(async (workId: string) => {
         const current = activeRelease();
         if (!current) return;
@@ -585,6 +590,36 @@ describe('ReleasePipelineComponent', () => {
     await component.unlinkCatalogWork();
 
     expect(component.deliveryPackage()!.isrc).toBeNull();
+  });
+
+  it('creates a catalogue work and says what is still unrecorded', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      name: 'Window Light (Single Edit)',
+    });
+
+    await component.createCatalogWork();
+
+    expect(releaseService.createCatalogWorkFromRelease).toHaveBeenCalled();
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('Identifiers, date, and distributor are still unrecorded'),
+      'info'
+    );
+  });
+
+  it('says when it linked an existing work instead of creating one', async () => {
+    releaseService.createCatalogWorkFromRelease.mockResolvedValueOnce({
+      workId: 'w1',
+      created: false,
+    });
+    const { component } = await setup(readyRelease());
+
+    await component.createCatalogWork();
+
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('already matches this release'),
+      'info'
+    );
   });
 
   it('will not link without a selected work', async () => {

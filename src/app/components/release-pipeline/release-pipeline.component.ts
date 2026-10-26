@@ -357,6 +357,23 @@ export class ReleasePipelineComponent {
     );
   }
 
+  /**
+   * Creates the catalogue work from what the release already records, then
+   * links it. Nothing unrecorded is filled in, so the metadata gaps stay visible
+   * and the confirmation says so.
+   */
+  async createCatalogWork(): Promise<void> {
+    const result = await this.releaseService.createCatalogWorkFromRelease();
+    if (!result) return;
+
+    this.notify.show(
+      result.created
+        ? 'Catalogue work created from this release and linked. Identifiers, date, and distributor are still unrecorded, so readiness keeps asking for them.'
+        : 'Linked to the catalogue work that already matches this release.',
+      'info'
+    );
+  }
+
   async unlinkCatalogWork(): Promise<void> {
     await this.releaseService.unlinkCatalogWork();
     this.notify.show(

@@ -185,6 +185,15 @@
                 No catalogue works recorded yet.
               </div>
             }
+            @if (!linkedCatalogWork()) {
+              <button
+                type="button"
+                (click)="createCatalogWork()"
+                class="mt-2 text-[9px] uppercase tracking-widest text-brand-primary/80 hover:text-brand-primary"
+              >
+                Create a work from this release
+              </button>
+            }
           </div>
           @if (linkedCatalogWork()) {
             <button

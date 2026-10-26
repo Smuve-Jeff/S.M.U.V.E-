@@ -6,7 +6,12 @@ import {
   ReleaseType,
 } from '../types/release.types';
 import { LoggingService } from './logging.service';
-import { normalizeReleaseTitle, withAdoptedSplit } from './release-split.util';
+import {
+  findCatalogWork,
+  normalizeReleaseTitle,
+  withAdoptedSplit,
+} from './release-split.util';
+import { CatalogItem } from '../types/profile.types';
 
 @Injectable({
   providedIn: 'root',
@@ -182,6 +187,66 @@ export class ReleasePipelineService {
 
     this.activeRelease.set(updated);
     await this.saveToProfile(updated);
+  }
+
+  /**
+   * Creates the catalogue work for this release when the profile holds none,
+   * then links the release to it.
+   *
+   * Only fields the release actually records are carried over: title, artist
+   * credit, release type, and a split reference if one was recorded. Identifiers,
+   * dates, distributor, and platforms are left absent rather than filled with
+   * plausible values, so the readiness checks keep reporting them as gaps.
+   *
+   * When a work already matches, nothing is created — the release is linked to
+   * the work that exists instead.
+   */
+  async createCatalogWorkFromRelease(): Promise<
+    { workId: string; created: boolean } | null
+  > {
+    const current = this.activeRelease();
+    if (!current) return null;
+
+    const profile = this.profileService.profile();
+    const existing = findCatalogWork(profile, current);
+    if (existing?.id) {
+      if (current.catalogWorkId !== existing.id) {
+        await this.linkCatalogWork(existing.id);
+      }
+      return { workId: existing.id, created: false };
+    }
+
+    const now = new Date().toISOString();
+    const work: CatalogItem = {
+      id: `cat-${Date.now()}`,
+      title: (current.name || '').trim(),
+      artist: (current.credits?.artistName || '').trim() || undefined,
+      releaseType: current.type,
+      status: current.status,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const split = (current.splitSheetRef || '').trim();
+    if (split) work.splitSheetRef = split;
+
+    const linked: ReleaseProject = {
+      ...current,
+      catalogWorkId: work.id,
+      updatedAt: Date.now(),
+    };
+
+    this.activeRelease.set(linked);
+    await this.profileService.updateProfile({
+      ...profile,
+      catalog: [...(profile.catalog ?? []), work],
+      knowledgeBase: {
+        ...profile.knowledgeBase,
+        currentRelease: linked,
+      } as any,
+    });
+    this.logger.info('ReleasePipeline: Created a catalogue work for the release');
+
+    return { workId: work.id, created: true };
   }
 
   /** Drops the link; readings fall back to matching the title again. */
