@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request } from "express";
-import { AppError } from "@/lib";
+import { AppError, assertProfileBelongsTo } from "@/lib";
 import { authenticate } from "@/middleware/auth";
 import {
   createConnectorJob,
@@ -66,6 +66,11 @@ identityRouter.use(authenticate);
 // POST /api/identity — upsert identity + optional profile snapshot.
 identityRouter.post("/", async (req, res) => {
   const userId = resolveOwnedUserId(req);
+  // The profile snapshot carried alongside an identity write is stored under the
+  // session's account, so it must not be stamped with a different owner.
+  if (req.body?.profileData) {
+    assertProfileBelongsTo(req.body.profileData, userId);
+  }
   res.json(
     await saveArtistIdentity({
       userId,

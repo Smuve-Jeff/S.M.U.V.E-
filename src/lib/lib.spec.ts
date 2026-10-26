@@ -1,4 +1,32 @@
-import { AppError, errorHandler, notFoundHandler, parseIdParam } from "./index";
+import {
+  AppError,
+  assertProfileBelongsTo,
+  errorHandler,
+  notFoundHandler,
+  parseIdParam,
+} from "./index";
+
+describe("assertProfileBelongsTo", () => {
+  it("accepts a blob stamped as its owner", () => {
+    expect(() => assertProfileBelongsTo({ id: "u1" }, "u1")).not.toThrow();
+  });
+
+  it("rejects a blob stamped as another account", () => {
+    expect(() => assertProfileBelongsTo({ id: "u2" }, "u1")).toThrow(AppError);
+    try {
+      assertProfileBelongsTo({ id: "u2" }, "u1");
+    } catch (error) {
+      expect((error as AppError).statusCode).toBe(400);
+    }
+  });
+
+  it("accepts an unstamped blob and ignores non-string stamps", () => {
+    expect(() => assertProfileBelongsTo({ artistName: "New" }, "u1")).not.toThrow();
+    expect(() => assertProfileBelongsTo({ id: 42 }, "u1")).not.toThrow();
+    expect(() => assertProfileBelongsTo(null, "u1")).not.toThrow();
+    expect(() => assertProfileBelongsTo({ id: "   " }, "u1")).not.toThrow();
+  });
+});
 
 describe("AppError", () => {
   it("carries a status code and message", () => {

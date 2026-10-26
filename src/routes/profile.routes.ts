@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { AppError } from "@/lib";
+import { AppError, assertProfileBelongsTo } from "@/lib";
 import { authenticate } from "@/middleware/auth";
 import { getProfile, saveProfile } from "@/services";
 
@@ -34,6 +34,8 @@ router.post("/", authenticate, async (req, res) => {
   if (!me || (me.role !== "admin" && String(me.userId) !== String(userId))) {
     return res.status(403).json({ error: "Access denied." });
   }
+  // The row owner is already authenticated; the blob must agree with it.
+  assertProfileBelongsTo(profileData, String(userId));
   res.json(await saveProfile({ userId: String(userId), profileData }));
 });
 

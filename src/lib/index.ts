@@ -15,6 +15,28 @@ export class AppError extends Error {
   }
 }
 
+/**
+ * A profile blob is stamped with the account that owns it (`profile.id`). The
+ * row is already keyed by the authenticated account, so a blob stamped with a
+ * different owner is a mismatched payload: saving it would install another
+ * artist's identity on the next load, and — because the client refuses to write
+ * a record stamped with a foreign account — every later edit would silently fail
+ * to persist. A blob with no stamp (a fresh profile) is allowed; the row names
+ * the owner in that case.
+ */
+export const assertProfileBelongsTo = (
+  profileData: unknown,
+  userId: string,
+): void => {
+  const stamp = (profileData as { id?: unknown } | null | undefined)?.id;
+  if (typeof stamp !== "string") return;
+  const owner = stamp.trim();
+  if (!owner) return;
+  if (owner !== String(userId)) {
+    throw new AppError(400, "Profile data does not belong to this account.");
+  }
+};
+
 /** 404 handler — mounted after all routes. */
 export const notFoundHandler: RequestHandler = (req, _res, next) => {
   next(new AppError(404, `Route not found: ${req.method} ${req.originalUrl}`));
