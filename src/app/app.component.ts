@@ -34,6 +34,7 @@ import { DatabaseService } from './services/database.service';
 import { AutoSaveService } from './services/auto-save.service';
 import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
 import { ArtistCoachCommandIntegrationService } from './services/artist-coach-command-integration.service';
+import { ArtistLifecycleCommandIntegrationService } from './services/artist-lifecycle-command-integration.service';
 import { CommandPaletteService } from './services/command-palette.service';
 import { UserProfileService } from './services/user-profile.service';
 import { OfflineSyncService } from './services/offline-sync.service';
@@ -104,6 +105,8 @@ export class AppComponent {
   autoSaveService = inject(AutoSaveService);
   commandPalette = inject(CommandPaletteService);
   private coachCommands = inject(ArtistCoachCommandIntegrationService);
+  // Publishes the pathway's next move and blocked phases into the palette.
+  private lifecycleCommands = inject(ArtistLifecycleCommandIntegrationService);
   profileService = inject(UserProfileService);
   offlineSync = inject(OfflineSyncService);
   location = inject(Location);
