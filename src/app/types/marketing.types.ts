@@ -32,7 +32,12 @@ export interface MarketingCampaign {
   status: 'Draft' | 'Active' | 'Paused' | 'Completed';
   startDate: string;
   endDate?: string;
-  budget: number;
+  /**
+   * Spend the artist has allocated. `undefined` means no budget has been set —
+   * it is never filled with a plausible figure, and it is not the same as the
+   * artist deliberately allocating 0.
+   */
+  budget?: number;
   targetAudience: string;
   goals: string[];
   platforms: ('Instagram' | 'TikTok' | 'Facebook' | 'Spotify' | 'YouTube')[];

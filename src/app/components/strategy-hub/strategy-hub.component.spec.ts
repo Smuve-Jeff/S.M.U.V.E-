@@ -409,6 +409,18 @@ describe('StrategyHubComponent', () => {
     expect(component.newCampaign().name).toBe('');
   });
 
+  it('stores an unset budget as unset instead of claiming zero spend', async () => {
+    mockMarketingService.createCampaign.mockClear();
+    component.newCampaign.set({ name: 'No budget yet', budget: 0, platforms: ['Instagram'] });
+
+    await component.saveCampaign();
+
+    const created = mockMarketingService.createCampaign.mock.calls[0][0];
+    expect(created.budget).toBeUndefined();
+    expect(component.formatBudget(undefined)).toBe('Not set');
+    expect(component.formatBudget(250)).toContain('250');
+  });
+
   it('rejects invalid campaign budgets without mutating the profile', async () => {
     component.newCampaign.set({ name: 'Campaign', budget: -1, platforms: ['Instagram'] });
     await component.saveCampaign();

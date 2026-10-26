@@ -239,6 +239,21 @@ export class StrategyHubComponent implements OnInit {
       : 'No playlist-add data reported';
   }
 
+  /**
+   * An unset budget is rendered as unset, never as $0.00 — the artist may not
+   * have decided on spend yet, and that is different from allocating nothing.
+   */
+  formatBudget(budget?: number | null): string {
+    if (budget === undefined || budget === null || !Number.isFinite(budget)) {
+      return 'Not set';
+    }
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    }).format(budget);
+  }
+
   async saveCampaign(): Promise<void> {
     const draft = this.newCampaign();
     const name = draft.name?.trim() ?? '';
@@ -253,7 +268,9 @@ export class StrategyHubComponent implements OnInit {
     try {
       await this.marketingService.createCampaign({
         name,
-        budget,
+        // A blank or zero field means the artist has not set spend, so the
+        // campaign is stored without a budget rather than with a $0 claim.
+        budget: budget > 0 ? budget : undefined,
         status: 'Draft',
         startDate: new Date().toISOString(),
         targetAudience: draft.targetAudience?.trim() || 'Not specified',

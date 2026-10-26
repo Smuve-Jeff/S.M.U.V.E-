@@ -6,7 +6,6 @@ import {
   ReleaseType,
 } from '../types/release.types';
 import { LoggingService } from './logging.service';
-import { MarketingService } from './marketing.service';
 
 @Injectable({
   providedIn: 'root',
@@ -14,7 +13,6 @@ import { MarketingService } from './marketing.service';
 export class ReleasePipelineService {
   private profileService = inject(UserProfileService);
   private logger = inject(LoggingService);
-  private marketingService = inject(MarketingService);
 
   activeRelease = signal<ReleaseProject | null>(null);
 
@@ -164,39 +162,18 @@ export class ReleasePipelineService {
     this.activeRelease.set(updated);
     await this.saveToProfile(updated);
 
+    /*
+     * Marking a release live used to create a "Global Push" campaign on its own:
+     * $1,500 budget, a 30-day window, and invented goals and platforms. None of
+     * that came from the artist, so the campaign is not created here. A campaign
+     * carries money and a strategy, and both have to be the artist's own entries
+     * in the marketing workspace.
+     */
     if (status === 'Released') {
-      await this.triggerMarketing();
+      this.logger.info(
+        'ReleasePipeline: Release marked live. No campaign was created — a campaign needs the artist\'s own budget and platforms.'
+      );
     }
-  }
-
-  private async triggerMarketing() {
-    const current = this.activeRelease();
-    if (!current) return;
-
-    this.logger.info(
-      'ReleasePipeline: Triggering S.M.U.V.E. Marketing Campaign'
-    );
-    await this.marketingService.createCampaign({
-      name: `Global Push: ${current.name}`,
-      status: 'Active',
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      budget: 1500,
-      targetAudience: 'Global',
-      goals: ['Streaming Growth', 'Fan Engagement'],
-      platforms: ['TikTok', 'Instagram', 'Spotify'],
-      strategyLevel: 'Aggressive High Energy',
-      metrics: {
-        reach: 0,
-        impressions: 0,
-        engagement: 0,
-        conversions: 0,
-        spend: 0,
-        roi: 0,
-        ctr: 0,
-        cpc: 0,
-      },
-    });
   }
 
   private async saveToProfile(release: ReleaseProject) {

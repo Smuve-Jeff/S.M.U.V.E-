@@ -203,9 +203,10 @@ export class CareerPipelineService {
   }
 
   /**
-   * Commit a charter. Promotes status to 'committed' and triggers the
-   * lightweight marketing kickoff (no live DSP push — that comes from
-   * ReleasePipelineService.updateStatus('Released') in C2).
+   * Commit a charter. Promotes status to 'committed' and opens a draft campaign
+   * seeded from the charter's own metadata. The draft carries no budget, goal,
+   * or end date because the charter states none of them, and marking a release
+   * live creates no campaign at all.
    */
   async commitCharter(charterId: string): Promise<void> {
     const map = this.chartersByReleaseId();
@@ -232,14 +233,15 @@ export class CareerPipelineService {
     const platforms = committed.metadataDraft.platforms.filter((p) =>
       (allowedPlatforms as Set<string>).has(p)
     ) as Array<'Spotify' | 'Instagram' | 'TikTok' | 'Facebook' | 'YouTube'>;
+    // A draft campaign seeded only from the committed charter. No budget, end
+    // date, or goal is written: the charter does not contain any of them, and a
+    // plausible $250 spend would be a figure the artist never agreed to.
     await this.marketing.createCampaign({
       name: `Charter Push: ${committed.metadataDraft.title}`,
       status: 'Draft',
       startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-      budget: 250,
       targetAudience: this.tierToAudienceLabel(committed.forecast.marketTier),
-      goals: ['Streaming Growth', 'Curator Outreach', 'Pre-Save'],
+      goals: [],
       platforms: platforms.length
         ? platforms
         : ['Spotify'], // sensible default if DSP outlets don't intersect

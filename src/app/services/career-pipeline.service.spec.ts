@@ -121,16 +121,22 @@ describe('CareerPipelineService · Sprint B4', () => {
     expect(trap.body).toContain('Smuve Jeff');
   });
 
-  it('commitCharter promotes draft → committed and triggers the marketing kickoff', async () => {
+  it('commitCharter promotes draft → committed and opens a campaign draft without invented money', async () => {
     const charter = await sut.buildCharter(TEST_RELEASE, 'Pop', 'chill', 'Smuve Jeff');
     expect(charter.status).toBe('draft');
     await sut.commitCharter(charter.id);
     expect(sut.charterFor('rel-1')?.status).toBe('committed');
     expect(marketing.createCampaign).toHaveBeenCalledTimes(1);
-    expect(marketing.createCampaign.mock.calls[0][0]).toMatchObject({
-      budget: 250,
+    const draft = marketing.createCampaign.mock.calls[0][0];
+    expect(draft).toMatchObject({
+      status: 'Draft',
       platforms: expect.any(Array),
+      goals: [],
     });
+    // The charter contains no budget or end date, so the draft must not carry
+    // one — a plausible figure here would be a spend the artist never agreed to.
+    expect(draft.budget).toBeUndefined();
+    expect(draft.endDate).toBeUndefined();
   });
 
   it('commitCharter with an unknown id is a safe no-op', async () => {

@@ -99,7 +99,7 @@ describe('ReleasePipelineService', () => {
     expect(service.activeRelease()?.credits.proIpi).toBe('0099887766');
   });
 
-  it('should update track stage and trigger marketing on release', async () => {
+  it('updates a track stage without touching the release status', async () => {
     await service.initializeRelease('Test Album', 'Album');
     await service.addTrack('Track 1');
     const trackId = service.activeRelease()!.tracks[0].id;
@@ -108,9 +108,14 @@ describe('ReleasePipelineService', () => {
     expect(service.activeRelease()?.tracks[0].stages.instrumental).toBe(
       'Completed'
     );
+  });
+
+  it('marks a release live without inventing a campaign and its budget', async () => {
+    await service.initializeRelease('Test Album', 'Album');
 
     await service.updateStatus('Released');
+
     expect(service.activeRelease()?.status).toBe('Released');
-    expect(marketingServiceSpy.createCampaign).toHaveBeenCalled();
+    expect(marketingServiceSpy.createCampaign).not.toHaveBeenCalled();
   });
 });

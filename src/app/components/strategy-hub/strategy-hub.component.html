@@ -522,7 +522,7 @@
                   <span class="px-3 py-1 rounded-full text-[9px] uppercase tracking-widest border" [class.border-brand-primary/40]="campaign.status === 'Active'" [class.text-brand-primary]="campaign.status === 'Active'" [class.border-amber-400/30]="campaign.status === 'Paused'" [class.text-amber-300]="campaign.status === 'Paused'" [class.border-white/15]="campaign.status !== 'Active' && campaign.status !== 'Paused'" [class.text-silver-dim]="campaign.status !== 'Active' && campaign.status !== 'Paused'">{{ campaign.status }}</span>
                 </div>
                 <div class="grid grid-cols-2 gap-3 text-xs">
-                  <div><span class="block text-[8px] text-silver-dim uppercase">Budget</span><span class="text-white">{{ campaign.budget | currency }}</span></div>
+                  <div><span class="block text-[8px] text-silver-dim uppercase">Budget</span><span class="text-white">{{ formatBudget(campaign.budget) }}</span></div>
                   <div><span class="block text-[8px] text-silver-dim uppercase">Audience</span><span class="text-white">{{ campaign.targetAudience || 'Not specified' }}</span></div>
                   <div class="col-span-2"><span class="block text-[8px] text-silver-dim uppercase">Goals</span><span class="text-white">{{ campaign.goals?.length ? campaign.goals.join(' · ') : 'No goals recorded' }}</span></div>
                 </div>
