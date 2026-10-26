@@ -1,5 +1,5 @@
 import { Injectable, effect, inject, signal } from '@angular/core';
-import { UserProfileService } from './user-profile.service';
+import { UserProfile, UserProfileService } from './user-profile.service';
 import { ArtistLifecycleService } from './artist-lifecycle.service';
 import { ReleaseProject } from '../types/release.types';
 import {
@@ -54,8 +54,11 @@ const RELEASE_ROUTE = '/release-pipeline';
  * readiness change raises exactly one alert each, carrying the snapshot values
  * that triggered it.
  *
- * Alerts are session-scoped and in-app. Nothing is pushed to a device, emailed,
- * or sent anywhere, and no alert is raised from data the app does not have.
+ * A change made while the app was closed is reported once at startup, by
+ * comparing against the snapshot saved with the profile; the stored snapshot is
+ * then refreshed so the same change is not raised again. Alerts are in-app:
+ * nothing is pushed to a device, emailed, or sent anywhere, and no alert is
+ * raised from data the app does not have.
  */
 @Injectable({ providedIn: 'root' })
 export class ArtistLifecycleAlertService {
@@ -79,7 +82,30 @@ export class ArtistLifecycleAlertService {
       const release =
         (profile.knowledgeBase as { currentRelease?: ReleaseProject } | undefined)
           ?.currentRelease ?? null;
-      this.observe(this.lifecycle.snapshot(profile, release));
+      const snapshot = this.lifecycle.snapshot(profile, release);
+
+      if (this.previous) {
+        this.report(this.diff(this.previous, snapshot), snapshot);
+        this.previous = snapshot;
+        return;
+      }
+
+      /*
+       * First read of this session. The profile carries the snapshot from its
+       * last save, so comparing against it reports what changed while the app
+       * was closed — a cloud restore, another device, or a restored backup.
+       * Without a usable saved snapshot the first read is a silent baseline.
+       */
+      const stored = this.storedBaseline(profile);
+      this.previous = snapshot;
+      if (!stored) return;
+
+      const alerts = this.diffSafely(stored, snapshot);
+      if (!alerts.length) return;
+      this.report(alerts, snapshot);
+      // Mark the change as reported, so the next launch is quiet instead of
+      // re-raising an alert the artist already saw.
+      this.refreshStoredBaseline();
     });
   }
 
@@ -100,16 +126,68 @@ export class ArtistLifecycleAlertService {
       return;
     }
 
-    const raised = this.diff(this.previous, snapshot).map((alert) => ({
+    this.report(this.diff(this.previous, snapshot), snapshot);
+    this.previous = snapshot;
+  }
+
+  private report(
+    raised: Omit<LifecycleAlert, 'id' | 'raisedAt'>[],
+    snapshot: ArtistLifecycleSnapshot
+  ): void {
+    if (!raised.length) return;
+    const alerts = raised.map((alert) => ({
       ...alert,
       id: `lifecycle-alert-${++this.sequence}`,
       raisedAt: snapshot.generatedAt,
     }));
-    this.previous = snapshot;
-    if (!raised.length) return;
+    this.visible.update((current) =>
+      [...alerts.reverse(), ...current].slice(0, MAX_VISIBLE_ALERTS)
+    );
+  }
 
-    this.visible.update((alerts) =>
-      [...raised.reverse(), ...alerts].slice(0, MAX_VISIBLE_ALERTS)
+  /**
+   * The snapshot saved with the profile, if it is shaped enough to diff. Legacy
+   * records predate fields this comparison reads, and a malformed one must not
+   * take the watcher down on startup.
+   */
+  private storedBaseline(profile: UserProfile | null | undefined): ArtistLifecycleSnapshot | null {
+    const stored = profile?.artistLifecycleSnapshot as
+      | ArtistLifecycleSnapshot
+      | undefined;
+    if (!stored || typeof stored !== 'object') return null;
+    if (!Array.isArray(stored.phases) || !stored.phases.length) return null;
+    if (!Array.isArray(stored.risks)) return null;
+    if (!Array.isArray(stored.tasks)) return null;
+    if (!stored.releaseReadiness || typeof stored.releaseReadiness !== 'object') {
+      return null;
+    }
+    if (typeof stored.overallScore !== 'number') return null;
+    return stored;
+  }
+
+  private diffSafely(
+    previous: ArtistLifecycleSnapshot,
+    current: ArtistLifecycleSnapshot
+  ): Omit<LifecycleAlert, 'id' | 'raisedAt'>[] {
+    try {
+      return this.diff(previous, current);
+    } catch {
+      // A saved snapshot from an older schema is not worth a crash or a guess.
+      return [];
+    }
+  }
+
+  /**
+   * Re-saves the profile so its stored snapshot matches what was just reported.
+   * The save recomputes the snapshot from the same profile; it is not a second
+   * source of state. Missing on hosts that supply a read-only profile service.
+   */
+  private refreshStoredBaseline(): void {
+    const persist = (this.profileService as Partial<UserProfileService>)
+      .updateProfile;
+    if (typeof persist !== 'function') return;
+    void Promise.resolve(persist.call(this.profileService, {})).catch(
+      () => undefined
     );
   }
 
