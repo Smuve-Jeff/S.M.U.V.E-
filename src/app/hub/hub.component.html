@@ -204,6 +204,41 @@
       }
     </section>
 
+    @if (lifecycleAlerts().length) {
+      <section class="hub-lifecycle-alerts" aria-label="Lifecycle changes observed since the app opened">
+        <div class="lifecycle-alert-heading">
+          <p class="hub-kicker">CHANGED SINCE YOU OPENED</p>
+          <p>Only transitions are listed. No alert is raised for state that was already true.</p>
+        </div>
+        <ul class="lifecycle-alert-list">
+          @for (alert of lifecycleAlerts(); track alert.id) {
+            <li class="lifecycle-alert" [class.is-warning]="alert.severity === 'warning'">
+              <div class="lifecycle-alert-body">
+                <span class="lifecycle-alert-kind">{{ alert.kind }}</span>
+                <strong>{{ alert.title }}</strong>
+                <p>{{ alert.message }}</p>
+                @if (alert.evidence.length) {
+                  <ul class="lifecycle-alert-evidence">
+                    @for (item of alert.evidence.slice(0, 2); track item) {
+                      <li>{{ item }}</li>
+                    }
+                  </ul>
+                }
+              </div>
+              <div class="lifecycle-alert-actions">
+                <button type="button" class="mini-link" (click)="openLifecycleAlert(alert)">
+                  Open <span class="material-symbols-outlined">north_east</span>
+                </button>
+                <button type="button" class="hub-text-button" (click)="dismissLifecycleAlert(alert.id)">
+                  Dismiss
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
     <section class="hub-signal-strip" aria-label="Live workspace signals">
       <div class="signal-item">
         <span class="material-symbols-outlined">folder_managed</span>

@@ -20,6 +20,7 @@ import { DatabaseService } from './services/database.service';
 import { TokenService } from './services/token.service';
 import { LoginConfirmationService } from './services/login-confirmation.service';
 import { GlobalErrorHandler } from './services/error-handler.service';
+import { ArtistLifecycleAlertService } from './services/artist-lifecycle-alert.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -61,6 +62,10 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: (logger: LoggingService, injector: Injector) => () => {
         logger.system('S.M.U.V.E 2.0 INITIALIZED');
+        // Start the lifecycle watcher at boot so transitions are observed on
+        // every surface, not only after the hub is opened. It stays silent
+        // until the profile is hydrated and something actually changes.
+        injector.get(ArtistLifecycleAlertService);
         return injector.get(AuthService).loadSession().catch(() => undefined);
       },
       deps: [LoggingService, Injector],

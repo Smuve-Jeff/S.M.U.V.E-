@@ -1,13 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HubComponent } from './hub.component';
 import { provideRouter, Router } from '@angular/router';
-import { signal } from '@angular/core';
+import { WritableSignal, signal } from '@angular/core';
 import { API_KEY_TOKEN } from '../services/ai.service';
 import { OnboardingService } from '../services/onboarding.service';
+import {
+  ArtistLifecycleAlertService,
+  LifecycleAlert,
+} from '../services/artist-lifecycle-alert.service';
 
 describe('HubComponent', () => {
   let component: HubComponent;
   let fixture: ComponentFixture<HubComponent>;
+  let alertService: { alerts: WritableSignal<LifecycleAlert[]>; dismiss: jest.Mock };
 
   beforeEach(async () => {
     // Mock AudioContext
@@ -117,6 +122,15 @@ describe('HubComponent', () => {
           provide: API_KEY_TOKEN,
           useValue: 'MOCK_API_KEY_LONG_ENOUGH_FOR_TESTING',
         },
+        // A stub keeps the alert rail deterministic: the real service diffs
+        // snapshots, which is covered by its own spec.
+        {
+          provide: ArtistLifecycleAlertService,
+          useValue: (alertService = {
+            alerts: signal<LifecycleAlert[]>([]),
+            dismiss: jest.fn(),
+          }),
+        },
         {
           provide: OnboardingService,
           useValue: {
@@ -205,6 +219,36 @@ describe('HubComponent', () => {
     expect(component.activeBackdropIndex()).toBe(0);
     component.selectBackdrop(99);
     expect(component.activeBackdropIndex()).toBe(0);
+  });
+
+  it('shows lifecycle transitions only when one has been observed', () => {
+    const nativeElement = fixture.nativeElement as HTMLElement;
+    expect(nativeElement.querySelector('.hub-lifecycle-alerts')).toBeNull();
+
+    alertService.alerts.set([
+      {
+        id: 'lifecycle-alert-1',
+        kind: 'blocked',
+        severity: 'warning',
+        phase: 'identity',
+        title: 'Identity is now blocked',
+        message:
+          'Nothing in Identity can advance until "Lock the official artist name" is done.',
+        evidence: ['Lock the official artist name', 'Write the story only this artist can tell'],
+        actionRoute: '/artist-development',
+        raisedAt: new Date(0).toISOString(),
+      },
+    ]);
+    fixture.detectChanges();
+
+    const rail = nativeElement.querySelector('.hub-lifecycle-alerts');
+    expect(rail).not.toBeNull();
+    expect(rail!.textContent).toContain('Identity is now blocked');
+    expect(rail!.textContent).toContain('Lock the official artist name');
+
+    const dismiss = rail!.querySelector<HTMLButtonElement>('.hub-text-button');
+    dismiss!.click();
+    expect(alertService.dismiss).toHaveBeenCalledWith('lifecycle-alert-1');
   });
 
   it('renders the dynamic command-center surfaces', () => {

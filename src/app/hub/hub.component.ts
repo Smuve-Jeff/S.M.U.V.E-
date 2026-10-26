@@ -26,6 +26,10 @@ import { SessionHistoryService } from '../services/session-history.service';
 import { ProjectService } from '../services/project.service';
 import { Project } from '../types';
 import { ArtistLifecycleService } from '../services/artist-lifecycle.service';
+import {
+  ArtistLifecycleAlertService,
+  LifecycleAlert,
+} from '../services/artist-lifecycle-alert.service';
 import { ArtistLifecycleSnapshot } from '../types/artist-lifecycle.types';
 
 interface LandingFeature {
@@ -77,6 +81,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   public sessionHistoryService = inject(SessionHistoryService);
   public projectService = inject(ProjectService);
   private lifecycleService = inject(ArtistLifecycleService);
+  private lifecycleAlertService = inject(ArtistLifecycleAlertService);
 
   quickProfile = signal({ artistName: '', primaryGenre: 'Hip Hop' });
   projectList = signal<Project[]>([]);
@@ -302,6 +307,17 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
 
   lifecycleMove() {
     return this.lifecycle().nextBestMove;
+  }
+
+  /** Changes the lifecycle observed since the app opened, newest first. */
+  lifecycleAlerts = this.lifecycleAlertService.alerts;
+
+  dismissLifecycleAlert(id: string): void {
+    this.lifecycleAlertService.dismiss(id);
+  }
+
+  openLifecycleAlert(alert: LifecycleAlert): void {
+    this.router.navigateByUrl(alert.actionRoute);
   }
 
   lifecycleStatusLabel(snapshot: ArtistLifecycleSnapshot): string {
