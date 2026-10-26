@@ -5,6 +5,10 @@ import { ReleasePipelineService } from '../../services/release-pipeline.service'
 import { ProductionTrack, ReleaseProject, ReleaseType } from '../../types/release.types';
 import { CareerPipelineService } from '../../services/career-pipeline.service';
 import { NotificationService } from '../../services/notification.service';
+import { ArtistLifecycleService } from '../../services/artist-lifecycle.service';
+import { UserProfileService } from '../../services/user-profile.service';
+import { ReadinessState } from '../../types/release-readiness.types';
+import { LIFECYCLE_PHASE_LABEL } from '../../types/artist-lifecycle.types';
 import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 
@@ -20,6 +24,8 @@ export class ReleasePipelineComponent {
   public career = inject(CareerPipelineService);
   private notify = inject(NotificationService);
   private router = inject(Router);
+  private lifecycleService = inject(ArtistLifecycleService);
+  private profileService = inject(UserProfileService);
 
   showNewReleaseModal = signal(false);
   newReleaseName = signal('');
@@ -34,6 +40,51 @@ export class ReleasePipelineComponent {
    *  thesis that mirrors the music. */
   charterGenre = signal('Pop');
   charterMood = signal('pop');
+
+  /**
+   * Release readiness, scored from the release project, the catalogue and the
+   * legal fields — the same assessment the lifecycle and development hub read,
+   * so the workspace cannot contradict them.
+   */
+  lifecycle = computed(() =>
+    this.lifecycleService.snapshot(
+      this.profileService.profile(),
+      this.releaseService.activeRelease()
+    )
+  );
+  readiness = computed(() => this.lifecycle().releaseReadiness);
+
+  /** Delivery is impossible while a blocking check is unmet. */
+  canLaunch = computed(() => this.readiness().blockingGaps.length === 0);
+
+  /** Exposed for the template, which cannot read module-scope constants. */
+  readonly LIFECYCLE_PHASE_LABEL = LIFECYCLE_PHASE_LABEL;
+
+  readinessLabel(state: ReadinessState): string {
+    switch (state) {
+      case 'ready':
+        return 'Ready to push';
+      case 'almost':
+        return 'Deliverable, campaign weak';
+      case 'not-ready':
+        return 'Not ready';
+      default:
+        return 'Not assessed';
+    }
+  }
+
+  readinessTone(state: ReadinessState): string {
+    switch (state) {
+      case 'ready':
+        return 'text-emerald-400';
+      case 'almost':
+        return 'text-amber-400';
+      case 'not-ready':
+        return 'text-rose-400';
+      default:
+        return 'text-slate-400';
+    }
+  }
 
   /** Convenience: the active release's most-recently-generated charter. */
   activeCharter = computed(() => {

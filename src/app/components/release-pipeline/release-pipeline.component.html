@@ -28,17 +28,22 @@
       <div class="flex gap-4">
         <button
           (click)="triggerDistribution()"
-          [disabled]="release.status === 'Released' || isDistributing()"
+          [disabled]="release.status === 'Released' || isDistributing() || !canLaunch()"
+          [attr.title]="canLaunch() ? 'Deliver this release' : 'Blocked: clear the readiness gaps below first'"
           class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-sm py-4 px-10 rounded-xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)] disabled:opacity-50 disabled:grayscale"
         >
           {{
-            release.status === 'Released' ? 'Live on DSPs' : 'Launch Sequence'
+            release.status === 'Released'
+              ? 'Live on DSPs'
+              : canLaunch()
+                ? 'Launch Sequence'
+                : 'Blocked · See Readiness'
           }}
         </button>
       </div>
     </div>
 
-    <!-- Stats Grid -->
+    <!-- Stats Grid — scored from real release/catalogue/legal data only -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="bg-brand-surface/30 p-6 rounded-2xl border border-white/10">
         <div
@@ -54,27 +59,118 @@
         <div
           class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2"
         >
-          Sonic Cohesion
+          Readiness
         </div>
-        <div class="text-3xl font-black text-brand-primary italic">88%</div>
+        <div class="text-3xl font-black text-brand-primary italic">
+          {{ readiness().overallScore === null ? '—' : readiness().overallScore + '%' }}
+        </div>
       </div>
       <div class="bg-brand-surface/30 p-6 rounded-2xl border border-white/10">
         <div
           class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2"
         >
-          Market Readiness
+          Blocking Gaps
         </div>
-        <div class="text-3xl font-black text-white italic">High</div>
+        <div class="text-3xl font-black text-white italic">
+          {{ readiness().blockingGaps.length }}
+        </div>
       </div>
       <div class="bg-brand-surface/30 p-6 rounded-2xl border border-white/10">
         <div
           class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2"
         >
-          Credits Status
+          Delivery State
         </div>
-        <div class="text-3xl font-black text-slate-300">Verified</div>
+        <div
+          class="text-lg font-black italic"
+          [ngClass]="readinessTone(readiness().state)"
+        >
+          {{ readinessLabel(readiness().state) }}
+        </div>
       </div>
     </div>
+
+    <!-- Release readiness: the same verdict the lifecycle and hub read -->
+    <section
+      class="bg-brand-surface/20 border border-white/10 rounded-3xl p-6 md:p-8 space-y-4"
+      aria-label="Release readiness"
+    >
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <span
+            class="text-[9px] font-black uppercase tracking-[0.3em] text-brand-primary"
+            >Release intelligence</span
+          >
+          <h2 class="text-lg font-black text-white uppercase italic tracking-tight mt-1">
+            Readiness verdict
+          </h2>
+        </div>
+        <span
+          class="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-white/10"
+          [ngClass]="readinessTone(readiness().state)"
+        >
+          {{ readinessLabel(readiness().state) }}
+        </span>
+      </div>
+
+      <p class="text-sm text-slate-300 leading-relaxed">
+        {{ readiness().verdict }}
+      </p>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        @for (check of readiness().checks; track check.id) {
+          <div
+            class="rounded-xl border border-white/10 bg-black/20 px-3 py-3"
+            [attr.data-testid]="'readiness-check-' + check.id"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[8px] uppercase tracking-widest font-black text-slate-400">
+                {{ check.label }}
+              </span>
+              <span
+                class="text-[8px] uppercase tracking-widest font-black"
+                [ngClass]="readinessTone(check.state)"
+              >
+                {{ check.blocking ? 'Gate' : 'Advisory' }}
+              </span>
+            </div>
+            <div class="text-[11px] font-black text-slate-200 mt-1">
+              {{ check.score === null ? 'Not assessed' : check.score + '%' }}
+            </div>
+            <div class="text-[8px] uppercase tracking-widest text-slate-500 mt-1">
+              {{ check.provenance }}
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (readiness().blockingGaps.length) {
+        <div class="rounded-2xl border border-rose-500/30 bg-rose-500/5 px-4 py-3">
+          <div class="text-[9px] font-black uppercase tracking-widest text-rose-300">
+            Blocking gaps — the Launch Sequence stays locked until these clear
+          </div>
+          <ul class="mt-2 space-y-1">
+            @for (gap of readiness().blockingGaps.slice(0, 4); track gap) {
+              <li class="text-[11px] text-rose-100/80 leading-relaxed">· {{ gap }}</li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (lifecycle().nextBestMove; as move) {
+        <div class="rounded-2xl border border-brand-primary/25 bg-brand-primary/5 px-4 py-3">
+          <div class="text-[9px] font-black uppercase tracking-widest text-brand-primary">
+            Career move · {{ LIFECYCLE_PHASE_LABEL[move.phase] }}
+          </div>
+          <div class="text-[12px] font-black text-white mt-1">{{ move.title }}</div>
+          <p class="text-[11px] text-slate-400 leading-relaxed mt-1">{{ move.why }}</p>
+        </div>
+      }
+
+      <p class="text-[9px] text-slate-500 leading-relaxed">
+        {{ readiness().provenanceNotes[0] }}
+      </p>
+    </section>
 
     <!-- Sprint B4 — Career Charter launcher + panel -->
     <section class="charter-card"
