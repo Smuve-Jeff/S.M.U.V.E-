@@ -76,6 +76,16 @@ export interface LocalProjectSummary {
   trackCount: number;
 }
 
+/** One stored snapshot of a project — the rows the version history lists. */
+export interface ProjectVersionSummary {
+  recordId: string;
+  version: number;
+  source: ProjectPersistenceSource;
+  savedAt: number;
+  trackCount: number;
+  name: string;
+}
+
 interface StoredProjectBundle extends ProjectBundle {
   id: string;
   savedAt: number;
@@ -559,6 +569,60 @@ export class ProjectWorkspaceService {
         version: record.metadata.version || 1,
         trackCount: record.tracks.length,
       }));
+  }
+
+  /**
+   * Every stored record for one project, newest first — manual saves, autosave
+   * snapshots and recovery records alike, unlike `listLocalProjects`, which
+   * collapses them to one row per set.
+   */
+  async listProjectVersions(
+    projectId: string,
+  ): Promise<ProjectVersionSummary[]> {
+    try {
+      const stored = await this.storage.getAllItems("projects");
+      return stored
+        .filter(
+          (item): item is StoredProjectBundle =>
+            this.isStoredProjectBundle(item) && item.metadata?.id === projectId,
+        )
+        .sort((a, b) => this.storedSavedAt(b) - this.storedSavedAt(a))
+        .map((record) => ({
+          recordId: record.id,
+          version: record.metadata.version || 1,
+          source: record.source || this.detectPersistenceSource(record.id),
+          savedAt: this.storedSavedAt(record),
+          trackCount: record.tracks?.length ?? 0,
+          name: record.metadata.name || "Untitled Set",
+        }));
+    } catch (e) {
+      this.logger.warn("ProjectWorkspace: Could not list project versions", e);
+      return [];
+    }
+  }
+
+  /** Restore one specific stored version instead of the freshest record. */
+  async restoreProjectVersion(recordId: string): Promise<boolean> {
+    try {
+      const stored = await this.storage.getAllItems("projects");
+      const record = stored.find(
+        (item): item is StoredProjectBundle =>
+          this.isStoredProjectBundle(item) && item.id === recordId,
+      );
+      if (!record) return false;
+
+      this.validateBundle(record);
+      this.restoreFromSnapshot(record);
+      this.markPersistenceClean(
+        record,
+        record.source || this.detectPersistenceSource(record.id),
+        this.storedSavedAt(record),
+      );
+      return true;
+    } catch (e) {
+      this.logger.warn("ProjectWorkspace: Version restore failed", e);
+      return false;
+    }
   }
 
   /**

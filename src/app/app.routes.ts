@@ -15,6 +15,13 @@ const protectedRoutes: Routes = [
       import('./studio/studio.component').then((m) => m.StudioComponent),
   },
   {
+    path: 'studio-page',
+    loadComponent: () =>
+      import('./studio/studio-page/studio-page.component').then(
+        (m) => m.StudioPageComponent
+      ),
+  },
+  {
     path: 'vocal-suite',
     loadComponent: () =>
       import('./studio/vocal-suite/vocal-suite.component').then(

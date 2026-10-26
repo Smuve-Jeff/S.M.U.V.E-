@@ -115,7 +115,12 @@ export class ExportService {
    * 16-bit stem would throw away before the first plug-in runs.
    */
   async exportStems(
-    options: { bitDepth?: 16 | 24; sampleRate?: number } = {}
+    options: {
+      bitDepth?: 16 | 24;
+      sampleRate?: number;
+      /** Reports completed files out of the total (master + one per track). */
+      onProgress?: (completed: number, total: number) => void;
+    } = {}
   ): Promise<Blob> {
     const bitDepth = options.bitDepth ?? 24;
     const sampleRate = options.sampleRate ?? 44100;
@@ -136,11 +141,13 @@ export class ExportService {
       return name;
     };
 
+    const totalFiles = 1 + tracks.length;
     const master = await this.renderProjectOffline({ sampleRate });
     entries.push({
       name: uniqueName('MASTER'),
       data: new Uint8Array(await this.audioBufferToWav(master, bitDepth)),
     });
+    options.onProgress?.(entries.length, totalFiles);
 
     for (const track of tracks) {
       const stem = await this.renderProjectOffline({
@@ -152,6 +159,7 @@ export class ExportService {
         name: uniqueName(track.name || 'Track'),
         data: new Uint8Array(await this.audioBufferToWav(stem, bitDepth)),
       });
+      options.onProgress?.(entries.length, totalFiles);
     }
 
     this.logger.info(`Exported ${entries.length} stems (master + ${tracks.length} tracks)`);

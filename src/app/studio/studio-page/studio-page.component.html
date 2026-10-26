@@ -1,0 +1,622 @@
+<div class="studio-shell">
+  <header class="studio-top-bar">
+    <div class="project-meta">
+      <span class="brand">S.M.U.V.E.</span>
+      <span class="project-name">{{ projectName() }}</span>
+    </div>
+
+    <div class="top-bar-actions">
+      <span class="save-status" [class.dirty]="projectDirty()">
+        {{ saveStatus() }}
+      </span>
+      <button
+        type="button"
+        (click)="save()"
+        [disabled]="saveStatus() === 'saving'"
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        (click)="toggleExportPanel()"
+        [attr.aria-pressed]="exportPanelOpen()"
+      >
+        Export
+      </button>
+      <button
+        type="button"
+        (click)="toggleCollaborationPanel()"
+        [attr.aria-pressed]="collaborationPanelOpen()"
+      >
+        Share
+      </button>
+      <button
+        type="button"
+        (click)="toggleProjectPanel()"
+        [attr.aria-pressed]="projectPanelOpen()"
+      >
+        Project
+      </button>
+      <button
+        type="button"
+        (click)="toggleAdvancedTools()"
+        [attr.aria-pressed]="advancedToolsOpen()"
+      >
+        Tools
+      </button>
+      <button
+        type="button"
+        (click)="toggleInspector()"
+        [attr.aria-pressed]="inspectorOpen()"
+      >
+        Inspector
+      </button>
+    </div>
+  </header>
+
+  <div class="studio-shell-body">
+    <nav class="studio-mode-rail" aria-label="Studio mode">
+      <button
+        type="button"
+        *ngFor="let mode of modes"
+        [class.active]="mode.id === activeMode()"
+        [attr.aria-pressed]="mode.id === activeMode()"
+        (click)="setMode(mode.id)"
+      >
+        <span class="material-symbols-outlined">{{ mode.icon }}</span>
+        <span>{{ mode.label }}</span>
+      </button>
+    </nav>
+
+    <main class="studio-workspace-column">
+      <div class="studio-workspace-surface" [ngSwitch]="activeMode()">
+        <section *ngSwitchCase="'create'" class="workspace-panel">
+          <header class="workspace-header">
+            <div class="workspace-title">
+              <span class="material-symbols-outlined">auto_awesome</span>
+              <h2>Create</h2>
+            </div>
+          </header>
+
+          <div class="workspace-body">
+            <app-audio-recorder-view
+              class="workspace-embed"
+            ></app-audio-recorder-view>
+          </div>
+        </section>
+
+        <section *ngSwitchCase="'arrange'" class="workspace-panel">
+          <header class="workspace-header">
+            <div class="workspace-title">
+              <span class="material-symbols-outlined">view_quilt</span>
+              <h2>Arrange</h2>
+            </div>
+          </header>
+
+          <div class="workspace-body">
+            <app-arrangement-view
+              class="workspace-embed"
+            ></app-arrangement-view>
+          </div>
+        </section>
+
+        <section *ngSwitchCase="'mix'" class="workspace-panel">
+          <header class="workspace-header">
+            <div class="workspace-title">
+              <span class="material-symbols-outlined">tune</span>
+              <h2>Mix</h2>
+            </div>
+          </header>
+
+          <div class="workspace-body">
+            <app-mixer class="workspace-embed"></app-mixer>
+          </div>
+        </section>
+
+        <section *ngSwitchCase="'export'" class="workspace-panel">
+          <header class="workspace-header">
+            <div class="workspace-title">
+              <span class="material-symbols-outlined">download</span>
+              <h2>Export</h2>
+            </div>
+          </header>
+
+          <div class="workspace-body">
+            <div class="export-card">
+              <app-studio-export-surface></app-studio-export-surface>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="workspace-overlay" *ngIf="fxRackOpen()">
+        <header class="overlay-head">
+          <h3>Effects Rack</h3>
+          <button type="button" class="panel-close" (click)="closeFxRack()">
+            Close
+          </button>
+        </header>
+        <div class="overlay-body">
+          <app-effects-rack-ui></app-effects-rack-ui>
+        </div>
+      </div>
+
+      <div class="workspace-overlay" *ngIf="activeTool() as tool">
+        <header class="overlay-head">
+          <h3>{{ toolLabel(tool) }}</h3>
+          <button type="button" class="panel-close" (click)="closeTool()">
+            Close
+          </button>
+        </header>
+        <div class="overlay-body" [ngSwitch]="tool">
+          <app-synthesizer *ngSwitchCase="'synth'"></app-synthesizer>
+          <app-plugin-store *ngSwitchCase="'plugins'"></app-plugin-store>
+          <app-sampler *ngSwitchCase="'sampler'"></app-sampler>
+          <app-sound-browser
+            *ngSwitchCase="'sound-browser'"
+          ></app-sound-browser>
+          <app-ai-produce *ngSwitchCase="'ai-produce'"></app-ai-produce>
+        </div>
+      </div>
+
+      <div class="workspace-overlay" *ngIf="versionsOpen()">
+        <header class="overlay-head">
+          <h3>Version History · {{ projectName() }}</h3>
+          <button
+            type="button"
+            class="panel-close"
+            (click)="closeVersionHistory()"
+          >
+            Close
+          </button>
+        </header>
+
+        <div class="overlay-scroll">
+          <p
+            class="project-feedback"
+            *ngIf="versionsFeedback() as feedback"
+            [class.error]="feedback.tone === 'error'"
+            role="status"
+          >
+            {{ feedback.text }}
+          </p>
+
+          <p class="project-empty" *ngIf="versionsBusy()">Loading versions…</p>
+          <p
+            class="project-empty"
+            *ngIf="!versionsBusy() && versions().length === 0"
+          >
+            No saved versions for this set yet. Save the project to start a
+            history.
+          </p>
+
+          <div class="version-row" *ngFor="let version of versions()">
+            <div class="version-copy">
+              <strong>Version {{ version.version }}</strong>
+              <span>
+                {{ version.source }} · {{ version.trackCount }} tracks ·
+                {{ version.savedAt | date: "short" }}
+              </span>
+            </div>
+            <button
+              type="button"
+              class="panel-close"
+              (click)="restoreVersion(version.recordId)"
+              [disabled]="versionsBusy()"
+            >
+              Restore
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="panel-close"
+            (click)="refreshVersions()"
+            [disabled]="versionsBusy()"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <app-inspector
+      *ngIf="inspectorOpen()"
+      [collapsed]="inspectorCollapsed()"
+      (toggleCollapsed)="toggleInspectorCollapsed()"
+      (openEffectsRack)="openFxRack()"
+    ></app-inspector>
+  </div>
+
+  <aside class="advanced-tools-drawer" *ngIf="advancedToolsOpen()">
+    <header>
+      <h3>Advanced Tools</h3>
+      <button type="button" class="panel-close" (click)="toggleAdvancedTools()">
+        Close
+      </button>
+    </header>
+
+    <div class="tool-grid">
+      <button type="button" (click)="openTool('synth')">Synths</button>
+      <button type="button" (click)="openTool('plugins')">Plugins</button>
+      <button type="button" (click)="openTool('sampler')">Sampler</button>
+      <button type="button" (click)="openTool('sound-browser')">
+        Sound Browser
+      </button>
+      <button type="button" (click)="openTool('ai-produce')">AI Produce</button>
+      <button type="button" (click)="openProjectBrowser()">
+        Project Browser
+      </button>
+      <button type="button" (click)="openVersionHistory()">Versions</button>
+      <button type="button" (click)="openCollaboration()">Collab</button>
+      <button type="button" (click)="openSettings()">Settings</button>
+    </div>
+  </aside>
+
+  <aside class="support-panel project-panel" *ngIf="projectPanelOpen()">
+    <header>
+      <h3>Project Workspace</h3>
+      <button type="button" class="panel-close" (click)="toggleProjectPanel()">
+        Close
+      </button>
+    </header>
+    <p
+      class="project-feedback"
+      *ngIf="projectFeedback() as feedback"
+      [class.error]="feedback.tone === 'error'"
+      role="status"
+    >
+      {{ feedback.text }}
+    </p>
+
+    <section class="project-section">
+      <h4>Local Sets</h4>
+      <p class="project-empty" *ngIf="projectPanelBusy()">Loading sets…</p>
+      <p
+        class="project-empty"
+        *ngIf="!projectPanelBusy() && localProjects().length === 0"
+      >
+        No local sets yet. Save this project to create one.
+      </p>
+      <div class="project-row" *ngFor="let set of localProjects()">
+        <div class="project-row-copy">
+          <strong>{{ set.name }}</strong>
+          <span>
+            v{{ set.version }} · {{ set.trackCount }} tracks ·
+            {{ set.savedAt | date: "short" }}
+          </span>
+        </div>
+        <button
+          type="button"
+          class="panel-close"
+          (click)="openLocalProject(set.projectId)"
+          [disabled]="projectPanelBusy()"
+        >
+          Open
+        </button>
+      </div>
+      <button
+        type="button"
+        class="panel-close"
+        (click)="refreshLocalProjects()"
+        [disabled]="projectPanelBusy()"
+      >
+        Refresh
+      </button>
+    </section>
+
+    <section class="project-section">
+      <h4>Cloud Versions</h4>
+      <p class="project-meta-line">
+        {{ projectWorkspace.versionCount() }} saved version(s)
+      </p>
+      <p
+        class="project-meta-line"
+        *ngIf="projectWorkspace.lastPersistedAt() > 0"
+      >
+        Last persisted:
+        {{ projectWorkspace.lastPersistedAt() | date: "short" }}
+      </p>
+      <p class="project-meta-line" *ngIf="projectWorkspace.cloudSyncQueued()">
+        Cloud sync queued
+      </p>
+      <button
+        type="button"
+        class="panel-close"
+        (click)="saveNow()"
+        [disabled]="projectPanelBusy()"
+      >
+        Save version now
+      </button>
+    </section>
+
+    <section class="project-section">
+      <h4>Recovery</h4>
+      <p class="project-meta-line">
+        Autosave runs every
+        {{ projectWorkspace.autoSaveIntervalMs() / 1000 }}s while the project is
+        dirty.
+      </p>
+      <p class="project-meta-line" *ngIf="projectWorkspace.lastRecoveredAt()">
+        Last recovered:
+        {{ projectWorkspace.lastRecoveredAt() | date: "short" }}
+      </p>
+      <button
+        type="button"
+        class="panel-close"
+        (click)="restoreSnapshot()"
+        [disabled]="projectPanelBusy()"
+      >
+        Restore latest snapshot
+      </button>
+    </section>
+
+    <section class="project-section">
+      <h4>Metadata</h4>
+      <label class="project-field">
+        <span>Name</span>
+        <input
+          [value]="metadata()?.name || ''"
+          (change)="renameProject($event)"
+          [disabled]="projectPanelBusy()"
+        />
+      </label>
+      <p class="project-meta-line">BPM {{ metadata()?.bpm || 120 }}</p>
+      <p class="project-meta-line">
+        Key {{ metadata()?.key || "C" }} · {{ metadata()?.genre || "pop" }}
+      </p>
+      <p class="project-meta-line">Version {{ metadata()?.version || 1 }}</p>
+    </section>
+  </aside>
+
+  <aside
+    class="support-panel collaboration-panel"
+    *ngIf="collaborationPanelOpen()"
+  >
+    <header>
+      <h3>Collaboration</h3>
+      <button
+        type="button"
+        class="panel-close"
+        (click)="toggleCollaborationPanel()"
+      >
+        Close
+      </button>
+    </header>
+    <p
+      class="project-feedback"
+      *ngIf="collabFeedback() as feedback"
+      [class.error]="feedback.tone === 'error'"
+      role="status"
+    >
+      {{ feedback.text }}
+    </p>
+
+    <section class="project-section">
+      <h4>Session State</h4>
+
+      <ng-container *ngIf="collaboration.currentSession(); else noSession">
+        <p class="project-meta-line">
+          Code {{ collaboration.sessionCode() }} · role
+          {{ collaboration.currentRole() }} · {{ collaboration.peerCount() }}
+          peer(s)
+        </p>
+        <label class="collab-toggle">
+          <input
+            type="checkbox"
+            [checked]="collaboration.autoSync()"
+            (change)="toggleAutoSync()"
+          />
+          Auto-sync edits
+        </label>
+        <div class="collab-actions">
+          <button
+            type="button"
+            class="panel-close"
+            (click)="sendProjectUpdate()"
+          >
+            Send snapshot
+          </button>
+          <button
+            type="button"
+            class="panel-close"
+            (click)="leaveCollabSession()"
+          >
+            Leave session
+          </button>
+        </div>
+      </ng-container>
+
+      <ng-template #noSession>
+        <p class="project-meta-line">
+          No live session. Start one to invite peers, or join with a code.
+        </p>
+        <button
+          type="button"
+          class="panel-close"
+          (click)="startCollabSession()"
+          [disabled]="collabBusy()"
+        >
+          Start session
+        </button>
+        <label class="project-field">
+          <span>Join with code</span>
+          <input
+            [value]="joinCode()"
+            (input)="onJoinCodeInput($event)"
+            [disabled]="collabBusy()"
+          />
+        </label>
+        <button
+          type="button"
+          class="panel-close"
+          (click)="joinCollabSession()"
+          [disabled]="collabBusy()"
+        >
+          Join session
+        </button>
+      </ng-template>
+    </section>
+
+    <section class="project-section">
+      <h4>Members</h4>
+      <p
+        class="project-meta-line"
+        *ngIf="collaboration.sessionMembers().length === 0"
+      >
+        No one has joined this session yet.
+      </p>
+      <div
+        class="project-row"
+        *ngFor="let member of collaboration.sessionMembers()"
+      >
+        <div class="project-row-copy">
+          <strong>{{ member.artistName || member.userId }}</strong>
+          <span>{{ member.role }} · {{ member.status }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="project-section">
+      <h4>Presence</h4>
+      <p class="project-meta-line">
+        {{ collaboration.peerRoster().length }} peer(s) online ·
+        {{ collaboration.voiceActive() ? "Voice active" : "Voice idle" }}
+      </p>
+      <p class="project-meta-line">
+        {{ (collaboration.peerCursors() | keyvalue).length }} live cursor(s)
+      </p>
+    </section>
+
+    <section class="project-section">
+      <h4>Conflicts</h4>
+      <p
+        class="project-meta-line"
+        *ngIf="collaboration.pendingConflicts().length === 0"
+      >
+        No conflicting edits.
+      </p>
+      <div
+        class="conflict-row"
+        *ngFor="let conflict of collaboration.pendingConflicts()"
+      >
+        <span class="conflict-label">
+          {{ conflict.fieldKey }} · track {{ conflict.trackId }}
+        </span>
+        <div class="collab-actions">
+          <button
+            type="button"
+            class="panel-close"
+            (click)="
+              resolveCollabConflict(conflict.trackId, conflict.fieldKey, 'mine')
+            "
+          >
+            Mine
+          </button>
+          <button
+            type="button"
+            class="panel-close"
+            (click)="
+              resolveCollabConflict(
+                conflict.trackId,
+                conflict.fieldKey,
+                'theirs'
+              )
+            "
+          >
+            Theirs
+          </button>
+          <button
+            type="button"
+            class="panel-close"
+            (click)="
+              resolveCollabConflict(
+                conflict.trackId,
+                conflict.fieldKey,
+                'discard'
+              )
+            "
+          >
+            Discard
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="project-section">
+      <h4>Permissions</h4>
+      <p class="project-meta-line" *ngIf="enabledPermissions().length === 0">
+        No permissions in this role.
+      </p>
+      <p class="project-meta-line">{{ enabledPermissions().join(", ") }}</p>
+    </section>
+  </aside>
+
+  <aside class="support-panel export-panel" *ngIf="exportPanelOpen()">
+    <header>
+      <h3>Export</h3>
+      <button type="button" class="panel-close" (click)="toggleExportPanel()">
+        Close
+      </button>
+    </header>
+    <app-studio-export-surface></app-studio-export-surface>
+  </aside>
+
+  <footer class="studio-transport-bar">
+    <div class="transport-left">
+      <button
+        type="button"
+        (click)="toggleTransport('playing')"
+        [attr.aria-pressed]="transportState() === 'playing'"
+      >
+        Play
+      </button>
+      <button
+        type="button"
+        (click)="toggleTransport('stopped')"
+        [attr.aria-pressed]="transportState() === 'stopped'"
+      >
+        Stop
+      </button>
+      <button
+        type="button"
+        (click)="toggleTransport('recording')"
+        [attr.aria-pressed]="transportState() === 'recording'"
+      >
+        Record
+      </button>
+    </div>
+
+    <div class="transport-center">
+      <span>Tempo: {{ tempo() }}</span>
+      <span>Bar: {{ position().bar }}</span>
+      <span>Beat: {{ position().beat }}</span>
+      <button
+        type="button"
+        class="loop-toggle"
+        [class.active]="loopEnabled()"
+        [attr.aria-pressed]="loopEnabled()"
+        (click)="toggleLoop()"
+      >
+        Loop
+      </button>
+    </div>
+
+    <div class="transport-right">
+      <span class="master-meter">
+        <span class="master-meter-label">Master</span>
+        <span class="master-meter-track" aria-hidden="true">
+          <span
+            class="master-meter-fill"
+            [style.transform]="'scaleX(' + masterLevel() + ')'"
+          ></span>
+        </span>
+      </span>
+      <span class="project-state" [class.dirty]="projectDirty()">{{
+        saveStatus()
+      }}</span>
+    </div>
+  </footer>
+
+  <app-snackbar></app-snackbar>
+</div>
