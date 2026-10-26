@@ -4,6 +4,8 @@ import { provideRouter, Router } from '@angular/router';
 import { WritableSignal, signal } from '@angular/core';
 import { API_KEY_TOKEN } from '../services/ai.service';
 import { OnboardingService } from '../services/onboarding.service';
+import { ArtistPathwayService } from '../services/artist-pathway.service';
+import { UserProfileService } from '../services/user-profile.service';
 import {
   ArtistLifecycleAlertService,
   LifecycleAlert,
@@ -192,6 +194,16 @@ describe('HubComponent', () => {
         }),
       ])
     );
+  });
+
+  it('reports the next move the pathway ranks first, not one of its own', () => {
+    const pathway = TestBed.inject(ArtistPathwayService);
+    const profile = TestBed.inject(UserProfileService).profile();
+    const ranked = pathway.readout(profile).nextAction?.step ?? null;
+    const shown = component.lifecycle().nextBestMove;
+
+    expect(shown?.id).toBe(ranked?.id ?? undefined);
+    expect(component.lifecycleMove()?.title).toBe(ranked?.title ?? undefined);
   });
 
   it('navigates to spotlight routes from the landing page', async () => {

@@ -15,6 +15,7 @@ import { DatabaseService } from './services/database.service';
 import { AutoSaveService } from './services/auto-save.service';
 import { CommandPaletteService } from './services/command-palette.service';
 import { UserProfileService } from './services/user-profile.service';
+import { ArtistPathwayService } from './services/artist-pathway.service';
 import { OfflineSyncService } from './services/offline-sync.service';
 import { InteractionDialogService } from './services/interaction-dialog.service';
 
@@ -235,10 +236,16 @@ describe('AppComponent', () => {
   it('offers the pathway next move as a mobile quick action', async () => {
     const { component, uiService } = await createComponent();
 
-    // Same move the Hub and palette offer — the pathway's first open step.
+    // Same move the Hub and palette offer — the pathway's first open step,
+    // not a mobile-specific pick.
     const move = component.mobileNextMove();
     expect(move).not.toBeNull();
     expect(move!.title.length).toBeGreaterThan(0);
+
+    const ranked = TestBed.inject(ArtistPathwayService).readout(
+      TestBed.inject(UserProfileService).profile()
+    ).nextAction?.step;
+    expect(move!.id).toBe(ranked?.id);
 
     component.isMobile.set(true);
     component.isMobileWorkspaceTrayOpen.set(true);
