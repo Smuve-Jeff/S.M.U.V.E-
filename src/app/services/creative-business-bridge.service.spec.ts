@@ -142,6 +142,24 @@ describe('CreativeBusinessBridgeService', () => {
     expect(bridge.blocking).toEqual([]);
   });
 
+  it('reads a split reference recorded on the release itself', () => {
+    const bridge = service.assess(
+      profile({
+        catalog: [{ id: 'w1', title: 'Window Light' }],
+      }),
+      release({
+        splitSheetRef: 'splits/window-light-v2.pdf',
+        credits: { artistName: 'North Star', collaborators: ['Blue Nine'] },
+      })
+    );
+
+    const rights = byDimension(bridge, 'rights');
+    expect(rights.severity).toBe('clear');
+    expect(rights.provenance).toBe('verified');
+    expect(rights.evidence.join(' ')).toContain('release.splitSheetRef');
+    expect(rights.evidence.join(' ')).not.toContain('[].splitSheetRef');
+  });
+
   it('separates a split habit from a split that exists for this release', () => {
     const bridge = service.assess(
       profile({ legalInfrastructure: { hasStandardSplitSheet: 'In Use', isIncorporated: true, trademarkStatus: 'Registered' } }),

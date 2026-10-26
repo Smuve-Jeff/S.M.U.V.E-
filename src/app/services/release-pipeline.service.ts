@@ -114,6 +114,43 @@ export class ReleasePipelineService {
     await this.saveToProfile(updated);
   }
 
+  /**
+   * Records the split document for this release. Only the reference is stored:
+   * S.M.U.V.E. never holds the document, so this is the artist's statement and
+   * readiness reads it as such.
+   */
+  async recordSplitReference(reference: string): Promise<void> {
+    const current = this.activeRelease();
+    const trimmed = (reference || '').trim();
+    if (!current || !trimmed) return;
+
+    const updated: ReleaseProject = {
+      ...current,
+      splitSheetRef: trimmed,
+      updatedAt: Date.now(),
+    };
+
+    this.activeRelease.set(updated);
+    await this.saveToProfile(updated);
+  }
+
+  /** Records the PRO and IPI the release will collect through. */
+  async recordProRegistration(proName: string, proIpi: string): Promise<void> {
+    const current = this.activeRelease();
+    const name = (proName || '').trim();
+    const ipi = (proIpi || '').trim();
+    if (!current || !name || !ipi) return;
+
+    const updated: ReleaseProject = {
+      ...current,
+      credits: { ...current.credits, proName: name, proIpi: ipi },
+      updatedAt: Date.now(),
+    };
+
+    this.activeRelease.set(updated);
+    await this.saveToProfile(updated);
+  }
+
   async updateStatus(status: ReleaseProject['status']): Promise<void> {
     const current = this.activeRelease();
     if (!current) return;

@@ -207,6 +207,7 @@ export class ReleaseReadinessService {
     const proIpi = release.credits?.proIpi || p.proIpi;
     const collaborators = release.credits?.collaborators ?? [];
     const hasSplitDocument =
+      present(release.splitSheetRef) ||
       Boolean(work?.splitSheetRef) ||
       present(p.legalInfrastructure?.hasStandardSplitSheet) &&
         p.legalInfrastructure?.hasStandardSplitSheet !== 'Never';
@@ -234,7 +235,12 @@ export class ReleaseReadinessService {
       state: this.stateFor(score),
       score,
       provenance: 'inferred',
-      evidence: found.map((field) => `${field.label} is recorded.`),
+      evidence: [
+        ...found.map((field) => `${field.label} is recorded.`),
+        ...(present(release.splitSheetRef)
+          ? [`Split reference recorded on the release: "${release.splitSheetRef}".`]
+          : []),
+      ],
       gaps: missing.map((field) => field.gap),
     };
   }

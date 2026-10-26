@@ -54,6 +54,51 @@ describe('ReleasePipelineService', () => {
     expect(service.activeRelease()?.tracks[0].title).toBe('New Track');
   });
 
+  it('records the split reference the artist supplies and persists it', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+
+    await service.recordSplitReference('  splits/test-album.pdf  ');
+
+    expect(service.activeRelease()?.splitSheetRef).toBe('splits/test-album.pdf');
+    expect(profileServiceSpy.updateProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        knowledgeBase: expect.objectContaining({
+          currentRelease: expect.objectContaining({
+            splitSheetRef: 'splits/test-album.pdf',
+          }),
+        }),
+      })
+    );
+  });
+
+  it('ignores a blank split reference instead of clearing the recorded one', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+    await service.recordSplitReference('splits/test-album.pdf');
+
+    await service.recordSplitReference('   ');
+
+    expect(service.activeRelease()?.splitSheetRef).toBe('splits/test-album.pdf');
+  });
+
+  it('records a PRO and IPI pair on the release credits', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+
+    await service.recordProRegistration('BMI', '0099887766');
+
+    expect(service.activeRelease()?.credits.proName).toBe('BMI');
+    expect(service.activeRelease()?.credits.proIpi).toBe('0099887766');
+  });
+
+  it('refuses a PRO registration missing either half', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+    await service.recordProRegistration('BMI', '0099887766');
+
+    await service.recordProRegistration('ASCAP', '  ');
+
+    expect(service.activeRelease()?.credits.proName).toBe('BMI');
+    expect(service.activeRelease()?.credits.proIpi).toBe('0099887766');
+  });
+
   it('should update track stage and trigger marketing on release', async () => {
     await service.initializeRelease('Test Album', 'Album');
     await service.addTrack('Track 1');

@@ -37,6 +37,12 @@ export interface ReleaseProject {
     proIpi?: string;
     collaborators: string[];
   };
+  /**
+   * The split document recorded for this release, as the artist states it. It
+   * may be a file name, a folder reference, or a sheet id — the app stores the
+   * reference and never claims to hold or verify the document itself.
+   */
+  splitSheetRef?: string;
   marketingCampaignId?: string;
   createdAt: number;
   updatedAt: number;

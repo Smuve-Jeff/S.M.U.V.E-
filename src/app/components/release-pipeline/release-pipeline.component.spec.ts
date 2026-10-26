@@ -86,10 +86,15 @@ describe('ReleasePipelineComponent', () => {
     initializeRelease: jest.Mock;
     addTrack: jest.Mock;
     updateTrackStage: jest.Mock;
+    recordSplitReference: jest.Mock;
+    recordProRegistration: jest.Mock;
   };
   let notify: { show: jest.Mock };
 
-  const setup = async (release: ReleaseProject) => {
+  const setup = async (
+    release: ReleaseProject,
+    profileOverride: Record<string, unknown> = profile()
+  ) => {
     activeRelease.set(release);
     await TestBed.configureTestingModule({
       imports: [ReleasePipelineComponent],
@@ -107,7 +112,7 @@ describe('ReleasePipelineComponent', () => {
           },
         },
         { provide: NotificationService, useValue: notify },
-        { provide: UserProfileService, useValue: { profile: signal(profile()) } },
+        { provide: UserProfileService, useValue: { profile: signal(profileOverride) } },
       ],
     }).compileComponents();
 
@@ -124,6 +129,19 @@ describe('ReleasePipelineComponent', () => {
       initializeRelease: jest.fn(),
       addTrack: jest.fn(),
       updateTrackStage: jest.fn(),
+      recordSplitReference: jest.fn(async (reference: string) => {
+        const current = activeRelease();
+        if (!current) return;
+        activeRelease.set({ ...current, splitSheetRef: reference.trim() });
+      }),
+      recordProRegistration: jest.fn(async (proName: string, proIpi: string) => {
+        const current = activeRelease();
+        if (!current) return;
+        activeRelease.set({
+          ...current,
+          credits: { ...current.credits, proName, proIpi },
+        });
+      }),
     };
     notify = { show: jest.fn() };
   });
@@ -217,6 +235,111 @@ describe('ReleasePipelineComponent', () => {
 
     expect(rights.observation).toContain('1 collaborator');
     expect(rights.severity).not.toBe('clear');
+  });
+
+  it('settles the rights exposure by recording the split reference on the release', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      credits: {
+        artistName: 'North Star',
+        proName: 'ASCAP',
+        proIpi: '0011223344',
+        collaborators: ['Blue Nine'],
+      },
+    });
+
+    const before = component
+      .creativeBridge()
+      .consequences.find((entry) => entry.dimension === 'rights')!;
+    expect(before.severity).toBe('watch');
+    expect(component.needsSplitReference()).toBe(true);
+
+    component.splitReferenceDraft.set('splits/window-light-v2.pdf');
+    await component.recordSplitReference();
+
+    expect(releaseService.recordSplitReference).toHaveBeenCalledWith(
+      'splits/window-light-v2.pdf'
+    );
+    expect(component.splitReferenceDraft()).toBe('');
+    expect(component.needsSplitReference()).toBe(false);
+    const after = component
+      .creativeBridge()
+      .consequences.find((entry) => entry.dimension === 'rights')!;
+    expect(after.severity).toBe('clear');
+    expect(after.provenance).toBe('verified');
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('cannot verify the document itself'),
+      'info'
+    );
+  });
+
+  it('will not record an empty split reference', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      credits: {
+        artistName: 'North Star',
+        proName: 'ASCAP',
+        proIpi: '0011223344',
+        collaborators: ['Blue Nine'],
+      },
+    });
+
+    await component.recordSplitReference();
+
+    expect(releaseService.recordSplitReference).not.toHaveBeenCalled();
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('Enter the split document reference'),
+      'warning'
+    );
+  });
+
+  it('records a PRO and IPI so the royalty path stops reading as unknown', async () => {
+    const { component } = await setup(
+      {
+        ...readyRelease(),
+        credits: { artistName: 'North Star', collaborators: [] },
+      },
+      { ...profile(), proName: '', proIpi: '' }
+    );
+
+    const before = component
+      .creativeBridge()
+      .consequences.find((entry) => entry.dimension === 'monetization')!;
+    expect(before.severity).toBe('watch');
+    expect(component.needsProRegistration()).toBe(true);
+
+    component.proNameDraft.set('BMI');
+    component.proIpiDraft.set('0099887766');
+    await component.recordProRegistration();
+
+    expect(releaseService.recordProRegistration).toHaveBeenCalledWith(
+      'BMI',
+      '0099887766'
+    );
+    const after = component
+      .creativeBridge()
+      .consequences.find((entry) => entry.dimension === 'monetization')!;
+    expect(after.severity).toBe('clear');
+    expect(component.needsProRegistration()).toBe(false);
+  });
+
+  it('needs both halves of a PRO registration before recording it', async () => {
+    const { component } = await setup(
+      {
+        ...readyRelease(),
+        credits: { artistName: 'North Star', collaborators: [] },
+      },
+      { ...profile(), proName: '', proIpi: '' }
+    );
+
+    component.proNameDraft.set('BMI');
+    await component.recordProRegistration();
+
+    expect(releaseService.recordProRegistration).not.toHaveBeenCalled();
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('A PRO and an IPI are both needed'),
+      'warning'
+    );
   });
 
   it('reads identifiers from the matching catalogue record', async () => {

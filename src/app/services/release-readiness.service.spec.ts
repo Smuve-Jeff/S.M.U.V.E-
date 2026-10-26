@@ -169,6 +169,31 @@ describe('ReleaseReadinessService', () => {
     expect(withoutSplits.state).toBe('not-ready');
   });
 
+  it('accepts a split reference recorded on the release itself', () => {
+    const base: any = profile({
+      legalInfrastructure: { hasStandardSplitSheet: 'Never' },
+      catalog: [],
+    });
+
+    const readiness = service.assess(
+      base,
+      release({
+        splitSheetRef: 'splits/window-light-v2.pdf',
+        credits: {
+          artistName: 'North Star',
+          proName: 'ASCAP',
+          proIpi: '0011223344',
+          collaborators: ['Rae'],
+        },
+      })
+    );
+    const rights = readiness.checks.find((c) => c.id === 'rights')!;
+
+    expect(rights.score).toBe(100);
+    expect(rights.gaps).toEqual([]);
+    expect(rights.evidence.join(' ')).toContain('splits/window-light-v2.pdf');
+  });
+
   it('calls a deliverable release "almost" when the campaign is missing', () => {
     const readiness = service.assess(
       profile(),

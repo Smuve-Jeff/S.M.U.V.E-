@@ -62,6 +62,27 @@ export class ReleasePipelineComponent {
    */
   creativeBridge = computed(() => this.lifecycle().creativeBridge);
 
+  /** Draft values for the two consequences the workspace can actually settle. */
+  splitReferenceDraft = signal('');
+  proNameDraft = signal('');
+  proIpiDraft = signal('');
+
+  /** True while no split reference is recorded against this release. */
+  needsSplitReference = computed(() => {
+    const release = this.releaseService.activeRelease();
+    return !!release && !(release.splitSheetRef || '').trim();
+  });
+
+  /** True while the release has no PRO/IPI pair to collect through. */
+  needsProRegistration = computed(() => {
+    const release = this.releaseService.activeRelease();
+    if (!release) return false;
+    return !(
+      (release.credits?.proName || '').trim() &&
+      (release.credits?.proIpi || '').trim()
+    );
+  });
+
   /** Delivery is impossible while a blocking check is unmet. */
   canLaunch = computed(() => this.readiness().blockingGaps.length === 0);
 
@@ -92,6 +113,48 @@ export class ReleasePipelineComponent {
       default:
         return 'text-slate-400';
     }
+  }
+
+  /**
+   * Stores the split reference the artist supplies. The reference is the whole
+   * artefact: nothing is uploaded, and readiness reads it as the artist's own
+   * statement rather than a verified document.
+   */
+  async recordSplitReference(): Promise<void> {
+    const reference = this.splitReferenceDraft().trim();
+    if (!reference) {
+      this.notify.show(
+        'Enter the split document reference before recording it.',
+        'warning'
+      );
+      return;
+    }
+    await this.releaseService.recordSplitReference(reference);
+    this.splitReferenceDraft.set('');
+    this.notify.show(
+      'Split reference recorded. S.M.U.V.E. stores the reference and cannot verify the document itself.',
+      'info'
+    );
+  }
+
+  /** Records the PRO and IPI this release will collect performance royalties through. */
+  async recordProRegistration(): Promise<void> {
+    const proName = this.proNameDraft().trim();
+    const proIpi = this.proIpiDraft().trim();
+    if (!proName || !proIpi) {
+      this.notify.show(
+        'A PRO and an IPI are both needed before the registration can be recorded.',
+        'warning'
+      );
+      return;
+    }
+    await this.releaseService.recordProRegistration(proName, proIpi);
+    this.proNameDraft.set('');
+    this.proIpiDraft.set('');
+    this.notify.show(
+      'PRO and IPI recorded on the release. S.M.U.V.E. cannot confirm the registration with the PRO — no PRO feed is connected.',
+      'info'
+    );
   }
 
   creativeLabel(severity: CreativeSeverity): string {

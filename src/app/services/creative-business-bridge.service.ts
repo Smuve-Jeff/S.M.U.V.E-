@@ -116,7 +116,14 @@ export class CreativeBusinessBridgeService {
   ): CreativeConsequence {
     const collaborators = release.credits?.collaborators ?? [];
     const artist = (release.credits?.artistName || '').trim();
-    const splitRef = (work?.splitSheetRef || '').trim();
+    // The release's own reference wins: it was recorded against this release,
+    // while the catalogue entry may describe a different delivery of it.
+    const releaseSplitRef = (release.splitSheetRef || '').trim();
+    const catalogSplitRef = (work?.splitSheetRef || '').trim();
+    const splitRef = releaseSplitRef || catalogSplitRef;
+    const splitSource = releaseSplitRef
+      ? `release.splitSheetRef = "${releaseSplitRef}"`
+      : `catalog[].splitSheetRef = "${catalogSplitRef}"`;
     const profileSplit = (profile as any)?.legalInfrastructure
       ?.hasStandardSplitSheet;
     const splitHabit =
@@ -161,10 +168,7 @@ export class CreativeBusinessBridgeService {
         decision: 'Keep the split reference attached to the catalogue entry.',
         severity: 'clear',
         provenance: 'verified',
-        evidence: [
-          ...sharedEvidence,
-          `catalog[].splitSheetRef = "${splitRef}"`,
-        ],
+        evidence: [...sharedEvidence, splitSource],
       };
     }
 
@@ -182,7 +186,7 @@ export class CreativeBusinessBridgeService {
         evidence: [
           ...sharedEvidence,
           `legalInfrastructure.hasStandardSplitSheet = "${profileSplit}"`,
-          'catalog[].splitSheetRef is empty for this release.',
+          'release.splitSheetRef is empty.',
         ],
       };
     }
@@ -200,7 +204,10 @@ export class CreativeBusinessBridgeService {
       provenance: 'inferred',
       evidence: [
         ...sharedEvidence,
-        'catalog[].splitSheetRef is empty for this release.',
+        'release.splitSheetRef is empty.',
+        work
+          ? 'catalog[].splitSheetRef is empty for this release.'
+          : 'No catalogue entry matched this release, so no split reference exists there either.',
         'legalInfrastructure.hasStandardSplitSheet does not record an in-use sheet.',
       ],
     };
