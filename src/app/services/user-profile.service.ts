@@ -189,6 +189,20 @@ export class UserProfileService {
   }
 
   async loadProfile(id: string = 'current') {
+    /*
+     * The mirror of the write rule: a signed-in session may load its own record
+     * (or the local fallback slot), never an arbitrary other account's backup.
+     * `'current'` stays allowed because it is the pre-session slot boot uses.
+     */
+    const requested = typeof id === 'string' ? id.trim() : '';
+    const sessionOwner = this.activeUserId();
+    if (requested && requested !== 'current' && requested !== sessionOwner) {
+      this.logger.warn(
+        'Profile load refused: the requested account is not the active session.'
+      );
+      return;
+    }
+
     try {
       const key = id || this.activeUserId();
       const saved = await this.db.loadUserProfile(key);

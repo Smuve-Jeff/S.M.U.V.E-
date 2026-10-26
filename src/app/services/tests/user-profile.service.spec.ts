@@ -37,9 +37,12 @@ describe('UserProfileService', () => {
     loadUserProfile: jest.Mock;
     saveUserProfile: jest.Mock;
   };
+  /** The signed-in account for the current test; an account switch updates it. */
+  let currentUserId: string;
 
   beforeEach(() => {
     savedProfiles = [];
+    currentUserId = 'u1';
     TestBed.configureTestingModule({
       providers: [
         UserProfileService,
@@ -55,7 +58,7 @@ describe('UserProfileService', () => {
         },
         // The service resolves auth lazily through the injector, so a plain
         // function mock is enough to key persistence.
-        { provide: AuthService, useValue: { currentUser: () => ({ id: 'u1' }) } },
+        { provide: AuthService, useValue: { currentUser: () => ({ id: currentUserId }) } },
         {
           provide: DatabaseService,
           useValue: (database = {
@@ -313,6 +316,17 @@ describe('UserProfileService', () => {
       expect(savedProfiles.length).toBe(before);
     });
 
+    it('refuses to load another account\u2019s profile into an active session', async () => {
+      await service.updateProfile({ artistName: 'Session Artist' });
+      const reads = database.loadUserProfile.mock.calls.length;
+
+      await service.loadProfile('u2');
+
+      // Nothing is read for u2, and the session's own record stays installed.
+      expect(database.loadUserProfile.mock.calls.length).toBe(reads);
+      expect(service.profile().artistName).toBe('Session Artist');
+    });
+
     it('loads a partial cloud profile through the same normalization boundary', async () => {
       database.loadUserProfile.mockResolvedValueOnce({
         artistName: 'Nova',
@@ -345,6 +359,9 @@ describe('UserProfileService', () => {
         artistName: 'Previous Artist',
       });
 
+      // Signing in as the other account: AuthService installs the session
+      // before asking for that account's profile.
+      currentUserId = 'u2';
       await service.loadProfile('u2');
 
       expect(service.profile().artistName).toBe('New Artist');
