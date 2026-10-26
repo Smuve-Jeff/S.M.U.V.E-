@@ -12,7 +12,9 @@ import type { UserProfile } from '../types/profile.types';
  */
 describe('ArtistLifecycleAlertService', () => {
   const profile = (overrides: Partial<UserProfile> = {}): UserProfile =>
-    JSON.parse(JSON.stringify({ ...initialProfile, ...overrides })) as UserProfile;
+    JSON.parse(
+      JSON.stringify({ ...initialProfile, id: 'artist-1', ...overrides })
+    ) as UserProfile;
 
   /** An artist with a saved name, so the identity phase starts unblocked. */
   const named = (): UserProfile => profile({ artistName: 'Nova' });
@@ -182,6 +184,39 @@ describe('ArtistLifecycleAlertService', () => {
       await TestBed.flushEffects();
 
       expect(service.alerts()).toEqual([]);
+      expect(updateProfile).not.toHaveBeenCalled();
+    });
+
+    it('treats a different account loading as a switch, not a transition', async () => {
+      const stored = storedSnapshot(named());
+      const { service, profileSignal, updateProfile } = configureWith({
+        ...named(),
+        artistLifecycleSnapshot: stored,
+      } as UserProfile);
+      await TestBed.flushEffects();
+      const beforeSwitch = service.alerts().length;
+
+      // Signing in replaces the record entirely; this is not "what changed".
+      profileSignal.set({ ...unnamed(), id: 'artist-2' } as UserProfile);
+      await TestBed.flushEffects();
+
+      expect(service.alerts()).toHaveLength(beforeSwitch);
+      expect(updateProfile).not.toHaveBeenCalled();
+    });
+
+    it('does not write a baseline for a guest profile', async () => {
+      const stored = storedSnapshot(named());
+      const { service, updateProfile } = configureWith({
+        ...unnamed(),
+        id: 'current',
+        artistLifecycleSnapshot: stored,
+      } as UserProfile);
+
+      await TestBed.flushEffects();
+
+      // The change is still reported; only the write is withheld, because the
+      // profile is keyed by the local fallback rather than an account.
+      expect(service.alerts().length).toBeGreaterThan(0);
       expect(updateProfile).not.toHaveBeenCalled();
     });
 

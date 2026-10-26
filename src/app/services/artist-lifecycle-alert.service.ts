@@ -66,6 +66,12 @@ export class ArtistLifecycleAlertService {
   private lifecycle = inject(ArtistLifecycleService);
 
   private previous: ArtistLifecycleSnapshot | null = null;
+  /**
+   * The profile the current baseline belongs to. Hydration is not the only way
+   * a profile arrives — signing in loads a different account's record — so the
+   * watcher tracks whose state it is holding.
+   */
+  private identity: string | null = null;
   private sequence = 0;
 
   private readonly visible = signal<LifecycleAlert[]>([]);
@@ -83,12 +89,27 @@ export class ArtistLifecycleAlertService {
         (profile.knowledgeBase as { currentRelease?: ReleaseProject } | undefined)
           ?.currentRelease ?? null;
       const snapshot = this.lifecycle.snapshot(profile, release);
+      const identity = this.identityOf(profile);
+
+      if (this.identity !== null && identity !== this.identity) {
+        /*
+         * A different artist's record replaced this one — a sign-in, a sign-out,
+         * or an account switch. That is not a lifecycle transition, and the
+         * previous account's baseline must neither be diffed nor written under
+         * the new account's key.
+         */
+        this.identity = identity;
+        this.previous = snapshot;
+        return;
+      }
 
       if (this.previous) {
         this.report(this.diff(this.previous, snapshot), snapshot);
         this.previous = snapshot;
         return;
       }
+
+      this.identity = identity;
 
       /*
        * First read of this session. The profile carries the snapshot from its
@@ -105,7 +126,7 @@ export class ArtistLifecycleAlertService {
       this.report(alerts, snapshot);
       // Mark the change as reported, so the next launch is quiet instead of
       // re-raising an alert the artist already saw.
-      this.refreshStoredBaseline();
+      this.refreshStoredBaseline(identity);
     });
   }
 
@@ -180,15 +201,37 @@ export class ArtistLifecycleAlertService {
   /**
    * Re-saves the profile so its stored snapshot matches what was just reported.
    * The save recomputes the snapshot from the same profile; it is not a second
-   * source of state. Missing on hosts that supply a read-only profile service.
+   * source of state.
+   *
+   * Writes are keyed by the active account, so this only runs for a profile
+   * stamped with a real account id and only while that identity is still the
+   * one in the store — a sign-in landing mid-boot must not cause one artist's
+   * record to be saved under another account's key. Guests keep the in-memory
+   * baseline only, which can mean one repeated alert per launch on a local
+   * profile rather than a write to an account that is not theirs.
    */
-  private refreshStoredBaseline(): void {
+  private refreshStoredBaseline(identity: string): void {
     const persist = (this.profileService as Partial<UserProfileService>)
       .updateProfile;
     if (typeof persist !== 'function') return;
+    if (!this.isAccountIdentity(identity)) return;
+    if (this.identityOf(this.profileService.profile()) !== identity) return;
     void Promise.resolve(persist.call(this.profileService, {})).catch(
       () => undefined
     );
+  }
+
+  private identityOf(profile: UserProfile | null | undefined): string {
+    const id = profile?.id;
+    return typeof id === 'string' && id.trim() ? id.trim() : 'unidentified';
+  }
+
+  /**
+   * `current` is the local fallback key UserProfileService uses before an
+   * account is resolved, so a profile stamped with it is not an account record.
+   */
+  private isAccountIdentity(identity: string): boolean {
+    return identity !== 'unidentified' && identity !== 'current';
   }
 
   private diff(
