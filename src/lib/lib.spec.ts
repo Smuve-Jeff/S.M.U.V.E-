@@ -4,7 +4,27 @@ import {
   errorHandler,
   notFoundHandler,
   parseIdParam,
+  stampProfileOwner,
 } from "./index";
+
+describe("stampProfileOwner", () => {
+  it("re-stamps a blob that disagrees with its row", () => {
+    expect(stampProfileOwner({ id: "u2", artistName: "Nova" }, "u1")).toEqual({
+      id: "u1",
+      artistName: "Nova",
+    });
+  });
+
+  it("returns matching, unstamped and non-object values unchanged", () => {
+    const matching = { id: "u1", artistName: "Nova" };
+    expect(stampProfileOwner(matching, "u1")).toBe(matching);
+    const unstamped = { artistName: "Nova" };
+    expect(stampProfileOwner(unstamped, "u1")).toBe(unstamped);
+    expect(stampProfileOwner(null, "u1")).toBeNull();
+    expect(stampProfileOwner(["a"], "u1")).toEqual(["a"]);
+    expect(stampProfileOwner({ id: 7 }, "u1")).toEqual({ id: 7 });
+  });
+});
 
 describe("assertProfileBelongsTo", () => {
   it("accepts a blob stamped as its owner", () => {

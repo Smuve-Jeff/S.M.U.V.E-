@@ -8,7 +8,7 @@ import {
   UserBlock,
   RoomMessage,
 } from "@/entities";
-import { AppError } from "@/lib";
+import { AppError, stampProfileOwner } from "@/lib";
 import type { AuthUser } from "@/types";
 
 const repo = () => ({
@@ -27,7 +27,9 @@ const repo = () => ({
 export const getProfile = async (userId: string): Promise<unknown> => {
   const row = await repo().profiles.findOneBy({ userId });
   if (!row) throw new AppError(404, "Profile not found");
-  return row.profileData;
+  // The row id is the owner. A stale stamp from before it was checked must not
+  // reach the client, where it would block every subsequent save.
+  return stampProfileOwner(row.profileData, userId);
 };
 
 /** POST /api/profile — upsert { userId, profileData }. */

@@ -131,6 +131,34 @@ describe("profile service", () => {
     await expect(getProfile("user-1")).resolves.toEqual({ artistName: "Jeff" });
   });
 
+  it("repairs a stale owner stamp so the row owner can still edit it", async () => {
+    repos.profiles.findOneBy.mockResolvedValue({
+      profileData: { id: "user-2", artistName: "Jeff" },
+    });
+
+    await expect(getProfile("user-1")).resolves.toEqual({
+      id: "user-1",
+      artistName: "Jeff",
+    });
+    // Repairing happens in the response, not a write on read.
+    expect(repos.profiles.save).not.toHaveBeenCalled();
+  });
+
+  it("leaves a matching or missing stamp untouched", async () => {
+    repos.profiles.findOneBy.mockResolvedValueOnce({
+      profileData: { id: "user-1", artistName: "Jeff" },
+    });
+    await expect(getProfile("user-1")).resolves.toEqual({
+      id: "user-1",
+      artistName: "Jeff",
+    });
+
+    repos.profiles.findOneBy.mockResolvedValueOnce({
+      profileData: { artistName: "No Stamp" },
+    });
+    await expect(getProfile("user-1")).resolves.toEqual({ artistName: "No Stamp" });
+  });
+
   it("throws 404 when the profile is missing", async () => {
     repos.profiles.findOneBy.mockResolvedValue(null);
     await expect(getProfile("nope")).rejects.toMatchObject({ statusCode: 404 });

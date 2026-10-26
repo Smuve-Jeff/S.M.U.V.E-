@@ -37,6 +37,29 @@ export const assertProfileBelongsTo = (
   }
 };
 
+/**
+ * Repair the owner stamp on a stored profile blob.
+ *
+ * The row id is authoritative: the server already authenticated the account and
+ * keyed the row by it. The stamp inside the blob is a denormalised copy, and a
+ * row written before the stamp was checked can disagree with its own row. The
+ * returned blob is re-stamped to the row owner so the client can keep editing
+ * it — the client refuses to write a record stamped with a foreign account, so
+ * returning the stale stamp untouched would leave the artist unable to save.
+ *
+ * Nothing is written here: the next save persists the corrected stamp.
+ */
+export const stampProfileOwner = <T>(profileData: T, userId: string): T => {
+  if (!profileData || typeof profileData !== "object" || Array.isArray(profileData)) {
+    return profileData;
+  }
+  const record = profileData as Record<string, unknown>;
+  const stamp = record.id;
+  if (typeof stamp !== "string" || !stamp.trim()) return profileData;
+  if (stamp.trim() === String(userId)) return profileData;
+  return { ...record, id: String(userId) } as T;
+};
+
 /** 404 handler — mounted after all routes. */
 export const notFoundHandler: RequestHandler = (req, _res, next) => {
   next(new AppError(404, `Route not found: ${req.method} ${req.originalUrl}`));
