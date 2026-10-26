@@ -202,6 +202,93 @@ describe('ReleasePipelineService', () => {
     expect(saved.catalog).toHaveLength(1);
   });
 
+  it('records delivery identifiers onto the matching catalogue work', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [
+        { id: 'w1', title: 'Test Album', isrc: 'OLD-ISRC' },
+        { id: 'w2', title: 'Other Work' },
+      ],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+
+    const result = await service.recordDeliveryMetadata({
+      isrc: '  US-AAA-25-00009  ',
+      upc: '00123456789012',
+      releaseDate: '2026-03-01',
+      distributor: 'DistroKid',
+      platforms: ['Spotify', ' Apple Music '],
+    });
+
+    expect(result?.recorded).toEqual([
+      'ISRC',
+      'UPC',
+      'release date',
+      'distributor',
+      'platforms',
+    ]);
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    expect(saved.catalog.find((work: any) => work.id === 'w1')).toMatchObject({
+      isrc: 'US-AAA-25-00009',
+      upc: '00123456789012',
+      releaseDate: '2026-03-01',
+      distributor: 'DistroKid',
+      platforms: ['Spotify', 'Apple Music'],
+    });
+    expect(saved.catalog.find((work: any) => work.id === 'w2')).toEqual({
+      id: 'w2',
+      title: 'Other Work',
+    });
+    expect(service.activeRelease()?.catalogWorkId).toBe('w1');
+  });
+
+  it('creates the work and records the identifiers in the same write', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+
+    const result = await service.recordDeliveryMetadata({ isrc: 'US-AAA-25-00009' });
+
+    const saved = profileServiceSpy.updateProfile.mock.calls.at(-1)![0];
+    expect(saved.catalog).toHaveLength(1);
+    expect(saved.catalog[0]).toMatchObject({
+      title: 'Test Album',
+      isrc: 'US-AAA-25-00009',
+      artist: 'Test Artist',
+    });
+    // Nothing the artist did not state is filled in.
+    expect(saved.catalog[0].upc).toBeUndefined();
+    expect(saved.catalog[0].distributor).toBeUndefined();
+    expect(service.activeRelease()?.catalogWorkId).toBe(result?.workId);
+    expect(profileServiceSpy.updateProfile).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves recorded values alone when a field is submitted blank', async () => {
+    profileServiceSpy.profile.set({
+      artistName: 'Test Artist',
+      knowledgeBase: {},
+      catalog: [
+        { id: 'w1', title: 'Test Album', upc: '00123456789012', distributor: 'DistroKid' },
+      ],
+    });
+    await service.initializeRelease('Test Album', 'Album');
+    const writesBefore = profileServiceSpy.updateProfile.mock.calls.length;
+
+    const result = await service.recordDeliveryMetadata({
+      isrc: '   ',
+      distributor: '',
+      platforms: [],
+    });
+
+    expect(result?.recorded).toEqual([]);
+    // A save that recorded nothing writes nothing.
+    expect(profileServiceSpy.updateProfile.mock.calls.length).toBe(writesBefore);
+  });
+
   it('returns nothing to create without an active release', async () => {
     expect(await service.createCatalogWorkFromRelease()).toBeNull();
   });

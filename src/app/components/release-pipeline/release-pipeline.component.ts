@@ -76,6 +76,82 @@ export class ReleasePipelineComponent {
     () => this.profileService.profile().catalog ?? []
   );
 
+  /** The catalogue work the readings use: the linked one, else the title match. */
+  catalogWork = computed(() =>
+    findCatalogWork(
+      this.profileService.profile(),
+      this.releaseService.activeRelease()
+    )
+  );
+
+  /** Draft values for the delivery identifiers, keyed by field. */
+  deliveryDraft = signal<{
+    isrc?: string;
+    upc?: string;
+    releaseDate?: string;
+    distributor?: string;
+    platforms?: string;
+  }>({});
+
+  isrcText = computed(() => this.deliveryValue('isrc', this.catalogWork()?.isrc));
+  upcText = computed(() => this.deliveryValue('upc', this.catalogWork()?.upc));
+  releaseDateText = computed(() =>
+    this.deliveryValue('releaseDate', this.catalogWork()?.releaseDate)
+  );
+  distributorText = computed(() =>
+    this.deliveryValue('distributor', this.catalogWork()?.distributor)
+  );
+  platformsText = computed(() =>
+    this.deliveryValue('platforms', this.catalogWork()?.platforms)
+  );
+
+  /** A field shows its draft while edited, otherwise what the work records. */
+  private deliveryValue(
+    key: 'isrc' | 'upc' | 'releaseDate' | 'distributor' | 'platforms',
+    recorded: string | string[] | undefined
+  ): string {
+    const draft = this.deliveryDraft()[key];
+    if (draft !== undefined) return draft;
+    return Array.isArray(recorded) ? recorded.join(', ') : (recorded ?? '');
+  }
+
+  setDeliveryDraft(
+    key: 'isrc' | 'upc' | 'releaseDate' | 'distributor' | 'platforms',
+    value: string
+  ): void {
+    this.deliveryDraft.update((draft) => ({ ...draft, [key]: value }));
+  }
+
+  /**
+   * Records the delivery identifiers the readiness check keeps naming. Blank
+   * fields are left as they are, and nothing is defaulted, so a gap stays a gap
+   * until the artist states the value.
+   */
+  async saveDeliveryMetadata(): Promise<void> {
+    const platforms = this.platformsText()
+      .split(',')
+      .map((platform) => platform.trim())
+      .filter(Boolean);
+
+    const result = await this.releaseService.recordDeliveryMetadata({
+      isrc: this.isrcText(),
+      upc: this.upcText(),
+      releaseDate: this.releaseDateText(),
+      distributor: this.distributorText(),
+      platforms,
+    });
+
+    this.deliveryDraft.set({});
+    if (!result) return;
+
+    this.notify.show(
+      result.recorded.length
+        ? `Recorded ${result.recorded.join(', ')} on the catalogue work. Anything left blank is still reported as a gap.`
+        : 'Nothing was entered, so nothing was recorded.',
+      result.recorded.length ? 'info' : 'warning'
+    );
+  }
+
   /** The linked work, when the release points at one that still exists. */
   linkedCatalogWork = computed(() => {
     const id = this.releaseService.activeRelease()?.catalogWorkId;

@@ -216,18 +216,7 @@ export class ReleasePipelineService {
       return { workId: existing.id, created: false };
     }
 
-    const now = new Date().toISOString();
-    const work: CatalogItem = {
-      id: `cat-${Date.now()}`,
-      title: (current.name || '').trim(),
-      artist: (current.credits?.artistName || '').trim() || undefined,
-      releaseType: current.type,
-      status: current.status,
-      createdAt: now,
-      updatedAt: now,
-    };
-    const split = (current.splitSheetRef || '').trim();
-    if (split) work.splitSheetRef = split;
+    const work = this.buildCatalogWork(current);
 
     const linked: ReleaseProject = {
       ...current,
@@ -247,6 +236,106 @@ export class ReleasePipelineService {
     this.logger.info('ReleasePipeline: Created a catalogue work for the release');
 
     return { workId: work.id, created: true };
+  }
+
+  /**
+   * Records the delivery identifiers a distributor requires onto the release's
+   * catalogue work, creating that work when the profile holds none and linking
+   * the release to it either way.
+   *
+   * Only fields the artist filled in are written: a blank input leaves the
+   * existing value alone rather than erasing it, and nothing is defaulted, so a
+   * gap stays a gap until the artist states the value.
+   */
+  async recordDeliveryMetadata(patch: {
+    isrc?: string;
+    upc?: string;
+    releaseDate?: string;
+    distributor?: string;
+    platforms?: string[];
+  }): Promise<{ workId: string; recorded: string[] } | null> {
+    const current = this.activeRelease();
+    if (!current) return null;
+
+    const profile = this.profileService.profile();
+    // No work yet: build one here so the identifiers land in a single write
+    // together with the link, rather than creating an empty work first.
+    const existing = findCatalogWork(profile, current);
+    const work = existing?.id ? existing : this.buildCatalogWork(current);
+
+    const next: CatalogItem = { ...work };
+    const recorded: string[] = [];
+    const assign = (
+      label: string,
+      value: string | undefined,
+      key: 'isrc' | 'upc' | 'releaseDate' | 'distributor'
+    ) => {
+      const trimmed = (value || '').trim();
+      if (!trimmed) return;
+      next[key] = trimmed;
+      recorded.push(label);
+    };
+
+    assign('ISRC', patch.isrc, 'isrc');
+    assign('UPC', patch.upc, 'upc');
+    assign('release date', patch.releaseDate, 'releaseDate');
+    assign('distributor', patch.distributor, 'distributor');
+
+    const platforms = (patch.platforms ?? [])
+      .map((platform) => (platform || '').trim())
+      .filter(Boolean);
+    if (platforms.length) {
+      next.platforms = platforms;
+      recorded.push('platforms');
+    }
+
+    if (!recorded.length) return { workId: work.id, recorded };
+
+    next.updatedAt = new Date().toISOString();
+    const linked: ReleaseProject = {
+      ...current,
+      catalogWorkId: work.id,
+      updatedAt: Date.now(),
+    };
+    this.activeRelease.set(linked);
+    await this.profileService.updateProfile({
+      ...profile,
+      catalog: existing?.id
+        ? (profile.catalog ?? []).map((entry) =>
+            entry.id === work.id ? next : entry
+          )
+        : [...(profile.catalog ?? []), next],
+      knowledgeBase: {
+        ...profile.knowledgeBase,
+        currentRelease: linked,
+      } as any,
+    });
+    this.logger.info(
+      `ReleasePipeline: Recorded delivery metadata (${recorded.join(', ')})`
+    );
+
+    return { workId: work.id, recorded };
+  }
+
+  /**
+   * A catalogue work built only from what the release records. Identifiers,
+   * dates, distributor, platforms, genre, and credits are left absent — filling
+   * them with plausible values would be a lie the readings would then trust.
+   */
+  private buildCatalogWork(release: ReleaseProject): CatalogItem {
+    const now = new Date().toISOString();
+    const work: CatalogItem = {
+      id: `cat-${Date.now()}`,
+      title: (release.name || '').trim(),
+      artist: (release.credits?.artistName || '').trim() || undefined,
+      releaseType: release.type,
+      status: release.status,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const split = (release.splitSheetRef || '').trim();
+    if (split) work.splitSheetRef = split;
+    return work;
   }
 
   /** Drops the link; readings fall back to matching the title again. */

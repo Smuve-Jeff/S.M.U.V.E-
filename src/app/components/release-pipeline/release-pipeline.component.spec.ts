@@ -116,6 +116,7 @@ describe('ReleasePipelineComponent', () => {
     linkCatalogWork: jest.Mock;
     unlinkCatalogWork: jest.Mock;
     createCatalogWorkFromRelease: jest.Mock;
+    recordDeliveryMetadata: jest.Mock;
   };
   let notify: { show: jest.Mock };
 
@@ -186,6 +187,9 @@ describe('ReleasePipelineComponent', () => {
         workId: 'cat-new',
         created: true,
       })),
+      recordDeliveryMetadata: jest
+        .fn()
+        .mockResolvedValue({ workId: 'w1', recorded: ['ISRC', 'platforms'] }),
       linkCatalogWork: jest.fn(async (workId: string) => {
         const current = activeRelease();
         if (!current) return;
@@ -604,6 +608,50 @@ describe('ReleasePipelineComponent', () => {
     expect(notify.show).toHaveBeenCalledWith(
       expect.stringContaining('Identifiers, date, and distributor are still unrecorded'),
       'info'
+    );
+  });
+
+  it('prefills the identifier fields from the work the release reads', async () => {
+    const { component } = await setup(readyRelease());
+
+    expect(component.catalogWork()?.id).toBe('w1');
+    expect(component.isrcText()).toBe('US-AAA-25-00001');
+    expect(component.distributorText()).toBe('DistroKid');
+    expect(component.platformsText()).toBe('Spotify, Apple Music');
+  });
+
+  it('records entered identifiers and says what is still a gap', async () => {
+    const { component } = await setup(readyRelease());
+
+    component.setDeliveryDraft('upc', '00123456789099');
+    component.setDeliveryDraft('platforms', ' Spotify , Bandcamp , ');
+    await component.saveDeliveryMetadata();
+
+    expect(releaseService.recordDeliveryMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        upc: '00123456789099',
+        platforms: ['Spotify', 'Bandcamp'],
+      })
+    );
+    expect(component.deliveryDraft()).toEqual({});
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('Anything left blank is still reported as a gap'),
+      'info'
+    );
+  });
+
+  it('says nothing was recorded when every field is left blank', async () => {
+    releaseService.recordDeliveryMetadata.mockResolvedValueOnce({
+      workId: 'w1',
+      recorded: [],
+    });
+    const { component } = await setup(readyRelease());
+
+    await component.saveDeliveryMetadata();
+
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('Nothing was entered'),
+      'warning'
     );
   });
 
