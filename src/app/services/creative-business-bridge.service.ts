@@ -436,7 +436,15 @@ export class CreativeBusinessBridgeService {
       (release.credits?.proName || (profile as any)?.proName || '').trim();
     const proIpi =
       (release.credits?.proIpi || (profile as any)?.proIpi || '').trim();
-    const campaign = (release.marketingCampaignId || '').trim();
+    const campaignId = (release.marketingCampaignId || '').trim();
+    // A reference to a campaign that no longer exists is not a plan.
+    const campaigns = ((profile as any)?.marketingCampaigns ?? []) as Array<{
+      id?: string;
+      name?: string;
+    }>;
+    const campaign = campaignId
+      ? campaigns.find((entry) => entry.id === campaignId)
+      : undefined;
     const streams = ((profile as any)?.musicalJourney?.incomeStreams ?? []) as string[];
 
     if (!proName || !proIpi) {
@@ -463,17 +471,22 @@ export class CreativeBusinessBridgeService {
         id: 'creative:monetization',
         dimension: 'monetization',
         label: CREATIVE_DIMENSION_LABEL.monetization,
-        observation: `Rights are collectable (${proName}, IPI ${proIpi}), but no campaign is attached to the release.`,
+        observation: campaignId
+          ? `Rights are collectable (${proName}, IPI ${proIpi}), but the campaign this release points at no longer exists.`
+          : `Rights are collectable (${proName}, IPI ${proIpi}), but no campaign is attached to the release.`,
         consequence:
           'The release can be delivered and earn collection royalties, but nothing in the app spends or schedules promotion behind it — the income path is passive.',
-        decision:
-          'Attach a campaign, or accept a release with no planned push and judge it accordingly.',
+        decision: campaignId
+          ? 'Attach a campaign that exists, or accept a release with no planned push.'
+          : 'Attach a campaign, or accept a release with no planned push and judge it accordingly.',
         severity: 'watch',
         provenance: 'inferred',
         evidence: [
           `credits.proName = "${proName}"`,
           `credits.proIpi = "${proIpi}"`,
-          'release.marketingCampaignId is empty.',
+          campaignId
+            ? `release.marketingCampaignId = "${campaignId}", but no campaign with that id exists in the profile.`
+            : 'release.marketingCampaignId is empty.',
           streams.length
             ? `musicalJourney.incomeStreams = ${streams.join(', ')}`
             : 'musicalJourney.incomeStreams is empty.',
@@ -494,7 +507,7 @@ export class CreativeBusinessBridgeService {
       evidence: [
         `credits.proName = "${proName}"`,
         `credits.proIpi = "${proIpi}"`,
-        `release.marketingCampaignId = "${campaign}"`,
+        `release.marketingCampaignId = "${campaign.id}" (${campaign.name || 'unnamed campaign'})`,
       ],
     };
   }

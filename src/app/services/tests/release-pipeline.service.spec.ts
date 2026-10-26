@@ -110,6 +110,42 @@ describe('ReleasePipelineService', () => {
     );
   });
 
+  it('attaches an existing campaign instead of creating one', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+
+    await service.attachCampaign('  camp-42  ');
+
+    expect(service.activeRelease()?.marketingCampaignId).toBe('camp-42');
+    expect(marketingServiceSpy.createCampaign).not.toHaveBeenCalled();
+    expect(profileServiceSpy.updateProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        knowledgeBase: expect.objectContaining({
+          currentRelease: expect.objectContaining({
+            marketingCampaignId: 'camp-42',
+          }),
+        }),
+      })
+    );
+  });
+
+  it('ignores a blank campaign attachment', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+
+    await service.attachCampaign('   ');
+
+    expect(service.activeRelease()?.marketingCampaignId).toBeUndefined();
+  });
+
+  it('detaches the campaign reference without deleting the campaign', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+    await service.attachCampaign('camp-42');
+
+    await service.detachCampaign();
+
+    expect(service.activeRelease()?.marketingCampaignId).toBeUndefined();
+    expect(marketingServiceSpy.createCampaign).not.toHaveBeenCalled();
+  });
+
   it('marks a release live without inventing a campaign and its budget', async () => {
     await service.initializeRelease('Test Album', 'Album');
 

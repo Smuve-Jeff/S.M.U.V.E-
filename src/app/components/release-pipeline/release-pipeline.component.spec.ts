@@ -38,7 +38,7 @@ describe('ReleasePipelineComponent', () => {
     tracks: [track('Window Light')],
     artworkUrl: 'https://cdn.example/art.png',
     credits: { artistName: 'North Star', proName: 'ASCAP', proIpi: '0011223344', collaborators: [] },
-    marketingCampaignId: 'camp-1',
+    marketingCampaignId: 'camp-9',
     createdAt: 1,
     updatedAt: 1,
   });
@@ -77,6 +77,28 @@ describe('ReleasePipelineComponent', () => {
         platforms: ['Spotify', 'Apple Music'],
       },
     ],
+    marketingCampaigns: [
+      {
+        id: 'camp-9',
+        name: 'Window Push',
+        status: 'Draft' as const,
+        startDate: '2025-01-10T00:00:00.000Z',
+        targetAudience: 'Late-night listeners',
+        goals: [],
+        platforms: ['Spotify' as const],
+        strategyLevel: 'Modern Professional' as const,
+        metrics: {
+          reach: 0,
+          impressions: 0,
+          engagement: 0,
+          conversions: 0,
+          spend: 0,
+          roi: 0,
+          ctr: 0,
+          cpc: 0,
+        },
+      },
+    ],
   });
 
   let activeRelease: ReturnType<typeof signal<ReleaseProject | null>>;
@@ -88,6 +110,8 @@ describe('ReleasePipelineComponent', () => {
     updateTrackStage: jest.Mock;
     recordSplitReference: jest.Mock;
     recordProRegistration: jest.Mock;
+    attachCampaign: jest.Mock;
+    detachCampaign: jest.Mock;
   };
   let notify: { show: jest.Mock };
 
@@ -141,6 +165,18 @@ describe('ReleasePipelineComponent', () => {
           ...current,
           credits: { ...current.credits, proName, proIpi },
         });
+      }),
+      attachCampaign: jest.fn(async (campaignId: string) => {
+        const current = activeRelease();
+        if (!current) return;
+        activeRelease.set({ ...current, marketingCampaignId: campaignId.trim() });
+      }),
+      detachCampaign: jest.fn(async () => {
+        const current = activeRelease();
+        if (!current) return;
+        const next = { ...current };
+        delete next.marketingCampaignId;
+        activeRelease.set(next);
       }),
     };
     notify = { show: jest.fn() };
@@ -291,6 +327,78 @@ describe('ReleasePipelineComponent', () => {
       expect.stringContaining('Enter the split document reference'),
       'warning'
     );
+  });
+
+  it('attaches an existing campaign and clears the campaign reading', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      marketingCampaignId: undefined,
+    });
+
+    const campaignCheck = () =>
+      component.readiness().checks.find((check) => check.id === 'campaign')!;
+    expect(component.needsCampaign()).toBe(true);
+    expect(campaignCheck().state).toBe('not-ready');
+
+    component.campaignDraft.set('camp-9');
+    await component.attachCampaign();
+
+    expect(releaseService.attachCampaign).toHaveBeenCalledWith('camp-9');
+    expect(component.needsCampaign()).toBe(false);
+    expect(campaignCheck().state).toBe('ready');
+    expect(component.attachedCampaign()?.name).toBe('Window Push');
+    expect(releaseService.initializeRelease).not.toHaveBeenCalled();
+  });
+
+  it('will not attach a campaign without a selection', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      marketingCampaignId: undefined,
+    });
+
+    await component.attachCampaign();
+
+    expect(releaseService.attachCampaign).not.toHaveBeenCalled();
+    expect(notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('Select a campaign'),
+      'warning'
+    );
+  });
+
+  it('detaches a campaign and returns the release to having no plan behind it', async () => {
+    const { component } = await setup(readyRelease());
+    expect(component.needsCampaign()).toBe(false);
+
+    await component.detachCampaign();
+
+    expect(releaseService.detachCampaign).toHaveBeenCalled();
+    expect(component.needsCampaign()).toBe(true);
+    expect(
+      component.readiness().checks.find((check) => check.id === 'campaign')!.state
+    ).toBe('not-ready');
+  });
+
+  it('offers a fresh attachment when the referenced campaign is gone', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      marketingCampaignId: 'camp-deleted',
+    });
+
+    expect(component.attachedCampaign()).toBeNull();
+    expect(component.needsCampaign()).toBe(true);
+    expect(
+      component.readiness().checks.find((check) => check.id === 'campaign')!.state
+    ).toBe('not-ready');
+  });
+
+  it('points at the Strategy Hub when no campaign exists to attach', async () => {
+    const { component } = await setup(
+      { ...readyRelease(), marketingCampaignId: undefined },
+      { ...profile(), marketingCampaigns: [] }
+    );
+
+    expect(component.campaignOptions()).toEqual([]);
+    expect(component.needsCampaign()).toBe(true);
   });
 
   it('records a PRO and IPI so the royalty path stops reading as unknown', async () => {

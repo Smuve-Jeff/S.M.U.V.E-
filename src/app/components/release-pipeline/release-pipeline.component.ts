@@ -62,10 +62,32 @@ export class ReleasePipelineComponent {
    */
   creativeBridge = computed(() => this.lifecycle().creativeBridge);
 
-  /** Draft values for the two consequences the workspace can actually settle. */
+  /** Draft values for the consequences the workspace can actually settle. */
   splitReferenceDraft = signal('');
   proNameDraft = signal('');
   proIpiDraft = signal('');
+  campaignDraft = signal('');
+
+  /** Campaigns the artist has already built; only these can be attached. */
+  campaignOptions = computed(
+    () => this.profileService.profile().marketingCampaigns ?? []
+  );
+
+  /**
+   * The attached campaign, resolved against the campaigns that still exist. A
+   * release pointing at a deleted campaign resolves to null rather than to a
+   * plan the artist no longer has.
+   */
+  attachedCampaign = computed(() => {
+    const id = this.releaseService.activeRelease()?.marketingCampaignId;
+    if (!id) return null;
+    return this.campaignOptions().find((campaign) => campaign.id === id) ?? null;
+  });
+
+  /** True while the release has no campaign the profile can actually back. */
+  needsCampaign = computed(
+    () => !!this.releaseService.activeRelease() && !this.attachedCampaign()
+  );
 
   /** True while no split reference is recorded against this release. */
   needsSplitReference = computed(() => {
@@ -133,6 +155,33 @@ export class ReleasePipelineComponent {
     this.splitReferenceDraft.set('');
     this.notify.show(
       'Split reference recorded. S.M.U.V.E. stores the reference and cannot verify the document itself.',
+      'info'
+    );
+  }
+
+  /**
+   * Points the release at a campaign the artist already built. Nothing is
+   * created here: the workspace only records which existing plan this release
+   * belongs to.
+   */
+  async attachCampaign(): Promise<void> {
+    const id = this.campaignDraft();
+    if (!id) {
+      this.notify.show('Select a campaign before attaching it.', 'warning');
+      return;
+    }
+    await this.releaseService.attachCampaign(id);
+    this.campaignDraft.set('');
+    this.notify.show(
+      'Campaign attached. Readiness now counts it as the plan behind this release.',
+      'info'
+    );
+  }
+
+  async detachCampaign(): Promise<void> {
+    await this.releaseService.detachCampaign();
+    this.notify.show(
+      'Campaign detached. The release no longer reads as having a campaign behind it.',
       'info'
     );
   }

@@ -132,6 +132,38 @@ export class ReleasePipelineService {
     await this.saveToProfile(updated);
   }
 
+  /**
+   * Points the release at a campaign the artist already built. Readiness and
+   * the creative-to-business bridge both read this reference, so attaching is
+   * what makes "this release has a campaign behind it" true.
+   */
+  async attachCampaign(campaignId: string): Promise<void> {
+    const current = this.activeRelease();
+    const id = (campaignId || '').trim();
+    if (!current || !id) return;
+
+    const updated: ReleaseProject = {
+      ...current,
+      marketingCampaignId: id,
+      updatedAt: Date.now(),
+    };
+
+    this.activeRelease.set(updated);
+    await this.saveToProfile(updated);
+  }
+
+  /** Removes the campaign reference without touching the campaign itself. */
+  async detachCampaign(): Promise<void> {
+    const current = this.activeRelease();
+    if (!current || !current.marketingCampaignId) return;
+
+    const updated: ReleaseProject = { ...current, updatedAt: Date.now() };
+    delete updated.marketingCampaignId;
+
+    this.activeRelease.set(updated);
+    await this.saveToProfile(updated);
+  }
+
   /** Records the PRO and IPI the release will collect through. */
   async recordProRegistration(proName: string, proIpi: string): Promise<void> {
     const current = this.activeRelease();

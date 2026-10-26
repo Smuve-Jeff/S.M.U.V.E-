@@ -20,6 +20,7 @@ describe('ReleaseReadinessService', () => {
       proName: 'ASCAP',
       proIpi: '0011223344',
       legalInfrastructure: { hasStandardSplitSheet: 'In Use' },
+      marketingCampaigns: [{ id: 'camp-1', name: 'Window Push' }],
       catalog: [
         {
           title: 'Window Light',
@@ -167,6 +168,18 @@ describe('ReleaseReadinessService', () => {
     expect(rights.score).toBe(67);
     expect(rights.gaps.join(' ')).toContain('splits');
     expect(withoutSplits.state).toBe('not-ready');
+  });
+
+  it('does not count a campaign that no longer exists', () => {
+    const readiness = service.assess(
+      profile({ marketingCampaigns: [] }),
+      release()
+    );
+    const campaign = readiness.checks.find((c) => c.id === 'campaign')!;
+
+    expect(campaign.state).toBe('not-ready');
+    expect(campaign.gaps.join(' ')).toContain('not in the profile any more');
+    expect(campaign.evidence.join(' ')).toContain('camp-1');
   });
 
   it('accepts a split reference recorded on the release itself', () => {

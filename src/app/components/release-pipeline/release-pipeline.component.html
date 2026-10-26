@@ -257,6 +257,61 @@
               </div>
             }
 
+            @if (entry.dimension === 'monetization') {
+              @if (needsCampaign()) {
+                @if (campaignOptions().length) {
+                  <div class="pt-1 space-y-1">
+                    <label
+                      for="creative-campaign"
+                      class="block text-[8px] uppercase tracking-widest text-slate-500"
+                      >Campaign behind this release</label
+                    >
+                    <div class="flex gap-2">
+                      <select
+                        id="creative-campaign"
+                        [ngModel]="campaignDraft()"
+                        (ngModelChange)="campaignDraft.set($event)"
+                        class="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-slate-200"
+                      >
+                        <option value="">Select a campaign</option>
+                        @for (campaign of campaignOptions(); track campaign.id) {
+                          <option [value]="campaign.id">{{ campaign.name }}</option>
+                        }
+                      </select>
+                      <button
+                        type="button"
+                        (click)="attachCampaign()"
+                        class="px-3 py-1.5 rounded-lg bg-brand-primary/20 border border-brand-primary/40 text-[10px] font-black uppercase tracking-widest text-brand-primary"
+                      >
+                        Attach
+                      </button>
+                    </div>
+                    <p class="text-[8px] text-slate-600 leading-relaxed">
+                      Only a campaign you already built can be attached; none is created here.
+                    </p>
+                  </div>
+                } @else {
+                  <p class="text-[9px] text-slate-500 leading-relaxed">
+                    No campaign exists yet.
+                    <a routerLink="/strategy" class="text-brand-primary underline"
+                      >Build one in the Strategy Hub</a
+                    >, then attach it here.
+                  </p>
+                }
+              } @else if (attachedCampaign(); as campaign) {
+                <div class="flex items-center justify-between gap-2 pt-1">
+                  <p class="text-[9px] text-slate-400">Campaign: {{ campaign.name }}</p>
+                  <button
+                    type="button"
+                    (click)="detachCampaign()"
+                    class="text-[9px] uppercase tracking-widest text-slate-500 hover:text-slate-300"
+                  >
+                    Detach
+                  </button>
+                </div>
+              }
+            }
+
             @if (entry.dimension === 'monetization' && needsProRegistration()) {
               <div class="pt-1 space-y-1">
                 <span class="block text-[8px] uppercase tracking-widest text-slate-500"

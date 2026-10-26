@@ -71,7 +71,7 @@ export class ReleaseReadinessService {
       this.productionCheck(release),
       this.metadataCheck(release, work),
       this.rightsCheck(profile, release, work),
-      this.campaignCheck(release),
+      this.campaignCheck(profile, release),
       this.timingCheck(work),
     ];
 
@@ -245,21 +245,50 @@ export class ReleaseReadinessService {
     };
   }
 
-  private campaignCheck(release: ReleaseProject): ReadinessCheck {
-    const attached = present(release.marketingCampaignId);
+  /**
+   * The release only counts as having a campaign if that campaign still exists.
+   * A reference to a deleted campaign is worse than no reference: it would read
+   * as a plan while the profile holds nothing behind it.
+   */
+  private campaignCheck(
+    profile: UserProfile | null | undefined,
+    release: ReleaseProject
+  ): ReadinessCheck {
+    const id = (release.marketingCampaignId || '').trim();
+    const campaigns = ((profile as any)?.marketingCampaigns ?? []) as Array<{
+      id?: string;
+      name?: string;
+    }>;
+    const campaign = id ? campaigns.find((entry) => entry.id === id) : undefined;
+
+    if (campaign) {
+      return {
+        id: 'campaign',
+        label: 'Campaign',
+        blocking: false,
+        state: 'ready',
+        score: 100,
+        provenance: 'inferred',
+        evidence: [`Campaign "${campaign.name || campaign.id}" is attached.`],
+        gaps: [],
+      };
+    }
+
     return {
       id: 'campaign',
       label: 'Campaign',
       blocking: false,
-      state: attached ? 'ready' : 'not-ready',
-      score: attached ? 100 : 0,
+      state: 'not-ready',
+      score: 0,
       provenance: 'inferred',
-      evidence: attached
-        ? ['A marketing campaign is attached to this release.']
+      evidence: id
+        ? [`release.marketingCampaignId = "${id}"`]
         : [],
-      gaps: attached
-        ? []
-        : ['Attach a campaign so the release has a plan beyond delivery.'],
+      gaps: [
+        id
+          ? 'The campaign this release points at is not in the profile any more. Attach a campaign that exists.'
+          : 'Attach a campaign so the release has a plan beyond delivery.',
+      ],
     };
   }
 

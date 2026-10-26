@@ -67,6 +67,7 @@ describe('CreativeBusinessBridgeService', () => {
       officialArtistProfiles: [
         { id: 'l1', destinationId: 'spotify', label: 'Spotify', url: 'https://spotify.example/north', verified: true },
       ],
+      marketingCampaigns: [{ id: 'camp-1', name: 'Window Push' }],
       catalog: [],
       ...overrides,
     }) as unknown as UserProfile;
@@ -216,6 +217,18 @@ describe('CreativeBusinessBridgeService', () => {
     const money = byDimension(bridge, 'monetization');
     expect(money.severity).toBe('watch');
     expect(money.consequence).toContain('no account to land in');
+  });
+
+  it('does not treat a deleted campaign as a plan behind the release', () => {
+    const bridge = service.assess(
+      profile({ marketingCampaigns: [] }),
+      release()
+    );
+
+    const money = byDimension(bridge, 'monetization');
+    expect(money.severity).toBe('watch');
+    expect(money.observation).toContain('no longer exists');
+    expect(money.evidence.join(' ')).toContain('camp-1');
   });
 
   it('marks a release with rights and a campaign as monetization-clear', () => {
