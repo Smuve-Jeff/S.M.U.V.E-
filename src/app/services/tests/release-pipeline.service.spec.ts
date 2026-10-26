@@ -71,6 +71,30 @@ describe('ReleasePipelineService', () => {
     );
   });
 
+  it('stamps a recorded split with the collaborators it was confirmed against', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+    await service.updateCollaborators(['Blue Nine']);
+
+    await service.recordSplitReference('splits/test-album.pdf');
+
+    expect(service.activeRelease()?.splitSheetFor).toEqual(['Blue Nine']);
+  });
+
+  it('updates collaborators without widening the recorded split', async () => {
+    await service.initializeRelease('Test Album', 'Album');
+    await service.updateCollaborators(['Blue Nine']);
+    await service.recordSplitReference('splits/test-album.pdf');
+
+    await service.updateCollaborators(['Blue Nine', ' Weiss ', '  ', 'blue nine']);
+
+    expect(service.activeRelease()?.credits.collaborators).toEqual([
+      'Blue Nine',
+      'Weiss',
+    ]);
+    expect(service.activeRelease()?.splitSheetRef).toBe('splits/test-album.pdf');
+    expect(service.activeRelease()?.splitSheetFor).toEqual(['Blue Nine']);
+  });
+
   it('ignores a blank split reference instead of clearing the recorded one', async () => {
     await service.initializeRelease('Test Album', 'Album');
     await service.recordSplitReference('splits/test-album.pdf');

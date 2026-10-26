@@ -110,6 +110,7 @@ describe('ReleasePipelineComponent', () => {
     updateTrackStage: jest.Mock;
     recordSplitReference: jest.Mock;
     recordProRegistration: jest.Mock;
+    updateCollaborators: jest.Mock;
     attachCampaign: jest.Mock;
     detachCampaign: jest.Mock;
   };
@@ -156,7 +157,19 @@ describe('ReleasePipelineComponent', () => {
       recordSplitReference: jest.fn(async (reference: string) => {
         const current = activeRelease();
         if (!current) return;
-        activeRelease.set({ ...current, splitSheetRef: reference.trim() });
+        activeRelease.set({
+          ...current,
+          splitSheetRef: reference.trim(),
+          splitSheetFor: [...(current.credits?.collaborators ?? [])],
+        });
+      }),
+      updateCollaborators: jest.fn(async (names: string[]) => {
+        const current = activeRelease();
+        if (!current) return;
+        activeRelease.set({
+          ...current,
+          credits: { ...current.credits, collaborators: names },
+        });
       }),
       recordProRegistration: jest.fn(async (proName: string, proIpi: string) => {
         const current = activeRelease();
@@ -307,6 +320,59 @@ describe('ReleasePipelineComponent', () => {
       expect.stringContaining('cannot verify the document itself'),
       'info'
     );
+  });
+
+  it('reopens the split when a collaborator the split does not name joins', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      credits: {
+        artistName: 'North Star',
+        proName: 'ASCAP',
+        proIpi: '0011223344',
+        collaborators: ['Blue Nine'],
+      },
+    });
+
+    component.splitReferenceDraft.set('splits/window-light-v2.pdf');
+    await component.recordSplitReference();
+    expect(component.needsSplitReference()).toBe(false);
+
+    component.collaboratorsDraft.set('Blue Nine, Weiss');
+    await component.saveCollaborators();
+
+    const rights = component
+      .creativeBridge()
+      .consequences.find((entry) => entry.dimension === 'rights')!;
+    expect(rights.severity).toBe('blocking');
+    expect(rights.observation).toContain('Weiss');
+    expect(component.needsSplitReference()).toBe(true);
+    expect(releaseService.updateCollaborators).toHaveBeenCalledWith([
+      'Blue Nine',
+      'Weiss',
+    ]);
+  });
+
+  it('clears the collaborator list back to a solo credit', async () => {
+    const { component } = await setup({
+      ...readyRelease(),
+      credits: {
+        artistName: 'North Star',
+        proName: 'ASCAP',
+        proIpi: '0011223344',
+        collaborators: ['Blue Nine'],
+      },
+    });
+
+    expect(component.collaboratorsText()).toBe('Blue Nine');
+    component.collaboratorsDraft.set('  ');
+    await component.saveCollaborators();
+
+    expect(releaseService.updateCollaborators).toHaveBeenCalledWith([]);
+    expect(
+      component.creativeBridge().consequences.find(
+        (entry) => entry.dimension === 'rights'
+      )!.severity
+    ).toBe('clear');
   });
 
   it('will not record an empty split reference', async () => {

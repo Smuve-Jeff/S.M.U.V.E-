@@ -125,6 +125,38 @@ export class ReleasePipelineService {
     const updated: ReleaseProject = {
       ...current,
       splitSheetRef: trimmed,
+      // The split is confirmed against the collaborators known right now, so a
+      // later addition can be reported as uncovered instead of assumed in.
+      splitSheetFor: [...(current.credits?.collaborators ?? [])],
+      updatedAt: Date.now(),
+    };
+
+    this.activeRelease.set(updated);
+    await this.saveToProfile(updated);
+  }
+
+  /**
+   * Replaces the collaborator list. Changing it does not silently refresh the
+   * split reference: an existing split then covers only the names it was
+   * recorded against, which is what the rights reading reports.
+   */
+  async updateCollaborators(names: string[]): Promise<void> {
+    const current = this.activeRelease();
+    if (!current) return;
+
+    const seen = new Set<string>();
+    const collaborators: string[] = [];
+    for (const raw of names ?? []) {
+      const name = (raw || '').trim();
+      const key = name.toLowerCase();
+      if (!name || seen.has(key)) continue;
+      seen.add(key);
+      collaborators.push(name);
+    }
+
+    const updated: ReleaseProject = {
+      ...current,
+      credits: { ...current.credits, collaborators },
       updatedAt: Date.now(),
     };
 

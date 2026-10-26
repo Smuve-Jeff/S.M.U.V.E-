@@ -150,6 +150,7 @@ describe('CreativeBusinessBridgeService', () => {
       }),
       release({
         splitSheetRef: 'splits/window-light-v2.pdf',
+        splitSheetFor: ['Blue Nine'],
         credits: { artistName: 'North Star', collaborators: ['Blue Nine'] },
       })
     );
@@ -159,6 +160,58 @@ describe('CreativeBusinessBridgeService', () => {
     expect(rights.provenance).toBe('verified');
     expect(rights.evidence.join(' ')).toContain('release.splitSheetRef');
     expect(rights.evidence.join(' ')).not.toContain('[].splitSheetRef');
+  });
+
+  it('blocks a split that does not name a collaborator who joined later', () => {
+    const bridge = service.assess(
+      profile(),
+      release({
+        splitSheetRef: 'splits/window-light-v2.pdf',
+        splitSheetFor: ['Blue Nine'],
+        credits: {
+          artistName: 'North Star',
+          collaborators: ['Blue Nine', 'Weiss'],
+        },
+      })
+    );
+
+    const rights = byDimension(bridge, 'rights');
+    expect(rights.severity).toBe('blocking');
+    expect(rights.observation).toContain('Weiss');
+    expect(rights.evidence.join(' ')).toContain('Not named in the split: Weiss');
+  });
+
+  it('clears a split confirmed against the whole lineup', () => {
+    const bridge = service.assess(
+      profile(),
+      release({
+        splitSheetRef: 'splits/window-light-v2.pdf',
+        splitSheetFor: ['Blue Nine', 'weiss'],
+        credits: {
+          artistName: 'North Star',
+          collaborators: ['Blue Nine', 'Weiss'],
+        },
+      })
+    );
+
+    const rights = byDimension(bridge, 'rights');
+    expect(rights.severity).toBe('clear');
+    expect(rights.provenance).toBe('verified');
+  });
+
+  it('will not vouch for a split with no record of who it covers', () => {
+    const bridge = service.assess(
+      profile(),
+      release({
+        splitSheetRef: 'splits/window-light-v2.pdf',
+        credits: { artistName: 'North Star', collaborators: ['Blue Nine'] },
+      })
+    );
+
+    const rights = byDimension(bridge, 'rights');
+    expect(rights.severity).toBe('watch');
+    expect(rights.provenance).toBe('inferred');
+    expect(rights.evidence.join(' ')).toContain('splitSheetFor is empty');
   });
 
   it('separates a split habit from a split that exists for this release', () => {

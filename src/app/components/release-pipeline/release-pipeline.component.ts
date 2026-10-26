@@ -67,6 +67,16 @@ export class ReleasePipelineComponent {
   proNameDraft = signal('');
   proIpiDraft = signal('');
   campaignDraft = signal('');
+  collaboratorsDraft = signal<string | null>(null);
+
+  /** The collaborator field shows the draft while it is being edited. */
+  collaboratorsText = computed(() => {
+    const draft = this.collaboratorsDraft();
+    if (draft !== null) return draft;
+    return (
+      this.releaseService.activeRelease()?.credits?.collaborators ?? []
+    ).join(', ');
+  });
 
   /** Campaigns the artist has already built; only these can be attached. */
   campaignOptions = computed(
@@ -89,10 +99,29 @@ export class ReleasePipelineComponent {
     () => !!this.releaseService.activeRelease() && !this.attachedCampaign()
   );
 
-  /** True while no split reference is recorded against this release. */
+  /**
+   * True while the release has no split, or has one that was confirmed against
+   * a different collaborator list. A split recorded for a duo does not cover the
+   * third person who joined afterwards, so the field comes back rather than the
+   * reading staying settled.
+   */
   needsSplitReference = computed(() => {
     const release = this.releaseService.activeRelease();
-    return !!release && !(release.splitSheetRef || '').trim();
+    if (!release) return false;
+    if (!(release.splitSheetRef || '').trim()) return true;
+
+    const collaborators = release.credits?.collaborators ?? [];
+    if (!collaborators.length) return false;
+
+    const confirmedFor = release.splitSheetFor ?? null;
+    if (!confirmedFor) return true;
+
+    const confirmed = confirmedFor.map((name) =>
+      (name || '').trim().toLowerCase()
+    );
+    return collaborators.some(
+      (name) => !confirmed.includes((name || '').trim().toLowerCase())
+    );
   });
 
   /** True while the release has no PRO/IPI pair to collect through. */
@@ -135,6 +164,30 @@ export class ReleasePipelineComponent {
       default:
         return 'text-slate-400';
     }
+  }
+
+  /**
+   * Replaces the collaborator list. The recorded split is deliberately left
+   * untouched: if the new lineup is not named in it, the rights reading says so
+   * instead of the app quietly widening the split's coverage.
+   */
+  async saveCollaborators(): Promise<void> {
+    const release = this.releaseService.activeRelease();
+    if (!release) return;
+
+    const names = this.collaboratorsText()
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean);
+
+    await this.releaseService.updateCollaborators(names);
+    this.collaboratorsDraft.set(null);
+    this.notify.show(
+      names.length
+        ? `Collaborators recorded (${names.length}). Any split on file is checked against this list.`
+        : 'Collaborator list cleared. This release now reads as a solo credit.',
+      'info'
+    );
   }
 
   /**

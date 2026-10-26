@@ -43,6 +43,12 @@ export interface ReleaseProject {
    * reference and never claims to hold or verify the document itself.
    */
   splitSheetRef?: string;
+  /**
+   * The collaborator names that reference was recorded against. Kept so a split
+   * cannot keep reading as settled after someone it does not name joins the
+   * release. Absent on references recorded before coverage was tracked.
+   */
+  splitSheetFor?: string[];
   marketingCampaignId?: string;
   createdAt: number;
   updatedAt: number;
