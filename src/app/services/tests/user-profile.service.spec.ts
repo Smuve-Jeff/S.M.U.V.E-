@@ -295,6 +295,24 @@ describe('UserProfileService', () => {
       expect(savedProfiles.at(-1)?.id).toBe('u1');
     });
 
+    it('never writes a loaded profile into another account\u2019s slot', async () => {
+      // The window a sign-in opens: the session is u1, the store still holds the
+      // previous (or guest) record. A save here would land in u1's slot.
+      service['store'].setProfile({
+        ...JSON.parse(JSON.stringify(initialProfile)),
+        id: 'current',
+      } as any);
+      const before = savedProfiles.length;
+
+      await service.updateProfile({ artistName: 'Guest Edit' });
+
+      // The edit is applied to the loaded record so the UI stays truthful...
+      expect(service.profile().artistName).toBe('Guest Edit');
+      expect(service.profile().id).toBe('current');
+      // ...but nothing is persisted under the active account's key.
+      expect(savedProfiles.length).toBe(before);
+    });
+
     it('loads a partial cloud profile through the same normalization boundary', async () => {
       database.loadUserProfile.mockResolvedValueOnce({
         artistName: 'Nova',

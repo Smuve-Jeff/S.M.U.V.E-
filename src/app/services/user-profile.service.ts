@@ -293,9 +293,21 @@ export class UserProfileService {
         ? [lifecycleEntry, ...previousHistory].slice(0, 50)
         : previousHistory,
     });
-    // Stamp the active user id so the profile always carries the account it
-    // belongs to, and the local backup + cloud sync share one key.
-    next.id = this.activeUserId();
+    /*
+     * Persistence is keyed by the ACTIVE account, but this write belongs to the
+     * profile that is loaded. Those are normally the same; they are not during
+     * a sign-in, where `AuthService` installs the new user before `loadProfile`
+     * swaps the record in. Saving in that window would write one artist's
+     * profile into another account's slot, so the write is skipped instead —
+     * the edit stays in memory for the loaded profile. Writers that already key
+     * by the profile's own id (`AutoSaveService`, forced sync) are unaffected.
+     */
+    const ownerId = this.ownerIdOf(current);
+    const targetId = this.activeUserId();
+    const ownerMatchesSession = !ownerId || ownerId === targetId;
+    // Stamp the id that owns this record: the session when they agree, the
+    // profile's own id when they do not, so a skipped write cannot re-label it.
+    next.id = ownerMatchesSession ? targetId : ownerId!;
     this.store.setProfile(next);
     try {
       // Turning off AI sharing is a hard opt-out, including legacy profiles
@@ -304,12 +316,27 @@ export class UserProfileService {
           next.settings?.security?.shareProfileAnswersWithAi !== true) {
         this.clearCachedProfileKnowledge(next);
       }
+      if (!ownerMatchesSession) {
+        this.logger.warn(
+          'Profile write skipped: the loaded profile belongs to a different account than the active session.'
+        );
+        return;
+      }
       // Save under the real user id so the local backup and the cloud sync
       // (which enforces ownership on the backend) use the same key.
-      await this.db.saveUserProfile(next, this.activeUserId());
+      await this.db.saveUserProfile(next, targetId);
     } catch (e) {
       this.logger.error('Profile save failed', e);
     }
+  }
+
+  /**
+   * The account a loaded profile belongs to, or `null` when it carries no
+   * stamp (a stock profile that has never been saved).
+   */
+  private ownerIdOf(profile: UserProfile): string | null {
+    const id = profile?.id;
+    return typeof id === 'string' && id.trim() ? id.trim() : null;
   }
 
   private clearCachedProfileKnowledge(profile: UserProfile): void {

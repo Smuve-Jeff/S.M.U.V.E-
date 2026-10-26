@@ -9,6 +9,7 @@ import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
 import { UserProfileService } from './user-profile.service';
 import { DatabaseService } from './database.service';
+import { AuthService } from './auth.service';
 import { ProfileStoreService } from './profile-store.service';
 import { initialProfile } from '../types/profile.types';
 
@@ -460,6 +461,10 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
           { provide: AudioEngineService, useValue: new StubEngine() },
           { provide: LoggingService, useValue: new StubLogger() },
           { provide: DatabaseService, useValue: { saveUserProfile, loadUserProfile } },
+          // Loading user-1's profile means user-1 is the active account.
+          // UserProfileService refuses to write a loaded profile into a
+          // different account's slot, so the fixture has to say whose it is.
+          { provide: AuthService, useValue: { currentUser: () => ({ id: 'user-1' }) } },
         ],
       });
 
