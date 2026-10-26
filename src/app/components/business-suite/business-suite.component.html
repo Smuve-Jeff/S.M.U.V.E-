@@ -41,6 +41,62 @@
     </div>
   </header>
 
+  <!-- Business lifecycle evidence: rights, business, and money -->
+  <section class="lifecycle-spine" aria-label="Business lifecycle evidence">
+    <div class="spine-heading">
+      <div>
+        <div class="spine-kicker">BUSINESS LIFECYCLE // EVIDENCE ONLY</div>
+        <h2>Rights, structure, and revenue</h2>
+        <p>
+          {{ spineCompleted() }} of {{ spineTotal() }} rights, business, and money
+          steps are evidenced on your record. Scored from what you entered — no
+          royalty, payout, or streaming feed is connected.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="btn-pro btn-pro-outline text-[9px] font-black uppercase tracking-widest"
+        (click)="openPathway()"
+      >
+        Open pathway
+      </button>
+    </div>
+
+    <div class="spine-grid">
+      <article
+        *ngFor="let phase of spinePhases()"
+        class="spine-card"
+        [class.is-blocked]="phase.status === 'at-risk'"
+      >
+        <span class="spine-card-label">{{ phase.label }}</span>
+        <strong>{{ phaseScoreLabel(phase) }}</strong>
+        <small>{{ phase.completed }}/{{ phase.total }} steps · {{ phase.status }}</small>
+        <ul *ngIf="phase.gaps.length">
+          <li *ngFor="let gap of phase.gaps.slice(0, 2)">{{ gap }}</li>
+        </ul>
+        <p *ngIf="phase.blockedBy.length" class="spine-blocked">
+          Blocked by {{ phase.blockedBy.join(', ') }}
+        </p>
+      </article>
+    </div>
+
+    <div *ngIf="spineNext() as next" class="spine-next">
+      <div class="spine-kicker">Do this next in this workspace</div>
+      <strong>{{ next.title }}</strong>
+      <p>{{ next.action }}</p>
+      <p *ngIf="next.evidenceNeeded.length" class="spine-evidence">
+        Evidence needed: {{ next.evidenceNeeded.slice(0, 3).join(', ') }}
+      </p>
+    </div>
+    <p *ngIf="!spineNext()" class="spine-empty">
+      No business, money, or rights step can be started right now. Anything left
+      is either evidenced or waiting on another phase.
+    </p>
+    <p *ngIf="careerNextMove() as move" class="spine-elsewhere">
+      The career-wide next move is in {{ move.phase }}: {{ move.title }}.
+    </p>
+  </section>
+
   <!-- Active Pipelines Section -->
   <section
     *ngIf="bizService.activePipelines().length > 0"

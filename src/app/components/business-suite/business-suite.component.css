@@ -18,3 +18,145 @@
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
+
+/* ── Lifecycle evidence spine (rights / business / money) ─────────────── */
+.lifecycle-spine {
+  margin-bottom: 2.5rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid rgba(93, 196, 194, 0.25);
+  border-radius: 1rem;
+  background: rgba(93, 196, 194, 0.04);
+}
+
+.spine-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.spine-kicker {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--brand-primary, #5dc4c2);
+}
+
+.spine-heading h2 {
+  margin: 0.35rem 0;
+  font-size: 1.25rem;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.spine-heading p {
+  max-width: 42rem;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-dim, #94a3b8);
+}
+
+.spine-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.spine-card {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 0.6rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.spine-card.is-blocked {
+  border-color: rgba(245, 184, 79, 0.45);
+  background: rgba(245, 184, 79, 0.05);
+}
+
+.spine-card-label {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim, #94a3b8);
+}
+
+.spine-card strong {
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.spine-card small {
+  font-size: 9px;
+  text-transform: capitalize;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.spine-card ul {
+  display: grid;
+  gap: 2px;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 9px;
+  line-height: 1.45;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.spine-card ul li::before {
+  content: '· ';
+}
+
+.spine-blocked {
+  margin: 0.35rem 0 0;
+  font-size: 9px;
+  line-height: 1.45;
+  color: #f5c978;
+}
+
+.spine-next {
+  margin-top: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  border-left: 2px solid var(--brand-primary, #5dc4c2);
+  background: rgba(93, 196, 194, 0.06);
+}
+
+.spine-next strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.spine-next p {
+  margin: 0.3rem 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-dim, #94a3b8);
+}
+
+.spine-evidence {
+  opacity: 0.75;
+}
+
+.spine-empty,
+.spine-elsewhere {
+  margin: 0.9rem 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text-dim, #94a3b8);
+}
+
+@media (max-width: 767px) {
+  .spine-grid {
+    grid-template-columns: 1fr;
+  }
+}
