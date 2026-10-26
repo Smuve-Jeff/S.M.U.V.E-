@@ -25,6 +25,8 @@ import { OfflineSyncService } from '../services/offline-sync.service';
 import { SessionHistoryService } from '../services/session-history.service';
 import { ProjectService } from '../services/project.service';
 import { Project } from '../types';
+import { ArtistLifecycleService } from '../services/artist-lifecycle.service';
+import { ArtistLifecycleSnapshot } from '../types/artist-lifecycle.types';
 
 interface LandingFeature {
   route: MainViewMode;
@@ -74,6 +76,7 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
   public offlineSync = inject(OfflineSyncService);
   public sessionHistoryService = inject(SessionHistoryService);
   public projectService = inject(ProjectService);
+  private lifecycleService = inject(ArtistLifecycleService);
 
   quickProfile = signal({ artistName: '', primaryGenre: 'Hip Hop' });
   projectList = signal<Project[]>([]);
@@ -284,14 +287,33 @@ export class HubComponent implements OnInit, OnDestroy, AfterViewInit {
     return 'Offline queue';
   });
 
-  readinessScore = computed(() => {
-    const profile = this.profileService.profile();
-    const identity = profile.artistName !== 'New Artist' ? 25 : 0;
-    const catalog = profile.catalog.length > 0 ? 25 : 0;
-    const strategy = profile.careerGoals.length > 0 ? 25 : 0;
-    const creation = this.trackedProjectsCount() > 0 ? 25 : 0;
-    return identity + catalog + strategy + creation;
-  });
+  lifecycle = computed(() =>
+    this.lifecycleService.snapshot(
+      this.profileService.profile(),
+      (this.profileService.profile().knowledgeBase as any)?.currentRelease ?? null
+    )
+  );
+
+  lifecyclePhaseCount = computed(
+    () => this.lifecycle().phases.filter((phase) => phase.score !== null).length
+  );
+
+  readinessScore = computed(() => this.lifecycle().overallScore);
+
+  lifecycleMove() {
+    return this.lifecycle().nextBestMove;
+  }
+
+  lifecycleStatusLabel(snapshot: ArtistLifecycleSnapshot): string {
+    const statusCounts = snapshot.phases.reduce(
+      (counts, phase) => {
+        counts[phase.status] += 1;
+        return counts;
+      },
+      { 'on-track': 0, 'needs-attention': 0, 'at-risk': 0 }
+    );
+    return `${statusCounts['on-track']} on track · ${statusCounts['needs-attention']} to build · ${statusCounts['at-risk']} blocked`;
+  }
 
   globalStudioPulse = computed(() => {
     const pulse: string[] = [];

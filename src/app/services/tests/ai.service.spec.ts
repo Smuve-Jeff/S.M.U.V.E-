@@ -898,4 +898,59 @@ describe('AiService', () => {
     expect(service.industryIntelligence()).toHaveLength(0);
   });
 
+  /**
+   * The advisor is only useful if its advice is traceable. These check that the
+   * queue is derived from the lifecycle snapshot rather than invented, and that
+   * the model prompt does not receive the derived state unless the artist has
+   * opted into sharing profile answers.
+   */
+  describe('lifecycle-linked advisor', () => {
+    it('leads with the pathway next step and carries its evidence', () => {
+      const snapshot = service.lifecycleSnapshot();
+      const advice = service.refreshAdvisorAdvice();
+
+      expect(snapshot.nextBestMove).not.toBeNull();
+      expect(advice.length).toBeGreaterThan(0);
+      expect(advice[0].sourceStepId).toBe(snapshot.nextBestMove!.id);
+      expect(advice[0].priority).toBe('high');
+      expect(advice[0].evidence?.length).toBeGreaterThan(0);
+      expect(advice[0].phase).toBeTruthy();
+      expect(service.advisorAdvice()).toEqual(advice);
+    });
+
+    it('keeps a dismissed item out of later refreshes', () => {
+      const first = service.refreshAdvisorAdvice()[0];
+
+      service.dismissAdvisorAdvice(first.id);
+      expect(service.advisorAdvice().map((item) => item.id)).not.toContain(first.id);
+
+      const refreshed = service.refreshAdvisorAdvice();
+      expect(refreshed.map((item) => item.id)).not.toContain(first.id);
+    });
+
+    it('withholds the lifecycle brief until profile answers are shared', () => {
+      const shared = service.lifecycleAdvisorBrief();
+      expect(shared).toContain('ARTIST LIFECYCLE');
+      expect(shared).toContain('evidence-derived');
+      expect(shared).not.toContain('withheld');
+
+      userProfileServiceMock.profile!.update((profile: any) => ({
+        ...profile,
+        settings: {
+          ...profile.settings,
+          security: { ...profile.settings.security, shareProfileAnswersWithAi: false },
+        },
+      }));
+
+      expect(service.lifecycleAdvisorBrief()).toContain('withheld');
+      expect(service.personaSystemPrompt).toContain('ARTIST LIFECYCLE');
+    });
+
+    it('never claims a sampled platform signal in its advice', () => {
+      service.refreshAdvisorAdvice().forEach((item) => {
+        expect(item.provenance).not.toBe('sampled');
+      });
+    });
+  });
+
 });

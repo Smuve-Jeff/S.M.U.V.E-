@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AiService } from '../../services/ai.service';
@@ -25,7 +25,7 @@ import { CommandPaletteService } from '../../services/command-palette.service';
   templateUrl: './smuve-advisor.component.html',
   styleUrls: ['./smuve-advisor.component.css'],
 })
-export class SmuveAdvisorComponent {
+export class SmuveAdvisorComponent implements OnInit {
   private aiService = inject(AiService);
   private userContext = inject(UserContextService);
   private router = inject(Router);
@@ -34,20 +34,29 @@ export class SmuveAdvisorComponent {
   advice = this.aiService.advisorAdvice;
   isOpen = signal(false);
 
-  /**
-   * Toggles the visibility of the advisor panel.
-   */
-  toggleOpen() {
-    this.isOpen.update((v) => !v);
+  ngOnInit() {
+    // Populate from the lifecycle before the artist opens the panel, so the
+    // advisor has an evidence-backed recommendation ready instead of an empty
+    // shell that only fills in after a manual refresh.
+    this.refreshAdvice();
   }
 
   /**
-   * Requests a new set of advice from the AI service.
-   * This method is a placeholder and assumes a corresponding method exists on AiService.
+   * Toggles the visibility of the advisor panel. Opening it re-reads the
+   * lifecycle so advice reflects work done since the panel last closed.
+   */
+  toggleOpen() {
+    const opening = !this.isOpen();
+    if (opening) this.refreshAdvice();
+    this.isOpen.set(opening);
+  }
+
+  /**
+   * Rebuilds the advice queue from the current lifecycle snapshot: the primary
+   * evidence-backed next move, any blocked phases, and release-readiness gaps.
    */
   refreshAdvice() {
-    // Assuming aiService has a method to refresh advice
-    // this.aiService.refreshAdvisorAdvice();
+    this.aiService.refreshAdvisorAdvice?.();
   }
 
   /**
@@ -100,6 +109,9 @@ export class SmuveAdvisorComponent {
    * @param item The AdvisorAdvice object to dismiss.
    */
   dismissAdvice(item: AdvisorAdvice) {
+    // Prefer the service so the dismissal survives the next lifecycle refresh;
+    // the local update keeps the drawer correct if a host provides no service.
+    this.aiService.dismissAdvisorAdvice?.(item.id);
     this.aiService.advisorAdvice.update((list) =>
       list.filter((candidate) => candidate?.id !== item.id)
     );

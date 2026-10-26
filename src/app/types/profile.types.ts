@@ -1,4 +1,11 @@
 import { ArtistIdentityState } from './artist-identity.types';
+import type {
+  ArtistLifecycleHistoryEntry,
+  ArtistLifecycleRecommendation,
+  ArtistLifecycleReadinessSignal,
+  ArtistLifecycleSnapshot,
+  LifecyclePhaseId,
+} from './artist-lifecycle.types';
 import {
   ArtistKnowledgeBase,
   RecommendationHistoryEntry,
@@ -537,6 +544,17 @@ export interface UserProfile {
    * `MusicalDnaService` and `MusicalDna` in `musical-dna.types.ts`.
    */
   musicalDna?: MusicalDnaState;
+  /** Latest evidence-derived career lifecycle view, refreshed on profile writes. */
+  artistLifecycleSnapshot?: ArtistLifecycleSnapshot;
+  /** Bounded history of meaningful lifecycle/readiness changes. */
+  lifecycleHistory?: ArtistLifecycleHistoryEntry[];
+  /** The current evidence-backed primary recommendation (zero or one item). */
+  latestRecommendations?: ArtistLifecycleRecommendation[];
+  lastGeneratedAt?: string;
+  phaseScores?: Partial<Record<LifecyclePhaseId, number | null>>;
+  releaseReadinessSignal?: ArtistLifecycleReadinessSignal;
+  growthReadinessSignal?: ArtistLifecycleReadinessSignal;
+  businessReadinessSignal?: ArtistLifecycleReadinessSignal;
 }
 
 import { createInitialArtistIdentity } from './artist-identity.types';

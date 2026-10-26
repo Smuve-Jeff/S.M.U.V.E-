@@ -105,6 +105,48 @@ export interface ArtistLifecycleMove {
   provenance: LifecycleProvenance;
 }
 
+/** A pathway task with explicit urgency, dependencies, and strategic impact. */
+export interface ArtistLifecycleTask {
+  id: string;
+  phase: LifecyclePhaseId;
+  title: string;
+  action: string;
+  status: 'complete' | 'in-progress' | 'ready' | 'blocked';
+  /** One-based order for the primary move and its supporting actions. */
+  priority: number | null;
+  urgency: 'now' | 'soon' | 'optional' | 'blocked' | 'complete';
+  blockers: string[];
+  evidenceNeeded: string[];
+  strategicImpact: string;
+  provenance: LifecycleProvenance;
+}
+
+/** A recommendation tied to a pathway step and its observed evidence state. */
+export interface ArtistLifecycleRecommendation {
+  id: string;
+  kind: 'next-action';
+  phase: LifecyclePhaseId;
+  title: string;
+  explanation: string;
+  evidence: string[];
+  sourceStepId: string;
+  provenance: LifecycleProvenance;
+}
+
+export interface ArtistLifecycleHistoryEntry {
+  generatedAt: string;
+  overallScore: number;
+  phaseScores: Partial<Record<LifecyclePhaseId, number | null>>;
+  nextBestMoveId: string | null;
+  releaseReadinessScore: number | null;
+}
+
+export interface ArtistLifecycleReadinessSignal {
+  score: number | null;
+  state: string;
+  provenance: LifecycleProvenance;
+}
+
 export interface ArtistLifecycleRisk {
   kind: LifecycleRiskKind;
   /** The phase at risk, or `null` for a whole-artist mismatch. */
@@ -121,6 +163,10 @@ export interface ArtistLifecycleSnapshot {
   overallScore: number;
   overallProvenance: LifecycleProvenance;
   phases: ArtistLifecyclePhase[];
+  /** All pathway steps with their lifecycle phase and actionable status. */
+  tasks: ArtistLifecycleTask[];
+  /** At most one primary recommendation, derived from the pathway's next action. */
+  recommendations: ArtistLifecycleRecommendation[];
   /** Exactly one move, matching the pathway's ordered next action. */
   nextBestMove: ArtistLifecycleMove | null;
   /** Independent moves for an artist with spare capacity, capped at three. */

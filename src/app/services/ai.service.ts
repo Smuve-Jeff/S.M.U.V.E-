@@ -11,12 +11,18 @@ import { firstValueFrom, of } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
 import { AI_MANAGER_STANDARDS, AI_REQUEST_TIMEOUT_MS, boundAiPrompt, isOfflineAiText } from '../../ai-manager.contract';
 import {
+  AdvisorAdvice,
   ExecutiveAuditReport,
   MarketAlert,
   StrategicRecommendation,
   StrategicTask,
   SystemStatus,
 } from '../types/ai.types';
+import { ArtistLifecycleService } from './artist-lifecycle.service';
+import {
+  ArtistLifecycleSnapshot,
+  LIFECYCLE_PHASE_LABEL,
+} from '../types/artist-lifecycle.types';
 import { buildArtistMusicContext } from '../types/profile.types';
 import {
   PersonaOfflineVoice,
@@ -61,6 +67,7 @@ export class AiService {
   private logger = inject(LoggingService);
   private artistFinetune = inject(ArtistProfileFinetuneService);
   private userProfileService = inject(UserProfileService);
+  private lifecycle = inject(ArtistLifecycleService);
   private musicManager = inject(MusicManagerService);
   private notification = inject(NotificationService);
 
@@ -97,8 +104,10 @@ export class AiService {
   isMobile = signal(false);
   executiveAudit = signal<ExecutiveAuditReport | null>(null);
   intelligenceBriefs = signal<any[]>([]);
-  advisorAdvice = signal<any[]>([]);
+  advisorAdvice = signal<AdvisorAdvice[]>([]);
   deepAuditResults = signal<any>(null);
+  /** Advice ids the artist dismissed this session, so a refresh cannot nag. */
+  private dismissedAdviceIds = new Set<string>();
 
   // ── Autonomous session musicians ─────────────────────────────────────
   /**
@@ -286,6 +295,10 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     // Deterministic fine-tune block: the same knowledge powers offline mode,
     // so a model call can never silently downgrade the artist-specific context.
     prompt += `\n\n${this.artistFinetune.promptBlock()}`;
+
+    // Lifecycle state is derived from profile evidence, so it rides with the
+    // same sharing permission as every other profile-derived block.
+    prompt += `\n\n${this.lifecycleAdvisorBrief()}`;
 
     return prompt;
   }
@@ -1424,6 +1437,162 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     ];
   }
 
+  // ── Lifecycle-linked advisor ────────────────────────────────────────
+
+  /**
+   * The lifecycle snapshot the advisor reads.
+   *
+   * The release is taken from `knowledgeBase.currentRelease` — the same slot the
+   * release workspace writes — so the advisor can never describe a different
+   * release than the one the artist is actually planning.
+   */
+  lifecycleSnapshot(): ArtistLifecycleSnapshot {
+    const profile = this.userProfileService.profile();
+    return this.lifecycle.snapshot(
+      profile,
+      (profile.knowledgeBase as any)?.currentRelease ?? null
+    );
+  }
+
+  /**
+   * Evidence-linked lifecycle advice for the Advisor drawer.
+   *
+   * Every item names the pathway step, phase, provenance and the evidence still
+   * missing, so the advisor is traceable to the profile instead of being a mood.
+   * Nothing is emitted when the lifecycle has no evidence: an empty queue is more
+   * honest than a generic chore list.
+   */
+  lifecycleAdvisorAdvice(): AdvisorAdvice[] {
+    const snapshot = this.lifecycleSnapshot();
+    const advice: AdvisorAdvice[] = [];
+
+    const recommendation = snapshot.recommendations[0];
+    if (recommendation) {
+      advice.push({
+        id: `lifecycle:${recommendation.sourceStepId}`,
+        title: recommendation.title,
+        description: [
+          `${LIFECYCLE_PHASE_LABEL[recommendation.phase]}: ${recommendation.explanation}`,
+          recommendation.evidence.length
+            ? `Evidence needed: ${recommendation.evidence.slice(0, 3).join('; ')}.`
+            : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
+        priority: 'high',
+        action: { type: 'navigate', payload: '/artist-development' },
+        phase: LIFECYCLE_PHASE_LABEL[recommendation.phase],
+        provenance: recommendation.provenance,
+        evidence: recommendation.evidence,
+        sourceStepId: recommendation.sourceStepId,
+      });
+    }
+
+    // A blocked phase is a real obstacle the artist cannot route around, so it
+    // is surfaced as its own item rather than folded into the next move.
+    snapshot.risks.slice(0, 2).forEach((risk) => {
+      advice.push({
+        id: `lifecycle:risk:${risk.kind}:${risk.phase ?? 'artist'}`,
+        title:
+          risk.kind === 'dependency'
+            ? `${risk.phase ? LIFECYCLE_PHASE_LABEL[risk.phase] : 'A phase'} is blocked`
+            : 'The stated direction and the built structure disagree',
+        description: risk.message,
+        priority: 'medium',
+        action: { type: 'navigate', payload: '/artist-development' },
+        phase: risk.phase ? LIFECYCLE_PHASE_LABEL[risk.phase] : undefined,
+        provenance: risk.provenance,
+        evidence: [risk.message],
+      });
+    });
+
+    const readiness = snapshot.releaseReadiness;
+    if (readiness.status === 'assessed' && readiness.state === 'not-ready') {
+      advice.push({
+        id: `lifecycle:release:${readiness.releaseId}`,
+        title: `${readiness.releaseName || 'The release'} is not ready to push`,
+        description: readiness.blockingGaps.length
+          ? `${readiness.verdict} Blocking gaps: ${readiness.blockingGaps.slice(0, 3).join('; ')}.`
+          : readiness.verdict,
+        priority: 'high',
+        action: { type: 'navigate', payload: '/release-pipeline' },
+        phase: LIFECYCLE_PHASE_LABEL.release,
+        provenance: 'inferred',
+        evidence: readiness.blockingGaps,
+      });
+    }
+
+    return advice.filter(
+      (item) => !this.dismissedAdviceIds.has(item.id)
+    );
+  }
+
+  /**
+   * Rebuild the Advisor queue from the current lifecycle evidence. Called when
+   * the advisor opens or is refreshed, and after a lifecycle-changing write, so
+   * the advice follows the profile instead of being computed once and fossilised.
+   */
+  refreshAdvisorAdvice(): AdvisorAdvice[] {
+    const advice = this.lifecycleAdvisorAdvice();
+    this.advisorAdvice.set(advice);
+    return advice;
+  }
+
+  /**
+   * Dismisses one advice item for this session. Tracked by id so a later
+   * refresh does not re-surface advice the artist already rejected.
+   */
+  dismissAdvisorAdvice(id: string): void {
+    if (!id) return;
+    this.dismissedAdviceIds.add(id);
+    this.advisorAdvice.update((list) =>
+      list.filter((item) => item.id !== id)
+    );
+  }
+
+  /**
+   * Compact lifecycle block for the model prompt.
+   *
+   * Gated on the same sharing preference as every other profile-derived line: a
+   * derived summary of the artist's business and release position is still
+   * profile data, so it is withheld rather than handed to the model by default.
+   */
+  lifecycleAdvisorBrief(): string {
+    const profile = this.userProfileService.profile();
+    if (profile.settings?.security?.shareProfileAnswersWithAi !== true) {
+      return 'ARTIST LIFECYCLE — withheld (the artist has not shared profile answers with AI). Do not infer the artist’s business, release, or audience position; ask before assuming.';
+    }
+
+    const snapshot = this.lifecycleSnapshot();
+    const phases = snapshot.phases
+      .map(
+        (phase) =>
+          `${phase.label} ${phase.score === null ? 'not scored' : `${phase.score}%`} (${phase.provenance})`
+      )
+      .join('; ');
+    const move = snapshot.nextBestMove;
+    const recommendation = snapshot.recommendations[0];
+    const lines = [
+      'ARTIST LIFECYCLE (evidence-derived — counts of evidenced pathway steps, NOT platform metrics):',
+      `- Overall: ${snapshot.overallScore}% evidenced (${snapshot.overallProvenance}); stage: ${snapshot.stage}.`,
+      `- Phases: ${phases}.`,
+      move
+        ? `- Next best move: "${move.title}" [${LIFECYCLE_PHASE_LABEL[move.phase]}] — ${move.why}`
+        : '- Every pathway step is evidenced; keep the record current as work changes.',
+      recommendation?.evidence.length
+        ? `- Evidence still missing: ${recommendation.evidence.slice(0, 4).join('; ')}.`
+        : '',
+      snapshot.risks.length
+        ? `- Risks: ${snapshot.risks.slice(0, 2).map((risk) => risk.message).join(' ')}`
+        : '',
+      snapshot.releaseReadiness.status === 'assessed'
+        ? `- Release "${snapshot.releaseReadiness.releaseName}": ${snapshot.releaseReadiness.verdict}`
+        : '- No release is in the pipeline, so release readiness cannot be scored.',
+      'Lead with the single next best move unless the artist asks for something else, and name the pathway step as the reason. Never restate these counts as listeners, revenue, delivery status, or legal certainty.',
+    ];
+    return lines.filter(Boolean).join('\n');
+  }
+
   /**
    * Ambient status pulse. Dedupes on the message so an interval cannot spam
    * the notification stack, and returns the line for inline display.
@@ -1431,9 +1600,13 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   proactiveSmuvePulse(): string {
     const open = this.getDynamicChecklist().filter((t) => !t.completed);
     const report = this.buildExecutiveAuditReport();
-    const message = open.length
-      ? `S.M.U.V.E PULSE — ${open.length} open mandate(s). Priority: ${open[0].label}. Audit ${report.overallScore}/100.`
-      : `S.M.U.V.E PULSE — all mandates cleared. Session audit ${report.overallScore}/100.`;
+    const snapshot = this.lifecycleSnapshot();
+    const move = snapshot.nextBestMove;
+    // The lifecycle move leads when there is one: it is the single action the
+    // pathway ordering already ranked first, and it carries its own evidence.
+    const message = move
+      ? `S.M.U.V.E PULSE — Next best move: ${move.title} (${LIFECYCLE_PHASE_LABEL[move.phase]}). Lifecycle ${snapshot.overallScore}% evidenced. ${open.length} open mandate(s).`
+      : `S.M.U.V.E PULSE — lifecycle fully evidenced. ${open.length} open mandate(s). Audit ${report.overallScore}/100.`;
     const previous = this.lastPulse();
     this.lastPulse.set({ message, at: Date.now() });
     if (!previous || previous.message !== message) {

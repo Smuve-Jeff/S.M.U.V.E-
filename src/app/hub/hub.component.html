@@ -145,26 +145,63 @@
         </div>
       </div>
 
-      <div class="hero-readiness">
+      <div class="hero-readiness lifecycle-hero">
         <div class="readiness-ring" [style.--readiness]="readinessScore() + '%'">
           <div>
             <strong>{{ readinessScore() }}%</strong>
-            <span>ready</span>
+            <span>evidenced</span>
           </div>
         </div>
-        <div class="readiness-copy">
-          <p class="hub-kicker">ROSTER READINESS</p>
-          <h2>{{ readinessScore() >= 75 ? 'Move with intent.' : 'Build your foundation.' }}</h2>
-          <p>
-            {{ readinessScore() >= 75
-              ? 'Your identity, catalog, strategy, and creative trail are lining up.'
-              : 'Complete one focused move and S.M.U.V.E. will sharpen the next recommendation.' }}
-          </p>
-          <button type="button" class="mini-link" (click)="navigateToFeature('profile')">
-            Tune artist identity <span class="material-symbols-outlined">north_east</span>
+        <div class="readiness-copy lifecycle-hero-copy">
+          <p class="hub-kicker">ARTIST LIFECYCLE // {{ lifecycle().stage.replace('-', ' ') }}</p>
+          <h2>{{ lifecyclePhaseCount() }} of {{ lifecycle().phases.length }} phases have evidence.</h2>
+          <p>{{ lifecycleStatusLabel(lifecycle()) }}</p>
+          @if (lifecycleMove(); as move) {
+            <div class="lifecycle-next-move">
+              <strong>Next best move · {{ move.phase }}</strong>
+              <span>{{ move.title }}</span>
+              <small>{{ move.why }}</small>
+            </div>
+          } @else {
+            <p>Every pathway step is evidenced. Keep the artist record current as work changes.</p>
+          }
+          <button type="button" class="mini-link" (click)="navigateToFeature('artist-development')">
+            Open lifecycle command center <span class="material-symbols-outlined">north_east</span>
           </button>
         </div>
       </div>
+    </section>
+
+    <section class="hub-lifecycle-board" aria-label="Artist lifecycle phase health">
+      <div class="lifecycle-board-heading">
+        <div>
+          <p class="hub-kicker">EVIDENCE-BASED CAREER HEALTH</p>
+          <h2>Artist lifecycle</h2>
+          <p>{{ lifecycle().provenanceNotes[0] }}</p>
+        </div>
+        <div class="lifecycle-overview">{{ lifecycleStatusLabel(lifecycle()) }}</div>
+      </div>
+      <div class="lifecycle-phase-grid">
+        @for (phase of lifecycle().phases; track phase.id) {
+          <article class="lifecycle-phase-card" [class.is-complete]="phase.status === 'on-track'" [class.is-blocked]="phase.status === 'at-risk'">
+            <span>{{ phase.label }}</span>
+            <strong>{{ phase.score === null ? '—' : phase.score + '%' }}</strong>
+            <small>{{ phase.provenance }} · {{ phase.completed }}/{{ phase.total }}</small>
+          </article>
+        }
+      </div>
+      @if (lifecycle().risks.length) {
+        <ul class="lifecycle-risks">
+          @for (risk of lifecycle().risks.slice(0, 2); track risk.message) {
+            <li>{{ risk.message }}</li>
+          }
+        </ul>
+      }
+      @if (lifecycle().releaseReadiness.status === 'assessed') {
+        <p class="lifecycle-release-signal">
+          Release · {{ lifecycle().releaseReadiness.releaseName }} · {{ lifecycle().releaseReadiness.overallScore === null ? 'not assessed' : lifecycle().releaseReadiness.overallScore + '% readiness' }} — {{ lifecycle().releaseReadiness.verdict }}
+        </p>
+      }
     </section>
 
     <section class="hub-signal-strip" aria-label="Live workspace signals">

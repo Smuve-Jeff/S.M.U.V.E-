@@ -193,6 +193,14 @@ export interface AdvisorAdvice {
     payload: string;
   };
   persona?: AdvisorPersona;
+  /** Lifecycle phase that produced the advice, when it came from the lifecycle engine. */
+  phase?: string;
+  /** How the underlying signal was obtained — never upgraded beyond its source. */
+  provenance?: 'verified' | 'inferred' | 'sampled' | 'missing';
+  /** The concrete evidence the advice is tied to, so it is never a bare task. */
+  evidence?: string[];
+  /** Pathway step id the advice was derived from, for tracing it back. */
+  sourceStepId?: string;
 }
 
 export type ArtistTier =

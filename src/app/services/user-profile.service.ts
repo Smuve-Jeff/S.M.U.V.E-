@@ -14,6 +14,12 @@ import {
   RecommendationHistoryEntry,
 } from '../types/profile.types';
 import { normalizePersona } from '../types/persona.types';
+import { ArtistLifecycleService } from './artist-lifecycle.service';
+import type {
+  ArtistLifecycleHistoryEntry,
+  LifecycleProvenance,
+} from '../types/artist-lifecycle.types';
+import type { ReleaseProject } from '../types/release.types';
 
 export type {
   UserProfile,
@@ -149,6 +155,14 @@ export class UserProfileService {
   profile = this.store.profile;
 
   /**
+   * Lifecycle derives exclusively from existing profile evidence. Resolve it
+   * lazily so the lifecycle's pathway dependency cannot form an eager cycle.
+   */
+  private get lifecycleService() {
+    return this.injector.get(ArtistLifecycleService);
+  }
+
+  /**
    * Whether `profile()` is the artist's stored profile (or a seeded one for a
    * new account) rather than the pre-load `initialProfile` placeholder.
    */
@@ -231,6 +245,54 @@ export class UserProfileService {
       security: overlay(currentSettings.security, incomingSettings?.security),
     };
     const next = { ...current, ...p, settings: mergedSettings } as UserProfile;
+    const release = (next.knowledgeBase as any)?.currentRelease as ReleaseProject | undefined;
+    const snapshot = this.lifecycleService.snapshot(next, release);
+    const phaseScores = Object.fromEntries(
+      snapshot.phases.map((phase) => [phase.id, phase.score])
+    ) as NonNullable<UserProfile['phaseScores']>;
+    const lifecycleEntry: ArtistLifecycleHistoryEntry = {
+      generatedAt: snapshot.generatedAt,
+      overallScore: snapshot.overallScore,
+      phaseScores,
+      nextBestMoveId: snapshot.nextBestMove?.id ?? null,
+      releaseReadinessScore: snapshot.releaseReadiness.overallScore,
+    };
+    const previousHistory = Array.isArray(current.lifecycleHistory)
+      ? current.lifecycleHistory
+      : [];
+    const previous = previousHistory[0];
+    const lifecycleChanged =
+      !previous ||
+      previous.overallScore !== lifecycleEntry.overallScore ||
+      previous.nextBestMoveId !== lifecycleEntry.nextBestMoveId ||
+      previous.releaseReadinessScore !== lifecycleEntry.releaseReadinessScore ||
+      JSON.stringify(previous.phaseScores) !== JSON.stringify(lifecycleEntry.phaseScores);
+    Object.assign(next, {
+      artistLifecycleSnapshot: snapshot,
+      latestRecommendations: snapshot.recommendations,
+      lastGeneratedAt: snapshot.generatedAt,
+      phaseScores,
+      releaseReadinessSignal: {
+        score: snapshot.releaseReadiness.overallScore,
+        state: snapshot.releaseReadiness.state,
+        provenance: snapshot.releaseReadiness.status === 'no-release'
+          ? 'missing'
+          : 'inferred' as LifecycleProvenance,
+      },
+      growthReadinessSignal: {
+        score: snapshot.phases.find((phase) => phase.id === 'growth')?.score ?? null,
+        state: snapshot.phases.find((phase) => phase.id === 'growth')?.status ?? 'needs-attention',
+        provenance: snapshot.phases.find((phase) => phase.id === 'growth')?.provenance ?? 'missing',
+      },
+      businessReadinessSignal: {
+        score: snapshot.phases.find((phase) => phase.id === 'business')?.score ?? null,
+        state: snapshot.phases.find((phase) => phase.id === 'business')?.status ?? 'needs-attention',
+        provenance: snapshot.phases.find((phase) => phase.id === 'business')?.provenance ?? 'missing',
+      },
+      lifecycleHistory: lifecycleChanged
+        ? [lifecycleEntry, ...previousHistory].slice(0, 50)
+        : previousHistory,
+    });
     // Stamp the active user id so the profile always carries the account it
     // belongs to, and the local backup + cloud sync share one key.
     next.id = this.activeUserId();

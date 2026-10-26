@@ -62,6 +62,15 @@
             </button>
           </div>
           <p class="text-xs opacity-80 mt-1">{{ item.description }}</p>
+          <p
+            *ngIf="item.evidence?.length"
+            class="text-[10px] opacity-60 mt-2 leading-snug"
+          >
+            Evidence: {{ item.evidence?.slice(0, 2)?.join(' · ') }}
+          </p>
+          <p *ngIf="item.phase" class="text-[9px] uppercase tracking-widest opacity-50 mt-1">
+            {{ item.phase }} · {{ item.provenance }}
+          </p>
         </div>
       </ng-container>
 

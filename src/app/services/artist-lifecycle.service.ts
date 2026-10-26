@@ -11,7 +11,9 @@ import { ReleaseProject } from '../types/release.types';
 import {
   ArtistLifecycleMove,
   ArtistLifecyclePhase,
+  ArtistLifecycleRecommendation,
   ArtistLifecycleRisk,
+  ArtistLifecycleTask,
   ArtistLifecycleSnapshot,
   LIFECYCLE_PHASE_AREAS,
   LIFECYCLE_PHASE_LABEL,
@@ -79,6 +81,15 @@ export class ArtistLifecycleService {
     const supportingMoves = readout.parallelActions
       .map((entry) => this.toMove(entry))
       .slice(0, 3);
+    const priorityById = new Map(
+      [readout.nextAction, ...readout.parallelActions]
+        .filter((entry): entry is PathwayStepProgress => entry !== null)
+        .map((entry, index): [string, number] => [entry.step.id, index + 1])
+    );
+    const tasks = readout.steps.map((entry) => this.toTask(entry, priorityById));
+    const recommendations = nextBestMove
+      ? [this.toRecommendation(nextBestMove, readout.steps.find((entry) => entry.step.id === nextBestMove.id)!)]
+      : [];
 
     const risks = this.buildRisks(phases, readout.overall, report.differentiationScore);
 
@@ -101,6 +112,8 @@ export class ArtistLifecycleService {
         readout.totalSteps
       ),
       phases,
+      tasks,
+      recommendations,
       nextBestMove,
       supportingMoves,
       risks,
@@ -176,6 +189,52 @@ export class ArtistLifecycleService {
       why: entry.step.why,
       // Moves are chosen from the artist's own profile, never from a platform
       // feed, so they can never be more than inferred.
+      provenance: 'inferred',
+    };
+  }
+
+  private toTask(
+    entry: PathwayStepProgress,
+    priorityById: Map<string, number>
+  ): ArtistLifecycleTask {
+    const priority = priorityById.get(entry.step.id) ?? null;
+    const evidenceNeeded = entry.needs;
+    return {
+      id: entry.step.id,
+      phase: this.phaseForArea(entry.step.area),
+      title: entry.step.title,
+      action: entry.nextMove || entry.step.actions[0] || '',
+      status: entry.status,
+      priority,
+      urgency:
+        entry.status === 'complete'
+          ? 'complete'
+          : entry.status === 'blocked'
+            ? 'blocked'
+            : priority === 1
+              ? 'now'
+              : 'optional',
+      blockers: entry.blockedBy,
+      evidenceNeeded,
+      strategicImpact: entry.step.why,
+      provenance: entry.status === 'complete' ? 'verified' : 'inferred',
+    };
+  }
+
+  private toRecommendation(
+    move: ArtistLifecycleMove,
+    entry: PathwayStepProgress
+  ): ArtistLifecycleRecommendation {
+    return {
+      id: `lifecycle:${move.id}`,
+      kind: 'next-action',
+      phase: move.phase,
+      title: move.title,
+      explanation: move.why,
+      evidence: entry.needs.length
+        ? [...entry.needs]
+        : [`Pathway step "${entry.step.title}" is the next actionable item.`],
+      sourceStepId: entry.step.id,
       provenance: 'inferred',
     };
   }
