@@ -809,6 +809,26 @@
       *ngIf="isMobileWorkspaceTrayOpen()"
       class="fixed inset-x-4 bottom-24 z-50 rounded-3xl border border-border bg-surface/95 shadow-v42-xl p-4 max-h-[55vh] overflow-y-auto"
     >
+      <button
+        *ngIf="mobileNextMove() as move"
+        type="button"
+        class="mobile-next-move mb-4 flex w-full items-start gap-3 rounded-2xl border border-brand-primary/40 bg-brand-primary/10 px-4 py-3 text-left"
+        (click)="openMobileNextMove()"
+      >
+        <span class="material-symbols-outlined text-brand-primary">flag</span>
+        <div class="min-w-0">
+          <div
+            class="text-[9px] font-bold uppercase tracking-[0.25em] text-brand-primary"
+          >
+            Do this next
+          </div>
+          <div class="text-[11px] font-bold text-text-main mt-1">
+            {{ move.title }}
+          </div>
+          <div class="text-[10px] text-text-dim mt-1">{{ move.action }}</div>
+        </div>
+      </button>
+
       <div class="flex items-center justify-between gap-3 mb-4">
         <div>
           <p

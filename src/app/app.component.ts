@@ -35,6 +35,7 @@ import { AutoSaveService } from './services/auto-save.service';
 import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
 import { ArtistCoachCommandIntegrationService } from './services/artist-coach-command-integration.service';
 import { ArtistLifecycleCommandIntegrationService } from './services/artist-lifecycle-command-integration.service';
+import { ArtistLifecycleService } from './services/artist-lifecycle.service';
 import { CommandPaletteService } from './services/command-palette.service';
 import { UserProfileService } from './services/user-profile.service';
 import { OfflineSyncService } from './services/offline-sync.service';
@@ -107,6 +108,7 @@ export class AppComponent {
   private coachCommands = inject(ArtistCoachCommandIntegrationService);
   // Publishes the pathway's next move and blocked phases into the palette.
   private lifecycleCommands = inject(ArtistLifecycleCommandIntegrationService);
+  private lifecycleService = inject(ArtistLifecycleService);
   profileService = inject(UserProfileService);
   offlineSync = inject(OfflineSyncService);
   location = inject(Location);
@@ -552,6 +554,23 @@ export class AppComponent {
 
   toggleMobileWorkspaceTray() {
     this.isMobileWorkspaceTrayOpen.update((value) => !value);
+  }
+
+  /**
+   * The single move the pathway ranks first, surfaced in the mobile workspace
+   * tray so the next action is reachable from any workspace on a phone. It is
+   * the same move the Hub and the command palette offer, never a separate pick.
+   */
+  mobileNextMove = computed(() => {
+    const profile = this.profileService.profile();
+    return this.lifecycleService.snapshot(
+      profile,
+      (profile.knowledgeBase as any)?.currentRelease ?? null
+    ).nextBestMove;
+  });
+
+  openMobileNextMove(): void {
+    this.navigateToView('artist-development');
   }
 
   togglePinnedView(mode: MainViewMode) {

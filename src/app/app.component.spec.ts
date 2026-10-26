@@ -232,6 +232,22 @@ describe('AppComponent', () => {
     expect(uiService.toggleChatbot).toHaveBeenCalled();
   });
 
+  it('offers the pathway next move as a mobile quick action', async () => {
+    const { component, uiService } = await createComponent();
+
+    // Same move the Hub and palette offer — the pathway's first open step.
+    const move = component.mobileNextMove();
+    expect(move).not.toBeNull();
+    expect(move!.title.length).toBeGreaterThan(0);
+
+    component.isMobile.set(true);
+    component.isMobileWorkspaceTrayOpen.set(true);
+    component.openMobileNextMove();
+
+    expect(uiService.navigateToView).toHaveBeenCalledWith('artist-development');
+    expect(component.isMobileWorkspaceTrayOpen()).toBe(false);
+  });
+
   it('returns directly to the Hub and closes workspace overlays from any route', async () => {
     const { component, router, uiService } = await createComponent('/tha-spot/game/modern-polytrack');
     component.isMobile.set(true);
