@@ -1,13 +1,17 @@
 import { Component, signal, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { UserProfileService } from '../../services/user-profile.service';
 import { MarketingService } from '../../services/marketing.service';
 import { AiService } from '../../services/ai.service';
 import { UIService } from '../../services/ui.service';
 import { MarketingCampaign } from '../../types/marketing.types';
-import { StrategicTask, UpgradeRecommendation } from '../../types/ai.types';
+import {
+  AdvisorAdvice,
+  StrategicTask,
+  UpgradeRecommendation,
+} from '../../types/ai.types';
 
 type StrategyTab = 'overview' | 'campaigns' | 'analytics' | 'social';
 type CampaignPlatform = MarketingCampaign['platforms'][number];
@@ -31,6 +35,7 @@ export class StrategyHubComponent implements OnInit {
   private profileService = inject(UserProfileService);
   private marketingService = inject(MarketingService);
   private uiService = inject(UIService);
+  private router = inject(Router);
   public aiService = inject(AiService);
 
   profile = this.profileService.profile;
@@ -108,12 +113,46 @@ export class StrategyHubComponent implements OnInit {
 
   strategicTasks = signal<StrategicTask[]>([]);
 
+  /**
+   * The same evidence-linked advice the advisor drawer shows, so the two
+   * surfaces can never disagree about what comes first. Lifecycle orders are
+   * derived from the profile on read, so this updates as evidence lands.
+   */
+  lifecycleAdvice = computed(() => this.aiService.lifecycleAdvisorAdvice());
+  lifecycleSnapshot = computed(() => this.aiService.lifecycleSnapshot());
+
   ngOnInit() {
     this.refreshStrategicIntelligence();
   }
 
   refreshStrategicIntelligence(): void {
     this.strategicTasks.set(this.aiService.getDynamicChecklist());
+    // Keep the advisor queue in step with the panel instead of letting the
+    // drawer hold a stale list from the last time it was opened.
+    this.aiService.refreshAdvisorAdvice();
+  }
+
+  /**
+   * Lifecycle orders carry their own destination because the evidence behind
+   * them lives on a specific surface. Completion is never toggled here — the
+   * pathway decides that from the recorded evidence, so a checkbox would lie.
+   */
+  openLifecycleAdvice(item: AdvisorAdvice): void {
+    const action = item.action;
+    if (action?.type === 'navigate' && action.payload) {
+      void this.router.navigate([action.payload]);
+    }
+  }
+
+  adviceTone(priority: AdvisorAdvice['priority']): string {
+    switch (priority) {
+      case 'high':
+        return 'border-brand-primary/40 bg-brand-primary/10';
+      case 'medium':
+        return 'border-amber-500/30 bg-amber-500/5';
+      default:
+        return 'border-white/10 bg-white/5';
+    }
   }
 
   async submitIndustrySearch(input: HTMLInputElement): Promise<void> {

@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { StrategyHubComponent } from './strategy-hub.component';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { API_KEY_TOKEN, AiService } from '../../services/ai.service';
 import { MarketingService } from '../../services/marketing.service';
 import { UserProfileService } from '../../services/user-profile.service';
@@ -28,6 +28,49 @@ describe('StrategyHubComponent', () => {
       },
     ],
   };
+
+  /**
+   * The lifecycle view the Strategy Hub now renders above the session mandates.
+   * It is deliberately partial: advice is derived from evidence, so an empty
+   * phase list must not break the panel.
+   */
+  const mockLifecycleSnapshot = {
+    overallScore: 42,
+    overallProvenance: 'inferred',
+    nextBestMove: {
+      id: 'identity-name',
+      phase: 'identity',
+      title: 'Lock the official artist name',
+      action: 'Write down the name exactly as it should appear.',
+      why: 'Every later step is filed against this name.',
+      provenance: 'inferred',
+    },
+    phases: [],
+    risks: [],
+    recommendations: [],
+    releaseReadiness: {
+      status: 'no-release',
+      state: 'insufficient-data',
+      overallScore: null,
+      checks: [],
+      blockingGaps: [],
+      verdict: 'No release is in the pipeline yet.',
+    },
+  };
+
+  const mockLifecycleAdvice = [
+    {
+      id: 'lifecycle:identity-name',
+      title: 'Lock the official artist name',
+      description: 'Identity: every later step is filed against this name.',
+      priority: 'high' as const,
+      phase: 'Identity',
+      provenance: 'inferred' as const,
+      evidence: ['Save the artist name on the profile.'],
+      sourceStepId: 'identity-name',
+      action: { type: 'navigate' as const, payload: '/artist-development' },
+    },
+  ];
 
   const mockAiService = {
     systemStatus: signal({
@@ -60,6 +103,9 @@ describe('StrategyHubComponent', () => {
       },
     ]),
     getViralHooks: jest.fn().mockReturnValue(['Hook 1', 'Hook 2']),
+    lifecycleSnapshot: jest.fn().mockReturnValue(mockLifecycleSnapshot),
+    lifecycleAdvisorAdvice: jest.fn().mockReturnValue(mockLifecycleAdvice),
+    refreshAdvisorAdvice: jest.fn().mockReturnValue(mockLifecycleAdvice),
     getUpgradeRecommendations: jest.fn().mockReturnValue([
       {
         id: 'upg-1',
@@ -168,6 +214,39 @@ describe('StrategyHubComponent', () => {
   it('should load strategic tasks on init', () => {
     expect(mockAiService.getDynamicChecklist).toHaveBeenCalled();
     expect(component.strategicTasks().length).toBeGreaterThan(0);
+  });
+
+  it('renders lifecycle orders from the same service the advisor drawer reads', () => {
+    expect(mockAiService.lifecycleAdvisorAdvice).toHaveBeenCalled();
+    expect(component.lifecycleAdvice()).toEqual(mockLifecycleAdvice);
+    expect(component.lifecycleSnapshot().overallScore).toBe(42);
+  });
+
+  it('keeps lifecycle orders evidence-owned rather than tickable', () => {
+    const before = component.lifecycleAdvice();
+
+    component.toggleTask('task-1');
+
+    // Only session mandates can be toggled; pathway status is decided by the
+    // recorded evidence, so the lifecycle list must be unaffected.
+    expect(component.lifecycleAdvice()).toBe(before);
+  });
+
+  it('refreshes the advisor queue when the pipeline regenerates', () => {
+    (mockAiService.refreshAdvisorAdvice as jest.Mock).mockClear();
+
+    component.refreshStrategicIntelligence();
+
+    expect(mockAiService.refreshAdvisorAdvice).toHaveBeenCalled();
+  });
+
+  it('navigates to the surface that owns an order\u2019s evidence', () => {
+    const router = TestBed.inject(Router);
+    const navigate = jest.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    component.openLifecycleAdvice(mockLifecycleAdvice[0]);
+
+    expect(navigate).toHaveBeenCalledWith(['/artist-development']);
   });
 
   it('should toggle task completion reactively', () => {
