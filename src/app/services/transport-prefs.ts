@@ -16,6 +16,11 @@ export interface TransportPrefs {
   /** Loop region in sixteenth-note steps; null when no region was ever set. */
   loopStart: number | null;
   loopEnd: number | null;
+  /**
+   * Mono-sum monitor. A monitoring habit, like the click: the mixer should
+   * still be in mono after a reload, not silently back in stereo.
+   */
+  mono: boolean;
 }
 
 export const TRANSPORT_PREFS_KEY = "smuve_studio_transport_prefs";
@@ -51,6 +56,7 @@ export function parseTransportPrefs(
 
   if (isBoolean(record["loop"])) prefs.loop = record["loop"];
   if (isBoolean(record["metronome"])) prefs.metronome = record["metronome"];
+  if (isBoolean(record["mono"])) prefs.mono = record["mono"];
 
   const start = record["loopStart"];
   const end = record["loopEnd"];
@@ -70,5 +76,6 @@ export function serializeTransportPrefs(prefs: TransportPrefs): string {
     metronome: prefs.metronome,
     loopStart: prefs.loopStart,
     loopEnd: prefs.loopEnd,
+    mono: prefs.mono,
   });
 }

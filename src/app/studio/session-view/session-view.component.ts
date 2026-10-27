@@ -9,7 +9,10 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 
 import { AudioSessionService } from "../audio-session.service";
-import { MusicManagerService } from "../../services/music-manager.service";
+import {
+  LaunchQuantize,
+  MusicManagerService,
+} from "../../services/music-manager.service";
 import { HapticService } from "../../services/haptic.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
@@ -33,6 +36,8 @@ export interface SessionClipView {
   color: string;
   hasContent: boolean;
   slotId: string | null;
+  /** Per-pattern launch boundary; null means follow the grid setting. */
+  launchQuantize?: LaunchQuantize | null;
 }
 
 interface SessionTrackView {
@@ -40,29 +45,6 @@ interface SessionTrackView {
   name: string;
   muted: boolean;
   color: string;
-}
-
-type CellQuantize = "global" | "none" | "1bar" | "2bar" | "4bar";
-
-const CELL_QUANT_KEY = "smuve_session_cell_quantize_v1";
-
-function loadCellQuantize(): Record<string, CellQuantize> {
-  try {
-    const raw = localStorage.getItem(CELL_QUANT_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return {};
-    const allowed: CellQuantize[] = ["global", "none", "1bar", "2bar", "4bar"];
-    const out: Record<string, CellQuantize> = {};
-    for (const [key, value] of Object.entries(parsed)) {
-      if (typeof value === "string" && allowed.includes(value as CellQuantize)) {
-        out[key] = value as CellQuantize;
-      }
-    }
-    return out;
-  } catch {
-    return {};
-  }
 }
 
 const SCENE_COLORS = [
@@ -116,12 +98,9 @@ export class SessionViewComponent implements OnDestroy {
   /**
    * Per-cell launch quantization. A cell can override the grid-wide setting —
    * a one-shot hit launches immediately while loops stay on the bar — and the
-   * override is stored per pattern slot, so a re-created slot is not silently
-   * launched on somebody else's boundary.
+   * override lives on the pattern slot, so it is saved with the project and
+   * undone with the edit that set it.
    */
-  readonly cellQuantize = signal<Record<string, CellQuantize>>(
-    loadCellQuantize(),
-  );
   readonly quantizeCellOptions = [
     "global",
     "none",
@@ -191,6 +170,7 @@ export class SessionViewComponent implements OnDestroy {
           color: SCENE_COLORS[index % SCENE_COLORS.length],
           hasContent: this.musicManager.patternSlotHasContent(track, slot),
           slotId: slot.id,
+          launchQuantize: slot.launchQuantize ?? null,
         });
       });
     }
@@ -264,9 +244,9 @@ export class SessionViewComponent implements OnDestroy {
     return `${clip.trackId}:${clip.slotId ?? clip.id}`;
   }
 
-  /** Effective setting for a cell: its override, else the grid default. */
-  cellQuantizeSetting(clip: SessionClipView): CellQuantize {
-    return this.cellQuantize()[this.cellQuantKey(clip)] ?? "global";
+  /** Effective setting for a cell: its slot override, else the grid default. */
+  cellQuantizeSetting(clip: SessionClipView): LaunchQuantize | "global" {
+    return clip.launchQuantize ?? "global";
   }
 
   cellQuantizeLabel(clip: SessionClipView): string {
@@ -292,31 +272,25 @@ export class SessionViewComponent implements OnDestroy {
     this.cellActionClip.set(null);
   }
 
-  setCellQuantize(clip: SessionClipView, value: CellQuantize): void {
-    const key = this.cellQuantKey(clip);
-    this.cellQuantize.update((map) => {
-      const next = { ...map };
-      if (value === "global") delete next[key];
-      else next[key] = value;
-      return next;
-    });
-    this.persistCellQuantize();
+  setCellQuantize(
+    clip: SessionClipView,
+    value: LaunchQuantize | "global",
+  ): void {
+    if (!clip.slotId) return;
+    const saved = this.musicManager.setPatternSlotLaunchQuantize(
+      clip.trackId,
+      clip.slotId,
+      value === "global" ? null : value,
+    );
+    if (!saved) {
+      this.snackbar.error("Could not change this pattern's launch boundary");
+      return;
+    }
     this.closeCellActions();
     this.haptic.light();
   }
 
-  private persistCellQuantize(): void {
-    try {
-      localStorage.setItem(
-        CELL_QUANT_KEY,
-        JSON.stringify(this.cellQuantize()),
-      );
-    } catch {
-      // Locked storage: the overrides still hold for this session.
-    }
-  }
-
-  private barsForQuantize(setting: CellQuantize | "none" | "1bar" | "2bar" | "4bar"): number {
+  private barsForQuantize(setting: LaunchQuantize | "global"): number {
     if (setting === "none") return 0;
     if (setting === "1bar") return 1;
     if (setting === "2bar") return 2;

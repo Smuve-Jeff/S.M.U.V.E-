@@ -848,6 +848,10 @@ export class AudioEngineService {
     this._ctxStateHandler();
     if (this.audioAvailable) this.startOutputMetering();
     this.autoAdjustEffect();
+
+    // Apply a restored mono preference now that the direct master → destination
+    // edge exists. Doing it earlier would leave both paths connected.
+    if (this.monoMonitoring()) this.setMonoMonitoring(true);
   }
 
   setQuantumSaturation(amount: number) {
@@ -2873,6 +2877,7 @@ export class AudioEngineService {
       }
       this.monoSumWired = next;
       this.monoMonitoring.set(next);
+      this.persistTransportPrefs();
     } catch {
       // A host that refuses the re-route must not end up silent: restore the
       // direct monitor edge and report stereo.
@@ -2889,6 +2894,7 @@ export class AudioEngineService {
       }
       this.monoSumWired = false;
       this.monoMonitoring.set(false);
+      this.persistTransportPrefs();
     }
     return this.monoMonitoring();
   }
@@ -3595,6 +3601,9 @@ export class AudioEngineService {
         this.playbackLoopStart.set(prefs.loopStart);
         this.playbackLoopEnd.set(prefs.loopEnd);
       }
+      // Only the preference is restored here: the monitor graph is built later
+      // in the constructor, so the actual splice happens once it exists.
+      if (prefs.mono !== undefined) this.monoMonitoring.set(prefs.mono);
     } catch {
       // Private mode / locked storage: the defaults are the safe state.
     }
@@ -3609,6 +3618,7 @@ export class AudioEngineService {
           metronome: this.metronomeEnabled(),
           loopStart: this.playbackLoopStart(),
           loopEnd: this.playbackLoopEnd(),
+          mono: this.monoMonitoring(),
         })
       );
     } catch {

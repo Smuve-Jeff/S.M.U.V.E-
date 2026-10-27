@@ -32,6 +32,7 @@ describe("ProjectWorkspaceService", () => {
   let saveItem: jest.Mock;
   let queueOperation: jest.Mock;
   let tempoSet: jest.Mock;
+  let monitorMono: ReturnType<typeof signal<boolean>>;
   let getItem: jest.Mock;
   let getAllItems: jest.Mock;
   let deleteItems: jest.Mock;
@@ -78,6 +79,7 @@ describe("ProjectWorkspaceService", () => {
     saveItem = jest.fn().mockResolvedValue(undefined);
     queueOperation = jest.fn().mockResolvedValue("sync_test_1");
     tempoSet = jest.fn();
+    monitorMono = signal(false);
     getItem = jest.fn().mockResolvedValue(null);
     getAllItems = jest.fn().mockResolvedValue([]);
     deleteItems = jest.fn().mockResolvedValue(undefined);
@@ -102,6 +104,11 @@ describe("ProjectWorkspaceService", () => {
               stop: jest.fn(),
               tempo: { set: tempoSet },
               masterGain: { gain: { value: 0.8 } },
+              monoMonitoring: monitorMono,
+              setMonoMonitoring: (enabled: boolean) => {
+                monitorMono.set(enabled);
+                return enabled;
+              },
               ctx: {
                 createBuffer: jest.fn(
                   (
@@ -344,6 +351,47 @@ describe("ProjectWorkspaceService", () => {
     expect(manager.structure()).toEqual(snapshot.structure);
     expect(manager.engine.masterGain.gain.value).toBe(0.4);
     expect(manager.selectedTrackId()).toBe('track-1');
+  });
+
+  it("round-trips solo-safe, mono monitoring and per-cell launch quantization", () => {
+    tracks.set([
+      {
+        id: "track-1",
+        notes: [],
+        soloSafe: true,
+        patternSlots: [
+          {
+            id: "slot-a",
+            name: "Guide",
+            activeVersionId: "v1",
+            versions: [],
+            launchQuantize: "2bar",
+          },
+          {
+            id: "slot-b",
+            name: "Drop",
+            activeVersionId: "v2",
+            versions: [],
+            launchQuantize: null,
+          },
+        ],
+      },
+    ]);
+    monitorMono.set(true);
+
+    const snapshot = service.createSnapshot();
+    expect(snapshot.mixState.monitorMono).toBe(true);
+    expect(snapshot.tracks[0].soloSafe).toBe(true);
+    expect(snapshot.tracks[0].patternSlots[0].launchQuantize).toBe("2bar");
+    expect(snapshot.tracks[0].patternSlots[1].launchQuantize).toBeNull();
+
+    monitorMono.set(false);
+    tracks.set([{ id: "track-1", notes: [] }]);
+    service.restoreFromSnapshot(snapshot);
+
+    expect(monitorMono()).toBe(true);
+    expect(tracks()[0].soloSafe).toBe(true);
+    expect(tracks()[0].patternSlots[0].launchQuantize).toBe("2bar");
   });
 
   it("persists manual saves locally before returning the bundle", async () => {

@@ -794,6 +794,9 @@ export class ProjectWorkspaceService {
       },
       mixState: {
         masterGain: this.musicManager.engine?.masterGain?.gain?.value ?? 0.8,
+        // Monitoring state travels with the set: reopening a club mix should
+        // not silently put the engineer back in stereo.
+        monitorMono: this.musicManager.engine?.monoMonitoring?.() ?? false,
       },
       notes: this.projectNotes(),
       exportedAt: Date.now(),
@@ -826,6 +829,11 @@ export class ProjectWorkspaceService {
     const gain = bundle.mixState?.masterGain;
     if (Number.isFinite(gain) && this.musicManager.engine?.masterGain?.gain) {
       this.musicManager.engine.masterGain.gain.value = Math.max(0, Math.min(1, gain));
+    }
+    if (typeof bundle.mixState?.monitorMono === 'boolean') {
+      this.musicManager.engine?.setMonoMonitoring?.(
+        bundle.mixState.monitorMono,
+      );
     }
     this.logger.info(
       "ProjectWorkspace: Restored project " +
@@ -929,6 +937,7 @@ export class ProjectWorkspaceService {
     takeState = this.takeManager.serialize(),
     masterGain = this.musicManager.engine?.masterGain?.gain?.value ?? 0.8,
     notes = this.projectNotes(),
+    monitorMono = this.musicManager.engine?.monoMonitoring?.() ?? false,
   ): string {
     return JSON.stringify({
       metadata: metadata ? { ...metadata, bpm: tempo, updatedAt: undefined, lastOpenedAt: undefined } : null,
@@ -939,6 +948,7 @@ export class ProjectWorkspaceService {
       takeState,
       notes,
       masterGain,
+      monitorMono,
     });
   }
 
@@ -994,6 +1004,11 @@ export class ProjectWorkspaceService {
       bundle.takeState,
       bundle.mixState?.masterGain,
       bundle.notes,
+      // Older bundles predate the field; treat the current monitor mode as the
+      // saved one so opening them does not mark the project dirty immediately.
+      typeof bundle.mixState?.monitorMono === "boolean"
+        ? bundle.mixState.monitorMono
+        : (this.musicManager.engine?.monoMonitoring?.() ?? false),
     );
     // An older in-flight save must not rename or clean a newly opened project.
     if (this.metadata()?.id !== bundle.metadata.id) return;

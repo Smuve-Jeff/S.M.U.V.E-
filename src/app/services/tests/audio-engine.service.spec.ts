@@ -170,6 +170,29 @@ describe('AudioEngineService', () => {
     expect(service.metronomeEnabled()).toBe(false);
   });
 
+  it('routes the master through a mono sum and remembers the choice', () => {
+    localStorage.clear();
+    expect(service.setMonoMonitoring(true)).toBe(true);
+    expect(service.monoMonitoring()).toBe(true);
+    expect(service.masterOutput.disconnect).toHaveBeenCalledWith(
+      mockAudioContext.destination,
+    );
+    expect(service['monoSumMerger'].connect).toHaveBeenCalledWith(
+      mockAudioContext.destination,
+    );
+    expect(
+      JSON.parse(localStorage.getItem('smuve_studio_transport_prefs') || '{}')
+        .mono,
+    ).toBe(true);
+
+    expect(service.toggleMonoMonitoring()).toBe(false);
+    expect(service.monoMonitoring()).toBe(false);
+    expect(
+      JSON.parse(localStorage.getItem('smuve_studio_transport_prefs') || '{}')
+        .mono,
+    ).toBe(false);
+  });
+
   it('should set metronome volume within bounds', () => {
     service.setMetronomeVolume(0.75);
     expect(service.metronomeVolume()).toBe(0.75);

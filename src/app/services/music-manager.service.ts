@@ -96,11 +96,19 @@ export interface PatternVersion {
   notes: TrackNote[];
 }
 
+/** What a cell waits for before it starts. `null`/missing means grid default. */
+export type LaunchQuantize = "none" | "1bar" | "2bar" | "4bar";
+
 export interface PatternSlot {
   id: string;
   name: string;
   activeVersionId: string;
   versions: PatternVersion[];
+  /**
+   * Per-cell launch quantization, stored on the pattern itself so it travels
+   * with the project and every Scene cell referencing this slot inherits it.
+   */
+  launchQuantize?: LaunchQuantize | null;
 }
 
 export interface SongSection {
@@ -1908,6 +1916,59 @@ export class MusicManagerService {
   }
 
   /** Rename a pattern. Undoable; trims and refuses empty names. */
+  /**
+   * Set (or clear) a pattern slot's own launch boundary. Stored on the slot,
+   * not in a side table, so project save/load and undo already carry it.
+   */
+  setPatternSlotLaunchQuantize(
+    trackId: string,
+    slotId: string,
+    value: LaunchQuantize | null,
+  ): boolean {
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    const slot = track?.patternSlots?.find((candidate) => candidate.id === slotId);
+    if (!track || !slot) return false;
+    const previous = slot.launchQuantize ?? null;
+    const next = value ?? null;
+    if (previous === next) return true;
+    this.runCommand(
+      "Set Launch Quantize · " + track.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((candidate) =>
+            candidate.id === trackId
+              ? {
+                  ...candidate,
+                  patternSlots: (candidate.patternSlots ?? []).map((entry) =>
+                    entry.id === slotId
+                      ? { ...entry, launchQuantize: next }
+                      : entry,
+                  ),
+                }
+              : candidate,
+          ),
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((candidate) =>
+            candidate.id === trackId
+              ? {
+                  ...candidate,
+                  patternSlots: (candidate.patternSlots ?? []).map((entry) =>
+                    entry.id === slotId
+                      ? { ...entry, launchQuantize: previous }
+                      : entry,
+                  ),
+                }
+              : candidate,
+          ),
+        );
+      },
+    );
+    return true;
+  }
+
   renamePatternSlot(trackId: string, slotId: string, name: string): boolean {
     const track = this.tracks().find((t) => t.id === trackId);
     const slot = track?.patternSlots?.find((s) => s.id === slotId);

@@ -72,6 +72,34 @@ describe('MusicManagerService clip glue workflows', () => {
     ]);
   });
 
+  it('stores per-cell launch quantization on the pattern slot and undoes it', () => {
+    service.tracks.update((list) =>
+      list.map((track) => ({
+        ...track,
+        patternSlots: [
+          {
+            id: 'slot-a',
+            name: 'Verse',
+            activeVersionId: 'v1',
+            versions: [],
+          },
+        ],
+      })),
+    );
+
+    expect(service.setPatternSlotLaunchQuantize('track-1', 'slot-a', '2bar')).toBe(
+      true,
+    );
+    expect(service.tracks()[0].patternSlots?.[0].launchQuantize).toBe('2bar');
+
+    history.undo();
+    expect(service.tracks()[0].patternSlots?.[0].launchQuantize).toBeNull();
+
+    expect(
+      service.setPatternSlotLaunchQuantize('missing', 'slot-a', '1bar'),
+    ).toBe(false);
+  });
+
   it('keeps solo-safe channels audible under another channel solo', () => {
     const base = {
       type: 'midi',

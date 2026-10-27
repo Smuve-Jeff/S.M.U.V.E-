@@ -162,6 +162,23 @@ describe("SessionViewComponent", () => {
       return true;
     },
   );
+  const setPatternSlotLaunchQuantize = jest.fn(
+    (trackId: string, slotId: string, value: any) => {
+      tracks.update((list) =>
+        list.map((track) =>
+          track.id === trackId
+            ? {
+                ...track,
+                patternSlots: (track.patternSlots ?? []).map((slot: any) =>
+                  slot.id === slotId ? { ...slot, launchQuantize: value } : slot,
+                ),
+              }
+            : track,
+        ),
+      );
+      return true;
+    },
+  );
   const duplicatePatternSlot = jest.fn(() => "slot-copy");
   const deletePatternSlot = jest.fn(() => null);
   const toggleMute = jest.fn((id: string) =>
@@ -196,6 +213,7 @@ describe("SessionViewComponent", () => {
     renamePatternSlot,
     duplicatePatternSlot,
     deletePatternSlot,
+    setPatternSlotLaunchQuantize,
     toggleMute,
   };
 
@@ -373,19 +391,35 @@ describe("SessionViewComponent", () => {
       .find((candidate) => candidate.slotId === "slot-b")!;
 
     component.setCellQuantize(clip, "none");
-    expect(component.cellQuantizeSetting(clip)).toBe("none");
-    expect(component.cellQuantizeLabel(clip)).toBe("Q OFF");
+    // The override is stored on the pattern slot, not in a side table, so a
+    // project save and the undo stack both carry it.
+    const updated = component
+      .clips()
+      .find((candidate) => candidate.slotId === "slot-b")!;
+    expect(updated.launchQuantize).toBe("none");
+    expect(component.cellQuantizeSetting(updated)).toBe("none");
+    expect(component.cellQuantizeLabel(updated)).toBe("Q OFF");
 
-    component.triggerClip(clip);
+    component.triggerClip(updated);
     expect(launchClipPattern).toHaveBeenCalledWith("t1", "slot-b");
-    expect(localStorage.getItem("smuve_session_cell_quantize_v1")).toContain(
-      "t1:slot-b",
+    expect(setPatternSlotLaunchQuantize).toHaveBeenCalledWith(
+      "t1",
+      "slot-b",
+      "none",
     );
 
     // Global clears the override instead of storing a second default.
-    component.setCellQuantize(clip, "global");
-    expect(component.cellQuantizeSetting(clip)).toBe("global");
-    expect(localStorage.getItem("smuve_session_cell_quantize_v1")).toBe("{}");
+    component.setCellQuantize(updated, "global");
+    expect(setPatternSlotLaunchQuantize).toHaveBeenLastCalledWith(
+      "t1",
+      "slot-b",
+      null,
+    );
+    expect(
+      component
+        .clips()
+        .find((candidate) => candidate.slotId === "slot-b")?.launchQuantize,
+    ).toBeNull();
   });
 
   it("creates a pattern when an empty cell is launched", () => {

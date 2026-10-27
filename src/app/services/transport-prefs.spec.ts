@@ -16,6 +16,7 @@ describe("transport prefs", () => {
     metronome: true,
     loopStart: 8,
     loopEnd: 24,
+    mono: true,
   };
 
   it("round-trips the current state", () => {
@@ -27,9 +28,10 @@ describe("transport prefs", () => {
           metronome: false,
           loopStart: null,
           loopEnd: null,
+          mono: false,
         }),
       ),
-    ).toEqual({ loop: false, metronome: false });
+    ).toEqual({ loop: false, metronome: false, mono: false });
   });
 
   it("returns nothing for absent or unreadable records", () => {
