@@ -81,6 +81,7 @@ import {
         >
           <div
             *ngFor="let action of palette.filteredActions(); let i = index"
+            [attr.data-action-id]="action.id"
             class="flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer transition-all border"
             [class.bg-brand-primary/10]="palette.activeIndex() === i"
             [class.border-brand-primary/20]="palette.activeIndex() === i"

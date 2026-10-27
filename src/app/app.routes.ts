@@ -13,6 +13,12 @@ const protectedRoutes: Routes = [
   {
     path: 'studio',
     canActivate: [studioViewGuard],
+    // The guard decides *which* surface a `?view=` names, and that decision has
+    // to be re-made when the query changes while the page is already open —
+    // otherwise `router.navigate(['/studio'], {queryParams: {view:
+    // 'drum-machine'}})` from inside the Studio changed the URL and nothing
+    // else, because guards do not re-run for query-only changes by default.
+    runGuardsAndResolvers: 'paramsOrQueryParamsChange',
     loadComponent: () =>
       import('./studio/studio-page/studio-page.component').then(
         (m) => m.StudioPageComponent

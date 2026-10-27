@@ -249,6 +249,21 @@ export function isStudioSurfaceId(value: string): value is StudioSurfaceId {
   return STUDIO_SURFACE_IDS.has(value);
 }
 
+/**
+ * The catalogue entries a caller does *not* already offer.
+ *
+ * The command palette builds an action per workspace in `WORKSPACE_REGISTRY`,
+ * which already covers seven of these surfaces (drum machine, mixer, piano roll,
+ * …) as "Open X". Registering those again would put two commands for one
+ * destination in the palette, so callers ask this what is still missing.
+ */
+export function studioSurfacesNotIn(
+  covered: readonly string[],
+): StudioSurface[] {
+  const offered = new Set(covered);
+  return STUDIO_SURFACES.filter((surface) => !offered.has(surface.id));
+}
+
 /** Lookup by id; undefined for an id that is not in the catalogue. */
 export function studioSurface(id: string): StudioSurface | undefined {
   return STUDIO_SURFACES.find((surface) => surface.id === id);

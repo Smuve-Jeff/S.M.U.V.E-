@@ -1277,3 +1277,60 @@ Playwright, where the deferred chunk is served locally in milliseconds. A cold
 production fetch of the assistant chunk is a new network round trip on first open
 — invisible on a warm cache, noticeable on a poor connection for that one
 interaction. That is the trade for 260 kB off boot.
+
+## 20. Fourteenth pass — the palette learns every surface
+
+### 20.1 What was missing
+
+The command palette (⌘/Ctrl-K) is the one way into the Studio from anywhere in the
+app, and it could reach **7 of the 22** surfaces: the ones that happen to live in
+`WORKSPACE_REGISTRY` as "Open X". The other fifteen — channel rack, arrangement,
+audio recorder, effects rack, sampler, score, session, sound pads, chord editor,
+performer, plugin store, sound browser, sample library, synthesizer, AI produce —
+were not in it at all. "Open the channel rack" meant opening the Studio, opening
+Tools, and scrolling.
+
+### 20.2 What changed
+
+- **One action per surface, generated from the catalogue.** A root
+  `StudioSurfaceCommandsService` registers them as `Studio: <label>` with the
+  surface's description as the subtitle and the surface id as a search keyword, so
+  "piano roll", "piano-roll" and "studio" all find it.
+- **No new routing contract.** Each action navigates the app's existing
+  `?view=` route: the studio page switches mode for the four it hosts, and its
+  guard forwards the rest to the classic shell. Nothing is imported into the
+  palette, and the bundle moved by 1.15 kB.
+- **Only what was missing.** `studioSurfacesNotIn()` filters the catalogue against
+  the registry's modes, so the seven surfaces the palette already offered are not
+  listed twice. A unit test asserts both directions against the real
+  `WORKSPACE_REGISTRY`: nothing duplicated, nothing lost, and the gap was real
+  (>6 surfaces added).
+- **Palette rows now carry `data-action-id`.** Counting rows in a test previously
+  meant matching rendered text; the id is stable, and it is also the hook
+  telemetry would need.
+
+### 20.3 A routing bug this uncovered
+
+Choosing a surface that the page does not host, **while already in the Studio**,
+changed the URL to `/studio?view=channel-rack` and nothing else. Angular does not
+re-run a `canActivate` guard for query-param-only changes by default, so
+`studioViewGuard` — the thing that forwards legacy views to the classic shell —
+never ran. The route now sets
+`runGuardsAndResolvers: 'paramsOrQueryParamsChange'`, which fixes the class rather than the caller: any
+in-app link to `/studio?view=<unhosted>` now lands where it should, not just the
+palette's.
+
+### 20.4 Verification
+
+| Check | Result |
+| --- | --- |
+| `npx playwright test studio-new-page` | **27/27** (1 new) |
+| `npx jest studio-surfaces + command-palette + app.component + integrations` | **56 passed** |
+| `npx ng build` | **0 errors, 0 warnings**; initial 1.70 MB (budget still met) |
+| Rendered capture | `artifacts/studio-palette-surfaces.png` |
+
+The e2e drives both destination kinds: `Studio: Channel Rack` → 
+`/studio-classic?view=channel-rack` with `app-channel-rack` rendered, and
+`Studio: Arrangement` from inside Mix → `/studio?view=arrangement` with the page
+on Arrange. It then asserts the three registry-covered surfaces have **zero**
+`Studio:` rows, which is the dedupe holding from the outside.

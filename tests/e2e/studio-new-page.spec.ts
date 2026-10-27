@@ -735,3 +735,54 @@ test("keeps the whole surface list usable on a phone", async ({ page }) => {
   await last.click();
   await expect(page.locator(".workspace-title h2")).toBeVisible();
 });
+
+/**
+ * The palette is the third way into the Studio (besides the mode rail and the
+ * Tools list), and the only one reachable from anywhere in the app. It already
+ * listed seven surfaces as "Open X" through the workspace registry; the rest
+ * were unreachable from it. The actions are generated from the shared catalogue,
+ * so this drives the two destination kinds it contributes.
+ */
+test("opens the remaining studio surfaces from the command palette", async ({
+  page,
+}) => {
+  await openStudio(page);
+  const paletteInput = page.getByPlaceholder(/Search commands/);
+
+  // A surface the palette could not reach, and the page does not host: the
+  // `?view=` route forwards it to the shell that renders it.
+  await page.keyboard.press("Control+k");
+  await expect(paletteInput).toBeVisible();
+  await paletteInput.fill("channel rack");
+  await page
+    .locator('[data-action-id="studio-surface-channel-rack"]')
+    .click();
+  await expect(page).toHaveURL(/\/studio-classic\?view=channel-rack/);
+  await expect(page.locator("app-channel-rack")).toBeVisible();
+
+  // A surface the page hosts: same route, but the page switches workspace.
+  await page.goto("/studio?view=mixer");
+  await expect(page.locator(".workspace-title h2")).toHaveText("Mix");
+  await page.keyboard.press("Control+k");
+  await expect(paletteInput).toBeVisible();
+  await paletteInput.fill("arrangement");
+  await page.locator('[data-action-id="studio-surface-arrangement"]').click();
+  await expect(page).toHaveURL(/\/studio\?view=arrangement/);
+  await expect(page.locator(".workspace-title h2")).toHaveText("Arrange");
+
+  // No destination is listed twice: surfaces the palette already offered as
+  // "Open X" must not also appear as "Studio: X".
+  await page.goto("/studio");
+  await expect(page.locator(".studio-top-bar")).toBeVisible();
+  await page.keyboard.press("Control+k");
+  await expect(paletteInput).toBeVisible();
+  for (const alreadyListed of ["drum-machine", "mixer", "piano-roll"]) {
+    await expect(
+      page.locator(`[data-action-id="studio-surface-${alreadyListed}"]`),
+    ).toHaveCount(0);
+  }
+  // …while the surfaces it could not reach are all there.
+  expect(
+    await page.locator('[data-action-id^="studio-surface-"]').count(),
+  ).toBeGreaterThan(6);
+});

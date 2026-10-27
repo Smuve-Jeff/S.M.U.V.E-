@@ -37,6 +37,7 @@ import { ArtistCoachCommandIntegrationService } from './services/artist-coach-co
 import { ArtistLifecycleCommandIntegrationService } from './services/artist-lifecycle-command-integration.service';
 import { ArtistLifecycleService } from './services/artist-lifecycle.service';
 import { CommandPaletteService } from './services/command-palette.service';
+import { StudioSurfaceCommandsService } from './studio/studio-surface-commands.service';
 import { UserProfileService } from './services/user-profile.service';
 import { OfflineSyncService } from './services/offline-sync.service';
 import { InteractionDialogComponent } from './components/interaction-dialog/interaction-dialog.component';
@@ -105,6 +106,8 @@ export class AppComponent {
   databaseService = inject(DatabaseService);
   autoSaveService = inject(AutoSaveService);
   commandPalette = inject(CommandPaletteService);
+  /** Registers one palette action per studio surface; injecting it is the point. */
+  private readonly surfaceCommands = inject(StudioSurfaceCommandsService);
   private coachCommands = inject(ArtistCoachCommandIntegrationService);
   // Publishes the pathway's next move and blocked phases into the palette.
   private lifecycleCommands = inject(ArtistLifecycleCommandIntegrationService);
