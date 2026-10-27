@@ -327,7 +327,8 @@ export class TransportBarComponent {
   }
 
   toggleLoop(): void {
-    this.loopEnabled.update((v) => !v);
+    // The engine owns the write so the toggle is also the stored one.
+    this.audioEngine.togglePlaybackLoop();
   }
 
   // ── Ideas Generator ───────────────────────────────────────────────

@@ -975,3 +975,48 @@ test("keeps Space alive on the workspace, and the piano roll's own use of it", a
   await page.keyboard.press(" ");
   await expect(play).toHaveAttribute("aria-pressed", "false");
 });
+
+/**
+ * Metronome and Loop are habits, not settings: an artist turns the click on at
+ * the top of a session and expects it to survive an accidental reload. Both were
+ * plain signals, so every reload reset them silently.
+ */
+test("keeps the metronome and loop toggles across a reload", async ({ page }) => {
+  await openStudio(page);
+  const metronome = page.locator(".metronome-toggle");
+  const loop = page.locator(".loop-toggle");
+
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+  await expect(loop).toHaveAttribute("aria-pressed", "false");
+
+  await page.keyboard.press("m");
+  await loop.click();
+  await expect(metronome).toHaveAttribute("aria-pressed", "true");
+  await expect(loop).toHaveAttribute("aria-pressed", "true");
+
+  await page.reload();
+  await expect(page.locator(".studio-top-bar")).toBeVisible();
+  await expect(page.locator(".metronome-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.locator(".loop-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  // …and turning them back off is remembered too, rather than the two toggles
+  // disagreeing about which state is the "saved" one.
+  await page.keyboard.press("m");
+  await page.locator(".loop-toggle").click();
+  await page.reload();
+  await expect(page.locator(".studio-top-bar")).toBeVisible();
+  await expect(page.locator(".metronome-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(page.locator(".loop-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});

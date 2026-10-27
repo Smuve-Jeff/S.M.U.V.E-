@@ -45,6 +45,13 @@ describe("TransportBarComponent", () => {
       if (start === null || end === null) mockAudioEngine.playbackLoopEnabled.set(false);
       return end !== null && start !== null && end > start;
     }),
+    // The component flips the loop through the engine now, so the mock has to
+    // behave like it: flip the signal and report the new state.
+    togglePlaybackLoop: jest.fn((enabled?: boolean) => {
+      const next = enabled ?? !mockAudioEngine.playbackLoopEnabled();
+      mockAudioEngine.playbackLoopEnabled.set(next);
+      return next;
+    }),
     tempo: signal(120),
     metronomeEnabled: signal(false),
     outputPeak: signal(0),

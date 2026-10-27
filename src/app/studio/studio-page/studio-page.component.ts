@@ -275,11 +275,12 @@ export class StudioPageComponent {
   }
 
   toggleLoop() {
-    this.loopEnabled.update((enabled) => !enabled);
+    // Through the engine, not the signal: the engine is where this is stored.
+    this.audioEngine.togglePlaybackLoop();
   }
 
   toggleMetronome() {
-    this.metronomeEnabled.update((enabled) => !enabled);
+    this.audioEngine.toggleMetronome();
   }
 
   undo() {

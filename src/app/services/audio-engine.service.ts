@@ -14,6 +14,11 @@ import { StemSeparationService, Stems } from './stem-separation.service';
 import { DynamicEffectsRack } from '../studio/effects/dynamic-effects-rack';
 import { SampleStreamer } from './sample-streamer.service';
 import {
+  TRANSPORT_PREFS_KEY,
+  parseTransportPrefs,
+  serializeTransportPrefs,
+} from './transport-prefs';
+import {
   LoudnessMeter,
   phaseCorrelation,
   truePeakDb,
@@ -584,6 +589,7 @@ export class AudioEngineService {
       this.playbackLoopStart.set(start);
       this.playbackLoopEnd.set(end);
       this.playbackLoopEnabled.set(false);
+      this.persistTransportPrefs();
       return false;
     }
     const length = this.playMode() === 'song' ? this.songLengthSteps() : this.loopLengthSteps();
@@ -662,6 +668,10 @@ export class AudioEngineService {
   private masterToneEqState = { lowShelfDb: 0, lowMidDb: 0, highShelfDb: 0 };
 
   constructor() {
+    // Before the graph and the first tick: a restored toggle that lands after
+    // playback starts is a toggle that did nothing.
+    this.restoreTransportPrefs();
+
     this.deckA = this.createDeck('A');
     this.deckB = this.createDeck('B');
 
@@ -3401,7 +3411,57 @@ export class AudioEngineService {
   }
   toggleMetronome() {
     this.metronomeEnabled.update((v) => !v);
+    this.persistTransportPrefs();
     return this.metronomeEnabled();
+  }
+
+  /**
+   * Flip the transport loop. Both studios read this signal and both used to
+   * `update()` it in place, so the toggle is a method here: one place that
+   * changes it is one place that has to store it.
+   */
+  togglePlaybackLoop(enabled?: boolean): boolean {
+    const next = enabled ?? !this.playbackLoopEnabled();
+    this.playbackLoopEnabled.set(next);
+    this.persistTransportPrefs();
+    return next;
+  }
+
+  /**
+   * Metronome, Loop and the loop region were session-only signals, so every
+   * reload silently reset them — and "off" is not a neutral default for a click
+   * the artist turned on deliberately at the top of a session.
+   */
+  private restoreTransportPrefs(): void {
+    try {
+      const prefs = parseTransportPrefs(
+        localStorage.getItem(TRANSPORT_PREFS_KEY)
+      );
+      if (prefs.metronome !== undefined) this.metronomeEnabled.set(prefs.metronome);
+      if (prefs.loop !== undefined) this.playbackLoopEnabled.set(prefs.loop);
+      if (prefs.loopStart !== undefined && prefs.loopEnd !== undefined) {
+        this.playbackLoopStart.set(prefs.loopStart);
+        this.playbackLoopEnd.set(prefs.loopEnd);
+      }
+    } catch {
+      // Private mode / locked storage: the defaults are the safe state.
+    }
+  }
+
+  private persistTransportPrefs(): void {
+    try {
+      localStorage.setItem(
+        TRANSPORT_PREFS_KEY,
+        serializeTransportPrefs({
+          loop: this.playbackLoopEnabled(),
+          metronome: this.metronomeEnabled(),
+          loopStart: this.playbackLoopStart(),
+          loopEnd: this.playbackLoopEnd(),
+        })
+      );
+    } catch {
+      // Quota or a locked store: the toggles still work for this session.
+    }
   }
   setMetronomeVolume(val: number) {
     this.metronomeVolume.set(Math.max(0, Math.min(1, val)));

@@ -1505,3 +1505,59 @@ a `tabindex="-1"` host and an unadorned span do not. The e2e proves the wiring:
 Space on an injected `tabindex="0"` probe starts and stops the transport, and
 Space on the piano-roll grid previews its cell without also starting playback —
 the grid's own `preventDefault()` still wins.
+
+---
+
+## 24. Eighteenth pass — transport toggles that survive a reload
+
+### 24.1 Both were session-only signals
+
+`metronomeEnabled`, `playbackLoopEnabled` and the loop region lived in
+`AudioEngineService` as plain signals with no storage behind them, so every
+reload silently reset them. "Off" is not a neutral default here: the click is
+something an artist turns on deliberately at the top of a session, and losing it
+to a refresh is the app forgetting a decision.
+
+The engine now stores them under one versioned record
+(`smuve_studio_transport_prefs`), restored in its constructor **before** the
+audio graph is built and the first tick runs — a toggle restored after playback
+starts is a toggle that did nothing. The choice of location is the whole point:
+the classic shell and the composed page both drive these two signals, so
+persisting at either call site would leave the other one resetting.
+
+### 24.2 Written at the mutation, not on a scheduler tick
+
+The first implementation wrote through an `effect()`, which looked tidier and
+was wrong: an effect runs after the change is scheduled, so a reload in the same
+tick loses the last toggle. The e2e caught it — metronome persisted, loop did
+not — because the two were flipped and then reloaded without a pause between.
+The write now happens at the mutation:
+
+- `audioEngine.toggleMetronome()`
+- `audioEngine.togglePlaybackLoop(enabled?)` — new, because both studios used to
+  `update()` the signal in place; one place that changes it is one place that has
+  to store it
+- `audioEngine.setPlaybackLoop(null, null)` — clearing a region also turns the
+  loop off, so it stores too
+
+The record itself is a pure pair (`services/transport-prefs.ts`: parse +
+serialise) so the format is testable without an `AudioContext`, and a corrupt or
+hand-edited record degrades to the defaults instead of throwing inside a
+constructor that builds the whole master chain. The loop region is
+all-or-nothing: a start without an end is not a region, and keeping half of one
+would leave the transport looping something nobody set.
+
+### 24.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `npx jest transport-prefs + audio-engine + transport-bar + piano-roll` | **136 passed** (5 new) |
+| `npx playwright test studio-new-page` | **33/33** (1 new) |
+| `npm run build` | **0 errors, 0 warnings**; initial 1.70 MB |
+
+The e2e is the honest proof: turn the metronome on with `M`, click Loop, reload,
+assert both still read `aria-pressed="true"`; then turn both **off**, reload, and
+assert they stay off — a store that only ever accumulates "on" would pass the
+first half. The unit spec pins the parse/serialise rules: unreadable records,
+wrong field types (keeping the valid neighbours), a half or inverted region, and
+fractional steps normalised to whole ones.
