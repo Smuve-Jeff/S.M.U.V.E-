@@ -49,7 +49,10 @@ export interface ProjectBundle {
     /** Follow actions: advance to the next scene every `followBars` bars. */
     followEnabled?: boolean;
     followBars?: number;
-    /** Per-scene overrides keyed by scene column, e.g. a looping scene. */
+    /**
+     * Per-scene overrides keyed by scene identity (the scene's leftmost pattern
+     * slot), so a rule stays with its scene when columns shift.
+     */
     sceneFollowRules?: Record<
       string,
       { mode: "loop" | "advance"; bars?: number }

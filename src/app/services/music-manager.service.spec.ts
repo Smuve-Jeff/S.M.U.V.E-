@@ -1471,8 +1471,10 @@ describe('MusicManagerService per-scene follow rules', () => {
       mode: 'advance',
       bars: 32,
     });
+    // Stored against the scene's identity, not its position.
+    expect(service.sceneIdentity(1)).toBe('slot-1');
     expect(service.sceneFollowRules()).toEqual({
-      '1': { mode: 'advance', bars: 32 },
+      'slot-1': { mode: 'advance', bars: 32 },
     });
 
     expect(service.setSceneFollowRule(1, null)).toBeNull();
@@ -1488,6 +1490,42 @@ describe('MusicManagerService per-scene follow rules', () => {
     });
     expect(service.setSceneFollowRule(-1, { mode: 'loop' })).toBeNull();
     expect(service.setSceneFollowRule(0.5, { mode: 'loop' })).toBeNull();
+    // A column no channel owns is not a scene, so it cannot hold a rule.
+    expect(service.sceneIdentity(4)).toBeNull();
+    expect(service.setSceneFollowRule(4, { mode: 'loop' })).toBeNull();
+  });
+
+  it('keeps a rule on its scene when an earlier scene is deleted', () => {
+    service.setSceneFollowRule(1, { mode: 'loop' });
+
+    // Delete the first scene column on every channel: scene 2 shifts to 0.
+    service.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        patternSlots: track.patternSlots.slice(1),
+      })),
+    );
+
+    expect(service.sceneIdentity(0)).toBe('slot-1');
+    expect(service.sceneFollowRule(0)).toEqual({ mode: 'loop' });
+    expect(service.sceneFollowRules()).toEqual({ 'slot-1': { mode: 'loop' } });
+  });
+
+  it('prunes rules whose scene no longer exists', () => {
+    service.setSceneFollowRule(0, { mode: 'loop' });
+    service.setSceneFollowRule(1, { mode: 'advance', bars: 2 });
+
+    service.tracks.update((tracks) =>
+      tracks.map((track) => ({
+        ...track,
+        patternSlots: track.patternSlots.slice(1),
+      })),
+    );
+    service.pruneSceneFollowRules();
+
+    expect(service.sceneFollowRules()).toEqual({
+      'slot-1': { mode: 'advance', bars: 2 },
+    });
   });
 
   it('holds a looping scene even while global follow is armed', () => {
@@ -1548,19 +1586,20 @@ describe('MusicManagerService per-scene follow rules', () => {
     expect(service.sceneFollowEnabled()).toBe(false);
   });
 
-  it('sanitises restored rules rather than trusting the bundle', () => {
+  it('sanitises restored rules and migrates column-keyed bundles', () => {
     const saved = service.setSceneFollowRules({
-      '0': { mode: 'loop' },
-      '2': { mode: 'advance', bars: 900 },
-      '3': { mode: 'inherit' },
+      'slot-0': { mode: 'loop' },
+      // Bundles saved before scene identity existed keyed rules by column.
+      '1': { mode: 'advance', bars: 900 },
+      'slot-9': { mode: 'advance', bars: 3 },
+      '2': { mode: 'advance', bars: 3 },
       bad: { mode: 'loop' },
-      '-1': { mode: 'loop' },
-      '4': null,
+      'slot-0-bad': { mode: 'inherit' },
     });
 
     expect(saved).toEqual({
-      '0': { mode: 'loop' },
-      '2': { mode: 'advance', bars: 32 },
+      'slot-0': { mode: 'loop' },
+      'slot-1': { mode: 'advance', bars: 32 },
     });
 
     service.clearSceneFollowRules();

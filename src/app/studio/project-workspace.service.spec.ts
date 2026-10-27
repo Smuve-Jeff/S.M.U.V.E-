@@ -411,7 +411,10 @@ describe("ProjectWorkspaceService", () => {
     launchQuantize.set("4bar");
     sceneFollowEnabled.set(true);
     sceneFollowBars.set(8);
-    sceneFollowRules.set({ "0": { mode: "loop" }, "1": { mode: "advance", bars: 8 } });
+    sceneFollowRules.set({
+      "slot-a": { mode: "loop" },
+      "slot-b": { mode: "advance", bars: 8 },
+    });
 
     const snapshot = service.createSnapshot();
     expect(snapshot.mixState.monitorMono).toBe(true);
@@ -419,8 +422,8 @@ describe("ProjectWorkspaceService", () => {
     expect(snapshot.session?.followEnabled).toBe(true);
     expect(snapshot.session?.followBars).toBe(8);
     expect(snapshot.session?.sceneFollowRules).toEqual({
-      "0": { mode: "loop" },
-      "1": { mode: "advance", bars: 8 },
+      "slot-a": { mode: "loop" },
+      "slot-b": { mode: "advance", bars: 8 },
     });
     expect(snapshot.tracks[0].soloSafe).toBe(true);
     expect(snapshot.tracks[0].patternSlots[0].launchQuantize).toBe("2bar");
@@ -439,8 +442,8 @@ describe("ProjectWorkspaceService", () => {
     expect(sceneFollowEnabled()).toBe(true);
     expect(sceneFollowBars()).toBe(8);
     expect(sceneFollowRules()).toEqual({
-      "0": { mode: "loop" },
-      "1": { mode: "advance", bars: 8 },
+      "slot-a": { mode: "loop" },
+      "slot-b": { mode: "advance", bars: 8 },
     });
     expect(tracks()[0].soloSafe).toBe(true);
     expect(tracks()[0].patternSlots[0].launchQuantize).toBe("2bar");

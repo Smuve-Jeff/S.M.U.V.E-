@@ -351,8 +351,10 @@ export class MusicManagerService {
   sceneFollowEnabled = signal(false);
   sceneFollowBars = signal(4);
   /**
-   * Per-scene overrides keyed by scene (pattern column) index. Kept beside the
-   * global follow settings because both describe how the launched scene ends.
+   * Per-scene overrides keyed by scene identity (see `sceneIdentity`), not by
+   * column, so inserting or deleting a scene never moves a rule onto its
+   * neighbour. Kept beside the global follow settings because both describe how
+   * the launched scene ends.
    */
   sceneFollowRules = signal<Record<string, SceneFollowRule>>({});
   /** Bars elapsed since the current scene was launched. */
@@ -525,10 +527,27 @@ export class MusicManagerService {
     return next;
   }
 
+  /**
+   * Stable identity for a scene column: the leftmost pattern slot that owns it.
+   * Slot ids never change when columns shift, so a rule stored against this key
+   * follows its scene through inserts and deletes. A column with no pattern
+   * slot on any channel is not a scene and has no identity.
+   */
+  sceneIdentity(column: number): string | null {
+    if (!Number.isInteger(column) || column < 0) return null;
+    for (const track of this.tracks()) {
+      if (track.type === "audio") continue;
+      const slot = track.patternSlots?.[column];
+      if (slot) return slot.id;
+    }
+    return null;
+  }
+
   /** The rule saved for a scene column, or null when it inherits the global. */
   sceneFollowRule(column: number): SceneFollowRule | null {
-    if (!Number.isInteger(column) || column < 0) return null;
-    const rule = this.sceneFollowRules()[String(column)];
+    const key = this.sceneIdentity(column);
+    if (!key) return null;
+    const rule = this.sceneFollowRules()[key];
     return rule ? { ...rule } : null;
   }
 
@@ -540,8 +559,8 @@ export class MusicManagerService {
     column: number,
     rule: SceneFollowRule | null,
   ): SceneFollowRule | null {
-    if (!Number.isInteger(column) || column < 0) return null;
-    const key = String(column);
+    const key = this.sceneIdentity(column);
+    if (!key) return null;
     const next = { ...this.sceneFollowRules() };
     if (!rule) {
       delete next[key];
@@ -567,18 +586,30 @@ export class MusicManagerService {
   /**
    * Replace every rule at once (project restore). Malformed entries are dropped
    * rather than trusted, so an old or hand-edited bundle cannot arm a scene.
+   *
+   * Bundles saved before scene identity existed keyed rules by column, so a
+   * numeric key is resolved through the current scene order; anything that no
+   * longer maps is dropped instead of landing on the wrong scene.
    */
   setSceneFollowRules(rules: unknown): Record<string, SceneFollowRule> {
     const next: Record<string, SceneFollowRule> = {};
     if (rules && typeof rules === "object" && !Array.isArray(rules)) {
-      for (const [key, value] of Object.entries(
+      const live = new Set<string>();
+      const columns = this.sceneColumnCount();
+      for (let column = 0; column < columns; column++) {
+        const identity = this.sceneIdentity(column);
+        if (identity) live.add(identity);
+      }
+      for (const [rawKey, value] of Object.entries(
         rules as Record<string, unknown>,
       )) {
-        const column = Number(key);
-        if (!Number.isInteger(column) || column < 0) continue;
+        const key = /^\d+$/.test(rawKey)
+          ? this.sceneIdentity(Number(rawKey))
+          : rawKey;
+        if (!key || !live.has(key)) continue;
         const raw = value as { mode?: unknown; bars?: unknown } | null;
         if (!raw || (raw.mode !== "loop" && raw.mode !== "advance")) continue;
-        next[String(column)] =
+        next[key] =
           raw.mode === "advance"
             ? {
                 mode: "advance",
@@ -589,6 +620,23 @@ export class MusicManagerService {
               }
             : { mode: "loop" };
       }
+    }
+    this.sceneFollowRules.set(next);
+    return next;
+  }
+
+  /** Drop rules whose scene no longer exists (a scene column was deleted). */
+  pruneSceneFollowRules(): Record<string, SceneFollowRule> {
+    const rules = this.sceneFollowRules();
+    const live = new Set<string>();
+    const columns = this.sceneColumnCount();
+    for (let column = 0; column < columns; column++) {
+      const key = this.sceneIdentity(column);
+      if (key) live.add(key);
+    }
+    const next: Record<string, SceneFollowRule> = {};
+    for (const [key, rule] of Object.entries(rules)) {
+      if (live.has(key)) next[key] = rule;
     }
     this.sceneFollowRules.set(next);
     return next;

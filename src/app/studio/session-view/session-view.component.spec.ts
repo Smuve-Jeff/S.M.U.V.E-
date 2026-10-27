@@ -182,6 +182,7 @@ describe("SessionViewComponent", () => {
   );
   const duplicatePatternSlot = jest.fn(() => "slot-copy");
   const deletePatternSlot = jest.fn(() => null);
+  const pruneSceneFollowRules = jest.fn();
   const toggleMute = jest.fn((id: string) =>
     tracks.update((list) =>
       list.map((track) =>
@@ -256,6 +257,7 @@ describe("SessionViewComponent", () => {
     renamePatternSlot,
     duplicatePatternSlot,
     deletePatternSlot,
+    pruneSceneFollowRules,
     setPatternSlotLaunchQuantize,
     toggleMute,
   };
@@ -560,6 +562,23 @@ describe("SessionViewComponent", () => {
   it("mutes a real channel", () => {
     component.toggleMute(component.tracks()[0], new MouseEvent("click"));
     expect(toggleMute).toHaveBeenCalledWith("t1");
+  });
+
+  it("copies a scene's follow rule onto its duplicate", () => {
+    component.setSceneRule(component.scenes()[0], "loop");
+    component.openSceneActions(component.scenes()[0]);
+    component.duplicateSelectedScene();
+
+    // The copy is the last scene column the manager reports.
+    expect(sceneFollowRules()[1]).toEqual({ mode: "loop" });
+    expect(component.scenes()[1].followLabel).toBe("LOOP");
+  });
+
+  it("prunes rules for a deleted scene", () => {
+    component.openSceneActions(component.scenes()[0]);
+    component.deleteSelectedScene();
+
+    expect(pruneSceneFollowRules).toHaveBeenCalled();
   });
 
   it("renders the grid from the real channels", () => {

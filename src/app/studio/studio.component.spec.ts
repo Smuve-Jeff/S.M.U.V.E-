@@ -72,6 +72,10 @@ describe("StudioComponent", () => {
     sceneFollowEnabled: signal(false),
     sceneFollowBars: signal(4),
     sceneFollowRules: signal<Record<string, any>>({}),
+    sceneIdentity: jest.fn(() => null),
+    sceneFollowRule: jest.fn(() => null),
+    sceneColumnCount: jest.fn(() => 0),
+    pruneSceneFollowRules: jest.fn(),
     setSceneFollowEnabled: jest.fn((enabled: boolean) =>
       mockMusicManager.sceneFollowEnabled.set(!!enabled),
     ),
@@ -960,10 +964,14 @@ describe("StudioComponent", () => {
           ],
         },
       ]);
-      mockMusicManager.sceneFollowRules.set({
-        "1": { mode: "advance", bars: 8 },
-        "0": { mode: "loop" },
-      });
+      mockMusicManager.sceneColumnCount.mockReturnValue(2);
+      mockMusicManager.sceneFollowRule.mockImplementation((column: number) =>
+        column === 0
+          ? { mode: "loop" }
+          : column === 1
+            ? { mode: "advance", bars: 8 }
+            : null,
+      );
 
       expect(component.sceneFollowRuleRows()).toEqual([
         { column: 0, label: "Intro", value: "LOOP" },

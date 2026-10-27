@@ -549,6 +549,9 @@ export class SessionViewComponent implements OnDestroy {
   duplicateSelectedScene(): void {
     const scene = this.actionScene();
     if (!scene) return;
+    // A duplicated scene keeps its ending; the copy is a new scene with new
+    // slot ids, so the rule has to be re-applied to the new column.
+    const rule = this.musicManager.sceneFollowRule(scene.index);
     let copies = 0;
     for (const track of this.musicManager.tracks()) {
       if (track.type === "audio") continue;
@@ -556,6 +559,12 @@ export class SessionViewComponent implements OnDestroy {
       if (!slot) continue;
       const copy = this.musicManager.duplicatePatternSlot(track.id, slot.id);
       if (copy) copies++;
+    }
+    if (copies > 0 && rule) {
+      const copyIndex = this.musicManager.sceneColumnCount() - 1;
+      if (copyIndex >= 0) {
+        this.musicManager.setSceneFollowRule(copyIndex, rule);
+      }
     }
     this.closeSceneActions();
     if (copies === 0) {
@@ -577,6 +586,9 @@ export class SessionViewComponent implements OnDestroy {
       // Refusing the last pattern on a channel is expected; keep going.
       if (!error) removed++;
     }
+    // The scene's rule keyed off a slot that no longer exists; drop it rather
+    // than leave it waiting to attach to a future scene.
+    this.musicManager.pruneSceneFollowRules();
     this.closeSceneActions();
     if (removed === 0) {
       this.snackbar.error("Nothing could be deleted from this scene");
