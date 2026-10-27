@@ -49,8 +49,8 @@ for (const viewport of desktopWorkspaces) {
 
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
         await seedAuthenticatedSession(page);
-        await page.goto(`/studio?view=${view.route}`);
-        await expect(page).toHaveURL(new RegExp(`/studio\\?view=${view.route}`));
+        await page.goto(`/studio-classic?view=${view.route}`);
+        await expect(page).toHaveURL(new RegExp(`/studio-classic\\?view=${view.route}`));
 
         const workspace = page.locator('[data-studio-workspace]');
         const canvas = page.locator('.comp-canvas.studio-primary-canvas');

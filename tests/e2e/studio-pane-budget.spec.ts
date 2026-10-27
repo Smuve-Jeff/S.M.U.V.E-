@@ -24,7 +24,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function openStudio(page: Page, view = "arrangement") {
-  await page.goto(`/studio?view=${view}`);
+  await page.goto(`/studio-classic?view=${view}`);
   await expect(page.locator("[data-studio-workspace]")).toHaveAttribute(
     "data-studio-workspace",
     view,

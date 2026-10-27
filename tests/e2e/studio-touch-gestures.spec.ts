@@ -111,7 +111,7 @@ test.describe('phone touch gestures', () => {
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
 
-    await page.goto('/studio?view=performer');
+    await page.goto('/studio-classic?view=performer');
     // The studio is a 3.4 MB lazy chunk in dev; give the first paint room.
     await expect(page.locator('[data-studio-workspace]')).toHaveAttribute(
       'data-studio-workspace',
@@ -255,7 +255,7 @@ test.describe('phone touch gestures', () => {
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
 
-    await page.goto('/studio?view=channel-rack');
+    await page.goto('/studio-classic?view=channel-rack');
     await expect(page.locator('[data-studio-workspace]')).toHaveAttribute(
       'data-studio-workspace',
       'channel-rack',

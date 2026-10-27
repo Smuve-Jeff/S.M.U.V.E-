@@ -136,7 +136,7 @@ test('Sets browser opens a saved set and deletes another with durable results', 
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
 
-  await page.goto('/studio?view=arrangement');
+  await page.goto('/studio-classic?view=arrangement');
   await expect(page.locator('[data-studio-workspace]')).toHaveAttribute(
     'data-studio-workspace',
     'arrangement',
@@ -222,7 +222,7 @@ test('phone one-tap instrumental loads a full loop and exposes the finishing pat
   page.on('pageerror', (error) => errors.push(error.message));
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/studio?view=arrangement');
+  await page.goto('/studio-classic?view=arrangement');
   await expect(page.locator('[data-studio-workspace]')).toHaveAttribute(
     'data-studio-workspace',
     'arrangement',
@@ -300,7 +300,7 @@ test('desktop rail keeps every workflow stage reachable and scrollable', async (
   page,
 }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto('/studio?view=arrangement');
+  await page.goto('/studio-classic?view=arrangement');
   await expect(page.locator('[data-studio-workspace]')).toHaveAttribute(
     'data-studio-workspace',
     'arrangement',

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authChildGuard } from './services/auth.guard';
+import { studioViewGuard } from './studio/studio-view.guard';
 
 const protectedRoutes: Routes = [
   { path: 'adaptive-profile', loadComponent: () => import('./components/artist-adaptive-dashboard/artist-adaptive-dashboard.component').then((m) => m.ArtistAdaptiveDashboardComponent) },
@@ -11,15 +12,21 @@ const protectedRoutes: Routes = [
   },
   {
     path: 'studio',
-    loadComponent: () =>
-      import('./studio/studio.component').then((m) => m.StudioComponent),
-  },
-  {
-    path: 'studio-page',
+    canActivate: [studioViewGuard],
     loadComponent: () =>
       import('./studio/studio-page/studio-page.component').then(
         (m) => m.StudioPageComponent
       ),
+  },
+  // The page used to live here; keep the older link working.
+  { path: 'studio-page', redirectTo: 'studio', pathMatch: 'full' },
+  {
+    // The original single-surface shell: still reachable while the studio page
+    // takes over `/studio`, and the only home for views the page does not
+    // render yet (piano roll, mastering, performer, vocal suite…).
+    path: 'studio-classic',
+    loadComponent: () =>
+      import('./studio/studio.component').then((m) => m.StudioComponent),
   },
   {
     path: 'vocal-suite',

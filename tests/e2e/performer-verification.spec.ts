@@ -3,7 +3,7 @@ import { seedAuthenticatedSession } from './helpers';
 
 test('Performance module exposes its core live-production controls', async ({ page }) => {
   await seedAuthenticatedSession(page);
-  await page.goto('/studio?view=performer');
+  await page.goto('/studio-classic?view=performer');
 
   const performer = page.locator('.performer-shell');
   await expect(performer).toBeVisible();

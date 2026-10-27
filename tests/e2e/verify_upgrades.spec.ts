@@ -16,7 +16,7 @@ test('verify strategy hub upgrades', async ({ page }) => {
 });
 
 test('verify Studio production workspace', async ({ page }) => {
-  await page.goto('/studio');
+  await page.goto('/studio-classic');
   await expect(page.locator('app-studio')).toBeVisible();
   await expect(page.locator('.comp-brand-name')).toHaveText('S.M.U.V.E.');
   await expect(page.locator('app-beginner-wizard')).toBeVisible();

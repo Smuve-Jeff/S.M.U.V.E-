@@ -58,7 +58,7 @@ test.describe('Smart Creation Sheet — Recently Used row', () => {
       },
     });
 
-    await page.goto('/studio');
+    await page.goto('/studio-classic');
     await expect(page.locator('.comp-shell')).toBeVisible({ timeout: 30_000 });
 
     await openCreationSheet(page);
@@ -101,7 +101,7 @@ test.describe('Smart Creation Sheet — Recently Used row', () => {
     test.setTimeout(90_000);
     await seedAuthenticatedSession(page);
 
-    await page.goto('/studio');
+    await page.goto('/studio-classic');
     await expect(page.locator('.comp-shell')).toBeVisible({ timeout: 30_000 });
 
     await openCreationSheet(page);

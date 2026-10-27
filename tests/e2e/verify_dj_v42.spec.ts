@@ -4,9 +4,9 @@ import { seedAuthenticatedSession } from './helpers';
 test('DJ deck v2.0 visual and functional check', async ({ page }) => {
   await seedAuthenticatedSession(page);
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.goto('/studio?view=dj');
+  await page.goto('/studio-classic?view=dj');
 
-  await expect(page).toHaveURL(/\/studio\?view=dj$/);
+  await expect(page).toHaveURL(/\/studio-classic\?view=dj$/);
   await expect(page.locator('app-dj-deck')).toBeVisible();
   await expect(page.locator('.deck-chassis')).toHaveCount(2);
   await expect(page.locator('.vinyl-platter')).toHaveCount(2);

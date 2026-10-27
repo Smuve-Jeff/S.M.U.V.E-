@@ -69,7 +69,7 @@ for (const width of [1440, 390]) {
   test(`Home is accessible from full-screen and standard workspaces at ${width}px`, async ({ page }) => {
     test.setTimeout(90000);
     await page.setViewportSize({ width, height: 900 });
-    for (const route of ['/projects', '/tha-spot', '/mixer', '/studio?view=arrangement', '/piano-roll']) {
+    for (const route of ['/projects', '/tha-spot', '/mixer', '/studio-classic?view=arrangement', '/piano-roll']) {
       await page.goto(route);
       const home = page.getByRole('link', { name: 'Back to Home Hub', exact: true });
       await expect(home).toBeVisible();

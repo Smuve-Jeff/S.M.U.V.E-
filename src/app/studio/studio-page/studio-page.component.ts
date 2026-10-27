@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, computed, inject, signal } from "@angular/core";
-import { Router } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { AudioSessionService } from "../audio-session.service";
 import {
@@ -68,6 +69,7 @@ export class StudioPageComponent {
   readonly projectWorkspace = inject(ProjectWorkspaceService);
   private readonly recordingStatus = inject(RecordingStatusService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   readonly collaboration = inject(CollaborationService);
   private readonly auth = inject(AuthService);
 
@@ -142,6 +144,35 @@ export class StudioPageComponent {
   readonly masterLevel = computed(() =>
     Math.max(0, Math.min(1, this.recordingStatus.masterLevelLinear())),
   );
+
+  constructor() {
+    // `/studio?view=…` deep links from the hub, the AI surfaces and total
+    // control land on the matching mode instead of always opening Arrange.
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed())
+      .subscribe((params) => {
+        const mode = this.modeForView(params.get("view"));
+        if (mode) this.setMode(mode);
+      });
+  }
+
+  private modeForView(view: string | null): StudioMode | null {
+    switch ((view || "").toLowerCase()) {
+      case "create":
+      case "recording":
+        return "create";
+      case "arrange":
+      case "arrangement":
+        return "arrange";
+      case "mix":
+      case "mixer":
+        return "mix";
+      case "export":
+        return "export";
+      default:
+        return null;
+    }
+  }
 
   setMode(mode: StudioMode) {
     this.activeMode.set(mode);

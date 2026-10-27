@@ -27,7 +27,7 @@ for (const view of views) {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`/studio?view=${view}`);
+    await page.goto(`/studio-classic?view=${view}`);
     await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', view);
     const canvas = page.locator('.studio-primary-canvas');
     await expect(canvas).toBeVisible();
@@ -42,7 +42,7 @@ for (const view of views) {
 }
 
 test('workspace save failures stay visible and exported bundles restore project state', async ({ page }) => {
-  await page.goto('/studio?view=mixer');
+  await page.goto('/studio-classic?view=mixer');
   await expect(page.locator('app-mixer')).toBeVisible();
   const failure = await page.evaluate(async () => {
     const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
@@ -100,7 +100,7 @@ test('workspace save failures stay visible and exported bundles restore project 
 });
 
 test('WAV export downloads RIFF PCM and honors track gain and mute in a real offline context', async ({ page }) => {
-  await page.goto('/studio?view=mixer');
+  await page.goto('/studio-classic?view=mixer');
   await expect(page.locator('app-mixer')).toBeVisible();
   const render = await page.evaluate(async () => {
     const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
@@ -135,7 +135,7 @@ test('WAV export downloads RIFF PCM and honors track gain and mute in a real off
 });
 
 test('engine loop schedules the selected region and meter sweep reports representative timing', async ({ page }) => {
-  await page.goto('/studio?view=mixer');
+  await page.goto('/studio-classic?view=mixer');
   await expect(page.locator('app-mixer')).toBeVisible();
   const results = await page.evaluate(() => {
     const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
@@ -177,7 +177,7 @@ test('engine loop schedules the selected region and meter sweep reports represen
 });
 
 test('automation curves add, edit, and delete arrangement keyframes', async ({ page }) => {
-  await page.goto('/studio?view=arrangement');
+  await page.goto('/studio-classic?view=arrangement');
   await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', 'arrangement');
   // The seeded session opens in beginner mode, which swaps the arrangement
   // view for the wizard — switch to pro mode first.
@@ -235,7 +235,7 @@ test('automation curves add, edit, and delete arrangement keyframes', async ({ p
 });
 
 test('MIDI import creates a Studio track from a Standard MIDI File', async ({ page }) => {
-  await page.goto('/studio?view=arrangement');
+  await page.goto('/studio-classic?view=arrangement');
   await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', 'arrangement');
   const before = await page.evaluate(
     () => (window as any).ng.getComponent(document.querySelector('app-studio')).musicManager.tracks().length,
@@ -263,7 +263,7 @@ test('MIDI import creates a Studio track from a Standard MIDI File', async ({ pa
 });
 
 test('cloud version history lists saved versions for the current project', async ({ page }) => {
-  await page.goto('/studio?view=arrangement');
+  await page.goto('/studio-classic?view=arrangement');
   await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', 'arrangement');
   await page.evaluate(() => {
     const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
@@ -283,7 +283,7 @@ test('cloud version history lists saved versions for the current project', async
 });
 
 test('audio import tempo-match stretches the clip to the project tempo', async ({ page }) => {
-  await page.goto('/studio?view=arrangement');
+  await page.goto('/studio-classic?view=arrangement');
   await expect(page.locator('[data-studio-workspace]')).toHaveAttribute('data-studio-workspace', 'arrangement');
   await page.evaluate(() => {
     const studio = (window as any).ng.getComponent(document.querySelector('app-studio'));
@@ -315,7 +315,7 @@ test('audio import tempo-match stretches the clip to the project tempo', async (
 });
 
 test('piano-roll drag snaps to the grid instead of leaving fractional steps', async ({ page }) => {
-  await page.goto('/studio?view=piano-roll');
+  await page.goto('/studio-classic?view=piano-roll');
   await expect(page.locator('.piano-roll-surface')).toBeVisible();
   // The piano roll is @defer-loaded; wait for the real component instance.
   const handle = await page
@@ -350,7 +350,7 @@ test('piano-roll drag snaps to the grid instead of leaving fractional steps', as
 
 test('phone piano roll keeps note utilities reachable and usable', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/studio?view=piano-roll');
+  await page.goto('/studio-classic?view=piano-roll');
   const handle = await page
     .locator('app-piano-roll')
     .first()
@@ -399,7 +399,7 @@ for (const viewport of [
   test(`Studio menus, mixer and panels remain reachable at ${viewport.width}x${viewport.height}`, async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await page.setViewportSize(viewport);
-    await page.goto('/studio?view=mixer');
+    await page.goto('/studio-classic?view=mixer');
     await expect(page.locator('app-mixer')).toBeVisible();
 
     const master = page.locator('.mix-strip-master');

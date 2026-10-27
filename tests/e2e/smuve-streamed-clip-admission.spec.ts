@@ -49,7 +49,7 @@ test.describe('clip-streamer admission (synthetic long import)', () => {
   test('a long import is added to the arrangement with the clip-streamer fields', async ({
     page,
   }) => {
-    await page.goto('/studio?view=arrangement');
+    await page.goto('/studio-classic?view=arrangement');
     await page.waitForSelector('[data-studio-workspace]');
     await expect(page.locator('[data-studio-workspace]')).toHaveAttribute(
       'data-studio-workspace',

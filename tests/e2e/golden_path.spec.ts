@@ -131,7 +131,7 @@ test.describe('SMUVE 2.0 Golden Path Verification', () => {
     await expect(page.locator('[data-studio-workspace]')).toBeVisible();
 
     // ── 5. Run automated mastering and read the AI roast ─────────────
-    await page.goto('/studio?view=mastering');
+    await page.goto('/studio-classic?view=mastering');
     await expect(page.locator('[data-studio-workspace]')).toHaveAttribute(
       'data-studio-workspace',
       'mastering'

@@ -54,7 +54,7 @@ test("the shell carries one depth scale and one glass recipe", async ({
   page,
 }) => {
   await page.setViewportSize(DESKTOP);
-  await page.goto("/studio?view=arrangement");
+  await page.goto("/studio-classic?view=arrangement");
   // First paint in a cold dev server compiles the dependency graph; the shell
   // itself is asserted, only its arrival budget is wider.
   await expect(page.locator(".comp-shell")).toBeVisible({ timeout: 30_000 });
@@ -117,7 +117,7 @@ test("the Contextual Inspector edits the selected track without leaving the arra
   page,
 }) => {
   await page.setViewportSize(DESKTOP);
-  await page.goto("/studio?view=arrangement");
+  await page.goto("/studio-classic?view=arrangement");
   // The inspector is a Pro-mode surface: a first-run Studio opens on the
   // Beginner Wizard, so the test switches modes the way a user does.
   await page.getByRole("button", { name: /Switch to Pro mode/ }).click();
@@ -187,7 +187,7 @@ test("the inspector is not forced onto a phone-width canvas", async ({
   page,
 }) => {
   await page.setViewportSize(PHONE);
-  await page.goto("/studio?view=arrangement");
+  await page.goto("/studio-classic?view=arrangement");
   await expect(page.locator(".comp-shell")).toBeVisible();
   await expect(page.locator("app-inspector")).toHaveCount(0);
 });
@@ -196,7 +196,7 @@ test("horizontal swipe walks the primary views and states its direction", async 
   page,
 }) => {
   await page.setViewportSize(PHONE);
-  await page.goto("/studio?view=arrangement");
+  await page.goto("/studio-classic?view=arrangement");
   const workspace = page.locator("[data-studio-workspace]");
   const canvas = page.locator(".comp-canvas");
   await expect(workspace).toHaveAttribute(
@@ -228,7 +228,7 @@ test("horizontal swipe walks the primary views and states its direction", async 
 
 test("a vertical flick is a scroll, never a view change", async ({ page }) => {
   await page.setViewportSize(PHONE);
-  await page.goto("/studio?view=arrangement");
+  await page.goto("/studio-classic?view=arrangement");
   const workspace = page.locator("[data-studio-workspace]");
   await expect(workspace).toHaveAttribute(
     "data-studio-workspace",
@@ -270,7 +270,7 @@ test("the reactive aurora stays inert until the transport rolls", async ({
   page,
 }) => {
   await page.setViewportSize(PHONE);
-  await page.goto("/studio?view=arrangement");
+  await page.goto("/studio-classic?view=arrangement");
   await expect(page.locator(".comp-aurora")).toBeAttached();
 
   const idle = await page.evaluate(() => {
@@ -311,7 +311,7 @@ test("the aurora service detaches cleanly when a project reloads", async ({
   page,
 }) => {
   await page.setViewportSize(DESKTOP);
-  await page.goto("/studio?view=mastering");
+  await page.goto("/studio-classic?view=mastering");
   await expect(page.locator("app-studio")).toBeAttached();
   const state = await page.evaluate(() => {
     const studio = (window as any).ng.getComponent(

@@ -20,7 +20,7 @@ import { seedAuthenticatedSession } from "./helpers";
  * blocks are covered by check (1) only. Stated here rather than assumed.
  */
 
-const STUDIO = "/studio?view=arrangement";
+const STUDIO = "/studio-classic?view=arrangement";
 
 test.beforeEach(async ({ page }) => {
   await seedAuthenticatedSession(page);

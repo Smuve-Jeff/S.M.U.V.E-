@@ -12,7 +12,7 @@ test.describe('Piano Roll production layout', () => {
   test('renders the desktop editor without page-level overflow', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await seedAuthenticatedSession(page);
-    await page.goto('/studio?view=piano-roll');
+    await page.goto('/studio-classic?view=piano-roll');
 
     await expect(page.locator('.piano-roll-surface')).toBeVisible();
     await expect(page.locator('.pr-header')).toBeVisible();
@@ -24,7 +24,7 @@ test.describe('Piano Roll production layout', () => {
   test('keeps the grid and inspector usable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await seedAuthenticatedSession(page);
-    await page.goto('/studio?view=piano-roll');
+    await page.goto('/studio-classic?view=piano-roll');
 
     await expect(page.locator('.piano-roll-surface')).toBeVisible();
     await expect(page.locator('.pr-header')).toBeVisible();

@@ -3,7 +3,7 @@ import { seedAuthenticatedSession } from './helpers';
 
 test('Drum Machine component is rendered correctly', async ({ page }) => {
   await seedAuthenticatedSession(page);
-  await page.goto('/studio?view=drum-machine');
+  await page.goto('/studio-classic?view=drum-machine');
 
   await expect(
     page.getByRole('heading', { name: /Rhythm Unit.*Drum Machine/i })
