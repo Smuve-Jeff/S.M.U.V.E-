@@ -139,32 +139,58 @@
           </button>
         </div>
 
-        <button
-          type="button"
+        <div
           class="sv-cell"
           *ngFor="let scene of scenes(); trackBy: trackByScene"
           [class.is-playing]="clipFor(track.id, scene.id)?.isPlaying"
           [class.is-empty]="!clipFor(track.id, scene.id)"
-          (click)="
+          [class.is-queued]="
             clipFor(track.id, scene.id) &&
-              triggerClip(clipFor(track.id, scene.id)!)
-          "
-          [attr.aria-label]="
-            (clipFor(track.id, scene.id)
-              ? triggerLabelFor(track.id, scene.id)
-              : 'Add a pattern for ' + track.name + ' in ' + scene.name)
+            isCellQueued(clipFor(track.id, scene.id)!)
           "
         >
-          <ng-container *ngIf="clipFor(track.id, scene.id) as clip; else noClip">
-            <span class="sv-cell-name">{{ clip.name }}</span>
-            <span class="sv-cell-state">{{
-              clip.isPlaying ? "PLAYING" : clip.hasContent ? "READY" : "EMPTY"
-            }}</span>
-          </ng-container>
-          <ng-template #noClip>
-            <span class="material-symbols-outlined" aria-hidden="true">add</span>
-          </ng-template>
-        </button>
+          <button
+            type="button"
+            class="sv-cell-main"
+            (click)="
+              clipFor(track.id, scene.id) &&
+                triggerClip(clipFor(track.id, scene.id)!)
+            "
+            [attr.aria-label]="
+              (clipFor(track.id, scene.id)
+                ? triggerLabelFor(track.id, scene.id)
+                : 'Add a pattern for ' + track.name + ' in ' + scene.name)
+            "
+          >
+            <ng-container *ngIf="clipFor(track.id, scene.id) as clip; else noClip">
+              <span class="sv-cell-name">{{ clip.name }}</span>
+              <span class="sv-cell-state">{{
+                isCellQueued(clip)
+                  ? "QUEUED"
+                  : clip.isPlaying
+                    ? "PLAYING"
+                    : clip.hasContent
+                      ? "READY"
+                      : "EMPTY"
+              }}</span>
+            </ng-container>
+            <ng-template #noClip>
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            </ng-template>
+          </button>
+          <button
+            type="button"
+            class="sv-cell-quant"
+            *ngIf="clipFor(track.id, scene.id) as clip"
+            (click)="openCellActions(clip); $event.stopPropagation()"
+            [attr.aria-label]="
+              'Launch quantization for ' + clip.name + ': ' + cellQuantizeLabel(clip)
+            "
+            title="Per-cell launch quantization"
+          >
+            {{ cellQuantizeLabel(clip) }}
+          </button>
+        </div>
       </div>
     </div>
   </section>
@@ -208,6 +234,36 @@
         (click)="deleteSelectedScene()"
       >
         Delete
+      </button>
+    </div>
+  </app-studio-bottom-sheet>
+
+  <!-- ── Per-cell launch quantization ───────────────────────────────── -->
+  <app-studio-bottom-sheet
+    [open]="!!cellActionClip()"
+    [title]="cellActionClip()?.name ?? 'Clip'"
+    description="Choose when this cell starts. Global follows the Session launch setting."
+    (closed)="closeCellActions()"
+  >
+    <div class="sv-quantize" role="group" aria-label="Cell launch quantization">
+      <button
+        type="button"
+        class="sv-quantize-btn"
+        *ngFor="let q of quantizeCellOptions"
+        [class.is-on]="cellActionClip() && cellQuantizeSetting(cellActionClip()!) === q"
+        (click)="cellActionClip() && setCellQuantize(cellActionClip()!, q)"
+      >
+        {{
+          q === "global"
+            ? "Global · " + (launchQuantize() === "none" ? "off" : launchQuantize())
+            : q === "none"
+              ? "Off"
+              : q === "1bar"
+                ? "1 bar"
+                : q === "2bar"
+                  ? "2 bars"
+                  : "4 bars"
+        }}
       </button>
     </div>
   </app-studio-bottom-sheet>

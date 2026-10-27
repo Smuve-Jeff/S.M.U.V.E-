@@ -1,11 +1,22 @@
+import { quantizeDithered } from "./dither.util";
+
 export type WavBitDepth = 16 | 24 | 32;
 export type WavFormat = "wav-16" | "wav-24" | "wav-32" | "wav-32-float";
+
+export interface WavEncodeOptions {
+  /**
+   * Apply TPDF dither before quantising to 16/24-bit PCM. Off by default so
+   * archival/freeze paths stay bit-exact; the delivery export opts in.
+   */
+  dither?: boolean;
+}
 
 export class WavEncoder {
   static encode(
     buffer: Float32Array[],
     numChannels: number,
     sampleRate: number,
+    options: WavEncodeOptions = {},
   ): Blob {
     if (buffer.length !== numChannels) {
       throw new Error("WAV channel count does not match the provided buffer");
@@ -17,6 +28,7 @@ export class WavEncoder {
       sampleRate,
       16,
       false,
+      !!options.dither,
     );
   }
 
@@ -28,7 +40,9 @@ export class WavEncoder {
     channels: Float32Array[],
     format: WavFormat,
     sampleRate: number,
+    options: WavEncodeOptions = {},
   ): Blob {
+    const dither = !!options.dither;
     const numChannels = channels.length;
     WavEncoder.validateChannels(channels);
     switch (format) {
@@ -39,6 +53,7 @@ export class WavEncoder {
           sampleRate,
           16,
           false,
+          dither,
         );
       case "wav-24":
         return WavEncoder.encodeInternal(
@@ -47,6 +62,7 @@ export class WavEncoder {
           sampleRate,
           24,
           false,
+          dither,
         );
       case "wav-32":
         return WavEncoder.encodeInternal(
@@ -95,6 +111,7 @@ export class WavEncoder {
     sampleRate: number,
     bitDepth: WavBitDepth,
     isFloat: boolean,
+    dither = false,
   ): Blob {
     const bytesPerSample = bitDepth / 8;
     const numFrames = channels[0].length;
@@ -158,9 +175,11 @@ export class WavEncoder {
       for (let f = 0; f < numFrames; f++) {
         for (let ch = 0; ch < numChannels; ch++) {
           const sample = Math.max(-1, Math.min(1, channels[ch][f]));
-          const intSample = Math.round(
-            sample < 0 ? sample * 0x800000 : sample * 0x7fffff,
-          );
+          const intSample = dither
+            ? quantizeDithered(sample, 24)
+            : Math.round(
+                sample < 0 ? sample * 0x800000 : sample * 0x7fffff,
+              );
           view.setUint8(offset, intSample & 0xff);
           view.setUint8(offset + 1, (intSample >> 8) & 0xff);
           view.setUint8(offset + 2, (intSample >> 16) & 0xff);
@@ -201,7 +220,14 @@ export class WavEncoder {
       for (let f = 0; f < numFrames; f++) {
         for (let ch = 0; ch < numChannels; ch++) {
           const sample = Math.max(-1, Math.min(1, channels[ch][f]));
-          const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+          // Dithered delivery: round to nearest after adding TPDF noise.
+          // The undithered path keeps its historical truncation so existing
+          // freeze/recording bytes do not change under existing callers.
+          const intSample = dither
+            ? quantizeDithered(sample, 16)
+            : sample < 0
+              ? sample * 0x8000
+              : sample * 0x7fff;
           view.setInt16(offset, intSample, true);
           offset += 2;
         }

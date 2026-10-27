@@ -15,6 +15,7 @@ import { SnackbarService } from "../../services/snackbar.service";
 import { ProjectService } from "../../services/project.service";
 import { HapticService } from "../../services/haptic.service";
 import { HistoryService } from "../../services/history.service";
+import { StudioMidiLearnService } from "../studio-midi-learn.service";
 import { createMockHapticService } from "../../testing/mocks/hardware.mock";
 
 describe("TransportBarComponent", () => {
@@ -59,6 +60,8 @@ describe("TransportBarComponent", () => {
     outputLevelDb: () => -60,
     outputProfileLabel: signal("FLAT"),
     monitorBlend: signal(0.5),
+    monoMonitoring: signal(false),
+    toggleMonoMonitoring: jest.fn(() => true),
     playMode: () => "pattern",
     externalOutputActive: () => false,
     outputDeviceName: () => "Default",
@@ -92,6 +95,11 @@ describe("TransportBarComponent", () => {
     projectName: "Test Project",
     tracks: () => [] as unknown[],
     snapshotProject: jest.fn(() => ({})),
+    stopScenePlayback: jest.fn(),
+    backToArrangement: jest.fn(),
+    launchSceneColumn: jest.fn(),
+    nextSceneColumn: jest.fn(() => 2),
+    previousSceneColumn: jest.fn(() => 0),
   };
 
   const mockTakeManager = {
@@ -146,6 +154,17 @@ describe("TransportBarComponent", () => {
         { provide: ProjectService, useValue: { currentProject: () => null } },
         { provide: HapticService, useValue: createMockHapticService() },
         { provide: HistoryService, useValue: mockHistory },
+        // The transport instantiates the learn service so persisted bindings
+        // stay live; the panel itself is closed here, so a stub is enough.
+        {
+          provide: StudioMidiLearnService,
+          useValue: {
+            bindings: signal([]),
+            learning: signal(null),
+            groups: signal([]),
+            bindingFor: () => undefined,
+          },
+        },
       ],
     }).compileComponents();
 
@@ -159,6 +178,28 @@ describe("TransportBarComponent", () => {
     fixture = TestBed.createComponent(TransportBarComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  it("maps a game controller onto transport and scenes", () => {
+    // A — play / stop
+    (component as any).onGamepadButton(0);
+    expect(mockAudioSession.togglePlay).toHaveBeenCalled();
+
+    // B — stop: also leaves the launched scene.
+    playbackState.set("playing");
+    (component as any).onGamepadButton(1);
+    expect(mockMusicManager.stopScenePlayback).toHaveBeenCalled();
+    expect(mockAudioSession.stop).toHaveBeenCalled();
+
+    // RB / LB — next and previous scene
+    (component as any).onGamepadButton(5);
+    expect(mockMusicManager.launchSceneColumn).toHaveBeenCalledWith(2);
+    (component as any).onGamepadButton(4);
+    expect(mockMusicManager.launchSceneColumn).toHaveBeenCalledWith(0);
+
+    // Y — back to the arrangement
+    (component as any).onGamepadButton(3);
+    expect(mockMusicManager.backToArrangement).toHaveBeenCalled();
   });
 
   it("lists the named history stack and restores the clicked point", () => {

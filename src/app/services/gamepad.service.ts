@@ -63,9 +63,12 @@ export class GamepadService {
         this.onGamepadDisconnected(e)
       );
 
-      // Check for already connected gamepads
-      const gps = navigator.getGamepads();
-      if (gps[0]) this.startPolling();
+      // Check for already connected gamepads. The API is absent in some
+      // embedded/WebView and test environments.
+      if (typeof navigator.getGamepads === 'function') {
+        const gps = navigator.getGamepads();
+        if (gps && gps[0]) this.startPolling();
+      }
     }
   }
 
@@ -81,8 +84,11 @@ export class GamepadService {
   private startPolling() {
     this.zone.runOutsideAngular(() => {
       const poll = () => {
-        const gamepads = navigator.getGamepads();
-        const gp = gamepads[0];
+        const gamepads =
+          typeof navigator.getGamepads === 'function'
+            ? navigator.getGamepads()
+            : null;
+        const gp = gamepads?.[0];
         if (gp) {
           this.zone.run(() => {
             const buttons = gp.buttons.map((b) => b.pressed);

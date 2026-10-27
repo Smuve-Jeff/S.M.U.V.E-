@@ -405,6 +405,20 @@
           <button
             type="button"
             class="mix-msr-btn"
+            [class.on]="track.soloSafe"
+            [class.safe]="track.soloSafe"
+            (click)="toggleSoloSafe(track.id); $event.stopPropagation()"
+            [attr.aria-pressed]="!!track.soloSafe"
+            [attr.aria-label]="
+              'Solo-safe ' + track.name + ' — stays audible when another channel is soloed'
+            "
+            title="Solo-safe (SS) — stays audible under another channel's solo"
+          >
+            SS
+          </button>
+          <button
+            type="button"
+            class="mix-msr-btn"
             [class.on]="isArmed(track.id)"
             [class.record]="isArmed(track.id)"
             (click)="toggleArmTrack(track.id); $event.stopPropagation()"
@@ -631,6 +645,7 @@
       <div class="mix-mobile-msr" role="group" [attr.aria-label]="'Controls for ' + selected.name">
         <button type="button" [class.active]="selected.muted" (click)="toggleMute(selected.id)" [attr.aria-pressed]="selected.muted">M</button>
         <button type="button" [class.active]="selected.soloed" (click)="toggleSolo(selected.id)" [attr.aria-pressed]="selected.soloed">S</button>
+        <button type="button" [class.active]="selected.soloSafe" (click)="toggleSoloSafe(selected.id)" [attr.aria-pressed]="!!selected.soloSafe" aria-label="Solo-safe — stays audible when another channel is soloed">SS</button>
         <button type="button" [class.active]="isArmed(selected.id)" (click)="toggleArmTrack(selected.id)" [attr.aria-pressed]="isArmed(selected.id)">R</button>
       </div>
     </div>

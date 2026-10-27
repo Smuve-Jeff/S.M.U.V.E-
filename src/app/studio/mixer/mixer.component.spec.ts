@@ -59,6 +59,7 @@ describe("MixerComponent", () => {
     updateSend: jest.fn(),
     toggleMute: jest.fn(),
     toggleSolo: jest.fn(),
+    toggleSoloSafe: jest.fn(),
     removeTrack: jest.fn(),
   };
 
@@ -234,6 +235,11 @@ describe("MixerComponent", () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('toggles solo-safe on a real channel', () => {
+    component.toggleSoloSafe('2');
+    expect(mockMusicManager.toggleSoloSafe).toHaveBeenCalledWith('2');
   });
 
   it('clamps sends to the range MusicManagerService actually stores', () => {

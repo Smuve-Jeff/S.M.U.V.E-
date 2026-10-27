@@ -631,6 +631,10 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.haptic.preset("soloFlash");
     this.musicManager.toggleSolo(id);
   }
+  toggleSoloSafe(id: string): void {
+    this.haptic.light();
+    this.musicManager.toggleSoloSafe(id);
+  }
   togglePhase(id: string): void {
     this.haptic.light();
     this.musicManager.togglePhase(id);

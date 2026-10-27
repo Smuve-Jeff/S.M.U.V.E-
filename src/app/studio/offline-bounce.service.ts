@@ -365,7 +365,9 @@ export class OfflineBounceService {
     const activeTracks = onlyTrackId
       ? pool
       : hasSolo
-        ? pool.filter((t: any) => t.soloed === true)
+        // Solo-safe channels stay in the render under another channel's solo,
+        // matching the live stepper so a bounce is not quieter than playback.
+        ? pool.filter((t: any) => t.soloed === true || t.soloSafe === true)
         : pool.filter((t: any) => !t.muted);
 
     let trackCount = 0;

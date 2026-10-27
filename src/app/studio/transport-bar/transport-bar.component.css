@@ -1532,7 +1532,8 @@
 }
 
 /* Undo history popover (same shell as the tempo map, own list rhythm). */
-.ctb-history {
+.ctb-history,
+.ctb-hardware-panel {
   position: absolute;
   top: calc(100% + 6px);
   right: 8px;
@@ -1726,7 +1727,8 @@
 
 @media (max-width: 640px) {
   .ctb-tempo-map,
-  .ctb-history {
+  .ctb-history,
+  .ctb-hardware-panel {
     left: 8px;
     right: 8px;
     width: auto;

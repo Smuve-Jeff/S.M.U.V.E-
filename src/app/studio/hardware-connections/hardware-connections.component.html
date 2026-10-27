@@ -1,0 +1,145 @@
+<div class="hw">
+  <!-- ── MIDI inputs + learn ─────────────────────────────────────────── -->
+  <section class="hw-section" aria-labelledby="hw-midi-title">
+    <header class="hw-head">
+      <h3 id="hw-midi-title">MIDI</h3>
+      <span class="hw-status" [class.is-on]="midiDevices().length > 0">
+        {{ midiDevices().length }} input{{ midiDevices().length === 1 ? "" : "s" }}
+      </span>
+    </header>
+
+    <p class="hw-empty" *ngIf="midiDevices().length === 0">
+      No MIDI input detected.
+      <button type="button" class="hw-link" (click)="connectMidi()">
+        Enable MIDI access
+      </button>
+      — then connect a keyboard or pad controller.
+    </p>
+    <ul class="hw-device-list" *ngIf="midiDevices().length > 0">
+      <li *ngFor="let device of midiDevices()">
+        <span class="material-symbols-outlined" aria-hidden="true">piano</span>
+        {{ device }}
+      </li>
+    </ul>
+
+    <p
+      class="hw-learn-status"
+      *ngIf="midiLearn.learning() as request"
+      role="status"
+      aria-live="polite"
+    >
+      Waiting for a control… move a knob or press a pad for
+      <strong>{{ request.label }}</strong>
+      <button type="button" class="hw-link" (click)="midiLearn.cancelLearning()">
+        Cancel
+      </button>
+    </p>
+    <p class="hw-learn-done" *ngIf="midiLearn.lastLearned()">
+      {{ midiLearn.lastLearned() }}
+    </p>
+
+    <div class="hw-groups">
+      <section
+        class="hw-group"
+        *ngFor="let group of midiLearn.groups()"
+        [attr.aria-label]="group.label + ' MIDI learn'"
+      >
+        <h4>{{ group.label }}</h4>
+        <div class="hw-target" *ngFor="let target of group.items">
+          <span class="hw-target-label">{{ target.label }}</span>
+          <span class="hw-binding" *ngIf="midiLearn.bindingFor(target.id) as binding">
+            {{
+              (binding.type === "cc" ? "CC " : "Note ") +
+                binding.number +
+                " · ch " +
+                (binding.channel + 1)
+            }}
+          </span>
+          <button
+            type="button"
+            class="hw-learn"
+            *ngIf="!midiLearn.bindingFor(target.id)"
+            (click)="midiLearn.startLearning(target)"
+            [attr.aria-label]="'Learn a MIDI control for ' + target.label"
+          >
+            Learn
+          </button>
+          <button
+            type="button"
+            class="hw-forget"
+            *ngIf="midiLearn.bindingFor(target.id)"
+            (click)="midiLearn.forgetTarget(target.id)"
+            [attr.aria-label]="'Forget the MIDI control for ' + target.label"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ── Microphone / interface ──────────────────────────────────────── -->
+  <section class="hw-section" aria-labelledby="hw-mic-title">
+    <header class="hw-head">
+      <h3 id="hw-mic-title">Microphone &amp; interface</h3>
+      <button type="button" class="hw-link" (click)="refreshInputs()">
+        Refresh
+      </button>
+    </header>
+
+    <p class="hw-empty" *ngIf="micDevices().length === 0">
+      No audio input found. Grant microphone permission, then refresh.
+    </p>
+    <ul class="hw-device-list" *ngIf="micDevices().length > 0">
+      <li
+        *ngFor="let device of micDevices()"
+        [class.is-selected]="device.deviceId === microphone.selectedDeviceId()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">mic</span>
+        <span class="hw-device-name">{{ device.label }}</span>
+        <span class="hw-chips">
+          <span class="hw-chip" *ngFor="let capability of device.capabilities">
+            {{ capabilityLabel(capability) }}
+          </span>
+        </span>
+      </li>
+    </ul>
+
+    <p class="hw-note" *ngIf="selectedNeedsPhantom()">
+      This device is a condenser/interface input. Phantom power (+48V), pad and
+      input gain are switched on the interface itself or in its driver — a
+      browser cannot turn them on. Set them on the hardware, then refresh here.
+    </p>
+    <p class="hw-note" *ngIf="micDevices().length > 0 && !selectedNeedsPhantom()">
+      Input choice and monitoring are in the recorder and microphone interface;
+      this panel only reports what the device advertises.
+    </p>
+  </section>
+
+  <!-- ── Gamepad ─────────────────────────────────────────────────────── -->
+  <section class="hw-section" aria-labelledby="hw-pad-title">
+    <header class="hw-head">
+      <h3 id="hw-pad-title">Game controller</h3>
+      <span
+        class="hw-status"
+        [class.is-on]="!!gamepad.connectedGamepad()?.connected"
+      >
+        {{ gamepad.connectedGamepad()?.connected ? "Connected" : "None" }}
+      </span>
+    </header>
+
+    <p class="hw-device-name" *ngIf="gamepad.connectedGamepad() as pad">
+      {{ pad.id }}
+    </p>
+    <p class="hw-empty" *ngIf="!gamepad.connectedGamepad()?.connected">
+      Connect a controller and press any button — browsers only expose a pad
+      after its first input.
+    </p>
+    <ul class="hw-map">
+      <li *ngFor="let entry of gamepadMap">
+        <span class="hw-map-button">{{ entry.button }}</span>
+        {{ entry.action }}
+      </li>
+    </ul>
+  </section>
+</div>

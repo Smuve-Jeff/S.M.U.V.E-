@@ -42,6 +42,29 @@ interface SessionTrackView {
   color: string;
 }
 
+type CellQuantize = "global" | "none" | "1bar" | "2bar" | "4bar";
+
+const CELL_QUANT_KEY = "smuve_session_cell_quantize_v1";
+
+function loadCellQuantize(): Record<string, CellQuantize> {
+  try {
+    const raw = localStorage.getItem(CELL_QUANT_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    const allowed: CellQuantize[] = ["global", "none", "1bar", "2bar", "4bar"];
+    const out: Record<string, CellQuantize> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "string" && allowed.includes(value as CellQuantize)) {
+        out[key] = value as CellQuantize;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 const SCENE_COLORS = [
   "#0E7C7B",
   "#2BA09C",
@@ -90,14 +113,33 @@ export class SessionViewComponent implements OnDestroy {
   queuedSceneIndex = signal<number | null>(null);
   launchSettingsOpen = signal(false);
 
+  /**
+   * Per-cell launch quantization. A cell can override the grid-wide setting —
+   * a one-shot hit launches immediately while loops stay on the bar — and the
+   * override is stored per pattern slot, so a re-created slot is not silently
+   * launched on somebody else's boundary.
+   */
+  readonly cellQuantize = signal<Record<string, CellQuantize>>(
+    loadCellQuantize(),
+  );
+  readonly quantizeCellOptions = [
+    "global",
+    "none",
+    "1bar",
+    "2bar",
+    "4bar",
+  ] as const;
+  readonly cellActionClip = signal<SessionClipView | null>(null);
+  readonly queuedCellKey = signal<string | null>(null);
+
   private quantizeTimer: ReturnType<typeof setTimeout> | null = null;
+  private cellQuantizeTimer: ReturnType<typeof setTimeout> | null = null;
 
   nextLaunchBoundaryLabel = computed(() => {
-    const quantize = this.launchQuantize();
-    if (!this.audioSession.isPlaying() || quantize === "none") {
+    const bars = this.barsForQuantize(this.launchQuantize());
+    if (!this.audioSession.isPlaying() || bars === 0) {
       return "Immediate launch";
     }
-    const bars = quantize === "1bar" ? 1 : quantize === "2bar" ? 2 : 4;
     const seconds = this.nextBarDelay(bars);
     return `Next ${bars === 1 ? "bar" : `${bars} bars`} · ${seconds.toFixed(1)}s`;
   });
@@ -217,6 +259,71 @@ export class SessionViewComponent implements OnDestroy {
     return this.queuedSceneIndex() === scene.index;
   }
 
+  // ── Per-cell launch quantization ────────────────────────────────────
+  private cellQuantKey(clip: SessionClipView): string {
+    return `${clip.trackId}:${clip.slotId ?? clip.id}`;
+  }
+
+  /** Effective setting for a cell: its override, else the grid default. */
+  cellQuantizeSetting(clip: SessionClipView): CellQuantize {
+    return this.cellQuantize()[this.cellQuantKey(clip)] ?? "global";
+  }
+
+  cellQuantizeLabel(clip: SessionClipView): string {
+    const setting = this.cellQuantizeSetting(clip);
+    if (setting === "global") {
+      const global = this.launchQuantize();
+      return global === "none" ? "Q OFF" : `Q ${global.replace("bar", "B")}`;
+    }
+    return setting === "none"
+      ? "Q OFF"
+      : `Q ${setting.replace("bar", "B")}`;
+  }
+
+  isCellQueued(clip: SessionClipView): boolean {
+    return this.queuedCellKey() === this.cellQuantKey(clip);
+  }
+
+  openCellActions(clip: SessionClipView): void {
+    this.cellActionClip.set(clip);
+  }
+
+  closeCellActions(): void {
+    this.cellActionClip.set(null);
+  }
+
+  setCellQuantize(clip: SessionClipView, value: CellQuantize): void {
+    const key = this.cellQuantKey(clip);
+    this.cellQuantize.update((map) => {
+      const next = { ...map };
+      if (value === "global") delete next[key];
+      else next[key] = value;
+      return next;
+    });
+    this.persistCellQuantize();
+    this.closeCellActions();
+    this.haptic.light();
+  }
+
+  private persistCellQuantize(): void {
+    try {
+      localStorage.setItem(
+        CELL_QUANT_KEY,
+        JSON.stringify(this.cellQuantize()),
+      );
+    } catch {
+      // Locked storage: the overrides still hold for this session.
+    }
+  }
+
+  private barsForQuantize(setting: CellQuantize | "none" | "1bar" | "2bar" | "4bar"): number {
+    if (setting === "none") return 0;
+    if (setting === "1bar") return 1;
+    if (setting === "2bar") return 2;
+    if (setting === "4bar") return 4;
+    return 0;
+  }
+
   sceneStateLabel(scene: SessionSceneView): string {
     if (this.isSceneQueued(scene)) return "Queued";
     if (this.isSceneActive(scene)) return "Playing";
@@ -235,12 +342,10 @@ export class SessionViewComponent implements OnDestroy {
       this.stopAll();
       return;
     }
+    this.clearCellQuantizeTimer();
+    this.queuedCellKey.set(null);
     const delay = this.nextBarDelay(
-      this.launchQuantize() === "1bar"
-        ? 1
-        : this.launchQuantize() === "2bar"
-          ? 2
-          : 4,
+      this.barsForQuantize(this.launchQuantize()),
     );
     if (delay > 0) {
       this.queuedSceneIndex.set(scene.index);
@@ -274,13 +379,43 @@ export class SessionViewComponent implements OnDestroy {
     return `${clip.isPlaying ? "Stop" : "Launch"} ${clip.name}`;
   }
 
-  /** Launch one cell: that channel switches, playback follows the scene. */
+  /**
+   * Launch one cell: that channel switches, playback follows the scene.
+   *
+   * The launch honours the cell's quantization (overriding the grid setting),
+   * so a clip can be armed to start on the next bar instead of tearing in
+   * mid-phrase. An empty cell still creates its pattern immediately — there
+   * is nothing to hear yet.
+   */
   triggerClip(clip: SessionClipView): void {
     this.haptic.light();
     if (!clip.slotId) {
       this.createClip(clip);
       return;
     }
+    const setting = this.cellQuantizeSetting(clip);
+    const effective = setting === "global" ? this.launchQuantize() : setting;
+    const delay = this.nextBarDelay(this.barsForQuantize(effective));
+    if (delay > 0) {
+      this.clearCellQuantizeTimer();
+      this.clearQuantizeTimer();
+      this.queuedSceneIndex.set(null);
+      this.queuedCellKey.set(this.cellQuantKey(clip));
+      this.cellQuantizeTimer = setTimeout(() => {
+        this.cellQuantizeTimer = null;
+        this.commitClipLaunch(clip);
+      }, delay * 1000);
+      this.snackbar.info(
+        `${clip.name} queued — starts in ${delay.toFixed(1)}s`,
+      );
+      return;
+    }
+    this.commitClipLaunch(clip);
+  }
+
+  private commitClipLaunch(clip: SessionClipView): void {
+    this.queuedCellKey.set(null);
+    if (!clip.slotId) return;
     const switched = this.musicManager.launchClipPattern(
       clip.trackId,
       clip.slotId,
@@ -318,7 +453,9 @@ export class SessionViewComponent implements OnDestroy {
   stopAll(): void {
     this.haptic.medium();
     this.clearQuantizeTimer();
+    this.clearCellQuantizeTimer();
     this.queuedSceneIndex.set(null);
+    this.queuedCellKey.set(null);
     this.musicManager.stopScenePlayback();
     if (this.audioSession.isPlaying()) this.audioSession.togglePlay();
     this.snackbar.info("Session stopped");
@@ -427,7 +564,7 @@ export class SessionViewComponent implements OnDestroy {
 
   // ── Helpers ─────────────────────────────────────────────────────────
   private nextBarDelay(bars: number): number {
-    if (this.launchQuantize() === "none" || !this.audioSession.isPlaying()) {
+    if (bars <= 0 || !this.audioSession.isPlaying()) {
       return 0;
     }
     const tempo = this.audioSession.engine.tempo() || 120;
@@ -445,8 +582,14 @@ export class SessionViewComponent implements OnDestroy {
     this.quantizeTimer = null;
   }
 
+  private clearCellQuantizeTimer(): void {
+    if (this.cellQuantizeTimer) clearTimeout(this.cellQuantizeTimer);
+    this.cellQuantizeTimer = null;
+  }
+
   ngOnDestroy(): void {
     this.clearQuantizeTimer();
+    this.clearCellQuantizeTimer();
   }
 
   trackByScene = (_index: number, scene: SessionSceneView) => scene.id;

@@ -191,6 +191,28 @@
   </div>
   </div>
 
+  <!-- External connections: MIDI learn, inputs, controller. -->
+  <section
+    class="ctb-hardware-panel"
+    id="ctb-hardware-panel"
+    *ngIf="hardwareOpen()"
+    role="dialog"
+    aria-label="External connections"
+  >
+    <header class="ctb-map-head">
+      <h3>External Connections</h3>
+      <button
+        type="button"
+        class="ctb-map-close"
+        (click)="hardwareOpen.set(false)"
+        aria-label="Close external connections"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <app-hardware-connections></app-hardware-connections>
+  </section>
+
   <!-- Undo history: the stack, named, with one-tap restore. -->
   <section
     class="ctb-history"
@@ -364,6 +386,40 @@
           <span>EXT CLOCK</span>
         </button>
         <span class="ctb-ext-status" aria-live="polite">{{ midiClock.statusLabel() }}</span>
+      </div>
+
+      <div class="ctb-group ctb-hardware" role="group" aria-label="External connections">
+        <button
+          type="button"
+          class="ctb-ext-btn"
+          [class.ctb-ext-on]="hardwareOpen()"
+          (click)="toggleHardwarePanel()"
+          [attr.aria-expanded]="hardwareOpen()"
+          aria-controls="ctb-hardware-panel"
+          title="MIDI learn, MIDI inputs, audio interfaces and gamepad transport"
+        >
+          <span class="material-symbols-outlined">usb</span>
+          <span>HARDWARE</span>
+        </button>
+      </div>
+
+      <div class="ctb-group" role="group" aria-label="Monitor mode">
+        <button
+          type="button"
+          class="ctb-ext-btn"
+          [class.ctb-ext-on]="audioEngine.monoMonitoring()"
+          (click)="toggleMonoMonitoring()"
+          [attr.aria-pressed]="audioEngine.monoMonitoring()"
+          [attr.aria-label]="
+            audioEngine.monoMonitoring()
+              ? 'Mono-sum monitoring on — both speakers carry L+R · click for stereo'
+              : 'Mono-sum monitoring off — click to check the mix in mono'
+          "
+          title="Mono-sum monitoring — hear phase cancellation the way a club mono rig will"
+        >
+          <span class="material-symbols-outlined">hearing</span>
+          <span>{{ audioEngine.monoMonitoring() ? 'MONO' : 'STEREO' }}</span>
+        </button>
       </div>
 
   <!-- Sprint A4 — Playback-mode status chip (read-only mirror of AudioEngineService.playMode) -->

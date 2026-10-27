@@ -72,6 +72,80 @@ describe('MusicManagerService clip glue workflows', () => {
     ]);
   });
 
+  it('keeps solo-safe channels audible under another channel solo', () => {
+    const base = {
+      type: 'midi',
+      instrumentId: 'grand-piano',
+      muted: false,
+      soloed: false,
+      volume: 0.8,
+      gain: 0.8,
+      pan: 0,
+      clips: [],
+      steps: new Array(64).fill(false),
+      fxSlots: [],
+      sendA: 0,
+      sendB: 0,
+      effects: [],
+      patternSlots: [],
+      activePatternSlotId: null,
+      notes: [{ midi: 60, step: 0, length: 1, velocity: 1 }],
+    };
+    service.tracks.set([
+      { ...base, id: 'soloed', name: 'Soloed', soloed: true },
+      { ...base, id: 'safe', name: 'Guide', soloSafe: true },
+      { ...base, id: 'quiet', name: 'Quiet' },
+    ] as any);
+
+    engineMock.triggerAttack.mockClear();
+    engineMock.setBaseFaderGain.mockClear();
+    service.playStep(0, 0, 0.25);
+
+    const channels = engineMock.setBaseFaderGain.mock.calls.map((call) => call[0]);
+    expect(channels).toEqual(expect.arrayContaining(['soloed', 'safe']));
+    expect(channels).not.toContain('quiet');
+    expect(engineMock.triggerAttack).toHaveBeenCalledTimes(2);
+  });
+
+  it('mute wins over solo-safe and the flag is undoable', () => {
+    service.tracks.update((tracks) =>
+      tracks.map((track) => ({ ...track, soloSafe: false }))
+    );
+    service.toggleSoloSafe('track-1');
+    expect(service.tracks()[0].soloSafe).toBe(true);
+    history.undo();
+    expect(service.tracks()[0].soloSafe).toBe(false);
+
+    const base = {
+      type: 'midi',
+      instrumentId: 'grand-piano',
+      muted: true,
+      soloed: false,
+      soloSafe: true,
+      volume: 0.8,
+      gain: 0.8,
+      pan: 0,
+      clips: [],
+      steps: new Array(64).fill(false),
+      fxSlots: [],
+      sendA: 0,
+      sendB: 0,
+      effects: [],
+      patternSlots: [],
+      activePatternSlotId: null,
+      notes: [{ midi: 60, step: 0, length: 1, velocity: 1 }],
+    };
+    service.tracks.set([
+      { ...base, id: 'muted-safe', name: 'Muted safe' },
+      { ...base, id: 'soloed', name: 'Soloed', muted: false, soloed: true },
+    ] as any);
+    engineMock.setBaseFaderGain.mockClear();
+    service.playStep(0, 0, 0.25);
+    expect(
+      engineMock.setBaseFaderGain.mock.calls.map((call) => call[0]),
+    ).not.toContain('muted-safe');
+  });
+
   it('glues touching clips into one merged clip span', () => {
     service.tracks.update((tracks) =>
       tracks.map((track) =>

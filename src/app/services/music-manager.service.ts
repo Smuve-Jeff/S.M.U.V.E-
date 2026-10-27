@@ -148,6 +148,12 @@ export interface TrackModel extends StudioTrack {
   sendB: number;
   /** Pro: Phase inversion state */
   phaseInvert?: boolean;
+  /**
+   * Solo-safe: this channel stays audible while other channels are soloed.
+   * Used for talkback, a click/guide track, or a return that must not vanish
+   * under a solo.
+   */
+  soloSafe?: boolean;
   /** Pro: Stereo Width / Pan amount (-1..1) */
   stereoWidth?: number;
   /** Pro: Map of auxBusId -> level (0..1) */
@@ -1046,6 +1052,29 @@ export class MusicManagerService {
       () => {
         this.tracks.update((ts) =>
           ts.map((x) => (x.id === id ? { ...x, soloed: wasSoloed } : x))
+        );
+      }
+    );
+  }
+
+  /**
+   * Solo-safe: a channel that ignores *other* channels' solos. Its own solo
+   * button still behaves normally, and mute still wins over solo-safe.
+   */
+  toggleSoloSafe(id: string) {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return;
+    const wasSafe = !!t.soloSafe;
+    this.runCommand(
+      (wasSafe ? 'Clear solo-safe · ' : 'Solo-safe · ') + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, soloSafe: !x.soloSafe } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, soloSafe: wasSafe } : x))
         );
       }
     );
@@ -2504,6 +2533,20 @@ export class MusicManagerService {
     return null;
   }
 
+  /** Previous scene with material, wrapping (gamepad / hardware control). */
+  previousSceneColumn(): number | null {
+    const columns = this.sceneColumnCount();
+    if (columns <= 1) return null;
+    const current = this.activeSceneColumn();
+    const start = current === null ? columns - 1 : current - 1;
+    for (let offset = 0; offset < columns; offset++) {
+      const column = ((start - offset) % columns + columns) % columns;
+      if (column === current) continue;
+      if (this.sceneColumnHasContent(column)) return column;
+    }
+    return null;
+  }
+
   /**
    * Follow actions. Called once per transport step; advancing happens on a bar
    * line so a scene change never lands mid-beat.
@@ -2835,7 +2878,9 @@ export class MusicManagerService {
     if (!track || track.frozenBackup) return false;
     if (track.type === "audio") return false;
     const hasSolo = this.tracks().some((t) => t.soloed);
-    if (track.muted || (hasSolo && !track.soloed)) return false;
+    if (track.muted || (hasSolo && !track.soloed && !track.soloSafe)) {
+      return false;
+    }
     if (this.offlineBounce.isBouncing()) return false;
 
     this.logger.info(`Freezing track ${track.name}…`);
@@ -2920,7 +2965,7 @@ export class MusicManagerService {
     const allTracks = this.tracks();
     const hasSolo = allTracks.some((t) => t.soloed);
     allTracks
-      .filter((t) => !t.muted && (!hasSolo || t.soloed))
+      .filter((t) => !t.muted && (!hasSolo || t.soloed || t.soloSafe))
       .forEach((t) => {
 
       // Track gain is one fader stage, exactly like the offline bounce's

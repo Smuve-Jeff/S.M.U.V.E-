@@ -460,6 +460,19 @@ export class AudioEngineService {
   public masterOutput = this.ctx.createGain();
 
   /**
+   * Mono-sum monitoring. This is a listening check, not a mix change: it sits
+   * between `masterOutput` and the speakers only, so meters, the export tap and
+   * every send remain stereo. Phase cancellation on a club mono rig becomes
+   * audible here before the file leaves the studio.
+   */
+  readonly monoMonitoring = signal(false);
+  private readonly monoSumSplitter = this.ctx.createChannelSplitter(2);
+  private readonly monoSumLeft = this.ctx.createGain();
+  private readonly monoSumRight = this.ctx.createGain();
+  private readonly monoSumMerger = this.ctx.createChannelMerger(2);
+  private monoSumWired = false;
+
+  /**
    * Stereo metering tap. Left and right are kept separate because BS.1770
    * sums the weighted energy of real channels; a single AnalyserNode would
    * downmix to mono and lose that ~3 LU of channel sum.
@@ -731,6 +744,11 @@ export class AudioEngineService {
     this.masterOutput.connect(this.lufsSplitter);
     this.lufsSplitter.connect(this.lufsAnalyserLeft, 0);
     this.lufsSplitter.connect(this.lufsAnalyserRight, 1);
+
+    // Mono-sum monitor stage: split → 0.5 + 0.5 → both outputs. Wired lazily
+    // by setMonoMonitoring(), so the default path stays a direct stereo edge.
+    this.monoSumLeft.gain.value = 0.5;
+    this.monoSumRight.gain.value = 0.5;
 
     // ── Master FX returns (Send A = reverb, Send B = tempo-synced echo) ──
     // The returns used to loop straight back into masterGain with nothing on
@@ -2819,6 +2837,64 @@ export class AudioEngineService {
   /** Toggle antialiased oscillator mode */
   toggleAntialias(enabled: boolean) {
     this.antialiasEnabled.set(enabled);
+  }
+
+  /**
+   * Mono-sum monitor A/B. Enabling collapses L+R to both speakers with a
+   * -6 dB sum so a correlated source cannot clip; disabling restores the
+   * untouched stereo master. This never changes the export tap.
+   */
+  setMonoMonitoring(enabled: boolean): boolean {
+    const next = !!enabled;
+    if (next === this.monoSumWired) {
+      this.monoMonitoring.set(next);
+      return this.monoMonitoring();
+    }
+    try {
+      if (next) {
+        this.masterOutput.disconnect(this.ctx.destination);
+        this.masterOutput.connect(this.monoSumSplitter);
+        this.monoSumSplitter.connect(this.monoSumLeft, 0);
+        this.monoSumSplitter.connect(this.monoSumRight, 1);
+        // Both halves feed both outputs: each speaker gets 0.5L + 0.5R.
+        this.monoSumLeft.connect(this.monoSumMerger, 0, 0);
+        this.monoSumLeft.connect(this.monoSumMerger, 0, 1);
+        this.monoSumRight.connect(this.monoSumMerger, 0, 0);
+        this.monoSumRight.connect(this.monoSumMerger, 0, 1);
+        this.monoSumMerger.connect(this.ctx.destination);
+      } else {
+        this.monoSumMerger.disconnect(this.ctx.destination);
+        try {
+          this.masterOutput.disconnect(this.monoSumSplitter);
+        } catch {
+          /* already detached */
+        }
+        this.masterOutput.connect(this.ctx.destination);
+      }
+      this.monoSumWired = next;
+      this.monoMonitoring.set(next);
+    } catch {
+      // A host that refuses the re-route must not end up silent: restore the
+      // direct monitor edge and report stereo.
+      try {
+        this.monoSumMerger.disconnect(this.ctx.destination);
+      } catch {
+        /* ignore */
+      }
+      try {
+        this.masterOutput.disconnect(this.monoSumSplitter);
+        this.masterOutput.connect(this.ctx.destination);
+      } catch {
+        /* ignore */
+      }
+      this.monoSumWired = false;
+      this.monoMonitoring.set(false);
+    }
+    return this.monoMonitoring();
+  }
+
+  toggleMonoMonitoring(): boolean {
+    return this.setMonoMonitoring(!this.monoMonitoring());
   }
 
   /** Toggle dithering on master output (reduces quantization distortion at low levels) */

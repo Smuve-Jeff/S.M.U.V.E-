@@ -25,11 +25,14 @@ import { HapticService } from "../../services/haptic.service";
 import { HistoryService } from "../../services/history.service";
 import { STEPS_PER_BAR, TempoMapService } from "../tempo-map.service";
 import { MidiClockSyncService } from "../midi-clock-sync.service";
+import { GamepadService } from "../../services/gamepad.service";
+import { HardwareConnectionsComponent } from "../hardware-connections/hardware-connections.component";
+import { StudioMidiLearnService } from "../studio-midi-learn.service";
 
 @Component({
   selector: "app-transport-bar",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HardwareConnectionsComponent],
   templateUrl: "./transport-bar.component.html",
   styleUrls: ["./transport-bar.component.css", "../shared/platform-ux.css"],
 })
@@ -114,9 +117,29 @@ export class TransportBarComponent {
   tempoMapOpen = signal(false);
   /** Undo history panel: the stack's last 40 steps, newest first. */
   historyOpen = signal(false);
+  /** MIDI learn, audio inputs and gamepad status in one place. */
+  hardwareOpen = signal(false);
+  private readonly gamepad = inject(GamepadService);
+  /**
+   * Instantiated here (not only by the hardware panel) so learned CC/note
+   * bindings are live from the moment the transport exists.
+   */
+  readonly midiLearn = inject(StudioMidiLearnService);
+  /** Rising-edge state for gamepad buttons (a held button must fire once). */
+  private lastPadButtons: boolean[] = [];
 
   /** External MIDI clock-in: a hardware sequencer can drive this transport. */
   readonly midiClock = inject(MidiClockSyncService);
+
+  toggleMonoMonitoring(): void {
+    this.haptic.light();
+    const mono = this.audioEngine.toggleMonoMonitoring();
+    this.snack.info(
+      mono
+        ? "Mono-sum monitoring — checking L+R for phase cancellation"
+        : "Stereo monitoring restored",
+    );
+  }
 
   async toggleMidiClock(): Promise<void> {
     this.haptic.light();
@@ -235,6 +258,8 @@ export class TransportBarComponent {
   lastActionName = this.history.lastActionName;
 
   constructor() {
+    this.wireGamepad();
+
     // Refresh tap buffer window: discard stale taps on tick
     effect(() => {
       this.tapTempoBuffer();
@@ -343,6 +368,68 @@ export class TransportBarComponent {
         notes.length === 1 ? "" : "s"
       } · steps ${take.startStep}–${take.endStep}`,
     );
+  }
+
+  /**
+   * Game controller transport. Browsers only expose a pad after its first
+   * button press, so the mapping lives here where the transport already is.
+   * Button state is edge-detected: holding A plays once, not every frame.
+   */
+  private wireGamepad(): void {
+    effect(() => {
+      const state = this.gamepad.connectedGamepad();
+      if (!state) {
+        this.lastPadButtons = [];
+        return;
+      }
+      const previous = this.lastPadButtons;
+      state.buttons.forEach((pressed, index) => {
+        if (pressed && !previous[index]) this.onGamepadButton(index);
+      });
+      this.lastPadButtons = [...state.buttons];
+    });
+  }
+
+  private onGamepadButton(button: number): void {
+    switch (button) {
+      case 0: // A — play / stop
+        this.togglePlay();
+        break;
+      case 1: // B — stop
+        this.musicManager.stopScenePlayback();
+        if (this.isPlaying()) this.audioSession.stop();
+        this.snack.info("Controller · stopped");
+        break;
+      case 2: // X — record
+        this.toggleRecord();
+        break;
+      case 3: // Y — back to the arrangement
+        this.musicManager.backToArrangement();
+        this.snack.info("Controller · back to song");
+        break;
+      case 4: {
+        // LB — previous scene
+        const previous = this.musicManager.previousSceneColumn();
+        if (previous !== null) this.musicManager.launchSceneColumn(previous);
+        break;
+      }
+      case 5: {
+        // RB — next scene
+        const next = this.musicManager.nextSceneColumn();
+        if (next !== null) this.musicManager.launchSceneColumn(next);
+        break;
+      }
+      case 9: // START — stop everything
+        this.musicManager.stopScenePlayback();
+        if (this.isPlaying()) this.audioSession.stop();
+        break;
+      default:
+        break;
+    }
+  }
+
+  toggleHardwarePanel(): void {
+    this.hardwareOpen.update((open) => !open);
   }
 
   togglePlay(): void {

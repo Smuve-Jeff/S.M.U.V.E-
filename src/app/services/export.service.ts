@@ -369,7 +369,12 @@ export class ExportService {
       tracks.some((track) => track.soloed);
     for (const track of tracks) {
       if (options.onlyTrackIds && !options.onlyTrackIds.has(track.id)) continue;
-      if (track.muted || (hasSolo && !track.soloed) || track.type === 'bus') continue;
+      if (
+        track.muted ||
+        (hasSolo && !track.soloed && !track.soloSafe) ||
+        track.type === 'bus'
+      )
+        continue;
       const channel = offline.createGain();
       channel.gain.value = Math.max(0, Math.min(1.5, track.gain ?? track.volume ?? 0.8));
       channel.connect(master);
@@ -591,7 +596,7 @@ export class ExportService {
     if (info.id === 'flac') {
       // Lossless, and unlike the WebCodecs formats it needs no browser codec
       // support: the encoder in flac-encoder.util writes the stream itself.
-      return encodeFlacBlob(buffer, { bitDepth: 16 });
+      return encodeFlacBlob(buffer, { bitDepth: 16, dither: true });
     }
 
     if (info.webCodecs && typeof (globalThis as any).AudioEncoder === 'function') {
@@ -705,9 +710,12 @@ export class ExportService {
         ? WavEncoder.encodeMultiChannel(
             channels,
             'wav-24',
-            buffer.sampleRate
+            buffer.sampleRate,
+            { dither: true },
           )
-        : WavEncoder.encode(channels, channels.length, buffer.sampleRate);
+        : WavEncoder.encode(channels, channels.length, buffer.sampleRate, {
+            dither: true,
+          });
     return await blob.arrayBuffer();
   }
 

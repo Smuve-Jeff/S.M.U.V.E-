@@ -201,6 +201,7 @@ describe("SessionViewComponent", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    localStorage.clear();
     isPlaying.set(false);
     isRecording.set(false);
     scenePlaybackActive.set(false);
@@ -341,6 +342,50 @@ describe("SessionViewComponent", () => {
     component.triggerClip(clip);
     expect(launchClipPattern).toHaveBeenCalledWith("t1", "slot-b");
     expect(togglePlay).toHaveBeenCalledTimes(1);
+  });
+
+  it("queues a cell launch on the grid quantization boundary", () => {
+    jest.useFakeTimers();
+    try {
+      isPlaying.set(true);
+      component.setLaunchQuantize("1bar");
+      const clip = component
+        .clips()
+        .find((candidate) => candidate.slotId === "slot-b")!;
+
+      component.triggerClip(clip);
+      expect(launchClipPattern).not.toHaveBeenCalled();
+      expect(component.isCellQueued(clip)).toBe(true);
+
+      jest.advanceTimersByTime(2000);
+      expect(launchClipPattern).toHaveBeenCalledWith("t1", "slot-b");
+      expect(component.isCellQueued(clip)).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("lets a cell override the grid with immediate launch", () => {
+    isPlaying.set(true);
+    component.setLaunchQuantize("1bar");
+    const clip = component
+      .clips()
+      .find((candidate) => candidate.slotId === "slot-b")!;
+
+    component.setCellQuantize(clip, "none");
+    expect(component.cellQuantizeSetting(clip)).toBe("none");
+    expect(component.cellQuantizeLabel(clip)).toBe("Q OFF");
+
+    component.triggerClip(clip);
+    expect(launchClipPattern).toHaveBeenCalledWith("t1", "slot-b");
+    expect(localStorage.getItem("smuve_session_cell_quantize_v1")).toContain(
+      "t1:slot-b",
+    );
+
+    // Global clears the override instead of storing a second default.
+    component.setCellQuantize(clip, "global");
+    expect(component.cellQuantizeSetting(clip)).toBe("global");
+    expect(localStorage.getItem("smuve_session_cell_quantize_v1")).toBe("{}");
   });
 
   it("creates a pattern when an empty cell is launched", () => {

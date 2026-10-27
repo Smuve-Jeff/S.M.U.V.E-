@@ -522,6 +522,12 @@
     0 0 0 1px rgba(255, 255, 255, 0.3) inset,
     0 0 8px var(--teal-glow);
 }
+.mix-msr-btn.on.safe {
+  background: var(--amber, #b45309);
+  color: white;
+  border-color: var(--amber, #b45309);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset;
+}
 .mix-msr-btn.on.record {
   background: var(--record);
   color: white;

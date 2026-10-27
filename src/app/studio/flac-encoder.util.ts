@@ -1,3 +1,5 @@
+import { quantizeDithered } from "./dither.util";
+
 /**
  * Lossless FLAC encoder (verbatim subframes).
  *
@@ -44,6 +46,8 @@ export type FlacBitDepth = 16 | 24;
 
 export interface FlacEncodeOptions {
   bitDepth?: FlacBitDepth;
+  /** TPDF dither before quantising a float master to 16/24-bit. */
+  dither?: boolean;
 }
 
 /** Growable big-endian byte sink. */
@@ -243,7 +247,13 @@ export function encodeFlacSamples(
       frame.byte(0x02);
       const data = channels[channel] ?? channels[0];
       for (let i = 0; i < blockSize; i++) {
-        const sample = floatToIntSample(data[offset + i] ?? 0, bitDepth);
+        const raw = data[offset + i] ?? 0;
+        const sample = options.dither
+          ? quantizeDithered(
+              Number.isFinite(raw) ? Math.max(-1, Math.min(1, raw)) : 0,
+              bitDepth,
+            )
+          : floatToIntSample(raw, bitDepth);
         if (bytesPerSample === 2) {
           frame.u16(sample < 0 ? sample + 0x10000 : sample);
         } else {
