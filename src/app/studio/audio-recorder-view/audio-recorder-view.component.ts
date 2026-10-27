@@ -30,6 +30,12 @@ import {
   resolveInputDeviceId,
 } from "./input-device-prefs";
 import { Subscription } from "rxjs";
+import {
+  TakeLevel,
+  classifyTakeLevel,
+  measureTakeSignal,
+  takeLevelNotice,
+} from "./take-level";
 
 interface RecordingListEntry {
   id: string;
@@ -288,6 +294,12 @@ export class AudioRecorderViewComponent
     }
   }
 
+  /**
+   * Measured level per take. Absent means "not measured" (an older take, or a
+   * decode that failed) — never an implied verdict.
+   */
+  readonly takeLevels = signal<Record<string, TakeLevel>>({});
+
   renamingId = signal<string | null>(null);
   renameValue = signal("");
 
@@ -523,11 +535,60 @@ export class AudioRecorderViewComponent
     this.stopWaveform();
     this.closeAudioGraph();
     this.releaseInputStream();
+    // A take can finish cleanly and still hold nothing but noise floor.
+    void this.auditTakeLevel(entry.id, event.blob);
+
     if (event.persisted === false) {
       this.snackbar.warning(`${entry.name} is in this session but could not be saved offline`);
     } else {
       this.snackbar.success(`${entry.name} captured — ready to keep or add`);
     }
+  }
+
+  /**
+   * Decode the finished take and measure it. A muted interface, the wrong input
+   * or a zero hardware gain all produce a perfect-looking take containing only
+   * noise floor — the artist should hear that now, not after leaving the studio.
+   * A failed measurement stays silent: no measurement is not a verdict.
+   */
+  private async auditTakeLevel(id: string, blob: Blob): Promise<void> {
+    try {
+      const decoded = await this.audioEngine.ctx.decodeAudioData(
+        await blob.arrayBuffer(),
+      );
+      const channels = Array.from(
+        { length: decoded.numberOfChannels },
+        (_, index) => decoded.getChannelData(index),
+      );
+      const level = classifyTakeLevel(measureTakeSignal(channels));
+      if (level === "unknown") return;
+      this.takeLevels.update((levels) => ({ ...levels, [id]: level }));
+      const notice = takeLevelNotice(level);
+      if (notice.message) this.snackbar.warning(notice.message);
+    } catch (error) {
+      this.logger.warn("Could not measure the captured take level", error);
+    }
+  }
+
+  /** Row badge for a measured take; empty for healthy or unmeasured takes. */
+  takeLevelBadge(id: string): string {
+    const level = this.takeLevels()[id];
+    return level ? takeLevelNotice(level).badge : "";
+  }
+
+  /** Drop the measurement when the take itself is gone. */
+  private forgetTakeLevel(id: string): void {
+    this.takeLevels.update((levels) => {
+      if (!(id in levels)) return levels;
+      const next = { ...levels };
+      delete next[id];
+      return next;
+    });
+  }
+
+  takeLevelLabel(id: string): string {
+    const level = this.takeLevels()[id];
+    return level === "silent" ? "Take is silent" : level === "low" ? "Take is very quiet" : "";
   }
 
   private releaseInputStream(): void {
@@ -549,6 +610,7 @@ export class AudioRecorderViewComponent
         await this.recorder.deleteOfflineRecording(id);
         this.pendingRecordingSaves.delete(id);
         this.recordings.update((list) => list.filter((recording) => recording.id !== id));
+        this.forgetTakeLevel(id);
         return;
       }
       this.pendingRecordingSaves.delete(id);
@@ -992,6 +1054,7 @@ export class AudioRecorderViewComponent
       if (entry?.savedOffline !== false) await this.recorder.deleteOfflineRecording(id);
       this.pendingRecordingSaves.delete(id);
       this.recordings.update((list) => list.filter((recording) => recording.id !== id));
+      this.forgetTakeLevel(id);
       if (entry?.url) this.recorder.revokeRecordingUrl(entry.url);
       this.snackbar.info("Recording removed from list");
     } catch (error) {

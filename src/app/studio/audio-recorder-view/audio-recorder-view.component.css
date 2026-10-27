@@ -352,6 +352,31 @@
   font-size: 11px;
   color: var(--espresso-muted);
   font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* A measured take that carries no usable signal. Amber for quiet, rose for
+   silent: the row still exists, so this flags it rather than removing it. The
+   bank is a dark surface, so the badge is built from the same neon vars the
+   rest of the recorder uses — a light-theme colour reads as a smudge here. */
+.arv-row-level {
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--neon-amber, #fbbf24) 55%, transparent);
+  background: color-mix(in srgb, var(--neon-amber, #fbbf24) 16%, transparent);
+  color: var(--neon-amber, #fbbf24);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.arv-row-level.is-silent {
+  border-color: rgba(255, 92, 122, 0.6);
+  background: rgba(255, 92, 122, 0.18);
+  color: #ffd0d8;
 }
 
 .arv-row-audio {

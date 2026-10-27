@@ -414,6 +414,12 @@
             </button>
           </div>
           <div class="arv-row-meta">
+            <span
+              *ngIf="takeLevelBadge(rec.id) as badge"
+              class="arv-row-level"
+              [class.is-silent]="badge === 'SILENT'"
+              [attr.title]="takeLevelLabel(rec.id)"
+            >{{ badge }}</span>
             {{ formatRecordedAt(rec.timestamp) }} · {{ formatTime(rec.durationSec) }} · {{ rec.savedOffline === false ? 'session only' : 'saved on device' }}
           </div>
         </div>
