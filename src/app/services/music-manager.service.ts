@@ -952,6 +952,43 @@ export class MusicManagerService {
     );
   }
 
+  /**
+   * Apply a batch of track fields as ONE undoable edit (AI mix suggestions,
+   * insert settings). A direct `tracks.update` from a helper service looked
+   * applied but could not be undone, did not re-sync the FX chain, and left the
+   * engine and the model free to disagree.
+   */
+  applyTrackPatch(
+    trackId: string,
+    patch: Partial<TrackModel>,
+    label = 'Apply Track Change'
+  ): boolean {
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    if (!track) return false;
+    const before: Partial<TrackModel> = {};
+    for (const key of Object.keys(patch)) {
+      (before as any)[key] = this.clone((track as any)[key]);
+    }
+    this.runCommand(
+      label,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === trackId ? { ...x, ...patch } : x))
+        );
+        this.engine.updateTrack(trackId, patch);
+        if (patch.fxSlots) this.syncTrackFxChain(trackId);
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === trackId ? { ...x, ...before } : x))
+        );
+        this.engine.updateTrack(trackId, before);
+        if (patch.fxSlots) this.syncTrackFxChain(trackId);
+      }
+    );
+    return true;
+  }
+
   setInstrument(trackId: string, instId: string) {
     const t = this.tracks().find((x) => x.id === trackId);
     if (!t) return;

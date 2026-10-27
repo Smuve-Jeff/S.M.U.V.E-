@@ -204,12 +204,22 @@ describe('ExportService (Sprint A6)', () => {
     expect(view.getUint32(40, true)).toBe(4 * 2 * 3); // data chunk bytes
 
     // Packed little-endian 24-bit: +0.5 → 0x400000, -0.5 → 0xC00000.
-    expect([view.getUint8(44), view.getUint8(45), view.getUint8(46)]).toEqual([
-      0x00, 0x00, 0x40,
-    ]);
-    expect([view.getUint8(47), view.getUint8(48), view.getUint8(49)]).toEqual([
-      0x00, 0x00, 0xc0,
-    ]);
+    // 24-bit reduction is dithered (TPDF), so the samples sit within a couple
+    // of LSBs of the ideal value instead of landing on it exactly; the sign and
+    // the full-scale magnitude are what matter.
+    const read24 = (offset: number): number => {
+      const raw =
+        view.getUint8(offset) |
+        (view.getUint8(offset + 1) << 8) |
+        (view.getUint8(offset + 2) << 16);
+      return raw & 0x800000 ? raw - 0x1000000 : raw;
+    };
+    const left = read24(44);
+    const right = read24(47);
+    expect(left).toBeGreaterThan(0x3ffff0);
+    expect(left).toBeLessThanOrEqual(0x400000);
+    expect(right).toBeLessThan(-0x3ffff0);
+    expect(right).toBeGreaterThanOrEqual(-0x400000);
   });
 
   it('exportToFormat(wav24) ships 24-bit audio and is larger than the 16-bit file', async () => {

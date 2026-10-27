@@ -4,6 +4,7 @@ import {
   AudioEngineService,
   clampFinite,
   computeCrossfaderGains,
+  createAudioContext,
 } from './audio-engine.service';
 
 // Minimal bare-instance helper: skips the heavy constructor (which needs a
@@ -1598,5 +1599,49 @@ describe('AudioEngineService tempo map', () => {
     (svc as any).tempoMap = [];
     svc.setTempoMap([]);
     expect(svc.tempoAtStep(64)).toBe(128);
+  });
+});
+
+describe('createAudioContext', () => {
+  const original = (window as any).AudioContext;
+
+  afterEach(() => {
+    (window as any).AudioContext = original;
+  });
+
+  it('asks for interactive latency at the sample rate it opens', () => {
+    const constructed: any[] = [];
+    (window as any).AudioContext = class {
+      constructor(options: any) {
+        constructed.push(options);
+      }
+    };
+
+    const result = createAudioContext();
+
+    expect(result.available).toBe(true);
+    // 96 kHz is the first preference; the monitoring buffer intent must travel
+    // with it instead of being left to the host default.
+    expect(constructed[0]).toEqual({
+      latencyHint: 'interactive',
+      sampleRate: 96000,
+    });
+  });
+
+  it('keeps the interactive hint when it falls back to default sample rate', () => {
+    const constructed: any[] = [];
+    (window as any).AudioContext = class {
+      constructor(options?: any) {
+        if (options && options.sampleRate) {
+          throw new Error('unsupported sample rate');
+        }
+        constructed.push(options);
+      }
+    };
+
+    const result = createAudioContext();
+
+    expect(result.available).toBe(true);
+    expect(constructed).toEqual([{ latencyHint: 'interactive' }]);
   });
 });

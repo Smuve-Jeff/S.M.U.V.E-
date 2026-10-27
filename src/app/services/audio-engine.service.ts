@@ -380,7 +380,14 @@ function createSilentAudioContext(): AudioContext {
   return context as unknown as AudioContext;
 }
 
-function createAudioContext(): { context: AudioContext; available: boolean } {
+/**
+ * The Studio's primary graph. It is the one context a human plays into, so it
+ * asks for `'interactive'` explicitly instead of leaving the buffer size to
+ * whatever the host defaults to — the auxiliary graphs deliberately ask for
+ * `'playback'` (see AuxAudioContextService), and an implicit default here could
+ * hand the artist a large monitoring buffer for no reason.
+ */
+export function createAudioContext(): { context: AudioContext; available: boolean } {
   if (typeof window === 'undefined') {
     return { context: createSilentAudioContext(), available: false };
   }
@@ -394,13 +401,16 @@ function createAudioContext(): { context: AudioContext; available: boolean } {
   const Ctor = AudioContextCtor as AudioContextConstructor;
   for (const sampleRate of [96000, 48000]) {
     try {
-      return { context: new Ctor({ sampleRate }), available: true };
+      return {
+        context: new Ctor({ latencyHint: 'interactive', sampleRate }),
+        available: true,
+      };
     } catch {
       // Try the next rate, then the browser's default below.
     }
   }
   try {
-    return { context: new Ctor(), available: true };
+    return { context: new Ctor({ latencyHint: 'interactive' }), available: true };
   } catch {
     return { context: createSilentAudioContext(), available: false };
   }

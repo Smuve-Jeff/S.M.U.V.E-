@@ -45,6 +45,7 @@ describe("PerformerComponent", () => {
       setScale: jest.fn(),
       updateParameter: jest.fn(),
       midiToNote: jest.fn().mockReturnValue("C4"),
+      setOutputTarget: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -60,6 +61,7 @@ describe("PerformerComponent", () => {
             updateTrackPan: jest.fn(),
             engine: {
               updateTrack: jest.fn(),
+              getTrackOutput: jest.fn(() => ({ id: "channel" })),
               masterAnalyser: {
                 frequencyBinCount: 1024,
                 getByteFrequencyData: jest.fn(),
@@ -219,6 +221,30 @@ describe("PerformerComponent", () => {
 
     component.updateTrackPan(-40);
     expect(manager.updateTrackPan).toHaveBeenCalledWith("track-1", -40);
+  });
+
+  it("routes the live instrument into the selected channel", () => {
+    const manager = TestBed.inject(MusicManagerService) as any;
+    manager.selectedTrackId.set("track-1");
+    fixture.detectChanges();
+
+    expect(manager.engine.getTrackOutput).toHaveBeenCalledWith("track-1");
+    expect(mockLiveEngine.setOutputTarget).toHaveBeenCalledWith({
+      id: "channel",
+    });
+  });
+
+  it("applies the chosen instrument to the selected channel", async () => {
+    const manager = TestBed.inject(MusicManagerService) as any;
+    manager.selectedTrackId.set("track-1");
+
+    await component.setInstrument("analog-warmth");
+
+    expect(mockLiveEngine.setInstrument).toHaveBeenCalledWith("analog-warmth");
+    expect(manager.setInstrument).toHaveBeenCalledWith(
+      "track-1",
+      "analog-warmth",
+    );
   });
 
   it("should toggle smart chords", () => {

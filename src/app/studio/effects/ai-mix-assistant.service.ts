@@ -1143,9 +1143,15 @@ export class AiMixAssistantService {
         });
         return;
       default:
-        this.engine.updateTrack(suggestion.trackId, {
-          [suggestion.parameter]: suggestion.suggestedValue,
-        });
+        // Unknown targets still go through the undoable path, so an assisted
+        // pass is always one Undo away from the artist's own mix.
+        this.musicManager.applyTrackPatch(
+          suggestion.trackId,
+          {
+            [suggestion.parameter]: suggestion.suggestedValue,
+          } as Partial<TrackModel>,
+          `AI Mix · ${track.name}`,
+        );
     }
   }
 
@@ -1190,15 +1196,14 @@ export class AiMixAssistantService {
   }
 
   private patchTrackState(track: TrackModel, patch: Partial<TrackModel>): void {
-    this.musicManager.tracks.update((tracks) =>
-      tracks.map((candidate) =>
-        candidate.id === track.id ? { ...candidate, ...patch } : candidate,
-      ),
+    // One undoable edit through the manager: the suggestion can be reverted
+    // like a manual move, and the manager also re-syncs the FX chain for the
+    // inserts the AI just suggested (EQ / Compressor / Reverb).
+    this.musicManager.applyTrackPatch(
+      track.id,
+      patch,
+      `AI Mix · ${track.name}`,
     );
-    this.engine.updateTrack(track.id, patch);
-    // This write bypasses the manager's FX-chain sync, so the inserts the AI
-    // just suggested (EQ / Compressor / Reverb) would stay silent without it.
-    if (patch.fxSlots) this.musicManager.syncTrackFxChain(track.id);
   }
 
   /**

@@ -40,6 +40,12 @@ jest.mock('tone', () => {
       connect: jest.fn(),
       dispose: jest.fn(),
     })),
+    Gain: jest.fn().mockImplementation(() => ({
+      gain: { value: 1 },
+      connect: jest.fn(),
+      disconnect: jest.fn(),
+      dispose: jest.fn(),
+    })),
     Filter: jest.fn().mockImplementation(() => ({
       toDestination: jest.fn().mockReturnThis(),
       connect: jest.fn().mockReturnThis(),
@@ -158,6 +164,27 @@ describe('LiveEngineService', () => {
   it('should generate smart chord notes', () => {
     const notes = (service as any).generateSmartChord('C4');
     expect(notes).toEqual(['C4', 'E4', 'G4']);
+  });
+
+  it('routes the instrument into a project channel instead of the raw destination', async () => {
+    await service.initialize();
+
+    const channel = { connect: jest.fn(), disconnect: jest.fn() } as any;
+    expect(service.setOutputTarget(channel)).toBe(true);
+    expect(service.getOutputTarget()).toBe(channel);
+
+    const output = (service as any).outputNode;
+    expect(output).not.toBeNull();
+    expect(output.connect).toHaveBeenLastCalledWith(channel);
+    // The instrument's filter drives that output stage, never Tone's
+    // destination directly.
+    expect((service as any).filterNode.connect).toHaveBeenCalledWith(output);
+
+    service.setOutputTarget(null);
+    expect(service.getOutputTarget()).toBeNull();
+    expect(output.connect).toHaveBeenLastCalledWith(
+      (service as any).audioEngine.masterGain,
+    );
   });
 
   it('should handle midi message for note on', () => {

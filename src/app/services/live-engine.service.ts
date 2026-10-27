@@ -24,6 +24,14 @@ export class LiveEngineService {
     | null = null;
   private activePreset: InstrumentPreset | null = null;
   private filterNode: Tone.Filter | null = null;
+  /**
+   * The live instrument's own output stage. It feeds a project channel when the
+   * host names one, so performer notes get that channel's fader, pan, inserts
+   * and sends — not a private path from `Tone.getDestination()` that skipped
+   * the master chain entirely.
+   */
+  private outputNode: Tone.Gain | null = null;
+  private outputTarget: AudioNode | null = null;
 
   activeInstrument = signal<LiveInstrumentType>('grand-piano');
   isInitialized = signal(false);
@@ -230,10 +238,49 @@ export class LiveEngineService {
   }
 
   private connectToFilter(node: Tone.PolySynth | Tone.Sampler, cutoff: number) {
-    this.filterNode = new Tone.Filter(cutoff, 'lowpass').connect(
-      Tone.getDestination()
-    );
+    this.filterNode = new Tone.Filter(cutoff, 'lowpass');
+    this.filterNode.connect(this.ensureOutputNode());
     node.connect(this.filterNode);
+  }
+
+  /** The bus the live instrument feeds: a project channel, else the master. */
+  private playbackDestination(): AudioNode {
+    return (
+      this.outputTarget ??
+      ((this.audioEngine.masterGain as unknown as AudioNode) ?? null)
+    );
+  }
+
+  private ensureOutputNode(): Tone.Gain {
+    if (!this.outputNode) {
+      this.outputNode = new Tone.Gain(1);
+      const destination = this.playbackDestination();
+      if (destination) this.outputNode.connect(destination as any);
+    }
+    return this.outputNode;
+  }
+
+  /**
+   * Route the live instrument into a project channel (usually the selected
+   * one). `null` falls back to the engine's master bus, so the instrument never
+   * lands on the raw device destination where nothing can meter or limit it.
+   */
+  setOutputTarget(target: AudioNode | null): boolean {
+    this.outputTarget = target ?? null;
+    if (!this.outputNode) return false;
+    try {
+      this.outputNode.disconnect();
+    } catch {
+      /* was not connected */
+    }
+    const destination = this.playbackDestination();
+    if (destination) this.outputNode.connect(destination as any);
+    return true;
+  }
+
+  /** Where the live instrument is currently routed (diagnostics + tests). */
+  getOutputTarget(): AudioNode | null {
+    return this.outputTarget;
   }
 
   async setInstrument(presetId: string) {

@@ -418,6 +418,28 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
     expect(track.activePatternSlotId).toBe('slot-3');
   });
 
+  it('applies and undoes a batched track patch as one edit', () => {
+    service.tracks.set([makeTrack({ fxSlots: [] })]);
+
+    expect(
+      service.applyTrackPatch(
+        'track-1',
+        {
+          fxSlots: [
+            { id: 'fx-ai', type: 'EQ', params: { high: 3 }, enabled: true },
+          ],
+        },
+        'AI Mix · Lead',
+      ),
+    ).toBe(true);
+    expect(service.tracks()[0].fxSlots?.[0].id).toBe('fx-ai');
+
+    service.history.undo();
+
+    expect(service.tracks()[0].fxSlots ?? []).toEqual([]);
+    expect(service.applyTrackPatch('nope', { fxSlots: [] })).toBe(false);
+  });
+
   it('records aux-send moves while automation write is armed', () => {
     const automation = TestBed.inject(AutomationService);
     const capture = jest.spyOn(automation, 'captureWrite');

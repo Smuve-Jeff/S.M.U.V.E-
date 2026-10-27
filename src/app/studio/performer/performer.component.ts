@@ -1,5 +1,6 @@
 import {
   Component,
+  effect,
   inject,
   signal,
   computed,
@@ -108,6 +109,20 @@ export class PerformerComponent implements OnDestroy, OnInit {
   constructor() {
     this.availableInstruments.set(this.instrumentsService.getPresets());
     this.startVisualizer();
+
+    // The keyboard/pads used to play through their own Tone destination, which
+    // bypassed every project channel (fader, pan, inserts, sends, metering).
+    // Follow the selected channel so the Performer is monitoring the same
+    // signal path as the rest of the Studio; no selection falls back to master.
+    effect(() => {
+      const trackId = this.musicManager.selectedTrackId();
+      const engine = this.musicManager.engine as any;
+      const target =
+        trackId && typeof engine?.getTrackOutput === "function"
+          ? engine.getTrackOutput(trackId)
+          : null;
+      this.liveEngine.setOutputTarget(target ?? null);
+    });
   }
 
   ngOnInit(): void {
@@ -373,6 +388,11 @@ export class PerformerComponent implements OnDestroy, OnInit {
   async setInstrument(presetId: string) {
     await this.liveEngine.initialize();
     await this.liveEngine.setInstrument(presetId);
+    // Choosing an instrument here is choosing the channel's instrument: the
+    // track must keep playing (and exporting) the timbre the artist just
+    // auditioned, not the one it had before.
+    const trackId = this.musicManager.selectedTrackId();
+    if (trackId) this.musicManager.setInstrument(trackId, presetId);
     this.haptic.light();
   }
 
