@@ -205,10 +205,10 @@ describe("AudioRecorderViewComponent", () => {
 
   it("releases the microphone once a take is banked", () => {
     const stop = jest.fn();
-    component.currentStream = {
+    component.currentStream.set({
       getTracks: () => [{ stop }],
       getAudioTracks: () => [{ stop }],
-    } as unknown as MediaStream;
+    } as unknown as MediaStream);
     (component as any).handleRecordingFinished({
       id: "rec_10",
       blob: new Blob(),
@@ -216,7 +216,7 @@ describe("AudioRecorderViewComponent", () => {
       durationSec: 3,
     });
     expect(stop).toHaveBeenCalled();
-    expect(component.currentStream).toBeNull();
+    expect(component.currentStream()).toBeNull();
   });
 
   it("promotes the latest recording even when the offline list is newest-first", () => {

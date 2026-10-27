@@ -89,7 +89,12 @@ export class AudioRecorderViewComponent
   });
   readonly micNotice = computed(() => micPermissionNotice(this.micPermission()));
   isRequestingMic = signal(false);
-  currentStream: MediaStream | null = null;
+  /**
+   * A signal, not a field: `inputChannelLabel()` is a `computed` over this
+   * stream, and a computed that reads a plain property is evaluated once and
+   * cached forever — which is why the channel readout said "N/A" while recording.
+   */
+  readonly currentStream = signal<MediaStream | null>(null);
   elapsedSec = signal(0);
   inputLevel = signal(-60);
   private elapsedTaskCleanup: (() => void) | null = null;
@@ -142,7 +147,7 @@ export class AudioRecorderViewComponent
       )?.label || "Default microphone",
   );
   inputChannelLabel = computed(() => {
-    const count = this.currentStream?.getAudioTracks()[0]?.getSettings?.().channelCount;
+    const count = this.currentStream()?.getAudioTracks()[0]?.getSettings?.().channelCount;
     if (!count) return "CHANNELS N/A";
     return `${count} CH · ${count === 1 ? "MONO" : "STEREO"}`;
   });
@@ -184,7 +189,7 @@ export class AudioRecorderViewComponent
     this.haptic.light();
     this.monitoringEnabled.update((value) => !value);
     if (this.monitoringEnabled()) {
-      if (!this.currentStream) {
+      if (!this.currentStream()) {
         this.snackbar.info("Live monitoring will start when you arm the microphone");
       }
       this.ensureMonitorNodes();
@@ -206,7 +211,7 @@ export class AudioRecorderViewComponent
   }
 
   private ensureMonitorNodes(): void {
-    if (!this.currentStream || !this.audioContext) return;
+    if (!this.currentStream() || !this.audioContext) return;
     if (this.micSourceNode || this.monitorGainNode) return;
     if (this.audioContext.state === "suspended") {
       void this.audioContext.resume().catch((error) =>
@@ -215,7 +220,7 @@ export class AudioRecorderViewComponent
     }
     try {
       this.micSourceNode = this.audioContext.createMediaStreamSource(
-        this.currentStream,
+        this.currentStream()!,
       );
       this.monitorGainNode = this.audioContext.createGain();
       this.monitorGainNode.gain.value = 1;
@@ -230,7 +235,7 @@ export class AudioRecorderViewComponent
   toggleNoiseGate(): void {
     this.haptic.light();
     this.noiseGateEnabled.update((value) => !value);
-    if (this.noiseGateEnabled() && !this.currentStream) {
+    if (this.noiseGateEnabled() && !this.currentStream()) {
       this.snackbar.warning("Arm the microphone first to use the noise gate");
     }
     if (this.gateNode && this.audioContext) {
@@ -526,8 +531,8 @@ export class AudioRecorderViewComponent
   }
 
   private releaseInputStream(): void {
-    this.currentStream?.getTracks().forEach((track) => track.stop());
-    this.currentStream = null;
+    this.currentStream()?.getTracks().forEach((track) => track.stop());
+    this.currentStream.set(null);
   }
 
   async saveRecordingOffline(id: string): Promise<void> {
@@ -670,8 +675,8 @@ export class AudioRecorderViewComponent
     this.loadRecordingsRequest++;
     this.selectedInputId.set(deviceId || null);
     this.persistInputDevice(deviceId || null);
-    this.currentStream?.getTracks().forEach((track) => track.stop());
-    this.currentStream = null;
+    this.currentStream()?.getTracks().forEach((track) => track.stop());
+    this.currentStream.set(null);
     this.closeAudioGraph();
     await this.refreshInputDevices();
   }
@@ -720,12 +725,13 @@ export class AudioRecorderViewComponent
     this.captureError.set(null);
     this.permissionsDenied.set(false);
     try {
-      if (!this.currentStream) {
-        this.currentStream = await this.openInputStream();
+      if (!this.currentStream()) {
+        this.currentStream.set(await this.openInputStream());
         void this.refreshInputDevices();
       }
-      this.startLevelMeter(this.currentStream);
-      const captureStream = this.captureDestination?.stream ?? this.currentStream;
+      this.startLevelMeter(this.currentStream()!);
+      const captureStream =
+        this.captureDestination?.stream ?? this.currentStream()!;
       await this.recorder.startRecording(captureStream);
       this.startedAt = Date.now();
       this.captureState.set("recording");

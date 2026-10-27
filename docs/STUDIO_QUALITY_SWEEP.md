@@ -1735,3 +1735,60 @@ picker offers both options — the round trip, not just the empty state.
 The permission spec from the previous pass also changed shape here: after
 "Check again" clears a block *in this container* the correct banner is now the
 no-input one, so those assertions are scoped to `.arv-banner-warn`.
+
+---
+
+## 28. Twenty-second pass — the first take that was actually recorded
+
+### 28.1 Every mic test so far faked the microphone
+
+The previous three passes proved the recorder's error paths, device preference
+and permission copy — all against a faked `getUserMedia`. None of them touched
+the thing the surface exists for. Chromium ships a synthetic input
+(`--use-fake-device-for-media-stream`) that produces real PCM, so the capture
+path can be driven end to end:
+
+`getUserMedia` → `MediaRecorder` → IndexedDB → Recording Bank.
+
+`tests/e2e/studio-recorder-capture.spec.ts` records a 2.5-second take and asserts
+the artefacts rather than the status: the bank shows `1 take`, the row's meta
+carries a real length (`00:02`/`00:03`), `saved on device`, and its player `src`
+is a `blob:` URL built from captured bytes. A second spec reloads and asserts the
+take comes back with the *same* meta — restored takes once read `00:00` because
+only the blob had been stored.
+
+### 28.2 Recording for real immediately found a dead readout
+
+The transport's channel readout said **CHANNELS N/A** — while recording. The
+cause is a `computed` reading a plain field:
+
+```ts
+inputChannelLabel = computed(() =>
+  this.currentStream?.getAudioTracks()[0]?.getSettings?.().channelCount);
+```
+
+`currentStream` was a normal property, so the computed evaluated once (stream
+still `null`), cached "N/A", and never recomputed when the stream arrived. Signals
+only invalidate on signal reads. `currentStream` is now a `signal<MediaStream |
+null>`, and the readout goes **N/A → 2 CH · STEREO** as the take starts.
+
+That is the kind of defect a faked `getUserMedia` hides completely: the fake
+returns whatever the test says, so the label looks correct in a spec and wrong in
+the app.
+
+![A captured take in the bank](artifacts/studio-take-captured.png)
+
+### 28.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `npx playwright test studio-recorder-capture` | **2/2** (new file) |
+| `npx playwright test studio-new-page` | **36/36** |
+| `npx jest audio-recorder-view` | **41 passed** |
+| `npm run build` | **0 errors, 0 warnings**; initial 1.70 MB |
+
+The two suites now divide by subject: `studio-new-page` owns the permission and
+device-availability copy with fakes; `studio-recorder-capture` owns the capture
+itself with a real stream. The capture spec also asserts the channel readout
+starts at "N/A" and reports a count while the stream is live, which is the
+regression test for §28.2.
