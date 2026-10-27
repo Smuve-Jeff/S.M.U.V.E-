@@ -41,7 +41,9 @@ describe("StudioComponent", () => {
   const mockAudioSession = {
     isPlaying: signal(false),
     isRecording: signal(false),
+    hasLiveSession: jest.fn(() => false),
     stop: jest.fn(),
+    whenTakeSaved: jest.fn(() => Promise.resolve(null)),
     togglePlay: jest.fn(),
     toggleRecord: jest.fn(),
   };
@@ -216,6 +218,9 @@ describe("StudioComponent", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockAudioSession.hasLiveSession.mockReturnValue(false);
+    mockAudioSession.isRecording.set(false);
+    mockAudioSession.isPlaying.set(false);
     localStorage.clear();
     // Reset the profile signal: updateProfile() mutates it during tests,
     // and without a reset the live-sync effect leaks FX state across tests.
@@ -1208,12 +1213,12 @@ describe("StudioComponent", () => {
     });
   });
 
-  it("navigates straight to the Hub when no overlay history is stacked", () => {
-    component.navigateHome();
+  it("navigates straight to the Hub when no overlay history is stacked", async () => {
+    await component.navigateHome();
     expect(mockRouter.navigate).toHaveBeenCalledWith(["/hub"]);
   });
 
-  it("unwinds overlay history entries before leaving for the Hub", () => {
+  it("unwinds overlay history entries before leaving for the Hub", async () => {
     (component as any).backTrapDepth = 2;
     const stateSpy = jest
       .spyOn(window.history, "state", "get")
@@ -1222,7 +1227,7 @@ describe("StudioComponent", () => {
       .spyOn(window.history, "go")
       .mockImplementation(() => undefined);
 
-    component.navigateHome();
+    await component.navigateHome();
     // The traversal has to run first: navigating now would leave the Hub
     // sitting on top of two /studio entries.
     expect(goSpy).toHaveBeenCalledWith(-2);
@@ -1236,7 +1241,7 @@ describe("StudioComponent", () => {
     goSpy.mockRestore();
   });
 
-  it("still leaves the Studio when the WebView drops the history traversal", () => {
+  it("still leaves the Studio when the WebView drops the history traversal", async () => {
     jest.useFakeTimers();
     try {
       (component as any).backTrapDepth = 1;
@@ -1247,7 +1252,7 @@ describe("StudioComponent", () => {
         .spyOn(window.history, "go")
         .mockImplementation(() => undefined);
 
-      component.navigateHome();
+      await component.navigateHome();
       expect(mockRouter.navigate).not.toHaveBeenCalled();
       jest.advanceTimersByTime(250);
       expect(mockRouter.navigate).toHaveBeenCalledWith(["/hub"]);
@@ -1257,5 +1262,50 @@ describe("StudioComponent", () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it("stops a playing transport before showing the Hub", async () => {
+    mockAudioSession.hasLiveSession.mockReturnValue(true);
+    await component.navigateHome();
+    expect(mockAudioSession.stop).toHaveBeenCalledTimes(1);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(["/hub"]);
+  });
+
+  it("waits for the take to be saved before leaving a recording pass", async () => {
+    let finishTake: (value: unknown) => void = () => undefined;
+    const takeSaved = new Promise((resolve) => {
+      finishTake = resolve;
+    });
+    mockAudioSession.hasLiveSession.mockReturnValue(true);
+    mockAudioSession.isRecording.set(true);
+    mockAudioSession.whenTakeSaved.mockReturnValue(takeSaved);
+
+    const exit = component.navigateHome();
+    await Promise.resolve();
+    // Navigation must not race ahead of the flush: the take is not durable yet.
+    expect(mockAudioSession.stop).toHaveBeenCalledTimes(1);
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      expect.stringContaining("Saving the take"),
+    );
+
+    finishTake(null);
+    await exit;
+    expect(mockRouter.navigate).toHaveBeenCalledWith(["/hub"]);
+  });
+
+  it("still leaves when the take-save promise rejects", async () => {
+    mockAudioSession.hasLiveSession.mockReturnValue(true);
+    mockAudioSession.isRecording.set(true);
+    mockAudioSession.whenTakeSaved.mockRejectedValue(new Error("indexeddb"));
+
+    await component.navigateHome();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(["/hub"]);
+  });
+
+  it("does not leave the transport running behind another route", () => {
+    mockAudioSession.hasLiveSession.mockReturnValue(true);
+    fixture.destroy();
+    expect(mockAudioSession.stop).toHaveBeenCalledTimes(1);
   });
 });

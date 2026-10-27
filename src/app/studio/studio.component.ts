@@ -958,8 +958,35 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * are unwound first, and the route change runs once that traversal lands.
    * With nothing to unwind (direct link, fresh session) it navigates at once.
    */
-  navigateHome() {
+  async navigateHome(): Promise<void> {
     this.haptic.light();
+    try {
+      await this.stopStudioSession();
+    } catch {
+      // A failed take-save must not trap the artist in a broken view; the
+      // engine already owns persistence retries and the pagehide flush.
+    }
+    this.leaveStudioForHomeNow();
+  }
+
+  /**
+   * Leaving the Studio ends its audio session: a running transport would
+   * otherwise keep playing over the Hub with no transport in sight, and a live
+   * take would be cut off without its WAV reaching storage. `stop()` starts the
+   * flush, `whenTakeSaved()` resolves once the take is durable — so the route
+   * change waits for the audio, not the other way round.
+   */
+  private async stopStudioSession(): Promise<void> {
+    if (!this.audioSession.hasLiveSession()) return;
+    if (this.audioSession.isRecording()) {
+      this.snackbarService.info("Saving the take before leaving the Studio…");
+    }
+    this.audioSession.stop();
+    await this.audioSession.whenTakeSaved();
+  }
+
+  /** Unwind overlay history, then leave. Never blocks on audio. */
+  private leaveStudioForHomeNow(): void {
     const depth = this.backTrapDepth;
     const hasSyntheticEntries =
       typeof window !== "undefined" &&
@@ -1538,6 +1565,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.leavingStudioForHome = false;
     this.backTrapDepth = 0;
+    // Any other way out of the Studio (a rail cross-link, a child view's
+    // "open in …") must not leave the transport playing behind the next route.
+    if (this.audioSession.hasLiveSession()) this.audioSession.stop();
     this.studioTelemetry.endSession("component_destroy");
   }
 

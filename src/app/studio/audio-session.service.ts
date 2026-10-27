@@ -169,7 +169,7 @@ export class AudioSessionService {
    * recording, or a capture graph that is still running (which can outlive the
    * transport when a pass was started outside the transport record button).
    */
-  private hasLiveSession(): boolean {
+  hasLiveSession(): boolean {
     return (
       this.isPlaying() ||
       this.isRecording() ||
