@@ -616,10 +616,95 @@ export class StudioPageComponent {
     this.aiAssistantOpen.set(false);
   }
 
-  /** Escape is the desktop equivalent of tapping the scrim. */
+  /**
+   * Escape is the desktop equivalent of tapping the scrim — and, like the
+   * scrim, it only reaches what is on top.
+   *
+   * The full-surface editors (tools, FX rack, curve editor, versions) were the
+   * one layer Escape could not touch: they cover the workspace, so the Close
+   * button sits in the far corner of the viewport, which is the same small
+   * target the scrim exists to spare you. Order is innermost first, matching
+   * z-order: a workspace overlay, then the docked slide-overs.
+   */
+  dismissTopOverlay(): boolean {
+    if (this.activeTool()) {
+      this.closeTool();
+      return true;
+    }
+    if (this.fxRackOpen()) {
+      this.closeFxRack();
+      return true;
+    }
+    if (this.bezierOpen()) {
+      this.closeBezierEditor();
+      return true;
+    }
+    if (this.versionsOpen()) {
+      this.closeVersionHistory();
+      return true;
+    }
+    if (this.panelsOpen()) {
+      this.closePanels();
+      return true;
+    }
+    return false;
+  }
+
   @HostListener("document:keydown.escape")
   onEscape() {
-    if (this.panelsOpen()) this.closePanels();
+    this.dismissTopOverlay();
+  }
+
+  /**
+   * Studio keyboard shortcuts, the same vocabulary the classic shell answers to
+   * (⌘S save, ⌘E export, ⌘Z / ⇧⌘Z history, ⌘I assistant). One set of keys for
+   * one app: a shortcut that worked in one studio and not the other is how a
+   * key stops being muscle memory.
+   *
+   * Yields to native text editing so ⌘S in a project-name field never fires a
+   * project save, and ignores Escape — the layered dismissal above owns it.
+   */
+  @HostListener("document:keydown", ["$event"])
+  onDocumentKeydown(event: KeyboardEvent) {
+    if (event.defaultPrevented || event.isComposing || event.repeat) return;
+    if (event.key === "Escape") return;
+    if (!(event.ctrlKey || event.metaKey)) return;
+
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        'input, textarea, select, [contenteditable="true"], [contenteditable=""]',
+      )
+    ) {
+      return;
+    }
+
+    switch (event.key.toLowerCase()) {
+      case "s":
+        event.preventDefault();
+        // Save answers on its own: with the keyboard there is no button press
+        // to confirm the shortcut landed.
+        void this.retrySave();
+        return;
+      case "e":
+        event.preventDefault();
+        this.setMode("export");
+        return;
+      case "z":
+        event.preventDefault();
+        if (event.shiftKey) {
+          this.redo();
+        } else {
+          this.undo();
+        }
+        return;
+      case "i":
+        event.preventDefault();
+        this.toggleAiAssistant();
+        return;
+      default:
+        return;
+    }
   }
 
   /**

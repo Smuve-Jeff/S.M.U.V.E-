@@ -1334,3 +1334,70 @@ The e2e drives both destination kinds: `Studio: Channel Rack` →
 `Studio: Arrangement` from inside Mix → `/studio?view=arrangement` with the page
 on Arrange. It then asserts the three registry-covered surfaces have **zero**
 `Studio:` rows, which is the dedupe holding from the outside.
+
+---
+
+## 21. Fifteenth pass — one set of keys, and an Escape that reaches the top layer
+
+### 21.1 Escape stopped at the slide-overs
+
+The composed page treated Escape as "tap the scrim": one handler, `closePanels()`.
+But the scrim only exists for the docked slide-overs. Four *full-surface* editors
+cover the whole workspace instead — the Advanced Tools surfaces (synth, plugins,
+sampler, sound browser, AI Produce), the FX rack, the automation curve editor and
+version history — and none of them answered to Escape at all. Their only exit was
+a `Close` button in the far corner of the viewport, which is exactly the small,
+far target the scrim exists to spare you.
+
+`dismissTopOverlay()` now exists on the page and dismisses **one layer per press,
+innermost first**, mirroring the classic shell's ordered dismissal: the workspace
+overlay (they are mutually exclusive, since `openTool` / `openFxRack` /
+`openBezierEditor` each close the others), then the docked panels. With nothing
+open it returns `false` and Escape does not navigate away.
+
+### 21.2 The page answered no keyboard shortcuts at all
+
+Ctrl/Cmd-K opened the palette from anywhere, but the keys that matter *inside* a
+studio — save, export, undo, redo, assistant — only worked in the classic shell.
+The same app therefore had two different keyboards depending on which studio the
+route happened to open. The page now answers the shell's vocabulary:
+
+| Keys | Action |
+| --- | --- |
+| `⌘/Ctrl + S` | Save, with a snackbar confirmation (`retrySave`) |
+| `⌘/Ctrl + E` | Open the Export workspace |
+| `⌘/Ctrl + Z` / `⇧⌘Z` | Undo / redo through the shared `HistoryService` |
+| `⌘/Ctrl + I` | Toggle the Compose Assistant |
+| `Escape` | Dismiss the top overlay (§21.1) |
+
+Three rules keep them from eating the platform or a neighbour:
+
+- **Modifier required.** The piano roll already binds bare `d`/`s`/`e` to its
+  Draw/Select/Erase tools, which is why the page only claims the `Ctrl`/`Meta`
+  forms of those letters.
+- **Yields to text editing.** A `closest('input, textarea, select,
+  [contenteditable]')` guard keeps `⌘E` as "end of line" inside the project-name
+  field instead of switching workspace under the caret.
+- **Yields to whoever handled it first.** `event.defaultPrevented` is checked
+  before acting, and `event.repeat`/`isComposing` are ignored, so a child that
+  consumed the key (piano-roll `⌘A`, IME composition) wins.
+
+### 21.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `npx playwright test studio-new-page` | **29/29** (2 new) |
+| `npm run build` | **0 errors, 0 warnings**; initial 1.70 MB (budget still met) |
+
+The new e2e drives the layers from the outside: Advanced Tools → Synthesizer
+opens the overlay, the first Escape closes the overlay, the next closes the
+drawer it came from, and a third leaves the route and workspace untouched. The
+shortcut spec asserts `⌘E` reaches the Export workspace, `⌘I` opens the assistant
+and Escape dismisses it, and `⌘E` inside the project-name field changes nothing.
+
+**Environment note:** the restored container had lost the Playwright browser's
+shared libraries and `apt-get download` could not fetch them again, so the run
+used the previously unpacked prefix directly:
+`LD_LIBRARY_PATH=~/.pwlibs/usr/lib/x86_64-linux-gnu npx playwright test …`
+(`scripts/setup-e2e-browser-libs.sh` now expects `<prefix>/root/usr/lib/...`;
+point `PW_LIBS_PREFIX` at a fresh directory when network is available).

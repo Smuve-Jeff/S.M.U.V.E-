@@ -786,3 +786,68 @@ test("opens the remaining studio surfaces from the command palette", async ({
     await page.locator('[data-action-id^="studio-surface-"]').count(),
   ).toBeGreaterThan(6);
 });
+
+/**
+ * Escape used to reach only the docked slide-overs. The four full-surface
+ * editors (tools, FX rack, curve editor, versions) cover the workspace, and
+ * their only way out was a Close button in the far corner — the same small
+ * target the scrim exists to spare you. Dismissal is now layered, one surface
+ * per press, innermost first.
+ */
+test("Escape dismisses the workspace overlays, then the docked panels", async ({
+  page,
+}) => {
+  await openStudio(page);
+  const drawer = page.locator(".advanced-tools-drawer");
+  const overlay = page.locator(".workspace-overlay");
+
+  await page.locator(".top-bar-actions button").filter({ hasText: "Tools" }).click();
+  await expect(drawer).toBeVisible();
+
+  await drawer.locator('[data-surface="synthesizer"]').click();
+  await expect(overlay).toHaveCount(1);
+  await expect(overlay.locator(".overlay-head h3")).toHaveText("Synths");
+
+  // One press closes the overlay...
+  await page.keyboard.press("Escape");
+  await expect(overlay).toHaveCount(0);
+
+  // ...the next closes the drawer it was opened from.
+  await page.locator(".top-bar-actions button").filter({ hasText: "Tools" }).click();
+  await expect(drawer).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(drawer).toHaveCount(0);
+
+  // With nothing open, Escape is not a navigation key: the page stays put.
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/studio(\?|$)/);
+  await expect(page.locator("app-arrangement-view")).toBeVisible();
+});
+
+/**
+ * The page had no keyboard shortcuts of its own, while the classic shell
+ * answered ⌘S/⌘E/⌘Z/⌘I — so the same app had two different sets of keys
+ * depending on which studio you were in.
+ */
+test("answers the studio keyboard shortcuts and yields to text fields", async ({
+  page,
+}) => {
+  await openStudio(page);
+
+  await page.keyboard.press("Control+e");
+  await expect(page.locator(".workspace-title h2")).toHaveText("Export");
+
+  await page.keyboard.press("Control+i");
+  await expect(page.locator(".ai-shell")).toHaveClass(/ai-shell-open/);
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".ai-shell")).not.toHaveClass(/ai-shell-open/);
+
+  // ⌘E inside a field is the platform's own "end of line", not an export.
+  await modeButton(page, "Arrange").click();
+  await page.locator(".top-bar-actions button").filter({ hasText: "Project" }).click();
+  const nameField = page.locator(".project-field input").first();
+  await nameField.focus();
+  await page.keyboard.press("Control+e");
+  await expect(page.locator(".workspace-title h2")).toHaveText("Arrange");
+});
