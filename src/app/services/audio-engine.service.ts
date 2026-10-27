@@ -2567,10 +2567,18 @@ export class AudioEngineService {
       this.rampParam(vca.gain, 'exp', 0.0001, releaseStart + release);
       stopAt = releaseStart + release + 0.05;
     } else {
-      // Percussive decay — byte-for-byte the envelope drum pads, metronome
-      // blips and preview voices already shipped with.
+      // Percussive decay — the envelope the drum pads, metronome blips,
+      // preview voices and every un-patched track play with.
+      //
+      // The attack must be a *bounded* ramp, not `setTargetAtTime`. A
+      // target is an open-ended exponential approach that never lands on a
+      // value in the automation timeline, so the decay ramp below had no
+      // departure point and started from zero: the voice peaked at ~5e-4
+      // (≈ −57 dB) and the offline export rendered near-silence.
+      // A linear ramp reaches `peak` exactly at `time + attack`, which is
+      // the value the decay then departs from.
       vca.gain.setValueAtTime(0, time);
-      this.targetParam(vca.gain, peak, time, attack);
+      this.rampParam(vca.gain, 'linear', peak, time + attack);
       vca.gain.exponentialRampToValueAtTime(
         0.001,
         time + safeDuration + release

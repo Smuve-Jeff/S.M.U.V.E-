@@ -587,7 +587,12 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       };
       const gainNode = {
         connect: jest.fn(() => gainNode),
-        gain: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+        gain: {
+          setValueAtTime: jest.fn(),
+          setTargetAtTime: jest.fn(),
+          linearRampToValueAtTime: jest.fn(),
+          exponentialRampToValueAtTime: jest.fn(),
+        },
       };
       const filterNode = {
         connect: jest.fn(() => filterNode),
@@ -682,6 +687,68 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       // Attack ramp reaches the velocity-scaled peak.
       const rampCalls = gainNode.gain.exponentialRampToValueAtTime.mock.calls;
       expect(rampCalls[0][0]).toBeCloseTo(0.9); // 1.0 velocity * 0.9
+    });
+  });
+
+  describe('percussive voice envelope (drum pads, previews, un-patched tracks)', () => {
+    /**
+     * The attack must be a bounded ramp. `setTargetAtTime` is an open-ended
+     * approach with no value in the timeline, so the decay ramp that follows it
+     * departs from zero and the whole voice peaked at ~5e-4 (-57 dB) - which is
+     * why the offline WAV export rendered near-silence.
+     */
+    it('ramps the attack to the peak so the decay has a departure value', () => {
+      const osc = {
+        connect: jest.fn(() => osc),
+        frequency: { setValueAtTime: jest.fn(), exponentialRampToValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+      };
+      const gainNode = {
+        connect: jest.fn(() => gainNode),
+        gain: {
+          setValueAtTime: jest.fn(),
+          setTargetAtTime: jest.fn(),
+          linearRampToValueAtTime: jest.fn(),
+          exponentialRampToValueAtTime: jest.fn(),
+        },
+      };
+      const pannerNode = {
+        connect: jest.fn(() => pannerNode),
+        pan: { setValueAtTime: jest.fn() },
+      };
+      const ctx = {
+        createStereoPanner: () => pannerNode,
+        createGain: () => gainNode,
+      };
+
+      (svc as any).createAntialiasedOscillator = jest.fn(() => osc);
+      // No `sustain` in the params: the percussive branch.
+      svc.scheduleOfflineNote(
+        ctx as any,
+        { connect: jest.fn() } as any,
+        220,
+        0,
+        0.8,
+        0.5,
+        { attack: 0.01, release: 0.1 },
+        0
+      );
+
+      const peak = Math.min(1, 0.8 * 0.9);
+      expect(gainNode.gain.setValueAtTime).toHaveBeenCalledWith(0, 0);
+      // Bounded attack that actually arrives at the peak.
+      expect(gainNode.gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+        peak,
+        0.01
+      );
+      // The attack is not left open-ended; that is the defect.
+      expect(gainNode.gain.setTargetAtTime).not.toHaveBeenCalled();
+      // ...and the decay departs from that peak down to the release floor.
+      expect(gainNode.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+        0.001,
+        0.6
+      );
     });
   });
 
@@ -1192,7 +1259,10 @@ describe('AudioEngineService.buildVoiceGraph (live/offline voice parity)', () =>
 
     const vca = ctx.createGain.mock.results[0].value;
     expect(vca.gain.setValueAtTime).toHaveBeenCalledWith(0, 0.5);
-    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(0.8, 0.5, 0.01);
+    // Bounded attack: an open-ended target here left the decay with no
+    // departure value, so the voice peaked at ~5e-4 instead of 0.8.
+    expect(vca.gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.8, 0.51);
+    expect(vca.gain.setTargetAtTime).not.toHaveBeenCalled();
     expect(vca.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
       0.001,
       0.5 + 1 + 0.1
