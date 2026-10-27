@@ -23,6 +23,8 @@ import { SnackbarService } from "../../services/snackbar.service";
 import { ProjectService } from "../../services/project.service";
 import { HapticService } from "../../services/haptic.service";
 import { HistoryService } from "../../services/history.service";
+import { STEPS_PER_BAR, TempoMapService } from "../tempo-map.service";
+import { MidiClockSyncService } from "../midi-clock-sync.service";
 
 @Component({
   selector: "app-transport-bar",
@@ -106,6 +108,61 @@ export class TransportBarComponent {
 
   showBpmDropdown = signal(false);
   bpmPresets = [80, 90, 100, 110, 120, 124, 128, 130, 140, 150, 160];
+
+  /** Song tempo map — multiple tempo changes instead of one global BPM. */
+  readonly tempoMap = inject(TempoMapService);
+  tempoMapOpen = signal(false);
+
+  /** External MIDI clock-in: a hardware sequencer can drive this transport. */
+  readonly midiClock = inject(MidiClockSyncService);
+
+  async toggleMidiClock(): Promise<void> {
+    this.haptic.light();
+    if (this.midiClock.enabled()) {
+      this.midiClock.disable();
+      this.snack.info("External clock off — back to the studio's own tempo");
+      return;
+    }
+    await this.midiClock.enable();
+    if (this.midiClock.status() === "unsupported") {
+      this.snack.info("This browser has no Web MIDI, so external clock is unavailable");
+      return;
+    }
+    this.snack.info("Listening for external MIDI clock — start your hardware sequencer");
+  }
+
+  /** Pin a tempo change at the playhead's bar, using the tempo on the dial. */
+  addTempoMarkerAtPlayhead(): void {
+    const bar = this.positionReadout().bar;
+    const marker = this.tempoMap.addMarker(
+      (bar - 1) * STEPS_PER_BAR,
+      this.audioEngine.tempo(),
+    );
+    if (!marker) {
+      this.snack.info("Tempo must be between 20 and 300 BPM");
+      return;
+    }
+    this.haptic.light();
+    this.snack.info(`Tempo change at bar ${this.tempoMap.barOf(marker)}: ${marker.bpm} BPM`);
+  }
+
+  trackTempoMarker = (_index: number, marker: { id: string }) => marker.id;
+
+  setMarkerBpm(id: string, value: number | string): void {
+    this.tempoMap.updateMarker(id, { bpm: Number(value) });
+  }
+
+  removeTempoMarker(id: string): void {
+    this.haptic.light();
+    this.tempoMap.removeMarker(id);
+  }
+
+  clearTempoMap(): void {
+    this.haptic.medium();
+    this.tempoMap.clear();
+    this.snack.info("Tempo map cleared — the song is back to one tempo");
+  }
+
 
   // ── Pro: Output device dropdown (drive new pill in template) ─────
   /** Open/close the audio-output device picker. */

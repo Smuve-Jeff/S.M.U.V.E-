@@ -1485,3 +1485,220 @@
     overflow: hidden;
   }
 }
+
+/* ── Tempo map ────────────────────────────────────────────────────────────
+   Multiple tempo changes per song (FL Mobile / Cubasis parity). The trigger
+   lives beside the BPM dial; the panel lists changes by bar. */
+.ctb-tempo-map-btn {
+  position: relative;
+}
+
+.ctb-tempo-map-on {
+  color: var(--teal-300, #6ee7e5);
+}
+
+.ctb-tempo-map-count {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--teal-500, #0e7c7b);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+}
+
+.ctb-tempo-map {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 8px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(380px, calc(100vw - 16px));
+  max-height: min(62vh, 460px);
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.18));
+  background: color-mix(in srgb, var(--espresso-900, #1a1510) 96%, transparent);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.42);
+  overflow-y: auto;
+}
+
+.ctb-map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ctb-map-head h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--espresso-text, #f1e8d8);
+}
+
+.ctb-map-close {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.ctb-map-hint,
+.ctb-map-empty {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--espresso-text, #f1e8d8) 62%, transparent);
+}
+
+.ctb-map-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ctb-map-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #ffffff 5%, transparent);
+}
+
+.ctb-map-bar {
+  flex: 0 0 auto;
+  min-width: 4.6rem;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--teal-300, #6ee7e5);
+}
+
+.ctb-map-bpm {
+  width: 5.2rem;
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.18));
+  background: rgba(0, 0, 0, 0.28);
+  color: inherit;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ctb-map-unit {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+
+.ctb-map-remove {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #fca5a5;
+  cursor: pointer;
+}
+
+.ctb-map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ctb-map-add,
+.ctb-map-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.ctb-map-add {
+  border: none;
+  background: var(--teal-500, #0e7c7b);
+  color: #f7f3ea;
+}
+
+.ctb-map-clear {
+  border: 1px solid color-mix(in srgb, #fca5a5 40%, transparent);
+  background: transparent;
+  color: #fca5a5;
+}
+
+@media (max-width: 640px) {
+  .ctb-tempo-map {
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+}
+
+/* ── External MIDI clock (follow) ─────────────────────────────────────────
+   The deck could send clock; nothing could follow one. This toggle listens
+   for F8/FA/FB/FC and reports whether it is locked. */
+.ctb-ext-clock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ctb-ext-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.18));
+  background: transparent;
+  color: var(--espresso-text, #f1e8d8);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+
+.ctb-ext-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.ctb-ext-on {
+  background: var(--teal-500, #0e7c7b);
+  border-color: transparent;
+  color: #f7f3ea;
+}
+
+.ctb-ext-status {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--espresso-text, #f1e8d8) 62%, transparent);
+}

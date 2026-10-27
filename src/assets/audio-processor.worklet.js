@@ -256,6 +256,8 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
     super();
 
     this.tempo = 124;
+    /** Ascending song tempo map: [{ step, bpm }]. Empty = one tempo. */
+    this.tempoMap = [];
     this.stepsPerBeat = 4;
     this.isPlaying = false;
     this.nextNoteTime = 0;
@@ -296,6 +298,12 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
         }
         case 'SET_TEMPO': {
           this.tempo = payload;
+          break;
+        }
+        case 'SET_TEMPO_MAP': {
+          // The worklet owns the tick clock, so it applies the map itself;
+          // the main-thread fallback scheduler asks tempoAtStep() instead.
+          this.tempoMap = Array.isArray(payload) ? payload : [];
           break;
         }
         case 'NOTE_ON': {
@@ -340,6 +348,16 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
     };
   }
 
+  /** Tempo in force at a song step: the last map entry at or before it. */
+  tempoForStep(step) {
+    let bpm = this.tempo;
+    for (const marker of this.tempoMap) {
+      if (marker.step <= step) bpm = marker.bpm;
+      else break;
+    }
+    return bpm > 0 ? bpm : this.tempo;
+  }
+
   process(inputs, outputs, parameters) {
     const output = outputs[0];
     const outL = output[0];
@@ -350,8 +368,11 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
 
     // ── Scheduling ─────────────────────────────────────
     if (this.isPlaying) {
-      const stepDuration = 60 / this.tempo / this.stepsPerBeat;
       while (this.nextNoteTime < currentTime + this.lookahead) {
+        // Tempo is resolved per step: a tempo map must bend the timeline at
+        // the marker, not just at the start of playback.
+        const bpm = this.tempoForStep(this.currentStep);
+        const stepDuration = 60 / bpm / this.stepsPerBeat;
         this.port.postMessage({
           type: 'TICK',
           payload: {

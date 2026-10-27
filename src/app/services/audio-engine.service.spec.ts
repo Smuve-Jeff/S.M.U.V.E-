@@ -1563,3 +1563,40 @@ describe('AudioEngineService · device voice budget (budget().maxVoices)', () =>
     expect(svc.activeVoiceCount()).toBe(32);
   });
 });
+
+describe('AudioEngineService tempo map', () => {
+  it('resolves the tempo in force at a step and pushes the map to the worklet', () => {
+    const svc = makeBareEngine();
+    (svc as any).tempo = signal(120);
+    (svc as any).tempoMap = [];
+    (svc as any).workletNode = { port: { postMessage: jest.fn() } };
+
+    svc.setTempoMap([
+      { step: 32, bpm: 90 },
+      { step: 0, bpm: 100 },
+    ]);
+
+    expect(svc.tempoAtStep(0)).toBe(100);
+    expect(svc.tempoAtStep(31)).toBe(100);
+    expect(svc.tempoAtStep(32)).toBe(90);
+    expect(svc.getTempoMap()).toEqual([
+      { step: 0, bpm: 100 },
+      { step: 32, bpm: 90 },
+    ]);
+    expect((svc as any).workletNode.port.postMessage).toHaveBeenCalledWith({
+      type: 'SET_TEMPO_MAP',
+      payload: [
+        { step: 0, bpm: 100 },
+        { step: 32, bpm: 90 },
+      ],
+    });
+  });
+
+  it('ignores a cleared map and falls back to the global tempo', () => {
+    const svc = makeBareEngine();
+    (svc as any).tempo = signal(128);
+    (svc as any).tempoMap = [];
+    svc.setTempoMap([]);
+    expect(svc.tempoAtStep(64)).toBe(128);
+  });
+});

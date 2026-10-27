@@ -484,14 +484,14 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
 
 | Gap | Field baseline | Ours |
 | --- | --- | --- |
-| Tempo / time-signature map | FL Mobile, Cubasis | Single tempo/time signature |
+| Tempo / time-signature map | FL Mobile, Cubasis | Tempo map done (`TempoMapService`, transport panel, worklet + fallback scheduler); time signature still fixed 4/4 |
 | FLAC export | FL Mobile, n-Track, Audio Evolution | WAV/MP3/M4A/Opus only |
-| Group/bus faders, N sends | Cubasis, n-Track | VCA/group bus exists but no full bus-fader surface |
+| Group/bus faders, N sends | Cubasis, n-Track | VCA rack + per-track A/B sends exist; true audio group buses (one fader summing many tracks) still missing |
 | Track freeze / bounce-in-place | FL Mobile, Cubasis | Missing (CPU cliff on long MIDI projects) |
 | Notation editing | Cubasis | Read-only score view |
 | Android MIDI bridge | FL Mobile, Cubasis, Audio Evolution | Web MIDI only → no-op in WebView |
 | USB audio input | Audio Evolution, n-Track | Device mic/WebRTC input |
-| Ableton Link / MIDI clock in | Cubasis, Koala | MIDI clock out (DJ) only |
+| Ableton Link / MIDI clock in | Cubasis, Koala | MIDI clock **in** done (`MidiClockSyncService`: tempo follow + F8/FA/FB/FC transport); Link itself not implemented |
 | Background playback | Cubasis, n-Track | Session finalizes when backgrounded |
 | Real cloud sync | BandLab, n-Track | `MockCloudServer` (IndexedDB only) |
 | Play Billing | All commercial apps | Mock shim, no store receipt |
@@ -513,35 +513,56 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
 
 3. ~~Canvas-above-the-fold pass for Piano Roll, Drum Machine, Mixer, Vocal Suite,
    Performer and Sound Browser~~ — done in §2.3. Effects Rack and Plugins
-   verified as already compliant. Remaining: Arrangement's beginner gate and the
-   Sample Library filter rail.
+   verified as already compliant. The Sample Library filter rail is sticky and
+   the wizard masthead is compressed; the Arrangement gate now opens the full
+   timeline for that view only instead of switching the whole app out of
+   Beginner Mode (`studio.component.ts` → `arrangementGateOpen`), with a
+   GUIDED START pill back to the steps.
 4. ~~44dp touch-target sweep~~ — done in §2.5 for the Channel Rack (M/S, bar
    pager, instrument selector, row actions, LFO pickers, step pads, faders), the
    DJ loop chips, the Drum Machine strip toggles, the Sound Browser card
    actions, the Piano Roll tools/Lock and its automation/CC band, and the
-   transport export sheet. Remaining cross-cutting: the shell's 36px AI-band
-   chips and 36px snackbar close. The Channel Rack's LFO panel now has its own
-   row on narrow cards (§2.5).
+   transport export sheet. Cross-cutting shells are floored too: the AI-band
+   chips are 44px (48px under `pointer: coarse`) and the snackbar close is
+   44px. The Channel Rack's LFO panel now has its own row on narrow cards
+   (§2.5).
 5. ~~Restore a 40px key rail and a collapsible velocity lane in the phone Piano
    Roll~~ — done in §2.3/§2.5. Remaining: keep the toolbar sticky while the
    grid scrolls.
-6. 11px typography floor across Channel Rack, DJ, Mixer, Session and Performer.
-7. Mixer phone layout: compact correlation readout, wider strips or a focused
-   single-strip mode, and a visible scroll gutter.
+6. ~~11px typography floor across Channel Rack, DJ, Mixer, Session and
+   Performer~~ — done: 288 sub-11px declarations raised (including `font:`
+   shorthands and the 5px LFO labels); icon glyph sizes left alone.
+7. ~~Mixer phone layout: compact correlation readout, wider strips or a focused
+   single-strip mode, and a visible scroll gutter~~ — done: 88px strips with
+   `scroll-snap`, a standing right-edge fade gutter, and an 18px correlation
+   readout on phones.
 
 **P2 — polish and logic**
 
-8. Mastering: separate the analyzer header/reference labels, move delivery
-   targets above the fold, and stop the `STOPPED` badge colliding with the panel.
-9. Channel Rack: replace the empty 150px well with a row menu and add meters.
-10. DJ Booth: label the six icon actions, make load obvious (`LOAD RECORD`), fix
-    the 0 BPM vs 128 BPM readout, and surface the crossfader on the first screen.
+8. ~~Mastering: separate the analyzer header/reference labels, move delivery
+   targets above the fold, and stop the `STOPPED` badge colliding with the
+   panel.~~ Done: delivery targets sit above the RTA, the RTA header is its own
+   grid (status badge can no longer ride over the title), the reference filename
+   gets its own line, and the phone header actions collapse to one scrollable
+   row so the spectrum reaches the first screen.
+9. ~~Channel Rack: replace the empty 150px well with a row menu and add
+   meters.~~ Done: the label column no longer reserves 150px (`flex: 1 1 140px`,
+   `min-width: 0`) and every card carries a post-fader peak meter fed by a
+   dead-end per-track analyser (`AudioEngineService.getTrackLevel`).
+10. ~~DJ Booth: label the six icon actions, make load obvious (`LOAD RECORD`), fix
+    the 0 BPM vs 128 BPM readout, and surface the crossfader on the first
+    screen.~~ Done in the previous pass; this pass adds the fader's own response
+    controls (CURVE cycle + HAMSTER) under the fascia, which had been
+    Settings-only.
 11. Beginner wizard: reserve space for the sticky CTA so step copy is never
     covered.
-12. Piano Roll toolbar de-duplication (grid-size row vs "Straight 1/16 Note"
-    dropdown; `Q Sel`/`Q All` overflow).
-13. Collapse the AI-band row into the tools row at ≤ 1024px; the third chip is
-    already truncated at 390px.
+12. ~~Piano Roll toolbar de-duplication (grid-size row vs "Straight 1/16 Note"
+    dropdown; `Q Sel`/`Q All` overflow).~~ Done: the quantize list only offers
+    "Match grid · <snap>" plus the presets that add something (swing, triplets,
+    humanize), and `Q Sel`/`Q All` hold 44px instead of being squeezed out.
+13. ~~Collapse the AI-band row into the tools row at ≤ 1024px; the third chip is
+    already truncated at 390px.~~ Done: below 1024px the panel chrome and the
+    section label go and the chips scroll in their own row.
 
 **P3 — competitive gaps** (from §7): tempo map, FLAC, bus faders, freeze,
 notation editing, Android MIDI/USB audio, Link/clock-in, background playback,

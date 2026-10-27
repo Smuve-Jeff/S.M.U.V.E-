@@ -152,7 +152,23 @@
     >
       <span class="material-symbols-outlined">add</span>
     </button>
-
+    <button
+      type="button"
+      class="ctb-btn ctb-tempo-map-btn"
+      [class.ctb-tempo-map-on]="tempoMap.markerCount() > 0"
+      (click)="tempoMapOpen.set(!tempoMapOpen())"
+      [attr.aria-expanded]="tempoMapOpen()"
+      aria-controls="ctb-tempo-map"
+      [attr.aria-label]="
+        'Tempo map — ' + tempoMap.markerCount() + ' tempo changes'
+      "
+      title="Tempo map — multiple tempo changes across the song"
+    >
+      <span class="material-symbols-outlined">timeline</span>
+      <span class="ctb-tempo-map-count" *ngIf="tempoMap.markerCount() > 0">{{
+        tempoMap.markerCount()
+      }}</span>
+    </button>
   </div>
 
   <!-- Stage 2.0 — Live position readout (Bar : Beat : Sixteenth) + time signature -->
@@ -175,6 +191,84 @@
   </div>
   </div>
 
+  <!-- Tempo map: FL Mobile / Cubasis parity — a song can change tempo. -->
+  <section
+    class="ctb-tempo-map"
+    id="ctb-tempo-map"
+    *ngIf="tempoMapOpen()"
+    role="dialog"
+    aria-label="Tempo map"
+  >
+    <header class="ctb-map-head">
+      <h3>Tempo Map</h3>
+      <button
+        type="button"
+        class="ctb-map-close"
+        (click)="tempoMapOpen.set(false)"
+        aria-label="Close tempo map"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <p class="ctb-map-hint">
+      Playback follows the map. Add a change at the playhead bar, then keep
+      moving — 4/4 bar grid, 20–300 BPM.
+    </p>
+
+    <div class="ctb-map-list" *ngIf="tempoMap.markerCount() > 0; else noMap">
+      <div
+        class="ctb-map-row"
+        *ngFor="let marker of tempoMap.markers(); trackBy: trackTempoMarker"
+      >
+        <span class="ctb-map-bar">BAR {{ tempoMap.barOf(marker) }}</span>
+        <input
+          class="ctb-map-bpm"
+          type="number"
+          min="20"
+          max="300"
+          step="1"
+          [ngModel]="marker.bpm"
+          (ngModelChange)="setMarkerBpm(marker.id, $event)"
+          [attr.aria-label]="'Tempo from bar ' + tempoMap.barOf(marker)"
+        />
+        <span class="ctb-map-unit">BPM</span>
+        <button
+          type="button"
+          class="ctb-map-remove"
+          (click)="removeTempoMarker(marker.id)"
+          [attr.aria-label]="'Remove tempo change at bar ' + tempoMap.barOf(marker)"
+        >
+          <span class="material-symbols-outlined">delete</span>
+        </button>
+      </div>
+    </div>
+    <ng-template #noMap>
+      <p class="ctb-map-empty">
+        No tempo changes. The whole song runs at
+        {{ audioEngine.tempo() }} BPM.
+      </p>
+    </ng-template>
+
+    <footer class="ctb-map-actions">
+      <button
+        type="button"
+        class="ctb-map-add"
+        (click)="addTempoMarkerAtPlayhead()"
+      >
+        <span class="material-symbols-outlined">add</span>
+        Add at bar {{ positionReadout().bar }}
+      </button>
+      <button
+        type="button"
+        class="ctb-map-clear"
+        *ngIf="tempoMap.markerCount() > 0"
+        (click)="clearTempoMap()"
+      >
+        Clear map
+      </button>
+    </footer>
+  </section>
+
   <details class="ctb-secondary">
     <summary class="ctb-secondary-trigger" aria-label="More studio controls" aria-controls="ctb-secondary-controls" title="More studio controls">
       <span class="material-symbols-outlined" aria-hidden="true">tune</span>
@@ -191,6 +285,28 @@
         <button type="button" class="ctb-punch" [class.ctb-punch-active]="punchInActive()" (click)="togglePunchIn()" [attr.aria-pressed]="punchInActive()" [attr.aria-label]="punchInActive() ? 'Punch-in armed for selected track — disarm' : 'Arm punch-in for selected track'" [attr.title]="punchInActive() ? 'Punch-in armed — stop recording to stamp a take' : 'Punch-in off — tap to arm for the selected track'"><span class="material-symbols-outlined">radio_button_checked</span></button>
         <button type="button" class="ctb-btn ctb-take-stamp" (click)="stampTake()" aria-label="Stamp a take for the selected track" title="Stamp a take for the selected track (snapshots note region)"><span class="material-symbols-outlined">note_add</span></button>
         <span *ngIf="takeCount() > 0" class="ctb-take-count" aria-live="polite" [attr.title]="lastTakeLabel() ? 'Latest: ' + lastTakeLabel() : takeCount() + ' takes'"><span class="material-symbols-outlined">library_music</span> {{ takeCount() }}<ng-container *ngIf="lastTakeLabel()"> · {{ lastTakeLabel() }}</ng-container></span>
+      </div>
+
+      <div
+        class="ctb-group ctb-ext-clock"
+        role="group"
+        aria-label="External MIDI clock"
+      >
+        <button
+          type="button"
+          class="ctb-ext-btn"
+          [class.ctb-ext-on]="midiClock.enabled()"
+          (click)="toggleMidiClock()"
+          [attr.aria-pressed]="midiClock.enabled()"
+          [attr.aria-label]="
+            'Follow external MIDI clock — ' + midiClock.statusLabel()
+          "
+          title="Follow an external MIDI clock (hardware sequencer, drum machine, another DAW)"
+        >
+          <span class="material-symbols-outlined">linked_services</span>
+          <span>EXT CLOCK</span>
+        </button>
+        <span class="ctb-ext-status" aria-live="polite">{{ midiClock.statusLabel() }}</span>
       </div>
 
   <!-- Sprint A4 — Playback-mode status chip (read-only mirror of AudioEngineService.playMode) -->
