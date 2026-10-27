@@ -1561,3 +1561,61 @@ assert they stay off — a store that only ever accumulates "on" would pass the
 first half. The unit spec pins the parse/serialise rules: unreadable records,
 wrong field types (keeping the valid neighbours), a half or inverted region, and
 fractional steps normalised to whole ones.
+
+---
+
+## 25. Nineteenth pass — the recorder's input, remembered and fallible
+
+### 25.1 Three faults in one control
+
+The Create workspace's input picker looked finished — device list, refresh,
+channel readout, meters — and had three separate problems:
+
+1. **The choice was forgotten on every reload.** `selectedInputId` was a plain
+   signal, so an artist who records through an interface reselected it after
+   every refresh.
+2. **Choosing a device was a one-way door.** Options were rendered *from* the
+   device list, and "Default microphone" only existed when the list was empty —
+   so with two inputs listed there was no way back to the system default.
+3. **A remembered device that vanished produced the wrong diagnosis.** Capture
+   constrained `{ exact: selectedId }`; if the interface was unplugged (or claimed
+   by another app) after selection, `getUserMedia` rejected with
+   `OverconstrainedError` and the banner said "Could not access microphone" —
+   while a perfectly good microphone was connected and nobody had selected it.
+
+### 25.2 What it does now
+
+The input is stored (`smuve_studio_input_device`) and treated as a **preference,
+not a reference**: `resolveInputDeviceId()` only applies a stored id that the
+browser actually enumerated this session. When the device is missing the
+selection falls back to the system default and the stored id is **kept**, so
+plugging the interface back in (and hitting refresh) restores the choice instead
+of silently resetting it. "Default microphone" is always the first option, and
+choosing it clears the stored preference.
+
+Capture now opens through `openInputStream()`, which retries once with the
+default device when the selected one has gone away, clears the stale selection,
+and says so — *"That microphone isn't connected — recording from the default
+input"* — instead of failing with a message about permissions.
+
+A second, subtler bug surfaced while testing this: after a reload the restored
+id was written into the `<select>` in the same change-detection pass that created
+the options, and a `value` set before the matching `<option>` exists is discarded
+by the browser. The select fell back to "Default" with the preference intact and
+no error anywhere. Each option now carries `[selected]`, which is applied when
+the option is created rather than when the container is bound.
+
+### 25.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `npx jest audio-recorder-view + input-device-prefs` | **37 passed** (2 new) |
+| `npx playwright test studio-new-page` | **34/34** (1 new) |
+| `npm run build` | **0 errors, 0 warnings**; initial 1.70 MB |
+
+The e2e fakes `enumerateDevices` with two inputs: pick the second, reload, the
+select still shows it; then re-enumerate with that device missing, reload, and
+the select falls back to "Default" **while the stored preference survives**;
+choosing "Default microphone" then clears it. The unit spec pins the two rules —
+garbage/blank records are ignored, and an id is never returned unless it is in
+the available list.

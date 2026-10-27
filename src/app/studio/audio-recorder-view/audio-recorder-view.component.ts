@@ -22,6 +22,11 @@ import { InteractionDialogService } from "../../services/interaction-dialog.serv
 import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
 import { SmartRecordingService } from "../smart-recording.service";
+import {
+  INPUT_DEVICE_KEY,
+  readStoredInputDeviceId,
+  resolveInputDeviceId,
+} from "./input-device-prefs";
 import { Subscription } from "rxjs";
 
 interface RecordingListEntry {
@@ -552,8 +557,19 @@ export class AudioRecorderViewComponent
           label: device.label || `Microphone ${index + 1}`,
         }));
       this.inputDevices.set(devices);
-      if (this.selectedInputId() && !devices.some((device) => device.deviceId === this.selectedInputId())) {
+      const availableIds = devices.map((device) => device.deviceId);
+      if (this.selectedInputId() && !availableIds.includes(this.selectedInputId()!)) {
         this.selectedInputId.set(null);
+      }
+      // A remembered input applies only while it is connected. The stored id is
+      // kept when the device is missing, so plugging the interface back in and
+      // hitting refresh restores the choice instead of silently resetting it.
+      if (!this.selectedInputId()) {
+        const resolved = resolveInputDeviceId(
+          readStoredInputDeviceId(this.readStoredInputDevice()),
+          availableIds,
+        );
+        if (resolved) this.selectedInputId.set(resolved);
       }
     } catch (error) {
       this.logger.warn("Could not enumerate recorder inputs", error);
@@ -572,6 +588,7 @@ export class AudioRecorderViewComponent
     if (deviceId === this.selectedInputId()) return;
     this.loadRecordingsRequest++;
     this.selectedInputId.set(deviceId || null);
+    this.persistInputDevice(deviceId || null);
     this.currentStream?.getTracks().forEach((track) => track.stop());
     this.currentStream = null;
     this.closeAudioGraph();
@@ -623,14 +640,7 @@ export class AudioRecorderViewComponent
     this.permissionsDenied.set(false);
     try {
       if (!this.currentStream) {
-        this.currentStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            deviceId: this.selectedInputId() ? { exact: this.selectedInputId()! } : undefined,
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-          },
-        });
+        this.currentStream = await this.openInputStream();
         void this.refreshInputDevices();
       }
       this.startLevelMeter(this.currentStream);
@@ -663,6 +673,59 @@ export class AudioRecorderViewComponent
       this.startingRecording = false;
       this.isRequestingMic.set(false);
       if (this.captureState() === "requesting") this.captureState.set("idle");
+    }
+  }
+
+  /**
+   * Open the selected input, degrading to the system default when the chosen
+   * device has gone away since it was picked — unplugged, or claimed by another
+   * app. `{ exact: <absent id> }` rejects with `OverconstrainedError`, which used
+   * to be reported as "could not access microphone" while a perfectly good
+   * microphone was connected and selected by nobody.
+   */
+  private async openInputStream(): Promise<MediaStream> {
+    const constraints = (deviceId: string | null) => ({
+      audio: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+    });
+    const selected = this.selectedInputId();
+
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints(selected));
+    } catch (error) {
+      const name = (error as DOMException)?.name;
+      const deviceGone =
+        selected !== null &&
+        (name === "OverconstrainedError" || name === "NotFoundError");
+      if (!deviceGone) throw error;
+
+      this.selectedInputId.set(null);
+      this.persistInputDevice(null);
+      this.snackbar.warning(
+        "That microphone isn't connected — recording from the default input",
+      );
+      return await navigator.mediaDevices.getUserMedia(constraints(null));
+    }
+  }
+
+  private readStoredInputDevice(): string | null {
+    try {
+      return localStorage.getItem(INPUT_DEVICE_KEY);
+    } catch {
+      return null; // private mode / locked storage
+    }
+  }
+
+  private persistInputDevice(deviceId: string | null): void {
+    try {
+      if (deviceId) localStorage.setItem(INPUT_DEVICE_KEY, deviceId);
+      else localStorage.removeItem(INPUT_DEVICE_KEY);
+    } catch {
+      // The choice still applies for this session.
     }
   }
 

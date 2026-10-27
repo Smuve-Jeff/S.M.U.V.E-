@@ -34,11 +34,23 @@
         (change)="setInputDevice($any($event.target).value)"
         aria-label="Recorder input device"
       >
-        @if (!inputDevices().length) {
-          <option value="">Default microphone</option>
-        }
+        <!-- Always offered: without it, picking a device is a one-way door with
+             no way back to the system default. -->
+        <!-- `[selected]` per option, not just `[value]` on the select: the
+             restored device id arrives in the same change-detection pass that
+             creates these options, and a `value` set before the matching option
+             exists is discarded by the browser — which is exactly the reload
+             path a remembered input takes. -->
+        <option value="" [selected]="!selectedInputId()">
+          Default microphone
+        </option>
         @for (device of inputDevices(); track device.deviceId) {
-          <option [value]="device.deviceId">{{ device.label }}</option>
+          <option
+            [value]="device.deviceId"
+            [selected]="device.deviceId === selectedInputId()"
+          >
+            {{ device.label }}
+          </option>
         }
       </select>
     </div>

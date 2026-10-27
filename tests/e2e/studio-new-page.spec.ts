@@ -1020,3 +1020,60 @@ test("keeps the metronome and loop toggles across a reload", async ({ page }) =>
     "false",
   );
 });
+
+/**
+ * The recorder listed whatever the browser enumerated and forgot the choice on
+ * reload, and picking a device was a one-way door: with options rendered only
+ * from the device list there was no way back to the system default. Device ids
+ * are also origin-scoped and vanish with the hardware, so a remembered id has to
+ * be treated as a preference rather than a reference.
+ */
+test("remembers the recorder's input, and drops it when the device disappears", async ({
+  page,
+}) => {
+  const pretendInputs = (ids: string[]) =>
+    page.addInitScript((list: string[]) => {
+      Object.defineProperty(navigator.mediaDevices, "enumerateDevices", {
+        configurable: true,
+        value: async () =>
+          list.map((id) => ({
+            deviceId: id,
+            kind: "audioinput",
+            label: id === "mic-a" ? "Studio Mic A" : "Interface B",
+            groupId: "group-1",
+            toJSON: () => ({}),
+          })),
+      });
+    }, ids);
+
+  const stored = () =>
+    page.evaluate(() => localStorage.getItem("smuve_studio_input_device"));
+
+  await pretendInputs(["mic-a", "mic-b"]);
+  await openStudio(page);
+  await modeButton(page, "Create").click();
+
+  const select = page.locator("#arv-input-select");
+  // Default + both enumerated inputs.
+  await expect(select.locator("option")).toHaveCount(3);
+
+  await select.selectOption("mic-b");
+  await expect.poll(stored).toBe("mic-b");
+
+  // Remembered across a reload.
+  await page.reload();
+  await modeButton(page, "Create").click();
+  await expect(page.locator("#arv-input-select")).toHaveValue("mic-b");
+
+  // The interface is unplugged: the selection falls back to the system default
+  // rather than constraining capture to a device that is not there, and the
+  // preference is kept for when it comes back.
+  await pretendInputs(["mic-a"]);
+  await page.reload();
+  await modeButton(page, "Create").click();
+  await expect(page.locator("#arv-input-select")).toHaveValue("");
+  await expect.poll(stored).toBe("mic-b");
+
+  await page.locator("#arv-input-select").selectOption("");
+  await expect.poll(stored).toBeNull();
+});
