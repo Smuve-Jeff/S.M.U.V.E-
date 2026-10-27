@@ -50,6 +50,7 @@ import {
   type StudioSurfaceId,
 } from "../studio-surfaces";
 import { StudioExportSurfaceComponent } from "./studio-export-surface.component";
+import { ownsSpaceKey } from "./space-key-owner";
 
 type StudioMode = StudioPageMode;
 type TransportState = "stopped" | "playing" | "recording";
@@ -780,8 +781,9 @@ export class StudioPageComponent {
    *
    * Space is left to the browser when a control has focus: it natively clicks
    * the focused button, and `preventDefault()` does not stop propagation, so
-   * claiming it there would fire Play twice. The same guard the shell uses
-   * (`BUTTON`, `A`, `SELECT`, anything focusable) applies here.
+   * claiming it there would fire Play twice. `ownsSpaceKey` draws the line at
+   * the controls that consume it — not at focusable elements, or the key would
+   * be dead on every canvas the user has clicked.
    */
   private handleTransportKey(
     event: KeyboardEvent,
@@ -789,16 +791,7 @@ export class StudioPageComponent {
   ): void {
     switch (event.key) {
       case " ":
-        if (
-          target &&
-          (target.tagName === "BUTTON" ||
-            target.tagName === "A" ||
-            target.tagName === "SELECT" ||
-            target.hasAttribute("tabindex") ||
-            target.getAttribute("role") === "button")
-        ) {
-          return;
-        }
+        if (ownsSpaceKey(target)) return;
         event.preventDefault();
         // Space stops a take in progress rather than layering playback on it.
         void this.toggleTransport(

@@ -1461,3 +1461,47 @@ and that typing `m` in the project-name field leaves the click track alone. The
 cheat-sheet spec asserts eleven rows (the three transport keys among them), the
 scrim tap, `?` as the second way in, and the layer order: Escape closes the
 sheet with the Tools drawer still open behind it.
+
+---
+
+## 23. Seventeenth pass — Space where the user's focus actually is
+
+### 23.1 The key was dead on every canvas
+
+Pass 22 ported the shell's Space guard verbatim: yield to `BUTTON`, `A`,
+`SELECT`, `[tabindex]`, `role="button"`. The `[tabindex]` clause is a
+shell-wide approximation, and on this page it inverted the fix it was meant to
+protect. The piano-roll grid is `tabindex="0"` and handles Space for cell
+preview; the arrangement's timeline host, the mixer and the inspector's
+scrollers are focusable without ever using the key. So after clicking anywhere
+in the workspace, Space stopped starting playback — the transport key only
+worked while focus sat on `<body>`.
+
+The rule now yields to the controls that **consume** the key — `button`,
+`a[href]`, `select`, `summary`, and the `role="button|switch|checkbox|radio|
+tab|menuitem|option"` set that activates on Space — and not to focusability
+itself. Grids that legitimately own Space were already safe for a different
+reason: they call `preventDefault()`, the page checks `event.defaultPrevented`
+before acting, and the child handler runs first in the bubble phase.
+
+It also now matches on `closest()`, not `tagName`: the real event target inside
+a button is usually the `<span>` holding the icon or label, which the old
+`tagName` check read as "not a control" — the second way Space could double-fire
+Play.
+
+### 23.2 Verification
+
+| Check | Result |
+| --- | --- |
+| `npx jest space-key-owner` | **4 passed** |
+| `npx playwright test studio-new-page` | **32/32** (1 new) |
+| `npm run build` | **0 errors, 0 warnings**; initial 1.70 MB |
+
+The rule lives in `studio-page/space-key-owner.ts` as a pure function precisely
+so both failure directions can be pinned without booting the page: a focused
+`<button>`, `<a href>`, `<select>`, `<summary>` or Space-activating `role` keeps
+the key (including a `<span>` *inside* a button), while a plain `tabindex` div,
+a `tabindex="-1"` host and an unadorned span do not. The e2e proves the wiring:
+Space on an injected `tabindex="0"` probe starts and stops the transport, and
+Space on the piano-roll grid previews its cell without also starting playback —
+the grid's own `preventDefault()` still wins.

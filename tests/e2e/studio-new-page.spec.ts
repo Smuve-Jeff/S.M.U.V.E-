@@ -936,3 +936,42 @@ test("shows a cheat sheet of the keys the page actually answers", async ({
   await expect(card).toHaveCount(0);
   await expect(drawer).toBeVisible();
 });
+
+/**
+ * Space used to be claimed only when the focused element was not focusable at
+ * all, so it was dead on every canvas the user had clicked into. It now yields
+ * only to the controls that consume it — and the piano roll, which does consume
+ * it for cell preview, still wins by handling the key first.
+ */
+test("keeps Space alive on the workspace, and the piano roll's own use of it", async ({
+  page,
+}) => {
+  await openStudio(page);
+  const play = page
+    .locator(".transport-left button")
+    .filter({ hasText: "Play" });
+
+  // A focusable surface that never uses Space: the key belongs to the page.
+  await page.evaluate(() => {
+    const probe = document.createElement("div");
+    probe.id = "space-probe";
+    probe.tabIndex = 0;
+    probe.style.cssText = "position:fixed;top:0;left:0;width:4px;height:4px";
+    document.body.appendChild(probe);
+  });
+  await page.locator("#space-probe").focus();
+  await expect(play).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press(" ");
+  await expect(play).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press(" ");
+  await expect(play).toHaveAttribute("aria-pressed", "false");
+  await page.evaluate(() => document.querySelector("#space-probe")?.remove());
+
+  // The piano roll's grid is focusable *and* handles Space for preview. It
+  // prevents the default, so the page must not also start the transport.
+  await modeButton(page, "Keys").click();
+  const grid = page.locator(".pr-grid");
+  await grid.focus();
+  await page.keyboard.press(" ");
+  await expect(play).toHaveAttribute("aria-pressed", "false");
+});
