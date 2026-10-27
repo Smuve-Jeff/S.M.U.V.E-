@@ -30,7 +30,8 @@ export type StudioSurfaceId =
   | "sample-library"
   | "plugins"
   | "audio-recorder"
-  | "performer";
+  | "performer"
+  | "export";
 
 export interface StudioSurface {
   id: StudioSurfaceId;
@@ -176,6 +177,12 @@ export const STUDIO_SURFACE_GROUPS: StudioSurfaceGroup[] = [
         label: "Mastering",
         icon: "graphic_eq",
         description: "Loudness maximizer & bus limiters",
+      },
+      {
+        id: "export",
+        label: "Export",
+        icon: "ios_share",
+        description: "Mixdown, stems, project bundle & MIDI",
       },
       {
         id: "performance",

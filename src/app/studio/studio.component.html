@@ -1081,6 +1081,16 @@
           </div>
         }
       </div>
+      <div class="comp-view" *ngSwitchCase="'export'">
+        @defer (on viewport; prefetch on idle) {
+          <app-studio-export-surface></app-studio-export-surface>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">ios_share</span>
+            Preparing the export surface…
+          </div>
+        }
+      </div>
       <div class="comp-view" *ngSwitchCase="'ai-produce'">
         @defer (on viewport; prefetch on idle) {
           <app-ai-produce></app-ai-produce>

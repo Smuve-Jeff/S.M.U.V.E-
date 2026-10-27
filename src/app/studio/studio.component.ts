@@ -54,6 +54,7 @@ import { ArrangementViewComponent } from "./arrangement-view/arrangement-view.co
 import { InspectorComponent } from "./inspector/inspector.component";
 import { PianoRollComponent } from "./piano-roll/piano-roll.component";
 import { MasteringSuiteComponent } from "./mastering-suite/mastering-suite.component";
+import { StudioExportSurfaceComponent } from "./export-surface/studio-export-surface.component";
 import { DrumMachineComponent } from "./drum-machine/drum-machine.component";
 import { PerformerComponent } from "./performer/performer.component";
 import { SnackbarComponent } from "./shared/snackbar/snackbar.component";
@@ -139,7 +140,6 @@ const STUDIO_VIEW_ALIASES: Readonly<Record<string, StudioView>> = {
   recording: "audio-recorder",
   keys: "piano-roll",
   mix: "mixer",
-  export: "mastering",
 };
 
 /** The surface a `?view=` value names, following the page's old aliases. */
@@ -176,6 +176,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     InspectorComponent,
     PianoRollComponent,
     MasteringSuiteComponent,
+    StudioExportSurfaceComponent,
     DrumMachineComponent,
     PerformerComponent,
     SnackbarComponent,
