@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { authChildGuard } from './services/auth.guard';
-import { studioViewGuard } from './studio/studio-view.guard';
 
 const protectedRoutes: Routes = [
   { path: 'adaptive-profile', loadComponent: () => import('./components/artist-adaptive-dashboard/artist-adaptive-dashboard.component').then((m) => m.ArtistAdaptiveDashboardComponent) },
@@ -11,25 +10,15 @@ const protectedRoutes: Routes = [
       import('./hub/hub.component').then((m) => m.HubComponent),
   },
   {
+    // The classic shell is the only studio view: one URL, and `?view=` picks the
+    // surface (arrangement, mixer, piano roll, mastering …) inside it.
     path: 'studio',
-    canActivate: [studioViewGuard],
-    // The guard decides *which* surface a `?view=` names, and that decision has
-    // to be re-made when the query changes while the page is already open —
-    // otherwise `router.navigate(['/studio'], {queryParams: {view:
-    // 'drum-machine'}})` from inside the Studio changed the URL and nothing
-    // else, because guards do not re-run for query-only changes by default.
-    runGuardsAndResolvers: 'paramsOrQueryParamsChange',
     loadComponent: () =>
-      import('./studio/studio-page/studio-page.component').then(
-        (m) => m.StudioPageComponent
-      ),
+      import('./studio/studio.component').then((m) => m.StudioComponent),
   },
-  // The page used to live here; keep the older link working.
+  // Older links to the composed page and to the second shell both land here.
   { path: 'studio-page', redirectTo: 'studio', pathMatch: 'full' },
   {
-    // The original single-surface shell: still reachable while the studio page
-    // takes over `/studio`, and the only home for views the page does not
-    // render yet (piano roll, mastering, performer, vocal suite…).
     path: 'studio-classic',
     loadComponent: () =>
       import('./studio/studio.component').then((m) => m.StudioComponent),

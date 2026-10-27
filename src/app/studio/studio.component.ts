@@ -129,6 +129,25 @@ function isStudioView(value: string): value is StudioView {
   return isStudioSurfaceId(value);
 }
 
+/**
+ * `?view=` names the composed `/studio` page used for the same destinations.
+ * They still arrive from bookmarks and deep links; map them onto the surface
+ * that does the same job here instead of silently opening Arrange.
+ */
+const STUDIO_VIEW_ALIASES: Readonly<Record<string, StudioView>> = {
+  create: "audio-recorder",
+  recording: "audio-recorder",
+  keys: "piano-roll",
+  mix: "mixer",
+  export: "mastering",
+};
+
+/** The surface a `?view=` value names, following the page's old aliases. */
+function studioViewForParam(value: string): StudioView | null {
+  if (isStudioView(value)) return value;
+  return STUDIO_VIEW_ALIASES[value.toLowerCase()] ?? null;
+}
+
 /** 3-way theme storage key. Persists across sessions. */
 const THEME_STORAGE_KEY = "smuve_studio_theme";
 /** Stage FX ambience (aurora / marquee / sheens) storage key. */
@@ -1113,7 +1132,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   constructor() {
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const view = params.get("view");
-      if (view && isStudioView(view)) this.activeView.set(view);
+      const surface = view ? studioViewForParam(view) : null;
+      if (surface) this.activeView.set(surface);
     });
 
     effect(() => {

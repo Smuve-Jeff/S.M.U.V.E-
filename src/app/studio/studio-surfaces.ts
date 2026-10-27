@@ -1,11 +1,9 @@
 /**
  * Every surface the Studio can show, in one place.
  *
- * This list used to be a private member of the classic shell, so the composed
- * `/studio` page could not see it: its own tool panel had drifted into a
- * hand-written subset and a dozen real surfaces ended up with no route at all.
- * One catalogue, read by both shells, is what stops a new view from shipping
- * without a way in.
+ * The shell's own rail and every other entry point (command palette, deep
+ * links) read this catalogue, so a surface cannot exist in the template with no
+ * way in — the failure that once left a dozen views unreachable.
  *
  * `description` / `primary` are onboarding metadata; `label` and `icon` are what
  * navigation renders.

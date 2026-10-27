@@ -19,10 +19,9 @@ import {
  *
  * The actions are generated from the shared catalogue rather than written out,
  * so a surface cannot appear in one list and not the other — and only the
- * surfaces the palette cannot already reach are added (see below). Each one runs the
- * app's existing `?view=` route: the studio page switches mode for the four it
- * hosts, and its guard forwards the rest to the classic shell that renders them.
- * No new routing contract, and no component imported into the palette.
+ * surfaces the palette cannot already reach are added (see below). Each one runs
+ * the app's existing `?view=` route, which the studio shell switches on. No new
+ * routing contract, and no component imported into the palette.
  */
 @Injectable({ providedIn: "root" })
 export class StudioSurfaceCommandsService {
