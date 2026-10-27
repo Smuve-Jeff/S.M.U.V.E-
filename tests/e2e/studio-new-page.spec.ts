@@ -36,7 +36,7 @@ test("renders the studio page shell with the arrangement workspace", async ({
   await openStudio(page);
 
   await expect(page.locator(".studio-top-bar .brand")).toHaveText("S.M.U.V.E.");
-  await expect(page.locator(".studio-mode-rail button")).toHaveCount(4);
+  await expect(page.locator(".studio-mode-rail button")).toHaveCount(5);
   await expect(page.locator(".workspace-title h2")).toHaveText("Arrange");
   await expect(page.locator("app-arrangement-view")).toBeVisible();
   await expect(page.locator("app-inspector")).toBeVisible();
@@ -49,6 +49,10 @@ test("switches every workspace mode from the rail", async ({ page }) => {
   await modeButton(page, "Create").click();
   await expect(page.locator(".workspace-title h2")).toHaveText("Create");
   await expect(page.locator("app-audio-recorder-view")).toBeVisible();
+
+  await modeButton(page, "Keys").click();
+  await expect(page.locator(".workspace-title h2")).toHaveText("Keys");
+  await expect(page.locator("app-piano-roll")).toBeVisible();
 
   await modeButton(page, "Mix").click();
   await expect(page.locator(".workspace-title h2")).toHaveText("Mix");
@@ -70,19 +74,22 @@ test("opens the deep-linked mode from the view query parameter", async ({
 
   await page.goto("/studio?view=arrangement");
   await expect(page.locator(".workspace-title h2")).toHaveText("Arrange");
+
+  await page.goto("/studio?view=piano-roll");
+  await expect(page.locator(".workspace-title h2")).toHaveText("Keys");
 });
 
 test("forwards a legacy view to the classic studio shell", async ({ page }) => {
-  await page.goto("/studio?view=piano-roll");
+  await page.goto("/studio?view=mastering");
 
-  await expect(page).toHaveURL(/\/studio-classic\?view=piano-roll/);
+  await expect(page).toHaveURL(/\/studio-classic\?view=mastering/);
   await expect(page.locator(".comp-shell")).toBeVisible();
 });
 
 test("exposes the live transport controls", async ({ page }) => {
   await openStudio(page);
 
-  await expect(page.locator(".transport-left button")).toHaveCount(3);
+  await expect(page.locator(".transport-left button")).toHaveCount(5);
   await expect(page.locator(".transport-center")).toContainText("Tempo:");
 
   // The loop state is engine state, so it must come back after re-toggling.
@@ -92,6 +99,22 @@ test("exposes the live transport controls", async ({ page }) => {
   await expect(loop).toHaveAttribute("aria-pressed", "true");
   await loop.click();
   await expect(loop).toHaveAttribute("aria-pressed", "false");
+
+  const metronome = page.locator(".metronome-toggle");
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+  await metronome.click();
+  await expect(metronome).toHaveAttribute("aria-pressed", "true");
+  await metronome.click();
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+});
+
+test("exposes project history controls", async ({ page }) => {
+  await openStudio(page);
+
+  const history = page.locator(".transport-left .history-toggle");
+  await expect(history).toHaveCount(2);
+  await expect(history.nth(0)).toHaveText("Undo");
+  await expect(history.nth(1)).toHaveText("Redo");
 });
 
 test("collapses and restores the inspector", async ({ page }) => {

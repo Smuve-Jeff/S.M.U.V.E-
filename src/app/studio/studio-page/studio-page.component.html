@@ -96,7 +96,25 @@
           <div class="workspace-body">
             <app-arrangement-view
               class="workspace-embed"
+              (requestViewChange)="onRequestView($event)"
+              (openBezierEditor)="openBezierEditor($event)"
             ></app-arrangement-view>
+          </div>
+        </section>
+
+        <section *ngSwitchCase="'keys'" class="workspace-panel">
+          <header class="workspace-header">
+            <div class="workspace-title">
+              <span class="material-symbols-outlined">piano</span>
+              <h2>Keys</h2>
+            </div>
+          </header>
+
+          <div class="workspace-body">
+            <app-piano-roll
+              class="workspace-embed"
+              (openBezierEditor)="openBezierEditor($event)"
+            ></app-piano-roll>
           </div>
         </section>
 
@@ -138,6 +156,25 @@
         </header>
         <div class="overlay-body">
           <app-effects-rack-ui></app-effects-rack-ui>
+        </div>
+      </div>
+
+      <div class="workspace-overlay" *ngIf="bezierOpen()">
+        <header class="overlay-head">
+          <h3>Automation Curve</h3>
+          <button
+            type="button"
+            class="panel-close"
+            (click)="closeBezierEditor()"
+          >
+            Close
+          </button>
+        </header>
+        <div class="overlay-body">
+          <app-bezier-editor
+            [laneId]="bezierLaneId()"
+            (curveChanged)="onBezierCurveChanged()"
+          ></app-bezier-editor>
         </div>
       </div>
 
@@ -566,6 +603,28 @@
     <div class="transport-left">
       <button
         type="button"
+        class="history-toggle"
+        [disabled]="!history.canUndo()"
+        [attr.title]="
+          history.lastActionName()
+            ? 'Undo ' + history.lastActionName()
+            : 'Nothing to undo'
+        "
+        (click)="undo()"
+      >
+        Undo
+      </button>
+      <button
+        type="button"
+        class="history-toggle"
+        [disabled]="!history.canRedo()"
+        [attr.title]="history.canRedo() ? 'Redo' : 'Nothing to redo'"
+        (click)="redo()"
+      >
+        Redo
+      </button>
+      <button
+        type="button"
         (click)="toggleTransport('playing')"
         [attr.aria-pressed]="transportState() === 'playing'"
       >
@@ -599,6 +658,15 @@
         (click)="toggleLoop()"
       >
         Loop
+      </button>
+      <button
+        type="button"
+        class="metronome-toggle"
+        [class.active]="metronomeEnabled()"
+        [attr.aria-pressed]="metronomeEnabled()"
+        (click)="toggleMetronome()"
+      >
+        Metronome
       </button>
     </div>
 

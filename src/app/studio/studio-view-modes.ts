@@ -7,13 +7,15 @@
  * drifting apart (a view allowed by the guard but unmapped by the page would
  * silently show Arrange).
  */
-export type StudioPageMode = "create" | "arrange" | "mix" | "export";
+export type StudioPageMode = "create" | "arrange" | "keys" | "mix" | "export";
 
 export const STUDIO_VIEW_MODES: Readonly<Record<string, StudioPageMode>> = {
   create: "create",
   recording: "create",
   arrange: "arrange",
   arrangement: "arrange",
+  "piano-roll": "keys",
+  keys: "keys",
   mix: "mix",
   mixer: "mix",
   export: "export",

@@ -486,10 +486,17 @@
   font-size: 0.8rem;
 }
 
-.loop-toggle.active {
+.loop-toggle.active,
+.metronome-toggle.active {
   background: rgba(20, 184, 166, 0.16);
   border-color: rgba(14, 124, 123, 0.3);
   font-weight: 700;
+}
+
+/* History buttons stay in place (no layout jump) but read as inert. */
+.history-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .master-meter {

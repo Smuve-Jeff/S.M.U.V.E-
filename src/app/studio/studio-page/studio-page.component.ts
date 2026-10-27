@@ -13,13 +13,17 @@ import { RecordingStatusService } from "../recording-status.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { AuthService } from "../../services/auth.service";
 import { CollaborationService } from "../../services/collaboration.service";
+import { HistoryService } from "../../services/history.service";
+import { SnackbarService } from "../../services/snackbar.service";
 
 import { AiProduceComponent } from "../../components/ai-produce/ai-produce.component";
 import { ArrangementViewComponent } from "../arrangement-view/arrangement-view.component";
 import { AudioRecorderViewComponent } from "../audio-recorder-view/audio-recorder-view.component";
+import { BezierEditorComponent } from "../automation/bezier-editor.component";
 import { EffectsRackUiComponent } from "../effects-rack-ui/effects-rack-ui.component";
 import { InspectorComponent } from "../inspector/inspector.component";
 import { MixerComponent } from "../mixer/mixer.component";
+import { PianoRollComponent } from "../piano-roll/piano-roll.component";
 import { PluginStoreComponent } from "../plugin-store/plugin-store.component";
 import { SamplerComponent } from "../sampler/sampler.component";
 import { SnackbarComponent } from "../shared/snackbar/snackbar.component";
@@ -51,9 +55,11 @@ interface ProjectPanelFeedback {
     AiProduceComponent,
     ArrangementViewComponent,
     AudioRecorderViewComponent,
+    BezierEditorComponent,
     EffectsRackUiComponent,
     InspectorComponent,
     MixerComponent,
+    PianoRollComponent,
     PluginStoreComponent,
     SamplerComponent,
     SnackbarComponent,
@@ -73,6 +79,9 @@ export class StudioPageComponent {
   private readonly route = inject(ActivatedRoute);
   readonly collaboration = inject(CollaborationService);
   private readonly auth = inject(AuthService);
+  private readonly snackbar = inject(SnackbarService);
+  /** Every edit surface (piano roll, arrangement, inspector) pushes here. */
+  readonly history = inject(HistoryService);
 
   readonly activeMode = signal<StudioMode>("arrange");
   readonly inspectorOpen = signal(true);
@@ -85,6 +94,9 @@ export class StudioPageComponent {
   /** Full-surface overlays launched from the inspector / advanced tools. */
   readonly fxRackOpen = signal(false);
   readonly activeTool = signal<AdvancedTool | null>(null);
+  /** Automation lane the bezier editor is open on; empty = no lane picked. */
+  readonly bezierLaneId = signal("");
+  readonly bezierOpen = signal(false);
 
   readonly localProjects = signal<LocalProjectSummary[]>([]);
   readonly projectPanelBusy = signal(false);
@@ -111,6 +123,7 @@ export class StudioPageComponent {
   }> = [
     { id: "create", label: "Create", icon: "auto_awesome" },
     { id: "arrange", label: "Arrange", icon: "view_quilt" },
+    { id: "keys", label: "Keys", icon: "piano" },
     { id: "mix", label: "Mix", icon: "tune" },
     { id: "export", label: "Export", icon: "download" },
   ];
@@ -120,6 +133,7 @@ export class StudioPageComponent {
   /** Tempo comes from the engine so a change here and in the studio stay in sync. */
   readonly tempo = this.audioEngine.tempo;
   readonly loopEnabled = this.audioEngine.playbackLoopEnabled;
+  readonly metronomeEnabled = this.audioEngine.metronomeEnabled;
 
   readonly projectDirty = this.projectWorkspace.isDirty;
   readonly projectName = computed(
@@ -163,6 +177,7 @@ export class StudioPageComponent {
     this.advancedToolsOpen.set(false);
     this.fxRackOpen.set(false);
     this.activeTool.set(null);
+    this.bezierOpen.set(false);
     this.versionsOpen.set(false);
   }
 
@@ -186,6 +201,18 @@ export class StudioPageComponent {
 
   toggleLoop() {
     this.loopEnabled.update((enabled) => !enabled);
+  }
+
+  toggleMetronome() {
+    this.metronomeEnabled.update((enabled) => !enabled);
+  }
+
+  undo() {
+    this.history.undo();
+  }
+
+  redo() {
+    this.history.redo();
   }
 
   async save() {
@@ -224,8 +251,45 @@ export class StudioPageComponent {
 
   openTool(tool: AdvancedTool) {
     this.fxRackOpen.set(false);
+    this.bezierOpen.set(false);
     this.advancedToolsOpen.set(false);
     this.activeTool.set(tool);
+  }
+
+  /** The piano roll / arrangement curve editors ask for the full curve surface. */
+  openBezierEditor(laneId: string) {
+    this.fxRackOpen.set(false);
+    this.activeTool.set(null);
+    this.advancedToolsOpen.set(false);
+    this.bezierLaneId.set(laneId);
+    this.bezierOpen.set(true);
+  }
+
+  closeBezierEditor() {
+    this.bezierOpen.set(false);
+  }
+
+  onBezierCurveChanged() {
+    this.snackbar.info("Bezier curve applied to automation lane");
+  }
+
+  /**
+   * A workspace asked to switch views. Views this page renders switch mode in
+   * place; everything else goes to the classic shell that renders it.
+   */
+  onRequestView(view: string) {
+    if (view === "ai-produce") {
+      this.openTool("ai-produce");
+      return;
+    }
+
+    const mode = studioModeForView(view);
+    if (mode) {
+      this.setMode(mode);
+      return;
+    }
+
+    void this.router.navigate(["/studio-classic"], { queryParams: { view } });
   }
 
   closeTool() {
