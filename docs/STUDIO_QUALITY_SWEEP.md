@@ -1401,3 +1401,63 @@ used the previously unpacked prefix directly:
 `LD_LIBRARY_PATH=~/.pwlibs/usr/lib/x86_64-linux-gnu npx playwright test …`
 (`scripts/setup-e2e-browser-libs.sh` now expects `<prefix>/root/usr/lib/...`;
 point `PW_LIBS_PREFIX` at a fresh directory when network is available).
+
+---
+
+## 22. Sixteenth pass — the transport keys the page never had, and a list of them
+
+### 22.1 Space / R / M only worked next door
+
+The classic shell's transport shortcuts do not live in the shell at all — they
+live in `TransportBarComponent`, which binds a `document:keydown` for
+`Space` (play/pause), `R` (record) and `M` (metronome). The composed page draws
+its **own** footer transport and never instantiates that component, so on
+`/studio` those three keys did nothing while the same keys started a take on
+`/studio-classic`. The shell's help popover advertised them regardless, which is
+the worse half of the defect: a shortcut list that lies.
+
+The page now answers them, with the shell's own safety rules ported over rather
+than reinvented:
+
+- **Space yields to a focused control.** The browser activates a button natively
+  on Space, and `preventDefault()` does not stop propagation — so claiming it
+  there would fire Play twice. `BUTTON` / `A` / `SELECT` / `[tabindex]` /
+  `role="button"` targets keep the key.
+- **Space stops a take rather than layering playback on it** — playing or
+  recording, the press stops the transport; otherwise it starts playback (which
+  resumes the AudioContext inside the gesture, as the buttons do).
+- **Bare letters never fire while typing**, and a modal (`[role="dialog"]`,
+  `app-interaction-dialog`) owns the keyboard while it is up.
+
+### 22.2 Nothing told you any of this
+
+The page answered eleven keys and showed none of them. There is now a
+`Shortcuts` button in the top bar (and `?`), opening a cheat sheet that lists
+**exactly** what the page answers: Space/R/M, ⌘S/⌘E/⌘Z/⇧⌘Z/⌘I, ⌘K, `?`, `Esc`.
+
+![The cheat sheet on desktop](artifacts/studio-shortcuts-desktop.png)
+
+It is a dialog over everything — including the full-surface editors — so it is
+also the **first** layer `dismissTopOverlay()` takes back: with a panel open,
+one Escape closes the sheet and leaves the panel alone; the next closes the
+panel. The scrim is the same tap-to-dismiss the panels use.
+
+Honest semantics: it is announced as a non-modal dialog, gets focus on open
+(`tabindex="-1"` + `autofocus`) so a screen reader reads it, and does not trap
+Tab — matching the shell's popover, and not claiming `aria-modal` for behaviour
+that does not exist.
+
+### 22.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `npx playwright test studio-new-page` | **31/31** (2 new) |
+| `npm run build` | **0 errors, 0 warnings**; initial 1.70 MB (unchanged — 428.2 kB est. transfer) |
+| Rendered captures | `artifacts/studio-shortcuts-desktop.png` (1440×900), `artifacts/studio-shortcuts-phone.png` (390×844) |
+
+The transport spec asserts `M`/`m` toggles the metronome's pressed state, that
+Space on a focused `Loop` button activates the button and **not** the transport,
+and that typing `m` in the project-name field leaves the click track alone. The
+cheat-sheet spec asserts eleven rows (the three transport keys among them), the
+scrim tap, `?` as the second way in, and the layer order: Escape closes the
+sheet with the Tools drawer still open behind it.

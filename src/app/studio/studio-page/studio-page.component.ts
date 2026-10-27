@@ -123,6 +123,8 @@ export class StudioPageComponent {
   readonly collaborationPanelOpen = signal(false);
   readonly exportPanelOpen = signal(false);
   readonly aiAssistantOpen = signal(false);
+  /** The keyboard cheat sheet. Top of the dismissal stack (see below). */
+  readonly shortcutsOpen = signal(false);
 
   /** Full-surface overlays launched from the inspector / advanced tools. */
   readonly fxRackOpen = signal(false);
@@ -627,6 +629,11 @@ export class StudioPageComponent {
    * z-order: a workspace overlay, then the docked slide-overs.
    */
   dismissTopOverlay(): boolean {
+    // The cheat sheet is a dialog over everything, so it is dismissed first.
+    if (this.shortcutsOpen()) {
+      this.shortcutsOpen.set(false);
+      return true;
+    }
     if (this.activeTool()) {
       this.closeTool();
       return true;
@@ -656,10 +663,43 @@ export class StudioPageComponent {
   }
 
   /**
-   * Studio keyboard shortcuts, the same vocabulary the classic shell answers to
-   * (⌘S save, ⌘E export, ⌘Z / ⇧⌘Z history, ⌘I assistant). One set of keys for
-   * one app: a shortcut that worked in one studio and not the other is how a
-   * key stops being muscle memory.
+   * Everything this page answers to, as the cheat sheet renders it.
+   *
+   * Deliberately the whole list rather than the discoverable half: the classic
+   * shell's popover advertised Space/R/M (the transport lives in its
+   * `app-transport-bar`, which this page does not use) and this one must not
+   * advertise a key that does nothing.
+   */
+  readonly shortcuts: ReadonlyArray<{
+    keys: readonly string[];
+    label: string;
+  }> = [
+    { keys: ["Space"], label: "Play / pause" },
+    { keys: ["R"], label: "Record" },
+    { keys: ["M"], label: "Metronome" },
+    { keys: ["Ctrl", "S"], label: "Save" },
+    { keys: ["Ctrl", "E"], label: "Export workspace" },
+    { keys: ["Ctrl", "Z"], label: "Undo" },
+    { keys: ["Ctrl", "Shift", "Z"], label: "Redo" },
+    { keys: ["Ctrl", "I"], label: "Compose assistant" },
+    { keys: ["Ctrl", "K"], label: "Command palette" },
+    { keys: ["?"], label: "This list" },
+    { keys: ["Esc"], label: "Dismiss the top layer" },
+  ];
+
+  toggleShortcuts() {
+    this.shortcutsOpen.update((open) => !open);
+  }
+
+  /**
+   * Studio keyboard shortcuts, the same vocabulary the classic shell answers to:
+   * ⌘S save, ⌘E export, ⌘Z / ⇧⌘Z history, ⌘I assistant, plus the transport's
+   * Space / R / M.
+   *
+   * The transport keys matter most here. The classic shell gets them from
+   * `app-transport-bar`, but this page renders its own footer transport, so
+   * nothing was listening and the same three keys that start a take next door
+   * did nothing on `/studio`.
    *
    * Yields to native text editing so ⌘S in a project-name field never fires a
    * project save, and ignores Escape — the layered dismissal above owns it.
@@ -668,7 +708,6 @@ export class StudioPageComponent {
   onDocumentKeydown(event: KeyboardEvent) {
     if (event.defaultPrevented || event.isComposing || event.repeat) return;
     if (event.key === "Escape") return;
-    if (!(event.ctrlKey || event.metaKey)) return;
 
     const target = event.target as HTMLElement | null;
     if (
@@ -676,6 +715,35 @@ export class StudioPageComponent {
         'input, textarea, select, [contenteditable="true"], [contenteditable=""]',
       )
     ) {
+      return;
+    }
+
+    const mod = event.ctrlKey || event.metaKey;
+
+    if (!mod) {
+      // With the cheat sheet up, the only bare key it answers is its own
+      // toggle: Space must not start playback behind an open dialog.
+      if (this.shortcutsOpen()) {
+        if (event.key === "?" && !event.altKey) {
+          event.preventDefault();
+          this.toggleShortcuts();
+        }
+        return;
+      }
+
+      // A modal owns the keyboard while it is up (the confirm dialog, the
+      // sheet above). The sheet is handled first, so `[role="dialog"]` here
+      // can only be somebody else's.
+      if (target?.closest('[role="dialog"], app-interaction-dialog')) return;
+
+      if (event.key === "?" && !event.altKey) {
+        event.preventDefault();
+        this.toggleShortcuts();
+        return;
+      }
+
+      if (event.altKey) return;
+      this.handleTransportKey(event, target);
       return;
     }
 
@@ -703,6 +771,51 @@ export class StudioPageComponent {
         this.toggleAiAssistant();
         return;
       default:
+        return;
+    }
+  }
+
+  /**
+   * Space / R / M, the transport keys the classic shell's transport bar owns.
+   *
+   * Space is left to the browser when a control has focus: it natively clicks
+   * the focused button, and `preventDefault()` does not stop propagation, so
+   * claiming it there would fire Play twice. The same guard the shell uses
+   * (`BUTTON`, `A`, `SELECT`, anything focusable) applies here.
+   */
+  private handleTransportKey(
+    event: KeyboardEvent,
+    target: HTMLElement | null,
+  ): void {
+    switch (event.key) {
+      case " ":
+        if (
+          target &&
+          (target.tagName === "BUTTON" ||
+            target.tagName === "A" ||
+            target.tagName === "SELECT" ||
+            target.hasAttribute("tabindex") ||
+            target.getAttribute("role") === "button")
+        ) {
+          return;
+        }
+        event.preventDefault();
+        // Space stops a take in progress rather than layering playback on it.
+        void this.toggleTransport(
+          this.audioSession.isPlaying() || this.audioSession.isRecording()
+            ? "stopped"
+            : "playing",
+        );
+        return;
+      case "r":
+      case "R":
+        event.preventDefault();
+        void this.toggleTransport("recording");
+        return;
+      case "m":
+      case "M":
+        event.preventDefault();
+        this.toggleMetronome();
         return;
     }
   }

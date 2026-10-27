@@ -851,3 +851,88 @@ test("answers the studio keyboard shortcuts and yields to text fields", async ({
   await page.keyboard.press("Control+e");
   await expect(page.locator(".workspace-title h2")).toHaveText("Arrange");
 });
+
+/**
+ * The page renders its own footer transport, so `app-transport-bar` — the
+ * component that owns Space/R/M in the classic shell — is not on the page and
+ * nothing was listening for them. M is asserted through the metronome's
+ * pressed state because it is the one transport key that changes a signal
+ * without needing an audio device.
+ */
+test("answers the transport keys the classic shell's transport bar owns", async ({
+  page,
+}) => {
+  await openStudio(page);
+  const metronome = page.locator(".metronome-toggle");
+
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press("m");
+  await expect(metronome).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("M");
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+
+  // Focused controls keep Space for themselves: the browser activates them
+  // natively, and claiming it too would fire the action twice. Loop is the
+  // audio-free control to prove it with (Play would start the engine).
+  const loop = page.locator(".loop-toggle");
+  await loop.focus();
+  await expect(loop).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press(" ");
+  await expect(loop).toHaveAttribute("aria-pressed", "true");
+  // …and the page did not ALSO start the transport from the same press.
+  await expect(
+    page.locator(".transport-left button").filter({ hasText: "Play" }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+
+  // A text field owns its letters, so typing "m" in the project name never
+  // toggles the click track.
+  await page.locator(".top-bar-actions button").filter({ hasText: "Project" }).click();
+  const nameField = page.locator(".project-field input").first();
+  await nameField.click();
+  await page.keyboard.type("mm");
+  await expect(metronome).toHaveAttribute("aria-pressed", "false");
+});
+
+/**
+ * The page answered eleven keys and showed none of them. The cheat sheet is
+ * the shell's help affordance, re-hosted: it leads with the transport keys a
+ * first-time user tries, and it lists nothing that the page does not answer.
+ */
+test("shows a cheat sheet of the keys the page actually answers", async ({
+  page,
+}) => {
+  await openStudio(page);
+  const card = page.locator(".shortcuts-card");
+  const trigger = page
+    .locator(".top-bar-actions button")
+    .filter({ hasText: "Shortcuts" });
+
+  await trigger.click();
+  await expect(card).toBeVisible();
+  await expect(card.locator(".shortcuts-head h3")).toHaveText("Studio shortcuts");
+
+  // One row per advertised shortcut, and the three the shell's popover leads
+  // with are among them.
+  await expect(card.locator(".shortcuts-row")).toHaveCount(11);
+  for (const label of ["Play / pause", "Record", "Metronome"]) {
+    await expect(
+      card.locator(".shortcuts-row").filter({ hasText: label }),
+    ).toHaveCount(1);
+  }
+
+  // The scrim is the tap-to-dismiss the rest of the page uses.
+  await page.locator(".shortcuts-scrim").click({ position: { x: 8, y: 8 } });
+  await expect(card).toHaveCount(0);
+
+  // "?" opens it, and it is the *top* layer: Escape takes the sheet and leaves
+  // the panel it was opened over untouched.
+  const drawer = page.locator(".advanced-tools-drawer");
+  await page.locator(".top-bar-actions button").filter({ hasText: "Tools" }).click();
+  await expect(drawer).toBeVisible();
+  await page.keyboard.press("Shift+Slash");
+  await expect(card).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(card).toHaveCount(0);
+  await expect(drawer).toBeVisible();
+});

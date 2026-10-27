@@ -768,6 +768,128 @@
 }
 
 /* ----------------------------------------------------------------------------
+   KEYBOARD CHEAT SHEET — the page's own keys, on screen
+   ----------------------------------------------------------------------------
+   The page answers eleven keys and showed none of them. The shell's popover
+   advertises Space/R/M, which is the first thing a new user tries, so this
+   dialog leads with the transport and lists the rest underneath.
+
+   It sits above the workspace overlays (`--studio-z-overlay`): it can be
+   opened while an editor covers the workspace, and it is the first thing
+   Escape takes back (see `dismissTopOverlay`).
+   ---------------------------------------------------------------------------- */
+.shortcuts-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shortcuts-toggle .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.shortcuts-toggle[aria-pressed="true"] {
+  background: var(--studio-accent-soft);
+  border-color: var(--studio-accent-line);
+  font-weight: 700;
+}
+
+.shortcuts-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--studio-z-overlay) + 10);
+  background: rgba(6, 9, 26, 0.6);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: studio-scrim-in 0.2s ease;
+}
+
+.shortcuts-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: calc(var(--studio-z-overlay) + 11);
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--studio-line-strong);
+  border-radius: 16px;
+  background: var(--studio-veil);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* Programmatic focus target (see `autofocus` in the template), not a control. */
+.shortcuts-card:focus {
+  outline: none;
+}
+
+.shortcuts-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shortcuts-head h3 {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0 20px;
+  margin: 14px 0 0;
+}
+
+.shortcuts-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--studio-line);
+}
+
+.shortcuts-row dt {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.shortcuts-row dd {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--studio-dim);
+}
+
+.shortcuts-card kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  padding: 2px 7px;
+  border: 1px solid var(--studio-line-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--studio-raise);
+  color: var(--studio-ink);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.shortcuts-note {
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+  color: var(--studio-faint);
+}
+
+/* ----------------------------------------------------------------------------
    PANEL SCRIM — tap anywhere outside a panel to dismiss it
    ----------------------------------------------------------------------------
    The panels are right-edge slide-overs on a wide screen and bottom sheets on a

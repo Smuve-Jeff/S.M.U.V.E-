@@ -62,6 +62,23 @@
       >
         Assistant
       </button>
+      <!-- The page answers eleven keys (Space/R/M, ⌘S/⌘E/⌘Z/⇧⌘Z/⌘I, ?,
+           Esc); none of them are on screen anywhere. This is the same help
+           affordance the classic shell carries in its own chrome. -->
+      <button
+        type="button"
+        class="shortcuts-toggle"
+        (click)="toggleShortcuts()"
+        [attr.aria-pressed]="shortcutsOpen()"
+        [attr.aria-expanded]="shortcutsOpen()"
+        aria-controls="studio-shortcuts"
+        title="Keyboard shortcuts (?) · Space play · R record · M metronome"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">
+          keyboard
+        </span>
+        Shortcuts
+      </button>
     </div>
   </header>
 
@@ -750,6 +767,46 @@
     [activeViewContext]="assistantContext()"
     (close)="toggleAiAssistant()"
   ></app-ai-assistant>
+
+  <!-- Keyboard cheat sheet. A dialog over everything — the shell's popover
+       lists Space/R/M, which is where a first-time user starts, so it belongs
+       on top of the workspace rather than docked beside it. -->
+  <div
+    class="shortcuts-scrim"
+    *ngIf="shortcutsOpen()"
+    (click)="toggleShortcuts()"
+    aria-hidden="true"
+  ></div>
+  <div
+    class="shortcuts-card"
+    id="studio-shortcuts"
+    *ngIf="shortcutsOpen()"
+    role="dialog"
+    aria-labelledby="studio-shortcuts-title"
+    tabindex="-1"
+    autofocus
+  >
+    <header class="shortcuts-head">
+      <span class="material-symbols-outlined" aria-hidden="true">keyboard</span>
+      <h3 id="studio-shortcuts-title">Studio shortcuts</h3>
+      <button type="button" class="panel-close" (click)="toggleShortcuts()">
+        Close
+      </button>
+    </header>
+
+    <dl class="shortcuts-grid">
+      <div class="shortcuts-row" *ngFor="let row of shortcuts">
+        <dt>
+          <kbd *ngFor="let key of row.keys">{{ key }}</kbd>
+        </dt>
+        <dd>{{ row.label }}</dd>
+      </div>
+    </dl>
+
+    <p class="shortcuts-note">
+      Ctrl = Cmd on Mac · transport keys work anywhere outside a text field
+    </p>
+  </div>
 
   <footer class="studio-transport-bar">
     <div class="transport-left">
