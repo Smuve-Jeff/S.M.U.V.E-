@@ -2417,6 +2417,22 @@
   background: rgba(180, 83, 9, 0.12);
   color: #8a4b08;
 }
+/* Follow is a toggle, not a read-only pill: keep the same chip language but
+   show the armed state without a second visual system. */
+button.comp-meta-state-pill {
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+}
+button.comp-meta-state-pill.is-on {
+  border-color: rgba(14, 124, 123, 0.85);
+  background: var(--teal-700, #0f766e);
+  color: #f8faf8;
+}
+button.comp-meta-state-pill:focus-visible {
+  outline: 2px solid var(--teal-500, #14b8a6);
+  outline-offset: 2px;
+}
 .comp-meta-state-list {
   list-style: none;
   margin: 5px 0 0;

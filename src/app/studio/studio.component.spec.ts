@@ -69,6 +69,16 @@ describe("StudioComponent", () => {
     replaceTrackNotes: jest.fn(),
     crossLinkRequest: signal(null),
     launchQuantize: signal<"none" | "1bar" | "2bar" | "4bar">("none"),
+    sceneFollowEnabled: signal(false),
+    sceneFollowBars: signal(4),
+    setSceneFollowEnabled: jest.fn((enabled: boolean) =>
+      mockMusicManager.sceneFollowEnabled.set(!!enabled),
+    ),
+    setSceneFollowBars: jest.fn((bars: number) => {
+      const next = Math.min(32, Math.max(1, Math.floor(Number(bars) || 1)));
+      mockMusicManager.sceneFollowBars.set(next);
+      return next;
+    }),
     engine: {
       monoMonitoring: signal(false),
       toggleMonoMonitoring: jest.fn(() => true),
@@ -236,6 +246,8 @@ describe("StudioComponent", () => {
     jest.clearAllMocks();
     mockMusicManager.tracks.set([]);
     mockMusicManager.launchQuantize.set("none");
+    mockMusicManager.sceneFollowEnabled.set(false);
+    mockMusicManager.sceneFollowBars.set(4);
     mockMusicManager.engine.monoMonitoring.set(false);
     mockAudioSession.hasLiveSession.mockReturnValue(false);
     mockAudioSession.isRecording.set(false);
@@ -933,6 +945,28 @@ describe("StudioComponent", () => {
       );
       expect(component.launchBoundaryLabel("4bar")).toBe("4 BARS");
       expect(component.launchBoundaryLabel("none")).toBe("OFF");
+    });
+
+    it("shows and arms saved follow actions from the panel", () => {
+      mockMusicManager.sceneFollowBars.set(8);
+      expect(component.sceneFollowLabel()).toBe("OFF · 8B");
+
+      component.toggleProjectFollow();
+
+      expect(mockMusicManager.setSceneFollowEnabled).toHaveBeenCalledWith(true);
+      expect(component.sceneFollowEnabled()).toBe(true);
+      expect(component.sceneFollowLabel()).toBe("ON · 8B");
+      expect(mockSnackbar.info).toHaveBeenCalledWith(
+        expect.stringContaining("Follow actions on"),
+      );
+
+      component.toggleProjectFollow();
+
+      expect(mockMusicManager.setSceneFollowEnabled).toHaveBeenCalledWith(false);
+      expect(component.sceneFollowLabel()).toBe("OFF · 8B");
+      expect(mockSnackbar.info).toHaveBeenCalledWith(
+        expect.stringContaining("Follow actions off"),
+      );
     });
   });
 

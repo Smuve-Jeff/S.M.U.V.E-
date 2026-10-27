@@ -203,6 +203,15 @@ describe("SessionViewComponent", () => {
     activeSceneColumn,
     sceneFollowEnabled,
     sceneFollowBars,
+    setSceneFollowEnabled: jest.fn((enabled: boolean) => {
+      sceneFollowEnabled.set(!!enabled);
+      return sceneFollowEnabled();
+    }),
+    setSceneFollowBars: jest.fn((bars: number) => {
+      const next = Math.min(32, Math.max(1, Math.floor(Number(bars) || 1)));
+      sceneFollowBars.set(next);
+      return next;
+    }),
     sceneColumnCount: () =>
       tracks()
         .filter((track) => track.type !== "audio")

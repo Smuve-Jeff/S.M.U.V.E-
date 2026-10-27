@@ -616,6 +616,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   readonly monitorMono =
     this.musicManager.engine?.monoMonitoring ?? signal(false);
+  /** Follow actions travel in the same saved session state as the grid. */
+  readonly sceneFollowEnabled =
+    this.musicManager.sceneFollowEnabled ?? signal(false);
+  readonly sceneFollowBars = this.musicManager.sceneFollowBars ?? signal(4);
   readonly soloSafeChannels = computed(() =>
     this.musicManager.tracks().filter((track) => !!track.soloSafe),
   );
@@ -2758,6 +2762,29 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       mono
         ? "Mono-sum monitoring on — save the set to keep this as its default"
         : "Stereo monitoring restored — save the set to keep this as its default",
+    );
+  }
+
+  /**
+   * Follow actions are saved session state, so Project Details shows the
+   * interval (not just on/off) and can arm them without entering Session View.
+   */
+  sceneFollowLabel(): string {
+    return this.sceneFollowEnabled()
+      ? `ON · ${this.sceneFollowBars()}B`
+      : `OFF · ${this.sceneFollowBars()}B`;
+  }
+
+  toggleProjectFollow(): void {
+    const enabled = !this.musicManager.sceneFollowEnabled();
+    this.musicManager.setSceneFollowEnabled(enabled);
+    this.haptic.light();
+    this.snackbarService.info(
+      enabled
+        ? `Follow actions on — next scene every ${this.sceneFollowBars()} bar${
+            this.sceneFollowBars() === 1 ? "" : "s"
+          }; save the set to keep this default`
+        : "Follow actions off — scenes stay where you launch them",
     );
   }
 

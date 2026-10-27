@@ -411,13 +411,12 @@ export class SessionViewComponent implements OnDestroy {
 
   // ── Follow actions (transport-driven, in the manager) ───────────────
   toggleFollow(): void {
-    this.musicManager.sceneFollowEnabled.update((on) => !on);
+    this.musicManager.setSceneFollowEnabled(!this.followEnabled());
     this.haptic.light();
   }
 
   setFollowBars(delta: number): void {
-    const next = Math.min(32, Math.max(1, this.followBars() + delta));
-    this.musicManager.sceneFollowBars.set(next);
+    this.musicManager.setSceneFollowBars(this.followBars() + delta);
     this.haptic.light();
   }
 

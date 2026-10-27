@@ -2343,9 +2343,22 @@
               <span class="material-symbols-outlined" aria-hidden="true">timer</span>
               GRID · {{ gridLaunchLabel() }}
             </span>
+            <button
+              type="button"
+              class="comp-meta-state-pill"
+              [class.is-on]="sceneFollowEnabled()"
+              [attr.aria-pressed]="sceneFollowEnabled()"
+              (click)="toggleProjectFollow()"
+              title="Follow actions: launch the next scene automatically while the set plays"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">skip_next</span>
+              FOLLOW · {{ sceneFollowLabel() }}
+            </button>
           </div>
           <span class="comp-meta-hint">
-            Cells without a Q override start on this saved grid boundary.
+            Cells without a Q override start on this saved grid boundary. Follow
+            advances the scene every {{ sceneFollowBars() }}
+            bar{{ sceneFollowBars() === 1 ? "" : "s" }} when armed.
           </span>
           <ul
             class="comp-meta-state-list"

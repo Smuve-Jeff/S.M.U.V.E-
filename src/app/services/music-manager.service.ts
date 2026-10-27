@@ -329,7 +329,11 @@ export class MusicManagerService {
    * clip windows. Song mode always wins: switching to Song clears it.
    */
   scenePlaybackActive = signal(false);
-  /** Follow actions: launch the next scene after `sceneFollowBars` bars. */
+  /**
+   * Follow actions: launch the next scene after `sceneFollowBars` bars.
+   * Persisted with the project so a live set reopens with its scene-advance
+   * behavior intact.
+   */
   sceneFollowEnabled = signal(false);
   sceneFollowBars = signal(4);
   /** Bars elapsed since the current scene was launched. */
@@ -450,12 +454,16 @@ export class MusicManagerService {
     const oldTracks = this.clone(this.tracks());
     const oldSelected = this.selectedTrackId();
     const oldLaunchQuantize = this.launchQuantize();
+    const oldFollowEnabled = this.sceneFollowEnabled();
+    const oldFollowBars = this.sceneFollowBars();
     this.runCommand(
       'New Project',
       () => {
         this.tracks.set([]);
         this.selectedTrackId.set(null);
         this.launchQuantize.set("none");
+        this.sceneFollowEnabled.set(false);
+        this.sceneFollowBars.set(4);
         this.engine.stop();
         if (!skipDefaults) {
           this.addTrack('Piano', 'grand-piano');
@@ -466,6 +474,8 @@ export class MusicManagerService {
         this.tracks.set(this.clone(oldTracks));
         this.selectedTrackId.set(oldSelected);
         this.launchQuantize.set(oldLaunchQuantize);
+        this.sceneFollowEnabled.set(oldFollowEnabled);
+        this.sceneFollowBars.set(oldFollowBars);
       }
     );
     this.history.clear();
@@ -478,6 +488,18 @@ export class MusicManagerService {
         ? value
         : "none";
     this.launchQuantize.set(next);
+    return next;
+  }
+
+  setSceneFollowEnabled(enabled: boolean): boolean {
+    this.sceneFollowEnabled.set(!!enabled);
+    return this.sceneFollowEnabled();
+  }
+
+  /** Follow interval is 1–32 bars; anything else is clamped, not stored raw. */
+  setSceneFollowBars(bars: number): number {
+    const next = Math.min(32, Math.max(1, Math.floor(Number(bars) || 1)));
+    this.sceneFollowBars.set(next);
     return next;
   }
 

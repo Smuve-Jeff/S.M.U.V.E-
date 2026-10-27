@@ -34,6 +34,8 @@ describe("ProjectWorkspaceService", () => {
   let tempoSet: jest.Mock;
   let monitorMono: ReturnType<typeof signal<boolean>>;
   let launchQuantize: ReturnType<typeof signal<any>>;
+  let sceneFollowEnabled: ReturnType<typeof signal<boolean>>;
+  let sceneFollowBars: ReturnType<typeof signal<number>>;
   let getItem: jest.Mock;
   let getAllItems: jest.Mock;
   let deleteItems: jest.Mock;
@@ -82,6 +84,8 @@ describe("ProjectWorkspaceService", () => {
     tempoSet = jest.fn();
     monitorMono = signal(false);
     launchQuantize = signal("none");
+    sceneFollowEnabled = signal(false);
+    sceneFollowBars = signal(4);
     getItem = jest.fn().mockResolvedValue(null);
     getAllItems = jest.fn().mockResolvedValue([]);
     deleteItems = jest.fn().mockResolvedValue(undefined);
@@ -103,6 +107,17 @@ describe("ProjectWorkspaceService", () => {
             setLaunchQuantize: (value: any) => {
               launchQuantize.set(value);
               return value;
+            },
+            sceneFollowEnabled,
+            setSceneFollowEnabled: (enabled: boolean) => {
+              sceneFollowEnabled.set(!!enabled);
+              return enabled;
+            },
+            sceneFollowBars,
+            setSceneFollowBars: (bars: number) => {
+              const next = Math.min(32, Math.max(1, Math.floor(Number(bars) || 1)));
+              sceneFollowBars.set(next);
+              return next;
             },
             structure: signal([]),
             selectedTrackId: signal(null),
@@ -360,7 +375,7 @@ describe("ProjectWorkspaceService", () => {
     expect(manager.selectedTrackId()).toBe('track-1');
   });
 
-  it("round-trips solo-safe, mono monitoring and per-cell launch quantization", () => {
+  it("round-trips solo-safe, mono, launch quantization and follow actions", () => {
     tracks.set([
       {
         id: "track-1",
@@ -386,30 +401,52 @@ describe("ProjectWorkspaceService", () => {
     ]);
     monitorMono.set(true);
     launchQuantize.set("4bar");
+    sceneFollowEnabled.set(true);
+    sceneFollowBars.set(8);
 
     const snapshot = service.createSnapshot();
     expect(snapshot.mixState.monitorMono).toBe(true);
     expect(snapshot.session?.launchQuantize).toBe("4bar");
+    expect(snapshot.session?.followEnabled).toBe(true);
+    expect(snapshot.session?.followBars).toBe(8);
     expect(snapshot.tracks[0].soloSafe).toBe(true);
     expect(snapshot.tracks[0].patternSlots[0].launchQuantize).toBe("2bar");
     expect(snapshot.tracks[0].patternSlots[1].launchQuantize).toBeNull();
 
     monitorMono.set(false);
     launchQuantize.set("none");
+    sceneFollowEnabled.set(false);
+    sceneFollowBars.set(2);
     tracks.set([{ id: "track-1", notes: [] }]);
     service.restoreFromSnapshot(snapshot);
 
     expect(monitorMono()).toBe(true);
     expect(launchQuantize()).toBe("4bar");
+    expect(sceneFollowEnabled()).toBe(true);
+    expect(sceneFollowBars()).toBe(8);
     expect(tracks()[0].soloSafe).toBe(true);
     expect(tracks()[0].patternSlots[0].launchQuantize).toBe("2bar");
   });
 
   it("defaults an older bundle to immediate launch instead of leaking the last set", () => {
     launchQuantize.set("2bar");
+    sceneFollowEnabled.set(true);
+    sceneFollowBars.set(16);
     const legacy = makeBundle();
     service.restoreFromSnapshot(legacy);
     expect(launchQuantize()).toBe("none");
+    expect(sceneFollowEnabled()).toBe(false);
+    expect(sceneFollowBars()).toBe(4);
+  });
+
+  it("clears armed follow actions when a fresh project replaces the set", () => {
+    sceneFollowEnabled.set(true);
+    sceneFollowBars.set(12);
+
+    service.startFreshProject({ id: "proj_fresh", name: "Fresh" });
+
+    expect(sceneFollowEnabled()).toBe(false);
+    expect(sceneFollowBars()).toBe(4);
   });
 
   it("persists manual saves locally before returning the bundle", async () => {
@@ -464,6 +501,17 @@ describe("ProjectWorkspaceService", () => {
             setLaunchQuantize: (value: any) => {
               launchQuantize.set(value);
               return value;
+            },
+            sceneFollowEnabled,
+            setSceneFollowEnabled: (enabled: boolean) => {
+              sceneFollowEnabled.set(!!enabled);
+              return enabled;
+            },
+            sceneFollowBars,
+            setSceneFollowBars: (bars: number) => {
+              const next = Math.min(32, Math.max(1, Math.floor(Number(bars) || 1)));
+              sceneFollowBars.set(next);
+              return next;
             },
             structure: signal([]),
             selectedTrackId: signal(null),
