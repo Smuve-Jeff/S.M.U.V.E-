@@ -1153,3 +1153,69 @@ were **tests that had quietly encoded an accident**:
   belongs on that tier on purpose, so the assertion now checks each panel's own
   block and *separately* pins the nudge to the tools tier — the same intent,
   stated where it applies.
+
+## 18. Twelfth pass — one navigation for every Studio surface
+
+### 18.1 What was wrong
+
+`/studio` could reach **ten** of the Studio's twenty-two surfaces. The other
+twelve — Session, Drum Machine, Channel Rack, Vocal Suite, DJ Booth, Performance,
+Mastering, Sound Pads, Chords, Score, Sample Library, Performer — had no
+navigation entry anywhere on the page. Four of them were reachable by typing a
+`?view=` deep link and letting the guard bounce it to the classic shell, which is
+not navigation.
+
+The cause was structural rather than a missing button: the canonical list
+(`allStudioViews` / `studioWorkflowCategories`) lived as **private members of the
+classic component**. The page could not see it, so its tool panel had been
+hand-written into a five-item subset, and every surface added to the shell after
+that subset was written became invisible on `/studio`.
+
+### 18.2 What changed
+
+- **One catalogue, two shells.** `src/app/studio/studio-surfaces.ts` now owns the
+  surface list: ids, labels, icons, descriptions, and the five workflow groups
+  (Create & Jam, Song Builder, Mix & Polish, Sounds & Packs, More Tools). The
+  classic shell's `studioWorkflowCategories`, `allStudioViews`, `StudioView` and
+  `isStudioView` are all derived from it — its 69 tests unchanged.
+- **Every surface has a row.** The page's Tools panel renders the catalogue, so
+  the list cannot be a subset by construction. Each row states its destination in
+  its accessible name, and rows that leave the page carry an `open_in_new` badge
+  and the words "in the classic studio".
+- **Four honest destination kinds**, held to exhaustiveness by
+  `Record<StudioSurfaceId, SurfaceTarget>`: `mode` (Arrange, Keys, Mix, Create —
+  the page's own workspaces), `tool` (Synthesizer, Plugin Store, Sampler, Sound
+  Browser, AI Producer — full-surface overlays), `rack` (Effects Rack, which the
+  page already hosted as its own overlay) and `route` (the twelve the classic
+  shell renders). Nothing pretends to be in-page when it is not.
+- **The current location is marked** with `aria-current="true"` and a persistent
+  accent, so the list doubles as a "where am I".
+
+### 18.3 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npx playwright test studio-new-page` | **26/26** (3 new) |
+| `npx jest studio-surfaces + studio-page + studio.component` | **100 passed** (4 new) |
+| `npx tsc --noEmit` / `npx ng build` | **0 errors** (bundle-budget warning pre-existing) |
+| Rendered captures | `artifacts/studio-surface-nav.png`, `…-phone-surface-nav.png` |
+
+The new e2e test **iterates the catalogue in the test itself** — a row count of
+22, and for each surface its exact accessible label — then exercises one of each
+kind: Mixer switches the workspace and comes back marked `aria-current`, Plugin
+Store opens its overlay, Effects Rack opens the rack, and Drum Machine lands on
+`/studio-classic?view=drum-machine` with `app-drum-machine` actually rendered. The
+phone test proves the sheet scrolls (22 rows cannot fit 70dvh) and that a row
+below the fold still taps at ≥44px.
+
+### 18.4 Two defects found by looking at it
+
+- **The 2-column grid truncated the labels.** "Quick Recorder", "Channel Rack",
+  "Performance" and "Session View" all rendered as `Quick Recor…` / `Channel …`:
+  a ~165px cell minus icon, gaps and badge leaves ~90px for text. Surfaces are
+  now one per row; the Workspace actions stay paired.
+- **A catalogue test caught nothing yet, by design.** `studio-surfaces.spec.ts`
+  reads `studio.component.html` and asserts the catalogue equals the set of
+  `*ngSwitchCase` views, so the *next* view added to the shell without a catalogue
+  entry fails a unit test instead of shipping unreachable. That is the regression
+  this pass exists to prevent, pinned.

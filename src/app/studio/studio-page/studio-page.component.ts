@@ -45,11 +45,22 @@ import {
   studioAssistantContextForMode,
   studioModeForView,
 } from "../studio-view-modes";
+import {
+  STUDIO_SURFACE_GROUPS,
+  type StudioSurfaceId,
+} from "../studio-surfaces";
 import { StudioExportSurfaceComponent } from "./studio-export-surface.component";
 
 type StudioMode = StudioPageMode;
 type TransportState = "stopped" | "playing" | "recording";
 type SaveStatus = "saved" | "saving" | "error";
+/** Where this page sends a surface it does not render itself. */
+type SurfaceTarget =
+  | { kind: "mode"; mode: StudioMode }
+  | { kind: "tool"; tool: AdvancedTool }
+  | { kind: "rack" }
+  | { kind: "route" };
+
 type AdvancedTool =
   | "synth"
   | "plugins"
@@ -363,6 +374,87 @@ export class StudioPageComponent {
 
   dismissSessionHint() {
     this.sessionHintDismissed.set(true);
+  }
+
+  /**
+   * How this page reaches every surface in the shared catalogue.
+   *
+   * Some are hosted here (as a mode, an overlay tool, or the FX rack); the rest
+   * are routed to the classic shell, which renders all of them. The `Record`
+   * makes the mapping exhaustive at compile time and the catalogue test holds it
+   * against the shell — a surface can no longer exist with no way in.
+   */
+  readonly surfaceTargets: Record<StudioSurfaceId, SurfaceTarget> = {
+    // Rendered by this page as a workspace mode.
+    arrangement: { kind: "mode", mode: "arrange" },
+    "piano-roll": { kind: "mode", mode: "keys" },
+    mixer: { kind: "mode", mode: "mix" },
+    "audio-recorder": { kind: "mode", mode: "create" },
+    // Rendered by this page as a full-surface tool.
+    synthesizer: { kind: "tool", tool: "synth" },
+    plugins: { kind: "tool", tool: "plugins" },
+    sampler: { kind: "tool", tool: "sampler" },
+    "sound-browser": { kind: "tool", tool: "sound-browser" },
+    "ai-produce": { kind: "tool", tool: "ai-produce" },
+    "effects-rack": { kind: "rack" },
+    // Hosted by the classic shell; reached by route, never by a dead end.
+    session: { kind: "route" },
+    "drum-machine": { kind: "route" },
+    "channel-rack": { kind: "route" },
+    "vocal-suite": { kind: "route" },
+    dj: { kind: "route" },
+    performance: { kind: "route" },
+    mastering: { kind: "route" },
+    "sound-pad": { kind: "route" },
+    "chord-editor": { kind: "route" },
+    score: { kind: "route" },
+    "sample-library": { kind: "route" },
+    performer: { kind: "route" },
+  };
+
+  /** Every workflow stage, straight from the shared catalogue. */
+  readonly surfaceGroups = STUDIO_SURFACE_GROUPS;
+
+  /** Rows that leave the page say so, so the list is not a surprise. */
+  surfaceLeavesPage(id: StudioSurfaceId): boolean {
+    return this.surfaceTargets[id].kind === "route";
+  }
+
+  /** The current location, so the list can mark it (`aria-current`). */
+  surfaceIsActive(id: StudioSurfaceId): boolean {
+    const target = this.surfaceTargets[id];
+    switch (target.kind) {
+      case "mode":
+        return this.activeMode() === target.mode;
+      case "tool":
+        return this.activeTool() === target.tool;
+      case "rack":
+        return this.fxRackOpen();
+      default:
+        return false;
+    }
+  }
+
+  /** Single entry point for the navigation list; each kind owns its own path. */
+  openSurface(id: StudioSurfaceId) {
+    const target = this.surfaceTargets[id];
+    switch (target.kind) {
+      case "mode":
+        this.setMode(target.mode);
+        break;
+      case "tool":
+        this.openTool(target.tool);
+        break;
+      case "rack":
+        this.openFxRack();
+        break;
+      case "route":
+        this.closePanels();
+        void this.router.navigate(["/studio-classic"], {
+          queryParams: { view: id },
+        });
+        break;
+    }
   }
 
   /** The Project panel's import button drives the hidden picker. */

@@ -346,21 +346,64 @@
       </button>
     </header>
 
-    <div class="tool-grid">
-      <button type="button" (click)="openTool('synth')">Synths</button>
-      <button type="button" (click)="openTool('plugins')">Plugins</button>
-      <button type="button" (click)="openTool('sampler')">Sampler</button>
-      <button type="button" (click)="openTool('sound-browser')">
-        Sound Browser
-      </button>
-      <button type="button" (click)="openTool('ai-produce')">AI Produce</button>
-      <button type="button" (click)="openProjectBrowser()">
-        Project Browser
-      </button>
-      <button type="button" (click)="openVersionHistory()">Versions</button>
-      <button type="button" (click)="openCollaboration()">Collab</button>
-      <button type="button" (click)="openSettings()">Settings</button>
+    <!-- Every surface the Studio has, grouped by workflow stage. The list is
+         generated from the shared catalogue, so a view cannot ship without an
+         entry here; rows this page does not host open in the classic shell and
+         are marked as such. -->
+    <div class="surface-groups">
+      <section class="surface-group" *ngFor="let group of surfaceGroups">
+        <h4 class="surface-group-title">
+          <span class="material-symbols-outlined" aria-hidden="true">
+            {{ group.icon }}
+          </span>
+          {{ group.label }}
+        </h4>
+        <div class="tool-grid">
+          <button
+            type="button"
+            *ngFor="let view of group.views"
+            [attr.data-surface]="view.id"
+            [class.surface-active]="surfaceIsActive(view.id)"
+            [attr.aria-current]="surfaceIsActive(view.id) ? 'true' : null"
+            [attr.aria-label]="
+              'Open ' +
+              view.label +
+              (surfaceLeavesPage(view.id) ? ' in the classic studio' : '')
+            "
+            (click)="openSurface(view.id)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">
+              {{ view.icon }}
+            </span>
+            <span class="surface-label">{{ view.label }}</span>
+            <span
+              class="material-symbols-outlined surface-badge"
+              *ngIf="surfaceLeavesPage(view.id)"
+              aria-hidden="true"
+            >
+              open_in_new
+            </span>
+          </button>
+        </div>
+      </section>
     </div>
+
+    <section class="surface-group surface-group-workspace">
+      <h4 class="surface-group-title">
+        <span class="material-symbols-outlined" aria-hidden="true">
+          workspace_premium
+        </span>
+        Workspace
+      </h4>
+      <div class="tool-grid">
+        <button type="button" (click)="openProjectBrowser()">
+          Project Browser
+        </button>
+        <button type="button" (click)="openVersionHistory()">Versions</button>
+        <button type="button" (click)="openCollaboration()">Collab</button>
+        <button type="button" (click)="openSettings()">Settings</button>
+      </div>
+    </section>
   </aside>
 
   <aside class="support-panel project-panel" *ngIf="projectPanelOpen()">

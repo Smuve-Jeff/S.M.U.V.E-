@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { seedAuthenticatedSession } from "./helpers";
+import { STUDIO_SURFACES } from "../../src/app/studio/studio-surfaces";
 
 /**
  * Coverage for the studio page that now owns `/studio`.
@@ -637,4 +638,100 @@ test("keeps the fresh-session nudge inside the canvas on a phone", async ({
     const target = await hint.getByRole("button", { name }).boundingBox();
     expect(target!.height).toBeGreaterThanOrEqual(44);
   }
+});
+
+/**
+ * The composed page hosts ten of the Studio's surfaces and routes the rest to
+ * the classic shell. What it must never do is leave one with no way in — the
+ * hand-written tool list it used to carry covered five and orphaned twelve.
+ */
+test("lists every studio surface and reaches each one", async ({ page }) => {
+  await openStudio(page);
+  const drawer = page.locator(".advanced-tools-drawer");
+  const rows = drawer.locator("button[data-surface]");
+
+  await page.getByRole("button", { name: "Tools" }).click();
+  await expect(rows).toHaveCount(STUDIO_SURFACES.length);
+
+  // Every row names its destination in its accessible label, and the ones that
+  // leave the page say so.
+  for (const surface of STUDIO_SURFACES) {
+    const row = drawer.locator(`button[data-surface="${surface.id}"]`);
+    await expect(row).toBeVisible();
+    await expect(row).toHaveAttribute(
+      "aria-label",
+      surface.id === "arrangement" ||
+        surface.id === "piano-roll" ||
+        surface.id === "mixer" ||
+        surface.id === "audio-recorder" ||
+        surface.id === "effects-rack" ||
+        ["synthesizer", "plugins", "sampler", "sound-browser", "ai-produce"].includes(
+          surface.id,
+        )
+        ? `Open ${surface.label}`
+        : `Open ${surface.label} in the classic studio`,
+    );
+  }
+
+  // A surface the page hosts itself: switches the workspace, no navigation.
+  await drawer.locator('button[data-surface="mixer"]').click();
+  await expect(page.locator(".workspace-title h2")).toHaveText("Mix");
+
+  // It is marked as the current location when the list is reopened.
+  await page.getByRole("button", { name: "Tools" }).click();
+  await expect(
+    drawer.locator('button[data-surface="mixer"]'),
+  ).toHaveAttribute("aria-current", "true");
+  await expect(
+    drawer.locator('button[data-surface="drum-machine"]'),
+  ).not.toHaveAttribute("aria-current", "true");
+
+  // A surface the page does not host: routed to the shell that renders it.
+  await drawer.locator('button[data-surface="drum-machine"]').click();
+  await expect(page).toHaveURL(/\/studio-classic\?view=drum-machine/);
+  await expect(page.locator(".comp-shell")).toBeVisible();
+  await expect(page.locator("app-drum-machine")).toBeVisible();
+});
+
+test("opens a page-hosted tool from the surface list", async ({ page }) => {
+  await openStudio(page);
+  await page.getByRole("button", { name: "Tools" }).click();
+
+  await page
+    .locator('.advanced-tools-drawer button[data-surface="plugins"]')
+    .click();
+  await expect(page.locator("app-plugin-store")).toBeVisible();
+  await page.locator(".overlay-head .panel-close").click();
+  await expect(page.locator("app-plugin-store")).toHaveCount(0);
+
+  // The FX rack is its own destination, not a tool overlay.
+  await page.getByRole("button", { name: "Tools" }).click();
+  await page
+    .locator('.advanced-tools-drawer button[data-surface="effects-rack"]')
+    .click();
+  await expect(page.locator("app-effects-rack-ui")).toBeVisible();
+});
+
+test("keeps the whole surface list usable on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openStudio(page);
+  await page.getByRole("button", { name: "Tools" }).click();
+
+  const sheet = page.locator(".advanced-tools-drawer");
+  const rows = sheet.locator("button[data-surface]");
+  await expect(rows).toHaveCount(STUDIO_SURFACES.length);
+
+  // The sheet is scrollable, so the last surface is reachable by swiping...
+  const scrollable = await sheet.evaluate(
+    (el) => el.scrollHeight > el.clientHeight + 40,
+  );
+  expect(scrollable).toBe(true);
+
+  // ...and a tap on a row below the fold still lands, inside the thumb zone.
+  const last = rows.last();
+  await last.scrollIntoViewIfNeeded();
+  const box = (await last.boundingBox())!;
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  await last.click();
+  await expect(page.locator(".workspace-title h2")).toBeVisible();
 });

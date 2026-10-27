@@ -111,58 +111,22 @@ import { AudioEngineLatencyService } from "../services/audio-engine-latency.serv
 import { StudioDeviceProfileService } from "../services/studio-device-profile.service";
 import { StudioOrchestrationService } from "../services/studio-orchestration.service";
 import { buildZip, type ZipEntry } from "./zip.util";
+import {
+  STUDIO_SURFACE_GROUPS,
+  STUDIO_SURFACES,
+  isStudioSurfaceId,
+  type StudioSurfaceId,
+} from "./studio-surfaces";
 
-type StudioView =
-  | "arrangement"
-  | "session"
-  | "dj"
-  | "piano-roll"
-  | "mixer"
-  | "performance"
-  | "mastering"
-  | "drum-machine"
-  | "channel-rack"
-  | "vocal-suite"
-  | "effects-rack"
-  | "performer"
-  | "audio-recorder"
-  | "sample-library"
-  | "sound-browser"
-  | "sound-pad"
-  | "synthesizer"
-  | "chord-editor"
-  | "sampler"
-  | "score"
-  | "plugins"
-  | "ai-produce";
+/**
+ * The classic shell renders the same surface ids the shared catalogue declares,
+ * so a view cannot exist in one shell and not the other.
+ */
+type StudioView = StudioSurfaceId;
 type MobileStudioPanel = "browser" | "inspector" | "fx-rack" | "templates";
 
-const PATH_STUDIO_VIEWS = new Set<StudioView>([
-  "arrangement",
-  "session",
-  "dj",
-  "piano-roll",
-  "mixer",
-  "performance",
-  "mastering",
-  "drum-machine",
-  "channel-rack",
-  "vocal-suite",
-  "effects-rack",
-  "performer",
-  "audio-recorder",
-  "sample-library",
-  "sound-browser",
-  "sound-pad",
-  "synthesizer",
-  "chord-editor",
-  "sampler",
-  "score",
-  "plugins",
-  "ai-produce",
-]);
 function isStudioView(value: string): value is StudioView {
-  return (PATH_STUDIO_VIEWS as ReadonlySet<string>).has(value);
+  return isStudioSurfaceId(value);
 }
 
 /** 3-way theme storage key. Persists across sessions. */
@@ -1054,171 +1018,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * Logical workflow domains for Google Play inspired DAW layout.
    * Replaces the flat 22-item list with 4 clear stages.
    */
-  studioWorkflowCategories = computed(() => [
-    {
-      id: "create",
-      label: "Create & Jam",
-      icon: "auto_awesome",
-      description: "Record takes, program drums, play synths & chords",
-      views: [
-        {
-          id: "drum-machine" as StudioView,
-          label: "Drum Machine",
-          icon: "grid_view",
-          description: "Step sequencer & beat builder",
-          primary: true,
-        },
-        {
-          id: "piano-roll" as StudioView,
-          label: "Piano Roll",
-          icon: "piano",
-          description: "Keys, melody & note editing",
-          primary: true,
-        },
-        {
-          id: "vocal-suite" as StudioView,
-          label: "Vocal Suite",
-          icon: "mic",
-          description: "Auto-pitch & real-time vocal chain",
-          primary: true,
-        },
-        {
-          id: "audio-recorder" as StudioView,
-          label: "Quick Recorder",
-          icon: "mic_external_on",
-          description: "Instant voice memo & mic capture",
-        },
-        {
-          id: "chord-editor" as StudioView,
-          label: "Chords",
-          icon: "music_note",
-          description: "1-tap progressions & voicings",
-        },
-        {
-          id: "sound-pad" as StudioView,
-          label: "Sound Pads",
-          icon: "grid_on",
-          description: "MPC-style touch finger drumming",
-        },
-        {
-          id: "synthesizer" as StudioView,
-          label: "Synthesizer",
-          icon: "waves",
-          description: "Analog & wavetable synth voices",
-        },
-        {
-          id: "ai-produce" as StudioView,
-          label: "AI Producer",
-          icon: "psychology",
-          description: "Prompt-guided beat generation",
-        },
-      ],
-    },
-    {
-      id: "arrange",
-      label: "Song Builder",
-      icon: "view_quilt",
-      description: "Timeline arrangement, loops, patterns & score",
-      views: [
-        {
-          id: "arrangement" as StudioView,
-          label: "Arrangement",
-          icon: "view_quilt",
-          description: "Full song timeline & tracks",
-          primary: true,
-        },
-        {
-          id: "session" as StudioView,
-          label: "Session View",
-          icon: "dashboard",
-          description: "Non-linear clip & loop launcher",
-        },
-        {
-          id: "channel-rack" as StudioView,
-          label: "Channel Rack",
-          icon: "inventory_2",
-          description: "Instruments & pattern overview",
-        },
-        {
-          id: "score" as StudioView,
-          label: "Score View",
-          icon: "music_note",
-          description: "Musical notation & sheet export",
-        },
-      ],
-    },
-    {
-      id: "mix",
-      label: "Mix & Polish",
-      icon: "tune",
-      description: "12-track console, dynamic FX, DJ & mastering",
-      views: [
-        {
-          id: "mixer" as StudioView,
-          label: "Mixer",
-          icon: "tune",
-          description: "12-track fader console & routing",
-          primary: true,
-        },
-        {
-          id: "effects-rack" as StudioView,
-          label: "Effects Rack",
-          icon: "magic_button",
-          description: "Dynamic VST audio inserts",
-        },
-        {
-          id: "dj" as StudioView,
-          label: "DJ Booth",
-          icon: "album",
-          description: "Live platter decks & crossfader",
-        },
-        {
-          id: "mastering" as StudioView,
-          label: "Mastering",
-          icon: "graphic_eq",
-          description: "Loudness maximizer & bus limiters",
-        },
-        {
-          id: "performance" as StudioView,
-          label: "Performance",
-          icon: "interpreter_mode",
-          description: "Live performance scene triggers",
-        },
-      ],
-    },
-    {
-      id: "library",
-      label: "Sounds & Packs",
-      icon: "library_music",
-      description: "Sample packs, instrument presets & audio tools",
-      views: [
-        {
-          id: "sound-browser" as StudioView,
-          label: "Sound Browser",
-          icon: "queue_music",
-          description: "Curated kits, bass & instruments",
-        },
-        {
-          id: "sample-library" as StudioView,
-          label: "Sample Library",
-          icon: "library_music",
-          description: "Imported audio & loop storage",
-        },
-        {
-          id: "sampler" as StudioView,
-          label: "Sampler",
-          icon: "graphic_eq",
-          description: "Sample slicing & key mapping",
-        },
-        {
-          id: "plugins" as StudioView,
-          label: "Plugin Store",
-          icon: "extension",
-          description: "Pro studio effects & synthesizers",
-        },
-      ],
-    },
-  ]);
+  studioWorkflowCategories = computed(() =>
+    STUDIO_SURFACE_GROUPS.filter((group) => group.id !== "more"),
+  );
 
   /** Active category derived from the active view */
   activeCategory = computed(() => {
@@ -1251,35 +1053,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * entries flagged `hidden` (e.g. performer on desktop) are dropped from
    * the rail but stay reachable via the URL (?view=...) and mobile shell.
    */
-  allStudioViews = computed(() => [
-    { id: "arrangement", label: "Arrange", icon: "view_quilt" },
-    { id: "session", label: "Session", icon: "grid_view" },
-    { id: "piano-roll", label: "Piano Roll", icon: "piano" },
-    { id: "drum-machine", label: "Drum Machine", icon: "grid_view" },
-    { id: "channel-rack", label: "Channel Rack", icon: "inventory_2" },
-    { id: "mixer", label: "Mixer", icon: "tune" },
-    { id: "effects-rack", label: "Effects Rack", icon: "magic_button" },
-    { id: "vocal-suite", label: "Vocal Suite", icon: "mic" },
-    { id: "dj", label: "DJ Booth", icon: "album" },
-    { id: "performance", label: "Performance", icon: "interpreter_mode" },
-    { id: "mastering", label: "Mastering", icon: "graphic_eq" },
-    { id: "ai-produce", label: "AI Produce", icon: "auto_awesome" },
-    { id: "sound-browser", label: "Sound Browser", icon: "queue_music" },
-    { id: "sound-pad", label: "Sound Pad", icon: "grid_on" },
-    { id: "synthesizer", label: "Synthesizer", icon: "waves" },
-    { id: "chord-editor", label: "Chords", icon: "music_note" },
-    { id: "sampler", label: "Sampler", icon: "library_music" },
-    { id: "score", label: "Score", icon: "music_note" },
-    { id: "sample-library", label: "Sample Library", icon: "library_music" },
-    { id: "plugins", label: "Plugin Store", icon: "extension" },
-    { id: "audio-recorder", label: "Recorder", icon: "mic_external_on" },
-    {
-      id: "performer",
-      label: "Performer",
-      icon: "piano_off",
-      hidden: !this.uiService.showMobileNav(),
-    },
-  ]);
+  allStudioViews = computed(() =>
+    STUDIO_SURFACES.map((surface) => ({
+      ...surface,
+      // The Performer is URL-reaching and lives in the mobile shell only.
+      hidden:
+        surface.id === "performer" ? !this.uiService.showMobileNav() : false,
+    })),
+  );
 
   /**
    * Desktop rail grouped by workflow stage (Create → Build → Mix → Sounds).

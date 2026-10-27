@@ -655,6 +655,74 @@
   font-size: 0.75rem;
 }
 
+/* ----------------------------------------------------------------------------
+   STUDIO NAVIGATION — every surface, one list
+
+   The page hosts ten surfaces and routes the rest to the classic shell, which
+   renders all of them. The list is generated from the shared catalogue rather
+   than hand-written, because the hand-written subset is exactly how a dozen
+   surfaces ended up with no route at all.
+   ---------------------------------------------------------------------------- */
+.surface-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.surface-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* One surface per row. In the drawer's two-column grid, cell ~165px minus the
+   icon, gaps and badge left ~90px for the label, so "Quick Recorder", "Channel
+   Rack" and "Performance" all rendered as "Quick Recor…". A navigation list is
+   read, not scanned for a shape. */
+.surface-groups .tool-grid {
+  grid-template-columns: 1fr;
+}
+
+.surface-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  color: var(--studio-dim);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.surface-group-title .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.surface-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.surface-badge {
+  margin-left: auto;
+  color: var(--studio-faint);
+}
+
+.surface-active {
+  border-color: var(--studio-accent-line);
+  background: var(--studio-accent-soft);
+  font-weight: 700;
+}
+
+/* Page-owned actions, separated from the surfaces themselves. */
+.surface-group-workspace {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--studio-line);
+}
+
 .tool-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(120px, 1fr));
@@ -663,7 +731,18 @@
 }
 
 .tool-grid button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
   min-height: 52px;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.tool-grid button .material-symbols-outlined {
+  flex: 0 0 auto;
+  font-size: 18px;
 }
 
 .support-panel {
