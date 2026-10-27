@@ -572,8 +572,21 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
 - Bezier editor precision: the automation curve editor gains numeric TIME/VALUE
   fields per handle (0–1, 1/100 steps), so a curve can be reproduced exactly
   instead of only dragged.
-- Still open from this list: **project workspace** work (the two P0 data-safety
-  items) and notation editing.
+- Notation editing: the score view is no longer read-only. Notes are selectable
+  (tap, keyboard, screen reader) and editable in place — transpose by semitone
+  or octave, move on the step grid, halve/double the written length, nudge
+  velocity, delete — through `MusicManagerService.updateNote()` /
+  `removeNotes()`, so edits are undoable and land in the Piano Roll at the same
+  time. Numeric steppers mirror the keyboard shortcuts for phones.
+- Project workspace P0 data safety: closed. `startFreshProject()` marks a
+  session with tracks dirty, so autosave treats it as work to persist, and the
+  workspace flushes a recovery bundle on `pagehide` /
+  `visibilitychange: hidden`.
+- Leaving the Studio for the Hub now unwinds the synthetic overlay history
+  entries first, so the Hub's back stack no longer sits on top of `/studio`
+  entries (a back press on the Hub used to re-enter the Studio). A fallback
+  timer navigates anyway if a WebView drops the traversal.
+- Still open from this list: nothing from the phone-usability backlog.
 
 **P3 — competitive gaps** (from §7): tempo map, FLAC, bus faders, freeze,
 notation editing, Android MIDI/USB audio, Link/clock-in, background playback,

@@ -7,8 +7,9 @@
       <p class="score-eyebrow">A5 · SCORE VIEW</p>
       <h1 id="score-title">Notation</h1>
       <p class="score-subtitle">
-        A clean score readout from the active MIDI tracks. Edit notes in Piano Roll;
-        this view stays in sync with your session.
+        Notation for every MIDI track in the session. Tap a note to edit its pitch,
+        position, length or velocity here — the Piano Roll and the arrangement
+        follow along.
       </p>
     </div>
     <div class="score-stats" aria-label="Score statistics">
@@ -27,7 +28,74 @@
       <span class="score-live-dot" aria-hidden="true"></span>
       LIVE SCORE SYNC
     </span>
-    <span class="score-toolbar-hint">4/4 · 16th-note grid · click a part to edit in Piano Roll</span>
+    <span class="score-toolbar-hint" *ngIf="!selectedNote()">
+      4/4 · 16th-note grid · tap a note to edit it here
+    </span>
+    <span class="score-toolbar-hint score-toolbar-keys" *ngIf="selectedNote()">
+      ↑↓ pitch · ←→ move · [ ] length · Del remove
+    </span>
+  </div>
+
+  <!-- Selected-note editor. Numeric steppers mirror the keyboard shortcuts so
+       the score is editable on a phone with no physical keyboard. -->
+  <div
+    class="score-editor"
+    role="group"
+    aria-label="Selected note"
+    *ngIf="selectedNote() as sel"
+  >
+    <div class="score-editor-identity">
+      <span
+        class="score-editor-dot"
+        [style.background]="staffColorFor(sel.trackId)"
+        aria-hidden="true"
+      ></span>
+      <span class="score-editor-track">{{ sel.trackName }}</span>
+      <strong class="score-editor-pitch">{{ selectedPitch() }}</strong>
+      <span class="score-editor-meta">
+        BAR {{ selectedPosition() }} · {{ selectedDuration() }} · VEL
+        {{ selectedVelocity() }}
+      </span>
+    </div>
+
+    <div class="score-editor-controls">
+      <div class="score-stepper" role="group" aria-label="Pitch">
+        <span class="score-stepper-label">PITCH</span>
+        <button type="button" (click)="transpose(-12)" aria-label="Down an octave" title="Down an octave">−12</button>
+        <button type="button" (click)="transpose(-1)" aria-label="Down a semitone" title="Down a semitone">−</button>
+        <button type="button" (click)="transpose(1)" aria-label="Up a semitone" title="Up a semitone">+</button>
+        <button type="button" (click)="transpose(12)" aria-label="Up an octave" title="Up an octave">+12</button>
+      </div>
+
+      <div class="score-stepper" role="group" aria-label="Position">
+        <span class="score-stepper-label">MOVE</span>
+        <button type="button" (click)="nudge(-1)" aria-label="Move one step earlier" title="One step earlier">◀</button>
+        <button type="button" (click)="nudge(1)" aria-label="Move one step later" title="One step later">▶</button>
+      </div>
+
+      <div class="score-stepper" role="group" aria-label="Length">
+        <span class="score-stepper-label">LENGTH</span>
+        <button type="button" (click)="scaleLength(0.5)" aria-label="Halve the note length" title="Half length">½</button>
+        <button type="button" (click)="scaleLength(2)" aria-label="Double the note length" title="Double length">×2</button>
+      </div>
+
+      <div class="score-stepper" role="group" aria-label="Velocity">
+        <span class="score-stepper-label">VEL</span>
+        <button type="button" (click)="setVelocity(-8)" aria-label="Quieter" title="Quieter">−8</button>
+        <button type="button" (click)="setVelocity(8)" aria-label="Louder" title="Louder">+8</button>
+      </div>
+
+      <button
+        type="button"
+        class="score-editor-delete"
+        (click)="deleteSelected()"
+        aria-label="Delete the selected note"
+        title="Delete note"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+        DELETE
+      </button>
+    </div>
   </div>
 
   <div
@@ -61,7 +129,11 @@
       </header>
 
       <div class="score-staff-viewport">
-        <div class="score-staff-canvas" [style.width.px]="bars() * 16 * 5.5 + 120">
+        <div
+          class="score-staff-canvas"
+          [style.width.px]="bars() * 16 * 5.5 + 120"
+          (click)="clearSelection()"
+        >
           <div class="score-clef" aria-hidden="true">𝄞</div>
           <div class="score-staff-lines" aria-hidden="true">
             <span *ngFor="let line of [0, 1, 2, 3, 4]" [style.top.%]="line * 25"></span>
@@ -72,20 +144,29 @@
             [style.left.px]="(bar - 1) * 16 * 5.5 + 120"
             aria-hidden="true"
           ></div>
-          <div
+          <button
+            type="button"
             *ngFor="let note of staff.notes"
             class="score-note"
+            [class.is-selected]="isSelected(staff.id, note.id)"
             [class.score-note-accidental]="isAccidental(note.midi)"
             [class.score-note-quiet]="note.velocity < 64"
             [style.left.px]="note.left + 120"
             [style.top.px]="note.staffTop"
             [style.opacity]="note.velocityOpacity"
+            [attr.aria-pressed]="isSelected(staff.id, note.id)"
+            [attr.aria-label]="
+              note.name + note.octave + ', ' + note.duration +
+              ', velocity ' + note.velocity + ' — select to edit'
+            "
             [attr.title]="note.name + note.octave + ' · ' + note.duration + ' · velocity ' + note.velocity"
+            (click)="selectNote(staff.id, note.id, $event)"
           >
+            <span class="score-note-hit" aria-hidden="true"></span>
             <span class="score-note-stem" aria-hidden="true"></span>
             <span class="score-note-head">{{ note.accidental }}</span>
             <span class="score-note-label">{{ note.name }}{{ note.octave }}</span>
-          </div>
+          </button>
           <div
             *ngFor="let rest of staff.rests"
             class="score-rest"

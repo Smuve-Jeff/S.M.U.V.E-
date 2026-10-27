@@ -761,3 +761,197 @@ h1 {
     padding-block: 12px;
   }
 }
+
+/* ── Notation editing ────────────────────────────────────────────────────
+   Notes are buttons now: selectable by tap, keyboard and screen reader. The
+   visible head stays the engraved 18px glyph while an invisible hit layer
+   carries the 44px touch target. */
+.score-note {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  touch-action: manipulation;
+}
+
+.score-note-hit {
+  position: absolute;
+  inset: -13px;
+  border-radius: 50%;
+}
+
+.score-note.is-selected {
+  z-index: 4;
+}
+
+.score-note.is-selected .score-note-head {
+  background: #f59e0b;
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.32),
+    0 3px 8px rgba(61, 53, 42, 0.25);
+}
+
+.score-note.is-selected .score-note-stem {
+  background: #f59e0b;
+}
+
+.score-note:focus-visible .score-note-hit {
+  outline: 2px solid var(--teal-500, #188f8c);
+  outline-offset: 2px;
+}
+
+/* Editor strip: identity on the left, steppers that wrap on a phone. */
+.score-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  max-width: 1280px;
+  margin: 0 auto 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 12px;
+  background: linear-gradient(
+    140deg,
+    rgba(245, 158, 11, 0.1),
+    rgba(245, 158, 11, 0.02)
+  );
+}
+
+.score-editor-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.score-editor-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  align-self: center;
+}
+
+.score-editor-track {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--espresso-muted, #7e7259);
+}
+
+.score-editor-pitch {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--espresso-text, #3d352a);
+}
+
+.score-editor-meta {
+  font: 700 10px/1.4 var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+  color: var(--espresso-muted, #7e7259);
+}
+
+.score-editor-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--espresso-line, #d8cfbd);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.score-stepper-label {
+  padding: 0 4px;
+  font: 800 9px/1 var(--font-mono, monospace);
+  letter-spacing: 0.1em;
+  color: var(--espresso-muted, #7e7259);
+}
+
+.score-stepper button {
+  min-width: 34px;
+  min-height: 34px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--espresso-text, #3d352a);
+  font: 800 12px/1 var(--font-mono, monospace);
+  cursor: pointer;
+}
+
+.score-stepper button:hover,
+.score-stepper button:focus-visible {
+  background: rgba(14, 124, 123, 0.14);
+  color: var(--teal-700, #0b6463);
+}
+
+.score-editor-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 9px;
+  background: transparent;
+  color: #b91c1c;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.score-editor-delete .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.score-editor-delete:hover,
+.score-editor-delete:focus-visible {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+@media (pointer: coarse) {
+  .score-stepper button,
+  .score-editor-delete {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 720px) {
+  .score-editor {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .score-editor-controls {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .score-stepper {
+    flex: 1 1 auto;
+  }
+
+  .score-stepper button {
+    flex: 1 1 auto;
+  }
+
+  .score-toolbar-keys {
+    display: none;
+  }
+}

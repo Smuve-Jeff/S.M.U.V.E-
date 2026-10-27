@@ -533,6 +533,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Synthetic history entries currently pushed for open overlays. */
   private backTrapDepth = 0;
   private pendingOverlayHistoryPops = 0;
+  /** Set while navigateHome() unwinds its synthetic overlay entries. */
+  private leavingStudioForHome = false;
+  /** Fallback so a dropped history traversal cannot strand the user in Studio. */
+  private homeExitTimer: ReturnType<typeof setTimeout> | null = null;
   /** Timestamp of the first back press that armed the "press again" exit. */
   private exitArmedAt = 0;
   /** Native backButton listener handle (device only). */
@@ -944,10 +948,48 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  /** Navigate back to the Hub home page */
+  /**
+   * Navigate back to the Hub home page.
+   *
+   * Every open overlay pushed a synthetic history entry at the Studio URL (see
+   * syncBackHistoryTrap). Leaving with those still stacked meant the Hub's own
+   * back stack sat on top of `/studio` entries: tapping Home worked, then the
+   * first back press on the Hub silently re-entered the Studio. So the entries
+   * are unwound first, and the route change runs once that traversal lands.
+   * With nothing to unwind (direct link, fresh session) it navigates at once.
+   */
   navigateHome() {
     this.haptic.light();
-    this.router.navigate(["/hub"]);
+    const depth = this.backTrapDepth;
+    const hasSyntheticEntries =
+      typeof window !== "undefined" &&
+      !!window.history &&
+      depth > 0 &&
+      !!window.history.state?.smuveStudioOverlay;
+
+    if (!hasSyntheticEntries) {
+      this.leaveStudioForHome();
+      return;
+    }
+
+    this.leavingStudioForHome = true;
+    // This traversal is our own cleanup, not a user back press.
+    this.pendingOverlayHistoryPops++;
+    window.history.go(-depth);
+    // A WebView that reports no traversal (entries dropped after a restore)
+    // would otherwise swallow the tap entirely — leave anyway.
+    this.homeExitTimer = setTimeout(() => {
+      if (!this.leavingStudioForHome) return;
+      this.leavingStudioForHome = false;
+      this.pendingOverlayHistoryPops = 0;
+      this.leaveStudioForHome();
+    }, 200);
+  }
+
+  /** The part of leaving the Studio that must happen exactly once. */
+  private leaveStudioForHome(): void {
+    this.backTrapDepth = 0;
+    void this.router.navigate(["/hub"]);
   }
 
   /**
@@ -1490,6 +1532,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     window.removeEventListener("popstate", this.onStudioPopState);
     this.backButtonHandle?.remove();
     this.backButtonHandle = null;
+    if (this.homeExitTimer) {
+      clearTimeout(this.homeExitTimer);
+      this.homeExitTimer = null;
+    }
+    this.leavingStudioForHome = false;
     this.backTrapDepth = 0;
     this.studioTelemetry.endSession("component_destroy");
   }
@@ -1567,6 +1614,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Browser/WebView history back: unwind one surface, else let the router act. */
   private readonly onStudioPopState = () => {
+    if (this.leavingStudioForHome) {
+      this.leavingStudioForHome = false;
+      this.pendingOverlayHistoryPops = 0;
+      if (this.homeExitTimer) clearTimeout(this.homeExitTimer);
+      this.homeExitTimer = null;
+      this.leaveStudioForHome();
+      return;
+    }
     if (this.pendingOverlayHistoryPops > 0) {
       this.pendingOverlayHistoryPops--;
       return;

@@ -191,6 +191,7 @@ describe("StudioComponent", () => {
   };
 
   let mockDialog: any;
+  let mockRouter: { navigate: jest.Mock };
 
   const mockHaptic = {
     light: jest.fn(),
@@ -287,7 +288,7 @@ describe("StudioComponent", () => {
           },
         },
         { provide: HistoryService, useValue: mockHistory },
-        { provide: Router, useValue: { navigate: jest.fn() } },
+        { provide: Router, useValue: (mockRouter = { navigate: jest.fn() }) },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -1205,5 +1206,56 @@ describe("StudioComponent", () => {
       expect(mockSnackbar.info).toHaveBeenCalledWith("No comp takes to bounce");
       expect(mockSnackbar.success).not.toHaveBeenCalled();
     });
+  });
+
+  it("navigates straight to the Hub when no overlay history is stacked", () => {
+    component.navigateHome();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(["/hub"]);
+  });
+
+  it("unwinds overlay history entries before leaving for the Hub", () => {
+    (component as any).backTrapDepth = 2;
+    const stateSpy = jest
+      .spyOn(window.history, "state", "get")
+      .mockReturnValue({ smuveStudioOverlay: true } as any);
+    const goSpy = jest
+      .spyOn(window.history, "go")
+      .mockImplementation(() => undefined);
+
+    component.navigateHome();
+    // The traversal has to run first: navigating now would leave the Hub
+    // sitting on top of two /studio entries.
+    expect(goSpy).toHaveBeenCalledWith(-2);
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+
+    (component as any).onStudioPopState();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(["/hub"]);
+    expect((component as any).backTrapDepth).toBe(0);
+
+    stateSpy.mockRestore();
+    goSpy.mockRestore();
+  });
+
+  it("still leaves the Studio when the WebView drops the history traversal", () => {
+    jest.useFakeTimers();
+    try {
+      (component as any).backTrapDepth = 1;
+      const stateSpy = jest
+        .spyOn(window.history, "state", "get")
+        .mockReturnValue({ smuveStudioOverlay: true } as any);
+      const goSpy = jest
+        .spyOn(window.history, "go")
+        .mockImplementation(() => undefined);
+
+      component.navigateHome();
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(250);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(["/hub"]);
+
+      stateSpy.mockRestore();
+      goSpy.mockRestore();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

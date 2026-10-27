@@ -7,6 +7,8 @@ describe("ScoreViewComponent", () => {
   let fixture: ComponentFixture<ScoreViewComponent>;
   let component: ScoreViewComponent;
   let tracks: ReturnType<typeof signal<any[]>>;
+  let updateNote: jest.Mock;
+  let removeNotes: jest.Mock;
 
   function createTracks() {
     return [
@@ -31,12 +33,14 @@ describe("ScoreViewComponent", () => {
 
   beforeEach(() => {
     tracks = signal(createTracks());
+    updateNote = jest.fn();
+    removeNotes = jest.fn();
     TestBed.configureTestingModule({
       imports: [ScoreViewComponent],
       providers: [
         {
           provide: MusicManagerService,
-          useValue: { tracks },
+          useValue: { tracks, updateNote, removeNotes },
         },
       ],
     });
@@ -101,4 +105,154 @@ describe("ScoreViewComponent", () => {
     expect(staff.rests.every((r) => r.bar === 1 || r.bar === 2)).toBe(true);
     expect(staff.rests.some((r) => r.left > 0)).toBe(true);
   });
+
+  describe("notation editing", () => {
+    const selectFirst = () => {
+      component.selectNote("piano-1", "n-1");
+    };
+
+    it("exposes the selected note's pitch, position, length and velocity", () => {
+      selectFirst();
+      expect(component.selectedNote()?.note.id).toBe("n-1");
+      expect(component.selectedPitch()).toBe("C4");
+      expect(component.selectedPosition()).toBe("1.1");
+      expect(component.selectedDuration()).toBe("quarter");
+      expect(component.selectedVelocity()).toBe(114);
+    });
+
+    it("writes a transposition through the manager, not local state", () => {
+      selectFirst();
+      expect(component.transpose(1)).toBe(true);
+      expect(updateNote).toHaveBeenCalledWith("piano-1", "n-1", { midi: 61 });
+
+      selectFirst();
+      expect(component.transpose(12)).toBe(true);
+      expect(updateNote).toHaveBeenLastCalledWith("piano-1", "n-1", {
+        midi: 72,
+      });
+    });
+
+    it("clamps pitch at the ends of the MIDI range and skips no-ops", () => {
+      tracks.update((current) => [
+        { ...current[0], notes: [{ id: "top", midi: 127, step: 0, length: 1, velocity: 1 }] },
+      ]);
+      component.selectNote("piano-1", "top");
+      expect(component.transpose(12)).toBe(false);
+      expect(updateNote).not.toHaveBeenCalled();
+
+      tracks.update((current) => [
+        { ...current[0], notes: [{ id: "bottom", midi: 0, step: 0, length: 1, velocity: 1 }] },
+      ]);
+      component.selectNote("piano-1", "bottom");
+      expect(component.transpose(-12)).toBe(false);
+      expect(updateNote).not.toHaveBeenCalled();
+    });
+
+    it("never nudges a note before the first step", () => {
+      selectFirst();
+      expect(component.nudge(-1)).toBe(false);
+      expect(updateNote).not.toHaveBeenCalled();
+
+      expect(component.nudge(1)).toBe(true);
+      expect(updateNote).toHaveBeenCalledWith("piano-1", "n-1", { step: 1 });
+    });
+
+    it("resizes and scales the written length within 1…32 steps", () => {
+      selectFirst();
+      expect(component.resize(1)).toBe(true);
+      expect(updateNote).toHaveBeenLastCalledWith("piano-1", "n-1", {
+        length: 5,
+      });
+
+      expect(component.scaleLength(2)).toBe(true);
+      expect(updateNote).toHaveBeenLastCalledWith("piano-1", "n-1", {
+        length: 8,
+      });
+
+      tracks.update((current) => [
+        { ...current[0], notes: [{ id: "tiny", midi: 60, step: 0, length: 1, velocity: 1 }] },
+      ]);
+      component.selectNote("piano-1", "tiny");
+      expect(component.scaleLength(0.5)).toBe(false);
+      expect(updateNote).toHaveBeenCalledTimes(2);
+    });
+
+    it("keeps velocity inside 0.05…1 and stores it as a 0–1 float", () => {
+      selectFirst();
+      component.setVelocity(-8);
+      expect(updateNote).toHaveBeenLastCalledWith(
+        "piano-1",
+        "n-1",
+        expect.objectContaining({ velocity: expect.any(Number) }),
+      );
+      const written = updateNote.mock.calls.at(-1)![2].velocity;
+      expect(written).toBeLessThan(0.9);
+      expect(written).toBeGreaterThan(0.05);
+
+      tracks.update((current) => [
+        { ...current[0], notes: [{ id: "loud", midi: 60, step: 0, length: 1, velocity: 1 }] },
+      ]);
+      component.selectNote("piano-1", "loud");
+      expect(component.setVelocity(8)).toBe(false);
+      expect(updateNote).toHaveBeenCalledTimes(1);
+    });
+
+    it("deletes through the manager and clears the selection", () => {
+      selectFirst();
+      expect(component.deleteSelected()).toBe(true);
+      expect(removeNotes).toHaveBeenCalledWith("piano-1", ["n-1"]);
+      expect(component.selection()).toBeNull();
+    });
+
+    it("drops a stale selection when the note disappears (undo, Piano Roll edit)", () => {
+      selectFirst();
+      tracks.update((current) => [{ ...current[0], notes: [] }]);
+      expect(component.selectedNote()).toBeNull();
+      expect(component.deleteSelected()).toBe(false);
+      expect(removeNotes).not.toHaveBeenCalled();
+    });
+
+    it("maps keyboard shortcuts onto the same edits", () => {
+      selectFirst();
+      const press = (key: string, init: KeyboardEventInit = {}) =>
+        component.onScoreKeydown(
+          new KeyboardEvent("keydown", { key, ...init }),
+        );
+
+      press("ArrowUp", { shiftKey: true });
+      expect(updateNote).toHaveBeenLastCalledWith("piano-1", "n-1", {
+        midi: 72,
+      });
+
+      press("ArrowLeft");
+      expect(updateNote).toHaveBeenCalledTimes(1); // already at step 0
+
+      press("]");
+      expect(updateNote).toHaveBeenLastCalledWith("piano-1", "n-1", {
+        length: 5,
+      });
+
+      press("Escape");
+      expect(component.selection()).toBeNull();
+    });
+
+    it("ignores keys typed into a field and unmodified without a selection", () => {
+      const input = document.createElement("input");
+      selectFirst();
+      component.onScoreKeydown(
+        new KeyboardEvent("keydown", { key: "ArrowUp" }),
+      );
+      const eventWithInput = new KeyboardEvent("keydown", { key: "ArrowUp" });
+      Object.defineProperty(eventWithInput, "target", { value: input });
+      component.onScoreKeydown(eventWithInput);
+      expect(updateNote).toHaveBeenCalledTimes(1);
+
+      component.clearSelection();
+      component.onScoreKeydown(
+        new KeyboardEvent("keydown", { key: "ArrowUp" }),
+      );
+      expect(updateNote).toHaveBeenCalledTimes(1);
+    });
+  });
 });
+
