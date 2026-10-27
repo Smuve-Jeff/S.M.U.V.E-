@@ -171,13 +171,32 @@ describe("studio page stylesheet contract", () => {
     );
   });
 
+  const phoneBlocks = [
+    ...css.matchAll(
+      /@media \(max-width: 768px\), \(pointer: coarse\) \{ ([\s\S]+?) \} \}/g,
+    ),
+  ].map((match) => match[1]);
+
   it("carries a 44px-class touch floor for the page chrome", () => {
-    const phoneBlock = css.match(
-      /@media \(max-width: 768px\), \(pointer: coarse\) \{ ([\s\S]+?) \} \}/,
-    )?.[1];
+    // The file holds more than one phone block (the chrome's, and the fresh-
+    // session nudge's), so identify the chrome one by a selector only it
+    // styles — matching the first block, as this used to, silently pinned
+    // whichever block happened to come first in source order.
+    const phoneBlock = phoneBlocks.find((block) =>
+      block.includes(".panel-close"),
+    );
     expect(phoneBlock).toBeDefined();
     expect(phoneBlock).toMatch(/min-height: 48px/);
     expect(phoneBlock).toMatch(/--studio-touch/);
+  });
+
+  it("keeps the fresh-session nudge at the touch floor on a phone", () => {
+    const nudge = phoneBlocks.find((block) => block.includes(".session-hint"));
+    expect(nudge).toBeDefined();
+    // Both actions stack and reach 48px: an iPhone-se-sized canvas leaves no
+    // room for a 36px control beside the copy.
+    expect(nudge).toContain(".session-hint-actions button");
+    expect(nudge).toMatch(/min-height: 48px/);
   });
 
   it("keeps the page chrome reachable without colour", () => {
@@ -197,7 +216,21 @@ describe("studio page stylesheet contract", () => {
     }
     // The panels must not sit on the tools tier: that is *below* the scrim they
     // draw for themselves, so every open sheet rendered behind its own backdrop.
-    expect(css).not.toContain("z-index: var(--studio-z-tools)");
+    for (const selector of [
+      "\\.advanced-tools-drawer",
+      "\\.support-panel",
+      "\\.project-panel",
+      "\\.collaboration-panel",
+      "\\.export-panel",
+    ]) {
+      const block = css.match(new RegExp(`${selector} \\{([^}]+)\\}`))?.[1];
+      expect(block).toBeDefined();
+      expect(block).not.toContain("var(--studio-z-tools)");
+    }
+    // The one thing that legitimately sits on the tools tier is the fresh-session
+    // nudge, which is an overlay *on the canvas* and must stay under the scrim.
+    const hint = css.match(/\.session-hint \{([^}]+)\}/)?.[1];
+    expect(hint).toMatch(/z-index: var\(--studio-z-tools\)/);
   });
 
   it("anchors the save banner without moving the bars", () => {

@@ -22,6 +22,7 @@ import { AudioEngineService } from "../../services/audio-engine.service";
 import { AuthService } from "../../services/auth.service";
 import { CollaborationService } from "../../services/collaboration.service";
 import { HistoryService } from "../../services/history.service";
+import { MusicManagerService } from "../../services/music-manager.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { SnackbarService } from "../../services/snackbar.service";
 
@@ -96,6 +97,8 @@ export class StudioPageComponent {
   private readonly auth = inject(AuthService);
   private readonly snackbar = inject(SnackbarService);
   private readonly dialog = inject(InteractionDialogService);
+  /** The track graph for a fresh session; the workspace only owns metadata. */
+  readonly musicManager = inject(MusicManagerService);
   /** Every edit surface (piano roll, arrangement, inspector) pushes here. */
   readonly history = inject(HistoryService);
 
@@ -289,6 +292,79 @@ export class StudioPageComponent {
    * `persistenceError()` on success, so the banner goes away by itself; the
    * snackbar is the confirmation that the tap did something.
    */
+  /**
+   * A fresh session — the one destructive action on this surface, so it carries
+   * two guards. First, consent: nothing is thrown away without an explicit
+   * confirmation. Second, a copy: a dirty session is written to Local Sets before
+   * it is replaced, the same rule the mobile quick-start lane follows, so "new
+   * project" can never be the place where an idea disappears.
+   *
+   * Order matters. `startFreshProject()` captures a state signature from the
+   * track graph, and `MusicManagerService.newProject()` runs through the command
+   * stack, so the history has to be cleared *after* both or Undo would step back
+   * into the project the user just left.
+   */
+  async newProject() {
+    const dirty = this.projectWorkspace.isDirty();
+
+    const confirmed = await this.dialog.confirm({
+      title: "New project",
+      message: dirty
+        ? "Start a fresh session? Your current work is saved to Local Sets first, so you can reopen it from this panel."
+        : "Start a fresh session with an empty piano and drum track?",
+      confirmLabel: "Start fresh",
+      cancelLabel: "Cancel",
+      // Same affordance as the import flow: this discards the open session.
+      tone: "danger",
+    });
+    if (!confirmed) return;
+
+    if (dirty) {
+      try {
+        await this.projectWorkspace.autoSave();
+        await this.refreshLocalProjects();
+      } catch {
+        // Best effort: the confirmation above is consent to replace the session
+        // even if the copy could not be written.
+      }
+    }
+
+    this.musicManager.newProject();
+    this.projectWorkspace.startFreshProject({ bpm: this.audioEngine.tempo() });
+    this.history.clear();
+    // The fresh canvas is exactly where the nudge belongs again.
+    this.sessionHintDismissed.set(false);
+    this.closePanels();
+    this.snackbar.success("New session created");
+  }
+
+  /**
+   * A session with lanes but nothing on the timeline.
+   *
+   * The arrangement view has its own empty-state card, but it only renders for a
+   * session with *zero tracks* — and a fresh project starts with Piano + Drums,
+   * so "New project" lands on two empty lanes with no cue about what to do next.
+   * This is the same moment, one track later.
+   */
+  readonly arrangementEmpty = computed(
+    () =>
+      this.musicManager.tracks().length > 0 &&
+      this.musicManager.tracks().every(
+        (track) => (track.clips?.length ?? 0) === 0,
+      ),
+  );
+
+  /** Dismissible: a nudge, not a modal. It must never follow the user around. */
+  private readonly sessionHintDismissed = signal(false);
+
+  readonly showSessionHint = computed(
+    () => this.arrangementEmpty() && !this.sessionHintDismissed(),
+  );
+
+  dismissSessionHint() {
+    this.sessionHintDismissed.set(true);
+  }
+
   /** The Project panel's import button drives the hidden picker. */
   openImportPicker() {
     this.importInput?.nativeElement.click();

@@ -502,3 +502,139 @@ test("imports a .smuve bundle and refuses one it cannot read", async ({
   );
   await expect(page.locator(".project-feedback.error")).toBeVisible();
 });
+
+test("starts a fresh session behind consent, keeping the old one as a local set", async ({
+  page,
+}) => {
+  await openStudio(page);
+
+  const studio = () =>
+    page.evaluate(() => {
+      const cmp = (window as any).ng.getComponent(
+        document.querySelector("app-studio-page"),
+      );
+      return {
+        canUndo: cmp.history.canUndo() as boolean,
+        tracks: (cmp.musicManager.tracks() as { name: string }[]).map(
+          (track) => track.name,
+        ),
+      };
+    });
+
+  // A named session that differs from the default pair — exactly the work a
+  // "new project" action can destroy.
+  await page.evaluate(() => {
+    const cmp = (window as any).ng.getComponent(
+      document.querySelector("app-studio-page"),
+    );
+    cmp.musicManager.newProject(false);
+    cmp.musicManager.addTrack("Keeper Lead", "grand-piano");
+    cmp.projectWorkspace.updateMetadata({ name: "Doomed Session" });
+  });
+
+  const projectName = page.locator(".studio-top-bar .project-name");
+  const before = await studio();
+  expect(before.tracks).toEqual(["Piano", "Drums", "Keeper Lead"]);
+
+  await page.getByRole("button", { name: "Project", exact: true }).click();
+  await expect(projectName).toHaveText("Doomed Session");
+
+  // Nothing is replaced while the confirmation is open — cancelling is a no-op.
+  await page.getByRole("button", { name: "New project" }).click();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(projectName).toHaveText("Doomed Session");
+  expect((await studio()).tracks).toEqual(before.tracks);
+
+  // Confirming replaces the session with the default pair.
+  await page.getByRole("button", { name: "New project" }).click();
+  await page.getByRole("button", { name: "Start fresh" }).click();
+  await expect(projectName).toHaveText("Untitled Project");
+  const after = await studio();
+  expect(after.tracks).toEqual(["Piano", "Drums"]);
+  await expect(page.locator("app-arrangement-view")).toBeVisible();
+
+  // Undo must not step back into the session that was just replaced.
+  expect(after.canUndo).toBe(false);
+
+  // And the replaced work is still reachable: it was written to Local Sets
+  // before the session was cleared.
+  await page.getByRole("button", { name: "Project", exact: true }).click();
+  await expect(
+    page.locator(".project-row").filter({ hasText: "Doomed Session" }),
+  ).toBeVisible();
+});
+
+test("guides a fresh session that has lanes but nothing on the timeline", async ({
+  page,
+}) => {
+  await openStudio(page);
+  const hint = page.locator(".session-hint");
+
+  // A fresh project ships two default lanes, so the arrangement view's own
+  // zero-track empty state never fires. This is the moment after "New project".
+  await page.evaluate(() => {
+    const cmp = (window as any).ng.getComponent(
+      document.querySelector("app-studio-page"),
+    );
+    cmp.musicManager.newProject(false);
+  });
+  await expect(hint).toBeVisible();
+  await expect(hint).toContainText("Nothing on the timeline yet");
+
+  // The primary action is real, not decorative: it opens AI Produce.
+  await hint.getByRole("button", { name: "Generate with AI" }).click();
+  await expect(page.locator("app-ai-produce")).toBeVisible();
+  await page.locator(".overlay-head .panel-close").click();
+  await expect(page.locator("app-ai-produce")).toHaveCount(0);
+  await expect(hint).toBeVisible();
+
+  // A clip is the cue's own exit condition: it must not need dismissing.
+  await page.evaluate(() => {
+    const cmp = (window as any).ng.getComponent(
+      document.querySelector("app-studio-page"),
+    );
+    const track = cmp.musicManager.tracks()[0];
+    cmp.musicManager.addClipToTrack(track.id, { start: 0, length: 4 });
+  });
+  await expect(hint).toHaveCount(0);
+
+  // A new session is a new canvas, so the dismissal is not permanent...
+  await page.getByRole("button", { name: "Project", exact: true }).click();
+  await page.getByRole("button", { name: "New project" }).click();
+  await page.getByRole("button", { name: "Start fresh" }).click();
+  await expect(hint).toBeVisible();
+
+  // ...and dismissing it sticks.
+  await hint.getByRole("button", { name: "Dismiss" }).click();
+  await expect(hint).toHaveCount(0);
+});
+
+test("keeps the fresh-session nudge inside the canvas on a phone", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openStudio(page);
+  await page.evaluate(() => {
+    const cmp = (window as any).ng.getComponent(
+      document.querySelector("app-studio-page"),
+    );
+    cmp.musicManager.newProject(false);
+  });
+
+  const hint = page.locator(".session-hint");
+  await expect(hint).toBeVisible();
+
+  const box = (await hint.boundingBox())!;
+  const transport = (await page.locator(".studio-transport-bar").boundingBox())!;
+  // Inside the viewport on both edges...
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  // ...and clear of the transport, so Play/Record stay tappable.
+  expect(box.y + box.height).toBeLessThanOrEqual(transport.y);
+
+  // Stacked, both actions keep the phone touch floor.
+  for (const name of ["Generate with AI", "Dismiss"]) {
+    const target = await hint.getByRole("button", { name }).boundingBox();
+    expect(target!.height).toBeGreaterThanOrEqual(44);
+  }
+});

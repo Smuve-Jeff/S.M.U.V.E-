@@ -1039,3 +1039,117 @@ failures.
   rather than deleted under "keep all current components".
 - **Safe-area insets read as 0** on desktop Chromium: their binding is asserted,
   not their effect, and no notched device was emulated.
+
+## 16. Tenth pass — a guarded "New project" on the composed page
+
+### 16.1 What changed
+
+- **`/studio` can finally start a new session.** It was the last lifecycle action
+  the classic shell had and the composed page did not: the Project panel could
+  open, import and refresh local sets, but never clear the session. The panel now
+  carries **New project** beside **Import bundle** and **Refresh**.
+- **Two guards, because this is the one destructive action on the surface.**
+  Consent first — `InteractionDialogService.confirm` with `tone: "danger"`, the
+  same affordance the import flow uses, and a message that changes with the
+  state (an unsaved session is told where its copy goes). Then a copy: a dirty
+  session is written to Local Sets *before* it is replaced, so "new project" is
+  never the place an idea disappears; the panel list is refreshed so the copy is
+  visible immediately.
+- **The reset is split across the two owners, in the only order that works.**
+  `MusicManagerService.newProject()` owns the track graph;
+  `ProjectWorkspaceService.startFreshProject()` owns metadata, signatures and
+  autosave bookkeeping, and it snapshots the *current* track graph when it runs.
+  So the graph is cleared first and the workspace second, or the fresh session
+  would be stamped with a signature of the session being replaced.
+- **History is cut after both.** `newProject()` runs through the command stack,
+  so undoing the reset would otherwise restore the previous project's tracks into
+  the new one. `history.clear()` runs last, and the e2e test asserts
+  `canUndo()` is false once the fresh session is up.
+
+### 16.2 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npx playwright test studio-new-page` | **21/21** (1 new: consent, cancel, reset, undo, Local Sets copy) |
+| `npx jest src/app/studio/studio-page` | **26 passed** |
+| `npx tsc --noEmit` / `npx ng build` | **0 errors** (bundle-budget warning pre-existing) |
+| Rendered captures | `artifacts/studio-project-panel-new.png`, `…-new-project-dialog.png`, `…-phone-project-new.png` |
+
+The e2e test drives the real thing rather than a mock: it builds a named
+three-track session, cancels the first confirmation (asserting the tracks and
+name are untouched), confirms the second, and then proves three separate
+outcomes — the fresh pair is `Piano`/`Drums`, the top bar reads `Untitled
+Project`, Undo is empty, and `Doomed Session` is still listed in Local Sets.
+
+### 16.3 Environment note (this container, not the product)
+
+The restored runner had **no system fonts and no fontconfig**, and Chromium died
+with `FATAL: SkFontMgr_FontConfigInterface.cpp:163 Not implemented` on *every*
+route — which reads in Playwright as `Target page, context or browser has been
+closed`, i.e. exactly like a product failure. `npx playwright install-deps`
+cannot run here (`sudo: no new privileges`). Working setup, repeatable without
+root:
+
+```bash
+# missing shared libs, extracted from Ubuntu debs into a private tree
+python3 … # fetch libnspr4 libnss3 libasound2 libatk* libatspi libX* libxkbcommon0
+dpkg-deb -x <deb> ~/.pwlibs && export LD_LIBRARY_PATH=~/.pwlibs/usr/lib/x86_64-linux-gnu
+# fonts + a config, since /etc/fonts does not exist at all
+dpkg-deb -x fonts-dejavu-core_*.deb ~/.local/fontpkg  # → ~/.local/share/fonts
+export FONTCONFIG_FILE=~/.config/fontconfig/fonts.conf
+```
+
+Both variables must be set for any browser-driven check in this VM.
+
+## 17. Eleventh pass — what a fresh session is told
+
+### 17.1 What changed
+
+- **A nudge for the session that has lanes but nothing on them.** The
+  arrangement view already ships an empty-state card ("Your canvas is ready. Make
+  the first move."), but it renders only when `tracks().length === 0` — and a
+  fresh project starts with Piano + Drums, so the exact moment "New project"
+  lands on was the one moment with no guidance at all. The page now hosts a
+  compact `.session-hint` over the empty canvas: what to do, one real action
+  (AI Produce), and Dismiss.
+- **It leaves on its own.** The computed condition is "no clips on any track",
+  so the first clip removes it — no dismissal needed, and it never becomes
+  furniture. Dismissal is remembered for the session, and reset by `newProject()`
+  because a new canvas is exactly where the cue belongs again.
+- **Absolute, not a flex child.** A bar here would shorten the flex column that
+  every panel's docking maths measures against — the same bug class fixed in
+  §15 — so it overlays the canvas instead, at the tools tier (below the sheets
+  and their scrim, so it can never sit on top of a panel the user just opened).
+- **Its action is the page's existing routing, not a new one.**
+  `onRequestView('ai-produce')` opens the AI Produce overlay, which is also what
+  the arrangement view's own card emits — one path, verified in the browser.
+
+### 17.2 Evidence
+
+| Check | Result |
+| --- | --- |
+| `npx playwright test studio-new-page` | **23/23** (2 new) |
+| `npx jest src/app/studio/studio-page` | **27 passed** (1 new contract test) |
+| `npx tsc --noEmit` / `npx ng build` | **0 errors** (bundle-budget warning pre-existing) |
+| Rendered captures | `artifacts/studio-empty-session-hint.png`, `…-phone-empty-session-hint.png` |
+
+The e2e coverage drives the whole life of the cue: it appears on an empty
+session, **Generate with AI really opens `app-ai-produce`** (then closes back to
+the hint), the first clip removes it without a dismissal, a new project brings it
+back, and Dismiss then sticks. The phone test measures the box against the
+viewport and the transport, plus the 48px floor on both stacked actions.
+
+### 17.3 Two contract tests had to be corrected, not just satisfied
+
+Adding CSS here broke two assertions in `studio-page.styles.spec.ts`, and both
+were **tests that had quietly encoded an accident**:
+
+- The phone-block assertion matched the *first* `@media (max-width: 768px),
+  (pointer: coarse)` block with a non-greedy regex. A second phone block (the
+  nudge's) took that slot, so the test was pinning source order rather than the
+  chrome. It now selects the block that actually styles `.panel-close`.
+- `expect(css).not.toContain("z-index: var(--studio-z-tools)")` was a whole-file
+  prohibition standing in for "the panels are not on the tools tier". The nudge
+  belongs on that tier on purpose, so the assertion now checks each panel's own
+  block and *separately* pins the nudge to the tools tier — the same intent,
+  stated where it applies.

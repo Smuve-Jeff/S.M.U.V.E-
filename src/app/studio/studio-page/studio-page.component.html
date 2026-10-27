@@ -123,12 +123,43 @@
             </div>
           </header>
 
-          <div class="workspace-body">
+          <div class="workspace-body arrange-body">
             <app-arrangement-view
               class="workspace-embed"
               (requestViewChange)="onRequestView($event)"
               (openBezierEditor)="openBezierEditor($event)"
             ></app-arrangement-view>
+
+            <!-- A fresh project has lanes but no clips, which the arrangement
+                 view's own zero-track empty state does not cover. Absolute so it
+                 overlays the empty canvas instead of shrinking the instrument,
+                 and it leaves on its own as soon as the first clip exists. -->
+            <div
+              class="session-hint"
+              *ngIf="showSessionHint()"
+              role="region"
+              aria-label="Nothing on the timeline yet"
+            >
+              <div class="session-hint-copy">
+                <strong>Nothing on the timeline yet.</strong>
+                <span>
+                  Record a take, generate a track with AI Produce, or start from
+                  a beat.
+                </span>
+              </div>
+              <div class="session-hint-actions">
+                <button
+                  type="button"
+                  class="session-hint-primary"
+                  (click)="onRequestView('ai-produce')"
+                >
+                  Generate with AI
+                </button>
+                <button type="button" (click)="dismissSessionHint()">
+                  Dismiss
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -384,6 +415,14 @@
         (change)="importProjectFile($event)"
       />
       <div class="project-actions">
+        <button
+          type="button"
+          class="panel-close"
+          (click)="newProject()"
+          [disabled]="projectPanelBusy()"
+        >
+          New project
+        </button>
         <button
           type="button"
           class="panel-close"

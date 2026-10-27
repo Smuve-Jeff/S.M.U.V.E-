@@ -382,6 +382,107 @@
   min-height: 0;
 }
 
+/* ----------------------------------------------------------------------------
+   FRESH-SESSION NUDGE — lanes exist, the timeline does not
+
+   The arrangement view's own empty state only covers a *zero-track* session; a
+   fresh project ships Piano + Drums, so it lands on empty lanes instead. This
+   overlays the empty canvas rather than eating canvas height (the canvas is the
+   instrument), and it leaves the moment the first clip exists.
+   ---------------------------------------------------------------------------- */
+.arrange-body {
+  /* Anchor for the overlay: absolute so it adds no height to the flex column,
+     which is what every panel's docking maths measures against. */
+  position: relative;
+}
+
+.session-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(560px, calc(100% - 32px));
+  padding: 12px 14px;
+  border: 1px solid var(--studio-accent-line);
+  border-radius: 14px;
+  background: var(--studio-panel);
+  box-shadow: var(--studio-elev-panel);
+  /* A nudge, so it lives below the sheets and their scrim — never above a panel
+     the user just opened. */
+  z-index: var(--studio-z-tools);
+}
+
+.session-hint-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--studio-dim);
+}
+
+.session-hint-copy strong {
+  font-size: 0.88rem;
+  color: var(--studio-ink);
+}
+
+.session-hint-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-hint-actions button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--studio-line-strong);
+  border-radius: 10px;
+  background: var(--studio-raise);
+  color: var(--studio-ink);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.session-hint-actions .session-hint-primary {
+  border-color: var(--studio-accent-line);
+  background: var(--studio-accent-soft);
+  font-weight: 700;
+}
+
+.session-hint-actions button:hover {
+  border-color: var(--studio-accent-line);
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  /* Stacked at the thumb end of the canvas: two 48px targets would not fit
+     beside the copy on a 360px phone. */
+  .session-hint {
+    bottom: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: calc(100% - 24px);
+  }
+
+  .session-hint-actions button {
+    flex: 1 1 0;
+    min-height: 48px;
+  }
+}
+
+@media (forced-colors: active) {
+  .session-hint {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+}
+
 .export-card {
   flex: 1 1 auto;
   min-width: 0;
