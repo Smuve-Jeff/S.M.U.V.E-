@@ -2207,6 +2207,7 @@
 .comp-rec-comp-btn {
   flex: 1;
   height: 36px;
+  /* Phones get the touch floor below; the dense panel keeps 36px on a mouse. */
   border-radius: 8px;
   border: 1px solid var(--espresso-line);
   background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
@@ -4712,5 +4713,15 @@
 @media (max-width: 1023px) {
   .comp-arrangement-stage > app-inspector {
     display: none;
+  }
+}
+
+/* ── Android touchscreens: controls that were sized for a mouse ──
+   The component-recording actions are 36px in the dense panel, which a finger
+   misses. Everything else in the shell is floored by
+   src/app/studio/shared/platform-ux.css, which does not know these classes. */
+@media (pointer: coarse) {
+  .comp-rec-comp-btn {
+    height: 44px;
   }
 }

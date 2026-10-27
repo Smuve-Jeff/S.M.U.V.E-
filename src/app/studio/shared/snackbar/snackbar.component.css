@@ -95,7 +95,7 @@
     background 0.18s ease,
     transform 0.12s ease;
   min-width: 44px;
-  min-height: 36px;
+  min-height: 44px;
 }
 
 .snackbar-action:hover {
@@ -117,8 +117,10 @@
   align-items: center;
   justify-content: center;
   transition: all 0.18s ease;
-  min-width: 36px;
-  min-height: 36px;
+  /* Dismiss is the only way out of a sticky snackbar on a phone: it holds the
+     44dp touch floor like every other control. */
+  min-width: 44px;
+  min-height: 44px;
   align-self: center;
 }
 

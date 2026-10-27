@@ -19,7 +19,12 @@ type ExportFeedback = { tone: "ok" | "error"; text: string };
   standalone: true,
   imports: [CommonModule],
   templateUrl: "./studio-export-surface.component.html",
-  styleUrls: ["./studio-export-surface.component.css"],
+  // The platform layer gives the native selects a 16px minimum (Android Chrome
+  // zooms the viewport on a smaller focused control) and the shared touch rules.
+  styleUrls: [
+    "./studio-export-surface.component.css",
+    "../shared/platform-ux.css",
+  ],
 })
 export class StudioExportSurfaceComponent {
   private readonly exportService = inject(ExportService);

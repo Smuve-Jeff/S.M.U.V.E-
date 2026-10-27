@@ -1,17 +1,37 @@
+/* ============================================================
+   STUDIO — EXPORT SURFACE
+
+   Lives inside the shell's canvas, so it inherits the shell's theme
+   tokens rather than carrying the light "paper" palette the composed
+   page had: on a dark shell those hard-coded ink-on-white fields read
+   as a pasted-in dialog.
+
+   Targets: Android Chrome-class phones (coarse pointer, 44dp floor,
+   native select pickers, gesture-bar inset) and Chrome desktop
+   (hover affordances, keyboard focus rings).
+   ============================================================ */
+
 :host {
   display: block;
   width: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(14px, 3vw, 28px);
+  padding-bottom: calc(clamp(14px, 3vw, 28px) + env(safe-area-inset-bottom, 0px));
+  color: var(--espresso-text, #f1f5ff);
   font-size: 0.85rem;
 }
 
 .export-surface-shell {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  max-width: 560px;
+  max-width: 640px;
   margin: 0 auto;
 }
+
+/* ── Options: format, sample rate, stem depth ─────────────── */
 
 .export-options {
   display: grid;
@@ -22,20 +42,38 @@
 .export-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 0.72rem;
-  color: rgba(31, 26, 18, 0.65);
+  gap: 6px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--espresso-muted, #94a3c8);
 }
 
 .export-field select {
-  min-height: 34px;
-  padding: 0 8px;
-  border: 1px solid rgba(61, 53, 42, 0.14);
+  width: 100%;
+  /* 44px is the touch floor; the native picker needs the height to be a
+     comfortable thumb target, and a 34px field was below it. */
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.7);
-  color: #1f1a12;
-  font: inherit;
+  background: var(--espresso-soft, rgba(180, 200, 255, 0.06));
+  color: var(--espresso-text, #f1f5ff);
+  font-family: inherit;
+  font-size: 0.8rem;
+  letter-spacing: normal;
+  text-transform: none;
 }
+
+.export-field select:focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 2px;
+}
+
+/* ── Actions ─────────────────────────────────────────────── */
 
 .export-actions {
   display: grid;
@@ -45,24 +83,55 @@
 
 .export-actions button {
   min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid rgba(61, 53, 42, 0.12);
+  padding: 0 14px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.45);
-  color: #1f1a12;
-  font-weight: 600;
+  background: var(--espresso-soft, rgba(180, 200, 255, 0.06));
+  color: var(--espresso-text, #f1f5ff);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 90ms ease;
 }
 
 .export-actions button.primary {
-  background: rgba(20, 184, 166, 0.14);
-  border-color: rgba(14, 124, 123, 0.28);
+  background: color-mix(in srgb, var(--teal-500, #00e5ff) 20%, transparent);
+  border-color: color-mix(in srgb, var(--teal-500, #00e5ff) 42%, transparent);
+  color: var(--teal-300, #a5f8ff);
+}
+
+/* Hover is a desktop affordance only — on a touchscreen it sticks after a tap
+   and makes the button that was just pressed look still-selected. */
+@media (hover: hover) {
+  .export-actions button:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--teal-500, #00e5ff) 46%, transparent);
+    background: color-mix(in srgb, var(--teal-500, #00e5ff) 12%, var(--espresso-soft, rgba(180, 200, 255, 0.06)));
+  }
+
+  .export-actions button.primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--teal-500, #00e5ff) 30%, transparent);
+  }
+}
+
+.export-actions button:focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 2px;
+}
+
+.export-actions button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .export-actions button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: default;
 }
+
+/* ── Progress ────────────────────────────────────────────── */
 
 .export-progress {
   display: flex;
@@ -75,15 +144,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 0.78rem;
-  color: rgba(31, 26, 18, 0.75);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--espresso-muted, #94a3c8);
 }
 
 .export-progress-track {
   position: relative;
-  height: 6px;
+  height: 8px;
   border-radius: 999px;
-  background: rgba(61, 53, 42, 0.12);
+  background: var(--espresso-soft, rgba(180, 200, 255, 0.06));
   overflow: hidden;
 }
 
@@ -91,7 +162,11 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #14b8a6, #0e7c7b);
+  background: linear-gradient(
+    90deg,
+    var(--teal-600, #00b8d4),
+    var(--teal-400, #66f0ff)
+  );
   transition: width 140ms linear;
 }
 
@@ -113,15 +188,33 @@
 .export-feedback {
   margin: 0;
   font-size: 0.78rem;
-  color: rgba(31, 26, 18, 0.75);
+  line-height: 1.45;
+  color: var(--espresso-muted, #94a3c8);
 }
 
 .export-feedback.error {
-  color: #b45309;
+  color: #ff9e80;
   font-weight: 600;
 }
 
+/* ── Phone: one control per row, thumb-height targets ────── */
+
+@media (max-width: 460px) {
+  .export-options,
+  .export-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .export-actions button {
+    min-height: 48px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .export-actions button {
+    transition: none;
+  }
+
   .export-progress-fill {
     transition: none;
   }

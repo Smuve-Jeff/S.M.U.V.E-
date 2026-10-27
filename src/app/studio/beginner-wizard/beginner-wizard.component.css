@@ -144,6 +144,11 @@
   grid-template-columns: 1fr;
   gap: 14px;
   margin-top: 22px;
+  /* The footer is sticky, so it paints over whatever is passing beneath it
+     while the list scrolls. Without clearance the last card's tip and CTA sat
+     behind the two buttons on a phone. 84px = the 76px footer row + air; the
+     phone breakpoint below stacks the buttons and reserves the taller row. */
+  padding-bottom: 84px;
 }
 
 @media (min-width: 600px) {
@@ -499,6 +504,11 @@
   .wizard-card {
     min-height: 0;
     padding: 16px 14px 14px;
+  }
+
+  .wizard-cards {
+    /* Two stacked 48px buttons + gaps + the gesture inset. */
+    padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
   }
 
   .wizard-footer {
