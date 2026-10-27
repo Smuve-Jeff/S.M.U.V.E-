@@ -396,3 +396,80 @@
     transform: none;
   }
 }
+
+/* ── Precise control-point entry ──────────────────────────────────────────
+   Dragging a handle can never land on an exact value; these fields can, and
+   they are the only way to reproduce a curve number-for-number. */
+.bezier-precise {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 10px 0;
+}
+
+.bezier-cp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bezier-cp-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #7dd3fc;
+}
+
+.bezier-cp-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgba(241, 232, 216, 0.6);
+}
+
+.bezier-cp-field input {
+  width: 4.6rem;
+  min-height: 40px;
+  padding: 0 6px;
+  border-radius: 7px;
+  border: 1px solid rgba(180, 200, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: #f1e8d8;
+  font-variant-numeric: tabular-nums;
+}
+
+.bezier-custom-tag {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(246, 196, 83, 0.18);
+  color: #f6c453;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 640px) {
+  .bezier-precise {
+    gap: 6px;
+    padding: 6px 8px 0;
+  }
+
+  .bezier-cp {
+    flex: 1 1 100%;
+  }
+
+  .bezier-cp-field {
+    flex: 1 1 auto;
+  }
+
+  .bezier-cp-field input {
+    width: 100%;
+  }
+}

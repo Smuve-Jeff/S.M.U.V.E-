@@ -1297,3 +1297,42 @@ them. Desktop keeps the inline panel. */
 .channel-rack-level.is-hot i {
   background: linear-gradient(to top, #f6c453, #ef4444);
 }
+
+/* ── Track freeze (bounce-in-place) ────────────────────────────────
+   A frozen track plays a rendered clip instead of its synth, so its card says
+   so and offers the thaw key in the same action row. */
+.channel-freeze-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 7px;
+  color: var(--rack-muted);
+}
+
+.channel-freeze-btn.is-frozen {
+  color: #38bdf8;
+  background: color-mix(in srgb, #38bdf8 14%, transparent);
+}
+
+.channel-frozen-chip {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, #38bdf8 20%, transparent);
+  color: #7dd3fc;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+@media (pointer: coarse) {
+  .channel-freeze-btn {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}

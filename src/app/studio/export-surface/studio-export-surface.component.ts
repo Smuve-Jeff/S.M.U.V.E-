@@ -158,6 +158,28 @@ export class StudioExportSurfaceComponent {
     }
   }
 
+  /**
+   * DAWproject bundle — the open interchange format other DAWs read. It needs
+   * the project's audio encoded into the archive, so it is async like the
+   * render paths and shares their busy/progress state.
+   */
+  async exportDawproject() {
+    if (this.busy()) return;
+
+    this.begin("Packaging DAWproject…");
+    try {
+      const blob = await this.exportService.exportDawproject();
+      const filename = `${this.projectBase()}_${Date.now()}.dawproject`;
+      this.exportService.downloadBlob(blob, filename);
+      this.finish(
+        "ok",
+        `Downloaded ${filename} — notes, audio and mixer levels for another DAW`,
+      );
+    } catch (error) {
+      this.fail("DAWproject export failed", error);
+    }
+  }
+
   /** Render at the chosen format, then open the share sheet (download fallback). */
   async shareExport() {
     if (this.busy()) return;

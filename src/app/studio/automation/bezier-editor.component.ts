@@ -13,6 +13,7 @@ import {
   EventEmitter,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 import { AutomationService } from "../automation.service";
 import {
   BezierPresets,
@@ -51,7 +52,7 @@ const READOUT_COLOR: GLColor = { r: 0.95, g: 0.3, b: 0.45, a: 0.95 };
 @Component({
   selector: "app-bezier-editor",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="bezier-editor-shell">
       <div class="bezier-header">
@@ -77,9 +78,72 @@ const READOUT_COLOR: GLColor = { r: 0.95, g: 0.3, b: 0.45, a: 0.95 };
           <span class="bezier-label-br">Value</span>
         </div>
       </div>
+      <!-- Precise entry: dragging can never hit an exact handle value, and a
+           curve copied from another project needs exact numbers. -->
+      <div class="bezier-precise" role="group" aria-label="Control point values">
+        <div class="bezier-cp">
+          <span class="bezier-cp-title">IN</span>
+          <label class="bezier-cp-field">
+            <span>TIME</span>
+            <input
+              type="number"
+              min="0"
+              max="1"
+              step="0.01"
+              inputmode="decimal"
+              [ngModel]="cpIn().t"
+              (ngModelChange)="setHandle('in', 't', $event)"
+              aria-label="In handle time, 0 to 1"
+            />
+          </label>
+          <label class="bezier-cp-field">
+            <span>VALUE</span>
+            <input
+              type="number"
+              min="0"
+              max="1"
+              step="0.01"
+              inputmode="decimal"
+              [ngModel]="cpIn().value"
+              (ngModelChange)="setHandle('in', 'value', $event)"
+              aria-label="In handle value, 0 to 1"
+            />
+          </label>
+        </div>
+        <div class="bezier-cp">
+          <span class="bezier-cp-title">OUT</span>
+          <label class="bezier-cp-field">
+            <span>TIME</span>
+            <input
+              type="number"
+              min="0"
+              max="1"
+              step="0.01"
+              inputmode="decimal"
+              [ngModel]="cpOut().t"
+              (ngModelChange)="setHandle('out', 't', $event)"
+              aria-label="Out handle time, 0 to 1"
+            />
+          </label>
+          <label class="bezier-cp-field">
+            <span>VALUE</span>
+            <input
+              type="number"
+              min="0"
+              max="1"
+              step="0.01"
+              inputmode="decimal"
+              [ngModel]="cpOut().value"
+              (ngModelChange)="setHandle('out', 'value', $event)"
+              aria-label="Out handle value, 0 to 1"
+            />
+          </label>
+        </div>
+      </div>
       <div class="bezier-footer">
-        <div class="bezier-point-info" *ngIf="draggingHandle() as h">
-          CP{{ h }}: {{ handlePositions() }}
+        <div class="bezier-point-info">
+          {{ handlePositions() }}
+          <span class="bezier-custom-tag" *ngIf="activePreset() === ''">CUSTOM</span>
         </div>
         <div class="bezier-readout-info" *ngIf="readoutDots().length > 0">
           <span class="bezier-readout-dot"></span>
@@ -127,7 +191,8 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
   handlePositions = computed(() => {
     const i = this.cpIn();
     const o = this.cpOut();
-    return `IN(${(i.t * 100).toFixed(0)}%,${(i.value * 100).toFixed(0)}%) OUT(${(o.t * 100).toFixed(0)}%,${(o.value * 100).toFixed(0)}%)`;
+    const pct = (n: number) => (n * 100).toFixed(0);
+    return `IN ${pct(i.t)}%/${pct(i.value)}% · OUT ${pct(o.t)}%/${pct(o.value)}%`;
   });
 
   /**
@@ -341,6 +406,24 @@ export class BezierEditorComponent implements AfterViewInit, OnDestroy {
   }
 
   // ── Presets & actions ───────────────────────────────────
+
+  /**
+   * Write one control-point coordinate from the numeric fields.
+   *
+   * Values are clamped to the unit square and rounded to 1/100 — the same
+   * resolution the handles' own drag reports, so typed and dragged curves are
+   * interchangeable instead of drifting by sub-pixel amounts.
+   */
+  setHandle(handle: "in" | "out", axis: "t" | "value", raw: number | string): void {
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return;
+    const next = Math.round(Math.max(0, Math.min(1, parsed)) * 100) / 100;
+    const target = handle === "in" ? this.cpIn : this.cpOut;
+    const current = target();
+    if (current[axis] === next) return;
+    target.set({ ...current, [axis]: next });
+    this.activePreset.set(""); // any typed value is a custom curve
+  }
 
   applyPreset(id: string): void {
     const preset = PRESET_ENTRIES.find((p) => p.id === id);

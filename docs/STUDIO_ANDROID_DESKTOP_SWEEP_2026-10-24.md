@@ -485,9 +485,9 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
 | Gap | Field baseline | Ours |
 | --- | --- | --- |
 | Tempo / time-signature map | FL Mobile, Cubasis | Tempo map done (`TempoMapService`, transport panel, worklet + fallback scheduler); time signature still fixed 4/4 |
-| FLAC export | FL Mobile, n-Track, Audio Evolution | WAV/MP3/M4A/Opus only |
+| FLAC export | FL Mobile, n-Track, Audio Evolution | Done: `flac-encoder.util` writes a real FLAC stream (verbatim subframes, so lossless but not entropy-compressed) and is now an export format. Validated against a libFLAC decoder: bit-exact over mono/stereo, 44.1/48 kHz and short final blocks. |
 | Group/bus faders, N sends | Cubasis, n-Track | VCA rack + per-track A/B sends exist; true audio group buses (one fader summing many tracks) still missing |
-| Track freeze / bounce-in-place | FL Mobile, Cubasis | Missing (CPU cliff on long MIDI projects) |
+| Track freeze / bounce-in-place | FL Mobile, Cubasis | Done: Channel Rack freeze key renders the track offline, swaps its pattern for one audio clip and keeps a backup; the rendered clip carries `1/gain` so the still-live fader is not applied twice. Thaw restores notes, clips and pattern slot as one undo step. |
 | Notation editing | Cubasis | Read-only score view |
 | Android MIDI bridge | FL Mobile, Cubasis, Audio Evolution | Web MIDI only → no-op in WebView |
 | USB audio input | Audio Evolution, n-Track | Device mic/WebRTC input |
@@ -495,7 +495,7 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
 | Background playback | Cubasis, n-Track | Session finalizes when backgrounded |
 | Real cloud sync | BandLab, n-Track | `MockCloudServer` (IndexedDB only) |
 | Play Billing | All commercial apps | Mock shim, no store receipt |
-| DAWproject interchange | Cubasis 3.7+ | Missing |
+| DAWproject interchange | Cubasis 3.7+ | Done: `.dawproject` export (`dawproject-export.ts`, authored against the published `Project.xsd`) with notes, audio, level/pan/mute/solo. Device state, plugin inserts and automation curves are not mapped. |
 
 ---
 
@@ -563,6 +563,17 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
 13. ~~Collapse the AI-band row into the tools row at ≤ 1024px; the third chip is
     already truncated at 390px.~~ Done: below 1024px the panel chrome and the
     section label go and the chips scroll in their own row.
+
+**Professional-DAW pass (this round)**
+
+- Track freeze / bounce-in-place: done (Channel Rack action; see §7 table).
+- FLAC export: done (own encoder; verbatim subframes, not entropy-coded).
+- DAWproject export: done (notes + audio + mixer levels).
+- Bezier editor precision: the automation curve editor gains numeric TIME/VALUE
+  fields per handle (0–1, 1/100 steps), so a curve can be reproduced exactly
+  instead of only dragged.
+- Still open from this list: **project workspace** work (the two P0 data-safety
+  items) and notation editing.
 
 **P3 — competitive gaps** (from §7): tempo map, FLAC, bus faders, freeze,
 notation editing, Android MIDI/USB audio, Link/clock-in, background playback,

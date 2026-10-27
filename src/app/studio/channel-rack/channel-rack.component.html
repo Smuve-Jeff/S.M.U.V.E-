@@ -138,6 +138,9 @@
           class="channel-name neon-text-sm truncate uppercase tracking-tight font-black leading-none mb-1 flex items-center gap-1"
         >
           <span class="truncate">{{ track.name }}</span>
+          <span class="channel-frozen-chip" *ngIf="track.frozenBackup" title="Rendered audio — tap the sun to thaw">
+            FROZEN
+          </span>
           <button
             type="button"
             (click)="openPianoRoll(track); $event.stopPropagation()"
@@ -235,6 +238,25 @@
             >
           </button>
         </div>
+        <button
+          type="button"
+          (click)="toggleFreeze(track, $event)"
+          [attr.aria-label]="
+            (track.frozenBackup ? 'Thaw ' : 'Freeze ') + track.name
+          "
+          [attr.aria-pressed]="!!track.frozenBackup"
+          [class.is-frozen]="!!track.frozenBackup"
+          class="channel-freeze-btn"
+          [title]="
+            track.frozenBackup
+              ? 'Thaw: restore the live pattern'
+              : 'Freeze: render this track to one audio clip'
+          "
+        >
+          <span class="material-symbols-outlined text-[12px]">{{
+            track.frozenBackup ? 'sunny' : 'ac_unit'
+          }}</span>
+        </button>
         <button
           type="button"
           (click)="removeTrack(track.id); $event.stopPropagation()"

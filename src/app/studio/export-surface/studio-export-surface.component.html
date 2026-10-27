@@ -57,6 +57,14 @@
     <button type="button" (click)="exportMidi()" [disabled]="busy()">
       Export MIDI
     </button>
+    <button
+      type="button"
+      (click)="exportDawproject()"
+      [disabled]="busy()"
+      title="Open exchange project for Bitwig, Studio One and Cubasis 3.7+"
+    >
+      Export DAWproject
+    </button>
     <button type="button" (click)="shareExport()" [disabled]="busy()">
       Share Mixdown
     </button>

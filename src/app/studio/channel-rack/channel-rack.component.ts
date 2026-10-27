@@ -91,6 +91,31 @@ export class ChannelRackComponent implements OnInit, OnDestroy {
     return Math.round((this.trackLevels()[id] ?? 0) * 100);
   }
 
+  /**
+   * Freeze renders the track offline and swaps its pattern for that render;
+   * tapping again restores the pattern from the backup. Both directions are a
+   * single undoable history step.
+   */
+  async toggleFreeze(track: TrackModel, event: Event): Promise<void> {
+    event.stopPropagation();
+    if (track.frozenBackup) {
+      const thawed = this.musicManager.unfreezeTrack(track.id);
+      this.snackbar.info(
+        thawed
+          ? `"${track.name}" thawed — pattern restored`
+          : "Nothing to thaw on this track",
+      );
+      return;
+    }
+    this.snackbar.info(`Freezing "${track.name}"…`);
+    const frozen = await this.musicManager.freezeTrack(track.id);
+    this.snackbar.info(
+      frozen
+        ? `"${track.name}" frozen — it plays one rendered clip now`
+        : "Freeze needs an unmuted MIDI or drum track",
+    );
+  }
+
   /** 0-based bar of the editing window while the transport is stopped. */
   stepBar = signal(0);
 

@@ -84,14 +84,17 @@ describe('ExportService (Sprint A6)', () => {
     expect(share).toHaveBeenCalledWith(expect.objectContaining({ type: 'audio/wav' }), expect.stringMatching(/\.wav$/));
   });
 
-  it('EXPORT_FORMATS covers wav/wav24/mp3/m4a/opus with extensions and mimes', () => {
+  it('EXPORT_FORMATS covers wav/wav24/flac/mp3/m4a/opus with extensions and mimes', () => {
     expect(EXPORT_FORMATS.map((f) => f.id)).toEqual([
       'wav',
       'wav24',
+      'flac',
       'mp3',
       'm4a',
       'opus',
     ]);
+    expect(EXPORT_FORMATS.find((f) => f.id === 'flac')?.ext).toBe('flac');
+    expect(EXPORT_FORMATS.find((f) => f.id === 'flac')?.mime).toBe('audio/flac');
     expect(EXPORT_FORMATS.find((f) => f.id === 'wav24')?.ext).toBe('wav');
     expect(EXPORT_FORMATS.find((f) => f.id === 'mp3')?.mime).toBe('audio/mpeg');
     expect(EXPORT_FORMATS.find((f) => f.id === 'opus')?.ext).toBe('ogg');

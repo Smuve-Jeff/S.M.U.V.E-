@@ -17,6 +17,14 @@ import {
   MidiWriter,
 } from '../studio/midi-writer.util';
 import { buildZip, type ZipEntry } from '../studio/zip.util';
+import { encodeFlacBlob } from '../studio/flac-encoder.util';
+import {
+  buildDawproject,
+  xmlId,
+  type DawprojectAudio,
+  type DawprojectClip,
+  type DawprojectTrack,
+} from '../studio/dawproject-export';
 
 /** Steps-per-beat grid used across the app (16th-note grid). */
 const STEPS_PER_BEAT = 4;
@@ -44,6 +52,7 @@ export interface ExportFormatInfo {
 export const EXPORT_FORMATS: ExportFormatInfo[] = [
   { id: 'wav', label: 'WAV 16-bit', ext: 'wav', mime: 'audio/wav' },
   { id: 'wav24', label: 'WAV 24-bit', ext: 'wav', mime: 'audio/wav' },
+  { id: 'flac', label: 'FLAC (lossless)', ext: 'flac', mime: 'audio/flac' },
   { id: 'mp3', label: 'MP3 192k', ext: 'mp3', mime: 'audio/mpeg', webCodecs: 'mp3' },
   { id: 'm4a', label: 'AAC (M4A)', ext: 'm4a', mime: 'audio/mp4', webCodecs: 'aac' },
   { id: 'opus', label: 'Opus (OGG)', ext: 'ogg', mime: 'audio/ogg', webCodecs: 'opus' },
@@ -166,6 +175,92 @@ export class ExportService {
     const zip = buildZip(entries);
     this.downloadBlob(zip, `${projectName}_stems_${Date.now()}.zip`);
     return zip;
+  }
+
+  /**
+   * DAWproject interchange bundle: `project.xml` plus every rendered or
+   * recorded clip's audio, zipped as `.dawproject` (Bitwig / Studio One /
+   * Cubasis 3.7+).
+   *
+   * This is an interchange export, not a backup: device state, plugin inserts
+   * and automation curves have no faithful mapping in the format, so tracks
+   * travel as notes + audio + level/pan/mute/solo.
+   */
+  async exportDawproject(): Promise<Blob> {
+    const tempo = this.engine.tempo();
+    const audioBuffers = new Map<string, AudioBuffer>();
+
+    const tracks: DawprojectTrack[] = this.musicManager.tracks().map((track) => {
+      const clips: DawprojectClip[] = (track.clips ?? []).map((clip: any) => {
+        const cacheId =
+          clip.type === 'audio' && clip.audioRefId ? clip.audioRefId : null;
+        const buffer = cacheId
+          ? this.musicManager.stemAudioCache.get(cacheId)
+          : null;
+        if (cacheId && buffer) audioBuffers.set(cacheId, buffer);
+        return {
+          name: clip.name ?? track.name,
+          start: Number(clip.start) || 0,
+          length: Math.max(0.25, Number(clip.length) || 1),
+          audioId: cacheId && buffer ? cacheId : undefined,
+        };
+      });
+
+      // A MIDI track with no arrangement clips still plays its pattern; the
+      // format needs a clip to hold those notes, so synthesise one window.
+      if (clips.length === 0 && (track.notes?.length ?? 0) > 0) {
+        const lastStep = Math.max(
+          ...track.notes.map((note) => note.step + (note.length || 1)),
+        );
+        clips.push({
+          name: track.name,
+          start: 0,
+          length: Math.max(1, Math.ceil(lastStep / 16)),
+        });
+      }
+
+      return {
+        id: track.id,
+        name: track.name,
+        type: track.type,
+        color: track.color,
+        instrumentName: track.instrumentId,
+        gain: track.gain,
+        pan: track.pan,
+        muted: !!track.muted,
+        soloed: !!track.soloed,
+        notes: (track.notes ?? []).map((note) => ({
+          step: note.step,
+          length: note.length,
+          midi: note.midi,
+          velocity: note.velocity,
+        })),
+        clips,
+      };
+    });
+
+    const audio: DawprojectAudio[] = [];
+    for (const [id, buffer] of audioBuffers) {
+      const wav = await this.audioBufferToWav(buffer, 16);
+      audio.push({
+        id,
+        path: `audio/${xmlId('clip', id)}.wav`,
+        data: new Uint8Array(wav),
+      });
+    }
+
+    const blob = buildDawproject({
+      name: 'S.M.U.V.E. Project',
+      tempo,
+      numerator: 4,
+      denominator: 4,
+      tracks,
+      audio,
+    });
+    this.logger.info(
+      `Exported DAWproject: ${tracks.length} tracks, ${audio.length} audio files`,
+    );
+    return blob;
   }
 
   startLiveRecording() {
@@ -491,6 +586,12 @@ export class ExportService {
         info.id === 'wav24' ? 24 : 16
       );
       return new Blob([wav], { type: 'audio/wav' });
+    }
+
+    if (info.id === 'flac') {
+      // Lossless, and unlike the WebCodecs formats it needs no browser codec
+      // support: the encoder in flac-encoder.util writes the stream itself.
+      return encodeFlacBlob(buffer, { bitDepth: 16 });
     }
 
     if (info.webCodecs && typeof (globalThis as any).AudioEncoder === 'function') {

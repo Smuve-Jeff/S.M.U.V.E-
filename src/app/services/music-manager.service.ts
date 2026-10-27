@@ -20,6 +20,7 @@ import { TakeManagerService } from './take-manager.service';
 import { AutomationService } from '../studio/automation.service';
 import { OfflineBounceService } from '../studio/offline-bounce.service';
 import { AudioImportService } from '../studio/audio-import.service';
+import { buildFrozenTrack, restoreFrozenTrack } from '../studio/track-freeze.util';
 import {
   Project,
   StudioTrack,
@@ -142,6 +143,11 @@ export interface TrackModel extends StudioTrack {
   swingAmount?: number;
   collapsed?: boolean;
   stepVelocities?: Record<number, number>;
+  /**
+   * Present while the track is frozen: its pattern/notes were replaced by one
+   * rendered audio clip, and this backup is what un-freezing restores.
+   */
+  frozenBackup?: import("../studio/track-freeze.util").FrozenTrackBackup;
 }
 
 @Injectable({
@@ -2411,6 +2417,99 @@ export class MusicManagerService {
     this.stemAudioCache.set(clipId, opts.buffer);
     this.tracks.update((ts) => [...ts, track]);
     this.selectedTrackId.set(trackId);
+  }
+
+  // ── Track freeze / bounce-in-place ────────────────────────────────
+
+  /** True while this track plays a baked render instead of its synth. */
+  isTrackFrozen(trackId: string): boolean {
+    return !!this.tracks().find((t) => t.id === trackId)?.frozenBackup;
+  }
+
+  /**
+   * Render a MIDI/drum track offline, then swap its pattern for that render.
+   *
+   * This is the CPU escape hatch long MIDI projects need: a heavy synth track
+   * costs the same as one audio clip once it is baked. The original notes and
+   * clips are kept in `frozenBackup`, so thawing is a restore — no pattern is
+   * ever lost by freezing.
+   *
+   * Returns false (and changes nothing) when the track cannot be baked
+   * meaningfully: audio tracks are already audio, and a muted track (or a
+   * non-soloed track while something else is soloed) would bake silence.
+   */
+  async freezeTrack(trackId: string): Promise<boolean> {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track || track.frozenBackup) return false;
+    if (track.type === "audio") return false;
+    const hasSolo = this.tracks().some((t) => t.soloed);
+    if (track.muted || (hasSolo && !track.soloed)) return false;
+    if (this.offlineBounce.isBouncing()) return false;
+
+    this.logger.info(`Freezing track ${track.name}…`);
+    const result = await this.offlineBounce.bounceTrack(trackId, "wav-32-float");
+    if (!result) return false;
+
+    let buffer: AudioBuffer;
+    try {
+      buffer = await this.engine.ctx.decodeAudioData(
+        await result.blob.arrayBuffer(),
+      );
+    } catch (err) {
+      this.logger.error("Freeze: rendered audio could not be decoded", err);
+      return false;
+    }
+
+    const clipId = `frozen_${trackId}_${Date.now()}`;
+    this.stemAudioCache.set(clipId, buffer);
+    const frozen = buildFrozenTrack(track, {
+      clipId,
+      durationSeconds: buffer.duration,
+      tempo: this.engine.tempo(),
+      now: Date.now(),
+    });
+    const snapshot = this.clone(track);
+
+    this.runCommand(
+      "Freeze Track · " + track.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => (t.id === trackId ? frozen : t)),
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => (t.id === trackId ? snapshot : t)),
+        );
+      },
+    );
+    this.logger.info(
+      `Froze ${track.name}: ${frozen.clips?.[0]?.length ?? 0} bars baked`,
+    );
+    return true;
+  }
+
+  /** Restore a frozen track's pattern, notes and clips. */
+  unfreezeTrack(trackId: string): boolean {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track?.frozenBackup) return false;
+    const thawed = restoreFrozenTrack(track);
+    const snapshot = this.clone(track);
+
+    this.runCommand(
+      "Unfreeze Track · " + track.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => (t.id === trackId ? thawed : t)),
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => (t.id === trackId ? snapshot : t)),
+        );
+      },
+    );
+    return true;
   }
 
   // ── Playback engine stepper ───────────────────────────────────────
