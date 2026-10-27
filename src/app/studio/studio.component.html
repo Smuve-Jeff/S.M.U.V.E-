@@ -1042,6 +1042,12 @@
           ></app-inspector>
         </div>
       </ng-container>
+      <div class="comp-view" *ngSwitchCase="'quick-session'">
+        <app-quick-session
+          (openView)="onWizardNavigate($event)"
+          (useRecipe)="quickStartRecipe($event)"
+        ></app-quick-session>
+      </div>
       <div class="comp-view" *ngSwitchCase="'session'">
         <app-session-view></app-session-view>
       </div>

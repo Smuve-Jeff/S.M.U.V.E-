@@ -9,6 +9,7 @@
  * navigation renders.
  */
 export type StudioSurfaceId =
+  | "quick-session"
   | "arrangement"
   | "session"
   | "piano-roll"
@@ -61,6 +62,13 @@ export const STUDIO_SURFACE_GROUPS: StudioSurfaceGroup[] = [
     icon: "auto_awesome",
     description: "Record takes, program drums, play synths & chords",
     views: [
+      {
+        id: "quick-session",
+        label: "Quick Session",
+        icon: "bolt",
+        description: "Record a take or start a beat with just the essentials",
+        primary: true,
+      },
       {
         id: "drum-machine",
         label: "Drum Machine",

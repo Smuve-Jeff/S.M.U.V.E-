@@ -103,6 +103,7 @@ import { PluginStoreComponent } from "./plugin-store/plugin-store.component";
 import { WaveformRendererComponent } from "./waveform-renderer/waveform-renderer.component";
 import { StudioTransportShellComponent } from "./shared/studio-transport-shell/studio-transport-shell.component";
 import { SessionViewComponent } from "./session-view/session-view.component";
+import { QuickSessionComponent } from "./quick-session/quick-session.component";
 import { SmartCreationSheetComponent } from "./shared/smart-creation-sheet/smart-creation-sheet.component";
 import {
   StudioCoachAction,
@@ -206,6 +207,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     WaveformRendererComponent,
     StudioTransportShellComponent,
     SessionViewComponent,
+    QuickSessionComponent,
     SmartCreationSheetComponent,
   ],
   templateUrl: "./studio.component.html",

@@ -1,0 +1,370 @@
+<section class="qs-shell studio-workspace-surface" aria-labelledby="qs-title">
+  <!-- ── Header: identity + the two side-panel doors ─────────────────── -->
+  <header class="qs-header">
+    <div class="qs-heading">
+      <p class="qs-eyebrow">QUICK SESSION</p>
+      <h1 id="qs-title" class="qs-title">Make something now</h1>
+      <p class="qs-sub">
+        {{ trackCount() }} channel{{ trackCount() === 1 ? "" : "s" }} ·
+        everything else lives in the side panels
+      </p>
+    </div>
+    <div class="qs-panel-doors">
+      <button
+        type="button"
+        class="qs-door"
+        [class.is-open]="panel() === 'sounds'"
+        (click)="togglePanel('sounds')"
+        [attr.aria-expanded]="panel() === 'sounds'"
+        aria-controls="qs-sounds-panel"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">library_music</span>
+        <span>Sounds</span>
+      </button>
+      <button
+        type="button"
+        class="qs-door"
+        [class.is-open]="panel() === 'tools'"
+        (click)="togglePanel('tools')"
+        [attr.aria-expanded]="panel() === 'tools'"
+        aria-controls="qs-tools-panel"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+        <span>Mix &amp; Export</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Transport: the only row that never scrolls away ─────────────── -->
+  <div class="qs-transport" role="group" aria-label="Transport">
+    <button
+      type="button"
+      class="qs-transport-btn qs-play"
+      [class.is-on]="isPlaying()"
+      (click)="togglePlay()"
+      [attr.aria-pressed]="isPlaying()"
+      [attr.aria-label]="isPlaying() ? 'Stop playback' : 'Start playback'"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">{{
+        isPlaying() ? "stop" : "play_arrow"
+      }}</span>
+      <span>{{ isPlaying() ? "STOP" : "PLAY" }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="qs-transport-btn qs-record"
+      [class.is-on]="isRecording()"
+      (click)="toggleRecord()"
+      [attr.aria-pressed]="isRecording()"
+      [attr.aria-label]="isRecording() ? 'Stop recording' : 'Record'"
+    >
+      <span class="qs-record-dot" aria-hidden="true"></span>
+      <span>{{ isRecording() ? "RECORDING" : "RECORD" }}</span>
+    </button>
+
+    <div class="qs-tempo" role="group" aria-label="Tempo">
+      <button type="button" (click)="setTempo(-1)" aria-label="Slow down">−</button>
+      <label class="qs-tempo-readout">
+        <input
+          type="number"
+          inputmode="numeric"
+          min="40"
+          max="240"
+          [ngModel]="tempo()"
+          (ngModelChange)="onTempoInput($event)"
+          aria-label="Tempo in beats per minute"
+        />
+        <span>BPM</span>
+      </label>
+      <button type="button" (click)="setTempo(1)" aria-label="Speed up">+</button>
+    </div>
+
+    <div class="qs-transport-meta">
+      <span class="qs-tag">4/4</span>
+      <span class="qs-tag" [class.is-warn]="armedCount() > 0">
+        {{ armedCount() }} armed
+      </span>
+      <button
+        *ngIf="isPlaying() || isRecording()"
+        type="button"
+        class="qs-stop-all"
+        (click)="stopSession()"
+      >
+        STOP ALL
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Core workspace ──────────────────────────────────────────────── -->
+  <div class="qs-core">
+    <!-- Channels -->
+    <section class="qs-card qs-channels" aria-labelledby="qs-channels-title">
+      <header class="qs-card-head">
+        <h2 id="qs-channels-title">Channels</h2>
+        <span class="qs-card-hint">arm · mute · level</span>
+      </header>
+
+      <p class="qs-empty" *ngIf="trackCount() === 0">
+        No channels yet — add one below or start from a groove.
+      </p>
+
+      <ul class="qs-channel-list">
+        <li
+          *ngFor="let track of tracks(); trackBy: trackById"
+          class="qs-channel"
+          [class.is-selected]="isSelected(track)"
+          (click)="selectTrack(track)"
+        >
+          <span
+            class="qs-channel-dot"
+            [style.background]="track.color || '#2ba09c'"
+            aria-hidden="true"
+          ></span>
+          <button
+            type="button"
+            class="qs-channel-name"
+            (click)="selectTrack(track); $event.stopPropagation()"
+            [attr.aria-label]="'Select ' + track.name"
+            [attr.aria-current]="isSelected(track) ? 'true' : null"
+          >
+            {{ track.name }}
+          </button>
+          <span class="qs-channel-kind">{{ track.type === "drum" ? "DRUM" : track.type === "audio" ? "AUDIO" : "MIDI" }}</span>
+
+          <div class="qs-channel-toggles">
+            <button
+              type="button"
+              class="qs-tiny qs-arm"
+              [class.is-on]="isArmed(track)"
+              (click)="toggleArm(track, $event)"
+              [attr.aria-pressed]="isArmed(track)"
+              [attr.aria-label]="'Record arm ' + track.name"
+              title="Record arm"
+            >
+              <span class="qs-rec-dot" aria-hidden="true"></span>
+            </button>
+            <button
+              type="button"
+              class="qs-tiny"
+              [class.is-on]="track.muted"
+              (click)="toggleMute(track, $event)"
+              [attr.aria-pressed]="track.muted"
+              [attr.aria-label]="'Mute ' + track.name"
+              title="Mute"
+            >
+              M
+            </button>
+            <button
+              type="button"
+              class="qs-tiny qs-solo"
+              [class.is-on]="track.soloed"
+              (click)="toggleSolo(track, $event)"
+              [attr.aria-pressed]="track.soloed"
+              [attr.aria-label]="'Solo ' + track.name"
+              title="Solo"
+            >
+              S
+            </button>
+          </div>
+
+          <label class="qs-fader">
+            <input
+              type="range"
+              min="0"
+              max="150"
+              [ngModel]="volumePercent(track)"
+              (ngModelChange)="onVolume(track, $event)"
+              (click)="$event.stopPropagation()"
+              [attr.aria-label]="'Level for ' + track.name"
+            />
+          </label>
+
+          <button
+            type="button"
+            class="qs-open-editor"
+            (click)="openEditor(track, 'piano-roll'); $event.stopPropagation()"
+            [attr.aria-label]="'Edit notes for ' + track.name"
+            title="Open in Piano Roll"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">piano</span>
+          </button>
+        </li>
+      </ul>
+
+      <div class="qs-add-sounds">
+        <button
+          *ngFor="let instrument of coreInstruments(); trackBy: byId"
+          type="button"
+          class="qs-add-chip"
+          (click)="addInstrument(instrument)"
+          [attr.aria-label]="'Add ' + instrument.name"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          {{ instrument.name }}
+        </button>
+        <button type="button" class="qs-add-chip is-more" (click)="togglePanel('sounds')">
+          <span class="material-symbols-outlined" aria-hidden="true">library_music</span>
+          All sounds
+        </button>
+      </div>
+    </section>
+
+    <!-- Starters + record guidance -->
+    <div class="qs-side-stack">
+      <section class="qs-card qs-starters" aria-labelledby="qs-start-title">
+        <header class="qs-card-head">
+          <h2 id="qs-start-title">Start from a groove</h2>
+          <span class="qs-card-hint">one tap fills the channels</span>
+        </header>
+        <div class="qs-recipe-grid">
+          <button
+            *ngFor="let recipe of recipes(); trackBy: byId"
+            type="button"
+            class="qs-recipe"
+            (click)="startRecipe(recipe)"
+            [attr.aria-label]="'Start ' + recipe.name + ' at ' + recipe.bpm + ' BPM'"
+          >
+            <span class="qs-recipe-glyph" aria-hidden="true">{{ recipe.glyph }}</span>
+            <span class="qs-recipe-name">{{ recipe.name }}</span>
+            <span class="qs-recipe-meta">{{ recipe.bpm }} BPM · {{ recipe.vibe }}</span>
+          </button>
+        </div>
+        <p class="qs-note">
+          Starting a groove saves what you already had first — nothing is lost.
+        </p>
+      </section>
+
+      <section class="qs-card qs-record-card" aria-labelledby="qs-record-title">
+        <header class="qs-card-head">
+          <h2 id="qs-record-title">Record a take</h2>
+          <span class="qs-card-hint">{{ armedCount() }} armed</span>
+        </header>
+        <p class="qs-record-copy">
+          Arm a channel above, then hit record. The take lands on the armed
+          channel and is saved even if you leave the Studio mid-pass.
+        </p>
+        <button type="button" class="qs-record-cta" (click)="toggleRecord()">
+          <span class="qs-record-dot" aria-hidden="true"></span>
+          {{ isRecording() ? "STOP RECORDING" : "START RECORDING" }}
+        </button>
+        <button type="button" class="qs-record-more" (click)="goTo('audio-recorder')">
+          Open the full recorder
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_outward</span>
+        </button>
+      </section>
+    </div>
+  </div>
+
+  <!-- ── Side panels (secondary + advanced tools) ────────────────────── -->
+  <div class="qs-backdrop" *ngIf="panel()" (click)="closePanel()" aria-hidden="true"></div>
+
+  <aside
+    id="qs-sounds-panel"
+    class="qs-panel qs-panel-left"
+    *ngIf="panel() === 'sounds'"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="qs-sounds-title"
+  >
+    <header class="qs-panel-head">
+      <h2 id="qs-sounds-title">Sounds</h2>
+      <button type="button" class="qs-panel-close" (click)="closePanel()" aria-label="Close sounds panel">
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </header>
+    <div class="qs-panel-body">
+      <section *ngFor="let group of instrumentGroups()" class="qs-sound-group">
+        <h3>{{ group.label }}</h3>
+        <ul>
+          <li *ngFor="let instrument of group.items; trackBy: byId">
+            <button type="button" class="qs-sound-row" (click)="addInstrument(instrument)">
+              <span class="material-symbols-outlined" aria-hidden="true">piano</span>
+              <span class="qs-sound-name">{{ instrument.name }}</span>
+              <span class="qs-sound-kind">{{ instrument.type === "drum" ? "KIT" : "MIDI" }}</span>
+              <span class="material-symbols-outlined qs-sound-add" aria-hidden="true">add</span>
+            </button>
+          </li>
+        </ul>
+      </section>
+      <p class="qs-panel-note">
+        Every added sound becomes a real channel — it is the same channel the
+        Mixer, Arrangement and Piano Roll show.
+      </p>
+    </div>
+  </aside>
+
+  <aside
+    id="qs-tools-panel"
+    class="qs-panel qs-panel-right"
+    *ngIf="panel() === 'tools'"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="qs-tools-title"
+  >
+    <header class="qs-panel-head">
+      <h2 id="qs-tools-title">Mix &amp; Export</h2>
+      <button type="button" class="qs-panel-close" (click)="closePanel()" aria-label="Close tools panel">
+        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+      </button>
+    </header>
+    <div class="qs-panel-body">
+      <div class="qs-tool-controls">
+        <label class="qs-tool-fader">
+          <span>MASTER</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            [ngModel]="masterVolume()"
+            (ngModelChange)="onMasterVolume($event)"
+            aria-label="Master volume"
+          />
+          <strong>{{ masterVolume() }}</strong>
+        </label>
+        <div class="qs-tool-toggles">
+          <button
+            type="button"
+            class="qs-tool-toggle"
+            [class.is-on]="metronomeOn()"
+            (click)="toggleMetronome()"
+            [attr.aria-pressed]="metronomeOn()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">timer</span>
+            Metronome
+          </button>
+          <button
+            type="button"
+            class="qs-tool-toggle"
+            [class.is-on]="loopOn()"
+            (click)="toggleLoop()"
+            [attr.aria-pressed]="loopOn()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">repeat</span>
+            Loop
+          </button>
+        </div>
+      </div>
+
+      <nav class="qs-tool-links" aria-label="Advanced studio tools">
+        <button
+          *ngFor="let link of toolLinks; trackBy: byView"
+          type="button"
+          class="qs-tool-link"
+          (click)="goTo(link.view)"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{ link.icon }}</span>
+          <span class="qs-tool-link-copy">
+            <strong>{{ link.label }}</strong>
+            <small>{{ link.hint }}</small>
+          </span>
+          <span class="material-symbols-outlined qs-tool-arrow" aria-hidden="true">chevron_right</span>
+        </button>
+      </nav>
+      <p class="qs-panel-note">
+        These open the full surfaces. Quick Session stays one tap away in the
+        rail.
+      </p>
+    </div>
+  </aside>
+</section>

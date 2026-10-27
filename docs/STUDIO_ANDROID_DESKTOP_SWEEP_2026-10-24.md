@@ -574,6 +574,11 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
 - Bezier editor precision: the automation curve editor gains numeric TIME/VALUE
   fields per handle (0–1, 1/100 steps), so a curve can be reproduced exactly
   instead of only dragged.
+- Quick Session surface: one screen for the core loop (transport, tempo,
+  channel arm/mute/level, one-tap grooves, recording) with the instrument
+  library and every advanced tool moved into two side panels that open over the
+  workspace. Registered in the surface catalogue, so it is reachable from the
+  rail, the command palette and `?view=quick-session`.
 - Notation export: the score writes MusicXML 3.1 (parts, chords, accidentals,
   exact durations, rests, bar splits with ties, `<backup>` for overlaps, tempo),
   so a chart can leave the app for MuseScore/Sibelius/Dorico. Articulations and
