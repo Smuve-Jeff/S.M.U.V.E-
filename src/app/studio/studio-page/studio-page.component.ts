@@ -25,9 +25,10 @@ import { SamplerComponent } from "../sampler/sampler.component";
 import { SnackbarComponent } from "../shared/snackbar/snackbar.component";
 import { SoundBrowserComponent } from "../sound-browser/sound-browser.component";
 import { SynthesizerComponent } from "../synthesizer/synthesizer.component";
+import { StudioPageMode, studioModeForView } from "../studio-view-modes";
 import { StudioExportSurfaceComponent } from "./studio-export-surface.component";
 
-type StudioMode = "create" | "arrange" | "mix" | "export";
+type StudioMode = StudioPageMode;
 type TransportState = "stopped" | "playing" | "recording";
 type SaveStatus = "saved" | "saving" | "error";
 type AdvancedTool =
@@ -148,30 +149,10 @@ export class StudioPageComponent {
   constructor() {
     // `/studio?view=…` deep links from the hub, the AI surfaces and total
     // control land on the matching mode instead of always opening Arrange.
-    this.route.queryParamMap
-      .pipe(takeUntilDestroyed())
-      .subscribe((params) => {
-        const mode = this.modeForView(params.get("view"));
-        if (mode) this.setMode(mode);
-      });
-  }
-
-  private modeForView(view: string | null): StudioMode | null {
-    switch ((view || "").toLowerCase()) {
-      case "create":
-      case "recording":
-        return "create";
-      case "arrange":
-      case "arrangement":
-        return "arrange";
-      case "mix":
-      case "mixer":
-        return "mix";
-      case "export":
-        return "export";
-      default:
-        return null;
-    }
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const mode = studioModeForView(params.get("view"));
+      if (mode) this.setMode(mode);
+    });
   }
 
   setMode(mode: StudioMode) {

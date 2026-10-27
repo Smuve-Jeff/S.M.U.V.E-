@@ -498,27 +498,14 @@ export class ProjectWorkspaceService {
         // The set may only exist as an autosave or recovery snapshot (the
         // manual record was never written, or was pruned). Fall back to the
         // freshest record for this project instead of reporting it missing.
-        const stored = await this.storage.getAllItems("projects");
         record =
-          stored
-            .filter(
-              (item) =>
-                this.isStoredProjectBundle(item) &&
-                item.metadata?.id === projectId,
-            )
+          (await this.readStoredProjects())
+            .filter((item) => item.metadata?.id === projectId)
             .sort((a, b) => this.storedSavedAt(b) - this.storedSavedAt(a))[0] ??
           null;
       }
       if (record) {
-        const storedBundle = record as StoredProjectBundle;
-        this.validateBundle(storedBundle);
-        this.restoreFromSnapshot(storedBundle);
-        this.markPersistenceClean(
-          storedBundle,
-          storedBundle.source || this.detectPersistenceSource(storedBundle.id),
-          this.storedSavedAt(storedBundle),
-        );
-        return storedBundle;
+        return this.restoreStoredRecord(record as StoredProjectBundle);
       }
     } catch (e) {
       this.logger.warn(`ProjectWorkspace: Load failed for ${projectId}`, e);
@@ -532,22 +519,24 @@ export class ProjectWorkspaceService {
    * lists projects, not save files.
    */
   async listLocalProjects(): Promise<LocalProjectSummary[]> {
-    let stored: any[] = [];
+    let records: StoredProjectBundle[] = [];
     try {
-      stored = await this.storage.getAllItems("projects");
+      records = await this.readStoredProjects();
     } catch (e) {
       this.logger.warn("ProjectWorkspace: Could not list local projects", e);
       return [];
     }
 
     const freshest = new Map<string, StoredProjectBundle>();
-    for (const item of stored) {
-      if (!this.isStoredProjectBundle(item)) continue;
-      const projectId = item.metadata?.id;
+    for (const record of records) {
+      const projectId = record.metadata?.id;
       if (!projectId) continue;
       const previous = freshest.get(projectId);
-      if (!previous || this.storedSavedAt(item) >= this.storedSavedAt(previous)) {
-        freshest.set(projectId, item);
+      if (
+        !previous ||
+        this.storedSavedAt(record) >= this.storedSavedAt(previous)
+      ) {
+        freshest.set(projectId, record);
       }
     }
 
@@ -580,12 +569,8 @@ export class ProjectWorkspaceService {
     projectId: string,
   ): Promise<ProjectVersionSummary[]> {
     try {
-      const stored = await this.storage.getAllItems("projects");
-      return stored
-        .filter(
-          (item): item is StoredProjectBundle =>
-            this.isStoredProjectBundle(item) && item.metadata?.id === projectId,
-        )
+      return (await this.readStoredProjects())
+        .filter((record) => record.metadata?.id === projectId)
         .sort((a, b) => this.storedSavedAt(b) - this.storedSavedAt(a))
         .map((record) => ({
           recordId: record.id,
@@ -604,20 +589,12 @@ export class ProjectWorkspaceService {
   /** Restore one specific stored version instead of the freshest record. */
   async restoreProjectVersion(recordId: string): Promise<boolean> {
     try {
-      const stored = await this.storage.getAllItems("projects");
-      const record = stored.find(
-        (item): item is StoredProjectBundle =>
-          this.isStoredProjectBundle(item) && item.id === recordId,
+      const record = (await this.readStoredProjects()).find(
+        (item) => item.id === recordId,
       );
       if (!record) return false;
 
-      this.validateBundle(record);
-      this.restoreFromSnapshot(record);
-      this.markPersistenceClean(
-        record,
-        record.source || this.detectPersistenceSource(record.id),
-        this.storedSavedAt(record),
-      );
+      this.restoreStoredRecord(record);
       return true;
     } catch (e) {
       this.logger.warn("ProjectWorkspace: Version restore failed", e);
@@ -637,13 +614,8 @@ export class ProjectWorkspaceService {
       if (removed) return true;
       // Fallback: a set that only has autosave/recovery records is not in
       // ProjectService's project list, so remove it directly.
-      const stored = await this.storage.getAllItems("projects");
-      const ids = stored
-        .filter(
-          (item) =>
-            this.isStoredProjectBundle(item) &&
-            item.metadata?.id === projectId,
-        )
+      const ids = (await this.readStoredProjects())
+        .filter((item) => item.metadata?.id === projectId)
         .map((item) => item.id);
       if (ids.length === 0) return false;
       await this.storage.deleteItems("projects", ids);
@@ -980,6 +952,32 @@ export class ProjectWorkspaceService {
       savedAt: Date.now(),
       source,
     };
+  }
+
+  /** Every valid stored project record, in storage order, un-collapsed. */
+  private async readStoredProjects(): Promise<StoredProjectBundle[]> {
+    const stored = await this.storage.getAllItems("projects");
+    return stored.filter(
+      (item): item is StoredProjectBundle => this.isStoredProjectBundle(item),
+    );
+  }
+
+  /**
+   * Validate, load and mark one stored record clean. `loadProject` and
+   * `restoreProjectVersion` differ only in how they choose the record, so the
+   * restore itself lives here once instead of being copied per entry point.
+   */
+  private restoreStoredRecord(
+    record: StoredProjectBundle,
+  ): StoredProjectBundle {
+    this.validateBundle(record);
+    this.restoreFromSnapshot(record);
+    this.markPersistenceClean(
+      record,
+      record.source || this.detectPersistenceSource(record.id),
+      this.storedSavedAt(record),
+    );
+    return record;
   }
 
   private markPersistenceClean(

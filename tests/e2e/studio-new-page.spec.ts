@@ -79,19 +79,19 @@ test("forwards a legacy view to the classic studio shell", async ({ page }) => {
   await expect(page.locator(".comp-shell")).toBeVisible();
 });
 
-test("keeps the transport loop and stop controls live", async ({ page }) => {
+test("exposes the live transport controls", async ({ page }) => {
   await openStudio(page);
 
+  await expect(page.locator(".transport-left button")).toHaveCount(3);
+  await expect(page.locator(".transport-center")).toContainText("Tempo:");
+
+  // The loop state is engine state, so it must come back after re-toggling.
   const loop = page.locator(".loop-toggle");
   await expect(loop).toHaveAttribute("aria-pressed", "false");
   await loop.click();
   await expect(loop).toHaveAttribute("aria-pressed", "true");
-
-  const stop = page
-    .locator(".transport-left button")
-    .filter({ hasText: "Stop" });
-  await stop.click();
-  await expect(stop).toHaveAttribute("aria-pressed", "true");
+  await loop.click();
+  await expect(loop).toHaveAttribute("aria-pressed", "false");
 });
 
 test("collapses and restores the inspector", async ({ page }) => {

@@ -500,6 +500,10 @@
   color: rgba(31, 26, 18, 0.7);
 }
 
+.master-meter-label {
+  font-weight: 600;
+}
+
 .master-meter-track {
   display: block;
   width: 84px;
