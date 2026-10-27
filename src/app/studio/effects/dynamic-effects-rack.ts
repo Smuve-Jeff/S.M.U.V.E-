@@ -11,6 +11,7 @@ import { SidechainCompressor } from "../sidechain-compressor";
 import { Reverb } from "../reverb";
 import { Compressor } from "../compressor";
 import { Chorus } from "../chorus";
+import { slotPluginParams } from "./fx-param-specs";
 
 /** A single slot in the effects rack — insert or send */
 export interface PluginSlot {
@@ -581,6 +582,18 @@ function syncParamValue(
   if (param) param.value = value;
 }
 
+/**
+ * Push a plugin's descriptor defaults into its DSP at construction, so a fresh
+ * insert sounds like the panel reads. Without this each plugin kept its own
+ * hard-coded defaults (a Chorus at 1.2 Hz while the panel said 0.8) and the two
+ * surfaces disagreed before the artist touched anything.
+ */
+function applyParamDefaults(plugin: IAudioPlugin): void {
+  for (const param of plugin.params) {
+    plugin.setParam(param.id, param.defaultValue);
+  }
+}
+
 /** Restore every descriptor to its default value — used by `reset()`. */
 function resetParamValues(params: PluginParam[]): void {
   for (const param of params) param.value = param.defaultValue;
@@ -594,46 +607,56 @@ function registerBuiltins(): void {
       readonly name = "7-Band EQ";
       readonly category: PluginCategory = "eq";
       /**
-       * One automatable band per filter. This list used to be empty, which made
-       * the EQ expose zero parameters while advertising seven bands — anything
-       * driving the rack from `plugin.params` (automation, the plugin store, the
-       * WASM worklet sync) saw a plugin with no controls at all.
+       * One parameter per knob the rack panel shows, taken from the shared spec
+       * table so the panel and the DSP cannot drift apart. The EQ keeps two
+       * unexposed shaping bands (350 Hz, 3.5 kHz) at 0 dB.
        */
-      readonly params: PluginParam[];
+      readonly params: PluginParam[] = slotPluginParams("EQ");
       enabled = true;
       private readonly _eq: Equalizer;
       readonly input: AudioNode;
       readonly output: AudioNode;
+
+      /** Panel id → the band index it moves. */
+      private static readonly BANDS: Record<string, number> = {
+        sub: 0,
+        low: 1,
+        mid: 3,
+        high: 5,
+        air: 6,
+      };
+
       constructor(ctx: AudioContext) {
         this._eq = new Equalizer(ctx);
         this.input = this._eq.input;
         this.output = this._eq.output;
-        this.params = this._eq.getBands().map((band, index) => ({
-          id: `band${index}`,
-          name: `${Math.round(band.frequency)} Hz`,
-          value: 0,
-          defaultValue: 0,
-          min: -18,
-          max: 18,
-          step: 0.5,
-          unit: "dB",
-        }));
+        applyParamDefaults(this);
       }
+
       getParam(paramId: string): number {
-        const band = parseInt(paramId.replace("band", ""), 10);
-        return this._eq.getGain(band) ?? 0;
+        if (paramId === "q") return this._eq.getQ();
+        const band = EqPlugin.BANDS[paramId];
+        return band === undefined ? 0 : this._eq.getGain(band) ?? 0;
       }
+
       setParam(paramId: string, value: number): void {
-        const band = parseInt(paramId.replace("band", ""), 10);
-        this._eq.setGain(band, value);
-        syncParamValue(this.params, paramId, this._eq.getGain(band) ?? value);
+        if (paramId === "q") {
+          this._eq.setQ(value);
+        } else {
+          const band = EqPlugin.BANDS[paramId];
+          if (band === undefined) return;
+          this._eq.setGain(band, value);
+        }
+        syncParamValue(this.params, paramId, this.getParam(paramId));
       }
+
       reset(): void {
-        this.params.forEach((param, index) => {
-          this._eq.setGain(index, param.defaultValue);
-        });
+        for (const param of this.params) {
+          this.setParam(param.id, param.defaultValue);
+        }
         resetParamValues(this.params);
       }
+
       dispose(): void {
         this._eq.disconnect();
       }
@@ -646,54 +669,46 @@ function registerBuiltins(): void {
       readonly id = "smuve.compressor.v1";
       readonly name = "Compressor";
       readonly category: PluginCategory = "dynamics";
-      readonly params: PluginParam[] = [
-        {
-          id: "threshold",
-          name: "Threshold",
-          value: -24,
-          defaultValue: -24,
-          min: -60,
-          max: 0,
-          unit: "dB",
-        },
-        {
-          id: "ratio",
-          name: "Ratio",
-          value: 12,
-          defaultValue: 12,
-          min: 1,
-          max: 20,
-          step: 0.5,
-          unit: ":1",
-        },
-      ];
+      readonly params: PluginParam[] = slotPluginParams("Compressor");
       enabled = true;
       input: AudioNode;
       output: AudioNode;
       private readonly _comp: Compressor;
+
       constructor(ctx: AudioContext) {
         this._comp = new Compressor(ctx);
         this.input = this._comp.input;
         this.output = this._comp.output;
+        applyParamDefaults(this);
       }
+
       getParam(id: string): number {
-        if (id === "threshold") return this._comp.compressor.threshold.value;
-        if (id === "ratio") return this._comp.compressor.ratio.value;
+        if (id === "threshold") return this._comp.threshold;
+        if (id === "ratio") return this._comp.ratio;
+        if (id === "attack") return this._comp.attackMs;
+        if (id === "release") return this._comp.releaseMs;
+        if (id === "makeup") return this._comp.makeupDb;
+        if (id === "mix") return this._comp.mix * 100;
         return 0;
       }
+
       setParam(id: string, value: number): void {
         if (id === "threshold") this._comp.setThreshold(value);
-        if (id === "ratio") this._comp.setRatio(value);
+        else if (id === "ratio") this._comp.setRatio(value);
+        else if (id === "attack") this._comp.setAttack(value);
+        else if (id === "release") this._comp.setRelease(value);
+        else if (id === "makeup") this._comp.setMakeup(value);
+        else if (id === "mix") this._comp.setMix(value);
         syncParamValue(this.params, id, this.getParam(id));
       }
+
       reset(): void {
-        this.params.forEach((param) => {
-          if (param.id === "threshold")
-            this._comp.setThreshold(param.defaultValue);
-          if (param.id === "ratio") this._comp.setRatio(param.defaultValue);
-        });
+        for (const param of this.params) {
+          this.setParam(param.id, param.defaultValue);
+        }
         resetParamValues(this.params);
       }
+
       dispose(): void {
         this._comp.disconnect();
       }
@@ -706,36 +721,46 @@ function registerBuiltins(): void {
       readonly id = "smuve.reverb.v1";
       readonly name = "Reverb";
       readonly category: PluginCategory = "delay-reverb";
-      readonly params: PluginParam[] = [
-        {
-          id: "mix",
-          name: "Mix",
-          value: 0.5,
-          defaultValue: 0.5,
-          min: 0,
-          max: 1,
-        },
-      ];
+      readonly params: PluginParam[] = slotPluginParams("Reverb");
       enabled = true;
       input: AudioNode;
       output: AudioNode;
       private readonly _rev: Reverb;
+
       constructor(ctx: AudioContext) {
         this._rev = new Reverb(ctx);
         this.input = this._rev.input;
         this.output = this._rev.output;
+        applyParamDefaults(this);
       }
+
       getParam(id: string): number {
-        return id === "mix" ? this._rev.mix : 0;
+        if (id === "wet") return this._rev.wet * 100;
+        if (id === "dry") return this._rev.dry * 100;
+        if (id === "decay") return this._rev.decaySeconds;
+        if (id === "size") return this._rev.size;
+        if (id === "preDelay") return this._rev.preDelayMs;
+        if (id === "damping") return this._rev.damping;
+        return 0;
       }
+
       setParam(id: string, value: number): void {
-        if (id === "mix") this._rev.setMix(value);
+        if (id === "wet") this._rev.setWet(value);
+        else if (id === "dry") this._rev.setDry(value);
+        else if (id === "decay") this._rev.setDecay(value);
+        else if (id === "size") this._rev.setSize(value);
+        else if (id === "preDelay") this._rev.setPreDelay(value);
+        else if (id === "damping") this._rev.setDamping(value);
         syncParamValue(this.params, id, this.getParam(id));
       }
+
       reset(): void {
-        this._rev.setMix(this.params[0].defaultValue);
+        for (const param of this.params) {
+          this.setParam(param.id, param.defaultValue);
+        }
         resetParamValues(this.params);
       }
+
       dispose(): void {
         this._rev.disconnect();
       }
@@ -748,49 +773,45 @@ function registerBuiltins(): void {
       readonly id = "smuve.delay.v1";
       readonly name = "Delay";
       readonly category: PluginCategory = "delay-reverb";
-      readonly params: PluginParam[] = [
-        {
-          id: "time",
-          name: "Time",
-          value: 0.5,
-          defaultValue: 0.5,
-          min: 0.01,
-          max: 2,
-          unit: "s",
-        },
-        {
-          id: "feedback",
-          name: "Feedback",
-          value: 0.5,
-          defaultValue: 0.5,
-          min: 0,
-          max: 0.95,
-        },
-      ];
+      readonly params: PluginParam[] = slotPluginParams("Delay");
       enabled = true;
       input: AudioNode;
       output: AudioNode;
       private readonly _dly: Delay;
+
       constructor(ctx: AudioContext) {
         this._dly = new Delay(ctx);
         this.input = this._dly.input;
         this.output = this._dly.output;
+        applyParamDefaults(this);
       }
+
+      /** The panel is in %, ms and 0..1; the graph is in seconds and ratios. */
       getParam(id: string): number {
-        if (id === "time") return this._dly.time;
-        if (id === "feedback") return this._dly.feedback;
+        if (id === "wet") return this._dly.wet * 100;
+        if (id === "dry") return this._dly.dry * 100;
+        if (id === "time") return this._dly.time * 1000;
+        if (id === "feedback") return this._dly.feedback * 100;
+        if (id === "tone") return this._dly.tone;
         return 0;
       }
+
       setParam(id: string, value: number): void {
-        if (id === "time") this._dly.setDelayTime(value);
-        if (id === "feedback") this._dly.setFeedback(value);
+        if (id === "wet") this._dly.setWet(value);
+        else if (id === "dry") this._dly.setDry(value);
+        else if (id === "time") this._dly.setDelayTime(value / 1000);
+        else if (id === "feedback") this._dly.setFeedback(value / 100);
+        else if (id === "tone") this._dly.setTone(value);
         syncParamValue(this.params, id, this.getParam(id));
       }
+
       reset(): void {
-        this._dly.setDelayTime(this.params[0].defaultValue);
-        this._dly.setFeedback(this.params[1].defaultValue);
+        for (const param of this.params) {
+          this.setParam(param.id, param.defaultValue);
+        }
         resetParamValues(this.params);
       }
+
       dispose(): void {
         this._dly.disconnect();
       }
@@ -803,40 +824,45 @@ function registerBuiltins(): void {
       readonly id = "smuve.distortion.v1";
       readonly name = "Distortion";
       readonly category: PluginCategory = "distortion";
+      readonly params: PluginParam[] = slotPluginParams("Saturation");
       enabled = true;
       input: AudioNode;
       output: AudioNode;
       private readonly _sat: Saturation;
+
       constructor(ctx: AudioContext) {
         this._sat = new Saturation(ctx);
         this.input = this._sat.input;
         this.output = this._sat.output;
+        applyParamDefaults(this);
       }
+
       getParam(id: string): number {
-        return id === "amount" ? this._sat.amount : 0;
+        if (id === "drive") return this._sat.amount * 100;
+        if (id === "tone") return this._sat.tone;
+        if (id === "mix") return this._sat.mix * 100;
+        if (id === "output") return this._sat.outputDb;
+        return 0;
       }
+
       setParam(id: string, value: number): void {
-        if (id !== "amount") return;
-        this._sat.setAmount(value);
-        syncParamValue(this.params, id, this._sat.amount);
+        if (id === "drive") this._sat.setAmount(value / 100);
+        else if (id === "tone") this._sat.setTone(value);
+        else if (id === "mix") this._sat.setMix(value);
+        else if (id === "output") this._sat.setOutputDb(value);
+        syncParamValue(this.params, id, this.getParam(id));
       }
+
       reset(): void {
-        this._sat.setAmount(this.params[0].defaultValue);
+        for (const param of this.params) {
+          this.setParam(param.id, param.defaultValue);
+        }
         resetParamValues(this.params);
       }
+
       dispose(): void {
         this._sat.disconnect();
       }
-      params: PluginParam[] = [
-        {
-          id: "amount",
-          name: "Amount",
-          value: 0.5,
-          defaultValue: 0.5,
-          min: 0,
-          max: 1,
-        },
-      ];
     },
   );
 
@@ -908,67 +934,41 @@ function registerBuiltins(): void {
       readonly name = "Chorus";
       /** The modulation category in `PluginCategory` had no plugin behind it. */
       readonly category: PluginCategory = "modulation";
-      readonly params: PluginParam[] = [
-        {
-          id: "rate",
-          name: "Rate",
-          value: 1.2,
-          defaultValue: 1.2,
-          min: Chorus.MIN_RATE_HZ,
-          max: Chorus.MAX_RATE_HZ,
-          step: 0.05,
-          unit: "Hz",
-        },
-        {
-          id: "depth",
-          name: "Depth",
-          value: 5,
-          defaultValue: 5,
-          min: 0,
-          max: Chorus.MAX_DEPTH_MS,
-          step: 0.1,
-          unit: "ms",
-        },
-        {
-          id: "mix",
-          name: "Mix",
-          value: 0.4,
-          defaultValue: 0.4,
-          min: 0,
-          max: 1,
-          step: 0.01,
-        },
-      ];
+      readonly params: PluginParam[] = slotPluginParams("Chorus");
       enabled = true;
       input: AudioNode;
       output: AudioNode;
       private readonly _chorus: Chorus;
+
       constructor(ctx: AudioContext) {
         this._chorus = new Chorus(ctx);
         this.input = this._chorus.input;
         this.output = this._chorus.output;
+        applyParamDefaults(this);
       }
+
       getParam(id: string): number {
         if (id === "rate") return this._chorus.rate;
-        if (id === "depth") return this._chorus.depthMs;
-        if (id === "mix") return this._chorus.mix;
+        if (id === "depth")
+          return (this._chorus.depthMs / Chorus.MAX_DEPTH_MS) * 100;
+        if (id === "mix") return this._chorus.mix * 100;
         return 0;
       }
+
       setParam(id: string, value: number): void {
         if (id === "rate") this._chorus.setRate(value);
-        if (id === "depth") this._chorus.setDepthMs(value);
-        if (id === "mix") this._chorus.setMix(value);
+        else if (id === "depth") this._chorus.setDepthPercent(value);
+        else if (id === "mix") this._chorus.setMix(value / 100);
         syncParamValue(this.params, id, this.getParam(id));
       }
+
       reset(): void {
-        this.params.forEach((param) => {
-          if (param.id === "rate") this._chorus.setRate(param.defaultValue);
-          if (param.id === "depth")
-            this._chorus.setDepthMs(param.defaultValue);
-          if (param.id === "mix") this._chorus.setMix(param.defaultValue);
-        });
+        for (const param of this.params) {
+          this.setParam(param.id, param.defaultValue);
+        }
         resetParamValues(this.params);
       }
+
       dispose(): void {
         this._chorus.disconnect();
       }

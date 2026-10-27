@@ -743,13 +743,31 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
  * (node-building) rack.
  */
 class FakeRack {
-  inserts: Array<{ id: string; plugin: { id: string; enabled: boolean } }> = [];
+  inserts: Array<{
+    id: string;
+    plugin: {
+      id: string;
+      enabled: boolean;
+      params: Array<{ id: string; value: number }>;
+      setParam: jest.Mock;
+    };
+  }> = [];
   private seq = 0;
 
   addInsert(pluginId: string) {
     const entry = {
       id: `ins${++this.seq}`,
-      plugin: { id: pluginId, enabled: true },
+      plugin: {
+        id: pluginId,
+        enabled: true,
+        // The knobs the panel exposes for an insert; the manager binds stored
+        // slot values onto these.
+        params: [
+          { id: 'wet', value: 60 },
+          { id: 'decay', value: 2.5 },
+        ],
+        setParam: jest.fn(),
+      },
     };
     this.inserts.push(entry);
     return entry;
@@ -869,6 +887,20 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
       'smuve.distortion.v1',
       'smuve.chorus.v1',
     ]);
+  });
+
+  it('pushes a slot knob onto the live plugin, on add and on every edit', () => {
+    service.addFxSlot('track-1', 'Reverb');
+    const slotId = service.tracks()[0].fxSlots[0].id;
+    const plugin = rack.inserts[0].plugin;
+
+    service.setFxSlotParam('track-1', slotId, 'wet', 70);
+    expect(plugin.setParam).toHaveBeenCalledWith('wet', 70);
+
+    // A second edit must reach the plugin as well — the sync runs per write,
+    // not only when the insert is created.
+    service.setFxSlotParam('track-1', slotId, 'decay', 4);
+    expect(plugin.setParam).toHaveBeenCalledWith('decay', 4);
   });
 
   it('leaves a slot with no plugin behind it data-only', () => {

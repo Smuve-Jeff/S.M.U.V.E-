@@ -80,6 +80,8 @@ export interface FxSlot {
  * offered by the rack's Add Effect menu but have no plugin behind them, so they
  * stay data-only instead of pretending to process audio.
  */
+import { bindFxSlotParams } from "../studio/effects/fx-param-specs";
+
 export const FX_TYPE_TO_PLUGIN_ID: Record<string, string> = {
   Reverb: 'smuve.reverb.v1',
   Delay: 'smuve.delay.v1',
@@ -895,6 +897,18 @@ export class MusicManagerService {
       if (rackSlot.plugin.enabled !== slot.enabled) {
         rack.toggleInsert(entry.insertId);
       }
+    }
+
+    // Push each slot's knob values into its plugin. `slot.params` used to be
+    // written by the panel and read by nothing, so Decay or Threshold moved a
+    // number while the audio stayed at the plugin's defaults. This is the one
+    // place the panel and the graph are joined, and it runs on every edit.
+    for (const slot of slots) {
+      const entry = assigned.get(slot.id);
+      if (!entry) continue;
+      const rackSlot = rack.inserts.find((s) => s.id === entry.insertId);
+      if (!rackSlot) continue;
+      bindFxSlotParams(rackSlot.plugin, slot.params);
     }
 
     this.fxInsertSlots.set(trackId, assigned);

@@ -7,6 +7,7 @@ import {
 } from './music-manager.service';
 import { AutomationLane, AutomationService } from '../studio/automation.service';
 import { PluginRegistry } from '../studio/effects/plugin-interface';
+import { bindFxSlotParams } from '../studio/effects/fx-param-specs';
 import { VideoEngineService } from './video-engine.service';
 import { WavEncoder } from '../studio/wav-encoder.util';
 import {
@@ -495,6 +496,9 @@ export class ExportService {
             offline as unknown as AudioContext,
           );
           if (!plugin) continue;
+          // Same knob values the live rack gets, so the bounced insert is the
+          // one the artist dialled in rather than a factory default.
+          bindFxSlotParams(plugin, slot.params);
           plugin.output.connect(input);
           input = plugin.input;
         } catch (error) {

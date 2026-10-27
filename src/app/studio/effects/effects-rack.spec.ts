@@ -1,5 +1,6 @@
 import { DynamicEffectsRack, PluginSlot } from "./dynamic-effects-rack";
 import { PluginRegistry } from "./plugin-interface";
+import { bindFxSlotParams } from "./fx-param-specs";
 
 // MockAudioContext already set up globally in setup-jest.ts
 
@@ -258,30 +259,57 @@ describe("DynamicEffectsRack", () => {
       }
     });
 
-    it("gives the 7-band EQ one parameter per band", () => {
+    it("gives the EQ one parameter per knob the rack panel shows", () => {
+      // The plugin's parameter ids are the panel's, taken from the shared spec
+      // table — not a parallel band0..6 naming the panel never addressed.
       const plugin = PluginRegistry.create("smuve.eq.v1", ctx)!;
       expect(plugin.params.map((p) => p.id)).toEqual([
-        "band0",
-        "band1",
-        "band2",
-        "band3",
-        "band4",
-        "band5",
-        "band6",
+        "sub",
+        "low",
+        "mid",
+        "high",
+        "air",
+        "q",
       ]);
       plugin.dispose();
     });
 
+    it("drives the live DSP from a slot's stored knob values", () => {
+      // `slot.params` used to be written by the panel and read by nothing.
+      const reverb = rack.addInsert("smuve.reverb.v1")!;
+      bindFxSlotParams(reverb.plugin, { wet: 80, dry: 20, decay: 4.5 });
+      expect(reverb.plugin.getParam("wet")).toBe(80);
+      expect(reverb.plugin.getParam("dry")).toBe(20);
+      expect(reverb.plugin.getParam("decay")).toBe(4.5);
+
+      const compressor = rack.addInsert("smuve.compressor.v1")!;
+      bindFxSlotParams(compressor.plugin, { threshold: -18, ratio: 6 });
+      expect(compressor.plugin.getParam("threshold")).toBe(-18);
+      expect(compressor.plugin.getParam("ratio")).toBe(6);
+    });
+
+    it("ignores knob ids the plugin does not expose", () => {
+      const delay = rack.addInsert("smuve.delay.v1")!;
+      const before = delay.plugin.getParam("feedback");
+      bindFxSlotParams(delay.plugin, { pingPong: 90, wet: 50 });
+      expect(delay.plugin.getParam("feedback")).toBe(before);
+      expect(delay.plugin.getParam("wet")).toBe(50);
+    });
+
     it("reads back the value that was written instead of a constant", () => {
       const cases: Array<[string, string, number]> = [
-        ["smuve.eq.v1", "band2", 7.5],
+        ["smuve.eq.v1", "mid", 7.5],
+        ["smuve.eq.v1", "q", 4],
         ["smuve.compressor.v1", "ratio", 6],
-        ["smuve.reverb.v1", "mix", 0.75],
-        ["smuve.delay.v1", "time", 0.8],
-        ["smuve.delay.v1", "feedback", 0.6],
-        ["smuve.distortion.v1", "amount", 0.9],
+        ["smuve.compressor.v1", "attack", 40],
+        ["smuve.reverb.v1", "wet", 75],
+        ["smuve.reverb.v1", "preDelay", 90],
+        ["smuve.delay.v1", "time", 800],
+        ["smuve.delay.v1", "tone", 30],
+        ["smuve.distortion.v1", "drive", 90],
         ["smuve.sidechain.v1", "threshold", -12],
-        ["smuve.chorus.v1", "mix", 0.75],
+        ["smuve.chorus.v1", "mix", 75],
+        ["smuve.chorus.v1", "depth", 60],
       ];
       for (const [id, paramId, value] of cases) {
         const plugin = PluginRegistry.create(id, ctx)!;
@@ -338,9 +366,10 @@ describe("DynamicEffectsRack", () => {
       const plugin = PluginRegistry.create("smuve.chorus.v1", ctx)!;
 
       expect(plugin.params.map((p) => p.id)).toEqual(["rate", "depth", "mix"]);
-      expect(plugin.getParam("rate")).toBe(1.2);
-      expect(plugin.getParam("depth")).toBe(5);
-      expect(plugin.getParam("mix")).toBe(0.4);
+      // Panel units: Hz, % of the maximum swing, % wet.
+      expect(plugin.getParam("rate")).toBe(0.8);
+      expect(plugin.getParam("depth")).toBe(40);
+      expect(plugin.getParam("mix")).toBe(35);
       plugin.dispose();
     });
 

@@ -1042,6 +1042,46 @@ describe("ExportService", () => {
       expect(head).toBe(created[1].input);
     });
 
+    it("bounces the slot's knob values into its plugin", async () => {
+      const recording = recordingContext();
+      const setParam = jest.fn();
+      const create = jest
+        .spyOn(PluginRegistry, "create")
+        .mockImplementation((id: string) => ({
+          id,
+          input: { connect: jest.fn() },
+          output: { connect: jest.fn() },
+          params: [
+            { id: "wet", value: 60 },
+            { id: "decay", value: 2.5 },
+          ],
+          setParam,
+        }) as any);
+
+      try {
+        await render(recording, [
+          track({
+            notes: [{ step: 0, midi: 60, length: 1, velocity: 0.8 }],
+            fxSlots: [
+              {
+                id: "a",
+                type: "Reverb",
+                params: { wet: 80, decay: 4.5 },
+                enabled: true,
+              },
+            ],
+          }),
+        ]);
+      } finally {
+        create.mockRestore();
+      }
+
+      // A bounced insert has to be the one the artist dialled in, not the
+      // plugin's factory defaults.
+      expect(setParam).toHaveBeenCalledWith("wet", 80);
+      expect(setParam).toHaveBeenCalledWith("decay", 4.5);
+    });
+
     it("keeps bouncing when an insert cannot be built offline", async () => {
       const recording = recordingContext();
       const create = jest

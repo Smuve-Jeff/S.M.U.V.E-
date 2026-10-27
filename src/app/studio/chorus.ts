@@ -159,6 +159,15 @@ export class Chorus {
     this.delayRight.delayTime.setTargetAtTime(centre, now, 0.01);
   }
 
+  /**
+   * Depth as the rack's percent knob expresses it (0..100 % of the maximum
+   * swing), so the panel and the DSP share one unit.
+   */
+  setDepthPercent(percent: number): void {
+    const value = Number.isFinite(percent) ? percent : 40;
+    this.setDepthMs((Math.max(0, Math.min(100, value)) / 100) * Chorus.MAX_DEPTH_MS);
+  }
+
   setMix(mix: number): void {
     this._mix = Chorus.clamp(mix, 0, 1);
     const now = this.ctx.currentTime;
