@@ -447,6 +447,8 @@
       (pointerup)="onGridPointerUp($event)"
       (pointercancel)="onGridPointerUp($event)"
       (wheel)="onGridWheel($event)"
+      (dragover)="onAudioDragOver($event)"
+      (drop)="onAudioDrop($event)"
     >
       <canvas
         #glCanvas

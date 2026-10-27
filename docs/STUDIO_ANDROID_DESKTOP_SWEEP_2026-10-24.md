@@ -574,6 +574,14 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
 - Bezier editor precision: the automation curve editor gains numeric TIME/VALUE
   fields per handle (0–1, 1/100 steps), so a curve can be reproduced exactly
   instead of only dragged.
+- Notation export: the score writes MusicXML 3.1 (parts, chords, accidentals,
+  exact durations, rests, bar splits with ties, `<backup>` for overlaps, tempo),
+  so a chart can leave the app for MuseScore/Sibelius/Dorico. Articulations and
+  layout are intentionally left to the receiving program.
+- Audio drops: a file dropped on the arrangement becomes an audio track at the
+  bar it was dropped on (MIME *or* extension, because Android reports an empty
+  type for .flac/.aiff), instead of routing the artist through the sample
+  browser or the stem splitter.
 - Notation editing: the score view is no longer read-only. Notes are selectable
   (tap, keyboard, screen reader) and editable in place — transpose by semitone
   or octave, move on the step grid, halve/double the written length, nudge

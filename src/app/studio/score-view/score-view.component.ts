@@ -10,6 +10,11 @@ import {
   MusicManagerService,
   TrackNote,
 } from "../../services/music-manager.service";
+import {
+  buildMusicXml,
+  musicXmlFileName,
+  type MusicXmlPart,
+} from "./score-musicxml.util";
 
 export interface ScoreNote {
   id: string;
@@ -367,6 +372,45 @@ export class ScoreViewComponent {
     );
     if (length === note.length) return false;
     return this.patchSelected({ length });
+  }
+
+  // ── Export ────────────────────────────────────────────────────────────
+  // A chart that cannot leave the app is not a chart. MusicXML is the format
+  // MuseScore, Sibelius and Dorico all read, so this is the handoff that turns
+  // the score into something a player can open.
+
+  /** The exact document the export button writes — pure, so it is testable. */
+  buildExportXml(): string {
+    const parts: MusicXmlPart[] = this.musicManager
+      .tracks()
+      .filter((track) => track.type !== "audio" && track.type !== "bus")
+      .map((track) => ({
+        name: track.name || "Untitled track",
+        notes: (track.notes ?? []).map((note) => ({
+          midi: note.midi,
+          step: note.step,
+          length: note.length,
+          velocity: note.velocity,
+        })),
+      }))
+      .filter((part) => part.notes.length > 0);
+    return buildMusicXml(parts, {
+      title: this.musicManager.projectName,
+      bpm: this.musicManager.engine.tempo(),
+    });
+  }
+
+  /** Download the score as a .musicxml file. */
+  exportMusicXml(): void {
+    if (this.totalNotes() === 0) return;
+    const xml = this.buildExportXml();
+    const blob = new Blob([xml], { type: "application/vnd.recordare.musicxml+xml" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = musicXmlFileName(this.musicManager.projectName);
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
 
   /**

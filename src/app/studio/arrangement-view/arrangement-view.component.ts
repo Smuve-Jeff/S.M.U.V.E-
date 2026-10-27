@@ -17,6 +17,11 @@ import {
   TrackModel,
 } from "../../services/music-manager.service";
 import { AudioSessionService } from "../audio-session.service";
+import {
+  dropBarFromWorldX,
+  droppedAudioName,
+  isSupportedAudioFile,
+} from "./audio-drop.util";
 import { HistoryService } from "../../services/history.service";
 import { HapticService } from "../../services/haptic.service";
 import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gesture.service";
@@ -27,6 +32,7 @@ import {
 } from "../../services/stem-separation.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
+import { LoggingService } from "../../services/logging.service";
 import { TakeManagerService } from "../../services/take-manager.service";
 import { TakeLaneComponent } from "../take-lane/take-lane.component";
 import { WebGLRenderer } from "../webgl/webgl-renderer";
@@ -72,6 +78,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   private readonly snackbar = inject(SnackbarService);
   private readonly visualScheduler = inject(StudioVisualSchedulerService);
   private readonly dialog = inject(InteractionDialogService);
+  private readonly logger = inject(LoggingService);
   /** Sprint A3 — take lane state per track (TakeManagerService, root-scoped). */
   public readonly takeManager = inject(TakeManagerService);
 
@@ -381,6 +388,82 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   // ── Pointer / interaction handlers (WebGL-aware) ─────────
+
+  // ── Audio drops ────────────────────────────────────────────────────────
+  // Importing audio used to mean leaving the timeline for the sample browser
+  // or the stem splitter. Dropping a file on the arrangement is how every DAW
+  // takes audio in, and it lands at the bar you dropped it on.
+
+  /** Accept the drag only for real files, so clip drags are untouched. */
+  onAudioDragOver(event: DragEvent): void {
+    if (!event.dataTransfer?.types?.includes("Files")) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  async onAudioDrop(event: DragEvent): Promise<void> {
+    const files = Array.from(event.dataTransfer?.files ?? []).filter(
+      isSupportedAudioFile,
+    );
+    if (!files.length) return;
+    event.preventDefault();
+
+    const bar = this.dropBarFor(event);
+    let added = 0;
+    for (const file of files) {
+      try {
+        const buffer = await this.decodeDroppedFile(file);
+        if (!buffer) continue;
+        this.musicManager.addAudioTrack({
+          id: "audio_" + Date.now() + "_" + added,
+          name: droppedAudioName(file.name),
+          color: "#0E7C7B",
+          buffer,
+          offset: bar,
+        });
+        added++;
+      } catch (error) {
+        this.logger.warn(
+          "Arrangement: dropped audio could not be decoded",
+          error,
+        );
+      }
+    }
+
+    if (added === 0) {
+      this.snackbar.error("That file could not be read as audio.");
+      return;
+    }
+    this.haptic.light();
+    this.snackbar.success(
+      added === 1
+        ? `Audio added at bar ${bar + 1}`
+        : `${added} audio tracks added at bar ${bar + 1}`,
+    );
+  }
+
+  /** Bar under the cursor, falling back to the start when GL is not ready. */
+  private dropBarFor(event: DragEvent): number {
+    if (!this.isGlInitialized || !this.glCanvas?.nativeElement) return 0;
+    const rect = this.glCanvas.nativeElement.getBoundingClientRect();
+    const world = this.glRenderer.screenToWorld(
+      event.clientX,
+      event.clientY,
+      rect,
+    );
+    return dropBarFromWorldX(world.x, this.barWidth());
+  }
+
+  private async decodeDroppedFile(file: File): Promise<AudioBuffer | null> {
+    const ctx = this.musicManager.engine?.ctx;
+    if (!ctx?.decodeAudioData) return null;
+    const bytes = await file.arrayBuffer();
+    return await new Promise<AudioBuffer>((resolve, reject) => {
+      // The callback form is the one every WebView ships; the promise form is
+      // newer and not guaranteed on Android System WebView.
+      ctx.decodeAudioData(bytes, resolve, reject);
+    });
+  }
 
   /** Handle pointer down on the WebGL grid */
   onGridPointerDown(e: PointerEvent): void {

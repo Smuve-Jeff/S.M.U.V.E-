@@ -12,10 +12,27 @@
         follow along.
       </p>
     </div>
-    <div class="score-stats" aria-label="Score statistics">
-      <span class="score-stat"><strong>{{ staves().length }}</strong> parts</span>
-      <span class="score-stat"><strong>{{ totalNotes() }}</strong> notes</span>
-      <span class="score-stat"><strong>{{ bars() }}</strong> bars</span>
+    <div class="score-actions">
+      <div class="score-stats" aria-label="Score statistics">
+        <span class="score-stat"><strong>{{ staves().length }}</strong> parts</span>
+        <span class="score-stat"><strong>{{ totalNotes() }}</strong> notes</span>
+        <span class="score-stat"><strong>{{ bars() }}</strong> bars</span>
+      </div>
+      <button
+        type="button"
+        class="score-export"
+        (click)="exportMusicXml()"
+        [disabled]="totalNotes() === 0"
+        [title]="
+          totalNotes() === 0
+            ? 'Add notes before exporting a chart'
+            : 'Download this score as MusicXML for MuseScore, Sibelius, Dorico…'
+        "
+        aria-label="Export the score as MusicXML"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">download</span>
+        <span>MUSICXML</span>
+      </button>
     </div>
   </header>
 

@@ -955,3 +955,57 @@ h1 {
     display: none;
   }
 }
+
+/* ── Export action ───────────────────────────────────────────────────── */
+.score-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.score-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(14, 124, 123, 0.4);
+  border-radius: 9px;
+  background: rgba(14, 124, 123, 0.1);
+  color: var(--teal-700, #0b6463);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.score-export .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.score-export:hover,
+.score-export:focus-visible {
+  background: rgba(14, 124, 123, 0.2);
+}
+
+.score-export:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .score-actions {
+    align-items: flex-start;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+}
+
+@media (pointer: coarse) {
+  .score-export {
+    min-height: 44px;
+  }
+}

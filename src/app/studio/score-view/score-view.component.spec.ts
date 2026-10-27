@@ -40,7 +40,13 @@ describe("ScoreViewComponent", () => {
       providers: [
         {
           provide: MusicManagerService,
-          useValue: { tracks, updateNote, removeNotes },
+          useValue: {
+            tracks,
+            updateNote,
+            removeNotes,
+            projectName: "Night Drive",
+            engine: { tempo: () => 128 },
+          },
         },
       ],
     });
@@ -254,5 +260,53 @@ describe("ScoreViewComponent", () => {
       expect(updateNote).toHaveBeenCalledTimes(1);
     });
   });
-});
 
+  describe("MusicXML export", () => {
+    it("writes the MIDI tracks as parts, skipping audio and empty staves", () => {
+      const xml = component.buildExportXml();
+      expect(xml).toContain("<work-title>Night Drive</work-title>");
+      expect(xml).toContain("<per-minute>128</per-minute>");
+      expect(xml).toContain('<part-name>Piano</part-name>');
+      // The vocal is an audio track: it has no notation to hand to a player.
+      expect(xml).not.toContain("Vocal audio");
+      expect(xml.match(/<part id=/g)).toHaveLength(1);
+      expect(xml).toContain("<step>C</step>");
+    });
+
+    it("downloads a .musicxml file named after the project", () => {
+      const createObjectURL = jest.fn(() => "blob:score");
+      const revokeObjectURL = jest.fn();
+      Object.defineProperty(URL, "createObjectURL", {
+        value: createObjectURL,
+        configurable: true,
+      });
+      Object.defineProperty(URL, "revokeObjectURL", {
+        value: revokeObjectURL,
+        configurable: true,
+      });
+      const click = jest
+        .spyOn(HTMLAnchorElement.prototype, "click")
+        .mockImplementation(() => undefined);
+
+      component.exportMusicXml();
+
+      expect(createObjectURL).toHaveBeenCalledTimes(1);
+      expect(click).toHaveBeenCalledTimes(1);
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:score");
+      click.mockRestore();
+    });
+
+    it("does not write an empty chart", () => {
+      tracks.set([{ id: "audio-1", name: "Audio", type: "audio", notes: [] }]);
+      expect(component.totalNotes()).toBe(0);
+
+      const createObjectURL = jest.fn();
+      Object.defineProperty(URL, "createObjectURL", {
+        value: createObjectURL,
+        configurable: true,
+      });
+      component.exportMusicXml();
+      expect(createObjectURL).not.toHaveBeenCalled();
+    });
+  });
+});
