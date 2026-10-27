@@ -1,3 +1,28 @@
+/* ============================================================================
+   STUDIO PAGE — the composed Studio that owns `/studio`
+   ----------------------------------------------------------------------------
+   This page renders its own chrome (top bar, mode rail, transport, slide-over
+   panels) rather than the classic shell's, so it must carry the same contracts
+   the classic shell gets from the global stylesheets. Three of those live
+   outside `.comp-shell` and therefore do NOT reach this page:
+
+     · src/studio-redesign-global.css — `:root` tokens, 44/48px touch floor,
+       safe-area helpers, `overflow-x: clip` per workspace host.
+     · src/studio-fl-mobile.css — the `--fl-*` palette (scoped to `.comp-shell`).
+     · src/studio-adaptive-display.css — forced-colors / contrast /
+       reduced-transparency / HDR layers (scoped to `body .comp-shell`).
+
+   So: the palette below is defined once, from the app-wide tokens, and the
+   phone/landscape/accessibility contracts are restated here for this surface.
+
+   Tokens consumed by this file are all defined in one of two places:
+     · here, on `.studio-shell` (see the token block),
+     · or `:root` in src/styles.css / the global Studio stylesheets.
+   Anything else would silently ship its fallback — which is how this page first
+   arrived with a light skin inside a dark app (`--studio-bg` was defined
+   nowhere, so `#f5f2ee` was what users saw).
+   ========================================================================= */
+
 :host {
   display: block;
   width: 100%;
@@ -9,15 +34,89 @@
   box-sizing: border-box;
 }
 
+/* ----------------------------------------------------------------------------
+   TOKENS — one definition for the page chrome
+   ---------------------------------------------------------------------------- */
 .studio-shell {
+  /* Theme: derived from the app palette so the page follows the Studio skin
+     (and any future theme that redefines `--color-*`) instead of hard-coding. */
+  --studio-bg: var(--color-bg, #0b0e1f);
+  --studio-ink: var(--color-text, #f1f5ff);
+  --studio-dim: var(--espresso-muted, #94a3c8);
+  --studio-faint: rgba(148, 163, 200, 0.7);
+  --studio-line: var(--color-border, rgba(180, 200, 255, 0.1));
+  --studio-line-strong: var(--color-border-bright, rgba(180, 200, 255, 0.2));
+  --studio-accent: var(--teal-500, #00e5ff);
+  --studio-accent-soft: var(--teal-50, rgba(0, 229, 255, 0.1));
+  --studio-accent-line: rgba(0, 229, 255, 0.3);
+  --studio-warn: var(--neon-amber, #ffb627);
+
+  /* Chrome fills: the Studio's dark glass, not white-on-light. */
+  --studio-chrome: rgba(20, 25, 46, 0.72);
+  --studio-raise: rgba(26, 32, 64, 0.72);
+  --studio-well: rgba(26, 32, 64, 0.9);
+  --studio-panel: rgba(20, 25, 46, 0.94);
+  --studio-veil: rgba(6, 9, 26, 0.97);
+
+  /* Depth: the shared scale, so nothing here invents a number. */
+  --studio-z-tools: var(--daw-z-tools, 40);
+  --studio-z-scrim: var(--daw-z-scrim, 50);
+  /* The tighter scrim a side panel draws. The classic shell's `.comp-panel-backdrop`
+     sits here so a tap on the scrim closes the panel it belongs to without ever
+     landing on the canvas behind it. */
+  --studio-z-panel-scrim: var(--daw-z-panel-scrim, 75);
+  --studio-z-panel: var(--daw-z-panel, 80);
+  --studio-z-overlay: var(--daw-z-overlay, 120);
+  --studio-elev-panel: var(--daw-elev-panel, -10px 0 34px rgba(0, 0, 0, 0.5));
+
+  /* The touch floor comes from :root (src/studio-redesign-global.css). */
+  --studio-touch: var(--studio-touch-target, 44px);
+
+  /* Bar heights, defined once because the panels dock *between* the bars: if
+     the two disagree by even a few pixels a sheet ends up under the transport
+     (and the transport outranks it in the depth scale, so the sheet's last rows
+     become unreachable). Both bars are sized by this token, never by content. */
+  --studio-top-bar: 64px;
+  /* 36px controls + 10px of padding either side + the 1px hairline: the token
+     has to equal the height the bar actually renders, because the panels and
+     the scrim dock against it. `min-height: 56px` on a box whose content is
+     already 57px loses to the content, which tucked a sheet's last row under
+     the transport. */
+  --studio-bottom-bar: 57px;
+
+  --studio-inset-top: env(safe-area-inset-top, 0px);
+  --studio-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --studio-inset-left: env(safe-area-inset-left, 0px);
+  --studio-inset-right: env(safe-area-inset-right, 0px);
+
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
-  min-height: 100vh;
-  background: var(--studio-bg, #f5f2ee);
-  color: var(--studio-ink, #1f1a12);
+  /* `100dvh`, pinned to the visual viewport: with `100vh` on a phone the
+     browser chrome is counted as content and the transport — Play/Record —
+     ends up below the fold and under the gesture bar. */
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  /* `clip`, not `hidden`: a hidden overflow box is still *scrollable*, so when
+     focus lands on a control inside the phone's swipeable top-bar row the
+     browser pans the entire shell sideways — both bars and the canvas shift by
+     however wide that row is. `clip` refuses to scroll at all, which is the
+     contract the global stylesheet already uses for the workspace hosts. */
+  overflow: clip;
+  background: var(--studio-bg);
+  color: var(--studio-ink);
+}
+
+/* Every control on this surface taps cleanly and never waits on the
+   300ms delay. The global coarse-pointer list names only the embedded
+   workspace hosts, not this page's chrome. */
+.studio-shell button,
+.studio-shell input,
+.studio-shell select {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .studio-top-bar {
@@ -25,11 +124,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 64px;
+  min-height: calc(var(--studio-top-bar) + var(--studio-inset-top));
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(61, 53, 42, 0.08);
-  background: rgba(255, 255, 255, 0.42);
+  padding-top: calc(12px + var(--studio-inset-top));
+  border-bottom: 1px solid var(--studio-line);
+  background: var(--studio-chrome);
   backdrop-filter: blur(12px);
+  z-index: var(--studio-z-scrim);
 }
 
 .project-meta {
@@ -46,7 +147,7 @@
 
 .project-name {
   overflow: hidden;
-  color: rgba(31, 26, 18, 0.7);
+  color: var(--studio-dim);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -65,10 +166,10 @@
 .tool-grid button,
 .panel-close {
   min-height: 36px;
-  border: 1px solid rgba(61, 53, 42, 0.12);
+  border: 1px solid var(--studio-line-strong);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.45);
-  color: #1f1a12;
+  background: var(--studio-raise);
+  color: var(--studio-ink);
   cursor: pointer;
 }
 
@@ -77,16 +178,114 @@
   cursor: default;
 }
 
+.save-status {
+  /* It lives inside the swipeable top-bar row, so it never needs to wrap — and
+     wrapping turned "Save failed" into two lines that outgrew the bar. */
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
 .save-status.dirty {
-  color: #b45309;
+  color: var(--studio-warn);
   font-weight: 700;
+}
+
+.save-status.error,
+.project-state.error {
+  color: var(--studio-warn);
+  font-weight: 800;
+}
+
+/* ----------------------------------------------------------------------------
+   SAVE FAILURE — the banner the classic shell owns
+   ----------------------------------------------------------------------------
+   Local persistence fails for ordinary reasons (quota exhaustion, a private
+   window, a locked profile). When it does, the only copy of the project is the
+   one in memory, so this cannot be a chip in the corner: it is a persistent
+   `role="alert"` pinned under the top bar with the two ways out.
+
+   It is `position: absolute` on purpose — a flex child here would change the
+   distance between the top bar and the transport, which is exactly the number
+   every panel docks from (`--studio-top-bar` / `--studio-bottom-bar`).
+   ---------------------------------------------------------------------------- */
+.save-warning {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--studio-top-bar) + var(--studio-inset-top));
+  /* Above the workspace (content tier) and the bars, below `.panel-scrim`, which
+     must still be able to cover it when a slide-over is open. */
+  z-index: calc(var(--studio-z-panel-scrim) - 1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  padding-left: calc(16px + var(--studio-inset-left));
+  padding-right: calc(16px + var(--studio-inset-right));
+  border-bottom: 1px solid rgba(255, 182, 39, 0.45);
+  background: rgba(64, 40, 6, 0.97);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  color: #ffe9bb;
+  font-size: 0.82rem;
+  animation: studio-warning-in 0.2s ease;
+}
+
+.save-warning .material-symbols-outlined {
+  flex: 0 0 auto;
+  color: var(--studio-warn);
+}
+
+/* The message is the only element allowed to shrink: long storage errors would
+   otherwise squeeze the two recovery buttons off the bar. */
+.save-warning-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.save-warning-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.save-warning button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 213, 128, 0.55);
+  border-radius: 8px;
+  background: rgba(255, 182, 39, 0.16);
+  color: #fff4d9;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.save-warning button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@keyframes studio-warning-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .studio-shell-body {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
+  /* `clip` keeps each workspace's inner scroll rails and sticky rulers alive
+     while still refusing to add page-level horizontal overflow. */
   overflow: hidden;
+  overflow-x: clip;
 }
 
 .studio-mode-rail {
@@ -95,8 +294,8 @@
   flex: 0 0 auto;
   width: 180px;
   padding: 12px 8px;
-  border-right: 1px solid rgba(61, 53, 42, 0.12);
-  background: rgba(255, 255, 255, 0.35);
+  border-right: 1px solid var(--studio-line-strong);
+  background: var(--studio-chrome);
   backdrop-filter: blur(10px);
 }
 
@@ -109,18 +308,18 @@
   border-radius: 12px;
   padding: 10px 12px;
   background: transparent;
-  color: var(--studio-ink, #1f1a12);
+  color: var(--studio-ink);
   font-weight: 700;
   text-align: left;
   cursor: pointer;
 }
 
 .studio-mode-rail button.active {
-  border-color: rgba(14, 124, 123, 0.18);
+  border-color: var(--studio-accent-line);
   background: linear-gradient(
     135deg,
-    rgba(20, 184, 166, 0.12),
-    rgba(14, 124, 123, 0.08)
+    var(--studio-accent-soft),
+    rgba(0, 184, 212, 0.08)
   );
 }
 
@@ -153,7 +352,7 @@
 
 .workspace-header {
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(61, 53, 42, 0.08);
+  border-bottom: 1px solid var(--studio-line);
 }
 
 .workspace-title {
@@ -189,9 +388,21 @@
   min-height: 0;
   overflow-y: auto;
   padding: 16px;
-  border: 1px solid rgba(61, 53, 42, 0.08);
+  border: 1px solid var(--studio-line);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--studio-raise);
+}
+
+/* The assistant is the classic shell's slide-over, re-hosted here: it docks to
+   the same slot as every other panel. Its own stylesheet positions `.ai-shell`
+   absolutely and reads these two insets (with a `0px` fallback, so the classic
+   shell — where the shell itself is the containing block — is unchanged). */
+.studio-shell > app-ai-assistant {
+  --ai-shell-top: calc(var(--studio-top-bar) + var(--studio-inset-top));
+  --ai-shell-bottom: calc(var(--studio-bottom-bar) + var(--studio-inset-bottom));
+  /* Above `.panel-scrim`, so tapping the scrim closes the panel rather than
+     dimming it. Same tier as every other panel on this page. */
+  --ai-shell-z: var(--studio-z-panel);
 }
 
 /* The embedded inspector owns its width (300px, 44px collapsed). */
@@ -204,11 +415,11 @@
 .workspace-overlay {
   position: absolute;
   inset: 0;
-  z-index: 60;
+  z-index: var(--studio-z-overlay);
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: rgba(245, 242, 238, 0.97);
+  background: var(--studio-veil);
   backdrop-filter: blur(6px);
 }
 
@@ -218,7 +429,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
-  border-bottom: 1px solid rgba(61, 53, 42, 0.1);
+  border-bottom: 1px solid var(--studio-line-strong);
 }
 
 .overlay-head h3 {
@@ -259,9 +470,9 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid rgba(61, 53, 42, 0.1);
+  border: 1px solid var(--studio-line-strong);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--studio-raise);
 }
 
 .version-copy {
@@ -277,7 +488,7 @@
 
 .version-copy span {
   font-size: 0.72rem;
-  color: rgba(31, 26, 18, 0.6);
+  color: var(--studio-dim);
 }
 
 .collab-toggle {
@@ -285,7 +496,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.75rem;
-  color: rgba(31, 26, 18, 0.7);
+  color: var(--studio-dim);
 }
 
 .collab-actions {
@@ -299,26 +510,27 @@
   flex-direction: column;
   gap: 8px;
   padding: 8px 0;
-  border-bottom: 1px dashed rgba(61, 53, 42, 0.1);
+  border-bottom: 1px dashed var(--studio-line);
 }
 
 .conflict-label {
   font-size: 0.75rem;
-  color: rgba(31, 26, 18, 0.7);
+  color: var(--studio-dim);
 }
 
 .advanced-tools-drawer {
   position: absolute;
   right: 0;
-  top: 64px;
-  bottom: 60px;
+  top: calc(var(--studio-top-bar) + var(--studio-inset-top));
+  bottom: calc(var(--studio-bottom-bar) + var(--studio-inset-bottom));
   width: min(360px, 32vw);
-  z-index: 50;
+  z-index: var(--studio-z-panel);
   padding: 16px;
+  padding-bottom: calc(16px + var(--studio-inset-bottom));
   overflow-y: auto;
-  background: rgba(255, 255, 255, 0.86);
-  border-left: 1px solid rgba(61, 53, 42, 0.12);
-  box-shadow: -18px 0 28px rgba(0, 0, 0, 0.08);
+  background: var(--studio-panel);
+  border-left: 1px solid var(--studio-line-strong);
+  box-shadow: var(--studio-elev-panel);
 }
 
 .advanced-tools-drawer header,
@@ -356,36 +568,86 @@
 .support-panel {
   position: absolute;
   right: 0;
-  top: 70px;
-  bottom: 60px;
+  top: calc(var(--studio-top-bar) + var(--studio-inset-top));
+  bottom: calc(var(--studio-bottom-bar) + var(--studio-inset-bottom));
   width: min(380px, 36vw);
-  z-index: 40;
+  /* The panel tier, like the classic shell's `.comp-panel`: at the tools tier
+     this sat *under* `.panel-scrim` and the whole sheet rendered dimmed. */
+  z-index: var(--studio-z-panel);
   padding: 16px;
+  padding-bottom: calc(16px + var(--studio-inset-bottom));
   overflow-y: auto;
-  background: rgba(255, 255, 255, 0.88);
-  border-left: 1px solid rgba(61, 53, 42, 0.12);
-  box-shadow: -18px 0 28px rgba(0, 0, 0, 0.08);
+  background: var(--studio-panel);
+  border-left: 1px solid var(--studio-line-strong);
+  box-shadow: var(--studio-elev-panel);
 }
 
 .support-panel section {
   padding: 10px 0;
-  border-bottom: 1px solid rgba(61, 53, 42, 0.08);
+  border-bottom: 1px solid var(--studio-line);
+}
+
+/* ----------------------------------------------------------------------------
+   PANEL SCRIM — tap anywhere outside a panel to dismiss it
+   ----------------------------------------------------------------------------
+   The panels are right-edge slide-overs on a wide screen and bottom sheets on a
+   phone; in both shapes their Close button is a small target in a far corner.
+   The classic shell pairs every panel with `.comp-panel-backdrop`, so a tap on
+   the workspace means "close". This is that backdrop, restricted to the band
+   between the bars: the transport (Play/Record) must stay tappable while a
+   sheet is open, and the panels dock between the bars for the same reason.
+   ---------------------------------------------------------------------------- */
+.panel-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--studio-top-bar) + var(--studio-inset-top));
+  bottom: calc(var(--studio-bottom-bar) + var(--studio-inset-bottom));
+  z-index: var(--studio-z-panel-scrim);
+  border: none;
+  padding: 0;
+  background: rgba(6, 9, 26, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  cursor: pointer;
+  animation: studio-scrim-in 0.2s ease;
+}
+
+@keyframes studio-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .project-feedback {
   margin: 10px 0 0;
   font-size: 0.78rem;
-  color: rgba(31, 26, 18, 0.75);
+  color: var(--studio-dim);
 }
 
 .project-feedback.error {
-  color: #b45309;
+  color: var(--studio-warn);
   font-weight: 600;
 }
 
 .project-section {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+
+/* The picker is driven by its button; `display: none` still allows `.click()`
+   and keeps an unstyled file control out of the panel. */
+.import-input {
+  display: none;
+}
+
+.project-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -401,7 +663,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 6px 0;
-  border-bottom: 1px dashed rgba(61, 53, 42, 0.1);
+  border-bottom: 1px dashed var(--studio-line);
 }
 
 .project-row-copy {
@@ -420,14 +682,14 @@
 
 .project-row-copy span {
   font-size: 0.7rem;
-  color: rgba(31, 26, 18, 0.6);
+  color: var(--studio-dim);
 }
 
 .project-empty,
 .project-meta-line {
   margin: 0;
   font-size: 0.74rem;
-  color: rgba(31, 26, 18, 0.65);
+  color: var(--studio-dim);
 }
 
 .project-field {
@@ -435,29 +697,32 @@
   flex-direction: column;
   gap: 4px;
   font-size: 0.72rem;
-  color: rgba(31, 26, 18, 0.65);
+  color: var(--studio-dim);
 }
 
 .project-field input {
   min-height: 32px;
   padding: 0 8px;
-  border: 1px solid rgba(61, 53, 42, 0.14);
+  border: 1px solid var(--studio-line-strong);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.7);
-  color: #1f1a12;
+  background: var(--studio-well);
+  color: var(--studio-ink);
   font: inherit;
 }
 
+/* Relative order kept, but based on the *panel* tier: at the tools tier these
+   three sat under `.panel-scrim` (the scrim owns the tier between them), so an
+   open sheet rendered dimmed behind its own backdrop. */
 .export-panel {
-  z-index: 42;
+  z-index: calc(var(--studio-z-panel) + 2);
 }
 
 .project-panel {
-  z-index: 40;
+  z-index: var(--studio-z-panel);
 }
 
 .collaboration-panel {
-  z-index: 41;
+  z-index: calc(var(--studio-z-panel) + 1);
 }
 
 .studio-transport-bar {
@@ -465,11 +730,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 56px;
+  min-height: calc(var(--studio-bottom-bar) + var(--studio-inset-bottom));
   padding: 10px 16px;
-  border-top: 1px solid rgba(61, 53, 42, 0.1);
-  background: rgba(255, 255, 255, 0.42);
+  /* Clear the Android gesture bar / iOS home indicator: this is where Play,
+     Record and Loop live. */
+  padding-bottom: calc(10px + var(--studio-inset-bottom));
+  padding-left: calc(16px + var(--studio-inset-left));
+  padding-right: calc(16px + var(--studio-inset-right));
+  border-top: 1px solid var(--studio-line-strong);
+  background: var(--studio-chrome);
   backdrop-filter: blur(12px);
+  z-index: var(--studio-z-scrim);
 }
 
 .transport-left,
@@ -488,8 +759,8 @@
 
 .loop-toggle.active,
 .metronome-toggle.active {
-  background: rgba(20, 184, 166, 0.16);
-  border-color: rgba(14, 124, 123, 0.3);
+  background: var(--studio-accent-soft);
+  border-color: var(--studio-accent-line);
   font-weight: 700;
 }
 
@@ -504,7 +775,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.8rem;
-  color: rgba(31, 26, 18, 0.7);
+  color: var(--studio-dim);
 }
 
 .master-meter-label {
@@ -516,7 +787,7 @@
   width: 84px;
   height: 6px;
   border-radius: 999px;
-  background: rgba(61, 53, 42, 0.12);
+  background: var(--studio-line-strong);
   overflow: hidden;
 }
 
@@ -526,31 +797,52 @@
   height: 100%;
   transform-origin: left center;
   transform: scaleX(0);
-  background: linear-gradient(90deg, #14b8a6, #b45309);
+  background: linear-gradient(90deg, var(--studio-accent), var(--studio-warn));
   transition: transform 80ms linear;
 }
 
 .project-state.dirty {
-  color: #b45309;
+  color: var(--studio-warn);
   font-weight: 700;
 }
 
-@media (max-width: 860px) {
+/* ----------------------------------------------------------------------------
+   PHONE PORTRAIT — stack the workspaces
+   ----------------------------------------------------------------------------
+   Width alone is not the phone signal: a landscape phone is ~844–932px wide,
+   so a width-only query hands it the desktop row (180px rail + 300px inspector
+   beside ~270px of canvas height). Stacking belongs to portrait; landscape is
+   handled below, where height is the constraint that matters.
+   ---------------------------------------------------------------------------- */
+@media (max-width: 860px) and (orientation: portrait), (max-width: 600px) {
   .studio-shell-body {
     display: block;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .studio-mode-rail {
     flex-direction: row;
     width: 100%;
+    padding: 8px;
     border-right: none;
-    border-bottom: 1px solid rgba(61, 53, 42, 0.08);
+    border-bottom: 1px solid var(--studio-line);
     overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .studio-mode-rail::-webkit-scrollbar {
+    display: none;
   }
 
   .studio-mode-rail button {
-    min-width: 120px;
+    flex: 0 0 auto;
+    width: auto;
+    min-height: var(--studio-touch);
+    scroll-snap-align: start;
   }
 
   .studio-workspace-surface {
@@ -559,17 +851,295 @@
 
   .workspace-panel {
     min-height: 60vh;
+    min-height: 60dvh;
   }
 
   .studio-shell-body > app-inspector {
     width: 100%;
-    border-top: 1px solid rgba(61, 53, 42, 0.08);
+    border-top: 1px solid var(--studio-line);
+  }
+
+  /* Slide-over panels become sheets that can never exceed the viewport, and
+     never sit under the gesture bar. */
+  .advanced-tools-drawer,
+  .support-panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    /* Above the transport, not over it: Play/Record stay reachable while a
+       sheet is open, and no row of the sheet hides behind the bar. */
+    bottom: calc(var(--studio-bottom-bar) + var(--studio-inset-bottom));
+    width: 100%;
+    max-height: min(70dvh, 560px);
+    border-left: none;
+    border-top: 1px solid var(--studio-line-strong);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* Landscape *phones* only: the rail turns into an icon rail. A short desktop
+   window keeps the labelled rail — the width it would save is not scarce
+   there, and losing the labels costs more than the pixels are worth. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 932px) {
+  .studio-mode-rail {
+    flex-direction: column;
+    width: 64px;
+    padding: 4px;
+    border-right: 1px solid var(--studio-line-strong);
+    border-bottom: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .studio-mode-rail button {
+    flex-direction: column;
+    gap: 2px;
+    min-height: 44px;
+    padding: 6px 2px;
+    font-size: 0.62rem;
+    text-align: center;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   PHONE — touch floors (Apple HIG / Material: 44px, 48px for primary chrome)
+   ---------------------------------------------------------------------------- */
+@media (max-width: 768px), (pointer: coarse) {
+  .studio-shell {
+    /* 48px controls + 20px of bar padding, on both bars. */
+    --studio-top-bar: 72px;
+    --studio-bottom-bar: 68px;
+  }
+
+  .studio-top-bar,
+  .studio-transport-bar {
+    gap: 8px;
+  }
+
+  .top-bar-actions {
+    flex: 1 1 auto;
+    /* A flex item refuses to shrink below its content without `min-width: 0`,
+       so this row overflowed the shell instead of scrolling inside itself: the
+       last buttons sat past the viewport edge with no way to swipe to them. */
+    min-width: 0;
+    /* The desktop row is right-aligned, but in a *scrolling* row that pushes
+       the overflow off the row's left edge — and a scroll container cannot
+       scroll past its origin, so Save/Export/Share became untappable. Start-
+       aligned, the overflow runs to the right where a swipe reaches it. */
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    /* One reachable row that scrolls, instead of three wrapped rows that eat
+       the canvas on a 360×640 phone. */
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .top-bar-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .top-bar-actions button,
+  .tool-grid button,
+  .transport-left button,
+  .transport-center button {
+    min-height: 48px;
+    min-width: 48px;
+    flex: 0 0 auto;
+  }
+
+  .panel-close {
+    min-height: var(--studio-touch);
+    padding: 0 14px;
+    font-size: 0.8rem;
+  }
+
+  /* On a phone the banner sits in the thumb zone instead: pinned to the top it
+     would cover the mode rail, which is where the workspace is switched. */
+  .save-warning {
+    top: auto;
+    bottom: calc(var(--studio-bottom-bar) + var(--studio-inset-bottom));
+    flex-wrap: wrap;
+    border-top: 1px solid rgba(255, 182, 39, 0.45);
+    border-bottom: none;
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.5);
+    font-size: 0.78rem;
+  }
+
+  .save-warning button {
+    min-height: var(--studio-touch);
+  }
+
+  .save-warning-actions {
+    width: 100%;
+  }
+
+  .save-warning-actions button {
+    flex: 1 1 0;
+  }
+
+  .project-field input {
+    min-height: var(--studio-touch);
+  }
+
+  /* One swipeable row, not three wrapped rows: on a 360x640 phone a stacked
+     transport costs ~150px of the canvas, and the canvas is the instrument.
+     Every control keeps its 48px target and stays reachable by scrolling. */
+  .studio-transport-bar {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .studio-transport-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .transport-left,
+  .transport-center,
+  .transport-right {
+    flex: 0 0 auto;
+  }
+
+  .transport-center {
+    gap: 8px;
+    font-size: 0.8rem;
+  }
+
+  .transport-right {
+    gap: 8px;
+  }
+
+  .master-meter-track {
+    width: 64px;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   LANDSCAPE PHONE — the tightest usable workspace
+   ---------------------------------------------------------------------------- */
+@media (orientation: landscape) and (max-height: 520px) {
+  /* The row layout, restored: on a 390px-tall viewport the canvas may keep
+     every pixel the two bars leave, instead of a viewport-relative 50dvh. */
+  .studio-shell-body {
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    overflow-x: clip;
+  }
+
+  .studio-workspace-column {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+
+  .studio-workspace-surface,
+  .workspace-panel {
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* Landscape phones are the one case where the desktop bar tokens are wrong:
+     the bars here are their own height, and the panels dock from the tokens.
+     Sizing the token instead of the bar keeps one definition — the bars below
+     still read `--studio-top-bar` / `--studio-bottom-bar` through their own
+     `min-height`, so these two numbers are now the only bar heights here. */
+  .studio-shell {
+    --studio-top-bar: 48px;
+    --studio-bottom-bar: 44px;
+  }
+
+  .studio-top-bar {
+    padding: 6px 12px;
+    padding-top: calc(6px + var(--studio-inset-top));
+  }
+
+  .studio-transport-bar {
+    padding: 6px 12px;
+    padding-bottom: calc(6px + var(--studio-inset-bottom));
+    flex-wrap: nowrap;
+  }
+
+
+  .workspace-header {
+    padding: 6px 12px;
+  }
+
+  .workspace-title h2 {
+    font-size: 1rem;
+  }
+
+  .workspace-body {
+    padding: 8px;
   }
 
   .advanced-tools-drawer,
   .support-panel {
-    width: min(92vw, 380px);
-    right: 8px;
-    left: 8px;
+    max-height: 88dvh;
+    padding: 12px;
+  }
+}
+
+/* Accessibility: one narrow plaque of chrome means every state that the page
+   encodes as a fill or a glow must survive without colour. */
+@media (forced-colors: active) {
+  .studio-mode-rail button.active,
+  .loop-toggle.active,
+  .metronome-toggle.active {
+    border: 1px solid CanvasText;
+  }
+
+  .top-bar-actions button,
+  .transport-left button,
+  .transport-center button,
+  .panel-close,
+  .tool-grid button,
+  .save-warning button {
+    border: 1px solid ButtonText;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .studio-shell {
+    --studio-line: rgba(180, 200, 255, 0.42);
+    --studio-line-strong: rgba(180, 200, 255, 0.6);
+    --studio-dim: #c7d2ea;
+  }
+}
+
+/* Dark space behind glass is real depth; when the user opts out of
+   transparency, solid fills keep the hierarchy readable. */
+@media (prefers-reduced-transparency: reduce) {
+  .studio-top-bar,
+  .studio-transport-bar,
+  .studio-mode-rail,
+  .advanced-tools-drawer,
+  .support-panel,
+  .panel-scrim {
+    backdrop-filter: none;
+    background: var(--studio-panel);
+  }
+
+  .panel-scrim {
+    background: rgba(6, 9, 26, 0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .master-meter-fill {
+    transition: none;
+  }
+
+  .panel-scrim {
+    animation: none;
+  }
+
+  .save-warning {
+    animation: none;
   }
 }

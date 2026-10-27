@@ -27,3 +27,33 @@ export function studioModeForView(
 ): StudioPageMode | null {
   return STUDIO_VIEW_MODES[(view ?? "").toLowerCase()] ?? null;
 }
+
+/**
+ * The classic view id each page mode stands in for.
+ *
+ * The Compose Assistant is context-aware: its quick actions are keyed by the
+ * classic shell's view ids (`arrangement`, `piano-roll`, `mixer`, …), not by
+ * page modes. This is the mapping the page hands it so the actions on the
+ * composed `/studio` follow the mode the user is actually working in.
+ *
+ * It is deliberately *not* the exact inverse of `STUDIO_VIEW_MODES`: that table
+ * lists every `?view=` alias, while the assistant knows a fixed set of context
+ * ids and falls back to its global actions for anything it does not recognise.
+ * `create` maps to `recording` (its own alias) and therefore gets the global
+ * set; `keys` maps to `piano-roll`, which shares Arrange's note-editing set;
+ * `export` maps to `mastering`, the closest finalising context.
+ */
+export const STUDIO_MODE_ASSISTANT_CONTEXT: Readonly<
+  Record<StudioPageMode, string>
+> = {
+  create: "recording",
+  arrange: "arrangement",
+  keys: "piano-roll",
+  mix: "mixer",
+  export: "mastering",
+};
+
+/** The assistant context id for a page mode. */
+export function studioAssistantContextForMode(mode: StudioPageMode): string {
+  return STUDIO_MODE_ASSISTANT_CONTEXT[mode] ?? "arrangement";
+}

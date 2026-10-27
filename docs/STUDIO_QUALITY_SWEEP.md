@@ -823,15 +823,219 @@ tests dragged into the light.
 
 ### 13.4 Known limitations
 
-- **The offline WAV export renders near-silence.** `renderProjectOffline()` peaks
-  at 4.5e-4 for a sine note at gain 0.8 — the RIFF container, gain and mute
-  handling are all correct, the *audio graph* is not. This is **pre-existing**:
-  the identical peak (0.00045254832366481423) reproduces from a clean worktree at
-  the base commit, and `export.service.ts` / `audio-engine.service.ts` are
-  untouched by this pass. It needs its own audio-graph investigation.
+- ~~**The offline WAV export renders near-silence.**~~ **Closed 2026-10-27.** The
+  root cause was the percussive voice envelope in `buildVoiceGraph`: its attack
+  used `setTargetAtTime`, an open-ended exponential approach that never lands on
+  a value, so the decay ramp that followed had no departure point and started
+  from zero — every un-patched voice peaked at ~5e-4 (≈ −57 dB). Reproduced in
+  Chromium at isolated scale (0.00057 against 0.405 for the same graph with a
+  bounded attack). The attack is now a `linearRampToValueAtTime` that arrives at
+  the peak exactly at `time + attack`; the peak measured 0.405 in the same
+  harness, and `audio-engine.service.spec.ts` pins both the ramp and the decay's
+  departure value.
 - **Preference support is emulated, not device-verified.** No Windows High
   Contrast pass, no OLED HDR panel, no real reduced-transparency host.
 - **Touch is synthetic.** Swipe and flick are driven by dispatched `TouchEvent`s,
   not by a physical device.
 - **The analyzer is verified against synthetic buffers**, not against a reference
   analyser.
+---
+
+## 14. Eighth pass — the composed page's phone and desktop contract
+
+`/studio` loads the composed page (`app-studio-page`), which draws its **own**
+chrome — top bar, mode rail, transport, slide-over panels — instead of the
+classic shell's. Every mobile and accessibility contract in the Studio was
+written for `.comp-shell`, which only the classic shell renders, so none of it
+reached the surface that now owns `/studio`. This pass restates those contracts
+for the page and fixes what the restatement exposed.
+
+### 14.1 What shipped
+
+- **Theme wired to the real tokens.** The page consumed
+  `var(--studio-bg, #f5f2ee)` and `var(--studio-ink, #1f1a12)`, and neither
+  variable was defined anywhere in `src/` — so the fallback *was* the theme: a
+  light page (the only file in the tree using that paper colour) inside a
+  night-sky app. The page now derives its palette from the global tokens
+  (`--color-bg`, `--color-text`, `--color-surface`, `--teal-*`, `--neon-amber`),
+  so it follows the Studio skin and any future theme that redefines them.
+- **Depth and elevation on the shared scale.** Hard-coded `z-index: 40/42/50/60`
+  and a bespoke panel shadow are gone; the page uses `--daw-z-*` and
+  `--daw-elev-panel`. Those were declared inside `body .comp-shell`, so the
+  token rule now also carries `:root` — one definition, two scopes, which is
+  what lets a surface outside the classic shell stop inventing numbers.
+- **Phone viewport.** `height: 100vh; height: 100dvh` (the transport was below
+  the fold and under the gesture bar), `env(safe-area-inset-*)` on both bars and
+  on all four panel edges, and `overflow: hidden` on the shell so no surface can
+  add page-level horizontal overflow.
+- **Touch floors.** 48px controls and 44px close/fields on `(max-width: 768px)`
+  or any coarse pointer, `touch-action: manipulation` and no tap highlight for
+  the page's own chrome (the global coarse-pointer list names only the embedded
+  workspace hosts).
+- **One bar height, two consumers.** The panels dock between the bars, so both
+  bars and both panel edges are sized from `--studio-top-bar` /
+  `--studio-bottom-bar`. Previously the panels used the global
+  `--studio-header`/`--studio-footer` (60px/40px on a phone) against a 72px top
+  bar and a 68px transport, so a phone sheet slid under the transport — which
+  outranks it in the depth scale — and its last rows were unreachable.
+- **Portrait stacks, landscape keeps the row.** Stacking was keyed on
+  `max-width: 860px`, which a landscape phone (844–932px wide) never hits *and*
+  which is the wrong answer when it does: height is the scarce axis there. The
+  rail also becomes a 64px icon rail in landscape, so the canvas keeps the axis
+  it has to spare.
+- **Capability layers for this surface.** `forced-colors`, `prefers-contrast`,
+  `prefers-reduced-transparency` and `prefers-reduced-motion` blocks scoped to
+  `.studio-shell`, because `studio-adaptive-display.css` is scoped to
+  `body .comp-shell` and could not reach the page.
+
+### 14.2 Evidence
+
+`studio-page.styles.spec.ts` (11 assertions) pins the contract, including two
+that encode the failures found here: every custom property the page consumes
+must be defined, and **defined at `:root`** (a token defined only under
+`.comp-shell` does not reach this page); and no property may define itself
+(`--x: var(--x, 60px)` computes to the guaranteed-invalid value).
+
+| Check | Result |
+| --- | --- |
+| `npx jest src/app/studio/studio-page …` | 11 styles assertions + page/export suites: **4 suites, 133 tests passed** |
+| `npx ng build --configuration development` | **0 errors** |
+| Selector-diff against the pre-pass stylesheet | no selector removed (every existing rule preserved) |
+| Measured layout (Chromium 148, real stylesheets, replica DOM) | 360×640, 390×844, 844×390 and 1440×900: shell fills the viewport, **no** page-level horizontal scroll, **no** sheet/transport overlap; bar controls 48px on phones (36px desktop); transport one row — 69px portrait, 61px landscape, 57px desktop; canvas 327 / 449 / 239 / 722px |
+
+### 14.3 Known limitations
+
+- **Measured against a harness, not the running app.** Chromium on this host
+  dies on any app route (a plain page in the same browser is fine), so the
+  numbers come from the real stylesheets applied to a replica of the page's DOM.
+  They verify layout math, not the Angular wiring; the `app-inspector` column and
+  the embedded workspaces are not reproduced.
+- **No readable screenshot.** This container ships no system fonts, so a capture
+  shows the palette, geometry and stacking but no text. Typography at phone sizes
+  is unverified.
+- **Safe-area insets read as 0 here.** Desktop Chromium does not emulate
+  notches, so the *binding* of the insets is asserted (spec) rather than their
+  effect.
+- **The patch that prompted this pass was not applied** (see the review in the
+  hand-off): it replaced the app shell, collided with this page's selector and
+  would not have compiled against the repo's entry point.
+
+## 15. Ninth pass — panel dismissal, the assistant port, and the phone chrome
+
+### 15.1 What changed
+
+- **Panel dismissal, aligned with the classic shell.** The composed page had no
+  way to dismiss a slide-over except the small Close button in its far corner.
+  It now mirrors the classic shell's `.comp-panel-backdrop`: a `.panel-scrim` at
+  the `--daw-z-panel-scrim` tier (75) — between the bars, so Play/Record stay
+  live under an open sheet — plus `Escape` on `document`, and one panel at a
+  time. The scrim is a real `<button aria-label="Close panel">` rather than the
+  classic shell's click-handling `div`, so it is focusable and labelled.
+- **The Compose Assistant is ported to the composed page.** It was
+  classic-shell-only, so `/studio` had no AI panel at all. It is hosted in the
+  page and docked between the bars through two custom properties the shared
+  component reads with `0px`/`70` fallbacks (`--ai-shell-top`, `--ai-shell-bottom`,
+  `--ai-shell-z`) — the classic shell's full-height panel is untouched. Its quick
+  actions are keyed by classic view id, so `studioAssistantContextForMode()`
+  maps the page's mode (`arrange` → `arrangement`, `mix` → `mixer`, `export` →
+  `mastering`, `keys` → `piano-roll`, `create` → `recording`) and the panel is
+  context-aware on this surface too.
+- **Panel stacking was inverted.** `.support-panel` (Project, Collaboration,
+  Export) sat at the *tools* tier (40) while the new scrim took 75, so every open
+  sheet painted **behind its own backdrop** and read as greyed-out and disabled.
+  The panels now own the panel tier, above the scrim.
+- **The transport token was 1px short.** It renders its 36px controls + 20px of
+  padding + a 1px hairline = 57px, while `--studio-bottom-bar` said 56px, and
+  the panels dock from the token. Landscape *phones* were worse: the bars were
+  sized by hardcoded `min-height` values (48/44) while the tokens still said
+  72/68, so every sheet docked 24px into both bars. The tokens are now the only
+  bar heights, per breakpoint.
+- **The phone top bar no longer pans the shell.** Two defects, both found by
+  driving the real app rather than a harness. (1) `.studio-shell` used
+  `overflow: hidden`, and a hidden overflow box is still *scrollable*: focusing a
+  control inside the swipeable top-bar row panned the entire chrome — both bars
+  and the canvas — 135px sideways on a phone, 420px on desktop (the closed
+  assistant's `translateX(100%)` contributes scrollable overflow). It is now
+  `overflow: clip`, which refuses to scroll at all. (2) The row itself never
+  scrolled: without `min-width: 0` a flex item will not shrink below its content,
+  and with the desktop `justify-content: flex-end` the overflow ran off the
+  row's *left* edge — where a scroll container cannot go — leaving Save/Export/
+  Share untappable.
+- **A failed save is now a banner, not a chip.** The page carried
+  `persistenceError()` only in the top-bar status chip, so a failed write — quota
+  exhaustion, a private window, a locked profile, where the *only* copy of the
+  project is the one in memory — looked like a label. It now has the classic
+  shell's `role="alert"` banner with both ways out: **Retry save** (which clears
+  itself when the write succeeds) and **Export backup**, which writes the
+  `.smuve` bundle straight to a download so the work cannot be stranded in a tab
+  that cannot save. The banner is `position: absolute` on purpose — a flex child
+  would change the distance between the bars, which is the number every panel
+  docks from — and it sits in the thumb zone on a phone (above the transport, not
+  over the mode rail). The transport's status is now the single
+  `role="status" aria-live="polite"` region, reading "Saving… / Save failed /
+  Unsaved / Saved" instead of the raw enum.
+- **Bundle import closed the recovery loop.** "Export backup" without an import
+  is a one-way door: a `.smuve` bundle written by this page (or by the classic
+  shell) had no way back in, because the page never wired `importProjectBundle`.
+  The Project panel now has **Import bundle**, mirroring the classic shell's
+  `loadProjectFile`: a 64 MiB guard, a `Replace current project?` confirmation
+  before an unsaved session is discarded, then the service's own validated
+  import — so a bundle it does not recognise is refused and the session stays
+  untouched. Failures land in the panel's feedback *and* the snackbar.
+- **One redundant file removed.** `src/app/components/career-hub/career-hub.css`
+  (5189 bytes) is referenced by nothing: the component loads
+  `career-hub.component.css` (675 bytes). No component, route, stylesheet or
+  test was removed — the four Studio global stylesheets are all in `angular.json`,
+  and the two `piano-roll` components behind `/piano-roll` and
+  `/canvas-piano-roll` are both routed.
+
+### 15.2 Evidence
+
+`tests/e2e/studio-new-page.spec.ts` gained the phone and docking coverage the
+composed page never had: the transport stays on screen with no sideways shift,
+the 44px touch floors, scrim-tap + Escape dismissal, one-panel-at-a-time, the
+assistant's docking, and `panels dock between the bars` parameterised over
+360×640, 390×844, 844×390 and 1440×900 — the four cases whose bar heights differ.
+Each also asserts the sheet's own centre still hits the sheet, which is the
+regression that put a panel behind its scrim. Two more drive the save-failure
+path end to end: the banner appears with both actions, **Export backup really
+downloads a `Banner_Session_vN.smuve`**, Retry clears the banner, and on a phone
+the banner never covers the transport. A further test round-trips a real bundle
+through the import control — snapshot, rename, import, confirm, name restored —
+and then feeds it a malformed bundle to prove the session survives the refusal.
+
+| Check | Result |
+| --- | --- |
+| `npx playwright test studio-new-page` | **20/20** (8 composition + 5 phone + 4 docking viewports + 2 save-failure + 1 banner placement + 1 bundle import) |
+| `npx playwright test studio-touch-gestures studio-pane-budget studio_mobile_check` | **77/79** |
+| `npx playwright test studio-quality-sweep` | **34/35** |
+| `npx jest src/app/studio/studio-page src/app/studio/shared/ai-assistant` | **32 passed** |
+| `npx jest src/app/studio/synth-classes src/app/studio/studio-view.guard` | **66 passed** |
+| `npx ng build` | **0 errors** (bundle-budget warning pre-existing) |
+| Rendered captures (real Chromium, fonts installed) | `artifacts/studio-phone-portrait{,-sheet,-assistant}.png`, `…-phone-save-banner.png`, `…-landscape.png`, `…-desktop{,-assistant,-save-banner}.png` |
+| Measured bar heights vs tokens | phone 72/68 = token 72/68; landscape 48/44 = 48/44 (was 72/68); desktop 64/57 (transport token 56 → 57) |
+
+The three outstanding e2e failures are **pre-existing on this host**, and were
+attributed by reverting the only classic-shell-affecting file in the pass
+(`ai-assistant.component.css`) and re-running: identical numbers, identical
+failures.
+
+### 15.3 Known limitations
+
+- **The pre-existing failures are font-metric artefacts of this container.** The
+  app pulls Inter from Google Fonts; with no network the DejaVu fallback renders
+  wider, so `.comp-topbar-right` overflows 1280px, the shell-height ratio shifts,
+  and the classic project menu no longer fits 390px of landscape height. Fixing
+  those means either loading the real webfont or re-tuning the classic shell's
+  desktop top bar — out of scope for this pass.
+- **The landscape-phone rail labels are still word-clipped at the right edge.**
+  The swipeable top-bar row and mode rail clip mid-word ("Pr…", "Mi…") with no
+  scroll affordance; a mask/gradient fade (or icons-only on phones) would say
+  "swipe" instead of "broken". Deliberately left as a design decision.
+- **`advanced-synth.ts` and `subtractive-synth.ts` are unreferenced** — 0 refs
+  repo-wide while all five sibling voices are used and covered by
+  `synth-classes.spec.ts`. They are not duplicates of any live file (6-gram
+  overlap 4.9% vs 8.3% between live siblings), so they were **left in place**
+  rather than deleted under "keep all current components".
+- **Safe-area insets read as 0** on desktop Chromium: their binding is asserted,
+  not their effect, and no notched device was emulated.

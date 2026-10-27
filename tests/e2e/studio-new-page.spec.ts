@@ -149,3 +149,356 @@ test("exposes working export options", async ({ page }) => {
   await selects.nth(2).selectOption("16");
   await expect(selects.nth(2)).toHaveValue("16");
 });
+
+/**
+ * Phone coverage for the composed page.
+ *
+ * The page draws its own chrome, so it carries the phone contract itself:
+ * `100dvh` sizing with the transport inside the visual viewport, slide-over
+ * panels that dock *between* the two bars, the 44/48px touch floors, and one
+ * tap outside a panel to dismiss it. None of the classic-shell phone specs can
+ * see any of it.
+ */
+const PHONE = { width: 390, height: 844 };
+
+test.describe("phone layout", () => {
+  test.use({ hasTouch: true, viewport: PHONE });
+
+  // The file-level hook pins a desktop viewport for the composition specs, so
+  // these tests have to re-pin it after it runs.
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize(PHONE);
+  });
+
+  test("keeps the transport on screen without shifting or overflowing", async ({
+    page,
+  }) => {
+    await openStudio(page);
+
+    // Focusing a control in the swipeable top-bar row used to let the browser
+    // pan the whole shell sideways (both bars and the canvas moved with it).
+    await page.getByRole("button", { name: "Project", exact: true }).click();
+    // Top-left of the scrim — over the backdrop, not over the bottom sheet.
+    await page.locator(".panel-scrim").click({ position: { x: 20, y: 20 } });
+
+    const layout = await page.evaluate(() => {
+      const shell = document.querySelector<HTMLElement>(".studio-shell")!;
+      const bar = document
+        .querySelector<HTMLElement>(".studio-transport-bar")!
+        .getBoundingClientRect();
+      const top = document
+        .querySelector<HTMLElement>(".studio-top-bar")!
+        .getBoundingClientRect();
+      return {
+        shellScrollLeft: shell.scrollLeft,
+        viewportWidth: document.documentElement.clientWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        bodyWidth: document.body.scrollWidth,
+        barTop: bar.top,
+        barLeft: bar.left,
+        barBottom: bar.bottom,
+        topLeft: top.left,
+        viewportHeight: window.innerHeight,
+      };
+    });
+
+    const overflow =
+      Math.max(layout.documentWidth, layout.bodyWidth) - layout.viewportWidth;
+    expect(overflow, "the page must not scroll sideways").toBeLessThanOrEqual(1);
+    expect(layout.shellScrollLeft, "the chrome must not pan sideways").toBe(0);
+    expect(Math.round(layout.barLeft)).toBe(0);
+    expect(Math.round(layout.topLeft)).toBe(0);
+    // With `100vh` instead of `100dvh` these sat below the fold.
+    expect(layout.barBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+    expect(layout.barTop).toBeGreaterThan(0);
+  });
+
+  test("meets the touch floors on its own chrome", async ({ page }) => {
+    await openStudio(page);
+
+    for (const selector of [
+      ".studio-mode-rail button",
+      ".top-bar-actions button",
+      ".transport-left button",
+    ]) {
+      const smallest = await page.locator(selector).evaluateAll((elements) =>
+        Math.min(
+          ...elements.map((element) => {
+            const rect = element.getBoundingClientRect();
+            return Math.min(rect.width, rect.height);
+          }),
+        ),
+      );
+      expect(
+        smallest,
+        `${selector} must be at least 44px`,
+      ).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test("a tapped scrim dismisses the panel, and Escape does too", async ({
+    page,
+  }) => {
+    await openStudio(page);
+
+    await page.getByRole("button", { name: "Tools" }).click();
+    const drawer = page.locator(".advanced-tools-drawer");
+    await expect(drawer).toBeVisible();
+
+    // Top-left of the scrim: on a phone the panel is a bottom sheet, so this
+    // point is over the scrim rather than over the sheet.
+    await page.locator(".panel-scrim").click({ position: { x: 20, y: 20 } });
+    await expect(drawer).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Project", exact: true }).click();
+    await expect(page.locator(".project-panel")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".project-panel")).toHaveCount(0);
+  });
+
+  test("opens one panel at a time", async ({ page }) => {
+    await openStudio(page);
+
+    await page.getByRole("button", { name: "Tools" }).click();
+    await expect(page.locator(".advanced-tools-drawer")).toBeVisible();
+
+    await page.getByRole("button", { name: "Project", exact: true }).click();
+    await expect(page.locator(".project-panel")).toBeVisible();
+    await expect(page.locator(".advanced-tools-drawer")).toHaveCount(0);
+  });
+
+  test("the assistant opens from the bar and docks like the other panels", async ({
+    page,
+  }) => {
+    await openStudio(page);
+
+    const shell = page.locator("app-ai-assistant .ai-shell");
+    await expect(shell).not.toBeInViewport();
+
+    await page.getByRole("button", { name: "Assistant" }).click();
+    await expect(shell).toBeInViewport();
+
+    const geometry = await page.evaluate(() => {
+      const box = (selector: string) =>
+        document.querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+      const topBar = box(".studio-top-bar");
+      const bar = box(".studio-transport-bar");
+      const panel = box("app-ai-assistant .ai-shell");
+      return {
+        topBarBottom: topBar.bottom,
+        barTop: bar.top,
+        panelTop: panel.top,
+        panelBottom: panel.bottom,
+      };
+    });
+
+    expect(geometry.panelTop).toBeGreaterThanOrEqual(geometry.topBarBottom - 1);
+    expect(geometry.panelBottom).toBeLessThanOrEqual(geometry.barTop + 1);
+
+    await page.locator(".panel-scrim").click({ position: { x: 20, y: 20 } });
+    await expect(shell).not.toBeInViewport();
+  });
+});
+
+/**
+ * The panels and the scrim dock by arithmetic against the bar-height tokens, so
+ * the contract can only be trusted against the bars the browser really renders.
+ * Every viewport has its own bar heights — a landscape phone's are their own
+ * size entirely — and a token that is a pixel short tucks a sheet's last row
+ * under the transport, where the transport outranks it.
+ */
+for (const viewport of [
+  { name: "small phone", width: 360, height: 640 },
+  { name: "phone", width: 390, height: 844 },
+  { name: "landscape phone", width: 844, height: 390 },
+  { name: "desktop", width: 1440, height: 900 },
+]) {
+  test(`panels dock between the bars on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize({
+      width: viewport.width,
+      height: viewport.height,
+    });
+    await openStudio(page);
+
+    await page.getByRole("button", { name: "Project", exact: true }).click();
+    await expect(page.locator(".project-panel")).toBeVisible();
+
+    const geometry = await page.evaluate(() => {
+      const box = (selector: string) =>
+        document.querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+      const topBar = box(".studio-top-bar");
+      const bar = box(".studio-transport-bar");
+      const panel = box(".project-panel");
+      const scrim = box(".panel-scrim");
+      return {
+        topBarBottom: topBar.bottom,
+        barTop: bar.top,
+        panelTop: panel.top,
+        panelBottom: panel.bottom,
+        scrimTop: scrim.top,
+        scrimBottom: scrim.bottom,
+      };
+    });
+
+    expect(geometry.panelTop).toBeGreaterThanOrEqual(geometry.topBarBottom - 1);
+    expect(geometry.panelBottom).toBeLessThanOrEqual(geometry.barTop + 1);
+    expect(geometry.scrimTop).toBeGreaterThanOrEqual(geometry.topBarBottom - 1);
+    expect(geometry.scrimBottom).toBeLessThanOrEqual(geometry.barTop + 1);
+
+    // The panel must own the tier *above* the scrim it draws, or the sheet
+    // paints behind its own backdrop and reads as greyed-out and disabled.
+    const panelIsOnTop = await page.evaluate(() => {
+      const panel = document.querySelector<HTMLElement>(".project-panel")!;
+      const rect = panel.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        rect.left + rect.width / 2,
+        rect.top + 40,
+      );
+      return !!hit && panel.contains(hit);
+    });
+    expect(panelIsOnTop, "the sheet must not be painted behind its scrim").toBe(
+      true,
+    );
+  });
+}
+
+/**
+ * Force the failure the classic shell's sweep spec uses: the storage write
+ * throws, so the only copy of the project is the one in memory. Restored before
+ * the helper returns, so the page can save again afterwards.
+ */
+async function forceSaveFailure(page: Page, name = "Banner Session") {
+  return page.evaluate(async (projectName) => {
+    const studio = (window as any).ng.getComponent(
+      document.querySelector("app-studio-page"),
+    );
+    const workspace = studio.projectWorkspace;
+    const storage = workspace.storage;
+    const original = storage.saveItem.bind(storage);
+    workspace.updateMetadata({ name: projectName });
+    storage.saveItem = async () => {
+      throw new Error("QA simulated disk full");
+    };
+    try {
+      await studio.save();
+      return {
+        error: workspace.persistenceError(),
+        dirty: workspace.isDirty(),
+      };
+    } finally {
+      storage.saveItem = original;
+    }
+  }, name);
+}
+
+test("surfaces a failed save with retry and a real backup download", async ({
+  page,
+}) => {
+  await openStudio(page);
+  const failure = await forceSaveFailure(page);
+  expect(failure.error).toBe("QA simulated disk full");
+  expect(failure.dirty).toBe(true);
+
+  const banner = page
+    .getByRole("alert")
+    .filter({ hasText: "QA simulated disk full" });
+  await expect(banner).toBeVisible();
+  await expect(banner.getByRole("button", { name: "Retry save" })).toBeVisible();
+  await expect(
+    banner.getByRole("button", { name: "Export backup" }),
+  ).toBeVisible();
+
+  // One announcement channel: the transport's status region, not the banner.
+  const status = page.locator(".project-state");
+  await expect(status).toHaveAttribute("aria-live", "polite");
+  await expect(status).toHaveText("Save failed");
+
+  // The escape hatch has to work precisely when persistence does not.
+  const downloadPromise = page.waitForEvent("download");
+  await banner.getByRole("button", { name: "Export backup" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^Banner_Session_v\d+\.smuve$/);
+
+  await banner.getByRole("button", { name: "Retry save" }).click();
+  await expect(banner).toHaveCount(0);
+  await expect(status).not.toHaveText("Save failed");
+});
+
+test("the save banner clears the transport on a phone", async ({ page }) => {
+  await page.setViewportSize(PHONE);
+  await openStudio(page);
+  await forceSaveFailure(page);
+
+  const banner = page.locator(".save-warning");
+  await expect(banner).toBeVisible();
+
+  const geometry = await page.evaluate(() => {
+    const box = (selector: string) =>
+      document.querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+    const warning = box(".save-warning");
+    const transport = box(".studio-transport-bar");
+    return {
+      warningTop: warning.top,
+      warningBottom: warning.bottom,
+      transportTop: transport.top,
+      viewportHeight: window.innerHeight,
+    };
+  });
+
+  // Above the transport, never under it: Play/Record stay reachable while the
+  // project cannot be saved, which is exactly when the user needs them.
+  expect(geometry.warningBottom).toBeLessThanOrEqual(geometry.transportTop + 1);
+  expect(geometry.warningTop).toBeGreaterThan(0);
+  expect(geometry.warningBottom).toBeLessThanOrEqual(geometry.viewportHeight);
+});
+
+test("imports a .smuve bundle and refuses one it cannot read", async ({
+  page,
+}) => {
+  await openStudio(page);
+
+  // Snapshot a distinctly-named session, then rename it: the import has to be
+  // what puts the original name back.
+  const bundle = await page.evaluate(() => {
+    const studio = (window as any).ng.getComponent(
+      document.querySelector("app-studio-page"),
+    );
+    studio.projectWorkspace.updateMetadata({ name: "Import Target" });
+    return JSON.stringify(studio.projectWorkspace.createSnapshot());
+  });
+  await page.evaluate(() => {
+    const studio = (window as any).ng.getComponent(
+      document.querySelector("app-studio-page"),
+    );
+    studio.projectWorkspace.updateMetadata({ name: "Scratch Session" });
+  });
+
+  await page.getByRole("button", { name: "Project", exact: true }).click();
+  const projectName = page.locator(".studio-top-bar .project-name");
+  await expect(projectName).toHaveText("Scratch Session");
+
+  await page.locator(".import-input").setInputFiles({
+    name: "Import_Target_v1.smuve",
+    mimeType: "application/json",
+    buffer: Buffer.from(bundle),
+  });
+
+  // An unsaved session is only replaced after an explicit confirmation.
+  await page.getByRole("button", { name: "Replace project" }).click();
+  await expect(projectName).toHaveText("Import Target");
+  await expect(page.locator(".project-feedback")).toContainText(
+    "Imported Import Target",
+  );
+
+  // A bundle whose shape the service does not recognise is refused, and the
+  // imported session stays exactly as it was.
+  await page.locator(".import-input").setInputFiles({
+    name: "broken.smuve",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ metadata: {}, tracks: [] })),
+  });
+  await expect(page.locator(".studio-top-bar .project-name")).toHaveText(
+    "Import Target",
+  );
+  await expect(page.locator(".project-feedback.error")).toBeVisible();
+});

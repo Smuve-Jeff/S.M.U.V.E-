@@ -5,8 +5,12 @@
 
 .ai-shell {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  /* The containing block is whichever Studio shell hosts this panel. A host
+     that draws its own top bar and transport sets these two insets so the panel
+     docks *between* the bars instead of running underneath them; the `0px`
+     fallback is a full-height panel, which is what the classic shell gets. */
+  top: var(--ai-shell-top, 0px);
+  bottom: var(--ai-shell-bottom, 0px);
   right: 0;
   width: min(420px, 100vw);
   background: rgba(252, 250, 245, 0.94);
@@ -26,7 +30,9 @@
   display: flex;
   flex-direction: column;
   box-shadow: -4px 0 24px rgba(61, 53, 42, 0.12);
-  z-index: 70;
+  /* A panel, so it takes the panel tier its host assigns — above the host's own
+     panel scrim. The fallback is the classic shell's original layer. */
+  z-index: var(--ai-shell-z, 70);
 }
 
 :host-context(.dark-mode) .ai-shell {
@@ -42,16 +48,9 @@
     visibility 0s;
 }
 
-@media (min-width: 1024px) {
-  .ai-shell {
-    top: 0;
-  }
-}
-
-/* Mobile (full-height panel) */
+/* Mobile (full-width panel) */
 @media (max-width: 768px) {
   .ai-shell {
-    top: 0;
     width: 100vw;
     border-left: none;
   }

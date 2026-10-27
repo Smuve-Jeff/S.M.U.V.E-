@@ -1,5 +1,13 @@
 import { CommonModule } from "@angular/common";
-import { Component, computed, inject, signal } from "@angular/core";
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
@@ -14,6 +22,7 @@ import { AudioEngineService } from "../../services/audio-engine.service";
 import { AuthService } from "../../services/auth.service";
 import { CollaborationService } from "../../services/collaboration.service";
 import { HistoryService } from "../../services/history.service";
+import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { SnackbarService } from "../../services/snackbar.service";
 
 import { AiProduceComponent } from "../../components/ai-produce/ai-produce.component";
@@ -26,10 +35,15 @@ import { MixerComponent } from "../mixer/mixer.component";
 import { PianoRollComponent } from "../piano-roll/piano-roll.component";
 import { PluginStoreComponent } from "../plugin-store/plugin-store.component";
 import { SamplerComponent } from "../sampler/sampler.component";
+import { AiAssistantComponent } from "../shared/ai-assistant/ai-assistant.component";
 import { SnackbarComponent } from "../shared/snackbar/snackbar.component";
 import { SoundBrowserComponent } from "../sound-browser/sound-browser.component";
 import { SynthesizerComponent } from "../synthesizer/synthesizer.component";
-import { StudioPageMode, studioModeForView } from "../studio-view-modes";
+import {
+  StudioPageMode,
+  studioAssistantContextForMode,
+  studioModeForView,
+} from "../studio-view-modes";
 import { StudioExportSurfaceComponent } from "./studio-export-surface.component";
 
 type StudioMode = StudioPageMode;
@@ -52,6 +66,7 @@ interface ProjectPanelFeedback {
   standalone: true,
   imports: [
     CommonModule,
+    AiAssistantComponent,
     AiProduceComponent,
     ArrangementViewComponent,
     AudioRecorderViewComponent,
@@ -80,8 +95,11 @@ export class StudioPageComponent {
   readonly collaboration = inject(CollaborationService);
   private readonly auth = inject(AuthService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly dialog = inject(InteractionDialogService);
   /** Every edit surface (piano roll, arrangement, inspector) pushes here. */
   readonly history = inject(HistoryService);
+
+  @ViewChild("importInput") importInput?: ElementRef<HTMLInputElement>;
 
   readonly activeMode = signal<StudioMode>("arrange");
   readonly inspectorOpen = signal(true);
@@ -90,6 +108,7 @@ export class StudioPageComponent {
   readonly projectPanelOpen = signal(false);
   readonly collaborationPanelOpen = signal(false);
   readonly exportPanelOpen = signal(false);
+  readonly aiAssistantOpen = signal(false);
 
   /** Full-surface overlays launched from the inspector / advanced tools. */
   readonly fxRackOpen = signal(false);
@@ -106,6 +125,28 @@ export class StudioPageComponent {
   readonly versions = signal<ProjectVersionSummary[]>([]);
   readonly versionsBusy = signal(false);
   readonly versionsFeedback = signal<ProjectPanelFeedback | null>(null);
+
+  /**
+   * Any docked slide-over. They share one dismissal affordance — a scrim over
+   * the workspace between the bars, plus Escape — because on a phone the Close
+   * button is a small target in the far corner of a sheet.
+   */
+  readonly panelsOpen = computed(
+    () =>
+      this.advancedToolsOpen() ||
+      this.projectPanelOpen() ||
+      this.collaborationPanelOpen() ||
+      this.exportPanelOpen() ||
+      this.aiAssistantOpen(),
+  );
+
+  /**
+   * The Compose Assistant keys its quick actions by classic view id, not by page
+   * mode, so it is handed the view each mode stands in for.
+   */
+  readonly assistantContext = computed(() =>
+    studioAssistantContextForMode(this.activeMode()),
+  );
 
   readonly joinCode = signal("");
   readonly collabBusy = signal(false);
@@ -147,6 +188,22 @@ export class StudioPageComponent {
     return "saved";
   });
 
+  /**
+   * The persistent failure the classic shell surfaces as a banner. On this page
+   * the chip alone was the only trace of it — and a chip is not a warning: local
+   * persistence fails on quota exhaustion and in private windows, where the only
+   * copy of the project is the one in memory.
+   */
+  readonly saveError = this.projectWorkspace.persistenceError;
+
+  /** Human readout for the save chip and the transport's live region. */
+  readonly saveStateLabel = computed(() => {
+    if (this.projectWorkspace.isSaving()) return "Saving…";
+    if (this.projectWorkspace.persistenceError()) return "Save failed";
+    if (this.projectWorkspace.isDirty()) return "Unsaved";
+    return this.projectWorkspace.lastPersistedAt() > 0 ? "Saved" : "New";
+  });
+
   /** 4/4 readout over the engine's 16-step bar, matching the studio transport. */
   readonly position = computed(() => {
     const step = this.audioEngine.visualStep();
@@ -179,6 +236,7 @@ export class StudioPageComponent {
     this.activeTool.set(null);
     this.bezierOpen.set(false);
     this.versionsOpen.set(false);
+    this.aiAssistantOpen.set(false);
   }
 
   async toggleTransport(state: TransportState) {
@@ -226,6 +284,90 @@ export class StudioPageComponent {
     }
   }
 
+  /**
+   * Retry from the save-failure banner. `manualSave()` clears
+   * `persistenceError()` on success, so the banner goes away by itself; the
+   * snackbar is the confirmation that the tap did something.
+   */
+  /** The Project panel's import button drives the hidden picker. */
+  openImportPicker() {
+    this.importInput?.nativeElement.click();
+  }
+
+  /**
+   * The counterpart to "Export backup", and the only way a bundle exported from
+   * this page — or from the classic shell — can be brought back. Mirrors the
+   * classic shell's `loadProjectFile`: a size guard, a confirm before replacing
+   * an unsaved session, then the service's validated import (which is what
+   * refuses a bundle whose shape it does not recognise).
+   */
+  async importProjectFile(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // Reset first: picking the same file twice must fire `change` again.
+    input.value = "";
+    if (!file) return;
+
+    try {
+      if (file.size > 64 * 1024 * 1024) {
+        throw new Error("Project file exceeds the 64 MiB JSON import limit.");
+      }
+
+      if (this.projectWorkspace.isDirty()) {
+        const replace = await this.dialog.confirm({
+          title: "Replace current project?",
+          message:
+            "Importing this bundle replaces your unsaved session. Export a backup first if you need it.",
+          confirmLabel: "Replace project",
+          cancelLabel: "Keep session",
+          tone: "danger",
+        });
+        if (!replace) return;
+      }
+
+      const bundle = JSON.parse(await file.text());
+      const imported = await this.projectWorkspace.importProjectBundle(bundle);
+      const message = imported
+        ? `Imported ${this.projectName()}`
+        : this.projectWorkspace.persistenceError() ||
+          "That bundle could not be imported.";
+      this.reportProject(imported ? "ok" : "error", message);
+      if (imported) {
+        this.snackbar.success(message);
+      } else {
+        this.snackbar.error(message);
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "That file could not be read as a project bundle.";
+      this.reportProject("error", message);
+      this.snackbar.error(message);
+    }
+  }
+
+  async retrySave() {
+    await this.save();
+    if (!this.projectWorkspace.persistenceError()) {
+      this.snackbar.success(`Saved ${this.projectName()}`);
+    }
+  }
+
+  /**
+   * The escape hatch when local persistence is unavailable: the bundle is
+   * written straight to a download, so the work is not stranded in a tab that
+   * cannot save. Mirrors the classic shell's "Export backup".
+   */
+  exportBackup() {
+    try {
+      this.projectWorkspace.downloadProjectBundle();
+      this.snackbar.success("Project exported as .smuve bundle");
+    } catch {
+      this.snackbar.error("The backup bundle could not be written.");
+    }
+  }
+
   toggleInspector() {
     this.inspectorOpen.update((open) => !open);
   }
@@ -236,6 +378,7 @@ export class StudioPageComponent {
 
   toggleAdvancedTools() {
     this.advancedToolsOpen.update((open) => !open);
+    if (this.advancedToolsOpen()) this.closeOtherPanels("advancedToolsOpen");
   }
 
   /** The inspector's rack button opens the real FX chain for the selected track. */
@@ -296,6 +439,38 @@ export class StudioPageComponent {
     this.activeTool.set(null);
   }
 
+  /** Dismiss every docked panel at once (scrim tap, Escape). */
+  closePanels() {
+    this.advancedToolsOpen.set(false);
+    this.projectPanelOpen.set(false);
+    this.collaborationPanelOpen.set(false);
+    this.exportPanelOpen.set(false);
+    this.aiAssistantOpen.set(false);
+  }
+
+  /** Escape is the desktop equivalent of tapping the scrim. */
+  @HostListener("document:keydown.escape")
+  onEscape() {
+    if (this.panelsOpen()) this.closePanels();
+  }
+
+  /**
+   * One docked panel at a time: the scrim covers the workspace and the panels
+   * are all right-edge slide-overs, so two open at once would simply stack.
+   */
+  private closeOtherPanels(keep: string) {
+    if (keep !== "advancedToolsOpen") this.advancedToolsOpen.set(false);
+    if (keep !== "projectPanelOpen") this.projectPanelOpen.set(false);
+    if (keep !== "collaborationPanelOpen") this.collaborationPanelOpen.set(false);
+    if (keep !== "exportPanelOpen") this.exportPanelOpen.set(false);
+    if (keep !== "aiAssistantOpen") this.aiAssistantOpen.set(false);
+  }
+
+  toggleAiAssistant() {
+    this.aiAssistantOpen.update((open) => !open);
+    if (this.aiAssistantOpen()) this.closeOtherPanels("aiAssistantOpen");
+  }
+
   toolLabel(tool: AdvancedTool): string {
     switch (tool) {
       case "synth":
@@ -314,6 +489,7 @@ export class StudioPageComponent {
   toggleProjectPanel() {
     this.projectPanelOpen.update((open) => !open);
     if (this.projectPanelOpen()) {
+      this.closeOtherPanels("projectPanelOpen");
       this.collaborationPanelOpen.set(false);
       this.exportPanelOpen.set(false);
       void this.refreshLocalProjects();
@@ -323,6 +499,7 @@ export class StudioPageComponent {
   toggleCollaborationPanel() {
     this.collaborationPanelOpen.update((open) => !open);
     if (this.collaborationPanelOpen()) {
+      this.closeOtherPanels("collaborationPanelOpen");
       this.projectPanelOpen.set(false);
       this.exportPanelOpen.set(false);
     }
@@ -331,6 +508,7 @@ export class StudioPageComponent {
   toggleExportPanel() {
     this.exportPanelOpen.update((open) => !open);
     if (this.exportPanelOpen()) {
+      this.closeOtherPanels("exportPanelOpen");
       this.projectPanelOpen.set(false);
       this.collaborationPanelOpen.set(false);
     }
@@ -339,6 +517,7 @@ export class StudioPageComponent {
   /** Advanced-tools entry points that live in the side panels. */
   openProjectBrowser() {
     this.advancedToolsOpen.set(false);
+    this.aiAssistantOpen.set(false);
     this.projectPanelOpen.set(true);
     this.collaborationPanelOpen.set(false);
     this.exportPanelOpen.set(false);
@@ -347,6 +526,7 @@ export class StudioPageComponent {
 
   openCollaboration() {
     this.advancedToolsOpen.set(false);
+    this.aiAssistantOpen.set(false);
     this.collaborationPanelOpen.set(true);
     this.projectPanelOpen.set(false);
     this.exportPanelOpen.set(false);
@@ -359,6 +539,7 @@ export class StudioPageComponent {
 
   openVersionHistory() {
     this.advancedToolsOpen.set(false);
+    this.aiAssistantOpen.set(false);
     this.activeTool.set(null);
     this.versionsOpen.set(true);
     void this.refreshVersions();

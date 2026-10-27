@@ -36,8 +36,11 @@
 /* ----------------------------------------------------------------------------
    1. THE DEPTH SCALE — one definition for the whole Studio
    ---------------------------------------------------------------------------- */
+:root,
 body .comp-shell {
-  /* Stacking tiers, lowest first. */
+  /* Stacking tiers, lowest first. Consumed by the classic shell *and*, via
+     `:root`, by surfaces that render outside it — the composed studio page
+     that owns /studio draws its own chrome and must not invent z-indexes. */
   --daw-z-workspace: 0; /* canvases: arrangement grid, piano roll, pads */
   --daw-z-content: 10; /* in-view sticky rulers, view headers */
   --daw-z-tools: 40; /* rail, bottom dock, context toolbar, footer */

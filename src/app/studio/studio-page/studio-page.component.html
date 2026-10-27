@@ -6,8 +6,12 @@
     </div>
 
     <div class="top-bar-actions">
-      <span class="save-status" [class.dirty]="projectDirty()">
-        {{ saveStatus() }}
+      <span
+        class="save-status"
+        [class.dirty]="projectDirty()"
+        [class.error]="saveStatus() === 'error'"
+      >
+        {{ saveStateLabel() }}
       </span>
       <button
         type="button"
@@ -51,8 +55,34 @@
       >
         Inspector
       </button>
+      <button
+        type="button"
+        (click)="toggleAiAssistant()"
+        [attr.aria-pressed]="aiAssistantOpen()"
+      >
+        Assistant
+      </button>
     </div>
   </header>
+
+  <!-- A failed save must not be a quiet chip. Local persistence fails on quota
+       exhaustion and in private windows, where the only copy of the project is
+       the one in memory — so this is the classic shell's `.studio-save-warning`,
+       with both ways out: retry, or write a bundle straight to a download. -->
+  <div class="save-warning" *ngIf="saveError() as error" role="alert">
+    <span class="material-symbols-outlined" aria-hidden="true">warning</span>
+    <span class="save-warning-text">{{ error }}</span>
+    <div class="save-warning-actions">
+      <button
+        type="button"
+        (click)="retrySave()"
+        [disabled]="projectWorkspace.isSaving()"
+      >
+        Retry save
+      </button>
+      <button type="button" (click)="exportBackup()">Export backup</button>
+    </div>
+  </div>
 
   <div class="studio-shell-body">
     <nav class="studio-mode-rail" aria-label="Studio mode">
@@ -265,6 +295,18 @@
     ></app-inspector>
   </div>
 
+  <!-- Tap-to-dismiss, the classic shell's `.comp-panel-backdrop`. A real button
+       (not a div) so it is focusable, labelled and reachable by keyboard, with
+       Escape as the desktop equivalent. Only between the bars, so the transport
+       stays live while a sheet is open. -->
+  <button
+    type="button"
+    class="panel-scrim"
+    *ngIf="panelsOpen()"
+    aria-label="Close panel"
+    (click)="closePanels()"
+  ></button>
+
   <aside class="advanced-tools-drawer" *ngIf="advancedToolsOpen()">
     <header>
       <h3>Advanced Tools</h3>
@@ -332,14 +374,33 @@
           Open
         </button>
       </div>
-      <button
-        type="button"
-        class="panel-close"
-        (click)="refreshLocalProjects()"
-        [disabled]="projectPanelBusy()"
-      >
-        Refresh
-      </button>
+      <!-- The counterpart to "Export backup": without it, a bundle exported from
+           this page (or from the classic shell) had no way back in. -->
+      <input
+        #importInput
+        class="import-input"
+        type="file"
+        accept=".smuve,application/json"
+        (change)="importProjectFile($event)"
+      />
+      <div class="project-actions">
+        <button
+          type="button"
+          class="panel-close"
+          (click)="openImportPicker()"
+          [disabled]="projectPanelBusy()"
+        >
+          Import bundle
+        </button>
+        <button
+          type="button"
+          class="panel-close"
+          (click)="refreshLocalProjects()"
+          [disabled]="projectPanelBusy()"
+        >
+          Refresh
+        </button>
+      </div>
     </section>
 
     <section class="project-section">
@@ -599,6 +660,15 @@
     <app-studio-export-surface></app-studio-export-surface>
   </aside>
 
+  <!-- The classic shell's Compose Assistant, re-hosted. It stays mounted (it
+       owns its slide transition and hides itself from the accessibility tree
+       with `inert` while closed), so unlike the panels above it has no *ngIf. -->
+  <app-ai-assistant
+    [open]="aiAssistantOpen()"
+    [activeViewContext]="assistantContext()"
+    (close)="toggleAiAssistant()"
+  ></app-ai-assistant>
+
   <footer class="studio-transport-bar">
     <div class="transport-left">
       <button
@@ -680,9 +750,13 @@
           ></span>
         </span>
       </span>
-      <span class="project-state" [class.dirty]="projectDirty()">{{
-        saveStatus()
-      }}</span>
+      <span
+        class="project-state"
+        [class.dirty]="projectDirty()"
+        [class.error]="saveStatus() === 'error'"
+        role="status"
+        aria-live="polite"
+      >{{ saveStateLabel() }}</span>
     </div>
   </footer>
 
