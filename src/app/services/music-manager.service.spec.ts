@@ -10,6 +10,7 @@ import { StemSeparationService } from './stem-separation.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { LoggingService } from './logging.service';
 import { TakeManagerService } from './take-manager.service';
+import { AutomationService } from '../studio/automation.service';
 
 describe('MusicManagerService clip glue workflows', () => {
   let service: MusicManagerService;
@@ -21,6 +22,7 @@ describe('MusicManagerService clip glue workflows', () => {
     setSongLengthSteps: jest.fn(),
     triggerAttack: jest.fn(),
     setBaseFaderGain: jest.fn(),
+    updateTrack: jest.fn(),
     stop: jest.fn(),
     onScheduleStep: undefined as any,
   };
@@ -340,6 +342,7 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
     setSongLengthSteps: jest.fn(),
     triggerAttack: jest.fn(),
     setBaseFaderGain: jest.fn(),
+    updateTrack: jest.fn(),
     onScheduleStep: undefined as any,
   };
 
@@ -413,6 +416,21 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
     ]);
     expect(slot?.versions[slot.versions.length - 1].steps[0]).toBe(true);
     expect(track.activePatternSlotId).toBe('slot-3');
+  });
+
+  it('records aux-send moves while automation write is armed', () => {
+    const automation = TestBed.inject(AutomationService);
+    const capture = jest.spyOn(automation, 'captureWrite');
+
+    service.updateSend('track-1', 'A', 0.45);
+    expect(capture).toHaveBeenCalledWith('track-1', 'sendA', 0.45);
+    expect(service.tracks()[0].sendA).toBeCloseTo(0.45, 6);
+
+    service.updateSend('track-1', 'B', 0.2);
+    expect(capture).toHaveBeenCalledWith('track-1', 'sendB', 0.2);
+    expect(service.tracks()[0].sendB).toBeCloseTo(0.2, 6);
+
+    capture.mockRestore();
   });
 
   it('launches a captured scene by restoring its notes and steps', () => {

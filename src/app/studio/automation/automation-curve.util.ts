@@ -61,6 +61,10 @@ export function laneParameterLabel(parameter: string): string {
   if (parameter.startsWith('cc_')) {
     return `CC ${parameter.slice(3).trim().toUpperCase()}`;
   }
+  if (parameter === 'reverb') return 'REVERB SEND';
+  if (parameter === 'sendA') return 'SEND A';
+  if (parameter === 'sendB') return 'SEND B';
+  if (parameter === 'cutoff') return 'CHANNEL CUTOFF';
   return parameter
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/_/g, ' ')

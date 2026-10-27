@@ -17,6 +17,18 @@ describe('automation-curve.util', () => {
     });
     expect(laneRange('cc_11')).toEqual({ min: 0, max: 127 });
     expect(laneRange('cc_1', 0, 64)).toEqual({ min: 0, max: 64 });
+    // Aux sends are 0–1 gains, like the mixer's send sliders.
+    expect(laneRange('sendA')).toEqual({ min: 0, max: 1 });
+    expect(laneRange('sendB')).toEqual({ min: 0, max: 1 });
+    expect(laneRange('reverb')).toEqual({ min: 0, max: 1 });
+  });
+
+  it('labels the lane targets the engine actually drives', () => {
+    expect(laneParameterLabel('sendA')).toBe('SEND A');
+    expect(laneParameterLabel('sendB')).toBe('SEND B');
+    expect(laneParameterLabel('reverb')).toBe('REVERB SEND');
+    expect(laneParameterLabel('cutoff')).toBe('CHANNEL CUTOFF');
+    expect(laneParameterLabel('cc_11')).toBe('CC 11');
   });
 
   it('maps values to the 0–1 axis and back (linear)', () => {

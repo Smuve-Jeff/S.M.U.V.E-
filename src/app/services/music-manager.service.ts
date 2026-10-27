@@ -1390,6 +1390,12 @@ export class MusicManagerService {
         );
       }
     );
+    // Automation write: an armed pass captures send moves, not only faders.
+    this.automation.captureWrite(
+      id,
+      send === 'A' ? "sendA" : "sendB",
+      newSend
+    );
   }
 
   /**

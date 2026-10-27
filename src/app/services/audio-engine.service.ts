@@ -569,6 +569,8 @@ export class AudioEngineService {
   }
   private trackPhaseNodes = new Map<string, GainNode>();
   private trackWidthNodes = new Map<string, StereoPannerNode>();
+  /** Per-channel lowpass, open by default; the `cutoff` automation target. */
+  private trackFilterNodes = new Map<string, BiquadFilterNode>();
   private trackFaderGains = new Map<string, GainNode>();
   private trackAuxSends = new Map<string, Map<string, GainNode>>();
   private trackEffectsRacks = new Map<string, DynamicEffectsRack>();
@@ -3114,6 +3116,14 @@ export class AudioEngineService {
       const fader = this.ctx.createGain(); // Post-fader Gain
       const output = this.ctx.createGain(); // Final Track Out
 
+      // Channel filter: sits after the insert rack so a `cutoff` automation
+      // lane sweeps the whole channel (notes and clips), not just new voices.
+      // Open by default, so an un-automated channel is unchanged.
+      const channelFilter = this.ctx.createBiquadFilter();
+      channelFilter.type = "lowpass";
+      channelFilter.frequency.value = 20000;
+      channelFilter.Q.value = 0.0001;
+
       // Insert per-track effects rack between phase and width
       const rack = new DynamicEffectsRack(this.ctx);
       this.trackEffectsRacks.set(id, rack);
@@ -3125,13 +3135,15 @@ export class AudioEngineService {
       });
 
       phase.connect(rack.input);
-      rack.output.connect(width);
+      rack.output.connect(channelFilter);
+      channelFilter.connect(width);
       width.connect(fader);
       fader.connect(output);
       output.connect(this.masterGain);
 
       this.trackPhaseNodes.set(id, phase);
       this.trackWidthNodes.set(id, width);
+      this.trackFilterNodes.set(id, channelFilter);
       this.trackFaderGains.set(id, fader);
       this.trackOutputs.set(id, output);
 
@@ -3488,6 +3500,7 @@ export class AudioEngineService {
     const fader = this.trackFaderGains.get(idStr);
     const phase = this.trackPhaseNodes.get(idStr);
     const width = this.trackWidthNodes.get(idStr);
+    const filter = this.trackFilterNodes.get(idStr);
 
     if (patch.gain !== undefined && fader)
       fader.gain.setTargetAtTime(patch.gain, this.ctx.currentTime, 0.05);
@@ -3501,6 +3514,14 @@ export class AudioEngineService {
 
     if (patch.pan !== undefined && width)
       width.pan.setTargetAtTime(patch.pan, this.ctx.currentTime, 0.05);
+
+    if (patch.cutoff !== undefined && filter) {
+      const hz = Number(patch.cutoff);
+      const safe = Number.isFinite(hz)
+        ? Math.max(20, Math.min(20000, hz))
+        : 20000;
+      filter.frequency.setTargetAtTime(safe, this.ctx.currentTime, 0.02);
+    }
 
     if (patch.sendA !== undefined)
       this.trackSendAGains
@@ -3525,6 +3546,15 @@ export class AudioEngineService {
   ) {
     if (trackId === '0' && parameter === 'tempo') {
       this.tempo.set(value);
+      return;
+    }
+    // The lane editor offers `reverb`, but the reverb return lives on aux
+    // send A — without this mapping the lane drew a curve nothing followed.
+    if (parameter === 'reverb') {
+      const level = Number.isFinite(value)
+        ? Math.max(0, Math.min(1, value))
+        : 0;
+      this.updateTrack(trackId, { sendA: level });
       return;
     }
     this.updateTrack(trackId, { [parameter]: value });

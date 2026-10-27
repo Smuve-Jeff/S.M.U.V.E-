@@ -19,24 +19,26 @@ spec or by the real service path, not merely that a control is rendered.
 ## Mixer
 
 - VCAs, aux sends, per-channel phase invert, stereo width, buses: present.
-- **Gap: solo-safe** (solo that does not mute a channel) is absent.
-- **Gap: mono-sum monitoring** is absent; only a colour comment mentions "mono-safe".
+- Solo-safe, mono-sum monitoring and their saved state are implemented and shown
+  in Project Details (closed this cycle).
 - Meters and gain staging exist; no solo-in-place isolation mode.
 
 ## Mastering / export
 
 - LUFS targets, true-peak reference comparison, delivery formats (WAV/MP3/FLAC),
   stems, MIDI, DAWproject, export presets (new), sample-rate choice: verified.
-- **Gap: dither** on bit-depth reduction is not implemented (no dither stage in
-  `applySmuvePolish`/encode path).
+- Dither on bit-depth reduction is implemented (`dither.util`, used by the
+  WAV/FLAC encoders).
 - Plugin metering is file-based; no real-time LUFS meter in the transport.
 
 ## Piano roll / MIDI editing
 
 - Notes, velocities, sub-grid timing, articulation lengths, probability,
   micro-offset, slide, cross-link to arrangement, external keyboard preview.
-- **Gaps: MPE per-note expression**, scale lock/fold, and fretboard view are
-  absent. CC automation recording exists via the lane menu.
+- Scale lock/fold is implemented (`scaleLockEnabled`, applied to new and moved
+  notes).
+- **Gaps: MPE per-note expression** and a fretboard view are absent. CC lanes
+  exist in the piano roll but their curves are not yet applied to playback.
 
 ## Arrangement
 
@@ -45,7 +47,12 @@ spec or by the real service path, not merely that a control is rendered.
 - Fixed this cycle: the "Show automation" clip action armed write instead of
   opening lanes; automation now plays back from the transport and records
   fader/pan writes.
-- **Gap: automation write covers gain/pan only** (no sends, plugin parameters).
+- Automation targets were audited: `cutoff` and `reverb` lanes drew curves that
+  reached nothing. `reverb` now drives the aux reverb send (send A) and `cutoff`
+  sweeps a new per-channel lowpass; send moves are captured while write is armed
+  and `sendA`/`sendB` are offered as lane targets.
+- **Gap: automation write does not cover plugin parameters**, and automation is
+  live-only — `ExportService.renderProjectOffline` does not apply the curves.
 
 ## Channel rack / patterns / scenes
 
@@ -58,8 +65,11 @@ spec or by the real service path, not merely that a control is rendered.
 
 - Rebuilt on the real channel/pattern projection; scene CRUD maps to the pattern
   rack. Local mock clip store, local autosave and session presets removed.
-- **Gap: no per-clip launch quantization for individual cells** (scene launches
-  quantize; cell launches are immediate).
+- Per-cell (clip) launch quantization is implemented on the pattern slot and
+  saved with the project; the grid boundary and per-clip overrides are both
+  shown in Project Details.
+- Per-scene follow rules (loop / advance after its own bar count) are saved with
+  the project and keyed to the scene, not its column.
 
 ## Score / notation
 
@@ -93,10 +103,12 @@ spec or by the real service path, not merely that a control is rendered.
 
 ## Remaining candidate work
 
-1. Solo-safe and mono-sum monitoring in the mixer/engine.
-2. Dither on bit-depth reduction.
-3. MIDI learn for plugin parameters and aux sends (service already structured
-   for more targets).
-4. Per-cell launch quantization in Session View.
-5. MPE and scale lock in the piano roll.
-6. User-authored project templates.
+1. Plugin-parameter automation (write + playback through the effects rack).
+2. Apply automation curves in offline export; the current render is live-faithful
+   for notes, gain, pan and clip fades but not for automation.
+3. CC lane playback (piano-roll CC curves are recorded/edited but silent).
+4. MPE per-note expression and a fretboard view in the piano roll.
+5. User-authored project templates.
+6. `OfflineBounceService.renderArrangement` is a simplified second renderer
+   (oscillator + envelope only); the ExportService path is the faithful one and
+   the two should be consolidated.

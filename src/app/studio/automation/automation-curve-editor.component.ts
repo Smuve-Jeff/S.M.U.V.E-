@@ -296,7 +296,21 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   private readonly automation = inject(AutomationService);
 
   readonly laneHeight = AUTOMATION_LANE_HEIGHT;
-  readonly parameters = ['volume', 'pan', 'cutoff', 'reverb', 'cc_1', 'cc_11'];
+  /**
+   * Targets that actually reach the mix. `reverb` drives aux send A (the
+   * reverb return), `cutoff` sweeps the channel lowpass, and the send lanes are
+   * captured by fader/send moves while write is armed.
+   */
+  readonly parameters = [
+    'volume',
+    'pan',
+    'sendA',
+    'sendB',
+    'cutoff',
+    'reverb',
+    'cc_1',
+    'cc_11',
+  ];
   readonly addParameter = signal('volume');
   readonly selectedLaneId = signal<string | null>(null);
 

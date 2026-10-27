@@ -252,7 +252,10 @@ describe('AudioEngineService', () => {
     expect(osc.type).toBe('square');
     expect(osc.frequency.setValueAtTime).toHaveBeenCalledWith(440, 1.25);
     expect(panner.pan.setValueAtTime).toHaveBeenCalledWith(-0.25, 1.25);
-    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(2, 1.25, 0.02);
+    // The envelope opens from silence and reaches peak after the attack
+    // (1.25 + 0.02); the target-ramp helper keeps its 10 ms time constant.
+    expect(vca.gain.setValueAtTime).toHaveBeenCalledWith(0, 1.25);
+    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(2, 1.27, 0.01);
     expect(vca.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
       0.001,
       1.25 + 0.5 + 0.3
@@ -416,6 +419,35 @@ describe('AudioEngineService', () => {
     service.applyProductionParameter('0', 'tempo', 130);
 
     expect(service.tempo()).toBe(130);
+  });
+
+  it('drives the reverb send and channel cutoff from their automation lanes', () => {
+    service.ensureTrack({ id: 101, gain: 0.8, pan: 0 });
+    service.applyProductionParameter('101', 'reverb', 0.35);
+    service.applyProductionParameter('101', 'cutoff', 900);
+
+    const sendA = (service as any).trackSendAGains.get('101');
+    expect(sendA.gain.setTargetAtTime).toHaveBeenCalledWith(
+      0.35,
+      expect.any(Number),
+      expect.any(Number),
+    );
+
+    const filter = (service as any).trackFilterNodes.get('101');
+    expect(filter.type).toBe('lowpass');
+    expect(filter.frequency.setTargetAtTime).toHaveBeenCalledWith(
+      900,
+      expect.any(Number),
+      expect.any(Number),
+    );
+
+    // Out-of-range cutoffs clamp instead of closing/overshooting the channel.
+    service.applyProductionParameter('101', 'cutoff', 50000);
+    expect(filter.frequency.setTargetAtTime).toHaveBeenLastCalledWith(
+      20000,
+      expect.any(Number),
+      expect.any(Number),
+    );
   });
 
   it('should expose mastering targets and apply safe ceiling', () => {
