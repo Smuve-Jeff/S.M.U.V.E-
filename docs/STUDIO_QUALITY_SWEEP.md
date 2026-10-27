@@ -1619,3 +1619,66 @@ the select falls back to "Default" **while the stored preference survives**;
 choosing "Default microphone" then clears it. The unit spec pins the two rules —
 garbage/blank records are ignored, and an id is never returned unless it is in
 the available list.
+
+---
+
+## 26. Twentieth pass — one banner for two opposite problems
+
+### 26.1 "Then tap REC again" could not work
+
+The recorder showed one banner for every microphone failure: *"Enable mic
+permission in your browser settings, then tap REC again."* That sentence is
+wrong in both states it has to serve:
+
+- **Dismissed prompt.** Nothing is blocked yet, so there is nothing to change in
+  settings; the next tap re-prompts and the artist only has to answer it.
+- **Hard block.** Chrome will not prompt again for that origin. Tapping REC
+  returns `NotAllowedError` instantly, so "tap REC again" is advice that cannot
+  succeed — and the actual fix (site settings, then reload) is never named.
+
+Both arrive as the same `NotAllowedError`, which is why the banner guessed. The
+browser knows the difference and will say so: `navigator.permissions.query({
+name: "microphone" })` returns `prompt` or `denied`, and the app already has a
+`PermissionService` that reads it.
+
+### 26.2 What it does now
+
+The recorder reads the app-wide permission store instead of inventing state, and
+the copy is a pure function of it (`mic-permission.ts`):
+
+| Browser state | Headline | What it tells you |
+| --- | --- | --- |
+| `denied` | Microphone blocked for this site | Will not prompt again; address-bar site settings → Microphone → Allow → reload |
+| `prompt` | Microphone permission needed | The request was dismissed; tap REC and choose Allow |
+| `unknown` | Microphone unavailable | This browser reports no state; ask again, then check site settings |
+
+After a failed request the page re-reads the browser's verdict, so the banner is
+never a guess. **Check again** re-reads it — the right action after clearing a
+block, since firing another `getUserMedia` could not prompt and would only
+produce the same error.
+
+![The blocked-microphone banner](artifacts/studio-mic-blocked.png)
+
+Two smaller corrections came out of looking at it on screen:
+
+- **One cause, one message.** The short red strip above the meters repeated the
+  failure one line before the banner explained it. It now stays quiet while
+  `permissionsDenied()` is set, and is left for the failures the banner does not
+  cover (busy device, engine error).
+- **The banner moved above the transport.** It used to sit under REC — the
+  message explaining why the button had failed was below the button that failed.
+
+### 26.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `npx jest audio-recorder-view` | **41 passed** (4 new) |
+| `npx playwright test studio-new-page` | **35/35** (1 new) |
+| `npm run build` | **0 errors, 0 warnings**; initial 1.70 MB |
+
+The e2e fakes both layers: `permissions.query` reports `denied` while
+`getUserMedia` rejects with `NotAllowedError`. The banner names the block, prints
+all three recovery steps, offers **Check again**, and the inline strip is absent.
+Flipping the fake to `granted` and pressing **Check again** clears the banner with
+no further request; flipping to `prompt` and tapping REC produces the *other*
+copy — one step, no mention of site settings.

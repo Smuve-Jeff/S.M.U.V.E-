@@ -230,6 +230,36 @@
   color: var(--espresso-muted);
 }
 
+/* Recovery steps: the fix lives in the browser, so name each click. */
+.arv-banner-steps {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--espresso-muted);
+}
+
+.arv-banner-action {
+  flex: 0 0 auto;
+  align-self: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 26, 77, 0.45);
+  background: rgba(255, 26, 77, 0.12);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.arv-banner-action:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 /* ---------- RECORDINGS BANK ---------- */
 .arv-bank {
   background: var(--ivory-panel);

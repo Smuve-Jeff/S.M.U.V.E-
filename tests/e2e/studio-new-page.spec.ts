@@ -1077,3 +1077,77 @@ test("remembers the recorder's input, and drops it when the device disappears", 
   await page.locator("#arv-input-select").selectOption("");
   await expect.poll(stored).toBeNull();
 });
+
+/**
+ * One banner used to serve two different problems: "Enable mic permission in
+ * your browser settings, then tap REC again." After a *dismissed* prompt that is
+ * needless advice (the next tap re-prompts), and after a *hard block* it is
+ * impossible advice — the next tap returns NotAllowedError without ever
+ * prompting. The banner now reads the browser's own verdict.
+ */
+test("distinguishes a blocked microphone from a dismissed prompt", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const state = { mic: "denied" };
+    (window as unknown as { __micPermission: typeof state }).__micPermission =
+      state;
+
+    Object.defineProperty(navigator, "permissions", {
+      configurable: true,
+      value: {
+        query: async (descriptor: { name?: string }) => ({
+          state: descriptor?.name === "microphone" ? state.mic : "prompt",
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => false,
+        }),
+      },
+    });
+
+    Object.defineProperty(navigator.mediaDevices, "getUserMedia", {
+      configurable: true,
+      value: async () => {
+        throw Object.assign(new Error("Permission denied"), {
+          name: "NotAllowedError",
+        });
+      },
+    });
+  });
+
+  await openStudio(page);
+  await modeButton(page, "Create").click();
+  await page.locator(".arv-record-btn").click();
+
+  const banner = page.locator(".arv-banner");
+  await expect(banner).toContainText("Microphone blocked for this site");
+  // The fix lives in the browser, so every click is named.
+  await expect(banner.locator(".arv-banner-steps li")).toHaveCount(3);
+  await expect(banner).toContainText("Microphone to Allow");
+  // The short inline strip repeated the same failure one line earlier; the
+  // banner says it better and is now the only voice.
+  await expect(page.locator(".arv-inline-error")).toHaveCount(0);
+
+  // Clearing the block (site settings) and re-checking drops the banner without
+  // asking for another request.
+  await page.evaluate(() => {
+    (window as unknown as { __micPermission: { mic: string } }).__micPermission.mic =
+      "granted";
+  });
+  await banner.locator(".arv-banner-action").click();
+  await expect(page.locator(".arv-banner")).toHaveCount(0);
+
+  // Same failure, different cause: a dismissed prompt asks for one more tap and
+  // says nothing about settings.
+  await page.evaluate(() => {
+    (window as unknown as { __micPermission: { mic: string } }).__micPermission.mic =
+      "prompt";
+  });
+  await page.locator(".arv-record-btn").click();
+  await expect(page.locator(".arv-banner")).toContainText(
+    "Microphone permission needed",
+  );
+  await expect(page.locator(".arv-banner .arv-banner-steps li")).toHaveCount(1);
+  await expect(page.locator(".arv-banner")).not.toContainText("site settings");
+});

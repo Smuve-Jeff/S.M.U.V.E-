@@ -22,6 +22,8 @@ import { InteractionDialogService } from "../../services/interaction-dialog.serv
 import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
 import { SmartRecordingService } from "../smart-recording.service";
+import { PermissionService } from "../../services/permission.service";
+import { MicPermissionState, micPermissionNotice } from "./mic-permission";
 import {
   INPUT_DEVICE_KEY,
   readStoredInputDeviceId,
@@ -58,12 +60,34 @@ export class AudioRecorderViewComponent
   private dialog = inject(InteractionDialogService);
   private engineLatency = inject(AudioEngineLatencyService);
   private readonly visualScheduler = inject(StudioVisualSchedulerService);
+  /** The app-wide permission store is the single source of truth for mic state. */
+  private readonly permissions = inject(PermissionService);
 
   @ViewChild("waveformCanvas")
   waveformCanvasRef!: ElementRef<HTMLCanvasElement>;
 
   recordings = signal<RecordingListEntry[]>([]);
   permissionsDenied = signal(false);
+  recheckingPermission = signal(false);
+  /**
+   * What the browser actually reports, not what the last failure implied. A
+   * dismissed prompt and a hard block both raise `NotAllowedError`, and they
+   * need opposite advice.
+   */
+  readonly micPermission = computed<MicPermissionState>(() => {
+    const status = this.permissions
+      .permissions()
+      .find((entry) => entry.name === "microphone")?.status;
+    switch (status) {
+      case "granted":
+      case "denied":
+      case "prompt":
+        return status;
+      default:
+        return "unknown";
+    }
+  });
+  readonly micNotice = computed(() => micPermissionNotice(this.micPermission()));
   isRequestingMic = signal(false);
   currentStream: MediaStream | null = null;
   elapsedSec = signal(0);
@@ -576,6 +600,40 @@ export class AudioRecorderViewComponent
     }
   }
 
+  private async refreshMicPermission(): Promise<void> {
+    try {
+      await this.permissions.refreshAllStatuses();
+    } catch (error) {
+      this.logger.warn("Could not read the microphone permission state", error);
+    }
+  }
+
+  /**
+   * "Check again" on the banner. After a hard block the only thing that can
+   * change the answer is the artist clearing it in site settings, so this
+   * re-reads the browser's state instead of firing another request that cannot
+   * prompt.
+   */
+  async recheckMicPermission(): Promise<void> {
+    if (this.recheckingPermission()) return;
+    this.recheckingPermission.set(true);
+    try {
+      await this.refreshMicPermission();
+      if (this.micPermission() === "granted") {
+        this.permissionsDenied.set(false);
+        this.captureError.set(null);
+        if (this.captureState() === "error") this.captureState.set("idle");
+        this.snackbar.success("Microphone is allowed now — tap REC");
+      } else {
+        this.snackbar.warning(
+          "Still blocked — allow the microphone in your browser's site settings",
+        );
+      }
+    } finally {
+      this.recheckingPermission.set(false);
+    }
+  }
+
   async setInputDevice(deviceId: string): Promise<void> {
     if (this.deviceSwitchLocked()) {
       this.snackbar.warning("Wait for microphone capture to finish before switching input");
@@ -667,6 +725,9 @@ export class AudioRecorderViewComponent
               : "Could not access microphone",
       );
       this.permissionsDenied.set(error?.name === "NotAllowedError" || error?.name === "SecurityError");
+      // Re-read the browser's own verdict: it distinguishes "the prompt was
+      // dismissed" (ask again) from "this site is blocked" (settings + reload).
+      if (this.permissionsDenied()) void this.refreshMicPermission();
       this.logger.error("Mic permission denied or unavailable", error);
       this.snackbar.error(this.captureError() || "Could not access microphone");
     } finally {
