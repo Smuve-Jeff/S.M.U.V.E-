@@ -64,6 +64,11 @@ describe("ChannelRackComponent step lane", () => {
             addTrack: jest.fn(),
             addNoteToTrack: addNote,
             removeNotes,
+            setActivePatternSlot: jest.fn(),
+            createPatternSlot: jest.fn(() => "slot-new"),
+            duplicatePatternSlot: jest.fn(() => "slot-copy"),
+            deletePatternSlot: jest.fn(() => null),
+            renamePatternSlot: jest.fn(() => true),
           },
         },
       ],
@@ -299,5 +304,86 @@ describe("ChannelRackComponent step lane", () => {
     expect(updateSynthParams).toHaveBeenLastCalledWith("track-1", {
       lfo: expect.objectContaining({ rate: 12.5 }),
     });
+  });
+
+  it("names the pattern the rack is editing and counts its clips", () => {
+    tracks.set([
+      makeTrack({
+        patternSlots: [
+          { id: "slot-0", name: "Pattern 1", versions: [] },
+          { id: "slot-1", name: "Verse", versions: [] },
+        ],
+        activePatternSlotId: "slot-1",
+        clips: [
+          { id: "c1", patternSlotId: "slot-1" },
+          { id: "c2", patternSlotId: "slot-1" },
+          { id: "c3", patternSlotId: "slot-0" },
+        ],
+      }),
+    ]);
+    expect(component.patternSlots()).toHaveLength(2);
+    expect(component.activePattern()?.name).toBe("Verse");
+    expect(component.patternClipCount("slot-1")).toBe(2);
+    expect(component.patternClipCount("slot-0")).toBe(1);
+  });
+
+  it("hides the pattern chip on audio tracks", () => {
+    tracks.set([makeTrack({ type: "audio" })]);
+    expect(component.patternTrackEditable()).toBe(false);
+    tracks.set([makeTrack({ type: "drum" })]);
+    expect(component.patternTrackEditable()).toBe(true);
+  });
+
+  it("switches the edited pattern through the manager, not local state", () => {
+    tracks.set([
+      makeTrack({
+        patternSlots: [
+          { id: "slot-0", name: "Pattern 1", versions: [] },
+          { id: "slot-1", name: "Verse", versions: [] },
+        ],
+        activePatternSlotId: "slot-0",
+      }),
+    ]);
+    component.patternMenuOpen.set(true);
+    component.activatePattern("slot-1");
+    expect(
+      (component.musicManager as any).setActivePatternSlot,
+    ).toHaveBeenCalledWith("track-1", "slot-1");
+    expect(component.patternMenuOpen()).toBe(false);
+
+    // Tapping the pattern already being edited is a close, not a no-op switch.
+    component.patternMenuOpen.set(true);
+    component.activatePattern("slot-0");
+    expect(
+      (component.musicManager as any).setActivePatternSlot,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes new, duplicate, delete and rename to the pattern manager", () => {
+    component.newPattern();
+    expect((component.musicManager as any).createPatternSlot).toHaveBeenCalledWith(
+      "track-1",
+    );
+
+    component.duplicatePattern("slot-0");
+    expect(
+      (component.musicManager as any).duplicatePatternSlot,
+    ).toHaveBeenCalledWith("track-1", "slot-0");
+
+    component.removePattern("slot-0");
+    expect((component.musicManager as any).deletePatternSlot).toHaveBeenCalledWith(
+      "track-1",
+      "slot-0",
+    );
+
+    component.startPatternRename("slot-0");
+    component.patternRenameDraft.set("  Chorus  ");
+    component.commitPatternRename("slot-0");
+    expect((component.musicManager as any).renamePatternSlot).toHaveBeenCalledWith(
+      "track-1",
+      "slot-0",
+      "  Chorus  ",
+    );
+    expect(component.renamingPatternId()).toBeNull();
   });
 });

@@ -17,6 +17,7 @@ import { LfoState } from "../../services/audio-engine.service";
 import { InstrumentsService } from "../../services/instruments.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
+import { countClipsUsingPattern } from "../pattern-slots.util";
 
 /** LFO target options for the channel rack. */
 export enum LfoTarget {
@@ -218,6 +219,145 @@ export class ChannelRackComponent implements OnInit, OnDestroy {
 
   selectTrack(track: TrackModel) {
     this.musicManager.selectedTrackId.set(track.id);
+  }
+
+  // ── Pattern manager ──────────────────────────────────────────────────
+  // The rack edits exactly one pattern per track, and the pattern it edits is
+  // not a UI preference: pattern slots are what arrangement clips point at.
+  // Without this, "new pattern" was a one-way door — you could leave a
+  // pattern but never come back to edit it.
+
+  /** Track whose pattern the lane is editing (mirrors the selected channel). */
+  patternTrack = computed<TrackModel | null>(() => {
+    const id = this.selectedTrackId();
+    return this.tracks().find((t) => t.id === id) ?? null;
+  });
+
+  /** Audio tracks play samples, not patterns — the chip would be a lie there. */
+  patternTrackEditable = computed(
+    () => (this.patternTrack()?.type ?? "audio") !== "audio",
+  );
+
+  patternSlots = computed(() => this.patternTrack()?.patternSlots ?? []);
+
+  activePattern = computed(() => {
+    const track = this.patternTrack();
+    return (
+      track?.patternSlots?.find((s) => s.id === track.activePatternSlotId) ??
+      track?.patternSlots?.[0] ??
+      null
+    );
+  });
+
+  patternMenuOpen = signal(false);
+  renamingPatternId = signal<string | null>(null);
+  patternRenameDraft = signal("");
+
+  /** How many arrangement clips play this pattern — the reason not to delete it. */
+  patternClipCount(slotId: string): number {
+    return countClipsUsingPattern(this.patternTrack()?.clips, slotId);
+  }
+
+  togglePatternMenu(event?: Event) {
+    event?.stopPropagation();
+    this.patternMenuOpen.update((open) => !open);
+    if (!this.patternMenuOpen()) this.cancelPatternRename();
+  }
+
+  activatePattern(slotId: string) {
+    const track = this.patternTrack();
+    if (!track) return;
+    if (track.activePatternSlotId === slotId) {
+      this.patternMenuOpen.set(false);
+      return;
+    }
+    this.musicManager.setActivePatternSlot(track.id, slotId);
+    this.patternMenuOpen.set(false);
+    this.snackbar.info(`Editing “${this.patternSlotName(slotId)}”`);
+  }
+
+  patternSlotName(slotId: string): string {
+    return this.patternSlots().find((s) => s.id === slotId)?.name ?? "Pattern";
+  }
+
+  newPattern() {
+    const track = this.patternTrack();
+    if (!track) return;
+    const id = this.musicManager.createPatternSlot(track.id);
+    this.patternMenuOpen.set(false);
+    if (id) {
+      this.snackbar.success(`New pattern — a copy of what you had`);
+    }
+  }
+
+  duplicatePattern(slotId: string) {
+    const track = this.patternTrack();
+    if (!track) return;
+    const source = this.patternSlotName(slotId);
+    const id = this.musicManager.duplicatePatternSlot(track.id, slotId);
+    this.snackbar.info(
+      id ? `“${source}” copied` : "That pattern is no longer here",
+    );
+  }
+
+  removePattern(slotId: string) {
+    const track = this.patternTrack();
+    if (!track) return;
+    const name = this.patternSlotName(slotId);
+    const error = this.musicManager.deletePatternSlot(track.id, slotId);
+    if (error) {
+      this.snackbar.error(error);
+      return;
+    }
+    if (this.renamingPatternId() === slotId) this.cancelPatternRename();
+    this.snackbar.info(`“${name}” deleted`);
+  }
+
+  startPatternRename(slotId: string, event?: Event) {
+    event?.stopPropagation();
+    this.renamingPatternId.set(slotId);
+    this.patternRenameDraft.set(this.patternSlotName(slotId));
+    // The input only exists after the next render pass; focusing it means a
+    // rename is one tap and typing, not a second tap on the new field.
+    if (typeof document === "undefined") return;
+    setTimeout(() => {
+      const field = document.querySelector<HTMLInputElement>(
+        ".channel-pattern-rename",
+      );
+      field?.focus();
+      field?.select();
+    });
+  }
+
+  /** Stable identity so switching/renaming rows does not rebuild the flyout. */
+  patternSlotTrack(_index: number, slot: { id: string }): string {
+    return slot.id;
+  }
+
+  cancelPatternRename() {
+    this.renamingPatternId.set(null);
+    this.patternRenameDraft.set("");
+  }
+
+  commitPatternRename(slotId: string) {
+    const track = this.patternTrack();
+    if (!track) return;
+    this.musicManager.renamePatternSlot(
+      track.id,
+      slotId,
+      this.patternRenameDraft(),
+    );
+    this.cancelPatternRename();
+  }
+
+  onPatternRenameKey(event: KeyboardEvent, slotId: string) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      this.commitPatternRename(slotId);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      this.cancelPatternRename();
+    }
   }
 
   async removeTrack(id: string) {

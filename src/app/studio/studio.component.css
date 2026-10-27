@@ -4794,3 +4794,105 @@
     display: none;
   }
 }
+
+/* ── Current-project strip in the Sets browser ───────────────────────────
+   The browser can create and open sets; this strip makes it able to finish the
+   job on the project that is already open. */
+.comp-sets-current {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 14px;
+  background: var(--ivory-paper);
+}
+
+.comp-sets-current-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.comp-sets-current-label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--espresso-muted);
+}
+
+.comp-sets-current-state {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--teal-700);
+}
+
+.comp-sets-current-state.is-dirty {
+  color: #b45309;
+}
+
+.comp-sets-current-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--espresso-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comp-sets-current-meta {
+  font-size: 11px;
+  color: var(--espresso-muted);
+}
+
+.comp-sets-current-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.comp-sets-current-btn {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--espresso-text);
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.comp-sets-current-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.comp-sets-current-btn-primary {
+  border-color: rgba(14, 124, 123, 0.45);
+  background: rgba(14, 124, 123, 0.12);
+  color: var(--teal-700);
+}
+
+.comp-sets-current-btn:hover,
+.comp-sets-current-btn:focus-visible {
+  border-color: rgba(14, 124, 123, 0.6);
+}
+
+.comp-sets-current-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (pointer: coarse) {
+  .comp-sets-current-btn {
+    min-height: 44px;
+  }
+}

@@ -505,3 +505,127 @@
     margin-top: -8px;
   }
 }
+
+/* ── Plugin chain ────────────────────────────────────────────────────────
+   Same visual grammar as the inserts list above it: one row per device, the
+   remove affordance on the right, and a picker that stays inside the panel. */
+.insp-plugins {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insp-plugin {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 2px 4px;
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+.insp-plugin-glyph {
+  font-size: 15px;
+  opacity: 0.6;
+}
+
+.insp-plugin-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.insp-plugin-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.insp-plugin-remove .material-symbols-outlined {
+  font-size: 15px;
+}
+
+.insp-plugin-remove:hover,
+.insp-plugin-remove:focus-visible {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+  opacity: 1;
+}
+
+.insp-plugin-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 6px 0 0;
+  padding: 4px;
+  border: 1px solid rgba(180, 200, 255, 0.18);
+  border-radius: 10px;
+  list-style: none;
+}
+
+.insp-plugin-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.insp-plugin-option:hover,
+.insp-plugin-option:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.insp-plugin-category {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  opacity: 0.45;
+}
+
+.insp-plugin-add:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+@media (pointer: coarse) {
+  .insp-plugin {
+    min-height: 44px;
+  }
+
+  .insp-plugin-remove {
+    width: 44px;
+    height: 44px;
+  }
+
+  .insp-plugin-option {
+    min-height: 44px;
+  }
+}

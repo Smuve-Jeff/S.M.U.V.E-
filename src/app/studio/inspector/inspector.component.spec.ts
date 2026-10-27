@@ -6,6 +6,8 @@ import { MusicManagerService } from "../../services/music-manager.service";
 import { HapticService } from "../../services/haptic.service";
 import { LoggingService } from "../../services/logging.service";
 
+import { PluginStoreService } from "../../services/plugin-store.service";
+
 function makeTrack(overrides: Record<string, unknown> = {}) {
   return {
     id: "track-1",
@@ -45,7 +47,14 @@ describe("InspectorComponent", () => {
     togglePhase: jest.fn(),
     toggleFxSlot: jest.fn(),
     removeFxSlot: jest.fn(),
+    setTrackPlugins: jest.fn(),
   };
+
+  const catalog = [
+    { id: "smuve.tube.v1", name: "Tube Glue", category: "Saturation" },
+    { id: "smuve.eq.v1", name: "Channel EQ", category: "EQ" },
+  ];
+  const pluginStore = { catalog: catalog as any[] };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -80,6 +89,7 @@ describe("InspectorComponent", () => {
           provide: LoggingService,
           useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
         },
+        { provide: PluginStoreService, useValue: pluginStore },
       ],
     }).compileComponents();
 
@@ -204,6 +214,38 @@ describe("InspectorComponent", () => {
     ) as HTMLButtonElement;
     button.click();
     expect(toggles).toHaveLength(1);
+  });
+
+  it("lists the channel's plugins with readable names and removes by id", () => {
+    tracks.set([makeTrack({ pluginIds: ["smuve.tube.v1"] })]);
+    selectedTrackId.set("track-1");
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const rows = host.querySelectorAll(".insp-plugin");
+    expect(rows.length).toBe(1);
+    expect(rows[0].textContent).toContain("Tube Glue");
+
+    component.removePlugin("smuve.tube.v1");
+    expect(manager.setTrackPlugins).toHaveBeenCalledWith("track-1", []);
+  });
+
+  it("inserts only plugins the track does not already run", () => {
+    tracks.set([makeTrack({ pluginIds: ["smuve.tube.v1"] })]);
+    selectedTrackId.set("track-1");
+    fixture.detectChanges();
+
+    expect(component.availablePlugins().map((p) => p.id)).toEqual([
+      "smuve.eq.v1",
+    ]);
+
+    component.togglePluginPicker();
+    component.addPlugin(component.availablePlugins()[0]);
+    expect(manager.setTrackPlugins).toHaveBeenCalledWith("track-1", [
+      "smuve.tube.v1",
+      "smuve.eq.v1",
+    ]);
+    expect(component.pluginPickerOpen()).toBe(false);
   });
 
   it("labels track kinds for the badge", () => {

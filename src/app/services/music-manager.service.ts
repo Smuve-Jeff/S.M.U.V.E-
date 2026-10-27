@@ -16,6 +16,11 @@ import { StemSeparationService } from './stem-separation.service';
 import { IdeaRecipe } from './ideas-generator.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { LoggingService } from './logging.service';
+import {
+  copyPatternName,
+  isSamePattern,
+  planPatternDelete,
+} from '../studio/pattern-slots.util';
 import { TakeManagerService } from './take-manager.service';
 import { AutomationService } from '../studio/automation.service';
 import { OfflineBounceService } from '../studio/offline-bounce.service';
@@ -1758,30 +1763,256 @@ export class MusicManagerService {
     ]);
   }
 
+  /**
+   * Switch the pattern the editors work on.
+   *
+   * `activePatternSlotId` is not just a label: the track's live `notes`/`steps`
+   * ARE the active pattern. So switching is a two-sided move — the material
+   * being left is captured back into its slot (otherwise an edit made between
+   * captures would be lost the moment you looked at another pattern), then the
+   * target slot's latest version is loaded into the live pattern. Before this,
+   * the setter only flipped the id, so returning to a pattern showed the other
+   * pattern's notes while every clip still resolved by slot id — the editor and
+   * the mix disagreed. One history step for both halves.
+   */
   setActivePatternSlot(trackId: string, slotId: string) {
-    // Snapshot the id BEFORE the command runs — the previous undo closure
-    // read it back post-update (always the new value), so undo was a no-op.
-    const previousSlotId = this.tracks().find((t) => t.id === trackId)
-      ?.activePatternSlotId ?? null;
+    const track = this.tracks().find((t) => t.id === trackId);
+    const target = track?.patternSlots?.find((s) => s.id === slotId);
+    if (!track || !target) return;
+    const previousSlotId = track.activePatternSlotId ?? null;
+    if (previousSlotId === slotId) return;
+
+    const notesBefore = this.clone(track.notes || []);
+    const stepsBefore = [...(track.steps || [])];
+    const slotsBefore = this.clone(track.patternSlots || []);
+
     this.runCommand(
-      'Switch Pattern Slot',
+      'Switch Pattern · ' + target.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => {
+            if (t.id !== trackId) return t;
+            const latest = t.patternSlots?.find((s) => s.id === slotId)
+              ?.versions.at(-1);
+            const carried = (t.patternSlots || []).map((slot) => {
+              if (slot.id !== previousSlotId) return slot;
+              const last = slot.versions.at(-1);
+              if (isSamePattern(last, { steps: t.steps, notes: t.notes })) {
+                return slot;
+              }
+              return {
+                ...slot,
+                versions: [
+                  ...slot.versions,
+                  {
+                    id: 'v-' + Date.now(),
+                    name: 'auto',
+                    steps: [...t.steps],
+                    notes: this.clone(t.notes || []),
+                  },
+                ],
+              };
+            });
+            return {
+              ...t,
+              activePatternSlotId: slotId,
+              patternSlots: carried,
+              notes: this.clone(latest?.notes ?? []),
+              steps: [...(latest?.steps ?? t.steps)],
+            };
+          })
+        );
+      },
       () => {
         this.tracks.update((ts) =>
           ts.map((t) =>
-            t.id === trackId ? { ...t, activePatternSlotId: slotId } : t
+            t.id !== trackId
+              ? t
+              : {
+                  ...t,
+                  activePatternSlotId: previousSlotId,
+                  notes: this.clone(notesBefore),
+                  steps: [...stepsBefore],
+                  patternSlots: this.clone(slotsBefore),
+                }
+          )
+        );
+      }
+    );
+  }
+
+  /** Rename a pattern. Undoable; trims and refuses empty names. */
+  renamePatternSlot(trackId: string, slotId: string, name: string): boolean {
+    const track = this.tracks().find((t) => t.id === trackId);
+    const slot = track?.patternSlots?.find((s) => s.id === slotId);
+    const next = (name || '').trim().slice(0, 40);
+    if (!track || !slot || !next || next === slot.name) return false;
+    const before = slot.name;
+    this.runCommand(
+      'Rename Pattern · ' + before,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id !== trackId
+              ? t
+              : {
+                  ...t,
+                  patternSlots: (t.patternSlots || []).map((s) =>
+                    s.id === slotId ? { ...s, name: next } : s
+                  ),
+                }
           )
         );
       },
       () => {
         this.tracks.update((ts) =>
           ts.map((t) =>
-            t.id === trackId
-              ? { ...t, activePatternSlotId: previousSlotId }
-              : t
+            t.id !== trackId
+              ? t
+              : {
+                  ...t,
+                  patternSlots: (t.patternSlots || []).map((s) =>
+                    s.id === slotId ? { ...s, name: before } : s
+                  ),
+                }
           )
         );
       }
     );
+    return true;
+  }
+
+  /**
+   * Copy a pattern (all its versions) into a new slot and return its id.
+   * Unlike `createPatternSlot`, this does not touch the live pattern or the
+   * active slot — it duplicates a stored pattern, so "make a variation of the
+   * chorus" does not disturb what is playing.
+   */
+  duplicatePatternSlot(trackId: string, slotId: string): string | null {
+    const track = this.tracks().find((t) => t.id === trackId);
+    const slot = track?.patternSlots?.find((s) => s.id === slotId);
+    if (!track || !slot) return null;
+    const newSlotId = 'slot-' + Date.now();
+    const name = copyPatternName(slot.name, track.patternSlots || []);
+    const slotsBefore = this.clone(track.patternSlots || []);
+    this.runCommand(
+      'Duplicate Pattern · ' + slot.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => {
+            if (t.id !== trackId) return t;
+            const source = t.patternSlots?.find((s) => s.id === slotId);
+            if (!source) return t;
+            const versions = source.versions.map((version, index) => ({
+              ...version,
+              id: `${newSlotId}-v${index}`,
+              steps: [...version.steps],
+              notes: this.clone(version.notes || []),
+            }));
+            return {
+              ...t,
+              patternSlots: [
+                ...(t.patternSlots || []),
+                {
+                  id: newSlotId,
+                  name,
+                  activeVersionId: versions.at(-1)?.id ?? `${newSlotId}-v0`,
+                  versions,
+                },
+              ],
+            };
+          })
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id !== trackId
+              ? t
+              : { ...t, patternSlots: this.clone(slotsBefore) }
+          )
+        );
+      }
+    );
+    return newSlotId;
+  }
+
+  /**
+   * Delete a pattern slot. Clips that played it are re-pointed at the slot that
+   * takes over (never left dangling — a clip pointing at a missing slot goes
+   * silent with no visible reason), and if the deleted slot was the active one
+   * the fallback's material is loaded so the editors keep matching the mix.
+   * Returns an error string when the delete is refused.
+   */
+  deletePatternSlot(trackId: string, slotId: string): string | null {
+    const track = this.tracks().find((t) => t.id === trackId);
+    if (!track) return 'Track not found.';
+    const plan = planPatternDelete(
+      track.patternSlots || [],
+      track.clips,
+      track.activePatternSlotId,
+      slotId
+    );
+    if (plan.error) return plan.error;
+    const fallbackId = plan.fallbackSlotId as string;
+    const notices =
+      plan.repointedClips > 0
+        ? ` · ${plan.repointedClips} clip${plan.repointedClips === 1 ? '' : 's'} moved`
+        : '';
+    const notesBefore = this.clone(track.notes || []);
+    const stepsBefore = [...(track.steps || [])];
+    const slotsBefore = this.clone(track.patternSlots || []);
+    const clipsBefore = this.clone(track.clips || []);
+    const activeBefore = track.activePatternSlotId ?? null;
+
+    this.runCommand(
+      'Delete Pattern · ' + (track.patternSlots?.find((s) => s.id === slotId)?.name ?? '') + notices,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) => {
+            if (t.id !== trackId) return t;
+            const fallback = t.patternSlots?.find((s) => s.id === fallbackId);
+            const latest = fallback?.versions.at(-1);
+            const leavingActive = t.activePatternSlotId === slotId;
+            return {
+              ...t,
+              activePatternSlotId: leavingActive
+                ? fallbackId
+                : (t.activePatternSlotId ?? fallbackId),
+              patternSlots: (t.patternSlots || []).filter((s) => s.id !== slotId),
+              clips: (t.clips || []).map((clip) =>
+                clip.patternSlotId === slotId
+                  ? { ...clip, patternSlotId: fallbackId }
+                  : clip
+              ),
+              ...(leavingActive
+                ? {
+                    notes: this.clone(latest?.notes ?? []),
+                    steps: [...(latest?.steps ?? t.steps)],
+                  }
+                : {}),
+            };
+          })
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id !== trackId
+              ? t
+              : {
+                  ...t,
+                  activePatternSlotId: activeBefore,
+                  notes: this.clone(notesBefore),
+                  steps: [...stepsBefore],
+                  patternSlots: this.clone(slotsBefore),
+                  clips: this.clone(clipsBefore),
+                }
+          )
+        );
+      }
+    );
+    return null;
   }
 
   // ── Routing / bus (not history-tracked; they're a UX affordance) ──

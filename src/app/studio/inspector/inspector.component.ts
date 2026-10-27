@@ -5,6 +5,7 @@ import {
   inject,
   input,
   output,
+  signal,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 
@@ -12,6 +13,10 @@ import {
   MusicManagerService,
   type TrackModel,
 } from "../../services/music-manager.service";
+import {
+  PluginStoreService,
+  type DspPluginManifest,
+} from "../../services/plugin-store.service";
 import { HapticService } from "../../services/haptic.service";
 import { LoggingService } from "../../services/logging.service";
 
@@ -42,6 +47,7 @@ export class InspectorComponent {
   private readonly musicManager = inject(MusicManagerService);
   private readonly haptic = inject(HapticService);
   private readonly logger = inject(LoggingService);
+  private readonly pluginStore = inject(PluginStoreService);
 
   /** Collapsed state is owned by the shell so the toggle survives view changes. */
   collapsed = input<boolean>(false);
@@ -131,6 +137,67 @@ export class InspectorComponent {
     if (!track) return;
     this.musicManager.togglePhase(track.id);
     this.haptic.medium();
+  }
+
+  // ── WASM plugin chain (the "plugin inspector" half of the panel) ────
+  // The rack edits slots; this shows which sandboxed plugins are actually on
+  // the channel and lets one be added or pulled without leaving the
+  // arrangement. Writes go through the same `setTrackPlugins` path the rack
+  // uses, so the audio graph and the undo stack stay in step.
+
+  readonly pluginCatalog: DspPluginManifest[] = this.pluginStore.catalog;
+  pluginPickerOpen = signal(false);
+
+  readonly trackPluginIds = computed<string[]>(
+    () => this.track()?.pluginIds ?? [],
+  );
+
+  /** Catalog entries not already on this track — the add menu's options. */
+  readonly availablePlugins = computed(() => {
+    const onTrack = new Set(this.trackPluginIds());
+    return this.pluginCatalog.filter((plugin) => !onTrack.has(plugin.id));
+  });
+
+  pluginName(id: string): string {
+    return (
+      this.pluginCatalog.find((plugin) => plugin.id === id)?.name ??
+      id.replace(/^smuve\./, "")
+    );
+  }
+
+  togglePluginPicker() {
+    this.pluginPickerOpen.update((open) => !open);
+    this.haptic.light();
+  }
+
+  addPlugin(plugin: DspPluginManifest) {
+    const track = this.track();
+    if (!track || this.trackPluginIds().includes(plugin.id)) return;
+    this.musicManager.setTrackPlugins(track.id, [
+      ...this.trackPluginIds(),
+      plugin.id,
+    ]);
+    this.pluginPickerOpen.set(false);
+    this.haptic.medium();
+    this.logger.info(`Inspector: inserted ${plugin.id} on ${track.name}`);
+  }
+
+  removePlugin(id: string) {
+    const track = this.track();
+    if (!track) return;
+    this.musicManager.setTrackPlugins(
+      track.id,
+      this.trackPluginIds().filter((pluginId) => pluginId !== id),
+    );
+    this.haptic.medium();
+  }
+
+  pluginTrackId(_index: number, id: string): string {
+    return id;
+  }
+
+  pluginManifestTrack(_index: number, plugin: DspPluginManifest): string {
+    return plugin.id;
   }
 
   toggleFx(slotId: string) {

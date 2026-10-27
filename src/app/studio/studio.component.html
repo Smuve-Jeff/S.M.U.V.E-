@@ -3158,6 +3158,56 @@
         </button>
       </div>
 
+      <!-- Current workspace: what is open, whether it is saved, and the two
+           things you reach for while browsing sets — save now, and take a
+           portable copy with you. -->
+      <div class="comp-sets-current" role="group" aria-label="Current project">
+        <div class="comp-sets-current-head">
+          <span class="comp-sets-current-label">OPEN NOW</span>
+          <span
+            class="comp-sets-current-state"
+            [class.is-dirty]="projectWorkspace.isDirty()"
+          >
+            {{ projectWorkspace.isSaving()
+              ? 'Saving…'
+              : projectWorkspace.isDirty()
+                ? 'Unsaved changes'
+                : projectWorkspace.lastPersistedAt() > 0
+                  ? 'Saved'
+                  : 'Not saved yet' }}
+          </span>
+        </div>
+        <div class="comp-sets-current-name">
+          {{ projectWorkspace.metadata()?.name || 'Untitled session' }}
+        </div>
+        <div class="comp-sets-current-meta">
+          {{ audioEngine.tempo() }} BPM ·
+          {{ musicManager.tracks().length }} track{{
+            musicManager.tracks().length === 1 ? '' : 's'
+          }}
+        </div>
+        <div class="comp-sets-current-actions">
+          <button
+            type="button"
+            class="comp-sets-current-btn comp-sets-current-btn-primary"
+            [disabled]="setsBusy() || projectWorkspace.isSaving()"
+            (click)="saveProject()"
+          >
+            <span class="material-symbols-outlined">save</span>
+            SAVE NOW
+          </button>
+          <button
+            type="button"
+            class="comp-sets-current-btn"
+            (click)="exportProject()"
+            title="Download this project as a portable .smuve bundle"
+          >
+            <span class="material-symbols-outlined">download</span>
+            EXPORT .SMUVE
+          </button>
+        </div>
+      </div>
+
       <p class="comp-sets-hint">
         Every project autosaves on this device. Tap a project to open it — the
         current session is only replaced after you confirm.

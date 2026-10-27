@@ -5,6 +5,147 @@
     <div class="rack-title neon-text text-[11px] font-black tracking-widest channel-rack-title">
       CHANNEL RACK
     </div>
+    <!-- Pattern manager — the rack edits one pattern per track, and this is
+         the only place to see, switch, rename or retire those patterns. -->
+    <div
+      class="channel-pattern"
+      *ngIf="patternTrack() as patternTrack; else noPatternTrack"
+    >
+      <ng-container *ngIf="patternTrackEditable(); else noPatternTrack">
+        <button
+          type="button"
+          class="channel-pattern-trigger"
+          [class.is-open]="patternMenuOpen()"
+          (click)="togglePatternMenu($event)"
+          aria-haspopup="menu"
+          [attr.aria-expanded]="patternMenuOpen()"
+          [attr.aria-label]="
+            'Patterns on ' +
+            patternTrack.name +
+            ' — editing ' +
+            (activePattern()?.name ?? 'Pattern 1')
+          "
+          [title]="
+            'Pattern the rack is editing · ' +
+            patternSlots().length +
+            ' in this track'
+          "
+        >
+          <span class="material-symbols-outlined" aria-hidden="true"
+            >grid_view</span
+          >
+          <span class="channel-pattern-name">{{ activePattern()?.name }}</span>
+          <span class="channel-pattern-count">{{ patternSlots().length }}</span>
+        </button>
+
+        <div
+          class="channel-pattern-menu"
+          *ngIf="patternMenuOpen()"
+          role="menu"
+          aria-label="Patterns on this track"
+        >
+          <div class="channel-pattern-menu-head">
+            <span>PATTERNS</span>
+            <span class="channel-pattern-menu-track">{{ patternTrack.name }}</span>
+          </div>
+          <ul class="channel-pattern-list">
+            <li
+              class="channel-pattern-row"
+              *ngFor="let slot of patternSlots(); trackBy: patternSlotTrack"
+              [class.is-active]="slot.id === patternTrack.activePatternSlotId"
+            >
+              <input
+                *ngIf="renamingPatternId() === slot.id; else slotLabel"
+                class="channel-pattern-rename"
+                type="text"
+                maxlength="40"
+                [ngModel]="patternRenameDraft()"
+                (ngModelChange)="patternRenameDraft.set($event)"
+                (keydown)="onPatternRenameKey($event, slot.id)"
+                (blur)="commitPatternRename(slot.id)"
+                [attr.aria-label]="'Rename ' + slot.name"
+              />
+              <ng-template #slotLabel>
+                <button
+                  type="button"
+                  class="channel-pattern-select"
+                  role="menuitem"
+                  (click)="activatePattern(slot.id)"
+                  [attr.aria-current]="
+                    slot.id === patternTrack.activePatternSlotId ? 'true' : null
+                  "
+                  [title]="'Edit ' + slot.name"
+                >
+                  <span class="channel-pattern-slot">{{ slot.name }}</span>
+                  <span class="channel-pattern-usage">
+                    {{ patternClipCount(slot.id) }} clip{{
+                      patternClipCount(slot.id) === 1 ? '' : 's'
+                    }}
+                  </span>
+                </button>
+                <span
+                  class="channel-pattern-editing"
+                  *ngIf="slot.id === patternTrack.activePatternSlotId"
+                  >EDITING</span
+                >
+                <button
+                  type="button"
+                  class="channel-pattern-action"
+                  (click)="startPatternRename(slot.id, $event)"
+                  [attr.aria-label]="'Rename ' + slot.name"
+                  title="Rename this pattern"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true"
+                    >edit</span
+                  >
+                </button>
+                <button
+                  type="button"
+                  class="channel-pattern-action"
+                  (click)="duplicatePattern(slot.id)"
+                  [attr.aria-label]="'Duplicate ' + slot.name"
+                  title="Duplicate this pattern"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true"
+                    >content_copy</span
+                  >
+                </button>
+                <button
+                  type="button"
+                  class="channel-pattern-action is-danger"
+                  (click)="removePattern(slot.id)"
+                  [disabled]="patternSlots().length <= 1"
+                  [attr.aria-label]="'Delete ' + slot.name"
+                  [title]="
+                    patternSlots().length <= 1
+                      ? 'A track keeps at least one pattern'
+                      : 'Delete this pattern'
+                  "
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true"
+                    >delete</span
+                  >
+                </button>
+              </ng-template>
+            </li>
+          </ul>
+          <button
+            type="button"
+            class="channel-pattern-new"
+            role="menuitem"
+            (click)="newPattern()"
+            title="Capture the current pattern into a new slot and edit that"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true"
+              >library_add</span
+            >
+            NEW PATTERN
+          </button>
+        </div>
+      </ng-container>
+    </div>
+    <ng-template #noPatternTrack></ng-template>
+
     <div class="relative">
       <button
         type="button"

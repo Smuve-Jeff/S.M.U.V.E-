@@ -241,6 +241,72 @@
           </li>
         </ul>
       </div>
+
+      <!-- WASM plugin chain — the same inserts the Rack runs, listed on the
+           channel so a plugin that is eating the sound is one glance away. -->
+      <div class="insp-group" role="group" aria-label="Track plugins">
+        <div class="insp-group-head">
+          <span class="insp-group-title">Plugins</span>
+          <button
+            type="button"
+            class="insp-link-btn insp-plugin-add"
+            (click)="togglePluginPicker()"
+            [attr.aria-expanded]="pluginPickerOpen()"
+            [disabled]="availablePlugins().length === 0"
+            [title]="
+              availablePlugins().length === 0
+                ? 'Every installed plugin is already on this track'
+                : 'Insert a WASM plugin on this track'
+            "
+          >
+            {{ pluginPickerOpen() ? 'Close' : 'Add' }}
+            <span class="material-symbols-outlined" aria-hidden="true">
+              {{ pluginPickerOpen() ? 'close' : 'add' }}
+            </span>
+          </button>
+        </div>
+
+        <p
+          class="insp-hint"
+          *ngIf="!trackPluginIds().length && !pluginPickerOpen()"
+        >
+          No plugins on this channel — the Rack still has its built-in inserts.
+        </p>
+
+        <ul class="insp-plugins" *ngIf="trackPluginIds().length">
+          <li
+            class="insp-plugin"
+            *ngFor="let id of trackPluginIds(); trackBy: pluginTrackId"
+          >
+            <span class="insp-plugin-glyph material-symbols-outlined" aria-hidden="true"
+              >extension</span
+            >
+            <span class="insp-plugin-name" [title]="id">{{ pluginName(id) }}</span>
+            <button
+              type="button"
+              class="insp-plugin-remove"
+              (click)="removePlugin(id)"
+              [attr.aria-label]="'Remove plugin ' + pluginName(id)"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </li>
+        </ul>
+
+        <ul class="insp-plugin-picker" *ngIf="pluginPickerOpen()">
+          <li *ngFor="let plugin of availablePlugins(); trackBy: pluginManifestTrack">
+            <button
+              type="button"
+              class="insp-plugin-option"
+              (click)="addPlugin(plugin)"
+              [title]="plugin.description"
+            >
+              <span class="insp-plugin-name">{{ plugin.name }}</span>
+              <span class="insp-plugin-category">{{ plugin.category }}</span>
+            </button>
+          </li>
+        </ul>
+      </div>
     </ng-container>
 
     <!-- Never a dead panel (Stagelight / Cubasis both open with something
