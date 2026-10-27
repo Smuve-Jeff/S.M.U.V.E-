@@ -1682,3 +1682,56 @@ all three recovery steps, offers **Check again**, and the inline strip is absent
 Flipping the fake to `granted` and pressing **Check again** clears the banner with
 no further request; flipping to `prompt` and tapping REC produces the *other*
 copy — one step, no mention of site settings.
+
+---
+
+## 27. Twenty-first pass — "Ready to record" with nothing to record from
+
+### 27.1 The promise the machine could not keep
+
+The recorder's status chip said **Ready to record** whenever it was idle,
+including on a machine with no microphone at all. Enumeration returned an empty
+list, nothing consulted it, and the first honest word arrived only after REC
+failed. A picker also still offered "Default microphone" — an input that did not
+exist.
+
+The fix is mostly about *when* you know: `enumerateDevices()` is asynchronous, so
+"no device" is also the state of every session's first frame, and flipping the
+chip to "No input device" before the first answer would make every working
+machine look broken for a moment. `inputDevicesKnown` now separates "not asked
+yet" from "asked, and there are none".
+
+### 27.2 What it shows
+
+- Status chip: **No input device** instead of *Ready to record*.
+- An amber notice under the input bar (not red — a missing device is a state to
+  fix, not a failure) telling the artist to connect one and tap refresh.
+- The input picker is disabled and reads **No input device**, so it cannot
+  promise a choice that does not exist.
+- It clears the moment enumeration finds something: plugging in and refreshing
+  returns the chip to *Ready to record* with the device listed.
+
+One interaction mattered more than the copy: a **blocked** microphone also hides
+the device list, so "no microphone detected" would be the wrong diagnosis there.
+The notice is suppressed while a permission problem is on screen — the permission
+banner owns that case, and it says what to do about it.
+
+![No input device](artifacts/studio-recorder-no-input.png)
+
+### 27.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `npx jest audio-recorder-view` | **41 passed** |
+| `npx playwright test studio-new-page` | **36/36** (1 new) |
+| `npm run build` | **0 errors, 0 warnings**; initial 1.70 MB |
+
+The e2e fakes `enumerateDevices` returning `[]`: the chip reads "No input device",
+the notice is present with no recovery steps, and the picker is disabled and
+labelled "No input device". It then adds a device in the fake, taps refresh, and
+asserts the notice disappears, the chip returns to "Ready to record" and the
+picker offers both options — the round trip, not just the empty state.
+
+The permission spec from the previous pass also changed shape here: after
+"Check again" clears a block *in this container* the correct banner is now the
+no-input one, so those assertions are scoped to `.arv-banner-warn`.

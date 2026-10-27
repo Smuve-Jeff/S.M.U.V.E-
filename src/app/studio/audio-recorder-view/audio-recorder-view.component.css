@@ -218,6 +218,14 @@
   color: #ffd0d8;
 }
 
+/* Nothing is wrong yet — there is simply nothing plugged in. Amber, not red:
+   a missing device is a state to fix, not a failure to apologise for. */
+.arv-banner-info {
+  background: rgba(255, 182, 39, 0.08);
+  border-color: rgba(255, 182, 39, 0.32);
+  color: #ffe6b8;
+}
+
 .arv-banner-text {
   display: flex;
   flex-direction: column;

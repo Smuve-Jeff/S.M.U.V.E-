@@ -1120,7 +1120,9 @@ test("distinguishes a blocked microphone from a dismissed prompt", async ({
   await modeButton(page, "Create").click();
   await page.locator(".arv-record-btn").click();
 
-  const banner = page.locator(".arv-banner");
+  // Scoped to the permission banner: this container has no capture device, so
+  // the (correct) "no microphone detected" notice can appear beside it.
+  const banner = page.locator(".arv-banner-warn");
   await expect(banner).toContainText("Microphone blocked for this site");
   // The fix lives in the browser, so every click is named.
   await expect(banner.locator(".arv-banner-steps li")).toHaveCount(3);
@@ -1136,7 +1138,7 @@ test("distinguishes a blocked microphone from a dismissed prompt", async ({
       "granted";
   });
   await banner.locator(".arv-banner-action").click();
-  await expect(page.locator(".arv-banner")).toHaveCount(0);
+  await expect(page.locator(".arv-banner-warn")).toHaveCount(0);
 
   // Same failure, different cause: a dismissed prompt asks for one more tap and
   // says nothing about settings.
@@ -1145,9 +1147,68 @@ test("distinguishes a blocked microphone from a dismissed prompt", async ({
       "prompt";
   });
   await page.locator(".arv-record-btn").click();
-  await expect(page.locator(".arv-banner")).toContainText(
+  await expect(page.locator(".arv-banner-warn")).toContainText(
     "Microphone permission needed",
   );
-  await expect(page.locator(".arv-banner .arv-banner-steps li")).toHaveCount(1);
-  await expect(page.locator(".arv-banner")).not.toContainText("site settings");
+  await expect(
+    page.locator(".arv-banner-warn .arv-banner-steps li"),
+  ).toHaveCount(1);
+  await expect(page.locator(".arv-banner-warn")).not.toContainText(
+    "site settings",
+  );
+});
+
+/**
+ * With no microphone the recorder used to sit at "Ready to record" and only admit
+ * otherwise after REC failed. Enumeration now drives the state — but only once it
+ * has answered, because "no device" is also the state of every session's first
+ * frame.
+ */
+test("says it found no input instead of promising a recording", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const state = { inputs: [] as unknown[] };
+    (window as unknown as { __recorderInputs: typeof state }).__recorderInputs =
+      state;
+    Object.defineProperty(navigator.mediaDevices, "enumerateDevices", {
+      configurable: true,
+      value: async () => state.inputs,
+    });
+  });
+
+  await openStudio(page);
+  await modeButton(page, "Create").click();
+
+  const status = page.locator(".arv-capture-state");
+  await expect(status).toContainText("No input device");
+  const notice = page.locator(".arv-banner");
+  await expect(notice).toContainText("No microphone detected");
+  await expect(notice.locator("li")).toHaveCount(0);
+  // The picker stops pretending there is an input to choose.
+  await expect(page.locator("#arv-input-select")).toBeDisabled();
+  await expect(page.locator("#arv-input-select option").first()).toHaveText(
+    "No input device",
+  );
+
+  // Plug one in and refresh: the notice clears and the recorder is ready again.
+  await page.evaluate(() => {
+    (window as unknown as { __recorderInputs: { inputs: unknown[] } }).__recorderInputs.inputs =
+      [
+        {
+          deviceId: "mic-a",
+          kind: "audioinput",
+          label: "Studio Mic A",
+          groupId: "group-1",
+          toJSON: () => ({}),
+        },
+      ];
+  });
+  await page.locator('button[aria-label="Refresh input devices"]').click();
+
+  await expect(page.locator(".arv-banner")).toHaveCount(0);
+  await expect(page.locator(".arv-capture-state")).toContainText(
+    "Ready to record",
+  );
+  await expect(page.locator("#arv-input-select option")).toHaveCount(2);
 });

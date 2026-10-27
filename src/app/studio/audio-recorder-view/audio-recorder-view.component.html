@@ -30,7 +30,7 @@
       <select
         id="arv-input-select"
         [value]="selectedInputId() || ''"
-        [disabled]="deviceSwitchLocked()"
+        [disabled]="deviceSwitchLocked() || showNoInputNotice()"
         (change)="setInputDevice($any($event.target).value)"
         aria-label="Recorder input device"
       >
@@ -42,7 +42,7 @@
              exists is discarded by the browser — which is exactly the reload
              path a remembered input takes. -->
         <option value="" [selected]="!selectedInputId()">
-          Default microphone
+          {{ showNoInputNotice() ? "No input device" : "Default microphone" }}
         </option>
         @for (device of inputDevices(); track device.deviceId) {
           <option
@@ -75,33 +75,49 @@
     </div>
   </section>
 
-  <!-- PERMISSIONS / ERROR — above the transport, so the message is read
-       before the button that would fail again. -->
-  <div class="arv-banners" *ngIf="permissionsDenied()">
-    <div class="arv-banner arv-banner-warn" role="alert">
-      <span class="material-symbols-outlined">mic_off</span>
-      <div class="arv-banner-text">
-        <strong>{{ micNotice().title }}</strong>
-        <small>{{ micNotice().detail }}</small>
-        @if (micNotice().steps.length) {
-          <ol class="arv-banner-steps">
-            @for (step of micNotice().steps; track step) {
-              <li>{{ step }}</li>
-            }
-          </ol>
+  <!-- INPUT PROBLEMS — above the transport, so the message is read before the
+       button that would fail again. Two separate problems live here: no input
+       to capture from, and permission to capture refused. -->
+  <div class="arv-banners" *ngIf="showNoInputNotice() || permissionsDenied()">
+    @if (showNoInputNotice()) {
+      <div class="arv-banner arv-banner-info" role="status">
+        <span class="material-symbols-outlined">mic_off</span>
+        <div class="arv-banner-text">
+          <strong>No microphone detected</strong>
+          <small>
+            Connect a microphone or interface, then tap refresh. Capture stays
+            idle until the browser lists an input.
+          </small>
+        </div>
+      </div>
+    }
+
+    @if (permissionsDenied()) {
+      <div class="arv-banner arv-banner-warn" role="alert">
+        <span class="material-symbols-outlined">mic_off</span>
+        <div class="arv-banner-text">
+          <strong>{{ micNotice().title }}</strong>
+          <small>{{ micNotice().detail }}</small>
+          @if (micNotice().steps.length) {
+            <ol class="arv-banner-steps">
+              @for (step of micNotice().steps; track step) {
+                <li>{{ step }}</li>
+              }
+            </ol>
+          }
+        </div>
+        @if (micNotice().canRetry) {
+          <button
+            type="button"
+            class="arv-banner-action"
+            (click)="recheckMicPermission()"
+            [disabled]="recheckingPermission()"
+          >
+            {{ recheckingPermission() ? "Checking…" : "Check again" }}
+          </button>
         }
       </div>
-      @if (micNotice().canRetry) {
-        <button
-          type="button"
-          class="arv-banner-action"
-          (click)="recheckMicPermission()"
-          [disabled]="recheckingPermission()"
-        >
-          {{ recheckingPermission() ? "Checking…" : "Check again" }}
-        </button>
-      }
-    </div>
+    }
   </div>
 
   <!-- One cause, one message: when the microphone is blocked the banner above

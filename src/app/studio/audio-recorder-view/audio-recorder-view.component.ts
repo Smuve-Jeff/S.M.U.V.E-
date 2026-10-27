@@ -116,7 +116,25 @@ export class AudioRecorderViewComponent
   >("idle");
   captureError = signal<string | null>(null);
   inputDevices = signal<Array<{ deviceId: string; label: string }>>([]);
+  /**
+   * False until the first enumeration resolves. Without it "no microphone" is
+   * the state for the first frame of every session — including the ones that
+   * have a microphone.
+   */
+  inputDevicesKnown = signal(false);
   selectedInputId = signal<string | null>(null);
+  /** Enumerated and genuinely none: not "not asked yet". */
+  readonly noInputDevice = computed(
+    () => this.inputDevicesKnown() && this.inputDevices().length === 0,
+  );
+  /**
+   * A blocked microphone hides the devices too, so "no microphone detected" is
+   * the wrong diagnosis while permission is refused — the permission banner owns
+   * that case.
+   */
+  readonly showNoInputNotice = computed(
+    () => this.noInputDevice() && !this.permissionsDenied(),
+  );
   inputDeviceName = computed(
     () =>
       this.inputDevices().find(
@@ -136,6 +154,10 @@ export class AudioRecorderViewComponent
   capturePathLabel = signal("Raw microphone input");
   latestRecording = computed(() => this.recordings()[0] ?? null);
   captureStatusLabel = computed(() => {
+    // "Ready to record" is a promise the machine cannot keep with no input.
+    if (this.showNoInputNotice() && this.captureState() === "idle") {
+      return "No input device";
+    }
     switch (this.captureState()) {
       case "requesting":
         return "Requesting microphone";
@@ -581,6 +603,7 @@ export class AudioRecorderViewComponent
           label: device.label || `Microphone ${index + 1}`,
         }));
       this.inputDevices.set(devices);
+      this.inputDevicesKnown.set(true);
       const availableIds = devices.map((device) => device.deviceId);
       if (this.selectedInputId() && !availableIds.includes(this.selectedInputId()!)) {
         this.selectedInputId.set(null);
