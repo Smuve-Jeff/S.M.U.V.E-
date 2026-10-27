@@ -240,20 +240,29 @@
                       >
                     }
                   </div>
-                  <!-- Waveform Placeholder -->
+                  <!-- This take's own peaks. The strip stays flat until the
+                       decode lands, rather than drawing a pattern that is not
+                       the audio. -->
                   <div
                     class="mt-2 h-8 bg-vocal-oled rounded-lg overflow-hidden relative"
                   >
-                    <div class="absolute inset-0 flex items-end px-1 gap-[1px]">
-                      @for (bar of generateWaveformBars(); track $index) {
-                        <div
-                          class="flex-1 rounded-t-sm transition-all duration-200"
-                          [style.background]="getTakeColor(take.takeNumber)"
-                          [style.opacity]="0.3 + bar * 0.7"
-                          [style.height]="bar * 100 + '%'"
-                        ></div>
-                      }
-                    </div>
+                    @if (takePeaks(take).length) {
+                      <div class="absolute inset-0 flex items-end px-1 gap-[1px]">
+                        @for (bar of takePeaks(take); track $index) {
+                          <div
+                            class="flex-1 rounded-t-sm transition-all duration-200"
+                            [style.background]="getTakeColor(take.takeNumber)"
+                            [style.opacity]="0.3 + bar * 0.7"
+                            [style.height]="bar * 100 + '%'"
+                          ></div>
+                        }
+                      </div>
+                    } @else {
+                      <div
+                        class="absolute inset-x-1 top-1/2 h-px bg-slate-700/60"
+                        aria-hidden="true"
+                      ></div>
+                    }
                   </div>
                   <!-- Peak Levels -->
                   <div class="flex gap-4 mt-1">

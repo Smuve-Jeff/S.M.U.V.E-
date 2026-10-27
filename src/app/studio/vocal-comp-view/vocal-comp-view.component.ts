@@ -1,7 +1,14 @@
-import { Component, signal, inject, computed, OnDestroy } from "@angular/core";
+import {
+  Component,
+  signal,
+  inject,
+  computed,
+  effect,
+  OnDestroy,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { SmartRecordingService } from "../smart-recording.service";
+import { SmartRecordingService, CompTake } from "../smart-recording.service";
 import {
   VocalCompSuggesterService,
   CompSuggestion,
@@ -9,8 +16,12 @@ import {
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { LoggingService } from "../../services/logging.service";
+import { computeWaveformPeaks } from "../waveform-peaks";
 
 type CompareMode = "off" | "a-b" | "all";
+
+/** Bars in a take's waveform strip; the row is fixed-width in the layout. */
+const WAVEFORM_BARS = 48;
 
 @Component({
   selector: "app-vocal-comp-view",
@@ -76,8 +87,27 @@ export class VocalCompViewComponent implements OnDestroy {
     );
   });
 
-  // Waveform visualization data
-  waveformData = signal<number[]>([]);
+  /**
+   * Real peaks per take, decoded once and cached by take id.
+   *
+   * The strip used to draw the same synthetic pattern for every take, so two
+   * passes a minute apart looked identical — the one thing a comp view exists to
+   * help the artist hear apart. `peaksRevision` exists because a Map is not
+   * reactive: bumping it after a decode is what redraws the rows.
+   */
+  private readonly peaksByTakeId = new Map<string, number[]>();
+  private readonly peaksPending = new Set<string>();
+  private readonly peaksUnavailable = new Set<string>();
+  private readonly peaksRevision = signal(0);
+  private destroyed = false;
+
+  constructor() {
+    // Decode every visible take once. `takes()` narrows to the selected group,
+    // so switching sections decodes only what the artist is about to compare.
+    effect(() => {
+      for (const take of this.takes()) void this.loadTakePeaks(take);
+    });
+  }
 
   // ── Group management ───────────────────────────────────
   selectGroup(groupId: string) {
@@ -191,6 +221,7 @@ export class VocalCompViewComponent implements OnDestroy {
 
   /** Leaving the view must not leave a take playing in the background. */
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.stopPlayback();
   }
 
@@ -371,21 +402,57 @@ export class VocalCompViewComponent implements OnDestroy {
     return colors[(takeNumber - 1) % colors.length];
   }
 
-  generateWaveformBars(): number[] {
-    // Generate pseudo-random waveform bars for visual effect
-    const bars: number[] = [];
-    const count = 48;
-    for (let i = 0; i < count; i++) {
-      // Use a seeded pattern based on the selected group id for consistency
-      const seed =
-        this.selectedGroupId()?.charCodeAt(
-          i % (this.selectedGroupId()?.length || 1),
-        ) || 50;
-      const base = (Math.sin(i * 0.5 + seed) + 1) / 2; // 0-1
-      const variation = Math.sin(i * 1.3 + seed * 0.7) * 0.3;
-      bars.push(Math.max(0.05, Math.min(1, base + variation)));
+  /**
+   * The bars for one take: its own decoded peaks, or an empty strip while the
+   * decode is in flight / after it failed. Empty is honest — a placeholder
+   * pattern is indistinguishable from audio and was the bug this replaced.
+   */
+  takePeaks(take: CompTake): number[] {
+    this.peaksRevision();
+    return this.peaksByTakeId.get(take.id) ?? [];
+  }
+
+  /**
+   * Decode a take once and cache its peaks.
+   *
+   * Failures are remembered per take so a blob the browser cannot decode (an
+   * unsupported codec, a truncated write) is not retried on every change
+   * detection pass; that would make the whole list janky for one bad take.
+   */
+  private async loadTakePeaks(take: CompTake): Promise<void> {
+    if (
+      !take.blob ||
+      this.peaksByTakeId.has(take.id) ||
+      this.peaksPending.has(take.id) ||
+      this.peaksUnavailable.has(take.id)
+    ) {
+      return;
     }
-    return bars;
+
+    const context = this.audioEngine.ctx;
+    if (!context?.decodeAudioData) {
+      this.peaksUnavailable.add(take.id);
+      return;
+    }
+
+    this.peaksPending.add(take.id);
+    try {
+      const buffer = await context.decodeAudioData(await take.blob.arrayBuffer());
+      const channels = Array.from({ length: buffer.numberOfChannels }, (_, i) =>
+        buffer.getChannelData(i),
+      );
+      if (this.destroyed) return;
+      this.peaksByTakeId.set(
+        take.id,
+        computeWaveformPeaks(channels, WAVEFORM_BARS),
+      );
+      this.peaksRevision.update((revision) => revision + 1);
+    } catch (error) {
+      this.peaksUnavailable.add(take.id);
+      this.logger.warn(`Could not render the waveform for ${take.label}`, error);
+    } finally {
+      this.peaksPending.delete(take.id);
+    }
   }
 
   private _currentAudio: HTMLAudioElement | null = null;

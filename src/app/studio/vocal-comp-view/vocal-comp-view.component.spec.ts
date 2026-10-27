@@ -17,15 +17,23 @@ describe("VocalCompViewComponent", () => {
   let smartRecording: jest.Mocked<SmartRecordingService>;
   let snackbar: jest.Mocked<SnackbarService>;
   let suggester: any;
+  let audioEngine: any;
   /** Real signal, like the service exposes, so the view's computeds update. */
   let mockCompGroups: WritableSignal<CompGroup[]>;
+
+  /**
+   * jsdom's Blob has no `arrayBuffer()` in this setup, so the takes carry a
+   * minimal stand-in: the component only ever reads bytes through it.
+   */
+  const audioBlob = (bytes = 8) =>
+    ({ size: bytes, arrayBuffer: async () => new ArrayBuffer(bytes) }) as Blob;
 
   const mockTakes: CompTake[] = [
     {
       id: "take-1",
       takeNumber: 1,
       label: "Take 1",
-      blob: new Blob(["test-audio-1"]),
+      blob: audioBlob(),
       url: "blob:mock-url-1",
       durationMs: 5000,
       peakDbL: -6,
@@ -38,7 +46,7 @@ describe("VocalCompViewComponent", () => {
       id: "take-2",
       takeNumber: 2,
       label: "Take 2",
-      blob: new Blob(["test-audio-2"]),
+      blob: audioBlob(),
       url: "blob:mock-url-2",
       durationMs: 4200,
       peakDbL: -8,
@@ -85,10 +93,18 @@ describe("VocalCompViewComponent", () => {
       error: jest.fn(),
     } as any;
 
-    const audioEngine = {
-      ctx: null,
+    // One loud sample among quiet ones: the strip must be drawn from the take's
+    // own audio, so a decoded peak of 0.9 has to reach the bars.
+    const decodedSamples = Float32Array.from([0, 0.5, -0.9, 0.1]);
+    audioEngine = {
+      ctx: {
+        decodeAudioData: jest.fn(async () => ({
+          numberOfChannels: 1,
+          getChannelData: () => decodedSamples,
+        })),
+      },
       isPlaying: jest.fn().mockReturnValue(false),
-    } as any;
+    };
 
     const logging = {
       info: jest.fn(),
@@ -245,13 +261,29 @@ describe("VocalCompViewComponent", () => {
     expect(color1).not.toBe(color2);
   });
 
-  it("should generate waveform bars of length 48", () => {
-    const bars = component.generateWaveformBars();
-    expect(bars).toHaveLength(48);
-    bars.forEach((b) => {
-      expect(b).toBeGreaterThanOrEqual(0.05);
-      expect(b).toBeLessThanOrEqual(1.0);
-    });
+  it("draws each take from its own decoded peaks", async () => {
+    // Let the effect's decode land.
+    for (let i = 0; i < 4; i++) await Promise.resolve();
+
+    const peaks = component.takePeaks(mockTakes[0]);
+
+    expect(audioEngine.ctx.decodeAudioData).toHaveBeenCalledTimes(
+      mockTakes.length,
+    );
+    expect(peaks).toHaveLength(48);
+    expect(Math.max(...peaks)).toBeCloseTo(0.9, 5);
+    // Peaks are not invented: every bar exists because the decode produced it.
+    expect(peaks.some((bar) => bar === 0)).toBe(true);
+  });
+
+  it("keeps a take with no stored blob flat instead of inventing a shape", () => {
+    const withoutAudio: CompTake = {
+      ...mockTakes[0],
+      id: "take-3",
+      blob: null,
+    };
+
+    expect(component.takePeaks(withoutAudio)).toEqual([]);
   });
 
   it("should filter groups by search query", () => {
