@@ -134,6 +134,43 @@ describe("AudioRecorderService", () => {
     });
   });
 
+  it("writes the measured level onto the stored take", async () => {
+    const item = {
+      id: "rec_silent",
+      blob: new Blob(["audio"]),
+      name: "Take 01",
+      timestamp: 1,
+      settings: { durationSec: 3, gain: 1 },
+    };
+    localStorageMock.getItem.mockResolvedValueOnce(item);
+
+    await expect(
+      service.setRecordingLevel("rec_silent", "silent", 0.00001),
+    ).resolves.toBe(true);
+
+    expect(localStorageMock.saveItem).toHaveBeenCalledWith("audio_blobs", {
+      ...item,
+      settings: { durationSec: 3, gain: 1, level: "silent", peak: 0.00001 },
+    });
+  });
+
+  it("does not invent a level for a take that is no longer stored", async () => {
+    localStorageMock.getItem.mockResolvedValueOnce(null);
+    await expect(
+      service.setRecordingLevel("rec_gone", "silent"),
+    ).resolves.toBe(false);
+    expect(localStorageMock.saveItem).not.toHaveBeenCalled();
+  });
+
+  it("keeps a failed level write out of the capture path", async () => {
+    // Losing the badge is not a reason to surface a capture failure.
+    localStorageMock.getItem.mockRejectedValueOnce(new Error("idb gone"));
+    await expect(
+      service.setRecordingLevel("rec_silent", "low"),
+    ).resolves.toBe(false);
+    expect(loggerMock.warn).toHaveBeenCalled();
+  });
+
   it("refuses offline recording saves when durable storage is unavailable", async () => {
     localStorageMock.persistenceStatus.mockResolvedValueOnce("failed");
     await expect(service.saveOfflineRecording({

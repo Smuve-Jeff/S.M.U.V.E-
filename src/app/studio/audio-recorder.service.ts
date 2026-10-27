@@ -2,10 +2,15 @@ import { Subject } from "rxjs";
 import { Injectable, inject, signal, OnDestroy } from "@angular/core";
 import { LocalStorageService } from "../services/local-storage.service";
 import { LoggingService } from "../services/logging.service";
+import { TakeLevel } from "./audio-recorder-view/take-level";
 
 export interface RecordingSettings {
   gain?: number;
   trimmed?: boolean;
+  /** Classified level of the finished take (silent / low / ok). */
+  level?: TakeLevel;
+  /** Measured peak, kept so the verdict can be re-derived if needed. */
+  peak?: number;
   [key: string]: any;
 }
 
@@ -199,6 +204,44 @@ export class AudioRecorderService implements OnDestroy {
       ...item,
       name: normalizedName,
     });
+  }
+
+  /**
+   * Record the measured level on the stored take.
+   *
+   * The level is measured *after* the blob is already saved, so it is written
+   * back into the same record: a silent take has to still say so after a
+   * reload, otherwise the flag only lives as long as the tab does. Failing to
+   * store it is not a capture failure, so this reports rather than throws.
+   */
+  async setRecordingLevel(
+    id: string,
+    level: TakeLevel,
+    peak?: number,
+  ): Promise<boolean> {
+    try {
+      if ((await this.localStorageService.persistenceStatus()) !== "ready") {
+        return false;
+      }
+      const item = (await this.localStorageService.getItem(
+        "audio_blobs",
+        id,
+      )) as RecordingItem | null;
+      if (!item) return false;
+
+      await this.localStorageService.saveItem("audio_blobs", {
+        ...item,
+        settings: {
+          ...item.settings,
+          level,
+          ...(typeof peak === "number" ? { peak } : {}),
+        },
+      });
+      return true;
+    } catch (error) {
+      this.logger.warn("Could not store the captured take level", error);
+      return false;
+    }
   }
 
   async saveOfflineRecording(item: RecordingItem): Promise<void> {

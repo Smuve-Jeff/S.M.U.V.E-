@@ -50,6 +50,16 @@ export function measureTakeSignal(
   return { peak, rms: Math.sqrt(energy / count) };
 }
 
+/**
+ * Read a level back from storage. Anything unrecognised returns `null` rather
+ * than a default, so a half-written record can never invent a verdict.
+ */
+export function normalizeTakeLevel(value: unknown): TakeLevel | null {
+  return value === "silent" || value === "low" || value === "ok"
+    ? value
+    : null;
+}
+
 export function classifyTakeLevel(signal: TakeSignal | null | undefined): TakeLevel {
   if (!signal || !Number.isFinite(signal.peak)) return "unknown";
   if (signal.peak < SILENT_PEAK) return "silent";

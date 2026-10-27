@@ -50,11 +50,7 @@ async function openRecorder(page: Page) {
   );
 }
 
-test("a take with no signal is flagged, not banked silently", async ({
-  page,
-}) => {
-  await openRecorder(page);
-
+async function recordSilentTake(page: Page) {
   const record = page.locator(".arv-record-btn");
   await record.click();
   await expect(page.locator(".arv-capture-state")).toContainText(
@@ -67,6 +63,37 @@ test("a take with no signal is flagged, not banked silently", async ({
     "Ready to record",
     { timeout: 20_000 },
   );
+}
+
+/** Read the stored take straight out of the app's IndexedDB. */
+async function storedLevel(page: Page): Promise<string | null> {
+  return page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("SMUVE_OFFLINE_DB");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      const items = await new Promise<any[]>((resolve, reject) => {
+        const request = db
+          .transaction("audio_blobs", "readonly")
+          .objectStore("audio_blobs")
+          .getAll();
+        request.onsuccess = () => resolve(request.result as any[]);
+        request.onerror = () => reject(request.error);
+      });
+      return items[0]?.settings?.level ?? null;
+    } finally {
+      db.close();
+    }
+  });
+}
+
+test("a take with no signal is flagged, not banked silently", async ({
+  page,
+}) => {
+  await openRecorder(page);
+  await recordSilentTake(page);
 
   // The take still exists — this must flag a take, never discard one.
   await expect(page.locator(".arv-bank")).toContainText("1 take");
@@ -102,4 +129,26 @@ test("a take with no signal is flagged, not banked silently", async ({
     }
   });
   expect(peak).toBeLessThan(0.0005);
+
+  // The verdict is written back onto the stored take, not just held in memory.
+  await expect
+    .poll(() => storedLevel(page), { timeout: 10_000 })
+    .toBe("silent");
+});
+
+test("the silent flag survives a reload", async ({ page }) => {
+  await openRecorder(page);
+  await recordSilentTake(page);
+  await expect(page.locator(".arv-row-level").first()).toHaveText("SILENT");
+  await expect.poll(() => storedLevel(page), { timeout: 10_000 }).toBe("silent");
+
+  // A reload re-reads the take from IndexedDB and has no memory of the
+  // measurement — the badge can only be there because the level was stored.
+  await openRecorder(page);
+  const restored = page.locator(".arv-row").first();
+  await expect(page.locator(".arv-bank")).toContainText("1 take");
+  await expect(restored.locator(".arv-row-meta")).toContainText(
+    "saved on device",
+  );
+  await expect(restored.locator(".arv-row-level")).toHaveText("SILENT");
 });

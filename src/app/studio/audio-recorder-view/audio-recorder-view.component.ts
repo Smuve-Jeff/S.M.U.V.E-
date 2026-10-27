@@ -34,6 +34,7 @@ import {
   TakeLevel,
   classifyTakeLevel,
   measureTakeSignal,
+  normalizeTakeLevel,
   takeLevelNotice,
 } from "./take-level";
 
@@ -560,9 +561,18 @@ export class AudioRecorderViewComponent
         { length: decoded.numberOfChannels },
         (_, index) => decoded.getChannelData(index),
       );
-      const level = classifyTakeLevel(measureTakeSignal(channels));
+      const signal = measureTakeSignal(channels);
+      const level = classifyTakeLevel(signal);
       if (level === "unknown") return;
       this.takeLevels.update((levels) => ({ ...levels, [id]: level }));
+
+      // Persist the verdict with the take. Without this the badge disappears on
+      // reload, which is exactly when the artist is deciding what to keep.
+      const entry = this.recordings().find((recording) => recording.id === id);
+      if (entry && entry.savedOffline !== false) {
+        void this.recorder.setRecordingLevel(id, level, signal?.peak);
+      }
+
       const notice = takeLevelNotice(level);
       if (notice.message) this.snackbar.warning(notice.message);
     } catch (error) {
@@ -1117,6 +1127,25 @@ export class AudioRecorderViewComponent
       }
       built.sort((a, b) => b.timestamp - a.timestamp);
       this.recordings.set(built);
+
+      // Reattach the levels measured when the takes were recorded. Re-decoding
+      // every stored blob on every load would cost more than the badge is worth,
+      // and a take with no stored level stays unjudged rather than guessed.
+      const surviving = new Set(built.map((recording) => recording.id));
+      const restored: Record<string, TakeLevel> = {};
+      for (const item of stored) {
+        const level = normalizeTakeLevel(item.settings?.level);
+        if (level) restored[item.id] = level;
+      }
+      this.takeLevels.update((levels) => {
+        const next: Record<string, TakeLevel> = { ...restored };
+        for (const [id, level] of Object.entries(levels)) {
+          // A live measurement always wins, and a level for a take that no
+          // longer exists must not resurrect a row's badge.
+          if (surviving.has(id)) next[id] = level;
+        }
+        return next;
+      });
     } catch (error) {
       this.logger.warn("No offline recordings available", error);
     }

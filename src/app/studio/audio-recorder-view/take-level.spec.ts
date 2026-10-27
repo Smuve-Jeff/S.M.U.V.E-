@@ -3,6 +3,7 @@ import {
   LOW_PEAK,
   classifyTakeLevel,
   measureTakeSignal,
+  normalizeTakeLevel,
   takeLevelNotice,
 } from "./take-level";
 
@@ -45,6 +46,19 @@ describe("take level", () => {
     expect(classifyTakeLevel({ peak: SILENT_PEAK, rms: 0.0001 })).toBe("low");
     expect(classifyTakeLevel({ peak: LOW_PEAK / 2, rms: 0.001 })).toBe("low");
     expect(classifyTakeLevel({ peak: LOW_PEAK, rms: 0.005 })).toBe("ok");
+  });
+
+  it("reads a stored level back, and refuses anything it did not write", () => {
+    expect(normalizeTakeLevel("silent")).toBe("silent");
+    expect(normalizeTakeLevel("low")).toBe("low");
+    expect(normalizeTakeLevel("ok")).toBe("ok");
+    // A record from a future/older version, or a half-written one, is no verdict
+    // at all — defaulting here would badge takes the app never measured.
+    expect(normalizeTakeLevel("unknown")).toBeNull();
+    expect(normalizeTakeLevel("SILENT")).toBeNull();
+    expect(normalizeTakeLevel(undefined)).toBeNull();
+    expect(normalizeTakeLevel(null)).toBeNull();
+    expect(normalizeTakeLevel(0.2)).toBeNull();
   });
 
   it("only badges and warns for the two problem levels", () => {
