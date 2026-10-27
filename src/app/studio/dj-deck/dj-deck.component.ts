@@ -215,6 +215,27 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.formatDuration(this.recordingElapsedMs()),
   );
   sessionNotice = signal("Ready to scratch, save, and export.");
+  /** Crossfader response, surfaced on the booth so the feel is adjustable here. */
+  readonly xfCurves = ["linear", "power", "exp", "cut"] as const;
+  xfCurveLabel = computed(() => this.deckService.xfCurve().toUpperCase());
+
+  cycleXfCurve() {
+    const curves = this.xfCurves;
+    const current = curves.indexOf(this.deckService.xfCurve());
+    const next = curves[(current + 1) % curves.length];
+    this.deckService.setXfCurve(next);
+    this.sessionNotice.set(`Crossfader curve: ${next.toUpperCase()}.`);
+  }
+
+  toggleHamster() {
+    const next = !this.deckService.hamster();
+    this.deckService.setHamster(next);
+    this.sessionNotice.set(
+      next
+        ? "Hamster switch ON — crossfader reversed."
+        : "Hamster switch OFF — crossfader back to normal.",
+    );
+  }
 
   private animFrame: number | null = null;
   private syncInterval: any = null;

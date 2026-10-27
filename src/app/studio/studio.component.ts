@@ -855,6 +855,35 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   isBeginnerMode = this.uiService.beginnerMode;
 
+  /**
+   * Arrangement's own gate. Beginner mode owns the arrangement slot, so
+   * anything that genuinely needs the timeline — a takes & comp step, or the
+   * wizard's escape hatch — opens it here for this view only. Flipping the
+   * global beginner mode off just to draw a timeline stripped the guided
+   * hints from the recorder, drum machine and piano roll at the same time.
+   */
+  arrangementGateOpen = signal(false);
+
+  /** The real arrangement canvas is shown in Pro mode, or past the gate. */
+  showArrangementStage = computed(
+    () => !this.isBeginnerMode() || this.arrangementGateOpen(),
+  );
+
+  openArrangementGate() {
+    this.haptic.light();
+    if (!this.arrangementGateOpen()) {
+      this.arrangementGateOpen.set(true);
+      this.snackbarService.info(
+        "FULL ARRANGEMENT OPEN — guided mode is still on in every other view",
+      );
+    }
+  }
+
+  closeArrangementGate() {
+    this.haptic.light();
+    this.arrangementGateOpen.set(false);
+  }
+
   toggleBeginnerMode() {
     this.haptic.light();
     const next = !this.isBeginnerMode();
@@ -875,9 +904,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // so the real tool renders — LEARN in the topbar returns anytime, and
     // the wizard keeps its progress marks either way.
     if (view === "arrangement" && this.isBeginnerMode()) {
-      this.uiService.setBeginnerMode(false);
+      this.arrangementGateOpen.set(true);
       this.snackbarService.info(
-        "PRO ARRANGEMENT OPEN — tap LEARN to return to Beginner Mode",
+        "FULL ARRANGEMENT OPEN — tap GUIDED START to come back to the steps",
       );
     }
     this.setActiveView(view);

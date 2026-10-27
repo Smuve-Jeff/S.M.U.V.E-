@@ -1018,3 +1018,110 @@
     min-height: 44px;
   }
 }
+
+/* ── RTA header, reference filename, delivery-first layout ───────────────
+   Sweep P2 #8: the analyzer header and the status badge were fighting for the
+   same row at phone width, and the reference filename was truncated by the
+   title it shared a line with. */
+.mastering-rta-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.mastering-rta-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+
+.mastering-rta-sub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.mastering-rta-status {
+  justify-self: end;
+  padding: 4px 10px;
+  border: 1px solid rgba(100, 116, 139, 0.4);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #94a3b8;
+}
+
+.mastering-rta-status.is-rolling {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.45);
+}
+
+.mastering-ref-name {
+  display: block;
+  max-width: 100%;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #a5f3fc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 520px) {
+  .mastering-rta-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mastering-rta-status {
+    justify-self: start;
+  }
+}
+
+/* ── Phone header: the actions stop eating the first screen ───────────────
+   ROAST / RENDER & MASTER / AUTO-PROCESS wrapped into three stacked rows and
+   pushed the spectrum and loudness targets below the fold. One scrollable row
+   of compact keys keeps every action and hands the first screen back to the
+   analyzer. */
+@media (max-width: 640px) {
+  .mastering-header {
+    margin-bottom: 12px;
+    gap: 8px;
+  }
+
+  .mastering-header-actions {
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .mastering-header-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mastering-header-actions > button {
+    flex: 0 0 auto;
+    padding-inline: 12px;
+    min-height: 40px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+
+  .mastering-header-actions .material-symbols-outlined {
+    font-size: 15px;
+    margin-right: 4px;
+  }
+}

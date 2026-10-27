@@ -225,6 +225,36 @@
   color: var(--espresso-muted, #94a3c8);
 }
 
+/* ── ≤1024px: the band joins the tools row ────────────────────────────────
+   Sweep P2 #13: a 50px panel of its own under a 94px topbar, for three
+   assistants that are one tap away. Below the desktop breakpoint the panel
+   chrome goes, the section label goes, and the chips keep their own
+   horizontally scrollable row — it reads as part of the tools row instead of a
+   second header. */
+@media (max-width: 1024px) {
+  .ai-band {
+    margin: 0 4px;
+    padding: 4px 6px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    gap: 6px;
+  }
+
+  .ai-band-label {
+    display: none;
+  }
+
+  .ai-band-player {
+    padding: 4px 10px;
+  }
+
+  .ai-band-player-text small {
+    display: none;
+  }
+}
+
 /* ── Android / narrow viewport ──────────────────────────── */
 
 @media (max-width: 640px) {

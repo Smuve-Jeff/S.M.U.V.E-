@@ -4725,3 +4725,72 @@
     height: 44px;
   }
 }
+
+/* ── Arrangement gate return ──────────────────────────────────────────────
+   Beginner mode can open the full timeline (a takes & comp step, or the
+   wizard's escape hatch) without switching the whole app out of guided mode.
+   While that gate is open this pill floats over the canvas so the step list
+   is always one tap away. */
+.comp-view.comp-arrangement-stage.comp-gate-active {
+  position: relative;
+}
+
+.comp-gate-return {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 24px);
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--teal-500, #0e7c7b) 45%, transparent);
+  background: color-mix(in srgb, var(--espresso-900, #1a1510) 88%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+}
+
+.comp-gate-return-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--teal-500, #0e7c7b);
+  color: #f7f3ea;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.comp-gate-return-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.comp-gate-return-btn:active {
+  transform: translateY(1px);
+}
+
+.comp-gate-return-copy {
+  font-size: 11px;
+  line-height: 1.3;
+  color: color-mix(in srgb, #f7f3ea 72%, transparent);
+}
+
+@media (max-width: 640px) {
+  .comp-gate-return {
+    left: 8px;
+    bottom: 8px;
+    max-width: calc(100% - 16px);
+    padding: 4px;
+  }
+
+  .comp-gate-return-copy {
+    display: none;
+  }
+}

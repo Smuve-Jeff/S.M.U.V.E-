@@ -50,6 +50,8 @@ describe("DjDeckComponent", () => {
         bpm: 128,
       }),
       crossfade: signal(0.2),
+      xfCurve: signal<"linear" | "power" | "exp" | "cut">("power"),
+      hamster: signal(false),
       viewMode: signal<"functional" | "flat">("functional"),
       syncProgress: jest.fn(),
       setHotCue: jest.fn(),
@@ -65,6 +67,12 @@ describe("DjDeckComponent", () => {
         }));
       }),
       toggleViewMode: jest.fn(),
+      setXfCurve: jest.fn((curve: "linear" | "power" | "exp" | "cut") =>
+        mockDeckService.xfCurve.set(curve),
+      ),
+      setHamster: jest.fn((enabled: boolean) =>
+        mockDeckService.hamster.set(!!enabled),
+      ),
       toggleSlip: jest.fn(),
       togglePlay: jest.fn(),
       setDeckEq: jest.fn().mockImplementation((id, high, mid, low) => {
@@ -512,6 +520,24 @@ describe("DjDeckComponent", () => {
     component.setMasterVolume(undefined);
     expect(component.masterVolume()).toBe(0);
     expect(engine.setMasterOutputLevel).toHaveBeenLastCalledWith(0);
+  });
+
+  it("cycles the crossfader curve and reverses the fader with hamster", () => {
+    expect(component.xfCurveLabel()).toBe("POWER");
+
+    component.cycleXfCurve();
+    expect(mockDeckService.xfCurve()).toBe("exp");
+    component.cycleXfCurve();
+    expect(mockDeckService.xfCurve()).toBe("cut");
+    component.cycleXfCurve();
+    expect(mockDeckService.xfCurve()).toBe("linear");
+    component.cycleXfCurve();
+    expect(mockDeckService.xfCurve()).toBe("power");
+
+    component.toggleHamster();
+    expect(mockDeckService.hamster()).toBe(true);
+    component.toggleHamster();
+    expect(mockDeckService.hamster()).toBe(false);
   });
 
   it("clamps setCrossfade into [-1, 1]", () => {

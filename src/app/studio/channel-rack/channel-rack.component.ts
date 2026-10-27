@@ -1,4 +1,11 @@
-import { Component, computed, inject, signal } from "@angular/core";
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  OnInit,
+  OnDestroy,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
@@ -30,7 +37,7 @@ const MIN_BARS = 4;
   templateUrl: "./channel-rack.component.html",
   styleUrls: ["./channel-rack.component.css", "../shared/platform-ux.css"],
 })
-export class ChannelRackComponent {
+export class ChannelRackComponent implements OnInit, OnDestroy {
   public musicManager = inject(MusicManagerService);
   private readonly instruments = inject(InstrumentsService);
   private readonly snackbar = inject(SnackbarService);
@@ -40,6 +47,49 @@ export class ChannelRackComponent {
   engine = this.musicManager.engine;
   currentStep = this.engine.visualStep;
   laneSteps = new Array(LANE_STEPS).fill(0);
+
+  /** Post-fader peak per track, polled for the rack's level meters. */
+  trackLevels = signal<Record<string, number>>({});
+  private meterTimer: ReturnType<typeof setInterval> | null = null;
+
+  ngOnInit(): void {
+    if (typeof window === "undefined") return;
+    this.meterTimer = setInterval(() => this.pollLevels(), 90);
+  }
+
+  ngOnDestroy(): void {
+    if (this.meterTimer) clearInterval(this.meterTimer);
+    this.meterTimer = null;
+  }
+
+  /**
+   * The rack showed no level at all: a card could be silent or clipping and
+   * look identical. Peaks come from the engine's per-track tap; a stopped
+   * transport decays to silence instead of freezing a stale peak.
+   */
+  private pollLevels(): void {
+    const tracks = this.tracks();
+    if (!tracks.length) return;
+    const playing = this.engine.isPlaying();
+    const previous = this.trackLevels();
+    // Transport stopped and every meter already fell: stay idle instead of
+    // waking the rack eleven times a second.
+    if (!playing && Object.values(previous).every((value) => value === 0)) {
+      return;
+    }
+    const next: Record<string, number> = {};
+    for (const track of tracks) {
+      const live = playing ? this.engine.getTrackLevel(track.id) : 0;
+      const decayed = (previous[track.id] ?? 0) * 0.65;
+      next[track.id] = Math.max(live, decayed < 0.01 ? 0 : decayed);
+    }
+    this.trackLevels.set(next);
+  }
+
+  /** 0-100 reading for the card's meter. */
+  levelPercent(id: string): number {
+    return Math.round((this.trackLevels()[id] ?? 0) * 100);
+  }
 
   /** 0-based bar of the editing window while the transport is stopped. */
   stepBar = signal(0);

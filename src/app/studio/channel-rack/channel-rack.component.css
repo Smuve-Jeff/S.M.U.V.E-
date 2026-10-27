@@ -880,7 +880,8 @@ button[disabled] {
   }
 
   .channel-rack-channel > .flex-1 {
-    min-width: 150px;
+    min-width: 0;
+    flex: 1 1 140px;
   }
 
   .channel-rack-step-lane {
@@ -1002,7 +1003,8 @@ button[disabled] {
   }
 
   .channel-rack-channel > .flex-1 {
-    min-width: 150px;
+    min-width: 0;
+    flex: 1 1 140px;
   }
 
   .channel-rack-meter-stack {
@@ -1259,4 +1261,39 @@ them. Desktop keeps the inline panel. */
   .channel-rack-channel.selected .lfo-control-group {
     display: flex;
   }
+}
+
+/* ── Per-channel level meter (sweep P2 #9) ───────────────────
+   A thin post-fader peak column between the M/S stack and the faders. The
+   card had no meter at all, so a silent or clipping channel read the same. */
+.channel-rack-level {
+  flex: 0 0 6px;
+  width: 6px;
+  align-self: stretch;
+  min-height: 34px;
+  display: flex;
+  align-items: flex-end;
+  padding: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rack-ink) 14%, transparent);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--rack-ink) 18%, transparent);
+  overflow: hidden;
+}
+
+.channel-rack-level i {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    to top,
+    var(--rack-teal),
+    color-mix(in srgb, var(--rack-teal) 55%, #f6c453) 72%,
+    #f6c453
+  );
+  transition: height 90ms linear;
+}
+
+.channel-rack-level.is-hot i {
+  background: linear-gradient(to top, #f6c453, #ef4444);
 }

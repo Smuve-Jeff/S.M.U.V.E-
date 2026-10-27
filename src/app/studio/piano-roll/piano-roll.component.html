@@ -162,13 +162,14 @@
       <span>Humanize</span>
     </button>
     <div class="pr-snap" role="group" aria-label="Quantization controls">
+      <span class="pr-snap-label">Quantize</span>
       <select
-        class="pr-ks-select"
+        class="pr-ks-select pr-quantize-select"
         [ngModel]="quantizePresetId()"
         (ngModelChange)="setQuantizePreset($event)"
         aria-label="Quantize preset"
       >
-        <option *ngFor="let preset of quantizePresets" [value]="preset.id">
+        <option *ngFor="let preset of quantizeChoices()" [value]="preset.id">
           {{ preset.name }}
         </option>
       </select>

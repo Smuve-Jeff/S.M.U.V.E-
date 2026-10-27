@@ -2470,3 +2470,16 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
     );
   }
 }
+
+/* ── Quantizer: one grid control, not two ─────────────────────
+   The preset list no longer repeats the Snap row's straight divisions, so it
+   is short enough to label inline; Q Sel / Q All keep the 44px target instead
+   of squeezing out of the toolbar row on a phone. */
+.pr-quantize-select {
+  max-width: 11rem;
+}
+
+.pr-snap .pr-tool-sm {
+  min-width: 44px;
+  flex: 0 0 auto;
+}

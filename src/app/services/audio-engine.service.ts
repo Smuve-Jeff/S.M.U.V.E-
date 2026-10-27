@@ -502,6 +502,9 @@ export class AudioEngineService {
     { gain: GainNode; analyser: AnalyserNode }
   >();
   private trackSendAGains = new Map<string, GainNode>();
+  /** Dead-end analyser per track id, feeding the Channel Rack's level meters. */
+  private trackAnalysers = new Map<string, AnalyserNode>();
+  private _trackMeterBuffer = new Float32Array(0);
   private trackSendBGains = new Map<string, GainNode>();
   private trackOutputs = new Map<string, GainNode>();
   /** Per-track *base* (pre-VCA) gain. Stored separately so VCA bus multiplier
@@ -560,6 +563,13 @@ export class AudioEngineService {
   private trackPluginInserts = new Map<string, LivePluginInsert>();
 
   public tempo = signal(124.0);
+  /**
+   * Song tempo map: ascending `{ step, bpm }` changes applied by both
+   * schedulers. Empty means "one tempo for the whole song", so nothing changes
+   * for projects that never use it. Owned by TempoMapService, which pushes it
+   * through `setTempoMap()`.
+   */
+  private tempoMap: { step: number; bpm: number }[] = [];
   public isPlaying = signal(false);
   public isRecording = signal(false);
   public isCountIn = signal(false);
@@ -1072,6 +1082,10 @@ export class AudioEngineService {
         type: 'SET_TEMPO',
         payload: this.tempo(),
       });
+      this.workletNode.port.postMessage({
+        type: 'SET_TEMPO_MAP',
+        payload: this.tempoMap,
+      });
       this.workletNode.port.postMessage({ type: 'START' });
     } else {
       this.schedulerHandle = setInterval(
@@ -1095,6 +1109,10 @@ export class AudioEngineService {
       this.workletNode.port.postMessage({
         type: 'SET_TEMPO',
         payload: this.tempo(),
+      });
+      this.workletNode.port.postMessage({
+        type: 'SET_TEMPO_MAP',
+        payload: this.tempoMap,
       });
       this.workletNode.port.postMessage({ type: 'START' });
     } else {
@@ -1250,11 +1268,14 @@ export class AudioEngineService {
   }
 
   private scheduler() {
-    const stepDuration = 60 / this.tempo() / this.stepsPerBeat();
     while (
       this.nextNoteTime <
       this.ctx.currentTime + AudioEngineService.DEFAULT_LOOKAHEAD_SECONDS
     ) {
+      // Read the tempo per step so a tempo map actually bends the timeline
+      // instead of only changing the first step of the buffer.
+      const stepDuration =
+        60 / this.tempoAtStep(this.currentStep) / this.stepsPerBeat();
       this.handleTick(this.currentStep, this.nextNoteTime, stepDuration);
       if (!this.isPlaying()) break;
       this.nextNoteTime += stepDuration;
@@ -1292,6 +1313,34 @@ export class AudioEngineService {
     env.connect(this.masterGain);
     osc.start(time);
     osc.stop(time + 0.1);
+  }
+
+  /**
+   * Replace the tempo map. The AudioWorklet owns the tick clock, so it needs
+   * the map itself — the main-thread fallback scheduler asks `tempoAtStep()`.
+   */
+  setTempoMap(map: { step: number; bpm: number }[]): void {
+    this.tempoMap = [...map]
+      .filter((entry) => Number.isFinite(entry.step) && Number.isFinite(entry.bpm))
+      .sort((a, b) => a.step - b.step);
+    this.workletNode?.port.postMessage({
+      type: 'SET_TEMPO_MAP',
+      payload: this.tempoMap,
+    });
+  }
+
+  /** Tempo in force at an absolute song step (last marker at or before it). */
+  tempoAtStep(step: number): number {
+    let bpm = this.tempo();
+    for (const marker of this.tempoMap) {
+      if (marker.step <= step) bpm = marker.bpm;
+      else break;
+    }
+    return bpm;
+  }
+
+  getTempoMap(): { step: number; bpm: number }[] {
+    return this.tempoMap.map((marker) => ({ ...marker }));
   }
 
   stepsPerBeat() {
@@ -2955,6 +3004,26 @@ export class AudioEngineService {
     return out;
   }
 
+  /**
+   * Peak level (0-1) of a track's post-fader output. Reads a dead-end analyser
+   * tap, so it never changes the signal; a track with no graph yet reports 0
+   * instead of inventing movement.
+   */
+  getTrackLevel(id: string): number {
+    const analyser = this.trackAnalysers.get(id);
+    if (!analyser) return 0;
+    if (this._trackMeterBuffer.length !== analyser.fftSize) {
+      this._trackMeterBuffer = new Float32Array(analyser.fftSize);
+    }
+    analyser.getFloatTimeDomainData(this._trackMeterBuffer);
+    let peak = 0;
+    for (let i = 0; i < this._trackMeterBuffer.length; i++) {
+      const value = Math.abs(this._trackMeterBuffer[i]);
+      if (value > peak) peak = value;
+    }
+    return Math.min(1, peak);
+  }
+
   getTrackOutput(id: string): GainNode {
     if (!this.trackPhaseNodes.has(id)) {
       // Complete Pro Signal Chain
@@ -2983,6 +3052,13 @@ export class AudioEngineService {
       this.trackWidthNodes.set(id, width);
       this.trackFaderGains.set(id, fader);
       this.trackOutputs.set(id, output);
+
+      // Post-fader meter tap: a dead end, so metering never alters the sound.
+      const meter = this.ctx.createAnalyser();
+      meter.fftSize = 256;
+      meter.smoothingTimeConstant = 0.4;
+      output.connect(meter);
+      this.trackAnalysers.set(id, meter);
 
       const sA = this.ctx.createGain();
       sA.gain.value = 0;

@@ -994,18 +994,40 @@
     >
       <!-- Arrangement / Beginner Wizard (toggled by mode) -->
       <ng-container *ngSwitchCase="'arrangement'">
-        <div class="comp-view comp-beginner-view" *ngIf="isBeginnerMode()">
+        <div
+          class="comp-view comp-beginner-view"
+          *ngIf="isBeginnerMode() && !arrangementGateOpen()"
+        >
           <app-beginner-wizard
             (navigateToView)="onWizardNavigate($event)"
             (launchWithPreset)="onWizardLaunchWithPreset($event)"
-            (switchToPro)="toggleBeginnerMode()"
+            (switchToPro)="openArrangementGate()"
           ></app-beginner-wizard>
         </div>
         <!-- Inspector split: the timeline stays the canvas, the channel strip
              for the selected track docks beside it. Collapsed on phones and
              small tablets — the strip is a two-handed surface, and the bottom
              dock already owns that space. -->
-        <div class="comp-view comp-arrangement-stage" *ngIf="!isBeginnerMode()">
+        <div
+          class="comp-view comp-arrangement-stage"
+          [class.comp-gate-active]="isBeginnerMode()"
+          *ngIf="showArrangementStage()"
+        >
+          <!-- Beginner mode is still on; only this canvas left the gate, so
+               offer the way back to the step-by-step surface. -->
+          <div class="comp-gate-return" *ngIf="isBeginnerMode()">
+            <button
+              type="button"
+              class="comp-gate-return-btn"
+              (click)="closeArrangementGate()"
+            >
+              <span class="material-symbols-outlined">school</span>
+              GUIDED START
+            </button>
+            <span class="comp-gate-return-copy">
+              Full arrangement · beginner tips stay on in every other view
+            </span>
+          </div>
           <div class="comp-arrangement-main">
             <app-arrangement-view
               (requestViewChange)="onWizardNavigate($event)"

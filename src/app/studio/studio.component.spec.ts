@@ -323,12 +323,19 @@ describe("StudioComponent", () => {
     expect(component.mobilePanel()).toBeNull();
   });
 
-  it("hands wizard arrangement steps off into Pro mode", () => {
+  it("opens the full arrangement behind the gate without leaving Beginner Mode", () => {
     expect(component.isBeginnerMode()).toBe(true);
+    expect(component.showArrangementStage()).toBe(false);
     component.onWizardNavigate("arrangement");
-    expect(uiServiceMock.setBeginnerMode).toHaveBeenCalledWith(false);
-    expect(component.isBeginnerMode()).toBe(false);
+    expect(component.isBeginnerMode()).toBe(true);
+    expect(uiServiceMock.setBeginnerMode).not.toHaveBeenCalled();
+    expect(component.arrangementGateOpen()).toBe(true);
+    expect(component.showArrangementStage()).toBe(true);
     expect(component.activeView()).toBe("arrangement");
+
+    component.closeArrangementGate();
+    expect(component.arrangementGateOpen()).toBe(false);
+    expect(component.showArrangementStage()).toBe(false);
   });
 
   it("keeps Beginner Mode on when the wizard navigates to other views", () => {

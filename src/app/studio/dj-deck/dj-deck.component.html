@@ -52,6 +52,34 @@
     </div>
   </header>
 
+  <!-- Crossfader response: curve + hamster were engine-only settings, so the
+       booth's most-touched control had no feel adjustment on its own surface. -->
+  <div class="booth-response" role="group" aria-label="Crossfader response">
+    <span class="booth-response-label">FADER RESPONSE</span>
+    <button
+      type="button"
+      class="response-key"
+      (click)="cycleXfCurve()"
+      [title]="'Crossfader curve · ' + xfCurveLabel() + ' · tap to change'"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">show_chart</span>
+      <span>CURVE</span>
+      <strong>{{ xfCurveLabel() }}</strong>
+    </button>
+    <button
+      type="button"
+      class="response-key"
+      [class.is-active]="deckService.hamster()"
+      [attr.aria-pressed]="deckService.hamster()"
+      (click)="toggleHamster()"
+      title="Hamster switch — reverse the crossfader direction"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>
+      <span>HAMSTER</span>
+      <strong>{{ deckService.hamster() ? 'ON' : 'OFF' }}</strong>
+    </button>
+  </div>
+
   <!-- Phone: the crossfader is the booth's primary gesture, so it rides the
        first screen instead of living between the platters — on a 390px phone
        that block sat below the fold. The console copy is hidden at this width

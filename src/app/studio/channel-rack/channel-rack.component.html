@@ -86,6 +86,20 @@
         </button>
       </div>
 
+      <!-- Post-fader level meter. The card previously offered no way to see
+           whether a channel was silent or clipping. -->
+      <div
+        class="channel-rack-level"
+        role="meter"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-valuenow]="levelPercent(track.id)"
+        [attr.aria-label]="track.name + ' output level'"
+        [class.is-hot]="levelPercent(track.id) > 88"
+      >
+        <i [style.height.%]="levelPercent(track.id)"></i>
+      </div>
+
       <!-- Controls (Vol/Pan) -->
       <div class="flex flex-col gap-2 w-14 channel-rack-meter-stack">
         <div class="flex items-center gap-1.5">

@@ -134,7 +134,22 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   snap = signal<"1/4" | "1/8" | "1/8T" | "1/16" | "1/32" | "off">("1/16");
-  quantizePresetId = signal<string>(this.quantization.selectedPresetId());
+  /**
+   * "snap" means "quantize to the grid the Snap row already picked". The list
+   * used to repeat every straight division ("Straight 1/16 Note" beside a 1/16
+   * snap chip), so grid size was chosen twice and could disagree; now only the
+   * presets that add something — swing, triplets, humanize — are offered here.
+   */
+  quantizePresetId = signal<string>("snap");
+  readonly quantizeChoices = computed(() => [
+    { id: "snap", name: `Match grid · ${this.snapLabel()}` },
+    ...this.quantization.presets
+      .filter((preset) => preset.category !== "straight")
+      .map((preset) => ({ id: preset.id, name: preset.name })),
+  ]);
+  private readonly snapLabel = computed(
+    () => this.snapOptions.find((option) => option.value === this.snap())?.label ?? "1/16",
+  );
   zoomLevel = signal(1.0);
   gridSteps = signal(64);
   selectedKey = signal("C");
@@ -164,7 +179,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     { label: "1/32", value: "1/32" as const },
     { label: "Off", value: "off" as const },
   ];
-  quantizePresets = this.quantization.presets;
+
 
   selectedNoteIds = signal<Set<string>>(new Set());
   focusedStep = signal(0);
@@ -1989,7 +2004,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
   setQuantizePreset(presetId: string): void {
     this.quantizePresetId.set(presetId);
-    this.quantization.selectedPresetId.set(presetId);
+    // The shared service only understands real preset ids — "snap" is this
+    // toolbar's local alias for "whatever the grid is set to".
+    this.quantization.selectedPresetId.set(
+      presetId === "snap" ? this.quantizePresetForRun() : presetId,
+    );
     this.haptic.light();
   }
 
@@ -2193,6 +2212,24 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     return midi;
   }
 
+  /** The preset id a quantize run uses; "Match grid" follows the Snap row. */
+  private quantizePresetForRun(): string {
+    const selected = this.quantizePresetId();
+    if (selected !== "snap") return selected;
+    switch (this.snap()) {
+      case "1/4":
+        return "straight_1_4";
+      case "1/8":
+        return "straight_1_8";
+      case "1/8T":
+        return "triplet_1_8";
+      case "1/32":
+        return "straight_1_32";
+      default:
+        return "straight_1_16";
+    }
+  }
+
   private quantizeByIds(noteIds: string[]): void {
     const track = this.selectedTrack();
     if (!track || noteIds.length === 0) return;
@@ -2200,7 +2237,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const targetNotes = track.notes.filter((n) => selectedSet.has(n.id));
     const result = this.quantization.quantizeNotes(
       targetNotes,
-      this.quantizePresetId(),
+      this.quantizePresetForRun(),
     );
     if (result.changedCount === 0) {
       this.snackbar.info("Notes already on grid");
