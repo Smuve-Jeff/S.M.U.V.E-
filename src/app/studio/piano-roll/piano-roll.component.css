@@ -70,6 +70,13 @@
   align-items: center;
   gap: 8px;
   padding: 6px 14px;
+  /* Key, scale, Lock and the grid length are editing controls, not metadata:
+     they stay pinned under the sticky header while the grid scrolls. The
+     offset is measured from the header so wrapping and the phone's Tools
+     disclosure cannot hide this row underneath it. */
+  position: sticky;
+  top: var(--pr-header-h, 0px);
+  z-index: 25;
   background: linear-gradient(
     180deg,
     var(--ivory-panel) 0%,

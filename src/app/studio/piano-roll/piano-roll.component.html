@@ -3,9 +3,10 @@
   data-studio-module="piano-roll"
   [class.pr-tools-open]="phoneToolsOpen()"
   [class.pr-velocity-open]="velocityDrawerOpen()"
+  [style.--pr-header-h]="headerHeightCss()"
 >
   <!-- HEADER -->
-  <header class="pr-header" role="banner">
+  <header class="pr-header" role="banner" #prHeader>
     <div class="pr-header-left">
       <span class="material-symbols-outlined" style="color: var(--teal-500)"
         >piano</span

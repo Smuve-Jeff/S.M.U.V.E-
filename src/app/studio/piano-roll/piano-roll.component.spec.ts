@@ -905,4 +905,13 @@ describe("PianoRollComponent", () => {
     component.selectedNoteIds.set(new Set(["n3"]));
     expect(component.selectedNoteIsSlide()).toBe(true);
   });
+
+  it("pins the key toolbar beneath the measured header height", () => {
+    // Default 0px keeps the fallback safe (the bar pins at the top) and the
+    // measured value is what the sticky offset actually uses.
+    expect(component.headerHeightCss()).toBe("0px");
+    component.headerHeight.set(112);
+    expect(component.headerHeightCss()).toBe("112px");
+    component.headerHeight.set(0);
+  });
 });

@@ -24,6 +24,7 @@ import { MidiWriter, MidiTrackData } from "./midi-writer.util";
 import { MidiImportService } from "./midi-import.service";
 
 import { AudioSessionService } from "./audio-session.service";
+import { AudioRecorderService } from "./audio-recorder.service";
 import { AtmosphericLightService } from "./atmospheric-light.service";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { CloudSyncService } from "../services/cloud-sync.service";
@@ -496,6 +497,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   // ---- Services (public for templates) ----
   public readonly audioSession = inject(AudioSessionService);
+  /** The Audio Recorder view's own MediaRecorder — capture that is not the transport. */
+  private readonly audioRecorder = inject(AudioRecorderService);
   public readonly audioEngine = inject(AudioEngineService);
   private readonly atmosphere = inject(AtmosphericLightService);
   public hardware = inject(HardwareService);
@@ -977,12 +980,76 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * change waits for the audio, not the other way round.
    */
   private async stopStudioSession(): Promise<void> {
-    if (!this.audioSession.hasLiveSession()) return;
-    if (this.audioSession.isRecording()) {
+    const transportLive = this.audioSession.hasLiveSession();
+    const micLive = this.audioRecorder.isRecording();
+    if (!transportLive && !micLive) return;
+    if (this.audioSession.isRecording() || micLive) {
       this.snackbarService.info("Saving the take before leaving the Studio…");
     }
-    this.audioSession.stop();
-    await this.audioSession.whenTakeSaved();
+
+    const saves: Promise<unknown>[] = [];
+    if (transportLive) {
+      this.audioSession.stop();
+      saves.push(this.audioSession.whenTakeSaved());
+    }
+    if (micLive) {
+      // The Audio Recorder view owns a MediaRecorder outside the transport.
+      // Its stop handler encodes and persists the take, then emits.
+      saves.push(this.waitForRecorderTake());
+      this.audioRecorder.stopRecording();
+    }
+    if (!saves.length) return;
+
+    // Never hang the route change on a wedged write. Persistence is owned by
+    // root services, so a save that outlives the wait still completes — the
+    // artist just learns it is continuing in the background.
+    const timedOut = await this.awaitWithDeadline(
+      Promise.all(saves),
+      this.SAVE_WAIT_MS,
+    );
+    if (timedOut) {
+      this.snackbarService.info(
+        "The take is still saving — it finishes in the background.",
+      );
+    }
+  }
+
+  /** How long the Studio holds the exit for a take before giving up on it. */
+  private readonly SAVE_WAIT_MS = 6000;
+
+  /** True when the deadline won. The timer is always cleared, won or lost. */
+  private async awaitWithDeadline(
+    promise: Promise<unknown>,
+    ms: number,
+  ): Promise<boolean> {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    try {
+      return await Promise.race([
+        promise.then(() => false),
+        new Promise<boolean>((resolve) => {
+          timer = setTimeout(() => resolve(true), ms);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  /** Resolves when the mic recorder's take has been persisted (or failed). */
+  private waitForRecorderTake(): Promise<unknown> {
+    const finished = this.audioRecorder.recordingFinished$;
+    if (!finished || typeof finished.subscribe !== "function") {
+      return Promise.resolve(null);
+    }
+    return new Promise((resolve) => {
+      const sub = finished.subscribe({
+        next: () => {
+          sub.unsubscribe();
+          resolve(null);
+        },
+        error: () => resolve(null),
+      });
+    });
   }
 
   /** Unwind overlay history, then leave. Never blocks on audio. */
@@ -1568,6 +1635,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     // Any other way out of the Studio (a rail cross-link, a child view's
     // "open in …") must not leave the transport playing behind the next route.
     if (this.audioSession.hasLiveSession()) this.audioSession.stop();
+    // A standalone mic pass survives transport changes; stop it here too or
+    // the microphone stays hot behind the Hub.
+    if (this.audioRecorder.isRecording()) this.audioRecorder.stopRecording();
     this.studioTelemetry.endSession("component_destroy");
   }
 

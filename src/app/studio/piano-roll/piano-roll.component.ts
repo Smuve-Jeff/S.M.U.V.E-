@@ -90,6 +90,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild("scrollContainer") scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild("keysSidebar") keysSidebar!: ElementRef<HTMLDivElement>;
   @ViewChild("velocityViewport") velocityViewport!: ElementRef<HTMLDivElement>;
+  @ViewChild("prHeader") prHeaderRef?: ElementRef<HTMLElement>;
+  /** Live header height, so the key/scale bar can pin directly beneath it. */
+  readonly headerHeight = signal(0);
+  private headerResizeObserver: ResizeObserver | null = null;
   @ViewChild("glCanvas") glCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild("glVelocityCanvas")
   glVelocityCanvas!: ElementRef<HTMLCanvasElement>;
@@ -870,6 +874,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
+    this.observeHeaderHeight();
     this.initWebGL();
     this.stopVisualTask = this.visualScheduler.register(
       () => this.renderPianoRollIfNeeded(),
@@ -878,6 +883,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.headerResizeObserver?.disconnect();
+    this.headerResizeObserver = null;
     this.ccSubscription?.unsubscribe();
     this.pbSubscription?.unsubscribe();
     this.noteOnSubscription?.unsubscribe();
@@ -888,6 +895,35 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.glRenderer?.destroy();
     this.glVelRenderer?.destroy();
   }
+
+  /**
+   * The key/scale toolbar sits sticky *below* the header, so it needs the
+   * header's live height — which changes with wrapping, the phone's Tools
+   * disclosure and landscape. Measured rather than hard-coded: a guessed
+   * offset either leaves a gap or hides the toolbar under the header.
+   */
+  private observeHeaderHeight(): void {
+    const element = this.prHeaderRef?.nativeElement;
+    if (!element) return;
+    this.measureHeaderHeight();
+    if (typeof ResizeObserver === "undefined") return;
+    this.headerResizeObserver = new ResizeObserver(() =>
+      this.measureHeaderHeight(),
+    );
+    this.headerResizeObserver.observe(element);
+  }
+
+  private measureHeaderHeight(): void {
+    const element = this.prHeaderRef?.nativeElement;
+    if (!element) return;
+    const height = Math.round(element.getBoundingClientRect().height ?? 0);
+    if (height > 0 && height !== this.headerHeight()) {
+      this.headerHeight.set(height);
+    }
+  }
+
+  /** Offset the sticky key/scale bar keeps below the sticky header. */
+  readonly headerHeightCss = computed(() => `${this.headerHeight()}px`);
 
   private initWebGL(): void {
     try {

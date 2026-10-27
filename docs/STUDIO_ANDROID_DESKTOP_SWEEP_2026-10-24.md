@@ -527,8 +527,10 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
    44px. The Channel Rack's LFO panel now has its own row on narrow cards
    (§2.5).
 5. ~~Restore a 40px key rail and a collapsible velocity lane in the phone Piano
-   Roll~~ — done in §2.3/§2.5. Remaining: keep the toolbar sticky while the
-   grid scrolls.
+   Roll~~ — done in §2.3/§2.5. The toolbar now scrolls too: the header is
+   sticky, and the Key/Scale/Lock toolbar pins directly beneath it using the
+   header's measured height (so wrapping and the phone's Tools disclosure
+   cannot hide it).
 6. ~~11px typography floor across Channel Rack, DJ, Mixer, Session and
    Performer~~ — done: 288 sub-11px declarations raised (including `font:`
    shorthands and the 5px LFO labels); icon glyph sizes left alone.
@@ -586,6 +588,11 @@ export (WAV 16/24-bit, MP3, M4A, Opus, MIDI), cloud *architecture*.
   entries first, so the Hub's back stack no longer sits on top of `/studio`
   entries (a back press on the Hub used to re-enter the Studio). A fallback
   timer navigates anyway if a WebView drops the traversal.
+- Leaving the Studio also ends its audio: playback stops, a transport take is
+  waited for (bounded at 6 s, then the exit proceeds and says the take is
+  finishing in the background), and the standalone Audio Recorder's
+  MediaRecorder is stopped instead of leaving the microphone hot behind
+  another route.
 - Still open from this list: nothing from the phone-usability backlog.
 
 **P3 — competitive gaps** (from §7): tempo map, FLAC, bus faders, freeze,

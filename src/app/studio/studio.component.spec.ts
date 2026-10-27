@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { StudioComponent } from "./studio.component";
 import { AudioSessionService } from "./audio-session.service";
+import { AudioRecorderService } from "./audio-recorder.service";
+import { Subject } from "rxjs";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { AiService } from "../services/ai.service";
 import { UIService } from "../services/ui.service";
@@ -46,6 +48,12 @@ describe("StudioComponent", () => {
     whenTakeSaved: jest.fn(() => Promise.resolve(null)),
     togglePlay: jest.fn(),
     toggleRecord: jest.fn(),
+  };
+
+  const mockAudioRecorder = {
+    isRecording: signal(false),
+    stopRecording: jest.fn(),
+    recordingFinished$: new Subject<unknown>(),
   };
 
   const mockMusicManager = {
@@ -221,6 +229,7 @@ describe("StudioComponent", () => {
     mockAudioSession.hasLiveSession.mockReturnValue(false);
     mockAudioSession.isRecording.set(false);
     mockAudioSession.isPlaying.set(false);
+    mockAudioRecorder.isRecording.set(false);
     localStorage.clear();
     // Reset the profile signal: updateProfile() mutates it during tests,
     // and without a reset the live-sync effect leaks FX state across tests.
@@ -250,6 +259,7 @@ describe("StudioComponent", () => {
       imports: [StudioComponent],
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
+        { provide: AudioRecorderService, useValue: mockAudioRecorder },
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: AiService, useValue: {} },
         { provide: UIService, useValue: uiServiceMock },
@@ -1307,5 +1317,50 @@ describe("StudioComponent", () => {
     mockAudioSession.hasLiveSession.mockReturnValue(true);
     fixture.destroy();
     expect(mockAudioSession.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops the standalone mic pass and waits for its take on exit", async () => {
+    mockAudioRecorder.isRecording.set(true);
+    let finished = false;
+
+    const exit = component.navigateHome();
+    await Promise.resolve();
+    expect(mockAudioRecorder.stopRecording).toHaveBeenCalledTimes(1);
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+
+    mockAudioRecorder.recordingFinished$.next({ id: "take-1" });
+    finished = true;
+    await exit;
+    expect(finished).toBe(true);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(["/hub"]);
+  });
+
+  it("gives up waiting on a wedged take and says it finishes in the background", async () => {
+    jest.useFakeTimers();
+    try {
+      mockAudioSession.hasLiveSession.mockReturnValue(true);
+      mockAudioSession.isRecording.set(true);
+      // A save that never resolves: the deadline, not the promise, frees the exit.
+      mockAudioSession.whenTakeSaved.mockReturnValue(new Promise(() => {}));
+
+      const exit = component.navigateHome();
+      await Promise.resolve();
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+
+      await jest.advanceTimersByTimeAsync(6100);
+      await exit;
+      expect(mockRouter.navigate).toHaveBeenCalledWith(["/hub"]);
+      expect(mockSnackbar.info).toHaveBeenCalledWith(
+        expect.stringContaining("still saving"),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("stops a live mic pass when the Studio is destroyed", () => {
+    mockAudioRecorder.isRecording.set(true);
+    fixture.destroy();
+    expect(mockAudioRecorder.stopRecording).toHaveBeenCalledTimes(1);
   });
 });
