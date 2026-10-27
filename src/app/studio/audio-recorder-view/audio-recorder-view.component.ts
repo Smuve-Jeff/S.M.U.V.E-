@@ -36,6 +36,7 @@ import {
   measureTakeSignal,
   normalizeTakeLevel,
   takeLevelNotice,
+  takesMissingLevel,
 } from "./take-level";
 
 interface RecordingListEntry {
@@ -120,6 +121,8 @@ export class AudioRecorderViewComponent
   private pendingRecordingSaves = new Map<string, RecordingItem>();
   private readonly deletedRecordingIds = new Set<string>();
   private savingRecordings = new Set<string>();
+  private measuringTakes = new Set<string>();
+  private disposed = false;
 
   isRecording = this.recorder.isRecording;
   recordingCount = computed(() => this.recordings().length);
@@ -390,6 +393,8 @@ export class AudioRecorderViewComponent
   }
 
   ngOnDestroy(): void {
+    // Stop any in-flight backfill from touching signals after teardown.
+    this.disposed = true;
     this.clearElapsedTimer();
     this.clearRecordingElapsedTimer();
     this.stopLevelMeter();
@@ -554,29 +559,79 @@ export class AudioRecorderViewComponent
    */
   private async auditTakeLevel(id: string, blob: Blob): Promise<void> {
     try {
-      const decoded = await this.audioEngine.ctx.decodeAudioData(
-        await blob.arrayBuffer(),
-      );
-      const channels = Array.from(
-        { length: decoded.numberOfChannels },
-        (_, index) => decoded.getChannelData(index),
-      );
-      const signal = measureTakeSignal(channels);
-      const level = classifyTakeLevel(signal);
-      if (level === "unknown") return;
-      this.takeLevels.update((levels) => ({ ...levels, [id]: level }));
+      const measured = await this.measureBlob(blob);
+      if (!measured) return;
+      this.takeLevels.update((levels) => ({ ...levels, [id]: measured.level }));
 
       // Persist the verdict with the take. Without this the badge disappears on
       // reload, which is exactly when the artist is deciding what to keep.
       const entry = this.recordings().find((recording) => recording.id === id);
       if (entry && entry.savedOffline !== false) {
-        void this.recorder.setRecordingLevel(id, level, signal?.peak);
+        void this.recorder.setRecordingLevel(id, measured.level, measured.peak);
       }
 
-      const notice = takeLevelNotice(level);
+      const notice = takeLevelNotice(measured.level);
       if (notice.message) this.snackbar.warning(notice.message);
     } catch (error) {
       this.logger.warn("Could not measure the captured take level", error);
+    }
+  }
+
+  /** Decode one blob and classify it; `null` when there is nothing to judge. */
+  private async measureBlob(
+    blob: Blob,
+  ): Promise<{ level: TakeLevel; peak?: number } | null> {
+    const decoded = await this.audioEngine.ctx.decodeAudioData(
+      await blob.arrayBuffer(),
+    );
+    const channels = Array.from(
+      { length: decoded.numberOfChannels },
+      (_, index) => decoded.getChannelData(index),
+    );
+    const signal = measureTakeSignal(channels);
+    const level = classifyTakeLevel(signal);
+    if (level === "unknown") return null;
+    return { level, peak: signal?.peak };
+  }
+
+  /**
+   * Measure takes that were stored before the level was persisted (or by a
+   * version that only kept the blob), one at a time and without announcements —
+   * a badge appearing on an old take is not news. Yields between takes and
+   * stands down entirely while a capture is live; anything left over is picked
+   * up on the next visit, since each measured level is persisted as it is found.
+   */
+  private async backfillTakeLevels(items: RecordingItem[]): Promise<void> {
+    for (const item of takesMissingLevel(items)) {
+      if (this.disposed || this.captureState() !== "idle") return;
+      if (this.measuringTakes.has(item.id)) continue;
+      if (!this.recordings().some((recording) => recording.id === item.id)) {
+        continue;
+      }
+      this.measuringTakes.add(item.id);
+      try {
+        const measured = await this.measureBlob(item.blob);
+        if (!measured) continue;
+        // The take may have been deleted while this was decoding.
+        if (!this.recordings().some((recording) => recording.id === item.id)) {
+          continue;
+        }
+        this.takeLevels.update((levels) => ({
+          ...levels,
+          [item.id]: measured.level,
+        }));
+        await this.recorder.setRecordingLevel(
+          item.id,
+          measured.level,
+          measured.peak,
+        );
+      } catch (error) {
+        this.logger.warn("Could not measure a stored take", error);
+      } finally {
+        this.measuringTakes.delete(item.id);
+      }
+      // Never hold the transport up for a whole bank of old takes.
+      await new Promise((resolve) => setTimeout(resolve, 0));
     }
   }
 
@@ -1146,6 +1201,9 @@ export class AudioRecorderViewComponent
         }
         return next;
       });
+
+      // Takes stored before the level was persisted still deserve a verdict.
+      void this.backfillTakeLevels(stored);
     } catch (error) {
       this.logger.warn("No offline recordings available", error);
     }

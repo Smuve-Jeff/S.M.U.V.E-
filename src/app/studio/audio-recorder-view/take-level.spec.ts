@@ -5,6 +5,7 @@ import {
   measureTakeSignal,
   normalizeTakeLevel,
   takeLevelNotice,
+  takesMissingLevel,
 } from "./take-level";
 
 describe("take level", () => {
@@ -59,6 +60,22 @@ describe("take level", () => {
     expect(normalizeTakeLevel(undefined)).toBeNull();
     expect(normalizeTakeLevel(null)).toBeNull();
     expect(normalizeTakeLevel(0.2)).toBeNull();
+  });
+
+  it("backfills only stored takes that have no usable verdict", () => {
+    const picked = takesMissingLevel([
+      { id: "fresh", blob: {}, settings: {} },
+      { id: "judged", blob: {}, settings: { level: "silent" } },
+      { id: "garbage", blob: {}, settings: { level: "SILENT" } },
+      { id: "unmeasured-unknown", blob: {}, settings: { level: "unknown" } },
+      { id: "no-blob", settings: {} },
+      { id: "null-blob", blob: null, settings: {} },
+    ]).map((item) => item.id);
+
+    // A measured take must never be re-decoded, and a blob-less record cannot
+    // be measured at all. `unknown` is not a verdict — it means a measurement
+    // could not be made — so it stays eligible rather than inventing a badge.
+    expect(picked).toEqual(["fresh", "garbage", "unmeasured-unknown"]);
   });
 
   it("only badges and warns for the two problem levels", () => {

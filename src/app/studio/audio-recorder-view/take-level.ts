@@ -89,6 +89,22 @@ export const TAKE_LEVEL_NOTICES: Readonly<Record<TakeLevel, TakeLevelNotice>> = 
   unknown: { badge: "", message: null },
 };
 
+/**
+ * Stored takes that still need measuring: recorded before the level was saved,
+ * or written by a version that only kept the blob. A take that already carries
+ * a level is trusted as-is, and one with no blob cannot be measured at all.
+ */
+export function takesMissingLevel<
+  T extends { blob?: unknown; settings?: { level?: unknown } },
+>(items: readonly T[]): T[] {
+  return items.filter(
+    (item) =>
+      normalizeTakeLevel(item.settings?.level) === null &&
+      typeof item.blob === "object" &&
+      item.blob !== null,
+  );
+}
+
 export function takeLevelNotice(level: TakeLevel): TakeLevelNotice {
   return TAKE_LEVEL_NOTICES[level];
 }

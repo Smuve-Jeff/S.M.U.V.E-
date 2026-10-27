@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import { seedAuthenticatedSession } from "./helpers";
 
 /**
@@ -66,8 +67,8 @@ async function recordSilentTake(page: Page) {
 }
 
 /** Read the stored take straight out of the app's IndexedDB. */
-async function storedLevel(page: Page): Promise<string | null> {
-  return page.evaluate(async () => {
+async function storedLevel(page: Page, id?: string): Promise<string | null> {
+  return page.evaluate(async (wanted) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open("SMUVE_OFFLINE_DB");
       request.onsuccess = () => resolve(request.result);
@@ -82,11 +83,64 @@ async function storedLevel(page: Page): Promise<string | null> {
         request.onsuccess = () => resolve(request.result as any[]);
         request.onerror = () => reject(request.error);
       });
-      return items[0]?.settings?.level ?? null;
+      const item = wanted
+        ? items.find((entry) => entry.id === wanted)
+        : items[0];
+      return item?.settings?.level ?? null;
     } finally {
       db.close();
     }
-  });
+  }, id);
+}
+
+/** The WAV the fake device plays, as bytes the page can store as a Blob. */
+const SILENCE_BASE64 = readFileSync(
+  new URL("../fixtures/silence.wav", import.meta.url),
+).toString("base64");
+
+/**
+ * Write takes straight into the recording bank, the way an older build left
+ * them: one with no measured level at all, and one whose verdict is already
+ * stored. Both blobs are silent, so re-measuring the second would flip it.
+ */
+async function seedStoredTakes(page: Page) {
+  await page.evaluate(async (base64) => {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("SMUVE_OFFLINE_DB");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      const now = Date.now();
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction("audio_blobs", "readwrite");
+        const store = tx.objectStore("audio_blobs");
+        store.put({
+          id: "rec_legacy",
+          blob: new Blob([bytes], { type: "audio/wav" }),
+          name: "Legacy take",
+          timestamp: now - 60_000,
+          settings: { durationSec: 3 },
+        });
+        store.put({
+          id: "rec_pinned",
+          blob: new Blob([bytes], { type: "audio/wav" }),
+          name: "Pinned quiet take",
+          timestamp: now - 120_000,
+          settings: { durationSec: 3, level: "low" },
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    } finally {
+      db.close();
+    }
+  }, SILENCE_BASE64);
 }
 
 test("a take with no signal is flagged, not banked silently", async ({
@@ -134,6 +188,31 @@ test("a take with no signal is flagged, not banked silently", async ({
   await expect
     .poll(() => storedLevel(page), { timeout: 10_000 })
     .toBe("silent");
+});
+
+test("measures a take stored before the level existed", async ({ page }) => {
+  // First visit creates the database the app owns; the takes are written into
+  // it afterwards so the schema is the app's, not the spec's.
+  await openRecorder(page);
+  await seedStoredTakes(page);
+  await openRecorder(page);
+
+  await expect(page.locator(".arv-bank")).toContainText("2 takes");
+
+  // An older take gets a verdict without being re-recorded...
+  const legacy = page.locator(".arv-row", { hasText: "Legacy take" });
+  await expect(legacy.locator(".arv-row-level")).toHaveText("SILENT", {
+    timeout: 20_000,
+  });
+  await expect
+    .poll(() => storedLevel(page, "rec_legacy"), { timeout: 10_000 })
+    .toBe("silent");
+
+  // ...and a verdict that was already stored is trusted, not re-derived: this
+  // blob is silent, so re-measuring it would have said SILENT, not LOW.
+  const pinned = page.locator(".arv-row", { hasText: "Pinned quiet take" });
+  await expect(pinned.locator(".arv-row-level")).toHaveText("LOW");
+  expect(await storedLevel(page, "rec_pinned")).toBe("low");
 });
 
 test("the silent flag survives a reload", async ({ page }) => {
