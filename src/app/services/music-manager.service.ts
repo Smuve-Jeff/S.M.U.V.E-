@@ -80,7 +80,7 @@ export interface FxSlot {
  * offered by the rack's Add Effect menu but have no plugin behind them, so they
  * stay data-only instead of pretending to process audio.
  */
-const FX_TYPE_TO_PLUGIN_ID: Record<string, string> = {
+export const FX_TYPE_TO_PLUGIN_ID: Record<string, string> = {
   Reverb: 'smuve.reverb.v1',
   Delay: 'smuve.delay.v1',
   Compressor: 'smuve.compressor.v1',

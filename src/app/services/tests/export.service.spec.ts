@@ -4,6 +4,7 @@ import { AudioEngineService } from "../audio-engine.service";
 import { MusicManagerService } from "../music-manager.service";
 import { LoggingService } from "../logging.service";
 import { VideoEngineService } from "../video-engine.service";
+import { PluginRegistry } from "../../studio/effects/plugin-interface";
 
 describe("ExportService", () => {
   let service: ExportService;
@@ -996,6 +997,82 @@ describe("ExportService", () => {
       // The send tap itself sits post-fader at the model's level.
       const tap = recording.gains.find((node) => node.gain.value === 0.4);
       expect(tap).toBeTruthy();
+    });
+
+    it("chains a track's enabled insert slots into the bounce in rack order", async () => {
+      const recording = recordingContext();
+      const created: any[] = [];
+      const create = jest
+        .spyOn(PluginRegistry, "create")
+        .mockImplementation((id: string) => {
+          const plugin = {
+            id,
+            input: { connect: jest.fn() },
+            output: { connect: jest.fn() },
+          };
+          created.push(plugin);
+          return plugin as any;
+        });
+
+      try {
+        await render(recording, [
+          track({
+            notes: [{ step: 0, midi: 60, length: 1, velocity: 0.8 }],
+            fxSlots: [
+              { id: "a", type: "EQ", params: {}, enabled: true },
+              { id: "b", type: "Compressor", params: {}, enabled: false },
+              { id: "c", type: "Reverb", params: {}, enabled: true },
+            ],
+          }),
+        ]);
+      } finally {
+        create.mockRestore();
+      }
+
+      // Built from the tail backwards so the rack's first slot sits closest to
+      // the sources; the bypassed compressor never instantiates.
+      expect(created.map((plugin) => plugin.id)).toEqual([
+        "smuve.reverb.v1",
+        "smuve.eq.v1",
+      ]);
+      expect(created[1].output.connect).toHaveBeenCalledWith(created[0].input);
+
+      // The voices feed the head of the chain, not the fader.
+      const [, head] = audioEngineMock.scheduleOfflineNote.mock.calls[0];
+      expect(head).toBe(created[1].input);
+    });
+
+    it("keeps bouncing when an insert cannot be built offline", async () => {
+      const recording = recordingContext();
+      const create = jest
+        .spyOn(PluginRegistry, "create")
+        .mockImplementation((id: string) => {
+          if (id === "smuve.reverb.v1") throw new Error("no convolver offline");
+          return {
+            id,
+            input: { connect: jest.fn() },
+            output: { connect: jest.fn() },
+          } as any;
+        });
+
+      try {
+        await expect(
+          render(recording, [
+            track({
+              notes: [{ step: 0, midi: 60, length: 1, velocity: 0.8 }],
+              fxSlots: [
+                { id: "a", type: "EQ", params: {}, enabled: true },
+                { id: "c", type: "Reverb", params: {}, enabled: true },
+              ],
+            }),
+          ]),
+        ).resolves.toBeUndefined();
+      } finally {
+        create.mockRestore();
+      }
+
+      // One failed insert must not silence the track: the EQ still rendered.
+      expect(audioEngineMock.scheduleOfflineNote).toHaveBeenCalled();
     });
 
     it("ignores a disabled lane and leaves the static mix untouched", async () => {

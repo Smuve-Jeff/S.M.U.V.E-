@@ -1,7 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
-import { MusicManagerService, TrackNote } from './music-manager.service';
+import {
+  FX_TYPE_TO_PLUGIN_ID,
+  MusicManagerService,
+  TrackNote,
+} from './music-manager.service';
 import { AutomationLane, AutomationService } from '../studio/automation.service';
+import { PluginRegistry } from '../studio/effects/plugin-interface';
 import { VideoEngineService } from './video-engine.service';
 import { WavEncoder } from '../studio/wav-encoder.util';
 import {
@@ -470,6 +475,34 @@ export class ExportService {
         channelFilter.Q.value = 0.0001;
         channelFilter.connect(input);
         input = channelFilter;
+      }
+
+      // Insert rack: the enabled macro slots, in the order the rack shows them.
+      // The plugin classes the live rack instantiates are built into the
+      // offline graph, so a bounced EQ/compressor/reverb is the artist's own
+      // DSP rather than a lookalike. A slot whose type has no plugin behind it
+      // (`Filter`, `Limiter`) stays data-only exactly as it is live, and a
+      // bypassed slot is skipped the way `rebuildChain` skips it.
+      const fxSlots = track.fxSlots ?? [];
+      for (let index = fxSlots.length - 1; index >= 0; index -= 1) {
+        const slot = fxSlots[index];
+        if (slot.enabled === false) continue;
+        const pluginId = FX_TYPE_TO_PLUGIN_ID[slot.type];
+        if (!pluginId) continue;
+        try {
+          const plugin = PluginRegistry.create(
+            pluginId,
+            offline as unknown as AudioContext,
+          );
+          if (!plugin) continue;
+          plugin.output.connect(input);
+          input = plugin.input;
+        } catch (error) {
+          this.logger.warn(
+            `Export: the ${slot.type} insert on “${track.name}” could not be rendered offline.`,
+            error,
+          );
+        }
       }
 
       if (levelLane) {
