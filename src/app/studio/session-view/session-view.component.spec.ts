@@ -189,8 +189,15 @@ describe("SessionViewComponent", () => {
     ),
   );
 
+  const launchQuantize = signal<"none" | "1bar" | "2bar" | "4bar">("none");
+
   const mockMusicManager = {
     tracks,
+    launchQuantize,
+    setLaunchQuantize: jest.fn((value: any) => {
+      launchQuantize.set(value);
+      return value;
+    }),
     selectedTrackId,
     scenePlaybackActive,
     activeSceneColumn,
@@ -220,6 +227,7 @@ describe("SessionViewComponent", () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     localStorage.clear();
+    launchQuantize.set("none");
     isPlaying.set(false);
     isRecording.set(false);
     scenePlaybackActive.set(false);

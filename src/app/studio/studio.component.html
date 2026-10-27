@@ -2338,6 +2338,15 @@
 
         <div class="comp-meta-field">
           <label>Cell launch boundaries · {{ cellLaunchBoundaries().length }}</label>
+          <div class="comp-meta-state-row">
+            <span class="comp-meta-state-pill">
+              <span class="material-symbols-outlined" aria-hidden="true">timer</span>
+              GRID · {{ gridLaunchLabel() }}
+            </span>
+          </div>
+          <span class="comp-meta-hint">
+            Cells without a Q override start on this saved grid boundary.
+          </span>
           <ul
             class="comp-meta-state-list"
             *ngIf="cellLaunchBoundaries().length > 0; else noBoundaries"

@@ -33,6 +33,7 @@ describe("ProjectWorkspaceService", () => {
   let queueOperation: jest.Mock;
   let tempoSet: jest.Mock;
   let monitorMono: ReturnType<typeof signal<boolean>>;
+  let launchQuantize: ReturnType<typeof signal<any>>;
   let getItem: jest.Mock;
   let getAllItems: jest.Mock;
   let deleteItems: jest.Mock;
@@ -80,6 +81,7 @@ describe("ProjectWorkspaceService", () => {
     queueOperation = jest.fn().mockResolvedValue("sync_test_1");
     tempoSet = jest.fn();
     monitorMono = signal(false);
+    launchQuantize = signal("none");
     getItem = jest.fn().mockResolvedValue(null);
     getAllItems = jest.fn().mockResolvedValue([]);
     deleteItems = jest.fn().mockResolvedValue(undefined);
@@ -97,6 +99,11 @@ describe("ProjectWorkspaceService", () => {
           provide: MusicManagerService,
           useValue: {
             tracks,
+            launchQuantize,
+            setLaunchQuantize: (value: any) => {
+              launchQuantize.set(value);
+              return value;
+            },
             structure: signal([]),
             selectedTrackId: signal(null),
             stemAudioCache,
@@ -378,20 +385,31 @@ describe("ProjectWorkspaceService", () => {
       },
     ]);
     monitorMono.set(true);
+    launchQuantize.set("4bar");
 
     const snapshot = service.createSnapshot();
     expect(snapshot.mixState.monitorMono).toBe(true);
+    expect(snapshot.session?.launchQuantize).toBe("4bar");
     expect(snapshot.tracks[0].soloSafe).toBe(true);
     expect(snapshot.tracks[0].patternSlots[0].launchQuantize).toBe("2bar");
     expect(snapshot.tracks[0].patternSlots[1].launchQuantize).toBeNull();
 
     monitorMono.set(false);
+    launchQuantize.set("none");
     tracks.set([{ id: "track-1", notes: [] }]);
     service.restoreFromSnapshot(snapshot);
 
     expect(monitorMono()).toBe(true);
+    expect(launchQuantize()).toBe("4bar");
     expect(tracks()[0].soloSafe).toBe(true);
     expect(tracks()[0].patternSlots[0].launchQuantize).toBe("2bar");
+  });
+
+  it("defaults an older bundle to immediate launch instead of leaking the last set", () => {
+    launchQuantize.set("2bar");
+    const legacy = makeBundle();
+    service.restoreFromSnapshot(legacy);
+    expect(launchQuantize()).toBe("none");
   });
 
   it("persists manual saves locally before returning the bundle", async () => {
@@ -440,7 +458,17 @@ describe("ProjectWorkspaceService", () => {
         { provide: AuthService, useValue: { currentUser: signal(user) } },
         {
           provide: MusicManagerService,
-          useValue: { tracks, structure: signal([]), selectedTrackId: signal(null), engine: { stop: jest.fn(), tempo: { set: tempoSet } } },
+          useValue: {
+            tracks,
+            launchQuantize,
+            setLaunchQuantize: (value: any) => {
+              launchQuantize.set(value);
+              return value;
+            },
+            structure: signal([]),
+            selectedTrackId: signal(null),
+            engine: { stop: jest.fn(), tempo: { set: tempoSet } },
+          },
         },
         { provide: ProjectService, useValue: { currentProject: signal(null), projectDeleted$: new Subject<string>(), refresh: jest.fn().mockResolvedValue(undefined) } },
         {

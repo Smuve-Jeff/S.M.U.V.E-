@@ -90,7 +90,8 @@ export class SessionViewComponent implements OnDestroy {
   readonly activeSceneColumn = this.musicManager.activeSceneColumn;
 
   // ── Launch quantization ─────────────────────────────────────────────
-  launchQuantize = signal<"none" | "1bar" | "2bar" | "4bar">("none");
+  /** Grid default, owned by the shared session model and saved with the set. */
+  readonly launchQuantize = this.musicManager.launchQuantize;
   quantizeOptions = ["none", "1bar", "2bar", "4bar"] as const;
   queuedSceneIndex = signal<number | null>(null);
   launchSettingsOpen = signal(false);
@@ -218,13 +219,9 @@ export class SessionViewComponent implements OnDestroy {
   }
 
   setLaunchQuantize(value: string): void {
-    if (
-      this.quantizeOptions.includes(
-        value as (typeof this.quantizeOptions)[number],
-      )
-    ) {
-      this.launchQuantize.set(value as (typeof this.quantizeOptions)[number]);
-    }
+    const option = this.quantizeOptions.find((entry) => entry === value);
+    if (!option) return;
+    this.musicManager.setLaunchQuantize(option);
   }
 
   // ── Launch ──────────────────────────────────────────────────────────

@@ -43,6 +43,10 @@ export interface ProjectBundle {
   takeState?: TakeStateBundle;
   automation: any;
   mixState: any;
+  /** Session performance state that is not per-track. */
+  session?: {
+    launchQuantize?: "none" | "1bar" | "2bar" | "4bar";
+  };
   notes: string;
   exportedAt: number;
 }
@@ -362,6 +366,7 @@ export class ProjectWorkspaceService {
     this.lastRecoveredSource.set(null);
     this.persistenceError.set('');
     this.projectNotes.set('');
+    this.musicManager.setLaunchQuantize("none");
     this.takeManager.restore({ takes: {}, active: {}, punchIn: {}, compStack: {}, sections: {} });
     this.automationService.lanes.set([]);
     this.automationService.macros.set([]);
@@ -798,6 +803,9 @@ export class ProjectWorkspaceService {
         // not silently put the engineer back in stereo.
         monitorMono: this.musicManager.engine?.monoMonitoring?.() ?? false,
       },
+      session: {
+        launchQuantize: this.musicManager.launchQuantize(),
+      },
       notes: this.projectNotes(),
       exportedAt: Date.now(),
     };
@@ -835,6 +843,11 @@ export class ProjectWorkspaceService {
         bundle.mixState.monitorMono,
       );
     }
+    // Old bundles have no Session state; default to immediate launch rather
+    // than leaking the previously open set's boundary into this one.
+    this.musicManager.setLaunchQuantize(
+      bundle.session?.launchQuantize ?? "none",
+    );
     this.logger.info(
       "ProjectWorkspace: Restored project " +
         (bundle.metadata?.name ?? "Untitled"),
@@ -938,6 +951,7 @@ export class ProjectWorkspaceService {
     masterGain = this.musicManager.engine?.masterGain?.gain?.value ?? 0.8,
     notes = this.projectNotes(),
     monitorMono = this.musicManager.engine?.monoMonitoring?.() ?? false,
+    sessionLaunchQuantize = this.musicManager.launchQuantize(),
   ): string {
     return JSON.stringify({
       metadata: metadata ? { ...metadata, bpm: tempo, updatedAt: undefined, lastOpenedAt: undefined } : null,
@@ -949,6 +963,7 @@ export class ProjectWorkspaceService {
       notes,
       masterGain,
       monitorMono,
+      sessionLaunchQuantize,
     });
   }
 
@@ -1009,6 +1024,7 @@ export class ProjectWorkspaceService {
       typeof bundle.mixState?.monitorMono === "boolean"
         ? bundle.mixState.monitorMono
         : (this.musicManager.engine?.monoMonitoring?.() ?? false),
+      bundle.session?.launchQuantize ?? "none",
     );
     // An older in-flight save must not rename or clean a newly opened project.
     if (this.metadata()?.id !== bundle.metadata.id) return;

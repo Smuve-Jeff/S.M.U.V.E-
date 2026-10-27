@@ -2761,6 +2761,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   }
 
+  /** Label for the grid-wide default, where `none` means immediate. */
+  gridLaunchLabel(): string {
+    const value = this.musicManager.launchQuantize?.() ?? "none";
+    return value === "none" ? "IMMEDIATE" : this.launchBoundaryLabel(value);
+  }
+
   launchBoundaryLabel(value: LaunchQuantize): string {
     switch (value) {
       case "none":

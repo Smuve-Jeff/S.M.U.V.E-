@@ -224,6 +224,12 @@ export class MusicManagerService {
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<string | null>(null);
+  /**
+   * Default launch boundary for Session cells without their own override.
+   * Project state, not a component preference: it is captured in the project
+   * bundle so reopening a set keeps the same launch feel.
+   */
+  launchQuantize = signal<LaunchQuantize>("none");
   currentStep = signal(0);
   activeSceneId = signal<string | null>(null);
   takesExpanded = signal<Record<string, boolean>>({});
@@ -443,11 +449,13 @@ export class MusicManagerService {
   newProject(skipDefaults = false) {
     const oldTracks = this.clone(this.tracks());
     const oldSelected = this.selectedTrackId();
+    const oldLaunchQuantize = this.launchQuantize();
     this.runCommand(
       'New Project',
       () => {
         this.tracks.set([]);
         this.selectedTrackId.set(null);
+        this.launchQuantize.set("none");
         this.engine.stop();
         if (!skipDefaults) {
           this.addTrack('Piano', 'grand-piano');
@@ -457,9 +465,20 @@ export class MusicManagerService {
       () => {
         this.tracks.set(this.clone(oldTracks));
         this.selectedTrackId.set(oldSelected);
+        this.launchQuantize.set(oldLaunchQuantize);
       }
     );
     this.history.clear();
+  }
+
+  /** Set the Session grid's default launch boundary. */
+  setLaunchQuantize(value: LaunchQuantize): LaunchQuantize {
+    const next: LaunchQuantize =
+      value === "1bar" || value === "2bar" || value === "4bar"
+        ? value
+        : "none";
+    this.launchQuantize.set(next);
+    return next;
   }
 
   loadProject(snapshot: any) {

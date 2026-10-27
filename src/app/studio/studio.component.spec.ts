@@ -68,6 +68,7 @@ describe("StudioComponent", () => {
     addTrack: jest.fn(() => "track-1"),
     replaceTrackNotes: jest.fn(),
     crossLinkRequest: signal(null),
+    launchQuantize: signal<"none" | "1bar" | "2bar" | "4bar">("none"),
     engine: {
       monoMonitoring: signal(false),
       toggleMonoMonitoring: jest.fn(() => true),
@@ -234,6 +235,7 @@ describe("StudioComponent", () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     mockMusicManager.tracks.set([]);
+    mockMusicManager.launchQuantize.set("none");
     mockMusicManager.engine.monoMonitoring.set(false);
     mockAudioSession.hasLiveSession.mockReturnValue(false);
     mockAudioSession.isRecording.set(false);
@@ -902,6 +904,7 @@ describe("StudioComponent", () => {
         },
       ]);
       mockMusicManager.engine.monoMonitoring.set(true);
+      mockMusicManager.launchQuantize.set("2bar");
 
       // This spec overrides the template, so assert the panel's real inputs:
       // the saved-state computeds the Markup binds to.
@@ -915,6 +918,7 @@ describe("StudioComponent", () => {
           value: component.launchBoundaryLabel(boundary.quantize),
         })),
       ).toEqual([{ label: "Guide Vox · Verse", value: "2 BARS" }]);
+      expect(component.gridLaunchLabel()).toBe("2 BARS");
     });
 
     it("toggles the monitor from the panel and explains the saved state", () => {

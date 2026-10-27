@@ -21,6 +21,7 @@ describe('MusicManagerService clip glue workflows', () => {
     setSongLengthSteps: jest.fn(),
     triggerAttack: jest.fn(),
     setBaseFaderGain: jest.fn(),
+    stop: jest.fn(),
     onScheduleStep: undefined as any,
   };
 
@@ -70,6 +71,18 @@ describe('MusicManagerService clip glue workflows', () => {
         activePatternSlotId: null,
       } as any,
     ]);
+  });
+
+  it('keeps the Session grid launch boundary and resets it for a new project', () => {
+    expect(service.launchQuantize()).toBe('none');
+    expect(service.setLaunchQuantize('4bar')).toBe('4bar');
+    expect(service.launchQuantize()).toBe('4bar');
+    // Anything outside the grid options is the immediate default.
+    expect(service.setLaunchQuantize('bogus' as any)).toBe('none');
+
+    service.setLaunchQuantize('2bar');
+    service.newProject(true);
+    expect(service.launchQuantize()).toBe('none');
   });
 
   it('stores per-cell launch quantization on the pattern slot and undoes it', () => {
