@@ -421,6 +421,34 @@ describe('AudioEngineService', () => {
     expect(service.tempo()).toBe(130);
   });
 
+  it('moves the fader for a `volume` lane, the name the curve editor offers', () => {
+    // `updateTrack` only reacts to `gain`; a lane stored as `volume` used to
+    // draw a curve that reached no node at all.
+    service.ensureTrack({ id: 102, gain: 0.8, pan: 0 });
+    service.applyProductionParameter('102', 'volume', 0.25);
+
+    const fader = (service as any).trackFaderGains.get('102');
+    expect(fader.gain.setTargetAtTime).toHaveBeenCalledWith(
+      0.25,
+      expect.any(Number),
+      expect.any(Number),
+    );
+  });
+
+  it('exposes the aux return settings the offline bounce rebuilds', () => {
+    const snapshot = service.getSendBusSnapshot();
+    expect(snapshot.impulse).toBe((service as any).reverbConvolver.buffer);
+    expect(snapshot.reverbWet).toBeCloseTo(service.reverbWet.gain.value, 5);
+    expect(snapshot.echo.wet).toBeCloseTo(service.echoWet.gain.value, 5);
+    expect(snapshot.echo.feedback).toBeCloseTo(
+      (service as any).echoFeedback.gain.value,
+      5,
+    );
+    expect(snapshot.echo.dampingHz).toBe(
+      (service as any).echoDamp.frequency.value,
+    );
+  });
+
   it('drives the reverb send and channel cutoff from their automation lanes', () => {
     service.ensureTrack({ id: 101, gain: 0.8, pan: 0 });
     service.applyProductionParameter('101', 'reverb', 0.35);

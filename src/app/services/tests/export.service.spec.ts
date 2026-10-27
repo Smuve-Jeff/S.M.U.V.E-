@@ -803,4 +803,217 @@ describe("ExportService", () => {
       expect(videoEngineMock.play).not.toHaveBeenCalled();
     });
   });
+  /**
+   * Offline bounce — automation and aux sends.
+   *
+   * The renderer used to follow the static mix only: a lane drew a curve that
+   * song playback honoured and the bounce dropped, and a raised send added a
+   * dry copy of the track because no return existed offline. These tests drive
+   * the real renderer against a recording context and read the ramps it wrote.
+   */
+  describe("offline bounce: automation and aux sends", () => {
+    const param = () => ({
+      value: 0,
+      setValueAtTime: jest.fn(),
+      linearRampToValueAtTime: jest.fn(),
+      setTargetAtTime: jest.fn(),
+    });
+
+    function recordingContext() {
+      const gains: any[] = [];
+      const panners: any[] = [];
+      const filters: any[] = [];
+      const convolvers: any[] = [];
+      const delays: any[] = [];
+      const offline = {
+        destination: {},
+        createGain: jest.fn(() => {
+          const node = { gain: param(), connect: jest.fn() };
+          gains.push(node);
+          return node;
+        }),
+        createStereoPanner: jest.fn(() => {
+          const node = { pan: param(), connect: jest.fn() };
+          panners.push(node);
+          return node;
+        }),
+        createBiquadFilter: jest.fn(() => {
+          const node = {
+            type: "lowpass",
+            frequency: param(),
+            Q: param(),
+            connect: jest.fn(),
+          };
+          filters.push(node);
+          return node;
+        }),
+        createConvolver: jest.fn(() => {
+          const node = { buffer: null, connect: jest.fn() };
+          convolvers.push(node);
+          return node;
+        }),
+        createDelay: jest.fn(() => {
+          const node = { delayTime: param(), connect: jest.fn() };
+          delays.push(node);
+          return node;
+        }),
+        createBufferSource: jest.fn(() => ({
+          buffer: null,
+          connect: jest.fn(),
+          playbackRate: { setValueAtTime: jest.fn() },
+          start: jest.fn(),
+          stop: jest.fn(),
+        })),
+        startRendering: jest.fn().mockResolvedValue({}),
+      };
+      return { offline, gains, panners, filters, convolvers, delays };
+    }
+
+    function lane(
+      parameter: string,
+      points: Array<{ time: number; value: number }>,
+    ) {
+      return {
+        id: `lane-${parameter}`,
+        target: { trackId: "lead", parameter },
+        points,
+        enabled: true,
+        interpolation: "linear" as const,
+        modulationDepth: 0,
+      };
+    }
+
+    function track(overrides: Record<string, unknown> = {}) {
+      return {
+        id: "lead",
+        name: "Lead",
+        type: "midi",
+        muted: false,
+        soloed: false,
+        gain: 0.8,
+        volume: 0.8,
+        pan: 0,
+        sendA: 0,
+        sendB: 0,
+        notes: [],
+        clips: [],
+        synthParams: { type: "sine" },
+        ...overrides,
+      };
+    }
+
+    async function render(
+      recording: ReturnType<typeof recordingContext>,
+      tracks: any[],
+    ) {
+      const original = (globalThis as any).OfflineAudioContext;
+      (globalThis as any).OfflineAudioContext = jest.fn(
+        () => recording.offline,
+      );
+      (service as any).engine.masterGain = { gain: { value: 1 } };
+      (service as any).engine.tempo = jest.fn(() => 120);
+      (service as any).musicManager.tracks = jest.fn(() => tracks);
+      (service as any).musicManager.activeLoopBars = jest.fn(() => 4);
+      try {
+        await service.renderProjectOffline();
+      } finally {
+        if (original === undefined) {
+          delete (globalThis as any).OfflineAudioContext;
+        } else {
+          (globalThis as any).OfflineAudioContext = original;
+        }
+      }
+    }
+
+    it("bounces a level lane onto the channel fader instead of the static gain", async () => {
+      const recording = recordingContext();
+      (service as any).automation.lanes.set([
+        lane("volume", [
+          { time: 0, value: 0.2 },
+          { time: 4, value: 1 },
+        ]),
+      ]);
+
+      await render(recording, [track()]);
+
+      // 120 BPM, 4 bars → the render is 9 s long; the lane is 0 → 4 s and then
+      // holds. The fader is the only stage carrying ramps in this bounce.
+      const fader = recording.gains.find(
+        (node) => node.gain.linearRampToValueAtTime.mock.calls.length > 0,
+      );
+      expect(fader).toBeTruthy();
+      expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(1, 0.2, 0);
+      const midpoint = fader!.gain.linearRampToValueAtTime.mock.calls.find(
+        ([, time]: [number, number]) => Math.abs(time - 2) < 0.001,
+      );
+      expect(midpoint?.[0]).toBeCloseTo(0.6, 5);
+      const last = fader!.gain.linearRampToValueAtTime.mock.calls.at(-1)!;
+      expect(last[0]).toBeCloseTo(1, 5);
+    });
+
+    it("bounces pan and cutoff lanes onto the channel's own stages", async () => {
+      const recording = recordingContext();
+      (service as any).automation.lanes.set([
+        lane("pan", [
+          { time: 0, value: 0 },
+          { time: 4, value: -1 },
+        ]),
+        lane("cutoff", [
+          { time: 0, value: 20000 },
+          { time: 4, value: 200 },
+        ]),
+      ]);
+
+      await render(recording, [track()]);
+
+      expect(recording.panners).toHaveLength(1);
+      const panRamps = recording.panners[0].pan.linearRampToValueAtTime.mock.calls;
+      expect(panRamps.at(-1)![0]).toBeCloseTo(-1, 5);
+
+      expect(recording.filters).toHaveLength(1);
+      const cutoffRamps =
+        recording.filters[0].frequency.linearRampToValueAtTime.mock.calls;
+      expect(cutoffRamps.at(-1)![0]).toBeCloseTo(200, 5);
+    });
+
+    it("feeds a raised send into a real reverb return in the bounce", async () => {
+      const recording = recordingContext();
+      const impulse = { duration: 2, sampleRate: 44100 } as AudioBuffer;
+      (service as any).engine.getSendBusSnapshot = jest.fn(() => ({
+        impulse,
+        reverbWet: 0.25,
+        echo: { delaySeconds: 0.375, feedback: 0.32, dampingHz: 3200, wet: 0.45 },
+      }));
+
+      await render(recording, [track({ sendA: 0.4, sendB: 0.5 })]);
+
+      // Both returns exist, with the live convolver's own impulse and the
+      // echo's tempo-synced delay — not a dry copy of the track.
+      expect(recording.convolvers).toHaveLength(1);
+      expect(recording.convolvers[0].buffer).toBe(impulse);
+      expect(recording.delays).toHaveLength(1);
+      expect(recording.delays[0].delayTime.value).toBeCloseTo(0.375, 5);
+      // The send tap itself sits post-fader at the model's level.
+      const tap = recording.gains.find((node) => node.gain.value === 0.4);
+      expect(tap).toBeTruthy();
+    });
+
+    it("ignores a disabled lane and leaves the static mix untouched", async () => {
+      const recording = recordingContext();
+      const disabled = lane("volume", [
+        { time: 0, value: 0 },
+        { time: 4, value: 1 },
+      ]);
+      disabled.enabled = false;
+      (service as any).automation.lanes.set([disabled]);
+
+      await render(recording, [track()]);
+
+      const fader = recording.gains.find(
+        (node) => node.gain.value === 0.8,
+      );
+      expect(fader).toBeTruthy();
+      expect(fader!.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
+    });
+  });
 });

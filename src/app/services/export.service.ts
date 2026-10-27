@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { MusicManagerService, TrackNote } from './music-manager.service';
+import { AutomationLane, AutomationService } from '../studio/automation.service';
 import { VideoEngineService } from './video-engine.service';
 import { WavEncoder } from '../studio/wav-encoder.util';
 import {
@@ -66,6 +67,8 @@ export class ExportService {
   private musicManager = inject(MusicManagerService);
   private logger = inject(LoggingService);
   private pluginStore = inject(PluginStoreService);
+  /** Read-only here: the bounce samples the same curves playback evaluates. */
+  private automation = inject(AutomationService);
   private videoEngine = inject(VideoEngineService);
 
   /** True while a canvas capture is recording. */
@@ -361,6 +364,70 @@ export class ExportService {
 
     const secondsPerStep = (60 / tempo) / STEPS_PER_BEAT;
 
+    // ── Automation ──────────────────────────────────────────────────────
+    // The bounce used to follow the static mix only: a lane drew a curve that
+    // song playback honoured, and the export dropped every keyframe. Each
+    // enabled lane is now sampled on a grid finer than the automation step and
+    // written as ramps onto the same node the live parameter drives.
+    const lanes = this.automation?.lanes?.() ?? [];
+    const laneFor = (trackId: string, ...params: string[]) =>
+      lanes.find(
+        (lane) =>
+          lane.enabled &&
+          lane.target.trackId === trackId &&
+          params.includes(lane.target.parameter),
+      );
+
+    // ── Aux returns ─────────────────────────────────────────────────────
+    // Send A is the reverb convolver, Send B the tempo-synced echo, both fed
+    // from the post-fader tap like `getTrackOutput` splices them. The impulse
+    // response is the live convolver's own buffer, so the tails match what the
+    // artist heard rather than a generic reverb.
+    const sendSnapshot =
+      typeof (this.engine as Partial<AudioEngineService>).getSendBusSnapshot ===
+      'function'
+        ? this.engine.getSendBusSnapshot()
+        : null;
+    let reverbReturn: AudioNode | null = null;
+    let echoReturn: AudioNode | null = null;
+    const ensureReverbReturn = (): AudioNode | null => {
+      if (reverbReturn || !sendSnapshot?.impulse) return reverbReturn;
+      const sum = offline.createGain();
+      const convolver = offline.createConvolver();
+      convolver.buffer = sendSnapshot.impulse;
+      const wet = offline.createGain();
+      wet.gain.value = sendSnapshot.reverbWet;
+      sum.connect(convolver);
+      convolver.connect(wet);
+      wet.connect(master);
+      reverbReturn = sum;
+      return sum;
+    };
+    const ensureEchoReturn = (): AudioNode | null => {
+      if (echoReturn || !sendSnapshot) return echoReturn;
+      const sum = offline.createGain();
+      const delay = offline.createDelay(2);
+      delay.delayTime.value = Math.max(
+        0.02,
+        Math.min(2, (60 / tempo) * 0.75),
+      );
+      const damp = offline.createBiquadFilter();
+      damp.type = 'lowpass';
+      damp.frequency.value = sendSnapshot.echo.dampingHz;
+      const feedback = offline.createGain();
+      feedback.gain.value = sendSnapshot.echo.feedback;
+      const wet = offline.createGain();
+      wet.gain.value = sendSnapshot.echo.wet;
+      sum.connect(delay);
+      delay.connect(damp);
+      damp.connect(feedback);
+      feedback.connect(delay);
+      damp.connect(wet);
+      wet.connect(master);
+      echoReturn = sum;
+      return sum;
+    };
+
     // A single-track render is a stem: solo on another track must not silence
     // it, so `onlyTrackIds` implies `ignoreSolo`.
     const hasSolo =
@@ -375,12 +442,89 @@ export class ExportService {
         track.type === 'bus'
       )
         continue;
+      const levelLane = laneFor(track.id, 'volume', 'gain');
+      const panLane = laneFor(track.id, 'pan');
+      const cutoffLane = laneFor(track.id, 'cutoff');
+
       const channel = offline.createGain();
       channel.gain.value = Math.max(0, Math.min(1.5, track.gain ?? track.volume ?? 0.8));
       channel.connect(master);
+
+      // The channel chain mirrors `getTrackOutput`: sources → [cutoff] →
+      // [pan] → fader → master. Both insert stages exist only when a lane
+      // drives them, so an un-automated bounce keeps the exact old path.
+      let input: AudioNode = channel;
+      let panner: StereoPannerNode | null = null;
+      let channelFilter: BiquadFilterNode | null = null;
+      if (panLane) {
+        panner = offline.createStereoPanner();
+        panner.pan.value = 0;
+        panner.connect(input);
+        input = panner;
+      }
+      if (cutoffLane) {
+        channelFilter = offline.createBiquadFilter();
+        channelFilter.type = 'lowpass';
+        channelFilter.frequency.value =
+          AudioEngineService.CHANNEL_FILTER_DEFAULT_HZ;
+        channelFilter.Q.value = 0.0001;
+        channelFilter.connect(input);
+        input = channelFilter;
+      }
+
+      if (levelLane) {
+        this.scheduleLaneCurve(channel.gain, levelLane, totalSeconds,
+          secondsPerStep, (value) => Math.max(0, Math.min(1.5, value)));
+      }
+      if (panLane && panner) {
+        this.scheduleLaneCurve(panner.pan, panLane, totalSeconds,
+          secondsPerStep, (value) => Math.max(-1, Math.min(1, value)));
+      }
+      if (cutoffLane && channelFilter) {
+        this.scheduleLaneCurve(channelFilter.frequency, cutoffLane,
+          totalSeconds, secondsPerStep,
+          (value) => Math.max(20, Math.min(20000, value)));
+      }
+
+      // Post-fader aux sends. `reverb` is the lane name the editor offers for
+      // send A, so both spellings resolve to the same return.
+      const sendALane = laneFor(track.id, 'sendA', 'reverb');
+      const sendBLane = laneFor(track.id, 'sendB');
+      const staticSendA = Math.max(0, Math.min(1, track.sendA ?? 0));
+      const staticSendB = Math.max(0, Math.min(1, track.sendB ?? 0));
+      if (sendALane || staticSendA > 0) {
+        const bus = ensureReverbReturn();
+        if (bus) {
+          const send = offline.createGain();
+          send.gain.value = staticSendA;
+          channel.connect(send);
+          send.connect(bus);
+          if (sendALane) {
+            this.scheduleLaneCurve(send.gain, sendALane, totalSeconds,
+              secondsPerStep, (value) => Math.max(0, Math.min(1, value)));
+          }
+        }
+      }
+      if (sendBLane || staticSendB > 0) {
+        const bus = ensureEchoReturn();
+        if (bus) {
+          const send = offline.createGain();
+          send.gain.value = staticSendB;
+          channel.connect(send);
+          send.connect(bus);
+          if (sendBLane) {
+            this.scheduleLaneCurve(send.gain, sendBLane, totalSeconds,
+              secondsPerStep, (value) => Math.max(0, Math.min(1, value)));
+          }
+        }
+      }
+
       if (track.type !== 'audio') {
-        this.scheduleTrackNotes(offline, channel, track.notes ?? [],
-          track.synthParams ?? { type: 'sine' }, secondsPerStep, track.pan ?? 0);
+        // With a pan lane the lane owns the channel's position, so a voice
+        // carries only its own per-note pan instead of the static track pan.
+        this.scheduleTrackNotes(offline, input, track.notes ?? [],
+          track.synthParams ?? { type: 'sine' }, secondsPerStep,
+          panLane ? 0 : (track.pan ?? 0));
       }
       for (const clip of track.clips ?? []) {
         if (clip.type !== 'audio') continue;
@@ -388,10 +532,12 @@ export class ExportService {
         // envelope, so clips sharing a track cannot share a gain stage
         // without one clip's fade doubling or muting the other.
         const pan = offline.createStereoPanner();
-        pan.pan.value = Math.max(-1, Math.min(1, track.pan ?? 0));
+        pan.pan.value = panLane
+          ? 0
+          : Math.max(-1, Math.min(1, track.pan ?? 0));
         const fader = offline.createGain();
         pan.connect(fader);
-        fader.connect(channel);
+        fader.connect(input);
         const streamer = (clip as any).clipStreamer;
         let buffer = clip.audioData || (clip.audioRefId && this.musicManager.stemAudioCache.get(clip.audioRefId));
         let offset = Math.max(0, clip.offset ?? 0);
@@ -507,13 +653,51 @@ export class ExportService {
   }
 
   /**
+   * Write an automation lane onto an AudioParam as one ramp chain.
+   *
+   * The lane's own keyframes are always included, plus a grid half a step
+   * apart so a curved segment (bezier/smooth interpolation, LFO modulation,
+   * macro bias) is approximated where the audio clock needs it instead of only
+   * at the few points the artist happened to place. Sampling covers the whole
+   * render, so the final value holds through the tail.
+   */
+  private scheduleLaneCurve(
+    param: AudioParam,
+    lane: AutomationLane,
+    totalSeconds: number,
+    secondsPerStep: number,
+    scale: (value: number) => number,
+  ): void {
+    const grid = Math.max(0.01, secondsPerStep / 2);
+    const times = new Set<number>([0]);
+    for (const point of lane.points) {
+      if (point.time > 0 && point.time < totalSeconds) times.add(point.time);
+    }
+    for (let time = 0; time < totalSeconds; time += grid) {
+      times.add(Math.round(time * 1000) / 1000);
+    }
+    let scheduled = false;
+    for (const time of [...times].sort((a, b) => a - b)) {
+      const value = this.automation.sampleLane(lane.id, time);
+      if (value === null || !Number.isFinite(value)) continue;
+      const target = scale(value);
+      if (!scheduled) {
+        param.setValueAtTime(target, time);
+        scheduled = true;
+      } else {
+        param.linearRampToValueAtTime(target, time);
+      }
+    }
+  }
+
+  /**
    * Schedule the track's notes using the REAL live synth voice graph
    * (antialiased oscillator + filter + ADSR + glide + pan) via the audio
    * engine, so offline bounces sound identical to live playback.
    */
   private scheduleTrackNotes(
     ctx: OfflineAudioContext,
-    master: GainNode,
+    master: AudioNode,
     notes: TrackNote[],
     params: any,
     secondsPerStep: number,

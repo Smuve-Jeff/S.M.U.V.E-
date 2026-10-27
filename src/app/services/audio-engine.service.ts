@@ -3149,7 +3149,8 @@ export class AudioEngineService {
       // Open by default, so an un-automated channel is unchanged.
       const channelFilter = this.ctx.createBiquadFilter();
       channelFilter.type = "lowpass";
-      channelFilter.frequency.value = 20000;
+      channelFilter.frequency.value =
+        AudioEngineService.CHANNEL_FILTER_DEFAULT_HZ;
       channelFilter.Q.value = 0.0001;
 
       // Insert per-track effects rack between phase and width
@@ -3585,7 +3586,39 @@ export class AudioEngineService {
       this.updateTrack(trackId, { sendA: level });
       return;
     }
-    this.updateTrack(trackId, { [parameter]: value });
+    // The level lane is offered as `volume` (the field the mixer shows) while
+    // the graph's fader is driven by `gain`. `updateTrack` only moves the node
+    // for `gain`, so a level lane used to draw a curve and change nothing.
+    const field = parameter === 'volume' ? 'gain' : parameter;
+    this.updateTrack(trackId, { [field]: value });
+  }
+
+  /**
+   * The aux return settings the offline bounce needs in order to build the
+   * same reverb and echo busses the live mix uses. Read-only snapshot: the
+   * impulse response is the live convolver's own buffer, so a bounce's tails
+   * match what the artist heard, and the wet trims follow the master faders.
+   */
+  getSendBusSnapshot(): {
+    impulse: AudioBuffer | null;
+    reverbWet: number;
+    echo: {
+      delaySeconds: number;
+      feedback: number;
+      dampingHz: number;
+      wet: number;
+    };
+  } {
+    return {
+      impulse: this.reverbConvolver.buffer,
+      reverbWet: this.reverbWet.gain.value,
+      echo: {
+        delaySeconds: this.echoDelay.delayTime.value,
+        feedback: this.echoFeedback.gain.value,
+        dampingHz: this.echoDamp.frequency.value,
+        wet: this.echoWet.gain.value,
+      },
+    };
   }
 
   setMasterOutputLevel(val: number) {
@@ -4026,6 +4059,13 @@ export class AudioEngineService {
     limiterRatio: 20,
     compressorRatio: 4, // matches the smuve preset / worklet default
   } as const;
+
+  /**
+   * A channel's lowpass starts wide open, so an untouched channel is unchanged.
+   * Shared with the FX macro pad, which has to know what "no filter" means in
+   * order to hand a channel back after a sweep.
+   */
+  public static readonly CHANNEL_FILTER_DEFAULT_HZ = 20000;
 
   /**
    * Set the master filter cutoff (lowpass). Routes to whichever master

@@ -367,6 +367,18 @@ export class AutomationService {
     return value;
   }
 
+  /**
+   * Read a lane as the transport would have applied it at `time`, including
+   * its macro bias and modulation. Used by the offline bounce, which has no
+   * transport steps to hang automation off: it samples the same curve the
+   * playback engine would have evaluated there.
+   */
+  sampleLane(laneId: string, time: number): number | null {
+    const lane = this.lanes().find((l) => l.id === laneId);
+    if (!lane) return null;
+    return this.getValueAtTime(laneId, time, this.getMacroBiasForLane(lane));
+  }
+
   private interpolate(
     start: number,
     end: number,

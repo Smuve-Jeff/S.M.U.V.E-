@@ -897,6 +897,29 @@
         </button>
       </div>
 
+      <!-- Destination: the performed channel, or the classic mix-bus macros -->
+      <div class="macro-scope-row" role="group" aria-label="FX macro destination">
+        <button
+          type="button"
+          class="macro-scope-chip studio-secondary-button"
+          [class.is-active]="fxMacros.scope() === 'channel'"
+          (click)="fxMacros.setScope('channel')"
+          [attr.aria-pressed]="fxMacros.scope() === 'channel'"
+        >
+          CHANNEL
+        </button>
+        <button
+          type="button"
+          class="macro-scope-chip studio-secondary-button"
+          [class.is-active]="fxMacros.scope() === 'mix'"
+          (click)="fxMacros.setScope('mix')"
+          [attr.aria-pressed]="fxMacros.scope() === 'mix'"
+        >
+          MIX
+        </button>
+        <span class="macro-scope-note">{{ fxMacros.scopeLabel() }}</span>
+      </div>
+
       <!-- The XY surface -->
       <div
         class="xy-pad performer-xy-surface"
@@ -920,6 +943,11 @@
         <div class="xy-cross xy-cross-h"></div>
         <!-- Corner HUD labels (from current macro's target specs) -->
         <div class="xy-corner xy-corner-tl">
+          <span
+            class="xy-scope-tag"
+            [class.is-mix]="fxMacros.targetScope(fxMacros.activeMacro().xTarget) === 'mix'"
+            >{{ fxMacros.targetScope(fxMacros.activeMacro().xTarget) === 'channel' ? 'CH' : 'MIX' }}</span
+          >
           <span class="xy-corner-label">{{
             fxMacros.activeMacro().xTarget.label
           }}</span>
@@ -928,6 +956,11 @@
           }}</span>
         </div>
         <div class="xy-corner xy-corner-tr">
+          <span
+            class="xy-scope-tag"
+            [class.is-mix]="fxMacros.targetScope(fxMacros.activeMacro().yTarget) === 'mix'"
+            >{{ fxMacros.targetScope(fxMacros.activeMacro().yTarget) === 'channel' ? 'CH' : 'MIX' }}</span
+          >
           <span class="xy-corner-label">{{
             fxMacros.activeMacro().yTarget.label
           }}</span>

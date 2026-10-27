@@ -1340,6 +1340,43 @@ export class MusicManagerService {
     this.automation.captureWrite(id, "gain", newGain);
   }
 
+  /**
+   * Move an aux send from a performance surface (the FX macro pad).
+   *
+   * Engine and model move together and a whole gesture collapses into one undo
+   * step — the same contract `updateVolume` gives the fader — so a reverb
+   * throw on the pad is neither a silent audio-only write nor a hundred
+   * separate history entries.
+   */
+  setChannelSend(trackId: string, send: 'sendA' | 'sendB', level: number) {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t) return;
+    const before = t[send] ?? 0;
+    const next = Math.max(
+      0,
+      Math.min(1, Number.isFinite(level) ? level : before)
+    );
+    if (before === next) return;
+    const label = `Set ${send === 'sendA' ? 'Send A' : 'Send B'} · ` + t.name;
+    this.runMerge(
+      `send:${send}:${trackId}`,
+      label,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === trackId ? { ...x, [send]: next } : x))
+        );
+        this.engine.updateTrack(trackId, { [send]: next });
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === trackId ? { ...x, [send]: before } : x))
+        );
+        this.engine.updateTrack(trackId, { [send]: before });
+      }
+    );
+    this.automation.captureWrite(trackId, send, next);
+  }
+
   updateTrackPan(id: string, val: number) {
     const t = this.tracks().find((x) => x.id === id);
     if (!t) return;

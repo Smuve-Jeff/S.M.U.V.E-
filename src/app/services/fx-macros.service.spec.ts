@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { FxMacrosService } from './fx-macros.service';
 import { AudioEngineService } from './audio-engine.service';
+import { MusicManagerService } from './music-manager.service';
 import { NotificationService } from './notification.service';
 
 /**
@@ -21,22 +22,43 @@ describe('FxMacrosService (reset parity)', () => {
     comp: number[];
     reverb: number[];
   };
+  /** Channel-side writes the pad makes in 'channel' scope. */
+  let channel: {
+    cutoff: number[];
+    send: Array<[string, string, number]>;
+    selected: string | null;
+  };
 
   const defaults = AudioEngineService.MASTER_DEFAULTS;
 
   beforeEach(() => {
     calls = { filter: [], limiter: [], comp: [], reverb: [] };
+    channel = { cutoff: [], send: [], selected: null };
 
     const audioMock = {
       setMasterFilterHz: jest.fn((v: number) => calls.filter.push(v)),
       setMasterLimiterThreshold: jest.fn((v: number) => calls.limiter.push(v)),
       setMasterCompressorRatio: jest.fn((v: number) => calls.comp.push(v)),
       setMasterReverbWet: jest.fn((v: number) => calls.reverb.push(v)),
+      updateTrack: jest.fn((_id: string, patch: any) => {
+        if (patch.cutoff !== undefined) channel.cutoff.push(patch.cutoff);
+      }),
+    };
+
+    const channelsMock = {
+      selectedTrackId: jest.fn(() => channel.selected),
+      tracks: jest.fn(() => [
+        { id: 'lead', name: 'Lead', sendA: 0.2, sendB: 0 },
+      ]),
+      setChannelSend: jest.fn((id: string, send: string, level: number) =>
+        channel.send.push([id, send, level])
+      ),
     };
 
     TestBed.configureTestingModule({
       providers: [
         { provide: AudioEngineService, useValue: audioMock },
+        { provide: MusicManagerService, useValue: channelsMock },
         {
           provide: NotificationService,
           useValue: { show: jest.fn() },
@@ -125,6 +147,43 @@ describe('FxMacrosService (reset parity)', () => {
       expect(xV).toBeCloseTo(preset.xTarget.rest, 5);
       expect(yV).toBeCloseTo(preset.yTarget.rest, 5);
     }
+  });
+
+  it('channel scope drives the performed channel instead of the mix bus', () => {
+    channel.selected = 'lead';
+    service.setMacro('tape-stop'); // X = reverb, Y = filter
+    calls.filter = [];
+    calls.reverb = [];
+    service.setXY(1, 0); // pad defaults to channel scope
+
+    // Filter → that channel's lowpass, reverb → its aux send; neither master
+    // parameter moved.
+    expect(channel.cutoff[channel.cutoff.length - 1]).toBe(80);
+    expect(channel.send[channel.send.length - 1]).toEqual(['lead', 'sendA', 1]);
+    expect(calls.filter).toEqual([]);
+    expect(calls.reverb).toEqual([]);
+  });
+
+  it('release hands the channel back with the values it had before the drag', () => {
+    channel.selected = 'lead';
+    service.setMacro('tape-stop');
+    service.setXY(1, 0);
+    service.release();
+    // Cutoff opens again and Send A returns to the channel's saved 0.2 — a
+    // sweep must not leave a channel filtered or wet after the finger lifts.
+    expect(channel.cutoff[channel.cutoff.length - 1]).toBe(
+      AudioEngineService.CHANNEL_FILTER_DEFAULT_HZ
+    );
+    expect(channel.send[channel.send.length - 1]).toEqual(['lead', 'sendA', 0.2]);
+  });
+
+  it('mix scope keeps the classic master-bus macros', () => {
+    channel.selected = 'lead';
+    service.setScope('mix');
+    service.setXY(0, 0);
+    expect(calls.filter[calls.filter.length - 1]).toBe(200);
+    expect(channel.cutoff).toEqual([]);
+    expect(channel.send).toEqual([]);
   });
 
   it('engage/release lifecycle stays consistent', () => {

@@ -74,6 +74,30 @@ describe("AutomationService", () => {
     expect(call[2]).toBeGreaterThanOrEqual(-1);
   });
 
+  it("samples a lane with its macro bias for the offline bounce", () => {
+    const lane = service.addLane("3", "volume", {
+      min: 0,
+      max: 1,
+      modulationDepth: 1,
+    });
+    service.addPoint(lane.id, 0, 0.4);
+    service.addPoint(lane.id, 2, 0.4);
+
+    // The bounce has no transport steps to hang automation off, so it reads
+    // the same curve playback would have evaluated at that song time.
+    expect(service.sampleLane(lane.id, 1)).toBeCloseTo(0.4, 5);
+    expect(service.sampleLane("missing-lane", 1)).toBeNull();
+
+    const macro = service.createMacro("Bias");
+    service.mapMacroToLane(macro.id, lane.id, 0.5);
+    service.lanes.update((lanes) =>
+      lanes.map((l) => (l.id === lane.id ? { ...l, macroId: macro.id } : l)),
+    );
+    service.setMacroValue(macro.id, 1);
+
+    expect(service.sampleLane(lane.id, 1)).toBeCloseTo(0.9, 5);
+  });
+
   it("reads the curves as the transport advances", () => {
     const lane = service.addLane("1", "gain");
     service.addPoint(lane.id, 0, 0.2);
