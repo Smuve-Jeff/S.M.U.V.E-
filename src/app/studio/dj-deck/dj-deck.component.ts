@@ -2343,7 +2343,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private getEffectiveDeckBpm(deck: "A" | "B") {
     const state = this.getDeckState(deck);
-    if (!state.track || !state.bpm) return 0;
+    if (!state.track || !state.bpm) {
+      // An empty deck has no tempo of its own. Reporting 0 BPM beside a
+      // 128 BPM overview read as a broken deck; it idles at the set tempo.
+      return this.engine.tempo();
+    }
     return state.bpm * Math.abs(state.playbackRate || 1);
   }
 

@@ -290,7 +290,40 @@
 /* ── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 700px) {
   .sl-shell {
-    padding: 16px 12px calc(100px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 12px calc(100px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+  /* Cards are the content; the masthead is not. The subtitle went and the
+     search takes its own row so the first kits start higher on a phone. */
+  .sl-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .sl-sub {
+    display: none;
+  }
+  .sl-search {
+    flex: 1 1 100%;
+  }
+  /* Pinned filters: once the grid scrolls, category is the one control the
+     artist keeps reaching for, and it used to leave the screen after one
+     swipe. Full-bleed so cards cannot peek past its edges. */
+  .sl-cats {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    margin: 0 -12px;
+    padding: 8px 12px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    background: color-mix(
+      in srgb,
+      var(--ivory-panel) 94%,
+      transparent
+    );
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
   }
   .sl-cat-label {
     display: none;

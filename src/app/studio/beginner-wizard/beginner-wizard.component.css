@@ -488,17 +488,28 @@
     padding: 16px 12px calc(16px + env(safe-area-inset-bottom, 0px));
   }
 
+  /* The steps are the surface. The masthead used a third of a phone's first
+     screen, so the subtitle goes and the hero shrinks to a heading + progress. */
   .wizard-hero {
-    padding: 12px 4px 4px;
+    padding: 4px 2px 2px;
+    gap: 6px;
+  }
+
+  .wizard-hero-sub {
+    display: none;
   }
 
   .wizard-hero-icon {
-    width: 60px;
-    height: 60px;
+    width: 44px;
+    height: 44px;
   }
 
   .wizard-hero-icon .material-symbols-outlined {
-    font-size: 28px;
+    font-size: 22px;
+  }
+
+  .wizard-hero-title {
+    font-size: 1.3rem;
   }
 
   .wizard-card {

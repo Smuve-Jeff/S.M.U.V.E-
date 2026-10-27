@@ -2,7 +2,7 @@
   <div
     class="rack-header wood-panel flex items-center justify-between px-4 border-b border-fl-border channel-rack-header"
   >
-    <div class="rack-title neon-text text-[10px] font-black tracking-widest channel-rack-title">
+    <div class="rack-title neon-text text-[11px] font-black tracking-widest channel-rack-title">
       CHANNEL RACK
     </div>
     <div class="relative">
@@ -12,7 +12,7 @@
         aria-haspopup="menu"
         [attr.aria-expanded]="addTrackOpen()"
         aria-label="Add a new channel"
-        class="executive-glass text-[9px] px-3 py-1.5 rounded-lg border border-white/10 hover:border-neon-orange/50 transition-all studio-primary-button channel-rack-add"
+        class="executive-glass text-[11px] px-3 py-1.5 rounded-lg border border-white/10 hover:border-neon-orange/50 transition-all studio-primary-button channel-rack-add"
       >
         + ADD CHANNEL
       </button>
@@ -24,7 +24,7 @@
       >
         <div *ngFor="let category of instrumentCategories" class="mb-2">
           <div
-            class="text-[7px] font-black tracking-widest uppercase opacity-40 mb-1"
+            class="text-[11px] font-black tracking-widest uppercase opacity-40 mb-1"
           >
             {{ category }}
           </div>
@@ -32,11 +32,11 @@
             type="button"
             *ngFor="let preset of presetsByCategory(category)"
             (click)="addTrack(preset.id)"
-            class="w-full text-left px-2 py-1.5 rounded-lg text-[10px] font-bold hover:bg-white/10 transition-all flex items-center justify-between gap-2"
+            class="w-full text-left px-2 py-1.5 rounded-lg text-[11px] font-bold hover:bg-white/10 transition-all flex items-center justify-between gap-2"
             role="menuitem"
           >
             <span class="truncate">{{ preset.name }}</span>
-            <span class="text-[7px] opacity-40 uppercase">{{
+            <span class="text-[11px] opacity-40 uppercase">{{
               preset.type
             }}</span>
           </button>
@@ -89,7 +89,7 @@
       <!-- Controls (Vol/Pan) -->
       <div class="flex flex-col gap-2 w-14 channel-rack-meter-stack">
         <div class="flex items-center gap-1.5">
-          <span class="text-[7px] font-black font-mono opacity-40">VOL</span>
+          <span class="text-[11px] font-black font-mono opacity-40">VOL</span>
           <input
             type="range"
             min="0"
@@ -103,7 +103,7 @@
           />
         </div>
         <div class="flex items-center gap-1.5">
-          <span class="text-[7px] font-black font-mono opacity-40">PAN</span>
+          <span class="text-[11px] font-black font-mono opacity-40">PAN</span>
           <input
             type="range"
             min="-1"
@@ -136,14 +136,14 @@
         </div>
         <button
           type="button"
-          class="text-[7px] font-mono truncate uppercase tracking-widest text-left opacity-30 hover:opacity-80 transition-all flex items-center gap-1 channel-rack-instrument"
+          class="text-[11px] font-mono truncate uppercase tracking-widest text-left opacity-30 hover:opacity-80 transition-all flex items-center gap-1 channel-rack-instrument"
           (click)="toggleInstrumentPicker(track.id); $event.stopPropagation()"
           [attr.aria-haspopup]="'menu'"
           [attr.aria-expanded]="instrumentPickerTrackId() === track.id"
           [attr.aria-label]="'Change instrument for ' + track.name"
           [title]="'Instrument: ' + instrumentName(track.instrumentId) + ' — click to change'"
         >
-          <span class="material-symbols-outlined text-[10px]">tune</span>
+          <span class="material-symbols-outlined text-[11px]">tune</span>
           {{ instrumentName(track.instrumentId) }}
         </button>
         <!-- Per-channel instrument fly-out -->
@@ -156,7 +156,7 @@
         >
           <div *ngFor="let category of instrumentCategories" class="mb-2">
             <div
-              class="text-[7px] font-black tracking-widest uppercase opacity-40 mb-1"
+              class="text-[11px] font-black tracking-widest uppercase opacity-40 mb-1"
             >
               {{ category }}
             </div>
@@ -164,7 +164,7 @@
               type="button"
               *ngFor="let preset of presetsByCategory(category)"
               (click)="setInstrument(track, preset.id)"
-              class="w-full text-left px-2 py-1.5 rounded-lg text-[10px] font-bold hover:bg-white/10 transition-all flex items-center justify-between gap-2"
+              class="w-full text-left px-2 py-1.5 rounded-lg text-[11px] font-bold hover:bg-white/10 transition-all flex items-center justify-between gap-2"
               [class.bg-teal-500\/20]="track.instrumentId === preset.id"
               role="menuitemradio"
               [attr.aria-checked]="track.instrumentId === preset.id"
@@ -190,7 +190,7 @@
           type="button"
           (click)="cloneTrack(track); $event.stopPropagation()"
           [attr.aria-label]="'Clone ' + track.name + ' with its pattern'"
-          class="text-[10px] text-slate-500 hover:text-white"
+          class="text-[11px] text-slate-500 hover:text-white"
           title="Clone (deep copy with pattern)"
         >
           <span class="material-symbols-outlined text-[12px]"
@@ -203,9 +203,9 @@
             (click)="reorderTrack(i, 'up'); $event.stopPropagation()"
             [attr.aria-label]="'Move ' + track.name + ' up'"
             [disabled]="i === 0"
-            class="text-[8px] text-slate-500 hover:text-white disabled:opacity-20"
+            class="text-[11px] text-slate-500 hover:text-white disabled:opacity-20"
           >
-            <span class="material-symbols-outlined text-[10px]"
+            <span class="material-symbols-outlined text-[11px]"
               >expand_less</span
             >
           </button>
@@ -214,9 +214,9 @@
             (click)="reorderTrack(i, 'down'); $event.stopPropagation()"
             [attr.aria-label]="'Move ' + track.name + ' down'"
             [disabled]="i === tracks().length - 1"
-            class="text-[8px] text-slate-500 hover:text-white disabled:opacity-20"
+            class="text-[11px] text-slate-500 hover:text-white disabled:opacity-20"
           >
-            <span class="material-symbols-outlined text-[10px]"
+            <span class="material-symbols-outlined text-[11px]"
               >expand_more</span
             >
           </button>
@@ -225,7 +225,7 @@
           type="button"
           (click)="removeTrack(track.id); $event.stopPropagation()"
           [attr.aria-label]="'Delete ' + track.name"
-          class="text-[10px] text-red-900 hover:text-red-500"
+          class="text-[11px] text-red-900 hover:text-red-500"
           title="Delete channel"
         >
           <span class="material-symbols-outlined text-[12px]">delete</span>
@@ -246,7 +246,7 @@
           <button
             type="button"
             (click)="nudgeBar(-1); $event.stopPropagation()"
-            class="w-4 h-4 rounded bg-black/30 text-white/50 hover:text-white text-[9px] leading-none"
+            class="w-4 h-4 rounded bg-black/30 text-white/50 hover:text-white text-[11px] leading-none"
             [attr.aria-label]="'Previous bar'"
             [disabled]="stepWindowBar() === 0"
           >‹</button>
@@ -254,7 +254,7 @@
             type="button"
             *ngFor="let bar of barLabels(track)"
             (click)="setBar(track, bar); $event.stopPropagation()"
-            class="px-1 h-4 rounded text-[7px] font-black tracking-wider transition-all"
+            class="px-1 h-4 rounded text-[11px] font-black tracking-wider transition-all"
             [class.bar-active]="stepWindowBar() === bar"
             [attr.aria-label]="'Edit bar ' + (bar + 1)"
             [attr.aria-pressed]="stepWindowBar() === bar"
@@ -262,7 +262,7 @@
           <button
             type="button"
             (click)="nudgeBar(1); $event.stopPropagation()"
-            class="w-4 h-4 rounded bg-black/30 text-white/50 hover:text-white text-[9px] leading-none"
+            class="w-4 h-4 rounded bg-black/30 text-white/50 hover:text-white text-[11px] leading-none"
             [attr.aria-label]="'Next bar'"
           >›</button>
         </div>
@@ -328,11 +328,11 @@
             class="flex items-center gap-1.5"
             *ngIf="!isBeginner() || activeTooltip() !== 'lfoWave'"
           >
-            <span class="text-[6px] font-black uppercase tracking-widest opacity-50">Wave</span>
+            <span class="text-[11px] font-black uppercase tracking-widest opacity-50">Wave</span>
             <button
               type="button"
               *ngFor="let wave of lfoWaves"
-              class="lfo-wave-btn text-[5px] rounded bg-black/20 hover:bg-black/30 transition-colors"
+              class="lfo-wave-btn text-[11px] rounded bg-black/20 hover:bg-black/30 transition-colors"
               [class.is-active]="(track.synthParams.lfo?.wave ?? 'sine') === wave.value"
               (click)="updateLfoParam('wave', wave.value, track.id)"
               [attr.aria-label]="wave.label + ' LFO waveform'"
@@ -345,11 +345,11 @@
             class="flex items-center gap-1.5"
             *ngIf="!isBeginner() || activeTooltip() !== 'lfoTarget'"
           >
-            <span class="text-[6px] font-black uppercase opacity-50">Target</span>
+            <span class="text-[11px] font-black uppercase opacity-50">Target</span>
             <button
               type="button"
               *ngFor="let t of lfoTargets"
-              class="lfo-target-btn text-[5px] rounded bg-black/20 hover:bg-black/30 transition-colors"
+              class="lfo-target-btn text-[11px] rounded bg-black/20 hover:bg-black/30 transition-colors"
               [class.is-active]="(track.synthParams.lfo?.target ?? lfoTarget()) === t"
               (click)="updateLfoParam('target', t, track.id)"
               [attr.aria-label]="t + ' LFO target'"
@@ -359,7 +359,7 @@
             class="flex items-center gap-1.5"
             *ngIf="!isBeginner() || activeTooltip() !== 'lfoRate'"
           >
-            <span class="text-[6px] font-black uppercase opacity-50">Rate</span>
+            <span class="text-[11px] font-black uppercase opacity-50">Rate</span>
             <input
               type="range"
               min="0.01"
@@ -375,7 +375,7 @@
             class="flex items-center gap-1.5"
             *ngIf="!isBeginner() || activeTooltip() !== 'lfoDepth'"
           >
-            <span class="text-[6px] font-black uppercase opacity-50">Depth</span>
+            <span class="text-[11px] font-black uppercase opacity-50">Depth</span>
             <input
               type="range"
               min="0"

@@ -45,7 +45,7 @@
   color: var(--espresso-text);
 }
 .mix-header-title p {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--teal-500);
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -90,7 +90,7 @@
   border: none;
   background: transparent;
   color: var(--espresso-muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -229,7 +229,7 @@
 }
 
 .mix-strip-num {
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--espresso-muted);
   letter-spacing: 0.1em;
@@ -249,7 +249,7 @@
   background: rgba(6, 9, 26, 0.88);
   color: var(--espresso-text);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-align: center;
   padding: 4px 4px;
@@ -267,7 +267,7 @@
 }
 
 .mix-strip-type {
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -291,7 +291,7 @@
 }
 
 .mix-pan-label {
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -465,7 +465,7 @@
 
 .mix-fader-readout {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   text-align: center;
   color: var(--espresso-muted);
@@ -555,7 +555,7 @@
   gap: 6px;
 }
 .mix-sends-label {
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--teal-500);
   letter-spacing: 0.06em;
@@ -582,7 +582,7 @@
 
 .mix-sends-readout {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 11px;
   color: var(--espresso-muted);
   width: 22px;
   text-align: right;
@@ -630,7 +630,7 @@
     padding: 6px 4px 4px;
   }
   .mix-strip-name {
-    font-size: 9px;
+    font-size: 11px;
   }
   .mix-fader-cap {
     width: 32px;
@@ -689,7 +689,7 @@
 .mix-phase-btn {
   font-family: 'Inter', sans-serif !important;
   font-weight: 900 !important;
-  font-size: 10px !important;
+  font-size: 11px !important;
   color: var(--espresso-muted);
 }
 
@@ -713,7 +713,7 @@
   justify-content: space-between;
   align-items: center;
   font-family: var(--font-mono);
-  font-size: 8px;
+  font-size: 11px;
   padding: 1px 4px;
   background: rgba(0, 0, 0, 0.1);
   border-radius: 2px;
@@ -773,7 +773,7 @@
     width: 64px;
   }
   .mix-strip-name {
-    font-size: 9px;
+    font-size: 11px;
   }
   .mix-strip-body {
     padding: 6px 4px;
@@ -912,7 +912,7 @@
   text-align: center;
 }
 .mix-vca-count {
-  font-size: 0.66rem;
+  font-size: 11px;
   color: rgba(126, 114, 89, 0.95);
   font-family: 'JetBrains Mono', monospace;
   text-align: center;
@@ -966,7 +966,7 @@
   border-top: 1px solid rgba(220, 208, 181, 0.4);
 }
 .mix-sends-label {
-  font-size: 0.6rem;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: rgba(126, 114, 89, 0.9);
@@ -977,7 +977,7 @@
   display: flex;
   align-items: center;
   gap: 0.2rem;
-  font-size: 0.6rem;
+  font-size: 11px;
   font-weight: 700;
   color: rgba(14, 124, 123, 0.9);
   letter-spacing: 0.04em;
@@ -987,7 +987,7 @@
 
 /* Real dB readout beside each AUX send (the tooltip has always promised one) */
 .mix-send-db {
-  font-size: 0.5rem;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
   white-space: nowrap;
@@ -1448,7 +1448,7 @@
 }
 .mix-phase-help {
   margin: 0;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.45;
 }
 
@@ -1565,7 +1565,7 @@
 }
 
 .mix-summary-label {
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1599,7 +1599,7 @@
   background: rgba(255, 253, 246, 0.9);
   color: rgba(36, 29, 21, 0.74);
   font: inherit;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1622,7 +1622,7 @@
 .mix-mobile-kicker {
   display: block;
   color: #0e7c7b;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1638,7 +1638,7 @@
   display: grid;
   gap: 6px;
   color: rgba(61, 53, 42, 0.6);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1745,7 +1745,7 @@
     font-size: 13px;
   }
   .mix-header-title p {
-    font-size: 8px;
+    font-size: 11px;
   }
   .mix-segmented {
     padding: 2px;
@@ -1753,12 +1753,12 @@
   .mix-segmented button {
     min-height: 36px;
     padding-inline: 10px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .mix-ai-chip {
     min-height: 40px;
     padding-inline: 12px;
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .mix-phase-bar {
@@ -1770,7 +1770,7 @@
     height: 10px;
   }
   .mix-phase-help {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .mix-vca-rack {
@@ -1800,10 +1800,10 @@
     padding-inline: 0.4rem;
   }
   .mix-vca-readout {
-    font-size: 0.64rem;
+    font-size: 11px;
   }
   .mix-vca-count {
-    font-size: 0.6rem;
+    font-size: 11px;
   }
 
   .mix-strips {
@@ -1842,13 +1842,13 @@
   }
   .mix-strip-sends .mix-sends-label {
     width: 1.5rem;
-    font-size: 0.54rem;
+    font-size: 11px;
   }
   .mix-strip-sends .mix-send-knob-wrap {
     min-width: 0;
     flex: 1 1 auto;
     gap: 1px;
-    font-size: 0.54rem;
+    font-size: 11px;
   }
   .mix-strip-sends .mix-send-range {
     width: auto;
@@ -1861,7 +1861,7 @@
   }
   .mix-msr-btn {
     height: 28px;
-    font-size: 10px;
+    font-size: 11px;
   }
   .mix-sends {
     padding: 5px 4px;
@@ -1879,7 +1879,7 @@
   }
   .mix-sends-readout {
     width: 18px;
-    font-size: 8px;
+    font-size: 11px;
   }
 }
 
@@ -1899,17 +1899,17 @@
     font-size: 12px;
   }
   .mix-header-title p {
-    font-size: 7px;
+    font-size: 11px;
   }
   .mix-segmented button {
     min-height: 32px;
     padding-inline: 8px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .mix-ai-chip {
     min-height: 36px;
     padding-inline: 10px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .mix-phase-bar {
     margin-inline: 6px;
@@ -1920,7 +1920,7 @@
     height: 9px;
   }
   .mix-phase-help {
-    font-size: 8px;
+    font-size: 11px;
   }
   .mix-vca-rack {
     max-height: 150px;
@@ -1961,11 +1961,11 @@
   }
   .mix-strip-num,
   .mix-strip-type {
-    font-size: 7px;
+    font-size: 11px;
   }
   .mix-strip-name {
     margin-block: 2px 1px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .mix-pan-wrap {
     padding: 5px 3px 4px;
@@ -1987,7 +1987,7 @@
     height: 20px;
   }
   .mix-fader-readout {
-    font-size: 8px;
+    font-size: 11px;
   }
   .mix-strip-sends {
     gap: 1px;
@@ -1995,10 +1995,10 @@
   }
   .mix-strip-sends .mix-sends-label {
     width: 1.35rem;
-    font-size: 0.5rem;
+    font-size: 11px;
   }
   .mix-strip-sends .mix-send-knob-wrap {
-    font-size: 0.5rem;
+    font-size: 11px;
   }
   .mix-msr {
     gap: 2px;
@@ -2006,7 +2006,7 @@
   }
   .mix-msr-btn {
     height: 26px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .mix-sends {
     padding: 4px 3px;
@@ -2014,7 +2014,7 @@
   }
   .mix-sends-label {
     width: 27px;
-    font-size: 7px;
+    font-size: 11px;
   }
   .mix-sends-slider {
     height: 4px;
@@ -2026,7 +2026,7 @@
   }
   .mix-sends-readout {
     width: 16px;
-    font-size: 7px;
+    font-size: 11px;
   }
 }
 
@@ -2078,7 +2078,7 @@ the workspace. */
   background: rgba(255, 253, 246, 0.92);
   color: #24413d;
   font: inherit;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -2123,7 +2123,7 @@ the workspace. */
   .mix-segmented button {
     min-height: 42px;
     padding-inline: 7px;
-    font-size: 10px;
+    font-size: 11px;
   }
   .mix-ai-chip {
     order: 1;
@@ -2131,7 +2131,7 @@ the workspace. */
     justify-content: center;
     min-height: 42px;
     padding-inline: 9px;
-    font-size: 10px;
+    font-size: 11px;
   }
   .mix-phone-tools {
     order: 2;
@@ -2149,5 +2149,73 @@ the workspace. */
   }
   .mix-phone-tools span:not(.material-symbols-outlined) {
     display: none;
+  }
+}
+
+/* ============================================================
+   PHONE CONSOLE (device sweep P1 #7)
+   ------------------------------------------------------------
+   Each pass had squeezed the strip narrower (84 → 72 → 64 → 60px),
+   so a phone showed the most channels and the least usable one: an
+   11px name and a fader cap in 60px. Wider strips with the next one
+   peeking are the scroll affordance, plus an explicit gutter; the
+   disclosed phase panel drops its ruler and coaching copy.
+   ============================================================ */
+@media (max-width: 768px) {
+  .mix-phase-bar {
+    padding: 10px 12px;
+  }
+  .mix-phase-readout {
+    font-size: 18px;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+  }
+  .mix-phase-meter {
+    margin: 6px 2px 4px;
+    height: 10px;
+  }
+  .mix-phase-meter-ticks,
+  .mix-phase-help {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .mix-strips {
+    padding: 10px 16px 12px 8px;
+    scroll-snap-type: x proximity;
+    /* Fades the last visible sliver: on Android the overlay scrollbar is not
+       drawn until the console is already moving, so this is the only standing
+       cue that the console continues to the right. */
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      #000 0,
+      #000 calc(100% - 16px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      90deg,
+      #000 0,
+      #000 calc(100% - 16px),
+      transparent 100%
+    );
+  }
+  .mix-strips::-webkit-scrollbar {
+    height: 10px;
+  }
+  .mix-strips::-webkit-scrollbar-thumb {
+    background: rgba(14, 124, 123, 0.55);
+    border-radius: 999px;
+  }
+  .mix-strips::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .mix-strip {
+    width: 88px;
+    scroll-snap-align: start;
+  }
+  .mix-fader-cap {
+    width: 38px;
+    height: 30px;
   }
 }

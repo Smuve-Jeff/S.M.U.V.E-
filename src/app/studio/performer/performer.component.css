@@ -50,7 +50,7 @@
 }
 .brand-title p {
   margin: 0;
-  font-size: 9px;
+  font-size: 11px;
   color: #00e5ff;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -84,13 +84,13 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 8px;
   padding: 4px 10px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 .notebook-label {
   color: #00e5ff;
   text-transform: uppercase;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.12em;
 }
 .notebook-stream {
@@ -105,7 +105,7 @@
     JetBrains Mono,
     Fira Code,
     monospace;
-  font-size: 9px;
+  font-size: 11px;
   color: #faf9ff;
 }
 
@@ -122,7 +122,7 @@
   background: transparent;
   border: none;
   padding: 7px 14px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
   color: rgba(250, 249, 255, 0.5);
@@ -197,7 +197,7 @@
 }
 
 .rack-label {
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -225,7 +225,7 @@
 }
 
 .rack-select-sm {
-  font-size: 10px;
+  font-size: 11px;
   padding: 4px 8px;
   min-height: 28px;
 }
@@ -238,7 +238,7 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 6px;
   padding: 4px 10px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   color: #00e5ff;
   letter-spacing: 0.04em;
@@ -256,7 +256,7 @@
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 7px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
   color: rgba(250, 249, 255, 0.5);
@@ -281,7 +281,7 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) inset;
 }
 .rack-toggle span {
-  font-size: 8px;
+  font-size: 11px;
   opacity: 0.7;
 }
 
@@ -323,7 +323,7 @@
 }
 
 .meter-label {
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.14em;
   color: #00e5ff;
@@ -335,7 +335,7 @@
     JetBrains Mono,
     Fira Code,
     monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: #faf9ff;
 }
@@ -387,7 +387,7 @@
   background: rgba(255, 255, 255, 0.03);
   color: rgba(250, 249, 255, 0.5);
   font-weight: 800;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -456,7 +456,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
   color: rgba(250, 249, 255, 0.5);
@@ -519,7 +519,7 @@
   border: 1px solid #00e5ff;
   border-radius: 999px;
   padding: 4px 12px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: #00e5ff;
   letter-spacing: 0.04em;
@@ -570,7 +570,7 @@
   bottom: 8px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   pointer-events: none;
   letter-spacing: 0.04em;
@@ -649,7 +649,7 @@
 }
 
 .xb-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -707,7 +707,7 @@
     JetBrains Mono,
     Fira Code,
     monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: #faf9ff;
   width: 40px;
@@ -722,7 +722,7 @@
     JetBrains Mono,
     Fira Code,
     monospace;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.08em;
   color: #00e5ff;
@@ -885,7 +885,7 @@
 }
 
 .rail-title {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -927,7 +927,7 @@
 }
 
 .scene-name {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -964,7 +964,7 @@
   color: #faf9ff;
 }
 .tc-count {
-  font-size: 9px;
+  font-size: 11px;
   color: #00e5ff;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -973,7 +973,7 @@
 
 .tc-help {
   margin: 2px 0 0;
-  font-size: 9px;
+  font-size: 11px;
   color: rgba(250, 249, 255, 0.5);
 }
 
@@ -1041,7 +1041,7 @@
     JetBrains Mono,
     Fira Code,
     monospace;
-  font-size: 10px;
+  font-size: 11px;
   color: rgba(250, 249, 255, 0.5);
 }
 
@@ -1102,7 +1102,7 @@
   color: rgba(250, 249, 255, 0.5);
 }
 .tc-empty-text {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: rgba(250, 249, 255, 0.5);
   letter-spacing: 0.06em;
@@ -1150,7 +1150,7 @@
   }
   .layout-switcher button {
     padding: 5px 10px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .perf-rack {
     padding: 8px 10px;
@@ -1162,7 +1162,7 @@
   .rack-toggle {
     height: 28px;
     padding: 0 8px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .perf-meter-deck {
     padding: 8px 10px;
@@ -1174,7 +1174,7 @@
   .rec-arm-btn {
     height: 38px;
     padding: 0 14px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .kb-key.is-white {
     width: 50px;
@@ -1208,7 +1208,7 @@
   }
   .layout-switcher button {
     padding: 4px 8px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .kb-key.is-white {
     width: 40px;
@@ -1222,7 +1222,7 @@
   }
   .xb-label {
     width: 50px;
-    font-size: 7px;
+    font-size: 11px;
   }
 }
 
@@ -1296,7 +1296,7 @@
   line-height: 1;
 }
 .macro-preset-name {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1353,7 +1353,7 @@
   gap: 2px;
   padding: 8px 10px;
   pointer-events: none;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1382,7 +1382,7 @@
 }
 
 .xy-corner-label {
-  font-size: 8px;
+  font-size: 11px;
   color: #00e5ff;
 }
 .xy-corner-value {
@@ -1400,12 +1400,12 @@
   line-height: 1;
 }
 .xy-corner-name {
-  font-size: 9px;
+  font-size: 11px;
   color: #faf9ff;
   font-weight: 800;
 }
 .xy-corner-status {
-  font-size: 8px;
+  font-size: 11px;
   color: rgba(250, 249, 255, 0.5);
   letter-spacing: 0.16em;
 }
@@ -1415,7 +1415,7 @@
   border: none;
   border-radius: 999px;
   padding: 4px 10px;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.16em;
   cursor: pointer;
@@ -1507,7 +1507,7 @@
     padding: 8px 6px;
   }
   .macro-preset-name {
-    font-size: 8px;
+    font-size: 11px;
   }
   .macro-preset-glyph {
     font-size: 14px;
@@ -1548,7 +1548,7 @@
 }
 
 .midi-picker-title {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1556,7 +1556,7 @@
 }
 
 .midi-picker-activity {
-  font-size: 10px;
+  font-size: 11px;
   color: rgba(250, 249, 255, 0.5);
   transition:
     color 0.08s,
@@ -1585,7 +1585,7 @@
 }
 
 .midi-picker-name {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: #faf9ff;
 }
@@ -1595,7 +1595,7 @@
   background: #07060d;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 4px;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: rgba(250, 249, 255, 0.5);
@@ -1626,7 +1626,7 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 4px;
   padding: 1px 3px;
-  font-size: 9px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.12s;
   line-height: 1;
@@ -1657,7 +1657,7 @@
 }
 
 .midi-learn-mapping {
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 700;
   font-family:
     JetBrains Mono,
@@ -1700,7 +1700,7 @@
 }
 
 .midi-clock-label {
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1713,7 +1713,7 @@
   background: #07060d;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 4px;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: #faf9ff;
@@ -1746,7 +1746,7 @@
     JetBrains Mono,
     Fira Code,
     monospace;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   color: #00e5ff;
   min-width: 44px;
@@ -1759,7 +1759,7 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 6px;
   color: rgba(250, 249, 255, 0.5);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.12s;
@@ -1791,7 +1791,7 @@
 }
 
 .midi-mapping-title {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1804,7 +1804,7 @@
   border: 1px solid #ff007f;
   border-radius: 4px;
   color: #ff007f;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1844,7 +1844,7 @@
 .midi-mapping-header {
   background: transparent;
   border: none;
-  font-size: 7px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1853,7 +1853,7 @@
 }
 
 .midi-mapping-target {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: #faf9ff;
   text-transform: capitalize;
@@ -1864,7 +1864,7 @@
     JetBrains Mono,
     Fira Code,
     monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: #00e5ff;
   text-align: center;
@@ -1875,7 +1875,7 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 4px;
   color: #ff007f;
-  font-size: 10px;
+  font-size: 11px;
   padding: 2px 4px;
   cursor: pointer;
   transition: all 0.12s;
@@ -1920,7 +1920,7 @@
 
 .midi-log-empty {
   color: rgba(250, 249, 255, 0.5);
-  font-size: 10px;
+  font-size: 11px;
   padding: 12px 0;
   text-align: center;
 }
@@ -1937,7 +1937,7 @@
     JetBrains Mono,
     Fira Code,
     monospace;
-  font-size: 9px;
+  font-size: 11px;
   animation: midiLogFade 0.15s ease-out;
 }
 
@@ -1968,7 +1968,7 @@
   font-weight: 800;
   color: #00e5ff;
   min-width: 32px;
-  font-size: 8px;
+  font-size: 11px;
   letter-spacing: 0.04em;
 }
 
@@ -1992,7 +1992,7 @@
 
 .midi-thru-summary {
   padding: 6px 10px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: #00e5ff;
@@ -2018,7 +2018,7 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 4px;
   color: #faf9ff;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   font-family:
     JetBrains Mono,
@@ -2537,7 +2537,7 @@
 .performer-header .brand-title p {
   margin-top: 3px;
   color: var(--performer-teal);
-  font-size: 8px;
+  font-size: 11px;
   letter-spacing: 0.1em;
 }
 
@@ -2586,7 +2586,7 @@
   border: 0;
   border-radius: 8px;
   color: var(--performer-muted);
-  font-size: 9px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -2677,7 +2677,7 @@
   border-radius: 9px;
   background: color-mix(in srgb, var(--performer-surface) 88%, transparent);
   color: var(--performer-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .performer-midi-device-toggle.is-on,
@@ -2902,7 +2902,7 @@
   border-radius: 9px;
   background: color-mix(in srgb, var(--performer-surface) 86%, transparent);
   color: var(--performer-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .performer-rack-toggle:hover,
@@ -3005,7 +3005,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--performer-panel) 86%, transparent);
   color: var(--performer-muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .performer-record-utility:hover,
@@ -3322,7 +3322,7 @@
   border-radius: 9px;
   background: var(--performer-teal);
   color: var(--performer-ink);
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .performer-xy-reset:hover,
@@ -3671,7 +3671,7 @@
   }
 
   .performer-pad-surface .pad-label {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .performer-macros-view {
@@ -3811,7 +3811,7 @@ disclosure. Record arm, monitor and phantom stay visible. */
   background: rgba(8, 16, 26, 0.9);
   color: #cfeef5;
   font: inherit;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;

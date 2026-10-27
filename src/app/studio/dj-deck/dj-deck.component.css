@@ -127,7 +127,7 @@
 .dj-booth .eyebrow {
   margin: 0;
   color: var(--vv-ink-faint);
-  font: 700 9px/1.3 var(--vv-label);
+  font: 700 11px/1.3 var(--vv-label);
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
@@ -216,7 +216,7 @@
   align-items: center;
   gap: 4px;
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.2em;
 }
 .lamp em {
@@ -259,7 +259,7 @@
   border-radius: 8px;
   background: var(--vv-well);
   color: var(--vv-ink-dim);
-  font: 700 9px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
   letter-spacing: 0.14em;
   white-space: nowrap;
 }
@@ -418,7 +418,7 @@
   align-items: center;
   gap: 12px;
   color: var(--vv-ink-dim);
-  font: 700 10px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 .overview-readouts > span {
   display: inline-flex;
@@ -513,7 +513,7 @@
   align-items: center;
   gap: 8px;
   color: var(--vv-ink-dim);
-  font: 700 9px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.1em;
   pointer-events: none;
 }
@@ -523,7 +523,7 @@
 .lane-foot {
   bottom: 3px;
   color: var(--vv-ink-faint);
-  font: 700 8px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 .lane-foot span:last-child {
   margin-left: auto;
@@ -551,7 +551,7 @@
 .lane-head em {
   margin-left: auto;
   color: var(--vv-ink);
-  font: 700 10px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
   font-style: normal;
 }
 
@@ -656,7 +656,7 @@
   display: block;
   margin-top: 1px;
   color: var(--deck-color);
-  font: 700 9px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.22em;
   text-shadow: 0 0 12px color-mix(in srgb, var(--deck-color), transparent 60%);
 }
@@ -681,7 +681,7 @@
   padding: 0 8px;
   border-radius: 6px;
   color: var(--vv-ink-faint);
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.12em;
 }
 .mini-status .material-symbols-outlined {
@@ -712,7 +712,7 @@
 .metric-label {
   display: block;
   color: var(--vv-ink-faint);
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.18em;
 }
 .deck-metrics strong {
@@ -728,7 +728,7 @@
   min-height: 32px;
   padding: 0 10px;
   border-radius: 6px;
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.16em;
 }
 
@@ -754,13 +754,13 @@
 .knob-group .label,
 .knob-group span.label {
   color: var(--vv-ink-faint);
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 .knob-group em {
   color: var(--vv-ink-dim);
-  font: 700 8px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
   font-style: normal;
   white-space: nowrap;
 }
@@ -838,7 +838,7 @@
   border-radius: 5px;
   color: var(--vv-ink-faint);
   background: #100d09;
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.14em;
 }
 .filter-switch button.is-active {
@@ -878,7 +878,7 @@
   left: 10px;
   top: 6px;
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.2em;
   opacity: 0;
   transition: opacity 180ms ease;
@@ -1092,7 +1092,7 @@
 }
 .platter-marks .mark {
   position: absolute;
-  font: 700 8px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 .mark-33 {
   left: 14%;
@@ -1123,7 +1123,7 @@
   gap: 8px;
   width: min(100%, 296px);
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.22em;
 }
 .jog-rail i {
@@ -1138,12 +1138,12 @@
   gap: 8px;
   width: min(100%, 296px);
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.18em;
 }
 .jog-velocity strong {
   color: var(--deck-color, var(--vv-a));
-  font: 700 10px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 .velocity-line {
   position: relative;
@@ -1177,7 +1177,7 @@
   color: var(--vv-ink-faint);
   background: linear-gradient(180deg, #1c1712, #0b0906);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.14em;
 }
 .cue-button b {
@@ -1204,7 +1204,7 @@
 }
 .loop-label {
   color: var(--vv-ink-faint);
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.2em;
 }
 .loop-chip {
@@ -1214,7 +1214,7 @@
   border-radius: 6px;
   color: var(--vv-ink-faint);
   background: #0e0b08;
-  font: 700 8px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
   letter-spacing: 0.06em;
 }
 .loop-chip.is-active {
@@ -1251,7 +1251,7 @@
 }
 .pitch-scale-label {
   color: var(--vv-ink-faint);
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.2em;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
@@ -1285,7 +1285,7 @@
 }
 .pitch-zero {
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 .pitch-readout {
   color: var(--deck-color, var(--vv-a));
@@ -1348,7 +1348,7 @@
   gap: 1px;
   min-height: 54px;
   color: var(--vv-ink-dim);
-  font: 700 9px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.16em;
 }
 .transport-button.play {
@@ -1358,7 +1358,7 @@
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.9),
     0 3px 0 rgba(0, 0, 0, 0.5);
-  font: 700 10px var(--vv-display);
+  font: 700 11px var(--vv-display);
   letter-spacing: 0.12em;
 }
 .transport-button.play .material-symbols-outlined {
@@ -1388,7 +1388,7 @@
   min-height: 32px;
   padding: 0 6px;
   border-radius: 6px;
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.12em;
 }
 
@@ -1430,7 +1430,7 @@
   align-items: center;
   gap: 5px;
   color: var(--vv-lamp);
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.18em;
 }
 .online-badge i {
@@ -1487,7 +1487,7 @@
 }
 .channel-id span {
   color: var(--vv-ink-faint);
-  font: 700 8px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 .channel-fader {
   width: 100%;
@@ -1499,7 +1499,7 @@
 }
 .fader-label {
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.2em;
 }
 
@@ -1519,12 +1519,12 @@
   flex-direction: column;
   align-items: center;
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.2em;
 }
 .meter-label strong {
   color: var(--vv-a);
-  font: 700 10px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 .meter-columns {
   display: flex;
@@ -1551,7 +1551,7 @@
 }
 .meter-cell em {
   color: #4a3f2c;
-  font: 700 7px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
   font-style: normal;
 }
 .master-presets {
@@ -1565,7 +1565,7 @@
   border-radius: 5px;
   color: var(--vv-ink-dim);
   background: linear-gradient(180deg, #221c16, #100d09);
-  font: 700 9px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 
 .mixer-sync-panel {
@@ -1583,11 +1583,11 @@
     inset 0 1px rgba(255, 255, 255, 0.6),
     0 3px 0 rgba(0, 0, 0, 0.5),
     0 0 20px rgba(201, 162, 39, 0.25);
-  font: 700 10px var(--vv-label);
+  font: 700 11px var(--vv-label);
 }
 .automix-button {
   min-height: 44px;
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
 }
 .automix-button i {
   width: 7px;
@@ -1610,7 +1610,7 @@
   display: flex;
   justify-content: space-between;
   color: var(--vv-ink-faint);
-  font: 700 8px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
   letter-spacing: 0.06em;
 }
 .delta-readout span {
@@ -1630,7 +1630,7 @@
   align-items: center;
   justify-content: space-between;
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.18em;
 }
 .crossfader-head {
@@ -1696,7 +1696,7 @@
   border-radius: 6px;
   color: var(--vv-ink-faint);
   background: transparent;
-  font: 700 9px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.16em;
 }
 .performance-tabs button.is-active {
@@ -1719,7 +1719,7 @@
 }
 .select-field span {
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.18em;
 }
 .select-field select {
@@ -1727,7 +1727,7 @@
   border: 0;
   color: var(--vv-ink);
   background: transparent;
-  font: 700 10px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 .performance-notice {
   flex: 1;
@@ -1738,7 +1738,7 @@
   border: 1px solid rgba(240, 162, 74, 0.18);
   background: linear-gradient(180deg, #0d0a07, #060505);
   color: var(--vv-a);
-  font: 700 9px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
   letter-spacing: 0.06em;
   text-shadow: 0 0 12px rgba(240, 162, 74, 0.3);
   box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.8);
@@ -1766,12 +1766,12 @@
   justify-content: space-between;
   margin-bottom: 7px;
   color: var(--vv-ink-dim);
-  font: 700 9px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.18em;
 }
 .bank-label small {
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 .pad-row {
   display: grid;
@@ -1790,13 +1790,13 @@
   color: var(--vv-ink-faint);
   background: linear-gradient(180deg, #1d1813, #0b0906);
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.1em;
   touch-action: manipulation;
 }
 .performance-pad small {
   color: var(--vv-ink-faint);
-  font: 700 9px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
 }
 .performance-pad.is-set {
   color: #150e05;
@@ -1834,7 +1834,7 @@
   border-radius: 6px;
   color: var(--vv-ink-faint);
   background: #0d0b08;
-  font: 700 8px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.14em;
 }
 .fx-mode-list button.is-active {
@@ -1860,13 +1860,13 @@
 }
 .fx-depth span {
   color: var(--vv-ink-faint);
-  font: 700 7px var(--vv-label);
+  font: 700 11px var(--vv-label);
   letter-spacing: 0.16em;
   text-align: center;
 }
 .fx-depth em {
   color: var(--vv-ink-dim);
-  font: 700 9px var(--vv-mono);
+  font: 700 11px var(--vv-mono);
   font-style: normal;
 }
 
@@ -2052,10 +2052,10 @@
   .booth-session-state {
     gap: 5px;
     padding: 5px 7px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .booth-session-state strong {
-    font-size: 10px;
+    font-size: 11px;
   }
   .booth-top-actions {
     gap: 4px;
@@ -2075,7 +2075,7 @@
   }
   .overview-readouts {
     gap: 7px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .waveform-lane {
     height: 68px;
@@ -2095,13 +2095,13 @@
     top: 3px;
     left: 6px;
     right: 6px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .lane-foot {
     bottom: 2px;
     left: 6px;
     right: 6px;
-    font-size: 7px;
+    font-size: 11px;
   }
 
   .deck-chassis,
@@ -2134,7 +2134,7 @@
   .mini-status {
     min-height: 26px;
     padding-inline: 5px;
-    font-size: 7px;
+    font-size: 11px;
   }
   .deck-metrics {
     gap: 4px;
@@ -2146,7 +2146,7 @@
   .tap-button {
     min-height: 26px;
     padding-inline: 6px;
-    font-size: 7px;
+    font-size: 11px;
   }
   .tone-stack {
     gap: 4px;
@@ -2157,10 +2157,10 @@
   }
   .knob-group .label,
   .knob-group span.label {
-    font-size: 7px;
+    font-size: 11px;
   }
   .knob-group em {
-    font-size: 7px;
+    font-size: 11px;
   }
   .vknob {
     width: 34px;
@@ -2179,7 +2179,7 @@
   .filter-switch button {
     min-height: 20px;
     padding-inline: 4px;
-    font-size: 6px;
+    font-size: 11px;
   }
   .jog-zone {
     gap: 3px;
@@ -2193,24 +2193,24 @@
   .jog-rail,
   .jog-velocity {
     width: min(100%, 38vh, 248px);
-    font-size: 6px;
+    font-size: 11px;
   }
   .hotcue-strip {
     gap: 4px;
   }
   .cue-button {
     min-height: 38px;
-    font-size: 6px;
+    font-size: 11px;
   }
   .cue-button b {
-    font-size: 10px;
+    font-size: 11px;
   }
   .loop-presets {
     gap: 3px;
   }
   .loop-chip {
     min-height: 24px;
-    font-size: 7px;
+    font-size: 11px;
   }
   .pitch-control {
     gap: 4px;
@@ -2225,14 +2225,14 @@
     padding: 3px 5px;
   }
   .pitch-readout {
-    font-size: 9px;
+    font-size: 11px;
   }
   .deck-transport {
     gap: 4px;
   }
   .transport-button {
     min-height: 42px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .transport-button.play .material-symbols-outlined {
     font-size: 18px;
@@ -2243,7 +2243,7 @@
   .btn-chrome {
     min-height: 26px;
     padding-inline: 4px;
-    font-size: 7px;
+    font-size: 11px;
   }
 
   .mixer-channels {
@@ -2284,7 +2284,7 @@
   .master-presets button {
     min-width: 21px;
     min-height: 20px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .mixer-sync-panel {
     gap: 4px;
@@ -2292,7 +2292,7 @@
   .master-sync-button,
   .automix-button {
     min-height: 34px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .crossfader-block,
   .master-drive {
@@ -2320,7 +2320,7 @@
   .performance-tabs button {
     min-height: 26px;
     padding-inline: 7px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .performance-selects {
     gap: 4px;
@@ -2331,12 +2331,12 @@
   }
   .select-field select {
     min-height: 22px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .performance-notice {
     min-width: 150px;
     padding: 5px 7px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .performance-grid {
     gap: 6px;
@@ -2346,14 +2346,14 @@
   }
   .bank-label {
     margin-bottom: 4px;
-    font-size: 8px;
+    font-size: 11px;
   }
   .pad-row {
     gap: 4px;
   }
   .performance-pad {
     min-height: 48px;
-    font-size: 7px;
+    font-size: 11px;
   }
   .fx-console {
     grid-template-columns: minmax(0, 1fr) 96px 96px;
@@ -2365,7 +2365,7 @@
   .fx-mode-list button {
     min-height: 24px;
     padding-inline: 6px;
-    font-size: 7px;
+    font-size: 11px;
   }
   .fx-depth {
     gap: 3px;
@@ -2641,10 +2641,10 @@
     font-size: 12px;
   }
   .meter-label strong {
-    font-size: 9px;
+    font-size: 11px;
   }
   .knob-group em {
-    font-size: 7px;
+    font-size: 11px;
   }
   .cue-button {
     min-height: 52px;
@@ -2683,7 +2683,7 @@
   }
   .loop-chip {
     min-height: 30px;
-    font-size: 7px;
+    font-size: 11px;
   }
 }
 
@@ -2720,7 +2720,7 @@ Loop length chips were 11×30 and the LPF/HPF switches 27×24 on a 390px phone
   .loop-chip {
     min-width: 44px;
     min-height: 40px;
-    font-size: 9px;
+    font-size: 11px;
     letter-spacing: 0.04em;
   }
   .filter-switch {
@@ -2730,6 +2730,23 @@ Loop length chips were 11×30 and the LPF/HPF switches 27×24 on a 390px phone
     min-width: 44px;
     min-height: 40px;
     padding: 0 8px;
-    font-size: 9px;
+    font-size: 11px;
+  }
+}
+
+/* Phone: one crossfader, on the first screen.
+   The header copy (see the template) is the control; the console copy between
+   the platters is hidden at this width so both are never live at once. */
+.phone-crossfader {
+  display: none;
+  margin: 0 12px 10px;
+}
+
+@media (max-width: 768px) {
+  .phone-crossfader {
+    display: block;
+  }
+  .central-mixer-console .crossfader-block {
+    display: none;
   }
 }

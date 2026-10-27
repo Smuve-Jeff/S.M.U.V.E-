@@ -46,11 +46,33 @@
       <button class="chrome-button" type="button" (click)="exportSessionSnapshot()" title="Export the session snapshot">
         <span class="material-symbols-outlined">download</span><span class="button-copy">RIDER</span>
       </button>
-      <button class="icon-button" type="button" (click)="isFlatView.set(!isFlatView())" [attr.aria-label]="isFlatView() ? 'Enable the tilted booth view' : 'Enable the flat booth view'">
-        <span class="material-symbols-outlined">{{ isFlatView() ? 'view_in_ar' : 'view_quilt' }}</span>
+      <button class="chrome-button" type="button" (click)="isFlatView.set(!isFlatView())" [attr.aria-label]="isFlatView() ? 'Enable the tilted booth view' : 'Enable the flat booth view'" [title]="isFlatView() ? 'Tilted booth view' : 'Flat booth view'">
+        <span class="material-symbols-outlined">{{ isFlatView() ? 'view_in_ar' : 'view_quilt' }}</span><span class="button-copy">VIEW</span>
       </button>
     </div>
   </header>
+
+  <!-- Phone: the crossfader is the booth's primary gesture, so it rides the
+       first screen instead of living between the platters — on a 390px phone
+       that block sat below the fold. The console copy is hidden at this width
+       so there is still exactly one control bound to the crossfade. -->
+  <div class="crossfader-block phone-crossfader">
+    <div class="crossfader-head">
+      <span class="a-text">A / {{ crossfadeMixA() }}%</span>
+      <span>CROSSFADER</span>
+      <span class="b-text">{{ crossfadeMixB() }}% / B</span>
+    </div>
+    <input
+      type="range"
+      min="-1"
+      max="1"
+      step=".01"
+      [value]="deckService.crossfade()"
+      (input)="updateCrossfader($any($event.target).value)"
+      aria-label="Crossfader"
+    />
+    <div class="crossfader-track-labels"><span>A</span><span>CENTER</span><span>B</span></div>
+  </div>
 
   <!-- ══════════════════════════════════════════════════════════════
        SCOPE RAIL — both grooves side by side, master bus readouts
@@ -80,7 +102,7 @@
         <div class="lane-grid"></div>
         <div class="playhead"></div>
         <div class="lane-foot">
-          <span>{{ deckService.deckA().bpm | number:'1.0-0' }} BPM</span>
+          <span>{{ deckATempo() | number:'1.0-0' }} BPM</span>
           <span>{{ deckService.deckA().duration | number:'1.0-0' }}s</span>
           <span>{{ deckService.deckA().loop ? 'LOOP LOCKED' : 'GROOVE FREE' }}</span>
         </div>
@@ -95,7 +117,7 @@
         <div class="lane-grid"></div>
         <div class="playhead"></div>
         <div class="lane-foot">
-          <span>{{ deckService.deckB().bpm | number:'1.0-0' }} BPM</span>
+          <span>{{ deckBTempo() | number:'1.0-0' }} BPM</span>
           <span>{{ deckService.deckB().duration | number:'1.0-0' }}s</span>
           <span>{{ deckService.deckB().loop ? 'LOOP LOCKED' : 'GROOVE FREE' }}</span>
         </div>
