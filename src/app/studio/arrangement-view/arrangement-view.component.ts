@@ -45,6 +45,7 @@ import {
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
 import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
 import { AutomationCurveEditorComponent } from "../automation/automation-curve-editor.component";
+import { AutomationService } from "../automation.service";
 
 export type ArrangementTool =
   | "select"
@@ -123,7 +124,14 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   activeTool = signal<"select" | "blade" | "glue">("select");
   selectedClipIds = signal<Set<string>>(new Set());
   snapEnabled = signal(true);
-  isRecordingAutomation = signal(false);
+  private readonly automation = inject(AutomationService);
+
+  /**
+   * Mirrors the service, not a local flag: the AUTO button arms real keyframe
+   * capture (see AutomationService.captureWrite), so its lit state has to be
+   * the same state the write path reads.
+   */
+  readonly isRecordingAutomation = this.automation.writeEnabled;
   clipActionsOpen = signal(false);
   overviewZoom = signal(1);
 
@@ -1225,7 +1233,18 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   toggleAutomation() {
     this.haptic.medium();
-    this.isRecordingAutomation.update((v) => !v);
+    const armed = !this.automation.writeEnabled();
+    this.automation.setWriteEnabled(armed);
+    if (armed) {
+      const track = this.tracks().find(
+        (t) => t.id === this.musicManager.selectedTrackId(),
+      );
+      this.snackbar.info(
+        `Automation write armed${track ? " · " + track.name : ""} — move a fader or pan while the song plays`,
+      );
+    } else {
+      this.snackbar.info("Automation write off — curves play back as drawn");
+    }
   }
 
   toggleGroup(trackId: string) {

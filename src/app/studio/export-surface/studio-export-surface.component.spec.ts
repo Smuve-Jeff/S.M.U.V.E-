@@ -29,6 +29,7 @@ describe("StudioExportSurfaceComponent", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
     exportService.renderProjectOffline.mockResolvedValue({});
     exportService.applySmuvePolish.mockResolvedValue({});
     exportService.exportToFormat.mockResolvedValue(wavBlob());
@@ -47,6 +48,67 @@ describe("StudioExportSurfaceComponent", () => {
     fixture = TestBed.createComponent(StudioExportSurfaceComponent);
     fixture.detectChanges();
     component = fixture.componentInstance;
+  });
+
+  describe("delivery presets", () => {
+    it("saves the current format, rate and depth and reapplies them", () => {
+      component.setFormat({ target: { value: "mp3" } } as unknown as Event);
+      component.setSampleRate({
+        target: { value: "48000" },
+      } as unknown as Event);
+      component.setStemBitDepth({
+        target: { value: "16" },
+      } as unknown as Event);
+      component.setPresetName("Video deliverable");
+      component.savePreset();
+
+      expect(component.presets()).toHaveLength(1);
+      const preset = component.presets()[0];
+      expect(preset).toMatchObject({
+        name: "Video deliverable",
+        format: "mp3",
+        sampleRate: 48000,
+        stemBitDepth: 16,
+      });
+      // Persisted, so a reload keeps the delivery setup.
+      expect(localStorage.getItem("smuve_export_presets_v1")).toContain(
+        "Video deliverable",
+      );
+
+      // Change the live options, then apply the preset back.
+      component.setFormat({ target: { value: "wav24" } } as unknown as Event);
+      component.setSampleRate({
+        target: { value: "44100" },
+      } as unknown as Event);
+      component.setStemBitDepth({
+        target: { value: "24" },
+      } as unknown as Event);
+      component.applyPreset(preset);
+
+      expect(component.format()).toBe("mp3");
+      expect(component.sampleRate()).toBe(48000);
+      expect(component.stemBitDepth()).toBe(16);
+    });
+
+    it("overwrites a preset with the same name instead of duplicating", () => {
+      component.setPresetName("Release");
+      component.savePreset();
+      component.setFormat({ target: { value: "flac" } } as unknown as Event);
+      component.setPresetName("Release");
+      component.savePreset();
+
+      expect(component.presets()).toHaveLength(1);
+      expect(component.presets()[0].format).toBe("flac");
+    });
+
+    it("deletes a saved preset", () => {
+      component.setPresetName("Temporary");
+      component.savePreset();
+      const id = component.presets()[0].id;
+      component.deletePreset(id);
+      expect(component.presets()).toHaveLength(0);
+      expect(localStorage.getItem("smuve_export_presets_v1")).toBe("[]");
+    });
   });
 
   describe("options", () => {

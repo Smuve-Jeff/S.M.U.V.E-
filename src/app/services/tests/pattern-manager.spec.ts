@@ -32,6 +32,9 @@ describe("MusicManagerService pattern manager", () => {
     triggerSampler: jest.fn(),
     setBaseFaderGain: jest.fn(),
     calculatePlaybackRate: () => 1,
+    playMode: signal("pattern" as "pattern" | "song"),
+    setPlayMode: (mode: "pattern" | "song") => mockEngine.playMode.set(mode),
+    loopLengthSteps: () => 64,
     getContext: () => ({
       destination: {},
       currentTime: 0,
@@ -66,6 +69,105 @@ describe("MusicManagerService pattern manager", () => {
     ] as any);
     return id;
   }
+
+  // ── Live scene launch / follow actions ─────────────────────────────
+  it("launches a scene column and follows the live patterns", () => {
+    const id = seedTrack();
+    const original = track(id).activePatternSlotId!;
+    const verse = service.createPatternSlot(id, "Verse")!;
+    service.replaceTrackNotes(id, [
+      { id: "n-verse", midi: 67, step: 0, length: 1, velocity: 0.8 },
+    ] as any);
+    service.setActivePatternSlot(id, original);
+
+    const switched = service.launchSceneColumn(1);
+
+    expect(switched).toBe(1);
+    expect(track(id).activePatternSlotId).toBe(verse);
+    expect(service.scenePlaybackActive()).toBe(true);
+    expect(service.activeSceneColumn()).toBe(1);
+    expect(mockEngine.playMode()).toBe("pattern");
+  });
+
+  it("skips channels that have nothing in the launched scene", () => {
+    // A brand-new channel has an empty pattern; the copy made by
+    // createPatternSlot is therefore empty too.
+    const id = service.addTrack("Empty", "analog-warmth", "midi");
+    // createPatternSlot activates the new (empty) pattern itself, so the
+    // launch must be the thing that leaves the active slot alone.
+    service.createPatternSlot(id, "Verse");
+    const afterCreate = track(id).activePatternSlotId;
+
+    const switched = service.launchSceneColumn(1);
+
+    expect(switched).toBe(0);
+    expect(track(id).activePatternSlotId).toBe(afterCreate);
+  });
+
+  it("returns to the arrangement and restores song mode", () => {
+    const id = seedTrack();
+    service.launchSceneColumn(0);
+    expect(service.scenePlaybackActive()).toBe(true);
+
+    service.backToArrangement();
+
+    expect(service.scenePlaybackActive()).toBe(false);
+    expect(service.activeSceneColumn()).toBeNull();
+    expect(mockEngine.playMode()).toBe("song");
+    expect(track(id)).toBeTruthy();
+  });
+
+  it("follow actions advance on the bar line and disarm at the end", () => {
+    const id = seedTrack();
+    const a = track(id).activePatternSlotId!;
+    service.createPatternSlot(id, "B");
+    service.replaceTrackNotes(id, [
+      { id: "n-b", midi: 62, step: 0, length: 1, velocity: 0.8 },
+    ] as any);
+    service.setActivePatternSlot(id, a);
+
+    service.launchSceneColumn(0);
+    service.sceneFollowEnabled.set(true);
+    service.sceneFollowBars.set(1);
+
+    // A step inside the bar must not advance the scene.
+    service.playStep(7, 0, 0.1);
+    expect(service.activeSceneColumn()).toBe(0);
+
+    service.playStep(0, 0, 0.1);
+    expect(service.activeSceneColumn()).toBe(1);
+    expect(service.scenePlaybackActive()).toBe(true);
+
+    // Follow wraps back to the first scene with material.
+    service.playStep(16, 0, 0.1);
+    expect(service.activeSceneColumn()).toBe(0);
+  });
+
+  it("disarms follow when the launched scene is the only one", () => {
+    const id = seedTrack(); // a single default pattern with a note
+    service.launchSceneColumn(0);
+    service.sceneFollowEnabled.set(true);
+    service.sceneFollowBars.set(1);
+
+    service.playStep(0, 0, 0.1);
+
+    expect(service.sceneFollowEnabled()).toBe(false);
+    expect(service.activeSceneColumn()).toBe(0);
+    expect(track(id)).toBeTruthy();
+  });
+
+  it("nextSceneColumn advances and wraps around the pattern columns", () => {
+    const id = seedTrack();
+    const first = track(id).activePatternSlotId!;
+    service.createPatternSlot(id, "B");
+    service.setActivePatternSlot(id, first);
+    service.launchSceneColumn(0);
+
+    // Two columns with material: forward then wrap back to the top.
+    expect(service.nextSceneColumn()).toBe(1);
+    service.launchSceneColumn(1);
+    expect(service.nextSceneColumn()).toBe(0);
+  });
 
   it("loads the target pattern's material when switching", () => {
     const id = seedTrack();

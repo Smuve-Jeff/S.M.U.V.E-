@@ -26,6 +26,66 @@ describe("QuickSessionComponent", () => {
   const updateMasterVolume = jest.fn();
   const addTrack = jest.fn(() => "track-new");
   const updateVolume = jest.fn();
+  const setActivePatternSlot = jest.fn((trackId: string, slotId: string) => {
+    tracks.update((list) =>
+      list.map((track) =>
+        track.id === trackId ? { ...track, activePatternSlotId: slotId } : track,
+      ),
+    );
+  });
+  const scenePlaybackActive = signal(false);
+  const activeSceneColumn = signal<number | null>(null);
+  const sceneFollowEnabled = signal(false);
+  const sceneFollowBars = signal(4);
+  const patternSlotHasContent = jest.fn(
+    (track: any, slot: any) =>
+      (track.activePatternSlotId === slot.id
+        ? (track.steps ?? []).some(Boolean)
+        : (slot.versions?.at(-1)?.steps ?? []).some(Boolean)),
+  );
+  const launchSceneColumn = jest.fn((column: number) => {
+    let switched = 0;
+    tracks.update((list) =>
+      list.map((track) => {
+        const slot = track.patternSlots?.[column];
+        if (!slot || !patternSlotHasContent(track, slot)) return track;
+        switched++;
+        return { ...track, activePatternSlotId: slot.id };
+      }),
+    );
+    if (switched > 0) {
+      activeSceneColumn.set(column);
+      scenePlaybackActive.set(true);
+    }
+    return switched;
+  });
+  const backToArrangement = jest.fn(() => {
+    scenePlaybackActive.set(false);
+    activeSceneColumn.set(null);
+  });
+  const createPatternSlot = jest.fn((trackId: string, name?: string) => {
+    const id = `slot-new-${trackId}`;
+    tracks.update((list) =>
+      list.map((track) =>
+        track.id === trackId
+          ? {
+              ...track,
+              activePatternSlotId: id,
+              patternSlots: [
+                ...(track.patternSlots ?? []),
+                {
+                  id,
+                  name: name ?? "Pattern new",
+                  activeVersionId: "v-new",
+                  versions: [],
+                },
+              ],
+            }
+          : track,
+      ),
+    );
+    return id;
+  });
   const selectedTrackId = signal<string | null>(null);
   const armedTrackIds = signal<Set<string>>(new Set());
   const tracks = signal<any[]>([
@@ -70,6 +130,10 @@ describe("QuickSessionComponent", () => {
     jest.clearAllMocks();
     isPlaying.set(false);
     isRecording.set(false);
+    scenePlaybackActive.set(false);
+    activeSceneColumn.set(null);
+    sceneFollowEnabled.set(false);
+    sceneFollowBars.set(4);
     tempo.set(120);
     metronomeEnabled.set(false);
     playbackLoopEnabled.set(false);
@@ -86,7 +150,25 @@ describe("QuickSessionComponent", () => {
         muted: false,
         soloed: false,
         notes: [],
+        steps: Array.from({ length: 16 }, (_, index) => index % 4 === 0),
         clips: [],
+        activePatternSlotId: "slot-0",
+        patternSlots: [
+          { id: "slot-0", name: "Pattern 1", activeVersionId: "v0", versions: [] },
+          {
+            id: "slot-1",
+            name: "Verse",
+            activeVersionId: "v1",
+            versions: [
+              {
+                id: "v1",
+                name: "captured",
+                steps: Array.from({ length: 16 }, () => true),
+                notes: [],
+              },
+            ],
+          },
+        ],
       },
     ]);
 
@@ -127,6 +209,15 @@ describe("QuickSessionComponent", () => {
             toggleMute: jest.fn(),
             toggleSolo: jest.fn(),
             updateVolume,
+            setActivePatternSlot,
+            createPatternSlot,
+            scenePlaybackActive,
+            activeSceneColumn,
+            sceneFollowEnabled,
+            sceneFollowBars,
+            patternSlotHasContent,
+            launchSceneColumn,
+            backToArrangement,
           },
         },
         {
@@ -272,6 +363,112 @@ describe("QuickSessionComponent", () => {
     expect(metronomeEnabled()).toBe(true);
     component.toggleLoop();
     expect(playbackLoopEnabled()).toBe(true);
+  });
+
+  // ── Scene grid ────────────────────────────────────────────────────
+  it("builds the scene grid from the live channels, not a fixed template", () => {
+    const rows = component.sceneRows();
+    expect(rows.map((row) => row.track.id)).toEqual(["t1"]);
+    // Two real slots → two columns, and each cell points at the slot it owns.
+    expect(component.sceneColumns()).toEqual([0, 1]);
+    expect(rows[0].cells[0].slotId).toBe("slot-0");
+    expect(rows[0].cells[0].active).toBe(true);
+    expect(rows[0].cells[1].slotId).toBe("slot-1");
+    expect(rows[0].cells[1].active).toBe(false);
+    // The active pattern is judged by the live pattern, other slots by their
+    // latest captured version.
+    expect(rows[0].cells[0].hasContent).toBe(true);
+    expect(rows[0].cells[1].hasContent).toBe(true);
+
+    // Audio channels have no pattern grid.
+    tracks.update((list) => [
+      ...list,
+      {
+        id: "a1",
+        name: "Vocal",
+        type: "audio",
+        color: "#111",
+        gain: 0.8,
+        muted: false,
+        soloed: false,
+        notes: [],
+        steps: [],
+        clips: [],
+        patternSlots: [],
+      },
+    ]);
+    expect(component.sceneRows().map((row) => row.track.id)).toEqual(["t1"]);
+  });
+
+  it("edits a pattern when its cell is tapped, without starting playback", () => {
+    const row = component.sceneRows()[0];
+    component.openSceneCell(row, row.cells[1]);
+    expect(setActivePatternSlot).toHaveBeenCalledWith("t1", "slot-1");
+    expect(selectedTrackId()).toBe("t1");
+    expect(togglePlay).not.toHaveBeenCalled();
+  });
+
+  it("creates the pattern when an empty cell is tapped", () => {
+    const row = component.sceneRows()[0];
+    const empty = { ...row.cells[1], slotId: null, active: false, hasContent: false };
+    component.openSceneCell(row, empty);
+    expect(createPatternSlot).toHaveBeenCalledWith("t1", "Verse");
+    expect(setActivePatternSlot).not.toHaveBeenCalled();
+  });
+
+  it("adds a pattern to one channel past the last column", () => {
+    component.addPattern(tracks()[0]);
+    expect(createPatternSlot).toHaveBeenCalledWith("t1");
+    expect(component.sceneRows()[0].cells.length).toBe(3);
+  });
+
+  it("launches a scene through the manager, then plays", () => {
+    component.launchScene(1);
+    expect(launchSceneColumn).toHaveBeenCalledWith(1);
+    expect(togglePlay).toHaveBeenCalledTimes(1);
+    expect(scenePlaybackActive()).toBe(true);
+    expect(component.isSceneActive(1)).toBe(true);
+    expect(component.isSceneActive(0)).toBe(false);
+  });
+
+  it("does not replay the transport or fake a launch for an empty column", () => {
+    isPlaying.set(true);
+    component.launchScene(1);
+    expect(togglePlay).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    component.launchScene(6);
+    expect(togglePlay).not.toHaveBeenCalled();
+    expect(scenePlaybackActive()).toBe(true); // unchanged by the no-op launch
+  });
+
+  it("returns to the arrangement from a launched scene", () => {
+    component.launchScene(0);
+    component.backToSong();
+    expect(backToArrangement).toHaveBeenCalledTimes(1);
+    expect(scenePlaybackActive()).toBe(false);
+    expect(component.isSceneActive(0)).toBe(false);
+  });
+
+  it("arms follow actions and clamps the bar count", () => {
+    component.toggleFollow();
+    expect(sceneFollowEnabled()).toBe(true);
+
+    component.setFollowBars(1);
+    expect(sceneFollowBars()).toBe(5);
+    component.setFollowBars(-99);
+    expect(sceneFollowBars()).toBe(1);
+    component.setFollowBars(99);
+    expect(sceneFollowBars()).toBe(32);
+  });
+
+  it("renders the grid and its launch headers", () => {
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector(".qs-scene-grid")).not.toBeNull();
+    expect(host.querySelectorAll(".qs-scene-launch")).toHaveLength(2);
+    expect(host.querySelectorAll(".qs-scene-cell")).toHaveLength(2);
+    // The active pattern is the one marked as being edited.
+    expect(host.querySelector(".qs-scene-cell.is-active")).not.toBeNull();
   });
 
   it("renders the core workspace and hides advanced tools until asked", () => {

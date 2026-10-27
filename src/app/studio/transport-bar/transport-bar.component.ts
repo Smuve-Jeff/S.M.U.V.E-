@@ -112,6 +112,8 @@ export class TransportBarComponent {
   /** Song tempo map — multiple tempo changes instead of one global BPM. */
   readonly tempoMap = inject(TempoMapService);
   tempoMapOpen = signal(false);
+  /** Undo history panel: the stack's last 40 steps, newest first. */
+  historyOpen = signal(false);
 
   /** External MIDI clock-in: a hardware sequencer can drive this transport. */
   readonly midiClock = inject(MidiClockSyncService);
@@ -155,6 +157,21 @@ export class TransportBarComponent {
   removeTempoMarker(id: string): void {
     this.haptic.light();
     this.tempoMap.removeMarker(id);
+  }
+
+  toggleHistoryPanel(): void {
+    this.historyOpen.update((open) => !open);
+  }
+
+  /**
+   * Restore to the state *before* the clicked step. The list is newest-first,
+   * so entry `index` sits `index` steps above the state we want to return to.
+   */
+  jumpToHistoryStep(index: number): void {
+    const remaining = this.history.undoCount() - index - 1;
+    const label = this.history.undoLabels()[index] ?? "that step";
+    this.history.undoToDepth(remaining);
+    this.snack.info(`History · restored to before “${label}”`);
   }
 
   clearTempoMap(): void {

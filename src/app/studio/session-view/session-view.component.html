@@ -1,694 +1,266 @@
-<!--
-  Session View — Ableton-style clip launcher
-  Scene rail (left) + track column headers + clip slot grid
-  Ivory + Teal DAW theme, mobile-responsive
--->
-<div class="sv-shell studio-workspace-surface session-workspace-surface" aria-label="Session clip launcher">
-  <!-- HEADER -->
-  <header class="sv-header studio-context-toolbar">
-    <div class="sv-header-left">
-      <span
-        class="material-symbols-outlined"
-        style="color: var(--teal-500); font-size: 24px"
-        >grid_view</span
-      >
-      <div class="sv-header-title">
-        <h2>Session View</h2>
-        <small
-          >Clip Launcher · {{ scenes().length }} Scenes ·
-          {{ clipTracks().length }} Tracks</small
-        >
-      </div>
+<div class="sv-shell studio-workspace-surface" data-studio-module="session-view">
+  <!-- ── Header: transport state, launch settings, follow, stop ─────── -->
+  <header class="sv-header">
+    <div class="sv-heading">
+      <p class="sv-eyebrow">SESSION VIEW</p>
+      <h1 class="sv-title">Launch scenes</h1>
+      <p class="sv-sub">
+        {{ scenes().length }} scene{{ scenes().length === 1 ? "" : "s" }} ·
+        {{ tracks().length }} channel{{ tracks().length === 1 ? "" : "s" }}
+      </p>
     </div>
-    <div class="sv-header-actions">
-      <button
-        type="button"
-        class="sv-action-btn"
-        (click)="addScene()"
-        aria-label="Add scene"
-      >
-        <span class="material-symbols-outlined" style="font-size: 16px"
-          >add</span
-        >
-        Add Scene
-      </button>
-      <button
-        type="button"
-        class="sv-action-btn"
-        (click)="stopAll()"
-        aria-label="Stop all clips and transport"
-        title="Stop all clips and transport"
-      >
-        <span class="material-symbols-outlined" style="font-size: 16px"
-          >stop</span
-        >
-        Stop All
-      </button>
-      <!-- Launch quantization -->
-      <label class="sv-quantize">
-        <span class="sv-quantize-label">Quantize</span>
-        <select
-          class="sv-quantize-select"
-          [value]="launchQuantize()"
-          (change)="launchQuantize.set($any($event.target).value)"
-          title="Snap clip/scene launches to the next bar boundary"
-        >
-          @for (q of quantizeOptions; track q) {
-            <option [value]="q">
-              {{ q === 'none' ? 'Off' : (q === '1bar' ? '1 bar' : q === '2bar' ? '2 bars' : '4 bars') }}
-            </option>
-          }
-        </select>
-      </label>
-      <!-- Follow-on scenes -->
-      <button
-        type="button"
-        class="sv-action-btn"
-        [class.active]="followOnEnabled()"
-        (click)="followOnEnabled.update((v) => !v)"
-        [title]="
-          followOnEnabled()
-            ? 'Follow-on ON — scenes auto-advance'
-            : 'Follow-on OFF — scenes play until stopped'
+
+    <div class="sv-actions">
+      <span
+        class="sv-transport-state"
+        [attr.data-state]="
+          isRecording() ? 'recording' : transportPlaying() ? 'playing' : 'ready'
         "
       >
-        <span class="material-symbols-outlined" style="font-size: 16px"
-          >skip_next</span
-        >
-        Follow-on
+        <span class="material-symbols-outlined" aria-hidden="true">{{
+          isRecording()
+            ? "fiber_manual_record"
+            : transportPlaying()
+              ? "play_arrow"
+              : "check_circle"
+        }}</span>
+        {{
+          isRecording() ? "RECORDING" : transportPlaying() ? "PLAYING" : "READY"
+        }}
+      </span>
+
+      <button type="button" class="sv-btn" (click)="openLaunchSettings()">
+        <span class="material-symbols-outlined" aria-hidden="true">timer</span>
+        {{ launchQuantize() === "none" ? "LAUNCH" : launchQuantize() }}
       </button>
-      <!-- Preset save/load -->
-      <div class="sv-preset-group">
-        <input
-          type="text"
-          class="sv-preset-input"
-          placeholder="Preset name…"
-          [value]="presetNameInput()"
-          (input)="presetNameInput.set($any($event.target).value)"
-        />
-        <button
-          type="button"
-          class="sv-action-btn sv-preset-save"
-          (click)="savePreset()"
-          title="Save current session as preset"
-        >
-          <span class="material-symbols-outlined" style="font-size: 14px"
-            >save</span
-          >
-          Save
-        </button>
-        <button
-          type="button"
-          class="sv-action-btn"
-          (click)="presetLoadOpen.update((v) => !v)"
-          aria-label="Load preset"
-        >
-          {{ presetLoadOpen() ? '✕' : '📂' }}
-        </button>
-      </div>
-      <!-- Export/Import -->
+
       <button
         type="button"
-        class="sv-action-btn"
-        (click)="exportProject()"
-        title="Export project as JSON bundle"
+        class="sv-btn sv-follow"
+        [class.is-on]="followEnabled()"
+        [attr.aria-pressed]="followEnabled()"
+        (click)="toggleFollow()"
+        title="Follow actions: launch the next scene after the set number of bars"
       >
-        <span class="material-symbols-outlined" style="font-size: 14px"
-          >file_download</span
-        >
-        Export
+        <span class="material-symbols-outlined" aria-hidden="true">skip_next</span>
+        FOLLOW {{ followEnabled() ? "ON" : "OFF" }} · {{ followBars() }}B
       </button>
-      <label
-        class="sv-action-btn sv-import-label"
-        title="Import project from JSON bundle"
+
+      <button type="button" class="sv-btn" (click)="addScene()">
+        <span class="material-symbols-outlined" aria-hidden="true">add</span>
+        SCENE
+      </button>
+
+      <button type="button" class="sv-btn sv-stop" (click)="stopAll()">
+        <span class="material-symbols-outlined" aria-hidden="true">stop</span>
+        STOP ALL
+      </button>
+
+      <button
+        type="button"
+        class="sv-btn sv-back"
+        *ngIf="scenePlaybackActive()"
+        (click)="backToSong()"
       >
-        <span class="material-symbols-outlined" style="font-size: 14px"
-          >file_upload</span
-        >
-        Import
-        <input
-          type="file"
-          accept=".json"
-          (change)="importProject($event)"
-          style="display: none"
-        />
-      </label>
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+        BACK TO SONG
+      </button>
     </div>
   </header>
 
-  <!-- Compact scene-first controls for touch layouts. The desktop rail below
-       remains the dense launcher; this surface keeps one scene and its launch
-       decision visible without horizontal page overflow. -->
-  <section class="sv-mobile-launcher" aria-label="Scene launcher controls">
-    <div class="sv-mobile-launcher-head">
-      <div>
-        <span class="sv-mobile-eyebrow">SESSION LAUNCHER</span>
-        <strong>{{ scenes().length }} scenes · {{ clipTracks().length }} tracks</strong>
-      </div>
-      <button
-        type="button"
-        class="sv-mobile-settings-btn studio-touch-target"
-        (click)="openLaunchSettings()"
-        aria-label="Open launch settings"
-      >
-        <span class="material-symbols-outlined">tune</span>
-        <span>Launch</span>
-      </button>
-    </div>
-    <div class="sv-boundary-chip" aria-live="polite">
-      <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
-      <span>{{ nextLaunchBoundaryLabel() }}</span>
-    </div>
-    <nav class="sv-mobile-scene-tabs studio-horizontal-rail" aria-label="Scenes">
-      @for (scene of scenes(); track scene.id) {
-        <button
-          type="button"
-          class="sv-mobile-scene-tab studio-touch-target"
-          [class.is-active]="isSceneActive(scene)"
-          [class.is-queued]="isSceneQueued(scene)"
-          [style.--scene-color]="scene.color"
-          (click)="onSceneHeaderClick(scene)"
-          (pointerdown)="startSceneLongPress($event, scene)"
-          (pointermove)="moveSceneLongPress($event)"
-          (pointerup)="endSceneLongPress()"
-          (pointercancel)="endSceneLongPress()"
-          (pointerleave)="endSceneLongPress()"
-          [attr.aria-label]="'Scene ' + scene.name + ', ' + sceneStateLabel(scene)"
-        >
-          <span class="sv-scene-pip" aria-hidden="true"></span>
-          <span>{{ scene.index + 1 }} · {{ scene.name }}</span>
-          <small>{{ sceneStateLabel(scene) }}</small>
-        </button>
-      }
-    </nav>
-  </section>
+  <p class="sv-empty" *ngIf="tracks().length === 0">
+    No channels yet — add one in Quick Session or the Channel Rack and its
+    patterns appear here as scene rows.
+  </p>
 
-  <!-- ───────── PRESET LOAD LIST ───────── -->
-  @if (presetLoadOpen()) {
-    <div class="sv-preset-list studio-module-scroll">
-      @if (savedPresets().length === 0) {
-        <div class="sv-preset-empty studio-empty-state">
-          No saved presets yet. Name your session and tap Save.
-        </div>
-      }
-      @for (preset of savedPresets(); track preset.name) {
-        <div class="sv-preset-item">
-          <button
-            type="button"
-            class="sv-preset-load"
-            (click)="loadPreset(preset.name)"
-          >
-            <span class="sv-preset-icon">📂</span>
-            <span class="sv-preset-name">{{ preset.name }}</span>
-            <span class="sv-preset-info"
-              >{{ preset.scenes.length }} scenes ·
-              {{ preset.clips.length }} clips</span
-            >
-          </button>
-          <button
-            type="button"
-            class="sv-preset-del"
-            (click)="deletePreset(preset.name)"
-            aria-label="Delete preset {{ preset.name }}"
-          >
-            ✕
-          </button>
-        </div>
-      }
-    </div>
-  }
+  <!-- ── Grid: channels × pattern columns ───────────────────────────── -->
+  <section
+    class="sv-grid-wrap"
+    *ngIf="tracks().length > 0 && scenes().length > 0"
+    aria-label="Scene launcher"
+  >
+    <div class="sv-grid" role="grid">
+      <div class="sv-row sv-row-head" role="row">
+        <span class="sv-track-cell sv-track-head" role="columnheader">
+          CHANNEL
+        </span>
 
-  <!-- ───────── AUTOMATION EDITOR PANEL ───────── -->
-  @if (selectedClipId()) {
-    @let selClip = clips().find((c) => c.id === selectedClipId());
-    @if (selClip) {
-      <div class="sv-auto-editor studio-module-card">
-        <div class="sv-auto-editor-header">
-          <span class="sv-auto-editor-title"
-            >Automation — {{ selClip.name }}</span
-          >
-          <div class="sv-auto-editor-targets">
-            <select
-              class="sv-auto-target-select"
-              [value]="automationEditTarget()"
-              (change)="automationEditTarget.set($any($event.target).value)"
-            >
-              @for (tgt of automationTargets; track tgt) {
-                <option [value]="tgt">{{ tgt | uppercase }}</option>
-              }
-            </select>
-            <button
-              type="button"
-              class="sv-auto-add-btn"
-              (click)="addAutomationPoint(selClip.id)"
-            >
-              + Point
-            </button>
-            <div class="sv-auto-curve-new">
-              <select
-                class="sv-auto-curve-select"
-                [value]="defaultCurveType()"
-                (change)="defaultCurveType.set($any($event.target).value)"
-                title="Default curve for new points"
-              >
-                <option value="linear">╱ Lin</option>
-                <option value="exponential">↗ Exp</option>
-                <option value="step">⏐ Step</option>
-              </select>
-            </div>
-          </div>
-          <button
-            type="button"
-            class="sv-auto-close studio-touch-target"
-            (click)="selectedClipId.set(null)"
-          >
-            ✕
-          </button>
-        </div>
-        <div class="sv-auto-points-list">
-          @let filtered = visibleAutomationPoints(selClip);
-          @if (filtered.length === 0) {
-            <div class="sv-auto-empty">
-              No automation points for "{{ automationEditTarget() }}". Tap "+
-              Point" to add one.
-              <div class="sv-auto-empty-hint">
-                Points define envelope breakpoints across the clip duration.
-              </div>
-            </div>
-          }
-          @for (
-            entry of filtered;
-            track trackByPoint($index, entry);
-            let i = $index
-          ) {
-            <div class="sv-auto-point-row">
-              <span class="sv-auto-point-idx">{{ 'P' + (i + 1) }}</span>                <span
-                class="sv-auto-curve-icon"
-                [title]="'Curve: ' + (entry.point.curveType || 'linear')"
-              >
-                {{ curveIcon(entry.point.curveType) }}
-              </span>
-              <div class="sv-auto-point-fields">
-                <label class="sv-auto-field">
-                  <span class="sv-auto-field-label">Bar</span>
-                  <input
-                    type="number"
-                    class="sv-auto-input"
-                    [value]="entry.point.position"
-                    min="0"
-                    step="0.5"
-                    (input)="
-                      updateAutomationPosition(
-                        selClip.id,
-                        i,
-                        +$any($event.target).value
-                      )
-                    "
-                  />
-                </label>
-                <label class="sv-auto-field">
-                  <span class="sv-auto-field-label">Value</span>
-                  <div class="sv-auto-slider-wrap">
-                    <input
-                      type="range"
-                      class="sv-auto-slider"
-                      [value]="entry.point.value"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      (input)="
-                        updateAutomationValue(
-                          selClip.id,
-                          i,
-                          +$any($event.target).value
-                        )
-                      "
-                    />
-                    <span class="sv-auto-val"
-                      >{{ roundPct(entry.point.value) }}%</span
-                    >
-                  </div>
-                </label>
-                <label class="sv-auto-field">
-                  <span class="sv-auto-field-label">Curve</span>
-                  <select
-                    class="sv-auto-curve-select"
-                    [value]="entry.point.curveType || 'linear'"
-                    (change)="
-                      updateAutomationCurve(
-                        selClip.id,
-                        i,
-                        $any($event.target).value
-                      )
-                    "
-                    aria-label="Curve type for point {{ i + 1 }}"
-                  >
-                    <option value="linear">╱ Linear</option>
-                    <option value="exponential">↗ Exp</option>
-                    <option value="step">⏐ Step</option>
-                  </select>
-                </label>
-              </div>
-              <button
-                type="button"
-                class="sv-auto-del-btn studio-touch-target"
-                (click)="deleteAutomationPoint(selClip.id, i)"
-                aria-label="Delete point {{ i + 1 }}"
-              >
-                ✕
-              </button>
-            </div>
-          }
-        </div>
-      </div>
-    }
-  }
-
-  <!-- MAIN BODY -->
-  <div class="sv-body studio-module-scroll">
-    <!-- SCENE RAIL (left sidebar) -->
-    <nav class="sv-scene-rail studio-module-scroll" aria-label="Scene list">
-      <div class="sv-scene-rail-header">
-        <span class="sv-scene-rail-title">Scenes</span>
-        <button
-          type="button"
-          class="sv-scene-rail-add studio-touch-target"
-          (click)="addScene()"
-          aria-label="Add new scene"
-        >
-          +
-        </button>
-      </div>
-      <button
-        *ngFor="let scene of scenes(); trackBy: trackByScene"
-        type="button"
-        class="sv-scene-item studio-touch-target"
-        [class.is-active]="activeSceneId() === scene.id"
-        [style.--scene-color]="scene.color"
-        (click)="launchScene(scene)"
-        [attr.aria-label]="'Launch scene ' + scene.name"
-      >
-        <span class="sv-scene-pip" aria-hidden="true"></span>
-        <span class="sv-scene-name">{{ scene.name }}</span>
-        <span class="sv-scene-play" aria-hidden="true">▶</span>
-      </button>
-    </nav>
-
-    <!-- CLIP GRID -->
-    <div class="sv-clip-grid" role="grid" aria-label="Clip launcher grid">
-      <div class="sv-grid-canvas">
-        <!-- TRACK COLUMN HEADERS -->
-        <div class="sv-track-headers" role="row">
-          <div
-            *ngFor="let track of clipTracks(); trackBy: trackByTrackId"
-            class="sv-track-header"
-            [class.sv-track-header-dragover]="dragOverTrackId() === track.id"
-            (dragover)="onDragOver($event, track.id)"
-            (dragleave)="onDragLeave()"
-            (drop)="onDrop($event, track.id)"
-            role="columnheader"
-          >
-            <div class="sv-track-header-top">
-              <span
-                class="sv-track-color-strip"
-                [style.background]="
-                  track.type === 'drum'
-                    ? '#FFB627'
-                    : track.type === 'bass'
-                      ? '#00E5FF'
-                      : '#5DC4C2'
-                "
-              ></span>
-              <span class="sv-track-name">{{ track.name }}</span>
-            </div>
-            <span class="sv-track-type">{{ track.type }}</span>
-            <button
-              type="button"
-              class="sv-track-mute"
-              [class.is-muted]="mutedTrackIds().has(track.id)"
-              (click)="$event.stopPropagation(); muteTrack(track.id)"
-              [attr.aria-label]="
-                mutedTrackIds().has(track.id) ? 'Unmute ' + track.name : 'Mute ' + track.name
-              "
-            >
-              M
-            </button>
-          </div>
-        </div>
-
-        <!-- SCENE ROWS WITH CLIP SLOTS -->
         <div
+          class="sv-scene-head"
           *ngFor="let scene of scenes(); trackBy: trackByScene"
-          class="sv-scene-row"
-          role="row"
+          role="columnheader"
         >
-          <div class="sv-scene-label" aria-hidden="true">
-            <span class="sv-scene-label-num">{{ scene.index + 1 }}</span>
-            <span class="sv-scene-label-name">{{ scene.name }}</span>
-          </div>
-
-          <ng-container
-            *ngFor="let track of clipTracks(); trackBy: trackByTrackId"
-          >
-            @let clip =
-              getClipsForScene(scene.id).find((c) => c.trackId === track.id);
-            <!-- A div, not a <button>: the slot carries its own automation
-                 toggle, and a button cannot legally contain another button —
-                 the parser hoists the inner one out of the slot. -->
-            <div
-              class="sv-clip-slot"
-              tabindex="0"
-              (keydown.enter)="clip && triggerClip(clip, clip.velocity)"
-              (keydown.space)="
-                clip && triggerClip(clip, clip.velocity); $event.preventDefault()
-              "
-              [class.is-filled]="!!clip"
-              [class.is-empty]="!clip"
-              [class.is-playing]="clip?.isPlaying"
-              [class.is-muted]="track.isMuted || mutedTrackIds().has(track.id)"
-              [class.is-queued]="clip && queuedClipIds().has(clip.id)"
-              [class.sv-clip-slot-dragover]="
-                dragOverSlotKey() === scene.id + '|' + track.id
-              "
-              [style.--slot-color]="clip?.color"
-              [style.--clip-velocity]="clip?.velocity ?? 0.85"
-              (click)="clip && triggerClip(clip, clip.velocity)"
-              (contextmenu)="$event.preventDefault()"
-              (dragover)="onSlotDragOver($event, scene.id, track.id)"
-              (dragleave)="onSlotDragLeave()"
-              (drop)="onSlotDrop($event, scene.id, track.id)"
-              [attr.aria-label]="
-                clip
-                  ? clip.name + (clip.isPlaying ? ' — playing' : ' — stopped')
-                  : 'Empty clip slot — ' + scene.name + ', ' + track.name
-              "
-              role="gridcell"
-            >
-              @if (clip) {
-                <span class="sv-clip-slot-name">{{ clip.name }}</span>
-                <span class="sv-clip-slot-meta">{{ clip.duration }}</span>
-                <div
-                  class="sv-clip-velocity-bar"
-                  aria-label="Velocity {{
-                    roundPct(clip.velocity ?? 0.85)
-                  }}%"
-                >
-                  <div
-                    class="sv-clip-velocity-fill"
-                    [style.width.%]="(clip.velocity ?? 0.85) * 100"
-                  ></div>
-                </div>
-                @if (clip.automation && clip.automation.length > 0) {
-                  <div
-                    class="sv-clip-auto-indicator"
-                    title="{{ clip.automation.length }} automation points"
-                  >
-                    <span class="sv-auto-dot"></span>
-                  </div>
-                }
-                <span class="sv-clip-slot-play" aria-hidden="true">
-                  {{ clip.isPlaying ? '⏸' : '▶' }}
-                </span>
-                <button
-                  type="button"
-                  class="sv-clip-auto-toggle"
-                  (click)="$event.stopPropagation(); toggleAutomation(clip.id)"
-                  [class.is-active]="selectedClipId() === clip.id"
-                  title="Toggle automation lane"
-                  aria-label="Toggle automation for {{ clip.name }}"
-                >
-                  A
-                </button>
-              }
-              @if (!clip && dragOverSlotKey() === scene.id + '|' + track.id) {
-                <span class="sv-clip-slot-drop-hint">Drop sample</span>
-              }
-            </div>
-          </ng-container>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mobile scene cards intentionally replace, rather than squeeze, the
-       desktop track matrix. Each card exposes its real launch state and a
-       finger-sized launch action. -->
-  <section class="sv-mobile-scenes" aria-label="Scenes and clip launch">
-    @for (scene of scenes(); track scene.id) {
-      <article
-        class="sv-mobile-scene-card studio-module-card"
-        [class.is-active]="isSceneActive(scene)"
-        [class.is-queued]="isSceneQueued(scene)"
-        [style.--scene-color]="scene.color"
-      >
-        <header class="sv-mobile-scene-card-head">
           <button
             type="button"
-            class="sv-mobile-scene-card-title studio-touch-target"
-            (click)="onSceneHeaderClick(scene)"
-            (pointerdown)="startSceneLongPress($event, scene)"
-            (pointermove)="moveSceneLongPress($event)"
-            (pointerup)="endSceneLongPress()"
-            (pointercancel)="endSceneLongPress()"
-            (pointerleave)="endSceneLongPress()"
-            [attr.aria-label]="'Launch scene ' + scene.name"
+            class="sv-scene-launch"
+            [class.is-active]="isSceneActive(scene)"
+            [class.is-queued]="isSceneQueued(scene)"
+            (click)="launchScene(scene)"
+            [attr.aria-label]="
+              sceneLaunchLabel(scene) + ' scene ' + scene.name
+            "
           >
-            <span class="sv-scene-pip" aria-hidden="true"></span>
-            <span>
-              <strong>Scene {{ scene.index + 1 }} · {{ scene.name }}</strong>
-              <small>
-                {{ sceneStateLabel(scene) }}
-                @if (followOnEnabled()) { · Follow-on on }
-              </small>
-            </span>
+            <span class="sv-scene-num">{{ scene.index + 1 }}</span>
+            <span class="sv-scene-name">{{ scene.name }}</span>
+            <span class="sv-scene-state">{{ sceneStateLabel(scene) }}</span>
           </button>
-          <span class="sv-mobile-scene-state" [attr.data-state]="sceneStateLabel(scene).toLowerCase()">
-            {{ sceneStateLabel(scene) }}
-          </span>
-        </header>
-        <div class="sv-mobile-clip-list">
-          @for (track of clipTracks(); track track.id) {
-            @let clip = getClipsForScene(scene.id).find((candidate) => candidate.trackId === track.id);
-            <div class="sv-mobile-clip-row" [class.is-empty]="!clip" [class.is-playing]="clip?.isPlaying">
-              <span class="sv-mobile-clip-track">{{ track.name }}</span>
-              @if (clip) {
-                <span class="sv-mobile-clip-name">{{ clip.name }} <small>{{ clip.duration }}</small></span>
-                <button
-                  type="button"
-                  class="sv-mobile-clip-trigger studio-touch-target"
-                  (click)="triggerClip(clip, clip.velocity)"
-                  [attr.aria-label]="'Trigger ' + clip.name"
-                  [attr.aria-pressed]="clip.isPlaying"
-                >
-                  {{ clip.isPlaying ? 'Stop' : 'Play' }}
-                </button>
-              } @else {
-                <span class="sv-mobile-clip-name sv-mobile-clip-empty">Empty slot</span>
-                <span class="sv-mobile-clip-placeholder" aria-hidden="true">—</span>
-              }
-            </div>
-          }
+          <button
+            type="button"
+            class="sv-scene-menu"
+            (click)="openSceneActions(scene)"
+            [attr.aria-label]="'Actions for scene ' + scene.name"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">more_horiz</span>
+          </button>
         </div>
+      </div>
+
+      <div
+        class="sv-row"
+        *ngFor="let track of tracks(); trackBy: trackByTrackId"
+        role="row"
+      >
+        <div class="sv-track-cell" role="rowheader">
+          <span
+            class="sv-track-dot"
+            [style.background]="track.color"
+            aria-hidden="true"
+          ></span>
+          <span class="sv-track-name">{{ track.name }}</span>
+          <button
+            type="button"
+            class="sv-track-mute"
+            [class.is-on]="track.muted"
+            [attr.aria-pressed]="track.muted"
+            (click)="toggleMute(track, $event)"
+            [attr.aria-label]="'Mute ' + track.name"
+          >
+            M
+          </button>
+        </div>
+
         <button
           type="button"
-          class="sv-mobile-scene-launch studio-touch-target"
-          [class.is-active]="isSceneActive(scene)"
-          [class.is-queued]="isSceneQueued(scene)"
-          (click)="launchScene(scene)"
-          [attr.aria-label]="sceneLaunchLabel(scene) + ' scene ' + scene.name"
+          class="sv-cell"
+          *ngFor="let scene of scenes(); trackBy: trackByScene"
+          [class.is-playing]="clipFor(track.id, scene.id)?.isPlaying"
+          [class.is-empty]="!clipFor(track.id, scene.id)"
+          (click)="
+            clipFor(track.id, scene.id) &&
+              triggerClip(clipFor(track.id, scene.id)!)
+          "
+          [attr.aria-label]="
+            (clipFor(track.id, scene.id)
+              ? triggerLabelFor(track.id, scene.id)
+              : 'Add a pattern for ' + track.name + ' in ' + scene.name)
+          "
         >
-          <span class="material-symbols-outlined" aria-hidden="true">
-            {{ isSceneActive(scene) ? 'stop_circle' : isSceneQueued(scene) ? 'schedule' : 'play_arrow' }}
-          </span>
-          {{ sceneLaunchLabel(scene) }} scene
+          <ng-container *ngIf="clipFor(track.id, scene.id) as clip; else noClip">
+            <span class="sv-cell-name">{{ clip.name }}</span>
+            <span class="sv-cell-state">{{
+              clip.isPlaying ? "PLAYING" : clip.hasContent ? "READY" : "EMPTY"
+            }}</span>
+          </ng-container>
+          <ng-template #noClip>
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          </ng-template>
         </button>
-      </article>
-    }
+      </div>
+    </div>
   </section>
 
+  <p class="sv-note" *ngIf="tracks().length > 0 && scenes().length > 0">
+    Launching switches that channel to the scene's pattern and makes playback
+    follow it. Empty cells create the pattern for that channel. Follow advances
+    on the bar line every {{ followBars() }} bar{{ followBars() === 1 ? "" : "s" }}.
+  </p>
+
+  <!-- ── Scene actions ───────────────────────────────────────────────── -->
   <app-studio-bottom-sheet
-    [open]="sceneActionSceneId() !== null"
-    [title]="sceneActionSceneId() ? 'Scene actions' : ''"
-    description="Rename, duplicate, or launch this scene without leaving the grid."
+    [open]="!!sceneActionSceneId()"
+    [title]="actionScene()?.name ?? 'Scene'"
+    description="Rename, launch, duplicate or delete this scene across every channel that owns it."
     (closed)="closeSceneActions()"
   >
-    @if (sceneActionSceneId(); as sceneId) {
-      @let actionScene = scenes().find((scene) => scene.id === sceneId);
-      @if (actionScene) {
-        <div class="sv-scene-sheet">
-          <label class="sv-sheet-field">
-            <span>Scene name</span>
-            <input
-              type="text"
-              [value]="sceneNameInput()"
-              (input)="sceneNameInput.set($any($event.target).value)"
-              (keydown.enter)="renameSelectedScene()"
-              autocomplete="off"
-            />
-          </label>
-          <div class="sv-sheet-status">
-            <span class="sv-scene-pip" [style.--scene-color]="actionScene.color"></span>
-            <span>{{ sceneStateLabel(actionScene) }} · {{ getClipsForScene(actionScene.id).length }} clips</span>
-          </div>
-          <div class="sv-sheet-actions" studio-sheet-actions>
-            <button type="button" class="sv-action-btn" (click)="duplicateSelectedScene()">
-              <span class="material-symbols-outlined">content_copy</span>
-              Duplicate
-            </button>
-            <button type="button" class="sv-action-btn" (click)="renameSelectedScene()">
-              <span class="material-symbols-outlined">edit</span>
-              Rename
-            </button>
-            <button type="button" class="sv-action-btn sv-primary-action" (click)="launchSelectedScene()">
-              <span class="material-symbols-outlined">play_arrow</span>
-              Launch
-            </button>
-          </div>
-        </div>
-      }
-    }
+    <label class="sv-sheet-field">
+      <span>SCENE NAME</span>
+      <input
+        type="text"
+        maxlength="40"
+        [ngModel]="sceneNameInput()"
+        (ngModelChange)="sceneNameInput.set($event)"
+        aria-label="Scene name"
+      />
+    </label>
+    <div class="sv-sheet-actions">
+      <button type="button" class="sv-sheet-btn" (click)="renameSelectedScene()">
+        Rename
+      </button>
+      <button type="button" class="sv-sheet-btn" (click)="launchSelectedScene()">
+        Launch
+      </button>
+      <button type="button" class="sv-sheet-btn" (click)="duplicateSelectedScene()">
+        Duplicate
+      </button>
+      <button
+        type="button"
+        class="sv-sheet-btn sv-danger"
+        (click)="deleteSelectedScene()"
+      >
+        Delete
+      </button>
+    </div>
   </app-studio-bottom-sheet>
 
+  <!-- ── Launch settings ─────────────────────────────────────────────── -->
   <app-studio-bottom-sheet
     [open]="launchSettingsOpen()"
     title="Launch settings"
-    description="Choose the next musical boundary and follow-on behavior."
+    [description]="nextLaunchBoundaryLabel()"
     (closed)="closeLaunchSettings()"
   >
-    <div class="sv-launch-settings">
-      <fieldset>
-        <legend>Launch quantization</legend>
-        <div class="sv-quantize-options">
-          @for (q of quantizeOptions; track q) {
-            <button
-              type="button"
-              class="sv-quantize-option"
-              [class.is-selected]="launchQuantize() === q"
-              (click)="setLaunchQuantize(q)"
-              [attr.aria-pressed]="launchQuantize() === q"
-            >
-              {{ q === 'none' ? 'Off' : q === '1bar' ? '1 bar' : q === '2bar' ? '2 bars' : '4 bars' }}
-            </button>
-          }
-        </div>
-      </fieldset>
+    <div class="sv-quantize" role="group" aria-label="Launch quantization">
       <button
         type="button"
-        class="sv-follow-toggle"
-        [class.is-active]="followOnEnabled()"
-        (click)="followOnEnabled.update((value) => !value)"
-        [attr.aria-pressed]="followOnEnabled()"
+        class="sv-quantize-btn"
+        *ngFor="let q of quantizeOptions"
+        [class.is-on]="launchQuantize() === q"
+        (click)="setLaunchQuantize(q)"
       >
-        <span class="material-symbols-outlined">skip_next</span>
-        <span>
-          <strong>Follow-on</strong>
-          <small>Advance to the next scene when this scene ends</small>
-        </span>
-        <span class="sv-toggle-indicator" aria-hidden="true"></span>
+        {{ q === "none" ? "Off" : q === "1bar" ? "1 bar" : q === "2bar" ? "2 bars" : "4 bars" }}
       </button>
-      <p class="sv-boundary-readout"><span class="material-symbols-outlined">schedule</span> {{ nextLaunchBoundaryLabel() }}</p>
-      <div studio-sheet-actions class="sv-sheet-actions">
-        <button type="button" class="sv-action-btn sv-primary-action" (click)="closeLaunchSettings()">Done</button>
+    </div>
+
+    <div class="sv-follow-settings">
+      <button
+        type="button"
+        class="sv-sheet-btn"
+        [class.is-on]="followEnabled()"
+        [attr.aria-pressed]="followEnabled()"
+        (click)="toggleFollow()"
+      >
+        Follow {{ followEnabled() ? "on" : "off" }}
+      </button>
+      <div class="sv-follow-bars">
+        <button
+          type="button"
+          class="sv-step"
+          (click)="setFollowBars(-1)"
+          [disabled]="followBars() <= 1"
+          aria-label="Follow after fewer bars"
+        >
+          −
+        </button>
+        <span>{{ followBars() }} bars</span>
+        <button
+          type="button"
+          class="sv-step"
+          (click)="setFollowBars(1)"
+          [disabled]="followBars() >= 32"
+          aria-label="Follow after more bars"
+        >
+          +
+        </button>
       </div>
     </div>
   </app-studio-bottom-sheet>

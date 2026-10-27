@@ -55,7 +55,10 @@
       <button
         class="tactile-v42 px-3 py-1 text-[8px] font-black"
         [class.bg-red-500]="isRecordingAutomation()"
+        [attr.aria-pressed]="isRecordingAutomation()"
         (click)="toggleAutomation()"
+        title="Automation write: record fader and pan moves while the song plays"
+        aria-label="Automation write"
       >
         AUTO
       </button>
@@ -554,7 +557,7 @@
         <span class="material-symbols-outlined" aria-hidden="true">grid_guides</span>
         Quantize to ¼ bar
       </button>
-      <button type="button" class="studio-secondary-button" (click)="toggleAutomation(); closeClipActions()">
+      <button type="button" class="studio-secondary-button" (click)="toggleAutomationView(); closeClipActions()">
         <span class="material-symbols-outlined" aria-hidden="true">show_chart</span>
         {{ showAutomation() ? 'Hide automation' : 'Show automation' }}
       </button>

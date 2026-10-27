@@ -366,8 +366,11 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
       }),
     ]);
 
-    service.setActivePatternSlot('track-1', 'slot-7');
-    expect(service.tracks()[0].activePatternSlotId).toBe('slot-7');
+    // Slots must exist to be switched to (the guard prevents dangling ids);
+    // give the track a second real slot and switch between them.
+    const second = service.createPatternSlot('track-1', 'Verse')!;
+    service.setActivePatternSlot('track-1', second);
+    expect(service.tracks()[0].activePatternSlotId).toBe(second);
     history.undo();
     expect(service.tracks()[0].activePatternSlotId).toBe('slot-0');
   });

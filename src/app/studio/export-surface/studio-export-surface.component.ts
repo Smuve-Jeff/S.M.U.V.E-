@@ -6,6 +6,35 @@ import { EXPORT_FORMATS, ExportService } from "../../services/export.service";
 
 type ExportFeedback = { tone: "ok" | "error"; text: string };
 
+/** A saved delivery setup: the same options a finished release needs twice. */
+export interface ExportPreset {
+  id: string;
+  name: string;
+  format: string;
+  sampleRate: 44100 | 48000;
+  stemBitDepth: 16 | 24;
+}
+
+const EXPORT_PRESETS_KEY = "smuve_export_presets_v1";
+
+function loadExportPresets(): ExportPreset[] {
+  try {
+    const raw = localStorage.getItem(EXPORT_PRESETS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (preset): preset is ExportPreset =>
+        !!preset &&
+        typeof preset.id === "string" &&
+        typeof preset.name === "string" &&
+        typeof preset.format === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Export surface shared by the Export workspace and the export side panel.
  *
@@ -32,6 +61,14 @@ export class StudioExportSurfaceComponent {
 
   readonly formats = EXPORT_FORMATS;
   readonly sampleRates = ExportService.SAMPLE_RATES;
+
+  /**
+   * Delivery presets. The format/rate/depth triplet is what an artist sets the
+   * same way for every release (streaming master, video deliverable, stems for
+   * a mix engineer), so it can be saved by name and reapplied as one tap.
+   */
+  readonly presets = signal<ExportPreset[]>(loadExportPresets());
+  readonly presetName = signal("");
 
   readonly format = signal(EXPORT_FORMATS[1].id);
   readonly sampleRate = signal<44100 | 48000>(44100);
@@ -62,6 +99,56 @@ export class StudioExportSurfaceComponent {
     this.stemBitDepth.set(
       Number((event.target as HTMLSelectElement).value) === 16 ? 16 : 24,
     );
+  }
+
+  setPresetName(value: string) {
+    this.presetName.set(value);
+  }
+
+  /** Save the current options under a name (persisted across sessions). */
+  savePreset() {
+    const name =
+      this.presetName().trim() ||
+      `${this.formatLabel()} · ${this.rateLabel(this.sampleRate())}`;
+    const preset: ExportPreset = {
+      id: `preset-${Date.now().toString(36)}`,
+      name: name.slice(0, 48),
+      format: this.format(),
+      sampleRate: this.sampleRate(),
+      stemBitDepth: this.stemBitDepth(),
+    };
+    // Same name overwrites instead of piling up duplicates.
+    const next = [
+      ...this.presets().filter(
+        (entry) => entry.name.toLowerCase() !== preset.name.toLowerCase(),
+      ),
+      preset,
+    ];
+    this.presets.set(next);
+    this.persistPresets();
+    this.presetName.set("");
+    this.feedback.set({ tone: "ok", text: `Preset “${preset.name}” saved` });
+  }
+
+  /** Apply a saved setup to the real options the export path reads. */
+  applyPreset(preset: ExportPreset) {
+    this.format.set(preset.format);
+    this.sampleRate.set(preset.sampleRate === 48000 ? 48000 : 44100);
+    this.stemBitDepth.set(preset.stemBitDepth === 16 ? 16 : 24);
+    this.feedback.set({ tone: "ok", text: `Preset “${preset.name}” applied` });
+  }
+
+  deletePreset(id: string) {
+    this.presets.update((list) => list.filter((preset) => preset.id !== id));
+    this.persistPresets();
+  }
+
+  private persistPresets() {
+    try {
+      localStorage.setItem(EXPORT_PRESETS_KEY, JSON.stringify(this.presets()));
+    } catch {
+      // Storage can be full or blocked; the presets still work this session.
+    }
   }
 
   rateLabel(rate: number): string {

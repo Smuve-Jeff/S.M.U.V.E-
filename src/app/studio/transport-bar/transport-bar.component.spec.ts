@@ -114,8 +114,11 @@ describe("TransportBarComponent", () => {
     undoCount: signal(0),
     redoCount: signal(0),
     lastActionName: signal(""),
+    undoLabels: signal<string[]>([]),
+    redoLabels: signal<string[]>([]),
     undo: jest.fn(),
     redo: jest.fn(),
+    undoToDepth: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -156,6 +159,26 @@ describe("TransportBarComponent", () => {
     fixture = TestBed.createComponent(TransportBarComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  it("lists the named history stack and restores the clicked point", () => {
+    mockHistory.undoCount.set(3);
+    mockHistory.undoLabels.set(["Set volume", "Move clip", "Add note"]);
+
+    component.toggleHistoryPanel();
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.querySelector("#ctb-history-panel")).not.toBeNull();
+    expect(host.querySelectorAll(".ctb-history-row")).toHaveLength(3);
+
+    // Clicking the middle step restores the state before it: two older steps
+    // stay on the undo stack.
+    component.jumpToHistoryStep(1);
+    expect(mockHistory.undoToDepth).toHaveBeenCalledWith(1);
+
+    component.toggleHistoryPanel();
+    fixture.detectChanges();
+    expect(host.querySelector("#ctb-history-panel")).toBeNull();
   });
 
   it("should create", () => {

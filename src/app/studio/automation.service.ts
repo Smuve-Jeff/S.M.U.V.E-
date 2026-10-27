@@ -1,4 +1,4 @@
-import { Injectable, signal, inject } from "@angular/core";
+import { Injectable, effect, signal, inject } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { bezierInterpolate, BezierPresets } from "./automation/bezier-utils";
 
@@ -72,6 +72,96 @@ export class AutomationService {
   modulationSources = signal<ModulationSource[]>([]);
   macros = signal<PerformanceMacro[]>([]);
 
+  /**
+   * Automation write. Armed from the arrangement's AUTO button: while it is on
+   * and the transport runs, fader and pan moves are captured as keyframes.
+   */
+  writeEnabled = signal(false);
+
+  /** Last step the curves were evaluated at (the transport repeats steps). */
+  private lastAutomationStep = -1;
+
+  constructor() {
+    /**
+     * Read the curves while the song plays.
+     *
+     * The lanes, their curves, macros, modulation and the engine bridge all
+     * existed, but nothing ever drove them from the transport —
+     * `applyAutomation` was only reached by its own spec, so automation was a
+     * drawing studio rather than playback. Following the engine's visual step
+     * keeps this on the audio clock's schedule (and, in pattern mode, loops the
+     * automation with the pattern, the way a DAW does).
+     */
+    effect(() => {
+      const step = this.transportStep();
+      if (step === null) {
+        this.lastAutomationStep = -1;
+        return;
+      }
+      if (step === this.lastAutomationStep) return;
+      this.lastAutomationStep = step;
+      if (this.lanes().length === 0) return;
+      this.applyAutomation(this.timeAtStep(step), this.stepDurationSeconds());
+    });
+  }
+
+  /** Seconds per 16th-note step at the current tempo. */
+  private stepDurationSeconds(): number {
+    const bpm = this.currentTempo();
+    return 60 / bpm / 4;
+  }
+
+  /** Song position in seconds for a step, on the 16-step bar grid. */
+  timeAtStep(step: number): number {
+    return Math.max(0, step) * this.stepDurationSeconds();
+  }
+
+  private currentTempo(): number {
+    const tempo = (this.engine as any).tempo;
+    const bpm = typeof tempo === "function" ? tempo() : 120;
+    return Number.isFinite(bpm) && bpm > 0 ? bpm : 120;
+  }
+
+  /**
+   * The transport step, or null when nothing is running. Guarded because
+   * AutomationService is also reached from non-transport hosts (project
+   * import/export, tests) that have no playback state.
+   */
+  private transportStep(): number | null {
+    const isPlaying = (this.engine as any).isPlaying;
+    const visualStep = (this.engine as any).visualStep;
+    if (typeof isPlaying !== "function" || typeof visualStep !== "function") {
+      return null;
+    }
+    if (!isPlaying()) return null;
+    const step = visualStep();
+    return Number.isFinite(step) ? step : null;
+  }
+
+  /**
+   * Write a keyframe at the current transport position. Returns true when one
+   * was captured. Only records while write is armed *and* the transport runs:
+   * moving a fader while stopped is a mix decision, not automation.
+   */
+  captureWrite(trackId: string, parameter: string, value: number): boolean {
+    if (!this.writeEnabled()) return false;
+    const step = this.transportStep();
+    if (step === null || !Number.isFinite(value)) return false;
+
+    const lane = this.ensureLane(trackId, parameter);
+    const time = this.timeAtStep(step);
+    const min = lane.target.min ?? -Infinity;
+    const max = lane.target.max ?? Infinity;
+    // One keyframe per step: a drag emits dozens of moves, and baking every
+    // one would leave a staircase of near-identical points in the lane.
+    const points = lane.points.filter(
+      (point) => Math.abs(point.time - time) > 0.001,
+    );
+    points.push({ time, value: Math.min(max, Math.max(min, value)) });
+    this.setPoints(lane.id, points);
+    return true;
+  }
+
   addLane(
     trackId: string,
     parameter: string,
@@ -138,6 +228,11 @@ export class AutomationService {
         mappings: macro.mappings.filter((mapping) => mapping.laneId !== laneId),
       })),
     );
+  }
+
+  /** Arm/disarm automation write (the arrangement's AUTO button). */
+  setWriteEnabled(enabled: boolean) {
+    this.writeEnabled.set(!!enabled);
   }
 
   setLaneEnabled(laneId: string, enabled: boolean) {

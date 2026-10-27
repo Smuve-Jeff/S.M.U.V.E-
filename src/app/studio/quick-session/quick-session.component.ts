@@ -13,6 +13,7 @@ import { AudioSessionService } from "../audio-session.service";
 import { RecordingStatusService } from "../recording-status.service";
 import {
   MusicManagerService,
+  type PatternSlot,
   type TrackModel,
 } from "../../services/music-manager.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
@@ -42,6 +43,28 @@ import { SnackbarService } from "../../services/snackbar.service";
  */
 
 export type QuickSessionPanel = "sounds" | "tools" | null;
+
+/** Widest scene grid on the core screen before it stops being scannable. */
+const MAX_SCENE_COLUMNS = 8;
+
+interface QuickSceneCell {
+  /** `${trackId}:${column}` — stable across pattern renames. */
+  key: string;
+  trackId: string;
+  column: number;
+  /** null = the column is empty for this channel (a one-tap "create"). */
+  slotId: string | null;
+  name: string;
+  active: boolean;
+  /** A launched scene only switches channels that actually have notes here. */
+  hasContent: boolean;
+  clipCount: number;
+}
+
+interface QuickSceneRow {
+  track: TrackModel;
+  cells: QuickSceneCell[];
+}
 
 interface QuickInstrument {
   id: string;
@@ -148,6 +171,10 @@ export class QuickSessionComponent {
   readonly masterVolume = this.audioSession.masterVolume;
   readonly metronomeOn = this.audioEngine.metronomeEnabled;
   readonly loopOn = this.audioEngine.playbackLoopEnabled;
+  readonly scenePlaybackActive = this.musicManager.scenePlaybackActive;
+  readonly activeSceneColumn = this.musicManager.activeSceneColumn;
+  readonly followEnabled = this.musicManager.sceneFollowEnabled;
+  readonly followBars = this.musicManager.sceneFollowBars;
 
   readonly panel = signal<QuickSessionPanel>(null);
 
@@ -192,6 +219,39 @@ export class QuickSessionComponent {
   readonly recipes = computed(() => this.ideas.recipes.slice(0, 4));
 
   readonly toolLinks = TOOL_LINKS;
+
+  // ── Scene grid (patterns per channel, wired to the live tracks) ─────
+  /**
+   * Columns follow the channel with the most patterns, so the grid grows as
+   * patterns are added — never as a fixed 8-slot template of empty cells.
+   */
+  /** Audio channels have no pattern grid; MIDI and drum channels do. */
+  private readonly sceneTracks = computed(() =>
+    this.tracks().filter((track) => track.type !== "audio"),
+  );
+
+  readonly sceneColumns = computed(() => {
+    const widths = this.sceneTracks().map(
+      (track) => (track.patternSlots ?? []).length,
+    );
+    const widest = widths.length ? Math.max(...widths) : 0;
+    return Array.from(
+      { length: Math.min(MAX_SCENE_COLUMNS, Math.max(2, widest)) },
+      (_, index) => index,
+    );
+  });
+
+  readonly sceneRows = computed<QuickSceneRow[]>(() =>
+    this.sceneTracks().map((track) => ({
+      track,
+      cells: this.sceneColumns().map((column) =>
+        this.sceneCell(track, column),
+      ),
+    })),
+  );
+
+  /** At least one channel on the grid, so the card can show a real empty state. */
+  readonly hasSceneChannels = computed(() => this.sceneTracks().length > 0);
 
   readonly trackCount = computed(() => this.tracks().length);
   readonly armedCount = computed(
@@ -302,6 +362,120 @@ export class QuickSessionComponent {
 
   byView(_index: number, link: { view: string }): string {
     return link.view;
+  }
+
+  // ── Scene grid ──────────────────────────────────────────────────────
+  private sceneCell(track: TrackModel, column: number): QuickSceneCell {
+    const slots = track.patternSlots ?? [];
+    const slot: PatternSlot | undefined = slots[column];
+    const slotId = slot?.id ?? null;
+    return {
+      key: `${track.id}:${column}`,
+      trackId: track.id,
+      column,
+      slotId,
+      name: slot?.name ?? `Scene ${column + 1}`,
+      active: !!slotId && track.activePatternSlotId === slotId,
+      hasContent: slot ? this.musicManager.patternSlotHasContent(track, slot) : false,
+      clipCount: slotId
+        ? track.clips.filter((clip) => clip.patternSlotId === slotId).length
+        : 0,
+    };
+  }
+
+  /** Tap a cell: edit that pattern (or create it), never start playback. */
+  openSceneCell(row: QuickSceneRow, cell: QuickSceneCell): void {
+    this.musicManager.selectedTrackId.set(cell.trackId);
+    this.haptic.light();
+    if (!cell.slotId) {
+      const created = this.musicManager.createPatternSlot(
+        cell.trackId,
+        cell.name,
+      );
+      if (!created) {
+        this.snackbar.error("Could not add a pattern to this channel");
+        return;
+      }
+      this.snackbar.info(`${cell.name} · ${row.track.name}`);
+      return;
+    }
+    if (!cell.active) {
+      this.musicManager.setActivePatternSlot(cell.trackId, cell.slotId);
+      this.snackbar.info(`Editing ${cell.name} · ${row.track.name}`);
+    }
+  }
+
+  /** Add another pattern to one channel, past the last column. */
+  addPattern(track: TrackModel): void {
+    this.musicManager.selectedTrackId.set(track.id);
+    const created = this.musicManager.createPatternSlot(track.id);
+    if (!created) {
+      this.snackbar.error("Could not add a pattern to this channel");
+      return;
+    }
+    this.haptic.medium();
+    this.snackbar.success(`New pattern on ${track.name}`);
+  }
+
+  /**
+   * Launch a column: every channel with real material in that scene switches
+   * to it, and the transport starts if it was stopped. Channels without that
+   * scene are deliberately left alone — a scene launch must not silence a
+   * channel that is already carrying the song.
+   */
+  /**
+   * Launch a scene for real: the manager switches the channels that have
+   * material and playback follows those live patterns, so what is launched is
+   * what is heard (not just a highlighted cell).
+   */
+  launchScene(column: number): void {
+    const switched = this.musicManager.launchSceneColumn(column);
+    this.haptic.medium();
+    if (switched === 0) {
+      this.snackbar.info(`Scene ${column + 1} has nothing to launch`);
+      return;
+    }
+    if (!this.isPlaying()) this.audioSession.togglePlay();
+    this.snackbar.success(
+      `Scene ${column + 1} launched · ${switched} channel${switched === 1 ? "" : "s"}`,
+    );
+  }
+
+  /** Leave the live scene and play the arrangement again. */
+  backToSong(): void {
+    this.musicManager.backToArrangement();
+    this.haptic.medium();
+    this.snackbar.info("Back to the arrangement");
+  }
+
+  isSceneActive(column: number): boolean {
+    return (
+      this.scenePlaybackActive() &&
+      this.musicManager.activeSceneColumn() === column
+    );
+  }
+
+  toggleFollow(): void {
+    this.musicManager.sceneFollowEnabled.update((on) => !on);
+    this.haptic.light();
+  }
+
+  setFollowBars(delta: number): void {
+    const next = Math.min(32, Math.max(1, this.followBars() + delta));
+    this.musicManager.sceneFollowBars.set(next);
+    this.haptic.light();
+  }
+
+  sceneRowId(_index: number, row: QuickSceneRow): string {
+    return row.track.id;
+  }
+
+  cellId(_index: number, cell: QuickSceneCell): string {
+    return cell.key;
+  }
+
+  columnId(_index: number, column: number): number {
+    return column;
   }
 
   // ── Side panels ─────────────────────────────────────────────────────

@@ -39,6 +39,54 @@
     </label>
   </div>
 
+  <!-- Delivery presets: a saved format/rate/depth triplet. -->
+  <div class="export-presets" role="group" aria-label="Export presets">
+    <div class="export-preset-save">
+      <input
+        type="text"
+        maxlength="48"
+        placeholder="Preset name (e.g. Streaming master)"
+        [value]="presetName()"
+        (input)="setPresetName($any($event.target).value)"
+        [disabled]="busy()"
+        aria-label="Export preset name"
+      />
+      <button type="button" (click)="savePreset()" [disabled]="busy()">
+        Save preset
+      </button>
+    </div>
+
+    <div class="export-preset-list" *ngIf="presets().length > 0">
+      <div class="export-preset-row" *ngFor="let preset of presets()">
+        <button
+          type="button"
+          class="export-preset-apply"
+          (click)="applyPreset(preset)"
+          [disabled]="busy()"
+          [attr.aria-label]="'Apply export preset ' + preset.name"
+        >
+          <span class="export-preset-name">{{ preset.name }}</span>
+          <span class="export-preset-meta">
+            {{ preset.format | uppercase }} ·
+            {{ rateLabel(preset.sampleRate) }} · {{ preset.stemBitDepth }}-bit
+          </span>
+        </button>
+        <button
+          type="button"
+          class="export-preset-remove"
+          (click)="deletePreset(preset.id)"
+          [attr.aria-label]="'Delete export preset ' + preset.name"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
+      </div>
+    </div>
+    <p class="export-preset-hint" *ngIf="presets().length === 0">
+      Save the format, rate and stem depth you deliver with, then reapply it in
+      one tap.
+    </p>
+  </div>
+
   <div class="export-actions">
     <button
       type="button"

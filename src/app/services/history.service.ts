@@ -32,6 +32,13 @@ export class HistoryService {
   /** Live counters used by the Transport Bar undo/redo badges */
   undoCount = signal(0);
   redoCount = signal(0);
+  /**
+   * Names of the steps, newest first, for the history panel. The stacks stay
+   * private (commands are closures); the panel only needs to show what the
+   * artist did and let them travel back to a point.
+   */
+  undoLabels = signal<string[]>([]);
+  redoLabels = signal<string[]>([]);
 
   // ---- Transaction (batch multiple commands into one undoable step) ----
   private isBatching = false;
@@ -191,6 +198,22 @@ export class HistoryService {
     }
   }
 
+  /**
+   * Travel to a point in the undo list. `remaining` is how many steps should
+   * stay on the undo stack afterwards (0 = the beginning of the session), so
+   * the panel can restore any listed state in one tap.
+   */
+  undoToDepth(remaining: number): void {
+    const target = Math.max(0, Math.min(this.past.length, Math.floor(remaining)));
+    while (this.past.length > target) this.undo();
+  }
+
+  /** Re-apply steps until `remaining` redoable steps are left. */
+  redoToDepth(remaining: number): void {
+    const target = Math.max(0, Math.min(this.future.length, Math.floor(remaining)));
+    while (this.future.length > target) this.redo();
+  }
+
   clear(): void {
     this.past = [];
     this.future = [];
@@ -204,6 +227,19 @@ export class HistoryService {
     this.canRedo.set(this.future.length > 0);
     this.undoCount.set(this.past.length);
     this.redoCount.set(this.future.length);
+    // Newest first, capped: the panel is a recency view, not an archive.
+    this.undoLabels.set(
+      this.past
+        .slice(-40)
+        .map((command) => command.name)
+        .reverse()
+    );
+    this.redoLabels.set(
+      this.future
+        .slice(-40)
+        .map((command) => command.name)
+        .reverse()
+    );
     this.lastActionName.set(
       this.past.length > 0 ? this.past[this.past.length - 1].name : ''
     );

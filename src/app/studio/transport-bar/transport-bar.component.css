@@ -1531,6 +1531,76 @@
   overflow-y: auto;
 }
 
+/* Undo history popover (same shell as the tempo map, own list rhythm). */
+.ctb-history {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 8px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(380px, calc(100vw - 16px));
+  max-height: min(62vh, 460px);
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.18));
+  background: color-mix(in srgb, var(--espresso-900, #1a1510) 96%, transparent);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.42);
+  overflow-y: auto;
+}
+
+.ctb-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ctb-history-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ctb-history-row:hover,
+.ctb-history-row:focus-visible {
+  border-color: rgba(43, 160, 156, 0.55);
+  background: rgba(43, 160, 156, 0.12);
+}
+
+.ctb-history-index {
+  flex: 0 0 20px;
+  font: 800 9px/1 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+
+.ctb-history-label {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.ctb-history-row .material-symbols-outlined {
+  font-size: 15px;
+  opacity: 0.6;
+}
+
+.ctb-history-open {
+  min-width: 30px;
+}
+
 .ctb-map-head {
   display: flex;
   align-items: center;
@@ -1655,7 +1725,8 @@
 }
 
 @media (max-width: 640px) {
-  .ctb-tempo-map {
+  .ctb-tempo-map,
+  .ctb-history {
     left: 8px;
     right: 8px;
     width: auto;

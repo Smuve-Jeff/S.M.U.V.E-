@@ -191,6 +191,63 @@
   </div>
   </div>
 
+  <!-- Undo history: the stack, named, with one-tap restore. -->
+  <section
+    class="ctb-history"
+    id="ctb-history-panel"
+    *ngIf="historyOpen()"
+    role="dialog"
+    aria-label="Edit history"
+  >
+    <header class="ctb-map-head">
+      <h3>Edit History</h3>
+      <button
+        type="button"
+        class="ctb-map-close"
+        (click)="historyOpen.set(false)"
+        aria-label="Close edit history"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </header>
+    <p class="ctb-map-hint">
+      Newest first. Tap a step to go back to the state just before it — every
+      edit in the session is listed, up to the last 40.
+    </p>
+
+    <div class="ctb-history-list" *ngIf="history.undoLabels().length > 0; else noHistory">
+      <button
+        type="button"
+        class="ctb-history-row"
+        *ngFor="let label of history.undoLabels(); let i = index"
+        (click)="jumpToHistoryStep(i)"
+        [attr.aria-label]="'Restore to before ' + label"
+      >
+        <span class="ctb-history-index">{{ history.undoCount() - i }}</span>
+        <span class="ctb-history-label">{{ label }}</span>
+        <span class="material-symbols-outlined" aria-hidden="true">undo</span>
+      </button>
+    </div>
+    <ng-template #noHistory>
+      <p class="ctb-map-empty">
+        No edits yet. Changes to notes, clips, patterns and mix settings appear
+        here as they happen.
+      </p>
+    </ng-template>
+
+    <footer class="ctb-map-actions">
+      <button
+        type="button"
+        class="ctb-map-add"
+        (click)="redo()"
+        [disabled]="!canRedo()"
+      >
+        <span class="material-symbols-outlined">redo</span>
+        Redo {{ redoCount() > 0 ? "(" + redoCount() + ")" : "" }}
+      </button>
+    </footer>
+  </section>
+
   <!-- Tempo map: FL Mobile / Cubasis parity — a song can change tempo. -->
   <section
     class="ctb-tempo-map"
@@ -441,6 +498,19 @@
       <span class="ctb-undo-badge" *ngIf="undoCount() > 0">{{
         undoCount()
       }}</span>
+    </button>
+    <button
+      type="button"
+      class="ctb-undo-btn ctb-history-open"
+      (click)="toggleHistoryPanel()"
+      [attr.aria-expanded]="historyOpen()"
+      aria-controls="ctb-history-panel"
+      [attr.aria-label]="
+        'Edit history — ' + undoCount() + ' undo steps, ' + redoCount() + ' redo steps'
+      "
+      title="Edit history"
+    >
+      <span class="material-symbols-outlined">history</span>
     </button>
     <button
       type="button"

@@ -1,5 +1,8 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { StudioComponent } from "./studio.component";
+import {
+  StudioComponent,
+  landingStudioView,
+} from "./studio.component";
 import { AudioSessionService } from "./audio-session.service";
 import { AudioRecorderService } from "./audio-recorder.service";
 import { Subject } from "rxjs";
@@ -333,6 +336,33 @@ describe("StudioComponent", () => {
     expect(mockOrchestration.setActiveStudioView).toHaveBeenCalledWith(
       "arrangement",
     );
+  });
+
+  it("returns to Quick Session after starting a new session", async () => {
+    await component.newProject();
+    expect(component.activeView()).toBe("quick-session");
+    expect(mockProjectWorkspace.startFreshProject).toHaveBeenCalled();
+  });
+
+  it("lands an empty session on Quick Session", () => {
+    expect(
+      landingStudioView({ hasExplicitView: false, restored: false }),
+    ).toBe("quick-session");
+  });
+
+  it("opens a restored project on the arrangement instead", () => {
+    expect(
+      landingStudioView({ hasExplicitView: false, restored: true }),
+    ).toBe("arrangement");
+  });
+
+  it("lets an explicit ?view= win over both landings", () => {
+    expect(
+      landingStudioView({ hasExplicitView: true, restored: false }),
+    ).toBeNull();
+    expect(
+      landingStudioView({ hasExplicitView: true, restored: true }),
+    ).toBeNull();
   });
 
   it("exposes an empty mobile panel by default", () => {

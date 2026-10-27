@@ -85,6 +85,9 @@
       <span class="qs-tag" [class.is-warn]="armedCount() > 0">
         {{ armedCount() }} armed
       </span>
+      <span class="qs-tag qs-tag-live" *ngIf="scenePlaybackActive()">
+        SCENE {{ (activeSceneColumn() ?? 0) + 1 }}
+      </span>
       <button
         *ngIf="isPlaying() || isRecording()"
         type="button"
@@ -255,6 +258,150 @@
       </section>
     </div>
   </div>
+
+  <!-- ── Scene grid: patterns per channel, launched as columns ───────── -->
+  <section class="qs-card qs-scenes" aria-labelledby="qs-scenes-title">
+    <header class="qs-card-head">
+      <h2 id="qs-scenes-title">Scenes &amp; patterns</h2>
+      <span class="qs-card-hint">tap to edit · launch plays a column</span>
+      <button type="button" class="qs-card-link" (click)="goTo('session')">
+        Scene view
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_outward</span>
+      </button>
+    </header>
+
+    <div class="qs-scene-controls" *ngIf="scenePlaybackActive()">
+      <button type="button" class="qs-scene-back" (click)="backToSong()">
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+        BACK TO SONG
+      </button>
+      <div class="qs-follow" role="group" aria-label="Follow actions">
+        <button
+          type="button"
+          class="qs-follow-toggle"
+          [class.is-on]="followEnabled()"
+          [attr.aria-pressed]="followEnabled()"
+          (click)="toggleFollow()"
+        >
+          FOLLOW {{ followEnabled() ? "ON" : "OFF" }}
+        </button>
+        <button
+          type="button"
+          class="qs-follow-step"
+          (click)="setFollowBars(-1)"
+          [disabled]="followBars() <= 1"
+          aria-label="Follow after fewer bars"
+        >
+          −
+        </button>
+        <span class="qs-follow-readout">
+          {{ followBars() }} BAR{{ followBars() === 1 ? "" : "S" }}
+        </span>
+        <button
+          type="button"
+          class="qs-follow-step"
+          (click)="setFollowBars(1)"
+          [disabled]="followBars() >= 32"
+          aria-label="Follow after more bars"
+        >
+          +
+        </button>
+      </div>
+    </div>
+
+    <p class="qs-empty" *ngIf="!hasSceneChannels()">
+      Add a MIDI or drum channel and its patterns appear here as a grid.
+    </p>
+
+    <div class="qs-scene-grid" *ngIf="hasSceneChannels()" role="grid" aria-label="Pattern and scene grid">
+      <div class="qs-scene-row qs-scene-row-head" role="row">
+        <span class="qs-scene-name" role="columnheader">Channel</span>
+        <button
+          *ngFor="let column of sceneColumns(); trackBy: columnId"
+          type="button"
+          class="qs-scene-launch"
+          [class.is-active]="isSceneActive(column)"
+          (click)="launchScene(column)"
+          [attr.aria-label]="'Launch scene ' + (column + 1)"
+          role="columnheader"
+        >
+          <span class="qs-scene-launch-label">SCENE {{ column + 1 }}</span>
+          <span class="qs-scene-launch-action">{{
+            isSceneActive(column) ? "PLAYING" : "LAUNCH"
+          }}</span>
+        </button>
+        <span class="qs-scene-new-head" aria-hidden="true">NEW</span>
+      </div>
+
+      <div
+        class="qs-scene-row"
+        *ngFor="let row of sceneRows(); trackBy: sceneRowId"
+        role="row"
+      >
+        <button
+          type="button"
+          class="qs-scene-name"
+          role="rowheader"
+          (click)="selectTrack(row.track)"
+          [attr.aria-current]="isSelected(row.track) ? 'true' : null"
+        >
+          <span
+            class="qs-channel-dot"
+            [style.background]="row.track.color || '#2ba09c'"
+            aria-hidden="true"
+          ></span>
+          <span class="qs-scene-name-label">{{ row.track.name }}</span>
+        </button>
+
+        <button
+          *ngFor="let cell of row.cells; trackBy: cellId"
+          type="button"
+          class="qs-scene-cell"
+          [class.is-active]="cell.active"
+          [class.is-empty]="!cell.slotId"
+          [class.has-clips]="cell.clipCount > 0"
+          (click)="openSceneCell(row, cell)"
+          role="gridcell"
+          [attr.aria-label]="
+            (cell.slotId
+              ? 'Edit ' + cell.name + ' on ' + row.track.name
+              : 'Add ' + cell.name + ' on ' + row.track.name)
+          "
+          [attr.aria-selected]="cell.active"
+        >
+          <ng-container *ngIf="cell.slotId; else emptyCell">
+            <span class="qs-cell-name">{{ cell.name }}</span>
+            <span class="qs-cell-meta">
+              {{ cell.active ? "EDITING" : cell.hasContent ? "READY" : "EMPTY" }}
+              <ng-container *ngIf="cell.clipCount > 0">
+                · {{ cell.clipCount }} clip{{ cell.clipCount === 1 ? "" : "s" }}
+              </ng-container>
+            </span>
+          </ng-container>
+          <ng-template #emptyCell>
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+          </ng-template>
+        </button>
+
+        <button
+          type="button"
+          class="qs-scene-new"
+          (click)="addPattern(row.track)"
+          [attr.aria-label]="'Add a pattern to ' + row.track.name"
+          title="New pattern"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
+        </button>
+      </div>
+    </div>
+
+    <p class="qs-note" *ngIf="hasSceneChannels()">
+      Launching plays the scene: channels with material switch, channels without
+      it keep playing. Follow advances to the next scene every
+      {{ followBars() }} bar{{ followBars() === 1 ? "" : "s" }}, and BACK TO SONG
+      returns to the arrangement.
+    </p>
+  </section>
 
   <!-- ── Side panels (secondary + advanced tools) ────────────────────── -->
   <div class="qs-backdrop" *ngIf="panel()" (click)="closePanel()" aria-hidden="true"></div>

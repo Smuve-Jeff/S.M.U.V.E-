@@ -123,6 +123,17 @@ export interface GlobalChord {
   steps?: number[];
 }
 
+/**
+ * Sentinel clip used while a live scene is launched: scene playback follows the
+ * channel's live pattern instead of the arrangement's clip windows, so what was
+ * launched is what is heard (an audio channel keeps its arrangement clips).
+ */
+const LIVE_SCENE_CLIP: StudioClip = {
+  start: 0,
+  length: Number.POSITIVE_INFINITY,
+  type: "midi",
+} as StudioClip;
+
 export interface TrackModel extends StudioTrack {
   id: string;
   instrumentId: string;
@@ -289,6 +300,20 @@ export class MusicManagerService {
   ]);
   chords = signal<GlobalChord[]>([]);
   performerScenes = signal<PerformerScene[]>([]);
+
+  // ── Live scene launching (pattern grid performance) ─────────────────
+  /** Column most recently launched from the pattern/scene grid. */
+  activeSceneColumn = signal<number | null>(null);
+  /**
+   * True while playback follows the launched scene rather than the arrangement
+   * clip windows. Song mode always wins: switching to Song clears it.
+   */
+  scenePlaybackActive = signal(false);
+  /** Follow actions: launch the next scene after `sceneFollowBars` bars. */
+  sceneFollowEnabled = signal(false);
+  sceneFollowBars = signal(4);
+  /** Bars elapsed since the current scene was launched. */
+  private sceneBarsElapsed = 0;
   projectLoaded = signal(true);
 
   selectedTrack = computed(
@@ -301,6 +326,15 @@ export class MusicManagerService {
       this.currentStep.set(step);
       this.playStep(step, time, duration);
     };
+
+    // Song mode is the arrangement: entering it leaves the live scene behind so
+    // the timeline is what plays.
+    effect(() => {
+      const mode = (this.engine as any).playMode;
+      if (typeof mode !== "function") return;
+      if (mode() !== "song") return;
+      if (this.scenePlaybackActive()) this.stopScenePlayback();
+    });
   }
 
   /**
@@ -1044,6 +1078,8 @@ export class MusicManagerService {
         this.engine.updateTrack(id, { gain: oldGain });
       }
     );
+    // Automation write: an armed AUTO pass captures the fader move.
+    this.automation.captureWrite(id, "gain", newGain);
   }
 
   updateTrackPan(id: string, val: number) {
@@ -1067,6 +1103,7 @@ export class MusicManagerService {
         this.engine.updateTrack(id, { pan: oldPan });
       }
     );
+    this.automation.captureWrite(id, "pan", newPan);
   }
 
   togglePhase(id: string) {
@@ -2364,6 +2401,130 @@ export class MusicManagerService {
     return lane;
   }
 
+  // ── Live scenes ───────────────────────────────────────────────────
+
+  /** Whether a slot carries audible material (live pattern or last capture). */
+  patternSlotHasContent(track: TrackModel, slot: PatternSlot): boolean {
+    if (track.activePatternSlotId === slot.id) {
+      return (
+        (track.notes?.length ?? 0) > 0 || (track.steps ?? []).some(Boolean)
+      );
+    }
+    const latest = slot.versions.at(-1);
+    return (
+      (latest?.notes?.length ?? 0) > 0 || (latest?.steps ?? []).some(Boolean)
+    );
+  }
+
+  /** Pattern columns across the pattern-bearing channels. */
+  sceneColumnCount(): number {
+    return this.tracks()
+      .filter((t) => t.type !== "audio")
+      .reduce((widest, t) => Math.max(widest, t.patternSlots?.length ?? 0), 0);
+  }
+
+  sceneColumnHasContent(column: number): boolean {
+    return this.tracks()
+      .filter((t) => t.type !== "audio")
+      .some((t) => {
+        const slot = t.patternSlots?.[column];
+        return !!slot && this.patternSlotHasContent(t, slot);
+      });
+  }
+
+  /**
+   * Launch a scene column: channels that have material in it switch to that
+   * pattern and playback follows the live patterns (not the arrangement's clip
+   * windows). Channels without the scene keep what they are playing, exactly
+   * like a clip launch that has no clip on that track.
+   *
+   * Returns how many channels switched.
+   */
+  launchSceneColumn(column: number): number {
+    let switched = 0;
+    for (const track of this.tracks()) {
+      if (track.type === "audio") continue;
+      const slot = track.patternSlots?.[column];
+      if (!slot || !this.patternSlotHasContent(track, slot)) continue;
+      if (track.activePatternSlotId !== slot.id) {
+        this.setActivePatternSlot(track.id, slot.id);
+      }
+      switched++;
+    }
+    this.activeSceneColumn.set(column);
+    this.sceneBarsElapsed = 0;
+    this.scenePlaybackActive.set(true);
+    const setMode = (this.engine as any).setPlayMode;
+    if (typeof setMode === "function") setMode.call(this.engine, "pattern");
+    return switched;
+  }
+
+  /**
+   * Launch a single clip: that channel switches to the pattern and playback
+   * follows the live patterns (the other channels keep what they play).
+   */
+  launchClipPattern(trackId: string, slotId: string): boolean {
+    const track = this.tracks().find((t) => t.id === trackId);
+    const slot = track?.patternSlots?.find((s) => s.id === slotId);
+    if (!track || !slot) return false;
+    if (track.activePatternSlotId !== slotId) {
+      this.setActivePatternSlot(trackId, slotId);
+    }
+    this.scenePlaybackActive.set(true);
+    const setMode = (this.engine as any).setPlayMode;
+    if (typeof setMode === "function") setMode.call(this.engine, "pattern");
+    return true;
+  }
+
+  /** Leave live scene playback (playback returns to the arrangement clips). */
+  stopScenePlayback(): void {
+    this.scenePlaybackActive.set(false);
+    this.activeSceneColumn.set(null);
+    this.sceneBarsElapsed = 0;
+  }
+
+  /** "Back to arrangement": stop the live scene and play the timeline. */
+  backToArrangement(): void {
+    this.stopScenePlayback();
+    const setMode = (this.engine as any).setPlayMode;
+    if (typeof setMode === "function") setMode.call(this.engine, "song");
+  }
+
+  /** Next scene with material, wrapping; null when the launched one is the only one. */
+  nextSceneColumn(): number | null {
+    const columns = this.sceneColumnCount();
+    if (columns <= 1) return null;
+    const current = this.activeSceneColumn();
+    const start = current === null ? 0 : current + 1;
+    for (let offset = 0; offset < columns; offset++) {
+      const column = (start + offset) % columns;
+      if (column === current) continue;
+      if (this.sceneColumnHasContent(column)) return column;
+    }
+    return null;
+  }
+
+  /**
+   * Follow actions. Called once per transport step; advancing happens on a bar
+   * line so a scene change never lands mid-beat.
+   */
+  private advanceSceneFollow(step: number): void {
+    if (!this.scenePlaybackActive() || !this.sceneFollowEnabled()) return;
+    if (step % 16 !== 0) return;
+    this.sceneBarsElapsed += 1;
+    const bars = Math.max(1, Math.floor(this.sceneFollowBars()));
+    if (this.sceneBarsElapsed < bars) return;
+    this.sceneBarsElapsed = 0;
+    const next = this.nextSceneColumn();
+    if (next === null) {
+      // Nothing else to follow: disarm rather than loop the same scene forever.
+      this.sceneFollowEnabled.set(false);
+      return;
+    }
+    this.launchSceneColumn(next);
+    this.logger.info(`Follow action → scene ${next + 1}`);
+  }
+
   // ── Generated recipes (blank-canvas killer) ───────────────────────
 
   /**
@@ -2746,6 +2907,7 @@ export class MusicManagerService {
   // ── Playback engine stepper ───────────────────────────────────────
 
   playStep(step: number, time: number, duration: number) {
+    this.advanceSceneFollow(step);
     const STEPS_PER_BAR = 16;
     const stepInBar = step % STEPS_PER_BAR;
     const isOffbeat = stepInBar % 2 !== 0;
@@ -2779,7 +2941,9 @@ export class MusicManagerService {
       // clips. Treat that as an active pattern instead of silently producing
       // no sound; explicit clips still gate playback as before.
       const playableClips =
-        clips.length > 0
+        this.scenePlaybackActive() && t.type !== "audio"
+          ? [LIVE_SCENE_CLIP]
+          : clips.length > 0
           ? clips
           : [
               {

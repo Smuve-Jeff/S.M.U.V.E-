@@ -150,6 +150,20 @@ function studioViewForParam(value: string): StudioView | null {
   return STUDIO_VIEW_ALIASES[value.toLowerCase()] ?? null;
 }
 
+/**
+ * Where `/studio` opens when the URL does not name a surface. A fresh session
+ * starts on Quick Session — the first thing a new project needs is a take or a
+ * beat, not a sixteen-surface DAW. Restored work returns to the arrangement
+ * instead, and an explicit `?view=` beats both (hence null).
+ */
+export function landingStudioView(options: {
+  hasExplicitView: boolean;
+  restored: boolean;
+}): StudioView | null {
+  if (options.hasExplicitView) return null;
+  return options.restored ? "arrangement" : "quick-session";
+}
+
 /** 3-way theme storage key. Persists across sessions. */
 const THEME_STORAGE_KEY = "smuve_studio_theme";
 /** Stage FX ambience (aurora / marquee / sheens) storage key. */
@@ -549,7 +563,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly orchestration = inject(StudioOrchestrationService);
 
   // ---- State ----
-  activeView = signal<StudioView>("arrangement");
+  /**
+   * A fresh session lands on Quick Session: the first thing a new project needs
+   * is a take or a beat, not a sixteen-surface DAW. A restored project (or an
+   * explicit `?view=`) overrides this in ngOnInit.
+   */
+  activeView = signal<StudioView>("quick-session");
   showSmartCreationSheet = signal(false);
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showAiAssistant = signal(false);
@@ -1503,6 +1522,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
 
     const restored = await this.projectWorkspace.restoreLatestProjectState();
+    // Existing work opens where it was finished: the arrangement. Only a fresh,
+    // empty session keeps the Quick Session landing.
+    const landing = landingStudioView({
+      hasExplicitView: !!this.route.snapshot.queryParamMap.get("view"),
+      restored,
+    });
+    if (landing) this.activeView.set(landing);
     if (restored) {
       const source = this.projectWorkspace.lastRecoveredSource();
       this.snackbarService.info(
@@ -2222,6 +2248,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.projectWorkspace.startFreshProject({
         bpm: this.audioEngine.tempo(),
       });
+      this.setActiveView("quick-session");
       this.snackbarService.success("New session created");
       this.studioTelemetry.trackEvent("new_project_created", undefined, true);
     }
