@@ -23,6 +23,17 @@
   <div class="studio-project-status" role="status" aria-live="polite" [class.studio-project-status-dirty]="projectWorkspace.isDirty()">
     <span class="material-symbols-outlined" aria-hidden="true">{{ projectWorkspace.isDirty() ? 'edit' : 'check_circle' }}</span>
     <span>{{ projectWorkspace.isSaving() ? 'Saving…' : projectWorkspace.isDirty() ? 'Unsaved changes' : projectWorkspace.lastPersistedAt() > 0 ? 'Saved locally' : 'New session' }}</span>
+    <button
+      type="button"
+      class="studio-monitor-status"
+      *ngIf="monitorMono()"
+      (click)="toggleProjectMetadata()"
+      title="This set's saved mix state is mono-sum — open Project Details to see why"
+      aria-label="Mono-sum monitoring is on. Open Project Details to see the saved mix state."
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">hearing</span>
+      MONO
+    </button>
   </div>
 
   <!-- Stage 2.0 ambient aurora field (pure decoration).
@@ -2261,6 +2272,96 @@
           snapshot at
           {{ projectWorkspace.lastRecoveredAt() | date: 'HH:mm:ss' }}
         </span>
+      </div>
+
+      <div class="comp-meta-saved-state" aria-label="Saved mix state">
+        <p class="comp-meta-section-label">SAVED MIX STATE</p>
+        <p class="comp-meta-saved-note" *ngIf="projectWorkspace.isDirty()">
+          Live changes are not saved yet — save the set to make this mix state
+          its default.
+        </p>
+
+        <div class="comp-meta-field comp-meta-monitor-field">
+          <label>Monitoring</label>
+          <div class="comp-meta-state-row">
+            <span
+              class="comp-meta-state-pill"
+              [class.is-mono]="monitorMono()"
+              [attr.aria-label]="
+                monitorMono()
+                  ? 'Monitoring is mono-sum'
+                  : 'Monitoring is stereo'
+              "
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">{{
+                monitorMono() ? "hearing" : "stereo"
+              }}</span>
+              {{ monitorMono() ? "MONO SUM" : "STEREO" }}
+            </span>
+            <button
+              type="button"
+              class="comp-meta-chip"
+              (click)="toggleProjectMonitor()"
+              [attr.aria-pressed]="monitorMono()"
+            >
+              {{ monitorMono() ? "Return to stereo" : "Check in mono" }}
+            </button>
+          </div>
+          <span class="comp-meta-hint" *ngIf="monitorMono()">
+            This set opened in mono because its saved mix state is mono-sum.
+            Only monitoring is collapsed — meters, sends and exports stay
+            stereo.
+          </span>
+          <span class="comp-meta-hint" *ngIf="!monitorMono()">
+            Stereo monitoring. Switching to mono is saved with the set.
+          </span>
+        </div>
+
+        <div class="comp-meta-field">
+          <label>Solo-safe channels · {{ soloSafeChannels().length }}</label>
+          <ul
+            class="comp-meta-state-list"
+            *ngIf="soloSafeChannels().length > 0; else noSoloSafe"
+          >
+            <li *ngFor="let track of soloSafeChannels()">
+              <span class="comp-meta-state-name">{{ track.name }}</span>
+              <span class="comp-meta-state-value">SS</span>
+            </li>
+          </ul>
+          <ng-template #noSoloSafe>
+            <span class="comp-meta-hint">
+              None. Mark a talkback or guide channel SS in the mixer to keep it
+              audible under another channel's solo.
+            </span>
+          </ng-template>
+        </div>
+
+        <div class="comp-meta-field">
+          <label>Cell launch boundaries · {{ cellLaunchBoundaries().length }}</label>
+          <ul
+            class="comp-meta-state-list"
+            *ngIf="cellLaunchBoundaries().length > 0; else noBoundaries"
+          >
+            <li *ngFor="let boundary of cellLaunchBoundaries()">
+              <span class="comp-meta-state-name">
+                {{ boundary.trackName }} · {{ boundary.slotName }}
+              </span>
+              <span class="comp-meta-state-value">{{
+                launchBoundaryLabel(boundary.quantize)
+              }}</span>
+            </li>
+          </ul>
+          <ng-template #noBoundaries>
+            <span class="comp-meta-hint">
+              Every cell follows the Session launch setting. Set a Q chip on a
+              cell to override it per pattern.
+            </span>
+          </ng-template>
+          <span class="comp-meta-hint" *ngIf="cellLaunchBoundaries().length > 0">
+            These cells override the Session launch setting and are saved with
+            this set.
+          </span>
+        </div>
       </div>
 
       <div class="comp-meta-actions">

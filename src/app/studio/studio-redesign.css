@@ -17,9 +17,39 @@
   font-weight: 700;
 }
 .studio-project-status .material-symbols-outlined { font-size: 15px; }
+
+/* Recorded monitoring state, visible before the artist touches the transport. */
+.studio-monitor-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 1px 8px;
+  border: 1px solid rgba(180, 83, 9, 0.45);
+  border-radius: 999px;
+  background: rgba(180, 83, 9, 0.12);
+  color: #8a4b08;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.studio-monitor-status .material-symbols-outlined { font-size: 13px; }
+.studio-monitor-status:hover,
+.studio-monitor-status:focus-visible {
+  border-color: #b45309;
+  background: rgba(180, 83, 9, 0.2);
+}
+
 .studio-project-status-dirty { color: #b45309; }
 :host-context(.dark-mode) .studio-project-status { background: #111d24; color: #a7f3d0; }
 :host-context(.dark-mode) .studio-project-status-dirty { color: #fcd34d; }
+:host-context(.dark-mode) .studio-monitor-status {
+  border-color: rgba(252, 211, 77, 0.45);
+  background: rgba(252, 211, 77, 0.12);
+  color: #fcd34d;
+}
 
 .studio-save-warning {
   position: absolute;

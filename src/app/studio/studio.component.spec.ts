@@ -68,6 +68,10 @@ describe("StudioComponent", () => {
     addTrack: jest.fn(() => "track-1"),
     replaceTrackNotes: jest.fn(),
     crossLinkRequest: signal(null),
+    engine: {
+      monoMonitoring: signal(false),
+      toggleMonoMonitoring: jest.fn(() => true),
+    },
     snapshotProject: jest.fn().mockReturnValue({ id: "proj-1", tracks: [] }),
   };
 
@@ -229,6 +233,8 @@ describe("StudioComponent", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockMusicManager.tracks.set([]);
+    mockMusicManager.engine.monoMonitoring.set(false);
     mockAudioSession.hasLiveSession.mockReturnValue(false);
     mockAudioSession.isRecording.set(false);
     mockAudioSession.isPlaying.set(false);
@@ -860,6 +866,69 @@ describe("StudioComponent", () => {
 
       expect(remove).toHaveBeenCalledWith("popstate", expect.any(Function));
       remove.mockRestore();
+    });
+  });
+
+  // ── Project Details — saved mix state ─────────────────────────────
+  describe("project saved mix state", () => {
+    it("shows mono monitoring, solo-safe channels and cell boundaries", () => {
+      mockMusicManager.tracks.set([
+        {
+          id: "t1",
+          name: "Guide Vox",
+          soloSafe: true,
+          patternSlots: [
+            {
+              id: "slot-a",
+              name: "Verse",
+              activeVersionId: "v1",
+              versions: [],
+              launchQuantize: "2bar",
+            },
+          ],
+        },
+        {
+          id: "t2",
+          name: "Bass",
+          patternSlots: [
+            {
+              id: "slot-b",
+              name: "Drop",
+              activeVersionId: "v2",
+              versions: [],
+              launchQuantize: null,
+            },
+          ],
+        },
+      ]);
+      mockMusicManager.engine.monoMonitoring.set(true);
+
+      // This spec overrides the template, so assert the panel's real inputs:
+      // the saved-state computeds the Markup binds to.
+      expect(component.monitorMono()).toBe(true);
+      expect(component.soloSafeChannels().map((track) => track.name)).toEqual([
+        "Guide Vox",
+      ]);
+      expect(
+        component.cellLaunchBoundaries().map((boundary) => ({
+          label: `${boundary.trackName} · ${boundary.slotName}`,
+          value: component.launchBoundaryLabel(boundary.quantize),
+        })),
+      ).toEqual([{ label: "Guide Vox · Verse", value: "2 BARS" }]);
+    });
+
+    it("toggles the monitor from the panel and explains the saved state", () => {
+      mockMusicManager.engine.monoMonitoring.set(true);
+      component.toggleProjectMonitor();
+
+      expect(
+        mockMusicManager.engine.toggleMonoMonitoring,
+      ).toHaveBeenCalled();
+      expect(mockSnackbar.info).toHaveBeenCalledWith(
+        expect.stringContaining("Mono-sum monitoring on"),
+      );
+      expect(component.launchBoundaryLabel("4bar")).toBe("4 BARS");
+      expect(component.launchBoundaryLabel("none")).toBe("OFF");
     });
   });
 

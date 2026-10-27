@@ -35,6 +35,7 @@ import { AiService } from "../services/ai.service";
 import { UIService } from "../services/ui.service";
 import {
   MusicManagerService,
+  type LaunchQuantize,
   type TrackNote,
 } from "../services/music-manager.service";
 import { ProjectService } from "../services/project.service";
@@ -605,6 +606,41 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   localSets = signal<LocalProjectSummary[]>([]);
   setsBusy = signal(false);
   setsError = signal('');
+
+  /**
+   * Saved mix state shown in Project Details. Each of these is a real field on
+   * the persisted project, not a mirror: mono is mixState.monitorMono,
+   * solo-safe lives on the track, and a launch boundary lives on the pattern
+   * slot. Opening Project Details is therefore enough to explain why a
+   * reopened set is monitoring in mono.
+   */
+  readonly monitorMono =
+    this.musicManager.engine?.monoMonitoring ?? signal(false);
+  readonly soloSafeChannels = computed(() =>
+    this.musicManager.tracks().filter((track) => !!track.soloSafe),
+  );
+  readonly cellLaunchBoundaries = computed(() => {
+    const rows: Array<{
+      trackId: string;
+      trackName: string;
+      slotId: string;
+      slotName: string;
+      quantize: LaunchQuantize;
+    }> = [];
+    for (const track of this.musicManager.tracks()) {
+      for (const slot of track.patternSlots ?? []) {
+        if (!slot.launchQuantize) continue;
+        rows.push({
+          trackId: track.id,
+          trackName: track.name,
+          slotId: slot.id,
+          slotName: slot.name,
+          quantize: slot.launchQuantize,
+        });
+      }
+    }
+    return rows;
+  });
 
   /** Labels for the mobile one-tap instrumental chips. */
   private static readonly QUICK_START_LABELS: Record<string, string> = {
@@ -1532,7 +1568,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (restored) {
       const source = this.projectWorkspace.lastRecoveredSource();
       this.snackbarService.info(
-        `Restored ${this.formatPersistenceSource(source)} snapshot`,
+        `Restored ${this.formatPersistenceSource(source)} snapshot` +
+          this.restoredMonitorSuffix(),
       );
       this.studioTelemetry.trackEvent(
         "project_recovered",
@@ -2708,6 +2745,42 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.syncPanelFocus(".comp-meta-panel", this.showProjectMetadata());
   }
 
+  /**
+   * Monitor A/B from Project Details, so an engineer can see and change a
+   * saved mono choice without hunting for Transport → More.
+   */
+  toggleProjectMonitor(): void {
+    const engine = this.musicManager.engine;
+    if (typeof engine?.toggleMonoMonitoring !== "function") return;
+    const mono = engine.toggleMonoMonitoring();
+    this.haptic.light();
+    this.snackbarService.info(
+      mono
+        ? "Mono-sum monitoring on — save the set to keep this as its default"
+        : "Stereo monitoring restored — save the set to keep this as its default",
+    );
+  }
+
+  launchBoundaryLabel(value: LaunchQuantize): string {
+    switch (value) {
+      case "none":
+        return "OFF";
+      case "1bar":
+        return "1 BAR";
+      case "2bar":
+        return "2 BARS";
+      case "4bar":
+        return "4 BARS";
+    }
+  }
+
+  /** Appended to restore messages so a mono reopen is never a surprise. */
+  private restoredMonitorSuffix(): string {
+    return this.musicManager.engine?.monoMonitoring?.()
+      ? " · mono monitoring on"
+      : "";
+  }
+
   async saveProject(): Promise<boolean> {
     if (this.projectWorkspace.isSaving()) return false;
     this.haptic.medium();
@@ -2758,7 +2831,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       if (success) {
         this.history.clear();
         if (this.showSetsBrowser()) void this.refreshLocalSets();
-        this.snackbarService.success("Project loaded successfully");
+        this.snackbarService.success(
+          "Project loaded successfully" + this.restoredMonitorSuffix(),
+        );
         this.studioTelemetry.trackEvent(
           "project_imported",
           { format: "smuve" },
@@ -2922,7 +2997,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       }
       this.history.clear();
       this.versionHistory.set(this.cloudSync.listSnapshots(projectId));
-      this.snackbarService.success(`Restored cloud version v${snapshot.version}`);
+      this.snackbarService.success(
+        `Restored cloud version v${snapshot.version}` +
+          this.restoredMonitorSuffix(),
+      );
       this.studioTelemetry.trackEvent(
         "cloud_version_restored",
         { version: snapshot.version },
@@ -3036,7 +3114,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.history.clear();
       this.showSetsBrowser.set(false);
       this.setActiveView("arrangement");
-      this.snackbarService.success(`Opened \u201c${opened.metadata.name}\u201d`);
+      this.snackbarService.success(
+        `Opened \u201c${opened.metadata.name}\u201d` +
+          this.restoredMonitorSuffix(),
+      );
       this.studioTelemetry.trackEvent(
         "set_opened",
         { source: set.source, trackCount: set.trackCount },
