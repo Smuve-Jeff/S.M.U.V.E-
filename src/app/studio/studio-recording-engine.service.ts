@@ -7,6 +7,7 @@ import { WavStreamWriter, peakDbFs } from "./wav-stream-encoder.util";
 import { RecordingLimiterService } from "./recording-limiter.service";
 import { RecordingCaptureBuffer } from "./recording-capture-buffer";
 import { IdbRecordingSpillStore } from "./recording-spill.store";
+import { preferredConnectedInputDeviceId } from "./input-device-prefs";
 import { Subject } from "rxjs";
 
 export interface RecordingMetadata {
@@ -75,10 +76,16 @@ export class StudioRecordingEngineService implements OnDestroy {
 
   async initialize(deviceId?: string): Promise<boolean> {
     this.cleanup();
+    // An explicit id (a channel's own input) wins. Otherwise open the studio's
+    // remembered interface rather than the system default: a take armed from
+    // Smart Recording or a comp lane must record the mic the artist picked in
+    // the recorder, not whichever input the OS lists first.
+    const inputId =
+      deviceId ?? (await preferredConnectedInputDeviceId()) ?? undefined;
     try {
       const constraints = {
         audio: {
-          deviceId: deviceId ? { exact: deviceId } : undefined,
+          deviceId: inputId ? { exact: inputId } : undefined,
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
@@ -122,6 +129,7 @@ export class StudioRecordingEngineService implements OnDestroy {
       this.startLevelMonitoring();
       this.logger.info(
         "StudioRecordingEngine: Initialized high-performance capture via AudioWorklet.",
+        inputId ?? "system default",
       );
       return true;
     } catch (error) {

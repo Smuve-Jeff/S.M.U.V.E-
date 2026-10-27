@@ -25,10 +25,10 @@ import { SmartRecordingService } from "../smart-recording.service";
 import { PermissionService } from "../../services/permission.service";
 import { MicPermissionState, micPermissionNotice } from "./mic-permission";
 import {
-  INPUT_DEVICE_KEY,
-  readStoredInputDeviceId,
+  readPreferredInputDeviceId,
+  rememberPreferredInputDevice,
   resolveInputDeviceId,
-} from "./input-device-prefs";
+} from "../input-device-prefs";
 import { Subscription } from "rxjs";
 import {
   TakeLevel,
@@ -745,7 +745,7 @@ export class AudioRecorderViewComponent
       // hitting refresh restores the choice instead of silently resetting it.
       if (!this.selectedInputId()) {
         const resolved = resolveInputDeviceId(
-          readStoredInputDeviceId(this.readStoredInputDevice()),
+          readPreferredInputDeviceId(),
           availableIds,
         );
         if (resolved) this.selectedInputId.set(resolved);
@@ -929,21 +929,9 @@ export class AudioRecorderViewComponent
     }
   }
 
-  private readStoredInputDevice(): string | null {
-    try {
-      return localStorage.getItem(INPUT_DEVICE_KEY);
-    } catch {
-      return null; // private mode / locked storage
-    }
-  }
-
   private persistInputDevice(deviceId: string | null): void {
-    try {
-      if (deviceId) localStorage.setItem(INPUT_DEVICE_KEY, deviceId);
-      else localStorage.removeItem(INPUT_DEVICE_KEY);
-    } catch {
-      // The choice still applies for this session.
-    }
+    // Studio-wide, so the vocal chain and every take path inherit the pick.
+    rememberPreferredInputDevice(deviceId);
   }
 
   private startLevelMeter(stream: MediaStream): void {

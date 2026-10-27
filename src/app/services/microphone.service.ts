@@ -1,6 +1,12 @@
 import { LoggingService } from './logging.service';
 import { AudioEngineService } from './audio-engine.service';
 import { Injectable, signal, computed, inject, OnDestroy } from '@angular/core';
+import {
+  preferredConnectedInputDeviceId,
+  readPreferredInputDeviceId,
+  rememberPreferredInputDevice,
+  resolveInputDeviceId,
+} from '../studio/input-device-prefs';
 
 export interface AudioInputDevice {
   deviceId: string;
@@ -218,11 +224,16 @@ export class MicrophoneService implements OnDestroy {
       );
       this.availableDevices.set(described);
 
-      // Keep the current selection when the device is still present; only
-      // fall back to the first input when it disappeared (unplugged interface).
+      // Keep the current selection when the device is still present; otherwise
+      // reopen the studio's remembered input before falling back to the first
+      // one, so a pick made in the recorder survives opening the vocal chain.
       const current = this.selectedDeviceId();
       if (!current || !described.some((d) => d.deviceId === current)) {
-        this.selectedDeviceId.set(described[0]?.deviceId ?? null);
+        const preferred = resolveInputDeviceId(
+          readPreferredInputDeviceId(),
+          described.map((d) => d.deviceId)
+        );
+        this.selectedDeviceId.set(preferred ?? described[0]?.deviceId ?? null);
       }
     } catch (error) {
       const name = (error as DOMException)?.name;
@@ -251,10 +262,15 @@ export class MicrophoneService implements OnDestroy {
 
     this.stop();
 
+    // An explicit id wins; otherwise reopen the input the artist chose, which
+    // is what the recorder and the take engine record through.
+    const inputId =
+      deviceId ?? (await preferredConnectedInputDeviceId()) ?? undefined;
+
     try {
       const constraints: MediaStreamConstraints = {
         audio: {
-          deviceId: deviceId ? { exact: deviceId } : undefined,
+          deviceId: inputId ? { exact: inputId } : undefined,
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
@@ -288,10 +304,10 @@ export class MicrophoneService implements OnDestroy {
       this.lastError.set(null);
       this.permissionState.set('granted');
       this.startLevelMonitoring();
-      if (deviceId) this.selectedDeviceId.set(deviceId);
+      if (inputId) this.selectedDeviceId.set(inputId);
       this.logger.info(
         'MicrophoneService (High Quality) initialized:',
-        deviceId || 'default'
+        inputId || 'default'
       );
       // Permission is now granted, so anonymous device labels can be upgraded
       // to real names without asking the user twice.
@@ -624,6 +640,9 @@ export class MicrophoneService implements OnDestroy {
       );
       return false;
     }
+    // Studio-wide, like the recorder's picker: one interface choice follows the
+    // artist into the vocal chain, the mic interface and every take.
+    rememberPreferredInputDevice(deviceId);
     return this.initialize(deviceId);
   }
 

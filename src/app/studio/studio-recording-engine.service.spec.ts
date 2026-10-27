@@ -364,4 +364,64 @@ describe("StudioRecordingEngineService", () => {
     service.recordedBlob.set(blob);
     expect(service.recordedBlob()).toBe(blob);
   });
+
+  /**
+   * The recorder remembers the artist's interface; a take armed from Smart
+   * Recording or a comp lane has to open the same input, or the wrong mic
+   * records silently.
+   */
+  describe("input device", () => {
+    const getUserMedia = () =>
+      navigator.mediaDevices.getUserMedia as unknown as jest.Mock;
+
+    function enumerateAudioInputs(ids: string[]): void {
+      Object.defineProperty(navigator, "mediaDevices", {
+        configurable: true,
+        writable: true,
+        value: {
+          getUserMedia: jest.fn().mockResolvedValue(mediaStreamMock),
+          enumerateDevices: jest.fn().mockResolvedValue(
+            ids.map((deviceId) => ({ kind: "audioinput", deviceId })),
+          ),
+        },
+      });
+    }
+
+    const requestedDeviceId = () =>
+      getUserMedia().mock.calls.at(-1)?.[0]?.audio?.deviceId;
+
+    beforeEach(() => {
+      localStorage.clear();
+      enumerateAudioInputs(["mic-a", "mic-b"]);
+    });
+
+    afterEach(() => {
+      localStorage.clear();
+    });
+
+    it("opens the remembered input when the caller names none", async () => {
+      localStorage.setItem("smuve_studio_input_device", "mic-b");
+
+      await expect(service.initialize()).resolves.toBe(true);
+
+      expect(requestedDeviceId()).toEqual({ exact: "mic-b" });
+    });
+
+    it("lets an explicit channel input win over the remembered one", async () => {
+      localStorage.setItem("smuve_studio_input_device", "mic-b");
+
+      await service.initialize("mic-a");
+
+      expect(requestedDeviceId()).toEqual({ exact: "mic-a" });
+    });
+
+    it("does not pin an unplugged interface", async () => {
+      localStorage.setItem("smuve_studio_input_device", "mic-b");
+      enumerateAudioInputs(["mic-a"]);
+
+      await service.initialize();
+
+      expect(requestedDeviceId()).toBeUndefined();
+    });
+  });
 });
