@@ -1161,6 +1161,10 @@ export class AudioEngineService {
     this.currentStep = 0;
     this.currentBeat.set(0);
     this.visualStep.set(0);
+    // Voices are scheduled ahead of the clock, so a stop that only halts the
+    // scheduler leaves the last bar ringing — a held pad kept sounding after
+    // Stop and a quick restart overlapped it. Release them click-free.
+    this.allNotesOff();
     this.stopDeck('A');
     this.stopDeck('B');
   }
@@ -2413,6 +2417,20 @@ export class AudioEngineService {
    */
   activeVoiceCount(): number {
     return this.pruneLiveVoices(this.ctx.currentTime).length;
+  }
+
+  /**
+   * Silence every sounding live voice with the same short fade a voice steal
+   * uses. Returns how many were released, so callers/tests can assert the stop
+   * actually reached the voices. Offline renders are untouched: they have no
+   * live registry.
+   */
+  allNotesOff(): number {
+    const voices = this.pruneLiveVoices(this.ctx.currentTime);
+    const released = voices.length;
+    for (const voice of voices) voice.cut();
+    voices.length = 0;
+    return released;
   }
 
   /**

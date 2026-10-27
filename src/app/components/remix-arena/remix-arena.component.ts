@@ -12,6 +12,7 @@ import { UIService } from '../../services/ui.service';
 import { AiService } from '../../services/ai.service';
 import { NotificationService } from '../../services/notification.service';
 import { StudioOrchestrationService } from '../../services/studio-orchestration.service';
+import { DeckService } from '../../services/deck.service';
 
 @Component({
   selector: 'app-remix-arena',
@@ -35,6 +36,8 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
   aiService = inject(AiService);
   notificationService = inject(NotificationService);
   orchestration = inject(StudioOrchestrationService);
+  /** Remix Arena mixes into deck A; the stem sliders must reach that deck. */
+  deckService = inject(DeckService);
 
   code = signal(
     '// S.M.U.V.E 2.0 REMIX ENGINE\n// Start writing your logic here...\n\nfunction onBeat(step) {\n  if (step % 4 === 0) {\n    playKick();\n  }\n}'
@@ -71,6 +74,14 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
   ]);
 
   ngOnInit() {}
+
+  /**
+   * Funnel the stem sliders into the real deck, so moving "vocals" changes the
+   * mix instead of only the component's local copy.
+   */
+  onStemGainChange(event: { stem: string; gain: number }): void {
+    this.deckService.onStemGainChange("A", event as any);
+  }
 
   ngOnDestroy() {
     if (this.sessionId()) {

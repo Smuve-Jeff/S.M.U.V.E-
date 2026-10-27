@@ -15,7 +15,6 @@ import {
   TrackModel,
 } from "../../services/music-manager.service";
 import { NeuralMixerService } from "../../services/neural-mixer.service";
-import { MixerService } from "../mixer.service";
 import { VcaBusService } from "../vca-bus.service";
 import { HapticService } from "../../services/haptic.service";
 import { AiService } from "../../services/ai.service";
@@ -50,7 +49,6 @@ export class MixerComponent implements OnInit, OnDestroy {
   public readonly musicManager = inject(MusicManagerService);
   private readonly neuralMixer = inject(NeuralMixerService);
   private readonly haptic = inject(HapticService);
-  public readonly mixerService = inject(MixerService);
   public readonly vcaBuses = inject(VcaBusService);
   public readonly aiService = inject(AiService);
   private readonly snack = inject(SnackbarService);

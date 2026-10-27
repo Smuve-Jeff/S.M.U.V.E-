@@ -187,7 +187,10 @@
         <i class="fas fa-sliders-h text-brand-primary"></i>
         Stem Real-Time Controls
       </h2>
-      <app-stem-controls></app-stem-controls>
+      <app-stem-controls
+        deckId="A"
+        (gainChange)="onStemGainChange($event)"
+      ></app-stem-controls>
     </section>
 
     <section>

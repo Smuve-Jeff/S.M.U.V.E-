@@ -350,23 +350,23 @@ export class PerformerComponent implements OnDestroy, OnInit {
     this.octave.update((value) => Math.min(2, Math.max(-2, value + delta)));
   }
 
+  /**
+   * Route the performer's channel trims through the manager, exactly like the
+   * mixer: a direct `tracks.update` bypassed undo, the coalesced fader merge
+   * and — while write is armed — automation capture, so two surfaces editing
+   * the same channel behaved differently.
+   */
   updateTrackVolume(val: number) {
     const trackId = this.musicManager.selectedTrackId();
     if (trackId !== null) {
-      this.musicManager.tracks.update((ts) =>
-        ts.map((t) => (t.id === trackId ? { ...t, gain: val / 100 } : t)),
-      );
-      this.musicManager.engine.updateTrack(trackId, { gain: val / 100 });
+      this.musicManager.updateVolume(trackId, val / 100);
     }
   }
 
   updateTrackPan(val: number) {
     const trackId = this.musicManager.selectedTrackId();
     if (trackId !== null) {
-      this.musicManager.tracks.update((ts) =>
-        ts.map((t) => (t.id === trackId ? { ...t, pan: val / 100 } : t)),
-      );
-      this.musicManager.engine.updateTrack(trackId, { pan: val / 100 });
+      this.musicManager.updateTrackPan(trackId, val);
     }
   }
 

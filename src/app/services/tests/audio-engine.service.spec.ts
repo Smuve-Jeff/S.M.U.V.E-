@@ -450,6 +450,27 @@ describe('AudioEngineService', () => {
     );
   });
 
+  it('releases sounding voices with a short fade when the transport stops', () => {
+    service.playSynth(0, 440, 4, 0.8, 0, { type: 'sine', attack: 0.01 });
+    expect(service.activeVoiceCount()).toBe(1);
+
+    service.stop();
+
+    expect(service.activeVoiceCount()).toBe(0);
+    const gains = mockAudioContext.createGain.mock.results.map(
+      (result: any) => result.value
+    );
+    expect(
+      gains.some(
+        (node: any) =>
+          node.gain.setTargetAtTime.mock.calls.some(
+            (call: any[]) =>
+              call[0] === 0.0001 && call[2] === 0.005
+          )
+      )
+    ).toBe(true);
+  });
+
   it('should expose mastering targets and apply safe ceiling', () => {
     service.setMasteringTargets({ lufs: -13, truePeak: -0.2 });
     const targets = service.getMasteringTargets();

@@ -56,6 +56,8 @@ describe("PerformerComponent", () => {
             recordLiveNote: jest.fn(),
             tracks: signal([]),
             selectedTrackId: signal(null),
+            updateVolume: jest.fn(),
+            updateTrackPan: jest.fn(),
             engine: {
               updateTrack: jest.fn(),
               masterAnalyser: {
@@ -206,6 +208,17 @@ describe("PerformerComponent", () => {
   it("should set instrument", async () => {
     await component.setInstrument("analog-warmth");
     expect(mockLiveEngine.setInstrument).toHaveBeenCalledWith("analog-warmth");
+  });
+
+  it("routes channel trims through the manager so undo and automation agree", () => {
+    const manager = TestBed.inject(MusicManagerService) as any;
+    manager.selectedTrackId.set("track-1");
+
+    component.updateTrackVolume(62);
+    expect(manager.updateVolume).toHaveBeenCalledWith("track-1", 0.62);
+
+    component.updateTrackPan(-40);
+    expect(manager.updateTrackPan).toHaveBeenCalledWith("track-1", -40);
   });
 
   it("should toggle smart chords", () => {
