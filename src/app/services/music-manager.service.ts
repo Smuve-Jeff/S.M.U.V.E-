@@ -99,6 +99,20 @@ export interface PatternVersion {
 /** What a cell waits for before it starts. `null`/missing means grid default. */
 export type LaunchQuantize = "none" | "1bar" | "2bar" | "4bar";
 
+/**
+ * Per-scene follow behaviour. A scene with a rule ignores the global Follow
+ * toggle: `loop` holds that scene until the artist launches another, while
+ * `advance` moves on after its own bar count. Scenes without a rule inherit the
+ * global toggle and interval.
+ */
+export type SceneFollowMode = "loop" | "advance";
+
+export interface SceneFollowRule {
+  mode: SceneFollowMode;
+  /** Bars before advancing; only meaningful for `advance` (1–32). */
+  bars?: number;
+}
+
 export interface PatternSlot {
   id: string;
   name: string;
@@ -336,6 +350,11 @@ export class MusicManagerService {
    */
   sceneFollowEnabled = signal(false);
   sceneFollowBars = signal(4);
+  /**
+   * Per-scene overrides keyed by scene (pattern column) index. Kept beside the
+   * global follow settings because both describe how the launched scene ends.
+   */
+  sceneFollowRules = signal<Record<string, SceneFollowRule>>({});
   /** Bars elapsed since the current scene was launched. */
   private sceneBarsElapsed = 0;
   projectLoaded = signal(true);
@@ -456,6 +475,7 @@ export class MusicManagerService {
     const oldLaunchQuantize = this.launchQuantize();
     const oldFollowEnabled = this.sceneFollowEnabled();
     const oldFollowBars = this.sceneFollowBars();
+    const oldFollowRules = { ...this.sceneFollowRules() };
     this.runCommand(
       'New Project',
       () => {
@@ -464,6 +484,7 @@ export class MusicManagerService {
         this.launchQuantize.set("none");
         this.sceneFollowEnabled.set(false);
         this.sceneFollowBars.set(4);
+        this.sceneFollowRules.set({});
         this.engine.stop();
         if (!skipDefaults) {
           this.addTrack('Piano', 'grand-piano');
@@ -476,6 +497,7 @@ export class MusicManagerService {
         this.launchQuantize.set(oldLaunchQuantize);
         this.sceneFollowEnabled.set(oldFollowEnabled);
         this.sceneFollowBars.set(oldFollowBars);
+        this.sceneFollowRules.set(oldFollowRules);
       }
     );
     this.history.clear();
@@ -501,6 +523,79 @@ export class MusicManagerService {
     const next = Math.min(32, Math.max(1, Math.floor(Number(bars) || 1)));
     this.sceneFollowBars.set(next);
     return next;
+  }
+
+  /** The rule saved for a scene column, or null when it inherits the global. */
+  sceneFollowRule(column: number): SceneFollowRule | null {
+    if (!Number.isInteger(column) || column < 0) return null;
+    const rule = this.sceneFollowRules()[String(column)];
+    return rule ? { ...rule } : null;
+  }
+
+  /**
+   * Save or clear one scene's follow rule. `null` returns the scene to the
+   * global toggle. Advance bars are clamped like the global interval.
+   */
+  setSceneFollowRule(
+    column: number,
+    rule: SceneFollowRule | null,
+  ): SceneFollowRule | null {
+    if (!Number.isInteger(column) || column < 0) return null;
+    const key = String(column);
+    const next = { ...this.sceneFollowRules() };
+    if (!rule) {
+      delete next[key];
+      this.sceneFollowRules.set(next);
+      return null;
+    }
+    const mode: SceneFollowMode = rule.mode === "loop" ? "loop" : "advance";
+    const saved: SceneFollowRule =
+      mode === "advance"
+        ? {
+            mode,
+            bars: Math.min(
+              32,
+              Math.max(1, Math.floor(Number(rule.bars) || this.sceneFollowBars())),
+            ),
+          }
+        : { mode };
+    next[key] = saved;
+    this.sceneFollowRules.set(next);
+    return { ...saved };
+  }
+
+  /**
+   * Replace every rule at once (project restore). Malformed entries are dropped
+   * rather than trusted, so an old or hand-edited bundle cannot arm a scene.
+   */
+  setSceneFollowRules(rules: unknown): Record<string, SceneFollowRule> {
+    const next: Record<string, SceneFollowRule> = {};
+    if (rules && typeof rules === "object" && !Array.isArray(rules)) {
+      for (const [key, value] of Object.entries(
+        rules as Record<string, unknown>,
+      )) {
+        const column = Number(key);
+        if (!Number.isInteger(column) || column < 0) continue;
+        const raw = value as { mode?: unknown; bars?: unknown } | null;
+        if (!raw || (raw.mode !== "loop" && raw.mode !== "advance")) continue;
+        next[String(column)] =
+          raw.mode === "advance"
+            ? {
+                mode: "advance",
+                bars: Math.min(
+                  32,
+                  Math.max(1, Math.floor(Number(raw.bars) || 1)),
+                ),
+              }
+            : { mode: "loop" };
+      }
+    }
+    this.sceneFollowRules.set(next);
+    return next;
+  }
+
+  clearSceneFollowRules(): void {
+    this.sceneFollowRules.set({});
   }
 
   loadProject(snapshot: any) {
@@ -2654,15 +2749,24 @@ export class MusicManagerService {
    * line so a scene change never lands mid-beat.
    */
   private advanceSceneFollow(step: number): void {
-    if (!this.scenePlaybackActive() || !this.sceneFollowEnabled()) return;
+    if (!this.scenePlaybackActive()) return;
+    const column = this.activeSceneColumn();
+    if (column === null) return;
+    const rule = this.sceneFollowRule(column);
+    // A scene rule owns its own ending: `loop` holds even when global Follow is
+    // armed, and `advance` moves on even when it is off.
+    if (!rule && !this.sceneFollowEnabled()) return;
+    if (rule?.mode === "loop") return;
     if (step % 16 !== 0) return;
     this.sceneBarsElapsed += 1;
-    const bars = Math.max(1, Math.floor(this.sceneFollowBars()));
+    const bars = Math.max(1, Math.floor(rule?.bars ?? this.sceneFollowBars()));
     if (this.sceneBarsElapsed < bars) return;
     this.sceneBarsElapsed = 0;
     const next = this.nextSceneColumn();
     if (next === null) {
-      // Nothing else to follow: disarm rather than loop the same scene forever.
+      // Nothing else to follow. An explicit scene rule holds its scene rather
+      // than silently deleting itself; the global toggle disarms as before.
+      if (rule) return;
       this.sceneFollowEnabled.set(false);
       return;
     }

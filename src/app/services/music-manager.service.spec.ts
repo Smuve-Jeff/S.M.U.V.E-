@@ -1389,3 +1389,191 @@ describe('MusicManagerService live plugin insert wiring', () => {
     );
   });
 });
+
+describe('MusicManagerService per-scene follow rules', () => {
+  let service: MusicManagerService;
+
+  const engineMock = {
+    tempo: signal(120),
+    visualStep: signal(0),
+    setSongLengthSteps: jest.fn(),
+    triggerAttack: jest.fn(),
+    setBaseFaderGain: jest.fn(),
+    stop: jest.fn(),
+    onScheduleStep: undefined as any,
+    setPlayMode: jest.fn(),
+  };
+
+  /** Two scene columns with material so follow has somewhere to go. */
+  const sceneTrack = () => ({
+    id: 'track-1',
+    name: 'Keys',
+    type: 'midi',
+    instrumentId: 'grand-piano',
+    muted: false,
+    soloed: false,
+    volume: 0.8,
+    gain: 0.8,
+    pan: 0,
+    clips: [],
+    notes: [],
+    steps: new Array(64).fill(false),
+    fxSlots: [],
+    sendA: 0,
+    sendB: 0,
+    effects: [],
+    activePatternSlotId: 'slot-0',
+    patternSlots: [0, 1].map((index) => {
+      const steps = new Array(64).fill(false);
+      steps[0] = true;
+      return {
+        id: `slot-${index}`,
+        name: `Scene ${index + 1}`,
+        activeVersionId: `v${index}`,
+        versions: [{ id: `v${index}`, steps, notes: [] }],
+      };
+    }),
+  });
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        MusicManagerService,
+        HistoryService,
+        { provide: AudioEngineService, useValue: engineMock },
+        { provide: ProjectService, useValue: { currentProject: signal(null) } },
+        { provide: PluginStoreService, useValue: { preload: jest.fn() } },
+        { provide: InstrumentsService, useValue: { getPresets: () => [] } },
+        { provide: StemSeparationService, useValue: {} },
+        { provide: StudioRecordingEngineService, useValue: {} },
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+        {
+          provide: TakeManagerService,
+          useValue: { getCompNotesForStepNow: () => [] },
+        },
+      ],
+    });
+    service = TestBed.inject(MusicManagerService);
+    service.tracks.set([sceneTrack()]);
+  });
+
+  const advanceBars = (bars: number) => {
+    for (let bar = 0; bar < bars; bar++) {
+      (service as any).advanceSceneFollow(0);
+    }
+  };
+
+  it('clamps an advance rule and clears it back to the global setting', () => {
+    expect(service.setSceneFollowRule(1, { mode: 'advance', bars: 99 })).toEqual({
+      mode: 'advance',
+      bars: 32,
+    });
+    expect(service.sceneFollowRules()).toEqual({
+      '1': { mode: 'advance', bars: 32 },
+    });
+
+    expect(service.setSceneFollowRule(1, null)).toBeNull();
+    expect(service.sceneFollowRule(1)).toBeNull();
+    expect(service.sceneFollowRules()).toEqual({});
+  });
+
+  it('defaults an advance rule to the global interval and drops bad input', () => {
+    service.setSceneFollowBars(6);
+    expect(service.setSceneFollowRule(0, { mode: 'advance' })).toEqual({
+      mode: 'advance',
+      bars: 6,
+    });
+    expect(service.setSceneFollowRule(-1, { mode: 'loop' })).toBeNull();
+    expect(service.setSceneFollowRule(0.5, { mode: 'loop' })).toBeNull();
+  });
+
+  it('holds a looping scene even while global follow is armed', () => {
+    service.setSceneFollowRule(0, { mode: 'loop' });
+    service.setSceneFollowEnabled(true);
+    service.setSceneFollowBars(1);
+    service.launchSceneColumn(0);
+
+    advanceBars(4);
+
+    expect(service.activeSceneColumn()).toBe(0);
+    expect(service.sceneFollowEnabled()).toBe(true);
+  });
+
+  it('advances a scene on its own bar count while global follow is off', () => {
+    service.setSceneFollowEnabled(false);
+    service.setSceneFollowRule(0, { mode: 'advance', bars: 2 });
+    service.launchSceneColumn(0);
+
+    advanceBars(1);
+    expect(service.activeSceneColumn()).toBe(0);
+
+    advanceBars(1);
+    expect(service.activeSceneColumn()).toBe(1);
+  });
+
+  it('keeps a rule on the last scene instead of disarming follow globally', () => {
+    service.tracks.set([
+      {
+        ...sceneTrack(),
+        patternSlots: [sceneTrack().patternSlots[0]],
+      },
+    ]);
+    service.setSceneFollowRule(0, { mode: 'advance', bars: 1 });
+    service.setSceneFollowEnabled(true);
+    service.launchSceneColumn(0);
+
+    advanceBars(2);
+
+    expect(service.activeSceneColumn()).toBe(0);
+    expect(service.sceneFollowEnabled()).toBe(true);
+    expect(service.sceneFollowRule(0)).toEqual({ mode: 'advance', bars: 1 });
+  });
+
+  it('still disarms global follow when there is nowhere else to go', () => {
+    service.tracks.set([
+      {
+        ...sceneTrack(),
+        patternSlots: [sceneTrack().patternSlots[0]],
+      },
+    ]);
+    service.setSceneFollowEnabled(true);
+    service.setSceneFollowBars(1);
+    service.launchSceneColumn(0);
+
+    advanceBars(1);
+
+    expect(service.sceneFollowEnabled()).toBe(false);
+  });
+
+  it('sanitises restored rules rather than trusting the bundle', () => {
+    const saved = service.setSceneFollowRules({
+      '0': { mode: 'loop' },
+      '2': { mode: 'advance', bars: 900 },
+      '3': { mode: 'inherit' },
+      bad: { mode: 'loop' },
+      '-1': { mode: 'loop' },
+      '4': null,
+    });
+
+    expect(saved).toEqual({
+      '0': { mode: 'loop' },
+      '2': { mode: 'advance', bars: 32 },
+    });
+
+    service.clearSceneFollowRules();
+    expect(service.sceneFollowRules()).toEqual({});
+  });
+
+  it('drops scene rules when a new project replaces the set', () => {
+    service.setSceneFollowRule(2, { mode: 'loop' });
+    service.setSceneFollowBars(9);
+
+    service.newProject(true);
+
+    expect(service.sceneFollowRules()).toEqual({});
+    expect(service.sceneFollowBars()).toBe(4);
+  });
+});

@@ -620,6 +620,30 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   readonly sceneFollowEnabled =
     this.musicManager.sceneFollowEnabled ?? signal(false);
   readonly sceneFollowBars = this.musicManager.sceneFollowBars ?? signal(4);
+  /** Scenes that override the global follow setting, with their ending. */
+  readonly sceneFollowRuleRows = computed(() => {
+    const rules = this.musicManager.sceneFollowRules?.() ?? {};
+    const tracks = this.musicManager.tracks();
+    return Object.entries(rules)
+      .map(([key, rule]) => {
+        const column = Number(key);
+        const sceneName =
+          tracks
+            .filter((track) => track.type !== "audio")
+            .map((track) => track.patternSlots?.[column]?.name)
+            .find((name): name is string => !!name && !!name.trim()) ??
+          `Scene ${column + 1}`;
+        return {
+          column,
+          label: sceneName,
+          value:
+            rule.mode === "loop"
+              ? "LOOP"
+              : `${rule.bars ?? this.sceneFollowBars()} BARS`,
+        };
+      })
+      .sort((a, b) => a.column - b.column);
+  });
   readonly soloSafeChannels = computed(() =>
     this.musicManager.tracks().filter((track) => !!track.soloSafe),
   );

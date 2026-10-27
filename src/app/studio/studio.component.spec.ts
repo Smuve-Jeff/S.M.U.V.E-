@@ -71,6 +71,7 @@ describe("StudioComponent", () => {
     launchQuantize: signal<"none" | "1bar" | "2bar" | "4bar">("none"),
     sceneFollowEnabled: signal(false),
     sceneFollowBars: signal(4),
+    sceneFollowRules: signal<Record<string, any>>({}),
     setSceneFollowEnabled: jest.fn((enabled: boolean) =>
       mockMusicManager.sceneFollowEnabled.set(!!enabled),
     ),
@@ -248,6 +249,7 @@ describe("StudioComponent", () => {
     mockMusicManager.launchQuantize.set("none");
     mockMusicManager.sceneFollowEnabled.set(false);
     mockMusicManager.sceneFollowBars.set(4);
+    mockMusicManager.sceneFollowRules.set({});
     mockMusicManager.engine.monoMonitoring.set(false);
     mockAudioSession.hasLiveSession.mockReturnValue(false);
     mockAudioSession.isRecording.set(false);
@@ -945,6 +947,28 @@ describe("StudioComponent", () => {
       );
       expect(component.launchBoundaryLabel("4bar")).toBe("4 BARS");
       expect(component.launchBoundaryLabel("none")).toBe("OFF");
+    });
+
+    it("lists the scenes that end differently from the global follow", () => {
+      mockMusicManager.tracks.set([
+        {
+          id: "t1",
+          name: "Keys",
+          patternSlots: [
+            { id: "s-a", name: "Intro", versions: [] },
+            { id: "s-b", name: "Drop", versions: [] },
+          ],
+        },
+      ]);
+      mockMusicManager.sceneFollowRules.set({
+        "1": { mode: "advance", bars: 8 },
+        "0": { mode: "loop" },
+      });
+
+      expect(component.sceneFollowRuleRows()).toEqual([
+        { column: 0, label: "Intro", value: "LOOP" },
+        { column: 1, label: "Drop", value: "8 BARS" },
+      ]);
     });
 
     it("shows and arms saved follow actions from the panel", () => {

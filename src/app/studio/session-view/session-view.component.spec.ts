@@ -23,6 +23,7 @@ describe("SessionViewComponent", () => {
   const activeSceneColumn = signal<number | null>(null);
   const sceneFollowEnabled = signal(false);
   const sceneFollowBars = signal(4);
+  const sceneFollowRules = signal<Record<string, any>>({});
   const selectedTrackId = signal<string | null>(null);
   const tempo = signal(120);
 
@@ -203,6 +204,7 @@ describe("SessionViewComponent", () => {
     activeSceneColumn,
     sceneFollowEnabled,
     sceneFollowBars,
+    sceneFollowRules,
     setSceneFollowEnabled: jest.fn((enabled: boolean) => {
       sceneFollowEnabled.set(!!enabled);
       return sceneFollowEnabled();
@@ -211,6 +213,31 @@ describe("SessionViewComponent", () => {
       const next = Math.min(32, Math.max(1, Math.floor(Number(bars) || 1)));
       sceneFollowBars.set(next);
       return next;
+    }),
+    sceneFollowRule: jest.fn((column: number) => {
+      const rule = sceneFollowRules()[String(column)];
+      return rule ? { ...rule } : null;
+    }),
+    setSceneFollowRule: jest.fn((column: number, rule: any) => {
+      const next = { ...sceneFollowRules() };
+      if (!rule) {
+        delete next[String(column)];
+        sceneFollowRules.set(next);
+        return null;
+      }
+      const saved =
+        rule.mode === "advance"
+          ? {
+              mode: "advance",
+              bars: Math.min(
+                32,
+                Math.max(1, Math.floor(Number(rule.bars) || sceneFollowBars())),
+              ),
+            }
+          : { mode: "loop" as const };
+      next[String(column)] = saved;
+      sceneFollowRules.set(next);
+      return saved;
     }),
     sceneColumnCount: () =>
       tracks()
@@ -243,6 +270,7 @@ describe("SessionViewComponent", () => {
     activeSceneColumn.set(null);
     sceneFollowEnabled.set(false);
     sceneFollowBars.set(4);
+    sceneFollowRules.set({});
     tempo.set(120);
     tracks.set([
       {
@@ -476,6 +504,41 @@ describe("SessionViewComponent", () => {
     expect(sceneFollowBars()).toBe(1);
     component.setFollowBars(99);
     expect(sceneFollowBars()).toBe(32);
+  });
+
+  it("sets a scene to loop, advance on its own bars, or inherit", () => {
+    const scene = component.scenes()[0];
+
+    component.setSceneRule(scene, "loop");
+    expect(sceneFollowRules()).toEqual({ "0": { mode: "loop" } });
+    expect(component.scenes()[0].followLabel).toBe("LOOP");
+    expect(component.sceneRuleMode(component.scenes()[0])).toBe("loop");
+
+    component.setSceneRule(scene, "advance");
+    expect(component.sceneRuleMode(component.scenes()[0])).toBe("advance");
+    expect(component.sceneRuleBars(component.scenes()[0])).toBe(4);
+    expect(component.scenes()[0].followLabel).toBe("4B");
+
+    component.adjustSceneRuleBars(component.scenes()[0], 2);
+    expect(sceneFollowRules()[0]).toEqual({ mode: "advance", bars: 6 });
+    expect(component.scenes()[0].followLabel).toBe("6B");
+
+    component.setSceneRule(component.scenes()[0], "inherit");
+    expect(sceneFollowRules()).toEqual({});
+    expect(component.scenes()[0].followLabel).toBe("");
+    expect(component.sceneRuleMode(component.scenes()[0])).toBe("inherit");
+  });
+
+  it("surfaces the launched scene's rule so a loop is never a surprise", () => {
+    component.setSceneRule(component.scenes()[1], "loop");
+    expect(component.activeSceneRule()).toBeNull();
+
+    activeSceneColumn.set(1);
+    scenePlaybackActive.set(true);
+
+    expect(component.activeSceneRule()?.followLabel).toBe("LOOP");
+    component.openActiveSceneActions();
+    expect(component.sceneActionSceneId()).toBe(component.scenes()[1].id);
   });
 
   it("renames a scene across every channel that owns it", () => {

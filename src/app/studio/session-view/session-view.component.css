@@ -261,6 +261,24 @@
   opacity: 0.72;
 }
 
+/* A scene that ends differently from the global Follow setting says so on its
+   own header, so an engineer does not have to open every sheet to find it. */
+.sv-scene-follow {
+  margin-top: 2px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(180, 83, 9, 0.16);
+  color: #8a4b08;
+  font: 800 8px/1.4 var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+}
+
+.sv-btn.sv-scene-rule {
+  border-color: rgba(180, 83, 9, 0.45);
+  background: rgba(180, 83, 9, 0.12);
+  color: #8a4b08;
+}
+
 .sv-scene-menu {
   flex: 0 0 22px;
   min-width: 22px;
@@ -458,6 +476,13 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.sv-sheet-hint {
+  margin-top: 6px;
+  font: 600 10.5px/1.45 var(--font-sans, system-ui);
+  letter-spacing: 0;
+  color: var(--espresso-muted, #7e7259);
 }
 
 .sv-follow-bars {

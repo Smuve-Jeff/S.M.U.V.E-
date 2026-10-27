@@ -12,6 +12,7 @@ import { AudioSessionService } from "../audio-session.service";
 import {
   LaunchQuantize,
   MusicManagerService,
+  SceneFollowRule,
 } from "../../services/music-manager.service";
 import { HapticService } from "../../services/haptic.service";
 import { SnackbarService } from "../../services/snackbar.service";
@@ -23,6 +24,10 @@ export interface SessionSceneView {
   index: number;
   name: string;
   color: string;
+  /** Per-scene follow override; null inherits the global Follow toggle. */
+  followRule: SceneFollowRule | null;
+  /** `LOOP` / `8B` badge text; empty when the scene inherits. */
+  followLabel: string;
 }
 
 /** One channel × scene cell. A cell without a slot is a create target. */
@@ -145,11 +150,14 @@ export class SessionViewComponent implements OnDestroy {
         .filter((track) => track.type !== "audio")
         .map((track) => track.patternSlots?.[index]?.name)
         .find((name): name is string => !!name && !!name.trim());
+      const followRule = this.musicManager.sceneFollowRule(index);
       return {
         id: `scene-${index}`,
         index,
         name: named ?? `Scene ${index + 1}`,
         color: SCENE_COLORS[index % SCENE_COLORS.length],
+        followRule,
+        followLabel: this.sceneFollowLabel(followRule),
       };
     });
   });
@@ -418,6 +426,76 @@ export class SessionViewComponent implements OnDestroy {
   setFollowBars(delta: number): void {
     this.musicManager.setSceneFollowBars(this.followBars() + delta);
     this.haptic.light();
+  }
+
+  // ── Per-scene follow rules ──────────────────────────────────────────
+  readonly sceneRuleModes = ["inherit", "loop", "advance"] as const;
+
+  private sceneFollowLabel(rule: SceneFollowRule | null): string {
+    if (!rule) return "";
+    return rule.mode === "loop"
+      ? "LOOP"
+      : `${rule.bars ?? this.followBars()}B`;
+  }
+
+  /** Which ending the scene action sheet should highlight. */
+  sceneRuleMode(scene: SessionSceneView): "inherit" | "loop" | "advance" {
+    return scene.followRule?.mode ?? "inherit";
+  }
+
+  sceneRuleBars(scene: SessionSceneView): number {
+    return scene.followRule?.bars ?? this.followBars();
+  }
+
+  /**
+   * Set how this scene ends. `inherit` removes the override so the scene
+   * follows the global toggle again; `loop` holds it until another scene is
+   * launched; `advance` moves on after the scene's own bar count.
+   */
+  setSceneRule(
+    scene: SessionSceneView,
+    mode: "inherit" | "loop" | "advance",
+  ): void {
+    if (mode === "inherit") {
+      this.musicManager.setSceneFollowRule(scene.index, null);
+      this.snackbar.info(
+        `Scene “${scene.name}” follows the global Follow setting`,
+      );
+    } else if (mode === "loop") {
+      this.musicManager.setSceneFollowRule(scene.index, { mode: "loop" });
+      this.snackbar.info(`Scene “${scene.name}” loops until you launch another`);
+    } else {
+      const bars = this.sceneRuleBars(scene);
+      this.musicManager.setSceneFollowRule(scene.index, {
+        mode: "advance",
+        bars,
+      });
+      this.snackbar.info(
+        `Scene “${scene.name}” advances after ${bars} bar${bars === 1 ? "" : "s"}`,
+      );
+    }
+    this.haptic.light();
+  }
+
+  adjustSceneRuleBars(scene: SessionSceneView, delta: number): void {
+    this.musicManager.setSceneFollowRule(scene.index, {
+      mode: "advance",
+      bars: this.sceneRuleBars(scene) + delta,
+    });
+    this.haptic.light();
+  }
+
+  /** The launched scene's override, for the header chip. */
+  readonly activeSceneRule = computed<SessionSceneView | null>(() => {
+    const column = this.activeSceneColumn();
+    if (column === null) return null;
+    const scene = this.scenes().find((entry) => entry.index === column);
+    return scene && scene.followRule ? scene : null;
+  });
+
+  openActiveSceneActions(): void {
+    const scene = this.activeSceneRule();
+    if (scene) this.openSceneActions(scene);
   }
 
   stopAll(): void {

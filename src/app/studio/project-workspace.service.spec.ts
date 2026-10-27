@@ -36,6 +36,7 @@ describe("ProjectWorkspaceService", () => {
   let launchQuantize: ReturnType<typeof signal<any>>;
   let sceneFollowEnabled: ReturnType<typeof signal<boolean>>;
   let sceneFollowBars: ReturnType<typeof signal<number>>;
+  let sceneFollowRules: ReturnType<typeof signal<Record<string, any>>>;
   let getItem: jest.Mock;
   let getAllItems: jest.Mock;
   let deleteItems: jest.Mock;
@@ -86,6 +87,7 @@ describe("ProjectWorkspaceService", () => {
     launchQuantize = signal("none");
     sceneFollowEnabled = signal(false);
     sceneFollowBars = signal(4);
+    sceneFollowRules = signal<Record<string, any>>({});
     getItem = jest.fn().mockResolvedValue(null);
     getAllItems = jest.fn().mockResolvedValue([]);
     deleteItems = jest.fn().mockResolvedValue(undefined);
@@ -119,6 +121,12 @@ describe("ProjectWorkspaceService", () => {
               sceneFollowBars.set(next);
               return next;
             },
+            sceneFollowRules,
+            setSceneFollowRules: (rules: Record<string, any>) => {
+              sceneFollowRules.set({ ...(rules ?? {}) });
+              return sceneFollowRules();
+            },
+            clearSceneFollowRules: () => sceneFollowRules.set({}),
             structure: signal([]),
             selectedTrackId: signal(null),
             stemAudioCache,
@@ -403,12 +411,17 @@ describe("ProjectWorkspaceService", () => {
     launchQuantize.set("4bar");
     sceneFollowEnabled.set(true);
     sceneFollowBars.set(8);
+    sceneFollowRules.set({ "0": { mode: "loop" }, "1": { mode: "advance", bars: 8 } });
 
     const snapshot = service.createSnapshot();
     expect(snapshot.mixState.monitorMono).toBe(true);
     expect(snapshot.session?.launchQuantize).toBe("4bar");
     expect(snapshot.session?.followEnabled).toBe(true);
     expect(snapshot.session?.followBars).toBe(8);
+    expect(snapshot.session?.sceneFollowRules).toEqual({
+      "0": { mode: "loop" },
+      "1": { mode: "advance", bars: 8 },
+    });
     expect(snapshot.tracks[0].soloSafe).toBe(true);
     expect(snapshot.tracks[0].patternSlots[0].launchQuantize).toBe("2bar");
     expect(snapshot.tracks[0].patternSlots[1].launchQuantize).toBeNull();
@@ -417,6 +430,7 @@ describe("ProjectWorkspaceService", () => {
     launchQuantize.set("none");
     sceneFollowEnabled.set(false);
     sceneFollowBars.set(2);
+    sceneFollowRules.set({});
     tracks.set([{ id: "track-1", notes: [] }]);
     service.restoreFromSnapshot(snapshot);
 
@@ -424,6 +438,10 @@ describe("ProjectWorkspaceService", () => {
     expect(launchQuantize()).toBe("4bar");
     expect(sceneFollowEnabled()).toBe(true);
     expect(sceneFollowBars()).toBe(8);
+    expect(sceneFollowRules()).toEqual({
+      "0": { mode: "loop" },
+      "1": { mode: "advance", bars: 8 },
+    });
     expect(tracks()[0].soloSafe).toBe(true);
     expect(tracks()[0].patternSlots[0].launchQuantize).toBe("2bar");
   });
@@ -432,21 +450,25 @@ describe("ProjectWorkspaceService", () => {
     launchQuantize.set("2bar");
     sceneFollowEnabled.set(true);
     sceneFollowBars.set(16);
+    sceneFollowRules.set({ "0": { mode: "loop" } });
     const legacy = makeBundle();
     service.restoreFromSnapshot(legacy);
     expect(launchQuantize()).toBe("none");
     expect(sceneFollowEnabled()).toBe(false);
     expect(sceneFollowBars()).toBe(4);
+    expect(sceneFollowRules()).toEqual({});
   });
 
   it("clears armed follow actions when a fresh project replaces the set", () => {
     sceneFollowEnabled.set(true);
     sceneFollowBars.set(12);
+    sceneFollowRules.set({ "1": { mode: "advance", bars: 12 } });
 
     service.startFreshProject({ id: "proj_fresh", name: "Fresh" });
 
     expect(sceneFollowEnabled()).toBe(false);
     expect(sceneFollowBars()).toBe(4);
+    expect(sceneFollowRules()).toEqual({});
   });
 
   it("persists manual saves locally before returning the bundle", async () => {
@@ -513,6 +535,12 @@ describe("ProjectWorkspaceService", () => {
               sceneFollowBars.set(next);
               return next;
             },
+            sceneFollowRules,
+            setSceneFollowRules: (rules: Record<string, any>) => {
+              sceneFollowRules.set({ ...(rules ?? {}) });
+              return sceneFollowRules();
+            },
+            clearSceneFollowRules: () => sceneFollowRules.set({}),
             structure: signal([]),
             selectedTrackId: signal(null),
             engine: { stop: jest.fn(), tempo: { set: tempoSet } },

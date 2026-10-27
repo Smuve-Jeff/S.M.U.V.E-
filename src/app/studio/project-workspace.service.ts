@@ -49,6 +49,11 @@ export interface ProjectBundle {
     /** Follow actions: advance to the next scene every `followBars` bars. */
     followEnabled?: boolean;
     followBars?: number;
+    /** Per-scene overrides keyed by scene column, e.g. a looping scene. */
+    sceneFollowRules?: Record<
+      string,
+      { mode: "loop" | "advance"; bars?: number }
+    >;
   };
   notes: string;
   exportedAt: number;
@@ -372,6 +377,7 @@ export class ProjectWorkspaceService {
     this.musicManager.setLaunchQuantize("none");
     this.musicManager.setSceneFollowEnabled(false);
     this.musicManager.setSceneFollowBars(4);
+    this.musicManager.clearSceneFollowRules();
     this.takeManager.restore({ takes: {}, active: {}, punchIn: {}, compStack: {}, sections: {} });
     this.automationService.lanes.set([]);
     this.automationService.macros.set([]);
@@ -812,6 +818,9 @@ export class ProjectWorkspaceService {
         launchQuantize: this.musicManager.launchQuantize(),
         followEnabled: this.musicManager.sceneFollowEnabled(),
         followBars: this.musicManager.sceneFollowBars(),
+        sceneFollowRules: {
+          ...this.musicManager.sceneFollowRules(),
+        },
       },
       notes: this.projectNotes(),
       exportedAt: Date.now(),
@@ -859,6 +868,9 @@ export class ProjectWorkspaceService {
       bundle.session?.followEnabled === true,
     );
     this.musicManager.setSceneFollowBars(bundle.session?.followBars ?? 4);
+    this.musicManager.setSceneFollowRules(
+      bundle.session?.sceneFollowRules ?? {},
+    );
     this.logger.info(
       "ProjectWorkspace: Restored project " +
         (bundle.metadata?.name ?? "Untitled"),
@@ -965,6 +977,7 @@ export class ProjectWorkspaceService {
     sessionLaunchQuantize = this.musicManager.launchQuantize(),
     sessionFollowEnabled = this.musicManager.sceneFollowEnabled(),
     sessionFollowBars = this.musicManager.sceneFollowBars(),
+    sessionSceneFollowRules = this.musicManager.sceneFollowRules(),
   ): string {
     return JSON.stringify({
       metadata: metadata ? { ...metadata, bpm: tempo, updatedAt: undefined, lastOpenedAt: undefined } : null,
@@ -979,6 +992,7 @@ export class ProjectWorkspaceService {
       sessionLaunchQuantize,
       sessionFollowEnabled,
       sessionFollowBars,
+      sessionSceneFollowRules,
     });
   }
 
@@ -1042,6 +1056,7 @@ export class ProjectWorkspaceService {
       bundle.session?.launchQuantize ?? "none",
       bundle.session?.followEnabled === true,
       bundle.session?.followBars ?? 4,
+      bundle.session?.sceneFollowRules ?? {},
     );
     // An older in-flight save must not rename or clean a newly opened project.
     if (this.metadata()?.id !== bundle.metadata.id) return;

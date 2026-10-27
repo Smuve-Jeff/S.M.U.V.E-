@@ -2384,6 +2384,28 @@
             this set.
           </span>
         </div>
+
+        <div class="comp-meta-field">
+          <label>Scene end rules · {{ sceneFollowRuleRows().length }}</label>
+          <ul
+            class="comp-meta-state-list"
+            *ngIf="sceneFollowRuleRows().length > 0; else noSceneRules"
+          >
+            <li *ngFor="let rule of sceneFollowRuleRows()">
+              <span class="comp-meta-state-name">{{ rule.label }}</span>
+              <span class="comp-meta-state-value">{{ rule.value }}</span>
+            </li>
+          </ul>
+          <ng-template #noSceneRules>
+            <span class="comp-meta-hint">
+              Every scene uses the global Follow setting above.
+            </span>
+          </ng-template>
+          <span class="comp-meta-hint">
+            A scene rule wins over the global toggle: LOOP holds the scene, a
+            bar count advances it.
+          </span>
+        </div>
       </div>
 
       <div class="comp-meta-actions">

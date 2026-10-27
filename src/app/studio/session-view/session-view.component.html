@@ -46,6 +46,22 @@
         FOLLOW {{ followEnabled() ? "ON" : "OFF" }} · {{ followBars() }}B
       </button>
 
+      <button
+        type="button"
+        class="sv-btn sv-scene-rule"
+        *ngIf="activeSceneRule() as ruled"
+        (click)="openActiveSceneActions()"
+        [attr.aria-label]="
+          'This scene has its own follow rule: ' +
+          ruled.followLabel +
+          '. Edit the rule'
+        "
+        title="This scene overrides the global Follow setting"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">repeat</span>
+        SCENE {{ ruled.followLabel }}
+      </button>
+
       <button type="button" class="sv-btn" (click)="addScene()">
         <span class="material-symbols-outlined" aria-hidden="true">add</span>
         SCENE
@@ -103,6 +119,11 @@
             <span class="sv-scene-num">{{ scene.index + 1 }}</span>
             <span class="sv-scene-name">{{ scene.name }}</span>
             <span class="sv-scene-state">{{ sceneStateLabel(scene) }}</span>
+            <span
+              class="sv-scene-follow"
+              *ngIf="scene.followLabel"
+              [attr.aria-label]="'Follow rule: ' + scene.followLabel"
+            >{{ scene.followLabel }}</span>
           </button>
           <button
             type="button"
@@ -198,14 +219,15 @@
   <p class="sv-note" *ngIf="tracks().length > 0 && scenes().length > 0">
     Launching switches that channel to the scene's pattern and makes playback
     follow it. Empty cells create the pattern for that channel. Follow advances
-    on the bar line every {{ followBars() }} bar{{ followBars() === 1 ? "" : "s" }}.
+    on the bar line every {{ followBars() }} bar{{ followBars() === 1 ? "" : "s" }},
+    unless a scene sets its own rule (LOOP holds, 8B advances after 8 bars).
   </p>
 
   <!-- ── Scene actions ───────────────────────────────────────────────── -->
   <app-studio-bottom-sheet
     [open]="!!sceneActionSceneId()"
     [title]="actionScene()?.name ?? 'Scene'"
-    description="Rename, launch, duplicate or delete this scene across every channel that owns it."
+    description="Rename, launch, duplicate or delete this scene, or set how it ends when it is playing."
     (closed)="closeSceneActions()"
   >
     <label class="sv-sheet-field">
@@ -218,6 +240,66 @@
         aria-label="Scene name"
       />
     </label>
+    <div
+      class="sv-sheet-field"
+      *ngIf="actionScene() as scene"
+      role="group"
+      aria-label="Scene follow rule"
+    >
+      <span>SCENE FOLLOW</span>
+      <div class="sv-quantize" role="group" aria-label="How this scene ends">
+        <button
+          type="button"
+          class="sv-quantize-btn"
+          *ngFor="let mode of sceneRuleModes"
+          [class.is-on]="sceneRuleMode(scene) === mode"
+          [attr.aria-pressed]="sceneRuleMode(scene) === mode"
+          (click)="setSceneRule(scene, mode)"
+        >
+          {{
+            mode === "inherit"
+              ? "Global"
+              : mode === "loop"
+                ? "Loop"
+                : "Advance"
+          }}
+        </button>
+      </div>
+      <div
+        class="sv-follow-bars"
+        *ngIf="sceneRuleMode(scene) === 'advance'"
+      >
+        <button
+          type="button"
+          class="sv-step"
+          (click)="adjustSceneRuleBars(scene, -1)"
+          [disabled]="sceneRuleBars(scene) <= 1"
+          aria-label="Advance after fewer bars"
+        >
+          −
+        </button>
+        <span>{{ sceneRuleBars(scene) }} bars</span>
+        <button
+          type="button"
+          class="sv-step"
+          (click)="adjustSceneRuleBars(scene, 1)"
+          [disabled]="sceneRuleBars(scene) >= 32"
+          aria-label="Advance after more bars"
+        >
+          +
+        </button>
+      </div>
+      <span class="sv-sheet-hint">
+        {{
+          sceneRuleMode(scene) === "inherit"
+            ? "Uses the global Follow toggle and interval."
+            : sceneRuleMode(scene) === "loop"
+              ? "Holds this scene until you launch another, even with Follow on."
+              : "Advances to the next scene after this many bars, even with Follow off."
+        }}
+      </span>
+    </div>
+
     <div class="sv-sheet-actions">
       <button type="button" class="sv-sheet-btn" (click)="renameSelectedScene()">
         Rename
