@@ -1219,3 +1219,61 @@ below the fold still taps at ≥44px.
   `*ngSwitchCase` views, so the *next* view added to the shell without a catalogue
   entry fails a unit test instead of shipping unreachable. That is the regression
   this pass exists to prevent, pinned.
+
+## 19. Thirteenth pass — the boot bundle, measured
+
+### 19.1 Measurement first
+
+`ng build --verbose --stats-json`, then attributing every byte of every initial
+output to its input, rather than guessing at imports. Baseline:
+
+| | before | after |
+| --- | --- | --- |
+| Initial total (raw) | **2.03 MB** (278.36 kB over budget) | **1.70 MB** (budget met, no warning) |
+| Initial (est. transfer) | 495.94 kB | **427.07 kB** |
+| `styles` bundle | 269.62 kB | **198.45 kB** |
+
+Attribution showed the weight was app code, not the framework: 1,185 kB of
+`src/app` in the initial graph, against 415 kB of `@angular/*`. Two causes, both
+addressed:
+
+- **`animate.css` was linked in full (69.8 kB of keyframes) for exactly two class
+  names.** `grep animate__` across the app found two usages, both
+  `animate__animated animate__fadeIn` (knowledge base, mastering suite). The
+  library is replaced by `src/animate-essentials.css`, containing animate.css's
+  own declarations for those two classes *and* its `prefers-reduced-motion` rule,
+  so the rendered result is unchanged.
+- **The shell eagerly bundled two components that cannot render at boot.** The
+  assistant lives inside a drawer that only exists once
+  `uiService.isChatbotOpen()`, and the advisor is a floating action button. Both
+  are now `@defer` blocks — `on immediate` for the assistant (its drawer is
+  already open when the block exists) with a `role="status"` placeholder,
+  `on idle` for the advisor. The assistant moved to its own 188.53 kB chunk and
+  the advisor to 9.67 kB; neither is fetched until it can be seen.
+
+### 19.2 What was deliberately not done
+
+The remaining 1.70 MB is **architectural, not waste**: the shell injects
+`AiService`, the audio engine and the TV services directly (21 `inject()` calls in
+`AppComponent`), so their code is genuinely needed at boot for lifecycle alerts,
+autosave and cross-route playback. Cutting further means deferring *services*, not
+components — a behavioural change with its own risks, and a separate decision.
+
+`socket.io-client` (~40 kB, in initial via `SocialNetworkingService`) was also
+left alone: making `io()` a dynamic import rewrites connection lifecycle code for
+a small share of the gap, and the budget is met without it.
+
+### 19.3 Verification
+
+| Check | Result |
+| --- | --- |
+| `npx ng build` | **0 errors, 0 warnings** (bundle budget now met — first time this session) |
+| `npx playwright test studio-new-page` | **26/26** |
+| `npx playwright test chatbot-launch-anomaly` | **passed** (the deferred assistant still opens and responds) |
+| `npx playwright test verify_boot` | 3/4 — the failing one fails **identically with the change reverted** (`git checkout` + rerun), so it is pre-existing in this container: it forges a beat through the audio engine and this box has no audio device |
+
+The honest caveat: the `@defer` path is exercised in a dev build under
+Playwright, where the deferred chunk is served locally in milliseconds. A cold
+production fetch of the assistant chunk is a new network round trip on first open
+— invisible on a warm cache, noticeable on a poor connection for that one
+interaction. That is the trade for 260 kB off boot.

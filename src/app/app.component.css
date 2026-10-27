@@ -757,3 +757,13 @@ footer {
     letter-spacing: 0.08em;
   }
 }
+
+/* Shown while the deferred assistant chunk loads (it is split out of the boot
+   bundle, so the first open fetches it). Same padding as the drawer it fills. */
+.ai-drawer-loading {
+  margin: 0;
+  padding: 24px;
+  color: var(--color-text-muted, #94a3c8);
+  font-size: 0.85rem;
+  text-align: center;
+}

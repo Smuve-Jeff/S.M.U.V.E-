@@ -23,7 +23,7 @@
               "src/styles.css",
               "src/studio-redesign-global.css",
               "src/studio-fl-mobile.css",
-              "node_modules/animate.css/animate.min.css",
+              "src/animate-essentials.css",
               "src/studio-adaptive-display.css",
               "src/studio-pro-surface.css"
             ],

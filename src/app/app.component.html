@@ -8,7 +8,11 @@
   <div class="vignette"></div>
 
   <app-notification-toast></app-notification-toast>
-  <app-smuve-advisor *ngIf="!isAuthRoute() && showAdvisorFab()"></app-smuve-advisor>
+  <!-- Deferred: the advisor is a floating action button, so its component (and
+       everything it pulls in) never needs to be in the boot bundle. -->
+  @defer (on idle) {
+    <app-smuve-advisor *ngIf="!isAuthRoute() && showAdvisorFab()"></app-smuve-advisor>
+  }
   <app-smuve-tv-persistent-player *ngIf="!isAuthRoute()"></app-smuve-tv-persistent-player>
   <app-command-palette *ngIf="!isAuthRoute()"></app-command-palette>
   <app-interaction-dialog></app-interaction-dialog>
@@ -779,7 +783,13 @@
         aria-label="S.M.U.V.E 2.0 assistant"
         class="ai-drawer glass-v42 border-l border-border transition-all duration-500 z-40 fixed top-0 right-0 h-full w-full md:w-96 shadow-2xl"
       >
-        <app-chatbot (close)="closeChatbot()"></app-chatbot>
+        <!-- Deferred behind its own drawer: the assistant is the largest single
+             component in the shell and only exists once the user opens it. -->
+        @defer (on immediate) {
+          <app-chatbot (close)="closeChatbot()"></app-chatbot>
+        } @placeholder {
+          <p class="ai-drawer-loading" role="status">Loading assistant…</p>
+        }
       </aside>
     </main>
 

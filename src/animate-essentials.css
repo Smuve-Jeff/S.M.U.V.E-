@@ -1,0 +1,37 @@
+/* ============================================================================
+   animate.css — the two rules this app actually uses
+   ----------------------------------------------------------------------------
+   The whole library (69.8 kB of keyframes for ~100 animations) was linked in
+   angular.json for exactly two class names, both `animate__animated
+   animate__fadeIn` (knowledge base, mastering suite). These are animate.css's
+   own declarations for those two classes, so nothing about the rendered result
+   changes — 69.8 kB just stops being shipped.
+   ------------------------------------------------------------------------- */
+
+.animate__animated {
+  animation-duration: 1s;
+  animation-fill-mode: both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate__fadeIn {
+  animation-name: fadeIn;
+}
+
+/* animate.css's own accessibility rule: an entrance animation that outlives the
+   preference for reduced motion is a barrier, not a flourish. */
+@media print, (prefers-reduced-motion: reduce) {
+  .animate__animated {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
