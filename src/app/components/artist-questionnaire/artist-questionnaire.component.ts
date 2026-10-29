@@ -399,7 +399,8 @@ export class ArtistQuestionnaireComponent {
     this.aiCoachAnswer.set('');
     const current = this.currentQuestion();
     const shareAnswers = this.profileDraft().settings?.security?.shareProfileAnswersWithAi === true;
-    const currentAnswer = shareAnswers && current ? this.getValue(current.field) : undefined;
+    const shareDetails = shareAnswers && this.profileDraft().settings?.security?.hideSensitiveProfileDetails === false;
+    const currentAnswer = shareDetails && current ? this.getValue(current.field) : undefined;
     const context = [
       shareAnswers ? `Artist: ${this.profileDraft().artistName || 'unnamed artist'}` : 'Artist identity: withheld by privacy setting',
       shareAnswers ? `Genre: ${this.profileDraft().primaryGenre || 'not selected'}` : 'Genre: withheld by privacy setting',
@@ -451,7 +452,8 @@ export class ArtistQuestionnaireComponent {
   private buildCoachPrompt(prompt: string, context: string): string {
     const profile = this.profileDraft();
     const shareAnswers = profile.settings?.security?.shareProfileAnswersWithAi === true;
-    const report = shareAnswers ? this.intelligenceReport() : null;
+    const shareDetails = shareAnswers && profile.settings?.security?.hideSensitiveProfileDetails === false;
+    const report = shareDetails ? this.intelligenceReport() : null;
     const reading = report ? [
       report.strengths[0] ? `- Strength: ${report.strengths[0]}` : '',
       report.weaknesses[0] ? `- Gap: ${report.weaknesses[0]}` : '',

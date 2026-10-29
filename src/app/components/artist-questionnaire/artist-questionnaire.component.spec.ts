@@ -12,7 +12,7 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
     artistName: 'Nova',
     primaryGenre: 'Electronic',
     musicalJourney: {},
-    settings: { security: { shareProfileAnswersWithAi: true } },
+    settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } },
     expertise: {},
     strategicGoals: [],
   } as any;
@@ -97,6 +97,24 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
     expect(prompt).toContain('Artist identity: withheld');
     expect(prompt).not.toContain('Artist: Nova');
     expect(prompt).not.toContain('Genre: Electronic');
+    expect(prompt).toContain('Profile-derived strengths, gaps, and next moves withheld');
+  });
+
+  it('withholds draft answers and derived readings when sensitive details are hidden', async () => {
+    component.profileDraft.set({
+      ...profile,
+      settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: true } },
+    });
+    jest.spyOn(component, 'currentQuestion').mockReturnValue({ field: 'secret', text: 'A question' } as any);
+    jest.spyOn(component, 'getValue').mockReturnValue('PRIVATE ANSWER');
+    component.aiCoachQuestion.set('What should I do next?');
+    aiService.getAIResponse.mockResolvedValue('General guidance.');
+
+    await component.askAiCoach();
+
+    const prompt = aiService.getAIResponse.mock.calls[0][0] as string;
+    expect(prompt).not.toContain('PRIVATE ANSWER');
+    expect(prompt).not.toContain('Differentiation score:');
     expect(prompt).toContain('Profile-derived strengths, gaps, and next moves withheld');
   });
 

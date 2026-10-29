@@ -263,7 +263,7 @@ ${(() => {
 })()}`;
 
     // Inject persona synthesis for personalized sadism
-    if (synth?.archetype) {
+    if (shareAnswers && !hideSensitive && synth?.archetype) {
       prompt += `
 S.M.U.V.E has synthesized the artist as: ${synth.archetype}.
 Sonic Signature: ${synth.sonicSignature || 'Undefined'}${shareAnswers ? `.\nMarket Position: ${journey?.marketPosition || 'Unknown'}` : ''}.
@@ -289,8 +289,12 @@ ${intelLines.join('\n')}
 
 Remember: sharpen the artist's decisions, sign the work with a GOD's signature, and make the next action measurable.`;
 
-    const operatingBrief = this.getArtistOperatingBrief();
-    prompt += `\n\nS.M.U.V.E OPERATING BRIEF (adapt every answer by role):\nPRODUCER: ${operatingBrief.producer}\nSONGWRITER: ${operatingBrief.songwriter}\nMANAGER: ${operatingBrief.manager}\nA&R: ${operatingBrief.aAndR}\nPROMOTION: ${operatingBrief.promotion}\nMARKETING: ${operatingBrief.marketing}\nLEGAL: ${operatingBrief.legal}\nBRAND: ${operatingBrief.brand}\nGUARDRAILS: ${operatingBrief.guardrails.join(' | ')}`;
+    // This locally useful brief contains raw profile answers, including private
+    // business and narrative details. Only include it when both gates allow it.
+    if (shareAnswers && !hideSensitive) {
+      const operatingBrief = this.getArtistOperatingBrief();
+      prompt += `\n\nS.M.U.V.E OPERATING BRIEF (adapt every answer by role):\nPRODUCER: ${operatingBrief.producer}\nSONGWRITER: ${operatingBrief.songwriter}\nMANAGER: ${operatingBrief.manager}\nA&R: ${operatingBrief.aAndR}\nPROMOTION: ${operatingBrief.promotion}\nMARKETING: ${operatingBrief.marketing}\nLEGAL: ${operatingBrief.legal}\nBRAND: ${operatingBrief.brand}\nGUARDRAILS: ${operatingBrief.guardrails.join(' | ')}`;
+    }
 
     // Deterministic fine-tune block: the same knowledge powers offline mode,
     // so a model call can never silently downgrade the artist-specific context.
@@ -1583,6 +1587,10 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const profile = this.userProfileService.profile();
     if (profile.settings?.security?.shareProfileAnswersWithAi !== true) {
       return 'ARTIST LIFECYCLE — withheld (the artist has not shared profile answers with AI). Do not infer the artist’s business, release, or audience position; ask before assuming.';
+    }
+
+    if (profile.settings?.security?.hideSensitiveProfileDetails !== false) {
+      return 'ARTIST LIFECYCLE — withheld (sensitive profile details are private). Ask before using business, release, or audience details.';
     }
 
     const snapshot = this.lifecycleSnapshot();

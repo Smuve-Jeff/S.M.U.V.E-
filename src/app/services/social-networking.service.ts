@@ -207,20 +207,11 @@ export class SocialNetworkingService {
           this.socket.disconnect();
           this.socket = undefined;
           this.socketConnected.set(false);
+          this.injector.get(ChallengeInboxService, null)?.bindSocket(null);
         }
-      }
-    });
-
-    // Auto-bind ChallengeInboxService to socket when it becomes available
-    effect(() => {
-      const sock = this.socket;
-      if (sock) {
-        try {
-          const inbox = this.injector.get(ChallengeInboxService, null);
-          if (inbox) inbox.bindSocket(sock);
-        } catch (_) {
-          /* noop */
-        }
+        // A later login may belong to a different account. Never deliver a
+        // previous user's unsent messages using the new user's credentials.
+        this.pendingMessages = [];
       }
     });
   }
@@ -237,6 +228,9 @@ export class SocialNetworkingService {
       auth: (cb) => cb({ token: this.tokenService.jwtToken() ?? undefined }),
     });
     this.socket = sock;
+    // The socket is a plain field, not a signal: binding in an Angular effect
+    // never reacts when it is created after the initial login.
+    this.injector.get(ChallengeInboxService, null)?.bindSocket(sock);
 
     sock.on('connect', () => {
       this.socketConnected.set(true);
@@ -280,6 +274,7 @@ export class SocialNetworkingService {
       if (reason === 'io server disconnect' && this.socket === sock) {
         this.lastRejectedToken = this.tokenService.jwtToken();
         this.socket = undefined;
+        this.injector.get(ChallengeInboxService, null)?.bindSocket(null);
         sock.disconnect();
       }
     });

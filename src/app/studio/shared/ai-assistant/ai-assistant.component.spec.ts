@@ -168,6 +168,16 @@ describe("AiAssistantComponent voice communication", () => {
     expect(prompt).toContain("ARTIST REQUEST: How do I improve my bass?");
   });
 
+  it("recognizes offline replies in any persona casing", async () => {
+    ai.getAIResponse.mockResolvedValue("Strategic link severed. Offline analysis continues.");
+    const fixture = TestBed.createComponent(AiAssistantComponent);
+    const component = fixture.componentInstance;
+    component.userInput.set("How do I improve my bass?");
+    await component.sendMessage();
+    expect(component.aiMode()).toBe("local");
+    expect(component.messages().at(-1)?.text).not.toContain("Strategic link severed");
+  });
+
   it("uses the selected persona for deterministic offline advice", () => {
     profileService.profile.mockReturnValue({
       ...initialProfile,

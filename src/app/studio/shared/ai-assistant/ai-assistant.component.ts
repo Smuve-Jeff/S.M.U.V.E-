@@ -32,15 +32,10 @@ import {
 import { SpeechRecognitionService } from "../../../services/speech-recognition.service";
 import { SpeechSynthesisService } from "../../../services/speech-synthesis.service";
 import { buildArtistMusicContext } from "../../../types/profile.types";
+import { isOfflineAiText } from "../../../../ai-manager.contract";
 
 type AssistantTab = "quick" | "chat";
 
-/**
- * Sentinel returned by the backend proxy when the AI link is severed
- * (offline / not authenticated). Detected so we can silently drop into the
- * deterministic local assistant instead of showing a broken reply.
- */
-const OFFLINE_SENTINEL = "Strategic Link Severed";
 const CHAT_STORAGE_KEY_PREFIX = "smuve.ai-assistant.messages.v1";
 const CHAT_STORAGE_MAX = 50;
 
@@ -453,7 +448,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       const reply = await this.ai.getAIResponse(
         this.buildContextualPrompt(text),
       );
-      if (reply.includes(OFFLINE_SENTINEL)) {
+      if (isOfflineAiText(reply)) {
         this.aiMode.set("local");
         return this.ai.sanitizePersonaText(this.composeReply(text));
       }

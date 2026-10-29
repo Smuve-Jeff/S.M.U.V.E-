@@ -371,9 +371,14 @@ export class ArtistProfileFinetuneService {
       // dashboard or analytics tactics for accounts they have never created.
       return `ARTIST PROFILE FINE-TUNE: incomplete (${k.completeness}% evidence). Genre reference: ${k.genre}. ${this.presenceLine(k)} ${this.pathwayLine(k)} Keep guidance foundational and explicitly ask for: ${k.missing.join('; ')}.`;
     }
-    const sections = ALL_ROLES.map(
-      (role) => `${ROLE_LABEL[role]}: ${this.directiveFor(role).directive}`
-    ).join('\n');
+    // Role directives, voice, tips and guardrails can contain raw narrative,
+    // legal and business answers. Do not append them to the model prompt when
+    // the artist has chosen to hide sensitive details.
+    const sections = hideSensitive
+      ? 'ROLE DIRECTIVES: sensitive profile-derived details withheld by privacy setting.'
+      : ALL_ROLES.map(
+          (role) => `${ROLE_LABEL[role]}: ${this.directiveFor(role).directive}`
+        ).join('\n');
     const voice = this.voiceSpec();
     return [
       `ARTIST PROFILE FINE-TUNE (${k.state}, ${k.completeness}% evidence) — adapt every answer to this artist:`,
@@ -389,7 +394,7 @@ export class ArtistProfileFinetuneService {
       `DIFFERENTIATORS: ${hideSensitive ? 'withheld by privacy setting' : k.differentiators.join(' | ') || 'none captured yet'}`,
       `MISSING EVIDENCE: ${k.missing.join('; ') || 'none — profile is calibrated'}`,
       sections,
-      `STUDIO CHAIN: ${hideSensitive ? [...k.operations.equipment, ...k.operations.daw, ...k.operations.services].join(', ') || 'not captured' : 'withheld by privacy setting'}`,
+      `STUDIO CHAIN: ${hideSensitive ? 'withheld by privacy setting' : [...k.operations.equipment, ...k.operations.daw, ...k.operations.services].join(', ') || 'not captured'}`,
       `ROSTER: ${hideSensitive ? 'withheld by privacy setting' : k.operations.roster.join(' | ') || 'independent, no roster'}`,
       hideSensitive
         ? 'SYNC AND LEGAL: sensitive business and legal details withheld by privacy setting.'
@@ -402,10 +407,10 @@ export class ArtistProfileFinetuneService {
         : `CATALOGUE: ${k.operations.catalogSize} item(s), sync-ready=${k.sync.catalogSize}, releaseRecord=${k.presence.catalogAverageCompleteness}% documented, undated=${k.presence.undatedWorks}, historyIssues=${k.presence.historyIssues.join(' | ') || 'none'}`,
       this.presenceLine(k),
       this.pathwayLine(k),
-      `VOICE: ${voice.tone} ${voice.vocabulary}`,
-      `NEVER: ${voice.avoid.join(' | ')}`,
-      `ALWAYS: ${this.guardrails(k).join(' | ')}`,
-      `TIP QUEUE: ${this.tips().join(' | ')}`,
+      hideSensitive ? 'VOICE: sensitive profile-derived language withheld by privacy setting.' : `VOICE: ${voice.tone} ${voice.vocabulary}`,
+      hideSensitive ? 'NEVER: invent profile details or disclose private answers.' : `NEVER: ${voice.avoid.join(' | ')}`,
+      hideSensitive ? 'ALWAYS: respect profile privacy and separate evidence from assumptions.' : `ALWAYS: ${this.guardrails(k).join(' | ')}`,
+      hideSensitive ? 'TIP QUEUE: sensitive profile-derived recommendations withheld by privacy setting.' : `TIP QUEUE: ${this.tips().join(' | ')}`,
     ].join('\n');
   }
 

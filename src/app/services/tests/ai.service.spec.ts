@@ -435,7 +435,7 @@ describe('AiService', () => {
   });
 
   it('should embed the artist fine-tune block in the S.M.U.V.E. persona prompt', () => {
-    (userProfileServiceMock.profile as any).set(calibratedProfile);
+    (userProfileServiceMock.profile as any).set({ ...calibratedProfile, settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } });
     const prompt = service.personaSystemPrompt;
     expect(prompt).toContain('ARTIST PROFILE FINE-TUNE');
     expect(prompt).toContain('SONGWRITER:');
@@ -481,6 +481,40 @@ describe('AiService', () => {
     // Persona contract survives untouched.
     expect(prompt).toContain('Current Persona:');
     expect(prompt).toContain('CAPABILITIES');
+  });
+
+  it('does not include private operating-brief or synthesis answers in the persona prompt', () => {
+    (userProfileServiceMock.profile as any).set({
+      ...calibratedProfile,
+      settings: { security: { shareProfileAnswersWithAi: false } },
+      musicalJourney: {
+        ...calibratedProfile.musicalJourney,
+        personaSynthesis: { archetype: 'PRIVATE ARCHETYPE', sonicSignature: 'PRIVATE SIGNATURE' },
+      },
+    });
+
+    const prompt = service.personaSystemPrompt;
+    for (const secret of ['Nova Vale', 'warped tape bass', 'finish the night-drive EP', 'PRIVATE ARCHETYPE', 'PRIVATE SIGNATURE']) {
+      expect(prompt).not.toContain(secret);
+    }
+    expect(prompt).toContain('ARTIST PROFILE CONTEXT — PRIVATE');
+  });
+
+  it('withholds sensitive profile data from the model when sharing is enabled but details are hidden', () => {
+    (userProfileServiceMock.profile as any).set({
+      ...calibratedProfile,
+      settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: true } },
+      musicalJourney: {
+        ...calibratedProfile.musicalJourney,
+        personaSynthesis: { archetype: 'PRIVATE ARCHETYPE', sonicSignature: 'PRIVATE SIGNATURE' },
+      },
+    });
+
+    const prompt = service.personaSystemPrompt;
+    for (const secret of ['finish the night-drive EP', 'bus windows and gas-station coffee', 'never lose the tape hiss', 'PRIVATE ARCHETYPE', 'PRIVATE SIGNATURE']) {
+      expect(prompt).not.toContain(secret);
+    }
+    expect(prompt).toContain('ARTIST LIFECYCLE — withheld');
   });
 
   it('should get an AI response using the AIAgent', async () => {
@@ -929,6 +963,10 @@ describe('AiService', () => {
     });
 
     it('withholds the lifecycle brief until profile answers are shared', () => {
+      userProfileServiceMock.profile!.update((profile: any) => ({
+        ...profile,
+        settings: { ...profile.settings, security: { ...profile.settings.security, hideSensitiveProfileDetails: false } },
+      }));
       const shared = service.lifecycleAdvisorBrief();
       expect(shared).toContain('ARTIST LIFECYCLE');
       expect(shared).toContain('evidence-derived');
@@ -1018,6 +1056,10 @@ describe('AiService', () => {
     });
 
     it('tells the model what shipping the release commits the artist to', () => {
+      userProfileServiceMock.profile!.update((profile: any) => ({
+        ...profile,
+        settings: { ...profile.settings, security: { ...profile.settings.security, hideSensitiveProfileDetails: false } },
+      }));
       expect(service.lifecycleAdvisorBrief()).toContain(
         'No release is in the pipeline'
       );

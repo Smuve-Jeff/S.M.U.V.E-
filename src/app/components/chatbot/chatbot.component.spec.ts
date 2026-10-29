@@ -525,6 +525,7 @@ describe('ChatbotComponent', () => {
   it('names the archetype in the live prompt so the model adapts in character', () => {
     userProfileServiceMock.profile.set({
       ...initialProfile,
+      settings: { ...initialProfile.settings, security: { ...initialProfile.settings.security, shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } },
       artistName: 'Nova Vale',
       musicalJourney: {
         ...initialProfile.musicalJourney,
@@ -688,6 +689,26 @@ describe('ChatbotComponent', () => {
     const prompt = (component as any).buildMasterPrompt('what is my first step?');
     expect(prompt).toContain('ARTIST PROFILE CONTEXT \u2014 FOUNDATIONAL');
     expect(prompt).toContain('no shared evidence');
+  });
+
+  it('does not send the artist name or synthesized identity when profile sharing is disabled', () => {
+    userProfileServiceMock.profile.set({
+      ...initialProfile,
+      artistName: 'PRIVATE ARTIST',
+      musicalJourney: {
+        ...initialProfile.musicalJourney,
+        personaSynthesis: { archetype: 'PRIVATE ARCHETYPE', sonicSignature: 'PRIVATE SIGNATURE' },
+      },
+      settings: {
+        ...initialProfile.settings,
+        security: { ...initialProfile.settings.security, shareProfileAnswersWithAi: false },
+      },
+    });
+    const prompt = (component as any).buildMasterPrompt('hello');
+    expect(prompt).toContain('Artist: private artist');
+    expect(prompt).not.toContain('PRIVATE ARTIST');
+    expect(prompt).not.toContain('PRIVATE ARCHETYPE');
+    expect(prompt).not.toContain('PRIVATE SIGNATURE');
   });
 
   it('marks the context private while the artist has not shared profile answers', () => {

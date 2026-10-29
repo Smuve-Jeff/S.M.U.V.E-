@@ -17,6 +17,7 @@ const mockSocket = {
     socketHandlers.set(event, handler);
   }),
   emit: jest.fn(),
+  disconnect: jest.fn(),
 };
 
 /** Fire an inbound socket event as if the server sent it. */
@@ -35,6 +36,8 @@ describe('SocialNetworkingService', () => {
     socketHandlers.clear();
     mockSocket.on.mockClear();
     mockSocket.emit.mockClear();
+    mockSocket.disconnect.mockClear();
+    mockSocket.connected = true;
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -82,6 +85,27 @@ describe('SocialNetworkingService', () => {
   it('should be created and initialize the socket for an authenticated profile', () => {
     expect(service).toBeTruthy();
     expect(mockSocket.on).toHaveBeenCalled();
+  });
+
+  it('binds the inbox as soon as the authenticated socket is created', () => {
+    expect(TestBed.inject(ChallengeInboxService).bindSocket).toHaveBeenCalledWith(mockSocket);
+  });
+
+  it('discards queued messages on logout instead of sending them from the next account', () => {
+    mockSocket.connected = false;
+    service.sendMessage('other-user', 'private unsent message');
+    const token = TestBed.inject(TokenService).jwtToken as any;
+    token.set(null);
+    TestBed.flushEffects();
+    expect(mockSocket.disconnect).toHaveBeenCalled();
+    expect(TestBed.inject(ChallengeInboxService).bindSocket).toHaveBeenCalledWith(null);
+    token.set('new-account-token');
+    TestBed.flushEffects();
+    mockSocket.connected = true;
+    serverEvent('connect');
+    expect(mockSocket.emit).not.toHaveBeenCalledWith('send_message', {
+      toUserId: 'other-user', message: 'private unsent message',
+    });
   });
 
   it('queues DMs sent while the socket is down and flushes them on reconnect', () => {

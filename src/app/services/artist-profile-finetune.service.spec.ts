@@ -353,8 +353,7 @@ describe('ArtistProfileFinetuneService', () => {
   it('treats the artist-authored operating contract as prompt context and a legal boundary', () => {
     const profile = {
       ...strongProfile,
-      settings: { security: { shareProfileAnswersWithAi: true } },
-      settings: { security: { shareProfileAnswersWithAi: true } },
+      settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } },
       musicalJourney: {
         ...(strongProfile as any).musicalJourney,
         musicBlueprint: {
@@ -391,6 +390,33 @@ describe('ArtistProfileFinetuneService', () => {
     expect(service.tips().join(' ')).toContain('Profile answers are private from AI');
   });
 
+  it('withholds sensitive details from the model block while preserving shared music context', () => {
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: true } },
+    } as UserProfile);
+
+    const block = service.promptBlock();
+    expect(block).toContain('GENRE CONTEXT: Ambient');
+    expect(block).toContain('sensitive profile-derived details withheld');
+    for (const secret of [
+      'kitchen light and train platforms',
+      'stillness versus motion',
+      'keep the room tone',
+      'finish the next EP',
+      'Recorded field sounds while caring for family',
+      'listeners who need quiet focus',
+    ]) expect(block).not.toContain(secret);
+    expect(block).toContain('STUDIO CHAIN: withheld by privacy setting');
+
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } },
+    } as UserProfile);
+    expect(service.promptBlock()).toContain('STUDIO CHAIN: Portable recorder');
+    expect(service.promptBlock()).toContain('kitchen light and train platforms');
+  });
+
   it('keeps every role inside the artist guardrails and away from imitation', () => {
     profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true } } } as any);
     const legal = service.directiveFor('legal');
@@ -403,7 +429,7 @@ describe('ArtistProfileFinetuneService', () => {
   });
 
   it('surfaces profile-derived tips and prompt context', () => {
-    profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true } } } as any);
+    profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
     const tips = service.tips();
     const block = service.promptBlock();
 

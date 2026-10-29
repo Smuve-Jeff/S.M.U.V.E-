@@ -841,21 +841,25 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   /** Rich persona + omnipotence prompt so the AI answers as S.M.U.V.E 2.0. */
   private buildMasterPrompt(question: string): string {
     const profile = this.userProfileService.profile();
-    const name = profile.artistName || 'unknown artist';
+    const shareAnswers =
+      profile?.settings?.security?.shareProfileAnswersWithAi === true;
+    const hideSensitive =
+      profile?.settings?.security?.hideSensitiveProfileDetails !== false;
+    const name = shareAnswers ? profile.artistName || 'unknown artist' : 'private artist';
     const persona = getPersonaOption(profile.settings?.ai?.commanderPersona);
     const totalControl = profile.settings?.ai?.aiTotalControlEnabled === true;
     const tier = this.aiService.conversationalTier();
     const artistFineTune = this.artistFinetune?.promptBlock();
     // The committed reading, so the prompt can name the archetype it is
     // adapting to instead of guessing at one.
-    const synth = profile.musicalJourney?.personaSynthesis;
+    const synth = shareAnswers && !hideSensitive
+      ? profile.musicalJourney?.personaSynthesis
+      : undefined;
     // Live calibration of the profile. The heading used to be hard-labelled
     // COMPLETE with an unreachable fallback (buildArtistMusicContext always
     // returns at least the Artist/Genre lines), so a half-filled questionnaire
     // read to the model as complete work.
     const calibration = this.artistFinetune?.profileCalibration?.() ?? null;
-    const shareAnswers =
-      profile?.settings?.security?.shareProfileAnswersWithAi === true;
     const evidence = calibration
       ? `${calibration.completeness}% evidence`
       : 'no shared evidence';
