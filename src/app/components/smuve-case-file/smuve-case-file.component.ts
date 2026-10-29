@@ -12,7 +12,10 @@ import {
   SmuveMemoryEntry,
   SmuveMemoryService,
 } from '../../services/smuve-memory.service';
-import { SmuveCareerDirectorService } from '../../services/smuve-career-director.service';
+import {
+  SmuveCareerDirectorService,
+  SmuveSurfaceId,
+} from '../../services/smuve-career-director.service';
 import { UIService } from '../../services/ui.service';
 import { getPersonaOption } from '../../types/persona.types';
 import { UserProfileService } from '../../services/user-profile.service';
@@ -22,6 +25,23 @@ type CaseFileFilter = 'all' | 'open' | 'verdict' | 'goal' | 'decision';
 interface FilterOption {
   id: CaseFileFilter;
   label: string;
+}
+
+/** One room's slice of the record, with its own memory summary. */
+interface CaseFileRoomGroup {
+  surface: SmuveSurfaceId;
+  label: string;
+  /** Entries that pass the active filter/search. */
+  entries: SmuveMemoryEntry[];
+  /** The room's latest verdict, regardless of the active filter. */
+  verdict: SmuveMemoryEntry | null;
+  openLoops: SmuveMemoryEntry[];
+  goals: SmuveMemoryEntry[];
+  decisions: SmuveMemoryEntry[];
+  lastAt: number;
+  route: string | null;
+  /** First-person, evidence-only summary of what S.M.U.V.E. remembers here. */
+  summary: string;
 }
 
 const FILTERS: FilterOption[] = [
@@ -119,6 +139,72 @@ export class SmuveCaseFileComponent {
 
   readonly hasEntries = computed(() => this.memory.entries().length > 0);
 
+  /**
+   * The same record, grouped by the room that produced it.
+   *
+   * The summary and the counts describe the room's whole memory; the rows
+   * inside it obey the active filter and search. That keeps the header honest
+   * when the artist is looking at only verdicts or only open loops.
+   */
+  readonly roomGroups = computed<CaseFileRoomGroup[]>(() => {
+    const filter = this.activeFilter();
+    const search = this.query().trim().toLowerCase();
+    const bySurface = new Map<SmuveSurfaceId, SmuveMemoryEntry[]>();
+
+    for (const entry of this.memory.entries()) {
+      const list = bySurface.get(entry.surface) ?? [];
+      list.push(entry);
+      bySurface.set(entry.surface, list);
+    }
+
+    const groups: CaseFileRoomGroup[] = [];
+    for (const [surface, all] of bySurface) {
+      const entries = all.filter((entry) => {
+        if (filter === 'open') {
+          if (entry.kind !== 'open-loop' || entry.resolvedAt != null) {
+            return false;
+          }
+        } else if (filter !== 'all' && entry.kind !== filter) {
+          return false;
+        }
+        if (!search) return true;
+        return `${entry.text} ${entry.surfaceLabel}`
+          .toLowerCase()
+          .includes(search);
+      });
+      if (!entries.length) continue;
+
+      const verdict = all.find((entry) => entry.kind === 'verdict') ?? null;
+      const openLoops = all.filter(
+        (entry) => entry.kind === 'open-loop' && entry.resolvedAt == null
+      );
+      const goals = all.filter((entry) => entry.kind === 'goal');
+      const decisions = all.filter((entry) => entry.kind === 'decision');
+      const lastAt = Math.max(...all.map((entry) => entry.at));
+
+      groups.push({
+        surface,
+        label: all[0]?.surfaceLabel || 'Direct Console',
+        entries,
+        verdict,
+        openLoops,
+        goals,
+        decisions,
+        lastAt,
+        route: this.routeForSurface(surface),
+        summary: this.summarizeRoom(
+          verdict,
+          openLoops,
+          decisions,
+          goals,
+          all
+        ),
+      });
+    }
+
+    return groups.sort((a, b) => b.lastAt - a.lastAt);
+  });
+
   constructor() {
     this.destroyRef.onDestroy(() => {
       if (this.clearTimer) clearTimeout(this.clearTimer);
@@ -195,17 +281,22 @@ export class SmuveCaseFileComponent {
    * button is hidden rather than sending the artist somewhere wrong.
    */
   sourceRoute(entry: SmuveMemoryEntry): string | null {
-    try {
-      return this.director?.homeRouteFor(entry.surface) ?? null;
-    } catch {
-      return null;
-    }
+    return this.routeForSurface(entry.surface);
   }
 
   /** Jump back to the room that produced the verdict or open loop. */
   openSource(entry: SmuveMemoryEntry): void {
-    const route = this.sourceRoute(entry);
+    this.openRoom(entry.surface);
+  }
+
+  /** Jump to a room from its grouped header. */
+  openRoom(surface: SmuveSurfaceId): void {
+    const route = this.routeForSurface(surface);
     if (route) this.router.navigateByUrl(route);
+  }
+
+  trackRoomId(_index: number, room: CaseFileRoomGroup): string {
+    return room.surface;
   }
 
   kindLabel(entry: SmuveMemoryEntry): string {
@@ -242,6 +333,69 @@ export class SmuveCaseFileComponent {
 
   trackEntryId(_index: number, entry: SmuveMemoryEntry): string {
     return entry.id;
+  }
+
+  private routeForSurface(surface: SmuveSurfaceId): string | null {
+    try {
+      return this.director?.homeRouteFor(surface) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * A short summary in S.M.U.V.E.'s first person, assembled only from entries
+   * that actually exist. No judgement means it says so; a closed loop is never
+   * described as open just to make the room sound busier.
+   */
+  private summarizeRoom(
+    verdict: SmuveMemoryEntry | null,
+    openLoops: SmuveMemoryEntry[],
+    decisions: SmuveMemoryEntry[],
+    goals: SmuveMemoryEntry[],
+    all: SmuveMemoryEntry[]
+  ): string {
+    const parts: string[] = [];
+    if (verdict) {
+      parts.push(
+        `My last verdict: “${this.excerpt(verdict.text, 130)}” (${this.agedOn(
+          verdict.at
+        )}).`
+      );
+    } else {
+      parts.push('No verdict filed here yet.');
+    }
+
+    if (openLoops.length === 1) {
+      parts.push(
+        `One loop still open: “${this.excerpt(openLoops[0].text, 110)}”.`
+      );
+    } else if (openLoops.length > 1) {
+      const oldest = openLoops[openLoops.length - 1];
+      parts.push(
+        `${openLoops.length} loops still open — the oldest: “${this.excerpt(
+          oldest.text,
+          110
+        )}”.`
+      );
+    } else if (all.some((entry) => entry.kind === 'open-loop')) {
+      parts.push('Every loop I filed here is closed.');
+    }
+
+    if (decisions.length) {
+      parts.push(`You committed: “${this.excerpt(decisions[0].text, 100)}”.`);
+    } else if (goals.length) {
+      parts.push(`Your goal: “${this.excerpt(goals[0].text, 100)}”.`);
+    }
+
+    return parts.join(' ');
+  }
+
+  /** Trim a quote without adding an ellipsis to text that already fits. */
+  private excerpt(text: string, limit: number): string {
+    return text.length > limit
+      ? `${text.slice(0, Math.max(0, limit - 1)).trimEnd()}…`
+      : text;
   }
 
   private flash(message: string): void {

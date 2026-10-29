@@ -164,6 +164,54 @@ describe('SmuveCaseFileComponent', () => {
     expect(component.counts().all).toBe(5);
   });
 
+  it('groups the record by room with a memory summary and last activity', () => {
+    const groups = component.roomGroups();
+
+    // Newest room activity first.
+    expect(groups.map((group) => group.surface)).toEqual([
+      'studio',
+      'chat',
+      'release',
+      'mixing',
+    ]);
+
+    const mixing = groups.find((group) => group.surface === 'mixing');
+    expect(mixing?.entries).toHaveLength(2);
+    expect(mixing?.label).toBe('Mix Bus');
+    expect(mixing?.route).toBe('/mixer');
+    expect(mixing?.summary).toContain(
+      'My last verdict: “That low end is a corpse.”'
+    );
+    expect(mixing?.summary).toContain('One loop still open');
+
+    const release = groups.find((group) => group.surface === 'release');
+    expect(release?.summary).toContain('Every loop I filed here is closed.');
+
+    const studio = groups.find((group) => group.surface === 'studio');
+    expect(studio?.summary).toContain(
+      'You committed: “I\'ll mix the record myself.”'
+    );
+
+    const chat = groups.find((group) => group.surface === 'chat');
+    expect(chat?.summary).toContain('No verdict filed here yet.');
+    expect(chat?.summary).toContain(
+      'Your goal: “I want to finish the EP this month.”'
+    );
+
+    expect(fixture.nativeElement.textContent).toContain('Last activity');
+  });
+
+  it('keeps the room summary accurate while a filter hides its rows', () => {
+    component.setFilter('open');
+    const groups = component.roomGroups();
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].surface).toBe('mixing');
+    expect(groups[0].entries.map((entry) => entry.id)).toEqual(['o1']);
+    // The summary still describes the whole room, not just the filtered row.
+    expect(groups[0].openLoops).toHaveLength(1);
+  });
+
   it('closes an open loop and keeps it out of the open view', () => {
     component.setFilter('open');
     fixture.detectChanges();
