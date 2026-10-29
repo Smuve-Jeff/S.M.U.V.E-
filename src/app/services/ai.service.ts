@@ -38,6 +38,13 @@ import {
   FinetuneRole,
   ArtistProfileKnowledge,
 } from './artist-profile-finetune.service';
+import {
+  SmuveCareerDirectorService,
+  SmuvePresence,
+  SmuveSurfaceId,
+  SmuveSurfaceIntel,
+} from './smuve-career-director.service';
+import { SmuveMemoryService } from './smuve-memory.service';
 
 export interface UpgradeRecommendation {
   id: string;
@@ -66,6 +73,14 @@ export class AiService {
   private static readonly OFFLINE_SENTINEL = 'Strategic Link Severed';
   private logger = inject(LoggingService);
   private artistFinetune = inject(ArtistProfileFinetuneService);
+  /** Career + genre + module lens shared by every S.M.U.V.E. surface. */
+  private careerDirector = inject(SmuveCareerDirectorService);
+  /**
+   * Persistent case file: what S.M.U.V.E. already told this artist and what
+   * they committed to. Read by every model call so the manager has continuity
+   * across modules and sessions instead of starting each prompt cold.
+   */
+  private caseFile = inject(SmuveMemoryService);
   private userProfileService = inject(UserProfileService);
   private lifecycle = inject(ArtistLifecycleService);
   private musicManager = inject(MusicManagerService);
@@ -170,6 +185,9 @@ export class AiService {
       blocks.push(
         'SADISTIC EDGE: you take open, theatrical pleasure in dismantling bad musical decisions. Relish the demolition, mock the excuse, then hand over the fix. Ruthlessness aimed at the work is the point; cruelty aimed at a person is failure.'
       );
+      blocks.push(
+        'KNOW-IT-ALL MANDATE: you have genuinely mastered every genre, every room and every business lane this app contains — production, mixing, mastering, songwriting, performance, marketing, promotion, brand, business, rights and artist development. Demonstrate it with specific craft language (the actual band, plugin, split, clause, cadence, arrangement move), never with a résumé. A verdict without a specific fix is a failure. When a room has its own vocabulary, use it and use it correctly; a generic answer delivered loudly is still a generic answer.'
+      );
     }
 
     if (intensity) {
@@ -196,6 +214,12 @@ export class AiService {
     blocks.push(
       'FACT DISCIPLINE (non-negotiable, even in character): never invent analytics, streams, revenue, credits, biography, or legal certainty. Separate recorded profile facts from hypotheses and recommendations, and mark missing evidence as missing.'
     );
+
+    if (this.caseFile.promptBlock(this.careerDirector.currentSurface())) {
+      blocks.push(
+        'CONTINUITY MANDATE: this artist has history with you in the CASE FILE below. Hold them to what they already agreed to and judge progress against your last verdict in this room. A manager with no memory is a chatbot; you are not that.'
+      );
+    }
 
     return blocks.join('\n');
   }
@@ -300,6 +324,12 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     // so a model call can never silently downgrade the artist-specific context.
     prompt += `\n\n${this.artistFinetune.promptBlock()}`;
 
+    // Career + genre + room lens. The fine-tune block above says who the artist
+    // is; this one says which room S.M.U.V.E. is standing in and what mastery
+    // that room demands, so the same artist gets a producer in the studio and a
+    // rights-literate manager in the legal desk instead of one blended voice.
+    prompt += `\n\n${this.careerDirector.directiveFor(this.currentSurface())}`;
+
     // Lifecycle state is derived from profile evidence, so it rides with the
     // same sharing permission as every other profile-derived block.
     prompt += `\n\n${this.lifecycleAdvisorBrief()}`;
@@ -308,6 +338,40 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   }
 
   constructor() {}
+
+  /** The workspace S.M.U.V.E. is currently standing in (route-derived). */
+  currentSurface(): SmuveSurfaceId {
+    return this.careerDirector.currentSurface();
+  }
+
+  /** Career, genre and room lens for any surface (defaults to the live one). */
+  surfaceIntel(surface?: SmuveSurfaceId): SmuveSurfaceIntel {
+    return this.careerDirector.surfaceIntel(surface);
+  }
+
+  /** Prompt-ready career lens, for surfaces that assemble their own prompts. */
+  careerDirective(surface?: SmuveSurfaceId): string {
+    return this.careerDirector.directiveFor(surface);
+  }
+
+  /** A rotating, in-character line for the current room. */
+  surfacePresence(surface?: SmuveSurfaceId): SmuvePresence {
+    return this.careerDirector.presenceLine(surface);
+  }
+
+  /**
+   * Speaks the room's line in a random voice belonging to that room. Every
+   * third call releases the archetype pin so the full spectrum runs, which is
+   * how the voice keeps changing across the whole application.
+   */
+  announceSurface(surface?: SmuveSurfaceId): SmuvePresence {
+    return this.careerDirector.announce(surface);
+  }
+
+  /** Three career-specific prompts the chat can offer for a room. */
+  suggestedPrompts(surface?: SmuveSurfaceId): string[] {
+    return this.careerDirector.suggestedPrompts(surface);
+  }
 
   /** True while the artist is on the default S.M.U.V.E. Prime character. */
   isOminousPersonaActive(): boolean {
@@ -449,6 +513,8 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
 
   private ensurePersonaDirectives(prompt: string): string {
     const directives = this.personaDirectives();
+    const career = this.careerDirector.compactDirective();
+    const caseFile = this.caseFile.promptBlock(this.careerDirector.currentSurface());
     const artist = this.artistFinetune.promptBlock();
     const marker = prompt.lastIndexOf('ARTIST REQUEST:');
     const requestLength = marker >= 0 ? prompt.length - marker : Math.min(3020, prompt.length + 16);
@@ -459,11 +525,25 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     // the most adaptation — kept a fraction of the fine-tune block and, once
     // the standards filled the budget, none of it, while still printing an
     // empty "ARTIST DATA (self-reported):" header.
-    const artistBudget = Math.max(0, prefixBudget - directives.length - 32);
-    const keptArtist = artist.slice(0, Math.min(2000, artistBudget));
-    const standardsBudget = Math.max(0, prefixBudget - directives.length - keptArtist.length - 64);
+    //
+    // Priority is now explicit: persona contract first, then the artist's
+    // fine-tune block (the actual personalisation), then the room lens, then
+    // continuity, then the shared standards. The career lens used to take its
+    // slice before the artist and, on a long request, cut the artist's own
+    // calibration in half — the opposite of an app that claims to know this
+    // artist's career better than a generic assistant.
+    const available = Math.max(0, prefixBudget - directives.length - 64);
+    const keptArtist = artist.slice(0, Math.min(2000, available));
+    const afterArtist = Math.max(0, available - keptArtist.length);
+    const keptCareer = career.slice(0, Math.min(1400, afterArtist));
+    const afterCareer = Math.max(0, afterArtist - keptCareer.length);
+    // Continuity is what turns a string of good answers into a manager. It is
+    // bounded smaller than the room lens: it supports the verdict, it does not
+    // replace it.
+    const keptCase = caseFile.slice(0, Math.min(1200, afterCareer));
+    const standardsBudget = Math.max(0, afterCareer - keptCase.length);
     const standards = standardsBudget > 40 ? AI_MANAGER_STANDARDS.slice(0, standardsBudget) : '';
-    const core = `${directives}${standards ? `\n\n${standards}` : ''}`;
+    const core = `${directives}${keptCareer ? `\n\n${keptCareer}` : ''}${keptCase ? `\n\n${keptCase}` : ''}${standards ? `\n\n${standards}` : ''}`;
     const prefix = keptArtist
       ? `${core}\n\nARTIST DATA (self-reported):\n${keptArtist}`
       : core;

@@ -56,6 +56,16 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
     related: ['adaptive-profile', 'profile', 'strategy'],
   },
   {
+    mode: 'case-file',
+    routePath: '/case-file',
+    label: 'Case File',
+    description:
+      'Everything S.M.U.V.E. remembers: verdicts, your goals, commitments and open loops across every room.',
+    icon: 'history_edu',
+    category: 'ARTIST',
+    related: ['artist-coach', 'adaptive-profile', 'career', 'command-center'],
+  },
+  {
     mode: 'studio',
     routePath: '/studio',
     label: 'Studio',

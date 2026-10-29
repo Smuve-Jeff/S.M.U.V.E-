@@ -1,4 +1,44 @@
 <div class="fixed bottom-6 right-6 z-50">
+  <!-- Room-arrival presence: S.M.U.V.E. follows the artist between modules
+       and speaks the new room in a voice belonging to that room. -->
+  <div
+    *ngIf="arrival() as arrival"
+    class="absolute bottom-20 right-0 w-80 max-w-[85vw] rounded-2xl glass-v42 border border-brand-primary/30 shadow-2xl p-4 animate-in"
+    role="status"
+    aria-live="polite"
+    aria-label="S.M.U.V.E. followed you into this room"
+  >
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-primary">
+        S.M.U.V.E. // {{ arrival.label }}
+      </span>
+      <button
+        (click)="dismissArrival()"
+        class="w-6 h-6 rounded-full flex items-center justify-center text-text-dim hover:bg-white/10"
+        aria-label="Dismiss S.M.U.V.E. arrival line"
+      >
+        <span class="material-symbols-outlined text-sm">close</span>
+      </button>
+    </div>
+    <p class="mt-2 text-[11px] italic leading-snug text-text-main">
+      {{ arrival.line }}
+    </p>
+    <div class="mt-2 flex items-center gap-3">
+      <button
+        (click)="announceRoom()"
+        class="text-[9px] font-black uppercase tracking-widest text-text-dim hover:text-brand-primary transition-colors"
+      >
+        Hear it again
+      </button>
+      <button
+        (click)="toggleOpen()"
+        class="text-[9px] font-black uppercase tracking-widest text-brand-primary hover:underline"
+      >
+        Open the read
+      </button>
+    </div>
+  </div>
+
   <!-- Floating Action Button to open the Advisor -->
   <button
     *ngIf="!isOpen()"
@@ -39,6 +79,125 @@
         >
           <span class="material-symbols-outlined text-xl">close</span>
         </button>
+      </div>
+    </div>
+
+    <!-- S.M.U.V.E. career read for the workspace the artist is standing in.
+         This is the app-wide presence: genre mastery, career pressure and a
+         voice that changes every time the artist asks to hear it. -->
+    <div
+      *ngIf="roomIntel() as room"
+      class="p-4 border-b border-border bg-brand-primary/5"
+      role="region"
+      aria-label="S.M.U.V.E. career read"
+    >
+      <div class="flex flex-wrap items-center gap-2">
+        <span
+          class="px-2 py-0.5 rounded bg-brand-primary/15 text-brand-primary text-[9px] font-black uppercase tracking-widest"
+          >{{ room.surfaceLabel }}</span
+        >
+        <span
+          *ngIf="room.genre"
+          class="px-2 py-0.5 rounded bg-white/5 text-text-dim text-[9px] font-black uppercase tracking-widest"
+          [title]="'Genre S.M.U.V.E. is mastering for you: ' + room.genre"
+          >{{ room.genre }}</span
+        >
+        <span
+          class="px-2 py-0.5 rounded bg-white/5 text-text-dim text-[9px] font-black uppercase tracking-widest"
+          [title]="'Career stage: ' + room.stageLabel"
+          >{{ room.stageLabel }}</span
+        >
+        <button
+          type="button"
+          (click)="announceRoom()"
+          class="ml-auto w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 text-text-dim hover:text-brand-primary transition-colors"
+          title="Hear this room in a randomly chosen S.M.U.V.E. voice"
+          aria-label="Hear this room in a randomly chosen S.M.U.V.E. voice"
+        >
+          <span class="material-symbols-outlined text-base">campaign</span>
+        </button>
+      </div>
+
+      <p class="mt-2 text-[11px] text-text-main leading-snug italic">
+        {{ room.line }}
+      </p>
+
+      <div class="mt-2 flex flex-wrap gap-x-2 gap-y-1">
+        <span
+          *ngFor="let fact of room.evidence"
+          class="text-[9px] text-text-dim/70 uppercase tracking-wider"
+          >{{ fact }}</span
+        >
+      </div>
+
+      <p
+        *ngIf="room.nextMove"
+        class="mt-2 text-[10px] text-brand-primary leading-snug"
+      >
+        NEXT MOVE // {{ room.nextMove }}
+      </p>
+    </div>
+
+    <!-- Case file: the verdict S.M.U.V.E. already delivered here, plus the
+         loops the artist still owes it. This is the relationship, not a log. -->
+    <div
+      *ngIf="roomVerdict() || openLoops().length"
+      class="p-4 border-b border-border bg-black/20"
+      role="region"
+      aria-label="S.M.U.V.E. case file"
+    >
+      <div class="flex items-center justify-between gap-2">
+        <button
+          (click)="openCaseFile()"
+          class="text-[9px] font-bold uppercase tracking-widest text-text-dim hover:text-brand-primary transition-colors text-left"
+          title="Open the full S.M.U.V.E. case file"
+        >
+          Case file · S.M.U.V.E. remembers ↗
+        </button>
+        <span
+          *ngIf="openLoops().length"
+          class="px-2 py-0.5 rounded bg-amber-400/10 text-amber-300 text-[9px] font-black uppercase tracking-widest"
+          [title]="openLoops().length + ' unresolved commitment(s)'"
+          >{{ openLoops().length }} open</span
+        >
+      </div>
+
+      <div
+        *ngIf="roomVerdict() as verdict"
+        class="mt-2 rounded-lg border-l-2 border-brand-primary/50 pl-3"
+        [title]="'Verdict delivered in ' + verdict.surfaceLabel"
+      >
+        <p class="text-[10px] text-text-main leading-snug italic">
+          "{{ verdict.text }}"
+        </p>
+        <p class="text-[9px] text-text-dim/70 uppercase tracking-wider mt-1">
+          {{ verdict.surfaceLabel }} · {{ agedOn(verdict.at) }}
+        </p>
+      </div>
+
+      <div *ngIf="openLoops().length" class="mt-3 space-y-1.5">
+        <div
+          *ngFor="let loop of openLoops(); trackBy: trackEntryId"
+          class="flex items-start gap-2 rounded-lg bg-white/5 px-2 py-1.5"
+        >
+          <p class="flex-1 text-[10px] text-text-main leading-snug">
+            {{ loop.text }}
+          </p>
+          <button
+            (click)="resolveLoop(loop.id)"
+            class="text-[8px] font-black uppercase tracking-widest text-emerald-400 hover:underline flex-shrink-0"
+            [attr.aria-label]="'Mark done: ' + loop.text"
+          >
+            Done
+          </button>
+          <button
+            (click)="forgetEntry(loop.id)"
+            class="w-5 h-5 rounded-full flex items-center justify-center text-text-dim hover:bg-white/10 flex-shrink-0"
+            aria-label="Remove this case-file entry"
+          >
+            <span class="material-symbols-outlined text-xs">close</span>
+          </button>
+        </div>
       </div>
     </div>
 

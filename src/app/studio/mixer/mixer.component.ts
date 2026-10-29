@@ -831,7 +831,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
   openSmartEq(): void {
     this.aiService.getSmartMixAdvice(this.tracks());
-    this.snack.info("Smart EQ suggestions are in the AI Assistant");
+    this.snack.info("Smart EQ suggestions are in S.M.U.V.E.");
   }
 
   // Color classifier for phase correlation readout

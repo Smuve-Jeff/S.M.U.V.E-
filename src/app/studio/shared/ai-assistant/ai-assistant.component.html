@@ -3,7 +3,7 @@
   [class.ai-shell-open]="open"
   role="dialog"
   aria-modal="false"
-  aria-label="AI Compose Assistant"
+  aria-label="S.M.U.V.E. Studio intelligence"
   [attr.aria-hidden]="!open"
   [attr.inert]="open ? null : ''"
   (keydown)="onKeyDown($event)"
@@ -13,9 +13,9 @@
     <div class="ai-header-title">
       <span class="material-symbols-outlined ai-header-icon">auto_awesome</span>
       <div>
-        <p class="ai-header-name">Compose Assistant</p>
+        <p class="ai-header-name">S.M.U.V.E.</p>
         <p class="ai-header-sub" [title]="personaTitle()">
-          {{ personaName() }} · context-aware studio AI
+          {{ personaName() }} · Studio Floor · Production · Business
         </p>
       </div>
     </div>
@@ -47,7 +47,7 @@
         type="button"
         class="ai-close"
         (click)="close.emit()"
-        aria-label="Close AI Assistant"
+        aria-label="Close S.M.U.V.E. Studio assistant"
       >
         <span class="material-symbols-outlined">close</span>
       </button>
@@ -206,8 +206,8 @@
         class="ai-input"
         [ngModel]="userInput()"
         (ngModelChange)="userInput.set($event)"
-        placeholder="Ask the assistant…"
-        aria-label="Ask the AI assistant"
+        placeholder="Ask S.M.U.V.E.…"
+        aria-label="Ask S.M.U.V.E. about the session"
       />
       <button
         type="button"

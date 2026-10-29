@@ -1,4 +1,13 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  Injector,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AiService } from '../../services/ai.service';
@@ -9,6 +18,16 @@ import {
   ArtistLifecycleAlertService,
   LifecycleAlert,
 } from '../../services/artist-lifecycle-alert.service';
+import {
+  SmuveCareerDirectorService,
+  SmuveSurfaceIntel,
+} from '../../services/smuve-career-director.service';
+import {
+  SmuveMemoryEntry,
+  SmuveMemoryService,
+} from '../../services/smuve-memory.service';
+import { SpeechSynthesisService } from '../../services/speech-synthesis.service';
+import { UIService } from '../../services/ui.service';
 
 // We assume AdvisorAdvice might have a structure like this:
 // export interface AdvisorAdvice {
@@ -35,8 +54,142 @@ export class SmuveAdvisorComponent implements OnInit {
   private router = inject(Router);
   private commandPalette = inject(CommandPaletteService);
   private lifecycleAlerts = inject(ArtistLifecycleAlertService);
+  private memory = inject(SmuveMemoryService);
+  private destroyRef = inject(DestroyRef);
+  private speech = inject(SpeechSynthesisService, { optional: true });
+  private ui = inject(UIService, { optional: true });
 
   advice = this.aiService.advisorAdvice;
+
+  /**
+   * The advisor is the one S.M.U.V.E. surface that is mounted everywhere, so it
+   * is also the app-wide career/room read: the genre S.M.U.V.E. is mastering and
+   * the stage it is holding the artist to, with a voice that changes each time
+   * the artist asks to hear it.
+   */
+  private injector = inject(Injector);
+  private get careerDirector(): SmuveCareerDirectorService | null {
+    try {
+      return this.injector.get(SmuveCareerDirectorService, null);
+    } catch {
+      return null;
+    }
+  }
+
+  readonly roomIntel = computed<SmuveSurfaceIntel | null>(() => {
+    try {
+      return this.careerDirector?.surfaceIntel() ?? null;
+    } catch {
+      return null;
+    }
+  });
+
+  /** Speaks this room's read in a randomly selected voice for that room. */
+  announceRoom(): void {
+    try {
+      this.careerDirector?.announce();
+    } catch {
+      // A host without a speech engine still shows the printed read.
+    }
+  }
+
+  /**
+   * The verdict S.M.U.V.E. last delivered in this room, and the loops the
+   * artist still owes it. The advisor is mounted everywhere, so this is where
+   * the manager's memory is visible without opening the chat.
+   */
+  readonly roomVerdict = computed<SmuveMemoryEntry | null>(() => {
+    const surface = this.roomIntel()?.surface;
+    return surface ? this.memory.latestVerdict(surface) : null;
+  });
+  readonly openLoops = this.memory.openLoops;
+
+  /** Closes a loop the artist has actually finished. */
+  resolveLoop(id: string): void {
+    this.memory.resolve(id);
+  }
+
+  /** Rejects a bad filing so the case file stays trustworthy. */
+  forgetEntry(id: string): void {
+    this.memory.forget(id);
+  }
+
+  /** Opens the dedicated workspace where the whole record can be audited. */
+  openCaseFile(): void {
+    this.isOpen.set(false);
+    this.router.navigate(['/case-file']);
+  }
+
+  trackEntryId(_index: number, entry: SmuveMemoryEntry): string {
+    return entry.id;
+  }
+
+  /** Honest age label for a memory row. */
+  agedOn(timestamp: number): string {
+    const days = Math.floor((Date.now() - timestamp) / 86_400_000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return `${Math.floor(days / 30)}mo ago`;
+  }
+
+  /**
+   * Room-arrival presence: when the artist navigates, S.M.U.V.E. follows and
+   * speaks the new room in a randomly chosen voice for it, then leaves a
+   * dismissible line above the advisor button. Throttled hard so moving around
+   * the app never becomes a lecture.
+   */
+  readonly arrival = signal<{ label: string; line: string } | null>(null);
+  private lastSurface: string | null = null;
+  private lastArrivalAt = 0;
+  private arrivalTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    effect(() => {
+      const director = this.careerDirector;
+      const surface = director?.activeSurface?.();
+      if (!surface) return;
+      if (this.lastSurface === null) {
+        this.lastSurface = surface;
+        return;
+      }
+      if (surface === this.lastSurface) return;
+      this.lastSurface = surface;
+      this.showArrival();
+    });
+    this.destroyRef.onDestroy(() => {
+      if (this.arrivalTimer) clearTimeout(this.arrivalTimer);
+    });
+  }
+
+  private showArrival(): void {
+    if (typeof document !== 'undefined' && document.hidden) return;
+    const director = this.careerDirector;
+    if (!director) return;
+    // The chat announces its own room changes in the transcript; speaking both
+    // would double the line, and the second utterance cancels the first.
+    if (this.ui?.isChatbotOpen?.()) return;
+    // Never cut off a reply that is mid-sentence.
+    if (this.speech?.isSpeaking?.()) return;
+    const now = Date.now();
+    if (now - this.lastArrivalAt < 20_000) return;
+    try {
+      const presence = director.announce();
+      this.lastArrivalAt = now;
+      this.arrival.set({ label: presence.surfaceLabel, line: presence.line });
+      if (this.arrivalTimer) clearTimeout(this.arrivalTimer);
+      this.arrivalTimer = setTimeout(() => this.arrival.set(null), 9000);
+    } catch {
+      // No speech engine, no director: stay silent rather than break the shell.
+    }
+  }
+
+  dismissArrival(): void {
+    this.arrival.set(null);
+    if (this.arrivalTimer) clearTimeout(this.arrivalTimer);
+    this.arrivalTimer = null;
+  }
 
   /**
    * Transitions the lifecycle watcher observed. These sit beside the standing

@@ -59,6 +59,11 @@ import {
   interpretAppRequest,
 } from '../../services/chat-app-command.service';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
+import {
+  SmuveCareerDirectorService,
+  SmuveSurfaceIntel,
+} from '../../services/smuve-career-director.service';
+import { SmuveMemoryService } from '../../services/smuve-memory.service';
 
 /** Voice Lab: one line per archetype, and a multi-sentence spectrum demo. */
 const VOICE_LAB_SAMPLE =
@@ -176,6 +181,31 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private get artistFinetune(): ArtistProfileFinetuneService | null {
     return this.injector.get(ArtistProfileFinetuneService, null);
   }
+  /**
+   * Career + genre + room director. Optional on purpose: the chat must still
+   * mount in a bare host, and its lens is an enhancement, never a dependency.
+   */
+  private get careerDirector(): SmuveCareerDirectorService | null {
+    try {
+      return this.injector.get(SmuveCareerDirectorService, null);
+    } catch {
+      return null;
+    }
+  }
+  /**
+   * Persistent S.M.U.V.E. case file. Every completed turn is filed here so the
+   * next prompt in any module knows what was already said and promised.
+   */
+  private get caseFile(): SmuveMemoryService | null {
+    try {
+      return this.injector.get(SmuveMemoryService, null);
+    } catch {
+      return null;
+    }
+  }
+  /** Rooms already announced this session, so navigation never spams the chat. */
+  private announcedRooms = new Set<string>();
+  private lastAnnouncedSurface: string | null = null;
   /** Browser-native dictation is optional; resolve only when the composer renders. */
   private get speechRecognition(): SpeechRecognitionService | null {
     return this.injector.get(SpeechRecognitionService, null);
@@ -212,6 +242,103 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       title: `Calibrated: S.M.U.V.E has re-read your artist profile (${calibration.completeness}% evidence) and now leads every answer with your blueprint, references and boundaries.`,
     };
   });
+
+  /**
+   * The room S.M.U.V.E. is currently working in — genre mastery and career
+   * stage included. Null when the director is unavailable or errors, so the
+   * header degrades instead of the whole chat failing.
+   */
+  readonly roomIntel = computed<SmuveSurfaceIntel | null>(() => {
+    try {
+      return this.careerDirector?.surfaceIntel() ?? null;
+    } catch {
+      return null;
+    }
+  });
+
+  /** Career-specific prompts for this room; falls back to the static chips. */
+  readonly careerPrompts = computed<string[]>(() => {
+    try {
+      return this.careerDirector?.suggestedPrompts() ?? [];
+    } catch {
+      return [];
+    }
+  });
+
+  /**
+   * Speaks the room read in a voice belonging to that room, at random.
+   */
+  announceRoom(): void {
+    try {
+      this.careerDirector?.announce();
+    } catch {
+      // No engine or no director: the printed readout still stands.
+    }
+  }
+
+  /**
+   * Files one completed exchange in the persistent case file.
+   *
+   * The chat writes; `AiService` reads. That split keeps structured model
+   * calls (JSON audits, style extraction) from polluting a conversational
+   * memory with non-conversation output.
+   */
+  private recordCaseTurn(artistText: string, replyText: string): void {
+    try {
+      const intel = this.careerDirector?.surfaceIntel();
+      this.caseFile?.captureTurn(
+        intel?.surface ?? 'chat',
+        intel?.surfaceLabel ?? 'Direct Console',
+        artistText,
+        replyText
+      );
+    } catch {
+      // A blocked store costs continuity, never the reply.
+    }
+  }
+
+  /**
+   * The room changed while the console is open: S.M.U.V.E. speaks the new room
+   * in a randomly chosen voice for it, then leaves the line in the transcript
+   * with any verdict it already delivered there.
+   */
+  private announceRoomArrival(): void {
+    if (this.destroyed) return;
+    const director = this.careerDirector;
+    if (!director) return;
+    try {
+      const presence = director.announce();
+      const verdict = this.caseFile?.latestVerdict(presence.surface) ?? null;
+      const fileLine = verdict
+        ? `\n\nCASE FILE // ${verdict.surfaceLabel}, ${this.agedOn(verdict.at)}: "${verdict.text}"`
+        : '';
+      this.messages.update((messages) =>
+        [
+          ...messages,
+          {
+            id: this.nextMessageId(),
+            role: 'assistant' as const,
+            text: `${presence.line}${fileLine}`,
+            timestamp: Date.now(),
+            category: 'system' as const,
+          },
+        ].slice(-MASTER_STORAGE_MAX)
+      );
+      this.persistMessages();
+    } catch {
+      // A host without a speech engine still keeps working silently.
+    }
+  }
+
+  /** Short, honest age label for a case-file line. */
+  private agedOn(timestamp: number): string {
+    const days = Math.floor((Date.now() - timestamp) / 86_400_000);
+    if (days <= 0) return 'earlier today';
+    if (days === 1) return 'yesterday';
+    if (days < 7) return `${days} days ago`;
+    if (days < 30) return `${Math.floor(days / 7)} week${days < 14 ? '' : 's'} ago`;
+    return `${Math.floor(days / 30)} month${days < 60 ? '' : 's'} ago`;
+  }
 
   activeCommandCategory = signal<CommandCategory | null>(null);
   private conversationCounter = 0;
@@ -432,7 +559,28 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       this.cancelReply();
       this.owner = nextOwner;
       this.messages.set([]);
+      this.announcedRooms.clear();
       if (!this.restoreMessages()) this.setWelcomeGreeting();
+    });
+
+    // S.M.U.V.E. follows the artist through the application. When the room
+    // changes while the console is open, it speaks the new room in a randomly
+    // chosen voice for that room and files itself in the transcript, so the
+    // character is present outside the one workspace the artist opened it in.
+    effect(() => {
+      const director = this.careerDirector;
+      const surface = director?.activeSurface?.();
+      if (!surface) return;
+      if (this.lastAnnouncedSurface === null) {
+        this.lastAnnouncedSurface = surface;
+        this.announcedRooms.add(surface);
+        return;
+      }
+      if (surface === this.lastAnnouncedSurface) return;
+      this.lastAnnouncedSurface = surface;
+      if (this.announcedRooms.has(surface)) return;
+      this.announcedRooms.add(surface);
+      this.announceRoomArrival();
     });
   }
 
@@ -483,11 +631,18 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       nextMove: knowledge?.pathway?.nextStep,
       tip: this.artistFinetune?.tips?.()?.[0],
     });
+    // A fresh session is where the relationship shows: if S.M.U.V.E. already
+    // judged this room or the artist left a loop open, open with the receipt
+    // instead of greeting a stranger.
+    const continuity = this.caseFile?.callbackLine(
+      this.careerDirector?.currentSurface()
+    );
+    const opening = continuity ? `${welcome}\n\n${continuity}` : welcome;
 
     const greeting: ChatMessage = {
       id: this.nextMessageId(),
       role: 'assistant',
-      text: welcome,
+      text: opening,
       timestamp: Date.now(),
       category: 'system',
     };
@@ -554,6 +709,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (generation !== this.replyGeneration || this.destroyed) return;
       content = this.personaSafeText(content);
       await this.streamResponse(content, category, actions);
+      // Only conversation is filed. Command acknowledgements and knowledge
+      // modules are not verdicts, and filing them would make the case file
+      // look like a log instead of a manager's memory.
+      if (!intent) this.recordCaseTurn(text, content);
       if (generation !== this.replyGeneration || this.destroyed) return;
 
       this.speechSynthesisService.speak(content, {
@@ -889,6 +1048,24 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       '',
       `${contextHeading}\n${contextBody}`,
       '',
+      ...(() => {
+        // Career + genre + room lens. The chat used to adapt to the artist but
+        // not to the workspace they were standing in, so a legal question and
+        // a mix question got the same blended answer.
+        try {
+          // The console is mounted over every workspace, so the lens follows
+          // the room the artist is actually standing in — a question asked
+          // from the Mix Bus gets the mix-bus standard, not a blended one.
+          const surface = this.careerDirector?.currentSurface() ?? 'chat';
+          const lens = surface === 'overview' ? 'chat' : surface;
+          const directive = this.careerDirector?.directiveFor(lens);
+          return directive
+            ? [directive, '']
+            : [];
+        } catch {
+          return [];
+        }
+      })(),
       artistFineTune
         ? `S.M.U.V.E ARTIST FINE-TUNE — apply this existing profile compiler to every recommendation; the artist’s explicit request takes priority, and their sonic non-negotiables remain protected:\n${artistFineTune}`
         : 'S.M.U.V.E ARTIST FINE-TUNE: Honor the artist’s stated genre, sonic blueprint, preferred tempo, production priorities, and boundaries. Their explicit request takes priority; do not flatten their identity into a genre stereotype.',
@@ -998,9 +1175,13 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   private localFallback(question: string): string {
     const entry = this.knowledgeEngine.search(question)[0];
     const notice = 'LOCAL KNOWLEDGE MODE — live AI unavailable. No current-source lookup or app action was performed.';
-    if (entry) return `${notice}\n\n${this.formatKnowledge(entry)}`;
+    const continuity = this.caseFile?.callbackLine(
+      this.careerDirector?.currentSurface()
+    );
+    const fileLine = continuity ? `${continuity}\n\n` : '';
+    if (entry) return `${notice}\n\n${fileLine}${this.formatKnowledge(entry)}`;
     const next = this.artistFinetune?.knowledge?.()?.pathway?.nextStep;
-    return `${notice}\n\n${getPersonaOption(this.profile().settings?.ai?.commanderPersona).isOminous ? 'MY STANDARD: no invented answers.' : 'No matching local evidence.'} ${next ? `Your recorded next milestone: ${next}. ` : ''}Tell me the song, goal or bottleneck. For app actions use /go, /studio, /mixer, /tracks or /music; I execute only supported commands with authority and confirmations.`;
+    return `${notice}\n\n${fileLine}${getPersonaOption(this.profile().settings?.ai?.commanderPersona).isOminous ? 'MY STANDARD: no invented answers.' : 'No matching local evidence.'} ${next ? `Your recorded next milestone: ${next}. ` : ''}Tell me the song, goal or bottleneck. For app actions use /go, /studio, /mixer, /tracks or /music; I execute only supported commands with authority and confirmations.`;
   }
 
   private personaSafeText(text: string): string {

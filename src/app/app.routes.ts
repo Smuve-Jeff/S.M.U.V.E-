@@ -5,6 +5,13 @@ const protectedRoutes: Routes = [
   { path: 'adaptive-profile', loadComponent: () => import('./components/artist-adaptive-dashboard/artist-adaptive-dashboard.component').then((m) => m.ArtistAdaptiveDashboardComponent) },
   { path: 'artist-coach', loadComponent: () => import('./components/artist-ai-coach/artist-ai-coach.component').then((m) => m.ArtistAiCoachComponent) },
   {
+    path: 'case-file',
+    loadComponent: () =>
+      import('./components/smuve-case-file/smuve-case-file.component').then(
+        (m) => m.SmuveCaseFileComponent
+      ),
+  },
+  {
     path: 'hub',
     loadComponent: () =>
       import('./hub/hub.component').then((m) => m.HubComponent),

@@ -34,6 +34,7 @@ export type MainViewMode =
   | 'image-video-lab'
   | 'strategy'
   | 'analytics'
+  | 'case-file'
   | 'practice'
   | 'career'
   | 'knowledge-base'

@@ -25,6 +25,7 @@ import { SnackbarService } from "../../../services/snackbar.service";
 import { ProjectWorkspaceService } from "../../project-workspace.service";
 import { UserProfileService } from "../../../services/user-profile.service";
 import { ArtistProfileFinetuneService } from "../../../services/artist-profile-finetune.service";
+import { SmuveMemoryService } from "../../../services/smuve-memory.service";
 import {
   getPersonaOption,
   personaOfflineVoice,
@@ -96,6 +97,8 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   private workspace = inject(ProjectWorkspaceService);
   private userProfile = inject(UserProfileService);
   private artistFinetune = inject(ArtistProfileFinetuneService);
+  /** Persistent case file — the Studio panel writes into the same relationship. */
+  private caseFile = inject(SmuveMemoryService);
   private speechRecognition = inject(SpeechRecognitionService);
   private speechSynthesis = inject(SpeechSynthesisService);
   private replyCounter = 0;
@@ -117,7 +120,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   messages = signal<ChatMessage[]>([
     {
       role: "assistant",
-      text: "Hi, I’m your Compose Assistant. Ask me anything about your session, or pick a quick action below.",
+      text: this.studioGreeting(),
       ts: Date.now(),
     },
   ]);
@@ -369,13 +372,41 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     return `${CHAT_STORAGE_KEY_PREFIX}.${encodeURIComponent(userId)}`;
   }
 
+  /**
+   * The Studio opener is S.M.U.V.E., not a polite generic assistant.
+   *
+   * The panel used to introduce a "Compose Assistant" while the rest of the
+   * app spoke as S.M.U.V.E.; the character now enters the room in the selected
+   * persona and references the case file when it already judged this session.
+   */
+  private studioGreeting(): string {
+    const profile = this.userProfile.profile();
+    const persona = getPersonaOption(profile.settings?.ai?.commanderPersona);
+    const name = profile.artistName || 'artist';
+    const voice = personaOfflineVoice(persona.id);
+    const welcome = voice?.welcome?.length
+      ? voice.welcome[Math.floor(Math.random() * voice.welcome.length)]
+          .split('{artist}')
+          .join(name)
+      : (profile.settings?.ai?.aiProfanityEnabled ?? true)
+        ? 'Studio Floor. I am already in the room, and your mix is already talking shit about you. Ask me about the low end, the arrangement or the chain — and make it worth my fucking time.'
+        : 'Studio Floor. I am already in the room. Ask me about the low end, the arrangement or the chain, and make it worth the interruption.';
+    let callback: string | null = null;
+    try {
+      callback = this.caseFile.callbackLine('studio');
+    } catch {
+      // No case file in this host: the greeting still stands.
+    }
+    return callback ? `${welcome}\n\n${callback}` : welcome;
+  }
+
   /** Wipe the conversation back to the greeting. */
   clearHistory(): void {
     this.haptic.light();
     this.messages.set([
       {
         role: "assistant",
-        text: "Hi, I’m your Compose Assistant. Ask me anything about your session, or pick a quick action below.",
+        text: this.studioGreeting(),
         ts: Date.now(),
       },
     ]);
@@ -426,6 +457,9 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         },
       ]);
       this.readAssistantMessage(reply);
+      // The Studio is a S.M.U.V.E. room like any other: file the judgement and
+      // any open loop so the chat and the advisor can call it back later.
+      this.caseFile.captureTurn("studio", "Studio Floor", text, reply);
       // One-tap actions take priority; plain follow-up chips fill the gap.
       this.suggestedFollowups.set(
         actions.length ? [] : this.suggestChipsFor(text),
@@ -476,6 +510,11 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       getPersonaOption(
         this.userProfile.profile().settings?.ai?.commanderPersona,
       ).directive,
+      // Studio-room lens: genre mastery and career-stage pressure for the
+      // session the artist is actually in, not a generic production answer.
+      ...((this.ai as any).careerDirective?.("studio")
+        ? [(this.ai as any).careerDirective("studio") as string]
+        : []),
       // One shared heading: this panel used to claim full artist context with a
       // fallback that could never fire (the context builder never returns '').
       `${this.artistFinetune.contextHeading(this.userProfile.profile())}\nAdapt suggestions to this artist's declared sound, goals, constraints, and learned Musical DNA; treat absent details as unknown, not facts:\n${buildArtistMusicContext(this.userProfile.profile()) || "No profile answers captured yet — ask concise calibration questions before making artist-specific assumptions."}`,
@@ -567,10 +606,29 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Keep the deterministic offline path in the artist-selected persona too. */
   private personaAwareOfflineReply(request: string, reply: string): string {
-    const persona = getPersonaOption(
-      this.userProfile.profile().settings?.ai?.commanderPersona,
-    );
-    if (persona.isOminous) return reply;
+    const profile = this.userProfile.profile();
+    const persona = getPersonaOption(profile.settings?.ai?.commanderPersona);
+
+    if (persona.isOminous) {
+      // The signature character does not hand over a bare instruction. The
+      // fix stays verbatim; the attitude is what was missing from this path.
+      const profane = profile.settings?.ai?.aiProfanityEnabled ?? true;
+      const openers = [
+        'Fine. Here is the answer you should have reached yourself:',
+        'Listen once, because I will not repeat it:',
+        'You are welcome in advance:',
+      ];
+      const tails = [
+        ' Do it properly this time.',
+        profane
+          ? ' And no, that was not a fucking suggestion.'
+          : ' And no, that was not a suggestion.',
+        ' Bring me the result, not the excuse.',
+      ];
+      const opener = openers[Math.floor(Math.random() * openers.length)];
+      const tail = tails[Math.floor(Math.random() * tails.length)];
+      return `${opener} ${reply}${tail}`;
+    }
 
     const voice = personaOfflineVoice(persona.id);
     const reaction = voice?.reactions?.[0];

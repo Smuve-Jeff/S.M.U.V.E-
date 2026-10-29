@@ -685,6 +685,10 @@ export class SmuveTotalControlService {
     journey: '/journey',
     'adaptive-profile': '/adaptive-profile',
     'artist-coach': '/artist-coach',
+    'case-file': '/case-file',
+    casefile: '/case-file',
+    'memory': '/case-file',
+    'case': '/case-file',
     'tour': '/onboarding/tour',
     'first-beat': '/onboarding/tour',
     'command-center': '/command-center',
@@ -724,7 +728,7 @@ export class SmuveTotalControlService {
     }
     return {
       success: false,
-      message: `Unknown destination: "${cmd.target}". I drive the whole application — studio, produce, mixer, mastering, performance, piano-roll, drum-machine, dj, decks, vocal-suite, lyric-editor, cowrite, remix-arena, image-video-lab, image-editor, video-editor, knowledge-base, strategy, career, projects, release, business-suite, analytics, products, store, cloud, timeline, tha-spot, gaming-hub, practice, networking, inbox, artist-development, command-center, neural-foundry, journey, profile, settings, hub.`,
+      message: `Unknown destination: "${cmd.target}". I drive the whole application — studio, produce, mixer, mastering, performance, piano-roll, drum-machine, dj, decks, vocal-suite, lyric-editor, cowrite, remix-arena, image-video-lab, image-editor, video-editor, knowledge-base, strategy, career, projects, release, business-suite, analytics, products, store, cloud, timeline, tha-spot, gaming-hub, practice, networking, inbox, artist-development, command-center, neural-foundry, journey, profile, settings, case-file, hub.`,
     };
   }
 

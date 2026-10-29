@@ -1,0 +1,339 @@
+<div
+  class="h-full flex flex-col bg-extreme-obsidian text-slate-100 overflow-hidden"
+>
+  <div class="flex-grow overflow-y-auto custom-scrollbar p-4 md:p-8">
+    <header
+      class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8"
+    >
+      <div>
+        <div class="flex items-center gap-3 mb-2">
+          <span class="size-1.5 rounded-full bg-brand-primary animate-pulse"></span>
+          <span
+            class="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] md:tracking-[0.4em]"
+            >S.M.U.V.E. // Permanent Record</span
+          >
+        </div>
+        <h1
+          class="text-3xl md:text-4xl font-black text-white italic tracking-tighter uppercase leading-none"
+        >
+          CASE<span class="text-brand-primary">FILE</span>
+        </h1>
+        <p class="mt-3 max-w-2xl text-xs md:text-sm text-slate-400 leading-relaxed">
+          Every verdict S.M.U.V.E. has delivered, every goal and commitment you
+          gave it, and every loop you still owe it — across the chat, the Studio
+          and every room in between. The same record feeds every answer it gives
+          you.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <span
+          class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-slate-400"
+          [title]="'Active persona: ' + personaName()"
+          >{{ personaName() }}</span
+        >
+        <button
+          type="button"
+          (click)="hearIt()"
+          class="px-3 py-1.5 rounded-lg border border-brand-primary/30 bg-brand-primary/10 text-[9px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary/20 transition-colors flex items-center gap-1.5"
+          title="Hear this room in a randomly chosen S.M.U.V.E. voice"
+        >
+          <span class="material-symbols-outlined text-sm">campaign</span>
+          Hear the file
+        </button>
+        <button
+          *ngIf="hasEntries()"
+          type="button"
+          (click)="clearAll()"
+          class="px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-colors"
+          [class.border-red-400/40]="!confirmingClear()"
+          [class.text-red-300]="!confirmingClear()"
+          [class.bg-red-400/10]="!confirmingClear()"
+          [class.border-red-400]="confirmingClear()"
+          [class.bg-red-500]="confirmingClear()"
+          [class.text-white]="confirmingClear()"
+          [attr.aria-label]="
+            confirmingClear()
+              ? 'Confirm clearing the entire case file'
+              : 'Clear the entire case file'
+          "
+        >
+          {{ confirmingClear() ? 'Confirm clear' : 'Clear all' }}
+        </button>
+      </div>
+    </header>
+
+    <!-- Counts: the record at a glance, straight from the service. -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8">
+      <div
+        class="glass-v42 border border-white/10 rounded-2xl p-4 md:p-5"
+        aria-label="Total entries in the case file"
+      >
+        <p class="text-[9px] font-black uppercase tracking-widest text-slate-500">
+          On record
+        </p>
+        <p class="mt-1 text-2xl md:text-3xl font-black text-white italic">
+          {{ counts().all }}
+        </p>
+      </div>
+      <div
+        class="glass-v42 border border-amber-400/20 rounded-2xl p-4 md:p-5"
+        aria-label="Unresolved open loops"
+      >
+        <p class="text-[9px] font-black uppercase tracking-widest text-amber-300/80">
+          Open loops
+        </p>
+        <p class="mt-1 text-2xl md:text-3xl font-black text-amber-300 italic">
+          {{ counts().open }}
+        </p>
+      </div>
+      <div
+        class="glass-v42 border border-brand-primary/20 rounded-2xl p-4 md:p-5"
+        aria-label="Verdicts delivered"
+      >
+        <p class="text-[9px] font-black uppercase tracking-widest text-brand-primary/80">
+          Verdicts
+        </p>
+        <p class="mt-1 text-2xl md:text-3xl font-black text-brand-primary italic">
+          {{ counts().verdict }}
+        </p>
+      </div>
+      <div
+        class="glass-v42 border border-sky-400/20 rounded-2xl p-4 md:p-5"
+        aria-label="Artist goals and commitments"
+      >
+        <p class="text-[9px] font-black uppercase tracking-widest text-sky-300/80">
+          Goals + promises
+        </p>
+        <p class="mt-1 text-2xl md:text-3xl font-black text-sky-300 italic">
+          {{ counts().goal + counts().decision }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Room read: the genre S.M.U.V.E. is mastering and the stage pressure. -->
+    <div
+      *ngIf="roomIntel() as room"
+      class="glass-v42 border border-brand-primary/20 rounded-2xl p-4 md:p-5 mb-8"
+      role="region"
+      aria-label="S.M.U.V.E. read on this workspace"
+    >
+      <div class="flex flex-wrap items-center gap-2">
+        <span
+          class="px-2 py-0.5 rounded bg-brand-primary/15 text-brand-primary text-[9px] font-black uppercase tracking-widest"
+          >{{ room.surfaceLabel }}</span
+        >
+        <span
+          *ngIf="room.genre"
+          class="px-2 py-0.5 rounded bg-white/5 text-slate-400 text-[9px] font-black uppercase tracking-widest"
+          >MASTERY // {{ room.genre }}</span
+        >
+        <span
+          class="px-2 py-0.5 rounded bg-white/5 text-slate-400 text-[9px] font-black uppercase tracking-widest"
+          >STAGE // {{ room.stageLabel }}</span
+        >
+      </div>
+      <p class="mt-3 text-xs md:text-sm italic text-slate-300 leading-snug">
+        {{ room.line }}
+      </p>
+      <p class="mt-2 text-[10px] text-slate-500 leading-snug">
+        JUDGED ON // {{ room.currency }}
+      </p>
+    </div>
+
+    <!-- Spoken read-back, so the page also has the changing voice. -->
+    <div
+      *ngIf="spoken() as spoken"
+      class="mb-8 rounded-2xl border border-brand-primary/30 bg-brand-primary/5 p-4"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="flex items-center justify-between gap-2">
+        <span
+          class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-primary"
+          >VOICE // {{ spoken.archetype }}</span
+        >
+        <button
+          type="button"
+          (click)="dismissSpoken()"
+          class="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10"
+          aria-label="Dismiss the spoken case-file line"
+        >
+          <span class="material-symbols-outlined text-sm">close</span>
+        </button>
+      </div>
+      <p class="mt-2 text-xs md:text-sm italic text-slate-200 leading-snug">
+        {{ spoken.line }}
+      </p>
+    </div>
+
+    <!-- Filters and search -->
+    <div
+      class="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 mb-4"
+      role="group"
+      aria-label="Filter the case file"
+    >
+      <div class="flex flex-wrap gap-1.5">
+        <button
+          *ngFor="let filter of filters"
+          type="button"
+          (click)="setFilter(filter.id)"
+          class="px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-colors"
+          [class.bg-brand-primary]="activeFilter() === filter.id"
+          [class.text-white]="activeFilter() === filter.id"
+          [class.border-brand-primary]="activeFilter() === filter.id"
+          [class.bg-white/5]="activeFilter() !== filter.id"
+          [class.text-slate-400]="activeFilter() !== filter.id"
+          [class.border-white/10]="activeFilter() !== filter.id"
+          [attr.aria-pressed]="activeFilter() === filter.id"
+        >
+          {{ filter.label }}
+          <span class="ml-1 opacity-60">{{ counts()[filter.id] }}</span>
+        </button>
+      </div>
+
+      <div class="relative md:ml-auto w-full md:w-72">
+        <span
+          class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-slate-500"
+          >search</span
+        >
+        <input
+          type="search"
+          [value]="query()"
+          (input)="onSearch($event)"
+          placeholder="Search the record…"
+          aria-label="Search the case file"
+          class="w-full rounded-lg border border-white/10 bg-black/30 py-2 pl-8 pr-8 text-xs text-slate-200 placeholder:text-slate-600 focus:border-brand-primary/50 focus:outline-none"
+        />
+        <button
+          *ngIf="query()"
+          type="button"
+          (click)="clearSearch()"
+          class="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-slate-500 hover:bg-white/10"
+          aria-label="Clear the search"
+        >
+          <span class="material-symbols-outlined text-xs">close</span>
+        </button>
+      </div>
+    </div>
+
+    <p
+      *ngIf="notice()"
+      class="mb-4 text-[10px] font-bold uppercase tracking-widest text-emerald-300"
+      role="status"
+      aria-live="polite"
+    >
+      {{ notice() }}
+    </p>
+
+    <!-- The record -->
+    <div *ngIf="visibleEntries().length; else emptyState" class="space-y-2.5">
+      <article
+        *ngFor="let entry of visibleEntries(); trackBy: trackEntryId"
+        class="glass-v42 border border-white/10 rounded-2xl p-4 flex flex-col md:flex-row md:items-start gap-3"
+      >
+        <div class="flex md:flex-col items-center md:items-start gap-1.5 md:min-w-[7rem]">
+          <span
+            class="px-2 py-0.5 rounded border text-[8px] font-black uppercase tracking-widest whitespace-nowrap"
+            [ngClass]="kindClass(entry)"
+            >{{ kindLabel(entry) }}</span
+          >
+          <span
+            class="text-[9px] font-bold uppercase tracking-widest text-slate-500"
+            >{{ entry.surfaceLabel }}</span
+          >
+        </div>
+
+        <p class="flex-1 text-xs md:text-sm text-slate-200 leading-relaxed">
+          {{ entry.text }}
+        </p>
+
+        <div class="flex items-center gap-3 md:flex-col md:items-end md:gap-1.5">
+          <span class="text-[9px] uppercase tracking-widest text-slate-500">
+            {{ agedOn(entry.at) }}
+          </span>
+          <div class="flex items-center gap-1.5">
+            <button
+              *ngIf="isOpenLoop(entry)"
+              type="button"
+              (click)="resolve(entry)"
+              class="px-2 py-1 rounded border border-emerald-400/30 bg-emerald-400/10 text-[8px] font-black uppercase tracking-widest text-emerald-300 hover:bg-emerald-400/20 transition-colors"
+              [attr.aria-label]="'Mark done: ' + entry.text"
+            >
+              Done
+            </button>
+            <button
+              *ngIf="sourceRoute(entry) as route"
+              type="button"
+              (click)="openSource(entry)"
+              class="px-2 py-1 rounded border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-slate-300 hover:border-brand-primary/40 hover:text-brand-primary transition-colors flex items-center gap-1"
+              [title]="'Open ' + entry.surfaceLabel + ' (' + route + ')'"
+              [attr.aria-label]="
+                'Open the room that produced this entry: ' + entry.surfaceLabel
+              "
+            >
+              <span class="material-symbols-outlined text-xs">north_east</span>
+              Room
+            </button>
+            <button
+              type="button"
+              (click)="forget(entry)"
+              class="w-6 h-6 rounded-full flex items-center justify-center text-slate-500 hover:bg-white/10 hover:text-red-300 transition-colors"
+              [attr.aria-label]="'Delete this case-file entry: ' + entry.text"
+              title="Delete this entry"
+            >
+              <span class="material-symbols-outlined text-sm">close</span>
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <ng-template #emptyState>
+      <div
+        class="glass-v42 border border-white/10 rounded-3xl p-8 md:p-12 text-center"
+      >
+        <span
+          class="material-symbols-outlined text-4xl text-brand-primary/60"
+          aria-hidden="true"
+          >history_edu</span
+        >
+        <p class="mt-3 text-sm font-bold text-slate-200">
+          {{ hasEntries() ? 'Nothing matches that filter.' : 'Nothing on record yet.' }}
+        </p>
+        <p class="mt-2 mx-auto max-w-md text-xs text-slate-400 leading-relaxed">
+          {{
+            hasEntries()
+              ? 'The file has entries, just none that match this view. Clear the search or pick another filter.'
+              : 'Ask me something worth judging in the console. A verdict, a goal and the action you promised me all land here automatically — across every room.'
+          }}
+        </p>
+        <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+          <button
+            *ngIf="hasEntries()"
+            type="button"
+            (click)="setFilter('all'); clearSearch()"
+            class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/10 transition-colors"
+          >
+            Show everything
+          </button>
+          <button
+            *ngIf="!hasEntries()"
+            type="button"
+            (click)="openConsole()"
+            class="px-4 py-2 rounded-lg bg-brand-primary text-white text-[9px] font-black uppercase tracking-widest hover:bg-brand-primary/90 transition-colors"
+          >
+            Open S.M.U.V.E.
+          </button>
+        </div>
+      </div>
+    </ng-template>
+
+    <p class="mt-8 text-[10px] leading-relaxed text-slate-600 max-w-3xl">
+      S.M.U.V.E. files these automatically from chat and Studio conversations.
+      Verdicts and loops are extracted from what was actually said — never
+      generated here. Close what you finished, delete what was filed wrong, and
+      the next answer from S.M.U.V.E. follows the corrected record.
+    </p>
+  </div>
+</div>

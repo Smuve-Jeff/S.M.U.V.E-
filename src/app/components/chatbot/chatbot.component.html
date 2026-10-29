@@ -184,6 +184,42 @@
     </div>
   </div>
 
+  <!-- S.M.U.V.E. room read: the genre it is mastering and the career stage it
+       is holding the artist to, for the workspace the artist is standing in. -->
+  <div
+    *ngIf="roomIntel() as room"
+    class="shrink-0 px-4 py-1.5 border-b border-white/5 bg-black/20 flex flex-wrap items-center gap-x-3 gap-y-1"
+    role="status"
+    aria-label="S.M.U.V.E. career read for this workspace"
+  >
+    <span class="text-[7px] font-black text-brand-primary uppercase tracking-widest">
+      ROOM // {{ room.surfaceLabel }}
+    </span>
+    <span *ngIf="room.genre" class="text-[7px] font-black text-slate-500 uppercase tracking-widest">
+      MASTERY // {{ room.genre }}
+    </span>
+    <span class="text-[7px] font-black text-slate-500 uppercase tracking-widest">
+      STAGE // {{ room.stageLabel }}
+    </span>
+    <span
+      *ngIf="room.nextMove"
+      class="text-[7px] font-bold text-slate-600 truncate max-w-[16rem]"
+      [title]="'Next move on record: ' + room.nextMove"
+    >
+      NEXT // {{ room.nextMove }}
+    </span>
+    <button
+      type="button"
+      (click)="announceRoom()"
+      class="ml-auto text-[7px] font-black text-slate-500 uppercase tracking-widest hover:text-brand-primary transition-colors flex items-center gap-1"
+      title="Hear this room in a randomly chosen S.M.U.V.E. voice"
+      aria-label="Hear this room in a randomly chosen S.M.U.V.E. voice"
+    >
+      <span class="material-symbols-outlined text-xs">campaign</span>
+      Hear it
+    </button>
+  </div>
+
   <!-- Live voice readout -->
   <div
     *ngIf="voiceSpeaking() && voiceReadout()"
@@ -453,6 +489,25 @@
       <span class="material-symbols-outlined text-xs shrink-0">error</span>
       <span>{{ voiceInputNotice() }}</span>
     </p>
+    <!-- Career cues: prompts derived from this artist's genre, stage and the
+         next move on record, instead of the same chips for every artist. -->
+    <div
+      *ngIf="careerPrompts().length"
+      class="flex flex-wrap items-center gap-1.5 mb-1.5"
+      aria-label="Career-specific prompts for this artist"
+    >
+      <span class="text-[7px] font-black text-brand-primary uppercase tracking-widest"
+        >Career cues</span
+      >
+      <button
+        *ngFor="let prompt of careerPrompts()"
+        (click)="sendQuickCommand(prompt)"
+        [title]="prompt"
+        class="max-w-[15rem] truncate px-2.5 py-1 rounded-lg bg-brand-primary/10 border border-brand-primary/25 text-[7px] font-black text-brand-primary uppercase tracking-widest hover:bg-brand-primary/20 transition-all"
+      >
+        {{ prompt }}
+      </button>
+    </div>
     <!-- Quick command chips -->
     <div class="flex flex-wrap gap-1.5">
       <button
