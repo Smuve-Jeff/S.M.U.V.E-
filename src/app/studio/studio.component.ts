@@ -918,6 +918,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * buttons above the canvas. Desktop hides the trigger entirely.
    */
   showMobileToolsSheet = signal(false);
+
+  /**
+   * The phone quick-start lane is a launch strip, not a landing page: it opens
+   * collapsed so the arrangement canvas stays above the fold, and the vibe rail
+   * plus the next-step row only render once the artist asks for them.
+   */
+  mobileStartExpanded = signal(false);
   browserCollapsed = signal(false);
   inspectorCollapsed = signal(false);
   railCollapsed = signal(false);
@@ -1323,6 +1330,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.showSmartCreationSheet()) {
       this.studioTelemetry.trackEvent("smart_creation_opened", {}, true);
     }
+  }
+
+  /** Open or close the quick-start lane's secondary content (vibe rail, next). */
+  toggleMobileStart(): void {
+    this.haptic.light();
+    this.mobileStartExpanded.update((open) => !open);
   }
 
   /** Quick helper to jump straight into vocal booth via smart sheet */

@@ -853,14 +853,34 @@
         !isBeginnerMode()
       "
       aria-labelledby="mobile-start-title"
+      [class.comp-mobile-start-open]="mobileStartExpanded()"
     >
       <div class="comp-mobile-start-copy">
         <div class="comp-mobile-start-kicker-row">
           <span class="comp-mobile-start-kicker">1-TAP CREATION</span>
           <span class="comp-mobile-start-badge">EASY MODE</span>
+          <button
+            type="button"
+            class="comp-mobile-start-toggle"
+            (click)="toggleMobileStart()"
+            [attr.aria-expanded]="mobileStartExpanded()"
+            [attr.aria-label]="
+              mobileStartExpanded()
+                ? 'Hide the starter vibes and next steps'
+                : 'Show the starter vibes and next steps'
+            "
+          >
+            <span>{{ mobileStartExpanded() ? 'LESS' : 'VIBES' }}</span>
+            <span class="material-symbols-outlined" aria-hidden="true">{{
+              mobileStartExpanded() ? 'expand_less' : 'expand_more'
+            }}</span>
+          </button>
         </div>
         <h2 id="mobile-start-title">Make something in 30 seconds.</h2>
-        <p>Pick a vibe or instant starter. S.M.U.V.E. loads the tracks, sounds and grooves automatically.</p>
+        <p *ngIf="mobileStartExpanded()">
+          Pick a vibe or instant starter. S.M.U.V.E. loads the tracks, sounds
+          and grooves automatically.
+        </p>
       </div>
       <!-- ONE primary create action. The old 2×2 starter grid duplicated
            entries that already live in the CREATE sheet and the drawer,
@@ -875,6 +895,7 @@
         <span><strong>1-Tap Starter</strong><small>Beats · Keys · Vocals — pick a vibe, we build the loop</small></span>
       </button>
 
+      <ng-container *ngIf="mobileStartExpanded()">
       <!-- One-tap instrumentals: each chip loads drums + bass + chords +
            melody and starts the transport, so a phone artist hears a
            finished-sounding loop in a single tap. -->
@@ -937,6 +958,7 @@
           export
         </button>
       </div>
+      </ng-container>
     </section>
 
     <!-- Desktop view rail (FL Studio side rail pattern) -->

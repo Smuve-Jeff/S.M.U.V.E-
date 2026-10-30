@@ -4568,6 +4568,76 @@ button.comp-meta-state-pill:focus-visible {
   line-height: 1.45;
   color: var(--espresso-muted);
 }
+
+.comp-mobile-start-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  min-height: 32px;
+  padding: 2px 8px 2px 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--teal-700);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.comp-mobile-start-toggle .material-symbols-outlined {
+  font-size: 16px;
+}
+.comp-mobile-start-toggle:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+/* Collapsed: header + one primary action. The lane used to be a full landing
+   card — kicker, 20px headline, body copy, 56px hero, vibe rail, next-step row
+   — above the arrangement canvas on every phone visit, which put the first
+   track lane below the fold on a 568px-tall screen. Everything except the
+   launch action now waits for a tap. The headline stays in the DOM because the
+   section's aria-labelledby points at it, hidden visually only. */
+.comp-mobile-start:not(.comp-mobile-start-open) {
+  margin: 6px 8px 2px;
+  padding: 8px 10px;
+  gap: 8px;
+  border-radius: 14px;
+}
+.comp-mobile-start:not(.comp-mobile-start-open) .comp-mobile-start-copy {
+  gap: 0;
+}
+.comp-mobile-start:not(.comp-mobile-start-open) .comp-mobile-start-copy h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.comp-mobile-start:not(.comp-mobile-start-open) .comp-mobile-start-action {
+  min-height: 48px;
+  padding: 8px 10px;
+}
+.comp-mobile-start:not(.comp-mobile-start-open) .comp-mobile-start-action small {
+  display: none;
+}
+
+:host-context(.dark-mode) .comp-mobile-start-toggle {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #7dd3cf;
+}
+
+@media (pointer: coarse) {
+  .comp-mobile-start-toggle {
+    min-height: 40px;
+  }
+}
 .comp-mobile-start-action {
   display: flex;
   align-items: center;
