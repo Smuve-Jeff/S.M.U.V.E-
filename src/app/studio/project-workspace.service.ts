@@ -570,6 +570,8 @@ export class ProjectWorkspaceService {
       } catch (error) {
         this.logger.warn('ProjectWorkspace: Latest-project pointer failed', error);
       }
+      // This save now covers anything a recovery snapshot was holding.
+      await this.pruneRedundantRecoveryRecords();
       await this.tryQueueCloudSync(bundle.metadata, bundle);
       this.logger.info("ProjectWorkspace: Saved " + bundle.metadata.name);
       return bundle;
@@ -695,8 +697,25 @@ export class ProjectWorkspaceService {
     projectId: string,
   ): Promise<ProjectVersionSummary[]> {
     try {
-      return (await this.readStoredProjects())
-        .filter((record) => record.metadata?.id === projectId)
+      const records = (await this.readStoredProjects()).filter(
+        (record) => record.metadata?.id === projectId,
+      );
+      const newestSaveAt = records.reduce((newest, record) => {
+        const source = record.source || this.detectPersistenceSource(record.id);
+        return source === "recovery"
+          ? newest
+          : Math.max(newest, this.storedSavedAt(record));
+      }, 0);
+      return records
+        // A recovery snapshot that a later save already covers is not a version:
+        // it only duplicated the save that followed it. Anything newer than the
+        // newest save holds work that was never persisted and stays listed.
+        .filter((record) => {
+          const source = record.source || this.detectPersistenceSource(record.id);
+          return (
+            source !== "recovery" || this.storedSavedAt(record) > newestSaveAt
+          );
+        })
         .sort((a, b) => this.storedSavedAt(b) - this.storedSavedAt(a))
         .map((record) => ({
           recordId: record.id,
@@ -759,6 +778,57 @@ export class ProjectWorkspaceService {
     }
   }
 
+  /**
+   * Delete recovery snapshots that a later save already covers.
+   *
+   * Before the write-path guard, every tab hide stored one. Those old rows are
+   * still in IndexedDB and surface in a set's version history as copies of the
+   * save that landed after them. A recovery record newer than the newest save
+   * is left alone — it is the only copy of work that was never saved.
+   * Returns how many rows were removed.
+   */
+  async pruneRedundantRecoveryRecords(): Promise<number> {
+    try {
+      const records = await this.readStoredProjects();
+      const newestSaveByProject = new Map<string, number>();
+      for (const record of records) {
+        const source = record.source || this.detectPersistenceSource(record.id);
+        if (source === "recovery") continue;
+        const projectId = record.metadata?.id;
+        if (!projectId) continue;
+        newestSaveByProject.set(
+          projectId,
+          Math.max(
+            newestSaveByProject.get(projectId) ?? 0,
+            this.storedSavedAt(record),
+          ),
+        );
+      }
+
+      const superseded = records.filter((record) => {
+        const source = record.source || this.detectPersistenceSource(record.id);
+        if (source !== "recovery") return false;
+        const newestSave = newestSaveByProject.get(record.metadata?.id);
+        return (
+          newestSave !== undefined && this.storedSavedAt(record) <= newestSave
+        );
+      });
+      if (superseded.length === 0) return 0;
+
+      await this.storage.deleteItems(
+        "projects",
+        superseded.map((record) => record.id),
+      );
+      this.logger.info(
+        `ProjectWorkspace: Removed ${superseded.length} superseded recovery snapshot(s)`,
+      );
+      return superseded.length;
+    } catch (e) {
+      this.logger.warn("ProjectWorkspace: Recovery pruning failed", e);
+      return 0;
+    }
+  }
+
   async exportProjectBundle(): Promise<ProjectBundle> {
     const bundle = this.createSnapshot();
     bundle.exportedAt = Date.now();
@@ -790,6 +860,7 @@ export class ProjectWorkspaceService {
       this.restoreFromSnapshot(bundle);
       await this.tryQueueCloudSync(bundle.metadata, bundle);
       this.markPersistenceClean(bundle, "import", stored.savedAt);
+      await this.pruneRedundantRecoveryRecords();
       this.persistenceError.set('');
       this.logger.info("ProjectWorkspace: Imported " + bundle.metadata.name);
       return true;

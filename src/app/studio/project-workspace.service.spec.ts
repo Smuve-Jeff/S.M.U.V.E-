@@ -1297,4 +1297,85 @@ describe("ProjectWorkspaceService", () => {
 
     expect(deleteItems).not.toHaveBeenCalled();
   });
+
+  it('prunes recovery snapshots that a later save already covers', async () => {
+    getAllItems.mockResolvedValue([
+      {
+        id: 'project_proj_prune',
+        ...makeBundle(),
+        metadata: { ...metadata, id: 'proj_prune' },
+        savedAt: 900,
+        source: 'manual',
+      },
+      {
+        id: 'recovery_proj_prune',
+        ...makeBundle(),
+        metadata: { ...metadata, id: 'proj_prune' },
+        savedAt: 400,
+        source: 'recovery',
+      },
+      {
+        id: 'recovery_proj_unsaved',
+        ...makeBundle(),
+        metadata: { ...metadata, id: 'proj_unsaved' },
+        savedAt: 500,
+        source: 'recovery',
+      },
+    ]);
+
+    await expect(service.pruneRedundantRecoveryRecords()).resolves.toBe(1);
+
+    expect(deleteItems).toHaveBeenCalledWith('projects', [
+      'recovery_proj_prune',
+    ]);
+  });
+
+  it('leaves storage alone when every recovery snapshot is still useful', async () => {
+    getAllItems.mockResolvedValue([
+      {
+        id: 'project_proj_saved',
+        ...makeBundle(),
+        metadata: { ...metadata, id: 'proj_saved' },
+        savedAt: 100,
+        source: 'manual',
+      },
+      {
+        id: 'recovery_proj_saved',
+        ...makeBundle(),
+        metadata: { ...metadata, id: 'proj_saved' },
+        savedAt: 800,
+        source: 'recovery',
+      },
+    ]);
+
+    await expect(service.pruneRedundantRecoveryRecords()).resolves.toBe(0);
+
+    expect(deleteItems).not.toHaveBeenCalled();
+  });
+
+  it('lists a recovery snapshot only while it holds unsaved work', async () => {
+    getAllItems.mockResolvedValue([
+      {
+        id: 'project_proj_versions',
+        ...makeBundle(),
+        metadata: { ...metadata, id: 'proj_versions' },
+        savedAt: 900,
+        source: 'manual',
+      },
+      {
+        id: 'recovery_proj_versions',
+        ...makeBundle(),
+        metadata: { ...metadata, id: 'proj_versions' },
+        savedAt: 400,
+        source: 'recovery',
+      },
+    ]);
+
+    const versions = await service.listProjectVersions('proj_versions');
+
+    expect(versions.map((version) => version.recordId)).toEqual([
+      'project_proj_versions',
+    ]);
+  });
+
 });
