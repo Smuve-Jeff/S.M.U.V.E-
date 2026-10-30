@@ -422,6 +422,19 @@ describe('AppComponent', () => {
     });
   });
 
+  /**
+   * `studio-classic` is the same Studio component behind a legacy alias. It was
+   * matched against `studio` only, so it rendered inside the Hub frame: on an
+   * Android phone that meant 64px of app chrome in portrait and 159px in
+   * landscape above the DAW, with the Studio's own bottom nav pushed past the
+   * bottom of the screen.
+   */
+  it('treats the studio-classic alias as the same full-page Studio', async () => {
+    const { component } = await createComponent('/studio-classic');
+
+    expect(component.isFullPageMode()).toBe(true);
+  });
+
   it('hides the floating home link on the mobile Studio shell that has its own Home tab', async () => {
     const originalWidth = window.innerWidth;
 

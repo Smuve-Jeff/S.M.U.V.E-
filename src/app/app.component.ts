@@ -47,6 +47,14 @@ import { ChallengeInboxService } from './services/challenge-inbox.service';
 import { LoggingService } from './services/logging.service';
 import { ViewConfig } from './services/workspace-registry';
 
+/**
+ * Route paths that render the Studio workspace itself (see `app.routes.ts`).
+ * `studio-classic` is an alias of `studio` for legacy links, so both live in
+ * the full-page tier — otherwise the alias renders inside the Hub frame and
+ * loses a phone's height to chrome it duplicates.
+ */
+const STUDIO_ROUTE_PATHS = new Set(['studio', 'studio-classic']);
+
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
   readonly userChoice: Promise<{
@@ -349,7 +357,13 @@ export class AppComponent {
         // navigation the Studio's own rail already provides, and the timeline
         // was left with 49% of the viewport. `/studio` owns the window; its
         // rail Home item (and the header back control) return to the Hub.
-        path === "studio"
+        //
+        // `studio-classic` is the same component behind a legacy/deep-link
+        // alias, so it must get the same treatment: matched against `studio`
+        // only, the alias rendered inside the Hub frame — 64px of app chrome in
+        // portrait and 159px in landscape, which pushed the Studio's own bottom
+        // nav (and the transport dock's clearance) off an Android phone screen.
+        STUDIO_ROUTE_PATHS.has(path)
     );
   }
 

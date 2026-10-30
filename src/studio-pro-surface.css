@@ -508,12 +508,18 @@ body .comp-shell app-ai-band {
   min-height: 0;
 }
 
-/* b) The wizard's footer is `position: sticky; bottom: 0`, so the last ~77px of
-      the step cards scrolled *behind* it — the tip line of every card was cut
-      off mid-sentence on both a phone and a 1440x900 window. Reserve the
-      footer's height at the end of the card grid. */
+/* b) The wizard's footer is sticky over the step cards from 1025px up, so the
+      list needs the footer's height reserved at its end. Below that the
+      component puts the footer in flow under a list that owns its own scroll,
+      so the cards only need a few pixels of clearance. */
 body .comp-shell .wizard-cards {
   padding-bottom: 88px;
+}
+
+@media (max-width: 1024px) {
+  body .comp-shell .wizard-cards {
+    padding-bottom: 8px;
+  }
 }
 
 /* ----------------------------------------------------------------------------
@@ -621,26 +627,28 @@ body .comp-shell .comp-now-performing > span[aria-hidden="true"] {
 }
 
 /* ----------------------------------------------------------------------------
-   8. The wizard footer is sticky, so the step cards scroll *under* it.
-   Without a transition that reads as a bug: a card's tag line is sliced in
-   half by the footer's top border at every scroll position that is not the
-   very end. A 28px scrim above the bar turns the slice into a fade, the same
-   affordance the chrome rail uses for its scrollers.
+   8. Above 1024px the wizard footer is sticky, so the step cards scroll under
+   it and a card's tag line is sliced by the bar at every scroll position but
+   the very end. A 28px scrim above the bar turns the slice into a fade. Below
+   1024px the footer is in flow — nothing is sliced — so the scrim is not
+   drawn there.
    ---------------------------------------------------------------------------- */
-body .comp-shell .wizard-footer::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 100%;
-  height: 28px;
-  background: linear-gradient(
-    to top,
-    var(--ivory-deep, #06091a) 0%,
-    color-mix(in srgb, var(--ivory-deep, #06091a) 55%, transparent) 55%,
-    transparent 100%
-  );
-  pointer-events: none;
+@media (min-width: 1025px) {
+  body .comp-shell .wizard-footer::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 28px;
+    background: linear-gradient(
+      to top,
+      var(--ivory-deep, #06091a) 0%,
+      color-mix(in srgb, var(--ivory-deep, #06091a) 55%, transparent) 55%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
 }
 
 /* ----------------------------------------------------------------------------

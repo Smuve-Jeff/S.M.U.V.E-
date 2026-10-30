@@ -15,21 +15,35 @@
         hero emoji animates forever.
    ============================================================ */
 
+/* The wizard owns its column instead of being one long scroller.
+
+   The action footer used to be `position: sticky` *inside* the scroller, so it
+   painted over the step list (a phone cut every card's tip line mid-sentence)
+   and it floated 76-133px above the transport dock, leaving a dead band under
+   the buttons. In landscape the same structure meant the 232px masthead filled
+   the whole 208px workspace, so the first screen was an icon and two buttons —
+   none of the six steps the surface exists for.
+
+   Structure now: fixed masthead, scrolling step list, footer in flow at the
+   bottom of the workspace. Nothing overlaps and every band is content. */
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
+  min-height: 0;
+  overflow: hidden;
   overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  scroll-padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
 }
 
 .wizard-shell {
-  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  padding: 24px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   font-family: var(--font-sans);
   color: var(--espresso-text, #f1f5ff);
 }
@@ -43,6 +57,7 @@
   gap: 10px;
   padding: 24px 8px 8px;
   text-align: center;
+  flex: 0 0 auto;
 }
 
 .wizard-hero-icon {
@@ -142,13 +157,27 @@
 .wizard-cards {
   display: grid;
   grid-template-columns: 1fr;
+  align-content: start;
+  /* Rows keep their content height inside the scroller. Without this the cards
+     are sized against a definite container and (because each card is an
+     `overflow: hidden` flex column that may shrink) collapse to their padding. */
+  grid-auto-rows: max-content;
   gap: 14px;
   margin-top: 22px;
-  /* The footer is sticky, so it paints over whatever is passing beneath it
-     while the list scrolls. Without clearance the last card's tip and CTA sat
-     behind the two buttons on a phone. 84px = the 76px footer row + air; the
-     phone breakpoint below stacks the buttons and reserves the taller row. */
-  padding-bottom: 84px;
+  /* The step list is the only scroller: the footer is below it in flow, so no
+     card is ever painted over and no clearance padding is needed. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-block: 8px;
+  /* The list continues past its own bottom edge now that the footer no longer
+     covers it; fade the last few pixels so the cut reads as "scroll", not as a
+     clipped card. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
 }
 
 @media (min-width: 600px) {
@@ -394,16 +423,16 @@
 
 /* ── Action footer ───────────────────────────────────────── */
 
-/* Sticky rather than `position: fixed`: the buttons stay reachable while the
-   step list scrolls, without floating over the shell's own chrome or being
-   swallowed by the Android gesture bar. */
+/* In flow at the bottom of the workspace, not sticky over the cards: the
+   buttons stay reachable without covering a step, and the footer sits directly
+   above the shell's transport dock instead of floating mid-workspace. */
 .wizard-footer {
-  position: sticky;
-  bottom: 0;
+  position: static;
+  flex: 0 0 auto;
   z-index: 5;
   display: flex;
   gap: 12px;
-  margin: 22px -16px 0;
+  margin: 12px -16px 0;
   padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--espresso-line, rgba(180, 200, 255, 0.16));
   background: linear-gradient(
@@ -485,7 +514,7 @@
 
 @media (max-width: 480px) {
   .wizard-shell {
-    padding: 16px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 16px 12px calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
   /* The steps are the surface. The masthead used a third of a phone's first
@@ -518,18 +547,124 @@
   }
 
   .wizard-cards {
-    /* Two stacked 48px buttons + gaps + the gesture inset. */
-    padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    margin-top: 16px;
   }
 
   .wizard-footer {
     flex-direction: column;
-    margin: 18px -12px 0;
+    margin: 10px -12px 0;
     padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
   .wizard-footer-btn {
     width: 100%;
+  }
+}
+
+/* ── Short viewports: landscape phones ─────────────────────
+   A landscape phone gives the workspace ~200-260px after the Studio chrome.
+   The centred masthead spent all of it on the icon and heading, so the six
+   steps — the reason the surface exists — opened below the fold and the first
+   screen read as an empty pane. Collapse the masthead into one row (heading +
+   progress), keep the step list scrolling in whatever height is left, and keep
+   the two actions on a single 44px row. */
+@media (max-height: 500px) {
+  .wizard-shell {
+    padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .wizard-hero {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px 12px;
+    padding: 2px 2px 0;
+    text-align: left;
+  }
+
+  /* Decoration only — the heading and progress carry the screen. */
+  .wizard-hero-icon,
+  .wizard-hero-sub {
+    display: none;
+  }
+
+  .wizard-hero-title {
+    flex: 0 0 auto;
+    font-size: 1.05rem;
+    letter-spacing: 0;
+  }
+
+  .wizard-progress-track {
+    flex: 1 1 120px;
+    max-width: none;
+    margin: 0;
+    height: 6px;
+  }
+
+  .wizard-progress-label {
+    flex: 0 0 auto;
+    margin-top: 0;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+
+  .wizard-cards {
+    margin-top: 10px;
+    gap: 10px;
+  }
+
+  .wizard-card {
+    min-height: 0;
+    gap: 8px;
+    padding: 12px 12px 10px;
+  }
+
+  .wizard-footer {
+    flex-direction: row;
+    margin: 8px -12px 0;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .wizard-footer-btn {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+}
+
+/* ── Desktop: the wizard is one page again ─────────────────
+   From 1025px the shell has the height to show the masthead and a full row of
+   step cards, so the step list does not need its own scroll owner: the whole
+   wizard scrolls and the action footer sticks to the bottom of the view, as
+   before. The phone/tablet structure above exists because a landscape phone
+   has ~200px of workspace and could not show a single step. */
+@media (min-width: 1025px) {
+  :host {
+    display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .wizard-shell {
+    display: block;
+    min-height: 100%;
+    flex: none;
+    padding: 24px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .wizard-cards {
+    flex: none;
+    overflow: visible;
+    /* The sticky footer paints over the list's end. */
+    padding-bottom: 88px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .wizard-footer {
+    position: sticky;
+    bottom: 0;
+    margin-top: 22px;
   }
 }
 
