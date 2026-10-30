@@ -863,6 +863,12 @@
                 @for (clip of track.clips; track clip.id) {
                   <div
                     class="clip-block absolute h-11 md:h-8 top-0.5 md:top-2 rounded-md border border-brand-primary/30 bg-brand-primary/10 flex items-center px-2 cursor-pointer hover:bg-brand-primary/20 transition-all z-10"
+                    [class.clip-card]="isShotCard(clip)"
+                    [attr.title]="
+                      isShotCard(clip)
+                        ? 'Storyboard card — no footage shot yet'
+                        : clip.name
+                    "
                     [class.ring-2]="selectedClipId() === clip.id"
                     [class.ring-brand-primary]="selectedClipId() === clip.id"
                     [style.left.px]="clip.startTime * pxPerSecond()"

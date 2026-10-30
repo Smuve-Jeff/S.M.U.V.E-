@@ -1763,14 +1763,11 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.aiFeedback.set('THE VISUALS LANE IS LOCKED — UNLOCK IT, THEN STAGE THE PLAN.');
       return;
     }
-    // A shot card is a storyboard placeholder: an AI overlay with no media.
     // Only cards are restaged. Staging used to clear the whole lane first, so
     // pressing this with footage already cut silently deleted that footage.
-    const isShotCard = (clip: VideoClip) =>
-      clip.source === 'ai' && clip.type === 'overlay' && !clip.url;
     const existing = track?.clips ?? [];
-    const footage = existing.filter((clip) => !isShotCard(clip));
-    const staleCards = existing.filter(isShotCard);
+    const footage = existing.filter((clip) => !this.isShotCard(clip));
+    const staleCards = existing.filter((clip) => this.isShotCard(clip));
     staleCards.forEach((clip) => this.videoEngine.removeClip(clip.id));
     // Cards follow the footage already on the lane, so a plan never lands on
     // top of a take the artist has shot and cut.
@@ -1793,6 +1790,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     this.aiFeedback.set(
       `SHOT LIST STAGED: ${plan.shots.length} SHOT CARDS ON THE VISUALS LANE (${runtime})${kept}${restaged}.`
     );
+  }
+
+  /**
+   * A shot card is a storyboard placeholder: an AI overlay with no media.
+   * The lane used to paint one exactly like a take, so a planned frame could
+   * be mistaken for footage that had already been shot.
+   */
+  isShotCard(clip: Pick<VideoClip, 'source' | 'type' | 'url'>): boolean {
+    return clip.source === 'ai' && clip.type === 'overlay' && !clip.url;
   }
 
   /** Assemble a timeline clip from a planned shot. */

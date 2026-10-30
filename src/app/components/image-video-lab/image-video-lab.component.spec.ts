@@ -4075,6 +4075,19 @@ describe('ImageVideoLabComponent', () => {
         (track) => track.id === 't1'
       )!;
 
+    it('marks a staged card as a storyboard frame, not footage', async () => {
+      const { component } = await createComponent();
+
+      expect(component.isShotCard({ source: 'ai', type: 'overlay', url: '' })).toBe(true);
+      expect(component.isShotCard({ source: 'camera', type: 'video', url: 'blob:take' })).toBe(
+        false
+      );
+      // An overlay that does have media is a real overlay, not a placeholder.
+      expect(component.isShotCard({ source: 'ai', type: 'overlay', url: 'blob:overlay' })).toBe(
+        false
+      );
+    });
+
     it('keeps footage already on the visuals lane when staging a plan', async () => {
       const { component, videoEngine: engine } = await createComponent();
       component.director.plan.set(stageablePlan());
