@@ -1376,6 +1376,12 @@ export class ProjectWorkspaceService {
 
   private async persistRecoverySnapshot(): Promise<void> {
     if (!this.metadata() || this.musicManager.tracks().length === 0) return;
+    // A recovery snapshot exists to rescue work that is not on disk yet. Every
+    // tab hide used to rewrite the whole (binary, multi-megabyte) bundle even
+    // for a project that had just been saved, and each write added another
+    // recovery row to that set's version history. A clean workspace already has
+    // its state in the last save, so there is nothing to recover.
+    if (!this.isDirty()) return;
 
     try {
       const snapshot = this.createStoredSnapshot();

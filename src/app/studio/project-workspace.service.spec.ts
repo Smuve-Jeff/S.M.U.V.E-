@@ -543,6 +543,25 @@ describe("ProjectWorkspaceService", () => {
     expect(service.isSaving()).toBe(false);
   });
 
+  it('skips the recovery snapshot for a workspace that is already saved', async () => {
+    service.isDirty.set(false);
+
+    await (service as any).persistRecoverySnapshot();
+
+    expect(saveItem).not.toHaveBeenCalled();
+  });
+
+  it('writes a recovery snapshot while the workspace has unsaved changes', async () => {
+    service.isDirty.set(true);
+
+    await (service as any).persistRecoverySnapshot();
+
+    expect(saveItem).toHaveBeenCalledWith(
+      'projects',
+      expect.objectContaining({ source: 'recovery' }),
+    );
+  });
+
   it('preserves edits made while a save is in flight', async () => {
     let finish!: () => void;
     saveItem.mockImplementationOnce(() => new Promise<void>((resolve) => { finish = resolve; }));
