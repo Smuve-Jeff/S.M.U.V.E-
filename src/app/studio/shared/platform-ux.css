@@ -10,6 +10,14 @@
    min-* floors still "bite" (min-height beats height) — that is
    intentional and limited to touch ergonomics.
 
+   EXCEPTION — the "Phone touch floor, Studio view by view" block near the
+   end of this file overrides component min-heights with !important. A
+   zero-specificity selector cannot beat a component rule that declares its
+   own min-height, and 59 of the 90 controls that block names do declare one,
+   so without !important the floor was inert for exactly the controls it
+   exists to fix. Keep the exception inside that block and keep it gated on
+   (pointer: coarse); nothing else here should need it.
+
    Angular's emulated encapsulation keeps a parent stylesheet out
    of child component templates, so this file is registered in the
    Studio shell's styleUrls AND every interactive instrument's
@@ -264,7 +272,10 @@
    templates — a display pill, a badge, a readout — is excluded, because a
    floor there changes layout instead of tap accuracy. A <select>, <label>
    or a div with its own click handler still counts as a control. :where()
-   keeps specificity at zero so a component can override any entry. */
+   keeps specificity at zero; the declaration still carries !important because
+   a component rule that sets its own min-height would otherwise outrank a
+   zero-specificity selector, which left the first version of this block
+   inert for exactly the controls that declare one. */
 @media (pointer: coarse) {
   :where(
   /* arrangement */
@@ -322,6 +333,6 @@
   /* transport */
   .ctb-dropdown-action, .ctb-dropdown-close, .ctb-output-pill, .ctb-test-sound, .ctb-toggle
   ) {
-    min-height: 44px;
+    min-height: 44px !important;
   }
 }
