@@ -1,6 +1,7 @@
 import {
   findClickBursts,
   findClickOnset,
+  loopbackConfidence,
   loopbackQuality,
   loopbackRoundTripMs,
   medianOf,
@@ -81,6 +82,28 @@ describe("loopbackQuality", () => {
     expect(loopbackQuality(4, 2)).toBe("fair");
     expect(loopbackQuality(20, 30)).toBe("poor");
     expect(loopbackQuality(1.5, 2)).toBe("poor");
+  });
+});
+
+describe("loopbackConfidence", () => {
+  const base = {
+    capturedClickCount: 3,
+    requestedClickCount: 3,
+    medianQuality: "good" as const,
+    spreadMs: 4,
+  };
+
+  it("is high only when every click is captured and the trips agree", () => {
+    expect(loopbackConfidence(base)).toBe("high");
+    expect(loopbackConfidence({ ...base, spreadMs: 9 })).toBe("medium");
+  });
+
+  it("caps incomplete or poor runs instead of claiming high confidence", () => {
+    expect(loopbackConfidence({ ...base, capturedClickCount: 2 })).toBe(
+      "medium",
+    );
+    expect(loopbackConfidence({ ...base, capturedClickCount: 1 })).toBe("low");
+    expect(loopbackConfidence({ ...base, medianQuality: "poor" })).toBe("low");
   });
 });
 

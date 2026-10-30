@@ -311,6 +311,38 @@
   color: #f4efe6;
 }
 
+.hw-confidence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 0 0;
+  font: 800 9px/1.35 var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  color: #7fe6e1;
+}
+
+.hw-confidence .hw-loopback-dot {
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.hw-confidence[data-confidence="medium"] {
+  color: #f0c66b;
+}
+
+.hw-confidence[data-confidence="medium"] .hw-loopback-dot {
+  background: #f0c66b;
+}
+
+.hw-confidence[data-confidence="low"] {
+  color: #ef7a6e;
+}
+
+.hw-confidence[data-confidence="low"] .hw-loopback-dot {
+  background: #ef7a6e;
+}
+
 @media (pointer: coarse) {
   .hw-learn,
   .hw-forget {

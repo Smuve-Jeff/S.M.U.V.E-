@@ -121,9 +121,13 @@ export class HardwareConnectionsComponent {
       const goodClicks = measurement.clicks.filter(
         (click) => click.quality === "good",
       ).length;
+      const retries = Math.max(0, measurement.attempts - 1);
+      const retryText = retries
+        ? ` after ${retries} retr${retries === 1 ? "y" : "ies"}`
+        : "";
       this.calibrationNotice.set(
         measurement.roundTripMs > 0
-          ? `Loopback median ${measurement.roundTripMs} ms from ${measurement.clicks.length} clicks (${goodClicks} good) — new takes align by ${this.latency.appliedCompensationMs()} ms.`
+          ? `Loopback median ${measurement.roundTripMs} ms from ${measurement.clicks.length} clicks (${goodClicks} good)${retryText} · ${measurement.confidence} confidence — new takes align by ${this.latency.appliedCompensationMs()} ms.`
           : "Loopback measured 0 ms — check the input is hearing the output.",
       );
     } catch (error) {

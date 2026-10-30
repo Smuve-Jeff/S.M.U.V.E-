@@ -625,6 +625,10 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
         'poor',
       ]);
       expect(measurement.quality).toBe('good');
+      expect(measurement.attempts).toBe(1);
+      expect(measurement.spreadMs).toBe(50);
+      // One 50 ms outlier is enough to keep a clean median below high confidence.
+      expect(measurement.confidence).toBe('medium');
       expect(sut.lastLoopback()?.roundTripMs).toBe(100);
       expect(sut.storedBaseline()?.totalLatencyMs).toBe(100);
       expect(recorder.stopRecording).toHaveBeenCalledWith({ persist: false });
@@ -635,6 +639,88 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
           }),
         })
       );
+    });
+
+    it('retries only the missing click and reports the final confidence', async () => {
+      let capturing = false;
+      let pass = 0;
+      const bufferWith = (...onsets: number[]) => {
+        const channel = new Float32Array(40000);
+        for (const onset of onsets) channel[onset] = 1;
+        return { left: [channel], right: [channel] };
+      };
+      const recorder = {
+        isRecording: jest.fn(() => capturing),
+        hasInputCapture: jest.fn(() => true),
+        initialize: jest.fn(async () => true),
+        startRecording: jest.fn(() => {
+          capturing = true;
+          pass++;
+        }),
+        stopRecording: jest.fn(async () => {
+          capturing = false;
+        }),
+        getCaptureStartedAt: jest.fn(() => 5),
+        getRecordedBuffers: jest.fn(() =>
+          // The first click is the one missing in the opening pass.
+          pass === 1 ? bufferWith(21600, 33600) : bufferWith(9600)
+        ),
+      };
+      const engine = {
+        ctx: {
+          sampleRate: 48000,
+          state: 'running' as AudioContextState,
+          currentTime: 5,
+          destination: {},
+          createOscillator: jest.fn(() => ({
+            type: '',
+            frequency: { setValueAtTime: jest.fn() },
+            connect: jest.fn(),
+            disconnect: jest.fn(),
+            start: jest.fn(),
+            stop: jest.fn(),
+          })),
+          createGain: jest.fn(() => ({
+            gain: {
+              setValueAtTime: jest.fn(),
+              linearRampToValueAtTime: jest.fn(),
+              exponentialRampToValueAtTime: jest.fn(),
+            },
+            connect: jest.fn(),
+            disconnect: jest.fn(),
+          })),
+        },
+        nativeSampleRate: 48000,
+        isPlaying: () => false,
+        resume: jest.fn(async () => undefined),
+      };
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          AudioEngineLatencyService,
+          { provide: AudioEngineService, useValue: engine },
+          { provide: LoggingService, useValue: new StubLogger() },
+          { provide: StudioRecordingEngineService, useValue: recorder },
+        ],
+      });
+      sut = TestBed.inject(AudioEngineLatencyService);
+
+      const measurement = await sut.measureLoopbackLatency({
+        leadSeconds: 0.1,
+        tailSeconds: 0.2,
+        clicks: 3,
+        spacingSeconds: 0.25,
+      });
+
+      // The first pass lost one click; the second pass only played the missing one.
+      expect(recorder.startRecording).toHaveBeenCalledTimes(2);
+      expect(recorder.stopRecording).toHaveBeenCalledTimes(2);
+      expect(measurement.clicks.map((click) => click.roundTripMs)).toEqual([
+        100, 100, 100,
+      ]);
+      expect(measurement.attempts).toBe(2);
+      expect(measurement.spreadMs).toBe(0);
+      expect(measurement.confidence).toBe('high');
     });
 
     it('fails honestly when the click never reaches the input', async () => {
@@ -695,8 +781,12 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
       sut = TestBed.inject(AudioEngineLatencyService);
 
       await expect(
-        sut.calibrateWithLoopback({ leadSeconds: 0.1, tailSeconds: 0.2 })
-      ).rejects.toThrow(/Only 0 of 3 calibration clicks/);
+        sut.calibrateWithLoopback({
+          leadSeconds: 0.1,
+          tailSeconds: 0.2,
+          maxAttempts: 1,
+        })
+      ).rejects.toThrow(/after 1 attempt/);
       expect(recorder.stopRecording).toHaveBeenCalledWith({ persist: false });
     });
 

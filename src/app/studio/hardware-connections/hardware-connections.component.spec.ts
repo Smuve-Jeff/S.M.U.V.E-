@@ -33,9 +33,14 @@ describe("HardwareConnectionsComponent input latency", () => {
       const measurement: LoopbackMeasurement = {
         roundTripMs: 38,
         quality: "good",
+        confidence: "high",
+        attempts: 2,
+        spreadMs: 4,
         clicks: [
           {
             roundTripMs: 36,
+            scheduledAt: 5.1,
+            detectedAt: 5.136,
             onsetFrame: 1728,
             peak: 0.8,
             signalToNoise: 20,
@@ -43,6 +48,8 @@ describe("HardwareConnectionsComponent input latency", () => {
           },
           {
             roundTripMs: 38,
+            scheduledAt: 5.35,
+            detectedAt: 5.388,
             onsetFrame: 1824,
             peak: 0.7,
             signalToNoise: 14,
@@ -50,6 +57,8 @@ describe("HardwareConnectionsComponent input latency", () => {
           },
           {
             roundTripMs: 40,
+            scheduledAt: 5.6,
+            detectedAt: 5.64,
             onsetFrame: 1920,
             peak: 0.3,
             signalToNoise: 4,
@@ -143,7 +152,7 @@ describe("HardwareConnectionsComponent input latency", () => {
     expect(latencyMock.calibrateWithLoopback).toHaveBeenCalledTimes(1);
     expect(component.loopbackRunning()).toBe(false);
     expect(component.calibrationNotice()).toBe(
-      "Loopback median 38 ms from 3 clicks (2 good) — new takes align by 38 ms.",
+      "Loopback median 38 ms from 3 clicks (2 good) after 1 retry · high confidence — new takes align by 38 ms.",
     );
     const text = fixture.nativeElement.textContent as string;
     expect(text).toContain("38 ms applied");
@@ -152,6 +161,9 @@ describe("HardwareConnectionsComponent input latency", () => {
     expect(text).toContain("40 ms");
     expect(text).toContain("fair");
     expect(text).toContain("Median");
+    expect(text).toContain("high confidence");
+    expect(text).toContain("spread 4 ms");
+    expect(text).toContain("2 attempts");
   });
 
   it("shows the loopback error when the click is not captured", async () => {

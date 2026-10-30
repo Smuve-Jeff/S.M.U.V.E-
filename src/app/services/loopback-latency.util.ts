@@ -10,6 +10,7 @@
  */
 
 export type LoopbackClickQuality = "good" | "fair" | "poor";
+export type LoopbackConfidence = "high" | "medium" | "low";
 
 export interface ClickBurst {
   /** First sample of the burst. */
@@ -136,6 +137,25 @@ export function loopbackQuality(
   if (signalToNoise >= 8 && deviationMs <= 5) return "good";
   if (signalToNoise >= 3 && deviationMs <= 15) return "fair";
   return "poor";
+}
+
+/**
+ * How much the median deserves to be trusted. Completeness first: a missing
+ * click means the run was retried and still not heard, so confidence is capped.
+ * A poor median always reads low; otherwise tight agreement between clicks is
+ * what earns high confidence.
+ */
+export function loopbackConfidence(options: {
+  capturedClickCount: number;
+  requestedClickCount: number;
+  medianQuality: LoopbackClickQuality;
+  spreadMs: number;
+}): LoopbackConfidence {
+  if (options.capturedClickCount < 2) return "low";
+  if (options.medianQuality === "poor") return "low";
+  if (options.capturedClickCount < options.requestedClickCount) return "medium";
+  if (options.medianQuality === "good" && options.spreadMs <= 8) return "high";
+  return "medium";
 }
 
 /**
