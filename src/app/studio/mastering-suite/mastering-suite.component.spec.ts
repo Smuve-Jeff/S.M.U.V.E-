@@ -64,6 +64,7 @@ describe("MasteringSuite reference A/B", () => {
       getMasteringTargets: jest.fn(() => ({ lufs: -14, truePeak: -1 })),
       getCompressorSettings: jest.fn(() => ({ threshold: -16, ratio: 3 })),
       configureCompressor: jest.fn(),
+      setMasteringBands: jest.fn(),
     };
     analyzeBuffer = jest.fn().mockReturnValue(refStats);
     snack = { success: jest.fn(), error: jest.fn(), info: jest.fn() };
@@ -273,6 +274,15 @@ describe("MasteringSuite reference A/B", () => {
       expect(snack.info).toHaveBeenCalledWith(
         "Mastering EQ and compressor reset to pre-preset settings",
       );
+      // The engine expands a global compressor call across all bands, so the
+      // per-band state must be pushed last.
+      const setOrder =
+        engineMock.setMasteringBands.mock.invocationCallOrder;
+      const compOrder =
+        engineMock.configureCompressor.mock.invocationCallOrder;
+      expect(setOrder[setOrder.length - 1]).toBeGreaterThan(
+        compOrder[compOrder.length - 1],
+      );
     });
 
     it("does nothing when no preset has shaped the EQ", () => {
@@ -322,6 +332,16 @@ describe("MasteringSuite reference A/B", () => {
       } as unknown as Event);
 
       expect(input.value).toBe("2.5");
+    });
+
+    it("pushes band compressor edits into the live master chain", () => {
+      component.updateBandCompressor(3, "threshold", "-9.24");
+
+      expect(engineMock.setMasteringBands).toHaveBeenLastCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 3, threshold: -9.2, ratio: 1.8 }),
+        ]),
+      );
     });
   });
 });

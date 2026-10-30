@@ -61,6 +61,22 @@ class BiquadDF2 {
         a1 = 2 * ((A - 1) - (A + 1) * cosW0);
         a2 = (A + 1) - (A - 1) * cosW0 - 2 * Math.sqrt(A) * alpha;
         break;
+      case 'lowpass':
+        b0 = (1 - cosW0) / 2;
+        b1 = 1 - cosW0;
+        b2 = (1 - cosW0) / 2;
+        a0 = 1 + alpha;
+        a1 = -2 * cosW0;
+        a2 = 1 - alpha;
+        break;
+      case 'highpass':
+        b0 = (1 + cosW0) / 2;
+        b1 = -(1 + cosW0);
+        b2 = (1 + cosW0) / 2;
+        a0 = 1 + alpha;
+        a1 = -2 * cosW0;
+        a2 = 1 - alpha;
+        break;
       case 'peaking':
       default:
         b0 = 1 + alpha * A;
@@ -103,9 +119,10 @@ class MasteringEq {
       this.bands.push({ filter: bq, freq: freqs[i], type: types[i], gain: 0 });
     }
     this.sr = sr;
-    // Per-channel DF2 state so L/R share coefficients — never filter state.
-    this.stateL = BiquadDF2.freshState();
-    this.stateR = BiquadDF2.freshState();
+    // Per-filter, per-channel DF2 state: sharing one object across five
+    // different biquads made the cascade unstable after a few blocks.
+    this.stateL = this.bands.map(() => BiquadDF2.freshState());
+    this.stateR = this.bands.map(() => BiquadDF2.freshState());
     this.alt = false;
   }
 
@@ -121,17 +138,19 @@ class MasteringEq {
     // sample-order race when a mono bus is upmixed to both inputs.
     this.alt = !this.alt;
     const l = this.alt
-      ? this.bands.reduce((v, b) => b.filter.process(v, this.stateL), sample)
-      : this.bands.reduce((v, b) => b.filter.process(v, this.stateR), sample);
+      ? this.bands.reduce((v, b, i) => b.filter.process(v, this.stateL[i]), sample)
+      : this.bands.reduce((v, b, i) => b.filter.process(v, this.stateR[i]), sample);
     const r = this.alt
-      ? this.bands.reduce((v, b) => b.filter.process(v, this.stateR), sample)
-      : this.bands.reduce((v, b) => b.filter.process(v, this.stateL), sample);
+      ? this.bands.reduce((v, b, i) => b.filter.process(v, this.stateR[i]), sample)
+      : this.bands.reduce((v, b, i) => b.filter.process(v, this.stateL[i]), sample);
     return [l, r];
   }
 
   reset() {
-    for (const b of this.bands) b.filter.resetState(this.stateL);
-    for (const b of this.bands) b.filter.resetState(this.stateR);
+    for (let i = 0; i < this.bands.length; i++) {
+      this.bands[i].filter.resetState(this.stateL[i]);
+      this.bands[i].filter.resetState(this.stateR[i]);
+    }
   }
 }
 
@@ -220,6 +239,92 @@ class MasterCompressor {
   }
 
   reset() { this.envelope = 0; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   Five-Band Compressor (LR4 crossover)
+   ══════════════════════════════════════════════════════════ */
+class MasteringMultiband {
+  constructor(sr) {
+    this.configured = false;
+    const split = [
+      [['lowpass', 120], ['lowpass', 120]],
+      [['highpass', 120], ['highpass', 120], ['lowpass', 500], ['lowpass', 500]],
+      [
+        ['highpass', 120], ['highpass', 120], ['highpass', 500],
+        ['highpass', 500], ['lowpass', 2500], ['lowpass', 2500],
+      ],
+      [
+        ['highpass', 120], ['highpass', 120], ['highpass', 500],
+        ['highpass', 500], ['highpass', 2500], ['highpass', 2500],
+        ['lowpass', 10000], ['lowpass', 10000],
+      ],
+      [
+        ['highpass', 120], ['highpass', 120], ['highpass', 500],
+        ['highpass', 500], ['highpass', 2500], ['highpass', 2500],
+        ['highpass', 10000], ['highpass', 10000],
+      ],
+    ];
+    this.bands = split.map((stages) => {
+      const filters = stages.map(([type, freq]) => {
+        const filter = new BiquadDF2();
+        filter.design(type, freq, 0.7071, 0, sr);
+        return filter;
+      });
+      return {
+        filters,
+        stateL: filters.map(() => BiquadDF2.freshState()),
+        stateR: filters.map(() => BiquadDF2.freshState()),
+        compressor: new MasterCompressor(sr),
+      };
+    });
+  }
+
+  configure(bands) {
+    if (!Array.isArray(bands)) return;
+    this.configured = true;
+    this.enabled = true;
+    for (const cfg of bands) {
+      const index = clamp((cfg.id ?? 0) - 1, 0, 4);
+      const band = this.bands[index];
+      if (!band) continue;
+      const threshold = Number(cfg.threshold);
+      const ratio = Number(cfg.ratio);
+      band.compressor.configure({
+        ...(Number.isFinite(threshold)
+          ? { thresholdDb: clamp(threshold, -60, 0) }
+          : {}),
+        ...(Number.isFinite(ratio) ? { ratio: clamp(ratio, 1, 20) } : {}),
+      });
+    }
+  }
+
+  process(sampleL, sampleR) {
+    let outL = 0;
+    let outR = 0;
+    for (const band of this.bands) {
+      let l = sampleL;
+      let r = sampleR;
+      for (let i = 0; i < band.filters.length; i++) {
+        l = band.filters[i].process(l, band.stateL[i]);
+        r = band.filters[i].process(r, band.stateR[i]);
+      }
+      [l, r] = band.compressor.process(l, r);
+      outL += l;
+      outR += r;
+    }
+    return [outL, outR];
+  }
+
+  reset() {
+    for (const band of this.bands) {
+      band.compressor.reset();
+      for (let i = 0; i < band.filters.length; i++) {
+        band.filters[i].resetState(band.stateL[i]);
+        band.filters[i].resetState(band.stateR[i]);
+      }
+    }
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -322,6 +427,8 @@ class MasterProcessor extends AudioWorkletProcessor {
     this.eq = new MasteringEq(sr);
     this.filter = new MasterFilter(sr);
     this.compressor = new MasterCompressor(sr);
+    this.multiband = new MasteringMultiband(sr);
+    this.multibandEnabled = false;
     this.saturation = new MasterSaturation();
     this.limiter = new MasterLimiter(sr);
 
@@ -344,6 +451,14 @@ class MasterProcessor extends AudioWorkletProcessor {
           if (msg.action === 'configure') this.compressor.configure(msg.payload || {});
           break;
         }
+        case 'multiband': {
+          if (msg.action === 'enable') this.multibandEnabled = !!msg.payload;
+          if (msg.action === 'configure') {
+            this.multiband.configure(msg.payload?.bands);
+            this.multibandEnabled = true;
+          }
+          break;
+        }
         case 'saturation': {
           if (msg.action === 'configure') this.saturation.configure(msg.payload || {});
           break;
@@ -360,15 +475,18 @@ class MasterProcessor extends AudioWorkletProcessor {
         case 'preset': {
           // Quick preset application
           if (msg.payload === 'smuve') {
+            this.multibandEnabled = this.multiband.configured;
             this.compressor.configure({ thresholdDb: -18, ratio: 4, attack: 0.01, release: 0.1 });
             this.saturation.configure({ amount: 0.2, mix: 0.3, mode: 'tanh' });
             this.limiter.configure({ thresholdDb: -0.5, ceilingDb: -0.1, release: 0.01 });
           } else if (msg.payload === 'quantum') {
+            this.multibandEnabled = this.multiband.configured;
             this.compressor.configure({ thresholdDb: -12, ratio: 2, attack: 0.02, release: 0.2 });
             this.saturation.configure({ amount: 0.5, mix: 0.6, mode: 'soft' });
             this.limiter.configure({ thresholdDb: -0.3, ceilingDb: -0.05, release: 0.005 });
           } else if (msg.payload === 'flat') {
             this.compressorEnabled = false;
+            this.multibandEnabled = false;
             this.limiterEnabled = false;
             this.saturation.configure({ amount: 0, mix: 0, mode: 'tanh' });
             this.filter.configure({ frequency: 20000 });
@@ -382,6 +500,7 @@ class MasterProcessor extends AudioWorkletProcessor {
           this.eq.reset();
           this.filter.reset();
           this.compressor.reset();
+          this.multiband.reset();
           this.saturation.reset();
           this.limiter.reset();
           break;
@@ -411,8 +530,11 @@ class MasterProcessor extends AudioWorkletProcessor {
       // 2. Master filter sweep (FX-macro driven, bypassed at 20 kHz)
       [sL, sR] = this.filter.process(sL, sR);
 
-      // 3. Compressor
-      if (this.compressorEnabled) {
+      // 3. Compressor — five editable bands when configured, otherwise the
+      // single linked-stereo compressor remains the default.
+      if (this.multibandEnabled) {
+        [sL, sR] = this.multiband.process(sL, sR);
+      } else if (this.compressorEnabled) {
         [sL, sR] = this.compressor.process(sL, sR);
       }
 

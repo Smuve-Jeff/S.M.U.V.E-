@@ -563,6 +563,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     const targets = (this.audioEngine as any).getMasteringTargets();
     this.targetLufs.set(targets.lufs);
     this.safeCeiling.set(targets.truePeak);
+    this.syncMasteringBands();
     this.startSpectrogram();
   }
 
@@ -616,6 +617,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
         threshold: preset.threshold,
       })),
     );
+    this.syncMasteringBands();
 
     // Presets set goals; the separate live meters remain measurements from the master tap.
 
@@ -650,6 +652,9 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
         this.presetAnchorCompressor,
       );
     }
+    // Push the per-band values last: the engine expands a global compressor
+    // request across all bands, which must not overwrite the band anchor.
+    this.syncMasteringBands();
     this.presetAnchorBands = null;
     this.presetAnchorCompressor = null;
     this.presetEqActive.set(false);
@@ -685,6 +690,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.bands.update((arr) =>
       arr.map((b) => (b.id === bandId ? { ...b, [field]: value } : b)),
     );
+    this.syncMasteringBands();
     // The preset no longer describes the shape exactly, but its anchor still
     // lets the artist return to the pre-preset settings.
     this.activePresetId.set(null);
@@ -701,6 +707,11 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.updateBandCompressor(bandId, field, input.value);
     const band = this.bands().find((b) => b.id === bandId);
     if (band) input.value = String(band[field]);
+  }
+
+  /** Push the visible five-band compressor state into the live master chain. */
+  private syncMasteringBands(): void {
+    (this.audioEngine as any).setMasteringBands?.(this.bands());
   }
 
   /** Clamp an EQ gain to the band range and round to the displayed 0.1 dB. */

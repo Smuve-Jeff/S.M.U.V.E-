@@ -1183,6 +1183,96 @@ describe('AudioEngineService.setMasterToneEq (idempotent master tone stage)', ()
 });
 
 
+describe('AudioEngineService.setMasteringBands (five-band master compressor)', () => {
+  const bands = [
+    { id: 1, threshold: -12.4, ratio: 4.1 },
+    { id: 2, threshold: -8.1, ratio: 2.5 },
+    { id: 3, threshold: -2.4, ratio: 1.8 },
+    { id: 4, threshold: -4.2, ratio: 2.1 },
+    { id: 5, threshold: -1.2, ratio: 1.5 },
+  ];
+
+  function makeBandEngine(workletActive: boolean) {
+    const svc = makeBareEngine();
+    (svc as any).masterWorkletActive = signal(workletActive);
+    (svc as any).masterWorkletNode = { port: { postMessage: jest.fn() } };
+    (svc as any).configureMasterWorklet = jest.fn();
+    (svc as any).compressor = { tag: 'single-compressor' };
+    (svc as any).masterToneLowMid = {
+      disconnect: jest.fn(),
+      connect: jest.fn(),
+    };
+    (svc as any).masterMultibandInput = { tag: 'multiband-input' };
+    (svc as any).masterMultibandWired = false;
+    (svc as any).masteringBandsState = null;
+    (svc as any).masterMultibandCompressors = Array.from({ length: 5 }, () => ({
+      threshold: { setTargetAtTime: jest.fn() },
+      ratio: { setTargetAtTime: jest.fn() },
+    }));
+    return svc;
+  }
+
+  it('forwards one atomic band message when the worklet owns the output', () => {
+    const svc = makeBandEngine(true);
+
+    svc.setMasteringBands(bands);
+
+    expect((svc as any).configureMasterWorklet).toHaveBeenCalledWith(
+      'multiband',
+      'configure',
+      { bands },
+    );
+    expect((svc as any).masterToneLowMid.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('wires the fallback tree and clamps every band', () => {
+    const svc = makeBandEngine(false);
+
+    svc.setMasteringBands([
+      { id: 1, threshold: -80, ratio: 0 },
+      { id: 2, threshold: 4, ratio: 30 },
+      { id: 3, threshold: -18, ratio: 4 },
+      { id: 4, threshold: -18, ratio: 4 },
+      { id: 5, threshold: -18, ratio: 4 },
+    ]);
+
+    expect((svc as any).masterToneLowMid.disconnect).toHaveBeenCalledWith(
+      (svc as any).compressor,
+    );
+    expect((svc as any).masterToneLowMid.connect).toHaveBeenCalledWith(
+      (svc as any).masterMultibandInput,
+    );
+    const comps = (svc as any).masterMultibandCompressors;
+    expect(comps[0].threshold.setTargetAtTime).toHaveBeenCalledWith(-60, 1.234, 0.05);
+    expect(comps[0].ratio.setTargetAtTime).toHaveBeenCalledWith(1, 1.234, 0.05);
+    expect(comps[1].threshold.setTargetAtTime).toHaveBeenCalledWith(0, 1.234, 0.05);
+    expect(comps[1].ratio.setTargetAtTime).toHaveBeenCalledWith(20, 1.234, 0.05);
+    expect(svc.getMasteringBands().slice(0, 2)).toEqual([
+      { id: 1, threshold: -60, ratio: 1 },
+      { id: 2, threshold: 0, ratio: 20 },
+    ]);
+    expect((svc as any).masterMultibandWired).toBe(true);
+  });
+
+  it('applies a global compressor request to every active band', () => {
+    const svc = makeBandEngine(true);
+    svc.setMasteringBands(bands);
+    (svc as any).configureMasterWorklet.mockClear();
+
+    svc.configureCompressor({ threshold: -10, ratio: 8 });
+
+    expect(
+      svc.getMasteringBands().every((b) => b.threshold === -10 && b.ratio === 8),
+    ).toBe(true);
+    expect((svc as any).configureMasterWorklet).toHaveBeenCalledWith(
+      'multiband',
+      'configure',
+      { bands: svc.getMasteringBands() },
+    );
+  });
+});
+
+
 // =====================================================================
 // Voice builder — live playback and the offline bounce must agree.
 //

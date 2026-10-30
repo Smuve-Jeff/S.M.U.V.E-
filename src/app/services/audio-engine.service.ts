@@ -457,6 +457,15 @@ export class AudioEngineService {
   public saturationNode = this.ctx.createWaveShaper();
   public limiter = this.ctx.createDynamicsCompressor();
 
+  /** Five-band master compressor fallback graph (built once, wired on demand). */
+  private readonly masterMultibandInput = this.ctx.createGain();
+  private readonly masterMultibandSum = this.ctx.createGain();
+  private readonly masterMultibandCompressors: DynamicsCompressorNode[] = [];
+  private masterMultibandWired = false;
+  private masteringBandsState:
+    | Array<{ id: number; threshold: number; ratio: number }>
+    | null = null;
+
   // ── Pro: Quantum Spectral Mastering & Metering Nodes ────────
   public quantumSaturation = this.ctx.createWaveShaper();
   public spectralExciter = this.ctx.createBiquadFilter();
@@ -725,6 +734,11 @@ export class AudioEngineService {
     this.saturationNode = this.ctx.createWaveShaper();
     this.limiter = this.ctx.createDynamicsCompressor();
 
+    // Build the five-band fallback now; it stays silent until the mastering
+    // suite pushes its band settings, so hosts without AudioWorklet still hear
+    // the same per-band compression as the worklet path.
+    this.buildMasterMultibandFallback();
+
     // Master chain routing: masterGain → preMasterGain
     this.masterGain.gain.value = 1;
     this._preMasterGain.gain.value = 1;
@@ -882,6 +896,119 @@ export class AudioEngineService {
     this.quantumSaturation.curve = amount === 0 ? null : curve;
   }
 
+  /**
+   * Build the fallback five-band compressor as parallel LR4 band splits.
+   * Each band has its own linked-stereo compressor; the summed output replaces
+   * the single fallback compressor once band settings arrive.
+   */
+  private buildMasterMultibandFallback(): void {
+    const lp = (freq: number) => ({
+      type: "lowpass" as BiquadFilterType,
+      freq,
+    });
+    const hp = (freq: number) => ({
+      type: "highpass" as BiquadFilterType,
+      freq,
+    });
+    const bands = [
+      [lp(120), lp(120)],
+      [hp(120), hp(120), lp(500), lp(500)],
+      [hp(120), hp(120), hp(500), hp(500), lp(2500), lp(2500)],
+      [
+        hp(120), hp(120), hp(500), hp(500), hp(2500), hp(2500),
+        lp(10000), lp(10000),
+      ],
+      [
+        hp(120), hp(120), hp(500), hp(500), hp(2500), hp(2500),
+        hp(10000), hp(10000),
+      ],
+    ];
+    for (const stages of bands) {
+      let tail: AudioNode = this.masterMultibandInput;
+      for (const stage of stages) {
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = stage.type;
+        filter.frequency.value = stage.freq;
+        filter.Q.value = 0.7071;
+        tail.connect(filter);
+        tail = filter;
+      }
+      const comp = this.ctx.createDynamicsCompressor();
+      comp.threshold.value = -18;
+      comp.ratio.value = 4;
+      comp.attack.value = 0.01;
+      comp.release.value = 0.14;
+      tail.connect(comp);
+      comp.connect(this.masterMultibandSum);
+      this.masterMultibandCompressors.push(comp);
+    }
+    this.masterMultibandSum.connect(this.saturationNode);
+  }
+
+  private wireMasterMultibandFallback(): void {
+    if (this.masterMultibandWired) return;
+    try {
+      this.masterToneLowMid.disconnect(this.compressor);
+    } catch {
+      /* The edge may already be gone after a worklet handoff. */
+    }
+    this.masterToneLowMid.connect(this.masterMultibandInput);
+    this.masterMultibandWired = true;
+  }
+
+  private applyMasteringBandsToFallback(): void {
+    if (!this.masteringBandsState) return;
+    const now = this.ctx.currentTime;
+    this.masterMultibandCompressors.forEach((comp, index) => {
+      const band = this.masteringBandsState!.find((b) => b.id === index + 1);
+      if (!band) return;
+      comp.threshold.setTargetAtTime(band.threshold, now, 0.05);
+      comp.ratio.setTargetAtTime(band.ratio, now, 0.05);
+    });
+  }
+
+  private pushMasteringBandsToWorklet(): void {
+    if (!this.masterWorkletNode || !this.masteringBandsState) return;
+    this.configureMasterWorklet("multiband", "configure", {
+      bands: this.masteringBandsState,
+    });
+  }
+
+  /**
+   * Route the five visible mastering bands into the real master compressor.
+   * Worklet hosts get one atomic band message; the fallback swaps its single
+   * compressor for the pre-built multiband tree.
+   */
+  setMasteringBands(
+    bands: ReadonlyArray<{ id: number; threshold: number; ratio: number }>,
+  ): void {
+    const normalized = bands
+      .filter(
+        (b) =>
+          Number.isFinite(b.id) &&
+          Number.isFinite(b.threshold) &&
+          Number.isFinite(b.ratio),
+      )
+      .map((b) => ({
+        id: Math.round(b.id),
+        threshold: Math.round(Math.max(-60, Math.min(0, b.threshold)) * 10) / 10,
+        ratio: Math.round(Math.max(1, Math.min(20, b.ratio)) * 10) / 10,
+      }))
+      .sort((a, b) => a.id - b.id);
+    if (normalized.length === 0) return;
+    this.masteringBandsState = normalized;
+    if (this.masterWorkletActive()) {
+      this.pushMasteringBandsToWorklet();
+      return;
+    }
+    this.wireMasterMultibandFallback();
+    this.applyMasteringBandsToFallback();
+  }
+
+  getMasteringBands(): Array<{ id: number; threshold: number; ratio: number }> {
+    return (this.masteringBandsState ?? []).map((b) => ({ ...b }));
+  }
+
   toggleSmuveMode(active: boolean) {
     this.smuveModeActive.set(active);
     if (this.masterWorkletNode) {
@@ -993,6 +1120,9 @@ export class AudioEngineService {
         this.masterWorkletNode = workletNode;
         this._masterWorkletLoaded = true;
         this.masterWorkletActive.set(true);
+        if (this.masteringBandsState) {
+          this.pushMasteringBandsToWorklet();
+        }
         this.logger.info(
           'AudioEngine: Master worklet active — 5-band EQ, compressor, saturation, lookahead limiter.'
         );
@@ -4104,6 +4234,21 @@ export class AudioEngineService {
         threshold: threshold ?? current.threshold,
         ratio: ratio ?? current.ratio,
       };
+      // With five-band compression active, a global request becomes a uniform
+      // band request so AI mastering and macro moves still reach the audio.
+      if (this.masteringBandsState) {
+        this.masteringBandsState = this.masteringBandsState.map((band) => ({
+          ...band,
+          threshold: threshold ?? band.threshold,
+          ratio: ratio ?? band.ratio,
+        }));
+        if (this.masterWorkletActive()) {
+          this.pushMasteringBandsToWorklet();
+        } else {
+          this.applyMasteringBandsToFallback();
+        }
+        return;
+      }
     }
     if (this.masterWorkletActive()) {
       this.configureMasterWorklet('compressor', 'configure', {
@@ -4221,6 +4366,10 @@ export class AudioEngineService {
    * active, otherwise the fallback chain compressor node.
    */
   setMasterCompressorRatio(ratio: number): void {
+    if (this.masteringBandsState) {
+      this.configureCompressor({ ratio });
+      return;
+    }
     this.compressorSettings = {
       ...this.getCompressorSettings(),
       ratio,
