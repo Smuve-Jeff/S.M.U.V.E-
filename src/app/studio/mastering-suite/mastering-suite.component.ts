@@ -37,7 +37,7 @@ interface MasteringPreset {
   tagline: string;
   targetLufs: number;
   safeCeiling: number;
-  /** Per-band delta gains in dB applied on top of current values */
+  /** Per-band delta gains in dB applied to the pre-preset EQ anchor */
   bandDelta: Record<number, number>;
   /** Compressor / limiter setup hints */
   ratio: number;
@@ -464,6 +464,13 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   /** Track which preset is currently selected (for visual highlight). */
   activePresetId = signal<string | null>(null);
 
+  /**
+   * EQ gains captured before the first preset is applied. Every preset shapes
+   * from this anchor instead of the current bands, so repeated taps are
+   * idempotent and switching presets cannot stack two EQ curves.
+   */
+  private presetAnchorGains: Map<number, number> | null = null;
+
   // ── Pro: AI mastering presets ───────────────────────────────────
   readonly presets: MasteringPreset[] = [
     {
@@ -570,13 +577,19 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       ratio: preset.ratio,
     });
 
-    // Apply per-band deltas (preserve current gain + delta)
+    // Presets are absolute shapes measured from the artist's pre-preset EQ,
+    // not additive deltas. Anchoring the first application keeps a second tap
+    // of the same preset — or a switch to another preset — from drifting the
+    // existing curve.
+    this.presetAnchorGains ??= new Map(
+      this.bands().map((b) => [b.id, b.gain ?? 0]),
+    );
     this.bands.update((arr) =>
       arr.map((b) => ({
         ...b,
-        gain: Math.max(
-          -12,
-          Math.min(12, (b.gain ?? 0) + (preset.bandDelta[b.id] ?? 0)),
+        gain: this.clampBandGain(
+          (this.presetAnchorGains!.get(b.id) ?? 0) +
+            (preset.bandDelta[b.id] ?? 0),
         ),
         ratio: preset.ratio,
         threshold: preset.threshold,
@@ -596,6 +609,12 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.snack.success(
       `${preset.emoji} ${preset.label} preset · target ${preset.targetLufs} LUFS, ceiling ${preset.safeCeiling} dBFS`,
     );
+  }
+
+  /** Clamp an EQ gain to the band range and round to the displayed 0.1 dB. */
+  private clampBandGain(db: number): number {
+    const clamped = Math.max(-12, Math.min(12, db));
+    return Math.round(clamped * 10) / 10;
   }
 
   // ── Roast message generator ─────────────────────────────────

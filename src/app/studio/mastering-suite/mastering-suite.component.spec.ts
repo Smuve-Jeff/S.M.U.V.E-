@@ -212,4 +212,38 @@ describe("MasteringSuite reference A/B", () => {
       expect(component.activeDeliveryTargetId()).toBeNull();
     });
   });
+
+  describe("mastering presets", () => {
+    const bandGains = () => component.bands().map((b) => b.gain);
+    const preset = (id: string) =>
+      component.presets.find((p) => p.id === id)!;
+
+    it("applies a preset as an absolute shape over the pre-preset EQ", () => {
+      component.applyPreset(preset("streaming"));
+
+      // Initial bands: -1.2 / -0.5 / 0 / +0.8 / +1.5 dB.
+      expect(bandGains()).toEqual([-1.8, -0.8, 0, 1.2, 2.1]);
+      expect(component.targetLufs()).toBe(-14);
+      expect(component.safeCeiling()).toBe(-1);
+      expect(component.activePresetId()).toBe("streaming");
+    });
+
+    it("is idempotent when the same preset is tapped again", () => {
+      component.applyPreset(preset("streaming"));
+      const once = bandGains();
+
+      component.applyPreset(preset("streaming"));
+
+      expect(bandGains()).toEqual(once);
+    });
+
+    it("switches presets without stacking the previous shape", () => {
+      component.applyPreset(preset("streaming"));
+      component.applyPreset(preset("club"));
+
+      // Club deltas over the same anchor, not over the streaming result.
+      expect(bandGains()).toEqual([-0.2, -0.5, -0.4, 1.6, 2.7]);
+      expect(component.activePresetId()).toBe("club");
+    });
+  });
 });
