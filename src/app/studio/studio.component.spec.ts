@@ -118,6 +118,7 @@ describe("StudioComponent", () => {
     genres: [],
     moods: [],
     keys: [],
+    pruneRedundantRecoveryRecords: jest.fn(() => Promise.resolve(0)),
   };
 
   const mockTemplateService = {
@@ -1558,4 +1559,16 @@ describe("StudioComponent", () => {
     fixture.destroy();
     expect(mockAudioRecorder.stopRecording).toHaveBeenCalledTimes(1);
   });
+
+  it("prunes superseded recovery rows when the sets browser opens", () => {
+    component.showSetsBrowser.set(false);
+
+    component.toggleSetsBrowser();
+
+    expect(component.showSetsBrowser()).toBe(true);
+    expect(
+      mockProjectWorkspace.pruneRedundantRecoveryRecords,
+    ).toHaveBeenCalledTimes(1);
+  });
+
 });

@@ -3157,11 +3157,27 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.showSetsBrowser.set(next);
     if (next) {
       // Opening the browser always re-reads storage — a stale shelf is worse
-      // than an empty one.
+      // than an empty one. The recovery prune runs alongside that read rather
+      // than in front of it, so the shelf never waits on maintenance; it only
+      // re-reads if the prune actually removed rows.
       void this.refreshLocalSets();
+      void this.pruneSupersededRecoveryRows();
       this.studioTelemetry.trackEvent("sets_browser_opened", undefined, true);
     }
     this.syncPanelFocus(".comp-sets-panel", next);
+  }
+
+  /**
+   * Clear superseded recovery rows when the Sets browser opens, so a set saved
+   * under the old every-tab-hide behaviour loses its duplicate versions without
+   * waiting for its own next save. Pruning is idempotent and reports 0 instead
+   * of throwing when storage refuses the delete, so a failed prune leaves the
+   * shelf exactly as the read above found it.
+   */
+  private async pruneSupersededRecoveryRows(): Promise<void> {
+    const removed =
+      await this.projectWorkspace.pruneRedundantRecoveryRecords();
+    if (removed > 0) await this.refreshLocalSets();
   }
 
   async refreshLocalSets(): Promise<void> {
