@@ -2118,11 +2118,49 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.quantizeByIds(track.notes.map((n) => n.id));
   }
 
+  /**
+   * Note snapshots lifted by Ctrl/Cmd+C, stored relative to the earliest copied
+   * step so a paste reproduces the phrase's internal spacing wherever it lands
+   * — including on a different track.
+   */
+  private noteClipboard: ReturnType<MusicManagerService["copyNotes"]> | null =
+    null;
+
   duplicateSelection(): void {
     const track = this.selectedTrack();
     const ids = Array.from(this.selectedNoteIds());
     if (!track || ids.length === 0) return;
     this.musicManager.duplicateNotes(track.id, ids, this.lengthFromSnap());
+    this.haptic.light();
+    this.markDirty();
+  }
+
+  copySelection(): void {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    this.noteClipboard = this.musicManager.copyNotes(track.id, ids);
+    this.haptic.light();
+  }
+
+  canPasteNotes(): boolean {
+    return !!this.noteClipboard?.length;
+  }
+
+  /**
+   * Paste lands at the playhead — the position the artist is looking at — and
+   * the phrase keeps the spacing it had when it was copied.
+   */
+  pasteNotes(): void {
+    const track = this.selectedTrack();
+    const clip = this.noteClipboard;
+    if (!track || !clip || clip.length === 0) return;
+    const landed = this.musicManager.pasteNotes(
+      track.id,
+      clip,
+      Math.max(0, Math.round(this.musicManager.currentStep())),
+    );
+    if (landed === 0) return;
     this.haptic.light();
     this.markDirty();
   }
@@ -2367,7 +2405,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   /**
    * Selection editing from the keyboard.
    *
-   * `Ctrl/Cmd+D` duplicates the current selection through the same
+   * `Ctrl/Cmd+C` / `Ctrl/Cmd+V` carry the selection to the clipboard and back,
+   * and `Ctrl/Cmd+D` duplicates it through the same
    * `duplicateSelection()` the toolbar calls, so the new notes land in history
    * as one undoable command and carry the current snap length. It is a
    * separate listener from the tool-mode handler because that one owns
@@ -2387,10 +2426,26 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     const mod = event.ctrlKey || event.metaKey;
-    if (!mod || event.altKey || event.key.toLowerCase() !== "d") return;
-    if (this.selectedNoteIds().size === 0) return;
-    event.preventDefault();
-    this.duplicateSelection();
+    if (!mod || event.altKey) return;
+    const key = event.key.toLowerCase();
+
+    if (key === "c") {
+      if (this.selectedNoteIds().size === 0) return;
+      event.preventDefault();
+      this.copySelection();
+      return;
+    }
+    if (key === "v") {
+      if (!this.canPasteNotes()) return;
+      event.preventDefault();
+      this.pasteNotes();
+      return;
+    }
+    if (key === "d") {
+      if (this.selectedNoteIds().size === 0) return;
+      event.preventDefault();
+      this.duplicateSelection();
+    }
   }
 
 }

@@ -78,6 +78,8 @@ describe("PianoRollComponent", () => {
     removeNotes: jest.fn(),
     quantizeTrack: jest.fn(),
     duplicateNotes: jest.fn(),
+    copyNotes: jest.fn(() => []),
+    pasteNotes: jest.fn(() => 1),
     strumTrack: jest.fn(),
     getNoteSlideSemitones: jest.fn((n) =>
       n?.isSlide ? (n.pitchBend ?? 0) : 0,
@@ -964,6 +966,27 @@ describe("PianoRollComponent", () => {
 
     expect(duplicate).not.toHaveBeenCalled();
     duplicate.mockRestore();
+  });
+
+
+  it("copies the selection and pastes it at the playhead", () => {
+    const clip = [{ step: 4, midi: 60, length: 1, velocity: 100 }];
+    mockMusicManager.copyNotes.mockReturnValue(clip);
+    component.selectedNoteIds.set(new Set(["n1"]));
+
+    component.copySelection();
+    expect(mockMusicManager.copyNotes).toHaveBeenCalledWith("1", ["n1"]);
+
+    mockMusicManager.currentStep.set(16);
+    component.pasteNotes();
+    expect(mockMusicManager.pasteNotes).toHaveBeenCalledWith("1", clip, 16);
+    expect(mockMusicManager.pasteNotes).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the clip on Ctrl+C and refuses an empty paste", () => {
+    component.pasteNotes();
+    expect(mockMusicManager.pasteNotes).not.toHaveBeenCalled();
+    expect(component.canPasteNotes()).toBe(false);
   });
 
 });

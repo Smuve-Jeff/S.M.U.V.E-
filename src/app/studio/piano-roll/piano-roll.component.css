@@ -2587,3 +2587,11 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
   background: rgba(102, 240, 255, 0.16);
   color: #bff6ff;
 }
+
+/* Clipboard toggles stay dimmed until something has been copied. The UA's
+   default disabled styling is too faint against the inspector's dark surface
+   to read as "waiting for a copy" rather than broken. */
+.pr-inspector-toggle:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

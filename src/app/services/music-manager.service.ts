@@ -1244,6 +1244,65 @@ export class MusicManagerService {
     );
   }
 
+  /**
+   * Snapshot notes for the clipboard. Ids are dropped so a paste always mints
+   * fresh ones — pasting the same phrase twice must never collide.
+   */
+  copyNotes(trackId: string, ids: string[]): Array<Omit<TrackNote, "id">> {
+    const track = this.tracks().find((x) => x.id === trackId);
+    if (!track) return [];
+    const wanted = new Set(ids);
+    return track.notes
+      .filter((n) => wanted.has(n.id))
+      .map((n) => {
+        const snapshot: Omit<TrackNote, "id"> & { id?: string } =
+          this.clone(n);
+        delete snapshot.id;
+        return snapshot;
+      });
+  }
+
+  /**
+   * Paste snapshots so the earliest note lands on `atStep`; the phrase keeps
+   * its internal spacing from the copy point, and the whole paste is one
+   * undoable command so a misplaced paste costs a single Ctrl+Z.
+   */
+  pasteNotes(
+    trackId: string,
+    notes: Array<Omit<TrackNote, "id">>,
+    atStep: number
+  ): number {
+    const track = this.tracks().find((x) => x.id === trackId);
+    if (!track || notes.length === 0) return 0;
+    const base = Math.min(...notes.map((n) => n.step));
+    const pasted: TrackNote[] = notes.map((n) => ({
+      ...this.clone(n),
+      id: "note-" + Date.now() + "-" + Math.random(),
+      step: Math.max(0, Math.round(atStep + (n.step - base))),
+    }));
+    this.runCommand(
+      "Paste " + pasted.length + " Note" + (pasted.length === 1 ? "" : "s"),
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, notes: [...x.notes, ...pasted] } : x
+          )
+        );
+      },
+      () => {
+        const pastedIds = new Set(pasted.map((p) => p.id));
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId
+              ? { ...x, notes: x.notes.filter((n) => !pastedIds.has(n.id)) }
+              : x
+          )
+        );
+      }
+    );
+    return pasted.length;
+  }
+
   applyChordStamp(
     trackId: string,
     baseMidi: number,

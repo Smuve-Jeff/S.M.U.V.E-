@@ -732,6 +732,27 @@
       <button
         type="button"
         class="pr-inspector-toggle"
+        (click)="copySelection()"
+        title="Copy selected notes (Ctrl+C)"
+      >
+        <span class="material-symbols-outlined">file_copy</span>
+        <span>Copy</span>
+      </button>
+      <button
+        type="button"
+        [disabled]="!canPasteNotes()"
+        class="pr-inspector-toggle"
+        (click)="pasteNotes()"
+        title="Paste notes at the playhead (Ctrl+V)"
+      >
+        <span class="material-symbols-outlined">content_paste</span>
+        <span>Paste</span>
+      </button>
+
+
+      <button
+        type="button"
+        class="pr-inspector-toggle"
         (click)="deleteSelection()"
         title="Delete selected notes"
       >
