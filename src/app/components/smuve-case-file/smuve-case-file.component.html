@@ -257,6 +257,16 @@
               <span class="material-symbols-outlined text-xs">north_east</span>
               Open room
             </button>
+            <button
+              type="button"
+              (click)="askRoom(room)"
+              class="px-2 py-1 rounded border border-brand-primary/25 bg-brand-primary/10 text-[8px] font-black uppercase tracking-widest text-brand-primary hover:bg-brand-primary/20 transition-colors flex items-center gap-1"
+              [title]="'Ask S.M.U.V.E. about ' + room.label + ' with this record in hand'"
+              [attr.aria-label]="'Ask S.M.U.V.E. about the ' + room.label + ' room'"
+            >
+              <span class="material-symbols-outlined text-xs">forum</span>
+              Ask about this room
+            </button>
             <span
               class="ml-auto text-[9px] font-bold uppercase tracking-widest text-slate-500"
               [title]="'Last activity in ' + room.label"

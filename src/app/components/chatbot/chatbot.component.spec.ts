@@ -21,6 +21,7 @@ describe('ChatbotComponent', () => {
   let speechRecognitionServiceMock: any;
   let speechSynthesisServiceMock: any;
   let finetuneMock: any;
+  let uiServiceMock: any;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -46,8 +47,11 @@ describe('ChatbotComponent', () => {
       }),
     };
 
-    const uiServiceMock = {
+    uiServiceMock = {
       isMobile: signal(false),
+      pendingChatPrompt: signal<string | null>(null),
+      takePendingChatPrompt: jest.fn(() => null),
+      openChatbot: jest.fn(),
     };
 
     const audioEngineServiceMock = {
@@ -126,6 +130,18 @@ describe('ChatbotComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('sends a question queued by another surface, exactly once', () => {
+    const send = jest.spyOn(component, 'sendMessage').mockResolvedValue(undefined);
+    uiServiceMock.takePendingChatPrompt.mockReturnValue(
+      'S.M.U.V.E., work the Mix Bus room with me.'
+    );
+
+    (component as any).consumeQueuedPrompt();
+
+    expect(component.userInput).toBe('S.M.U.V.E., work the Mix Bus room with me.');
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('adds existing artist-specific fine-tuning context to the live AI prompt', () => {

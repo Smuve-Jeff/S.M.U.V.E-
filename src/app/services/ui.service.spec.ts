@@ -107,4 +107,20 @@ describe('UIService assistant drawer state', () => {
     service.toggleChatbot();
     expect(service.isChatbotOpen()).toBe(false);
   });
+
+  it('opens the console with a queued question and hands it over once', () => {
+    service.askChatbot('  Work the Mix Bus room.  ');
+
+    expect(service.isChatbotOpen()).toBe(true);
+    expect(service.pendingChatPrompt()).toBe('Work the Mix Bus room.');
+    expect(service.takePendingChatPrompt()).toBe('Work the Mix Bus room.');
+    // A second caller must not replay the same question.
+    expect(service.takePendingChatPrompt()).toBeNull();
+  });
+
+  it('bounds a queued question to the AI request budget', () => {
+    service.askChatbot('x'.repeat(5000));
+
+    expect(service.pendingChatPrompt()?.length).toBe(2800);
+  });
 });

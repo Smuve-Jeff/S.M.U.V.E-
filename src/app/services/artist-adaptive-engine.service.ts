@@ -324,13 +324,21 @@ export class ArtistAdaptiveEngineService {
   private buildProductionDirective(profile: UserProfile | null | undefined, knowledge: ArtistProfileKnowledge, genre: GenreAdaptationProfile): string {
     if (!profile) return '';
     const daw = profile.daw?.[0] || genre.productionDefaults.recommendedDaw[0] || 'your DAW';
-    const bpm = profile.musicalJourney?.preferredBpmRange || `${genre.productionDefaults.typicalBpmRange[0]}-${genre.productionDefaults.typicalBpmRange[1]}`;
+    const declaredTempo = profile.musicalJourney?.preferredBpmRange || '';
+    const fallbackTempo = `${genre.productionDefaults.typicalBpmRange[0]}-${genre.productionDefaults.typicalBpmRange[1]} BPM`;
+    // The profile may already carry the unit; appending it again produced
+    // "60-80 BPM BPM" in the production directive.
+    const bpm = !declaredTempo
+      ? fallbackTempo
+      : /bpm/i.test(declaredTempo)
+        ? declaredTempo
+        : `${declaredTempo} BPM`;
     const sonicRule = knowledge.sonic.nonNegotiables || `Protect the ${genre.productionDefaults.sonicSignatures[0] || 'signature sound'}`;
 
     return [
       `PRODUCTION FOR ${genre.label.toUpperCase()}`,
       `Working DAW: ${daw}`,
-      `Tempo zone: ${bpm} BPM`,
+      `Tempo zone: ${bpm}`,
       `Mix priorities: ${genre.productionDefaults.mixPriorities.join(' > ')}`,
       `Recording focus: ${genre.productionDefaults.recordingFocus.join(', ')}`,
       `Sonic rule: ${sonicRule}`,

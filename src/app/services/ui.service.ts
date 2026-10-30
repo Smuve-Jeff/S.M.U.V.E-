@@ -60,6 +60,12 @@ export class UIService {
   /** Canonical chatbot drawer state; retain the legacy name as a signal alias. */
   showChatbot = signal(false);
   isChatbotOpen = this.showChatbot;
+  /**
+   * A question handed to the console by another surface (e.g. "Ask about this
+   * room" in the Case File). The chatbot consumes it after its welcome, so the
+   * artist never has to retype the context they were just looking at.
+   */
+  pendingChatPrompt = signal<string | null>(null);
   visualIntensity = signal(0);
   isCompactMobile = signal(false);
   /** Portrait tablets (769–1024px, taller than wide) get the mobile shell. */
@@ -377,6 +383,24 @@ export class UIService {
 
   openChatbot(): void {
     this.isChatbotOpen.set(true);
+  }
+
+  /**
+   * Opens the console with a question already in hand. The prompt is trimmed
+   * and bounded here so no surface can push an oversized request past the AI
+   * request limit; the chatbot sends it once its welcome is in place.
+   */
+  askChatbot(prompt: string): void {
+    const text = String(prompt ?? '').trim().slice(0, 2800);
+    if (text) this.pendingChatPrompt.set(text);
+    this.openChatbot();
+  }
+
+  /** Takes the queued question exactly once; a second caller gets nothing. */
+  takePendingChatPrompt(): string | null {
+    const prompt = this.pendingChatPrompt();
+    if (prompt) this.pendingChatPrompt.set(null);
+    return prompt;
   }
 
   closeChatbot(): void {

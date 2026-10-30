@@ -2,6 +2,10 @@ import { Injectable, computed, inject } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
 import { ArtistOnlineFingerprintService } from './artist-online-fingerprint.service';
 import { ArtistPathwayService, AREA_LABEL } from './artist-pathway.service';
+import {
+  readMusicalBody,
+  type ArtistMusicalBody,
+} from './artist-profile-read';
 
 /** S.M.U.V.E. operating roles that adapt to the artist’s completed profile. */
 export type FinetuneRole =
@@ -17,9 +21,22 @@ export type FinetuneRole =
 export interface ArtistProfileKnowledge {
   state: 'calibrated' | 'partial' | 'foundational';
   completeness: number;
+  /** True when the questionnaire itself was committed, even if evidence is thin. */
+  questionnaireComplete: boolean;
+  /** The exact musical body S.M.U.V.E. reads — shown to the artist for audit. */
+  musicalBody: ArtistMusicalBody;
   genre: string;
   /** Stable domain cue for recommendations across specialist roles. */
-  expertise: { production: string; marketing: string; mastering: string; audioEngineering: string };
+  expertise: {
+    production: string;
+    marketing: string;
+    mastering: string;
+    audioEngineering: string;
+    songwriting?: string;
+    business?: string;
+    legal?: string;
+    performance?: string;
+  };
   roles: string[];
   identity: {
     name: string;
@@ -85,6 +102,8 @@ export interface ArtistProfileKnowledge {
   };
   legal: {
     registeredWorks: boolean;
+    /** The artist's exact answer — 'Yes', 'Partial', 'No' — so partial is not read as complete. */
+    registeredWorksStatus: string;
     proAffiliation: string;
     proIdentity: string;
     splitSheet: string;
@@ -369,7 +388,11 @@ export class ArtistProfileFinetuneService {
     if (k.state === 'foundational') {
       // The presence line matters most here: a beginner must not be handed
       // dashboard or analytics tactics for accounts they have never created.
-      return `ARTIST PROFILE FINE-TUNE: incomplete (${k.completeness}% evidence). Genre reference: ${k.genre}. ${this.presenceLine(k)} ${this.pathwayLine(k)} Keep guidance foundational and explicitly ask for: ${k.missing.join('; ')}.`;
+      return `ARTIST PROFILE FINE-TUNE: incomplete (${k.completeness}% evidence${k.questionnaireComplete ? ', questionnaire complete' : ''}). Genre reference: ${k.genre}. ${this.presenceLine(k)} ${this.pathwayLine(k)} ${
+        k.questionnaireComplete
+          ? 'The interview is finished, so do not re-ask answered questions. The gaps are work evidence to create, not answers to repeat:'
+          : 'Keep guidance foundational and explicitly ask for:'
+      } ${k.missing.join('; ')}.`;
     }
     // Role directives, voice, tips and guardrails can contain raw narrative,
     // legal and business answers. Do not append them to the model prompt when
@@ -383,7 +406,8 @@ export class ArtistProfileFinetuneService {
     return [
       `ARTIST PROFILE FINE-TUNE (${k.state}, ${k.completeness}% evidence) — adapt every answer to this artist:`,
       `GENRE CONTEXT: ${k.genre} is a reference frame, not an identity verdict; do not assume one genre technique fits every subgenre or artist. If the artist blends styles, preserve the blend and explain trade-offs rather than forcing a single genre template.`,
-      `SKILL CALIBRATION: production=${k.expertise.production}; marketing=${k.expertise.marketing}; mastering=${k.expertise.mastering}; audioEngineering=${k.expertise.audioEngineering}. Explain unfamiliar concepts at the artist’s demonstrated level, offer an optional advanced path, and do not confuse a low self-rating with inability.`,
+      `SKILL CALIBRATION: production=${k.expertise.production}; songwriting=${k.expertise.songwriting ?? 'unknown'}; marketing=${k.expertise.marketing}; business=${k.expertise.business ?? 'unknown'}; legal=${k.expertise.legal ?? 'unknown'}; performance=${k.expertise.performance ?? 'unknown'}; mastering=${k.expertise.mastering}; audioEngineering=${k.expertise.audioEngineering}. Explain unfamiliar concepts at the artist’s demonstrated level, offer an optional advanced path, and do not confuse a low self-rating with inability.`,
+      this.musicalBodyLine(profile, hideSensitive),
       'DOMAIN RESPONSE STANDARD: For production and music theory, state the musical goal, give a reversible starting experiment, and explain what to listen for; do not prescribe universal settings as rules. For business, marketing and promotion, distinguish stable principles from current platform policies, request current evidence before time-sensitive claims, tailor actions to the artist’s recorded audience, resources and goal, and never invent results.',
       hideSensitive
         ? 'ARTIST CONTRACT: sensitive artist-authored narrative answers withheld by privacy setting.'
@@ -393,12 +417,15 @@ export class ArtistProfileFinetuneService {
         : `ARTIST CONSTRAINTS: focus=${k.business.focus || 'unknown'}; goal=${k.business.successMetric || 'unknown'}; cadence=${k.business.velocity || 'unknown'}; sonicRule=${k.sonic.nonNegotiables || 'not declared'}; tempo=${k.sonic.tempoZone || 'not declared'}; audience=${k.audience.profile || 'not declared'}.`,
       `DIFFERENTIATORS: ${hideSensitive ? 'withheld by privacy setting' : k.differentiators.join(' | ') || 'none captured yet'}`,
       `MISSING EVIDENCE: ${k.missing.join('; ') || 'none — profile is calibrated'}`,
+      k.questionnaireComplete
+        ? 'PROFILE STATUS: the questionnaire is complete — never ask the artist to restate an answer. Every gap below is work evidence to create (catalogue, registrations, assets), not an unanswered question.'
+        : 'PROFILE STATUS: the questionnaire is not committed — unanswered fields may still be requested.',
       sections,
       `STUDIO CHAIN: ${hideSensitive ? 'withheld by privacy setting' : [...k.operations.equipment, ...k.operations.daw, ...k.operations.services].join(', ') || 'not captured'}`,
       `ROSTER: ${hideSensitive ? 'withheld by privacy setting' : k.operations.roster.join(' | ') || 'independent, no roster'}`,
       hideSensitive
         ? 'SYNC AND LEGAL: sensitive business and legal details withheld by privacy setting.'
-        : `SYNC AND LEGAL: sync=${k.sync.readiness || 'unset'}, oneStop=${k.sync.oneStopClearance}, stems=${k.sync.hasStems}, worksRegistered=${k.legal.registeredWorks}, pro=${k.legal.proAffiliation || 'none'}, splitSheet=${k.legal.splitSheet || 'unknown'}, incorporated=${k.legal.incorporated}, trademark=${k.legal.trademark || 'none'}`,
+        : `SYNC AND LEGAL: sync=${k.sync.readiness || 'unset'}, oneStop=${k.sync.oneStopClearance}, stems=${k.sync.hasStems}, worksRegistered=${k.legal.registeredWorksStatus || (k.legal.registeredWorks ? 'Yes' : 'No')}, pro=${k.legal.proAffiliation || 'none'}, splitSheet=${k.legal.splitSheet || 'unknown'}, incorporated=${k.legal.incorporated}, trademark=${k.legal.trademark || 'none'}`,
       hideSensitive
         ? 'LIVE: location and performance details withheld by privacy setting.'
         : `LIVE: readiness=${k.live.readiness || 'unset'}, regions=${k.live.regions.join(', ') || 'none'}, travel=${k.live.travel || 'unset'}, backline=${k.live.hasBackline}, showsPerYear=${k.live.performancesPerYear || 'unset'}`,
@@ -424,6 +451,59 @@ export class ArtistProfileFinetuneService {
    * does, otherwise the artist gets contradictory priorities from different
    * roles on the same day.
    */
+  /**
+   * The artist's body, stated once for the model. Only what is on record is
+   * described; missing influences and references stay missing rather than
+   * being replaced with genre assumptions.
+   */
+  private musicalBodyLine(profile: UserProfile, hideSensitive: boolean): string {
+    const body = readMusicalBody(profile);
+    if (!body.hasBody) {
+      return 'MUSICAL BODY: not captured yet — no genre, sonic blueprint, writing or catalogue evidence on record. Ask for it instead of inventing a body of work.';
+    }
+    const parts: string[] = [];
+    if (hideSensitive) {
+      // The narrative sentence can carry themes and non-negotiables, which the
+      // artist may have chosen to withhold. Only the declared genre and sonic
+      // signature remain in the shared block.
+      const identity = [body.genre, body.subgenres.join(', ')]
+        .filter(Boolean)
+        .join(' / ');
+      if (identity) {
+        parts.push(
+          `${identity} artist${
+            body.signatureSound ? ` with signature sound “${body.signatureSound}”` : ''
+          }.`
+        );
+      }
+    } else if (body.statement) {
+      parts.push(body.statement);
+    }
+    if (body.tempoZone) parts.push(`Tempo: ${body.tempoZone}.`);
+    if (body.vocalRange) parts.push(`Voice: ${body.vocalRange}.`);
+    if (!hideSensitive && body.references.length) {
+      parts.push(
+        `Reference tracks (learning only, never imitation): ${body.references.join(', ')}.`
+      );
+    }
+    if (!hideSensitive && body.catalogue.works) {
+      const formats = body.catalogue.releaseTypes.length
+        ? `, formats ${body.catalogue.releaseTypes.join('/')}`
+        : '';
+      const latest = body.catalogue.latestTitle
+        ? `; latest “${body.catalogue.latestTitle}”${
+            body.catalogue.latestDate ? ` (${body.catalogue.latestDate})` : ''
+          }`
+        : '';
+      parts.push(
+        `Catalogue: ${body.catalogue.works} work${
+          body.catalogue.works === 1 ? '' : 's'
+        }, ${body.catalogue.dated} dated, ${body.catalogue.documented}% documented${formats}${latest}.`
+      );
+    }
+    return `MUSICAL BODY (evidence-only; describe this artist through these specifics, never a genre template): ${parts.join(' ')}`;
+  }
+
   private pathwayLine(k: ArtistProfileKnowledge): string {
     const p = k.pathway;
     if (this.profileService.profile().settings?.security?.shareProfileAnswersWithAi !== true) {
@@ -710,9 +790,11 @@ export class ArtistProfileFinetuneService {
             k.legal.splitSheet && k.legal.splitSheet !== 'Never'
               ? `Split sheet practice on file: ${k.legal.splitSheet} — keep it ahead of every release.`
               : 'Split sheets before release, not after interest arrives.',
-            k.legal.registeredWorks
-              ? 'Works are registered — keep new releases on the same registration cadence.'
-              : 'Register the works before a dispute can define ownership.',
+            k.legal.registeredWorksStatus === 'Partial'
+              ? 'Registration is partial — finish the unregistered works before pitching sync or signing anything new.'
+              : k.legal.registeredWorks
+                ? 'Works are registered — keep new releases on the same registration cadence.'
+                : 'Register the works before a dispute can define ownership.',
             k.legal.proAffiliation && k.legal.proAffiliation !== 'None'
               ? `PRO affiliation: ${k.legal.proAffiliation}${k.legal.proIdentity ? ` (${k.legal.proIdentity})` : ''} — confirm IPI details match every registration.`
               : 'Affiliate with a PRO so performance royalties are actually collected.',
@@ -823,6 +905,37 @@ export class ArtistProfileFinetuneService {
     };
   }
 
+  /**
+   * Reads the artist's real expertise levels. The profile stores them on
+   * `expertise` (production, songwriting, marketing, business, legal,
+   * performance, technical_mastery); the old `expertiseLevels` key is kept as a
+   * fallback so previously persisted drafts still read correctly. Values are
+   * the artist's own self-rating and are never inferred from genre.
+   */
+  private compileExpertise(p: any): ArtistProfileKnowledge['expertise'] {
+    const levels: any = p?.expertise ?? p?.expertiseLevels ?? {};
+    const level = (key: string): string => {
+      const value = Number(levels?.[key]);
+      return Number.isFinite(value) && value > 0 ? String(value) : 'unknown';
+    };
+    return {
+      production: level('production'),
+      marketing: level('marketing'),
+      mastering:
+        Number(levels?.['technical_mastery']) > 0
+          ? level('technical_mastery')
+          : level('mastering'),
+      audioEngineering:
+        Number(levels?.['technical_mastery']) > 0
+          ? level('technical_mastery')
+          : level('audioEngineering'),
+      songwriting: level('songwriting'),
+      business: level('business'),
+      legal: level('legal'),
+      performance: level('performance'),
+    };
+  }
+
   private compile(profile: UserProfile | null | undefined): ArtistProfileKnowledge {
     const p: any = profile || {};
     const journey: any = p.musicalJourney || {};
@@ -837,19 +950,17 @@ export class ArtistProfileFinetuneService {
     const knowledge: ArtistProfileKnowledge = {
       state: 'foundational',
       completeness: 0,
+      questionnaireComplete: p.profileSetupCompleted === true,
+      musicalBody: readMusicalBody(null),
       genre: str(p.primaryGenre) || 'unspecified genre',
-      expertise: {
-        production: String(p.expertiseLevels?.production ?? 'unknown'),
-        marketing: String(p.expertiseLevels?.marketing ?? 'unknown'),
-        mastering: String(p.expertiseLevels?.mastering ?? 'unknown'),
-        audioEngineering: String(p.expertiseLevels?.audioEngineering ?? 'unknown'),
-      },
+      expertise: this.compileExpertise(p),
       roles: list(p.expertise?.roles ?? journey.roles),
       identity: {
         name: str(p.artistName),
         meaning: str(journey.artistNameMeaning),
         origin: str(journey.originStory),
-        breakthrough: str(journey.breakthroughMoment ?? journey.firstSong),
+        breakthrough:
+          str(journey.breakthroughMoment) || str(journey.firstSong),
         tension: str(blueprint.signatureTension),
         livedWorld: str(blueprint.livedWorldDetails),
       },
@@ -862,9 +973,11 @@ export class ArtistProfileFinetuneService {
         harmony: str(blueprint.harmonicLanguage),
         arrangement: str(blueprint.arrangementApproach),
         nonNegotiables: str(blueprint.sonicNonNegotiables),
-        tempoZone: str(journey.preferredBpmRange)
-          ? `${str(journey.preferredBpmRange)} BPM`
-          : '',
+        tempoZone: (() => {
+          const tempo = str(journey.preferredBpmRange);
+          if (!tempo) return '';
+          return /bpm/i.test(tempo) ? tempo : `${tempo} BPM`;
+        })(),
       },
       craft: {
         productionPhilosophy: str(journey.productionPhilosophy),
@@ -911,6 +1024,7 @@ export class ArtistProfileFinetuneService {
       },
       legal: {
         registeredWorks: false,
+        registeredWorksStatus: '',
         proAffiliation: '',
         proIdentity: '',
         splitSheet: '',
@@ -960,6 +1074,7 @@ export class ArtistProfileFinetuneService {
     };
 
     knowledge.pathway = this.compilePathway(p as UserProfile);
+    knowledge.musicalBody = readMusicalBody(p as UserProfile);
 
     knowledge.differentiators = [
       knowledge.sonic.signatureSound,
@@ -990,8 +1105,13 @@ export class ArtistProfileFinetuneService {
       catalogSize: typeof p.syncDetails?.catalogSize === 'number' ? p.syncDetails.catalogSize : 0,
       keywords: list(p.syncDetails?.preferredKeywords),
     };
+    const registeredWorksRaw = p.legalInfrastructure?.hasRegisteredWorks;
+    const registeredWorksStatus =
+      registeredWorksRaw === true ? 'Yes' : str(registeredWorksRaw);
     knowledge.legal = {
-      registeredWorks: p.legalInfrastructure?.hasRegisteredWorks === true,
+      registeredWorks:
+        registeredWorksRaw === true || registeredWorksStatus === 'Yes',
+      registeredWorksStatus,
       proAffiliation: str(p.legalInfrastructure?.proAffiliation),
       proIdentity: [str(p.proName), str(p.proIpi)].filter(Boolean).join(' / '),
       splitSheet: str(p.legalInfrastructure?.hasStandardSplitSheet),
@@ -1043,7 +1163,13 @@ export class ArtistProfileFinetuneService {
       ['press and media assets', knowledge.operations.pressAssets > 0],
       ['sync readiness', knowledge.sync.readiness !== '' && knowledge.sync.readiness !== 'Not Started'],
       ['sync clearance and stems', knowledge.sync.oneStopClearance && knowledge.sync.hasStems],
-      ['works registration and PRO', knowledge.legal.registeredWorks || knowledge.legal.proAffiliation !== 'None' || Boolean(knowledge.legal.proIdentity)],
+      [
+        'works registration and PRO',
+        knowledge.legal.registeredWorks ||
+          (Boolean(knowledge.legal.proAffiliation) &&
+            knowledge.legal.proAffiliation !== 'None') ||
+          Boolean(knowledge.legal.proIdentity),
+      ],
       ['split sheet practice', Boolean(knowledge.legal.splitSheet) && knowledge.legal.splitSheet !== 'Never'],
       ['business entity and trademark', knowledge.legal.incorporated || (Boolean(knowledge.legal.trademark) && knowledge.legal.trademark !== 'None')],
       ['live readiness and routing', knowledge.live.regions.length > 0 || (Boolean(knowledge.live.readiness) && knowledge.live.readiness !== 'Studio Only')],

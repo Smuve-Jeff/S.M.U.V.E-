@@ -1284,7 +1284,11 @@ export class ArtistPathwayService {
       ),
       proAffiliation: str(legal.proAffiliation),
       proIdentity: [str(p.proName), str(p.proIpi)].filter(Boolean).join(' / '),
-      registeredWorks: legal.hasRegisteredWorks === true,
+      // Completed questionnaires can store this as 'Yes' rather than a boolean;
+      // reading only `true` reported registered works as unregistered.
+      registeredWorks:
+        legal.hasRegisteredWorks === true ||
+        String(legal.hasRegisteredWorks).toLowerCase() === 'yes',
       standardSplitSheet: str(legal.hasStandardSplitSheet),
       incorporated: legal.isIncorporated === true,
       trademarkStatus: str(legal.trademarkStatus),

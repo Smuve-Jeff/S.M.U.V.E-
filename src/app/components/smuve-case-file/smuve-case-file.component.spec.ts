@@ -75,7 +75,7 @@ describe('SmuveCaseFileComponent', () => {
     announce: jest.Mock;
     homeRouteFor: jest.Mock;
   };
-  let ui: { openChatbot: jest.Mock };
+  let ui: { openChatbot: jest.Mock; askChatbot: jest.Mock };
   let router: { navigateByUrl: jest.Mock };
 
   beforeEach(() => {
@@ -126,7 +126,7 @@ describe('SmuveCaseFileComponent', () => {
         surface === 'mixing' ? '/mixer' : '/hub'
       ),
     };
-    ui = { openChatbot: jest.fn() };
+    ui = { openChatbot: jest.fn(), askChatbot: jest.fn() };
     router = { navigateByUrl: jest.fn() };
 
     TestBed.configureTestingModule({
@@ -276,6 +276,19 @@ describe('SmuveCaseFileComponent', () => {
 
     expect(director.homeRouteFor).toHaveBeenCalledWith('mixing');
     expect(router.navigateByUrl).toHaveBeenCalledWith('/mixer');
+  });
+
+  it('asks S.M.U.V.E. about a room with that room’s record in hand', () => {
+    const mixing = component.roomGroups().find((group) => group.surface === 'mixing');
+    component.askRoom(mixing!);
+
+    expect(ui.askChatbot).toHaveBeenCalledTimes(1);
+    const question = ui.askChatbot.mock.calls[0][0] as string;
+    expect(question).toContain('work the Mix Bus room');
+    expect(question).toContain('That low end is a corpse.');
+    expect(question).toContain('Cut 180Hz and sidechain the kick.');
+    expect(question).toContain('Last activity: today');
+    expect(question).toContain('Do not ask me to repeat facts already on file');
   });
 
   it('opens the console from the empty state', () => {

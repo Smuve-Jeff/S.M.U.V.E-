@@ -3,6 +3,7 @@ import {
   profileReadBack,
   questionnaireReadLine,
   readArtistProfile,
+  readMusicalBody,
   welcomeWithReadBack,
 } from './artist-profile-read';
 import { initialProfile } from '../types/profile.types';
@@ -53,6 +54,12 @@ describe('artist-profile-read', () => {
     expect(hasProfileRead(initialProfile)).toBe(false);
     expect(profileReadBack(initialProfile)).toBe('');
     expect(hasProfileRead(COMMITTED)).toBe(true);
+
+    // The untouched default genre is not an answer the artist gave.
+    const emptyBody = readMusicalBody(initialProfile);
+    expect(emptyBody.genre).toBe('');
+    expect(emptyBody.hasBody).toBe(false);
+    expect(emptyBody.statement).not.toContain('Hip Hop');
   });
 
   it('opens with the artist’s own answers, never a generic greeting', () => {
@@ -78,8 +85,61 @@ describe('artist-profile-read', () => {
       'musicalJourney.signatureSound': 'x'.repeat(600),
     });
     const block = profileReadBack(verbose);
-    expect(block.length).toBeLessThan(400);
+    expect(block.length).toBeLessThan(800);
     expect(block).toContain('…');
+  });
+
+  it('describes the actual musical body, not just the genre label', () => {
+    const bodyProfile = profileWith({
+      artistName: 'Nova Vale',
+      primaryGenre: 'Ambient',
+      'musicalJourney.subgenres': ['drone', 'field recording'],
+      'musicalJourney.musicalInfluences': ['minimalism', 'gospel'],
+      'musicalJourney.vocalRange': 'Tenor (C3–C5)',
+      'musicalJourney.preferredBpmRange': '60-80',
+      'musicalJourney.signatureSound': 'tape hiss and bowed metal',
+      'musicalJourney.musicBlueprint': {
+        vocalDelivery: 'whispered',
+        rhythmicFeel: 'breathing pulse',
+        harmonicLanguage: 'open fifths',
+        arrangementApproach: 'slow reveal',
+        lyricalThemes: ['distance', 'care'],
+        referenceTracks: ['Brian Eno — Music for Airports'],
+        sonicNonNegotiables: 'keep the room tone',
+      },
+      catalog: [
+        { id: 'a', title: 'Window Light', releaseDate: '2025-02-01', releaseType: 'Single', isrc: 'US-AAA-1' },
+        { id: 'b', title: 'Room Tone', releaseDate: '2025-08-01', releaseType: 'EP' },
+        { id: 'c', title: 'Sketch', releaseType: 'Single' },
+      ],
+    });
+
+    const read = readArtistProfile(bodyProfile);
+    expect(read.profileComplete).toBe(false);
+    expect(read.body.subgenres).toEqual(['drone', 'field recording']);
+    expect(read.body.references).toContain('Brian Eno — Music for Airports');
+    expect(read.body.themes).toEqual(['distance', 'care']);
+    expect(read.body.catalogue.works).toBe(3);
+    expect(read.body.catalogue.dated).toBe(2);
+    expect(read.body.catalogue.latestTitle).toBe('Room Tone');
+    expect(read.body.catalogue.releaseTypes).toEqual(['Single', 'EP']);
+    expect(read.body.statement).toContain('Ambient artist');
+    expect(read.body.statement).toContain('tape hiss and bowed metal');
+    expect(read.body.statement).toContain('3 works on record');
+
+    const block = profileReadBack(bodyProfile);
+    expect(block).toContain('MUSICAL BODY:');
+    expect(block).toContain('REFERENCES ON FILE: Brian Eno');
+    expect(block).toContain('WILL NOT COMPROMISE: keep the room tone');
+    expect(block).toContain('CATALOGUE: 3 works, 2 dated');
+    expect(block).toContain('latest “Room Tone” (2025-08-01)');
+  });
+
+  it('claims a completed profile only when the questionnaire was committed', () => {
+    expect(readArtistProfile(profileWith({})).profileComplete).toBe(false);
+    expect(
+      readArtistProfile(profileWith({ profileSetupCompleted: true })).profileComplete
+    ).toBe(true);
   });
 
   it('reacts to a genre answer before any signature exists', () => {

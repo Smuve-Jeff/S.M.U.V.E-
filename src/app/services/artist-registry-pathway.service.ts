@@ -386,7 +386,9 @@ export class ArtistRegistryPathwayService {
             title: 'Register the works with the PRO',
             detail:
               'An unregistered work earns nothing when it is played — register each title against the membership.',
-            done: legal.hasRegisteredWorks === true,
+            done:
+              legal.hasRegisteredWorks === true ||
+              String(legal.hasRegisteredWorks).toLowerCase() === 'yes',
           },
           {
             title: 'Register the masters with SoundExchange',

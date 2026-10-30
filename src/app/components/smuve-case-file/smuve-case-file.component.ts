@@ -295,6 +295,42 @@ export class SmuveCaseFileComponent {
     if (route) this.router.navigateByUrl(route);
   }
 
+  /**
+   * Ask S.M.U.V.E. about this room with the room's own record already in the
+   * question, so the answer starts from the verdict and open loops on file
+   * instead of making the artist repeat what the Case File already knows.
+   */
+  askRoom(room: CaseFileRoomGroup): void {
+    this.ui?.askChatbot(this.roomQuestion(room));
+  }
+
+  /** The queued question: bounded, evidence-only, and specific to the room. */
+  private roomQuestion(room: CaseFileRoomGroup): string {
+    const lines = [`S.M.U.V.E., work the ${room.label} room with me.`];
+    if (room.summary) lines.push(`What you have on file here: ${room.summary}`);
+
+    const loops = room.openLoops
+      .slice(0, 4)
+      .map((entry) => `“${this.excerpt(entry.text, 120)}”`);
+    if (loops.length) lines.push(`Open loops: ${loops.join('; ')}.`);
+
+    const decisions = room.decisions
+      .slice(0, 2)
+      .map((entry) => `“${this.excerpt(entry.text, 100)}”`);
+    if (decisions.length) lines.push(`Commitments: ${decisions.join('; ')}.`);
+
+    const goals = room.goals
+      .slice(0, 2)
+      .map((entry) => `“${this.excerpt(entry.text, 100)}”`);
+    if (goals.length) lines.push(`Goals: ${goals.join('; ')}.`);
+
+    lines.push(`Last activity: ${this.agedOn(room.lastAt)}.`);
+    lines.push(
+      'Use the verdict and open loops above. Do not ask me to repeat facts already on file. Give me the one move in this room that changes the most now, why it matters, and the first concrete action I take today.'
+    );
+    return lines.join('\n').slice(0, 2800);
+  }
+
   trackRoomId(_index: number, room: CaseFileRoomGroup): string {
     return room.surface;
   }

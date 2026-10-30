@@ -217,6 +217,8 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   messages = signal<ChatMessage[]>([]);
   userInput = '';
   isTyping = signal(false);
+  /** False until the welcome (or restored transcript) is in place. */
+  private chatReady = signal(false);
   profile = this.userProfileService.profile;
 
   /**
@@ -582,12 +584,31 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       this.announcedRooms.add(surface);
       this.announceRoomArrival();
     });
+
+    // A surface can hand the console a question (Case File: "Ask about this
+    // room"). It waits for the welcome, then sends itself with the same route
+    // and guard rails as typed input.
+    effect(() => {
+      const queued = this.uiService.pendingChatPrompt();
+      if (!queued || !this.chatReady() || this.destroyed) return;
+      queueMicrotask(() => this.consumeQueuedPrompt());
+    });
   }
 
   ngOnInit() {
     this.owner = this.injector.get(UserStoreService).user()?.id || this.profile()?.id || null;
-    if (this.restoreMessages()) return;
-    this.setWelcomeGreeting();
+    if (!this.restoreMessages()) this.setWelcomeGreeting();
+    this.chatReady.set(true);
+    this.consumeQueuedPrompt();
+  }
+
+  /** Sends a question queued by another surface, exactly once. */
+  private consumeQueuedPrompt(): void {
+    if (this.destroyed || this.isTyping()) return;
+    const queued = this.uiService.takePendingChatPrompt();
+    if (!queued) return;
+    this.userInput = queued;
+    void this.sendMessage();
   }
 
   ngAfterViewChecked() {

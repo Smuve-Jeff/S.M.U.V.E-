@@ -931,6 +931,54 @@
               </div>
             </div>
 
+            <!-- The exact body S.M.U.V.E. reads from this draft. Empty fields
+                 stay empty instead of being filled with genre assumptions. -->
+            <div
+              *ngIf="ft.knowledge.musicalBody.hasBody"
+              class="p-4 rounded-xl bg-brand-primary/5 border border-brand-primary/20"
+            >
+              <div
+                class="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] mb-2"
+              >
+                Musical body S.M.U.V.E. reads
+              </div>
+              <p class="text-[11px] text-slate-200 leading-relaxed">
+                {{ ft.knowledge.musicalBody.statement }}
+              </p>
+              <div class="mt-2 flex flex-wrap gap-1.5">
+                <span
+                  *ngFor="let genre of ft.knowledge.musicalBody.subgenres"
+                  class="text-[8px] px-2 py-0.5 rounded-full bg-white/5 text-slate-300 uppercase font-bold"
+                  >{{ genre }}</span
+                >
+                <span
+                  *ngIf="ft.knowledge.musicalBody.catalogue.works"
+                  class="text-[8px] px-2 py-0.5 rounded-full bg-white/5 text-slate-300 uppercase font-bold"
+                >
+                  {{ ft.knowledge.musicalBody.catalogue.works }} works ·
+                  {{ ft.knowledge.musicalBody.catalogue.dated }} dated ·
+                  {{ ft.knowledge.musicalBody.catalogue.documented }}% documented
+                </span>
+                <span
+                  *ngIf="ft.knowledge.questionnaireComplete"
+                  class="text-[8px] px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary uppercase font-bold"
+                  >Questionnaire complete</span
+                >
+                <span
+                  *ngIf="!ft.knowledge.questionnaireComplete"
+                  class="text-[8px] px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-300 uppercase font-bold"
+                  >Questionnaire incomplete</span
+                >
+              </div>
+              <div
+                *ngIf="ft.knowledge.musicalBody.references.length"
+                class="mt-2 text-[10px] text-slate-400"
+              >
+                <span class="font-black uppercase tracking-widest text-slate-500">References on file:</span>
+                {{ ft.knowledge.musicalBody.references.join(', ') }}
+              </div>
+            </div>
+
             <div class="space-y-3">
               <div
                 *ngFor="let r of ft.roles"

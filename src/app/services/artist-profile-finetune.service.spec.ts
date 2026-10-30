@@ -331,23 +331,119 @@ describe('ArtistProfileFinetuneService', () => {
     expect(service.directiveFor('ar').directive).toContain('Tape hiss, bowed metal, close-mic breath');
   });
 
-  it('calibrates level to the explicit expertise profile without stereotyping genre', () => {
+  it('calibrates level to the real expertise field without stereotyping genre', () => {
     const profile = {
       ...strongProfile,
-      settings: { security: { shareProfileAnswersWithAi: true } },
-      expertiseLevels: { production: 2, marketing: 4, mastering: 1, audioEngineering: 3 },
+      settings: {
+        security: {
+          shareProfileAnswersWithAi: true,
+          hideSensitiveProfileDetails: false,
+        },
+      },
+      expertise: {
+        production: 2,
+        songwriting: 5,
+        marketing: 4,
+        business: 3,
+        legal: 1,
+        performance: 2,
+        technical_mastery: 1,
+      },
       primaryGenre: 'Afrobeats / jazz fusion',
       musicalJourney: {
         ...(strongProfile as any).musicalJourney,
         subgenres: ['Afrobeats', 'jazz fusion'],
       },
     } as unknown as UserProfile;
+    profileSignal.set(profile);
     const knowledge = service.compileProfile(profile);
     const preview = service.directiveForProfile('producer', profile);
 
-    expect(knowledge.expertise).toEqual({ production: '2', marketing: '4', mastering: '1', audioEngineering: '3' });
+    // The profile stores levels on `expertise`; reading a non-existent
+    // `expertiseLevels` field used to report "unknown" for every real artist.
+    expect(knowledge.expertise).toMatchObject({
+      production: '2',
+      songwriting: '5',
+      marketing: '4',
+      business: '3',
+      legal: '1',
+      performance: '2',
+      mastering: '1',
+      audioEngineering: '1',
+    });
     expect(preview.directive).toContain('Afrobeats / jazz fusion');
     expect(preview.profileState).toBe('calibrated');
+    expect(service.promptBlock()).toContain('production=2');
+    expect(service.promptBlock()).toContain('songwriting=5');
+  });
+
+  it('keeps the old expertiseLevels draft readable during migration', () => {
+    const profile = {
+      ...strongProfile,
+      expertise: undefined,
+      expertiseLevels: { production: 2, marketing: 4, mastering: 1, audioEngineering: 3 },
+    } as unknown as UserProfile;
+
+    expect(service.compileProfile(profile).expertise).toMatchObject({
+      production: '2',
+      marketing: '4',
+      mastering: '1',
+      audioEngineering: '3',
+    });
+  });
+
+  it('describes the actual musical body and catalogue in the prompt', () => {
+    profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
+    const block = service.promptBlock();
+
+    expect(block).toContain('MUSICAL BODY');
+    expect(block).toContain('Ambient artist');
+    expect(block).toContain('Tape hiss, bowed metal, close-mic breath');
+    expect(block).toContain('Catalogue: 3 works, 3 dated, 100% documented');
+    expect(block).toContain('latest “Room Tone” (2025-08-01)');
+    expect(block).toContain('Tempo: 60-80 BPM');
+    expect(block).not.toContain('BPM BPM');
+  });
+
+  it('knows when the questionnaire is finished and stops asking for answers', () => {
+    profileSignal.set({ ...strongProfile, settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } } } as any);
+    expect(service.knowledge().questionnaireComplete).toBe(true);
+    expect(service.promptBlock()).toContain('PROFILE STATUS: the questionnaire is complete');
+    expect(service.promptBlock()).not.toContain('unanswered fields may still be requested');
+
+    profileSignal.set({
+      ...strongProfile,
+      profileSetupCompleted: false,
+      settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } },
+    } as any);
+    expect(service.knowledge().questionnaireComplete).toBe(false);
+    expect(service.promptBlock()).toContain('unanswered fields may still be requested');
+  });
+
+  it('reads a completed legal answer written as a string, and a partial as partial', () => {
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } },
+      legalInfrastructure: {
+        ...(strongProfile as any).legalInfrastructure,
+        hasRegisteredWorks: 'Yes',
+      },
+    } as any);
+    expect(service.knowledge().legal.registeredWorks).toBe(true);
+    expect(service.knowledge().legal.registeredWorksStatus).toBe('Yes');
+    expect(service.promptBlock()).toContain('worksRegistered=Yes');
+
+    profileSignal.set({
+      ...strongProfile,
+      settings: { security: { shareProfileAnswersWithAi: true, hideSensitiveProfileDetails: false } },
+      legalInfrastructure: {
+        ...(strongProfile as any).legalInfrastructure,
+        hasRegisteredWorks: 'Partial',
+      },
+    } as any);
+    expect(service.knowledge().legal.registeredWorks).toBe(false);
+    expect(service.knowledge().legal.registeredWorksStatus).toBe('Partial');
+    expect(service.directiveFor('legal').tips.join(' ')).toContain('Registration is partial');
   });
 
   it('treats the artist-authored operating contract as prompt context and a legal boundary', () => {
@@ -439,7 +535,7 @@ describe('ArtistProfileFinetuneService', () => {
     expect(block).toContain('LEGAL:');
     expect(block).toContain('SONGWRITER:');
     expect(block).toContain('GENRE CONTEXT');
-    expect(block).toContain('SKILL CALIBRATION: production=unknown');
+    expect(block).toContain('SKILL CALIBRATION: production=7');
     expect(block).toContain('DOMAIN RESPONSE STANDARD');
     expect(block).toContain('reversible starting experiment');
   });
