@@ -36,6 +36,17 @@ export interface ShotPlanShot {
   section: string;
 }
 
+/**
+ * What the answering call actually was. The console read this from the last AI
+ * call in memory, so a restored plan could only say "AI DIRECTED" — the model
+ * and latency vanished with the page even though the plan itself came back.
+ */
+export interface ShotPlanCall {
+  model: string;
+  attempts: number;
+  latencyMs: number;
+}
+
 export interface ShotPlan {
   title: string;
   logline: string;
@@ -43,6 +54,8 @@ export interface ShotPlan {
   shots: ShotPlanShot[];
   /** Where the plan actually came from — never claim S.M.U.V.E authored a local plan. */
   origin: 'smuve' | 'local';
+  /** The call that produced a directed plan, carried with it for attribution. */
+  call?: ShotPlanCall;
 }
 
 export interface ShotPlanRequest {
@@ -221,6 +234,14 @@ export class CinemaDirectorService {
 
       const parsed = this.parsePlanResponse(response, request);
       if (parsed) {
+        const call = this.aiService.lastAiCall();
+        if (call) {
+          parsed.call = {
+            model: call.model,
+            attempts: call.attempts,
+            latencyMs: call.latencyMs,
+          };
+        }
         this.plan.set(parsed);
         this.storePlan(parsed, brief);
         this.plannerNote.set(
@@ -284,6 +305,18 @@ export class CinemaDirectorService {
           )
         : [];
       if (shots.length === 0) return null;
+      const storedCall = (plan as { call?: Partial<ShotPlanCall> }).call;
+      const call: ShotPlanCall | undefined =
+        storedCall &&
+        typeof storedCall.model === 'string' &&
+        typeof storedCall.latencyMs === 'number' &&
+        typeof storedCall.attempts === 'number'
+          ? {
+              model: storedCall.model,
+              latencyMs: Math.max(0, storedCall.latencyMs),
+              attempts: Math.max(1, Math.round(storedCall.attempts)),
+            }
+          : undefined;
       return {
         brief: typeof parsed.brief === 'string' ? parsed.brief : '',
         plan: {
@@ -294,6 +327,7 @@ export class CinemaDirectorService {
             : [],
           origin: plan.origin === 'smuve' ? 'smuve' : 'local',
           shots,
+          ...(call ? { call } : {}),
         },
       };
     } catch {

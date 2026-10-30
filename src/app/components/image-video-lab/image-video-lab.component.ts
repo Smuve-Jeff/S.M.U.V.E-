@@ -1711,7 +1711,9 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     const plan = this.director.plan();
     if (!plan) return '';
     if (plan.origin !== 'smuve') return 'LOCAL FALLBACK';
-    const call = this.aiService.lastAiCall();
+    // The plan carries its own call, so a restored plan still names the model
+    // that answered instead of degrading to a bare "AI DIRECTED".
+    const call = plan.call ?? this.aiService.lastAiCall();
     if (!call) return 'AI DIRECTED';
     const retries = call.attempts > 1 ? ` · ${call.attempts} TRIES` : '';
     return `AI DIRECTED · ${call.model} · ${(call.latencyMs / 1000).toFixed(1)}s${retries}`;

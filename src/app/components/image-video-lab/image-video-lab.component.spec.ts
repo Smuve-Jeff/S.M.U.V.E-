@@ -4165,6 +4165,41 @@ describe('ImageVideoLabComponent', () => {
       localStorage.clear();
     });
 
+    it('still names the model that answered after a reload', async () => {
+      localStorage.setItem(
+        'smuve_cinema_director_plan',
+        JSON.stringify({
+          brief: 'Night drive',
+          plan: {
+            title: 'Night Drive',
+            logline: 'A headlight-lit cut.',
+            editorial: [],
+            origin: 'smuve',
+            call: { model: 'gemini-2.5-flash', attempts: 2, latencyMs: 1400 },
+            shots: [
+              {
+                index: 1,
+                title: 'Dashboard',
+                description: 'Wide',
+                size: 'wide',
+                bars: 4,
+                startTime: 0,
+                durationSeconds: 8,
+                section: 'Feature',
+              },
+            ],
+          },
+        })
+      );
+
+      const { component } = await createComponent();
+
+      expect(component.planAttribution()).toBe(
+        'AI DIRECTED · gemini-2.5-flash · 1.4s · 2 TRIES'
+      );
+      localStorage.clear();
+    });
+
     it('clears a restored plan out of storage, not just off the screen', async () => {
       localStorage.setItem(
         'smuve_cinema_director_plan',

@@ -4,12 +4,17 @@ import { CinemaDirectorService } from './cinema-director.service';
 import { LoggingService } from './logging.service';
 
 describe('CinemaDirectorService', () => {
-  let ai: { getAIResponse: jest.Mock; isFailureNotice: jest.Mock };
+  let ai: {
+    getAIResponse: jest.Mock;
+    isFailureNotice: jest.Mock;
+    lastAiCall: jest.Mock;
+  };
 
   const createService = (response = '', failureNotice = false) => {
     ai = {
       getAIResponse: jest.fn().mockResolvedValue(response),
       isFailureNotice: jest.fn().mockReturnValue(failureNotice),
+      lastAiCall: jest.fn(() => null),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -73,6 +78,64 @@ describe('CinemaDirectorService', () => {
     expect(second.plan()?.editorial).toEqual(['Open on the dashboard.']);
     expect(second.brief()).toBe('A night-drive performance cut');
     expect(second.plannerNote()).toContain('restored');
+  });
+
+  it('carries the answering call into the stored plan', async () => {
+    const first = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
+      })
+    );
+    ai.lastAiCall.mockReturnValue({
+      model: 'gemini-2.5-flash',
+      attempts: 2,
+      latencyMs: 1400,
+      at: 1,
+    });
+    await first.generateShotPlan(request);
+
+    TestBed.resetTestingModule();
+    const second = createService();
+
+    expect(second.plan()?.call).toEqual({
+      model: 'gemini-2.5-flash',
+      attempts: 2,
+      latencyMs: 1400,
+    });
+  });
+
+  it('drops a stored call that is not shaped like one', () => {
+    localStorage.setItem(
+      'smuve_cinema_director_plan',
+      JSON.stringify({
+        brief: 'Night drive',
+        plan: {
+          title: 'Night Drive',
+          logline: 'A headlight-lit cut.',
+          shots: [
+            {
+              index: 1,
+              title: 'Dashboard',
+              description: 'Wide',
+              size: 'wide',
+              bars: 4,
+              startTime: 0,
+              durationSeconds: 8,
+              section: 'Feature',
+            },
+          ],
+          origin: 'smuve',
+          call: { model: 'gemini-2.5-flash', latencyMs: 'fast' },
+        },
+      })
+    );
+
+    const service = createService();
+
+    expect(service.plan()?.title).toBe('Night Drive');
+    expect(service.plan()?.call).toBeUndefined();
   });
 
   it('forgets the stored plan when the shot list is cleared', async () => {
