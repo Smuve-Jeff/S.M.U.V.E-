@@ -23,6 +23,7 @@ import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gesture.service";
 import { HapticService } from "../../services/haptic.service";
+import { claimKeyEvent } from "../shared/keyboard-claim";
 import { DjMidiService } from "../../services/dj-midi.service";
 import { HardwareService } from "../../services/hardware.service";
 import { HistoryService } from "../../services/history.service";
@@ -2425,18 +2426,21 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (key === "c") {
       if (this.selectedNoteIds().size === 0) return;
+      if (!claimKeyEvent(event)) return;
       event.preventDefault();
       this.copySelection();
       return;
     }
     if (key === "v") {
       if (!this.canPasteNotes()) return;
+      if (!claimKeyEvent(event)) return;
       event.preventDefault();
       this.pasteNotes();
       return;
     }
     if (key === "d") {
       if (this.selectedNoteIds().size === 0) return;
+      if (!claimKeyEvent(event)) return;
       event.preventDefault();
       this.duplicateSelection();
     }

@@ -26,6 +26,7 @@ import {
 } from "./audio-drop.util";
 import { HistoryService } from "../../services/history.service";
 import { HapticService } from "../../services/haptic.service";
+import { claimKeyEvent } from "../shared/keyboard-claim";
 import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gesture.service";
 import { StudioTrack, StudioClip } from "../../types/studio.types";
 import {
@@ -909,24 +910,28 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const key = event.key.toLowerCase();
     if (key === "c") {
       if (this.selectedClipIds().size === 0) return;
+      if (!claimKeyEvent(event)) return;
       event.preventDefault();
       this.copyClips();
       return;
     }
     if (key === "v") {
       if (!this.canPasteClips()) return;
+      if (!claimKeyEvent(event)) return;
       event.preventDefault();
       this.pasteClips();
       return;
     }
     if (key === "d") {
       if (this.selectedClipIds().size > 0) {
+        if (!claimKeyEvent(event)) return;
         event.preventDefault();
         this.duplicateSelected();
         return;
       }
       const trackId = this.musicManager.selectedTrackId();
       if (!trackId) return;
+      if (!claimKeyEvent(event)) return;
       event.preventDefault();
       this.duplicateTrack(trackId);
     }
