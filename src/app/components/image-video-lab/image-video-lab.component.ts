@@ -45,7 +45,10 @@ import {
 } from '../../services/video-engine.service';
 import { ExportService } from '../../services/export.service';
 import { CinemaEngineService } from '../../services/cinema-engine.service';
-import { CinemaProjectService } from '../../services/cinema-project.service';
+import {
+  AUDIO_BED_MEDIA_ID,
+  CinemaProjectService,
+} from '../../services/cinema-project.service';
 import {
   CAPTURE_QUALITIES,
   CameraAngle,
@@ -461,7 +464,6 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Coalesced post-zoom scroll re-anchor (zoom buttons). */
   private zoomAnchorRaf: number | null = null;
 
-  activeDirectorTab = signal<'assets' | 'effects' | 'ai'>('assets');
   zoomLevel = signal(1.0);
   productionModes: {
     id: ProductionMode;
@@ -1586,6 +1588,10 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   /** Save the current edit, creating a project the first time. */
   async saveProject(): Promise<void> {
     const footage = await this.collectTimelineMedia();
+    // The bed is part of the mix, not a clip, so it is stored under the
+    // project's reserved media key rather than being collected as footage.
+    const bed = await this.collectAudioBed();
+    if (bed) footage.set(AUDIO_BED_MEDIA_ID, bed);
     const outcome = await this.cinemaProjects.save(
       this.projectName(),
       this.cinemaProjects.activeProjectId(),
@@ -1610,6 +1616,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       // for the project being closed is now dead weight.
       this.evictUnusedMedia();
       this.adoptStoredMedia(outcome.media);
+      await this.restoreAudioBed(outcome.audioBed);
     }
     this.aiFeedback.set(outcome.message.toUpperCase());
   }
@@ -1785,6 +1792,16 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   /** Go live on the selected platform, carrying the current delivery preset. */
   async goLive(): Promise<void> {
+    if (this.broadcastStream()) {
+      this.aiFeedback.set('ALREADY ON AIR - END THE CURRENT BROADCAST FIRST.');
+      return;
+    }
+    if (this.liveStream.pendingGolive()) {
+      this.aiFeedback.set(
+        'AUTHORIZATION WINDOW ALREADY OPEN - FINISH IT OR CLOSE IT BEFORE RETRYING.'
+      );
+      return;
+    }
     const platform = this.livePlatform();
     const issued = await this.liveStream.golive({
       platform,
@@ -1810,8 +1827,20 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   async copyShareUrl(): Promise<void> {
+    // A copy with no broadcast behind it used to fail silently, so the only
+    // control for the viewer link read as broken before going live.
+    if (!this.broadcastStream()) {
+      this.aiFeedback.set(
+        'NO VIEWER LINK YET - GO LIVE FIRST, THEN COPY IT TO THE CHAT OR BIO.'
+      );
+      return;
+    }
     const copied = await this.liveStream.copyShareUrl();
-    if (copied) this.aiFeedback.set('VIEWER LINK COPIED TO THE CLIPBOARD.');
+    this.aiFeedback.set(
+      copied
+        ? 'VIEWER LINK COPIED TO THE CLIPBOARD.'
+        : 'VIEWER LINK COULD NOT BE COPIED - TAKE IT FROM THE BROADCAST WINDOW INSTEAD.'
+    );
   }
 
   // ── Voice direction + keyboard ────────────────────────────────────────
@@ -2003,6 +2032,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
    * audible autoplay, while a visible controls bar still lets the artist
    * unmute and take over after a gesture.
    */
+  /** A clip's own rate, clamped to the envelope the editor offers. */
+  private resolveClipSpeed(clip: VideoClip): number {
+    const speed = Number(clip.effects.speed);
+    if (!Number.isFinite(speed) || speed <= 0) return 1;
+    return Math.max(MIN_CLIP_SPEED, Math.min(MAX_CLIP_SPEED, speed));
+  }
+
   private syncNativePlayer(): void {
     const player = this.nativePlayerElement;
     const clip = this.activeVideoClip();
@@ -2036,7 +2072,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
 
     player.playsInline = true;
-    player.playbackRate = this.selectedSpeed();
+    // The element's clock is the *source* clock, and `resolveSourceTime` maps
+    // timeline time onto it through the clip's own speed. Driving it from the
+    // staged FX dial meant a 2× shot played at 1× — re-seeking every drift
+    // window — and auditioning a speed for one clip silently retimed every
+    // other clip under the playhead.
+    const speed = this.resolveClipSpeed(clip);
+    if (Math.abs(player.playbackRate - speed) > 0.01) {
+      player.playbackRate = speed;
+    }
     if (this.videoEngine.isPlaying()) {
       if (player.paused) this.playQuietly(player);
     } else if (!player.paused) {
@@ -2060,10 +2104,7 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     // A native seek lands inside the clip's *source* clock, so invert the
     // engine's source-time mapping — offset, head trim and speed — to place
     // the playhead at the matching timeline position.
-    const speed = Math.max(
-      MIN_CLIP_SPEED,
-      Math.min(MAX_CLIP_SPEED, clip.effects.speed || 1)
-    );
+    const speed = this.resolveClipSpeed(clip);
     const trimStart = Math.max(0, clip.effects.trimStart || 0);
     const clipLocalTime = Math.max(
       0,
@@ -3378,6 +3419,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       return;
     }
 
+    // The decoder has to advance at the clip's own rate: `resolveSourceTime`
+    // assumes it. Left at 1×, a slowed or sped-up clip drifted out of the
+    // window every few frames and was dragged back by a seek, which reads as a
+    // stuttering picture rather than a speed ramp.
+    const speed = this.resolveClipSpeed(clip);
+    if (Math.abs(video.playbackRate - speed) > 0.01) {
+      video.playbackRate = speed;
+    }
+
     if (video.paused) this.playQuietly(video);
     if (
       Math.abs(video.currentTime - sourceTime) > PLAYING_DRIFT_TOLERANCE_SECONDS
@@ -3493,6 +3543,47 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
 
     return footage;
+  }
+
+  /**
+   * Read the audio bed's bytes back for a save.
+   *
+   * The engine only holds an object url for the bed, and that dies with the
+   * document, so the bytes are read back through it here — the same trick the
+   * footage collector uses, and for the same reason: any path that loads a bed
+   * is covered without having to register itself.
+   */
+  private async collectAudioBed(): Promise<Blob | null> {
+    const overlay = this.videoEngine.audioOverlay();
+    if (!overlay?.url) return null;
+    try {
+      const blob = await (await fetch(overlay.url)).blob();
+      return blob.size > 0 ? blob : null;
+    } catch (error) {
+      this.logger.warn('CinemaEngine: audio bed could not be read for save', error);
+      return null;
+    }
+  }
+
+  /**
+   * Put a reopened project's bed back on the engine.
+   *
+   * Its level and loop were already restored with the snapshot; only the bytes
+   * have to arrive, so the file is re-minted from the stored blob and decoded
+   * the same way an import is.
+   */
+  private async restoreAudioBed(
+    bed?: { blob: Blob; name: string } | null
+  ): Promise<void> {
+    if (!bed || typeof File === 'undefined') return;
+    try {
+      const file = new File([bed.blob], bed.name, {
+        type: bed.blob.type || 'audio/mpeg',
+      });
+      await this.videoEngine.loadAudioOverlay(file);
+    } catch (error) {
+      this.logger.warn('CinemaEngine: stored audio bed could not be decoded', error);
+    }
   }
 
   private evictUnusedMedia(): void {
@@ -4606,7 +4697,14 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   async toggleCameraTake(): Promise<void> {
     if (this.camera.isRecording()) {
       const blob = await this.camera.stopRecording();
-      const recordedSeconds = Math.max(1, this.camera.recordingSeconds());
+      // The stopwatch signal is whole seconds (it ticks once a second), so a
+      // 3.7s take laid 4s of clip — longer than the file it plays, which froze
+      // on the last frame before the next shot. The service records the exact
+      // wall-clock length of the take; use that.
+      const recordedSeconds = Math.max(
+        MIN_ACTIVE_CLIP_DURATION,
+        this.camera.recordingDurationSeconds()
+      );
       if (!blob) {
         this.aiFeedback.set(
           'CAMERA TAKE DISCARDED — NO RECORDABLE FRAMES LANDED.'
@@ -4663,9 +4761,20 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   }
 
   async generateImage() {
-    if (!this.imagePrompt()) return;
+    // One take at a time: a second click while the provider is working would
+    // spawn a duplicate clip for the same prompt.
+    if (this.isGenerating()) return;
+    const prompt = this.imagePrompt().trim();
+    // Nothing on a cold surface sets the prompt, so the old silent `return`
+    // made the Synthesize control read as dead. Say what is missing instead.
+    if (!prompt) {
+      this.aiFeedback.set(
+        'DESCRIBE THE CONCEPT FIRST - TYPE A PROMPT OR PICK A LOOK, THEN SYNTHESIZE.'
+      );
+      return;
+    }
     this.isGenerating.set(true);
-    const fullPrompt = `Tech-noir aesthetic for ${this.activePreset().target}, ${this.imagePrompt()}`;
+    const fullPrompt = `Tech-noir aesthetic for ${this.activePreset().target}, ${prompt}`;
     try {
       const url = await this.aiService.generateImage(fullPrompt);
       this.generatedImageUrl.set(url);

@@ -219,4 +219,32 @@ describe('ImageVideoLabComponent section disclosures', () => {
       expect(source).toContain('(max-width: 1023.98px)');
     });
   });
+  /**
+   * Control wiring.
+   *
+   * The behaviour spec stubs the template down to a canvas, so a control whose
+   * state is never bound cannot fail there. These assert the bindings that make
+   * the two previously-dead controls reachable.
+   */
+  describe('control wiring', () => {
+    it('feeds Synthesize from a prompt the operator can set', () => {
+      expect(template).toContain('aria-label="Concept art prompt"');
+      expect(template).toContain('[ngModel]="imagePrompt()"');
+      expect(template).toContain('(click)="applyTemplate(template.prompt)"');
+      expect(template).toContain(
+        '[disabled]="!imagePrompt().trim() || isGenerating()"'
+      );
+    });
+
+    it('surfaces the viewer link the console can copy', () => {
+      expect(template).toContain('(click)="copyShareUrl()"');
+      expect(template).toContain('@if (broadcastStream(); as stream)');
+      expect(template).toContain('stream.shareUrl');
+    });
+
+    it('echoes what the microphone heard', () => {
+      expect(template).toContain('@if (voiceTranscript())');
+    });
+  });
+
 });

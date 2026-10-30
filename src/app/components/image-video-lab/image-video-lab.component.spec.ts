@@ -324,6 +324,11 @@ describe('ImageVideoLabComponent', () => {
     const cameraFacing = signal<'user' | 'environment'>('user');
     const cameraRecording = signal(false);
     const cameraRecordingSeconds = signal(0);
+    /**
+     * The service's exact wall-clock take length. Separate from
+     * `recordingSeconds`, which is the rounded stopwatch the deck displays.
+     */
+    const cameraRecordingDuration = signal(0);
     const cameraLastError = signal<string | null>(null);
     const cameraWarning = signal<string | null>(null);
     const cameraRetrying = signal(false);
@@ -369,6 +374,9 @@ describe('ImageVideoLabComponent', () => {
       mirrored: signal(true),
       isRecording: cameraRecording,
       recordingSeconds: cameraRecordingSeconds,
+      /** Test handle for the exact take clock (the service's wall clock). */
+      recordingDuration: cameraRecordingDuration,
+      recordingDurationSeconds: () => cameraRecordingDuration(),
       isLive: computed(
         () => cameraStatus() === 'live' && cameraStream() !== null
       ),
@@ -1465,6 +1473,7 @@ describe('ImageVideoLabComponent', () => {
       const { component, videoEngine, camera } = await createComponent();
       await component.toggleCamera();
       camera.recordingSeconds.set(7);
+      camera.recordingDuration.set(7);
 
       await component.toggleCameraTake();
       expect(camera.startRecording).toHaveBeenCalledTimes(1);
@@ -1483,6 +1492,24 @@ describe('ImageVideoLabComponent', () => {
         })
       );
       expect(component.aiFeedback()).toContain('RECORDED');
+    });
+
+    it('lays the take at its real length, not the rounded stopwatch', async () => {
+      const { component, videoEngine, camera } = await createComponent();
+      await component.toggleCamera();
+      // The deck's stopwatch reads whole seconds; the take ran 3.74s.
+      camera.recordingSeconds.set(4);
+      camera.recordingDuration.set(3.74);
+
+      await component.toggleCameraTake();
+      await component.toggleCameraTake();
+
+      expect(videoEngine.addClip).toHaveBeenCalledWith(
+        't1',
+        expect.objectContaining({ duration: 3.74 })
+      );
+      // The readout is m:ss, so it truncates; the clip itself must not.
+      expect(component.aiFeedback()).toContain('0:03');
     });
 
     it('discards a take that produced no frames', async () => {
@@ -1760,6 +1787,65 @@ describe('ImageVideoLabComponent', () => {
       component.togglePlayerAudio();
       expect(player.muted).toBe(true);
       expect(component.aiFeedback()).toContain('MUTED');
+    });
+
+    it("drives the native player at the clip's own speed", async () => {
+      const { component, videoEngine } = await createComponent();
+      videoEngine.getActiveClips.mockReturnValue([
+        {
+          id: 'slow-1',
+          name: 'Slow motion',
+          url: 'blob:slow',
+          startTime: 0,
+          duration: 10,
+          offset: 0,
+          trackId: 't1',
+          type: 'video',
+          effects: { ...createVideoClip().effects, speed: 0.5 },
+        },
+      ]);
+      // Nudge the clock so the active-clip computed resolves against the clip
+      // this test just handed the engine.
+      videoEngine.currentTime.set(1);
+      const player = document.createElement('video');
+      (
+        component as unknown as { nativePlayerElement?: HTMLVideoElement }
+      ).nativePlayerElement = player;
+
+      // The staged dial is a different thing entirely: auditioning 2× for a
+      // clip must not retime the shot the playhead is actually on.
+      component.selectedSpeed.set(2);
+      (
+        component as unknown as { syncNativePlayer: () => void }
+      ).syncNativePlayer();
+
+      expect(player.playbackRate).toBe(0.5);
+    });
+
+    it("advances a clip's decoder at the speed the mapping assumes", async () => {
+      const { component, videoEngine } = await createComponent();
+      const video = document.createElement('video');
+      Object.defineProperty(video, 'readyState', { value: 4 });
+      videoEngine.isPlaying.set(true);
+      const clip = createVideoClip({
+        id: 'fast-1',
+        duration: 10,
+        effects: { ...createVideoClip().effects, speed: 3 },
+      });
+
+      (
+        component as unknown as {
+          syncVideoPlayback: (
+            video: HTMLVideoElement,
+            clip: unknown,
+            local: number
+          ) => void;
+        }
+      ).syncVideoPlayback(video, clip, 2);
+
+      // resolveSourceTime multiplies by this rate, so a decoder left at 1×
+      // drifts out of the window every few frames and gets dragged back.
+      expect(video.playbackRate).toBe(3);
     });
 
     it('takes a sensor-resolution photo onto the lane and the deck', async () => {
@@ -3201,6 +3287,55 @@ describe('ImageVideoLabComponent', () => {
       expect(component.aiFeedback()).toContain('LOCKED BY ANOTHER OPEN TAB');
     });
 
+    it('stores the audio bed beside the footage it was mixed under', async () => {
+      const { component, cinemaProjects, videoEngine } = await createComponent();
+      component.projectName.set('Feature Cut');
+      videoEngine.audioOverlay.set({
+        name: 'score.wav',
+        url: 'blob:bed',
+        duration: 214,
+      });
+      const bedBlob = new Blob(['bed-bytes'], { type: 'audio/wav' });
+      // jsdom ships no `fetch`; the component reads the bed back through the
+      // blob url it already holds.
+      const host = globalThis as unknown as { fetch?: unknown };
+      const originalFetch = host.fetch;
+      host.fetch = jest.fn(async () => ({ blob: async () => bedBlob }));
+
+      try {
+        await component.saveProject();
+      } finally {
+        host.fetch = originalFetch;
+      }
+
+      const [, , footage] = cinemaProjects.save.mock.calls.at(-1) as [
+        string,
+        string | null,
+        Map<string, Blob>,
+      ];
+      // The engine only holds an object url for the bed, so saving has to read
+      // the bytes back or the reopened project opens silent.
+      expect(footage.get('audio-bed')).toBe(bedBlob);
+    });
+
+    it('re-attaches a stored bed when the project opens', async () => {
+      const { component, cinemaProjects, videoEngine } = await createComponent();
+      const bedBlob = new Blob(['bed-bytes'], { type: 'audio/mpeg' });
+      cinemaProjects.open.mockResolvedValueOnce({
+        ok: true,
+        message: 'PROJECT OPENED: FEATURE CUT. Audio bed restored.',
+        media: new Map(),
+        audioBed: { blob: bedBlob, name: 'score.mp3' },
+      });
+
+      await component.openProject('p1');
+
+      expect(videoEngine.loadAudioOverlay).toHaveBeenCalledTimes(1);
+      const file = videoEngine.loadAudioOverlay.mock.calls[0][0] as File;
+      expect(file.name).toBe('score.mp3');
+      expect(file.type).toBe('audio/mpeg');
+    });
+
     it('seeds the name field from the project that was actually saved', async () => {
       const { component, cinemaProjects, projectList, activeProjectId } =
         await createComponent();
@@ -3861,4 +3996,127 @@ describe('ImageVideoLabComponent', () => {
       expect(videoEngine.seek).toHaveBeenLastCalledWith(490);
     });
   });
+  /**
+   * Neural Assets and the Broadcast Kit.
+   *
+   * Both groups shipped controls that could not do anything: the Synthesize
+   * tile called a generator that returned immediately because nothing on the
+   * surface could set `imagePrompt`, and the viewer link could be copied by the
+   * component but had no control (and no live status) in the console.
+   */
+  describe('neural assets and broadcast kit', () => {
+    const aiMock = () =>
+      TestBed.inject(AiService) as unknown as { generateImage: jest.Mock };
+
+    const liveRecord = {
+      id: 7,
+      shareToken: 'tok-7',
+      hostId: 'artist-1',
+      hostDisplayName: 'Test Artist',
+      platform: 'youtube' as const,
+      gameId: null,
+      lobbyId: null,
+      payload: null,
+      active: true,
+      startedAt: '2026-01-01T00:00:00.000Z',
+      endedAt: null,
+      viewerJoins: 0,
+      shareUrl: 'https://smuve.example/live/tok-7',
+    };
+
+    it('says what is missing instead of silently ignoring Synthesize', async () => {
+      const { component } = await createComponent();
+      const ai = aiMock();
+      ai.generateImage.mockClear();
+
+      await component.generateImage();
+
+      expect(ai.generateImage).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('DESCRIBE THE CONCEPT');
+      expect(component.isGenerating()).toBe(false);
+    });
+
+    it('sends the staged prompt and lands the frame on the visuals lane', async () => {
+      const { component, videoEngine } = await createComponent();
+      const ai = aiMock();
+      ai.generateImage.mockResolvedValue('https://cdn.example/frame.png');
+      videoEngine.addClip.mockClear();
+
+      component.applyTemplate(component.templates[0].prompt);
+      expect(component.imagePrompt()).toBe(component.templates[0].prompt);
+
+      await component.generateImage();
+
+      expect(ai.generateImage).toHaveBeenCalledWith(
+        expect.stringContaining(component.templates[0].prompt)
+      );
+      expect(videoEngine.addClip).toHaveBeenCalledWith(
+        't2',
+        expect.objectContaining({
+          type: 'image',
+          source: 'ai',
+          url: 'https://cdn.example/frame.png',
+        })
+      );
+      expect(component.generatedImageUrl()).toBe('https://cdn.example/frame.png');
+    });
+
+    it('ignores a second Synthesize while the first is still running', async () => {
+      const { component } = await createComponent();
+      const ai = aiMock();
+      let finish!: (url: string) => void;
+      ai.generateImage.mockImplementation(
+        () => new Promise<string>((resolve) => (finish = resolve))
+      );
+
+      component.imagePrompt.set('rain-slicked alley at night');
+      const first = component.generateImage();
+      await component.generateImage();
+
+      expect(ai.generateImage).toHaveBeenCalledTimes(1);
+
+      finish('https://cdn.example/one.png');
+      await first;
+      expect(component.isGenerating()).toBe(false);
+    });
+
+    it('explains that there is no viewer link before going live', async () => {
+      const { component } = await createComponent();
+      component.liveStream.currentStream.set(null);
+
+      await component.copyShareUrl();
+
+      expect(component.aiFeedback()).toContain('NO VIEWER LINK');
+    });
+
+    it('mirrors the issued stream and copies its viewer link', async () => {
+      const { component } = await createComponent();
+      component.liveStream.currentStream.set(liveRecord);
+      const copy = jest
+        .spyOn(component.liveStream, 'copyShareUrl')
+        .mockResolvedValue(true);
+
+      // The console renders the status line from this computed value.
+      expect(component.broadcastStream()?.shareUrl).toBe(liveRecord.shareUrl);
+
+      await component.copyShareUrl();
+
+      expect(copy).toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('VIEWER LINK COPIED');
+      copy.mockRestore();
+    });
+
+    it('refuses a second broadcast while one is already on air', async () => {
+      const { component } = await createComponent();
+      component.liveStream.currentStream.set(liveRecord);
+      const golive = jest.spyOn(component.liveStream, 'golive');
+
+      await component.goLive();
+
+      expect(golive).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('ALREADY ON AIR');
+      golive.mockRestore();
+    });
+  });
+
 });

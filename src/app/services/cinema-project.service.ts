@@ -50,6 +50,12 @@ export interface CinemaOpenOutcome {
    * that whoever creates a url is also the one who revokes it.
    */
   media?: Map<string, Blob>;
+  /**
+   * The project's audio bed, when one was stored. It rides back here rather
+   * than in `media` because the caller re-attaches it to the engine by name,
+   * not by clip.
+   */
+  audioBed?: { blob: Blob; name: string } | null;
 }
 
 /** Stored footage, addressed by `projectId::mediaId`. */
@@ -65,6 +71,15 @@ export interface CinemaMediaRecord {
 
 const STORE = 'cinema_projects';
 const MEDIA_STORE = 'cinema_media';
+
+/**
+ * Reserved media id for the project's audio bed.
+ *
+ * The bed is not a clip, so it has no `mediaId` of its own; giving it a key in
+ * the same store means it is written, pruned and deleted by the same code that
+ * handles footage, instead of a second path that could drift out of step.
+ */
+export const AUDIO_BED_MEDIA_ID = 'audio-bed';
 const MAX_NAME_LENGTH = 60;
 
 /**
@@ -308,6 +323,15 @@ export class CinemaProjectService {
         new Set(media.keys())
       );
 
+      const bedBlob = media.get(AUDIO_BED_MEDIA_ID) ?? null;
+      // The bed is not a clip: it must not be counted as one when the caller
+      // reports how much footage came back.
+      media.delete(AUDIO_BED_MEDIA_ID);
+      const audioBed =
+        bedBlob && record.snapshot.audioOverlay
+          ? { blob: bedBlob, name: record.snapshot.audioOverlay.name }
+          : null;
+
       const footage =
         media.size > 0
           ? ` ${media.size} clip${media.size === 1 ? '' : 's'} restored with stored footage.`
@@ -316,11 +340,17 @@ export class CinemaProjectService {
         report.clipsMissingMedia > 0
           ? ` ${report.clipsMissingMedia} clip${report.clipsMissingMedia === 1 ? '' : 's'} still need footage.`
           : '';
+      const bedNote = audioBed
+        ? ' Audio bed restored.'
+        : record.snapshot.audioOverlay
+          ? ' The audio bed needs re-attaching.'
+          : '';
       return {
         ok: true,
         report,
         media,
-        message: `PROJECT OPENED: ${record.name.toUpperCase()} · ${report.clips} CLIP(S), ${report.markers} MARKER(S).${footage}${missing}`,
+        audioBed,
+        message: `PROJECT OPENED: ${record.name.toUpperCase()} · ${report.clips} CLIP(S), ${report.markers} MARKER(S).${footage}${missing}${bedNote}`,
       };
     } catch (error) {
       this.logger.error('CinemaProjectService: open failed', error);
@@ -420,6 +450,7 @@ export class CinemaProjectService {
         if (clip.mediaId) ids.add(clip.mediaId);
       })
     );
+    if (snapshot.audioOverlay) ids.add(AUDIO_BED_MEDIA_ID);
     return ids;
   }
 

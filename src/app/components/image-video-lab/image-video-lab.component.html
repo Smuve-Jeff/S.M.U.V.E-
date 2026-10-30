@@ -1197,6 +1197,20 @@
               <button type="button" class="director-button" (click)="autoStructureTimeline()">STRUCTURE {{ videoEngine.productionMode() === 'movie' ? 'ACTS' : 'SECTIONS' }}</button>
               <button type="button" class="director-button" (click)="autoCutToBeat()">AUTO-CUT TO BEAT</button>
             </div>
+
+            <!--
+              What the microphone actually heard. The transcript existed but was
+              never rendered, so a miss heard as "no command matched" without
+              ever showing the words the recogniser returned.
+            -->
+            @if (voiceTranscript()) {
+              <p
+                class="text-[9px] font-black uppercase tracking-[0.16em] text-text-dim"
+                aria-live="polite"
+              >
+                Heard · <span class="text-text-main normal-case">{{ voiceTranscript() }}</span>
+              </p>
+            }
           </div>
         </section>
 
@@ -1224,9 +1238,51 @@
             <div class="director-actions director-actions-compact">
               <button type="button" class="director-button" [class.active]="lowerThird().enabled" (click)="toggleLowerThird()">LOWER THIRD</button>
               <button type="button" class="director-button director-button-primary" (click)="fireBroadcastCue()">{{ countdownLabel() ? 'CANCEL CUE' : '3…2…1 CUE' }}</button>
-              <button type="button" class="director-button" (click)="goLive()">GO LIVE</button>
-              <button type="button" class="director-button" (click)="endLive()">END LIVE</button>
+              <button
+                type="button"
+                class="director-button"
+                [disabled]="!!broadcastStream() || !!liveStream.pendingGolive()"
+                (click)="goLive()"
+              >
+                {{ liveStream.pendingGolive() ? 'AUTHORIZING…' : 'GO LIVE' }}
+              </button>
+              <button
+                type="button"
+                class="director-button"
+                [disabled]="!broadcastStream()"
+                (click)="endLive()"
+              >
+                END LIVE
+              </button>
+              <button
+                type="button"
+                class="director-button"
+                [disabled]="!broadcastStream()"
+                (click)="copyShareUrl()"
+              >
+                COPY VIEWER LINK
+              </button>
             </div>
+
+            <!--
+              Live status + the viewer link. The service issues the share URL
+              when the broadcast row is created, so it exists as soon as the
+              stream does — but nothing in this console used to show or copy it.
+            -->
+            @if (broadcastStream(); as stream) {
+              <p
+                class="text-[9px] font-black uppercase tracking-[0.18em] text-text-dim break-all"
+                aria-live="polite"
+              >
+                <span class="text-brand-danger">● ON AIR</span>
+                · {{ stream.platform | uppercase }} ·
+                <span class="text-text-main normal-case">{{ stream.shareUrl }}</span>
+              </p>
+            } @else {
+              <p class="text-[9px] font-black uppercase tracking-[0.18em] text-text-dim">
+                OFFLINE — GO LIVE TO ISSUE A VIEWER LINK
+              </p>
+            }
           </section>
         }
 
@@ -1258,16 +1314,33 @@
           </div>
           <div class="grid grid-cols-2 gap-3">
             <button
+              type="button"
               (click)="generateImage()"
-              class="h-20 md:h-24 rounded-xl bg-surface border border-border hover:border-brand-primary/40 transition-all flex flex-col items-center justify-center gap-2 group"
+              [disabled]="!imagePrompt().trim() || isGenerating()"
+              [attr.aria-busy]="isGenerating()"
+              [attr.title]="
+                imagePrompt().trim()
+                  ? 'Synthesize a concept frame from the prompt'
+                  : 'Describe the concept below before synthesizing'
+              "
+              class="h-20 md:h-24 rounded-xl bg-surface border border-border hover:border-brand-primary/40 transition-all flex flex-col items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-border"
             >
-              <span
-                class="material-symbols-outlined text-brand-primary group-hover:scale-110 transition-transform"
-                >auto_fix</span
-              >
-              <span class="text-[8px] font-black uppercase text-text-dim"
-                >Synthesize</span
-              >
+              @if (isGenerating()) {
+                <span class="material-symbols-outlined text-brand-primary animate-spin"
+                  >progress_activity</span
+                >
+                <span class="text-[8px] font-black uppercase text-text-dim"
+                  >Synthesizing</span
+                >
+              } @else {
+                <span
+                  class="material-symbols-outlined text-brand-primary group-hover:scale-110 transition-transform"
+                  >auto_fix</span
+                >
+                <span class="text-[8px] font-black uppercase text-text-dim"
+                  >Synthesize</span
+                >
+              }
             </button>
             <div
               class="h-20 md:h-24 rounded-xl bg-surface border border-border border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer relative"
@@ -1286,6 +1359,58 @@
                 >Ingest</span
               >
             </div>
+          </div>
+
+          <!--
+            Concept prompt. The Synthesize tile above does nothing without one,
+            and nothing used to set it: the look presets and the input that feed
+            `imagePrompt` were the missing half of that control.
+          -->
+          <div class="rounded-xl border border-border bg-surface p-3 grid gap-2">
+            <label class="grid gap-1">
+              <span
+                class="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-text-dim"
+                >Concept Prompt</span
+              >
+              <input
+                type="text"
+                aria-label="Concept art prompt"
+                placeholder="Describe the frame: subject, light, texture…"
+                [ngModel]="imagePrompt()"
+                (ngModelChange)="imagePrompt.set($event)"
+                class="w-full rounded-lg bg-background border border-border px-3 py-2 text-[11px] font-bold text-text-main outline-none focus:border-brand-primary"
+              />
+            </label>
+
+            <div class="flex flex-wrap gap-1.5">
+              @for (template of templates; track template.name) {
+                <button
+                  type="button"
+                  class="rounded-full border border-border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-text-dim hover:text-brand-primary hover:border-brand-primary/40 transition-all"
+                  [attr.aria-pressed]="imagePrompt() === template.prompt"
+                  [class.text-brand-primary]="imagePrompt() === template.prompt"
+                  [class.border-brand-primary]="imagePrompt() === template.prompt"
+                  (click)="applyTemplate(template.prompt)"
+                >
+                  {{ template.name }}
+                </button>
+              }
+            </div>
+
+            @if (generatedImageUrl(); as art) {
+              <figure class="m-0 grid gap-1">
+                <img
+                  [src]="art"
+                  alt="Last synthesized concept frame"
+                  class="w-full rounded-lg border border-border"
+                />
+                <figcaption
+                  class="text-[8px] font-black uppercase tracking-[0.18em] text-text-dim"
+                >
+                  Last frame — placed on the visuals lane at the playhead
+                </figcaption>
+              </figure>
+            }
           </div>
 
           <!--

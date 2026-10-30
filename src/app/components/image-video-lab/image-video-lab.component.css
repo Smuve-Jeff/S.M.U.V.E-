@@ -402,6 +402,14 @@ canvas {
   left: 0;
   z-index: 20;
   height: 100%;
+  /*
+    Every lane draws its clips from x=0, so this pinned label sits on top of the
+    head of the timeline — and at z-20 over the z-10 clips it was also eating
+    every pointer event there. A shot that starts at 0 could not be selected or
+    dragged by its first ~90px, which on a short clip is most of it. The label
+    is a name, not a control, so it lets input through to whatever is under it.
+  */
+  pointer-events: none;
 }
 
 /*
@@ -506,7 +514,13 @@ canvas {
   touch-action: manipulation;
 }
 
-@media (min-width: 768px) {
+/*
+  The compact desktop tool height is gated on a fine pointer, not on width: a
+  phone in landscape is 915px wide and was collapsing every timeline tool back
+  to 32px, which is a coin flip for a thumb. Desktop Chrome keeps the tight
+  2rem strip, touch hardware keeps the 44px floor in both orientations.
+*/
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
   .timeline-tool,
   .selected-clip-toolbar button,
   .selected-clip-toolbar select,
@@ -2391,4 +2405,185 @@ canvas {
 
 .lab-upgrade-card li + li {
   margin-top: 0.25rem;
+}
+
+/* ── Phones in portrait ─────────────────────────────────────── */
+
+/*
+  The header used to spend four stacked rows (title + tagline, three selects,
+  summary + transport, full-width EXPORT) — roughly 500px of a 915px-tall
+  Android phone — so the program monitor started a full screen below the fold.
+  Three columns hold the capture/raster/rate selects on one row, the export
+  summary pairs with the transport on the next, and EXPORT keeps the full width
+  because it is the primary thumb target.
+*/
+@media (max-width: 767.98px) {
+  .cinema-shell header {
+    padding: 0.7rem 0.9rem 0.65rem;
+    gap: 0.55rem;
+  }
+
+  .cinema-shell header h1 {
+    font-size: 1.6rem;
+  }
+
+  /* The tagline repeats the module name directly under it; the monitor
+     matters more than the sentence on a 6" screen. */
+  .cinema-shell header p {
+    display: none;
+  }
+
+  .header-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    width: 100%;
+  }
+
+  .export-window {
+    min-width: 0;
+  }
+
+  .export-window-select {
+    width: 100%;
+    font-size: 0.6rem;
+    padding: 0 0.3rem;
+  }
+
+  .export-summary {
+    grid-column: 1 / span 2;
+    align-self: center;
+    white-space: normal;
+    line-height: 1.3;
+  }
+
+  /* Transport toggle: own cell, right-aligned. */
+  .header-actions > button:first-of-type {
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  /* EXPORT: full-width primary target on its own row. */
+  .header-actions > button:last-of-type {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+/* ── Short viewports: phones in landscape ───────────────────── */
+
+/*
+  A 915×412 landscape phone leaves ~410px of page for the whole editor, and the
+  header alone was 200px of it. Here the tagline and the export summary fold
+  away (the same numbers are printed under the monitor), the selects keep their
+  44px targets but lose their padding, and the monitor is capped against the
+  viewport height so the transport and timeline stay reachable without a scroll
+  that eats the picture.
+*/
+@media (max-height: 560px) {
+  .cinema-shell header {
+    align-items: center;
+    padding: 0.5rem 0.9rem;
+    gap: 0.6rem;
+  }
+
+  .cinema-shell header h1 {
+    font-size: 1.5rem;
+  }
+
+  .cinema-shell header p,
+  .export-summary {
+    display: none;
+  }
+
+  .export-window-label {
+    font-size: 0.5rem;
+  }
+
+  .export-window-select {
+    font-size: 0.6rem;
+    padding: 0 0.35rem;
+  }
+
+  .monitor-card {
+    max-width: min(100%, calc(42vh * var(--monitor-ratio, 1.7778)));
+  }
+}
+
+/* ── Compact production blueprint head ──────────────────────── */
+
+/*
+  The blueprint disclosure kept its full headline and summary above the monitor.
+  Its copy still stays visible on a phone, but on one line: the section folds
+  the way the operator expects and the monitor moves back up the page.
+*/
+@media (max-width: 767.98px), (max-height: 560px) {
+  .production-upgrade-bar {
+    gap: 0.3rem;
+    padding: 0.5rem 0.9rem 0.55rem;
+  }
+
+  .production-upgrade-copy {
+    gap: 0.1rem;
+  }
+
+  .upgrade-eyebrow {
+    font-size: 0.6rem;
+  }
+
+  .upgrade-title {
+    font-size: 0.78rem;
+    line-height: 1.25;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .upgrade-description {
+    display: none;
+  }
+}
+
+/*
+  Landscape phones: the blueprint head was two rows (eyebrow + toggle, then the
+  headline) because the 44px toggle set the height of the first one. A single
+  row reads the same and gives 18px back to a 412px-tall viewport.
+*/
+@media (max-height: 560px) {
+  .production-upgrade-copy {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  /* Dissolve the wrapper so eyebrow, headline and toggle share one row. */
+  .section-head-row {
+    display: contents;
+  }
+
+  .upgrade-eyebrow {
+    order: 1;
+    flex: 0 0 auto;
+  }
+
+  .upgrade-title {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .section-toggle {
+    order: 3;
+    flex: 0 0 auto;
+  }
+}
+
+/* Landscape phone: the select values ("10s", "Auto-preset", "30fps") already
+   say what they are, and the labels cost 14px above each control. The
+   aria-label on every select keeps the name available to a screen reader. */
+@media (max-height: 560px) {
+  .export-window-label {
+    display: none;
+  }
 }

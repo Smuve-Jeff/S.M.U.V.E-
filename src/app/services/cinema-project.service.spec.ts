@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { AudioEngineService } from './audio-engine.service';
-import { CinemaProjectService } from './cinema-project.service';
+import {
+  AUDIO_BED_MEDIA_ID,
+  CinemaProjectService,
+} from './cinema-project.service';
 import { LocalStorageService } from './local-storage.service';
 import { LoggingService } from './logging.service';
 import { VideoEngineService, VideoClip } from './video-engine.service';
@@ -284,6 +287,53 @@ describe('CinemaProjectService', () => {
       expect(outcome.ok).toBe(false);
       expect(outcome.message).toContain('different version');
       expect(engine.markers()).toEqual([]);
+    });
+  });
+
+  describe('audio bed persistence', () => {
+    it('stores the bed with the project and hands it back on open', async () => {
+      const { service, engine } = createHarness();
+      const bed = new Blob(['bed-bytes'], { type: 'audio/mpeg' });
+      // The engine only knows the bed's name and mix; the service owns the
+      // bytes, so the snapshot is stubbed to describe one.
+      jest.spyOn(engine, 'audioBedMeta').mockReturnValue({
+        name: 'score.mp3',
+        volume: 0.55,
+        loop: false,
+      });
+
+      const saved = await service.save(
+        'Bedded Cut',
+        null,
+        new Map([[AUDIO_BED_MEDIA_ID, bed]])
+      );
+
+      expect(saved.ok).toBe(true);
+      expect(mediaStored.get(`${saved.id}::${AUDIO_BED_MEDIA_ID}`).blob).toBe(bed);
+
+      const opened = await service.open(saved.id!);
+
+      expect(opened.audioBed).toEqual({ blob: bed, name: 'score.mp3' });
+      // A bed is not a clip: it must not be counted as restored footage.
+      expect(opened.media?.has(AUDIO_BED_MEDIA_ID)).toBe(false);
+      expect(opened.message).toContain('Audio bed restored');
+    });
+
+    it('says the bed needs re-attaching when its bytes are gone', async () => {
+      const { service, engine } = createHarness();
+      jest.spyOn(engine, 'audioBedMeta').mockReturnValue({
+        name: 'score.mp3',
+        volume: 0.55,
+        loop: true,
+      });
+      const saved = await service.save('Bedded Cut', null, new Map());
+      mediaStored.clear();
+
+      const opened = await service.open(saved.id!);
+
+      expect(opened.ok).toBe(true);
+      expect(opened.audioBed).toBeNull();
+      expect(opened.message).toContain('needs re-attaching');
     });
   });
 

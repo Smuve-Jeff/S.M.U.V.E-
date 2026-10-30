@@ -106,6 +106,18 @@
   --text-main: #f4f7ff;
   --text-dim: #bccbe6;
   --silver-dim: #e2e9f9;
+  /* Space-separated triplets so Tailwind's alpha modifiers (`bg-surface/70`,
+     `text-silver-dim/90`) still apply. A var()/hex colour cannot take a
+     /NN alpha, so those utilities were dropped by the compiler and the
+     element fell back to the browser default. */
+  --bg-rgb: 11 14 31;
+  --panel-rgb: 20 25 46;
+  --surface-rgb: 26 32 64;
+  --surface-bright-rgb: 40 48 79;
+  --text-main-rgb: 244 247 255;
+  --text-dim-rgb: 188 203 230;
+  --silver-dim-rgb: 226 233 249;
+  --brand-ink-rgb: 45 212 191;
   /* Accent text. `brand-primary` is a fill colour; at 9–10px caps on the
      midnight surface it measures ~3.9:1, under AA. */
   --brand-ink: #2dd4bf;
@@ -207,6 +219,14 @@
   --text-dim: #c9c9d6;
   --silver-dim: #e4e4ee;
   --brand-ink: #2dd4bf;
+  --bg-rgb: 31 31 36;
+  --panel-rgb: 42 42 48;
+  --surface-rgb: 53 53 60;
+  --surface-bright-rgb: 60 60 68;
+  --text-main-rgb: 244 244 248;
+  --text-dim-rgb: 201 201 214;
+  --silver-dim-rgb: 228 228 238;
+  --brand-ink-rgb: 45 212 191;
   --espresso-line: rgba(255, 255, 255, 0.16);
   --espresso-soft: rgba(255, 255, 255, 0.06);
 
@@ -254,6 +274,14 @@
   --text-dim: #d3dff5;
   --silver-dim: #eef3ff;
   --brand-ink: #5eead4;
+  --bg-rgb: 0 2 8;
+  --panel-rgb: 10 15 34;
+  --surface-rgb: 20 25 46;
+  --surface-bright-rgb: 20 25 46;
+  --text-main-rgb: 255 255 255;
+  --text-dim-rgb: 211 223 245;
+  --silver-dim-rgb: 238 243 255;
+  --brand-ink-rgb: 94 234 212;
 
   /* ── Night → Lights Out ── */
   --ivory-bg: #000208;
@@ -2916,4 +2944,19 @@ input[type='range'] {
    readable variant so RECORD and destructive labels stay legible. */
 .text-brand-danger {
   color: #f87171;
+}
+
+/*
+  Landscape phones (e.g. 915×412): the two secondary navigation strips are a
+  duplicate of the sidebar and the bottom dock, and together they were ~100px
+  of a 412px-tall viewport — a quarter of the screen above every workspace.
+  They stay on tablets and desktop, where there is height to spare.
+*/
+@media (max-height: 560px) and (orientation: landscape) {
+  .shell-nav-strip,
+  /* Decorative "© Smuve Jeff Presents" strip above the dock: 21px of a
+     412px-tall viewport spent on a byline. The dock itself stays. */
+  .mobile-footer-branding {
+    display: none !important;
+  }
 }

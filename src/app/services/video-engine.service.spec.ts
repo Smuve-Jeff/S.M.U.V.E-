@@ -79,6 +79,34 @@ describe('VideoEngineService project snapshot', () => {
       expect(urls).toEqual(['', 'data:image/jpeg;base64,AAAA']);
     });
 
+    it('records the audio bed so a reopened cut is not silent', () => {
+      const engine = createEngine();
+      engine.audioOverlay.set({
+        name: 'score.wav',
+        url: 'blob:bed',
+        duration: 90,
+        buffer: {} as AudioBuffer,
+      });
+      engine.setAudioOverlayVolume(0.35);
+      engine.setAudioOverlayLoop(false);
+
+      const snapshot = engine.snapshot();
+
+      // The bytes live in the project's media store; what travels in the
+      // snapshot is everything needed to put the bed back as it was mixed.
+      expect(snapshot.audioOverlay).toEqual({
+        name: 'score.wav',
+        volume: 0.35,
+        loop: false,
+      });
+    });
+
+    it('records a bare cut as having no bed', () => {
+      const engine = createEngine();
+
+      expect(engine.snapshot().audioOverlay).toBeNull();
+    });
+
     it('copies the edit so a later change cannot rewrite a saved project', () => {
       const engine = createEngine();
       const id = engine.addClip(

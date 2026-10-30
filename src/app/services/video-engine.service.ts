@@ -261,6 +261,18 @@ export const CINEMA_SNAPSHOT_VERSION = 2;
  */
 export const CINEMA_SNAPSHOT_MIN_VERSION = 1;
 
+/**
+ * The audio bed as a project records it. The bytes are stored beside the
+ * project (the engine only holds an object url, which dies with the document),
+ * so what travels in the snapshot is everything needed to put the bed back
+ * where the artist left it: its name, its level and whether it loops.
+ */
+export interface CinemaAudioBedMeta {
+  name: string;
+  volume: number;
+  loop: boolean;
+}
+
 export interface CinemaSnapshot {
   version: typeof CINEMA_SNAPSHOT_VERSION;
   productionMode: ProductionMode;
@@ -272,6 +284,8 @@ export interface CinemaSnapshot {
   lowerThird: LowerThird;
   markers: SceneMarker[];
   tracks: VideoTrack[];
+  /** The imported music/voice bed, or null when the cut plays bare. */
+  audioOverlay: CinemaAudioBedMeta | null;
 }
 
 /** What a restore could, and could not, bring back. */
@@ -1463,6 +1477,17 @@ export class VideoEngineService {
    * Capture the current edit for persistence. Everything is copied so a saved
    * project can never be mutated from under the timeline by a later edit.
    */
+  /** The bed's identity and mix, or null when no bed is loaded. */
+  audioBedMeta(): CinemaAudioBedMeta | null {
+    const overlay = this.audioOverlay();
+    if (!overlay) return null;
+    return {
+      name: overlay.name,
+      volume: this.audioOverlayVolume(),
+      loop: this.audioOverlayLoop(),
+    };
+  }
+
   snapshot(): CinemaSnapshot {
     return {
       version: CINEMA_SNAPSHOT_VERSION,
@@ -1473,6 +1498,7 @@ export class VideoEngineService {
       safeZoneEnabled: this.safeZoneEnabled(),
       snapToBeat: this.snapToBeat(),
       lowerThird: { ...this.lowerThird() },
+      audioOverlay: this.audioBedMeta(),
       markers: this.markers().map((marker) => ({ ...marker })),
       tracks: this.tracks().map((track) => ({
         ...track,
@@ -1582,6 +1608,16 @@ export class VideoEngineService {
     }
     if (snapshot.productionMode) {
       this.productionMode.set(snapshot.productionMode);
+    }
+    // The bed's bytes arrive separately (they live in the project's media
+    // store), so only its mix is restored here. A project whose bed could not
+    // be read still opens with the level and loop the artist set, ready for the
+    // same file to be re-attached.
+    const bed = snapshot.audioOverlay;
+    if (bed) {
+      const volume = Number(bed.volume);
+      this.setAudioOverlayVolume(Number.isFinite(volume) ? volume : 0.8);
+      this.setAudioOverlayLoop(bed.loop !== false);
     }
 
     this.currentTime.set(

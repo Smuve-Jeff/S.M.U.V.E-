@@ -68,7 +68,7 @@ export default {
         // in every theme, and these used to be hard-coded light-theme values
         // (#1F1A12 on a #0B0E1F page is invisible). The hex fallbacks match
         // the stylesheet's :root values.
-        'silver-dim': 'var(--silver-dim, #E2E9F9)',
+        'silver-dim': 'rgb(var(--silver-dim-rgb, 226 233 249) / <alpha-value>)',
         primary: '#0E7C7B',
         secondary: '#5DC4C2',
         accent: '#D97706',
@@ -76,12 +76,12 @@ export default {
         // of the stylesheet uses. They were still the old Ivory (cream) hexes,
         // so a page built with `bg-background` rendered a cream sheet inside
         // the night shell and every `text-white` on it disappeared.
-        background: 'var(--ivory-bg, #0B0E1F)',
-        'background-alt': 'var(--ivory-panel, #14192E)',
-        surface: 'var(--ivory-paper, #1A2040)',
-        'surface-bright': 'var(--color-surface-bright, #28304F)',
-        'text-main': 'var(--text-main, #F4F7FF)',
-        'text-dim': 'var(--text-dim, #BCCBE6)',
+        background: 'rgb(var(--bg-rgb, 11 14 31) / <alpha-value>)',
+        'background-alt': 'rgb(var(--panel-rgb, 20 25 46) / <alpha-value>)',
+        surface: 'rgb(var(--surface-rgb, 26 32 64) / <alpha-value>)',
+        'surface-bright': 'rgb(var(--surface-bright-rgb, 40 48 79) / <alpha-value>)',
+        'text-main': 'rgb(var(--text-main-rgb, 244 247 255) / <alpha-value>)',
+        'text-dim': 'rgb(var(--text-dim-rgb, 188 203 230) / <alpha-value>)',
         border: 'var(--espresso-line, rgba(180, 200, 255, 0.16))',
         'border-bright': 'var(--color-border-bright, rgba(180, 200, 255, 0.26))',
         // Vocal Suite — Neural Lab palette (CSS-var driven for theme)
