@@ -464,6 +464,9 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   /** Track which preset is currently selected (for visual highlight). */
   activePresetId = signal<string | null>(null);
 
+  /** True while a preset-shaped EQ can be returned to its captured anchor. */
+  presetEqActive = signal(false);
+
   /**
    * EQ gains captured before the first preset is applied. Every preset shapes
    * from this anchor instead of the current bands, so repeated taps are
@@ -564,6 +567,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   applyPreset(preset: MasteringPreset): void {
     this.haptic.heavy();
     this.activePresetId.set(preset.id);
+    this.presetEqActive.set(true);
 
     // Update LUFS target + safe ceiling
     this.targetLufs.set(preset.targetLufs);
@@ -609,6 +613,25 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.snack.success(
       `${preset.emoji} ${preset.label} preset · target ${preset.targetLufs} LUFS, ceiling ${preset.safeCeiling} dBFS`,
     );
+  }
+
+  /**
+   * Return the mastering EQ to the shape captured before the first preset.
+   * Loudness target, ceiling and compressor settings are left untouched.
+   */
+  resetPresetEq(): void {
+    if (!this.presetAnchorGains) return;
+    const anchor = this.presetAnchorGains;
+    this.bands.update((arr) =>
+      arr.map((b) => ({ ...b, gain: anchor.get(b.id) ?? b.gain })),
+    );
+    this.presetAnchorGains = null;
+    this.presetEqActive.set(false);
+    this.activePresetId.set(null);
+    this.eqMaskingHint.set("EQ reset to the pre-preset shape");
+    this.smartAssistSuggestion.set("EQ reset to your pre-preset shape");
+    this.snack.info("Mastering EQ reset to its pre-preset shape");
+    this.haptic.light();
   }
 
   /** Clamp an EQ gain to the band range and round to the displayed 0.1 dB. */

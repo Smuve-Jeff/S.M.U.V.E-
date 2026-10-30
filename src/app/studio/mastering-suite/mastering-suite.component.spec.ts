@@ -245,5 +245,26 @@ describe("MasteringSuite reference A/B", () => {
       expect(bandGains()).toEqual([-0.2, -0.5, -0.4, 1.6, 2.7]);
       expect(component.activePresetId()).toBe("club");
     });
+
+    it("resets the EQ to the pre-preset anchor", () => {
+      component.applyPreset(preset("club"));
+      expect(component.presetEqActive()).toBe(true);
+
+      component.resetPresetEq();
+
+      expect(bandGains()).toEqual([-1.2, -0.5, 0, 0.8, 1.5]);
+      expect(component.activePresetId()).toBeNull();
+      expect(component.presetEqActive()).toBe(false);
+      expect(snack.info).toHaveBeenCalledWith(
+        "Mastering EQ reset to its pre-preset shape",
+      );
+    });
+
+    it("does nothing when no preset has shaped the EQ", () => {
+      component.resetPresetEq();
+
+      expect(bandGains()).toEqual([-1.2, -0.5, 0, 0.8, 1.5]);
+      expect(snack.info).not.toHaveBeenCalled();
+    });
   });
 });

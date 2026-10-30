@@ -343,7 +343,7 @@
 
   <!-- Pro: AI mastering presets rail -->
   <section class="mb-6 mastering-presets-panel" aria-label="AI mastering presets">
-    <div class="flex items-center gap-2 mb-3">
+    <div class="flex flex-wrap items-center gap-2 mb-3">
       <span class="material-symbols-outlined text-fl-blue text-lg"
         >auto_awesome</span
       >
@@ -352,6 +352,19 @@
       >
         AI Mastering Presets · one-click destination
       </span>
+      <button
+        *ngIf="presetEqActive()"
+        type="button"
+        class="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-fl-border bg-black/20 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-slate-300 transition-colors hover:border-fl-blue/50 hover:text-white"
+        (click)="resetPresetEq()"
+        title="Reset mastering EQ to its pre-preset shape"
+        aria-label="Reset mastering EQ to its pre-preset shape"
+      >
+        <span class="material-symbols-outlined text-sm" aria-hidden="true"
+          >restart_alt</span
+        >
+        Reset EQ
+      </button>
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mastering-preset-grid">
       <button
