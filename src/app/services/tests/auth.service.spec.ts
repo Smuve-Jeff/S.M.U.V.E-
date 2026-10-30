@@ -208,4 +208,65 @@ describe('AuthService (Hardened)', () => {
     expect(tokenService.jwtToken()).toBeNull();
     expect(sessionStorage.getItem('smuve_auth_session')).toBeNull();
   });
+
+  describe('guest clearance', () => {
+    it('opens a limited session with the guest role and permission only', () => {
+      const guest = service.startGuestSession();
+
+      expect(guest.role).toBe('Guest');
+      expect(guest.permissions).toEqual(['GUEST']);
+      expect(guest.emailVerificationRequired).toBe(false);
+      expect(userStore.user()).toMatchObject({
+        id: guest.id,
+        role: 'Guest',
+        artistName: 'GUEST ARTIST',
+      });
+      expect(userStore.isAuthenticated()).toBe(true);
+      expect(service.isGuest()).toBe(true);
+    });
+
+    it('is not a standard artist session', () => {
+      service.startGuestSession();
+
+      expect(service.currentUser()?.permissions).not.toContain('STANDARD');
+      expect(service.currentUser()?.permissions).not.toContain('ALL_ACCESS');
+    });
+
+    it('never persists the guest session or installs an API token', () => {
+      const tokenService = TestBed.inject(TokenService);
+      tokenService.setToken('previous-artist-token', 'api');
+
+      service.startGuestSession();
+
+      expect(sessionStorage.getItem('smuve_auth_session')).toBeNull();
+      expect(tokenService.jwtToken()).toBeNull();
+    });
+
+    it('loads an isolated profile keyed by the guest id', () => {
+      const profileService = TestBed.inject(UserProfileService) as unknown as {
+        loadProfile: jest.Mock;
+      };
+
+      const guest = service.startGuestSession();
+
+      expect(profileService.loadProfile).toHaveBeenCalledWith(guest.id);
+      expect(profileService.loadProfile).not.toHaveBeenCalledWith('current');
+    });
+
+    it('gives every guest session its own id', () => {
+      const first = service.startGuestSession();
+      const second = service.startGuestSession();
+
+      expect(first.id).not.toBe(second.id);
+    });
+
+    it('ends guest clearance on logout', () => {
+      service.startGuestSession();
+
+      service.logout();
+
+      expect(userStore.isAuthenticated()).toBe(false);
+      expect(service.isGuest()).toBe(false);
+    });
+  });
 });

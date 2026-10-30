@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, Injector } from '@angular/core';
+import { Injectable, computed, inject, signal, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { LoggingService } from './logging.service';
 import { TokenService } from './token.service';
@@ -8,6 +8,11 @@ import { SecurityService } from './security.service';
 import { UserProfileService } from './user-profile.service';
 import { ApiAuthService } from './api-auth.service';
 import type { ApiAuthResponse } from './api-auth.service';
+import {
+  GUEST_PERMISSIONS,
+  GUEST_ROLE,
+  isGuestUser,
+} from './guest-access';
 
 export interface AuthCredentials {
   email: string;
@@ -31,6 +36,9 @@ export class AuthService {
   currentUser = this.userStore.user;
   isAuthenticated = this.userStore.isAuthenticated;
   jwtToken = this.tokenService.jwtToken;
+
+  /** True while the active session is the limited guest clearance. */
+  isGuest = computed(() => isGuestUser(this.currentUser()));
 
   constructor() {}
 
@@ -452,6 +460,52 @@ export class AuthService {
     this.persistSession(user);
 
     this.logger.info('AUTH_LOG: API SESSION ESTABLISHED.');
+    return user;
+  }
+
+  /**
+   * Start a limited guest session.
+   *
+   * Guests get a real session (so the shell, studio and guard all behave
+   * normally) without an account, a server identity or any persistence: the
+   * session lives until the tab is closed or the guest signs out. Their role
+   * and permission are the guest pair, so permission-gated routes deny them
+   * instead of silently granting standard access.
+   */
+  startGuestSession(): AuthUser {
+    const randomPart =
+      typeof crypto !== 'undefined' &&
+      typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const user: AuthUser = {
+      id: `guest_${randomPart}`,
+      email: 'guest@smuve.local',
+      artistName: 'GUEST ARTIST',
+      role: GUEST_ROLE,
+      permissions: [...GUEST_PERMISSIONS],
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      profileCompleteness: 0,
+      emailVerified: false,
+      // There is no mail channel to verify a guest, so never gate routing on it.
+      emailVerificationRequired: false,
+    };
+
+    this.userStore.setUser(user);
+    // Guests have no API identity; a leftover JWT would claim one on reload.
+    this.tokenService.setToken(null);
+    // Drop any stored session too, so a reload can never resurrect the previous
+    // artist's record behind a guest UI.
+    try {
+      sessionStorage.removeItem('smuve_auth_session');
+    } catch {
+      // Storage may be unavailable in restricted contexts.
+    }
+    // Loaded under the guest id so a guest never inherits a real artist's
+    // in-memory persona (and can never write into that artist's profile slot).
+    void this.profileService.loadProfile(user.id);
+    this.logger.info('AUTH_LOG: GUEST SESSION STARTED.');
     return user;
   }
 

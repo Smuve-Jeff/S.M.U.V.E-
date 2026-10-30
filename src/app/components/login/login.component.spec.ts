@@ -25,6 +25,7 @@ describe('LoginComponent', () => {
       verifyEmail: jest.fn(),
       resendVerificationCode: jest.fn(),
       establishApiSession: jest.fn(),
+      startGuestSession: jest.fn().mockReturnValue({ artistName: 'GUEST ARTIST' }),
     };
     // Transport failure, as the real client reports it: a typed ApiAuthError
     // with status 0. A bare `{ status: 0 }` is not what ApiAuthService throws
@@ -93,6 +94,27 @@ describe('LoginComponent', () => {
     fixture.componentInstance.isRegistering.set(true);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Initialize Genesis');
+  });
+
+  it('enters guest clearance from the authorization screen', async () => {
+    const { fixture, authMock } = await build();
+    const router = TestBed.inject(Router) as unknown as {
+      navigate: jest.Mock;
+    };
+    fixture.detectChanges();
+
+    const guestButton = Array.from(
+      fixture.nativeElement.querySelectorAll('button')
+    ).find((button: HTMLButtonElement) =>
+      button.textContent?.includes('Continue as Guest')
+    ) as HTMLButtonElement | undefined;
+    expect(guestButton).toBeTruthy();
+
+    await fixture.componentInstance.continueAsGuest();
+
+    expect(authMock.startGuestSession).toHaveBeenCalledTimes(1);
+    expect(router.navigate).toHaveBeenCalledWith(['/guest-access']);
+    expect(fixture.componentInstance.isError()).toBe(false);
   });
 
   it('renders the password strength block while registering without throwing', async () => {

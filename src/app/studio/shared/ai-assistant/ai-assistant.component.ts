@@ -15,6 +15,7 @@ import {
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { RouterLink } from "@angular/router";
 import { AiService } from "../../../services/ai.service";
 import { AiCopilotService } from "../../ai-copilot.service";
 import { MusicManagerService } from "../../../services/music-manager.service";
@@ -77,7 +78,7 @@ interface ChatMessage {
 @Component({
   selector: "app-ai-assistant",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: "./ai-assistant.component.html",
   styleUrls: ["./ai-assistant.component.css", "../platform-ux.css"],
 })
@@ -88,6 +89,12 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild("chatScroll") chatScroll?: ElementRef<HTMLDivElement>;
 
   private ai = inject(AiService);
+  /**
+   * Guest clearance has no AI, so the panel explains the clearance rule instead
+   * of offering a chat the session cannot use.
+   */
+  readonly aiLocked = computed(() => !this.ai.aiAccess());
+  readonly aiLockNotice = this.ai.aiLockNotice;
   private copilot = inject(AiCopilotService);
   public musicManager = inject(MusicManagerService);
   public audio = inject(AudioEngineService);

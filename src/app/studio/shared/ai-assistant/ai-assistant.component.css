@@ -779,3 +779,80 @@
     border: 1px solid CanvasText;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   GUEST CLEARANCE — AI IS ACCOUNT-ONLY
+   A guest session has no model access, so the panel states the
+   rule and offers the upgrade path instead of rendering a chat
+   input that can never answer.
+   ═══════════════════════════════════════════════════════════ */
+.ai-mode-chip.ai-mode-locked {
+  background: rgba(217, 119, 6, 0.16);
+  color: #d97706;
+}
+
+.ai-locked {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.ai-locked-icon {
+  font-size: 32px;
+  color: #d97706;
+}
+
+.ai-locked-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--espresso-muted);
+}
+
+.ai-locked-copy {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--espresso-muted);
+}
+
+.ai-locked-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.ai-locked-cta,
+.ai-locked-link {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.ai-locked-cta {
+  background: var(--teal-500);
+  color: #fff;
+}
+
+.ai-locked-link {
+  border: 1px solid var(--espresso-line);
+  color: var(--espresso-muted);
+}

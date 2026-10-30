@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn, CanActivateChildFn } from '@angular/router';
 import { AuthService } from './auth.service';
+import { isGuestRouteAllowed, isGuestUser } from './guest-access';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
@@ -15,6 +16,17 @@ export const authGuard: CanActivateFn = (route, state) => {
   }
 
   const user = authService.currentUser();
+
+  // Guest clearance is enforced here, at the routing boundary, not only by
+  // hiding navigation: a guest who types an account-only URL still lands on
+  // the clearance page instead of the restricted surface.
+  if (isGuestUser(user) && !isGuestRouteAllowed(state.url)) {
+    router.navigate(['/guest-access'], {
+      queryParams: { from: state.url },
+      replaceUrl: true,
+    });
+    return false;
+  }
 
   // Enforce email verification for strategic/sensitive routes — but only when
   // verification is actually completable. `emailVerificationRequired` is set

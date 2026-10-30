@@ -81,6 +81,26 @@
         </div>
       </div>
 
+      <a
+        *ngIf="authService.isGuest() && (isSidebarOpen() || isMobile())"
+        routerLink="/guest-access"
+        class="block rounded-2xl border border-amber-400/30 bg-amber-400/5 px-4 py-3 hover:border-amber-300/60 transition-all"
+      >
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-base text-amber-300"
+            >visibility</span
+          >
+          <span
+            class="text-[9px] font-bold uppercase tracking-[0.3em] text-amber-300"
+            >Guest Session</span
+          >
+        </div>
+        <p class="mt-1 text-[10px] leading-relaxed text-text-dim">
+          Limited clearance · work is not saved. Create an account to unlock
+          the vault.
+        </p>
+      </a>
+
       <div
         *ngIf="isSidebarOpen() || isMobile()"
         class="rounded-2xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-4 space-y-4"
@@ -213,7 +233,7 @@
         </button>
       </section>
 
-      <section *ngFor="let group of navigationGroups" class="pb-3">
+      <section *ngFor="let group of navigationGroups()" class="pb-3">
         <div
           *ngIf="isSidebarOpen() || isMobile()"
           class="px-4 pt-4 pb-3 space-y-1 sidebar-nav-section-labels"
@@ -506,7 +526,9 @@
             {{ pendingChallenges() + unreadNotifications() }}
           </div>
         </a>
+        <!-- Guest clearance has no AI, so the advisor entry is not advertised. -->
         <button
+          *ngIf="!authService.isGuest()"
           type="button"
           (click)="toggleChatbot()"
           class="shell-icon-button relative group"
@@ -599,7 +621,7 @@
             (change)="navigateToView($any($event.target).value)"
           >
             <optgroup
-              *ngFor="let group of navigationGroups"
+              *ngFor="let group of navigationGroups()"
               [label]="group.label"
             >
               <option *ngFor="let item of group.items" [value]="item.mode">
@@ -772,13 +794,13 @@
         </div>
       </aside>
       <div
-        *ngIf="uiService.isChatbotOpen() && !isAuthRoute()"
+        *ngIf="uiService.isChatbotOpen() && !isAuthRoute() && !authService.isGuest()"
         (click)="closeChatbot()"
         aria-hidden="true"
         class="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden animate-in fade-in duration-300"
       ></div>
       <aside
-        *ngIf="uiService.isChatbotOpen() && !isAuthRoute()"
+        *ngIf="uiService.isChatbotOpen() && !isAuthRoute() && !authService.isGuest()"
         id="smuve-assistant-drawer"
         aria-label="S.M.U.V.E 2.0 assistant"
         class="ai-drawer glass-v42 border-l border-border transition-all duration-500 z-40 fixed top-0 right-0 h-full w-full md:w-96 shadow-2xl"

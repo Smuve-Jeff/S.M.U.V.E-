@@ -61,9 +61,39 @@ export class LoginComponent implements OnInit {
     try {
       if (this.authService.isAuthenticated()) {
         void this.navigateAfterAuth();
+        return;
+      }
+      // Upgrade links (guest clearance, locked surfaces) land directly on the
+      // Genesis form instead of making the visitor toggle it themselves.
+      if (this.route.snapshot.queryParamMap.get('mode') === 'register') {
+        this.isRegistering.set(true);
       }
     } catch (err) {
       this.logger.error('Login initialization failure', err);
+    }
+  }
+
+  /**
+   * Enter the limited guest clearance without credentials.
+   *
+   * A guest session is deliberately not persisted (`AuthService` writes no
+   * session record), so closing the tab ends it; the clearance page explains
+   * exactly what is open and what needs an account.
+   */
+  async continueAsGuest(): Promise<void> {
+    if (this.isLoading()) return;
+    this.isLoading.set(true);
+    this.message.set('');
+    this.isError.set(false);
+    try {
+      this.authService.startGuestSession();
+      await this.router.navigate(['/guest-access']);
+    } catch (err) {
+      this.logger.error('GUEST_SESSION_FAILED', err);
+      this.isError.set(true);
+      this.message.set('GUEST SESSION UNAVAILABLE. TRY AGAIN.');
+    } finally {
+      this.isLoading.set(false);
     }
   }
 

@@ -1,9 +1,10 @@
-import { Injectable, inject, effect, signal } from '@angular/core';
+import { Injectable, Injector, inject, effect, signal } from '@angular/core';
 import { MusicManagerService } from './music-manager.service';
 import { DatabaseService } from './database.service';
 import { UserProfileService } from './user-profile.service';
 import { LoggingService } from './logging.service';
 import { OfflineSyncService } from './offline-sync.service';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root',
@@ -14,6 +15,7 @@ export class AutoSaveService {
   private profileService = inject(UserProfileService);
   private logger = inject(LoggingService);
   private offlineSync = inject(OfflineSyncService);
+  private injector = inject(Injector);
 
   private lastProjectHash = '';
   private lastProfileHash = '';
@@ -24,9 +26,31 @@ export class AutoSaveService {
   /** True when project is saved locally (offline-safe) */
   readonly isLocalSaved = signal(false);
 
+  /**
+   * Whether the active session is guest clearance.
+   *
+   * Resolved lazily (AuthService imports this chain) and read inside the
+   * autosave effect so signing in or out re-evaluates the gate.
+   */
+  private get isGuestSession(): boolean {
+    try {
+      return this.injector.get(AuthService).isGuest();
+    } catch {
+      // Auth unavailable in a lightweight host: treat it as a normal session.
+      return false;
+    }
+  }
+
   constructor() {
     effect(() => {
       if (!this.musicManager.projectLoaded()) {
+        return;
+      }
+
+      // Guests never persist: their scratch work would otherwise overwrite the
+      // browser's shared autosave slot (and be synced under a guest id that no
+      // account owns). The clearance page tells them work is not saved.
+      if (this.isGuestSession) {
         return;
       }
 

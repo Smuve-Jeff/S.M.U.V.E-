@@ -118,7 +118,10 @@ describe('AppComponent', () => {
       providers: [
         {
           provide: AuthService,
-          useValue: { isAuthenticated: jest.fn().mockReturnValue(false) },
+          useValue: {
+            isAuthenticated: jest.fn().mockReturnValue(false),
+            isGuest: jest.fn().mockReturnValue(false),
+          },
         },
         { provide: UIService, useValue: uiService },
         { provide: NotificationService, useValue: { show: jest.fn() } },
@@ -182,7 +185,7 @@ describe('AppComponent', () => {
   it('groups navigation for the shared shell', async () => {
     const { component } = await createComponent();
 
-    expect(component.navigationGroups).toEqual([
+    expect(component.navigationGroups()).toEqual([
       expect.objectContaining({
         category: 'CORE',
         label: 'Core Systems',

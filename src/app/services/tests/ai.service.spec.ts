@@ -6,6 +6,12 @@ import { UserContextService } from '../user-context.service';
 import { AnalyticsService } from '../analytics.service';
 import { LoggingService } from '../logging.service';
 import { MusicManagerService } from '../music-manager.service';
+import { UserStoreService } from '../user-store.service';
+import {
+  GUEST_AI_LOCK_NOTICE,
+  GUEST_PERMISSIONS,
+  GUEST_ROLE,
+} from '../guest-access';
 import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import {
@@ -1084,6 +1090,57 @@ describe('AiService', () => {
       const brief = service.lifecycleAdvisorBrief();
       expect(brief).toContain('Creative → business for "Window Light"');
       expect(brief).toContain('never as legal, financial, or platform certainty');
+    });
+  });
+
+  describe('guest clearance', () => {
+    const guestUser = {
+      id: 'guest-test',
+      email: 'guest@smuve.local',
+      artistName: 'Guest Artist',
+      role: GUEST_ROLE,
+      permissions: [...GUEST_PERMISSIONS],
+      createdAt: new Date(),
+      lastLogin: new Date(),
+      profileCompleteness: 0,
+      emailVerified: false,
+    };
+
+    it('refuses every model-backed path without building a request', async () => {
+      TestBed.inject(UserStoreService).setUser(guestUser);
+
+      expect(service.aiAccess()).toBe(false);
+      await expect(service.getAIResponse('book the tour')).resolves.toBe(
+        GUEST_AI_LOCK_NOTICE
+      );
+      await expect(service.generateImage('cover art')).rejects.toThrow(
+        GUEST_AI_LOCK_NOTICE
+      );
+      await service.industryDeepSearch('sync licensing rates');
+
+      httpMock.expectNone((req) => req.url.includes('/ai/'));
+      expect(service.industryIntelligence()).toEqual([]);
+    });
+
+    it('will not engage AI session musicians', () => {
+      TestBed.inject(UserStoreService).setUser(guestUser);
+
+      service.startAIDrummer();
+      service.toggleAIMusician('bassist');
+
+      expect(service.isAIDrummerActive()).toBe(false);
+      expect(service.isAIBassistActive()).toBe(false);
+    });
+
+    it('keeps AI for a real account session', async () => {
+      TestBed.inject(UserStoreService).setUser({ ...guestUser, role: 'Artist' });
+
+      expect(service.aiAccess()).toBe(true);
+      const request = service.getAIResponse('status report');
+      const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+      req.flush({ text: 'Live answer.' });
+
+      await expect(request).resolves.toBe('Live answer.');
     });
   });
 

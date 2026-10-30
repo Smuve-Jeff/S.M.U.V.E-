@@ -20,29 +20,39 @@
       </div>
     </div>
     <div class="ai-header-actions">
-      <span
-        class="ai-mode-chip"
-        [class.ai-mode-online]="aiMode() === 'online'"
-        [class.ai-mode-local]="aiMode() === 'local'"
-        [attr.aria-label]="
-          aiMode() === 'online'
-            ? 'Live AI connected'
-            : aiMode() === 'local'
-              ? 'Offline — local assistant active'
-              : 'Assistant ready'
-        "
-      >
-        <span class="material-symbols-outlined">{{
-          aiMode() === "online"
-            ? "wifi"
-            : aiMode() === "local"
-              ? "cloud_off"
-              : "auto_awesome"
-        }}</span>
-        {{
-          aiMode() === "online" ? "LIVE" : aiMode() === "local" ? "LOCAL" : "AI"
-        }}
-      </span>
+      @if (aiLocked()) {
+        <span
+          class="ai-mode-chip ai-mode-locked"
+          [attr.aria-label]="aiLockNotice"
+        >
+          <span class="material-symbols-outlined">lock</span>
+          LOCKED
+        </span>
+      } @else {
+        <span
+          class="ai-mode-chip"
+          [class.ai-mode-online]="aiMode() === 'online'"
+          [class.ai-mode-local]="aiMode() === 'local'"
+          [attr.aria-label]="
+            aiMode() === 'online'
+              ? 'Live AI connected'
+              : aiMode() === 'local'
+                ? 'Offline — local assistant active'
+                : 'Assistant ready'
+          "
+        >
+          <span class="material-symbols-outlined">{{
+            aiMode() === "online"
+              ? "wifi"
+              : aiMode() === "local"
+                ? "cloud_off"
+                : "auto_awesome"
+          }}</span>
+          {{
+            aiMode() === "online" ? "LIVE" : aiMode() === "local" ? "LOCAL" : "AI"
+          }}
+        </span>
+      }
       <button
         type="button"
         class="ai-close"
@@ -54,6 +64,20 @@
     </div>
   </header>
 
+  @if (aiLocked()) {
+    <!-- Guest clearance: AI is account-only, never a silently failing panel. -->
+    <section class="ai-locked" role="status" aria-live="polite">
+      <span class="material-symbols-outlined ai-locked-icon">lock</span>
+      <h2 class="ai-locked-title">AI Is Account-Only</h2>
+      <p class="ai-locked-copy">{{ aiLockNotice }}</p>
+      <div class="ai-locked-actions">
+        <a class="ai-locked-cta" routerLink="/login">Sign In</a>
+        <a class="ai-locked-link" routerLink="/guest-access"
+          >Guest Clearance</a
+        >
+      </div>
+    </section>
+  } @else {
   <nav class="ai-tabs" role="tablist" aria-label="Assistant tabs">
     <button
       type="button"
@@ -246,4 +270,5 @@
       {{ voiceNotice() }}
     </p>
   </div>
+  }
 </aside>

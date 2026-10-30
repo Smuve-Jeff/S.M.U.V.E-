@@ -46,6 +46,10 @@ import { AudioEngineService } from './services/audio-engine.service';
 import { ChallengeInboxService } from './services/challenge-inbox.service';
 import { LoggingService } from './services/logging.service';
 import { ViewConfig } from './services/workspace-registry';
+import {
+  GUEST_AI_LOCK_NOTICE,
+  isGuestRouteAllowed,
+} from './services/guest-access';
 
 /**
  * Route paths that render the Studio workspace itself (see `app.routes.ts`).
@@ -139,7 +143,7 @@ export class AppComponent {
   isMobileWorkspaceTrayOpen = signal(false);
   installPrompt = signal<BeforeInstallPromptEvent | null>(null);
 
-  navigationGroups: NavigationGroup[] = this.buildNavigationGroups();
+  navigationGroups = computed(() => this.buildNavigationGroups());
   activeViewConfig = computed(
     () =>
       this.uiService.getViewConfig(this.uiService.mainViewMode()) ?? {
@@ -152,18 +156,22 @@ export class AppComponent {
         category: 'CORE' as const,
       }
   );
-  pinnedViews = computed(() => this.uiService.getPinnedViewConfigs());
-  recentViews = computed(() => this.uiService.getRecentViewConfigs());
+  pinnedViews = computed(() =>
+    this.allowViews(this.uiService.getPinnedViewConfigs())
+  );
+  recentViews = computed(() =>
+    this.allowViews(this.uiService.getRecentViewConfigs())
+  );
   relatedViews = computed(() =>
-    this.uiService
-      .getRelatedViewConfigs(this.uiService.mainViewMode())
-      .slice(0, 4)
+    this.allowViews(
+      this.uiService.getRelatedViewConfigs(this.uiService.mainViewMode())
+    ).slice(0, 4)
   );
   mobilePrimaryViews = computed(() =>
-    this.uiService.getPrimaryMobileViewConfigs()
+    this.allowViews(this.uiService.getPrimaryMobileViewConfigs())
   );
   mobileOverflowViews = computed(() =>
-    this.uiService.getOverflowMobileViewConfigs()
+    this.allowViews(this.uiService.getOverflowMobileViewConfigs())
   );
   spotlightTips = computed(() => this.commandPalette.activeTips().slice(0, 3));
   unreadNotifications = this.inboxService.unreadCount;
@@ -554,6 +562,12 @@ export class AppComponent {
   }
 
   toggleChatbot() {
+    // AI is account-only: guest clearance never opens the advisor, even from a
+    // keyboard shortcut that bypasses the (hidden) launcher button.
+    if (this.authService.isGuest()) {
+      this.notificationService.show(GUEST_AI_LOCK_NOTICE, 'warning', 5000);
+      return;
+    }
     this.uiService.toggleChatbot();
   }
 
@@ -614,6 +628,22 @@ export class AppComponent {
     this.installPrompt.set(null);
   }
 
+  /**
+   * Guest clearance filter for every navigation surface.
+   *
+   * The route guard is the enforcement point; this keeps the sidebar, pinned
+   * and recent lists, and the mobile trays from advertising surfaces a guest
+   * would only be bounced from. Recents/pins are persisted per browser, so
+   * without this filter a guest would inherit a previous artist's shortcuts.
+   */
+  private allowViews<T extends ViewConfig>(views: T[]): T[] {
+    if (this.authService.isGuest?.() !== true) return views;
+    return views.filter((view) => {
+      const routePath = this.uiService.getViewConfig(view.mode)?.routePath;
+      return !routePath || isGuestRouteAllowed(routePath);
+    });
+  }
+
   private buildNavigationGroups(): NavigationGroup[] {
     const categoryMeta: Record<
       ViewConfig['category'],
@@ -649,9 +679,9 @@ export class AppComponent {
       .map((category) => ({
         category,
         ...categoryMeta[category],
-        items: this.uiService
-          .getViewConfigs()
-          .filter((view) => view.category === category),
+        items: this.allowViews(this.uiService.getViewConfigs()).filter(
+          (view) => view.category === category
+        ),
       }))
       .filter((group) => group.items.length > 0);
   }

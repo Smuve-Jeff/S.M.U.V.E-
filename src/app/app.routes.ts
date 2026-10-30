@@ -2,6 +2,15 @@ import { Routes } from '@angular/router';
 import { authChildGuard } from './services/auth.guard';
 
 const protectedRoutes: Routes = [
+  {
+    // Guest clearance overview; the guard also lands restricted navigations
+    // here with `?from=<refused url>`.
+    path: 'guest-access',
+    loadComponent: () =>
+      import('./components/guest-access/guest-access.component').then(
+        (m) => m.GuestAccessComponent
+      ),
+  },
   { path: 'adaptive-profile', loadComponent: () => import('./components/artist-adaptive-dashboard/artist-adaptive-dashboard.component').then((m) => m.ArtistAdaptiveDashboardComponent) },
   { path: 'artist-coach', loadComponent: () => import('./components/artist-ai-coach/artist-ai-coach.component').then((m) => m.ArtistAiCoachComponent) },
   {

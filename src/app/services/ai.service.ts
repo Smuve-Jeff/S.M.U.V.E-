@@ -45,6 +45,8 @@ import {
   SmuveSurfaceIntel,
 } from './smuve-career-director.service';
 import { SmuveMemoryService } from './smuve-memory.service';
+import { UserStoreService } from './user-store.service';
+import { GUEST_AI_LOCK_NOTICE, mayUseAi } from './guest-access';
 
 export interface UpgradeRecommendation {
   id: string;
@@ -85,6 +87,8 @@ export class AiService {
   private lifecycle = inject(ArtistLifecycleService);
   private musicManager = inject(MusicManagerService);
   private notification = inject(NotificationService);
+  /** The live account session — the source of the guest/AI clearance rule. */
+  private userStore = inject(UserStoreService);
 
   strategicDecrees = signal<string[]>(STRATEGIC_DECREES);
   unlockedUpgrades = signal<string[]>([]);
@@ -135,6 +139,19 @@ export class AiService {
   aiKeyboardistActive = signal(false);
   /** Most recent proactive pulse, deduped so an interval cannot spam the UI. */
   lastPulse = signal<{ message: string; at: number } | null>(null);
+
+  /**
+   * Whether this session has AI at all.
+   *
+   * Guest clearance does not: every model-backed path below returns before a
+   * request is built, so a guest cannot spend provider tokens even from a
+   * stale panel. Surfaces read this to render their locked state instead of a
+   * dead input.
+   */
+  readonly aiAccess = computed(() => mayUseAi(this.userStore.user()));
+
+  /** Copy for locked AI surfaces. */
+  readonly aiLockNotice = GUEST_AI_LOCK_NOTICE;
 
   conversationalTier = computed(() => {
     const profile = this.userProfileService.profile();
@@ -432,7 +449,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   /** Runs the existing AI endpoint and retains a bounded search history. */
   async industryDeepSearch(query: string): Promise<void> {
     const normalizedQuery = query.trim();
-    if (!normalizedQuery) return;
+    if (!normalizedQuery || !this.aiAccess()) return;
 
     const startedAt =
       typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -552,6 +569,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   }
 
   async getAIResponse(prompt: string): Promise<string> {
+    if (!this.aiAccess()) return this.aiLockNotice;
     const contextualPrompt = this.ensurePersonaDirectives(prompt);
     this.pendingRequests += 1;
     this.isProcessing.set(true);
@@ -922,6 +940,9 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   }
 
   async generateImage(prompt: string): Promise<string> {
+    if (!this.aiAccess()) {
+      throw new Error(this.aiLockNotice);
+    }
     const token = this.tokenService.jwtToken();
     const headers =
       token && this.tokenService.isApiToken()
@@ -1027,6 +1048,12 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     who: 'drummer' | 'bassist' | 'keyboardist',
     active: boolean
   ): void {
+    // Session musicians are AI: guests cannot engage them, and a guest session
+    // never inherits a previously running player.
+    if (active && !this.aiAccess()) {
+      this.notification.show(GUEST_AI_LOCK_NOTICE, 'warning', 5000);
+      return;
+    }
     const target = this.musicianSignal(who);
     if (target() === active) return;
     target.set(active);
