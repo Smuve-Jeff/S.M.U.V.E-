@@ -756,20 +756,23 @@ canvas {
  * Marker chips. Height raised 1.2rem → 2.2rem: 19px chips were roughly half
  * the minimum Android thumb target, and adjacent chips were 2–3px apart,
  * making mis-taps routine. Padding gives adjacent markers real separation.
+ *
+ * The chip is a container now: jumping and removing are separate buttons, so
+ * deleting a marker is never the same gesture as seeking to it.
  */
 .timeline-marker {
   top: 0.05rem;
   z-index: 25;
+  display: flex;
+  align-items: stretch;
   width: max-content;
-  max-width: 8rem;
+  max-width: 10rem;
   height: 2.75rem;
   border: 0;
   border-radius: 0.45rem;
-  padding: 0.3rem 0.5rem;
   background: rgba(245, 158, 11, 0.18);
   color: #fbbf24;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   /* Tap affordance on touch; hover states stay pointer-only. */
   touch-action: manipulation;
@@ -779,9 +782,38 @@ canvas {
   background: rgba(245, 158, 11, 0.38);
 }
 
+.timeline-marker-jump,
+.timeline-marker-remove {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  min-height: 2.75rem;
+  touch-action: manipulation;
+}
+
+.timeline-marker-jump {
+  max-width: 7.5rem;
+  padding: 0.3rem 0.25rem 0.3rem 0.5rem;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-marker-remove {
+  width: 2.75rem;
+  font-size: 0.8rem;
+  line-height: 1;
+  opacity: 0.6;
+}
+
 @media (hover: hover) {
   .timeline-marker:hover {
     background: rgba(245, 158, 11, 0.3);
+  }
+  .timeline-marker-remove:hover {
+    opacity: 1;
   }
 }
 

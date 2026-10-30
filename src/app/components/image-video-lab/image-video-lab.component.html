@@ -817,29 +817,56 @@
               (pointerup)="onRulerPointerUp($event)"
               (pointercancel)="onRulerPointerUp($event)"
             >
+              <!--
+                Controls inside the ruler stop their own pointerdown: the ruler
+                captures the pointer for scrubbing, which made the browser send
+                the release and the click to the ruler instead of the tick or
+                marker that was pressed — so both were inert on every device.
+              -->
               @for (tick of rulerTicks(); track tick.time) {
                 <button
                   type="button"
                   class="timeline-tick"
                   [class.bar]="tick.isBar"
                   [style.left.px]="tick.time * pxPerSecond()"
+                  (pointerdown)="$event.stopPropagation()"
                   (click)="onTickClick($event, tick.time)"
                 >
                   <span>{{ tick.time | number: '1.0-0' }}</span>
                 </button>
               }
+              <!--
+                The chip used to delete itself on double-click while the same
+                press jumped the playhead, and its tooltip promised a
+                "double-tap" that touch browsers do not reliably deliver — so a
+                marker could vanish from a stray gesture with no undo. Jump and
+                remove are now separate targets on the chip.
+              -->
               @for (marker of visibleMarkers(); track marker.id) {
-                <button
-                  type="button"
+                <span
                   class="timeline-marker"
                   [style.left.px]="marker.time * pxPerSecond()"
-                  [title]="marker.label + ' — tap to jump, double-tap to remove'"
-                  [attr.aria-label]="'Jump to marker ' + marker.label"
-                  (click)="onMarkerClick($event, marker.id)"
-                  (dblclick)="$event.stopPropagation(); removeMarker(marker.id)"
+                  (pointerdown)="$event.stopPropagation()"
                 >
-                  <span>{{ marker.label }}</span>
-                </button>
+                  <button
+                    type="button"
+                    class="timeline-marker-jump"
+                    [title]="'Jump to marker ' + marker.label"
+                    [attr.aria-label]="'Jump to marker ' + marker.label"
+                    (click)="onMarkerClick($event, marker.id)"
+                  >
+                    <span>{{ marker.label }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="timeline-marker-remove"
+                    [title]="'Remove marker ' + marker.label"
+                    [attr.aria-label]="'Remove marker ' + marker.label"
+                    (click)="removeMarker(marker.id); $event.stopPropagation()"
+                  >
+                    ×
+                  </button>
+                </span>
               }
             </div>
             @for (track of videoEngine.tracks(); track track.id) {

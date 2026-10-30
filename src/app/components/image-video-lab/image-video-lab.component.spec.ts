@@ -2209,6 +2209,23 @@ describe('ImageVideoLabComponent', () => {
       );
     });
 
+    it('removes a marker from its own control, not a stray double-click', () => {
+      // The chip deleted itself on double-click while the same press seeked,
+      // so two quick taps could destroy a marker with no undo.
+      expect(template).not.toMatch(/\(dblclick\)="\$event\.stopPropagation\(\); removeMarker/);
+      expect(template).toContain('class="timeline-marker-remove"');
+      expect(template).toContain('[attr.aria-label]="\'Remove marker \' + marker.label"');
+      expect(template).toContain('[attr.aria-label]="\'Jump to marker \' + marker.label"');
+    });
+
+    it('keeps ruler controls pressable under the scrub pointer capture', () => {
+      // The ruler captures the pointer on pointerdown, so a press that bubbles
+      // to it hands the click to the ruler: ticks and markers did nothing.
+      const ruler = template.slice(template.indexOf('class="timeline-ruler"'));
+      const controls = ruler.slice(0, ruler.indexOf('director'));
+      expect(controls.split('(pointerdown)="$event.stopPropagation()"').length - 1).toBe(2);
+    });
+
     it('keeps lane labels pinned to the lane viewport while panning', () => {
       expect(template).toContain('class="track-label');
       // The old absolutely positioned label travelled with the clips and left
