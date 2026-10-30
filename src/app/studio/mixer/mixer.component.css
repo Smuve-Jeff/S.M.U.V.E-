@@ -2364,3 +2364,47 @@ the workspace. */
     min-height: 84px;
   }
 }
+
+/* ============================================================
+   DENSE-GRID TAP EXPANSION — VCA rack (Android touch)
+
+   The VCA add/mute/remove buttons are 34px so the rack header stays one line.
+   Each grows a transparent band centred on itself at exactly --pux-tap tall;
+   the neighbours in that row are horizontal, so a vertical band reaches the
+   touch floor without taking a tap meant for the button beside it.
+
+   Deliberately NOT applied to the piano keys or timeline clips: both are
+   stacked on the vertical axis (key over key, lane under lane), so a band
+   there would land the tap on the neighbouring key or track — a wrong musical
+   edit is worse than a small target. Those need taller keys / lanes, not a
+   hit layer.
+   ============================================================ */
+@media (pointer: coarse) {
+  .mix-vca-add {
+    position: relative;
+  }
+
+  .mix-vca-add::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: var(--pux-tap, 44px);
+    transform: translateY(-50%);
+  }
+
+  .mix-vca-remove {
+    position: relative;
+  }
+
+  .mix-vca-remove::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: var(--pux-tap, 44px);
+    transform: translateY(-50%);
+  }
+}
