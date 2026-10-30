@@ -1608,3 +1608,28 @@ them. Desktop keeps the inline panel. */
     transition: none;
   }
 }
+
+/* ============================================================
+   DENSE-GRID TAP EXPANSION (Android touch)
+
+   A 16-step bar is 34-38px tall per row, so the cells cannot take the 44px
+   floor without breaking the grid. Each cell keeps its visual box and grows a
+   transparent band centred on itself at exactly --pux-tap tall. Vertical only:
+   a sideways expansion would overlap the neighbouring step and paint the wrong
+   cell for a tap that landed between two of them.
+   ============================================================ */
+@media (pointer: coarse) {
+  .channel-rack-step-cell {
+    position: relative;
+  }
+
+  .channel-rack-step-cell::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: var(--pux-tap, 44px);
+    transform: translateY(-50%);
+  }
+}

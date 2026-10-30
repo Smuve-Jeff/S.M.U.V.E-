@@ -1721,3 +1721,34 @@
     min-height: 44px;
   }
 }
+
+/* ============================================================
+   DENSE-GRID TAP EXPANSION (Android touch)
+
+   Step cells and track-lane controls are sized by their lane, so raising them
+   to the 44px touch floor would break the grid rhythm. They keep their visual
+   box and grow a transparent hit layer instead: a band centred on the control
+   at exactly --pux-tap tall, so the target meets the floor at every breakpoint
+   rather than only at the size one negative inset happened to fit.
+
+   The band is full-width but never wider than the control, and it expands
+   vertically only beyond it — growing sideways would overlap the neighbouring
+   control and route taps to whichever element painted last.
+   ============================================================ */
+@media (pointer: coarse) {
+  .mini-btn,
+  .m-btn {
+    position: relative;
+  }
+
+  .mini-btn::after,
+  .m-btn::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: var(--pux-tap, 44px);
+    transform: translateY(-50%);
+  }
+}
