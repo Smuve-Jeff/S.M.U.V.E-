@@ -1362,16 +1362,21 @@
 
 @media (max-width: 768px) and (orientation: landscape) {
   .comp-shell {
-    /* 62px, not 52: the tab bar's own padding (6px top + 8px bottom) plus its
-       48px tab row makes the nav 62px tall regardless of the variable, so a
-       52px value left anything anchored to --mobile-nav-height (the FAB, the
-       drawer) sitting flush against the nav with no clearance. Matches the
-       portrait tier's own accounting. */
-    --mobile-nav-height: 62px;
+    /* 54px, which is what the nav actually renders here: the landscape tier in
+       studio-shell-refinement.css pins `.comp-bottombar` to height/min-height
+       54px and later-in-cascade wins over this sheet's content-sized 62px. The
+       variable has to state the rendered height, because the FAB and the drawer
+       offset themselves from it — 62px left both floating 8px above a 54px bar. */
+    --mobile-nav-height: 54px;
   }
 
   .comp-topbar {
-    height: 44px;
+    /* The transport shell this row hosts is pinned to 63px for landscape
+       phones (studio-transport-shell + transport-bar, <=932px landscape). A
+       44px bar let the transport overflow 19px onto the tool row below it, so
+       the bar states the height its only in-flow child needs. */
+    height: 64px;
+    min-height: 64px;
     padding: 0 10px;
   }
 
@@ -1428,7 +1433,22 @@
    The footer only carries brand/view/BPM chips — the transport bar keeps the
    transport readouts. */
 @media (max-width: 932px) and (orientation: landscape) and (max-height: 480px) {
+  .comp-shell {
+    /* The status strip is hidden below, so the save-failure alert — anchored to
+       status + header — would otherwise drop 28px and cover the topbar it is
+       asking the artist to use. */
+    --studio-status-height: 0px;
+  }
+
   .comp-footer {
+    display: none;
+  }
+
+  /* 28px of the scarcest axis for a line that is duplicated by the project
+     menu (save/export/version history) and the save-failure alert above it.
+     The drum view already dropped this strip; a landscape phone in any view
+     has the same ~196px of chrome around a 320px canvas. */
+  .studio-project-status {
     display: none;
   }
 }
@@ -5139,9 +5159,12 @@ button.comp-meta-state-pill:focus-visible {
     display: none;
   }
 
+  /* 64px, not 44: this bar hosts the landscape transport, whose shell is
+     pinned to 63px. A 44px bar pushed ~19px of transport over the tool row
+     underneath it, so the earlier saving was borrowed from the controls. */
   .comp-drum-view .comp-topbar {
-    height: 44px;
-    min-height: 44px;
+    height: 64px;
+    min-height: 64px;
   }
 
   .comp-drum-view .comp-topbar-tools {
