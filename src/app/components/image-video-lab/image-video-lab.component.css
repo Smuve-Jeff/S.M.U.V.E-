@@ -346,6 +346,60 @@ canvas {
   list-style: disc;
 }
 
+.director-plan-shots {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.director-plan-shot {
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.25rem 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  color: #cbd5e1;
+  font-size: 0.62rem;
+}
+
+.director-plan-shot-index {
+  color: #64748b;
+  font-weight: 900;
+}
+
+.director-plan-shot-title {
+  overflow: hidden;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.director-plan-shot-spec {
+  grid-column: 2;
+  color: #64748b;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ON LANE borrows the card's amber so the list and the lane agree at a glance. */
+.director-plan-shot-state {
+  grid-row: 1;
+  grid-column: 3;
+  color: #64748b;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.director-plan-shot.staged .director-plan-shot-state {
+  color: rgba(251, 191, 36, 0.9);
+}
+
 .director-plan-meta,
 .command-console-label {
   color: #10b981;

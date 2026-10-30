@@ -1835,10 +1835,36 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     );
   }
 
+  /**
+   * The plan's shots, each with the only lane fact the console can honestly
+   * report: whether that shot's card is staged. Footage is never tied to a
+   * shot, so this says nothing about which frames have been shot.
+   */
+  readonly plannedShotRows = computed(() => {
+    const plan = this.director.plan();
+    if (!plan) {
+      return [];
+    }
+    const cards = new Set(
+      (this.videoEngine.tracks().find((track) => track.id === 't1')?.clips ?? [])
+        .filter((clip) => this.isShotCard(clip))
+        .map((clip) => clip.name)
+    );
+    return plan.shots.map((shot) => {
+      const cardName = this.shotCardName(shot);
+      return { shot, cardName, staged: cards.has(cardName) };
+    });
+  });
+
+  /** The name a planned shot is given on the lane, card or shot. */
+  private shotCardName(shot: Pick<ShotPlanShot, 'index' | 'title'>): string {
+    return `${String(shot.index).padStart(2, '0')} · ${shot.title}`;
+  }
+
   /** Assemble a timeline clip from a planned shot. */
   private shotClip(shot: ShotPlanShot): Omit<VideoClip, 'id' | 'trackId'> {
     return {
-      name: `${String(shot.index).padStart(2, '0')} · ${shot.title}`,
+      name: this.shotCardName(shot),
       url: '',
       startTime: shot.startTime,
       duration: shot.durationSeconds,

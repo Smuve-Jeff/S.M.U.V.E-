@@ -1216,6 +1216,26 @@
                   }
                 </ul>
               }
+              <!--
+                The shots themselves were never rendered: the card showed the
+                title, the logline, the notes and the runtime, so the list the
+                plan is built around could only be read once it was staged.
+              -->
+              <ol class="director-plan-shots" aria-label="Planned shots">
+                @for (row of plannedShotRows(); track row.shot.index) {
+                  <li class="director-plan-shot" [class.staged]="row.staged">
+                    <span class="director-plan-shot-index">{{ row.shot.index | number: '2.0-0' }}</span>
+                    <span class="director-plan-shot-title">{{ row.shot.title }}</span>
+                    <span class="director-plan-shot-spec">
+                      {{ row.shot.size | uppercase }} · {{ row.shot.bars }} BARS ·
+                      {{ row.shot.durationSeconds | number: '1.0-0' }}S
+                    </span>
+                    <span class="director-plan-shot-state">
+                      {{ row.staged ? 'ON LANE' : 'NOT STAGED' }}
+                    </span>
+                  </li>
+                }
+              </ol>
               <div class="director-plan-meta">
                 <span>{{ planAttribution() }}</span>
                 <span>{{ director.plannedRuntime() | number: '1.0-0' }}s planned</span>

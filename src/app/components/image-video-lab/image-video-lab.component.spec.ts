@@ -4178,6 +4178,57 @@ describe('ImageVideoLabComponent', () => {
       localStorage.clear();
     });
 
+    it('lists every planned shot with whether its card is on the lane', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      component.director.plan.set(stageablePlan());
+      visualsLane(engine).clips = [
+        {
+          id: 'card-1',
+          name: '01 · Dashboard',
+          url: '',
+          startTime: 0,
+          duration: 8,
+          offset: 0,
+          trackId: 't1',
+          type: 'overlay',
+          source: 'ai',
+        },
+      ];
+
+      const rows = component.plannedShotRows();
+
+      expect(rows.map((row) => row.cardName)).toEqual(['01 · Dashboard', '02 · Verse']);
+      expect(rows.map((row) => row.staged)).toEqual([true, false]);
+    });
+
+    it('reports no shot as staged when the lane holds no cards', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      component.director.plan.set(stageablePlan());
+      visualsLane(engine).clips = [];
+
+      expect(component.plannedShotRows().every((row) => !row.staged)).toBe(true);
+    });
+
+    it('does not count footage as a staged shot', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      component.director.plan.set(stageablePlan());
+      visualsLane(engine).clips = [
+        {
+          id: 'take-1',
+          name: '01 · Dashboard',
+          url: 'blob:take',
+          startTime: 0,
+          duration: 8,
+          offset: 0,
+          trackId: 't1',
+          type: 'video',
+          source: 'camera',
+        },
+      ];
+
+      expect(component.plannedShotRows().every((row) => !row.staged)).toBe(true);
+    });
+
     it('clears its own cards without touching footage on the lane', async () => {
       const { component, videoEngine: engine } = await createComponent();
       visualsLane(engine).clips = [
