@@ -349,6 +349,112 @@
       </section>
     </div>
 
+    <!-- Profile revision history: the audit trail behind every re-read. -->
+    <section
+      class="mt-8 glass-v42 border border-white/10 rounded-2xl overflow-hidden"
+      aria-label="Profile revision history"
+    >
+      <header
+        class="p-4 md:p-5 border-b border-white/10 bg-black/15 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+      >
+        <div>
+          <div class="flex items-center gap-2">
+            <span
+              class="material-symbols-outlined text-brand-primary text-base"
+              aria-hidden="true"
+              >history</span
+            >
+            <h2
+              class="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]"
+            >
+              Profile Revision History
+            </h2>
+          </div>
+          <p class="mt-1 text-[10px] text-slate-500 leading-relaxed">
+            Every committed change S.M.U.V.E. re-read, with the exact before
+            and after. The latest version is what it judges your next move
+            against.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span
+            class="px-2 py-1 rounded border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-slate-400"
+          >
+            {{ revisionHistory().length }} revision{{ revisionHistory().length === 1 ? '' : 's' }}
+          </span>
+          <button
+            type="button"
+            (click)="openProfile()"
+            class="px-2 py-1 rounded border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-slate-300 hover:border-brand-primary/40 hover:text-brand-primary transition-colors flex items-center gap-1"
+            title="Open the Artist Profile"
+          >
+            <span class="material-symbols-outlined text-xs">badge</span>
+            Open profile
+          </button>
+        </div>
+      </header>
+
+      <div
+        *ngIf="revisionHistory().length; else noRevisions"
+        class="divide-y divide-white/5"
+      >
+        <article
+          *ngFor="let revision of visibleRevisions(); trackBy: trackRevisionId"
+          class="p-4 md:p-5"
+        >
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              class="text-[9px] font-bold uppercase tracking-widest text-slate-500"
+              >{{ agedOn(revision.at) }}</span
+            >
+            <span
+              class="px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary text-[8px] font-black uppercase tracking-widest"
+            >
+              {{ revision.changes.length }} change{{ revision.changes.length === 1 ? '' : 's' }}
+            </span>
+          </div>
+          <ul class="mt-3 grid gap-1.5">
+            <li
+              *ngFor="let change of revision.changes"
+              class="grid grid-cols-1 md:grid-cols-[10rem_1fr] gap-1 md:gap-3 text-[11px]"
+            >
+              <span
+                class="text-[8px] font-black uppercase tracking-widest text-slate-500"
+                >{{ change.label }}</span
+              >
+              <span class="text-slate-300 leading-relaxed">
+                <span class="text-slate-500">{{ change.from || 'not set' }}</span>
+                <span class="mx-1 text-brand-primary">→</span>
+                <span>{{ change.to || 'cleared' }}</span>
+              </span>
+            </li>
+          </ul>
+        </article>
+
+        <div *ngIf="revisionHistory().length > 5" class="p-4">
+          <button
+            type="button"
+            (click)="toggleRevisions()"
+            class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-[9px] font-black uppercase tracking-widest text-slate-300 hover:border-brand-primary/40 hover:text-brand-primary transition-colors"
+          >
+            {{
+              showingAllRevisions()
+                ? 'Show latest 5'
+                : 'Show ' + hiddenRevisionCount() + ' older revision' + (hiddenRevisionCount() === 1 ? '' : 's')
+            }}
+          </button>
+        </div>
+      </div>
+
+      <ng-template #noRevisions>
+        <div class="p-6 text-xs text-slate-400 leading-relaxed">
+          No profile revisions yet. S.M.U.V.E. records one each time a committed
+          profile changes after it has read you — signature, blueprint,
+          references, catalogue, business or legal evidence.
+        </div>
+      </ng-template>
+    </section>
+
     <ng-template #emptyState>
       <div
         class="glass-v42 border border-white/10 rounded-3xl p-8 md:p-12 text-center"

@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { UserProfileService, UserProfile } from './user-profile.service';
 
 /** One profile signal that changed between S.M.U.V.E.'s reads. */
@@ -14,6 +14,12 @@ export interface ArtistProfileRevision {
   at: number;
   changes: ProfileRevisionChange[];
   summary: string;
+}
+
+/** A persisted revision, scoped to the artist whose profile changed. */
+export interface ArtistProfileRevisionEntry extends ArtistProfileRevision {
+  id: string;
+  artistId: string;
 }
 
 interface SnapshotValue {
@@ -35,6 +41,8 @@ interface ProfileSnapshot {
 }
 
 const STORAGE_PREFIX = 'smuve.profile.revision.v1';
+const HISTORY_KEY = 'smuve.profile.revision.history.v1';
+const HISTORY_LIMIT = 40;
 
 const cap = (value: unknown, max = 120): string => {
   const text = String(value ?? '').trim();
@@ -276,6 +284,19 @@ const formatValue = (value: string): string =>
 @Injectable({ providedIn: 'root' })
 export class ArtistProfileRevisionService {
   private profileService = inject(UserProfileService);
+  private readonly historyState = signal<ArtistProfileRevisionEntry[]>(
+    this.readHistory()
+  );
+
+  /**
+   * The current artist's revision history, newest first. Reading the profile
+   * signal keeps the list scoped when an artist switches accounts on the same
+   * browser; another artist's revisions never appear in this file.
+   */
+  readonly history = computed<ArtistProfileRevisionEntry[]>(() => {
+    const artistId = this.profileService.profile()?.id || 'local';
+    return this.historyState().filter((entry) => entry.artistId === artistId);
+  });
 
   /** The latest revision without consuming it (for panels that only display). */
   peekChanges(): ArtistProfileRevision | null {
@@ -297,7 +318,78 @@ export class ArtistProfileRevisionService {
     const previous = this.readSnapshot(profile);
     this.writeSnapshot(profile, current);
     if (!previous) return null;
-    return this.compare(previous, current);
+    const revision = this.compare(previous, current);
+    if (revision) this.record(profile, revision);
+    return revision;
+  }
+
+  /** Adds a consumed revision to the audit history; capped per artist. */
+  private record(profile: UserProfile, revision: ArtistProfileRevision): void {
+    const artistId = profile.id || 'local';
+    const entry: ArtistProfileRevisionEntry = {
+      ...revision,
+      id: `${revision.at.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      artistId,
+    };
+    const current = this.historyState();
+    const mine = [entry, ...current.filter((item) => item.artistId === artistId)].slice(
+      0,
+      HISTORY_LIMIT
+    );
+    const others = current.filter((item) => item.artistId !== artistId);
+    const next = [...mine, ...others].sort((a, b) => b.at - a.at);
+    this.historyState.set(next);
+    this.writeHistory(next);
+  }
+
+  private readHistory(): ArtistProfileRevisionEntry[] {
+    if (typeof localStorage === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter(
+          (entry): entry is ArtistProfileRevisionEntry =>
+            Boolean(entry) &&
+            typeof entry === 'object' &&
+            typeof entry.at === 'number' &&
+            Array.isArray(entry.changes) &&
+            typeof entry.artistId === 'string'
+        )
+        .map((entry) => ({
+          id: String(entry.id || `${entry.at}`),
+          artistId: entry.artistId,
+          at: entry.at,
+          summary: String(entry.summary || ''),
+          changes: entry.changes
+            .filter(
+              (change): change is ProfileRevisionChange =>
+                Boolean(change) &&
+                typeof change === 'object' &&
+                typeof change.label === 'string'
+            )
+            .map((change) => ({
+              label: change.label,
+              from: String(change.from ?? ''),
+              to: String(change.to ?? ''),
+            })),
+        }))
+        .filter((entry) => entry.changes.length > 0)
+        .sort((a, b) => b.at - a.at);
+    } catch {
+      return [];
+    }
+  }
+
+  private writeHistory(entries: ArtistProfileRevisionEntry[]): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+    } catch {
+      // History is an audit aid, never a dependency of the current read.
+    }
   }
 
   private snapshot(profile: UserProfile): ProfileSnapshot {

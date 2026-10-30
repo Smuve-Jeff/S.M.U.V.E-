@@ -75,8 +75,62 @@ describe('ArtistProfileRevisionService', () => {
       },
     ]);
     expect(revision?.summary).toContain('signature sound');
+
+    const history = service.history();
+    expect(history).toHaveLength(1);
+    expect(history[0].artistId).toBe('artist-1');
+    expect(history[0].changes).toEqual(revision?.changes);
+
     // Consumed exactly once.
     expect(service.takeChanges()).toBeNull();
+    expect(service.history()).toHaveLength(1);
+  });
+
+  it('keeps history scoped to the artist whose profile changed', () => {
+    service.takeChanges();
+    profileSignal.set({
+      ...baseProfile,
+      musicalJourney: {
+        ...(baseProfile as any).musicalJourney,
+        signatureSound: 'new signature',
+      },
+    } as UserProfile);
+    service.takeChanges();
+    expect(service.history()).toHaveLength(1);
+
+    profileSignal.set({ ...baseProfile, id: 'artist-2' } as UserProfile);
+    expect(service.history()).toEqual([]);
+
+    profileSignal.set(baseProfile);
+    expect(service.history()).toHaveLength(1);
+  });
+
+  it('persists the audit trail for a later session', () => {
+    service.takeChanges();
+    profileSignal.set({
+      ...baseProfile,
+      musicalJourney: {
+        ...(baseProfile as any).musicalJourney,
+        signatureSound: 'new signature',
+      },
+    } as UserProfile);
+    service.takeChanges();
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        ArtistProfileRevisionService,
+        { provide: UserProfileService, useValue: { profile: profileSignal } },
+      ],
+    });
+    service = TestBed.inject(ArtistProfileRevisionService);
+
+    expect(service.history()).toHaveLength(1);
+    expect(service.history()[0].changes[0]).toEqual({
+      label: 'signature sound',
+      from: 'tape hiss and bowed metal',
+      to: 'new signature',
+    });
   });
 
   it('reports a cleared answer instead of silently dropping it', () => {
@@ -197,8 +251,10 @@ describe('ArtistProfileRevisionService', () => {
 
     const peeked = service.peekChanges();
     expect(peeked?.changes).toHaveLength(2);
-    // Peek did not consume: the next read still returns the revision.
+    // A peek is not an audit entry, and it did not consume the revision.
+    expect(service.history()).toEqual([]);
     expect(service.takeChanges()?.changes).toHaveLength(2);
+    expect(service.history()).toHaveLength(1);
 
     const line = profileRevisionLine(peeked!);
     expect(line).toContain('PROFILE REVISION');

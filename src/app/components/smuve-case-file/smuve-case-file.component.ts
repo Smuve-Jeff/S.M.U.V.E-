@@ -16,6 +16,10 @@ import {
   SmuveCareerDirectorService,
   SmuveSurfaceId,
 } from '../../services/smuve-career-director.service';
+import {
+  ArtistProfileRevisionEntry,
+  ArtistProfileRevisionService,
+} from '../../services/artist-profile-revision.service';
 import { UIService } from '../../services/ui.service';
 import { getPersonaOption } from '../../types/persona.types';
 import { UserProfileService } from '../../services/user-profile.service';
@@ -81,6 +85,8 @@ export class SmuveCaseFileComponent {
   readonly notice = signal('');
   readonly spoken = signal<{ line: string; archetype: string } | null>(null);
   readonly confirmingClear = signal(false);
+  /** Five latest revisions are visible; older ones stay one press away. */
+  readonly showingAllRevisions = signal(false);
   private clearTimer: ReturnType<typeof setTimeout> | null = null;
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -96,6 +102,14 @@ export class SmuveCaseFileComponent {
   private get ui(): UIService | null {
     try {
       return this.injector.get(UIService, null);
+    } catch {
+      return null;
+    }
+  }
+
+  private get revisions(): ArtistProfileRevisionService | null {
+    try {
+      return this.injector.get(ArtistProfileRevisionService, null);
     } catch {
       return null;
     }
@@ -138,6 +152,28 @@ export class SmuveCaseFileComponent {
   });
 
   readonly hasEntries = computed(() => this.memory.entries().length > 0);
+
+  /**
+   * Profile revisions live beside the case file because both are audits of the
+   * same artist: one records what was said, the other what S.M.U.V.E. now reads.
+   */
+  readonly revisionHistory = computed<ArtistProfileRevisionEntry[]>(() => {
+    try {
+      return this.revisions?.history() ?? [];
+    } catch {
+      return [];
+    }
+  });
+
+  readonly visibleRevisions = computed(() =>
+    this.showingAllRevisions()
+      ? this.revisionHistory()
+      : this.revisionHistory().slice(0, 5)
+  );
+
+  readonly hiddenRevisionCount = computed(() =>
+    Math.max(0, this.revisionHistory().length - this.visibleRevisions().length)
+  );
 
   /**
    * The same record, grouped by the room that produced it.
@@ -293,6 +329,18 @@ export class SmuveCaseFileComponent {
   openRoom(surface: SmuveSurfaceId): void {
     const route = this.routeForSurface(surface);
     if (route) this.router.navigateByUrl(route);
+  }
+
+  toggleRevisions(): void {
+    this.showingAllRevisions.update((value) => !value);
+  }
+
+  openProfile(): void {
+    this.router.navigateByUrl('/profile');
+  }
+
+  trackRevisionId(_index: number, revision: ArtistProfileRevisionEntry): string {
+    return revision.id;
   }
 
   /**

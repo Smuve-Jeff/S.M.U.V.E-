@@ -9,6 +9,10 @@ import {
 import { SmuveCareerDirectorService } from '../../services/smuve-career-director.service';
 import { UIService } from '../../services/ui.service';
 import { UserProfileService } from '../../services/user-profile.service';
+import {
+  ArtistProfileRevisionEntry,
+  ArtistProfileRevisionService,
+} from '../../services/artist-profile-revision.service';
 
 const now = Date.now();
 
@@ -77,6 +81,7 @@ describe('SmuveCaseFileComponent', () => {
   };
   let ui: { openChatbot: jest.Mock; askChatbot: jest.Mock };
   let router: { navigateByUrl: jest.Mock };
+  let revisionHistory: WritableSignal<ArtistProfileRevisionEntry[]>;
 
   beforeEach(() => {
     entries = signal<SmuveMemoryEntry[]>([...sampleEntries]);
@@ -128,6 +133,7 @@ describe('SmuveCaseFileComponent', () => {
     };
     ui = { openChatbot: jest.fn(), askChatbot: jest.fn() };
     router = { navigateByUrl: jest.fn() };
+    revisionHistory = signal<ArtistProfileRevisionEntry[]>([]);
 
     TestBed.configureTestingModule({
       imports: [SmuveCaseFileComponent],
@@ -136,6 +142,10 @@ describe('SmuveCaseFileComponent', () => {
         { provide: SmuveCareerDirectorService, useValue: director },
         { provide: UIService, useValue: ui },
         { provide: Router, useValue: router },
+        {
+          provide: ArtistProfileRevisionService,
+          useValue: { history: revisionHistory },
+        },
         {
           provide: UserProfileService,
           useValue: {
@@ -289,6 +299,48 @@ describe('SmuveCaseFileComponent', () => {
     expect(question).toContain('Cut 180Hz and sidechain the kick.');
     expect(question).toContain('Last activity: today');
     expect(question).toContain('Do not ask me to repeat facts already on file');
+  });
+
+  it('audits profile revisions beside the case file and pages older ones', () => {
+    revisionHistory.set(
+      Array.from({ length: 6 }, (_, index) => ({
+        id: `rev-${index}`,
+        artistId: 'artist-1',
+        at: now - index * 60_000,
+        summary: 'signature sound changed',
+        changes: [
+          {
+            label: 'signature sound',
+            from: `old signature ${index}`,
+            to: `new signature ${index}`,
+          },
+        ],
+      }))
+    );
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Profile Revision History');
+    expect(text).toContain('6 revisions');
+    expect(text).toContain('signature sound');
+    expect(text).toContain('old signature 0');
+    expect(text).toContain('new signature 0');
+    expect(text).toContain('Show 1 older revision');
+    // Only the five newest are visible until the artist asks for the rest.
+    expect(component.visibleRevisions()).toHaveLength(5);
+
+    component.toggleRevisions();
+    fixture.detectChanges();
+
+    expect(component.visibleRevisions()).toHaveLength(6);
+    expect(fixture.nativeElement.textContent).toContain('Show latest 5');
+    expect(fixture.nativeElement.textContent).toContain('old signature 5');
+  });
+
+  it('opens the profile from the revision history', () => {
+    component.openProfile();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/profile');
   });
 
   it('opens the console from the empty state', () => {
