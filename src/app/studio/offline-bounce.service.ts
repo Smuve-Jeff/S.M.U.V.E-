@@ -499,7 +499,15 @@ export class OfflineBounceService {
     // Imported pad one-shots carry their decoded PCM in the note params.
     // Without this branch the bounce synthesized a pitched oscillator and the
     // exported kick/snare/hat did not match the pad the artist played.
-    const oneShot = note.params?.sampleBuffer as AudioBuffer | undefined;
+    const inlineOneShot = note.params?.sampleBuffer as AudioBuffer | undefined;
+    const oneShot =
+      inlineOneShot &&
+      Number.isFinite(inlineOneShot.duration) &&
+      inlineOneShot.duration > 0
+        ? inlineOneShot
+        : note.params?.sampleRefId
+          ? this.musicManager.stemAudioCache.get(note.params.sampleRefId)
+          : undefined;
     if (oneShot && Number.isFinite(oneShot.duration) && oneShot.duration > 0) {
       const source = ctx.createBufferSource();
       source.buffer = oneShot;

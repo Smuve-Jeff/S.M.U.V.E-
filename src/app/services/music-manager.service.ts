@@ -3614,11 +3614,22 @@ export class MusicManagerService {
               const notePan = n.notePan ?? t.pan;
 
               // Imported drum/percussion one-shots are attached to the pad
-              // note. Play the PCM the artist loaded; falling through to the
-              // synth voice made an imported kick sound like a sine beep.
-              const oneShot = (n as any).params?.sampleBuffer as
+              // note by reference. Play the PCM the artist loaded; falling
+              // through to the synth voice made an imported kick sound like a
+              // sine beep. Plain `sampleBuffer: {}` objects from an older JSON
+              // save are ignored in favour of the restored cache entry.
+              const noteParams = (n as any).params;
+              const inlineOneShot = noteParams?.sampleBuffer as
                 | AudioBuffer
                 | undefined;
+              const oneShot =
+                inlineOneShot &&
+                Number.isFinite(inlineOneShot.duration) &&
+                inlineOneShot.duration > 0
+                  ? inlineOneShot
+                  : noteParams?.sampleRefId
+                    ? this.stemAudioCache.get(noteParams.sampleRefId)
+                    : undefined;
               if (
                 oneShot &&
                 Number.isFinite(oneShot.duration) &&

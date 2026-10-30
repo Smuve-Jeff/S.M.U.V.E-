@@ -757,7 +757,16 @@ export class ExportService {
       // Imported one-shot notes carry their decoded PCM. Schedule the sample
       // itself rather than synthesising the pad's MIDI pitch: the live stepper
       // now takes the same branch, so monitoring and the bounce agree.
-      const oneShot = (n as any).params?.sampleBuffer as AudioBuffer | undefined;
+      const noteParams = (n as any).params;
+      const inlineOneShot = noteParams?.sampleBuffer as AudioBuffer | undefined;
+      const oneShot =
+        inlineOneShot &&
+        Number.isFinite(inlineOneShot.duration) &&
+        inlineOneShot.duration > 0
+          ? inlineOneShot
+          : noteParams?.sampleRefId
+            ? this.musicManager.stemAudioCache.get(noteParams.sampleRefId)
+            : undefined;
       if (oneShot && Number.isFinite(oneShot.duration) && oneShot.duration > 0) {
         const source = ctx.createBufferSource();
         source.buffer = oneShot;

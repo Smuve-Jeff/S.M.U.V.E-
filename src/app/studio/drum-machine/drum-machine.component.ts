@@ -1,6 +1,7 @@
 import {
   Component,
   computed,
+  effect,
   inject,
   OnDestroy,
   OnInit,
@@ -28,6 +29,8 @@ interface DrumPad {
   type: string;
   params: any;
   sampleBuffer?: AudioBuffer;
+  /** Stable project reference; the PCM lives in MusicManager.stemAudioCache. */
+  sampleRefId?: string;
   sampleName?: string;
   sampleMeta?: {
     sampleRate: number;
@@ -723,6 +726,14 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     this.initPads();
     // Apply default kit on init
     this.applyKit("tr808");
+
+    // Project load replaces the whole track list. Rebuild the pad-level
+    // sample state from the persisted descriptors so imported one-shots show
+    // up (and audition) before any step exists on the new pattern.
+    effect(() => {
+      const track = this.getDrumTrack();
+      if (track) this.hydratePadSamplesFromTrack(track);
+    });
   }
 
   ngOnInit() {}
@@ -889,7 +900,12 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         length: 1,
         velocity: velocity ?? this.selectedDrumStyle().velocity,
         probability: 1.0,
-        params: { ...pad.params, sampleBuffer: pad.sampleBuffer, swing },
+        params: {
+          ...pad.params,
+          sampleBuffer: pad.sampleBuffer,
+          sampleRefId: pad.sampleRefId,
+          swing,
+        },
       });
     }
   }
@@ -1170,7 +1186,11 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
           length: 1,
           velocity: 0.8,
           probability: 1.0,
-          params: { ...pad.params, sampleBuffer: pad.sampleBuffer },
+          params: {
+            ...pad.params,
+            sampleBuffer: pad.sampleBuffer,
+            sampleRefId: pad.sampleRefId,
+          },
         });
       }
     });
@@ -1314,7 +1334,11 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
           length: 1,
           velocity: Math.min(1, vel),
           probability: 1.0,
-          params: { ...pad.params, sampleBuffer: pad.sampleBuffer },
+          params: {
+            ...pad.params,
+            sampleBuffer: pad.sampleBuffer,
+            sampleRefId: pad.sampleRefId,
+          },
         });
       }
     }
@@ -1355,7 +1379,11 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
             length: 1,
             velocity: 0.5 + Math.random() * 0.4,
             probability: 0.8,
-            params: { ...p.params, sampleBuffer: p.sampleBuffer },
+            params: {
+              ...p.params,
+              sampleBuffer: p.sampleBuffer,
+              sampleRefId: p.sampleRefId,
+            },
           });
         }
       }
@@ -1416,10 +1444,15 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   triggerPad(pad: DrumPad, velocity = 1) {
     this.haptic.impact("light");
     const freq = 440 * Math.pow(2, (pad.midi - 69) / 12);
-    if (pad.sampleBuffer) {
+    const sampleBuffer =
+      pad.sampleBuffer ??
+      (pad.sampleRefId
+        ? this.musicManager.stemAudioCache?.get(pad.sampleRefId)
+        : undefined);
+    if (sampleBuffer) {
       this.audioEngine.triggerSampler(
         MusicManagerService.DRUM_TRACK_ID,
-        pad.sampleBuffer,
+        sampleBuffer,
         this.audioEngine.ctx.currentTime,
         velocity,
         pad.params.pan,
@@ -1475,12 +1508,16 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         throw new Error('One-shots are limited to 30 seconds. Trim the file first.');
       }
       const quality = this.sampleQualityFor(audioBuffer.sampleRate);
+      const previousRefId = pad.sampleRefId;
+      const sampleRefId = `drum-sample-${pad.id}-${Date.now().toString(36)}`;
+      this.musicManager.stemAudioCache?.set(sampleRefId, audioBuffer);
       this.pads.update((pads) =>
         pads.map((candidate) =>
           candidate.id === pad.id
             ? {
                 ...candidate,
                 sampleBuffer: audioBuffer,
+                sampleRefId,
                 sampleName: file.name,
                 sampleMeta: {
                   sampleRate: audioBuffer.sampleRate,
@@ -1492,6 +1529,13 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
             : candidate,
         ),
       );
+      // Persist the descriptor before touching notes: one track update carries
+      // the sample's stable identity through project save/load.
+      this.syncPadSamplesToTrack();
+      this.syncPadSampleRefToNotes(pad.id);
+      if (previousRefId && previousRefId !== sampleRefId) {
+        this.musicManager.stemAudioCache?.delete(previousRefId);
+      }
       this.haptic.medium();
       this.snack.success(
         `${pad.name} loaded · ${quality} · ${audioBuffer.sampleRate / 1000} kHz`,
@@ -1543,19 +1587,134 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   clearSelectedPadSample() {
     const pad = this.selectedPad();
     if (!pad) return;
+    const previousRefId = pad.sampleRefId;
     this.pads.update((pads) =>
       pads.map((candidate) =>
         candidate.id === pad.id
           ? {
               ...candidate,
               sampleBuffer: undefined,
+              sampleRefId: undefined,
               sampleName: undefined,
               sampleMeta: undefined,
             }
           : candidate,
       ),
     );
+    this.syncPadSamplesToTrack();
+    this.syncPadSampleRefToNotes(pad.id);
+    if (previousRefId) {
+      this.musicManager.stemAudioCache?.delete(previousRefId);
+    }
     this.snack.info(`${pad.name} returned to its synth engine`);
+  }
+
+  /** Persist only the serializable identity of each imported pad sample. */
+  private syncPadSamplesToTrack(): void {
+    const track = this.getDrumTrack();
+    if (!track) return;
+    const drumPadSamples = this.pads()
+      .filter((pad) => !!pad.sampleRefId)
+      .map((pad) => ({
+        id: pad.id,
+        sampleRefId: pad.sampleRefId,
+        sampleName: pad.sampleName,
+        sampleMeta: pad.sampleMeta,
+      }));
+    this.musicManager.applyTrackPatch(
+      track.id,
+      { drumPadSamples } as any,
+      'Update Drum One-Shots',
+    );
+  }
+
+  /** Point every existing hit on this pad at the current (or cleared) sample. */
+  private syncPadSampleRefToNotes(padId: string): void {
+    const track = this.getDrumTrack();
+    const pad = this.pads().find((candidate) => candidate.id === padId);
+    if (!track || !pad) return;
+    for (const note of track.notes.filter((n) => n.midi === pad.midi)) {
+      const params = { ...(note.params ?? {}) };
+      if (pad.sampleRefId) {
+        params.sampleRefId = pad.sampleRefId;
+        params.sampleName = pad.sampleName;
+        params.sampleMeta = pad.sampleMeta;
+      } else {
+        delete params.sampleRefId;
+        delete params.sampleName;
+        delete params.sampleMeta;
+      }
+      delete params.sampleBuffer;
+      this.musicManager.updateNote(track.id, note.id, { params });
+    }
+  }
+
+  /**
+   * Restore pad samples from the project track. New projects carry a
+   * `drumPadSamples` descriptor; older saves fall back to sample refs embedded
+   * in their drum notes.
+   */
+  private hydratePadSamplesFromTrack(track: any): void {
+    const persisted = new Map<string, any>();
+    for (const entry of Array.isArray(track.drumPadSamples)
+      ? track.drumPadSamples
+      : []) {
+      if (entry?.id && entry?.sampleRefId) persisted.set(entry.id, entry);
+    }
+    const noteSamples = new Map<number, any>();
+    for (const note of Array.isArray(track.notes) ? track.notes : []) {
+      const refId = note?.params?.sampleRefId;
+      if (!refId || noteSamples.has(note.midi)) continue;
+      noteSamples.set(note.midi, {
+        sampleRefId: refId,
+        sampleName: note.params?.sampleName,
+        sampleMeta: note.params?.sampleMeta,
+      });
+    }
+
+    this.pads.update((pads) =>
+      pads.map((pad) => {
+        const entry = persisted.get(pad.id) ?? noteSamples.get(pad.midi);
+        if (!entry) {
+          return pad.sampleRefId
+            ? {
+                ...pad,
+                sampleBuffer: undefined,
+                sampleRefId: undefined,
+                sampleName: undefined,
+                sampleMeta: undefined,
+              }
+            : pad;
+        }
+        const buffer = this.musicManager.stemAudioCache?.get(
+          entry.sampleRefId,
+        );
+        if (!buffer) {
+          return pad.sampleRefId
+            ? {
+                ...pad,
+                sampleBuffer: undefined,
+                sampleRefId: undefined,
+                sampleName: undefined,
+                sampleMeta: undefined,
+              }
+            : pad;
+        }
+        if (
+          pad.sampleRefId === entry.sampleRefId &&
+          pad.sampleBuffer === buffer
+        ) {
+          return pad;
+        }
+        return {
+          ...pad,
+          sampleBuffer: buffer,
+          sampleRefId: entry.sampleRefId,
+          sampleName: entry.sampleName ?? pad.sampleName,
+          sampleMeta: entry.sampleMeta ?? pad.sampleMeta,
+        };
+      }),
+    );
   }
 
   formatSampleDuration(duration: number): string {

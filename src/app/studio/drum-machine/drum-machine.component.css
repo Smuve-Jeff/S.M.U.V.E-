@@ -2212,3 +2212,88 @@ which parameter the step graph edits and needs a real thumb target. */
     min-height: 44px;
   }
 }
+
+/* ---- Layout hardening: one-shot panel + phone landscape ----------
+   The one-shot controls are the densest block in the inspector. Give their
+   labels room to truncate, keep every action at a real thumb target, and on
+   short landscape phones return to the three-column instrument layout instead
+   of stacking the pads above the sequencer and pushing the steps off-screen. */
+.dm-sample-panel {
+  min-width: 0;
+}
+
+.dm-sample-head,
+.dm-sample-actions,
+.dm-sample-name,
+.dm-sample-meta,
+.dm-sample-empty {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .dm-inspector {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .dm-sample-panel {
+    padding: 9px;
+    gap: 6px;
+  }
+
+  .dm-sample-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dm-sample-action {
+    min-height: 44px;
+    padding-inline: 6px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 420px) {
+  /* Two side-by-side sample actions left each label fighting for ~70px. */
+  .dm-sample-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .dm-sample-action {
+    min-height: 46px;
+  }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+  .dm-body {
+    flex-direction: row;
+    overflow: hidden;
+  }
+
+  .dm-pads {
+    flex: 0 0 30%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .dm-pad {
+    height: auto;
+    min-height: 44px;
+    aspect-ratio: auto;
+  }
+
+  .dm-step-grid {
+    min-width: 0;
+    min-height: 0;
+    border-top: 0;
+    border-left: 1px solid var(--ivory-line);
+  }
+
+  .dm-inspector {
+    flex: 0 0 190px;
+    width: 190px;
+    min-width: 0;
+    overflow-y: auto;
+    border-top: 0;
+    border-left: 1px solid var(--ivory-line);
+  }
+}

@@ -1610,40 +1610,88 @@ export class ProjectWorkspaceService {
     audioAssets: SerializedAudioAsset[];
   } {
     const audioAssets = new Map<string, SerializedAudioAsset>();
-    const tracks = this.musicManager.tracks().map((track) =>
-      JSON.parse(
-        JSON.stringify({
-          ...track,
-          ...(Array.isArray(track.clips)
-            ? {
-                clips: track.clips.map((clip: any) => {
-                  if (clip?.type !== "audio") {
-                    return { ...clip };
-                  }
-                  const refId =
-                    typeof clip.audioRefId === "string" &&
-                    clip.audioRefId.trim().length > 0
-                      ? clip.audioRefId
-                      : clip.id;
-                  const persistedClip = {
-                    ...clip,
-                    ...(refId ? { audioRefId: refId } : {}),
-                  };
-                  delete persistedClip.audioData;
-                  const buffer = this.resolveClipAudioBuffer(clip);
-                  if (buffer && refId && !audioAssets.has(refId)) {
-                    audioAssets.set(
-                      refId,
-                      this.serializeAudioAsset(refId, buffer, audioAssetMode),
-                    );
-                  }
-                  return persistedClip;
-                }),
-              }
-            : {}),
-        }),
-      ),
-    );
+
+    // Drum one-shots use the same reference cache as audio clips. Capture the
+    // PCM once per sample ref, then keep only that ref in the project tracks.
+    // A pad's sample is captured from its imported pad state even when the
+    // artist has not programmed a step yet.
+    const rememberSample = (refId: unknown, inline: unknown): string | null => {
+      const id = typeof refId === "string" && refId.trim() ? refId.trim() : "";
+      if (!id) return null;
+      if (!audioAssets.has(id)) {
+        const buffer = this.isAudioBufferLike(inline)
+          ? inline
+          : this.musicManager.stemAudioCache?.get(id);
+        if (this.isAudioBufferLike(buffer)) {
+          audioAssets.set(
+            id,
+            this.serializeAudioAsset(id, buffer, audioAssetMode),
+          );
+        }
+      }
+      return id;
+    };
+
+    const tracks = this.musicManager.tracks().map((track) => {
+      const persistedTrack: any = { ...track };
+
+      for (const padSample of Array.isArray((track as any).drumPadSamples)
+        ? (track as any).drumPadSamples
+        : []) {
+        rememberSample(padSample?.sampleRefId, undefined);
+      }
+
+      if (Array.isArray(track.clips)) {
+        persistedTrack.clips = track.clips.map((clip: any) => {
+          if (clip?.type !== "audio") {
+            return { ...clip };
+          }
+          const refId =
+            typeof clip.audioRefId === "string" &&
+            clip.audioRefId.trim().length > 0
+              ? clip.audioRefId
+              : clip.id;
+          const persistedClip = {
+            ...clip,
+            ...(refId ? { audioRefId: refId } : {}),
+          };
+          delete persistedClip.audioData;
+          const buffer = this.resolveClipAudioBuffer(clip);
+          if (buffer && refId && !audioAssets.has(refId)) {
+            audioAssets.set(
+              refId,
+              this.serializeAudioAsset(refId, buffer, audioAssetMode),
+            );
+          }
+          return persistedClip;
+        });
+      }
+
+      if (Array.isArray(track.notes)) {
+        persistedTrack.notes = track.notes.map((note: any, noteIndex: number) => {
+          const params = note?.params;
+          if (!params) return note;
+          const inline = params.sampleBuffer;
+          const currentRef =
+            typeof params.sampleRefId === "string"
+              ? params.sampleRefId.trim()
+              : "";
+          const refId =
+            currentRef ||
+            (this.isAudioBufferLike(inline)
+              ? `drum-sample-${track.id ?? "track"}-${note.id ?? noteIndex}`
+              : "");
+          if (!refId) return note;
+
+          rememberSample(refId, inline);
+          const persistedParams = { ...params, sampleRefId: refId };
+          delete persistedParams.sampleBuffer;
+          return { ...note, params: persistedParams };
+        });
+      }
+
+      return JSON.parse(JSON.stringify(persistedTrack));
+    });
     return { tracks, audioAssets: Array.from(audioAssets.values()) };
   }
 

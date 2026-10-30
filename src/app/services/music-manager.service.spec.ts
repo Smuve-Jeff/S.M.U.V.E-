@@ -1550,6 +1550,48 @@ describe('MusicManagerService live plugin insert wiring', () => {
     expect(triggerAttack).not.toHaveBeenCalled();
   });
 
+  it('resolves a restored one-shot by sample reference when the buffer was stripped from JSON', () => {
+    const triggerSampler = jest.fn();
+    (service as any).engine.triggerSampler = triggerSampler;
+    const triggerAttack = (service as any).engine.triggerAttack as jest.Mock;
+    triggerAttack.mockClear();
+    const sample = { duration: 0.5, sampleRate: 48000 } as AudioBuffer;
+    service.stemAudioCache.set('drum-sample-ref', sample);
+
+    service.tracks.update((tracks) =>
+      tracks.map((t) =>
+        t.id === 'track-1'
+          ? {
+              ...t,
+              notes: [
+                {
+                  id: 'n2',
+                  step: 0,
+                  midi: 36,
+                  velocity: 0.8,
+                  length: 1,
+                  params: { sampleRefId: 'drum-sample-ref', sampleBuffer: {} },
+                },
+              ] as any,
+            }
+          : t
+      )
+    );
+
+    service.playStep(0, 0, 0.125);
+
+    expect(triggerSampler).toHaveBeenCalledWith(
+      'track-1',
+      sample,
+      0,
+      0.8,
+      0,
+      0.5,
+    );
+    expect(triggerAttack).not.toHaveBeenCalled();
+    service.stemAudioCache.delete('drum-sample-ref');
+  });
+
   it('applies track gain once, on the fader, for note voices too', () => {
     const triggerAttack = (service as any).engine.triggerAttack as jest.Mock;
     const setBaseFaderGain = (service as any).engine.setBaseFaderGain as jest.Mock;

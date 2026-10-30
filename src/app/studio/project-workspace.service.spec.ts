@@ -425,6 +425,73 @@ describe("ProjectWorkspaceService", () => {
     expect(restored[2]).toBeCloseTo(0.25, 5);
   });
 
+  it("persists an imported drum one-shot even before a step is programmed", () => {
+    const sampleRefId = "drum-sample-pad-36-kick";
+    const buffer = createFakeAudioBuffer([[0.2, -0.35, 0.45]]);
+    stemAudioCache.set(sampleRefId, buffer);
+    tracks.set([
+      {
+        id: MusicManagerService.DRUM_TRACK_ID,
+        type: "drum",
+        notes: [],
+        drumPadSamples: [
+          {
+            id: "pad-36",
+            sampleRefId,
+            sampleName: "kick.wav",
+            sampleMeta: { sampleRate: 48000, channels: 1, duration: 0.5 },
+          },
+        ],
+      },
+    ]);
+
+    const snapshot = service.createSnapshot();
+    expect(snapshot.tracks[0].drumPadSamples[0].sampleRefId).toBe(sampleRefId);
+    expect(snapshot.audioAssets).toEqual([
+      expect.objectContaining({
+        id: sampleRefId,
+        channelCount: 1,
+        frameCount: 3,
+      }),
+    ]);
+
+    stemAudioCache.clear();
+    service.restoreFromSnapshot(snapshot);
+    expect(stemAudioCache.get(sampleRefId)).toBeTruthy();
+    expect(
+      Array.from(stemAudioCache.get(sampleRefId).getChannelData(0)),
+    ).toEqual([0.20000000298023224, -0.3499999940395355, 0.44999998807907104]);
+    expect(tracks()[0].drumPadSamples[0].sampleRefId).toBe(sampleRefId);
+  });
+
+  it("stores a note-level one-shot by reference and strips its PCM from JSON", () => {
+    const buffer = createFakeAudioBuffer([[0.2, -0.35, 0.45]]);
+    tracks.set([
+      {
+        id: MusicManagerService.DRUM_TRACK_ID,
+        type: "drum",
+        notes: [
+          {
+            id: "hit-1",
+            midi: 36,
+            step: 0,
+            length: 1,
+            velocity: 0.9,
+            params: { sampleBuffer: buffer },
+          },
+        ],
+      },
+    ]);
+
+    const snapshot = service.createSnapshot();
+    const note = snapshot.tracks[0].notes[0];
+    expect(note.params.sampleRefId).toBe("drum-sample-track_drums_100-hit-1");
+    expect(note.params.sampleBuffer).toBeUndefined();
+    expect(snapshot.audioAssets).toEqual([
+      expect.objectContaining({ id: "drum-sample-track_drums_100-hit-1" }),
+    ]);
+  });
+
   it("stores binary audio channels locally while keeping export snapshots JSON-friendly", async () => {
     const clipId = "clip-audio-2";
     const buffer = createFakeAudioBuffer([[0.15, -0.25, 0.35]]);

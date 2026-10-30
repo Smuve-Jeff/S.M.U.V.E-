@@ -25,7 +25,16 @@ describe("DrumMachineComponent", () => {
     tracks: signal([
       { id: MusicManagerService.DRUM_TRACK_ID, notes: [] as any[] },
     ]),
+    stemAudioCache: new Map<string, AudioBuffer>(),
     currentStep: signal(0),
+    applyTrackPatch: jest.fn((trackId: string, patch: any) => {
+      mockMusicManager.tracks.set(
+        mockMusicManager.tracks().map((track: any) =>
+          track.id === trackId ? { ...track, ...patch } : track,
+        ),
+      );
+      return true;
+    }),
     addNoteToTrack: jest.fn((trackId: string, note: any) => {
       const tracks = mockMusicManager.tracks();
       const track = tracks.find((t) => t.id === trackId);
@@ -62,6 +71,10 @@ describe("DrumMachineComponent", () => {
   };
 
   beforeEach(async () => {
+    mockMusicManager.tracks.set([
+      { id: MusicManagerService.DRUM_TRACK_ID, notes: [] },
+    ]);
+    mockMusicManager.stemAudioCache.clear();
     await TestBed.configureTestingModule({
       imports: [DrumMachineComponent, CommonModule, FormsModule],
       providers: [
@@ -224,6 +237,7 @@ describe("DrumMachineComponent", () => {
 
     const updated = component.pads().find((candidate) => candidate.id === pad.id)!;
     expect(updated.sampleBuffer).toBe(sample);
+    expect(updated.sampleRefId).toMatch(/^drum-sample-pad-36-/);
     expect(updated.sampleName).toBe("kick.wav");
     expect(updated.sampleMeta).toEqual({
       sampleRate: 48000,
@@ -231,6 +245,14 @@ describe("DrumMachineComponent", () => {
       duration: 0.4,
       quality: "STUDIO",
     });
+    expect(mockMusicManager.stemAudioCache.get(updated.sampleRefId!)).toBe(
+      sample,
+    );
+    expect(
+      (mockMusicManager.tracks()[0] as any).drumPadSamples,
+    ).toEqual([
+      expect.objectContaining({ id: pad.id, sampleRefId: updated.sampleRefId }),
+    ]);
     expect(input.value).toBe("");
   });
 
@@ -258,6 +280,7 @@ describe("DrumMachineComponent", () => {
 
     const updated = component.pads().find((candidate) => candidate.id === pad.id)!;
     expect(updated.sampleBuffer).toBeUndefined();
+    expect(updated.sampleRefId).toBeUndefined();
     expect(updated.sampleName).toBeUndefined();
     expect(updated.sampleMeta).toBeUndefined();
   });
