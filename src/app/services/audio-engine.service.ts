@@ -507,6 +507,8 @@ export class AudioEngineService {
   private readonly masterWidthSideL = this.ctx.createGain();
   private readonly masterWidthSideR = this.ctx.createGain();
   private readonly masterWidthMerger = this.ctx.createChannelMerger(2);
+  /** Last applied stereo-width macro, so a project can save and restore it. */
+  private masterWidthState = 1;
   private reverbConvolver = this.ctx.createConvolver();
   public reverbWet = this.ctx.createGain();
 
@@ -2281,6 +2283,12 @@ export class AudioEngineService {
     const now = this.ctx.currentTime;
     this.masterWidthSideL.gain.setTargetAtTime(safe, now, 0.02);
     this.masterWidthSideR.gain.setTargetAtTime(-safe, now, 0.02);
+    this.masterWidthState = safe;
+  }
+
+  /** Read-back of the applied stereo-width macro (1 = neutral). */
+  getMasterWidth(): number {
+    return this.masterWidthState;
   }
 
   setCrossfader(

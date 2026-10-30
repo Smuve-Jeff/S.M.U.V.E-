@@ -80,6 +80,10 @@ import {
   type LocalProjectSummary,
   type ProjectBundle,
 } from "./project-workspace.service";
+import {
+  isProjectArchive,
+  readProjectFile,
+} from "./project-archive.util";
 import { SmartSoundService } from "./smart-sound.service";
 import { AudioImportService } from "./audio-import.service";
 import { SmartProductionFoundationsService } from "./smart-production-foundations.service";
@@ -2877,9 +2881,19 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
+    let archived = false;
 
     try {
-      if (file.size > 64 * 1024 * 1024) throw new Error('Project file exceeds the 64 MiB JSON import limit.');
+      // A ZIP archive stores audio as raw Float32, so the old 64 MiB text cap
+      // would reject a normal multi-track song. Legacy JSON imports still work
+      // but are recognised separately for telemetry and the size message.
+      const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+      archived = isProjectArchive(head);
+      const limit = 512 * 1024 * 1024;
+      if (file.size > limit) {
+        throw new Error('Project file exceeds the 512 MiB import limit.');
+      }
+      const format = archived ? 'smuve-zip' : 'smuve-json';
       if (this.projectWorkspace.isDirty()) {
         const replace = await this.dialog.confirm({
           title: 'Replace current project?', message: 'Loading this file replaces your unsaved session. Save or export a backup first.',
@@ -2887,8 +2901,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         });
         if (!replace) return;
       }
-      const text = await file.text();
-      const bundle = JSON.parse(text) as ProjectBundle;
+      const bundle = await readProjectFile(file);
       const success = await this.projectWorkspace.importProjectBundle(bundle);
       if (success) {
         this.history.clear();
@@ -2898,23 +2911,26 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         );
         this.studioTelemetry.trackEvent(
           "project_imported",
-          { format: "smuve" },
+          { format },
           true,
         );
       } else {
         this.studioTelemetry.trackEvent(
           "project_imported",
-          { format: "smuve", reason: "rejected" },
+          { format, reason: "rejected" },
           false,
         );
-        this.snackbarService.error("Failed to load project bundle");
+        this.snackbarService.error(
+          this.projectWorkspace.persistenceError() ||
+            "Failed to load project bundle",
+        );
       }
     } catch (error) {
       this.studioTelemetry.trackEvent(
         "project_imported",
         {
-          format: "smuve",
-          error: error instanceof Error ? error.message : "invalid_json",
+          format: archived ? 'smuve-zip' : 'smuve-json',
+          error: error instanceof Error ? error.message : "invalid_project_file",
         },
         false,
       );
@@ -3258,7 +3274,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         },
         false,
       );
-      this.snackbarService.error('Project export failed. Please try again.');
+      this.snackbarService.error(
+        e instanceof Error && e.message
+          ? e.message
+          : "Project export failed. Please try again.",
+      );
     }
   }
 

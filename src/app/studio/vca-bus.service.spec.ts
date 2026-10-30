@@ -124,6 +124,22 @@ describe("VcaBusService", () => {
     expect(map[b.id]).toBe(1);
   });
 
+  it("replaces project routing and drops assignments to missing buses", () => {
+    svc.replaceRouting(
+      [
+        { id: "a", name: " Drums ", faderValue: 0.6, muted: false },
+        { id: "b", name: "", faderValue: 9, muted: true },
+      ],
+      { t1: "a", t2: "missing", t3: null },
+    );
+
+    expect(svc.buses()).toEqual([
+      { id: "a", name: "Drums", faderValue: 0.6, muted: false },
+      { id: "b", name: "VCA", faderValue: 1.5, muted: true },
+    ]);
+    expect(svc.assignments()).toEqual({ t1: "a", t3: null });
+  });
+
   it("unassignTrack sets assignments[trackId] = null", () => {
     const b = svc.createBus("U");
     svc.assignTrack("t", b.id);

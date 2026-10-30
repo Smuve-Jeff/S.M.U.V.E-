@@ -11,6 +11,16 @@ import { OfflineSyncService } from "../services/offline-sync.service";
 import { LoggingService } from "../services/logging.service";
 import { APP_SECURITY_CONFIG } from "../app.security";
 import { AutomationService } from "./automation.service";
+import { ArrangementMarkersService, type ArrangementMarker } from "./arrangement-markers.service";
+import { SidechainRoutingService, type SidechainRoute } from "./sidechain-routing.service";
+import { TempoMapService, type TempoMarker } from "./tempo-map.service";
+import { VcaBusService, type VcaAssignments, type VcaBus } from "./vca-bus.service";
+import { PROJECT_FORMAT_VERSION, buildProjectArchive } from "./project-archive.util";
+import {
+  describeAudioIntegrityFailure,
+  inspectProjectAudioIntegrity,
+  type ProjectAudioIntegrityReport,
+} from "./project-integrity.util";
 
 export interface ProjectMetadata {
   id: string;
@@ -35,6 +45,33 @@ export interface SerializedAudioAsset {
   channels: SerializedAudioChannel[];
 }
 
+/** Everything applied to the master bus, saved with the song. */
+export interface ProjectMasterState {
+  gain: number;
+  monitorMono: boolean;
+  toneEq: { lowShelfDb: number; lowMidDb: number; highShelfDb: number };
+  width: number;
+  makeupDb: number;
+  targets: { lufs: number; truePeak: number };
+  pluginIds: string[];
+  pluginParams: Record<string, Record<string, number>>;
+}
+
+/** A/B loop stored in sixteenth-note steps, end-exclusive. */
+export interface ProjectPlaybackState {
+  loopEnabled: boolean;
+  loopStart: number | null;
+  loopEnd: number | null;
+}
+
+export interface ProjectPerformanceState {
+  tempoMap: TempoMarker[];
+  markers: ArrangementMarker[];
+  vca: { buses: VcaBus[]; assignments: VcaAssignments };
+  sidechain: SidechainRoute[];
+  playback: ProjectPlaybackState;
+}
+
 export interface ProjectBundle {
   metadata: ProjectMetadata;
   tracks: any[];
@@ -43,6 +80,18 @@ export interface ProjectBundle {
   takeState?: TakeStateBundle;
   automation: any;
   mixState: any;
+  /** Container revision. 2 = ZIP archive with raw Float32 audio. */
+  formatVersion?: number;
+  /** Tempo changes pinned to absolute song steps. */
+  tempoMap?: TempoMarker[];
+  /** Named arrangement locations, in bars. */
+  markers?: ArrangementMarker[];
+  /** VCA control-surface groups and their track assignments. */
+  vca?: { buses: VcaBus[]; assignments: VcaAssignments };
+  /** Real compressor ducking matrix: trigger → target. */
+  sidechain?: SidechainRoute[];
+  playback?: ProjectPlaybackState;
+  master?: ProjectMasterState;
   /** Session performance state that is not per-track. */
   session?: {
     launchQuantize?: "none" | "1bar" | "2bar" | "4bar";
@@ -203,9 +252,15 @@ export class ProjectWorkspaceService {
   private readonly takeManager = inject(TakeManagerService);
   private readonly history = inject(HistoryService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly tempoMap = inject(TempoMapService);
+  private readonly markers = inject(ArrangementMarkersService);
+  private readonly vcaBuses = inject(VcaBusService);
+  private readonly sidechainRouting = inject(SidechainRoutingService);
   readonly isSaving = signal(false);
   readonly persistenceError = signal('');
   readonly projectNotes = signal('');
+  /** Last import/export/restore audio-reference check. */
+  readonly audioIntegrity = signal<ProjectAudioIntegrityReport | null>(null);
 
   /** Current project metadata */
   metadata = signal<ProjectMetadata | null>(null);
@@ -361,12 +416,6 @@ export class ProjectWorkspaceService {
 
   startFreshProject(seed: Partial<ProjectMetadata> = {}): ProjectMetadata {
     const meta = this.createNewMetadata(seed);
-    const signature = this.captureStateSignature(
-      meta,
-      this.musicManager.tracks(),
-      meta.bpm,
-    );
-    this.lastObservedSignature = signature;
     this.lastSavedSignature = "";
     this.lastAutoSave.set(0);
     this.lastPersistedAt.set(0);
@@ -377,6 +426,7 @@ export class ProjectWorkspaceService {
     this.lastRecoveredSource.set(null);
     this.persistenceError.set('');
     this.projectNotes.set('');
+    this.audioIntegrity.set(null);
     this.musicManager.setLaunchQuantize("none");
     this.musicManager.setSceneFollowEnabled(false);
     this.musicManager.setSceneFollowBars(4);
@@ -385,6 +435,15 @@ export class ProjectWorkspaceService {
     this.automationService.lanes.set([]);
     this.automationService.macros.set([]);
     this.automationService.modulationSources.set([]);
+    // Project-scoped performance and master state must not leak in from the
+    // set that was open before this fresh one.
+    this.resetProjectState();
+    const signature = this.captureStateSignature(
+      meta,
+      this.musicManager.tracks(),
+      meta.bpm,
+    );
+    this.lastObservedSignature = signature;
     this.isDirty.set(this.musicManager.tracks().length > 0);
     return meta;
   }
@@ -666,6 +725,11 @@ export class ProjectWorkspaceService {
   async importProjectBundle(bundle: ProjectBundle): Promise<boolean> {
     try {
       this.validateBundle(bundle);
+      const integrity = inspectProjectAudioIntegrity(bundle);
+      this.audioIntegrity.set(integrity);
+      if (!integrity.ok) {
+        throw new Error(describeAudioIntegrityFailure(integrity, "import"));
+      }
       await this.requirePersistence();
       const stored = this.toStoredBundle(bundle, "import");
       await this.storage.saveItem("projects", stored);
@@ -688,26 +752,43 @@ export class ProjectWorkspaceService {
     }
   }
 
-  /** Download project bundle as JSON file */
+  /**
+   * Download a portable `.smuve` archive.
+   *
+   * This used to serialise the whole bundle — including every audio sample as
+   * a JSON number — into one string. A three-minute vocal take made a file
+   * hundreds of megabytes wide that mobile Safari/Chrome could not parse back.
+   * The archive keeps the manifest readable as JSON but stores audio as raw
+   * little-endian Float32 files inside a ZIP.
+   */
   downloadProjectBundle() {
     const meta = this.metadata();
     if (!meta) return;
 
-    const bundle = this.createSnapshot();
+    // Binary channels, not JSON arrays: the archive encoder turns these into
+    // raw Float32 bytes directly instead of materialising millions of strings.
+    const bundle = this.createStoredSnapshot();
+    const integrity = inspectProjectAudioIntegrity(bundle);
+    this.audioIntegrity.set(integrity);
+    if (!integrity.ok) {
+      throw new Error(describeAudioIntegrityFailure(integrity, "export"));
+    }
     void this.offlineSync.saveLocal(
       `export_${bundle.metadata.id}_${bundle.exportedAt}`,
       bundle,
       30 * 24 * 60 * 60 * 1000,
     );
-    const blob = new Blob([JSON.stringify(bundle, null, 2)], {
-      type: "application/json",
-    });
+    const blob = buildProjectArchive(bundle);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `${meta.name.replace(/[^a-zA-Z0-9]/g, "_")}_v${meta.version}.smuve`;
+    // Mobile browsers cancel a download whose anchor is not in the document,
+    // and revoking the URL in the same tick can truncate larger archives.
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   async restoreLatestProjectState(): Promise<boolean> {
@@ -799,6 +880,8 @@ export class ProjectWorkspaceService {
       bpm: metadata.bpm || this.currentTempo() || 120,
     };
     const { tracks, audioAssets } = this.captureSnapshotTracks(audioAssetMode);
+    const performance = this.capturePerformanceState();
+    const master = this.captureMasterState();
 
     return {
       metadata: meta,
@@ -812,11 +895,18 @@ export class ProjectWorkspaceService {
         modulationSources: JSON.parse(JSON.stringify(this.automationService.modulationSources())),
       },
       mixState: {
-        masterGain: this.musicManager.engine?.masterGain?.gain?.value ?? 0.8,
+        masterGain: master.gain,
         // Monitoring state travels with the set: reopening a club mix should
         // not silently put the engineer back in stereo.
-        monitorMono: this.musicManager.engine?.monoMonitoring?.() ?? false,
+        monitorMono: master.monitorMono,
       },
+      formatVersion: PROJECT_FORMAT_VERSION,
+      tempoMap: performance.tempoMap,
+      markers: performance.markers,
+      vca: performance.vca,
+      sidechain: performance.sidechain,
+      playback: performance.playback,
+      master,
       session: {
         launchQuantize: this.musicManager.launchQuantize(),
         followEnabled: this.musicManager.sceneFollowEnabled(),
@@ -832,11 +922,21 @@ export class ProjectWorkspaceService {
 
   restoreFromSnapshot(bundle: ProjectBundle) {
     this.validateBundle(bundle);
+    const integrity = inspectProjectAudioIntegrity(bundle);
+    this.audioIntegrity.set(integrity);
+    if (!integrity.ok) {
+      const message = describeAudioIntegrityFailure(integrity, "import");
+      this.persistenceError.set(message);
+      this.logger.warn("ProjectWorkspace: " + message);
+    }
     this.restoreAudioAssets(bundle);
     this.musicManager.engine.stop();
     this.history.clear();
     this.musicManager.selectedTrackId.set(bundle.tracks[0]?.id ?? null);
-    this.musicManager.structure.set(bundle.structure ?? [{ id: 'section-1', name: 'Session', start: 0, length: 4, color: '#0e7c7b' }]);
+    const structure = bundle.structure ?? [
+      { id: 'section-1', name: 'Session', start: 0, length: 4, color: '#0e7c7b' },
+    ];
+    this.musicManager.structure.set(structure);
     this.takeManager.restore(bundle.takeState ?? { takes: {}, active: {}, punchIn: {}, compStack: {}, sections: {} });
     this.projectNotes.set(bundle.notes ?? '');
     this.automationService.lanes.set(JSON.parse(JSON.stringify(bundle.automation?.lanes ?? [])));
@@ -853,15 +953,14 @@ export class ProjectWorkspaceService {
     if (bundle.metadata?.bpm) {
       this.musicManager.engine?.tempo?.set?.(bundle.metadata.bpm);
     }
-    const gain = bundle.mixState?.masterGain;
-    if (Number.isFinite(gain) && this.musicManager.engine?.masterGain?.gain) {
-      this.musicManager.engine.masterGain.gain.value = Math.max(0, Math.min(1, gain));
-    }
-    if (typeof bundle.mixState?.monitorMono === 'boolean') {
-      this.musicManager.engine?.setMonoMonitoring?.(
-        bundle.mixState.monitorMono,
-      );
-    }
+    // The structure effect that normally pushes song length runs after this
+    // method, but the loop region is validated against it below. Set it now so
+    // a saved loop near the end of the song is not rejected on restore.
+    this.musicManager.engine.setSongLengthSteps(
+      this.songLengthStepsFor(structure),
+    );
+    this.applyPerformanceState(bundle);
+    this.applyMasterState(this.masterStateFromBundle(bundle));
     // Old bundles have no Session state; default to immediate launch rather
     // than leaking the previously open set's boundary into this one.
     this.musicManager.setLaunchQuantize(
@@ -874,10 +973,240 @@ export class ProjectWorkspaceService {
     this.musicManager.setSceneFollowRules(
       bundle.session?.sceneFollowRules ?? {},
     );
+    this.isDirty.set(false);
     this.logger.info(
       "ProjectWorkspace: Restored project " +
         (bundle.metadata?.name ?? "Untitled"),
     );
+  }
+
+  /**
+   * Save every piece of state that describes how this song performs but was
+   * previously session-global: tempo map, arrangement markers, VCA groups,
+   * sidechain matrix and the A/B loop region.
+   */
+  private capturePerformanceState(): ProjectPerformanceState {
+    const engine = this.musicManager.engine;
+    return {
+      tempoMap: this.tempoMap.markers().map((marker) => ({ ...marker })),
+      markers: this.markers.markers().map((marker) => ({ ...marker })),
+      vca: {
+        buses: this.vcaBuses.buses().map((bus) => ({ ...bus })),
+        assignments: { ...this.vcaBuses.assignments() },
+      },
+      sidechain: this.sidechainRouting
+        .routes()
+        .map((route) => ({ ...route })),
+      playback: {
+        loopEnabled: engine.playbackLoopEnabled(),
+        loopStart: engine.playbackLoopStart(),
+        loopEnd: engine.playbackLoopEnd(),
+      },
+    };
+  }
+
+  /** Full master-bus state, including the live insert chain and its params. */
+  private captureMasterState(): ProjectMasterState {
+    const engine = this.musicManager.engine as any;
+    const targets = engine?.getMasteringTargets?.() ?? {
+      lufs: -14,
+      truePeak: -0.1,
+    };
+    const tone = engine?.getMasterToneEq?.() ?? {
+      lowShelfDb: 0,
+      lowMidDb: 0,
+      highShelfDb: 0,
+    };
+    const plugins =
+      (this.musicManager as any).captureMasterPluginState?.() ?? {
+        pluginIds: [],
+        params: {},
+      };
+    const gain = engine?.masterGain?.gain?.value;
+    return {
+      gain: Number.isFinite(gain) ? Math.max(0, Math.min(1, gain)) : 0.8,
+      monitorMono: engine?.monoMonitoring?.() ?? false,
+      toneEq: {
+        lowShelfDb: Number.isFinite(tone.lowShelfDb) ? tone.lowShelfDb : 0,
+        lowMidDb: Number.isFinite(tone.lowMidDb) ? tone.lowMidDb : 0,
+        highShelfDb: Number.isFinite(tone.highShelfDb) ? tone.highShelfDb : 0,
+      },
+      width: Number.isFinite(engine?.getMasterWidth?.())
+        ? engine.getMasterWidth()
+        : 1,
+      makeupDb: Number.isFinite(engine?.getMasterMakeupDb?.())
+        ? engine.getMasterMakeupDb()
+        : 0,
+      targets: {
+        lufs: Number.isFinite(targets.lufs) ? targets.lufs : -14,
+        truePeak: Number.isFinite(targets.truePeak) ? targets.truePeak : -0.1,
+      },
+      pluginIds: Array.isArray(plugins.pluginIds)
+        ? [...plugins.pluginIds]
+        : [],
+      pluginParams:
+        plugins.params && typeof plugins.params === 'object'
+          ? JSON.parse(JSON.stringify(plugins.params))
+          : {},
+    };
+  }
+
+  /** Apply saved tempo/markers/VCA/sidechain/loop, resetting when absent. */
+  private applyPerformanceState(bundle: ProjectBundle): void {
+    this.tempoMap.replaceAll(bundle.tempoMap ?? []);
+    this.markers.replaceAll(bundle.markers ?? []);
+
+    const vca = bundle.vca ?? { buses: [], assignments: {} };
+    this.vcaBuses.replaceRouting(
+      vca.buses ?? [],
+      vca.assignments ?? {},
+    );
+    const trackIds = new Set<string>([
+      ...this.musicManager.tracks().map((track) => track.id),
+      ...Object.keys(this.vcaBuses.assignments()),
+    ]);
+    for (const trackId of trackIds) {
+      this.musicManager.engine.setVcaMultiplier(
+        trackId,
+        this.vcaBuses.effectiveMultiplier(trackId),
+      );
+    }
+
+    const savedSidechain = (bundle.sidechain ?? []).filter(
+      (route) =>
+        trackIds.has(route.triggerTrackId) &&
+        trackIds.has(route.targetTrackId),
+    );
+    this.sidechainRouting.replaceAll(savedSidechain);
+
+    const playback = bundle.playback;
+    const engine = this.musicManager.engine;
+    const start = playback?.loopStart ?? null;
+    const end = playback?.loopEnd ?? null;
+    const hasRegion =
+      Number.isFinite(start) &&
+      Number.isFinite(end) &&
+      (start as number) >= 0 &&
+      (end as number) > (start as number);
+    const restored = hasRegion
+      ? engine.setPlaybackLoop(start, end)
+      : false;
+    if (!restored) {
+      engine.setPlaybackLoop(null, null);
+    } else {
+      engine.togglePlaybackLoop(playback?.loopEnabled === true);
+    }
+  }
+
+  /** Apply master gain, monitoring, tone, width, loudness targets and inserts. */
+  private applyMasterState(master: ProjectMasterState): void {
+    const engine = this.musicManager.engine as any;
+    if (engine?.masterGain?.gain) {
+      engine.masterGain.gain.value = Math.max(0, Math.min(1, master.gain));
+    }
+    engine?.setMonoMonitoring?.(master.monitorMono === true);
+    engine?.setMasterToneEq?.(master.toneEq);
+    engine?.setMasterWidth?.(master.width);
+    engine?.setMasterMakeupDb?.(master.makeupDb);
+    engine?.setMasteringTargets?.(master.targets);
+    const applyPlugins = (this.musicManager as any).applyMasterPluginState;
+    if (typeof applyPlugins === 'function') {
+      applyPlugins.call(
+        this.musicManager,
+        master.pluginIds,
+        master.pluginParams,
+      );
+    }
+  }
+
+  /** Master state for a bundle, including legacy `mixState` fallbacks. */
+  private masterStateFromBundle(bundle: ProjectBundle): ProjectMasterState {
+    if (bundle.master) {
+      const saved = bundle.master;
+      const tone = saved.toneEq;
+      const targets = saved.targets;
+      return {
+        gain:
+          Number.isFinite(saved.gain) && saved.gain >= 0 && saved.gain <= 1
+            ? saved.gain
+            : 0.8,
+        monitorMono: saved.monitorMono === true,
+        toneEq: {
+          lowShelfDb: Number.isFinite(tone?.lowShelfDb) ? tone.lowShelfDb : 0,
+          lowMidDb: Number.isFinite(tone?.lowMidDb) ? tone.lowMidDb : 0,
+          highShelfDb: Number.isFinite(tone?.highShelfDb)
+            ? tone.highShelfDb
+            : 0,
+        },
+        width: Number.isFinite(saved.width) ? saved.width : 1,
+        makeupDb: Number.isFinite(saved.makeupDb) ? saved.makeupDb : 0,
+        targets: {
+          lufs: Number.isFinite(targets?.lufs) ? targets.lufs : -14,
+          truePeak: Number.isFinite(targets?.truePeak)
+            ? targets.truePeak
+            : -0.1,
+        },
+        pluginIds: Array.isArray(saved.pluginIds)
+          ? saved.pluginIds.filter((id): id is string => typeof id === 'string')
+          : [],
+        pluginParams:
+          saved.pluginParams && typeof saved.pluginParams === 'object'
+            ? saved.pluginParams
+            : {},
+      };
+    }
+    return {
+      gain: Number.isFinite(bundle.mixState?.masterGain)
+        ? bundle.mixState.masterGain
+        : 0.8,
+      monitorMono: bundle.mixState?.monitorMono === true,
+      toneEq: { lowShelfDb: 0, lowMidDb: 0, highShelfDb: 0 },
+      width: 1,
+      makeupDb: 0,
+      targets: { lufs: -14, truePeak: -0.1 },
+      pluginIds: [],
+      pluginParams: {},
+    };
+  }
+
+  private songLengthStepsFor(structure: SongSection[]): number {
+    const fromStructure = (structure ?? []).reduce(
+      (sum, section) => sum + Math.max(0, section?.length ?? 0),
+      0,
+    );
+    const bars = Math.max(
+      4,
+      fromStructure,
+      this.musicManager.activeLoopBars?.() ?? 0,
+      (this.musicManager.arrangementEndBar?.() ?? 0) + 1,
+    );
+    return bars * 16;
+  }
+
+  /**
+   * Clear project-scoped state for a new set. Without this, starting a fresh
+   * project could inherit the previous song's tempo map, VCA groups and master
+   * chain until a reload.
+   */
+  private resetProjectState(): void {
+    this.tempoMap.clear();
+    this.markers.clear();
+    this.vcaBuses.replaceRouting([], {});
+    this.sidechainRouting.clear();
+    for (const track of this.musicManager.tracks()) {
+      this.musicManager.engine.setVcaMultiplier(track.id, 1);
+    }
+    this.musicManager.engine.setPlaybackLoop(null, null);
+    this.applyMasterState({
+      gain: 0.8,
+      monitorMono: false,
+      toneEq: { lowShelfDb: 0, lowMidDb: 0, highShelfDb: 0 },
+      width: 1,
+      makeupDb: 0,
+      targets: { lufs: -14, truePeak: -0.1 },
+      pluginIds: [],
+      pluginParams: {},
+    });
   }
 
   stopAutoSave() {
@@ -981,6 +1310,10 @@ export class ProjectWorkspaceService {
     sessionFollowEnabled = this.musicManager.sceneFollowEnabled(),
     sessionFollowBars = this.musicManager.sceneFollowBars(),
     sessionSceneFollowRules = this.musicManager.sceneFollowRules(),
+    projectState: {
+      performance: ProjectPerformanceState;
+      master: ProjectMasterState;
+    } = this.captureProjectState(),
   ): string {
     return JSON.stringify({
       metadata: metadata ? { ...metadata, bpm: tempo, updatedAt: undefined, lastOpenedAt: undefined } : null,
@@ -996,7 +1329,42 @@ export class ProjectWorkspaceService {
       sessionFollowEnabled,
       sessionFollowBars,
       sessionSceneFollowRules,
+      projectState,
     });
+  }
+
+  private captureProjectState(): {
+    performance: ProjectPerformanceState;
+    master: ProjectMasterState;
+  } {
+    return {
+      performance: this.capturePerformanceState(),
+      master: this.captureMasterState(),
+    };
+  }
+
+  /** Project-scoped state as stored in a bundle, for clean-signature checks. */
+  private projectStateFromBundle(bundle: ProjectBundle): {
+    performance: ProjectPerformanceState;
+    master: ProjectMasterState;
+  } {
+    return {
+      performance: {
+        tempoMap: (bundle.tempoMap ?? []).map((marker) => ({ ...marker })),
+        markers: (bundle.markers ?? []).map((marker) => ({ ...marker })),
+        vca: {
+          buses: (bundle.vca?.buses ?? []).map((bus) => ({ ...bus })),
+          assignments: { ...(bundle.vca?.assignments ?? {}) },
+        },
+        sidechain: (bundle.sidechain ?? []).map((route) => ({ ...route })),
+        playback: bundle.playback ?? {
+          loopEnabled: false,
+          loopStart: null,
+          loopEnd: null,
+        },
+      },
+      master: this.masterStateFromBundle(bundle),
+    };
   }
 
   private toStoredBundle(
@@ -1060,6 +1428,7 @@ export class ProjectWorkspaceService {
       bundle.session?.followEnabled === true,
       bundle.session?.followBars ?? 4,
       bundle.session?.sceneFollowRules ?? {},
+      this.projectStateFromBundle(bundle),
     );
     // An older in-flight save must not rename or clean a newly opened project.
     if (this.metadata()?.id !== bundle.metadata.id) return;
@@ -1179,6 +1548,57 @@ export class ProjectWorkspaceService {
       ids.add(track.id);
     }
     if (bundle.audioAssets !== undefined && !Array.isArray(bundle.audioAssets)) throw new Error('Invalid audio asset list.');
+    if (bundle.tempoMap !== undefined) {
+      if (!Array.isArray(bundle.tempoMap) || bundle.tempoMap.some((marker) =>
+        !marker || typeof marker.id !== 'string' || !Number.isFinite(marker.step) ||
+        marker.step < 0 || !Number.isFinite(marker.bpm) ||
+        marker.bpm < 20 || marker.bpm > 300
+      )) throw new Error('Invalid tempo map.');
+    }
+    if (bundle.markers !== undefined) {
+      if (!Array.isArray(bundle.markers) || bundle.markers.some((marker) =>
+        !marker || typeof marker.id !== 'string' || typeof marker.name !== 'string' ||
+        !Number.isFinite(marker.time) || marker.time < 0
+      )) throw new Error('Invalid arrangement markers.');
+    }
+    if (bundle.vca !== undefined) {
+      if (!bundle.vca || !Array.isArray(bundle.vca.buses) ||
+          !bundle.vca.assignments || typeof bundle.vca.assignments !== 'object' ||
+          bundle.vca.buses.some((bus) => !bus || typeof bus.id !== 'string' ||
+            !bus.id || !Number.isFinite(bus.faderValue))) {
+        throw new Error('Invalid VCA routing.');
+      }
+    }
+    if (bundle.sidechain !== undefined) {
+      if (!Array.isArray(bundle.sidechain) || bundle.sidechain.some((route) =>
+        !route || typeof route.triggerTrackId !== 'string' ||
+        typeof route.targetTrackId !== 'string' ||
+        !route.triggerTrackId || !route.targetTrackId ||
+        route.triggerTrackId === route.targetTrackId
+      )) throw new Error('Invalid sidechain routing.');
+    }
+    if (bundle.playback !== undefined) {
+      const { loopStart, loopEnd } = bundle.playback;
+      if (typeof bundle.playback.loopEnabled !== 'boolean' ||
+          (loopStart !== null && (!Number.isFinite(loopStart) || loopStart < 0)) ||
+          (loopEnd !== null && (!Number.isFinite(loopEnd) || loopEnd < 0)) ||
+          (loopStart !== null && loopEnd !== null && loopEnd <= loopStart)) {
+        throw new Error('Invalid playback loop.');
+      }
+    }
+    if (bundle.master !== undefined) {
+      const master = bundle.master;
+      if (!master || !Number.isFinite(master.gain) || master.gain < 0 ||
+          master.gain > 1 || typeof master.monitorMono !== 'boolean' ||
+          !master.toneEq || !master.targets ||
+          !Number.isFinite(master.width) ||
+          !Number.isFinite(master.makeupDb) ||
+          !Number.isFinite(master.targets.lufs) ||
+          !Number.isFinite(master.targets.truePeak) ||
+          !Array.isArray(master.pluginIds)) {
+        throw new Error('Invalid master state.');
+      }
+    }
     let audioBytes = 0;
     for (const asset of bundle.audioAssets ?? []) {
       if (!asset || typeof asset.id !== 'string' || !Number.isInteger(asset.channelCount) ||

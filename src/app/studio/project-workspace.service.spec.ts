@@ -12,6 +12,10 @@ import {
   ProjectBundle,
   ProjectWorkspaceService,
 } from "./project-workspace.service";
+import { ArrangementMarkersService } from "./arrangement-markers.service";
+import { SidechainRoutingService } from "./sidechain-routing.service";
+import { TempoMapService } from "./tempo-map.service";
+import { VcaBusService } from "./vca-bus.service";
 
 const createFakeAudioBuffer = (
   channels: number[][],
@@ -41,6 +45,60 @@ describe("ProjectWorkspaceService", () => {
   let getAllItems: jest.Mock;
   let deleteItems: jest.Mock;
   let projectRemove: jest.Mock;
+  let tempoMarkers: ReturnType<typeof signal<any[]>>;
+  let arrangementMarkers: ReturnType<typeof signal<any[]>>;
+  let vcaBuses: ReturnType<typeof signal<any[]>>;
+  let vcaAssignments: ReturnType<typeof signal<Record<string, string | null>>>;
+  let sidechainRoutes: ReturnType<typeof signal<any[]>>;
+
+  /** In-memory project-state services, shared by both TestBed configurations. */
+  const projectStateProviders = () => [
+    {
+      provide: TempoMapService,
+      useValue: {
+        markers: tempoMarkers,
+        clear: () => tempoMarkers.set([]),
+        replaceAll: (markers: any[]) => tempoMarkers.set([...(markers ?? [])]),
+      },
+    },
+    {
+      provide: ArrangementMarkersService,
+      useValue: {
+        markers: arrangementMarkers,
+        clear: () => arrangementMarkers.set([]),
+        replaceAll: (markers: any[]) =>
+          arrangementMarkers.set([...(markers ?? [])]),
+      },
+    },
+    {
+      provide: VcaBusService,
+      useValue: {
+        buses: vcaBuses,
+        assignments: vcaAssignments,
+        replaceRouting: (
+          buses: any[],
+          assignments: Record<string, string | null>,
+        ) => {
+          vcaBuses.set([...(buses ?? [])]);
+          vcaAssignments.set({ ...(assignments ?? {}) });
+        },
+        effectiveMultiplier: (trackId: string) => {
+          const busId = vcaAssignments()[trackId];
+          const bus = vcaBuses().find((item) => item.id === busId);
+          if (!bus) return 1;
+          return bus.muted ? 0 : bus.faderValue;
+        },
+      },
+    },
+    {
+      provide: SidechainRoutingService,
+      useValue: {
+        routes: sidechainRoutes,
+        clear: () => sidechainRoutes.set([]),
+        replaceAll: (routes: any[]) => sidechainRoutes.set([...(routes ?? [])]),
+      },
+    },
+  ];
 
   const metadata = {
     id: "proj_test",
@@ -92,6 +150,11 @@ describe("ProjectWorkspaceService", () => {
     getAllItems = jest.fn().mockResolvedValue([]);
     deleteItems = jest.fn().mockResolvedValue(undefined);
     projectRemove = jest.fn().mockResolvedValue(false);
+    tempoMarkers = signal<any[]>([]);
+    arrangementMarkers = signal<any[]>([]);
+    vcaBuses = signal<any[]>([]);
+    vcaAssignments = signal<Record<string, string | null>>({});
+    sidechainRoutes = signal<any[]>([]);
 
     TestBed.configureTestingModule({
       providers: [
@@ -129,6 +192,10 @@ describe("ProjectWorkspaceService", () => {
             clearSceneFollowRules: () => sceneFollowRules.set({}),
             structure: signal([]),
             selectedTrackId: signal(null),
+            activeLoopBars: signal(64),
+            arrangementEndBar: () => 4,
+            captureMasterPluginState: () => ({ pluginIds: [], params: {} }),
+            applyMasterPluginState: jest.fn(),
             stemAudioCache,
             engine: {
               stop: jest.fn(),
@@ -139,6 +206,38 @@ describe("ProjectWorkspaceService", () => {
                 monitorMono.set(enabled);
                 return enabled;
               },
+              playbackLoopEnabled: signal(false),
+              playbackLoopStart: signal<number | null>(null),
+              playbackLoopEnd: signal<number | null>(null),
+              setPlaybackLoop: (start: number | null, end: number | null) => {
+                const engine = (TestBed.inject(MusicManagerService) as any).engine;
+                engine.playbackLoopStart.set(start);
+                engine.playbackLoopEnd.set(end);
+                if (start === null || end === null) {
+                  engine.playbackLoopEnabled.set(false);
+                  return false;
+                }
+                return true;
+              },
+              togglePlaybackLoop: (enabled?: boolean) => {
+                const engine = (TestBed.inject(MusicManagerService) as any).engine;
+                engine.playbackLoopEnabled.set(enabled === true);
+                return enabled === true;
+              },
+              setSongLengthSteps: jest.fn(),
+              setVcaMultiplier: jest.fn(),
+              getMasteringTargets: () => ({ lufs: -14, truePeak: -0.1 }),
+              getMasterToneEq: () => ({
+                lowShelfDb: 0,
+                lowMidDb: 0,
+                highShelfDb: 0,
+              }),
+              getMasterWidth: () => 1,
+              getMasterMakeupDb: () => 0,
+              setMasterToneEq: jest.fn(),
+              setMasterWidth: jest.fn(),
+              setMasterMakeupDb: jest.fn(),
+              setMasteringTargets: jest.fn(),
               ctx: {
                 createBuffer: jest.fn(
                   (
@@ -190,6 +289,7 @@ describe("ProjectWorkspaceService", () => {
           provide: LoggingService,
           useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
         },
+        ...projectStateProviders(),
       ],
     });
     service = TestBed.inject(ProjectWorkspaceService);
@@ -356,6 +456,71 @@ describe("ProjectWorkspaceService", () => {
     expect(service.isDirty()).toBe(true);
   });
 
+  it('blocks an import whose audio clips have no matching take', async () => {
+    const bundle = makeBundle();
+    bundle.tracks = [
+      {
+        id: 'track-vocal',
+        name: 'Lead Vocal',
+        notes: [],
+        clips: [
+          {
+            id: 'clip-vocal',
+            name: 'Take 2',
+            type: 'audio',
+            audioRefId: 'missing-take',
+            start: 0,
+            length: 4,
+          },
+        ],
+      },
+    ];
+
+    await expect(service.importProjectBundle(bundle)).resolves.toBe(false);
+
+    expect(saveItem).not.toHaveBeenCalled();
+    expect(service.audioIntegrity()).toEqual(
+      expect.objectContaining({
+        ok: false,
+        missingCount: 1,
+        issues: [
+          expect.objectContaining({
+            clipName: 'Take 2',
+            trackName: 'Lead Vocal',
+            reason: 'missing-asset',
+          }),
+        ],
+      }),
+    );
+    expect(service.persistenceError()).toContain('Import blocked');
+    expect(service.persistenceError()).toContain('missing-take');
+  });
+
+  it('blocks an export whose audio clips have no matching take', () => {
+    tracks.set([
+      {
+        id: 'track-vocal',
+        name: 'Lead Vocal',
+        notes: [],
+        clips: [
+          {
+            id: 'clip-vocal',
+            name: 'Take 2',
+            type: 'audio',
+            audioRefId: 'missing-take',
+            start: 0,
+            length: 4,
+          },
+        ],
+      },
+    ]);
+
+    expect(() => service.downloadProjectBundle()).toThrow(/Export blocked/);
+    expect(service.audioIntegrity()).toEqual(
+      expect.objectContaining({ ok: false, missingCount: 1 }),
+    );
+  });
+
   it('rejects malformed imports before writing or replacing the active session', async () => {
     const before = tracks();
     await expect(service.importProjectBundle({ metadata: {}, tracks: [] } as any)).resolves.toBe(false);
@@ -462,6 +627,133 @@ describe("ProjectWorkspaceService", () => {
     expect(sceneFollowRules()).toEqual({});
   });
 
+  it("round-trips tempo map, markers, VCA, sidechain, loop and master state", () => {
+    const manager = TestBed.inject(MusicManagerService) as any;
+    const engine = manager.engine;
+    tracks.set([{ id: "track-1", notes: [] }, { id: "track-2", notes: [] }]);
+    tempoMarkers.set([
+      { id: "tempo-1", step: 0, bpm: 120 },
+      { id: "tempo-2", step: 32, bpm: 90 },
+    ]);
+    arrangementMarkers.set([
+      { id: "marker-1", name: "Drop", time: 8, color: "#facc15" },
+    ]);
+    vcaBuses.set([
+      { id: "vca-1", name: "Drums", faderValue: 0.5, muted: false },
+    ]);
+    vcaAssignments.set({ "track-1": "vca-1" });
+    sidechainRoutes.set([
+      { triggerTrackId: "track-1", targetTrackId: "track-2" },
+    ]);
+    engine.playbackLoopStart.set(16);
+    engine.playbackLoopEnd.set(48);
+    engine.playbackLoopEnabled.set(true);
+    engine.masterGain.gain.value = 0.55;
+    engine.getMasterToneEq = () => ({
+      lowShelfDb: 2,
+      lowMidDb: -1,
+      highShelfDb: 3,
+    });
+    engine.getMasterWidth = () => 1.4;
+    engine.getMasterMakeupDb = () => 2.5;
+    engine.getMasteringTargets = () => ({ lufs: -10, truePeak: -0.5 });
+    manager.captureMasterPluginState = () => ({
+      pluginIds: ["smuve.eq.mastering.v2"],
+      params: { "smuve.eq.mastering.v2": { lowGainDb: 2 } },
+    });
+
+    const snapshot = service.createSnapshot();
+    expect(snapshot.tempoMap).toHaveLength(2);
+    expect(snapshot.markers).toHaveLength(1);
+    expect(snapshot.vca?.assignments["track-1"]).toBe("vca-1");
+    expect(snapshot.sidechain).toEqual([
+      { triggerTrackId: "track-1", targetTrackId: "track-2" },
+    ]);
+    expect(snapshot.playback).toEqual({
+      loopEnabled: true,
+      loopStart: 16,
+      loopEnd: 48,
+    });
+    expect(snapshot.master).toEqual(
+      expect.objectContaining({
+        gain: 0.55,
+        width: 1.4,
+        makeupDb: 2.5,
+        targets: { lufs: -10, truePeak: -0.5 },
+        pluginIds: ["smuve.eq.mastering.v2"],
+      }),
+    );
+
+    tempoMarkers.set([]);
+    arrangementMarkers.set([]);
+    vcaBuses.set([]);
+    vcaAssignments.set({});
+    sidechainRoutes.set([]);
+    engine.playbackLoopStart.set(null);
+    engine.playbackLoopEnd.set(null);
+    engine.playbackLoopEnabled.set(false);
+    engine.masterGain.gain.value = 1;
+
+    service.restoreFromSnapshot(snapshot);
+
+    expect(tempoMarkers().map((marker: any) => marker.bpm)).toEqual([120, 90]);
+    expect(arrangementMarkers()[0].name).toBe("Drop");
+    expect(vcaAssignments()["track-1"]).toBe("vca-1");
+    expect(engine.setVcaMultiplier).toHaveBeenCalledWith("track-1", 0.5);
+    expect(sidechainRoutes()).toEqual([
+      { triggerTrackId: "track-1", targetTrackId: "track-2" },
+    ]);
+    expect(engine.playbackLoopStart()).toBe(16);
+    expect(engine.playbackLoopEnd()).toBe(48);
+    expect(engine.playbackLoopEnabled()).toBe(true);
+    expect(engine.masterGain.gain.value).toBe(0.55);
+    expect(engine.setMasterToneEq).toHaveBeenCalledWith({
+      lowShelfDb: 2,
+      lowMidDb: -1,
+      highShelfDb: 3,
+    });
+    expect(engine.setMasterWidth).toHaveBeenCalledWith(1.4);
+    expect(engine.setMasterMakeupDb).toHaveBeenCalledWith(2.5);
+    expect(engine.setMasteringTargets).toHaveBeenCalledWith({
+      lufs: -10,
+      truePeak: -0.5,
+    });
+    expect(manager.applyMasterPluginState).toHaveBeenCalledWith(
+      ["smuve.eq.mastering.v2"],
+      { "smuve.eq.mastering.v2": { lowGainDb: 2 } },
+    );
+  });
+
+  it("resets project-scoped state when opening an older bundle", () => {
+    const engine = (TestBed.inject(MusicManagerService) as any).engine;
+    tempoMarkers.set([{ id: "tempo-1", step: 0, bpm: 150 }]);
+    arrangementMarkers.set([{ id: "marker-1", name: "Old", time: 1 }]);
+    vcaBuses.set([{ id: "vca-1", name: "Old", faderValue: 0.2, muted: false }]);
+    vcaAssignments.set({ "track-1": "vca-1" });
+    sidechainRoutes.set([
+      { triggerTrackId: "track-1", targetTrackId: "track-2" },
+    ]);
+    engine.playbackLoopStart.set(8);
+    engine.playbackLoopEnd.set(32);
+    engine.playbackLoopEnabled.set(true);
+
+    service.restoreFromSnapshot(makeBundle());
+
+    expect(tempoMarkers()).toEqual([]);
+    expect(arrangementMarkers()).toEqual([]);
+    expect(vcaBuses()).toEqual([]);
+    expect(vcaAssignments()).toEqual({});
+    expect(sidechainRoutes()).toEqual([]);
+    expect(engine.playbackLoopStart()).toBeNull();
+    expect(engine.playbackLoopEnd()).toBeNull();
+    expect(engine.playbackLoopEnabled()).toBe(false);
+    expect(engine.setMasterWidth).toHaveBeenCalledWith(1);
+    expect(engine.setMasteringTargets).toHaveBeenCalledWith({
+      lufs: -14,
+      truePeak: -0.1,
+    });
+  });
+
   it("clears armed follow actions when a fresh project replaces the set", () => {
     sceneFollowEnabled.set(true);
     sceneFollowBars.set(12);
@@ -546,7 +838,27 @@ describe("ProjectWorkspaceService", () => {
             clearSceneFollowRules: () => sceneFollowRules.set({}),
             structure: signal([]),
             selectedTrackId: signal(null),
-            engine: { stop: jest.fn(), tempo: { set: tempoSet } },
+            activeLoopBars: signal(64),
+            arrangementEndBar: () => 4,
+            captureMasterPluginState: () => ({ pluginIds: [], params: {} }),
+            applyMasterPluginState: jest.fn(),
+            engine: {
+              stop: jest.fn(),
+              tempo: { set: tempoSet },
+              masterGain: { gain: { value: 0.8 } },
+              monoMonitoring: monitorMono,
+              setMonoMonitoring: (enabled: boolean) => {
+                monitorMono.set(enabled);
+                return enabled;
+              },
+              playbackLoopEnabled: signal(false),
+              playbackLoopStart: signal<number | null>(null),
+              playbackLoopEnd: signal<number | null>(null),
+              setSongLengthSteps: jest.fn(),
+              setVcaMultiplier: jest.fn(),
+              setPlaybackLoop: jest.fn(() => false),
+              togglePlaybackLoop: jest.fn(),
+            },
           },
         },
         { provide: ProjectService, useValue: { currentProject: signal(null), projectDeleted$: new Subject<string>(), refresh: jest.fn().mockResolvedValue(undefined) } },
@@ -562,6 +874,7 @@ describe("ProjectWorkspaceService", () => {
           provide: LoggingService,
           useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
         },
+        ...projectStateProviders(),
       ],
     });
     service = TestBed.inject(ProjectWorkspaceService);

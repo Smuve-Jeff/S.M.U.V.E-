@@ -9,6 +9,7 @@ import { signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { KnobComponent } from "../shared/knob/knob.component";
+import { SidechainRoutingService } from "../sidechain-routing.service";
 
 describe("MixerComponent", () => {
   let component: MixerComponent;
@@ -87,6 +88,8 @@ describe("MixerComponent", () => {
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: RecordingStatusService, useValue: recordingStatusMock },
         { provide: InteractionDialogService, useValue: mockDialog },
+        { provide: AudioEngineService, useValue: mockAudioSession.engine },
+        SidechainRoutingService,
       ],
     }).compileComponents();
 

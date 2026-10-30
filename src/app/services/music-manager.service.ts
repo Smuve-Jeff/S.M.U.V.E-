@@ -749,6 +749,54 @@ export class MusicManagerService {
   private liveChainFor = (ids: string[]) =>
     ids.map((id) => this.pluginStore.liveInsertSlot(id));
 
+  // ── Master-bus plugin chain (project state) ───────────────────────
+
+  /**
+   * Snapshot the live master insert chain and the effective values of every
+   * plugin on it. The chain itself is session state today, so without this a
+   * reopened project lost its master inserts even though the tracks kept
+   * theirs.
+   */
+  captureMasterPluginState(): {
+    pluginIds: string[];
+    params: Record<string, Record<string, number>>;
+  } {
+    const pluginIds = [...this.engine.masterPluginIds()];
+    const params: Record<string, Record<string, number>> = {};
+    for (const id of pluginIds) {
+      params[id] = { ...this.pluginStore.valuesFor(id) };
+    }
+    return { pluginIds, params };
+  }
+
+  /**
+   * Restore a saved master insert chain. Re-installing with an empty chain
+   * first is deliberate: the engine ignores a second install while one is
+   * live, and the open project may have a different chain than the saved one.
+   */
+  applyMasterPluginState(
+    pluginIds: readonly string[],
+    params: Record<string, Record<string, number>> = {},
+  ): void {
+    const ids = Array.isArray(pluginIds)
+      ? pluginIds.filter((id): id is string => typeof id === 'string' && !!id)
+      : [];
+    for (const id of ids) {
+      const values = params?.[id];
+      if (!values || typeof values !== 'object') continue;
+      for (const [paramId, value] of Object.entries(values)) {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          this.pluginStore.setParam(id, paramId, value);
+        }
+      }
+    }
+    this.engine.installMasterPluginInsertAfterWidth([], undefined);
+    if (ids.length > 0) {
+      this.engine.installMasterPluginInsertAfterWidth(ids, this.liveChainFor);
+    }
+    void this.pluginStore.preload(ids);
+  }
+
 
   // ── Macro FX slots ────────────────────────────────────────────────
 

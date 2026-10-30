@@ -46,6 +46,7 @@ import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.
 import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
 import { AutomationCurveEditorComponent } from "../automation/automation-curve-editor.component";
 import { AutomationService } from "../automation.service";
+import { ArrangementMarkersService } from "../arrangement-markers.service";
 
 export type ArrangementTool =
   | "select"
@@ -82,6 +83,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   private readonly logger = inject(LoggingService);
   /** Sprint A3 — take lane state per track (TakeManagerService, root-scoped). */
   public readonly takeManager = inject(TakeManagerService);
+  /** Markers are project state, not component state. */
+  private readonly markerService = inject(ArrangementMarkersService);
+  readonly markers = this.markerService.markers;
 
   /**
    * Fired from the empty-arrangement CTA so the Studio shell can switch
@@ -256,7 +260,6 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.engine?.songEnded?.set?.(false);
   }
 
-  markers = signal<any[]>([]);
   showAutomation = signal(false);
 
   // ── Lifecycle ────────────────────────────────────────────
@@ -699,14 +702,11 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   addMarker(name: string) {
     const time = this.musicManager.currentStep() / 16;
-    this.markers.update((ms) => [
-      ...ms,
-      { id: "marker_" + Date.now(), name, time, color: "#facc15" },
-    ]);
+    this.markerService.add(name, time);
   }
 
   removeMarker(id: string) {
-    this.markers.update((ms) => ms.filter((m) => m.id !== id));
+    this.markerService.remove(id);
   }
 
   toggleAutomationView() {

@@ -16,6 +16,7 @@ import {
 } from "../../services/music-manager.service";
 import { NeuralMixerService } from "../../services/neural-mixer.service";
 import { VcaBusService } from "../vca-bus.service";
+import { SidechainRoutingService } from "../sidechain-routing.service";
 import { HapticService } from "../../services/haptic.service";
 import { AiService } from "../../services/ai.service";
 import { Clip } from "../instrument.service";
@@ -50,6 +51,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   private readonly neuralMixer = inject(NeuralMixerService);
   private readonly haptic = inject(HapticService);
   public readonly vcaBuses = inject(VcaBusService);
+  private readonly sidechainRouting = inject(SidechainRoutingService);
   public readonly aiService = inject(AiService);
   private readonly snack = inject(SnackbarService);
   readonly recordingStatus = inject(RecordingStatusService);
@@ -123,7 +125,6 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   // ── Pro: Sidechain routing map ─────────────────────────────
   /** Map of destination trackId → sidechain source trackId */
-  sidechainMap = signal<Record<string, string>>({});
 
   ngOnInit() {
     this.startMetering();
@@ -723,50 +724,22 @@ export class MixerComponent implements OnInit, OnDestroy {
    * The sidechain chip used to be cosmetic: it toggled a local UI map while
    * the engine's real compressor routing (`connectSidechain` /
    * `disconnectSidechain` — worklet ducking of `target` by `trigger`) was
-   * never called from anywhere in the app. Now every UI change drives the
-   * actual audio path, and the UI state IS the engine's routing state.
+   * never called from anywhere in the app. The shared routing service now owns
+   * both sides of that state, so a route restored from a saved project shows
+   * up on the console exactly as it sounds.
    */
+  readonly sidechainMap = computed(() => this.sidechainRouting.byTarget());
+
   toggleSidechain(trackId: string, sourceTrackId: string | null): void {
     this.haptic.medium();
-    const engine =
-      (this.musicManager as any).engine ?? this.audioSession.engine;
     const trigger = sourceTrackId;
-    if (
-      trigger == null ||
-      trigger === "" ||
-      this.sidechainMap()[trackId] === trigger
-    ) {
-      const prev = this.sidechainMap()[trackId];
-      if (prev) {
-        try {
-          engine?.disconnectSidechain?.(prev, trackId);
-        } catch {
-          /* engine routing not available in lightweight test hosts */
-        }
-      }
-      this.sidechainMap.update((m) => {
-        const next = { ...m };
-        delete next[trackId];
-        return next;
-      });
+    const prev = this.sidechainMap()[trackId];
+    if (trigger == null || trigger === "" || prev === trigger) {
+      this.sidechainRouting.setRoute(trackId, null);
       this.snack.info(`Sidechain on ${this.findTrackName(trackId)} cleared`);
       return;
     }
-    // Routing a new (or different) trigger → target pair.
-    const prev = this.sidechainMap()[trackId];
-    if (prev && prev !== trigger) {
-      try {
-        engine?.disconnectSidechain?.(prev, trackId);
-      } catch {
-        /* ignore */
-      }
-    }
-    try {
-      engine?.connectSidechain?.(trigger, trackId);
-    } catch {
-      /* engine routing not available in lightweight test hosts */
-    }
-    this.sidechainMap.update((m) => ({ ...m, [trackId]: trigger }));
+    this.sidechainRouting.setRoute(trackId, trigger);
     this.snack.success(
       `Sidechain: ${this.findTrackName(trigger)} → ${this.findTrackName(trackId)}`,
     );

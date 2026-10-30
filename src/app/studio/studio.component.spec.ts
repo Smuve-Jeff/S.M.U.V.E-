@@ -679,7 +679,7 @@ describe("StudioComponent", () => {
     await component.loadProjectFile({ target: input } as unknown as Event);
 
     expect(mockSnackbar.error).toHaveBeenCalledWith(
-      "Invalid project file format",
+      "Failed to load project bundle",
     );
   });
 

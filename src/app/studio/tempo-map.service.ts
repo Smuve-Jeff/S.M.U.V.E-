@@ -114,6 +114,33 @@ export class TempoMapService {
     this.syncToEngine();
   }
 
+  /**
+   * Replace the whole map from a saved project. Invalid entries are dropped
+   * rather than failing the load, and the engine is re-synced exactly once so
+   * a reopened song runs the saved tempo changes from the first play press.
+   */
+  replaceAll(markers: readonly TempoMarker[]): void {
+    const next = Array.isArray(markers)
+      ? this.sorted(
+          markers
+            .filter(
+              (marker) =>
+                marker &&
+                Number.isFinite(marker.step) &&
+                Number.isFinite(marker.bpm) &&
+                this.clampBpm(marker.bpm) !== null,
+            )
+            .map((marker, index) => ({
+              id: String(marker.id || `tempo_restored_${index}`),
+              step: Math.max(0, Math.round(marker.step)),
+              bpm: this.clampBpm(marker.bpm)!,
+            })),
+        )
+      : [];
+    this.markers.set(next);
+    this.syncToEngine();
+  }
+
   /** Drop the whole map — the song returns to one tempo. */
   clear() {
     this.markers.set([]);

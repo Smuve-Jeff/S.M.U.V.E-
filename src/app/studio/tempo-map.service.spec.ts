@@ -83,6 +83,24 @@ describe("TempoMapService", () => {
     expect(service.bpmAtStep(32)).toBe(120);
   });
 
+  it("replaces a saved map wholesale, dropping invalid markers", () => {
+    service.addMarker(0, 120);
+    engine.setTempoMap.mockClear();
+
+    service.replaceAll([
+      { id: "b", step: 32, bpm: 90 },
+      { id: "a", step: 0, bpm: 100 },
+      { id: "bad", step: 16, bpm: 5 },
+    ]);
+
+    expect(service.markers().map((marker) => marker.step)).toEqual([0, 32]);
+    expect(service.markers().map((marker) => marker.bpm)).toEqual([100, 90]);
+    expect(engine.setTempoMap).toHaveBeenCalledWith([
+      { step: 0, bpm: 100 },
+      { step: 32, bpm: 90 },
+    ]);
+  });
+
   it("pushes the map to the engine and persists it", () => {
     service.addMarker(0, 100);
     service.addMarker(16, 140);

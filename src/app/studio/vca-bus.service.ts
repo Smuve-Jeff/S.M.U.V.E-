@@ -133,6 +133,43 @@ export class VcaBusService {
     this.persist();
   }
 
+  /**
+   * Replace all VCA routing from a saved project. Assignments pointing at a
+   * bus that is not in the snapshot are discarded, so a deleted bus can never
+   * survive as a dangling group.
+   */
+  replaceRouting(buses: readonly VcaBus[], assignments: VcaAssignments): void {
+    const nextBuses = Array.isArray(buses)
+      ? buses
+          .filter(
+            (bus) =>
+              bus &&
+              typeof bus.id === "string" &&
+              bus.id.length > 0 &&
+              typeof bus.name === "string",
+          )
+          .map((bus) => ({
+            id: bus.id,
+            name: bus.name.trim() || "VCA",
+            faderValue: Number.isFinite(bus.faderValue)
+              ? Math.max(0, Math.min(1.5, bus.faderValue))
+              : 1,
+            muted: bus.muted === true,
+          }))
+      : [];
+    const validIds = new Set(nextBuses.map((bus) => bus.id));
+    const nextAssignments: VcaAssignments = {};
+    if (assignments && typeof assignments === "object") {
+      for (const [trackId, busId] of Object.entries(assignments)) {
+        if (busId == null) nextAssignments[trackId] = null;
+        else if (validIds.has(busId)) nextAssignments[trackId] = busId;
+      }
+    }
+    this.buses.set(nextBuses);
+    this.assignments.set(nextAssignments);
+    this.persist();
+  }
+
   assignTrack(trackId: string, busId: string): void {
     this.assignments.update((a) => ({ ...a, [trackId]: busId }));
     this.persist();
