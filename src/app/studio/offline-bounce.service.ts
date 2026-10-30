@@ -3,6 +3,7 @@ import { AudioEngineService } from "../services/audio-engine.service";
 import { MusicManagerService } from "../services/music-manager.service";
 import { WavEncoder } from "./wav-encoder.util";
 import { LoggingService } from "../services/logging.service";
+import { connectOfflineMasterChain } from "../services/offline-master-chain";
 
 export type BounceFormat = "wav-16" | "wav-32" | "wav-32-float";
 export type BounceState =
@@ -343,7 +344,12 @@ export class OfflineBounceService {
     const liveMasterGain = this.engine.masterGain.gain.value;
     const masterGain = ctx.createGain();
     masterGain.gain.value = liveMasterGain;
-    masterGain.connect(ctx.destination);
+    if (onlyTrackId) {
+      // A selected-track bounce is a pre-master stem.
+      masterGain.connect(ctx.destination);
+    } else {
+      connectOfflineMasterChain(ctx, masterGain, this.engine);
+    }
 
     this.updateProgress(
       "rendering",
