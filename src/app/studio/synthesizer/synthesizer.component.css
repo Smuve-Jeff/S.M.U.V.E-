@@ -1517,7 +1517,7 @@
 
 /* Desktop portrait/narrow workspaces: two module columns keep every synth
    section legible; the bounded content rail owns the resulting scroll. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   .synth-header {
     min-height: 50px;

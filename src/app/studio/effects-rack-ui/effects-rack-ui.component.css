@@ -1557,7 +1557,7 @@
 
 /* Desktop portrait/narrow workspaces use the same deliberate vertical
    console flow as the compact breakpoint, without removing any module. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   .effects-rack-header {
     min-height: 52px;

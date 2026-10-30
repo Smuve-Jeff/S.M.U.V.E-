@@ -414,7 +414,7 @@ main input[type="checkbox"] {
 
 /* Desktop portrait/narrow workspaces: retain the full console while
    reclaiming edge padding and splitting the four-stage launcher into two. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   :host {
     height: 100%;

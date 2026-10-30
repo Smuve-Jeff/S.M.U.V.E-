@@ -1302,7 +1302,7 @@
 
 /* Desktop portrait/narrow sampler: stack waveform and zone editor so every
    routing control retains a usable target instead of forming a tiny sidebar. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   .sampler-topbar {
     align-items: flex-start;

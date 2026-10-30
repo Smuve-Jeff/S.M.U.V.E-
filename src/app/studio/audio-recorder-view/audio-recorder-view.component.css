@@ -1687,7 +1687,7 @@
 }
 
 /* Desktop portrait/narrow capture layout. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   :host {
     min-height: 0;

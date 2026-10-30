@@ -1726,7 +1726,7 @@
    surrounding phase/VCA/header bands compact so the faders retain
    a predictable, scrollable working area.
    ════════════════════════════════════════════════════════════ */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
        (min-width: 1025px) and (max-width: 1280px) {
   .mix-shell {
     gap: 8px;

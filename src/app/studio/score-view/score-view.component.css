@@ -670,7 +670,7 @@ h1 {
 
 /* Desktop portrait/narrow score: make the shell a real flex column so the
    notation canvas receives remaining height after the two header rails. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   .score-surface {
     display: flex;

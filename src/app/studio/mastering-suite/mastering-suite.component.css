@@ -933,7 +933,7 @@
 
 /* Desktop portrait/narrow workspaces: the dashboard becomes one readable
    analysis column while every module remains available in the surface scroll. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   .mastering-surface {
     padding: 12px;

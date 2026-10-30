@@ -1337,6 +1337,29 @@ describe("StudioComponent", () => {
       expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
       expect(mockProjectWorkspace.startFreshProject).not.toHaveBeenCalled();
     });
+
+    it("remembers the lane disclosure on this device", () => {
+      localStorage.removeItem("smuve_mobile_start_lane");
+      expect(component.mobileStartExpanded()).toBe(false);
+
+      component.toggleMobileStart();
+      expect(component.mobileStartExpanded()).toBe(true);
+      expect(localStorage.getItem("smuve_mobile_start_lane")).toBe("open");
+
+      component.toggleMobileStart();
+      expect(component.mobileStartExpanded()).toBe(false);
+      expect(localStorage.getItem("smuve_mobile_start_lane")).toBe("closed");
+    });
+
+    it("restores an opened lane on the next session", () => {
+      localStorage.setItem("smuve_mobile_start_lane", "open");
+      try {
+        const restored = TestBed.createComponent(StudioComponent);
+        expect(restored.componentInstance.mobileStartExpanded()).toBe(true);
+      } finally {
+        localStorage.removeItem("smuve_mobile_start_lane");
+      }
+    });
   });
 
   describe("comp section bounce", () => {

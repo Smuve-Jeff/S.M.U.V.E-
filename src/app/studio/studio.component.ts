@@ -173,6 +173,7 @@ export function landingStudioView(options: {
 /** 3-way theme storage key. Persists across sessions. */
 const THEME_STORAGE_KEY = "smuve_studio_theme";
 /** Stage FX ambience (aurora / marquee / sheens) storage key. */
+const MOBILE_START_STORAGE_KEY = "smuve_mobile_start_lane";
 const STAGE_FX_STORAGE_KEY = "smuve_stage_fx";
 type AppTheme = "light" | "focus" | "dark";
 const THEME_ORDER: AppTheme[] = ["light", "focus", "dark"];
@@ -922,9 +923,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /**
    * The phone quick-start lane is a launch strip, not a landing page: it opens
    * collapsed so the arrangement canvas stays above the fold, and the vibe rail
-   * plus the next-step row only render once the artist asks for them.
+   * plus the next-step row only render once the artist asks for them. The
+   * artist's choice is remembered per device, so someone who works from the
+   * vibe rail does not re-open it on every visit.
    */
-  mobileStartExpanded = signal(false);
+  mobileStartExpanded = signal(this.initialMobileStartExpanded());
   browserCollapsed = signal(false);
   inspectorCollapsed = signal(false);
   railCollapsed = signal(false);
@@ -1332,10 +1335,29 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  /** Restore the quick-start lane choice (stored → collapsed). */
+  private initialMobileStartExpanded(): boolean {
+    return this.hasLocalStorageKey(MOBILE_START_STORAGE_KEY, "open");
+  }
+
   /** Open or close the quick-start lane's secondary content (vibe rail, next). */
   toggleMobileStart(): void {
     this.haptic.light();
     this.mobileStartExpanded.update((open) => !open);
+    this.persistMobileStart();
+  }
+
+  /** Mirror the lane choice to storage; a blocked store keeps the in-memory value. */
+  private persistMobileStart(): void {
+    try {
+      if (typeof localStorage === "undefined") return;
+      localStorage.setItem(
+        MOBILE_START_STORAGE_KEY,
+        this.mobileStartExpanded() ? "open" : "closed",
+      );
+    } catch {
+      /* private mode / WebView — the choice still applies for this session */
+    }
   }
 
   /** Quick helper to jump straight into vocal booth via smart sheet */

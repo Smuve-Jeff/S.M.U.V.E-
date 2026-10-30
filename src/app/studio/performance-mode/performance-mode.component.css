@@ -1520,7 +1520,7 @@
 
 /* Desktop portrait/narrow workspaces: three columns preserve readable pad
    labels while the grid itself remains the only vertical scroll owner. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   .performance-shell {
     gap: 8px;

@@ -725,7 +725,7 @@
 
 /* Desktop portrait/narrow pad boards keep four stable columns and delegate
    overflow to the grid rather than shrinking or hiding performance pads. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   .spg-shell {
     padding: 9px;

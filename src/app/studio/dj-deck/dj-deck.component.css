@@ -1979,7 +1979,7 @@
    portrait-shaped, the mixer moves to a full-width second row so
    neither deck is reduced to a narrow, unusable third column.
    ════════════════════════════════════════════════════════════ */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
        (min-width: 1025px) and (max-width: 1280px) {
   .dj-booth {
     gap: 10px;

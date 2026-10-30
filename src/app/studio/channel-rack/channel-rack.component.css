@@ -982,7 +982,7 @@ button[disabled] {
 
 /* Desktop portrait/narrow workspaces: the step editor receives its own
    full-width rail instead of competing with track metadata for inline width. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   .channel-rack-header {
     min-height: 50px;

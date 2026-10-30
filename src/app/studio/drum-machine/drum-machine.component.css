@@ -1807,7 +1807,7 @@
 
 /* Desktop portrait/narrow workspaces: stack the three playing surfaces so
    neither the 16-step grid nor the inspector is crushed by a fixed rail. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   :host,
   .dm-shell {

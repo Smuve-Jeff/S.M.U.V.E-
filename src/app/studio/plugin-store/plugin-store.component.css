@@ -985,7 +985,7 @@
 
 /* Desktop portrait/narrow storefront: two card columns avoid the tiny
    three-column desktop grid while the shelf retains independent scrolling. */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
   (min-width: 1025px) and (max-width: 1280px) {
   .plugin-store-surface {
     padding: 9px;

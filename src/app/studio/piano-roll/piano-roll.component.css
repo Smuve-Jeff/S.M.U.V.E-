@@ -1910,7 +1910,7 @@
    rail. Keep identity/status on the first line and let the editing
    controls occupy one deliberately scrollable line on the second.
    ════════════════════════════════════════════════════════════ */
-@media (min-width: 1025px) and (orientation: portrait),
+@media (min-width: 769px) and (orientation: portrait),
        (min-width: 1025px) and (max-width: 1280px) {
   .pr-shell {
     min-width: 0;
