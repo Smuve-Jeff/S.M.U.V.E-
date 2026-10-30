@@ -79,7 +79,7 @@ describe("PianoRollComponent", () => {
     quantizeTrack: jest.fn(),
     duplicateNotes: jest.fn(),
     copyNotes: jest.fn(() => []),
-    pasteNotes: jest.fn(() => 1),
+    pasteNotes: jest.fn(() => ["n-pasted"]),
     strumTrack: jest.fn(),
     getNoteSlideSemitones: jest.fn((n) =>
       n?.isSlide ? (n.pitchBend ?? 0) : 0,
@@ -978,9 +978,12 @@ describe("PianoRollComponent", () => {
     expect(mockMusicManager.copyNotes).toHaveBeenCalledWith("1", ["n1"]);
 
     mockMusicManager.currentStep.set(16);
+    component.selectedNoteIds.set(new Set());
     component.pasteNotes();
     expect(mockMusicManager.pasteNotes).toHaveBeenCalledWith("1", clip, 16);
     expect(mockMusicManager.pasteNotes).toHaveBeenCalledTimes(1);
+    // The paste becomes the selection so the phrase can be moved right away.
+    expect(Array.from(component.selectedNoteIds())).toEqual(["n-pasted"]);
   });
 
   it("keeps the clip on Ctrl+C and refuses an empty paste", () => {

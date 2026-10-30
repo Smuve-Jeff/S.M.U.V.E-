@@ -2155,12 +2155,16 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const track = this.selectedTrack();
     const clip = this.noteClipboard;
     if (!track || !clip || clip.length === 0) return;
-    const landed = this.musicManager.pasteNotes(
+    const pasted = this.musicManager.pasteNotes(
       track.id,
       clip,
       Math.max(0, Math.round(this.musicManager.currentStep())),
     );
-    if (landed === 0) return;
+    if (pasted.length === 0) return;
+    // Leave the paste selected: the next thing an artist does is move or nudge
+    // it, and keeping the old selection would make that first drag a no-op on
+    // notes that are no longer there.
+    this.selectedNoteIds.set(new Set(pasted));
     this.haptic.light();
     this.markDirty();
   }

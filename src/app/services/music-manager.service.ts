@@ -1265,15 +1265,16 @@ export class MusicManagerService {
   /**
    * Paste snapshots so the earliest note lands on `atStep`; the phrase keeps
    * its internal spacing from the copy point, and the whole paste is one
-   * undoable command so a misplaced paste costs a single Ctrl+Z.
+   * undoable command so a misplaced paste costs a single Ctrl+Z. Returns the
+   * new ids so the caller can leave the paste selected.
    */
   pasteNotes(
     trackId: string,
     notes: Array<Omit<TrackNote, "id">>,
     atStep: number
-  ): number {
+  ): string[] {
     const track = this.tracks().find((x) => x.id === trackId);
-    if (!track || notes.length === 0) return 0;
+    if (!track || notes.length === 0) return [];
     const base = Math.min(...notes.map((n) => n.step));
     const pasted: TrackNote[] = notes.map((n) => ({
       ...this.clone(n),
@@ -1300,7 +1301,7 @@ export class MusicManagerService {
         );
       }
     );
-    return pasted.length;
+    return pasted.map((p) => p.id);
   }
 
   applyChordStamp(
