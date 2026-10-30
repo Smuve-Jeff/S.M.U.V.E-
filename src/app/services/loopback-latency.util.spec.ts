@@ -1,6 +1,9 @@
 import {
+  findClickBursts,
   findClickOnset,
+  loopbackQuality,
   loopbackRoundTripMs,
+  medianOf,
 } from "./loopback-latency.util";
 
 function silent(frames: number): Float32Array {
@@ -32,6 +35,52 @@ describe("findClickOnset", () => {
     const noise = silent(480).fill(0.005);
     expect(findClickOnset([noise])).toBeNull();
     expect(findClickOnset([])).toBeNull();
+  });
+});
+
+describe("findClickBursts", () => {
+  it("finds several clicks with their peaks and noise ratios", () => {
+    const channel = silent(3000).fill(0.002);
+    for (const onset of [200, 900, 1700]) {
+      channel[onset] = 0.8;
+      channel[onset + 1] = 0.4;
+    }
+
+    const bursts = findClickBursts([channel], {
+      expected: 3,
+      burstWindowFrames: 300,
+    });
+
+    expect(bursts.map((burst) => burst.onsetFrame)).toEqual([200, 900, 1700]);
+    for (const burst of bursts) expect(burst.peak).toBeCloseTo(0.8, 5);
+    expect(bursts[0].signalToNoise).toBeGreaterThan(100);
+  });
+
+  it("stops at the number of clicks actually present", () => {
+    const channel = silent(1200);
+    channel[500] = 0.7;
+
+    expect(
+      findClickBursts([channel], { expected: 3 }).map((b) => b.onsetFrame),
+    ).toEqual([500]);
+  });
+});
+
+describe("medianOf", () => {
+  it("uses the middle value and averages an even set", () => {
+    expect(medianOf([40, 100, 60])).toBe(60);
+    expect(medianOf([40, 60, 80, 100])).toBe(70);
+    expect(medianOf([])).toBe(0);
+  });
+});
+
+describe("loopbackQuality", () => {
+  it("downgrades weak or outlying clicks instead of calling them good", () => {
+    expect(loopbackQuality(20, 2)).toBe("good");
+    expect(loopbackQuality(20, 10)).toBe("fair");
+    expect(loopbackQuality(4, 2)).toBe("fair");
+    expect(loopbackQuality(20, 30)).toBe("poor");
+    expect(loopbackQuality(1.5, 2)).toBe("poor");
   });
 });
 

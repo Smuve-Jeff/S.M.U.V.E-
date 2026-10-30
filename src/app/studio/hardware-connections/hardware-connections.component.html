@@ -155,7 +155,7 @@
         class="hw-link"
         (click)="measureLoopback()"
         [disabled]="loopbackRunning() || calibrationRunning()"
-        aria-label="Play a click and measure the true output-to-input round trip for recorded takes"
+        aria-label="Play three clicks and measure the true output-to-input round trip for recorded takes"
       >
         <span class="material-symbols-outlined" aria-hidden="true">graphic_eq</span>
         {{ loopbackRunning() ? 'Listening…' : 'Measure loopback' }}
@@ -163,14 +163,37 @@
     </div>
 
     <p class="hw-note">
-      Loopback plays a short click out of the Studio and listens for it on the
-      input. Stop playback and recording, turn the output up, then point the mic
-      at the speakers — or use a loopback cable for the most accurate number.
+      Loopback plays three short clicks out of the Studio and listens for each
+      on the input, then keeps the median trip. Stop playback and recording,
+      turn the output up, then point the mic at the speakers — or use a loopback
+      cable for the most accurate number.
     </p>
 
     <p class="hw-note" *ngIf="calibrationNotice()" role="status" aria-live="polite">
       {{ calibrationNotice() }}
     </p>
+
+    <ul
+      class="hw-loopback-results"
+      *ngIf="latency.lastLoopback() as loopback"
+      aria-label="Recent loopback measurements"
+    >
+      <li
+        *ngFor="let click of loopback.clicks; let i = index"
+        [attr.data-quality]="click.quality"
+      >
+        <span class="hw-loopback-dot" aria-hidden="true"></span>
+        <span>Click {{ i + 1 }}</span>
+        <span class="hw-loopback-ms">{{ click.roundTripMs }} ms</span>
+        <span class="hw-loopback-quality">{{ click.quality }}</span>
+      </li>
+      <li class="hw-loopback-median" [attr.data-quality]="loopback.quality">
+        <span class="hw-loopback-dot" aria-hidden="true"></span>
+        <span>Median</span>
+        <span class="hw-loopback-ms">{{ loopback.roundTripMs }} ms</span>
+        <span class="hw-loopback-quality">{{ loopback.quality }}</span>
+      </li>
+    </ul>
   </section>
 
   <!-- ── Gamepad ─────────────────────────────────────────────────────── -->

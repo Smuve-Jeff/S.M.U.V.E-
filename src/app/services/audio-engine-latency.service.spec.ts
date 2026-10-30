@@ -534,11 +534,14 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
 
     it('measures the true output→input loopback and applies it', async () => {
       let capturing = false;
-      const left = new Float32Array(12000);
-      const right = new Float32Array(12000);
-      // Click onset 0.2 s after capture began at 5.0 s; scheduled at 5.1 s.
-      left[9600] = 1;
-      right[9600] = 1;
+      const left = new Float32Array(40000);
+      const right = new Float32Array(40000);
+      // Capture began at 5.0 s. Clicks are scheduled 5.1, 5.35 and 5.6 s; the
+      // first two arrive 100 ms later, the third 150 ms later.
+      for (const onset of [9600, 21600, 36000]) {
+        left[onset] = 1;
+        right[onset] = 1;
+      }
       const recorder = {
         isRecording: jest.fn(() => capturing),
         hasInputCapture: jest.fn(() => true),
@@ -607,9 +610,21 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
       const measurement = await sut.calibrateWithLoopback({
         leadSeconds: 0.1,
         tailSeconds: 0.2,
+        clicks: 3,
+        spacingSeconds: 0.25,
       });
 
+      expect(measurement.clicks.map((click) => click.roundTripMs)).toEqual([
+        100, 100, 150,
+      ]);
+      // The late third click is an outlier but does not move the median.
       expect(measurement.roundTripMs).toBe(100);
+      expect(measurement.clicks.map((click) => click.quality)).toEqual([
+        'good',
+        'good',
+        'poor',
+      ]);
+      expect(measurement.quality).toBe('good');
       expect(sut.lastLoopback()?.roundTripMs).toBe(100);
       expect(sut.storedBaseline()?.totalLatencyMs).toBe(100);
       expect(recorder.stopRecording).toHaveBeenCalledWith({ persist: false });
@@ -681,7 +696,7 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
 
       await expect(
         sut.calibrateWithLoopback({ leadSeconds: 0.1, tailSeconds: 0.2 })
-      ).rejects.toThrow(/not captured/);
+      ).rejects.toThrow(/Only 0 of 3 calibration clicks/);
       expect(recorder.stopRecording).toHaveBeenCalledWith({ persist: false });
     });
 

@@ -2,7 +2,10 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { signal } from "@angular/core";
 
 import { HardwareConnectionsComponent } from "./hardware-connections.component";
-import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
+import {
+  AudioEngineLatencyService,
+  type LoopbackMeasurement,
+} from "../../services/audio-engine-latency.service";
 import { StudioMidiLearnService } from "../studio-midi-learn.service";
 import { DjMidiService } from "../../services/dj-midi.service";
 import { MicrophoneService } from "../../services/microphone.service";
@@ -24,16 +27,43 @@ describe("HardwareConnectionsComponent input latency", () => {
         capturedAt: Date.now(),
       };
     }),
+    lastLoopback: signal<LoopbackMeasurement | null>(null),
     calibrateWithLoopback: jest.fn(async () => {
       latencyMock.appliedCompensationMs.set(38);
-      return {
+      const measurement: LoopbackMeasurement = {
         roundTripMs: 38,
+        quality: "good",
+        clicks: [
+          {
+            roundTripMs: 36,
+            onsetFrame: 1728,
+            peak: 0.8,
+            signalToNoise: 20,
+            quality: "good",
+          },
+          {
+            roundTripMs: 38,
+            onsetFrame: 1824,
+            peak: 0.7,
+            signalToNoise: 14,
+            quality: "good",
+          },
+          {
+            roundTripMs: 40,
+            onsetFrame: 1920,
+            peak: 0.3,
+            signalToNoise: 4,
+            quality: "fair",
+          },
+        ],
         clickScheduledAt: 5.1,
         detectedAt: 5.138,
         onsetFrame: 1824,
         sampleRate: 48000,
         capturedAt: Date.now(),
       };
+      latencyMock.lastLoopback.set(measurement);
+      return measurement;
     }),
   };
 
@@ -67,6 +97,7 @@ describe("HardwareConnectionsComponent input latency", () => {
     latencyMock.appliedCompensationMs.set(0);
     latencyMock.calibrateAndApply.mockClear();
     latencyMock.calibrateWithLoopback.mockClear();
+    latencyMock.lastLoopback.set(null);
 
     await TestBed.configureTestingModule({
       imports: [HardwareConnectionsComponent],
@@ -112,9 +143,15 @@ describe("HardwareConnectionsComponent input latency", () => {
     expect(latencyMock.calibrateWithLoopback).toHaveBeenCalledTimes(1);
     expect(component.loopbackRunning()).toBe(false);
     expect(component.calibrationNotice()).toBe(
-      "Loopback measured 38 ms — new takes align by 38 ms.",
+      "Loopback median 38 ms from 3 clicks (2 good) — new takes align by 38 ms.",
     );
-    expect(fixture.nativeElement.textContent).toContain("38 ms applied");
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain("38 ms applied");
+    expect(text).toContain("Click 1");
+    expect(text).toContain("36 ms");
+    expect(text).toContain("40 ms");
+    expect(text).toContain("fair");
+    expect(text).toContain("Median");
   });
 
   it("shows the loopback error when the click is not captured", async () => {

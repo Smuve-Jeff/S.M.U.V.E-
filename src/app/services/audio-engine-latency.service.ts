@@ -11,8 +11,11 @@ import { LoggingService } from './logging.service';
 import { UserProfileService } from './user-profile.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import {
-  findClickOnset,
+  findClickBursts,
+  loopbackQuality,
   loopbackRoundTripMs,
+  medianOf,
+  type LoopbackClickQuality,
 } from './loopback-latency.util';
 
 /**
@@ -78,14 +81,32 @@ export interface LatencyCalibrationResult {
  * (`baseLatency + outputLatency`), this includes the input path and whatever
  * acoustic or cable route the sound took.
  */
-export interface LoopbackMeasurement {
-  /** Measured round-trip latency in milliseconds. */
+/** One captured click from a loopback run. */
+export interface LoopbackClickMeasurement {
+  /** This click's output→input round trip, in milliseconds. */
   roundTripMs: number;
-  /** AudioContext time the click was scheduled for. */
+  /** Frame index of this click's onset inside the captured take. */
+  onsetFrame: number;
+  /** Loudest captured sample for this click (0-1). */
+  peak: number;
+  /** Click peak divided by the room-noise floor. */
+  signalToNoise: number;
+  /** Clean and close to the median → good; weak or an outlier → poor. */
+  quality: LoopbackClickQuality;
+}
+
+export interface LoopbackMeasurement {
+  /** Median round trip across the captured clicks, in milliseconds. */
+  roundTripMs: number;
+  /** Worst quality among the captured clicks. */
+  quality: LoopbackClickQuality;
+  /** Each captured click, in playback order. */
+  clicks: LoopbackClickMeasurement[];
+  /** AudioContext time the median click was scheduled for. */
   clickScheduledAt: number;
-  /** AudioContext time the click's onset was captured. */
+  /** AudioContext time that click's onset was captured. */
   detectedAt: number;
-  /** Frame index of the onset inside the captured take. */
+  /** Frame index of that click's onset inside the captured take. */
   onsetFrame: number;
   sampleRate: number;
   capturedAt: number;
@@ -627,10 +648,14 @@ export class AudioEngineLatencyService {
    * appear in the artist's take lane.
    */
   async measureLoopbackLatency(options: {
-    /** Seconds between arming capture and the click. */
+    /** Seconds between arming capture and the first click. */
     leadSeconds?: number;
-    /** Seconds of input to record after the click. */
+    /** Seconds of input to record after the last click. */
     tailSeconds?: number;
+    /** Number of clicks to play; the median of their trips is the result. */
+    clicks?: number;
+    /** Seconds between clicks. */
+    spacingSeconds?: number;
   } = {}): Promise<LoopbackMeasurement> {
     const recorder = this.recorder;
     if (!recorder) {
@@ -661,58 +686,106 @@ export class AudioEngineLatencyService {
 
     const leadSeconds = clampSeconds(options.leadSeconds ?? 0.25, 0.1, 0.6);
     const tailSeconds = clampSeconds(options.tailSeconds ?? 0.4, 0.2, 1.5);
+    const clickCount = Math.min(
+      5,
+      Math.max(1, Math.floor(options.clicks ?? 3)),
+    );
+    const spacingSeconds = clampSeconds(
+      options.spacingSeconds ?? 0.35,
+      0.2,
+      1,
+    );
+    const sampleRate =
+      Number(ctx.sampleRate) ||
+      Number(this.engine.nativeSampleRate) ||
+      48000;
 
     recorder.startRecording();
     if (!recorder.isRecording()) {
       throw new Error('The recorder could not start capturing.');
     }
 
-    let click: { oscillator: OscillatorNode; gain: GainNode } | null = null;
+    const clicks: { oscillator: OscillatorNode; gain: GainNode }[] = [];
+    let firstClickAt = 0;
     try {
-      // Let the worklet produce its first quantum before scheduling the click,
-      // so the capture anchor definitely precedes the burst.
+      // Let the worklet produce its first quantum before scheduling the clicks,
+      // so the capture anchor definitely precedes the first burst.
       await wait(120);
-      const clickScheduledAt = ctx.currentTime + leadSeconds;
-      click = this.playCalibrationClick(ctx, clickScheduledAt);
-      await wait((leadSeconds + tailSeconds) * 1000);
+      firstClickAt = ctx.currentTime + leadSeconds;
+      for (let index = 0; index < clickCount; index++) {
+        clicks.push(
+          this.playCalibrationClick(
+            ctx,
+            firstClickAt + index * spacingSeconds,
+          ),
+        );
+      }
+      await wait(
+        (leadSeconds + (clickCount - 1) * spacingSeconds + tailSeconds) * 1000,
+      );
 
       const captureStartedAt = recorder.getCaptureStartedAt?.() ?? null;
       const raw = recorder.getRecordedBuffers?.(false) ?? {
         left: [],
         right: [],
       };
-      const onsetFrame = findClickOnset([
-        joinCaptureChunks(raw.left),
-        joinCaptureChunks(raw.right),
-      ]);
-      if (!captureStartedAt || onsetFrame === null) {
+      const bursts = captureStartedAt
+        ? findClickBursts([joinCaptureChunks(raw.left), joinCaptureChunks(raw.right)], {
+            expected: clickCount,
+            // A click ends well before the next one; cap the peak search so a
+            // reflection cannot be mistaken for a separate burst.
+            burstWindowFrames: Math.round(spacingSeconds * sampleRate * 0.4),
+          })
+        : [];
+      if (!captureStartedAt || bursts.length < clickCount) {
         throw new Error(
-          'The calibration click was not captured — turn up the output, point the mic at the speakers, or use a loopback cable.'
+          `Only ${bursts.length} of ${clickCount} calibration clicks were captured — turn up the output, point the mic at the speakers, or use a loopback cable.`
         );
       }
 
-      const sampleRate =
-        Number(ctx.sampleRate) ||
-        Number(this.engine.nativeSampleRate) ||
-        48000;
-      const roundTripMs = loopbackRoundTripMs({
-        clickScheduledAt,
-        captureStartedAt,
-        onsetFrame,
-        sampleRate,
-      });
+      const measured = bursts.map((burst, index) => ({
+        roundTripMs: loopbackRoundTripMs({
+          clickScheduledAt: firstClickAt + index * spacingSeconds,
+          captureStartedAt,
+          onsetFrame: burst.onsetFrame,
+          sampleRate,
+        }),
+        onsetFrame: burst.onsetFrame,
+        peak: burst.peak,
+        signalToNoise: burst.signalToNoise,
+        quality: 'poor' as LoopbackClickQuality,
+      }));
+      const roundTripMs = medianOf(measured.map((click) => click.roundTripMs));
       if (roundTripMs <= 0 || roundTripMs > 2000) {
         throw new Error(
           `Loopback timing read ${roundTripMs} ms, which is not a usable measurement. Check the input and output routing, then retry.`
         );
       }
+      for (const click of measured) {
+        click.quality = loopbackQuality(
+          click.signalToNoise,
+          Math.abs(click.roundTripMs - roundTripMs),
+        );
+      }
+      const medianClick = measured.reduce((closest, click) =>
+        Math.abs(click.roundTripMs - roundTripMs) <
+        Math.abs(closest.roundTripMs - roundTripMs)
+          ? click
+          : closest,
+      );
+      // The median can stay clean even when one click is an outlier; report
+      // the quality of the click that actually supplied the median.
+      const quality = medianClick.quality;
 
       const capturedAt = Date.now();
       const measurement: LoopbackMeasurement = {
         roundTripMs,
-        clickScheduledAt,
-        detectedAt: captureStartedAt + onsetFrame / sampleRate,
-        onsetFrame,
+        quality,
+        clicks: measured,
+        clickScheduledAt: firstClickAt +
+          measured.indexOf(medianClick) * spacingSeconds,
+        detectedAt: captureStartedAt + medianClick.onsetFrame / sampleRate,
+        onsetFrame: medianClick.onsetFrame,
         sampleRate,
         capturedAt,
       };
@@ -738,7 +811,7 @@ export class AudioEngineLatencyService {
       this.baselinePrefillDone = true;
       return measurement;
     } finally {
-      if (click) {
+      for (const click of clicks) {
         try {
           click.oscillator.stop();
         } catch {

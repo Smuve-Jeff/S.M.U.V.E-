@@ -108,8 +108,8 @@ export class HardwareConnectionsComponent {
   }
 
   /**
-   * True loopback: play a click, capture it through the input, and apply the
-   * measured output→input round trip. Slower and acoustic, but it measures
+   * True loopback: play three clicks, capture them through the input, and apply
+   * the median output→input round trip. Slower and acoustic, but it measures
    * the path the artist actually records through.
    */
   async measureLoopback(): Promise<void> {
@@ -118,9 +118,12 @@ export class HardwareConnectionsComponent {
     this.calibrationNotice.set(null);
     try {
       const measurement = await this.latency.calibrateWithLoopback();
+      const goodClicks = measurement.clicks.filter(
+        (click) => click.quality === "good",
+      ).length;
       this.calibrationNotice.set(
         measurement.roundTripMs > 0
-          ? `Loopback measured ${measurement.roundTripMs} ms — new takes align by ${this.latency.appliedCompensationMs()} ms.`
+          ? `Loopback median ${measurement.roundTripMs} ms from ${measurement.clicks.length} clicks (${goodClicks} good) — new takes align by ${this.latency.appliedCompensationMs()} ms.`
           : "Loopback measured 0 ms — check the input is hearing the output.",
       );
     } catch (error) {
