@@ -335,6 +335,17 @@ canvas {
   line-height: 1.45;
 }
 
+.director-plan-editorial {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding-left: 0.9rem;
+  color: #cbd5e1;
+  font-size: 0.64rem;
+  line-height: 1.45;
+  list-style: disc;
+}
+
 .director-plan-meta,
 .command-console-label {
   color: #10b981;
@@ -346,8 +357,14 @@ canvas {
 
 .director-plan-meta {
   display: flex;
+  /* The attribution names the model and its latency, so it is longer than the
+     "AI DIRECTED" chip it replaced: let the runtime drop to its own line in a
+     narrow aside instead of colliding with it. */
+  flex-wrap: wrap;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.15rem 0.5rem;
+  line-height: 1.5;
 }
 
 .command-row input {

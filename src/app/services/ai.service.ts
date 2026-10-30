@@ -600,6 +600,17 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     return boundAiPrompt(prompt.replace(directives, ''), prefix);
   }
 
+  /**
+   * Whether this text is failure copy rather than a model answer.
+   *
+   * Callers that parse model output — the cinema director asks for a JSON shot
+   * list — need this so a rate-limit or expired-session line is reported as the
+   * failure it is instead of being parsed, failing, and blamed on the schema.
+   */
+  isFailureNotice(text: string): boolean {
+    return this.failureNotices.has(text) || isOfflineAiText(text);
+  }
+
   /** The signature outage line for the active persona. */
   private severedLine(): string {
     return (

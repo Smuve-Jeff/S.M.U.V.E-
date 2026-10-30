@@ -553,7 +553,11 @@ describe('ImageVideoLabComponent', () => {
       imports: [ImageVideoLabComponent],
       providers: [
         { provide: LoggingService, useValue: { error: jest.fn(), warn: jest.fn() } },
-        { provide: AiService, useValue: { generateImage: jest.fn() } },
+        { provide: AiService, useValue: {
+          generateImage: jest.fn(),
+          isFailureNotice: jest.fn(() => false),
+          lastAiCall: jest.fn(() => null),
+        } },
         { provide: UserContextService, useValue: {} },
         { provide: VideoEngineService, useValue: videoEngine },
         { provide: ExportService, useValue: exportService },

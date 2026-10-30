@@ -4,10 +4,13 @@ import { CinemaDirectorService } from './cinema-director.service';
 import { LoggingService } from './logging.service';
 
 describe('CinemaDirectorService', () => {
-  let ai: { getAIResponse: jest.Mock };
+  let ai: { getAIResponse: jest.Mock; isFailureNotice: jest.Mock };
 
-  const createService = (response = '') => {
-    ai = { getAIResponse: jest.fn().mockResolvedValue(response) };
+  const createService = (response = '', failureNotice = false) => {
+    ai = {
+      getAIResponse: jest.fn().mockResolvedValue(response),
+      isFailureNotice: jest.fn().mockReturnValue(failureNotice),
+    };
     TestBed.configureTestingModule({
       providers: [
         CinemaDirectorService,
@@ -48,6 +51,37 @@ describe('CinemaDirectorService', () => {
     expect(plan.origin).toBe('local');
     expect(plan.shots.length).toBeGreaterThan(0);
     expect(service.isPlanning()).toBe(false);
+  });
+
+  it('names the provider limit instead of blaming the connection', async () => {
+    const service = createService(
+      'S.M.U.V.E is being rate limited by its model provider. Nothing in this session was lost.',
+      true
+    );
+
+    const plan = await service.generateShotPlan(request);
+
+    expect(plan.origin).toBe('local');
+    expect(service.plannerNote()).toContain('rate limited');
+    expect(service.plannerNote()).not.toContain('offline');
+  });
+
+  it('separates a model that ignored the schema from a dead link', async () => {
+    const service = createService('Sure! Here is a lovely plan, in prose.');
+
+    const plan = await service.generateShotPlan(request);
+
+    expect(plan.origin).toBe('local');
+    expect(service.plannerNote()).toContain('not with a shot list');
+    expect(service.plannerNote()).not.toContain('offline');
+  });
+
+  it('only calls the link offline when the model answered nothing at all', async () => {
+    const service = createService('');
+
+    await service.generateShotPlan(request);
+
+    expect(service.plannerNote()).toContain('offline');
   });
 
   it('keeps an AI plan inside the requested runtime', async () => {

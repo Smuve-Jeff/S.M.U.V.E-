@@ -1170,8 +1170,20 @@
             <div class="director-plan-card">
               <div class="director-plan-title">{{ plan.title }}</div>
               <p>{{ plan.logline }}</p>
+              <!--
+                The model's own editorial notes. They arrived with every plan
+                and were dropped on the floor: the console kept the title and
+                logline and threw away the three notes that say how to shoot it.
+              -->
+              @if (plan.editorial.length) {
+                <ul class="director-plan-editorial">
+                  @for (note of plan.editorial; track note) {
+                    <li>{{ note }}</li>
+                  }
+                </ul>
+              }
               <div class="director-plan-meta">
-                <span>{{ plan.origin === 'smuve' ? 'AI DIRECTED' : 'LOCAL FALLBACK' }}</span>
+                <span>{{ planAttribution() }}</span>
                 <span>{{ director.plannedRuntime() | number: '1.0-0' }}s planned</span>
               </div>
             </div>

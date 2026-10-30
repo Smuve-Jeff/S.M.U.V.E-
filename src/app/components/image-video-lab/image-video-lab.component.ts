@@ -1683,6 +1683,24 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
 
   // ── S.M.U.V.E director console ────────────────────────────────────────
 
+  /**
+   * Who actually answered for the current plan, and how long it took.
+   *
+   * The meta line read "AI DIRECTED" for anything the model returned, with no
+   * way to tell which model answered or that a retry had nearly failed — and
+   * "LOCAL FALLBACK" whenever it did not, whether the provider was busy, the
+   * session expired or the schema was ignored.
+   */
+  readonly planAttribution = computed(() => {
+    const plan = this.director.plan();
+    if (!plan) return '';
+    if (plan.origin !== 'smuve') return 'LOCAL FALLBACK';
+    const call = this.aiService.lastAiCall();
+    if (!call) return 'AI DIRECTED';
+    const retries = call.attempts > 1 ? ` · ${call.attempts} TRIES` : '';
+    return `AI DIRECTED · ${call.model} · ${(call.latencyMs / 1000).toFixed(1)}s${retries}`;
+  });
+
   async generateShotPlan(): Promise<void> {
     const plan = await this.director.generateShotPlan({
       brief: this.director.brief(),

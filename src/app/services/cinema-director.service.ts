@@ -212,13 +212,31 @@ export class CinemaDirectorService {
 
       const local = this.buildLocalPlan(brief, request);
       this.plan.set(local);
-      this.plannerNote.set(
-        'S.M.U.V.E strategic link is offline — a tempo-locked structural plan was cut locally.'
-      );
+      this.plannerNote.set(this.localPlanNote(response));
       return local;
     } finally {
       this.isPlanning.set(false);
     }
+  }
+
+  /**
+   * Why the console is showing a locally cut plan instead of a directed one.
+   *
+   * This note used to name the strategic link as offline no matter what had
+   * happened: an ignored schema, a provider rate limit and an expired session
+   * all read as a dead connection, which sends the artist off to check their
+   * own network over a problem that is not theirs.
+   */
+  private localPlanNote(response: string): string {
+    const local = 'a tempo-locked structural plan was cut locally instead.';
+    // An empty answer is the only case that is a severed link.
+    if (!response.trim()) {
+      return `S.M.U.V.E strategic link is offline — ${local}`;
+    }
+    if (this.aiService.isFailureNotice(response)) {
+      return `${response} ${local.charAt(0).toUpperCase()}${local.slice(1)}`;
+    }
+    return `The model answered, but not with a shot list the timeline can read — ${local}`;
   }
 
   clearPlan(): void {
