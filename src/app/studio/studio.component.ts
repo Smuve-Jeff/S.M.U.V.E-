@@ -188,6 +188,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
   dark: "DARK",
 };
 
+import { StudioFocusService } from "./shared/studio-focus.service";
 @Component({
   selector: "app-studio",
   standalone: true,
@@ -577,6 +578,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * explicit `?view=`) overrides this in ngOnInit.
    */
   activeView = signal<StudioView>("quick-session");
+  private readonly studioFocus = inject(StudioFocusService);
   showSmartCreationSheet = signal(false);
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showAiAssistant = signal(false);
@@ -2181,6 +2183,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   setActiveView(view: StudioView) {
+    // The shell owns which view is on screen, so it decides whose shortcuts are
+    // live. The views' own pointer/focus tracking only refines that while one
+    // of them is actually in use; this is the part that survives a view switch
+    // with no pointer event at all.
+    if (view === "arrangement" || view === "piano-roll") {
+      this.studioFocus.noteActivity(view);
+    }
     if (this.mobileDrawerOpen()) {
       this.mobileDrawerOpen.set(false);
       this.syncPanelFocus(".comp-drawer", false);

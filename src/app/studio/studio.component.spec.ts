@@ -1,3 +1,4 @@
+import { StudioFocusService } from "./shared/studio-focus.service";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import {
   StudioComponent,
@@ -1569,6 +1570,19 @@ describe("StudioComponent", () => {
     expect(
       mockProjectWorkspace.pruneRedundantRecoveryRecords,
     ).toHaveBeenCalledTimes(1);
+  });
+
+
+  it("publishes the owning view when the shell switches views", () => {
+    const focus = TestBed.inject(StudioFocusService);
+
+    component.setActiveView("piano-roll");
+    expect(focus.ownsShortcuts("piano-roll")).toBe(true);
+    expect(focus.ownsShortcuts("arrangement")).toBe(false);
+
+    component.setActiveView("arrangement");
+    expect(focus.ownsShortcuts("arrangement")).toBe(true);
+    expect(focus.ownsShortcuts("piano-roll")).toBe(false);
   });
 
 });
