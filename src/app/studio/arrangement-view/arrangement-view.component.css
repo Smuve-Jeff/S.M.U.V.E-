@@ -280,9 +280,22 @@
 .playlist-content {
   flex: 1 1 auto;
   display: flex;
+  flex-direction: column;
   overflow: hidden;
   min-height: 0;
   position: relative;
+}
+
+/* Track headers and the WebGL timeline share the flexible lane row. The
+   automation editor and overview belong BELOW that row; as direct flex
+   children of the old row container they became narrow side columns and
+   stole width from the canvas. */
+.arrangement-lanes {
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ── Left track headers ───────────────────────────────────── */
@@ -1644,4 +1657,67 @@
   border: 1px solid var(--espresso-line);
   border-radius: 12px;
   overflow: hidden;
+}
+
+/* ============================================================
+   ARRANGEMENT FIT — lane row and short landscape
+   The timeline is the instrument. On a landscape phone the
+   wrapped desktop header consumed most of the height before the
+   canvas; keep every command, but put the header on one horizontal
+   rail and guarantee the lane row a usable height.
+   ============================================================ */
+@media (max-width: 768px) {
+  .playlist-header {
+    max-height: min(150px, 32dvh);
+  }
+
+  .arrangement-lanes {
+    min-height: 220px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+  .playlist-header {
+    align-items: center;
+    flex-wrap: nowrap;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .playlist-header::-webkit-scrollbar {
+    display: none;
+  }
+
+  .view-tabs,
+  .history-controls,
+  .module-transport,
+  .tool-selector,
+  .header-actions,
+  .header-actions > *,
+  .edit-tools {
+    flex: 0 0 auto;
+  }
+
+  .header-actions,
+  .edit-tools {
+    flex-wrap: nowrap;
+  }
+
+  .arrangement-lanes {
+    min-height: 200px;
+  }
+
+  .arrangement-mode-status {
+    min-height: 28px;
+  }
+}
+
+@media (max-width: 932px) and (orientation: landscape), (pointer: coarse) {
+  .mini-btn,
+  .tool-btn,
+  .m-btn {
+    min-height: 44px;
+  }
 }
