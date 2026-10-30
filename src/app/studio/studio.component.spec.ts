@@ -1583,6 +1583,11 @@ describe("StudioComponent", () => {
     component.setActiveView("arrangement");
     expect(focus.ownsShortcuts("arrangement")).toBe(true);
     expect(focus.ownsShortcuts("piano-roll")).toBe(false);
+
+    // A view that renders its own screen takes ownership away from both.
+    component.setActiveView("session");
+    expect(focus.ownsShortcuts("arrangement")).toBe(false);
+    expect(focus.ownsShortcuts("piano-roll")).toBe(false);
   });
 
 });

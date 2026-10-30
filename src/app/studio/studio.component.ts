@@ -189,6 +189,38 @@ const THEME_LABEL: Record<AppTheme, string> = {
 };
 
 import { StudioFocusService } from "./shared/studio-focus.service";
+/**
+ * Views that render their own screen. Everything else falls through the
+ * `*ngSwitchDefault` body of the view switch, which is the arrangement — so the
+ * arrangement is on screen for those views too. This list mirrors the template;
+ * update it when a `*ngSwitchCase` is added.
+ */
+const SELF_HOSTING_VIEWS = new Set<string>([
+  'ai-produce',
+  'audio-recorder',
+  'channel-rack',
+  'chord-editor',
+  'dj',
+  'drum-machine',
+  'effects-rack',
+  'export',
+  'mastering',
+  'mixer',
+  'performance',
+  'performer',
+  'piano-roll',
+  'plugins',
+  'quick-session',
+  'sample-library',
+  'sampler',
+  'score',
+  'session',
+  'sound-browser',
+  'sound-pad',
+  'synthesizer',
+  'vocal-suite',
+]);
+
 @Component({
   selector: "app-studio",
   standalone: true,
@@ -2183,11 +2215,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   setActiveView(view: StudioView) {
-    // The shell owns which view is on screen, so it decides whose shortcuts are
-    // live. The views' own pointer/focus tracking only refines that while one
-    // of them is actually in use; this is the part that survives a view switch
-    // with no pointer event at all.
-    if (view === "arrangement" || view === "piano-roll") {
+    // Publish the editor surface that is actually on screen, not the raw view
+    // name. The arrangement is the *ngSwitchDefault body, so it stays visible
+    // for every view that does not render its own screen; a view that hosts
+    // neither editor publishes itself, which makes both editors stand down
+    // rather than act on material the artist cannot see.
+    if (view === "arrangement" || !SELF_HOSTING_VIEWS.has(view)) {
+      this.studioFocus.noteActivity("arrangement");
+    } else {
       this.studioFocus.noteActivity(view);
     }
     if (this.mobileDrawerOpen()) {
