@@ -282,5 +282,46 @@ describe("MasteringSuite reference A/B", () => {
       expect(engineMock.configureCompressor).not.toHaveBeenCalled();
       expect(snack.info).not.toHaveBeenCalled();
     });
+
+    it("edits a band compressor and keeps the reset anchor", () => {
+      component.applyPreset(preset("club"));
+
+      component.updateBandCompressor(4, "threshold", "-18.26");
+      component.updateBandCompressor(4, "ratio", "7.44");
+
+      let band = component.bands().find((b) => b.id === 4)!;
+      expect(band.threshold).toBe(-18.3);
+      expect(band.ratio).toBe(7.4);
+      expect(component.activePresetId()).toBeNull();
+      expect(component.presetEqActive()).toBe(true);
+
+      component.resetPresetEq();
+      band = component.bands().find((b) => b.id === 4)!;
+      expect(band.threshold).toBe(-4.2);
+      expect(band.ratio).toBe(2.1);
+    });
+
+    it("clamps manual compressor edits and ignores blank input", () => {
+      component.updateBandCompressor(1, "threshold", "5");
+      component.updateBandCompressor(1, "ratio", "0");
+
+      let band = component.bands().find((b) => b.id === 1)!;
+      expect(band.threshold).toBe(0);
+      expect(band.ratio).toBe(1);
+
+      component.updateBandCompressor(1, "threshold", "");
+      band = component.bands().find((b) => b.id === 1)!;
+      expect(band.threshold).toBe(0);
+    });
+
+    it("restores the input when a blank edit is rejected", () => {
+      const input = { value: "" } as HTMLInputElement;
+
+      component.onBandCompressorChange(2, "ratio", {
+        target: input,
+      } as unknown as Event);
+
+      expect(input.value).toBe("2.5");
+    });
   });
 });

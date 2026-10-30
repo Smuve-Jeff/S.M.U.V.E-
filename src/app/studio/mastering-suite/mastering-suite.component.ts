@@ -664,6 +664,45 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.haptic.light();
   }
 
+  /**
+   * Apply a manual band compressor edit. Threshold and ratio use the same
+   * ranges as the engine's compressor; blank or invalid input is ignored.
+   */
+  updateBandCompressor(
+    bandId: number,
+    field: "threshold" | "ratio",
+    rawValue: string | number,
+  ): void {
+    const raw = String(rawValue).trim();
+    if (!raw) return;
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric)) return;
+    const clamped =
+      field === "threshold"
+        ? Math.max(-60, Math.min(0, numeric))
+        : Math.max(1, Math.min(20, numeric));
+    const value = Math.round(clamped * 10) / 10;
+    this.bands.update((arr) =>
+      arr.map((b) => (b.id === bandId ? { ...b, [field]: value } : b)),
+    );
+    // The preset no longer describes the shape exactly, but its anchor still
+    // lets the artist return to the pre-preset settings.
+    this.activePresetId.set(null);
+  }
+
+  /** Commit an input edit and show the clamped value the model accepted. */
+  onBandCompressorChange(
+    bandId: number,
+    field: "threshold" | "ratio",
+    event: Event,
+  ): void {
+    const input = event.target as HTMLInputElement | null;
+    if (!input) return;
+    this.updateBandCompressor(bandId, field, input.value);
+    const band = this.bands().find((b) => b.id === bandId);
+    if (band) input.value = String(band[field]);
+  }
+
   /** Clamp an EQ gain to the band range and round to the displayed 0.1 dB. */
   private clampBandGain(db: number): number {
     const clamped = Math.max(-12, Math.min(12, db));
