@@ -468,11 +468,20 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   presetEqActive = signal(false);
 
   /**
-   * EQ gains captured before the first preset is applied. Every preset shapes
-   * from this anchor instead of the current bands, so repeated taps are
-   * idempotent and switching presets cannot stack two EQ curves.
+   * Band gains, thresholds and ratios captured before the first preset. Every
+   * preset shapes from this anchor instead of the current bands, so repeated
+   * taps are idempotent and switching presets cannot stack two EQ curves.
    */
-  private presetAnchorGains: Map<number, number> | null = null;
+  private presetAnchorBands: Map<
+    number,
+    { gain: number; threshold: number; ratio: number }
+  > | null = null;
+
+  /** Master compressor threshold/ratio before the first preset shaped it. */
+  private presetAnchorCompressor: {
+    threshold: number;
+    ratio: number;
+  } | null = null;
 
   // ── Pro: AI mastering presets ───────────────────────────────────
   readonly presets: MasteringPreset[] = [
@@ -569,6 +578,17 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.activePresetId.set(preset.id);
     this.presetEqActive.set(true);
 
+    // Capture the pre-preset shape before any preset value reaches the bands
+    // or the master compressor. A second preset must not replace this anchor.
+    this.presetAnchorBands ??= new Map(
+      this.bands().map((b) => [
+        b.id,
+        { gain: b.gain ?? 0, threshold: b.threshold, ratio: b.ratio },
+      ]),
+    );
+    this.presetAnchorCompressor ??= (this.audioEngine as any)
+      .getCompressorSettings?.() ?? null;
+
     // Update LUFS target + safe ceiling
     this.targetLufs.set(preset.targetLufs);
     this.safeCeiling.set(preset.safeCeiling);
@@ -585,14 +605,11 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     // not additive deltas. Anchoring the first application keeps a second tap
     // of the same preset — or a switch to another preset — from drifting the
     // existing curve.
-    this.presetAnchorGains ??= new Map(
-      this.bands().map((b) => [b.id, b.gain ?? 0]),
-    );
     this.bands.update((arr) =>
       arr.map((b) => ({
         ...b,
         gain: this.clampBandGain(
-          (this.presetAnchorGains!.get(b.id) ?? 0) +
+          (this.presetAnchorBands!.get(b.id)?.gain ?? 0) +
             (preset.bandDelta[b.id] ?? 0),
         ),
         ratio: preset.ratio,
@@ -616,21 +633,34 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
-   * Return the mastering EQ to the shape captured before the first preset.
-   * Loudness target, ceiling and compressor settings are left untouched.
+   * Return the mastering EQ and master compressor to the settings captured
+   * before the first preset. Loudness target and ceiling are left untouched.
    */
   resetPresetEq(): void {
-    if (!this.presetAnchorGains) return;
-    const anchor = this.presetAnchorGains;
+    const anchor = this.presetAnchorBands;
+    if (!anchor) return;
     this.bands.update((arr) =>
-      arr.map((b) => ({ ...b, gain: anchor.get(b.id) ?? b.gain })),
+      arr.map((b) => {
+        const original = anchor.get(b.id);
+        return original ? { ...b, ...original } : b;
+      }),
     );
-    this.presetAnchorGains = null;
+    if (this.presetAnchorCompressor) {
+      (this.audioEngine as any).configureCompressor?.(
+        this.presetAnchorCompressor,
+      );
+    }
+    this.presetAnchorBands = null;
+    this.presetAnchorCompressor = null;
     this.presetEqActive.set(false);
     this.activePresetId.set(null);
-    this.eqMaskingHint.set("EQ reset to the pre-preset shape");
-    this.smartAssistSuggestion.set("EQ reset to your pre-preset shape");
-    this.snack.info("Mastering EQ reset to its pre-preset shape");
+    this.eqMaskingHint.set("EQ and compressor reset to their pre-preset shape");
+    this.smartAssistSuggestion.set(
+      "EQ and compressor reset to your pre-preset shape",
+    );
+    this.snack.info(
+      "Mastering EQ and compressor reset to pre-preset settings",
+    );
     this.haptic.light();
   }
 

@@ -4069,6 +4069,21 @@ export class AudioEngineService {
     this.currentLufs.set(current); // Update reported LUFS signal
   }
 
+  /** Last threshold/ratio written to the master compressor, either path. */
+  private compressorSettings: { threshold: number; ratio: number } | null = null;
+
+  /**
+   * Read back the master compressor threshold/ratio so a mastering preset can
+   * restore the exact pre-preset state on both the worklet and fallback paths.
+   */
+  getCompressorSettings(): { threshold: number; ratio: number } {
+    if (this.compressorSettings) return { ...this.compressorSettings };
+    return {
+      threshold: this.compressor?.threshold?.value ?? -24,
+      ratio: this.compressor?.ratio?.value ?? 12,
+    };
+  }
+
   configureCompressor(p: any) {
     if (!this.compressor) return;
     const threshold = p?.threshold === undefined
@@ -4083,6 +4098,13 @@ export class AudioEngineService {
     const release = p?.release === undefined
       ? undefined
       : clampFinite(p.release, 0.01, 3, 0.1);
+    if (threshold !== undefined || ratio !== undefined) {
+      const current = this.getCompressorSettings();
+      this.compressorSettings = {
+        threshold: threshold ?? current.threshold,
+        ratio: ratio ?? current.ratio,
+      };
+    }
     if (this.masterWorkletActive()) {
       this.configureMasterWorklet('compressor', 'configure', {
         ...(threshold !== undefined ? { thresholdDb: threshold } : {}),
@@ -4199,6 +4221,10 @@ export class AudioEngineService {
    * active, otherwise the fallback chain compressor node.
    */
   setMasterCompressorRatio(ratio: number): void {
+    this.compressorSettings = {
+      ...this.getCompressorSettings(),
+      ratio,
+    };
     if (this.masterWorkletActive()) {
       this.configureMasterWorklet('compressor', 'configure', { ratio });
     } else {

@@ -62,6 +62,8 @@ describe("MasteringSuite reference A/B", () => {
       getMasterMakeupDb: jest.fn(() => 0),
       setMasteringTargets: jest.fn(),
       getMasteringTargets: jest.fn(() => ({ lufs: -14, truePeak: -1 })),
+      getCompressorSettings: jest.fn(() => ({ threshold: -16, ratio: 3 })),
+      configureCompressor: jest.fn(),
     };
     analyzeBuffer = jest.fn().mockReturnValue(refStats);
     snack = { success: jest.fn(), error: jest.fn(), info: jest.fn() };
@@ -246,17 +248,30 @@ describe("MasteringSuite reference A/B", () => {
       expect(component.activePresetId()).toBe("club");
     });
 
-    it("resets the EQ to the pre-preset anchor", () => {
+    it("resets the EQ and compressor to the pre-preset anchor", () => {
+      component.applyPreset(preset("streaming"));
       component.applyPreset(preset("club"));
       expect(component.presetEqActive()).toBe(true);
 
       component.resetPresetEq();
 
       expect(bandGains()).toEqual([-1.2, -0.5, 0, 0.8, 1.5]);
+      expect(component.bands().map((b) => [b.threshold, b.ratio])).toEqual([
+        [-12.4, 4.1],
+        [-8.1, 2.5],
+        [-2.4, 1.8],
+        [-4.2, 2.1],
+        [-1.2, 1.5],
+      ]);
+      // The second preset must not overwrite the compressor anchor.
+      expect(engineMock.configureCompressor).toHaveBeenLastCalledWith({
+        threshold: -16,
+        ratio: 3,
+      });
       expect(component.activePresetId()).toBeNull();
       expect(component.presetEqActive()).toBe(false);
       expect(snack.info).toHaveBeenCalledWith(
-        "Mastering EQ reset to its pre-preset shape",
+        "Mastering EQ and compressor reset to pre-preset settings",
       );
     });
 
@@ -264,6 +279,7 @@ describe("MasteringSuite reference A/B", () => {
       component.resetPresetEq();
 
       expect(bandGains()).toEqual([-1.2, -0.5, 0, 0.8, 1.5]);
+      expect(engineMock.configureCompressor).not.toHaveBeenCalled();
       expect(snack.info).not.toHaveBeenCalled();
     });
   });

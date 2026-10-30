@@ -146,6 +146,14 @@ describe('AudioEngineService', () => {
     );
   });
 
+  it('should read back the last configured compressor threshold and ratio', () => {
+    service.configureCompressor({ threshold: -22, ratio: 5 });
+    expect(service.getCompressorSettings()).toEqual({ threshold: -22, ratio: 5 });
+
+    service.configureCompressor({ ratio: 7 });
+    expect(service.getCompressorSettings()).toEqual({ threshold: -22, ratio: 7 });
+  });
+
   it('should initialize deck filters fully open', () => {
     const deckA = service.getDeck('A');
     const deckB = service.getDeck('B');
