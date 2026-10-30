@@ -69,6 +69,24 @@ describe("project archive", () => {
     expect(right[2]).toBeCloseTo(0.6, 5);
   });
 
+  it("rejects an archive whose audio bytes were corrupted", async () => {
+    const bytes = new Uint8Array(
+      await buildProjectArchive(makeBundle()).arrayBuffer(),
+    );
+    const marker = new TextEncoder().encode("audio/0000.f32");
+    let markerAt = -1;
+    for (let index = 0; index <= bytes.length - marker.length; index++) {
+      if (marker.every((byte, offset) => bytes[index + offset] === byte)) {
+        markerAt = index;
+        break;
+      }
+    }
+    expect(markerAt).toBeGreaterThan(-1);
+    bytes[markerAt + marker.length] ^= 0xff;
+
+    expect(() => readProjectArchive(bytes)).toThrow(/checksum/i);
+  });
+
   it("still reads a legacy JSON project file", async () => {
     const bundle = makeBundle();
     // Old exports serialised channels as plain number arrays, not typed arrays.

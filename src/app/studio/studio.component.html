@@ -16,9 +16,21 @@
   <div *ngIf="projectWorkspace.persistenceError()" class="studio-save-warning" role="alert">
     <span class="material-symbols-outlined" aria-hidden="true">warning</span>
     <span>{{ projectWorkspace.persistenceError() }}</span>
+    <button
+      *ngIf="projectWorkspace.canRepairAudio()"
+      type="button"
+      (click)="openAudioRepair()"
+    >
+      Repair audio
+    </button>
     <button type="button" (click)="saveProject()" [disabled]="projectWorkspace.isSaving()">Retry save</button>
     <button type="button" (click)="exportProject()">Export backup</button>
   </div>
+
+  <app-audio-repair
+    [open]="showAudioRepair()"
+    (closed)="showAudioRepair.set(false)"
+  ></app-audio-repair>
 
   <div class="studio-project-status" role="status" aria-live="polite" [class.studio-project-status-dirty]="projectWorkspace.isDirty()">
     <span class="material-symbols-outlined" aria-hidden="true">{{ projectWorkspace.isDirty() ? 'edit' : 'check_circle' }}</span>

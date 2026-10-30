@@ -85,6 +85,7 @@ import {
   readProjectFile,
 } from "./project-archive.util";
 import { SmartSoundService } from "./smart-sound.service";
+import { AudioRepairComponent } from "./audio-repair/audio-repair.component";
 import { AudioImportService } from "./audio-import.service";
 import { SmartProductionFoundationsService } from "./smart-production-foundations.service";
 import { ComponentRecordingService } from "./component-recording.service";
@@ -228,6 +229,7 @@ const THEME_LABEL: Record<AppTheme, string> = {
     SessionViewComponent,
     QuickSessionComponent,
     SmartCreationSheetComponent,
+    AudioRepairComponent,
   ],
   templateUrl: "./studio.component.html",
   styleUrls: [
@@ -607,6 +609,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   // ── Sets browser (local project workspaces) ──────────────
   /** Right-slide list of every set saved on this device. */
   showSetsBrowser = signal(false);
+  /** Bottom-sheet repair flow for clips whose take is missing. */
+  showAudioRepair = signal(false);
   localSets = signal<LocalProjectSummary[]>([]);
   setsBusy = signal(false);
   setsError = signal('');
@@ -2867,7 +2871,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         },
         false,
       );
-      this.snackbarService.error("Could not save project");
+      if (this.projectWorkspace.canRepairAudio()) {
+        this.showAudioRepair.set(true);
+      }
+      const message =
+        error instanceof Error && error.message.includes("no matching take")
+          ? error.message
+          : "Could not save project";
+      this.snackbarService.error(message);
       return false;
     }
   }
@@ -3250,6 +3261,22 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.triggerLoadProject();
   }
 
+  /** Open the missing-take repair sheet for the current project. */
+  openAudioRepair(): void {
+    const report = this.projectWorkspace.inspectCurrentAudioIntegrity();
+    if (report.ok) {
+      this.snackbarService.success("All audio clips are linked");
+      return;
+    }
+    if (!this.projectWorkspace.canRepairAudio()) {
+      this.snackbarService.error(
+        "Those takes belong to a project that is not open.",
+      );
+      return;
+    }
+    this.showAudioRepair.set(true);
+  }
+
   async exportProject() {
     this.haptic.light();
     try {
@@ -3261,6 +3288,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         true,
       );
     } catch (e) {
+      if (this.projectWorkspace.canRepairAudio()) {
+        this.showAudioRepair.set(true);
+      }
       this.studioTelemetry.trackEvent(
         "project_exported",
         { format: "smuve", error: e instanceof Error ? e.message : "unknown" },

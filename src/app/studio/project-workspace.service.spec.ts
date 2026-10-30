@@ -197,6 +197,36 @@ describe("ProjectWorkspaceService", () => {
             captureMasterPluginState: () => ({ pluginIds: [], params: {} }),
             applyMasterPluginState: jest.fn(),
             stemAudioCache,
+            updateClip: jest.fn(
+              (trackId: string, clipId: string, patch: Record<string, any>) => {
+                tracks.update((items) =>
+                  items.map((track) =>
+                    track.id === trackId
+                      ? {
+                          ...track,
+                          clips: (track.clips ?? []).map((clip: any) =>
+                            clip.id === clipId ? { ...clip, ...patch } : clip,
+                          ),
+                        }
+                      : track,
+                  ),
+                );
+              },
+            ),
+            removeClip: jest.fn((trackId: string, clipId: string) => {
+              tracks.update((items) =>
+                items.map((track) =>
+                  track.id === trackId
+                    ? {
+                        ...track,
+                        clips: (track.clips ?? []).filter(
+                          (clip: any) => clip.id !== clipId,
+                        ),
+                      }
+                    : track,
+                ),
+              );
+            }),
             engine: {
               stop: jest.fn(),
               tempo: { set: tempoSet },
@@ -239,6 +269,9 @@ describe("ProjectWorkspaceService", () => {
               setMasterMakeupDb: jest.fn(),
               setMasteringTargets: jest.fn(),
               ctx: {
+                decodeAudioData: jest.fn(async () =>
+                  createFakeAudioBuffer([[0.3, -0.3, 0.2]]),
+                ),
                 createBuffer: jest.fn(
                   (
                     channelCount: number,
@@ -519,6 +552,147 @@ describe("ProjectWorkspaceService", () => {
     expect(service.audioIntegrity()).toEqual(
       expect.objectContaining({ ok: false, missingCount: 1 }),
     );
+  });
+
+  it('relinks a missing take from a local audio file and clears the report', async () => {
+    tracks.set([
+      {
+        id: 'track-vocal',
+        name: 'Lead Vocal',
+        notes: [],
+        clips: [
+          {
+            id: 'clip-vocal',
+            name: 'Take 2',
+            type: 'audio',
+            audioRefId: 'missing-take',
+            start: 0,
+            length: 4,
+          },
+        ],
+      },
+    ]);
+    service.inspectCurrentAudioIntegrity();
+    const issue = service.audioIntegrity()!.issues[0];
+    const manager = TestBed.inject(MusicManagerService) as any;
+    const file = new File([new Uint8Array([1, 2, 3])], 'take.wav', {
+      type: 'audio/wav',
+    });
+
+    await expect(service.relinkMissingTake(issue, file)).resolves.toBe(true);
+
+    expect(manager.engine.ctx.decodeAudioData).toHaveBeenCalled();
+    expect(manager.stemAudioCache.has('clip-vocal')).toBe(true);
+    expect(tracks()[0].clips[0].audioRefId).toBe('clip-vocal');
+    expect(service.audioIntegrity()?.ok).toBe(true);
+    expect(service.canRepairAudio()).toBe(false);
+  });
+
+  it('removes one missing clip and re-checks the project', () => {
+    tracks.set([
+      {
+        id: 'track-vocal',
+        name: 'Lead Vocal',
+        notes: [],
+        clips: [
+          {
+            id: 'clip-vocal',
+            name: 'Take 2',
+            type: 'audio',
+            audioRefId: 'missing-take',
+            start: 0,
+            length: 4,
+          },
+        ],
+      },
+    ]);
+    service.inspectCurrentAudioIntegrity();
+
+    expect(service.canRepairAudio()).toBe(true);
+    expect(service.removeMissingTake(service.audioIntegrity()!.issues[0])).toBe(
+      true,
+    );
+
+    expect(tracks()[0].clips).toEqual([]);
+    expect(service.audioIntegrity()?.ok).toBe(true);
+  });
+
+  it('blocks manual save when a referenced take is missing', async () => {
+    tracks.set([
+      {
+        id: 'track-vocal',
+        name: 'Lead Vocal',
+        notes: [],
+        clips: [
+          {
+            id: 'clip-vocal',
+            name: 'Take 2',
+            type: 'audio',
+            audioRefId: 'missing-take',
+          },
+        ],
+      },
+    ]);
+
+    await expect(service.manualSave()).rejects.toThrow('Save blocked');
+
+    expect(saveItem).not.toHaveBeenCalled();
+    expect(service.audioIntegrity()?.ok).toBe(false);
+  });
+
+  it('pauses autosave instead of overwriting a good copy with a missing take', async () => {
+    tracks.set([
+      {
+        id: 'track-vocal',
+        name: 'Lead Vocal',
+        notes: [],
+        clips: [
+          {
+            id: 'clip-vocal',
+            name: 'Take 2',
+            type: 'audio',
+            audioRefId: 'missing-take',
+            start: 0,
+            length: 4,
+          },
+        ],
+      },
+    ]);
+    service.isDirty.set(true);
+
+    await service.autoSave();
+
+    expect(saveItem).not.toHaveBeenCalled();
+    expect(service.persistenceError()).toContain('Auto-save paused');
+    expect(service.audioIntegrity()?.ok).toBe(false);
+  });
+
+  it('skips cloud sync when the snapshot is missing audio', async () => {
+    const missing = makeBundle();
+    missing.tracks = [
+      {
+        id: 'track-vocal',
+        name: 'Lead Vocal',
+        notes: [],
+        clips: [
+          {
+            id: 'clip-vocal',
+            name: 'Take 2',
+            type: 'audio',
+            audioRefId: 'missing-take',
+          },
+        ],
+      },
+    ];
+
+    await (service as any).tryQueueCloudSync(metadata, missing);
+
+    expect(queueOperation).not.toHaveBeenCalled();
+    expect(TestBed.inject(LoggingService).warn).toHaveBeenCalledWith(
+      'ProjectWorkspace: Cloud sync skipped; audio is incomplete',
+      expect.stringContaining('Cloud sync paused'),
+    );
+    expect(service.audioIntegrity()?.ok).toBe(false);
   });
 
   it('rejects malformed imports before writing or replacing the active session', async () => {

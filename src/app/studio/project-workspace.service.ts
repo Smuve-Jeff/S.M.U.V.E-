@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, effect, inject, signal } from "@angular/core";
+import { DestroyRef, Injectable, computed, effect, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { AuthService } from "../services/auth.service";
 import { Project } from "../types";
@@ -19,6 +19,7 @@ import { PROJECT_FORMAT_VERSION, buildProjectArchive } from "./project-archive.u
 import {
   describeAudioIntegrityFailure,
   inspectProjectAudioIntegrity,
+  type AudioIntegrityIssue,
   type ProjectAudioIntegrityReport,
 } from "./project-integrity.util";
 
@@ -261,6 +262,22 @@ export class ProjectWorkspaceService {
   readonly projectNotes = signal('');
   /** Last import/export/restore audio-reference check. */
   readonly audioIntegrity = signal<ProjectAudioIntegrityReport | null>(null);
+  /**
+   * True only while the reported issues belong to the project currently open,
+   * so an import that was blocked before opening cannot offer repair actions
+   * against clips that are not on screen.
+   */
+  readonly canRepairAudio = computed(() => {
+    const report = this.audioIntegrity();
+    if (!report || report.ok || report.issues.length === 0) return false;
+    return report.issues.every((issue) => {
+      if (!issue.clipId) return false;
+      const track = this.musicManager
+        .tracks()
+        .find((candidate) => candidate.id === issue.trackId);
+      return !!track?.clips?.some((clip) => clip.id === issue.clipId);
+    });
+  });
 
   /** Current project metadata */
   metadata = signal<ProjectMetadata | null>(null);
@@ -491,10 +508,21 @@ export class ProjectWorkspaceService {
     if (this.isSaving()) return;
     try {
       const snapshot = this.createStoredSnapshot();
+      const integrity = inspectProjectAudioIntegrity(snapshot);
+      this.audioIntegrity.set(integrity);
+      if (!integrity.ok) {
+        this.persistenceError.set(
+          describeAudioIntegrityFailure(integrity, "autosave"),
+        );
+        this.logger.warn(
+          "ProjectWorkspace: Auto-save skipped; audio is incomplete",
+        );
+        return;
+      }
       const stored = this.toStoredBundle(snapshot, "autosave");
       await this.requirePersistence();
       await this.storage.saveItem("projects", stored);
-      await this.tryQueueCloudSync(snapshot.metadata);
+      await this.tryQueueCloudSync(snapshot.metadata, snapshot);
       this.lastAutoSave.set(stored.savedAt);
       this.markPersistenceClean(snapshot, "autosave", stored.savedAt);
       this.versionCount.update((v) => v + 1);
@@ -522,6 +550,11 @@ export class ProjectWorkspaceService {
     );
     try {
       const bundle = this.createStoredSnapshot();
+      const integrity = inspectProjectAudioIntegrity(bundle);
+      this.audioIntegrity.set(integrity);
+      if (!integrity.ok) {
+        throw new Error(describeAudioIntegrityFailure(integrity, "save"));
+      }
       const stored = this.toStoredBundle(bundle, "manual");
       await this.requirePersistence();
       await this.storage.saveItem("projects", stored);
@@ -537,7 +570,7 @@ export class ProjectWorkspaceService {
       } catch (error) {
         this.logger.warn('ProjectWorkspace: Latest-project pointer failed', error);
       }
-      await this.tryQueueCloudSync(bundle.metadata);
+      await this.tryQueueCloudSync(bundle.metadata, bundle);
       this.logger.info("ProjectWorkspace: Saved " + bundle.metadata.name);
       return bundle;
     } catch (error) {
@@ -557,8 +590,23 @@ export class ProjectWorkspaceService {
     if (status !== 'ready') throw new Error(`Project storage is ${status}. Export a backup before leaving.`);
   }
 
-  private async tryQueueCloudSync(metadata: ProjectMetadata): Promise<void> {
+  private async tryQueueCloudSync(
+    metadata: ProjectMetadata,
+    bundle: ProjectBundle = this.createStoredSnapshot(),
+  ): Promise<void> {
     try {
+      // A cloud snapshot must never replace a complete one with a version
+      // missing audio. The local save can still succeed and be repaired.
+      const integrity = inspectProjectAudioIntegrity(bundle);
+      this.audioIntegrity.set(integrity);
+      if (!integrity.ok) {
+        this.cloudSyncQueued.set(false);
+        this.logger.warn(
+          "ProjectWorkspace: Cloud sync skipped; audio is incomplete",
+          describeAudioIntegrityFailure(integrity, "cloud"),
+        );
+        return;
+      }
       await this.queueCurrentSnapshotCloudSync(metadata);
     } catch (error) {
       this.cloudSyncQueued.set(false);
@@ -740,7 +788,7 @@ export class ProjectWorkspaceService {
         savedAt: stored.savedAt,
       });
       this.restoreFromSnapshot(bundle);
-      await this.tryQueueCloudSync(bundle.metadata);
+      await this.tryQueueCloudSync(bundle.metadata, bundle);
       this.markPersistenceClean(bundle, "import", stored.savedAt);
       this.persistenceError.set('');
       this.logger.info("ProjectWorkspace: Imported " + bundle.metadata.name);
@@ -749,6 +797,79 @@ export class ProjectWorkspaceService {
       this.persistenceError.set(e instanceof Error ? e.message : 'Invalid project bundle.');
       this.logger.warn("ProjectWorkspace: Import failed", e);
       return false;
+    }
+  }
+
+  /** Re-run the audio-reference check against the project currently open. */
+  inspectCurrentAudioIntegrity(): ProjectAudioIntegrityReport {
+    const report = inspectProjectAudioIntegrity(this.createStoredSnapshot());
+    this.audioIntegrity.set(report);
+    this.clearResolvedRepairWarning(report);
+    return report;
+  }
+
+  /**
+   * Replace a missing take with audio decoded from a file the artist picks.
+   * The clip keeps its id and arrangement position; only its audio reference
+   * changes, and the update goes through the normal history command.
+   */
+  async relinkMissingTake(
+    issue: AudioIntegrityIssue,
+    file: File,
+  ): Promise<boolean> {
+    if (!issue?.trackId || !issue.clipId || !file) return false;
+    const track = this.musicManager
+      .tracks()
+      .find((candidate) => candidate.id === issue.trackId);
+    const clip = track?.clips?.find((candidate) => candidate.id === issue.clipId);
+    if (!clip) return false;
+    if (file.size > 256 * 1024 * 1024) {
+      throw new Error('Audio file exceeds the 256 MiB project audio limit.');
+    }
+    const ctx = this.musicManager.engine?.ctx;
+    if (!ctx?.decodeAudioData) {
+      throw new Error('Audio decoding is unavailable in this browser.');
+    }
+    let buffer: AudioBuffer;
+    try {
+      buffer = await ctx.decodeAudioData(await file.arrayBuffer());
+    } catch {
+      throw new Error(`Could not decode ${file.name}. Use a WAV, MP3, M4A or OGG file.`);
+    }
+
+    const refId = issue.clipId;
+    this.musicManager.stemAudioCache.set(refId, buffer);
+    this.musicManager.updateClip(issue.trackId, issue.clipId, {
+      audioRefId: refId,
+    } as any);
+
+    const report = this.inspectCurrentAudioIntegrity();
+    return !report.issues.some(
+      (candidate) =>
+        candidate.trackId === issue.trackId &&
+        candidate.clipId === issue.clipId,
+    );
+  }
+
+  /** Remove one silent clip whose take cannot be recovered. */
+  removeMissingTake(issue: AudioIntegrityIssue): boolean {
+    if (!issue?.trackId || !issue.clipId) return false;
+    const track = this.musicManager
+      .tracks()
+      .find((candidate) => candidate.id === issue.trackId);
+    const clip = track?.clips?.find((candidate) => candidate.id === issue.clipId);
+    if (!clip) {
+      this.inspectCurrentAudioIntegrity();
+      return false;
+    }
+    this.musicManager.removeClip(issue.trackId, issue.clipId);
+    this.inspectCurrentAudioIntegrity();
+    return true;
+  }
+
+  private clearResolvedRepairWarning(report: ProjectAudioIntegrityReport): void {
+    if (report.ok && this.persistenceError().includes('no matching take')) {
+      this.persistenceError.set('');
     }
   }
 
@@ -1257,10 +1378,19 @@ export class ProjectWorkspaceService {
     if (!this.metadata() || this.musicManager.tracks().length === 0) return;
 
     try {
-      const bundle = this.toStoredBundle(
-        this.createStoredSnapshot(),
-        "recovery",
-      );
+      const snapshot = this.createStoredSnapshot();
+      const integrity = inspectProjectAudioIntegrity(snapshot);
+      this.audioIntegrity.set(integrity);
+      if (!integrity.ok) {
+        this.persistenceError.set(
+          describeAudioIntegrityFailure(integrity, "autosave"),
+        );
+        this.logger.warn(
+          "ProjectWorkspace: Recovery snapshot skipped; audio is incomplete",
+        );
+        return;
+      }
+      const bundle = this.toStoredBundle(snapshot, "recovery");
       await this.storage.saveItem("projects", bundle);
       await this.storage.saveItem("offline_local_cache", {
         id: "last_saved_project_id",

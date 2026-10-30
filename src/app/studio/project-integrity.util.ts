@@ -112,10 +112,17 @@ export function inspectProjectAudioIntegrity(
   };
 }
 
-/** Human-readable failure used by the import/export call sites. */
+export type AudioIntegrityAction =
+  | "import"
+  | "export"
+  | "save"
+  | "autosave"
+  | "cloud";
+
+/** Human-readable failure used by the import/export/save call sites. */
 export function describeAudioIntegrityFailure(
   report: ProjectAudioIntegrityReport,
-  action: "import" | "export",
+  action: AudioIntegrityAction,
 ): string {
   if (report.ok) return "";
   const count = report.missingCount;
@@ -129,11 +136,22 @@ export function describeAudioIntegrityFailure(
     .join(", ");
   const more = count > 3 ? ` and ${count - 3} more` : "";
   const verb = count === 1 ? "has" : "have";
-  const prefix = action === "import" ? "Import blocked" : "Export blocked";
+  const prefix =
+    action === "import"
+      ? "Import blocked"
+      : action === "export"
+        ? "Export blocked"
+        : action === "autosave"
+          ? "Auto-save paused"
+          : action === "cloud"
+            ? "Cloud sync paused"
+            : "Save blocked";
   const nextStep =
     action === "import"
       ? "Re-export a complete backup from the device that recorded the audio."
-      : "Re-record or remove the silent clips, then export again.";
+      : action === "export"
+        ? "Re-record or remove the silent clips, then export again."
+        : "Relink or remove the silent clips, then save again.";
   return `${prefix}: ${count} audio clip${count === 1 ? "" : "s"} ${verb} no matching take (${examples}${more}). ${nextStep}`;
 }
 

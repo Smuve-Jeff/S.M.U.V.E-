@@ -1,0 +1,144 @@
+:host {
+  display: contents;
+}
+
+.repair-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.repair-summary {
+  margin: 0 0 12px;
+  color: var(--espresso-muted, #776c5e);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.repair-list {
+  display: grid;
+  gap: 10px;
+}
+
+.repair-item {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--espresso-line, #3d352a) 18%, transparent);
+  border-radius: 14px;
+  background: var(--ivory-panel, #f5efe4);
+}
+
+.repair-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.repair-copy h3 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--espresso-text, #241d15);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repair-copy p {
+  margin: 0;
+  overflow: hidden;
+  color: var(--espresso-muted, #776c5e);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repair-reason {
+  color: #9a5a10;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.repair-copy code {
+  overflow: hidden;
+  color: var(--espresso-muted, #776c5e);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repair-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.repair-button {
+  min-height: 42px;
+  flex: 1 1 120px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--espresso-line, #3d352a) 20%, transparent);
+  border-radius: 11px;
+  background: var(--ivory-paper, #fffdf8);
+  color: var(--espresso-text, #241d15);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.repair-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.repair-button--primary {
+  border-color: rgba(14, 124, 123, 0.38);
+  background: rgba(14, 124, 123, 0.12);
+  color: #0b5f5e;
+}
+
+.repair-button--danger {
+  border-color: rgba(180, 35, 24, 0.28);
+  background: rgba(180, 35, 24, 0.08);
+  color: #8f2118;
+}
+
+.repair-empty {
+  margin: 4px 0 0;
+  color: var(--espresso-muted, #776c5e);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (min-width: 560px) {
+  .repair-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .repair-actions {
+    flex-wrap: nowrap;
+  }
+
+  .repair-button {
+    flex: 0 0 auto;
+    min-width: 104px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .repair-button {
+    transition: none !important;
+  }
+}

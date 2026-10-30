@@ -1,0 +1,55 @@
+<app-studio-bottom-sheet
+  [open]="open"
+  title="Repair missing takes"
+  description="These clips have no audio in the project. Relink a take from this device or remove the silent clip."
+  closeLabel="Close audio repair"
+  (closed)="closed.emit()"
+>
+  <input
+    #relinkInput
+    type="file"
+    class="repair-file-input"
+    accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac"
+    (change)="onFileChosen($event)"
+  />
+
+  <p class="repair-summary" *ngIf="issues().length > 0">
+    {{ issues().length }} clip{{ issues().length === 1 ? "" : "s" }}
+    {{ issues().length === 1 ? "needs" : "need" }} attention before this
+    project can save or export.
+  </p>
+
+  <div class="repair-list" *ngIf="issues().length > 0">
+    <article class="repair-item" *ngFor="let issue of issues()">
+      <div class="repair-copy">
+        <h3>{{ issue.clipName }}</h3>
+        <p>{{ issue.trackName }}</p>
+        <span class="repair-reason">{{ reasonLabel(issue.reason) }}</span>
+        <code *ngIf="issue.audioRefId">Take ref: {{ issue.audioRefId }}</code>
+      </div>
+
+      <div class="repair-actions">
+        <button
+          type="button"
+          class="repair-button repair-button--primary"
+          [disabled]="busy() || !issue.clipId"
+          (click)="pickFile(issue)"
+        >
+          {{ busy() ? "Working…" : "Relink file" }}
+        </button>
+        <button
+          type="button"
+          class="repair-button repair-button--danger"
+          [disabled]="busy() || !issue.clipId"
+          (click)="remove(issue)"
+        >
+          Remove clip
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <p class="repair-empty" *ngIf="issues().length === 0">
+    Every audio clip is linked. You can close this panel.
+  </p>
+</app-studio-bottom-sheet>

@@ -2,7 +2,7 @@ import type {
   ProjectBundle,
   SerializedAudioAsset,
 } from "./project-workspace.service";
-import { buildZip, type ZipEntry } from "./zip.util";
+import { buildZip, crc32, type ZipEntry } from "./zip.util";
 
 /**
  * Portable project container.
@@ -192,6 +192,7 @@ function readZipEntries(bytes: Uint8Array): Map<string, Uint8Array> {
       throw new Error("Project archive has a corrupt central directory.");
     }
     const method = view.getUint16(cursor + 10, true);
+    const expectedCrc = view.getUint32(cursor + 16, true);
     const compressedSize = view.getUint32(cursor + 20, true);
     const nameLength = view.getUint16(cursor + 28, true);
     const extraLength = view.getUint16(cursor + 30, true);
@@ -215,7 +216,13 @@ function readZipEntries(bytes: Uint8Array): Map<string, Uint8Array> {
         "This ZIP is compressed. Export a .smuve archive from the Studio and import that.",
       );
     }
-    entries.set(name, bytes.subarray(dataStart, dataEnd));
+    const data = bytes.subarray(dataStart, dataEnd);
+    if (crc32(data) !== expectedCrc) {
+      throw new Error(
+        `Project archive entry ${name} failed its checksum — the file is corrupt or truncated.`,
+      );
+    }
+    entries.set(name, data);
     cursor += 46 + nameLength + extraLength + commentLength;
   }
   return entries;
