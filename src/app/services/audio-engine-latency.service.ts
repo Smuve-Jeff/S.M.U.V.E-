@@ -1,7 +1,19 @@
-import { Injectable, signal, inject, computed, effect } from '@angular/core';
+import {
+  Injectable,
+  signal,
+  inject,
+  computed,
+  effect,
+  Injector,
+} from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
 import { UserProfileService } from './user-profile.service';
+import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
+import {
+  findClickOnset,
+  loopbackRoundTripMs,
+} from './loopback-latency.util';
 
 /**
  * Sprint C1 — Engine latency profile + on-demand audit.
@@ -57,6 +69,25 @@ export interface LatencyCalibrationResult {
   measuredLatencyMs: number;
   recommendedCompensationMs: number;
   benchmarkSpeedRatio: number;
+  capturedAt: number;
+}
+
+/**
+ * A real output→input round trip: a click was scheduled on the audio clock and
+ * then found in the captured microphone signal. Unlike the engine estimate
+ * (`baseLatency + outputLatency`), this includes the input path and whatever
+ * acoustic or cable route the sound took.
+ */
+export interface LoopbackMeasurement {
+  /** Measured round-trip latency in milliseconds. */
+  roundTripMs: number;
+  /** AudioContext time the click was scheduled for. */
+  clickScheduledAt: number;
+  /** AudioContext time the click's onset was captured. */
+  detectedAt: number;
+  /** Frame index of the onset inside the captured take. */
+  onsetFrame: number;
+  sampleRate: number;
   capturedAt: number;
 }
 
@@ -224,6 +255,27 @@ function readStoredBaseline(): DeviceLatencyBaseline | null {
   }
 }
 
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function clampSeconds(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
+/** Join the recorder's chunk groups into one continuous channel. */
+function joinCaptureChunks(chunks: readonly Float32Array[]): Float32Array {
+  const total = chunks.reduce((frames, chunk) => frames + chunk.length, 0);
+  const joined = new Float32Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    joined.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return joined;
+}
+
 /** Persist this device's baseline; failure keeps the in-memory signal. */
 function writeStoredBaseline(baseline: DeviceLatencyBaseline): void {
   try {
@@ -239,6 +291,12 @@ export class AudioEngineLatencyService {
   private engine = inject(AudioEngineService);
   private logger = inject(LoggingService);
   private userProfile = inject(UserProfileService, { optional: true });
+  /**
+   * Lazy recorder lookup. The recording engine depends on this service, so a
+   * direct injection would be a DI cycle; resolving it only when a loopback
+   * run starts keeps construction acyclic.
+   */
+  private injector = inject(Injector);
 
   /** Latest live snapshot derived from the engine surface. */
   readonly snapshot = signal<LatencySnapshot>(this.captureSnapshot());
@@ -246,6 +304,8 @@ export class AudioEngineLatencyService {
   readonly recentBenchmarks = signal<BenchmarkResult[]>([]);
   /** Most recent per-device calibration run. */
   readonly lastCalibration = signal<LatencyCalibrationResult | null>(null);
+  /** Most recent true output→input round-trip measurement. */
+  readonly lastLoopback = signal<LoopbackMeasurement | null>(null);
   /** Baseline persisted by the last calibration run on this device. */
   readonly storedBaseline = signal<DeviceLatencyBaseline | null>(
     readStoredBaseline()
@@ -464,6 +524,56 @@ export class AudioEngineLatencyService {
     return this.appliedCompensationMs();
   }
 
+  /**
+   * Calibrate this device and persist the result as the record compensation.
+   *
+   * Settings already exposes this, but calibration now belongs next to the
+   * recording surface too: placed takes read `appliedCompensationMs()`, so an
+   * explicit Studio calibration is what makes the next pass align. Only a
+   * hydrated profile is written — before hydration the store still holds the
+   * initial profile, and saving it would overwrite the artist's real settings.
+   */
+  async calibrateAndApply(
+    durationSec: number = 1
+  ): Promise<LatencyCalibrationResult> {
+    const result = await this.calibrateFromCurrentDevice(durationSec);
+    await this.applyCompensation(result.recommendedCompensationMs);
+    return result;
+  }
+
+  /**
+   * Write a measured compensation to the hydrated profile. Returns false when
+   * no write happened (no profile yet, or storage refused it) so callers can
+   * report "measured but not applied" instead of pretending success.
+   */
+  private async applyCompensation(compensationMs: number): Promise<boolean> {
+    const userProfile = this.userProfile;
+    const profile = userProfile?.profile();
+    const hydrated = userProfile?.hydrated?.() ?? false;
+    if (!userProfile || !hydrated || !profile?.settings) return false;
+
+    const settings = profile.settings;
+    try {
+      await userProfile.updateProfile({
+        ...profile,
+        settings: {
+          ...settings,
+          studio: {
+            ...settings.studio,
+            latencyCompensation: Math.max(0, Math.round(compensationMs)),
+          },
+        },
+      });
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        'Latency calibration could not be saved to the profile',
+        error
+      );
+      return false;
+    }
+  }
+
   async calibrateFromCurrentDevice(
     durationSec: number = 1
   ): Promise<LatencyCalibrationResult> {
@@ -494,6 +604,190 @@ export class AudioEngineLatencyService {
     writeStoredBaseline(baseline);
     this.baselinePrefillDone = true;
     return result;
+  }
+
+  private get recorder(): StudioRecordingEngineService | null {
+    try {
+      return this.injector.get(StudioRecordingEngineService);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Measure the real output→input round trip.
+   *
+   * This plays a short 1 kHz click on the audio output and captures it back
+   * through the Studio's input, either acoustically (mic pointed at the
+   * speakers) or through a loopback cable. The worklet timestamps its first
+   * captured block, so the onset frame maps to an absolute AudioContext time;
+   * the gap from the scheduled click is the true latency this device adds.
+   *
+   * The capture is discarded (`persist: false`): calibration audio must never
+   * appear in the artist's take lane.
+   */
+  async measureLoopbackLatency(options: {
+    /** Seconds between arming capture and the click. */
+    leadSeconds?: number;
+    /** Seconds of input to record after the click. */
+    tailSeconds?: number;
+  } = {}): Promise<LoopbackMeasurement> {
+    const recorder = this.recorder;
+    if (!recorder) {
+      throw new Error(
+        'The Studio recorder is unavailable — open the Studio and try again.'
+      );
+    }
+    if (
+      typeof this.engine.isPlaying === 'function' &&
+      this.engine.isPlaying()
+    ) {
+      throw new Error('Stop playback before measuring loopback.');
+    }
+    if (recorder.isRecording()) {
+      throw new Error('Stop recording before measuring loopback.');
+    }
+
+    await this.engine.resume();
+    const ctx = this.engine.ctx;
+    if (ctx.state !== 'running') {
+      throw new Error('Start the audio engine with Play once, then measure again.');
+    }
+    if (!recorder.hasInputCapture?.() && !(await recorder.initialize())) {
+      throw new Error(
+        'No microphone input. Allow access and connect an input, then retry.'
+      );
+    }
+
+    const leadSeconds = clampSeconds(options.leadSeconds ?? 0.25, 0.1, 0.6);
+    const tailSeconds = clampSeconds(options.tailSeconds ?? 0.4, 0.2, 1.5);
+
+    recorder.startRecording();
+    if (!recorder.isRecording()) {
+      throw new Error('The recorder could not start capturing.');
+    }
+
+    let click: { oscillator: OscillatorNode; gain: GainNode } | null = null;
+    try {
+      // Let the worklet produce its first quantum before scheduling the click,
+      // so the capture anchor definitely precedes the burst.
+      await wait(120);
+      const clickScheduledAt = ctx.currentTime + leadSeconds;
+      click = this.playCalibrationClick(ctx, clickScheduledAt);
+      await wait((leadSeconds + tailSeconds) * 1000);
+
+      const captureStartedAt = recorder.getCaptureStartedAt?.() ?? null;
+      const raw = recorder.getRecordedBuffers?.(false) ?? {
+        left: [],
+        right: [],
+      };
+      const onsetFrame = findClickOnset([
+        joinCaptureChunks(raw.left),
+        joinCaptureChunks(raw.right),
+      ]);
+      if (!captureStartedAt || onsetFrame === null) {
+        throw new Error(
+          'The calibration click was not captured — turn up the output, point the mic at the speakers, or use a loopback cable.'
+        );
+      }
+
+      const sampleRate =
+        Number(ctx.sampleRate) ||
+        Number(this.engine.nativeSampleRate) ||
+        48000;
+      const roundTripMs = loopbackRoundTripMs({
+        clickScheduledAt,
+        captureStartedAt,
+        onsetFrame,
+        sampleRate,
+      });
+      if (roundTripMs <= 0 || roundTripMs > 2000) {
+        throw new Error(
+          `Loopback timing read ${roundTripMs} ms, which is not a usable measurement. Check the input and output routing, then retry.`
+        );
+      }
+
+      const capturedAt = Date.now();
+      const measurement: LoopbackMeasurement = {
+        roundTripMs,
+        clickScheduledAt,
+        detectedAt: captureStartedAt + onsetFrame / sampleRate,
+        onsetFrame,
+        sampleRate,
+        capturedAt,
+      };
+      const identity = await resolveDeviceIdentity();
+      const benchmarkSpeedRatio =
+        this.storedBaseline()?.benchmarkSpeedRatio ?? 1;
+      const baseline: DeviceLatencyBaseline = {
+        deviceModel: identity.deviceModel,
+        apiLevel: identity.apiLevel,
+        totalLatencyMs: roundTripMs,
+        benchmarkSpeedRatio,
+        capturedAt,
+      };
+      this.storedBaseline.set(baseline);
+      writeStoredBaseline(baseline);
+      this.lastLoopback.set(measurement);
+      this.lastCalibration.set({
+        measuredLatencyMs: roundTripMs,
+        recommendedCompensationMs: roundTripMs,
+        benchmarkSpeedRatio,
+        capturedAt,
+      });
+      this.baselinePrefillDone = true;
+      return measurement;
+    } finally {
+      if (click) {
+        try {
+          click.oscillator.stop();
+        } catch {
+          // Already stopped by its scheduled end.
+        }
+        click.oscillator.disconnect();
+        click.gain.disconnect();
+      }
+      if (recorder.isRecording()) {
+        try {
+          await recorder.stopRecording({ persist: false });
+        } catch (error) {
+          this.logger.warn(
+            'Loopback calibration could not flush its capture',
+            error
+          );
+        }
+      }
+    }
+  }
+
+  /** Measure the true loopback and use it as the applied compensation. */
+  async calibrateWithLoopback(options: {
+    leadSeconds?: number;
+    tailSeconds?: number;
+  } = {}): Promise<LoopbackMeasurement> {
+    const measurement = await this.measureLoopbackLatency(options);
+    await this.applyCompensation(measurement.roundTripMs);
+    return measurement;
+  }
+
+  private playCalibrationClick(
+    ctx: AudioContext,
+    at: number
+  ): { oscillator: OscillatorNode; gain: GainNode } {
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(1000, at);
+    // Fast attack, short decay: an unmistakable transient that survives a room
+    // noise floor but is over before any reverb tail can smear the onset.
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.linearRampToValueAtTime(0.9, at + 0.001);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.015);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start(at);
+    oscillator.stop(at + 0.02);
+    return { oscillator, gain };
   }
 
   trimChannels(channels: Float32Array[], sampleRate: number): Float32Array[] {

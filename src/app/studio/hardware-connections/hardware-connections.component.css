@@ -66,6 +66,29 @@
   cursor: pointer;
 }
 
+.hw-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hw-actions .hw-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  text-decoration: none;
+}
+
+.hw-actions .hw-link:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
+.hw-actions .material-symbols-outlined {
+  font-size: 15px;
+}
+
 .hw-device-list {
   display: flex;
   flex-direction: column;

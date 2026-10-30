@@ -10,6 +10,7 @@ import { LoggingService } from './logging.service';
 import { UserProfileService } from './user-profile.service';
 import { DatabaseService } from './database.service';
 import { AuthService } from './auth.service';
+import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { ProfileStoreService } from './profile-store.service';
 import { initialProfile } from '../types/profile.types';
 
@@ -512,6 +513,176 @@ describe('AudioEngineLatencyService · Sprint C1', () => {
       // The baseline is still surfaced; only the automatic write is refused.
       expect(service.storedBaseline()?.totalLatencyMs).toBe(42);
       expect(service.getAppliedCompensationMs()).toBe(0);
+    });
+
+    it('applies an explicit Studio calibration to the hydrated profile', async () => {
+      const { service, updateProfile } = configureWithProfile(0);
+
+      const result = await service.calibrateAndApply(0.1);
+
+      expect(updateProfile).toHaveBeenCalledTimes(1);
+      expect(updateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          settings: expect.objectContaining({
+            studio: expect.objectContaining({
+              latencyCompensation: result.recommendedCompensationMs,
+            }),
+          }),
+        })
+      );
+    });
+
+    it('measures the true output→input loopback and applies it', async () => {
+      let capturing = false;
+      const left = new Float32Array(12000);
+      const right = new Float32Array(12000);
+      // Click onset 0.2 s after capture began at 5.0 s; scheduled at 5.1 s.
+      left[9600] = 1;
+      right[9600] = 1;
+      const recorder = {
+        isRecording: jest.fn(() => capturing),
+        hasInputCapture: jest.fn(() => true),
+        initialize: jest.fn(async () => true),
+        startRecording: jest.fn(() => {
+          capturing = true;
+        }),
+        stopRecording: jest.fn(async () => {
+          capturing = false;
+        }),
+        getCaptureStartedAt: jest.fn(() => 5),
+        getRecordedBuffers: jest.fn(() => ({ left: [left], right: [right] })),
+      };
+      const engine = {
+        ctx: {
+          baseLatency: 0.02,
+          outputLatency: 0.03,
+          sampleRate: 48000,
+          state: 'running' as AudioContextState,
+          currentTime: 5,
+          destination: {},
+          createOscillator: jest.fn(() => ({
+            type: '',
+            frequency: { setValueAtTime: jest.fn() },
+            connect: jest.fn(),
+            disconnect: jest.fn(),
+            start: jest.fn(),
+            stop: jest.fn(),
+          })),
+          createGain: jest.fn(() => ({
+            gain: {
+              setValueAtTime: jest.fn(),
+              linearRampToValueAtTime: jest.fn(),
+              exponentialRampToValueAtTime: jest.fn(),
+            },
+            connect: jest.fn(),
+            disconnect: jest.fn(),
+          })),
+        },
+        nativeSampleRate: 48000,
+        masterWorkletActive: () => true,
+        performanceTier: () => 'ultra' as const,
+        isPlaying: () => false,
+        resume: jest.fn(async () => undefined),
+      };
+      const updateProfile = jest.fn().mockResolvedValue(undefined);
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          AudioEngineLatencyService,
+          { provide: AudioEngineService, useValue: engine },
+          { provide: LoggingService, useValue: new StubLogger() },
+          { provide: StudioRecordingEngineService, useValue: recorder },
+          {
+            provide: UserProfileService,
+            useValue: {
+              profile: signal({ settings: { studio: { latencyCompensation: 0 } } }),
+              hydrated: signal(true),
+              updateProfile,
+            },
+          },
+        ],
+      });
+      sut = TestBed.inject(AudioEngineLatencyService);
+
+      const measurement = await sut.calibrateWithLoopback({
+        leadSeconds: 0.1,
+        tailSeconds: 0.2,
+      });
+
+      expect(measurement.roundTripMs).toBe(100);
+      expect(sut.lastLoopback()?.roundTripMs).toBe(100);
+      expect(sut.storedBaseline()?.totalLatencyMs).toBe(100);
+      expect(recorder.stopRecording).toHaveBeenCalledWith({ persist: false });
+      expect(updateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          settings: expect.objectContaining({
+            studio: expect.objectContaining({ latencyCompensation: 100 }),
+          }),
+        })
+      );
+    });
+
+    it('fails honestly when the click never reaches the input', async () => {
+      let capturing = false;
+      const recorder = {
+        isRecording: jest.fn(() => capturing),
+        hasInputCapture: jest.fn(() => true),
+        initialize: jest.fn(async () => true),
+        startRecording: jest.fn(() => {
+          capturing = true;
+        }),
+        stopRecording: jest.fn(async () => {
+          capturing = false;
+        }),
+        getCaptureStartedAt: jest.fn(() => 5),
+        getRecordedBuffers: jest.fn(() => ({
+          left: [new Float32Array(12000)],
+          right: [new Float32Array(12000)],
+        })),
+      };
+      const engine = {
+        ctx: {
+          sampleRate: 48000,
+          state: 'running' as AudioContextState,
+          currentTime: 5,
+          destination: {},
+          createOscillator: jest.fn(() => ({
+            type: '',
+            frequency: { setValueAtTime: jest.fn() },
+            connect: jest.fn(),
+            disconnect: jest.fn(),
+            start: jest.fn(),
+            stop: jest.fn(),
+          })),
+          createGain: jest.fn(() => ({
+            gain: {
+              setValueAtTime: jest.fn(),
+              linearRampToValueAtTime: jest.fn(),
+              exponentialRampToValueAtTime: jest.fn(),
+            },
+            connect: jest.fn(),
+            disconnect: jest.fn(),
+          })),
+        },
+        nativeSampleRate: 48000,
+        isPlaying: () => false,
+        resume: jest.fn(async () => undefined),
+      };
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          AudioEngineLatencyService,
+          { provide: AudioEngineService, useValue: engine },
+          { provide: LoggingService, useValue: new StubLogger() },
+          { provide: StudioRecordingEngineService, useValue: recorder },
+        ],
+      });
+      sut = TestBed.inject(AudioEngineLatencyService);
+
+      await expect(
+        sut.calibrateWithLoopback({ leadSeconds: 0.1, tailSeconds: 0.2 })
+      ).rejects.toThrow(/not captured/);
+      expect(recorder.stopRecording).toHaveBeenCalledWith({ persist: false });
     });
 
     it('never overwrites a compensation the artist already set', () => {

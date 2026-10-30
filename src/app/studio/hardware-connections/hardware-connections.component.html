@@ -116,6 +116,63 @@
     </p>
   </section>
 
+  <!-- ── Input timing ────────────────────────────────────────────────── -->
+  <section class="hw-section" aria-labelledby="hw-latency-title">
+    <header class="hw-head">
+      <h3 id="hw-latency-title">Input timing</h3>
+      <span
+        class="hw-status"
+        [class.is-on]="latency.appliedCompensationMs() > 0"
+      >
+        {{ latency.appliedCompensationMs() }} ms applied
+      </span>
+    </header>
+
+    <p class="hw-note">
+      Live path
+      {{ latency.snapshot().totalLatencyMs | number: '1.0-0' }} ms. New takes
+      are shifted earlier by the applied compensation so the performance, not
+      the capture buffer, lands on the punch.
+    </p>
+
+    <div class="hw-actions">
+      <button
+        type="button"
+        class="hw-link"
+        (click)="calibrateInputLatency()"
+        [disabled]="calibrationRunning() || loopbackRunning()"
+        aria-label="Estimate this device's input latency from the engine and apply it to recorded takes"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+        {{
+          calibrationRunning()
+            ? 'Calibrating…'
+            : 'Estimate from engine'
+        }}
+      </button>
+      <button
+        type="button"
+        class="hw-link"
+        (click)="measureLoopback()"
+        [disabled]="loopbackRunning() || calibrationRunning()"
+        aria-label="Play a click and measure the true output-to-input round trip for recorded takes"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">graphic_eq</span>
+        {{ loopbackRunning() ? 'Listening…' : 'Measure loopback' }}
+      </button>
+    </div>
+
+    <p class="hw-note">
+      Loopback plays a short click out of the Studio and listens for it on the
+      input. Stop playback and recording, turn the output up, then point the mic
+      at the speakers — or use a loopback cable for the most accurate number.
+    </p>
+
+    <p class="hw-note" *ngIf="calibrationNotice()" role="status" aria-live="polite">
+      {{ calibrationNotice() }}
+    </p>
+  </section>
+
   <!-- ── Gamepad ─────────────────────────────────────────────────────── -->
   <section class="hw-section" aria-labelledby="hw-pad-title">
     <header class="hw-head">

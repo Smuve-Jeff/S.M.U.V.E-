@@ -1,10 +1,11 @@
-import { Component, computed, inject } from "@angular/core";
+import { Component, computed, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 
 import { StudioMidiLearnService } from "../studio-midi-learn.service";
 import { DjMidiService } from "../../services/dj-midi.service";
 import { MicrophoneService } from "../../services/microphone.service";
 import { GamepadService } from "../../services/gamepad.service";
+import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
 
 /**
  * External connections: what the browser can actually see and control.
@@ -30,6 +31,15 @@ export class HardwareConnectionsComponent {
   readonly midi = inject(DjMidiService);
   readonly microphone = inject(MicrophoneService);
   readonly gamepad = inject(GamepadService);
+  /**
+   * The same service the recording path reads. Calibrating here writes the
+   * applied compensation that placed takes use to sit on the punch.
+   */
+  readonly latency = inject(AudioEngineLatencyService);
+  /** One calibration at a time; a double tap must not start two renders. */
+  readonly calibrationRunning = signal(false);
+  readonly loopbackRunning = signal(false);
+  readonly calibrationNotice = signal<string | null>(null);
 
   readonly midiDevices = computed(() => {
     const connected = this.midi.connectedDevices();
@@ -67,6 +77,61 @@ export class HardwareConnectionsComponent {
 
   refreshInputs(): void {
     void this.microphone.updateAvailableDevices(true);
+  }
+
+  /**
+   * Measure this device and apply the result to the hydrated profile. The
+   * recording path picks it up immediately: `placed takes` read the applied
+   * compensation when they compute their punch alignment.
+   */
+  async calibrateInputLatency(): Promise<void> {
+    if (this.calibrationRunning() || this.loopbackRunning()) return;
+    this.calibrationRunning.set(true);
+    this.calibrationNotice.set(null);
+    try {
+      const calibration = await this.latency.calibrateAndApply(1);
+      const applied = this.latency.appliedCompensationMs();
+      this.calibrationNotice.set(
+        applied > 0
+          ? `Measured ${calibration.measuredLatencyMs} ms — new takes align by ${applied} ms.`
+          : calibration.measuredLatencyMs > 0
+            ? `Measured ${calibration.measuredLatencyMs} ms, but the profile was not updated.`
+            : "Measured 0 ms — no compensation needed on this device.",
+      );
+    } catch {
+      this.calibrationNotice.set(
+        "Calibration failed. Start the engine with Play, then try again.",
+      );
+    } finally {
+      this.calibrationRunning.set(false);
+    }
+  }
+
+  /**
+   * True loopback: play a click, capture it through the input, and apply the
+   * measured output→input round trip. Slower and acoustic, but it measures
+   * the path the artist actually records through.
+   */
+  async measureLoopback(): Promise<void> {
+    if (this.loopbackRunning() || this.calibrationRunning()) return;
+    this.loopbackRunning.set(true);
+    this.calibrationNotice.set(null);
+    try {
+      const measurement = await this.latency.calibrateWithLoopback();
+      this.calibrationNotice.set(
+        measurement.roundTripMs > 0
+          ? `Loopback measured ${measurement.roundTripMs} ms — new takes align by ${this.latency.appliedCompensationMs()} ms.`
+          : "Loopback measured 0 ms — check the input is hearing the output.",
+      );
+    } catch (error) {
+      this.calibrationNotice.set(
+        error instanceof Error
+          ? error.message
+          : "Loopback measurement failed. Check the audio routing and retry.",
+      );
+    } finally {
+      this.loopbackRunning.set(false);
+    }
   }
 
   capabilityLabel(capability: string): string {
