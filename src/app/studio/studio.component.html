@@ -7,6 +7,7 @@
   [class.comp-footer-collapsed]="footerCollapsed()"
   [class.comp-stage-live]="isLivePerforming()"
   [class.comp-stage-fx-off]="!stageFxEnabled()"
+  [class.comp-drum-view]="activeView() === 'drum-machine'"
   [attr.aria-label]="'S.M.U.V.E. Studio workspace'"
   (keydown)="onShellKeydown($event)"
   (contextmenu)="onShellContextMenu($event)"

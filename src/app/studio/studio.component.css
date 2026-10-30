@@ -5109,3 +5109,57 @@ button.comp-meta-state-pill:focus-visible {
     min-height: 44px;
   }
 }
+
+/* ============================================================
+   DRUM MACHINE WORKSPACE FIT
+   The drum machine is its own instrument surface: its pads, step rail and
+   inspector already carry the spacing. The generic Studio canvas padding and
+   second vertical scroll container only duplicated that chrome and, on a
+   390px-tall landscape phone, left the three-column instrument fighting the
+   shell for the little height that remained.
+   ============================================================ */
+.comp-drum-view .studio-primary-canvas > .comp-view {
+  padding: 0;
+  overflow: hidden;
+}
+
+.comp-drum-view .studio-primary-canvas > .comp-view > :first-child {
+  border-radius: 0;
+  /* The drum machine scrolls its own body. Keeping the wrapper scrollable as
+     well nested two vertical scrollers and trapped the step rail between
+     them. */
+  overflow: hidden;
+}
+
+/* Short landscape phones: the transport row and bottom navigation are
+   essential, but the saved-status strip and desktop-sized chrome are not.
+   Reclaim that height for the instrument without hiding any command. */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
+  .comp-drum-view .studio-project-status {
+    display: none;
+  }
+
+  .comp-drum-view .comp-topbar {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .comp-drum-view .comp-topbar-tools {
+    min-height: 32px;
+    padding-block: 2px;
+  }
+
+  .comp-drum-view .comp-bottombar {
+    height: 46px;
+    min-height: 46px;
+    padding-block: 2px;
+  }
+
+  .comp-drum-view .comp-tab {
+    min-height: 40px;
+  }
+
+  .comp-drum-view .comp-tab-label {
+    display: none;
+  }
+}
