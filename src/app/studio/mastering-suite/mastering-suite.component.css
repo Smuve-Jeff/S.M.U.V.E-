@@ -1173,3 +1173,172 @@
     margin-right: 4px;
   }
 }
+
+
+/* ================================================================
+   DELIVERY LAYOUT PASS — touch phones, Android Chrome, desktop
+   The editable band compressors made the old fixed 3/5-up grid
+   cramped. Two columns on phones give each THR/RATIO field a real
+   target; five columns return only when the visualiser column is
+   wide enough to hold them. Safe-area padding keeps the surface
+   clear of Android and iPhone display cutouts in either orientation.
+   ================================================================ */
+
+.mastering-surface {
+  max-width: 100%;
+  overflow-x: hidden;
+  padding-left: max(clamp(10px, 2vw, 24px), env(safe-area-inset-left));
+  padding-right: max(clamp(10px, 2vw, 24px), env(safe-area-inset-right));
+  padding-bottom: max(clamp(10px, 2vw, 24px), env(safe-area-inset-bottom));
+  scroll-padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
+.mastering-band-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.mastering-band-grid > * {
+  min-width: 0;
+}
+
+.mastering-band-card {
+  min-height: 0;
+}
+
+.mastering-band-comp-row {
+  justify-content: space-between;
+}
+
+.mastering-band-comp input {
+  width: 52px;
+  height: 28px;
+  font-size: 10px;
+}
+
+.mastering-header button,
+.mastering-band-comp input,
+.mastering-preset-card,
+.genre-chip {
+  touch-action: manipulation;
+}
+
+@media (min-width: 480px) {
+  .mastering-band-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Five across only where the visualiser column can carry them. */
+@media (min-width: 1280px) {
+  .mastering-band-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  /* Reclaim the first screen: one full-width primary action and two
+     secondary keys, instead of an off-screen horizontal rail. */
+  .mastering-header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    gap: 7px;
+  }
+
+  .mastering-header-actions > button {
+    width: 100%;
+    min-width: 0;
+    flex: none;
+    padding-inline: 10px;
+    font-size: 10px;
+  }
+
+  .mastering-header-actions > button.studio-primary-button {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  .mastering-rta {
+    padding: 12px;
+  }
+
+  .mastering-band-card {
+    padding: 10px 9px;
+  }
+}
+
+@media (max-width: 420px) {
+  .mastering-band-grid {
+    gap: 8px;
+  }
+
+  .mastering-band-card {
+    padding: 9px 7px;
+  }
+
+  .mastering-band-card > span:nth-of-type(2) {
+    font-size: 11px;
+  }
+
+  .mastering-band-comp input {
+    width: 100%;
+    max-width: 58px;
+    height: 32px;
+  }
+}
+
+@media (pointer: coarse) {
+  .mastering-band-comp input {
+    min-height: 40px;
+    width: 56px;
+    font-size: 11px;
+  }
+
+  .mastering-band-comp-row {
+    min-height: 40px;
+  }
+}
+
+/* Phone landscape: use the width for a two-column desk instead of a
+   single tall stack. The visualiser keeps the wider side. */
+@media (min-width: 768px) and (max-width: 1100px) and (orientation: landscape) {
+  .mastering-dashboard {
+    grid-template-columns: minmax(0, 7fr) minmax(260px, 5fr);
+    gap: 12px;
+  }
+
+  .mastering-dashboard > div:first-child {
+    grid-column: 1;
+  }
+
+  .mastering-dashboard > div:last-child {
+    grid-column: 2;
+  }
+
+  .mastering-band-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 932px) and (max-height: 500px) and (orientation: landscape) {
+  .mastering-surface {
+    padding-top: 8px;
+    gap: 10px;
+  }
+
+  .mastering-header h1 {
+    font-size: 22px;
+  }
+
+  .mastering-header p {
+    display: none;
+  }
+
+  .mastering-visualizer {
+    min-height: 112px;
+    height: 124px !important;
+  }
+}

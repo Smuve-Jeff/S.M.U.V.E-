@@ -1133,4 +1133,136 @@ describe("ExportService", () => {
       expect(fader!.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
     });
   });
+  describe("offline master bus", () => {
+    const bands = [
+      { id: 1, threshold: -24, ratio: 3 },
+      { id: 2, threshold: -20, ratio: 2.5 },
+      { id: 3, threshold: -14, ratio: 2 },
+      { id: 4, threshold: -10, ratio: 2.2 },
+      { id: 5, threshold: -6, ratio: 1.8 },
+    ];
+
+    function masterContext() {
+      const compressors: any[] = [];
+      const filters: any[] = [];
+      const gains: any[] = [];
+      const offline: any = {
+        destination: {},
+        createGain: jest.fn(() => {
+          const node = {
+            gain: { value: 0, setTargetAtTime: jest.fn() },
+            connect: jest.fn(),
+          };
+          gains.push(node);
+          return node;
+        }),
+        createBiquadFilter: jest.fn(() => {
+          const node = {
+            type: "lowpass",
+            frequency: { value: 0 },
+            Q: { value: 0 },
+            gain: { value: 0 },
+            connect: jest.fn(),
+          };
+          filters.push(node);
+          return node;
+        }),
+        createDynamicsCompressor: jest.fn(() => {
+          const node = {
+            threshold: { value: -24 },
+            ratio: { value: 12 },
+            attack: { value: 0.003 },
+            release: { value: 0.25 },
+            knee: { value: 30 },
+            connect: jest.fn(),
+          };
+          compressors.push(node);
+          return node;
+        }),
+        createWaveShaper: jest.fn(() => ({
+          curve: null,
+          oversample: "none",
+          connect: jest.fn(),
+        })),
+        startRendering: jest.fn().mockResolvedValue({}),
+      };
+      return { offline, compressors, filters, gains };
+    }
+
+    async function renderMaster(onlyTrackIds?: ReadonlySet<string>) {
+      const recording = masterContext();
+      const original = (globalThis as any).OfflineAudioContext;
+      (globalThis as any).OfflineAudioContext = jest.fn(() => recording.offline);
+      Object.assign(audioEngineMock, {
+        masterGain: { gain: { value: 0.8 } },
+        limiter: {
+          ratio: { value: 20 },
+          attack: { value: 0.001 },
+          release: { value: 0.05 },
+          knee: { value: 0 },
+        },
+        masterEQ: { frequency: { value: 20000 } },
+        masterShelf: { frequency: { value: 5000 } },
+        saturationNode: { curve: null, oversample: "none" },
+        quantumSaturation: { curve: null, oversample: "none" },
+        spectralExciter: {
+          type: "highshelf",
+          gain: { value: 0 },
+          frequency: { value: 8000 },
+        },
+        subAtomicEnhancer: { gain: { value: 1 } },
+        getMasteringBands: jest.fn(() => bands),
+        getMasteringTargets: jest.fn(() => ({ lufs: -14, truePeak: -0.7 })),
+        getMasterToneEq: jest.fn(() => ({
+          lowShelfDb: 2,
+          lowMidDb: -1,
+          highShelfDb: 1.5,
+        })),
+        getMasterMakeupDb: jest.fn(() => 2),
+        getCompressorSettings: jest.fn(() => ({ threshold: -20, ratio: 3 })),
+      });
+      (service as any).musicManager.tracks = jest.fn(() => []);
+      (service as any).musicManager.activeLoopBars = jest.fn(() => 1);
+      (service as any).automation.lanes.set([]);
+      try {
+        await service.renderProjectOffline(
+          onlyTrackIds ? { onlyTrackIds } : {},
+        );
+      } finally {
+        if (original === undefined) {
+          delete (globalThis as any).OfflineAudioContext;
+        } else {
+          (globalThis as any).OfflineAudioContext = original;
+        }
+      }
+      return recording;
+    }
+
+    it("uses the five live bands and the true-peak ceiling in a full mix", async () => {
+      const { compressors, filters } = await renderMaster();
+
+      expect(compressors).toHaveLength(6);
+      expect(compressors.slice(0, 5).map((node) => node.threshold.value)).toEqual(
+        bands.map((band) => band.threshold),
+      );
+      expect(compressors.slice(0, 5).map((node) => node.ratio.value)).toEqual(
+        bands.map((band) => band.ratio),
+      );
+      // The sixth compressor is the safety limiter, not another band.
+      expect(compressors[5].threshold.value).toBe(-0.7);
+      expect(compressors[5].knee.value).toBe(0);
+      const highShelf = filters.find((node) => node.type === "highshelf");
+      expect(highShelf?.gain.value).toBe(1.5);
+    });
+
+    it("leaves stems pre-master so a stem set still sums to the mix", async () => {
+      const { compressors, offline } = await renderMaster(
+        new Set(["not-rendered"]),
+      );
+
+      expect(compressors).toHaveLength(0);
+      expect(offline.createDynamicsCompressor).not.toHaveBeenCalled();
+    });
+  });
+
 });
