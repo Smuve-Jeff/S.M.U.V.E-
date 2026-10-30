@@ -10,13 +10,13 @@
    min-* floors still "bite" (min-height beats height) — that is
    intentional and limited to touch ergonomics.
 
-   EXCEPTION — the "Phone touch floor, Studio view by view" block near the
-   end of this file overrides component min-heights with !important. A
-   zero-specificity selector cannot beat a component rule that declares its
-   own min-height, and 59 of the 90 controls that block names do declare one,
-   so without !important the floor was inert for exactly the controls it
-   exists to fix. Keep the exception inside that block and keep it gated on
-   (pointer: coarse); nothing else here should need it.
+   EXCEPTION — the two "Phone touch floor" blocks at the end of this file
+   (controls first, then form fields) override component min-heights with
+   !important. A zero-specificity selector cannot beat a component rule that
+   declares its own min-height, and 59 of the 90 controls in the first block
+   do declare one, so without !important the floor was inert for exactly the
+   controls it exists to fix. Keep the exception inside those blocks and keep
+   them gated on (pointer: coarse); nothing else here should need it.
 
    Angular's emulated encapsulation keeps a parent stylesheet out
    of child component templates, so this file is registered in the
@@ -332,6 +332,24 @@
   .comp-btn, .take-chip-del, .tl-btn,
   /* transport */
   .ctb-dropdown-action, .ctb-dropdown-close, .ctb-output-pill, .ctb-test-sound, .ctb-toggle
+  ) {
+    min-height: 44px !important;
+  }
+}
+
+
+/* Phone touch floor, form fields: a text field, select or textarea is exactly
+   as hard to hit as a button, and 51 field rules in the Studio sit under
+   today — 26px selects, 32-38px inputs among them. File inputs are excluded
+   because the hidden ones are authored at 1px on purpose, and so are
+   checkboxes, radios and ranges: their box IS the control, so they need
+   padding or a bigger thumb rather than a taller box. !important for the
+   reason recorded at the top of this file. */
+@media (pointer: coarse) {
+  :where(
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='hidden']):not([type='file']),
+    select,
+    textarea
   ) {
     min-height: 44px !important;
   }
