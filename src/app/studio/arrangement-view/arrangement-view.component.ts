@@ -9,9 +9,11 @@ import {
   OnDestroy,
   Output,
   EventEmitter,
+  HostListener,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import type { ClipClipboardEntry } from "../../services/music-manager.service";
 import {
   MusicManagerService,
   TrackModel,
@@ -752,8 +754,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
    * Duplicate a whole track below itself. No confirmation is needed: unlike
    * removing a track this destroys nothing, and one Ctrl+Z takes the copy away.
    */
-  duplicateTrack(id: string, e: Event) {
-    e.stopPropagation();
+  duplicateTrack(id: string, e?: Event) {
+    e?.stopPropagation();
     if (!this.musicManager.duplicateTrack(id)) return;
     this.haptic.light();
   }
@@ -838,6 +840,96 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   onGridTouchEnd() {
     this.enhancedGestures.resetPinch();
     this.pinchZoomRef = this.enhancedGestures.zoomLevel();
+  }
+
+  /** Snapshot the selected clips onto the service clipboard. */
+  copyClips(): void {
+    const entries: ClipClipboardEntry[] = [];
+    this.selectedClipIds().forEach((id) => {
+      const found = this.findClipOwner(id);
+      if (!found) return;
+      const snapshot: Omit<StudioClip, "id"> & { id?: string } = {
+        ...found.clip,
+      };
+      delete snapshot.id;
+      entries.push({ clip: snapshot, sourceTrackId: found.track.id });
+    });
+    if (!this.musicManager.copyClips(entries)) return;
+    this.haptic.light();
+    this.snackbar.info(
+      `Copied ${entries.length} clip${entries.length === 1 ? "" : "s"}`,
+    );
+    this.markDirty();
+  }
+
+  canPasteClips(): boolean {
+    return this.musicManager.hasClipClipboard();
+  }
+
+  /** Paste onto the selected track, at the bar under the playhead. */
+  pasteClips(): void {
+    const trackId = this.musicManager.selectedTrackId();
+    if (!trackId || !this.musicManager.hasClipClipboard()) return;
+    const atBar = Math.max(0, Math.round(this.musicManager.currentStep() / 16));
+    const pasted = this.musicManager.pasteClips(trackId, atBar);
+    if (pasted.length === 0) return;
+    // Leave the paste selected, like the piano roll does, so it can be dragged
+    // straight into place.
+    this.selectedClipIds.set(new Set(pasted));
+    this.haptic.medium();
+    this.snackbar.success(
+      `Pasted ${pasted.length} clip${pasted.length === 1 ? "" : "s"}`,
+    );
+    this.markDirty();
+  }
+
+  /**
+   * Clip-level keyboard editing. Duplicate falls back to the whole track when
+   * no clip is selected, so one key covers whichever thing is pointed at.
+   *
+   * Guarded against text fields and modifier combos the shell owns; note that
+   * the piano roll listens for Ctrl+D too, but only acts when it has a note
+   * selection, so the two do not fire together in normal use.
+   */
+  @HostListener("window:keydown", ["$event"])
+  onArrangementKeydown(event: KeyboardEvent): void {
+    if (event.defaultPrevented || event.repeat || event.isComposing) return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable)
+    ) {
+      return;
+    }
+    const mod = event.ctrlKey || event.metaKey;
+    if (!mod || event.altKey) return;
+    const key = event.key.toLowerCase();
+    if (key === "c") {
+      if (this.selectedClipIds().size === 0) return;
+      event.preventDefault();
+      this.copyClips();
+      return;
+    }
+    if (key === "v") {
+      if (!this.canPasteClips()) return;
+      event.preventDefault();
+      this.pasteClips();
+      return;
+    }
+    if (key === "d") {
+      if (this.selectedClipIds().size > 0) {
+        event.preventDefault();
+        this.duplicateSelected();
+        return;
+      }
+      const trackId = this.musicManager.selectedTrackId();
+      if (!trackId) return;
+      event.preventDefault();
+      this.duplicateTrack(trackId);
+    }
   }
 
   duplicateSelected() {

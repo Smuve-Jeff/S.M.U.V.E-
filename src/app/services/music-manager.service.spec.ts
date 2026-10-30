@@ -1890,4 +1890,39 @@ describe('MusicManagerService per-scene follow rules', () => {
     expect(service.selectedTrackId()).toBe('track-1');
   });
 
+
+  it('pastes the clip clipboard onto another track as one undoable step', () => {
+    const source = service.tracks()[0];
+    service.tracks.set([
+      { ...source, id: 'track-a', notes: [], clips: [] },
+      { ...source, id: 'track-b', notes: [], clips: [] },
+    ]);
+    service.addClipToTrack('track-a', { start: 2, length: 4, name: 'Verse' });
+    service.addClipToTrack('track-a', { start: 6, length: 2, name: 'Fill' });
+
+    const clips = service.tracks().find((t) => t.id === 'track-a')!.clips;
+    service.copyClips(
+      clips.map((c) => {
+        const snapshot: Omit<typeof c, 'id'> & { id?: string } = { ...c };
+        delete snapshot.id;
+        return { clip: snapshot, sourceTrackId: 'track-a' };
+      }),
+    );
+
+    const pastedIds = service.pasteClips('track-b', 8);
+    const destination = service.tracks().find((t) => t.id === 'track-b')!;
+
+    expect(pastedIds).toHaveLength(2);
+    expect(destination.clips.map((c) => c.start).sort((a, b) => a - b)).toEqual([
+      8, 12,
+    ]);
+
+    const recorder = (service as unknown as { history: { undo(): void } })
+      .history;
+    recorder.undo();
+    expect(
+      service.tracks().find((t) => t.id === 'track-b')!.clips,
+    ).toHaveLength(0);
+  });
+
 });

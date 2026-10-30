@@ -159,6 +159,16 @@ const LIVE_SCENE_CLIP: StudioClip = {
   type: "midi",
 } as StudioClip;
 
+/**
+ * One entry on the clip clipboard: the clip material plus the track it came
+ * from, so a paste onto a different track knows whether its pattern slot id
+ * still means anything there.
+ */
+export interface ClipClipboardEntry {
+  clip: Omit<StudioClip, "id">;
+  sourceTrackId: string;
+}
+
 export interface TrackModel extends StudioTrack {
   id: string;
   instrumentId: string;
@@ -1874,6 +1884,72 @@ export class MusicManagerService {
       }
     );
     return newId;
+  }
+
+  /**
+   * The clip clipboard. Held on the service, not the arrangement view, so a
+   * copy survives switching views — and so the same copy can be pasted onto a
+   * different track, which is the point of copying a clip at all.
+   */
+  readonly clipClipboard = signal<ClipClipboardEntry[]>([]);
+
+  hasClipClipboard(): boolean {
+    return this.clipClipboard().length > 0;
+  }
+
+  /** Replace the clipboard with id-less snapshots gathered by the caller. */
+  copyClips(entries: ClipClipboardEntry[]): number {
+    if (entries.length === 0) return 0;
+    this.clipClipboard.set(entries.map((e) => ({ ...e, clip: { ...e.clip } })));
+    return entries.length;
+  }
+
+  /**
+   * Paste the clipboard onto `trackId` so its earliest clip lands on `atBar`,
+   * keeping the selection's internal spacing. One command for the whole paste,
+   * so a bad paste costs a single undo.
+   *
+   * A clip pasted onto a *different* track is re-pointed at that track's active
+   * pattern slot: the source's slot id names material the destination does not
+   * have, so keeping it would leave the clip playing nothing.
+   */
+  pasteClips(trackId: string, atBar: number): string[] {
+    const track = this.tracks().find((t) => t.id === trackId);
+    const entries = this.clipClipboard();
+    if (!track || entries.length === 0) return [];
+    const base = Math.min(...entries.map((e) => e.clip.start ?? 0));
+    const pasted: StudioClip[] = entries.map((entry) => {
+      const sameTrack = entry.sourceTrackId === trackId;
+      return {
+        ...this.clone(entry.clip),
+        id: 'clip_' + Date.now() + Math.random(),
+        start: Math.max(0, Math.round(atBar + ((entry.clip.start ?? 0) - base))),
+        patternSlotId: sameTrack
+          ? (entry.clip.patternSlotId ?? null)
+          : this.activePatternSlotFor(trackId),
+      } as StudioClip;
+    });
+    this.runCommand(
+      'Paste ' + pasted.length + ' Clip' + (pasted.length === 1 ? '' : 's'),
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId ? { ...t, clips: [...t.clips, ...pasted] } : t
+          )
+        );
+      },
+      () => {
+        const pastedIds = new Set(pasted.map((c) => c.id));
+        this.tracks.update((ts) =>
+          ts.map((t) =>
+            t.id === trackId
+              ? { ...t, clips: t.clips.filter((c) => !pastedIds.has(c.id)) }
+              : t
+          )
+        );
+      }
+    );
+    return pasted.map((c) => c.id);
   }
 
   addClipToTrack(trackId: string, clip: Partial<StudioClip>) {

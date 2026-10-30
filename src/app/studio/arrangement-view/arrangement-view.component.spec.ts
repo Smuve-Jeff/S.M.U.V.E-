@@ -47,6 +47,10 @@ describe("ArrangementViewComponent", () => {
     takesExpanded: signal({}),
     addTrack: jest.fn(),
     updateClip: jest.fn(),
+    copyClips: jest.fn(() => 1),
+    pasteClips: jest.fn(() => ["clip_pasted"]),
+    hasClipClipboard: jest.fn(() => false),
+    duplicateTrack: jest.fn(() => "track_copy"),
     glueClips: jest.fn(),
   };
 
@@ -78,6 +82,8 @@ describe("ArrangementViewComponent", () => {
   const mockSnackbar = {
     info: jest.fn(),
     show: jest.fn(),
+    success: jest.fn(),
+    error: jest.fn(),
   };
 
   const receivingTrackIds = signal(new Set<string>());
@@ -670,4 +676,53 @@ describe("ArrangementViewComponent", () => {
       expect.stringContaining("Deleted 2 clips"),
     );
   });
+
+  it("copies the selected clips without their ids", () => {
+    mockMusicManager.tracks.set([
+      {
+        id: "1",
+        name: "Lead",
+        mute: false,
+        solo: false,
+        clips: [
+          { id: "c1", start: 0, length: 4, name: "Verse", type: "midi" },
+        ],
+      },
+    ]);
+    component.selectedClipIds.set(new Set(["c1"]));
+
+    component.copyClips();
+
+    const entries = mockMusicManager.copyClips.mock.calls[0][0];
+    expect(entries).toHaveLength(1);
+    expect(entries[0].sourceTrackId).toBe("1");
+    expect(entries[0].clip.name).toBe("Verse");
+    expect(entries[0].clip.id).toBeUndefined();
+  });
+
+  it("pastes at the playhead bar and selects the new clips", () => {
+    mockMusicManager.hasClipClipboard.mockReturnValue(true);
+    mockMusicManager.currentStep.set(32); // 2 bars at 16 steps per bar
+    mockMusicManager.selectedTrackId.set("1");
+
+    component.pasteClips();
+
+    expect(mockMusicManager.pasteClips).toHaveBeenCalledWith("1", 2);
+    expect(Array.from(component.selectedClipIds())).toEqual(["clip_pasted"]);
+  });
+
+  it("duplicates the selected clips from the keyboard", () => {
+    const duplicate = jest
+      .spyOn(component, "duplicateSelected")
+      .mockImplementation(() => undefined);
+    component.selectedClipIds.set(new Set(["c1"]));
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true }),
+    );
+
+    expect(duplicate).toHaveBeenCalledTimes(1);
+    duplicate.mockRestore();
+  });
+
 });
