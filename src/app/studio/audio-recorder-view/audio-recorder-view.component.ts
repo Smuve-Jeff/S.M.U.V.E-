@@ -39,6 +39,18 @@ import {
   takeLevelNotice,
   takesMissingLevel,
 } from "./take-level";
+import {
+  INPUT_TRIM_MAX_DB,
+  INPUT_TRIM_MIN_DB,
+  clampInputTrimDb,
+  inputTrimGain,
+  readInputTrimDbForDevice,
+  rememberInputTrimDbForDevice,
+} from "./input-trim";
+import {
+  MonitorOutputRisk,
+  classifyMonitorOutputRisk,
+} from "./monitor-safety";
 
 interface RecordingListEntry {
   id: string;
@@ -194,7 +206,31 @@ export class AudioRecorderViewComponent
   monitoringEnabled = signal(false);
   noiseGateThreshold = signal(-50);
   noiseGateEnabled = signal(false);
+  readonly trimMinDb = INPUT_TRIM_MIN_DB;
+  readonly trimMaxDb = INPUT_TRIM_MAX_DB;
+  /** Pre-capture gain; applied before the noise gate and capture destination. */
+  readonly inputTrimDb = signal(0);
+  readonly inputTrimLabel = computed(() => {
+    const db = this.inputTrimDb();
+    return `${db > 0 ? "+" : ""}${db} dB`;
+  });
+  /** Latches for 1.5 s after a raw or post-trim peak reaches full scale. */
+  readonly inputClipping = signal(false);
+  /** What the browser's output labels say about feedback risk. */
+  readonly monitorRisk = signal<MonitorOutputRisk>("unknown");
+  readonly monitorWarning = computed(() => {
+    switch (this.monitorRisk()) {
+      case "headphones":
+        return "Headphones detected — monitoring is safe.";
+      case "speakers":
+        return "Speakers detected — use headphones; monitoring can feed back.";
+      default:
+        return "Use headphones — monitoring through speakers can feed back.";
+    }
+  });
+  private clipHoldUntil = 0;
   private micSourceNode: MediaStreamAudioSourceNode | null = null;
+  private trimGainNode: GainNode | null = null;
   private monitorGainNode: GainNode | null = null;
   private gateNode: GainNode | null = null;
   private captureDestination: MediaStreamAudioDestinationNode | null = null;
@@ -206,16 +242,10 @@ export class AudioRecorderViewComponent
       if (!this.currentStream()) {
         this.snackbar.info("Live monitoring will start when you arm the microphone");
       }
+      void this.refreshMonitorOutputs();
       this.ensureMonitorNodes();
-    } else if (this.micSourceNode && this.monitorGainNode) {
-      try {
-        this.micSourceNode.disconnect(this.monitorGainNode);
-        this.monitorGainNode.disconnect();
-      } catch {
-        /* already disconnected */
-      }
-      this.micSourceNode = null;
-      this.monitorGainNode = null;
+    } else {
+      this.disconnectMonitorNodes();
     }
     this.snackbar.info(
       this.monitoringEnabled()
@@ -224,21 +254,57 @@ export class AudioRecorderViewComponent
     );
   }
 
+  /** One tap from the guard: mute immediately and keep the take running. */
+  muteMonitoring(): void {
+    if (!this.monitoringEnabled()) return;
+    this.haptic.heavy();
+    this.monitoringEnabled.set(false);
+    this.disconnectMonitorNodes();
+    this.snackbar.warning("Monitoring muted — feedback guard");
+  }
+
+  /** Read output labels when the browser exposes them; unknown is acceptable. */
+  async refreshMonitorOutputs(): Promise<void> {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) {
+      this.monitorRisk.set("unknown");
+      return;
+    }
+    try {
+      const labels = (await navigator.mediaDevices.enumerateDevices())
+        .filter((device) => device.kind === "audiooutput")
+        .map((device) => device.label);
+      this.monitorRisk.set(classifyMonitorOutputRisk(labels));
+    } catch {
+      this.monitorRisk.set("unknown");
+    }
+  }
+
+  private disconnectMonitorNodes(): void {
+    if (this.trimGainNode && this.monitorGainNode) {
+      try {
+        this.trimGainNode.disconnect(this.monitorGainNode);
+        this.monitorGainNode.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+    }
+    this.monitorGainNode = null;
+  }
+
   private ensureMonitorNodes(): void {
-    if (!this.currentStream() || !this.audioContext) return;
-    if (this.micSourceNode || this.monitorGainNode) return;
+    if (!this.trimGainNode || !this.audioContext) return;
+    if (this.monitorGainNode) return;
     if (this.audioContext.state === "suspended") {
       void this.audioContext.resume().catch((error) =>
         this.logger.warn("Could not resume audio for monitoring", error),
       );
     }
     try {
-      this.micSourceNode = this.audioContext.createMediaStreamSource(
-        this.currentStream()!,
-      );
+      // Monitor the trimmed signal, so the artist hears the gain that will be
+      // captured rather than a second, untrimmed copy of the microphone.
       this.monitorGainNode = this.audioContext.createGain();
       this.monitorGainNode.gain.value = 1;
-      this.micSourceNode.connect(this.monitorGainNode);
+      this.trimGainNode.connect(this.monitorGainNode);
       this.monitorGainNode.connect(this.audioContext.destination);
     } catch (error) {
       this.logger.warn("Could not enable monitoring", error);
@@ -272,6 +338,44 @@ export class AudioRecorderViewComponent
 
   setNoiseGateThreshold(value: number): void {
     this.noiseGateThreshold.set(Math.max(-80, Math.min(-20, value)));
+  }
+
+  setInputTrim(value: number): void {
+    const next = clampInputTrimDb(value);
+    if (next === this.inputTrimDb()) return;
+    this.inputTrimDb.set(next);
+    rememberInputTrimDbForDevice(this.selectedInputId(), next);
+    this.applyInputTrimGain();
+  }
+
+  resetInputTrim(): void {
+    this.setInputTrim(0);
+  }
+
+  clearClip(): void {
+    this.clipHoldUntil = 0;
+    this.inputClipping.set(false);
+  }
+
+  /** Load the trim remembered for this input; 0 dB remains the fallback. */
+  private restoreInputTrimForDevice(deviceId: string | null): void {
+    const stored = readInputTrimDbForDevice(deviceId);
+    if (stored === this.inputTrimDb()) return;
+    this.inputTrimDb.set(stored);
+    this.applyInputTrimGain();
+  }
+
+  private applyInputTrimGain(): void {
+    if (!this.trimGainNode || !this.audioContext) return;
+    try {
+      this.trimGainNode.gain.setTargetAtTime(
+        inputTrimGain(this.inputTrimDb()),
+        this.audioContext.currentTime,
+        0.015,
+      );
+    } catch {
+      /* context closed mid-take */
+    }
   }
 
   async exportToArrangement(rec: RecordingListEntry): Promise<void> {
@@ -719,6 +823,12 @@ export class AudioRecorderViewComponent
     }
     this.micSourceNode = null;
     try {
+      this.trimGainNode?.disconnect();
+    } catch {
+      /* already disconnected */
+    }
+    this.trimGainNode = null;
+    try {
       this.monitorGainNode?.disconnect();
     } catch {
       /* already disconnected */
@@ -756,9 +866,17 @@ export class AudioRecorderViewComponent
         );
         if (resolved) this.selectedInputId.set(resolved);
       }
+      // The device can be restored after the first render; follow it with its
+      // own trim. Do not move the trim while a take is armed.
+      if (!this.deviceSwitchLocked()) {
+        this.restoreInputTrimForDevice(this.selectedInputId());
+      }
     } catch (error) {
       this.logger.warn("Could not enumerate recorder inputs", error);
     }
+    // Output labels become readable with microphone permission, so refresh the
+    // feedback guidance after every device poll.
+    void this.refreshMonitorOutputs();
   }
 
   private async refreshMicPermission(): Promise<void> {
@@ -808,6 +926,7 @@ export class AudioRecorderViewComponent
     this.loadRecordingsRequest++;
     this.selectedInputId.set(deviceId || null);
     this.persistInputDevice(deviceId || null);
+    this.restoreInputTrimForDevice(deviceId || null);
     this.currentStream()?.getTracks().forEach((track) => track.stop());
     this.currentStream.set(null);
     this.closeAudioGraph();
@@ -862,6 +981,8 @@ export class AudioRecorderViewComponent
         this.currentStream.set(await this.openInputStream());
         void this.refreshInputDevices();
       }
+      this.restoreInputTrimForDevice(this.selectedInputId());
+      void this.refreshMonitorOutputs();
       this.startLevelMeter(this.currentStream()!);
       const captureStream =
         this.captureDestination?.stream ?? this.currentStream()!;
@@ -959,14 +1080,18 @@ export class AudioRecorderViewComponent
       this.analyserNode.fftSize = 256;
       const source = this.audioContext.createMediaStreamSource(stream);
       this.meterSourceNode = source;
+      this.trimGainNode = this.audioContext.createGain();
+      this.trimGainNode.gain.value = inputTrimGain(this.inputTrimDb());
       this.gateNode = this.audioContext.createGain();
       this.gateNode.gain.value = this.noiseGateEnabled() ? 0 : 1;
       this.captureDestination = this.audioContext.createMediaStreamDestination();
+      source.connect(this.trimGainNode);
+      this.trimGainNode.connect(this.analyserNode);
+      this.trimGainNode.connect(this.gateNode);
+      this.gateNode.connect(this.captureDestination);
       if (this.audioContext.state === "suspended") void this.audioContext.resume();
       if (this.monitoringEnabled()) this.ensureMonitorNodes();
-      source.connect(this.analyserNode);
-      source.connect(this.gateNode);
-      this.gateNode.connect(this.captureDestination);
+      this.clearClip();
 
       const dataArray = new Uint8Array(this.analyserNode.fftSize);
       this.levelTaskCleanup?.();
@@ -976,6 +1101,12 @@ export class AudioRecorderViewComponent
           this.analyserNode.getByteTimeDomainData(dataArray);
           const db = this.measureInputLevel(dataArray);
           this.inputLevel.set(db);
+          const peakDb = this.measureInputPeak(dataArray);
+          // The analyser is post-trim; subtracting trim exposes the raw
+          // converter peak too, so a hot interface still warns after a cut.
+          this.trackInputClipping(
+            Math.max(peakDb, peakDb - this.inputTrimDb()),
+          );
           this.applyNoiseGate(db);
         },
         { fps: 24 },
@@ -995,6 +1126,21 @@ export class AudioRecorderViewComponent
     const rms = Math.sqrt(sumSquares / samples.length);
     if (rms <= 0.001) return -60;
     return Math.max(-60, Math.min(0, Math.round(20 * Math.log10(rms) * 10) / 10));
+  }
+
+  private measureInputPeak(samples: Uint8Array): number {
+    if (!samples.length) return -60;
+    let peak = 0;
+    for (const sample of samples) {
+      peak = Math.max(peak, Math.abs((sample - 128) / 128));
+    }
+    if (peak <= 0.0001) return -60;
+    return Math.max(-60, Math.min(0, Math.round(20 * Math.log10(peak) * 10) / 10));
+  }
+
+  private trackInputClipping(peakDb: number): void {
+    if (peakDb >= -0.1) this.clipHoldUntil = Date.now() + 1500;
+    this.inputClipping.set(Date.now() < this.clipHoldUntil);
   }
 
   private applyNoiseGate(db: number): void {
@@ -1022,9 +1168,22 @@ export class AudioRecorderViewComponent
       /* already disconnected */
     }
     this.gateNode = null;
+    try {
+      this.trimGainNode?.disconnect();
+    } catch {
+      /* already disconnected */
+    }
+    this.trimGainNode = null;
+    try {
+      this.monitorGainNode?.disconnect();
+    } catch {
+      /* already disconnected */
+    }
+    this.monitorGainNode = null;
     this.captureDestination = null;
     this.analyserNode = null;
     this.inputLevel.set(-60);
+    this.clearClip();
   }
 
   private startWaveform(): void {

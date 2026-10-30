@@ -388,6 +388,70 @@ describe("AudioRecorderViewComponent", () => {
     expect(component.noiseGateThreshold()).toBe(-40);
   });
 
+  it("clamps input trim and labels the applied gain", () => {
+    component.setInputTrim(99);
+    expect(component.inputTrimDb()).toBe(24);
+    expect(component.inputTrimLabel()).toBe("+24 dB");
+    component.setInputTrim(-99);
+    expect(component.inputTrimDb()).toBe(-24);
+    expect(component.inputTrimLabel()).toBe("-24 dB");
+    component.setInputTrim(12);
+    expect(component.inputTrimDb()).toBe(12);
+    expect(component.inputTrimLabel()).toBe("+12 dB");
+  });
+
+  it("latches and clears the input clip indicator", () => {
+    component.inputClipping.set(true);
+    component.clearClip();
+    expect(component.inputClipping()).toBe(false);
+  });
+
+  it("restores a separate trim for each selected input", () => {
+    localStorage.clear();
+    component.selectedInputId.set("mic-a");
+    component.setInputTrim(7);
+    component.selectedInputId.set("mic-b");
+    component.setInputTrim(-3);
+
+    component.selectedInputId.set("mic-a");
+    (component as any).restoreInputTrimForDevice("mic-a");
+    expect(component.inputTrimDb()).toBe(7);
+
+    component.selectedInputId.set("mic-b");
+    (component as any).restoreInputTrimForDevice("mic-b");
+    expect(component.inputTrimDb()).toBe(-3);
+
+    component.selectedInputId.set(null);
+    component.setInputTrim(-5);
+    (component as any).restoreInputTrimForDevice(null);
+    expect(component.inputTrimDb()).toBe(-5);
+  });
+
+  it("mutes monitoring immediately from the feedback guard", () => {
+    component.monitoringEnabled.set(true);
+    component.muteMonitoring();
+    expect(component.monitoringEnabled()).toBe(false);
+    expect(mockSnackbar.warning).toHaveBeenCalledWith(
+      "Monitoring muted — feedback guard",
+    );
+  });
+
+  it("shows the feedback guard while monitoring is live", () => {
+    component.monitoringEnabled.set(true);
+    component.monitorRisk.set("speakers");
+    fixture.detectChanges();
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain("Speakers detected");
+    expect(text).toContain("MUTE NOW");
+  });
+
+  it("renders the pre-capture trim control", () => {
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain("INPUT TRIM");
+    expect(text).toContain("0 dB");
+    expect(text).toContain("CLIP");
+  });
+
   it("promotes the most recent recording into an active take", () => {
     component.recordings.set([rec({ durationSec: 7 })]);
     component.promoteToTake();

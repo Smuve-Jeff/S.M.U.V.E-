@@ -167,6 +167,53 @@
     @if (isRecording()) {
       <div class="arv-meter-recording-pulse" aria-hidden="true"></div>
     }
+    <button
+      type="button"
+      class="arv-clip-led"
+      [class.is-clipping]="inputClipping()"
+      (click)="clearClip()"
+      [attr.aria-label]="
+        inputClipping()
+          ? 'Input clipping — lower the interface gain or input trim'
+          : 'No input clipping. The indicator latches for 1.5 seconds.'
+      "
+      [title]="
+        inputClipping()
+          ? 'Clipping — lower interface gain or input trim'
+          : 'Clip indicator'
+      "
+    >
+      CLIP
+    </button>
+  </div>
+
+  <!-- Pre-capture trim: applied before the gate and capture destination. -->
+  <div class="arv-trim" aria-label="Input trim">
+    <div class="arv-trim-head">
+      <span class="arv-trim-title">INPUT TRIM</span>
+      <span class="arv-trim-value">{{ inputTrimLabel() }}</span>
+      <button
+        type="button"
+        class="arv-trim-reset"
+        (click)="resetInputTrim()"
+        [disabled]="inputTrimDb() === 0"
+      >
+        Reset
+      </button>
+    </div>
+    <input
+      type="range"
+      [min]="trimMinDb"
+      [max]="trimMaxDb"
+      step="1"
+      [ngModel]="inputTrimDb()"
+      (ngModelChange)="setInputTrim($event)"
+      [attr.aria-label]="'Input trim ' + inputTrimLabel()"
+    />
+    <p class="arv-trim-hint">
+      Trim before the capture buffer. The clip LED watches both the raw input
+      and the trimmed signal, and holds for 1.5 seconds.
+    </p>
   </div>
 
   <!-- WAVEFORM VISUALIZER (during recording) -->
@@ -321,6 +368,20 @@
       </div>
     </div>
   </div>
+
+  @if (monitoringEnabled()) {
+    <p class="arv-monitor-guard" [attr.data-risk]="monitorRisk()" role="status">
+      <span class="material-symbols-outlined" aria-hidden="true">headphones</span>
+      <span>{{ monitorWarning() }}</span>
+      <button type="button" class="arv-monitor-mute" (click)="muteMonitoring()">
+        MUTE NOW
+      </button>
+    </p>
+  } @else {
+    <p class="arv-monitor-hint">
+      Use headphones for live monitoring — speakers can feed back into the mic.
+    </p>
+  }
 
   @if (latestRecording(); as lastTake) {
     <section class="arv-latest-take" aria-label="Latest take actions">
