@@ -2118,14 +2118,6 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.quantizeByIds(track.notes.map((n) => n.id));
   }
 
-  /**
-   * Note snapshots lifted by Ctrl/Cmd+C, stored relative to the earliest copied
-   * step so a paste reproduces the phrase's internal spacing wherever it lands
-   * — including on a different track.
-   */
-  private noteClipboard: ReturnType<MusicManagerService["copyNotes"]> | null =
-    null;
-
   duplicateSelection(): void {
     const track = this.selectedTrack();
     const ids = Array.from(this.selectedNoteIds());
@@ -2139,12 +2131,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const track = this.selectedTrack();
     const ids = Array.from(this.selectedNoteIds());
     if (!track || ids.length === 0) return;
-    this.noteClipboard = this.musicManager.copyNotes(track.id, ids);
+    this.musicManager.copyNotes(track.id, ids);
     this.haptic.light();
   }
 
   canPasteNotes(): boolean {
-    return !!this.noteClipboard?.length;
+    return this.musicManager.hasNoteClipboard();
   }
 
   /**
@@ -2153,11 +2145,9 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   pasteNotes(): void {
     const track = this.selectedTrack();
-    const clip = this.noteClipboard;
-    if (!track || !clip || clip.length === 0) return;
+    if (!track || !this.musicManager.hasNoteClipboard()) return;
     const pasted = this.musicManager.pasteNotes(
       track.id,
-      clip,
       Math.max(0, Math.round(this.musicManager.currentStep())),
     );
     if (pasted.length === 0) return;

@@ -78,8 +78,10 @@ describe("PianoRollComponent", () => {
     removeNotes: jest.fn(),
     quantizeTrack: jest.fn(),
     duplicateNotes: jest.fn(),
-    copyNotes: jest.fn(() => []),
+    copyNotes: jest.fn(() => 0),
     pasteNotes: jest.fn(() => ["n-pasted"]),
+    noteClipboard: signal<Array<Record<string, unknown>>>([]),
+    hasNoteClipboard: jest.fn(() => false),
     strumTrack: jest.fn(),
     getNoteSlideSemitones: jest.fn((n) =>
       n?.isSlide ? (n.pitchBend ?? 0) : 0,
@@ -970,26 +972,39 @@ describe("PianoRollComponent", () => {
 
 
   it("copies the selection and pastes it at the playhead", () => {
-    const clip = [{ step: 4, midi: 60, length: 1, velocity: 100 }];
-    mockMusicManager.copyNotes.mockReturnValue(clip);
     component.selectedNoteIds.set(new Set(["n1"]));
 
     component.copySelection();
     expect(mockMusicManager.copyNotes).toHaveBeenCalledWith("1", ["n1"]);
 
     mockMusicManager.currentStep.set(16);
+    mockMusicManager.hasNoteClipboard.mockReturnValue(true);
     component.selectedNoteIds.set(new Set());
     component.pasteNotes();
-    expect(mockMusicManager.pasteNotes).toHaveBeenCalledWith("1", clip, 16);
+    expect(mockMusicManager.pasteNotes).toHaveBeenCalledWith("1", 16);
     expect(mockMusicManager.pasteNotes).toHaveBeenCalledTimes(1);
     // The paste becomes the selection so the phrase can be moved right away.
     expect(Array.from(component.selectedNoteIds())).toEqual(["n-pasted"]);
   });
 
-  it("keeps the clip on Ctrl+C and refuses an empty paste", () => {
+  it("refuses to paste before anything has been copied", () => {
+    // Mocks are shared across tests, so the clipboard state left by the copy
+    // test has to be reset explicitly.
+    mockMusicManager.hasNoteClipboard.mockReturnValue(false);
+    mockMusicManager.pasteNotes.mockClear();
+
     component.pasteNotes();
+
     expect(mockMusicManager.pasteNotes).not.toHaveBeenCalled();
     expect(component.canPasteNotes()).toBe(false);
+  });
+
+
+  it("offers a paste whenever the service still holds a clipboard", () => {
+    // The clipboard lives on the singleton, so a copy taken before the editor
+    // was torn down still enables Paste after it is rebuilt.
+    mockMusicManager.hasNoteClipboard.mockReturnValue(true);
+    expect(component.canPasteNotes()).toBe(true);
   });
 
 });
