@@ -1028,6 +1028,14 @@ describe("PianoRollComponent", () => {
     );
     expect(duplicate).toHaveBeenCalledTimes(1);
 
+    // Focus alone also hands it back: keyboard-only use never clicks here.
+    focus.noteActivity("arrangement");
+    component.onFocusActivity();
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true }),
+    );
+    expect(duplicate).toHaveBeenCalledTimes(2);
+
     duplicate.mockRestore();
     focus.noteActivity("piano-roll");
   });

@@ -900,6 +900,15 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.studioFocus.noteActivity("arrangement");
   }
 
+  /**
+   * Focus counts as pointing: a keyboard-only pass never fires pointerdown, so
+   * without this the other view would keep the shortcut after tabbing in here.
+   */
+  @HostListener("focusin")
+  onFocusActivity(): void {
+    this.studioFocus.noteActivity("arrangement");
+  }
+
   @HostListener("window:keydown", ["$event"])
   onArrangementKeydown(event: KeyboardEvent): void {
     if (event.defaultPrevented || event.repeat || event.isComposing) return;

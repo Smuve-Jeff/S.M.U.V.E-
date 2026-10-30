@@ -2268,6 +2268,15 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.studioFocus.noteActivity("piano-roll");
   }
 
+  /**
+   * Focus counts as pointing: a keyboard-only pass never fires pointerdown, so
+   * without this the other view would keep the shortcut after tabbing in here.
+   */
+  @HostListener("focusin")
+  onFocusActivity(): void {
+    this.studioFocus.noteActivity("piano-roll");
+  }
+
   @HostListener("window:keydown", ["$event"])
   onKey(ev: KeyboardEvent) {
     if (
