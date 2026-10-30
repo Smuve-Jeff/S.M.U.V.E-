@@ -2563,3 +2563,13 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
     border-left: none;
   }
 }
+
+/* Black keys are a deliberately shorter overlay on the white keys (0.55 of the
+   row), which on a touch screen leaves ~24px of target. The key column is
+   audible-only, but a strip that thin is still hard to hit on a phone, so the
+   overlay gets its own floor without changing the white-key rhythm. */
+@media (pointer: coarse) {
+  .pr-key.black {
+    min-height: 30px;
+  }
+}

@@ -280,9 +280,35 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
 
   selectedTrack = this.musicManager.selectedTrack;
 
+  /**
+   * Row height in px — the single source for key heights, note positions and
+   * the canvas height, so the key column and the grid cannot drift apart.
+   *
+   * Touch-first devices read a 44px floor: the keys are stacked touch targets
+   * and a 22px row is half the Material floor, which is why the key rail had to
+   * be left out of the hit-band pass. `matchMedia` is read here instead of
+   * cached in a signal because pointer type is a device property; a hybrid
+   * device picks up the change on the next edit that invalidates this computed.
+   */
   rowHeight = computed(() =>
-    Math.max(18, 22 * this.touchGestures.verticalZoomLevel()),
+    Math.max(
+      this.isCoarsePointer() ? 44 : 18,
+      22 * this.touchGestures.verticalZoomLevel(),
+    ),
   );
+
+  /** True when the primary pointer is a finger (Android phone/tablet). */
+  private isCoarsePointer(): boolean {
+    try {
+      return (
+        typeof window !== "undefined" &&
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(pointer: coarse)").matches
+      );
+    } catch {
+      return false;
+    }
+  }
   cellWidth = computed(() => Math.max(20, 32 * this.touchGestures.zoomLevel()));
   columns = computed(() => Array.from({ length: 64 }, (_, i) => i));
 
