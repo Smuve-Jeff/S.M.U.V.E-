@@ -449,6 +449,13 @@
               [class.text-fl-blue]="band.gain > 0"
               >{{ band.gain > 0 ? '+' : '' }}{{ band.gain }}dB</span
             >
+            <span
+              class="mt-1 flex flex-col gap-0.5 text-[8px] font-mono leading-tight text-slate-400"
+              title="Compressor threshold and ratio"
+            >
+              <span>THR {{ band.threshold }} dB</span>
+              <span>RATIO {{ band.ratio }}:1</span>
+            </span>
           </div>
         }
       </div>
