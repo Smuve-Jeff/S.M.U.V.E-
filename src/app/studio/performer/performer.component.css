@@ -125,7 +125,7 @@
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   border-radius: 7px;
   cursor: pointer;
   text-transform: uppercase;
@@ -201,7 +201,7 @@
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   margin-bottom: 2px;
 }
 
@@ -259,7 +259,7 @@
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   text-transform: uppercase;
@@ -385,7 +385,7 @@
   border: none;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.03);
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -459,7 +459,7 @@
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   text-transform: uppercase;
@@ -588,7 +588,7 @@
   z-index: 1;
 }
 .kb-key.is-white .kb-legend {
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
 }
 .kb-key.is-white.is-active {
   background: linear-gradient(
@@ -617,7 +617,7 @@
   z-index: 2;
 }
 .kb-key.is-black .kb-legend {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
 }
 .kb-key.is-black.is-active {
   background: linear-gradient(to bottom, #ffb800 0%, #92400e 100%);
@@ -653,7 +653,7 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   width: 70px;
   flex-shrink: 0;
 }
@@ -751,7 +751,7 @@
   border: none;
   background: transparent;
   border-radius: 7px;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   cursor: pointer;
   font-size: 16px;
   font-weight: 900;
@@ -974,7 +974,7 @@
 .tc-help {
   margin: 2px 0 0;
   font-size: 11px;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
 }
 
 .tc-list {
@@ -1042,7 +1042,7 @@
     Fira Code,
     monospace;
   font-size: 11px;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
 }
 
 .tc-card-actions {
@@ -1099,12 +1099,12 @@
 }
 .tc-empty-glyph {
   font-size: 28px;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
 }
 .tc-empty-text {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1116,7 +1116,7 @@
   color: #faf9ff;
 }
 .dark-mode .kb-key.is-white .kb-legend {
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
 }
 .dark-mode .kb-key.is-white.is-active {
   background: linear-gradient(
@@ -1357,7 +1357,7 @@
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
 }
 .xy-corner-tl {
   top: 0;
@@ -1406,7 +1406,7 @@
 }
 .xy-corner-status {
   font-size: 11px;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   letter-spacing: 0.16em;
 }
 .xy-corner-reset {
@@ -1484,7 +1484,7 @@
   margin: 0;
   text-align: center;
   font-size: 11px;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   line-height: 1.45;
   max-width: 480px;
   padding: 0 12px;
@@ -1557,7 +1557,7 @@
 
 .midi-picker-activity {
   font-size: 11px;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   transition:
     color 0.08s,
     text-shadow 0.08s;
@@ -1598,7 +1598,7 @@
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   cursor: pointer;
   transition: all 0.12s;
 }
@@ -1614,7 +1614,7 @@
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 4px;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   font-size: 11px;
   padding: 2px 8px;
   cursor: pointer;
@@ -1704,7 +1704,7 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   min-width: 48px;
 }
 
@@ -1758,7 +1758,7 @@
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 6px;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -1820,7 +1820,7 @@
 .midi-mapping-empty {
   padding: 12px 0;
   text-align: center;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   font-size: 11px;
 }
 
@@ -1848,7 +1848,7 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   padding: 2px 8px;
 }
 
@@ -1919,7 +1919,7 @@
 }
 
 .midi-log-empty {
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   font-size: 11px;
   padding: 12px 0;
   text-align: center;
@@ -1973,7 +1973,7 @@
 }
 
 .midi-log-ch {
-  color: rgba(250, 249, 255, 0.5);
+  color: rgba(250, 249, 255, 0.78);
   min-width: 24px;
 }
 

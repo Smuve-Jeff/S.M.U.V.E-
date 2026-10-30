@@ -50,7 +50,7 @@
                 : 'System Authorization'
           }}
         </p>
-        <p class="text-[11px] text-silver-dim/80 mt-2 leading-relaxed">
+        <p class="text-[11px] text-silver-dim/90 mt-2 leading-relaxed">
           {{
             isVerifying()
               ? 'Decipher the 6-digit transmission code sent to your secure channel.'
@@ -108,7 +108,7 @@
               type="button"
               (click)="skipVerification()"
               [disabled]="isLoading()"
-              class="text-[9px] font-black text-silver-dim/60 hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50"
+              class="text-[9px] font-black text-silver-dim/85 hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50"
             >
               Verify Later From Settings
             </button>
@@ -165,7 +165,7 @@
               required
               placeholder="STAGE NAME"
               autocomplete="name"
-              class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30 uppercase"
+              class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/75 uppercase"
             />
           </div>
         }
@@ -184,7 +184,7 @@
             required
             autocomplete="email"
             placeholder="EMAIL ADDRESS"
-            class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30 uppercase"
+            class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/75 uppercase"
           />
         </div>
 
@@ -203,7 +203,7 @@
               required
               [autocomplete]="isRegistering() ? 'new-password' : 'current-password'"
               placeholder="PASSWORD"
-              class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 pr-14 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/30"
+              class="w-full bg-black/60 border border-white/10 rounded-2xl px-5 py-4 pr-14 text-sm focus:border-brand-primary outline-none transition-all placeholder:text-silver-dim/75"
             />
             <button
               type="button"
@@ -289,7 +289,7 @@
           >
           Continue as Guest
         </button>
-        <p class="text-center text-[9px] leading-relaxed text-silver-dim/60">
+        <p class="text-center text-[9px] leading-relaxed text-silver-dim/85">
           Limited clearance: creative surfaces only, no AI. No account
           required, and guest work is never saved.
         </p>
@@ -312,7 +312,7 @@
         type="button"
         (click)="openRecovery()"
         [disabled]="isLoading()"
-        class="text-[10px] font-black text-silver-dim/70 hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50"
+        class="text-[10px] font-black text-silver-dim/90 hover:text-brand-primary uppercase tracking-[0.2em] transition-all disabled:opacity-50"
       >
         Forgot Access Cipher?
       </button>

@@ -531,7 +531,8 @@
   border: 1px solid rgba(220, 38, 38, 0.4);
   border-radius: 12px;
   background: rgba(220, 38, 38, 0.1);
-  color: #b91c1c;
+  /* The fill red is ~2.5:1 as 12px text on the dark panel. */
+  color: #f87171;
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.08em;

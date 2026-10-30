@@ -125,7 +125,7 @@
       <div class="mt-2 flex flex-wrap gap-x-2 gap-y-1">
         <span
           *ngFor="let fact of room.evidence"
-          class="text-[9px] text-text-dim/70 uppercase tracking-wider"
+          class="text-[9px] text-text-dim uppercase tracking-wider"
           >{{ fact }}</span
         >
       </div>
@@ -170,7 +170,7 @@
         <p class="text-[10px] text-text-main leading-snug italic">
           "{{ verdict.text }}"
         </p>
-        <p class="text-[9px] text-text-dim/70 uppercase tracking-wider mt-1">
+        <p class="text-[9px] text-text-dim uppercase tracking-wider mt-1">
           {{ verdict.surfaceLabel }} · {{ agedOn(verdict.at) }}
         </p>
       </div>
@@ -229,7 +229,7 @@
         </p>
         <p
           *ngIf="alert.evidence.length"
-          class="text-[10px] text-text-dim/70 mt-1 leading-snug"
+          class="text-[10px] text-text-dim mt-1 leading-snug"
         >
           Evidence: {{ alert.evidence.slice(0, 2).join(' · ') }}
         </p>
@@ -278,7 +278,7 @@
       <ng-template #noAdvice>
         <div class="p-8 text-center">
           <p class="text-sm text-text-dim">No active advice.</p>
-          <p class="text-xs text-text-dim/70 mt-1">
+          <p class="text-xs text-text-dim mt-1">
             Your workspace is looking clear!
           </p>
         </div>

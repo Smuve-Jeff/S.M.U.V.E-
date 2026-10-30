@@ -3,7 +3,7 @@
   --foundry-surface: rgba(255, 255, 255, 0.04);
   --foundry-border: rgba(255, 255, 255, 0.08);
   --foundry-text: #faf9ff;
-  --foundry-text-dim: rgba(250, 249, 255, 0.5);
+  --foundry-text-dim: rgba(250, 249, 255, 0.78);
   --foundry-cyan: #00e5ff;
   --foundry-magenta: #ff007f;
   --foundry-amber: #ffb800;
@@ -203,7 +203,7 @@
 .card-body .upgrade-rationale {
   font-size: 0.78rem;
   font-style: italic;
-  color: rgba(250, 249, 255, 0.35);
+  color: rgba(250, 249, 255, 0.78);
   line-height: 1.4;
 }
 

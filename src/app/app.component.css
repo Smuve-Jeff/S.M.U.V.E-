@@ -185,7 +185,7 @@
   font-weight: 800;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: rgba(250, 249, 255, 0.45);
+  color: rgba(250, 249, 255, 0.78);
 }
 
 .shell-appearance-value {
@@ -201,7 +201,7 @@
   margin-top: 0.15rem;
   font-size: 0.62rem;
   line-height: 1.35;
-  color: rgba(250, 249, 255, 0.45);
+  color: rgba(250, 249, 255, 0.78);
 }
 
 /* ── Mobile footer container ───────────────────────── */
@@ -570,7 +570,7 @@ footer {
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.38em;
-  color: rgba(250, 249, 255, 0.55);
+  color: rgba(250, 249, 255, 0.78);
   opacity: 0.75;
   line-height: 1;
 }

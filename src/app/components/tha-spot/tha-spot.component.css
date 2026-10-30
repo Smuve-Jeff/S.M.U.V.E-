@@ -225,7 +225,7 @@
   letter-spacing: 0.05em;
 }
 .search-bar input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.78);
 }
 .header-right {
   display: flex;
@@ -240,7 +240,7 @@
   border-radius: 10px;
   background: transparent;
   border: 1px solid var(--glass-border);
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -277,7 +277,7 @@
 .mode-btn {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   padding: 0.4rem 0.9rem;
   font-family: var(--elite-font);
   font-weight: 700;
@@ -436,7 +436,7 @@
 }
 .hero-subtitle {
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   font-weight: 500;
   margin: 0 0 2rem 0;
   line-height: 1.6;
@@ -515,7 +515,7 @@
 .stat-label {
   font-size: 0.6rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -543,7 +543,7 @@
 }
 .section-header-left .section-sub {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.78);
   margin-top: 0.15rem;
 }
 .catalog-filters-row {
@@ -563,7 +563,7 @@
 .filter-group label {
   font-size: 0.6rem;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -937,7 +937,7 @@
 }
 .rail-header p {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.78);
   margin: 0.1rem 0 0 0;
 }
 .rail-content {
@@ -1165,7 +1165,7 @@
 .abort-btn {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -1228,17 +1228,17 @@
 }
 .info-cluster p {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.78);
   line-height: 1.5;
   margin: 0;
 }
 .meta-tag {
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
 }
 .meta-tag .m-label {
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.78);
   letter-spacing: 0.05em;
 }
 
@@ -1305,7 +1305,7 @@
   font-family: 'Geist Mono', monospace;
   font-size: 0.55rem;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
 }
 .console-telemetry .success {
   color: var(--success-green);
@@ -1341,7 +1341,7 @@
   border-radius: 8px;
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1528,7 +1528,7 @@
 .close-intel {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   cursor: pointer;
   margin-left: auto;
   padding: 0.25rem;
@@ -1599,7 +1599,7 @@
 .hub-tabs button {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   font-weight: 700;
   font-size: 0.65rem;
   letter-spacing: 0.1em;
@@ -1716,7 +1716,7 @@
   cursor: pointer;
   position: relative;
   transition: all 0.25s ease;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   flex-shrink: 0;
 }
 .user-avatar-circle:hover {
@@ -2326,7 +2326,7 @@
 .lobby-host-name {
   font-size: 0.6rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   max-width: 80px;
   white-space: nowrap;
   overflow: hidden;
@@ -2353,7 +2353,7 @@
   gap: 0.15rem;
   font-size: 0.6rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
 }
 .lobby-status-badge {
   padding: 2px 6px;
@@ -2410,7 +2410,7 @@
   opacity: 0.35;
   cursor: not-allowed;
   background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 /* ── Lobby rail responsive ──────────────────────── */
@@ -2696,7 +2696,7 @@
 }
 .mission-desc {
   font-size: 0.55rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   line-height: 1.35;
 }
 .mission-reward {
@@ -2745,7 +2745,7 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.55rem;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   letter-spacing: 0.05em;
   min-width: 36px;
   text-align: right;
@@ -2867,7 +2867,7 @@
   font-size: 0.5rem;
   font-weight: 800;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   text-transform: uppercase;
 }
 
@@ -2882,7 +2882,7 @@
   border-radius: 10px;
   border: 1px solid var(--glass-border);
   background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   font-family: var(--elite-font);
   font-size: 0.7rem;
   font-weight: 900;
@@ -2944,7 +2944,7 @@
 }
 .star-btn .star-icon {
   font-size: 1.6rem;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.78);
   transition: all 0.2s ease;
   font-variation-settings: 'FILL' 0;
 }
@@ -3005,7 +3005,7 @@
 }
 .post-play-actions .skip-btn {
   background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   border: 1px solid var(--glass-border);
 }
 .post-play-actions .skip-btn:hover {
@@ -3338,7 +3338,7 @@
   font-size: 0.5rem;
   font-weight: 800;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   text-transform: uppercase;
   margin-bottom: 0.35rem;
 }
@@ -3351,7 +3351,7 @@
   flex: 1;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--glass-border);
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   padding: 0.3rem 0.5rem;
   border-radius: 6px;
   font-size: 0.5rem;
@@ -3408,13 +3408,13 @@
   font-size: 0.5rem;
   font-weight: 800;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   text-transform: uppercase;
 }
 .ready-up-count {
   font-size: 0.55rem;
   font-weight: 900;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.78);
   letter-spacing: 0.05em;
   transition: color 0.3s ease;
 }
@@ -3486,7 +3486,7 @@
   flex: 1;
   font-size: 0.6rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3509,7 +3509,7 @@
   border-radius: 8px;
   border: 1px dashed rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   font-family: var(--elite-font);
   font-size: 0.6rem;
   font-weight: 800;
@@ -3603,7 +3603,7 @@
 .lobby-challenge-game {
   font-size: 0.5rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -3788,7 +3788,7 @@
   font-size: 0.5rem;
   font-weight: 800;
   letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   text-transform: uppercase;
   margin-bottom: 0.35rem;
 }
@@ -3865,7 +3865,7 @@
   margin-bottom: 0.25rem;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.78);
   transition: all 0.15s ease;
 }
 .voice-activity-indicator.speaking {
@@ -3923,7 +3923,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.5rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   margin-bottom: 0.5rem;
 }
 .spectator-stop-btn {

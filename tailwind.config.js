@@ -48,9 +48,9 @@ export default {
         'fl-blue': '#0E7C7B',
         'brand-primary': '#0E7C7B',
         'brand-secondary': '#5DC4C2',
-        'brand-surface': '#F5EFE0',
-        'brand-surface-light': '#EBE3CF',
-        'brand-dark': '#1F1A12',
+        'brand-surface': 'var(--ivory-panel, #14192E)',
+        'brand-surface-light': 'var(--color-surface-bright, #28304F)',
+        'brand-dark': 'var(--ivory-bg, #0B0E1F)',
         'brand-accent': '#D97706',
         'hv-primary': '#D97706',
         'hv-secondary': '#7C3AED',
@@ -62,18 +62,28 @@ export default {
         // Dim silver helper text (used with /NN opacity variants across
         // the auth card and dashboards — was only ever defined as a CSS
         // var in component styles, so Tailwind never generated it).
-        'silver-dim': '#CBD5E1',
+        //
+        // Text colours resolve through CSS variables so a token can never
+        // contradict the surface it lands on: the palette is a night palette
+        // in every theme, and these used to be hard-coded light-theme values
+        // (#1F1A12 on a #0B0E1F page is invisible). The hex fallbacks match
+        // the stylesheet's :root values.
+        'silver-dim': 'var(--silver-dim, #E2E9F9)',
         primary: '#0E7C7B',
         secondary: '#5DC4C2',
         accent: '#D97706',
-        background: '#F5EFE0',
-        'background-alt': '#EBE3CF',
-        surface: '#F5EFE0',
-        'surface-bright': '#FBF7EC',
-        'text-main': '#1F1A12',
-        'text-dim': '#7E7259',
-        border: '#3D352A',
-        'border-bright': '#1F1A12',
+        // Surfaces and borders resolve through the same CSS variables the rest
+        // of the stylesheet uses. They were still the old Ivory (cream) hexes,
+        // so a page built with `bg-background` rendered a cream sheet inside
+        // the night shell and every `text-white` on it disappeared.
+        background: 'var(--ivory-bg, #0B0E1F)',
+        'background-alt': 'var(--ivory-panel, #14192E)',
+        surface: 'var(--ivory-paper, #1A2040)',
+        'surface-bright': 'var(--color-surface-bright, #28304F)',
+        'text-main': 'var(--text-main, #F4F7FF)',
+        'text-dim': 'var(--text-dim, #BCCBE6)',
+        border: 'var(--espresso-line, rgba(180, 200, 255, 0.16))',
+        'border-bright': 'var(--color-border-bright, rgba(180, 200, 255, 0.26))',
         // Vocal Suite — Neural Lab palette (CSS-var driven for theme)
         'vocal-obsidian': 'var(--vs-obsidian, #07070a)',
         'vocal-oled': 'var(--vs-oled, #0a0a0d)',

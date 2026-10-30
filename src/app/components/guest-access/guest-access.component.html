@@ -12,7 +12,7 @@
           <span class="material-symbols-outlined text-sm">visibility</span>
           Guest Clearance
         </span>
-        <span class="text-[9px] font-bold uppercase tracking-[0.25em] text-silver-dim/70">
+        <span class="text-[9px] font-bold uppercase tracking-[0.25em] text-silver-dim/90">
           {{ guest()?.artistName || 'Guest Artist' }}
         </span>
       </div>
@@ -23,7 +23,7 @@
         Explore the studio<span class="text-brand-primary">.</span> Keep your
         vault locked<span class="text-brand-primary">.</span>
       </h1>
-      <p class="max-w-2xl text-sm leading-relaxed text-silver-dim/80">
+      <p class="max-w-2xl text-sm leading-relaxed text-silver-dim/90">
         You are signed in as a guest. The creative surfaces are open so you can
         evaluate S.M.U.V.E. hands-on. Account-level strategy, release, business
         and cloud surfaces stay sealed until you create an account.
@@ -41,7 +41,7 @@
           <p class="text-[10px] font-black uppercase tracking-[0.25em] text-amber-300">
             {{ blockedLabel() }} Requires an Account
           </p>
-          <p class="text-[11px] leading-relaxed text-silver-dim/80">
+          <p class="text-[11px] leading-relaxed text-silver-dim/90">
             That surface is not part of guest clearance. Everything you did in
             this session stays available on the surfaces listed below.
           </p>
@@ -53,7 +53,7 @@
       <div
         class="rounded-2xl border border-brand-primary/20 bg-brand-primary/5 px-5 py-4 flex flex-wrap items-center justify-between gap-3"
       >
-        <p class="text-[11px] leading-relaxed text-silver-dim/80">
+        <p class="text-[11px] leading-relaxed text-silver-dim/90">
           This account has full clearance — there is nothing locked for you.
         </p>
         <button
@@ -79,7 +79,7 @@
         >
           AI Is Not Part of Guest Clearance
         </p>
-        <p class="text-[11px] leading-relaxed text-silver-dim/80">
+        <p class="text-[11px] leading-relaxed text-silver-dim/90">
           {{ aiLockNotice }}
         </p>
       </div>
@@ -90,7 +90,7 @@
         <h2 class="text-[10px] font-black uppercase tracking-[0.3em] text-brand-primary">
           Included in Guest Clearance
         </h2>
-        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-dim/60">
+        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-dim/85">
           {{ available().length }} surfaces
         </span>
       </div>
@@ -112,7 +112,7 @@
                 {{ view.label }}
               </span>
             </div>
-            <p class="mt-2 text-[11px] leading-relaxed text-silver-dim/70">
+            <p class="mt-2 text-[11px] leading-relaxed text-silver-dim/90">
               {{ view.description }}
             </p>
           </button>
@@ -125,7 +125,7 @@
         <h2 class="text-[10px] font-black uppercase tracking-[0.3em] text-silver-dim">
           Account Only
         </h2>
-        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-dim/60">
+        <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-dim/85">
           {{ locked().length }} locked
         </span>
       </div>
@@ -140,7 +140,7 @@
           >
             <div class="flex items-center gap-3">
               <span
-                class="material-symbols-outlined text-xl text-silver-dim/60"
+                class="material-symbols-outlined text-xl text-silver-dim/85"
                 aria-hidden="true"
                 >{{ view.icon }}</span
               >
@@ -148,12 +148,12 @@
                 {{ view.label }}
               </span>
               <span
-                class="material-symbols-outlined ml-auto text-sm text-silver-dim/50"
+                class="material-symbols-outlined ml-auto text-sm text-silver-dim/90"
                 aria-hidden="true"
                 >lock</span
               >
             </div>
-            <p class="mt-2 text-[11px] leading-relaxed text-silver-dim/50">
+            <p class="mt-2 text-[11px] leading-relaxed text-silver-dim/90">
               {{ view.description }}
             </p>
           </button>
@@ -169,7 +169,7 @@
           An Account Unlocks
         </h2>
         <span
-          class="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-dim/60"
+          class="text-[10px] font-bold uppercase tracking-[0.2em] text-silver-dim/85"
         >
           AI included
         </span>
@@ -199,14 +199,14 @@
                 </span>
               }
             </div>
-            <p class="mt-2 text-[11px] leading-relaxed text-silver-dim/70">
+            <p class="mt-2 text-[11px] leading-relaxed text-silver-dim/90">
               {{ item.detail }}
             </p>
           </div>
         }
       </div>
 
-      <p class="text-[10px] leading-relaxed text-silver-dim/60">
+      <p class="text-[10px] leading-relaxed text-silver-dim/85">
         AI never runs on a guest session — not the assistant, not concept art,
         not the session musicians. Everything above opens as soon as an account
         exists.
@@ -218,7 +218,7 @@
     >
       <div class="flex items-start gap-3">
         <span class="material-symbols-outlined text-brand-primary">info</span>
-        <p class="text-[11px] leading-relaxed text-silver-dim/80">
+        <p class="text-[11px] leading-relaxed text-silver-dim/90">
           Guest sessions are temporary: work stays in this tab, is never written
           to a vault, and ends when you close it or sign out. Create an account
           to save projects, releases and artist intelligence.
@@ -250,7 +250,7 @@
         <button
           type="button"
           (click)="exitGuestSession()"
-          class="ml-auto text-[10px] font-black uppercase tracking-[0.2em] text-silver-dim/60 hover:text-brand-danger transition-all"
+          class="ml-auto text-[10px] font-black uppercase tracking-[0.2em] text-silver-dim/85 hover:text-brand-danger transition-all"
         >
           Exit guest session
         </button>

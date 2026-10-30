@@ -37,8 +37,9 @@ body .comp-shell {
   --fl-line: #34353d; /* hairline separators */
   --fl-line-soft: rgba(255, 255, 255, 0.07);
   --fl-text: #ececf0;
-  --fl-dim: #a0a1ab;
-  --fl-dim-2: #6c6d76;
+  --fl-dim: #b6b8c4;
+  /* Tertiary readouts and key hints: #6c6d76 measured ~3.2:1 on the FL panel. */
+  --fl-dim-2: #98a0b0;
   --fl-accent: #ff9a1f; /* FL orange — selection / primary */
   --fl-accent-2: #ffb454; /* lighter orange for text/icons */
   --fl-accent-soft: rgba(255, 154, 31, 0.14);
@@ -2223,4 +2224,11 @@ body .comp-shell .comp-tab-create-hero .comp-tab-label {
     bottom: 12px;
     right: 12px;
   }
+}
+
+/* Record arm: the fill red (#B91C1C) is ~2.5:1 as an 11px glyph on the bar, so
+   the idle control takes the readable red and keeps the fill for the armed
+   state. */
+body .comp-shell .ctb-rec:not(.ctb-rec-active) {
+  color: #ff6b6b;
 }

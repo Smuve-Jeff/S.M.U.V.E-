@@ -423,7 +423,7 @@
           <button
             type="button"
             (click)="nudgeBar(-1); $event.stopPropagation()"
-            class="w-4 h-4 rounded bg-black/30 text-white/50 hover:text-white text-[11px] leading-none"
+            class="w-4 h-4 rounded bg-black/30 text-white/75 hover:text-white text-[11px] leading-none"
             [attr.aria-label]="'Previous bar'"
             [disabled]="stepWindowBar() === 0"
           >‹</button>
@@ -439,7 +439,7 @@
           <button
             type="button"
             (click)="nudgeBar(1); $event.stopPropagation()"
-            class="w-4 h-4 rounded bg-black/30 text-white/50 hover:text-white text-[11px] leading-none"
+            class="w-4 h-4 rounded bg-black/30 text-white/75 hover:text-white text-[11px] leading-none"
             [attr.aria-label]="'Next bar'"
           >›</button>
         </div>

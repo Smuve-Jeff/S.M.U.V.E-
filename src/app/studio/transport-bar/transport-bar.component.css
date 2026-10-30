@@ -51,7 +51,7 @@
   padding: 0 10px;
   border: 1px solid var(--espresso-line);
   border-radius: 12px;
-  background: rgba(252, 250, 245, 0.84);
+  background: color-mix(in srgb, var(--ivory-panel, #14192e) 84%, transparent);
   color: var(--espresso-text);
   cursor: pointer;
   list-style: none;
@@ -314,7 +314,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(252, 250, 245, 0.7);
+  background: color-mix(in srgb, var(--ivory-panel, #14192e) 70%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--espresso-line);
@@ -510,7 +510,7 @@
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 /* toggle group */
@@ -1112,7 +1112,7 @@
   color: inherit;
 }
 :host-context(.dark-mode) .ctb-punch {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.78);
 }
 :host-context(.dark-mode) .ctb-punch:hover,
 :host-context(.dark-mode) .ctb-punch:focus-visible {
@@ -1271,7 +1271,7 @@
   background: #0a0a08;
 }
 :host-context(.dark-mode) .ctb-nudge {
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.78);
 }
 :host-context(.dark-mode) .ctb-nudge:hover,
 :host-context(.dark-mode) .ctb-nudge:focus-visible {
@@ -1347,7 +1347,7 @@
   line-height: 1;
 }
 .ctb-position-readout i {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.78);
   font-style: normal;
   font-size: 10px;
   font-weight: 700;

@@ -138,7 +138,7 @@
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -186,7 +186,7 @@
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.78);
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
@@ -261,7 +261,7 @@
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   margin-bottom: 8px;
 }
 
@@ -280,7 +280,7 @@
 .eq-sbar-lbl {
   font-size: 7px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   width: 70px;
   flex-shrink: 0;
   text-transform: uppercase;
@@ -359,7 +359,7 @@
 
 .eq-phase-count {
   font-size: 8px;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.78);
   font-weight: 700;
   letter-spacing: 0.1em;
 }
@@ -401,7 +401,7 @@
 
 .eq-question-desc {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   line-height: 1.5;
   font-weight: 500;
 }
@@ -457,7 +457,7 @@
 
 .eq-option-desc {
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.78);
   line-height: 1.4;
 }
 
@@ -493,7 +493,7 @@
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: inherit;
@@ -520,7 +520,7 @@
 .eq-chip-count {
   width: 100%;
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   font-weight: 600;
   text-align: right;
 }
@@ -553,7 +553,7 @@
 
 .eq-input::placeholder,
 .eq-textarea::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 /* Range slider */
@@ -596,7 +596,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.78);
   margin-top: 6px;
   font-weight: 700;
 }
@@ -650,7 +650,7 @@
 .eq-toggle-label {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -673,7 +673,7 @@
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -780,7 +780,7 @@
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 999px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.48);
+  color: rgba(255, 255, 255, 0.78);
   font: inherit;
   font-size: 9px;
   cursor: pointer;
@@ -808,7 +808,7 @@
 }
 
 .eq-empty-phase p {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   margin-bottom: 20px;
 }
 
@@ -879,7 +879,7 @@
 }
 
 .eq-chat-sys .eq-chat-msg {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   font-weight: 500;
 }
 
@@ -898,7 +898,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
   margin-bottom: 8px;
 }
 
@@ -915,7 +915,7 @@
 }
 
 .eq-genre-stat span:first-child {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   font-weight: 600;
 }
 
@@ -971,7 +971,7 @@
 
 .eq-loading-sub {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   max-width: 400px;
   margin: 0 auto;
 }
@@ -1078,7 +1078,7 @@
   font-size: 7px;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
   font-weight: 700;
 }
 
@@ -1114,7 +1114,7 @@
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .eq-prop-val {
@@ -1172,7 +1172,7 @@
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   margin-bottom: 16px;
 }
 
@@ -1208,7 +1208,7 @@
   padding: 2px 8px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .eq-impact-critical {
@@ -1230,7 +1230,7 @@
 
 .eq-rec-desc {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.78);
   line-height: 1.5;
 }
 
@@ -1288,7 +1288,7 @@
 }
 
 .eq-btn-ghost:hover {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 /* ── ANIMATIONS ──────────────────────────────────────────────── */
@@ -1427,13 +1427,13 @@
   font-family: inherit;
 }
 .eq-genre-search-input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.78);
 }
 .eq-genre-empty {
   grid-column: 1 / -1;
   text-align: center;
   padding: 12px;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.78);
   font-size: 12px;
   border: 1px dashed rgba(255, 255, 255, 0.12);
   border-radius: 12px;

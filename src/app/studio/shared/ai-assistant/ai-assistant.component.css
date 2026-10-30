@@ -13,7 +13,7 @@
   bottom: var(--ai-shell-bottom, 0px);
   right: 0;
   width: min(420px, 100vw);
-  background: rgba(252, 250, 245, 0.94);
+  background: color-mix(in srgb, var(--ivory-panel, #14192e) 94%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-left: 1px solid var(--espresso-line);
