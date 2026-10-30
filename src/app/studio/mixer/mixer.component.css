@@ -2232,3 +2232,135 @@ the workspace. */
     height: 30px;
   }
 }
+
+/* ============================================================
+   CONSOLE FIT — touch grid and short landscape
+   The MSR group has five controls (Ø/M/S/SS/R). A single-column
+   44px stack therefore consumed 220px inside every strip and,
+   because the strip clips its own overflow, pushed the lower sends
+   and buttons out of reach. Use a 2-column portrait grid and a
+   3-column landscape grid, and let the strip rail own vertical
+   scrolling instead of clipping the console.
+   ============================================================ */
+@media (max-width: 768px) {
+  .mix-strips {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mix-strips-track {
+    height: auto;
+    min-height: 100%;
+  }
+
+  .mix-strip {
+    width: 104px;
+    height: auto;
+  }
+
+  .mix-msr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .mix-msr-btn {
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+  }
+}
+
+/* Landscape phones sit above the 768px portrait breakpoint on many devices.
+   Move the phase/VCA bands behind the existing disclosure, keep the header on
+   one rail, and give the five MSR controls two rows instead of five. */
+@media (max-width: 932px) and (orientation: landscape) {
+  .mix-header {
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: 6px 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .mix-header::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mix-header-title {
+    display: none;
+  }
+
+  .mix-segmented {
+    order: 0;
+    width: auto;
+    flex: 1 1 auto;
+  }
+
+  .mix-segmented button {
+    min-height: 42px;
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+
+  .mix-ai-chip {
+    order: 1;
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+
+  .mix-phone-tools {
+    order: 2;
+    display: inline-flex;
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding-inline: 9px;
+  }
+
+  .mix-secondary {
+    display: none;
+  }
+
+  .mix-shell.mix-tools-open .mix-secondary {
+    display: block;
+  }
+
+  .mix-mobile-summary {
+    display: none;
+  }
+
+  .mix-strips {
+    padding: 6px 8px;
+    overflow-y: auto;
+  }
+
+  .mix-strips-track {
+    height: auto;
+    min-height: 240px;
+  }
+
+  .mix-strip {
+    width: 156px;
+    height: auto;
+  }
+
+  .mix-msr {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .mix-msr-btn {
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .mix-fader-area {
+    min-height: 84px;
+  }
+}
