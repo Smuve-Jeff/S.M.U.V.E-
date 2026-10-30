@@ -215,6 +215,7 @@ describe('ImageVideoLabComponent', () => {
       pause: jest.fn(),
       seek: jest.fn(),
       addClip: jest.fn(),
+      removeClip: jest.fn(),
       updateClip: jest.fn(),
       getAllDeliveryPresets: jest.fn().mockReturnValue([
         {
@@ -4038,6 +4039,97 @@ describe('ImageVideoLabComponent', () => {
       expect(ai.generateImage).not.toHaveBeenCalled();
       expect(component.aiFeedback()).toContain('DESCRIBE THE CONCEPT');
       expect(component.isGenerating()).toBe(false);
+    });
+
+    const stageablePlan = () => ({
+      title: 'Night Drive',
+      logline: 'A headlight-lit cut.',
+      editorial: [],
+      origin: 'smuve' as const,
+      shots: [
+        {
+          index: 1,
+          title: 'Dashboard',
+          description: 'Wide',
+          size: 'wide' as const,
+          bars: 2,
+          startTime: 0,
+          durationSeconds: 8,
+          section: 'Feature',
+        },
+        {
+          index: 2,
+          title: 'Verse',
+          description: 'Close',
+          size: 'close' as const,
+          bars: 2,
+          startTime: 8,
+          durationSeconds: 8,
+          section: 'Hook',
+        },
+      ],
+    });
+
+    const visualsLane = (engine: any) =>
+      (engine.tracks() as Array<{ id: string; clips: any[] }>).find(
+        (track) => track.id === 't1'
+      )!;
+
+    it('keeps footage already on the visuals lane when staging a plan', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      component.director.plan.set(stageablePlan());
+      visualsLane(engine).clips = [
+        {
+          id: 'take-1',
+          name: 'Hero take',
+          url: 'blob:take',
+          startTime: 0,
+          duration: 12,
+          offset: 0,
+          trackId: 't1',
+          type: 'video',
+          source: 'camera',
+        },
+      ];
+      (engine.addClip as jest.Mock).mockClear();
+      (engine.removeClip as jest.Mock).mockClear();
+
+      component.stageShotPlan();
+
+      expect(engine.removeClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('1 EXISTING CLIP(S) KEPT');
+      const placed = (engine.addClip as jest.Mock).mock.calls.map(
+        ([, clip]: [string, { startTime: number }]) => clip
+      );
+      expect(placed).toHaveLength(2);
+      // The cards follow the take instead of landing on top of it.
+      expect(placed[0].startTime).toBeCloseTo(12);
+      expect(placed[1].startTime).toBeCloseTo(20);
+    });
+
+    it('restages its own shot cards instead of stacking duplicates', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      component.director.plan.set(stageablePlan());
+      visualsLane(engine).clips = [
+        {
+          id: 'card-1',
+          name: '01 · Dashboard',
+          url: '',
+          startTime: 0,
+          duration: 8,
+          offset: 0,
+          trackId: 't1',
+          type: 'overlay',
+          source: 'ai',
+        },
+      ];
+      (engine.addClip as jest.Mock).mockClear();
+      (engine.removeClip as jest.Mock).mockClear();
+
+      component.stageShotPlan();
+
+      expect(engine.removeClip).toHaveBeenCalledWith('card-1');
+      expect(component.aiFeedback()).toContain('PREVIOUS CARD(S) RESTAGED');
     });
 
     it('opens on a stored plan and says it was restored', async () => {

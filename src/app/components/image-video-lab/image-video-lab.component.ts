@@ -1756,14 +1756,40 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       this.aiFeedback.set('NO SHOT PLAN YET — ASK S.M.U.V.E FOR ONE FIRST.');
       return;
     }
-    const replaced = this.videoEngine.clearTrack('t1');
-    plan.shots.forEach((shot) => this.videoEngine.addClip('t1', this.shotClip(shot)));
-    const runtime = this.formatSeconds(
-      plan.shots[plan.shots.length - 1].startTime +
-        plan.shots[plan.shots.length - 1].durationSeconds
+    const track = this.videoEngine.tracks().find((candidate) => candidate.id === 't1');
+    if (track?.locked) {
+      this.aiFeedback.set('THE VISUALS LANE IS LOCKED — UNLOCK IT, THEN STAGE THE PLAN.');
+      return;
+    }
+    // A shot card is a storyboard placeholder: an AI overlay with no media.
+    // Only cards are restaged. Staging used to clear the whole lane first, so
+    // pressing this with footage already cut silently deleted that footage.
+    const isShotCard = (clip: VideoClip) =>
+      clip.source === 'ai' && clip.type === 'overlay' && !clip.url;
+    const existing = track?.clips ?? [];
+    const footage = existing.filter((clip) => !isShotCard(clip));
+    const staleCards = existing.filter(isShotCard);
+    staleCards.forEach((clip) => this.videoEngine.removeClip(clip.id));
+    // Cards follow the footage already on the lane, so a plan never lands on
+    // top of a take the artist has shot and cut.
+    const offset = footage.reduce(
+      (end, clip) => Math.max(end, clip.startTime + clip.duration),
+      0
     );
+    plan.shots.forEach((shot) =>
+      this.videoEngine.addClip('t1', {
+        ...this.shotClip(shot),
+        startTime: shot.startTime + offset,
+      })
+    );
+    const last = plan.shots[plan.shots.length - 1];
+    const runtime = this.formatSeconds(offset + last.startTime + last.durationSeconds);
+    const kept = footage.length ? ` · ${footage.length} EXISTING CLIP(S) KEPT` : '';
+    const restaged = staleCards.length
+      ? ` · ${staleCards.length} PREVIOUS CARD(S) RESTAGED`
+      : '';
     this.aiFeedback.set(
-      `SHOT LIST STAGED: ${plan.shots.length} SHOT CARDS ON THE VISUALS LANE (${runtime})${replaced ? ` · ${replaced} PREVIOUS CLIPS REPLACED` : ''}.`
+      `SHOT LIST STAGED: ${plan.shots.length} SHOT CARDS ON THE VISUALS LANE (${runtime})${kept}${restaged}.`
     );
   }
 
