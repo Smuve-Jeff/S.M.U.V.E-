@@ -1619,4 +1619,49 @@ describe("StudioComponent", () => {
     expect(offenders).toEqual([]);
   });
 
+
+  it("keeps each editor inside the case that publishes it", () => {
+    // The ownership mapping assumes the arrangement is either the 'arrangement'
+    // case or the switch default, and the piano roll only its own case. A view
+    // that embedded an editor inside a different case would break that silently,
+    // so the template itself is checked.
+    const lines = fs
+      .readFileSync(
+        path.join(process.cwd(), "src/app/studio/studio.component.html"),
+        "utf-8",
+      )
+      .split("\n");
+
+    const enclosingCases = (needle: string): string[] => {
+      const found: string[] = [];
+      lines.forEach((line, index) => {
+        if (!line.includes(needle)) return;
+        let caseName = "none";
+        for (let i = index; i >= 0; i--) {
+          const explicit = lines[i].match(/\*ngSwitchCase="'([^']+)'"/);
+          if (explicit) {
+            caseName = explicit[1];
+            break;
+          }
+          if (lines[i].includes("*ngSwitchDefault")) {
+            caseName = "default";
+            break;
+          }
+        }
+        found.push(caseName);
+      });
+      return found;
+    };
+
+    const arrangement = enclosingCases("<app-arrangement-view");
+    expect(arrangement.length).toBe(2);
+    expect(
+      arrangement.filter((c) => c !== "arrangement" && c !== "default"),
+    ).toEqual([]);
+
+    const pianoRoll = enclosingCases("<app-piano-roll");
+    expect(pianoRoll.length).toBeGreaterThan(0);
+    expect(pianoRoll.filter((c) => c !== "piano-roll")).toEqual([]);
+  });
+
 });
