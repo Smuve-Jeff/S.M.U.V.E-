@@ -10,16 +10,26 @@ export interface ProfileRevisionChange {
   to: string;
 }
 
+export interface ProfileRevisionSource {
+  id: string;
+  label: string;
+  detail?: string;
+  at: number;
+}
+
 export interface ArtistProfileRevision {
   at: number;
   changes: ProfileRevisionChange[];
   summary: string;
+  /** What caused the change, when the writer recorded it. */
+  sources?: ProfileRevisionSource[];
 }
 
 /** A persisted revision, scoped to the artist whose profile changed. */
 export interface ArtistProfileRevisionEntry extends ArtistProfileRevision {
   id: string;
   artistId: string;
+  sources: ProfileRevisionSource[];
 }
 
 interface SnapshotValue {
@@ -42,6 +52,7 @@ interface ProfileSnapshot {
 
 const STORAGE_PREFIX = 'smuve.profile.revision.v1';
 const HISTORY_KEY = 'smuve.profile.revision.history.v1';
+const SOURCE_PREFIX = 'smuve.profile.revision.sources.v1';
 const HISTORY_LIMIT = 40;
 
 const cap = (value: unknown, max = 120): string => {
@@ -317,19 +328,116 @@ export class ArtistProfileRevisionService {
     const current = this.snapshot(profile);
     const previous = this.readSnapshot(profile);
     this.writeSnapshot(profile, current);
-    if (!previous) return null;
+    if (!previous) {
+      // First read: establish the baseline. Nothing can be attributed yet.
+      this.takeSources(profile.id || 'local');
+      return null;
+    }
     const revision = this.compare(previous, current);
-    if (revision) this.record(profile, revision);
+    if (revision) {
+      this.record(profile, revision);
+    } else {
+      // A source mark with no revision is a failed or no-op write; do not let
+      // it attach itself to the next unrelated change.
+      this.takeSources(profile.id || 'local');
+    }
     return revision;
+  }
+
+  /**
+   * Marks what caused a successful profile write. Writers call this right
+   * after the commit resolves and before the next read, so the revision can
+   * name the questionnaire, the profile pane, or an archive import instead of
+   * appearing as an anonymous diff.
+   */
+  markSource(source: { id: string; label: string; detail?: string }): void {
+    const id = String(source?.id ?? '').trim();
+    const label = String(source?.label ?? '').trim();
+    if (!id || !label) return;
+    const artistId = this.profileService.profile()?.id || 'local';
+    const now = Date.now();
+    const sources = this.readSources(artistId);
+    const last = sources[sources.length - 1];
+    // A pane can write several fields in one commit; keep one trigger per burst.
+    if (last && last.id === id && now - last.at < 10_000) {
+      last.at = now;
+      if (source.detail) last.detail = String(source.detail).slice(0, 120);
+    } else {
+      sources.push({
+        id,
+        label: label.slice(0, 60),
+        detail: source.detail ? String(source.detail).slice(0, 120) : undefined,
+        at: now,
+      });
+    }
+    this.writeSources(artistId, sources.slice(-10));
+  }
+
+  private sourceKey(artistId: string): string {
+    return `${SOURCE_PREFIX}:${artistId}`;
+  }
+
+  private readSources(artistId: string): ProfileRevisionSource[] {
+    if (typeof localStorage === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(this.sourceKey(artistId));
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter(
+          (source): source is ProfileRevisionSource =>
+            Boolean(source) &&
+            typeof source === 'object' &&
+            typeof source.id === 'string' &&
+            typeof source.label === 'string' &&
+            typeof source.at === 'number'
+        )
+        .map((source) => ({
+          id: source.id,
+          label: source.label,
+          detail: source.detail ? String(source.detail) : undefined,
+          at: source.at,
+        }));
+    } catch {
+      return [];
+    }
+  }
+
+  private takeSources(artistId: string): ProfileRevisionSource[] {
+    const sources = this.readSources(artistId);
+    this.writeSources(artistId, []);
+    return sources;
+  }
+
+  private writeSources(artistId: string, sources: ProfileRevisionSource[]): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(this.sourceKey(artistId), JSON.stringify(sources));
+    } catch {
+      // Source attribution must not break the profile write.
+    }
   }
 
   /** Adds a consumed revision to the audit history; capped per artist. */
   private record(profile: UserProfile, revision: ArtistProfileRevision): void {
     const artistId = profile.id || 'local';
+    const sources = this.takeSources(artistId);
+    revision.sources = sources.length
+      ? sources
+      : [
+          {
+            id: 'unknown',
+            label: 'Profile update',
+            detail: 'The writer did not record a source',
+            at: revision.at,
+          },
+        ];
     const entry: ArtistProfileRevisionEntry = {
       ...revision,
       id: `${revision.at.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
       artistId,
+      sources: revision.sources,
     };
     const current = this.historyState();
     const mine = [entry, ...current.filter((item) => item.artistId === artistId)].slice(
@@ -363,6 +471,22 @@ export class ArtistProfileRevisionService {
           artistId: entry.artistId,
           at: entry.at,
           summary: String(entry.summary || ''),
+          sources: Array.isArray((entry as any).sources)
+            ? ((entry as any).sources as ProfileRevisionSource[])
+                .filter(
+                  (source): source is ProfileRevisionSource =>
+                    Boolean(source) &&
+                    typeof source === 'object' &&
+                    typeof source.id === 'string' &&
+                    typeof source.label === 'string'
+                )
+                .map((source) => ({
+                  id: source.id,
+                  label: source.label,
+                  detail: source.detail ? String(source.detail) : undefined,
+                  at: typeof source.at === 'number' ? source.at : entry.at,
+                }))
+            : [],
           changes: entry.changes
             .filter(
               (change): change is ProfileRevisionChange =>
@@ -510,8 +634,15 @@ export function profileRevisionLine(revision: ArtistProfileRevision): string {
         `  • ${change.label}: ${formatValue(change.from)} → ${formatValue(change.to)}`
     );
   const more = revision.changes.length - shown.length;
+  const sources = (revision.sources ?? [])
+    .map((source) => source.label)
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(', ');
   return [
-    '🧠 PROFILE REVISION — I re-read the file. Nothing gets past me.',
+    `🧠 PROFILE REVISION — I re-read the file${
+      sources ? ` after: ${sources}` : ''
+    }. Nothing gets past me.`,
     ...shown,
     more > 0 ? `  • +${more} more adjustment${more === 1 ? '' : 's'}` : '',
     'Judge the next move against this version, not the old one.',

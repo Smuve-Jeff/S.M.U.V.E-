@@ -308,6 +308,14 @@ describe('SmuveCaseFileComponent', () => {
         artistId: 'artist-1',
         at: now - index * 60_000,
         summary: 'signature sound changed',
+        sources: [
+          {
+            id: 'profile-editor',
+            label: 'Profile Editor',
+            detail: index === 0 ? 'Identity & Vision' : 'Catalog Assets',
+            at: now - index * 60_000,
+          },
+        ],
         changes: [
           {
             label: 'signature sound',
@@ -323,6 +331,7 @@ describe('SmuveCaseFileComponent', () => {
     expect(text).toContain('Profile Revision History');
     expect(text).toContain('6 revisions');
     expect(text).toContain('signature sound');
+    expect(text).toContain('Profile Editor · Identity & Vision');
     expect(text).toContain('old signature 0');
     expect(text).toContain('new signature 0');
     expect(text).toContain('Show 1 older revision');

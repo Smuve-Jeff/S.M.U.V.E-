@@ -15,6 +15,7 @@ import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AppTheme } from '../../services/user-context.service';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
+import { ArtistProfileRevisionService } from '../../services/artist-profile-revision.service';
 import {
   ArtistProfileModuleService,
   ProfileSectionCoverage,
@@ -101,6 +102,7 @@ export class ProfileEditorComponent implements OnInit {
   private uplinkService = inject(UplinkService);
   private artistFinetune = inject(ArtistProfileFinetuneService);
   private profileModule = inject(ArtistProfileModuleService);
+  private revisionSource = inject(ArtistProfileRevisionService);
   private fingerprint = inject(ArtistOnlineFingerprintService);
 
   // Auth state
@@ -881,11 +883,19 @@ export class ProfileEditorComponent implements OnInit {
     this.showUplink.set(true);
     this.saveStatus.set('saving');
     this.saveError.set(null);
+    const section =
+      this.profileModule.sections.find((entry) => entry.id === this.activeSection())
+        ?.label ?? 'Profile Editor';
     try {
       const committed = await this.uplinkService.initiateUplink(
         this.editableProfile()
       );
       if (committed) {
+        this.revisionSource.markSource({
+          id: 'profile-editor',
+          label: 'Profile Editor',
+          detail: section,
+        });
         this.saveStatus.set('saved');
       } else {
         this.saveStatus.set('failed');
@@ -1039,6 +1049,11 @@ export class ProfileEditorComponent implements OnInit {
     if (!file) return;
     const success = await this.userProfileService.importProfile(file);
     if (success) {
+      this.revisionSource.markSource({
+        id: 'import',
+        label: 'Profile Archive Import',
+        detail: file.name,
+      });
       this.editableProfile.set({ ...this.userProfileService.profile() });
       this.archiveNotice.set({
         kind: 'ok',

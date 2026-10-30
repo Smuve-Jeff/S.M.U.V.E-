@@ -80,10 +80,72 @@ describe('ArtistProfileRevisionService', () => {
     expect(history).toHaveLength(1);
     expect(history[0].artistId).toBe('artist-1');
     expect(history[0].changes).toEqual(revision?.changes);
+    expect(history[0].sources[0].label).toBe('Profile update');
 
     // Consumed exactly once.
     expect(service.takeChanges()).toBeNull();
     expect(service.history()).toHaveLength(1);
+  });
+
+  it('records the trigger that was marked before the write', () => {
+    service.takeChanges();
+    service.markSource({
+      id: 'profile-editor',
+      label: 'Profile Editor',
+      detail: 'Identity & Vision',
+    });
+    profileSignal.set({
+      ...baseProfile,
+      musicalJourney: {
+        ...(baseProfile as any).musicalJourney,
+        signatureSound: 'new signature',
+      },
+    } as UserProfile);
+
+    const revision = service.takeChanges();
+
+    expect(revision?.sources).toHaveLength(1);
+    expect(revision?.sources?.[0]).toMatchObject({
+      id: 'profile-editor',
+      label: 'Profile Editor',
+      detail: 'Identity & Vision',
+    });
+    expect(service.history()[0].sources[0].detail).toBe('Identity & Vision');
+    expect(profileRevisionLine(revision!)).toContain(
+      'PROFILE REVISION — I re-read the file after: Profile Editor'
+    );
+  });
+
+  it('collapses repeated marks from one commit into a single trigger', () => {
+    service.takeChanges();
+    service.markSource({ id: 'profile-editor', label: 'Profile Editor', detail: 'Catalog Assets' });
+    service.markSource({ id: 'profile-editor', label: 'Profile Editor', detail: 'Catalog Assets' });
+    profileSignal.set({
+      ...baseProfile,
+      musicalJourney: {
+        ...(baseProfile as any).musicalJourney,
+        signatureSound: 'new signature',
+      },
+    } as UserProfile);
+
+    expect(service.takeChanges()?.sources).toHaveLength(1);
+  });
+
+  it('drops a source mark when the write produced no revision', () => {
+    service.takeChanges();
+    service.markSource({ id: 'questionnaire', label: 'Artist Questionnaire' });
+    expect(service.takeChanges()).toBeNull();
+
+    profileSignal.set({
+      ...baseProfile,
+      musicalJourney: {
+        ...(baseProfile as any).musicalJourney,
+        signatureSound: 'unattributed signature',
+      },
+    } as UserProfile);
+
+    const revision = service.takeChanges();
+    expect(revision?.sources?.[0].id).toBe('unknown');
   });
 
   it('keeps history scoped to the artist whose profile changed', () => {

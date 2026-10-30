@@ -4,6 +4,7 @@ import { ArtistQuestionnaireComponent } from './artist-questionnaire.component';
 import { UserProfileService } from '../../services/user-profile.service';
 import { AiService } from '../../services/ai.service';
 import { UplinkService } from '../../services/uplink.service';
+import { ArtistProfileRevisionService } from '../../services/artist-profile-revision.service';
 import { EnhancedArtistQuestionnaireEngine } from '../../services/enhanced-artist-questionnaire-engine';
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 
@@ -32,6 +33,10 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
       providers: [
         { provide: UserProfileService, useValue: { profile: signal(profile) } },
         { provide: AiService, useValue: aiService },
+        {
+          provide: ArtistProfileRevisionService,
+          useValue: { markSource: jest.fn() },
+        },
         {
           provide: UplinkService,
           useValue: {
@@ -249,6 +254,21 @@ describe('ArtistQuestionnaireComponent AI copilot', () => {
     dialog.confirm.mockResolvedValue(true);
     await component.requestClose();
     expect(closed).toHaveBeenCalledTimes(2);
+  });
+
+  it('attributes a successful commit to the questionnaire instead of an anonymous edit', async () => {
+    const revision = TestBed.inject(ArtistProfileRevisionService) as any;
+    const uplink = TestBed.inject(UplinkService) as any;
+    uplink.initiateUplink.mockResolvedValue(true);
+    component.profileDraft.set({ ...profile } as any);
+
+    await component.applyChanges();
+
+    expect(revision.markSource).toHaveBeenCalledWith({
+      id: 'questionnaire',
+      label: 'Artist Questionnaire',
+      detail: 'Committed the completed profile',
+    });
   });
 
   it('closes a committed interview without claiming it is uncommitted', async () => {

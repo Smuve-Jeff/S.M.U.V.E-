@@ -23,6 +23,7 @@ import { animate, style, transition, trigger } from '@angular/animations';
 import type { StrategicSignals } from '../../types/profile.types';
 import { isOfflineAiText } from '../../../ai-manager.contract';
 import { questionnaireReadLine } from '../../services/artist-profile-read';
+import { ArtistProfileRevisionService } from '../../services/artist-profile-revision.service';
 import { SMUVE_PERSONAS } from '../../types/persona.types';
 import {
   EnhancedArtistQuestionnaireEngine,
@@ -76,6 +77,7 @@ export class ArtistQuestionnaireComponent {
   private engine = inject(EnhancedArtistQuestionnaireEngine);
   private artistIntelligence = inject(ArtistIntelligenceService);
   private dialog = inject(InteractionDialogService);
+  private revisionSource = inject(ArtistProfileRevisionService);
 
   private readonly mainContent = viewChild<ElementRef<HTMLElement>>('mainContent');
 
@@ -625,6 +627,13 @@ export class ArtistQuestionnaireComponent {
     try {
       const success = await this.uplinkService.initiateUplink(completedProfile);
       if (success) {
+        // The write succeeded; name this commit as the cause of the revision
+        // S.M.U.V.E. will read next.
+        this.revisionSource.markSource({
+          id: 'questionnaire',
+          label: 'Artist Questionnaire',
+          detail: 'Committed the completed profile',
+        });
         this.committed.set(true);
         this.complete.emit(completedProfile);
       }

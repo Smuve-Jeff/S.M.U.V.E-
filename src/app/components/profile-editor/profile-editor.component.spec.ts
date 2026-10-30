@@ -18,6 +18,7 @@ import { ArtistIdentityService } from '../../services/artist-identity.service';
 import { DatabaseService } from '../../services/database.service';
 import { OnboardingService } from '../../services/onboarding.service';
 import { UplinkService } from '../../services/uplink.service';
+import { ArtistProfileRevisionService } from '../../services/artist-profile-revision.service';
 import { LoggingService } from '../../services/logging.service';
 import { initialProfile, TeamMember, UserProfile } from '../../types/profile.types';
 import { SYNC_READINESS_OPTIONS } from '../../services/enhanced-artist-questionnaire-engine';
@@ -84,6 +85,7 @@ describe('ProfileEditorComponent', () => {
     updateProfile: jest.Mock;
   };
   let uplink: { initiateUplink: jest.Mock; status: jest.Mock };
+  let revisionSource: { markSource: jest.Mock };
   let identity: {
     buildIdentitySnapshot: jest.Mock;
     getConnectorMatrix: jest.Mock;
@@ -149,6 +151,7 @@ describe('ProfileEditorComponent', () => {
         { provide: DatabaseService, useValue: database },
         { provide: OnboardingService, useValue: { shouldShow: () => false } },
         { provide: UplinkService, useValue: uplink },
+        { provide: ArtistProfileRevisionService, useValue: revisionSource },
         {
           provide: LoggingService,
           useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
@@ -227,6 +230,7 @@ describe('ProfileEditorComponent', () => {
       initiateUplink: jest.fn(async () => true),
       status: jest.fn(() => ({ stage: 'idle', message: '', logs: [] })),
     };
+    revisionSource = { markSource: jest.fn() };
     identity = {
       buildIdentitySnapshot: jest.fn(() => identitySnapshot()),
       getConnectorMatrix: jest.fn(() => connectors),
@@ -750,6 +754,11 @@ describe('ProfileEditorComponent', () => {
       );
       expect(component.saveStatus()).toBe('saved');
       expect(text()).toContain('LAST_COMMIT: SAVED');
+      expect(revisionSource.markSource).toHaveBeenCalledWith({
+        id: 'profile-editor',
+        label: 'Profile Editor',
+        detail: 'Identity & Vision',
+      });
     });
 
     it('locks the commit control while the uplink runs and ignores a second commit', async () => {
@@ -796,6 +805,8 @@ describe('ProfileEditorComponent', () => {
       expect(component.saveStatus()).toBe('failed');
       expect(text()).toContain('LAST_COMMIT: FAILED');
       expect(text()).toContain('GENRE_UNDEFINED');
+      // A rejected write must not be blamed for a later revision.
+      expect(revisionSource.markSource).not.toHaveBeenCalled();
     });
   });
 

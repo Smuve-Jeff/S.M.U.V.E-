@@ -412,6 +412,20 @@
             >
               {{ revision.changes.length }} change{{ revision.changes.length === 1 ? '' : 's' }}
             </span>
+            <span
+              *ngFor="let source of revision.sources"
+              class="px-2 py-0.5 rounded border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-slate-300"
+              [title]="source.detail || source.label"
+            >
+              {{ source.label }}<ng-container *ngIf="source.detail"> · {{ source.detail }}</ng-container>
+            </span>
+            <span
+              *ngIf="!revision.sources.length"
+              class="px-2 py-0.5 rounded border border-white/10 bg-white/5 text-[8px] font-black uppercase tracking-widest text-slate-500"
+              title="This revision predates source tracking"
+            >
+              Source not recorded
+            </span>
           </div>
           <ul class="mt-3 grid gap-1.5">
             <li
