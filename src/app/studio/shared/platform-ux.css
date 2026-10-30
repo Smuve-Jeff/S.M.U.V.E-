@@ -258,3 +258,71 @@
     inset 0 1px 0 var(--glass-v42-sheen, rgba(255, 255, 255, 0.06)),
     var(--daw-elev-sheet, 0 -14px 40px rgba(0, 0, 0, 0.5));
 }
+
+/* Phone touch floor, Studio view by view: the controls below were authored
+   shorter than 44px. Containers, labels, badges and status pips are
+   deliberately absent — stretching those changes layout instead of tap
+   accuracy. :where() keeps specificity at zero, so a component can still
+   override any entry here. */
+@media (pointer: coarse) {
+  :where(
+  /* arrangement */
+  .av-new-pattern-btn, .play-mode-pill, .play-mode-toggle, .tab-btn, .tool-btn,
+  /* recorder */
+  .arv-banner-action,
+  /* bezier */
+  .bezier-preset-btn,
+  /* channel rack */
+  .channel-ctrl-btn, .channel-pattern-action, .lfo-target-btn,
+  /* dj deck */
+  .automix-button, .btn-chrome, .cue-button, .filter-switch, .fx-depth, .load-button, .loop-chip, .master-drive, .master-sync-button, .tap-button, .transport-button, .vknob,
+  /* drum machine */
+  .dm-ai-chip, .dm-context-btn, .dm-groove-chip, .dm-macro, .dm-sample-action, .dm-take-chip-load,
+  /* effects rack */
+  .effects-rack-slot-action, .er-header-chip, .er-params-btn, .er-slot-remove, .er-slot-toggle,
+  /* export */
+  .export-preset-save,
+  /* hardware */
+  .hw-link,
+  /* inspector */
+  .insp-icon-btn,
+  /* mixer */
+  .mix-ai-chip, .mix-icon-btn,
+  /* performance mode */
+  .pad-ctx-btn, .perf-learn-btn, .perf-velo-zone,
+  /* performer */
+  .macro-scope-chip, .oct-btn, .rack-toggle, .rec-util-btn,
+  /* piano roll */
+  .pr-ai-chip, .pr-auto-param, .pr-bezier-btn, .pr-cc-toggle-btn, .pr-detect-btn, .pr-expand-btn, .pr-inspector-pill, .pr-inspector-toggle, .pr-ks-select, .pr-scale-chip, .pr-snap-btn, .pr-tempo-chip, .pr-tempo-preset, .pr-tool, .pr-tool-sm, .pr-track-pill,
+  /* plugin store */
+  .ps-import-btn,
+  /* quick session */
+  .qs-add-chip, .qs-follow-toggle,
+  /* recording */
+  .rec-action, .rec-limiter-toggle,
+  /* sample library */
+  .sl-icon-btn,
+  /* sampler */
+  .sampler-select, .sampler-stretch-btn, .sampler-toggle,
+  /* session view */
+  .sv-btn, .sv-quantize-btn,
+  /* ai assistant */
+  .ai-action-btn, .ai-close, .ai-mic, .ai-mode-chip, .ai-suggest-chip, .ai-voice-btn,
+  /* search overlay */
+  .clear-btn,
+  /* smart creation */
+  .sc-drag-handle, .sc-recent-chip,
+  /* sound browser */
+  .sb-ai-btn, .sb-fav-btn, .sb-filter-chip, .sb-pack-chip-install, .sb-pack-filter-btn, .sb-recent-chip, .sb-similar-close,
+  /* shell */
+  .comp-mobile-start-toggle, .comp-rec-comp-btn, .comp-rec-punch-btn, .comp-rec-take-action, .comp-rec-toggle, .comp-tool-more, .comp-voice-chip, .comp-footer-chip,
+  /* synthesizer */
+  .synth-mode-toggle,
+  /* take lane */
+  .comp-btn, .take-chip-del, .tl-btn,
+  /* transport */
+  .ctb-dropdown-action, .ctb-dropdown-close, .ctb-mode-pill, .ctb-output-pill, .ctb-playmode, .ctb-test-sound, .ctb-toggle
+  ) {
+    min-height: 44px;
+  }
+}
