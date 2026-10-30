@@ -33,6 +33,8 @@ describe('CinemaDirectorService', () => {
     existingMarkers: [{ label: 'Hook', time: 4, kind: 'section' as const }],
   };
 
+  beforeEach(() => localStorage.clear());
+
   it('includes existing coverage and markers in the AI prompt', () => {
     const service = createService();
 
@@ -51,6 +53,53 @@ describe('CinemaDirectorService', () => {
     expect(plan.origin).toBe('local');
     expect(plan.shots.length).toBeGreaterThan(0);
     expect(service.isPlanning()).toBe(false);
+  });
+
+  it('opens the next session on the plan the last one cut', async () => {
+    const first = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        editorial: ['Open on the dashboard.'],
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'establishing', bars: 4 }],
+      })
+    );
+    await first.generateShotPlan(request);
+
+    TestBed.resetTestingModule();
+    const second = createService();
+
+    expect(second.plan()?.title).toBe('Night Drive');
+    expect(second.plan()?.editorial).toEqual(['Open on the dashboard.']);
+    expect(second.brief()).toBe('A night-drive performance cut');
+    expect(second.plannerNote()).toContain('restored');
+  });
+
+  it('forgets the stored plan when the shot list is cleared', async () => {
+    const first = createService(
+      JSON.stringify({
+        title: 'Night Drive',
+        logline: 'A headlight-lit performance cut.',
+        shots: [{ title: 'Dashboard', description: 'Wide', size: 'wide', bars: 4 }],
+      })
+    );
+    await first.generateShotPlan(request);
+    first.clearPlan();
+
+    TestBed.resetTestingModule();
+    const second = createService();
+
+    expect(second.plan()).toBeNull();
+    expect(localStorage.getItem('smuve_cinema_director_plan')).toBeNull();
+    expect(second.plannerNote()).toContain('stands ready');
+  });
+
+  it('ignores a corrupted stored plan instead of crashing the console', () => {
+    localStorage.setItem('smuve_cinema_director_plan', '{"plan":');
+
+    const service = createService();
+
+    expect(service.plan()).toBeNull();
   });
 
   it('names the provider limit instead of blaming the connection', async () => {

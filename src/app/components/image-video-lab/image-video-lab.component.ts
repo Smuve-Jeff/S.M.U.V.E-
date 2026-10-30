@@ -768,6 +768,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   ];
 
   constructor() {
+    // The director keeps the last plan across reloads, so a plan can be on
+    // screen before anything is clicked. Say where it came from instead of
+    // opening the console on a shot list nobody asked for this session.
+    if (this.director.plan()) {
+      this.aiFeedback.set(this.director.plannerNote().toUpperCase());
+    }
+
     // Track the one layout where the section disclosures apply. `matchMedia`
     // rather than a width read: it fires on exactly the boundary the stylesheet
     // uses, and it survives rotation and keyboard-driven resizes.

@@ -4040,6 +4040,73 @@ describe('ImageVideoLabComponent', () => {
       expect(component.isGenerating()).toBe(false);
     });
 
+    it('opens on a stored plan and says it was restored', async () => {
+      localStorage.setItem(
+        'smuve_cinema_director_plan',
+        JSON.stringify({
+          brief: 'Night drive',
+          plan: {
+            title: 'Night Drive',
+            logline: 'A headlight-lit cut.',
+            editorial: [],
+            origin: 'smuve',
+            shots: [
+              {
+                index: 1,
+                title: 'Dashboard',
+                description: 'Wide',
+                size: 'wide',
+                bars: 4,
+                startTime: 0,
+                durationSeconds: 8,
+                section: 'Feature',
+              },
+            ],
+          },
+        })
+      );
+
+      const { component } = await createComponent();
+
+      expect(component.aiFeedback()).toContain('RESTORED');
+      expect(component.director.plan()?.title).toBe('Night Drive');
+      localStorage.clear();
+    });
+
+    it('clears a restored plan out of storage, not just off the screen', async () => {
+      localStorage.setItem(
+        'smuve_cinema_director_plan',
+        JSON.stringify({
+          brief: 'Night drive',
+          plan: {
+            title: 'Night Drive',
+            logline: 'A headlight-lit cut.',
+            editorial: [],
+            origin: 'local',
+            shots: [
+              {
+                index: 1,
+                title: 'Dashboard',
+                description: 'Wide',
+                size: 'wide',
+                bars: 4,
+                startTime: 0,
+                durationSeconds: 8,
+                section: 'Feature',
+              },
+            ],
+          },
+        })
+      );
+      const { component } = await createComponent();
+
+      component.clearShotPlan();
+
+      expect(component.director.plan()).toBeNull();
+      expect(localStorage.getItem('smuve_cinema_director_plan')).toBeNull();
+      expect(component.aiFeedback()).toContain('CLEARED');
+    });
+
     it('keeps the prompt a failed synthesize sent so it can be reshoot', async () => {
       const { component } = await createComponent();
       const ai = aiMock();

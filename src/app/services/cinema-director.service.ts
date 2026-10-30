@@ -163,6 +163,13 @@ const PLAN_SCHEMA_HINT =
 
 const MAX_PLAN_SHOTS = 60;
 
+/**
+ * Where the current plan lives between sessions. The lab held the plan only in
+ * this service's signal, so a reload — or a trip to another surface and back —
+ * silently threw away a shot list the artist had just been given.
+ */
+const PLAN_STORAGE_KEY = 'smuve_cinema_director_plan';
+
 @Injectable({ providedIn: 'root' })
 export class CinemaDirectorService {
   private logger = inject(LoggingService);
@@ -175,6 +182,17 @@ export class CinemaDirectorService {
   plannerNote = signal(
     'S.M.U.V.E stands ready. Describe the piece and it will cut a shot list.'
   );
+
+  constructor() {
+    const stored = this.readStoredPlan();
+    if (stored) {
+      this.plan.set(stored.plan);
+      this.brief.set(stored.brief);
+      this.plannerNote.set(
+        `Shot list restored from your last session — "${stored.plan.logline}"`
+      );
+    }
+  }
 
   readonly shotCount = computed(() => this.plan()?.shots.length ?? 0);
   readonly plannedRuntime = computed(() => {
@@ -204,6 +222,7 @@ export class CinemaDirectorService {
       const parsed = this.parsePlanResponse(response, request);
       if (parsed) {
         this.plan.set(parsed);
+        this.storePlan(parsed, brief);
         this.plannerNote.set(
           `S.M.U.V.E staged ${parsed.shots.length} shots — "${parsed.logline}"`
         );
@@ -212,10 +231,73 @@ export class CinemaDirectorService {
 
       const local = this.buildLocalPlan(brief, request);
       this.plan.set(local);
+      this.storePlan(local, brief);
       this.plannerNote.set(this.localPlanNote(response));
       return local;
     } finally {
       this.isPlanning.set(false);
+    }
+  }
+
+  /**
+   * Keep the plan and the brief it came from, so the next session opens on the
+   * shot list instead of a blank console. A blocked or full storage leaves the
+   * plan in memory, which still works for this session.
+   */
+  private storePlan(plan: ShotPlan, brief: string): void {
+    try {
+      localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify({ brief, plan }));
+    } catch {
+      this.logger.warn('Cinema director: could not persist the shot plan');
+    }
+  }
+
+  private forgetStoredPlan(): void {
+    try {
+      localStorage.removeItem(PLAN_STORAGE_KEY);
+    } catch {
+      this.logger.warn('Cinema director: could not clear the stored shot plan');
+    }
+  }
+
+  /**
+   * Read the last plan back, rejecting anything that is not a shot list the
+   * console can render — a stale or hand-edited entry must not reach the UI.
+   */
+  private readStoredPlan(): { plan: ShotPlan; brief: string } | null {
+    try {
+      const raw = localStorage.getItem(PLAN_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { brief?: unknown; plan?: Partial<ShotPlan> };
+      const plan = parsed?.plan;
+      if (!plan || typeof plan.title !== 'string' || typeof plan.logline !== 'string') {
+        return null;
+      }
+      const shots = Array.isArray(plan.shots)
+        ? plan.shots.filter(
+            (shot) =>
+              !!shot &&
+              typeof shot.title === 'string' &&
+              typeof shot.description === 'string' &&
+              typeof shot.startTime === 'number' &&
+              typeof shot.durationSeconds === 'number'
+          )
+        : [];
+      if (shots.length === 0) return null;
+      return {
+        brief: typeof parsed.brief === 'string' ? parsed.brief : '',
+        plan: {
+          title: plan.title,
+          logline: plan.logline,
+          editorial: Array.isArray(plan.editorial)
+            ? plan.editorial.filter((line): line is string => typeof line === 'string')
+            : [],
+          origin: plan.origin === 'smuve' ? 'smuve' : 'local',
+          shots,
+        },
+      };
+    } catch {
+      return null;
     }
   }
 
@@ -241,6 +323,7 @@ export class CinemaDirectorService {
 
   clearPlan(): void {
     this.plan.set(null);
+    this.forgetStoredPlan();
     this.plannerNote.set(
       'Shot list cleared. Describe the piece and S.M.U.V.E will cut a new one.'
     );

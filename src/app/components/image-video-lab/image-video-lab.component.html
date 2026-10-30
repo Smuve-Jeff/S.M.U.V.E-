@@ -1165,6 +1165,19 @@
             >
               STAGE ON TIMELINE
             </button>
+            <!--
+              The plan now outlives the tab, so there has to be a way to throw
+              it away: `clearShotPlan` existed on the component with nothing in
+              the console calling it, which left a restored plan permanent.
+            -->
+            <button
+              type="button"
+              class="director-button"
+              [disabled]="!director.plan()"
+              (click)="clearShotPlan()"
+            >
+              CLEAR SHOT LIST
+            </button>
           </div>
           @if (director.plan(); as plan) {
             <div class="director-plan-card">
