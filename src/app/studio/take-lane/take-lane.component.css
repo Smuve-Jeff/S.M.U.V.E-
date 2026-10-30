@@ -188,9 +188,9 @@
 @media (max-width: 768px) {
   .take-lane { padding: 8px; gap: 6px; }
   .take-lane-head { flex-wrap: wrap; }
-  .tl-btn { width: 40px; height: 40px; }
+  .tl-btn { width: 40px; height: 40px; min-height: 44px; }
   .take-chip { min-height: 44px; gap: 6px; }
-  .take-chip-del { width: 36px; height: 36px; }
+  .take-chip-del { width: 36px; height: 36px; min-height: 40px; }
   .comp-strip { flex-wrap: wrap; }
   .comp-btn { min-height: 40px; }
   .section-strip-head { align-items: flex-start; }

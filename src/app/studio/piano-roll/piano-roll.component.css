@@ -1297,7 +1297,7 @@
      block below turns it into a full-width, scrollable strip under the grid. */
   .pr-tool {
     width: 36px;
-    height: 36px;
+    height: 36px; min-height: 40px;
   }
 
   /* Enhanced touch targets for mobile piano roll */

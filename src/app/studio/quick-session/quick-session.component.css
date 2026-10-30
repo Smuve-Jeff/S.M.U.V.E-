@@ -1253,7 +1253,7 @@
 
   .qs-follow-step {
     width: 38px;
-    height: 38px;
+    height: 38px; min-height: 44px;
   }
 
   .qs-scene-new {

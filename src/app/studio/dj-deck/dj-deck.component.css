@@ -2619,7 +2619,7 @@
   }
   .vknob {
     width: 42px;
-    height: 42px;
+    height: 42px; min-height: 44px;
   }
   /* Phones: the mixer row (id + 3 rotaries + fader + VU bridge) is the
      widest fixed-content row in the booth — tighten it so a 360px viewport

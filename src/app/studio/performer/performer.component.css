@@ -1172,7 +1172,7 @@
     min-width: 80px;
   }
   .rec-arm-btn {
-    height: 38px;
+    height: 38px; min-height: 44px;
     padding: 0 14px;
     font-size: 11px;
   }

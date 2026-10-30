@@ -916,7 +916,7 @@
   /* Touch: comfortable targets for the slot row and the effect picker. */
   .er-slot-remove {
     width: 34px;
-    height: 34px;
+    height: 34px; min-height: 40px;
   }
   .er-add-menu-item {
     min-height: 44px;
