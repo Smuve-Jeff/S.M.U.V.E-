@@ -725,4 +725,35 @@ describe("ArrangementViewComponent", () => {
     duplicate.mockRestore();
   });
 
+
+  it("offers copy and paste from the clip actions sheet", () => {
+    mockMusicManager.hasClipClipboard.mockReturnValue(false);
+    component.selectedClipIds.set(new Set(["c1"]));
+    component.openClipActions();
+    fixture.detectChanges();
+
+    const host: HTMLElement = fixture.nativeElement;
+    expect(
+      host.querySelector('button[aria-label="Copy selected clips"]'),
+    ).toBeTruthy();
+    const paste = host.querySelector(
+      'button[aria-label="Paste clips at the playhead"]',
+    ) as HTMLButtonElement | null;
+    expect(paste).toBeTruthy();
+    // Nothing copied yet, so Paste must be visibly unavailable.
+    expect(paste?.disabled).toBe(true);
+  });
+
+  it("enables Paste on the sheet once a clipboard exists", () => {
+    mockMusicManager.hasClipClipboard.mockReturnValue(true);
+    component.selectedClipIds.set(new Set(["c1"]));
+    component.openClipActions();
+    fixture.detectChanges();
+
+    const paste = (fixture.nativeElement as HTMLElement).querySelector(
+      'button[aria-label="Paste clips at the playhead"]',
+    ) as HTMLButtonElement | null;
+    expect(paste?.disabled).toBe(false);
+  });
+
 });

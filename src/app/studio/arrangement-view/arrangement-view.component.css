@@ -1752,3 +1752,10 @@
     transform: translateY(-50%);
   }
 }
+
+/* Paste is dimmed until something has been copied. Without this the button
+   reads as merely inactive rather than as waiting on a copy. */
+.arrangement-sheet-grid .studio-secondary-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

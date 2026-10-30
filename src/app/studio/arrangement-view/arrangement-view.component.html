@@ -595,6 +595,28 @@
         <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
         Duplicate
       </button>
+      <!-- Clipboard entries: the sheet is the only way to reach copy/paste on a
+           touch screen, where there is no Ctrl+C. Paste closes like Copy does —
+           the result lands visibly on the grid. -->
+      <button
+        type="button"
+        class="studio-secondary-button"
+        aria-label="Copy selected clips"
+        (click)="copyClips(); closeClipActions()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">file_copy</span>
+        Copy
+      </button>
+      <button
+        type="button"
+        class="studio-secondary-button"
+        aria-label="Paste clips at the playhead"
+        [disabled]="!canPasteClips()"
+        (click)="pasteClips(); closeClipActions()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">content_paste</span>
+        Paste
+      </button>
       <!-- Trim stays open so the edge can be nudged repeatedly. -->
       <button type="button" class="studio-secondary-button" (click)="trimSelected('start', -0.25)">
         <span class="material-symbols-outlined" aria-hidden="true">first_page</span>
