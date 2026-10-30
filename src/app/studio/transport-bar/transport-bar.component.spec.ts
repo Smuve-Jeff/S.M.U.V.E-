@@ -33,6 +33,9 @@ describe("TransportBarComponent", () => {
     toggleRecord: jest.fn(),
     stop: jest.fn(),
     updateMasterVolume: jest.fn(),
+    recordDestinations: signal([] as { trackId: string; trackName: string }[]),
+    recordTargetLabel: signal("No record target — arm a track"),
+    recordTargetDetail: signal("Arm a track in the mixer"),
   };
 
   const mockAudioEngine = {
@@ -81,6 +84,9 @@ describe("TransportBarComponent", () => {
     masterLevelLinear: signal(0),
     masterPeakHoldLinear: signal(0),
     recordingLabel: signal(""),
+    recordingDetail: signal(""),
+    recordingCount: signal(0),
+    recordDestinations: signal([] as { trackId: string; trackName: string }[]),
   };
 
   const mockIdeas = {
@@ -173,11 +179,58 @@ describe("TransportBarComponent", () => {
     playbackState.set("stopped");
     mockAudioEngine.tempo.set(120);
     mockAudioEngine.visualStep.set(0);
+    mockRecordingStatus.recordingLabel.set("");
+    mockRecordingStatus.recordingDetail.set("");
+    mockRecordingStatus.recordingCount.set(0);
+    mockAudioSession.recordDestinations.set([]);
     jest.clearAllMocks();
 
     fixture = TestBed.createComponent(TransportBarComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  it("shows the exact target and input behind the REC chip", () => {
+    mockRecordingStatus.recordingLabel.set("Rec: Drum Machine");
+    mockRecordingStatus.recordingDetail.set(
+      "Target: New arrangement track · Studio master output",
+    );
+    mockRecordingStatus.recordingCount.set(2);
+    fixture.detectChanges();
+
+    const chip = fixture.nativeElement.querySelector(
+      ".ctb-rec-source",
+    ) as HTMLElement;
+    expect(chip.textContent).toContain("Rec: Drum Machine");
+    expect(chip.textContent).toContain(
+      "Target: New arrangement track · Studio master output",
+    );
+    expect(chip.getAttribute("title")).toContain("Studio master output");
+    expect(chip.querySelector(".ctb-rec-count")?.textContent).toContain("2");
+  });
+
+  it("names the record destination before REC is pressed", () => {
+    mockAudioSession.recordTargetLabel.set("Rec target: Bass");
+    mockAudioSession.recordTargetDetail.set(
+      "Armed in the mixer · Microphone input",
+    );
+    fixture.detectChanges();
+
+    const target = fixture.nativeElement.querySelector(
+      ".ctb-rec-target",
+    ) as HTMLElement;
+    expect(target.textContent).toContain("Rec target: Bass");
+    expect(target.getAttribute("title")).toContain("Armed in the mixer");
+  });
+
+  it("arms punch-in on the record destinations, not just the selection", () => {
+    mockAudioSession.recordDestinations.set([
+      { trackId: "track-2", trackName: "Bass" },
+    ]);
+
+    component.togglePunchIn();
+
+    expect(mockTakeManager.setPunchIn).toHaveBeenCalledWith("track-2", true);
   });
 
   it("maps a game controller onto transport and scenes", () => {
@@ -419,6 +472,7 @@ describe("TransportBarComponent", () => {
     const original = {
       selectedTrack: mockMusicManager.selectedTrack,
       selectedTrackId: mockMusicManager.selectedTrackId,
+      tracks: mockMusicManager.tracks,
       isPunchIn: mockTakeManager.isPunchIn,
       getTakes: mockTakeManager.getTakes,
     };
@@ -426,6 +480,10 @@ describe("TransportBarComponent", () => {
     beforeEach(() => {
       mockMusicManager.selectedTrack = () => track as any;
       mockMusicManager.selectedTrackId = () => track.id;
+      mockMusicManager.tracks = () => [track] as any;
+      mockAudioSession.recordDestinations.set([
+        { trackId: track.id, trackName: track.name },
+      ]);
       mockTakeManager.isPunchIn = () => signal(true);
       mockTakeManager.getTakes = () => signal([] as unknown[]);
     });
@@ -433,6 +491,7 @@ describe("TransportBarComponent", () => {
     afterEach(() => {
       mockMusicManager.selectedTrack = original.selectedTrack;
       mockMusicManager.selectedTrackId = original.selectedTrackId;
+      mockMusicManager.tracks = original.tracks;
       mockTakeManager.isPunchIn = original.isPunchIn;
       mockTakeManager.getTakes = original.getTakes;
     });
@@ -467,6 +526,33 @@ describe("TransportBarComponent", () => {
       playbackState.set("stopped");
       tick();
       expect(mockTakeManager.stampTake).toHaveBeenCalledTimes(2);
+    });
+
+    it("stamps every armed destination track, not only the selected one", () => {
+      const bass = { id: "track-2", name: "Bass", notes: [] };
+      mockMusicManager.tracks = () => [track, bass] as any;
+      mockAudioSession.recordDestinations.set([
+        { trackId: "track-1", trackName: "Lead" },
+        { trackId: "track-2", trackName: "Bass" },
+      ]);
+
+      playbackState.set("recording");
+      tick();
+      playbackState.set("stopped");
+      tick();
+
+      expect(mockTakeManager.stampTake).toHaveBeenCalledWith(
+        "track-1",
+        "Take 1",
+        track.notes,
+        expect.any(Number),
+      );
+      expect(mockTakeManager.stampTake).toHaveBeenCalledWith(
+        "track-2",
+        "Take 1",
+        [],
+        expect.any(Number),
+      );
     });
 
     it("does not stamp when punch-in was not armed for the pass", () => {

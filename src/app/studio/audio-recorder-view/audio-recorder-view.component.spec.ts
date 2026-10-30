@@ -10,6 +10,7 @@ import { AudioEngineLatencyService } from "../../services/audio-engine-latency.s
 import { MusicManagerService } from "../../services/music-manager.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { SmartRecordingService } from "../smart-recording.service";
+import { RecordingStatusService } from "../recording-status.service";
 
 describe("AudioRecorderViewComponent", () => {
   let component: AudioRecorderViewComponent;
@@ -61,6 +62,11 @@ describe("AudioRecorderViewComponent", () => {
     importAudio: jest.fn(),
   };
 
+  const mockRecordingStatus = {
+    beginRecording: jest.fn(),
+    endRecording: jest.fn(),
+  };
+
   const rec = (over: Partial<Record<string, unknown>> = {}) => ({
     id: "rec_1",
     name: "Take One",
@@ -89,6 +95,7 @@ describe("AudioRecorderViewComponent", () => {
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: InteractionDialogService, useValue: mockDialog },
         { provide: SmartRecordingService, useValue: mockSmartRecording },
+        { provide: RecordingStatusService, useValue: mockRecordingStatus },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
@@ -181,6 +188,9 @@ describe("AudioRecorderViewComponent", () => {
     });
     expect(component.recordings()[0].durationSec).toBe(12);
     expect(component.recordings()[0].name).toBe("Recorded chorus");
+    expect(mockRecordingStatus.endRecording).toHaveBeenCalledWith(
+      "audio-recorder",
+    );
   });
 
   it("feeds the banked take into the active comp group", () => {
@@ -455,6 +465,14 @@ describe("AudioRecorderViewComponent", () => {
     await component.toggleRecord();
     expect(getUserMedia).toHaveBeenCalled();
     expect(mockRecorder.startRecording).toHaveBeenCalled();
+    expect(mockRecordingStatus.beginRecording).toHaveBeenCalledWith(
+      "audio-recorder",
+      expect.objectContaining({
+        type: "audio-recorder",
+        inputLabel: "Default microphone",
+        takeNumber: expect.any(Number),
+      }),
+    );
     expect(mockSnackbar.success).toHaveBeenCalledWith(
       "Recording armed — capture live input",
     );

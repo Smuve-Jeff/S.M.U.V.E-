@@ -533,6 +533,13 @@
   color: white;
   border-color: var(--record);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+}
+/* Armed is a decision, receiving is a fact: only the strip whose take is being
+   written blinks, so the console does not look like everything is recording. */
+.mix-msr-btn.rec-capture {
+  box-shadow:
+    0 0 0 2px var(--record),
+    0 0 10px var(--record);
   animation: mix-rec-pulse 1s ease-in-out infinite;
 }
 @keyframes mix-rec-pulse {

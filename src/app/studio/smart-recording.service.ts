@@ -242,10 +242,11 @@ export class SmartRecordingService {
     if (inBar !== null && bar >= inBar && !this.isPunching()) {
       // Enter punch region — start actual recording
       this.isPunching.set(true);
-      this.recordingStatus.setRecordingSource({
+      this.recordingStatus.beginRecording("smart-recording", {
         type: "transport",
         trackId: "punch",
         trackName: `Punch (bar ${inBar})`,
+        inputLabel: "Smart punch-in",
       });
       // Initialize recording engine if needed and start capture
       const initialized = this.recordingEngine.isInitialized();
@@ -265,7 +266,7 @@ export class SmartRecordingService {
       this.punchArmed.set(false);
       await this.recordingEngine.stopRecording();
       this.audioEngine.isRecording.set(false);
-      this.recordingStatus.clearRecordingSource();
+      this.recordingStatus.endRecording("smart-recording");
       this.logger.info(
         `SmartRecording: Punch OUT at bar ${bar} — recording saved`,
       );
@@ -344,10 +345,11 @@ export class SmartRecordingService {
     // The take is stamped with the span it covers, so comp segments and the
     // suggester's coverage scoring work off real bars.
     this.compTakeStartBar = Math.max(1, this.lastObservedBar ?? 1);
-    this.recordingStatus.setRecordingSource({
+    this.recordingStatus.beginRecording("smart-recording", {
       type: "transport",
       trackId: "comp",
       trackName: `Take ${this.currentTakeNumber()}`,
+      inputLabel: "Comp take",
     });
     return true;
   }
@@ -427,7 +429,7 @@ export class SmartRecordingService {
       if (left.length === 0 || right.length === 0) {
         this.isCompRecording.set(false);
         this.captureError.set("Take discarded — no audio was captured");
-        this.recordingStatus.clearRecordingSource();
+        this.recordingStatus.endRecording("smart-recording");
         this.logger.warn(
           "SmartRecording: comp take discarded — capture produced no audio.",
         );
@@ -490,7 +492,7 @@ export class SmartRecordingService {
 
     this.currentTakeNumber.update((n) => n + 1);
     this.isCompRecording.set(false);
-    this.recordingStatus.clearRecordingSource();
+    this.recordingStatus.endRecording("smart-recording");
 
     // Persist
     try {

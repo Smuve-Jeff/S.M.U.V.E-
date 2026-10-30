@@ -2762,12 +2762,45 @@
           class="comp-rec-src-btn"
           *ngFor="let c of componentRecording.componentConfigs"
           [class.active]="componentRecording.activeSource() === c.componentId"
+          [disabled]="componentRecording.isRecording()"
           (click)="selectComponentRecording(c.componentId)"
         >
           <span class="material-symbols-outlined">{{ c.icon }}</span>
           <span class="comp-rec-src-label">{{ c.label }}</span>
-          <span class="comp-rec-src-badge" *ngIf="c.usesInput">🎤</span>
+          <span class="comp-rec-src-badge">
+            {{ c.sourceBus === 'master' ? 'BUS' : '🎤' }}
+          </span>
         </button>
+      </div>
+
+      <!-- Exact route for the next pass, so REC never names a source the
+           recorder is not actually sampling. -->
+      <div class="comp-rec-route" *ngIf="componentRecording.activeConfig() as cfg">
+        <span class="comp-aimix-section-title">CAPTURE ROUTE</span>
+        <p class="comp-rec-route-main">{{ componentRecording.captureSummary() }}</p>
+        <p class="comp-rec-route-sub" *ngIf="cfg.sourceBus === 'master'">
+          Post-master bus · press Play for sequencer parts
+        </p>
+        <p class="comp-rec-route-sub" *ngIf="cfg.sourceBus === 'input'">
+          Microphone / line input · {{ componentRecording.inputLabel() }}
+        </p>
+      </div>
+
+      <!-- Live pass: component + real route, not a generic "recording". -->
+      <div
+        class="comp-rec-live"
+        *ngIf="componentRecording.isRecording()"
+        role="status"
+        aria-live="polite"
+      >
+        <span class="comp-rec-live-dot" aria-hidden="true"></span>
+        <div class="comp-rec-live-copy">
+          <strong>
+            REC · {{ componentRecording.activeConfig()?.label }} ·
+            {{ componentRecording.formatDuration(componentRecording.recordingDuration()) }}
+          </strong>
+          <small>{{ componentRecording.captureSummary() }}</small>
+        </div>
       </div>
 
       <!-- Recording Controls -->
@@ -2776,6 +2809,7 @@
           type="button"
           class="comp-meta-action-btn"
           [class.recording-active]="componentRecording.isRecording()"
+          [disabled]="!componentRecording.activeSource() && !componentRecording.isRecording()"
           (click)="componentRecording.toggleRecording()"
         >
           <span class="material-symbols-outlined">{{
@@ -2783,10 +2817,21 @@
           }}</span>
           {{
             componentRecording.isRecording()
-              ? 'STOP (' + componentRecording.recordingDuration() + 's)'
+              ? 'STOP · ' + componentRecording.formatDuration(componentRecording.recordingDuration())
               : 'START RECORDING'
           }}
         </button>
+      </div>
+
+      <!-- The finished pass is already an arrangement clip; say so. -->
+      <div class="comp-rec-last" *ngIf="componentRecording.lastTake() as take">
+        <span class="material-symbols-outlined" aria-hidden="true">library_add_check</span>
+        <div>
+          <strong>{{ take.name }}</strong>
+          <small>
+            {{ take.durationSec }}s · arrangement track · ready to edit and mix
+          </small>
+        </div>
       </div>
     </div>
   </aside>

@@ -5,6 +5,7 @@ import { AudioSessionService } from "../audio-session.service";
 import { MicrophoneService } from "../../services/microphone.service";
 import { VocalMasteringService } from "../../services/vocal-mastering.service";
 import { StudioRecordingEngineService } from "../studio-recording-engine.service";
+import { RecordingStatusService } from "../recording-status.service";
 
 describe("MicrophoneInterfaceComponent", () => {
   const createComponent = async () => {
@@ -85,6 +86,11 @@ describe("MicrophoneInterfaceComponent", () => {
       getOutputNode: jest.fn().mockReturnValue({ id: "mastering-output" }),
     };
 
+    const recordingStatusMock = {
+      beginRecording: jest.fn(),
+      endRecording: jest.fn(),
+    };
+
     const recordingEngineMock = {
       isInitialized: signal(false),
       isRecording: signal(false),
@@ -114,6 +120,7 @@ describe("MicrophoneInterfaceComponent", () => {
           provide: StudioRecordingEngineService,
           useValue: recordingEngineMock,
         },
+        { provide: RecordingStatusService, useValue: recordingStatusMock },
       ],
     }).compileComponents();
 
@@ -123,9 +130,11 @@ describe("MicrophoneInterfaceComponent", () => {
 
     return {
       component,
+      fixture,
       audioSessionMock,
       microphoneServiceMock,
       masteringMock,
+      recordingStatusMock,
     };
   };
 
@@ -215,5 +224,30 @@ describe("MicrophoneInterfaceComponent", () => {
     microphoneServiceMock.isRecording.set(true);
     component.toggleRecording();
     expect(microphoneServiceMock.stopRecording).toHaveBeenCalled();
+  });
+
+  it("registers the channel, input and capture path with the Studio REC chip", async () => {
+    const { fixture, microphoneServiceMock, recordingStatusMock } =
+      await createComponent();
+
+    microphoneServiceMock.isRecording.set(true);
+    fixture.detectChanges();
+
+    expect(recordingStatusMock.beginRecording).toHaveBeenCalledWith(
+      "microphone-interface",
+      expect.objectContaining({
+        type: "mic",
+        channelId: "mic-1",
+        channelLabel: "Lead Vox",
+        inputLabel: "Focusrite Scarlett",
+        capturePath: "Raw microphone input",
+      }),
+    );
+
+    microphoneServiceMock.isRecording.set(false);
+    fixture.detectChanges();
+    expect(recordingStatusMock.endRecording).toHaveBeenCalledWith(
+      "microphone-interface",
+    );
   });
 });

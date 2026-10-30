@@ -45,27 +45,58 @@
       [class.ctb-rec-active]="isRecording()"
       (click)="toggleRecord()"
       [attr.aria-label]="
-        (isRecording() ? 'Stop recording' : 'Start recording') + ' (R)'
+        (isRecording() ? 'Stop recording' : 'Start recording') +
+        ' (R) — ' +
+        recordTargetLabel()
       "
       [attr.aria-pressed]="isRecording()"
       [attr.title]="
-        isRecording() ? 'Stop recording — R' : 'Start recording — R'
+        isRecording()
+          ? 'Stop recording — R'
+          : 'Start recording — R · ' + recordTargetLabel()
       "
     >
       <span class="material-symbols-outlined">fiber_manual_record</span>
     </button>
 
+    <!-- Idle readout: name the exact take destination before REC, so arming a
+         mixer strip visibly moves where the next pass lands. -->
+    <span
+      *ngIf="!isRecording() && recordTargetLabel()"
+      class="ctb-rec-target"
+      [attr.title]="recordTargetDetail()"
+      role="status"
+      aria-live="polite"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true"
+        >my_location</span
+      >
+      <span class="ctb-rec-target-text">{{ recordTargetLabel() }}</span>
+    </span>
+
     <span
       *ngIf="recordingLabel()"
       class="ctb-rec-source"
       [attr.aria-live]="'polite'"
+      [attr.title]="recordingDetail() || recordingLabel()"
       role="status"
     >
       <span
         class="ctb-rec-dot"
         aria-hidden="true"
       ></span>
-      {{ recordingLabel() }}
+      <span class="ctb-rec-copy">
+        <span class="ctb-rec-label">{{ recordingLabel() }}</span>
+        <span class="ctb-rec-detail" *ngIf="recordingDetail()"
+          >{{ recordingDetail() }}</span
+        >
+      </span>
+      <span
+        class="ctb-rec-count"
+        *ngIf="recordingCount() > 1"
+        [attr.aria-label]="recordingCount() + ' active recorders'"
+        >{{ recordingCount() }}</span
+      >
     </span>
 
   </div>

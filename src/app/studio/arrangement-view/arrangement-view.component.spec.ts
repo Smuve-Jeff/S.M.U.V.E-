@@ -12,6 +12,7 @@ import { HapticService } from "../../services/haptic.service";
 import { AiService } from "../../services/ai.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
+import { RecordingStatusService } from "../recording-status.service";
 
 describe("ArrangementViewComponent", () => {
   let component: ArrangementViewComponent;
@@ -79,6 +80,13 @@ describe("ArrangementViewComponent", () => {
     show: jest.fn(),
   };
 
+  const receivingTrackIds = signal(new Set<string>());
+  const mockRecordingStatus = {
+    recordingDetail: signal(""),
+    recordDestinations: signal([] as { trackId: string; trackName: string }[]),
+    isTrackReceivingTake: (id: string) => receivingTrackIds().has(id),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     mockMusicManager.tracks.set([
@@ -89,6 +97,7 @@ describe("ArrangementViewComponent", () => {
       imports: [ArrangementViewComponent, CommonModule, FormsModule],
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
+        { provide: RecordingStatusService, useValue: mockRecordingStatus },
         {
           provide: MusicManagerService,
           useValue: { ...mockMusicManager, engine: { tempo: signal(124) } },
@@ -116,6 +125,29 @@ describe("ArrangementViewComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it("marks the track header whose take is actually being written", () => {
+    receivingTrackIds.set(new Set(["1"]));
+    mockAudioSession.isRecording.set(true);
+    mockRecordingStatus.recordingDetail.set("Track: Lead · Microphone input");
+    fixture.detectChanges();
+
+    const header = fixture.nativeElement.querySelector(
+      ".track-header",
+    ) as HTMLElement;
+    expect(header.classList).toContain("rec-capture");
+    expect(header.querySelector(".track-rec-badge")?.textContent).toContain(
+      "REC",
+    );
+    expect(
+      fixture.nativeElement.querySelector(".module-transport-target")
+        ?.textContent,
+    ).toContain("Track: Lead");
+
+    receivingTrackIds.set(new Set());
+    mockAudioSession.isRecording.set(false);
+    mockRecordingStatus.recordingDetail.set("");
   });
 
   it("does not pan the render camera by the scroll offset (native scroll owns the pan)", () => {

@@ -68,6 +68,8 @@ describe("MixerComponent", () => {
     confirm: jest.fn().mockResolvedValue(true),
   };
 
+  const receivingTrackIds = signal(new Set<string>());
+
   const recordingStatusMock = {
     armedTrackIds: signal(new Set<string>()),
     armTrack: jest.fn(),
@@ -76,7 +78,12 @@ describe("MixerComponent", () => {
     isTrackArmed: jest.fn((id: string) =>
       (recordingStatusMock.armedTrackIds() as Set<string>).has(id),
     ),
+    isTrackReceivingTake: jest.fn((id: string) =>
+      (receivingTrackIds() as Set<string>).has(id),
+    ),
     setRecordingSource: jest.fn(),
+    beginRecording: jest.fn(),
+    endRecording: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -289,6 +296,24 @@ describe("MixerComponent", () => {
 
     component.toggleArmTrack("1");
     expect(recordingStatusMock.disarmTrack).toHaveBeenCalledWith("1");
+  });
+
+  it("separates an armed strip from the strip actually receiving the take", () => {
+    recordingStatusMock.armedTrackIds.set(new Set(["1"]));
+    receivingTrackIds.set(new Set(["1"]));
+    fixture.detectChanges();
+
+    expect(component.isArmed("1")).toBe(true);
+    expect(component.isReceivingTake("1")).toBe(true);
+    expect(component.isReceivingTake("2")).toBe(false);
+
+    // Arming a second track mid-pass applies to the NEXT pass: it must not
+    // register a live capture for a take that already started.
+    mockAudioSession.isRecording.set(true);
+    component.toggleArmTrack("2");
+    expect(recordingStatusMock.armTrack).toHaveBeenCalledWith("2");
+    expect(recordingStatusMock.beginRecording).not.toHaveBeenCalled();
+    mockAudioSession.isRecording.set(false);
   });
 
   it("wires the sidechain chip into the engine routing (not just UI)", () => {

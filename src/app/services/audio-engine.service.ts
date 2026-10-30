@@ -651,6 +651,10 @@ export class AudioEngineService {
   );
   public currentBeat = signal(0);
   public visualStep = signal(0);
+  /** Audio-clock time the current `visualStep` begins on (see transportStepAt). */
+  private visualStepTime = 0;
+  /** Duration of the step `visualStep` represents, in seconds. */
+  private visualStepDuration = 0;
   private nextNoteTime = 0;
   private schedulerHandle: any = null;
   private currentStep = 0;
@@ -1140,6 +1144,11 @@ export class AudioEngineService {
     // Sprint A4 — fresh start resets the song-ended latching signal.
     this.songEnded.set(false);
     this.nextNoteTime = this.ctx.currentTime + 0.05;
+    // Anchor the fractional transport clock to the first scheduled step. A
+    // capture that starts before it reads as negative pre-roll.
+    this.visualStepDuration =
+      60 / this.tempoAtStep(this.currentStep) / this.stepsPerBeat();
+    this.visualStepTime = this.nextNoteTime;
 
     if (this.workletNode) {
       this.workletNode.port.postMessage({
@@ -1173,6 +1182,8 @@ export class AudioEngineService {
     this.currentStep = 0;
     this.currentBeat.set(0);
     this.visualStep.set(0);
+    this.visualStepTime = 0;
+    this.visualStepDuration = 0;
     // Voices are scheduled ahead of the clock, so a stop that only halts the
     // scheduler leaves the last bar ringing — a held pad kept sounding after
     // Stop and a quick restart overlapped it. Release them click-free.
@@ -1301,6 +1312,8 @@ export class AudioEngineService {
       () => {
         if (!this.isPlaying() || generation !== this.transportGeneration) return;
         this.visualStep.set(loopedStep);
+        this.visualStepTime = time;
+        this.visualStepDuration = stepDuration;
         this.currentBeat.set(loopedStep / this.stepsPerBeat());
       },
       Math.max(0, visualDelay)
@@ -1385,6 +1398,52 @@ export class AudioEngineService {
 
   stepsPerBeat() {
     return 4;
+  }
+
+  /**
+   * Fractional transport position, in 16th steps, at an AudioContext time.
+   *
+   * Recording alignment cannot use `visualStep` alone: it only changes once
+   * per step and the playhead reaches a step on the audio clock, not when a
+   * UI timer runs. This walks from the last step the visual playhead stands
+   * for, using that step's real start time and duration, then maps the result
+   * through the same loop/song/pattern transform the scheduler uses.
+   *
+   * A negative result is pre-roll before the transport's first scheduled step
+   * — the shape a capture sees when it starts during the start lookahead.
+   */
+  transportStepAt(contextTime: number = this.ctx.currentTime): number {
+    // Count-in does not advance the visual playhead yet; an armed pass starts
+    // at the playhead it shows, not a whole count-in later.
+    if (!this.isPlaying() || this.isCountIn()) return this.visualStep();
+    const stepDuration =
+      this.visualStepDuration > 0
+        ? this.visualStepDuration
+        : 60 / this.tempoAtStep(this.currentStep) / this.stepsPerBeat();
+    const position =
+      this.visualStep() + (contextTime - this.visualStepTime) / stepDuration;
+    return this.mapTransportPosition(position);
+  }
+
+  /** Map a fractional raw song position to the displayed step (see handleTick). */
+  private mapTransportPosition(position: number): number {
+    if (position < 0) return position;
+    const loopStart = this.playbackLoopStart();
+    const loopEnd = this.playbackLoopEnd();
+    const hasRegion =
+      loopStart !== null && loopEnd !== null && loopEnd > loopStart;
+    if (this.playbackLoopEnabled()) {
+      const start = hasRegion ? loopStart! : 0;
+      const end = hasRegion
+        ? loopEnd!
+        : this.playMode() === 'song'
+          ? this.songLengthSteps()
+          : this.loopLengthSteps();
+      return start + (position % Math.max(1, end - start));
+    }
+    if (this.playMode() === 'song') return position;
+    const length = Math.max(1, this.loopLengthSteps());
+    return ((position % length) + length) % length;
   }
 
   private createDeck(id: DeckId): DeckChannel {

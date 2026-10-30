@@ -26,6 +26,7 @@ import { AutomationService } from '../studio/automation.service';
 import { OfflineBounceService } from '../studio/offline-bounce.service';
 import { AudioImportService } from '../studio/audio-import.service';
 import { buildFrozenTrack, restoreFrozenTrack } from '../studio/track-freeze.util';
+import { takePlacementFor } from '../studio/recorded-take-placement.util';
 import {
   Project,
   StudioTrack,
@@ -2808,6 +2809,146 @@ export class MusicManagerService {
       await this.recordingEngine.stopRecording();
     }
     return null;
+  }
+
+  /**
+   * Place a finished transport pass on the track it was armed for.
+   *
+   * The recorded WAV used to persist only in the recorder's own store, so the
+   * transport's audio never became arrangement material. This turns it into a
+   * real audio clip at the punched-in bar — the buffer is cached by the clip's
+   * `audioRefId` so playback, save/restore, undo and stem export all resolve
+   * the same PCM (see project-workspace's audio asset path).
+   *
+   * Returns the placement (bars) so the caller can tell the artist where the
+   * take landed, or null when the destination track no longer exists.
+   */
+  placeRecordedTake(opts: {
+    trackId: string;
+    name: string;
+    /** Decoded pass audio. */
+    buffer: AudioBuffer;
+    /** Arrangement step where capture began (punch-in / loop position). */
+    startStep: number;
+    /** Tempo the pass was played at; defaults to the current tempo. */
+    tempo?: number;
+    /**
+     * Seconds of pre-roll to discard from the WAV head before caching. The
+     * recording path uses this when capture started before the punch (the
+     * transport's start lookahead), so the clip begins on the performance and
+     * not on a silent gap.
+     */
+    trimSeconds?: number;
+    /** Clip gain relative to the track fader (defaults to unity). */
+    clipGain?: number;
+  }): {
+    trackId: string;
+    trackName: string;
+    clipId: string;
+    startBar: number;
+    lengthBars: number;
+  } | null {
+    const track = this.tracks().find((candidate) => candidate.id === opts.trackId);
+    if (!track) {
+      this.logger.warn(
+        `Recorded take: destination track ${opts.trackId} no longer exists`,
+      );
+      return null;
+    }
+
+    const placeBuffer =
+      opts.trimSeconds && opts.trimSeconds > 0
+        ? this.trimRecordedBufferHead(opts.buffer, opts.trimSeconds)
+        : opts.buffer;
+    const placement = takePlacementFor({
+      startStep: opts.startStep,
+      durationSeconds: placeBuffer?.duration ?? 0,
+      tempo: opts.tempo ?? this.engine.tempo(),
+    });
+    const clipId = `clip_rec_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const clip: StudioClip = {
+      id: clipId,
+      name: opts.name,
+      start: placement.startBar,
+      length: placement.lengthBars,
+      type: 'audio',
+      audioRefId: clipId,
+      offset: 0,
+      clipGain: opts.clipGain ?? 1,
+      fadeIn: 0,
+      fadeOut: 0,
+    };
+    // The reference cache, not the clip, owns the PCM: JSON snapshots (history,
+    // autosave, portable bundles) must never try to serialise the buffer.
+    this.stemAudioCache.set(clipId, placeBuffer);
+
+    this.runCommand(
+      'Record Take · ' + track.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((candidate) =>
+            candidate.id === track.id
+              ? { ...candidate, clips: [...(candidate.clips ?? []), clip] }
+              : candidate,
+          ),
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((candidate) =>
+            candidate.id === track.id
+              ? {
+                  ...candidate,
+                  clips: (candidate.clips ?? []).filter(
+                    (existing) => existing.id !== clipId,
+                  ),
+                }
+              : candidate,
+          ),
+        );
+      },
+    );
+
+    this.logger.info(
+      `Recorded take placed on ${track.name} at bar ${placement.startBar} ` +
+        `(${placement.lengthBars} bars)`,
+    );
+    return {
+      trackId: track.id,
+      trackName: track.name,
+      clipId,
+      startBar: placement.startBar,
+      lengthBars: placement.lengthBars,
+    };
+  }
+
+  /**
+   * Drop leading frames from a captured take. Used to remove the transport
+   * lookahead pre-roll so the clip starts on the first performed sample at the
+   * punch position rather than a silent gap.
+   */
+  private trimRecordedBufferHead(
+    buffer: AudioBuffer,
+    seconds: number,
+  ): AudioBuffer {
+    const sampleRate =
+      buffer.sampleRate || this.engine.ctx.sampleRate || 48000;
+    const length = Number.isFinite(buffer.length) ? buffer.length : 0;
+    const frames = Math.min(length, Math.round(seconds * sampleRate));
+    if (!(frames > 0) || frames >= length) return buffer;
+    const channels = Math.max(1, buffer.numberOfChannels || 1);
+    const trimmed = this.engine.ctx.createBuffer(
+      channels,
+      length - frames,
+      sampleRate,
+    );
+    for (let channel = 0; channel < channels; channel++) {
+      trimmed.copyToChannel(
+        buffer.getChannelData(channel).subarray(frames),
+        channel,
+      );
+    }
+    return trimmed;
   }
 
   /** Create (or re-use) an automation lane for a track parameter. */

@@ -13,7 +13,11 @@ import { PlaybackState } from "./playback-state";
 import { MusicManagerService } from "../services/music-manager.service";
 import { MicrophoneService } from "../services/microphone.service";
 import { StudioRecordingEngineService } from "./studio-recording-engine.service";
-import { RecordingStatusService } from "./recording-status.service";
+import {
+  RecordingStatusService,
+  RecordDestination,
+} from "./recording-status.service";
+import { alignRecordingStart } from "./recording-start-alignment.util";
 import { ScreenWakeLockService } from "../services/screen-wake-lock.service";
 import { SnackbarService } from "../services/snackbar.service";
 
@@ -64,11 +68,82 @@ export class AudioSessionService {
    * can await it.
    */
   private takeSaveInFlight: Promise<unknown> | null = null;
+  /**
+   * The live transport pass, snapshotted when REC was armed. The destination,
+   * punch position and tempo are fixed at that moment so a take lands where
+   * the artist actually played even if selection or tempo changes mid-pass.
+   */
+  private pendingTransportTake: {
+    destinations: RecordDestination[];
+    /** Fractional transport position when REC was armed (may be pre-roll). */
+    punchStep: number;
+    /** Audio-clock time of that punch position. */
+    punchTime: number;
+    tempo: number;
+    startedAt: number;
+    expectsAudio: boolean;
+  } | null = null;
 
   readonly playbackState = signal<PlaybackState>("stopped");
   readonly isPlaying = computed(() => this.playbackState() === "playing");
   readonly isRecording = computed(() => this.playbackState() === "recording");
   readonly isStopped = computed(() => this.playbackState() === "stopped");
+
+  /**
+   * The exact tracks the transport records onto.
+   *
+   * Mixer strips arm tracks through RecordingStatusService, so arm state — not
+   * whichever track happens to be selected — decides the take destination.
+   * With nothing armed the selected track is used; with neither, there is no
+   * destination and REC must not arm over silence.
+   */
+  readonly recordDestinations = computed<RecordDestination[]>(() => {
+    const tracks = this.musicManager.tracks();
+    const armed = this.recordingStatus.armedTrackIds();
+    const armedTracks = tracks.filter((track) => armed.has(track.id));
+    if (armedTracks.length > 0) {
+      return armedTracks.map((track) => ({
+        trackId: track.id,
+        trackName: track.name,
+      }));
+    }
+    const selectedId = this.musicManager.selectedTrackId();
+    const selected = selectedId
+      ? tracks.find((track) => track.id === selectedId)
+      : null;
+    return selected
+      ? [{ trackId: selected.id, trackName: selected.name }]
+      : [];
+  });
+
+  /** Compact readout of where the next/active pass lands. */
+  readonly recordTargetLabel = computed(() => {
+    const destinations = this.recordDestinations();
+    if (destinations.length === 0) return "No record target — arm a track";
+    const names = destinations.map((destination) => destination.trackName);
+    return destinations.length === 1
+      ? `Rec target: ${names[0]}`
+      : `Rec targets: ${names.join(" + ")}`;
+  });
+
+  /** Second line for the target readout: the armed/selected reason + input. */
+  readonly recordTargetDetail = computed(() => {
+    const destinations = this.recordDestinations();
+    if (destinations.length === 0) {
+      return "Arm a track in the mixer, or select one in the arrangement";
+    }
+    const armed = this.recordingStatus.armedTrackIds();
+    const reason = destinations.every((destination) =>
+      armed.has(destination.trackId),
+    )
+      ? "Armed in the mixer"
+      : "Selected track";
+    return `${reason} · ${
+      this.recordingEngine.isInitialized()
+        ? "Microphone input"
+        : "MIDI + audio input"
+    }`;
+  });
 
   masterVolume = signal(80);
   micChannels = signal<MicChannel[]>([
@@ -258,11 +333,22 @@ export class AudioSessionService {
 
     if (this.isRecording()) {
       this.engine.stop();
-      void this.musicManager.stopRecording(
-        this.musicManager.selectedTrackId() || "",
-      );
+      // Await the flush, then drop the pass onto its destination track as a
+      // real clip. The promise is kept on `takeSaveInFlight` so a caller can
+      // wait for the take to be editable before saving/exporting.
+      this.takeSaveInFlight = this.finalizeTransportTake();
       this.playbackState.set("stopped");
-      this.recordingStatus.clearRecordingSource();
+      this.recordingStatus.endRecording("transport");
+      return;
+    }
+
+    // No destination means the pass would capture into nowhere while the
+    // transport showed REC. Refuse the arm instead of pretending.
+    const destinations = this.recordDestinations();
+    if (destinations.length === 0) {
+      this.snackbar.warning(
+        "Arm a track in the mixer, or select one in the arrangement, before recording",
+      );
       return;
     }
 
@@ -272,14 +358,32 @@ export class AudioSessionService {
       this.engine.start();
       this.musicManager.startRecording();
       this.playbackState.set("recording");
-      const trackId = this.musicManager.selectedTrackId();
-      const track = trackId
-        ? this.musicManager.tracks().find((t) => t.id === trackId)
-        : null;
-      this.recordingStatus.setRecordingSource({
+      // Snapshot the destinations for the whole pass: arming a strip mid-pass
+      // must not claim a take that started before it was armed. The fractional
+      // position and its audio-clock time are the punch anchor: the worklet's
+      // first captured block is aligned against this pair later.
+      const punchTime = this.engine.ctx.currentTime;
+      this.pendingTransportTake = {
+        destinations,
+        punchStep:
+          this.engine.transportStepAt?.(punchTime) ??
+          Math.max(0, Math.floor(this.engine.visualStep())),
+        punchTime,
+        tempo: this.engine.tempo(),
+        startedAt: Date.now(),
+        expectsAudio: this.recordingEngine.isInitialized(),
+      };
+      this.recordingStatus.setRecordDestinations(destinations);
+      const primary = destinations[0];
+      this.recordingStatus.beginRecording("transport", {
         type: "transport",
-        trackId: trackId || undefined,
-        trackName: track?.name,
+        trackId: primary.trackId,
+        trackName: primary.trackName,
+        destinations,
+        inputLabel: this.recordingEngine.isInitialized()
+          ? "Microphone input"
+          : "MIDI only",
+        captureMode: "input",
       });
       if (!this.recordingEngine.isRecording() && !this.captureWarningShown) {
         this.captureWarningShown = true;
@@ -292,20 +396,131 @@ export class AudioSessionService {
 
   stop(): void {
     this.engine.stop();
-    if (this.recordingEngine.isRecording()) {
+    if (this.recordingEngine.isRecording() || this.pendingTransportTake) {
       // Keep the promise: the take is not durable until the engine has flushed
-      // the worklet, encoded the WAV and committed the IndexedDB write.
-      this.takeSaveInFlight = Promise.resolve(
-        this.musicManager.stopRecording(
-          this.musicManager.selectedTrackId() || "",
-        ),
-      ).catch((error) => {
-        this.logger.warn("AudioSession: the take could not be saved.", error);
-        return null;
-      });
+      // the worklet, encoded the WAV, committed the IndexedDB write and the
+      // clip has been placed on its destination track.
+      this.takeSaveInFlight = this.finalizeTransportTake();
     }
     this.playbackState.set("stopped");
-    this.recordingStatus.clearRecordingSource();
+    this.recordingStatus.endRecording("transport");
+  }
+
+  /**
+   * Stop the capture engine, decode the finished WAV and place it on the
+   * primary record destination as an audio clip.
+   *
+   * A pass can be armed on several mixer tracks, but the Studio has one input
+   * stream: duplicating the same performance onto every armed track would
+   * double it. The audio clip therefore lands on the primary destination (the
+   * first armed track, else the selected one), while punch-in MIDI takes still
+   * stamp on every destination track.
+   */
+  private async finalizeTransportTake(): Promise<{
+    trackId: string;
+    trackName: string;
+    clipId: string;
+    startBar: number;
+    lengthBars: number;
+  } | null> {
+    const pass = this.pendingTransportTake;
+    this.pendingTransportTake = null;
+    if (!pass) {
+      // A capture owned by another Studio component can still be running when
+      // the transport stops. Flush it so backgrounding never loses audio, but
+      // do not pretend the transport has a take to place.
+      if (this.recordingEngine.isRecording()) {
+        try {
+          await this.musicManager.stopRecording(
+            this.recordDestinations()[0]?.trackId ||
+              this.musicManager.selectedTrackId() ||
+              "",
+          );
+        } catch (error) {
+          this.logger.warn("AudioSession: the take could not be flushed.", error);
+        }
+      }
+      return null;
+    }
+
+    const primary = pass.destinations[0];
+    try {
+      await this.musicManager.stopRecording(primary?.trackId || "");
+    } catch (error) {
+      this.logger.warn("AudioSession: the take could not be flushed.", error);
+      return null;
+    }
+    if (!primary) return null;
+
+    try {
+      const blob = this.recordingEngine.recordedBlob();
+      const frames = this.recordingEngine.getRecordedFrameCount();
+      if (!blob || frames <= 0) {
+        // A MIDI-only pass is expected when no input is available; the
+        // transport already warned about that, so do not double-report.
+        if (pass.expectsAudio) {
+          this.snackbar.warning(
+            "No audio reached the recorder — the pass left no clip",
+          );
+        }
+        return null;
+      }
+
+      const buffer = await this.engine.ctx.decodeAudioData(
+        await blob.arrayBuffer(),
+      );
+      // The worklet timestamps its first render quantum; align that to the
+      // transport instead of assuming capture began on the punch step.
+      const alignment = alignRecordingStart({
+        punchStep: pass.punchStep,
+        punchTime: pass.punchTime,
+        captureStartTime:
+          this.recordingEngine.getCaptureStartedAt?.() ?? null,
+        tempo: pass.tempo,
+        stepsPerBeat: this.engine.stepsPerBeat?.() ?? 4,
+        // The interface latency is inside the captured signal; aligning it
+        // without this would place every performance that late.
+        inputLatencySeconds:
+          this.recordingEngine.getInputLatencySeconds?.() ?? 0,
+      });
+      if (alignment.startLatencySeconds > 0) {
+        this.logger.info(
+          `AudioSession: take aligned for ${Math.round(
+            alignment.startLatencySeconds * 1000,
+          )} ms of capture start latency.`,
+        );
+      }
+      const placement = this.musicManager.placeRecordedTake({
+        trackId: primary.trackId,
+        name: `Take ${new Date(pass.startedAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })}`,
+        buffer,
+        startStep: alignment.startStep,
+        trimSeconds: alignment.trimSeconds,
+        tempo: pass.tempo,
+      });
+      if (!placement) return null;
+
+      const bar = Math.floor(placement.startBar) + 1;
+      this.snackbar.success(
+        pass.destinations.length > 1
+          ? `Take placed on ${placement.trackName} at bar ${bar} · takes stamped on ${pass.destinations.length} tracks`
+          : `Take placed on ${placement.trackName} at bar ${bar}`,
+      );
+      return placement;
+    } catch (error) {
+      this.logger.warn(
+        "AudioSession: the recorded take could not be placed.",
+        error,
+      );
+      this.snackbar.error(
+        "The take was recorded but could not be placed on its track",
+      );
+      return null;
+    }
   }
 
   /**

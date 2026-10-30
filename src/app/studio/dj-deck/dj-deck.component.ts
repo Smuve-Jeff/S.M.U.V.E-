@@ -1168,14 +1168,14 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     this.recording.set(true);
     this.startRecordingTimer();
     this.sessionNotice.set("Recording live mix...");
-    this.recordingStatus.setRecordingSource({
+    this.recordingStatus.beginRecording("dj-deck", {
       type: "dj-deck",
       deckId: "master",
     });
 
     recorder.onerror = () => {
       this.sessionNotice.set("Recording failed to complete.");
-      this.recordingStatus.clearRecordingSource();
+      this.recordingStatus.endRecording("dj-deck");
       this.cleanupRecordingState();
     };
 
@@ -1193,11 +1193,11 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
       })
       .then(() => {
         this.sessionNotice.set("Live mix exported successfully.");
-        this.recordingStatus.clearRecordingSource();
+        this.recordingStatus.endRecording("dj-deck");
       })
       .catch(() => {
         this.sessionNotice.set("Live mix export failed.");
-        this.recordingStatus.clearRecordingSource();
+        this.recordingStatus.endRecording("dj-deck");
       })
       .finally(() => {
         this.cleanupRecordingState();

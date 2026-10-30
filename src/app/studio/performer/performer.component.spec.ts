@@ -171,6 +171,8 @@ describe("PerformerComponent", () => {
           useValue: {
             clearRecordingSource: jest.fn(),
             setRecordingSource: jest.fn(),
+            beginRecording: jest.fn(),
+            endRecording: jest.fn(),
           },
         },
         {

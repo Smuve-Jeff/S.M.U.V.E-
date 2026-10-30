@@ -42,10 +42,22 @@ export class StudioRecordingEngineService implements OnDestroy {
    * Null until a take has finished.
    */
   recordedPeaks = signal<{ left: number; right: number } | null>(null);
+  /**
+   * AudioContext time of the first captured render quantum, reported by the
+   * worklet. Null until a take has actually captured its first block, which is
+   * what keeps clip placement honest when no audio ever arrived.
+   */
+  captureStartedAt = signal<number | null>(null);
   takes = signal<any[]>([]);
   pendingMidi: any[] = [];
 
   private mediaStream: MediaStream | null = null;
+  /**
+   * True only for a stream this engine opened. A borrowed master-output
+   * stream belongs to the AudioEngine and must never be stopped here — doing
+   * so would end the post-master tap for every later take in the session.
+   */
+  private ownsMediaStream = false;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   private workletNode: AudioWorkletNode | null = null;
   private analyserNode: AnalyserNode | null = null;
@@ -93,22 +105,10 @@ export class StudioRecordingEngineService implements OnDestroy {
       };
 
       this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.ownsMediaStream = true;
       const ctx = this.audioEngine.ctx;
 
-      try {
-        if (this.recordingWorkletContext !== ctx) {
-          await ctx.audioWorklet.addModule(
-            "assets/worklets/recording-processor.worklet.js",
-          );
-          this.recordingWorkletContext = ctx;
-        }
-        this.recordingWorkletReady = true;
-      } catch (e) {
-        this.recordingWorkletReady = false;
-        this.logger.error(
-          "StudioRecordingEngine: Recording worklet failed to load; capture was not started.",
-          e,
-        );
+      if (!(await this.prepareCaptureWorklet())) {
         this.cleanup();
         return false;
       }
@@ -153,6 +153,32 @@ export class StudioRecordingEngineService implements OnDestroy {
     }
   }
 
+  /**
+   * Load the capture worklet without opening the microphone. Internal
+   * components are captured from the post-master output stream, so an
+   * interface (or any input permission at all) is not required for them.
+   */
+  async prepareCaptureWorklet(): Promise<boolean> {
+    const ctx = this.audioEngine.ctx;
+    try {
+      if (this.recordingWorkletContext !== ctx) {
+        await ctx.audioWorklet.addModule(
+          "assets/worklets/recording-processor.worklet.js",
+        );
+        this.recordingWorkletContext = ctx;
+      }
+      this.recordingWorkletReady = true;
+      return true;
+    } catch (error) {
+      this.recordingWorkletReady = false;
+      this.logger.error(
+        "StudioRecordingEngine: Recording worklet failed to load; capture was not started.",
+        error,
+      );
+      return false;
+    }
+  }
+
   startRecording(stream?: MediaStream) {
     if (this.isRecording() || this.isFlushing) return;
     const ctx = this.audioEngine.ctx;
@@ -174,6 +200,7 @@ export class StudioRecordingEngineService implements OnDestroy {
       }
       this.recordingWorkletReady = true;
       this.mediaStream = stream;
+      this.ownsMediaStream = false;
       // cleanup() tears down the previous graph but the processor module is
       // still loaded in this AudioContext, so preserve readiness for this
       // stream-backed start path.
@@ -187,9 +214,12 @@ export class StudioRecordingEngineService implements OnDestroy {
       this.analyserNode.connect(this.silentSink);
       this.isInitialized.set(true);
       this.startLevelMonitoring();
-    } else if (!this.isInitialized()) {
+    } else if (!this.hasInputCapture()) {
+      // A master-output pass leaves the engine initialized but with a borrowed
+      // bus. A no-stream request means "record the input", so it must not
+      // silently reuse that master tap.
       this.logger.error(
-        "StudioRecordingEngine: Cannot start recording without initialization",
+        "StudioRecordingEngine: Cannot start an input pass without an input capture graph",
       );
       return;
     }
@@ -199,6 +229,7 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.pendingMidi = [];
     this.recordedBlob.set(null);
     this.recordedPeaks.set(null);
+    this.captureStartedAt.set(null);
 
     this.workletNode = new AudioWorkletNode(ctx, "recording-processor");
     this.workletNode.port.onmessage = (event) =>
@@ -328,7 +359,13 @@ export class StudioRecordingEngineService implements OnDestroy {
    * real AudioWorkletNode, which no test host provides.
    */
   private handleWorkletMessage(event: { data: any }): void {
-    if (event?.data?.command === "DATA") {
+    if (event?.data?.command === "STARTED") {
+      // Use the audio-clock timestamp from the worklet, never the arrival time
+      // of the message: the main thread can be busy for tens of milliseconds
+      // and that delay would be baked into the take's alignment.
+      const time = Number(event.data.time);
+      if (Number.isFinite(time)) this.captureStartedAt.set(time);
+    } else if (event?.data?.command === "DATA") {
       // The buffer owns the memory ceiling; the timer follows the frames it
       // actually accepted so the two can never disagree.
       const frames = this.capture.append(event.data.left, event.data.right);
@@ -345,6 +382,11 @@ export class StudioRecordingEngineService implements OnDestroy {
 
   getAnalyserNode(): AnalyserNode | null {
     return this.analyserNode;
+  }
+
+  /** True only when the live capture graph is fed by an input this engine opened. */
+  hasInputCapture(): boolean {
+    return this.isInitialized() && this.ownsMediaStream;
   }
 
   /** Return the active input stream so higher-level recording views can share it. */
@@ -390,6 +432,23 @@ export class StudioRecordingEngineService implements OnDestroy {
    */
   getRecordedFrameCount(): number {
     return this.capture.frames;
+  }
+
+  /**
+   * AudioContext time of the take's first captured block, or null when the
+   * worklet has not captured one (no session, or no audio arrived yet).
+   */
+  getCaptureStartedAt(): number | null {
+    return this.captureStartedAt();
+  }
+
+  /**
+   * Applied input round-trip latency in seconds — the same compensation the
+   * live preview trims. The captured WAV already contains this delay, so take
+   * placement subtracts it from the performance anchor.
+   */
+  getInputLatencySeconds(): number {
+    return Math.max(0, this.latency.getAppliedCompensationMs()) / 1000;
   }
 
   private trimChunkList(
@@ -442,7 +501,10 @@ export class StudioRecordingEngineService implements OnDestroy {
     this.analyserNode?.disconnect();
     this.silentSink?.disconnect();
     this.limiter.disconnect();
-    this.mediaStream?.getTracks().forEach((t) => t.stop());
+    if (this.ownsMediaStream) {
+      this.mediaStream?.getTracks().forEach((t) => t.stop());
+    }
+    this.ownsMediaStream = false;
     this.isInitialized.set(false);
     this.isRecording.set(false);
     this.isFlushing = false;

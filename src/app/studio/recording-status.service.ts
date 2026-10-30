@@ -3,16 +3,61 @@ import { AudioEngineService } from "../services/audio-engine.service";
 import { LoggingService } from "../services/logging.service";
 
 /**
+ * What a recorder is actually sampling. The Studio has two real capture
+ * paths: the microphone/line input, and the post-master output bus. Naming
+ * the path (not just the component) keeps the REC readout honest.
+ */
+export type RecordingCaptureMode = "input" | "master";
+
+/**
+ * A track that a live pass is writing its take onto. Kept separate from the
+ * recorder label so a pass that captures several armed tracks can name every
+ * destination instead of only the first one.
+ */
+export interface RecordDestination {
+  trackId: string;
+  trackName: string;
+}
+
+/**
  * Who/what initiated recording — displayed prominently so the user
  * always knows precisely what is being captured.
  */
 export type RecordingSource =
-  | { type: "transport"; trackId?: string; trackName?: string }
-  | { type: "mixer-strip"; trackId: string; trackName: string }
-  | { type: "performer"; takeNumber: number }
-  | { type: "mic"; channelId: string; channelLabel: string }
+  | {
+      type: "transport";
+      trackId?: string;
+      trackName?: string;
+      inputLabel?: string;
+      captureMode?: RecordingCaptureMode;
+      /** Every armed/selected track the transport pass stamps a take onto. */
+      destinations?: readonly RecordDestination[];
+    }
+  | {
+      type: "mixer-strip";
+      trackId: string;
+      trackName: string;
+      inputLabel?: string;
+    }
+  | { type: "performer"; takeNumber: number; trackName?: string }
+  | {
+      type: "mic";
+      channelId: string;
+      channelLabel: string;
+      inputLabel?: string;
+      capturePath?: string;
+      paused?: boolean;
+    }
+  | { type: "component"; componentId: string; componentLabel: string; targetLabel?: string; inputLabel?: string; captureMode?: RecordingCaptureMode }
+  | { type: "audio-recorder"; inputLabel?: string; capturePath?: string; takeNumber?: number }
   | { type: "dj-deck"; deckId: string }
   | { type: "none" };
+
+/** One active recorder, keyed by the component that owns it. */
+export interface ActiveRecording {
+  ownerId: string;
+  source: RecordingSource;
+}
 
 /**
  * RecordingStatusService — the single source of truth for:
@@ -52,33 +97,87 @@ export class RecordingStatusService implements OnDestroy {
     Math.max(this.masterPeakHoldL(), this.masterPeakHoldR()),
   );
 
-  // ── Recording source ────────────────────────────────────────
-  /** What precisely is being recorded right now */
-  recordingSource = signal<RecordingSource>({ type: "none" });
+  // ── Recording source(s) ─────────────────────────────────────
+  /**
+   * Every live recorder, not just the last button that was pressed. Several
+   * tools can legitimately capture at once (a DJ mix and a vocal take), and a
+   * single overwritten slot used to let one component's stop erase another's
+   * REC label. Each recorder now registers under its own owner id.
+   */
+  private readonly activeRecordingsState = signal<readonly ActiveRecording[]>(
+    [],
+  );
+  readonly activeRecordings = this.activeRecordingsState.asReadonly();
+
+  /** The most recently started capture; drives the compact transport chip. */
+  recordingSource = computed<RecordingSource>(
+    () =>
+      this.activeRecordingsState().at(-1)?.source ?? { type: "none" },
+  );
+
+  /** Number of live recorders. >1 means the transport must say so. */
+  recordingCount = computed(() => this.activeRecordingsState().length);
+
+  // ── Track-level capture destinations ────────────────────────
+  /**
+   * Tracks the live transport pass is writing to. The mixer strip and the
+   * arrangement read this instead of guessing from "is the transport red", so
+   * a strip only lights up when its take is actually being captured.
+   */
+  private readonly recordDestinationsState = signal<
+    readonly RecordDestination[]
+  >([]);
+  readonly recordDestinations = this.recordDestinationsState.asReadonly();
+
+  setRecordDestinations(destinations: readonly RecordDestination[]): void {
+    this.recordDestinationsState.set(destinations.map((d) => ({ ...d })));
+  }
+
+  clearRecordDestinations(): void {
+    this.recordDestinationsState.set([]);
+  }
+
+  /** True when this track's take is being written right now. */
+  isTrackReceivingTake(trackId: string): boolean {
+    return this.recordDestinationsState().some(
+      (destination) => destination.trackId === trackId,
+    );
+  }
 
   /** Human-readable label for TransportBar / snackbar */
   recordingLabel = computed(() => {
-    const src = this.recordingSource();
-    switch (src.type) {
-      case "transport":
-        return src.trackName
-          ? `Rec: ${src.trackName}`
-          : "Recording to selected track";
-      case "mixer-strip":
-        return `Rec: Strip "${src.trackName}"`;
-      case "performer":
-        return `Rec: Performance Take ${src.takeNumber}`;
-      case "mic":
-        return `Rec: ${src.channelLabel}`;
-      case "dj-deck":
-        return `Rec: Deck ${src.deckId.toUpperCase()}`;
-      default:
-        return "";
+    const active = this.activeRecordingsState();
+    if (active.length === 0) return "";
+    const newest = active[active.length - 1].source;
+    const base = this.shortLabel(newest);
+    return active.length > 1
+      ? `Rec: ${base} +${active.length - 1}`
+      : `Rec: ${base}`;
+  });
+
+  /**
+   * Second line for the transport chip: the exact destination and source bus.
+   * When several recorders are live it names every one instead of pretending
+   * the newest capture is the only one.
+   */
+  recordingDetail = computed(() => {
+    const active = this.activeRecordingsState();
+    if (active.length === 0) return "";
+    if (active.length > 1) {
+      return active.map(({ source }) => this.shortLabel(source)).join(" · ");
     }
+    return this.detailFor(active[0].source);
   });
 
   /** Whether anything is being recorded */
-  isRecording = computed(() => this.recordingSource().type !== "none");
+  isRecording = computed(() => this.activeRecordingsState().length > 0);
+
+  /** True when this specific tool owns a live capture. */
+  isCaptureActive(ownerId: string): boolean {
+    return this.activeRecordingsState().some(
+      (recording) => recording.ownerId === ownerId,
+    );
+  }
 
   // ── Per-track record arm (drives mixer strip R buttons) ─────
   /** Set of track IDs that are armed for recording */
@@ -114,18 +213,165 @@ export class RecordingStatusService implements OnDestroy {
 
   // ── Actions ─────────────────────────────────────────────────
   /**
-   * Called when recording starts from any component.
-   * Sets the source so the UI can display what's recording.
+   * Register (or refresh) a capture owned by `ownerId`. Re-registering the
+   * same owner updates its label in place, so a take number or paused state
+   * can change without creating a duplicate entry.
    */
-  setRecordingSource(source: RecordingSource) {
-    this.recordingSource.set(source);
+  beginRecording(ownerId: string, source: RecordingSource): void {
+    if (source.type === "none") {
+      this.endRecording(ownerId);
+      return;
+    }
+    const active = this.activeRecordingsState();
+    const index = active.findIndex((recording) => recording.ownerId === ownerId);
+    if (index >= 0) {
+      const next = [...active];
+      next[index] = { ownerId, source };
+      this.activeRecordingsState.set(next);
+      return;
+    }
+    this.activeRecordingsState.set([...active, { ownerId, source }]);
+  }
+
+  /** Update an existing capture's readout (e.g. pause, take number). */
+  updateRecordingSource(ownerId: string, source: RecordingSource): void {
+    this.beginRecording(ownerId, source);
+  }
+
+  /** Remove exactly one recorder's entry; other live captures stay intact. */
+  endRecording(ownerId: string): void {
+    this.activeRecordingsState.update((active) =>
+      active.filter((recording) => recording.ownerId !== ownerId),
+    );
+    // The transport owns the track destinations; once its pass ends no strip
+    // may keep claiming it is receiving a take.
+    if (ownerId === "transport") this.recordDestinationsState.set([]);
   }
 
   /**
-   * Called when recording stops from any component.
+   * Backwards-compatible single-source entry point. Production components use
+   * `beginRecording()` with an owner id; this keeps older callers working.
    */
-  clearRecordingSource() {
-    this.recordingSource.set({ type: "none" });
+  setRecordingSource(source: RecordingSource) {
+    if (source.type === "none") {
+      this.clearRecordingSource();
+      return;
+    }
+    this.beginRecording(this.ownerIdFor(source), source);
+  }
+
+  /**
+   * Clear one owner when supplied, or every capture when omitted.
+   */
+  clearRecordingSource(ownerId?: string) {
+    if (ownerId) {
+      this.endRecording(ownerId);
+      return;
+    }
+    this.activeRecordingsState.set([]);
+    this.recordDestinationsState.set([]);
+  }
+
+  private ownerIdFor(source: RecordingSource): string {
+    switch (source.type) {
+      case "transport":
+        return "transport";
+      case "mixer-strip":
+        return `mixer:${source.trackId}`;
+      case "performer":
+        return "performer";
+      case "mic":
+        return `mic:${source.channelId}`;
+      case "component":
+        return `component:${source.componentId}`;
+      case "audio-recorder":
+        return "audio-recorder";
+      case "dj-deck":
+        return `dj:${source.deckId}`;
+      default:
+        return "unknown";
+    }
+  }
+
+  private shortLabel(source: RecordingSource): string {
+    switch (source.type) {
+      case "transport": {
+        const destinations = source.destinations ?? [];
+        if (destinations.length > 1) {
+          return `${destinations[0].trackName} +${destinations.length - 1}`;
+        }
+        return (
+          destinations[0]?.trackName || source.trackName || "Selected track"
+        );
+      }
+      case "mixer-strip":
+        return `Strip “${source.trackName}”`;
+      case "performer":
+        return `Performance Take ${source.takeNumber}`;
+      case "mic":
+        return source.channelLabel;
+      case "component":
+        return source.componentLabel;
+      case "audio-recorder":
+        return source.takeNumber
+          ? `Audio Recorder Take ${source.takeNumber}`
+          : "Audio Recorder";
+      case "dj-deck":
+        return `Deck ${source.deckId.toUpperCase()}`;
+      default:
+        return "";
+    }
+  }
+
+  private detailFor(source: RecordingSource): string {
+    const mode = (captureMode?: RecordingCaptureMode) =>
+      captureMode === "master" ? "Master out" : "Input";
+    switch (source.type) {
+      case "transport": {
+        const destinations = source.destinations ?? [];
+        const tracks = destinations.length
+          ? `${destinations.length === 1 ? "Track" : "Tracks"}: ${destinations
+              .map((destination) => destination.trackName)
+              .join(", ")}`
+          : `Track: ${source.trackName || "selected track"}`;
+        return [tracks, source.inputLabel || mode(source.captureMode)].join(
+          " · ",
+        );
+      }
+      case "mixer-strip":
+        return `Track: ${source.trackName}${source.inputLabel ? ` · ${source.inputLabel}` : ""}`;
+      case "performer":
+        return [
+          `Take ${source.takeNumber}`,
+          source.trackName ? `Track: ${source.trackName}` : "Performance",
+        ].join(" · ");
+      case "mic":
+        return [
+          `Channel: ${source.channelLabel}`,
+          source.inputLabel || "Microphone input",
+          source.capturePath,
+          source.paused ? "Paused" : undefined,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+      case "component":
+        return [
+          `Target: ${source.targetLabel || "new arrangement track"}`,
+          source.inputLabel || mode(source.captureMode),
+        ].join(" · ");
+      case "audio-recorder":
+        return [
+          source.takeNumber ? `Take ${source.takeNumber}` : "Live capture",
+          source.inputLabel || "Microphone input",
+          source.capturePath,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+      case "dj-deck":
+        return "Master mix";
+      default:
+        return "";
+    }
   }
 
   // ── Internal meter loop ─────────────────────────────────────

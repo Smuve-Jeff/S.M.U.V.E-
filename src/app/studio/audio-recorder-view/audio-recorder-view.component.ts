@@ -22,6 +22,7 @@ import { InteractionDialogService } from "../../services/interaction-dialog.serv
 import { AudioEngineLatencyService } from "../../services/audio-engine-latency.service";
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
 import { SmartRecordingService } from "../smart-recording.service";
+import { RecordingStatusService } from "../recording-status.service";
 import { PermissionService } from "../../services/permission.service";
 import { MicPermissionState, micPermissionNotice } from "./mic-permission";
 import {
@@ -70,6 +71,9 @@ export class AudioRecorderViewComponent
   private readonly visualScheduler = inject(StudioVisualSchedulerService);
   /** The app-wide permission store is the single source of truth for mic state. */
   private readonly permissions = inject(PermissionService);
+  /** Registers this view's capture with the Studio-wide REC readout. */
+  private readonly recordingStatus = inject(RecordingStatusService);
+  private readonly captureStatusOwner = "audio-recorder";
 
   @ViewChild("waveformCanvas")
   waveformCanvasRef!: ElementRef<HTMLCanvasElement>;
@@ -407,6 +411,7 @@ export class AudioRecorderViewComponent
     if (this.stopFallbackTimer) clearTimeout(this.stopFallbackTimer);
     this.stopFallbackTimer = null;
     this.recorder.stopRecording();
+    this.recordingStatus.endRecording(this.captureStatusOwner);
     this.closeAudioGraph();
     this.releaseInputStream();
   }
@@ -533,6 +538,7 @@ export class AudioRecorderViewComponent
 
     this.captureState.set("idle");
     this.captureError.set(null);
+    this.recordingStatus.endRecording(this.captureStatusOwner);
     if (this.stopFallbackTimer) clearTimeout(this.stopFallbackTimer);
     this.stopFallbackTimer = null;
     this.clearElapsedTimer();
@@ -862,6 +868,12 @@ export class AudioRecorderViewComponent
       await this.recorder.startRecording(captureStream);
       this.startedAt = Date.now();
       this.captureState.set("recording");
+      this.recordingStatus.beginRecording(this.captureStatusOwner, {
+        type: "audio-recorder",
+        inputLabel: this.inputDeviceName(),
+        capturePath: this.capturePathLabel(),
+        takeNumber: this.recordings().length + 1,
+      });
       this.startElapsedTimer();
       this.startRecordingElapsedTimer();
       this.startWaveform();
@@ -870,6 +882,7 @@ export class AudioRecorderViewComponent
       this.releaseInputStream();
       this.stopLevelMeter();
       this.closeAudioGraph();
+      this.recordingStatus.endRecording(this.captureStatusOwner);
       this.captureState.set("error");
       this.captureError.set(
         error?.name === "NotAllowedError"

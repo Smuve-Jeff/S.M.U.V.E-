@@ -80,6 +80,15 @@ export class TransportBarComponent {
   masterPeakHold = this.recordingStatus.masterPeakHoldLinear;
   /** Human-readable label of what's recording */
   recordingLabel = this.recordingStatus.recordingLabel;
+  /** Exact target/input detail under the label, or every live capture. */
+  recordingDetail = this.recordingStatus.recordingDetail;
+  /** Number of live recorders (the chip flags more than one). */
+  recordingCount = this.recordingStatus.recordingCount;
+  /** Where the next pass lands (armed mixer tracks, else the selection). */
+  recordTargetLabel = this.audioSession.recordTargetLabel;
+  recordTargetDetail = this.audioSession.recordTargetDetail;
+  /** The destination tracks themselves — drives punch-in + take stamping. */
+  recordDestinations = this.audioSession.recordDestinations;
 
   /** Output level meter signals from AudioEngineService (post-master) */
   outputPeak = this.audioEngine.outputPeak;
@@ -275,33 +284,43 @@ export class TransportBarComponent {
       const rec = this.isRecording();
       const step = this.audioEngine.visualStep();
       if (rec && !this.recordWasActive) {
-        const id = this.musicManager.selectedTrackId();
-        this.punchArmedAtRecordStart = id
-          ? this.takeManager.isPunchIn(id)()
-          : false;
+        // Snapshot punch-in per destination at record start. The pass writes a
+        // take for every destination track that had punch-in armed, not only
+        // the selected one.
+        this.punchArmedTargets = new Set(
+          this.recordDestinations()
+            .filter((destination) =>
+              this.takeManager.isPunchIn(destination.trackId)(),
+            )
+            .map((destination) => destination.trackId),
+        );
         this.lastLoopStep = step;
         this.loopStampCount = 0;
       }
       // Loop pass completed while recording: playhead wrapped backward.
-      if (rec && this.punchArmedAtRecordStart && this.recordWasActive) {
+      if (rec && this.punchArmedTargets.size && this.recordWasActive) {
         if (step < (this.lastLoopStep ?? step)) {
           if (this.loopStampCount < 32) {
-            this.stampTake();
+            this.stampArmedPunches();
             this.loopStampCount++;
           }
         }
         this.lastLoopStep = step;
       }
-      if (!rec && this.recordWasActive && this.punchArmedAtRecordStart) {
-        this.stampTake();
+      if (!rec && this.recordWasActive && this.punchArmedTargets.size) {
+        this.stampArmedPunches();
       }
+      if (!rec) this.punchArmedTargets = new Set();
       this.recordWasActive = rec;
     });
   }
   /** Sprint A3 — previous record-state edge tracker. */
   private recordWasActive = false;
-  /** Sprint A3 — punch-in snapshot taken when the record pass began. */
-  private punchArmedAtRecordStart = false;
+  /**
+   * Sprint A3 — destination tracks with punch-in armed when the pass began.
+   * A Set (not a boolean) because a pass can stamp several armed tracks.
+   */
+  private punchArmedTargets = new Set<string>();
   /** Sprint A3 — last playhead step during loop-pass tracking. */
   private lastLoopStep: number | null = null;
   /** Sprint A3 — per-record-session loop-pass stamp count (safety cap). */
@@ -309,10 +328,21 @@ export class TransportBarComponent {
 
   // ── Sprint A3 — Take lane (punch-in + take stamping) ────────────
 
-  /** Punch-in armed for the currently selected track? */
+  /**
+   * Punch-in armed for every record destination?
+   *
+   * The transport records onto the armed mixer tracks, so the punch button
+   * has to arm those same tracks — reading only the selected track let the REC
+   * target and the punch target disagree.
+   */
   punchInActive = computed(() => {
-    const id = this.musicManager.selectedTrackId();
-    return id ? this.takeManager.isPunchIn(id)() : false;
+    const destinations = this.recordDestinations();
+    return (
+      destinations.length > 0 &&
+      destinations.every((destination) =>
+        this.takeManager.isPunchIn(destination.trackId)(),
+      )
+    );
   });
 
   /** Number of takes recorded for the currently selected track. */
@@ -329,20 +359,24 @@ export class TransportBarComponent {
     return takes.length ? takes[takes.length - 1].label : "";
   });
 
-  /** Toggle punch-in recording on/off for the selected track. */
+  /** Toggle punch-in recording on/off for every record destination. */
   togglePunchIn(): void {
-    const id = this.musicManager.selectedTrackId();
-    if (!id) {
-      this.snack.info(
-        "Select a track first — punch-in arms the selected track",
-      );
+    const destinations = this.recordDestinations();
+    if (destinations.length === 0) {
+      this.snack.info("Arm or select a track first — punch-in needs a target");
       return;
     }
-    const next = !this.takeManager.isPunchIn(id)();
-    this.takeManager.setPunchIn(id, next);
+    const next = !this.punchInActive();
+    for (const destination of destinations) {
+      this.takeManager.setPunchIn(destination.trackId, next);
+    }
     this.haptic.light();
+    const names = destinations.map((destination) => destination.trackName);
+    const target = names.length === 1 ? names[0] : `${names.length} tracks`;
     this.snack[next ? "success" : "info"](
-      next ? "Punch-in armed — next record stop stamps a take" : "Punch-in off",
+      next
+        ? `Punch-in armed for ${target} — next record stop stamps a take`
+        : "Punch-in off",
     );
   }
 
@@ -352,21 +386,64 @@ export class TransportBarComponent {
    * record pass ends.
    */
   stampTake(): void {
-    const track = this.musicManager.selectedTrack();
+    // Stamp the pass destination, not merely whatever is selected: armed
+    // tracks are the real capture target.
+    const targetId =
+      this.recordDestinations()[0]?.trackId ??
+      this.musicManager.selectedTrackId();
+    const track = targetId
+      ? this.musicManager.tracks().find((candidate) => candidate.id === targetId)
+      : this.musicManager.selectedTrack();
     if (!track) return; // silent: auto-stamp fires on every record stop
-    const notes = track.notes ?? [];
-    const count = this.takeCount() + 1;
-    const take = this.takeManager.stampTake(
-      track.id,
-      `Take ${count}`,
-      notes,
-      this.audioEngine.visualStep(),
-    );
+    const noteCount = track.notes?.length ?? 0;
+    const take = this.stampTakeForTrack(track.id);
+    if (!take) return;
     this.haptic.medium();
     this.snack.success(
-      `Take ${count} stamped · ${notes.length} note${
-        notes.length === 1 ? "" : "s"
+      `Take ${this.takeManager.getTakes(track.id)().length} stamped on ${track.name} · ${noteCount} note${
+        noteCount === 1 ? "" : "s"
       } · steps ${take.startStep}–${take.endStep}`,
+    );
+  }
+
+  /**
+   * Stamp one destination track's take. Auto-stamping walks every armed
+   * punch-in destination, so this stays silent and returns the stamped region.
+   */
+  private stampTakeForTrack(
+    trackId: string,
+  ): { startStep?: number; endStep?: number } | null {
+    const track = this.musicManager
+      .tracks()
+      .find((candidate) => candidate.id === trackId);
+    if (!track) return null;
+    const takes = this.takeManager.getTakes(trackId)();
+    return this.takeManager.stampTake(
+      trackId,
+      `Take ${takes.length + 1}`,
+      track.notes ?? [],
+      this.audioEngine.visualStep(),
+    );
+  }
+
+  /** Auto-stamp every destination track that had punch-in armed. */
+  private stampArmedPunches(): void {
+    const stamped: string[] = [];
+    for (const trackId of this.punchArmedTargets) {
+      if (this.stampTakeForTrack(trackId)) {
+        const name =
+          this.musicManager
+            .tracks()
+            .find((track) => track.id === trackId)?.name ?? trackId;
+        stamped.push(name);
+      }
+    }
+    if (stamped.length === 0) return;
+    this.haptic.medium();
+    this.snack.success(
+      stamped.length === 1
+        ? `Take stamped for ${stamped[0]}`
+        : `Takes stamped for ${stamped.join(" + ")}`,
     );
   }
 

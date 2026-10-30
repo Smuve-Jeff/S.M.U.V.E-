@@ -49,6 +49,11 @@
         </span>
         {{ audioSession.isRecording() ? 'RECORDING' : audioSession.isPlaying() ? 'PLAYING' : 'READY' }}
       </span>
+      <span
+        class="module-transport-target"
+        *ngIf="audioSession.isRecording() && recordingDetail()"
+        >{{ recordingDetail() }}</span
+      >
     </div>
 
     <div class="flex items-center gap-2 mx-2">
@@ -376,6 +381,7 @@
           )
         "
         class="track-header tactile-v42 glass-v42"
+        [class.rec-capture]="isTrackReceivingTake(track.id)"
         [style.height.px]="
           laneHeight() +
           (musicManager.takesExpanded()[track.id]
@@ -393,6 +399,13 @@
           <span class="track-name neon-text-xs truncate">{{
             track.name | uppercase
           }}</span>
+          <span
+            class="track-rec-badge"
+            *ngIf="isTrackReceivingTake(track.id)"
+            role="status"
+            [attr.aria-label]="'Recording ' + track.name + ' now'"
+            >REC</span
+          >
           <button
             type="button"
             class="ml-auto text-[8px] opacity-60 hover:opacity-100"

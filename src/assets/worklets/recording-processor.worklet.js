@@ -12,7 +12,11 @@
  *   FLUSH  — send remaining partial buffer and reset
  *
  * Messages emitted:
- *   DATA   — { command: 'DATA', left: Float32Array[], right: Float32Array[] }
+ *   STARTED — { command: 'STARTED', time } on the first captured quantum.
+ *             `time` is the AudioWorklet context clock at the start of that
+ *             block, so the main thread can align the take sample-accurately
+ *             with the transport instead of guessing from wall-clock latency.
+ *   DATA    — { command: 'DATA', left: Float32Array[], right: Float32Array[] }
  */
 
 const CHUNK_DURATION_SECONDS = 0.05; // 50 ms per chunk
@@ -27,6 +31,8 @@ class RecordingProcessor extends AudioWorkletProcessor {
     this._leftPartial = []; // Accumulator for sub-chunk writes
     this._rightPartial = [];
     this._sampleRate = sampleRate;
+    /** Context time of the first captured render quantum (null = not yet). */
+    this._startedAt = null;
 
     this.port.onmessage = (event) => {
       const cmd = event.data?.command;
@@ -52,6 +58,14 @@ class RecordingProcessor extends AudioWorkletProcessor {
     const rightInput = input.length > 1 ? input[1] : input[0]; // mono→stereo duplication
 
     if (!leftInput || !this._active) return true;
+
+    // Timestamp the first block that actually carries the input. Every sample
+    // in this block starts at `currentTime` on the audio clock; that is the
+    // anchor the transport needs, not when this message reaches the UI thread.
+    if (this._startedAt === null) {
+      this._startedAt = currentTime;
+      this.port.postMessage({ command: 'STARTED', time: currentTime });
+    }
 
     for (let i = 0; i < leftInput.length; i++) {
       this._leftPartial.push(leftInput[i]);
@@ -113,6 +127,8 @@ class RecordingProcessor extends AudioWorkletProcessor {
     this._rightPartial = [];
     this._leftQueue = [];
     this._rightQueue = [];
+    // The next take must timestamp its own first quantum.
+    this._startedAt = null;
   }
 }
 

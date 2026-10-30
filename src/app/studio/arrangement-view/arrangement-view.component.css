@@ -311,6 +311,35 @@
   background: var(--teal-100);
   box-shadow: inset 3px 0 0 var(--teal-500);
 }
+/* The track actually being written right now — a selected lane is only a
+   selection, so this must look different from it. */
+.track-header.rec-capture {
+  background: rgba(225, 29, 72, 0.1);
+  box-shadow: inset 3px 0 0 var(--record, #e11d48);
+}
+
+.track-rec-badge {
+  flex: 0 0 auto;
+  margin-left: 4px;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: var(--record, #e11d48);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  animation: track-rec-pulse 1s ease-in-out infinite;
+}
+@keyframes track-rec-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
 
 .track-top {
   display: flex;
@@ -776,6 +805,18 @@
 
 .module-transport-state .material-symbols-outlined {
   font-size: 15px;
+}
+
+.module-transport-target {
+  max-width: 220px;
+  overflow: hidden;
+  color: #fca5a5;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
 }
 
 .arrangement-mode-status {

@@ -3157,8 +3157,113 @@ button.comp-meta-state-pill:focus-visible {
   line-height: 1;
 }
 .comp-rec-src-badge {
-  font-size: 10px;
+  font-size: 9px;
+  font-weight: 800;
   line-height: 1;
+  color: var(--teal-600, #0d9488);
+}
+.comp-rec-route {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 10px;
+  background: var(--ivory-paper);
+}
+.comp-rec-route-main {
+  margin: 0;
+  color: var(--espresso-text);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.comp-rec-route-sub {
+  margin: 0;
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.comp-rec-live {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 9px 10px;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.08);
+}
+.comp-rec-live-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: #dc2626;
+  animation: comp-rec-blink 0.8s ease-in-out infinite;
+}
+.comp-rec-live-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.comp-rec-live-copy strong {
+  color: #b91c1c;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.comp-rec-live-copy small {
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.comp-rec-last {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border: 1px solid rgba(13, 148, 136, 0.3);
+  border-radius: 10px;
+  background: rgba(13, 148, 136, 0.08);
+}
+.comp-rec-last .material-symbols-outlined {
+  color: var(--teal-600, #0d9488);
+  font-size: 18px;
+}
+.comp-rec-last strong {
+  display: block;
+  color: var(--espresso-text);
+  font-size: 9px;
+  font-weight: 900;
+}
+.comp-rec-last small {
+  display: block;
+  margin-top: 1px;
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 700;
+}
+@keyframes comp-rec-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+.comp-rec-src-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 .comp-meta-action-btn.recording-active {
   background: #dc2626 !important;

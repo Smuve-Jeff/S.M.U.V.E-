@@ -60,6 +60,8 @@ describe("SmartRecordingService", () => {
           useValue: {
             setRecordingSource: jest.fn(),
             clearRecordingSource: jest.fn(),
+            beginRecording: jest.fn(),
+            endRecording: jest.fn(),
           },
         },
         {

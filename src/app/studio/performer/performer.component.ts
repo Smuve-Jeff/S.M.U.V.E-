@@ -194,7 +194,7 @@ export class PerformerComponent implements OnDestroy, OnInit {
         .finishTake(track?.id, track?.name)
         .catch(() => undefined);
       this.haptic.medium();
-      this.recordingStatus.clearRecordingSource();
+      this.recordingStatus.endRecording("performer");
       return;
     }
     if (!this.perfRecording.isArmed()) {
@@ -205,9 +205,10 @@ export class PerformerComponent implements OnDestroy, OnInit {
         const track = this.selectedTrack();
         this.perfRecording.startRecording(track?.id, track?.name);
         this.haptic.medium();
-        this.recordingStatus.setRecordingSource({
+        this.recordingStatus.beginRecording("performer", {
           type: "performer",
           takeNumber: this.perfRecording.armedTakeNumber(),
+          trackName: track?.name,
         });
       }, 120);
     } else {

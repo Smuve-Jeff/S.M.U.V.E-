@@ -125,6 +125,17 @@ describe("StudioRecordingEngineService", () => {
     expect(service.isRecording()).toBe(false);
   });
 
+  it("prepares the capture worklet without opening a microphone", async () => {
+    const getUserMedia = (navigator.mediaDevices as any).getUserMedia;
+
+    await expect(service.prepareCaptureWorklet()).resolves.toBe(true);
+
+    expect(audioCtxMock.audioWorklet.addModule).toHaveBeenCalledWith(
+      "assets/worklets/recording-processor.worklet.js",
+    );
+    expect(getUserMedia).not.toHaveBeenCalled();
+  });
+
   it("should not double-start recording", () => {
     // Force internal state
     (service as any).isRecording.set(true);
@@ -363,6 +374,30 @@ describe("StudioRecordingEngineService", () => {
     const blob = new Blob(["test"], { type: "audio/wav" });
     service.recordedBlob.set(blob);
     expect(service.recordedBlob()).toBe(blob);
+  });
+
+  it("keeps the worklet's audio-clock start time for take alignment", () => {
+    expect(service.getCaptureStartedAt()).toBeNull();
+
+    (service as any).handleWorkletMessage({
+      data: { command: "STARTED", time: 12.345 },
+    });
+    expect(service.getCaptureStartedAt()).toBeCloseTo(12.345, 6);
+
+    // A malformed timestamp must not overwrite a good anchor.
+    (service as any).handleWorkletMessage({
+      data: { command: "STARTED", time: Number.NaN },
+    });
+    expect(service.getCaptureStartedAt()).toBeCloseTo(12.345, 6);
+  });
+
+  it("exposes the applied input round-trip latency in seconds", () => {
+    latencyMock.getAppliedCompensationMs.mockReturnValue(18);
+    expect(service.getInputLatencySeconds()).toBeCloseTo(0.018, 6);
+
+    // A negative calibration cannot rewind the performance.
+    latencyMock.getAppliedCompensationMs.mockReturnValue(-5);
+    expect(service.getInputLatencySeconds()).toBe(0);
   });
 
   /**

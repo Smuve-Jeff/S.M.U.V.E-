@@ -1002,7 +1002,10 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
 });
 
 describe('MusicManagerService recording teardown', () => {
-  const configure = (engine: unknown) => {
+  const configure = (
+    engine: unknown,
+    audioEngineOverrides: Record<string, unknown> = {},
+  ) => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -1015,7 +1018,8 @@ describe('MusicManagerService recording teardown', () => {
             visualStep: signal(0),
             setSongLengthSteps: jest.fn(),
             triggerAttack: jest.fn(),
-    setBaseFaderGain: jest.fn(),
+            setBaseFaderGain: jest.fn(),
+            ...audioEngineOverrides,
           },
         },
         { provide: ProjectService, useValue: { currentProject: signal(null) } },
@@ -1065,6 +1069,90 @@ describe('MusicManagerService recording teardown', () => {
     const service = configure({});
 
     await expect(service.stopRecording('track-1')).resolves.toBeNull();
+  });
+
+  it('places a finished pass on its destination track as an audio clip', () => {
+    const service = configure({});
+    service.tracks.set([
+      { id: 'track-1', name: 'Lead', clips: [], notes: [], steps: [] } as any,
+    ]);
+    const buffer = { duration: 2 } as AudioBuffer;
+
+    const placement = service.placeRecordedTake({
+      trackId: 'track-1',
+      name: 'Take 10:00:00',
+      buffer,
+      startStep: 32, // bar 2
+      tempo: 120,
+    });
+
+    expect(placement).toEqual({
+      trackId: 'track-1',
+      trackName: 'Lead',
+      clipId: expect.any(String),
+      startBar: 2,
+      lengthBars: 1,
+    });
+    const clip = service.tracks()[0].clips[0] as any;
+    expect(clip).toMatchObject({
+      name: 'Take 10:00:00',
+      start: 2,
+      length: 1,
+      type: 'audio',
+      audioRefId: placement!.clipId,
+      clipGain: 1,
+    });
+    // The clip resolves its PCM through the reference cache, which is what
+    // playback, save/restore and stem export all read.
+    expect(service.stemAudioCache.get(placement!.clipId)).toBe(buffer);
+
+    TestBed.inject(HistoryService).undo();
+    expect(service.tracks()[0].clips).toHaveLength(0);
+  });
+
+  it('trims the pre-roll from the WAV head before caching the clip', () => {
+    const pcm = new Float32Array([1, 2, 3, 4]);
+    const copyToChannel = jest.fn();
+    const trimmed = { copyToChannel, duration: 3 / 48000 };
+    const service = configure({}, {
+      ctx: { createBuffer: jest.fn(() => trimmed) },
+    });
+    service.tracks.set([
+      { id: 'track-1', name: 'Lead', clips: [], notes: [], steps: [] } as any,
+    ]);
+    const buffer = {
+      duration: 4 / 48000,
+      length: 4,
+      numberOfChannels: 1,
+      sampleRate: 48000,
+      getChannelData: jest.fn(() => pcm),
+    } as unknown as AudioBuffer;
+
+    const placement = service.placeRecordedTake({
+      trackId: 'track-1',
+      name: 'Take',
+      buffer,
+      startStep: 0,
+      tempo: 120,
+      trimSeconds: 1 / 48000,
+    });
+
+    // One leading sample dropped, the rest copied into the cached take.
+    expect(copyToChannel).toHaveBeenCalledWith(pcm.subarray(1), 0);
+    expect(service.stemAudioCache.get(placement!.clipId)).toBe(trimmed);
+  });
+
+  it('leaves the arrangement untouched when the destination track is gone', () => {
+    const service = configure({});
+    const placement = service.placeRecordedTake({
+      trackId: 'missing',
+      name: 'Take',
+      buffer: { duration: 1 } as AudioBuffer,
+      startStep: 0,
+      tempo: 120,
+    });
+    expect(placement).toBeNull();
+    expect(service.tracks()).toHaveLength(0);
   });
 });
 

@@ -47,6 +47,7 @@ import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio
 import { AutomationCurveEditorComponent } from "../automation/automation-curve-editor.component";
 import { AutomationService } from "../automation.service";
 import { ArrangementMarkersService } from "../arrangement-markers.service";
+import { RecordingStatusService } from "../recording-status.service";
 
 export type ArrangementTool =
   | "select"
@@ -86,6 +87,18 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   /** Markers are project state, not component state. */
   private readonly markerService = inject(ArrangementMarkersService);
   readonly markers = this.markerService.markers;
+  /**
+   * The same recording state the transport chip reads. The arrangement uses it
+   * to flag the exact track header whose take is being written, instead of a
+   * generic "RECORDING" badge with no destination.
+   */
+  public readonly recordingStatus = inject(RecordingStatusService);
+  readonly recordingDetail = this.recordingStatus.recordingDetail;
+
+  /** True while the transport is writing this track's take. */
+  isTrackReceivingTake(trackId: string): boolean {
+    return this.recordingStatus.isTrackReceivingTake(trackId);
+  }
 
   /**
    * Fired from the empty-arrangement CTA so the Studio shell can switch

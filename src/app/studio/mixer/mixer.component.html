@@ -421,11 +421,22 @@
             class="mix-msr-btn"
             [class.on]="isArmed(track.id)"
             [class.record]="isArmed(track.id)"
+            [class.rec-capture]="isReceivingTake(track.id)"
             (click)="toggleArmTrack(track.id); $event.stopPropagation()"
             [attr.aria-pressed]="isArmed(track.id)"
+            [attr.title]="
+              isReceivingTake(track.id)
+                ? 'Recording this take now'
+                : isArmed(track.id)
+                  ? 'Armed for the next record pass'
+                  : 'Arm for recording'
+            "
             [attr.aria-label]="
               (isArmed(track.id) ? 'Disarm recording on ' : 'Arm recording on ') +
-              track.name
+              track.name +
+              (isReceivingTake(track.id)
+                ? ' — currently receiving the take'
+                : '')
             "
           >
             R
@@ -646,7 +657,7 @@
         <button type="button" [class.active]="selected.muted" (click)="toggleMute(selected.id)" [attr.aria-pressed]="selected.muted">M</button>
         <button type="button" [class.active]="selected.soloed" (click)="toggleSolo(selected.id)" [attr.aria-pressed]="selected.soloed">S</button>
         <button type="button" [class.active]="selected.soloSafe" (click)="toggleSoloSafe(selected.id)" [attr.aria-pressed]="!!selected.soloSafe" aria-label="Solo-safe — stays audible when another channel is soloed">SS</button>
-        <button type="button" [class.active]="isArmed(selected.id)" (click)="toggleArmTrack(selected.id)" [attr.aria-pressed]="isArmed(selected.id)">R</button>
+        <button type="button" [class.active]="isArmed(selected.id)" [class.rec-capture]="isReceivingTake(selected.id)" (click)="toggleArmTrack(selected.id)" [attr.aria-pressed]="isArmed(selected.id)" [attr.title]="isReceivingTake(selected.id) ? 'Recording this take now' : 'Arm for recording'">R</button>
       </div>
     </div>
   </section>

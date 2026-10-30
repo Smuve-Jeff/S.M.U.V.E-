@@ -16,6 +16,7 @@ import { AudioSessionService } from "../audio-session.service";
 import { MicrophoneService } from "../../services/microphone.service";
 import { VocalMasteringService } from "../../services/vocal-mastering.service";
 import { StudioRecordingEngineService } from "../studio-recording-engine.service";
+import { RecordingStatusService } from "../recording-status.service";
 
 type VocalProfile = "crystal" | "broadcast" | "warmth";
 
@@ -40,6 +41,8 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
   public readonly micService = inject(MicrophoneService); // Legacy support if needed
   public readonly recordingEngine = inject(StudioRecordingEngineService);
   public readonly mastering = inject(VocalMasteringService);
+  private readonly recordingStatus = inject(RecordingStatusService);
+  private readonly recordingStatusOwner = "microphone-interface";
 
   @Input() mode: "compact" | "full" = "full";
 
@@ -127,6 +130,25 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
         this.selectedChannelId.set(preferredChannel.id);
       }
     });
+
+    // Keep the Studio-wide REC chip tied to the real MediaRecorder state,
+    // including a stop initiated from outside this view. The channel, input
+    // and processed/raw capture path all come from live service state.
+    effect(() => {
+      if (!this.micService.isRecording()) {
+        this.recordingStatus.endRecording(this.recordingStatusOwner);
+        return;
+      }
+      const channel = this.currentChannel();
+      this.recordingStatus.beginRecording(this.recordingStatusOwner, {
+        type: "mic",
+        channelId: channel?.id ?? "mic",
+        channelLabel: channel?.label ?? "Microphone",
+        inputLabel: this.deviceSummary()?.label ?? "Microphone input",
+        capturePath: this.capturePathLabel(),
+        paused: this.isPaused(),
+      });
+    });
   }
 
   ngAfterViewInit(): void {
@@ -134,6 +156,7 @@ export class MicrophoneInterfaceComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.recordingStatus.endRecording(this.recordingStatusOwner);
     if (this.spectrumFrame !== null) {
       cancelAnimationFrame(this.spectrumFrame);
       this.spectrumFrame = null;

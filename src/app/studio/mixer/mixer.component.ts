@@ -649,21 +649,31 @@ export class MixerComponent implements OnInit, OnDestroy {
     return this.recordingStatus.isTrackArmed(id);
   }
 
+  /**
+   * True only while the transport is actually writing this track's take.
+   * Distinct from armed: arming chooses the next pass's destination, this
+   * lights the strip whose audio is being captured right now.
+   */
+  isReceivingTake(id: string): boolean {
+    return this.recordingStatus.isTrackReceivingTake(id);
+  }
+
   toggleArmTrack(id: string): void {
     this.haptic.medium();
     const track = this.tracks().find((t) => t.id === id);
     const trackName = track?.name || id;
     if (this.recordingStatus.isTrackArmed(id)) {
       this.recordingStatus.disarmTrack(id);
-    } else {
-      this.recordingStatus.armTrack(id);
-      if (this.isRecording()) {
-        this.recordingStatus.setRecordingSource({
-          type: "mixer-strip",
-          trackId: id,
-          trackName,
-        });
-      }
+      return;
+    }
+    this.recordingStatus.armTrack(id);
+    if (this.isRecording()) {
+      // The live pass snapshotted its destinations when it started; arming now
+      // is honest about applying to the NEXT pass instead of pretending this
+      // strip is already capturing.
+      this.snack.info(
+        `${trackName} armed — takes start on the next record pass`,
+      );
     }
   }
   async removeTrack(id: string, event: Event): Promise<void> {
