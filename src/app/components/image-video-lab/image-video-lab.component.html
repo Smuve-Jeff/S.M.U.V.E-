@@ -1173,6 +1173,20 @@
               STAGE ON TIMELINE
             </button>
             <!--
+              Staged cards had no exit of their own: once a frame was shot the
+              placeholder sat on the lane until the plan was restaged or the
+              whole lane cleared, which took real takes with it.
+            -->
+            <button
+              type="button"
+              class="director-button"
+              [disabled]="stagedCardCount() === 0"
+              (click)="clearShotCards()"
+              title="Remove the plan's storyboard cards, keeping any footage already cut"
+            >
+              CLEAR CARDS
+            </button>
+            <!--
               The plan now outlives the tab, so there has to be a way to throw
               it away: `clearShotPlan` existed on the component with nothing in
               the console calling it, which left a restored plan permanent.

@@ -4178,6 +4178,52 @@ describe('ImageVideoLabComponent', () => {
       localStorage.clear();
     });
 
+    it('clears its own cards without touching footage on the lane', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      visualsLane(engine).clips = [
+        {
+          id: 'take-1',
+          name: 'Hero take',
+          url: 'blob:take',
+          startTime: 0,
+          duration: 12,
+          offset: 0,
+          trackId: 't1',
+          type: 'video',
+          source: 'camera',
+        },
+        {
+          id: 'card-1',
+          name: '01 · Dashboard',
+          url: '',
+          startTime: 12,
+          duration: 8,
+          offset: 0,
+          trackId: 't1',
+          type: 'overlay',
+          source: 'ai',
+        },
+      ];
+      (engine.removeClip as jest.Mock).mockClear();
+
+      component.clearShotCards();
+
+      expect(engine.removeClip).toHaveBeenCalledTimes(1);
+      expect(engine.removeClip).toHaveBeenCalledWith('card-1');
+      expect(component.aiFeedback()).toContain('1 CLIP(S) OF FOOTAGE KEPT');
+    });
+
+    it('says there is nothing to clear instead of silently doing nothing', async () => {
+      const { component, videoEngine: engine } = await createComponent();
+      visualsLane(engine).clips = [];
+      (engine.removeClip as jest.Mock).mockClear();
+
+      component.clearShotCards();
+
+      expect(engine.removeClip).not.toHaveBeenCalled();
+      expect(component.aiFeedback()).toContain('NO SHOT CARDS');
+    });
+
     it('still names the model that answered after a reload', async () => {
       localStorage.setItem(
         'smuve_cinema_director_plan',

@@ -1801,6 +1801,40 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     return clip.source === 'ai' && clip.type === 'overlay' && !clip.url;
   }
 
+  /** How many storyboard placeholders are sitting on the visuals lane. */
+  readonly stagedCardCount = computed(
+    () =>
+      (this.videoEngine.tracks().find((track) => track.id === 't1')?.clips ?? []).filter(
+        (clip) => this.isShotCard(clip)
+      ).length
+  );
+
+  /**
+   * Take the plan's placeholders off the lane once the footage is shot.
+   *
+   * Staged cards had no exit: after shooting a card's frame the placeholder
+   * stayed on the lane until the plan was restaged or deleted by hand. This
+   * removes cards only, so real takes are never caught in the sweep.
+   */
+  clearShotCards(): void {
+    const track = this.videoEngine.tracks().find((candidate) => candidate.id === 't1');
+    if (track?.locked) {
+      this.aiFeedback.set('THE VISUALS LANE IS LOCKED — UNLOCK IT, THEN CLEAR THE CARDS.');
+      return;
+    }
+    const clips = track?.clips ?? [];
+    const cards = clips.filter((clip) => this.isShotCard(clip));
+    if (cards.length === 0) {
+      this.aiFeedback.set('NO SHOT CARDS ON THE VISUALS LANE.');
+      return;
+    }
+    const footage = clips.filter((clip) => !this.isShotCard(clip)).length;
+    cards.forEach((clip) => this.videoEngine.removeClip(clip.id));
+    this.aiFeedback.set(
+      `REMOVED ${cards.length} SHOT CARD(S) — ${footage} CLIP(S) OF FOOTAGE KEPT.`
+    );
+  }
+
   /** Assemble a timeline clip from a planned shot. */
   private shotClip(shot: ShotPlanShot): Omit<VideoClip, 'id' | 'trackId'> {
     return {
