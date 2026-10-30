@@ -132,6 +132,33 @@ describe('ChatbotComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('re-reads a committed profile change and says what moved', () => {
+    userProfileServiceMock.profile.set({
+      ...initialProfile,
+      artistName: 'Nova Vale',
+      profileSetupCompleted: true,
+      musicalJourney: {
+        ...initialProfile.musicalJourney,
+        signatureSound: 'warped tape 808s with choir pads',
+        currentFocus: 'first official EP',
+      },
+    });
+
+    (component as any).announceProfileRevision();
+
+    const receipt = component.messages().at(-1)!;
+    expect(receipt.text).toContain('PROFILE REVISION');
+    expect(receipt.text).toContain('signature sound');
+    expect(receipt.text).toContain('warped tape 808s with choir pads');
+    expect(receipt.text).toContain('current focus');
+
+    // One receipt per revision, not one per render.
+    (component as any).announceProfileRevision();
+    expect(
+      component.messages().filter((message) => message.text.includes('PROFILE REVISION'))
+    ).toHaveLength(1);
+  });
+
   it('sends a question queued by another surface, exactly once', () => {
     const send = jest.spyOn(component, 'sendMessage').mockResolvedValue(undefined);
     uiServiceMock.takePendingChatPrompt.mockReturnValue(
@@ -189,6 +216,26 @@ describe('ChatbotComponent', () => {
       'S.M.U.V.E: I will soften the keys and keep the vocal forward.'
     );
     expect(prompt.split('What about the chorus?')).toHaveLength(2);
+  });
+
+  it('never sends local system notices or revision receipts back to the model', () => {
+    component.messages.set([
+      { id: 'u1', role: 'user', text: 'Make the verse warmer.', timestamp: 1 },
+      { id: 'a1', role: 'assistant', text: 'Keys softened.', timestamp: 2 },
+      {
+        id: 'revision',
+        role: 'assistant',
+        text: '🧠 PROFILE REVISION — signature sound changed.',
+        timestamp: 3,
+        category: 'system',
+      },
+      { id: 'u2', role: 'user', text: 'What about the chorus?', timestamp: 4 },
+    ] as any);
+
+    const prompt = (component as any).buildMasterPrompt('What about the chorus?');
+
+    expect(prompt).toContain('Artist: Make the verse warmer.');
+    expect(prompt).not.toContain('PROFILE REVISION');
   });
 
   it('adds dictated words to the editable draft and stops active voice capture', () => {

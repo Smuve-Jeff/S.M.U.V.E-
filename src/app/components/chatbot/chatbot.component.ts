@@ -60,6 +60,10 @@ import {
 } from '../../services/chat-app-command.service';
 import { ArtistProfileFinetuneService } from '../../services/artist-profile-finetune.service';
 import {
+  ArtistProfileRevisionService,
+  profileRevisionLine,
+} from '../../services/artist-profile-revision.service';
+import {
   SmuveCareerDirectorService,
   SmuveSurfaceIntel,
 } from '../../services/smuve-career-director.service';
@@ -180,6 +184,10 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   /** Existing profile fine-tuning compiler — reused rather than maintaining a second persona profile. */
   private get artistFinetune(): ArtistProfileFinetuneService | null {
     return this.injector.get(ArtistProfileFinetuneService, null);
+  }
+  /** Remembers the last profile S.M.U.V.E. read, so edits are noticed once. */
+  private get profileRevision(): ArtistProfileRevisionService | null {
+    return this.injector.get(ArtistProfileRevisionService, null);
   }
   /**
    * Career + genre + room director. Optional on purpose: the chat must still
@@ -593,6 +601,15 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       if (!queued || !this.chatReady() || this.destroyed) return;
       queueMicrotask(() => this.consumeQueuedPrompt());
     });
+
+    // When the artist commits a profile change while the console is open,
+    // S.M.U.V.E. re-reads the record and says what changed instead of judging
+    // the next turn against a body it no longer holds.
+    effect(() => {
+      const profile = this.profile();
+      if (!profile || !this.chatReady() || this.destroyed) return;
+      queueMicrotask(() => this.announceProfileRevision());
+    });
   }
 
   ngOnInit() {
@@ -600,6 +617,24 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     if (!this.restoreMessages()) this.setWelcomeGreeting();
     this.chatReady.set(true);
     this.consumeQueuedPrompt();
+  }
+
+  /** Files a profile revision in the transcript, once per revision. */
+  private announceProfileRevision(): void {
+    if (this.destroyed) return;
+    const revision = this.profileRevision?.takeChanges();
+    if (!revision) return;
+    this.messages.update((messages) => [
+      ...messages,
+      {
+        id: this.nextMessageId(),
+        role: 'assistant',
+        text: profileRevisionLine(revision),
+        timestamp: Date.now(),
+        category: 'system',
+      },
+    ]);
+    this.persistMessages();
   }
 
   /** Sends a question queued by another surface, exactly once. */
@@ -658,7 +693,14 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const continuity = this.caseFile?.callbackLine(
       this.careerDirector?.currentSurface()
     );
-    const opening = continuity ? `${welcome}\n\n${continuity}` : welcome;
+    const revision = this.profileRevision?.takeChanges();
+    const opening = [
+      welcome,
+      continuity,
+      revision ? profileRevisionLine(revision) : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
 
     const greeting: ChatMessage = {
       id: this.nextMessageId(),
@@ -986,7 +1028,15 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
     const historyEnd = currentTurnIndex >= 0 ? currentTurnIndex : messages.length;
     const completedMessages = messages
       .slice(0, historyEnd)
-      .filter((message) => !message.isStreaming && message.text.trim());
+      .filter(
+        (message) =>
+          !message.isStreaming &&
+          message.text.trim() &&
+          // System notices (welcome, room announcements, profile revisions)
+          // are local context, not conversation. Sending them back would leak
+          // profile answers the artist may have withheld from AI.
+          message.category !== 'system'
+      );
     const firstUserMessage = completedMessages.findIndex(
       (message) => message.role === 'user'
     );
