@@ -56,6 +56,15 @@
         >
           <span class="material-symbols-outlined">zoom_out</span>
         </button>
+        <button
+          type="button"
+          class="pr-tool pr-tool-sm"
+          (click)="zoomIn()"
+          title="Zoom in"
+          aria-label="Zoom in grid"
+        >
+          <span class="material-symbols-outlined">zoom_in</span>
+        </button>
         <span class="pr-zoom-readout">{{ zoomPercent() }}%</span>
         <!-- Row density sits with zoom: they are the two controls that
              decide how much music fits on screen. -->
@@ -77,15 +86,6 @@
           (click)="toggleRowSize()"
         >
           <span class="material-symbols-outlined">{{ rowSize() === 'tall' ? 'unfold_less' : 'unfold_more' }}</span>
-        </button>
-        <button
-          type="button"
-          class="pr-tool pr-tool-sm"
-          (click)="zoomIn()"
-          title="Zoom in"
-          aria-label="Zoom in grid"
-        >
-          <span class="material-symbols-outlined">zoom_in</span>
         </button>
       </div>
       <button
