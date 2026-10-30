@@ -748,6 +748,16 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.musicManager.toggleSolo(id);
   }
 
+  /**
+   * Duplicate a whole track below itself. No confirmation is needed: unlike
+   * removing a track this destroys nothing, and one Ctrl+Z takes the copy away.
+   */
+  duplicateTrack(id: string, e: Event) {
+    e.stopPropagation();
+    if (!this.musicManager.duplicateTrack(id)) return;
+    this.haptic.light();
+  }
+
   async removeTrack(id: string, e: Event) {
     e.stopPropagation();
     // In-app dialog rather than `window.confirm`: a native modal freezes the

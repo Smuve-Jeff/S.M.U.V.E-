@@ -982,6 +982,49 @@ export class MusicManagerService {
     this.syncFxSlotsToRack(trackId, slots);
   }
 
+  /**
+   * Duplicate a track — name, mixer state, notes and clips — directly below its
+   * source, and select the copy. Live plugin inserts are deliberately not
+   * cloned: an insert owns one live chain instance, so pointing a second track
+   * at it would leave both fighting over the same processor. The copy starts
+   * clean and can be re-loaded from the plugin rack if wanted.
+   */
+  duplicateTrack(trackId: string): string | null {
+    const list = this.tracks();
+    const idx = list.findIndex((t) => t.id === trackId);
+    if (idx < 0) return null;
+    const source = list[idx];
+    const copy = this.clone(source) as TrackModel;
+    copy.id = 'track_' + Date.now() + Math.random();
+    copy.name = source.name + ' copy';
+    copy.notes = (copy.notes ?? []).map((n) => ({
+      ...n,
+      id: 'note-' + Date.now() + '-' + Math.random(),
+    }));
+    copy.clips = (copy.clips ?? []).map((c) => ({
+      ...c,
+      id: 'clip_' + Date.now() + '-' + Math.random(),
+    }));
+    delete copy.pluginIds;
+
+    this.runCommand(
+      'Duplicate Track · ' + source.name,
+      () => {
+        this.tracks.update((ts) => {
+          const next = [...ts];
+          next.splice(idx + 1, 0, copy);
+          return next;
+        });
+        this.selectedTrackId.set(copy.id);
+      },
+      () => {
+        this.tracks.update((ts) => ts.filter((t) => t.id !== copy.id));
+        this.selectedTrackId.set(source.id);
+      }
+    );
+    return copy.id;
+  }
+
   removeTrack(id: string) {
     const list = this.tracks();
     const idx = list.findIndex((t) => t.id === id);

@@ -440,6 +440,17 @@
           <button
             type="button"
             class="mini-btn"
+            (click)="duplicateTrack(track.id, $event)"
+            title="Duplicate this track with its clips"
+            aria-label="Duplicate track"
+          >
+            <span class="material-symbols-outlined text-[10px]">
+              content_copy
+            </span>
+          </button>
+          <button
+            type="button"
+            class="mini-btn"
             (click)="removeTrack(track.id, $event)"
           >
             <span class="material-symbols-outlined text-[10px]">delete</span>

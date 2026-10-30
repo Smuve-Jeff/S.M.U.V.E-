@@ -1857,4 +1857,37 @@ describe('MusicManagerService per-scene follow rules', () => {
     expect(service.sceneFollowRules()).toEqual({});
     expect(service.sceneFollowBars()).toBe(4);
   });
+
+  it('duplicates a track with its notes and selects the copy', () => {
+    const source = service.tracks()[0];
+    service.tracks.set([
+      {
+        ...source,
+        notes: [{ id: 'n1', step: 0, midi: 60, length: 1, velocity: 100 }],
+        clips: [],
+      },
+    ]);
+    service.selectedTrackId.set('track-1');
+
+    const copyId = service.duplicateTrack('track-1');
+    const list = service.tracks();
+
+    expect(list).toHaveLength(2);
+    expect(copyId).not.toBe('track-1');
+    expect(list[1].id).toBe(copyId);
+    expect(list[1].name).toBe(source.name + ' copy');
+    // Fresh note ids: the copy must not shadow the source's selection.
+    expect(list[1].notes[0].id).not.toBe('n1');
+    expect(list[1].notes[0].midi).toBe(60);
+    expect(service.selectedTrackId()).toBe(copyId);
+
+    // This describe's `history` fixture is not a real HistoryService, so drive
+    // undo through the instance the service actually records into.
+    const recorder = (service as unknown as { history: { undo(): void } })
+      .history;
+    recorder.undo();
+    expect(service.tracks()).toHaveLength(1);
+    expect(service.selectedTrackId()).toBe('track-1');
+  });
+
 });
