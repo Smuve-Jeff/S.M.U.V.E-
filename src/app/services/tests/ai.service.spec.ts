@@ -877,6 +877,81 @@ describe('AiService', () => {
     expect(service.connectionState()).toBe('live');
   });
 
+  it('reports a provider rate limit as retryable instead of a severed link', async () => {
+    const pending = service.getAIResponse('Analyze my release plan');
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+    req.flush(
+      {
+        error: 'The AI provider is rate limiting S.M.U.V.E. Try again shortly.',
+        details: { retryAfterMs: 20000 },
+      },
+      { status: 429, statusText: 'Too Many Requests' }
+    );
+
+    const response = await pending;
+    expect(response).toContain('rate limited');
+    expect(response).toContain('about 20s');
+    expect(response).not.toContain('Strategic Link Severed');
+    expect(service.connectionState()).toBe('live');
+    expect(service.isProcessing()).toBe(false);
+  });
+
+  it('never files a rate-limit notice as industry intelligence', async () => {
+    const search = service.industryDeepSearch('playlist pitching');
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+    req.flush(
+      { error: 'rate limited' },
+      { status: 429, statusText: 'Too Many Requests' }
+    );
+
+    await expect(search).rejects.toThrow(/rate limited/i);
+    expect(service.industryIntelligence()).toEqual([]);
+  });
+
+  it('reports an expired session instead of blaming the connection', async () => {
+    const pending = service.getAIResponse('Resume the session');
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+    req.flush(
+      { error: 'Invalid token' },
+      { status: 403, statusText: 'Forbidden' }
+    );
+
+    const response = await pending;
+    expect(response).toMatch(/sign in again/i);
+    expect(service.connectionState()).toBe('live');
+  });
+
+  it('reads a too-long request as a trim, not an outage', async () => {
+    const pending = service.getAIResponse('Resume the session');
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+    req.flush(
+      { error: 'prompt too long' },
+      { status: 413, statusText: 'Payload Too Large' }
+    );
+
+    expect(await pending).toMatch(/trim it/i);
+    expect(service.connectionState()).toBe('live');
+  });
+
+  it('records the model, attempts and latency of a live call', async () => {
+    const pending = service.getAIResponse('Analyze this');
+    const req = httpMock.expectOne('http://localhost:4000/api/ai/analyze');
+    req.flush({
+      text: 'A verified brief.',
+      meta: { model: 'gemini-2.5-flash', attempts: 2, latencyMs: 840 },
+    });
+
+    await pending;
+    expect(service.lastAiCall()).toEqual(
+      expect.objectContaining({
+        model: 'gemini-2.5-flash',
+        attempts: 2,
+        latencyMs: 840,
+      })
+    );
+    expect(service.aiStatusLabel()).toBe('Live AI · 840 ms · 2 tries');
+  });
+
   it('times out a stalled request and reports the offline state', async () => {
     jest.useFakeTimers();
     try {

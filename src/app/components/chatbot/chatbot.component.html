@@ -178,7 +178,7 @@
         <div class="size-1.5 rounded-full bg-green-400 animate-pulse"></div>
         <span
           class="text-[7px] font-black text-slate-600 uppercase tracking-widest"
-          >{{ aiService.connectionState?.() === 'live' ? 'Live AI' : aiService.connectionState?.() === 'offline' ? 'Local knowledge' : 'AI ready' }}</span
+          >{{ aiService.aiStatusLabel?.() ?? 'AI ready' }}</span
         >
       </div>
     </div>

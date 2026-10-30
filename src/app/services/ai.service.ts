@@ -7,7 +7,7 @@ import { NEURAL_UPGRADE_BLUEPRINTS } from './neural-upgrades.data';
 import { NotificationService } from './notification.service';
 import { LoggingService } from './logging.service';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom, of } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { catchError, timeout } from 'rxjs/operators';
 import { AI_MANAGER_STANDARDS, AI_REQUEST_TIMEOUT_MS, boundAiPrompt, isOfflineAiText } from '../../ai-manager.contract';
 import {
@@ -114,6 +114,33 @@ export class AiService {
   >([]);
   isProcessing = signal(false);
   readonly connectionState = signal<'idle' | 'live' | 'offline'>('idle');
+  /**
+   * What the last successful model call actually was — model, attempts and
+   * provider latency. The assistant header reads it, so its badge reports a
+   * real call instead of a decorative "Live AI".
+   */
+  readonly lastAiCall = signal<{
+    model: string;
+    attempts: number;
+    latencyMs: number;
+    at: number;
+  } | null>(null);
+  /** One-line assistant status: the live link with its last call, local, or ready. */
+  readonly aiStatusLabel = computed(() => {
+    const state = this.connectionState();
+    if (state === 'offline') return 'Local knowledge';
+    if (state !== 'live') return 'AI ready';
+    const call = this.lastAiCall();
+    if (!call) return 'Live AI';
+    const retries = call.attempts > 1 ? ` · ${call.attempts} tries` : '';
+    return `Live AI · ${call.latencyMs} ms${retries}`;
+  });
+  /**
+   * Failure copy issued this session. Research cached from a failed call would
+   * present an outage, a rate limit or an oversized request as industry intel,
+   * so callers check membership instead of sniffing the severed sentinel.
+   */
+  private failureNotices = new Set<string>();
   private pendingRequests = 0;
   private loggingService = inject(LoggingService);
   private http = inject(HttpClient);
@@ -475,6 +502,11 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
           'The AI research service is offline (strategic link severed). Reconnect and try again.',
         );
       }
+      // A rate limit, an oversized request or an expired session is not a
+      // research brief; surface it instead of filing it under intelligence.
+      if (this.failureNotices.has(intel)) {
+        throw new Error(intel);
+      }
       const endedAt =
         typeof performance !== 'undefined' ? performance.now() : Date.now();
       const timestamp = Date.now();
@@ -568,6 +600,73 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     return boundAiPrompt(prompt.replace(directives, ''), prefix);
   }
 
+  /** The signature outage line for the active persona. */
+  private severedLine(): string {
+    return (
+      this.offlineVoice()?.linkSevered ??
+      'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.'
+    );
+  }
+
+  /** Remember failure copy so it can never be cached as research intel. */
+  private noteFailureNotice(text: string): void {
+    if (!text) return;
+    this.failureNotices.add(text);
+    if (this.failureNotices.size > 20) {
+      const oldest = this.failureNotices.values().next().value;
+      if (oldest !== undefined) this.failureNotices.delete(oldest);
+    }
+  }
+
+  /**
+   * Turn a failed model call into copy the artist can act on.
+   *
+   * Every failure used to resolve to the same severed-link line and set the
+   * link to offline, so a provider quota window, an oversized request, an
+   * expired session and a genuine outage were indistinguishable — and the
+   * artist was told their connection was broken when it was not. Only a
+   * missing link (or an outage) claims that now.
+   */
+  private aiFailureNotice(error: unknown): {
+    text: string;
+    state: 'live' | 'offline';
+  } {
+    const status = Number((error as { status?: number } | null)?.status ?? 0);
+    const retryAfterMs = Number(
+      (error as { error?: { details?: { retryAfterMs?: number } } } | null)
+        ?.error?.details?.retryAfterMs ?? 0
+    );
+    if (status === 429) {
+      const wait =
+        retryAfterMs > 0
+          ? ` Try again in about ${Math.ceil(retryAfterMs / 1000)}s.`
+          : ' Try again in a minute.';
+      return {
+        text: `S.M.U.V.E is being rate limited by its model provider. Nothing in this session was lost.${wait}`,
+        state: 'live',
+      };
+    }
+    if (status === 413) {
+      return {
+        text: 'That request is longer than one model call allows. Trim it and resend.',
+        state: 'live',
+      };
+    }
+    if (status === 401 || status === 403) {
+      return {
+        text: 'Your session no longer reaches S.M.U.V.E. Sign in again and resend.',
+        state: 'live',
+      };
+    }
+    if (status === 408 || status === 504) {
+      return {
+        text: 'The model provider took too long to answer. Resend, or shorten the request.',
+        state: 'live',
+      };
+    }
+    return { text: this.severedLine(), state: 'offline' };
+  }
+
   async getAIResponse(prompt: string): Promise<string> {
     if (!this.aiAccess()) return this.aiLockNotice;
     const contextualPrompt = this.ensurePersonaDirectives(prompt);
@@ -583,25 +682,44 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
           : {};
       const response = await firstValueFrom(
         this.http
-          .post<{ text: string }>(
+          .post<{
+            text: string;
+            meta?: { model?: string; attempts?: number; latencyMs?: number };
+          }>(
             `${APP_SECURITY_CONFIG.auth_api_url}/ai/analyze`,
             { prompt: contextualPrompt },
             { headers }
           )
-          .pipe(
-            timeout(AI_REQUEST_TIMEOUT_MS),
-            catchError(() =>
-              of({
-                text:
-                  this.offlineVoice()?.linkSevered ??
-                  'Strategic Link Severed. Offline processing active. FIX YOUR FUCKING CONNECTION.',
-              })
-            )
-          )
+          .pipe(timeout(AI_REQUEST_TIMEOUT_MS))
       );
-      const text = response?.text || 'Strategic Link Severed. No provider response.';
-      this.connectionState.set(isOfflineAiText(text) ? 'offline' : 'live');
+      const text = response?.text ?? '';
+      // A provider that answers with the severed sentinel is still an outage,
+      // not a live brief.
+      if (!text.trim() || isOfflineAiText(text)) {
+        this.connectionState.set('offline');
+        const severed = this.sanitizePersonaText(this.severedLine());
+        this.noteFailureNotice(severed);
+        return severed;
+      }
+      const meta = response.meta;
+      this.lastAiCall.set(
+        meta && typeof meta.model === 'string'
+          ? {
+              model: meta.model,
+              attempts: Math.max(1, Math.round(Number(meta.attempts) || 1)),
+              latencyMs: Math.max(0, Math.round(Number(meta.latencyMs) || 0)),
+              at: Date.now(),
+            }
+          : null
+      );
+      this.connectionState.set('live');
       return this.sanitizePersonaText(text);
+    } catch (error) {
+      const failure = this.aiFailureNotice(error);
+      this.connectionState.set(failure.state);
+      const notice = this.sanitizePersonaText(failure.text);
+      this.noteFailureNotice(notice);
+      return notice;
     } finally {
       this.pendingRequests = Math.max(0, this.pendingRequests - 1);
       this.isProcessing.set(this.pendingRequests > 0);
@@ -954,11 +1072,14 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
         { prompt },
         { headers }
       ).pipe(
+        timeout(AI_REQUEST_TIMEOUT_MS),
         catchError((error: any) => {
           const message =
-            error?.error?.error ||
-            error?.message ||
-            'AI image generation is unavailable.';
+            error?.name === 'TimeoutError'
+              ? 'The concept-art provider took too long to answer. Resend the frame request.'
+              : error?.error?.error ||
+                error?.message ||
+                'AI image generation is unavailable.';
           throw new Error(String(message));
         })
       )
