@@ -1664,4 +1664,75 @@ describe("StudioComponent", () => {
     expect(pianoRoll.filter((c) => c !== "piano-roll")).toEqual([]);
   });
 
+  it("lets the AI Mix panel apply the advice it lists", () => {
+    const template = fs.readFileSync(
+      path.join(process.cwd(), "src/app/studio/studio.component.html"),
+      "utf-8",
+    );
+    const block = template.slice(
+      template.indexOf("<!-- Suggestions -->"),
+      template.indexOf("<!-- ====================== RECORDING MODE PANEL"),
+    );
+
+    // The panel lists every suggestion with its parameter delta; the only
+    // code that turns one into a track edit is applyMixSuggestion(), so the
+    // list must offer that call or the advice stays un-actionable.
+    expect(block).toContain("(click)=\"applyMixSuggestion(s.id)\"");
+    expect(block).toContain("[disabled]=\"s.status === 'applied'\"");
+  });
+
+  it("applies the chosen suggestion and marks it applied", () => {
+    const action = jest.fn();
+    mockAiMixAssistant.suggestions.set([
+      {
+        id: "eq-hi-track-1",
+        type: "eq",
+        trackId: "track-1",
+        label: "Add High-End Presence",
+        description: "track-1 sounds dark.",
+        severity: "recommended",
+        parameter: "eqHighShelf",
+        currentValue: 0,
+        suggestedValue: 3,
+        status: "pending",
+        action,
+      },
+    ]);
+
+    component.applyMixSuggestion("eq-hi-track-1");
+
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      "Applied: Add High-End Presence",
+    );
+    expect(mockHaptic.light).toHaveBeenCalled();
+  });
+
+  it("leaves a suggestion alone when the session is view-only", () => {
+    const action = jest.fn();
+    mockAiMixAssistant.suggestions.set([
+      {
+        id: "eq-hi-track-1",
+        type: "eq",
+        trackId: "track-1",
+        label: "Add High-End Presence",
+        description: "track-1 sounds dark.",
+        severity: "recommended",
+        parameter: "eqHighShelf",
+        currentValue: 0,
+        suggestedValue: 3,
+        status: "pending",
+        action,
+      },
+    ]);
+    mockCollaboration.can.mockReturnValueOnce(false);
+
+    component.applyMixSuggestion("eq-hi-track-1");
+
+    expect(action).not.toHaveBeenCalled();
+    expect(mockSnackbar.error).toHaveBeenCalledWith(
+      "Your session role is view-only for mix edits.",
+    );
+  });
+
 });

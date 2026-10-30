@@ -440,6 +440,25 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
     expect(service.applyTrackPatch('nope', { fxSlots: [] })).toBe(false);
   });
 
+  it('patches an optional field the track never had, and undoes it', () => {
+    service.tracks.set([makeTrack()]);
+    expect(service.tracks()[0].eqData).toBeUndefined();
+
+    // AI Mix's EQ advice patches eqData onto tracks that ship without one.
+    // Undo capture clones each patched key, so an absent key must survive the
+    // round trip instead of throwing "undefined is not valid JSON".
+    expect(
+      service.applyTrackPatch('track-1', {
+        eqData: { low: 0, mid: 0, high: 3 },
+      }),
+    ).toBe(true);
+    expect(service.tracks()[0].eqData).toEqual({ low: 0, mid: 0, high: 3 });
+
+    service.history.undo();
+
+    expect(service.tracks()[0].eqData).toBeUndefined();
+  });
+
   it('records aux-send moves while automation write is armed', () => {
     const automation = TestBed.inject(AutomationService);
     const capture = jest.spyOn(automation, 'captureWrite');

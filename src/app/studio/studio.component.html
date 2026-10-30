@@ -1921,6 +1921,21 @@
             <span>{{ s.parameter }}: {{ s.currentValue }} → </span>
             <span class="comp-aimix-sug-target">{{ s.suggestedValue }}</span>
           </div>
+          <div class="comp-aimix-sug-foot">
+            <span class="comp-aimix-sug-status">{{
+              s.status === 'applied' ? 'APPLIED' : 'NOT APPLIED'
+            }}</span>
+            <button
+              type="button"
+              class="comp-aimix-sug-apply"
+              [disabled]="s.status === 'applied'"
+              (click)="applyMixSuggestion(s.id)"
+              [attr.aria-label]="'Apply mix suggestion: ' + s.label"
+            >
+              <span class="material-symbols-outlined">check_circle</span>
+              Apply
+            </button>
+          </div>
         </div>
       </div>
     </div>

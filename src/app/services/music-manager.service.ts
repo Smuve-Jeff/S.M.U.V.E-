@@ -458,8 +458,16 @@ export class MusicManagerService {
     this.history.coalesce({ name, execute, undo, mergeKey });
   }
 
-  /** Deep-clone plain-object arrays (notes, clips, tracks). */
+  /**
+   * Deep-clone plain-object arrays (notes, clips, tracks).
+   *
+   * Optional track fields (eqData, fxSlots, ...) can be absent, and
+   * JSON.stringify(undefined) yields undefined — parsing that throws. Undo
+   * capture in applyTrackPatch clones whatever keys a patch touches, so an
+   * absent key must clone to itself rather than crash the edit.
+   */
   private clone<T>(v: T): T {
+    if (v === undefined) return v;
     return JSON.parse(JSON.stringify(v));
   }
 
