@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as path from "path";
 import { StudioFocusService } from "./shared/studio-focus.service";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import {
@@ -1588,6 +1590,33 @@ describe("StudioComponent", () => {
     component.setActiveView("session");
     expect(focus.ownsShortcuts("arrangement")).toBe(false);
     expect(focus.ownsShortcuts("piano-roll")).toBe(false);
+  });
+
+
+  it("treats every explicit view case as self-hosting", () => {
+    // The shell publishes the arrangement for views that fall through to the
+    // default case. That list is hand-maintained, so this reads the template
+    // and proves each real case behaves: add a *ngSwitchCase without adding it
+    // to the list and this fails instead of letting Ctrl+D reach a hidden grid.
+    const template = fs.readFileSync(
+      path.join(process.cwd(), "src/app/studio/studio.component.html"),
+      "utf-8",
+    );
+    const cases = Array.from(
+      template.matchAll(/\*ngSwitchCase="'([^']+)'"/g),
+    ).map((match) => match[1]);
+    expect(cases.length).toBeGreaterThan(20);
+
+    const focus = TestBed.inject(StudioFocusService);
+    const offenders = cases.filter((view) => {
+      component.setActiveView(
+        view as Parameters<typeof component.setActiveView>[0],
+      );
+      const arrangementOwns = focus.ownsShortcuts("arrangement");
+      return arrangementOwns !== (view === "arrangement");
+    });
+
+    expect(offenders).toEqual([]);
   });
 
 });
