@@ -2573,3 +2573,17 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
     min-height: 30px;
   }
 }
+
+/* Row-density toggle: sits with the other header tools. The pressed state says
+   which density is active, because the glyph flips direction rather than
+   showing a state on its own. */
+.pr-row-size.pr-row-size-tall {
+  border-color: rgba(14, 124, 123, 0.55);
+  background: rgba(14, 124, 123, 0.14);
+  color: var(--teal-700);
+}
+:host-context(.dark-mode) .pr-row-size.pr-row-size-tall {
+  border-color: rgba(102, 240, 255, 0.5);
+  background: rgba(102, 240, 255, 0.16);
+  color: #bff6ff;
+}

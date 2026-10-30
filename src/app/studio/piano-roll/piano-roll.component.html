@@ -45,6 +45,25 @@
     </div>
 
     <div class="pr-header-tools" role="toolbar" aria-label="Editing tools">
+      <button
+        type="button"
+        class="pr-tool pr-tool-sm pr-row-size"
+        [class.pr-row-size-tall]="rowSize() === 'tall'"
+        [attr.aria-pressed]="rowSize() === 'tall'"
+        [attr.aria-label]="
+          rowSize() === 'tall'
+            ? 'Row height: tall. Switch to compact rows'
+            : 'Row height: compact. Switch to tall rows'
+        "
+        [title]="
+          rowSize() === 'tall'
+            ? 'Rows: TALL · 44px touch rows — tap for compact'
+            : 'Rows: COMPACT · more notes on screen — tap for tall'
+        "
+        (click)="toggleRowSize()"
+      >
+        <span class="material-symbols-outlined">{{ rowSize() === 'tall' ? 'unfold_less' : 'unfold_more' }}</span>
+      </button>
       <!-- Zoom controls -->
       <div class="pr-zoom-group">
         <button

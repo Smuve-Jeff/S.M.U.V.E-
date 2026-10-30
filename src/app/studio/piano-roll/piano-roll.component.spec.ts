@@ -914,4 +914,23 @@ describe("PianoRollComponent", () => {
     expect(component.headerHeightCss()).toBe("112px");
     component.headerHeight.set(0);
   });
+
+  it("lets the artist trade row density and remembers the choice", () => {
+    localStorage.removeItem("smuve_piano_roll_rows");
+    component.rowSize.set("compact");
+    const compact = component.rowHeight();
+
+    component.toggleRowSize();
+
+    expect(component.rowSize()).toBe("tall");
+    expect(component.rowHeight()).toBeGreaterThanOrEqual(44);
+    expect(component.rowHeight()).toBeGreaterThanOrEqual(compact);
+    expect(localStorage.getItem("smuve_piano_roll_rows")).toBe("tall");
+
+    component.toggleRowSize();
+    expect(component.rowSize()).toBe("compact");
+    expect(localStorage.getItem("smuve_piano_roll_rows")).toBe("compact");
+    localStorage.removeItem("smuve_piano_roll_rows");
+  });
+
 });

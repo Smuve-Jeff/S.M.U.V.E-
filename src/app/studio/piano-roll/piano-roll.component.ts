@@ -48,6 +48,8 @@ const TOUCH_RESIZE_SLOP_PX = 20;
 /** Explicit editor tools; gestures refine a tool but never define it. */
 export type PianoTool = "draw" | "select" | "erase" | "velocity" | "chord";
 
+const PIANO_ROLL_ROWS_KEY = "smuve_piano_roll_rows";
+
 @Component({
   selector: "app-piano-roll",
   standalone: true,
@@ -292,10 +294,42 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
    */
   rowHeight = computed(() =>
     Math.max(
-      this.isCoarsePointer() ? 44 : 18,
+      this.rowSize() === "tall" ? 44 : 18,
       22 * this.touchGestures.verticalZoomLevel(),
     ),
   );
+
+  /**
+   * Artist-chosen row density. `tall` floors rows at 44px so the stacked keys
+   * and the grid rows are touch-sized; `compact` keeps the old 22px density for
+   * long melodic edits. Stored per device, and the touch-aware default is only
+   * a starting point — the toggle is what decides.
+   */
+  rowSize = signal<"compact" | "tall">(this.initialRowSize());
+
+  private initialRowSize(): "compact" | "tall" {
+    try {
+      if (typeof localStorage !== "undefined") {
+        const stored = localStorage.getItem(PIANO_ROLL_ROWS_KEY);
+        if (stored === "compact" || stored === "tall") return stored;
+      }
+    } catch {
+      /* storage unavailable — fall through to the device default */
+    }
+    return this.isCoarsePointer() ? "tall" : "compact";
+  }
+
+  /** Flip row density; keys, notes and canvas all follow the same computed. */
+  toggleRowSize(): void {
+    this.rowSize.update((size) => (size === "tall" ? "compact" : "tall"));
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(PIANO_ROLL_ROWS_KEY, this.rowSize());
+      }
+    } catch {
+      /* private mode / WebView — the choice still applies for this session */
+    }
+  }
 
   /** True when the primary pointer is a finger (Android phone/tablet). */
   private isCoarsePointer(): boolean {
