@@ -933,4 +933,37 @@ describe("PianoRollComponent", () => {
     localStorage.removeItem("smuve_piano_roll_rows");
   });
 
+
+  it("duplicates the selection from the keyboard", () => {
+    const duplicate = jest.spyOn(component, "duplicateSelection").mockImplementation(() => undefined);
+    component.selectedNoteIds.set(new Set(["note-1"]));
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true }),
+    );
+
+    expect(duplicate).toHaveBeenCalledTimes(1);
+    duplicate.mockRestore();
+  });
+
+  it("ignores Ctrl+D with no selection and while typing", () => {
+    const duplicate = jest.spyOn(component, "duplicateSelection").mockImplementation(() => undefined);
+    component.selectedNoteIds.set(new Set());
+
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true }),
+    );
+
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    component.selectedNoteIds.set(new Set(["note-1"]));
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true }),
+    );
+    input.remove();
+
+    expect(duplicate).not.toHaveBeenCalled();
+    duplicate.mockRestore();
+  });
+
 });

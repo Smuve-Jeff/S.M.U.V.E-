@@ -2363,4 +2363,34 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
       `Quantized ${result.changedCount}/${targetNotes.length} note${targetNotes.length === 1 ? "" : "s"}`,
     );
   }
+
+  /**
+   * Selection editing from the keyboard.
+   *
+   * `Ctrl/Cmd+D` duplicates the current selection through the same
+   * `duplicateSelection()` the toolbar calls, so the new notes land in history
+   * as one undoable command and carry the current snap length. It is a
+   * separate listener from the tool-mode handler because that one owns
+   * unmodified letters (d/s/e/c) and would swallow Ctrl+D.
+   */
+  @HostListener("window:keydown", ["$event"])
+  onSelectionKeydown(event: KeyboardEvent): void {
+    if (event.defaultPrevented || event.repeat || event.isComposing) return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable)
+    ) {
+      return;
+    }
+    const mod = event.ctrlKey || event.metaKey;
+    if (!mod || event.altKey || event.key.toLowerCase() !== "d") return;
+    if (this.selectedNoteIds().size === 0) return;
+    event.preventDefault();
+    this.duplicateSelection();
+  }
+
 }
