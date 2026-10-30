@@ -4040,6 +4040,39 @@ describe('ImageVideoLabComponent', () => {
       expect(component.isGenerating()).toBe(false);
     });
 
+    it('keeps the prompt a failed synthesize sent so it can be reshoot', async () => {
+      const { component } = await createComponent();
+      const ai = aiMock();
+      ai.generateImage.mockClear();
+      ai.generateImage.mockRejectedValueOnce(new Error('The AI provider timed out.'));
+      component.imagePrompt.set('a rain-slick street at 3am');
+
+      await component.generateImage();
+
+      expect(component.failedImagePrompt()).toContain('a rain-slick street at 3am');
+      expect(component.aiFeedback()).toContain('TIMED OUT');
+      expect(component.isGenerating()).toBe(false);
+    });
+
+    it('reshoots the failed prompt as-is after the field has changed', async () => {
+      const { component } = await createComponent();
+      const ai = aiMock();
+      ai.generateImage.mockClear();
+      ai.generateImage.mockRejectedValueOnce(new Error('provider down'));
+      component.imagePrompt.set('the frame that failed');
+      await component.generateImage();
+      const failed = component.failedImagePrompt();
+      expect(failed).toBeTruthy();
+
+      component.imagePrompt.set('a different idea typed afterwards');
+      ai.generateImage.mockResolvedValueOnce('data:image/png;base64,AAAA');
+      await component.retryConceptImage();
+
+      expect(ai.generateImage).toHaveBeenLastCalledWith(failed);
+      expect(component.imagePrompt()).toBe('a different idea typed afterwards');
+      expect(component.failedImagePrompt()).toBeNull();
+    });
+
     it('sends the staged prompt and lands the frame on the visuals lane', async () => {
       const { component, videoEngine } = await createComponent();
       const ai = aiMock();

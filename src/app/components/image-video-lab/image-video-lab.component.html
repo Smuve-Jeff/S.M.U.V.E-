@@ -1423,6 +1423,34 @@
                 </figcaption>
               </figure>
             }
+
+            <!--
+              A failed synthesize used to leave the error line in the console
+              and nothing to press. The prompt that failed is shown and kept
+              here, so the retry reshoots that frame rather than whatever the
+              field happens to hold now.
+            -->
+            @if (failedImagePrompt(); as failed) {
+              <div
+                class="grid gap-2 rounded-lg border border-brand-primary/40 bg-brand-primary/5 p-2"
+              >
+                <span
+                  class="text-[8px] font-black uppercase tracking-[0.16em] text-brand-primary"
+                  >Last synthesize failed — retry reshoots this prompt</span
+                >
+                <span class="text-[10px] font-bold text-text-main break-words">{{
+                  failed
+                }}</span>
+                <button
+                  type="button"
+                  (click)="retryConceptImage()"
+                  [disabled]="isGenerating()"
+                  class="rounded-lg border border-brand-primary/40 bg-surface px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-brand-primary hover:border-brand-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Retry This Frame
+                </button>
+              </div>
+            }
           </div>
 
           <!--

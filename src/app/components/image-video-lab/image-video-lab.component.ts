@@ -278,6 +278,15 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
   isGenerating = signal(false);
   isExporting = signal(false);
   generatedImageUrl = signal<string | null>(null);
+
+  /**
+   * The exact prompt the last failed synthesize sent.
+   *
+   * A failed call used to leave an error line in the console and nothing to
+   * press: retrying meant retyping the prompt, and if a different look preset
+   * had been picked in the meantime the "retry" was a different frame.
+   */
+  failedImagePrompt = signal<string | null>(null);
   highQualityEnhancer = signal(false);
   selectedFilter = signal<ClipFilter>('cinematic');
   selectedTransition = signal<ClipTransition>('fade');
@@ -4778,24 +4787,26 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     }
   }
 
-  async generateImage() {
+  async generateImage(retryPrompt?: string) {
     // One take at a time: a second click while the provider is working would
     // spawn a duplicate clip for the same prompt.
     if (this.isGenerating()) return;
     const prompt = this.imagePrompt().trim();
     // Nothing on a cold surface sets the prompt, so the old silent `return`
     // made the Synthesize control read as dead. Say what is missing instead.
-    if (!prompt) {
+    if (!prompt && !retryPrompt) {
       this.aiFeedback.set(
         'DESCRIBE THE CONCEPT FIRST - TYPE A PROMPT OR PICK A LOOK, THEN SYNTHESIZE.'
       );
       return;
     }
     this.isGenerating.set(true);
-    const fullPrompt = `Tech-noir aesthetic for ${this.activePreset().target}, ${prompt}`;
+    const fullPrompt =
+      retryPrompt ?? `Tech-noir aesthetic for ${this.activePreset().target}, ${prompt}`;
     try {
       const url = await this.aiService.generateImage(fullPrompt);
       this.generatedImageUrl.set(url);
+      this.failedImagePrompt.set(null);
       const aiClipDuration =
         this.videoEngine.productionMode() === 'movie'
           ? AI_CLIP_DURATION_MOVIE
@@ -4823,6 +4834,8 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
       });
     } catch (error: any) {
       this.logger.error('Image Generation Error:', error);
+      // Keep the prompt that failed so it can be reshoot as-is.
+      this.failedImagePrompt.set(fullPrompt);
       this.aiFeedback.set(
         error?.message
           ? error.message.toUpperCase()
@@ -4831,6 +4844,13 @@ export class ImageVideoLabComponent implements OnDestroy, AfterViewInit {
     } finally {
       this.isGenerating.set(false);
     }
+  }
+
+  /** Reshoot the frame that failed, with the prompt it failed on. */
+  retryConceptImage(): Promise<void> {
+    const failed = this.failedImagePrompt();
+    if (!failed || this.isGenerating()) return Promise.resolve();
+    return this.generateImage(failed);
   }
 
   applyTemplate(templatePrompt: string) {
