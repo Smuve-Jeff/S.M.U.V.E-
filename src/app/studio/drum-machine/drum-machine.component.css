@@ -2102,3 +2102,113 @@ which parameter the step graph edits and needs a real thumb target. */
     font-size: 10px;
   }
 }
+
+
+/* ---- one-shot import/export (selected pad) ---- */
+.dm-sample-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--ivory-paper) 72%, transparent);
+}
+
+.dm-sample-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dm-sample-title {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal-500);
+}
+
+.dm-sample-quality {
+  padding: 2px 6px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 999px;
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--espresso-muted);
+}
+
+.dm-sample-quality.studio {
+  border-color: color-mix(in srgb, var(--teal-500) 45%, var(--ivory-line));
+  color: var(--teal-500);
+}
+
+.dm-sample-name {
+  overflow: hidden;
+  color: var(--espresso-text);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dm-sample-meta,
+.dm-sample-empty {
+  color: var(--espresso-muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.dm-sample-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.dm-sample-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 4px 7px;
+  border: 1px solid var(--ivory-line);
+  border-radius: 7px;
+  background: var(--ivory-paper);
+  color: var(--teal-500);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.dm-sample-action .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.dm-sample-action.quiet {
+  color: var(--espresso-muted);
+}
+
+.dm-sample-action:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.dm-sample-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (pointer: coarse) {
+  .dm-sample-action {
+    min-height: 44px;
+  }
+}

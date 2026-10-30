@@ -478,7 +478,13 @@ export class OfflineBounceService {
 
   private renderNote(
     ctx: OfflineAudioContext,
-    note: { step: number; midi: number; length: number; velocity: number },
+    note: {
+      step: number;
+      midi: number;
+      length: number;
+      velocity: number;
+      params?: any;
+    },
     trackGain: number,
     waveform: OscillatorType,
     destination: AudioNode,
@@ -489,6 +495,21 @@ export class OfflineBounceService {
     const duration = note.length * stepDuration;
     const freq = 440 * Math.pow(2, (note.midi - 69) / 12);
     const velocity = note.velocity ?? 0.8;
+
+    // Imported pad one-shots carry their decoded PCM in the note params.
+    // Without this branch the bounce synthesized a pitched oscillator and the
+    // exported kick/snare/hat did not match the pad the artist played.
+    const oneShot = note.params?.sampleBuffer as AudioBuffer | undefined;
+    if (oneShot && Number.isFinite(oneShot.duration) && oneShot.duration > 0) {
+      const source = ctx.createBufferSource();
+      source.buffer = oneShot;
+      const gain = ctx.createGain();
+      gain.gain.value = Math.max(0, Math.min(1, velocity * trackGain));
+      source.connect(gain);
+      gain.connect(destination);
+      source.start(startTime);
+      return;
+    }
 
     // Use antialiased oscillator (bandlimited for saw/square)
     const osc = this.createBounceOscillator(

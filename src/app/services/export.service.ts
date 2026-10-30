@@ -753,6 +753,25 @@ export class ExportService {
       if (n.probability !== undefined && Math.random() >= n.probability) continue;
 
       const start = Math.max(0, ((n.step ?? 0) + (n.microOffset ?? 0)) * secondsPerStep);
+
+      // Imported one-shot notes carry their decoded PCM. Schedule the sample
+      // itself rather than synthesising the pad's MIDI pitch: the live stepper
+      // now takes the same branch, so monitoring and the bounce agree.
+      const oneShot = (n as any).params?.sampleBuffer as AudioBuffer | undefined;
+      if (oneShot && Number.isFinite(oneShot.duration) && oneShot.duration > 0) {
+        const source = ctx.createBufferSource();
+        source.buffer = oneShot;
+        const gain = ctx.createGain();
+        gain.gain.value = Math.max(0, Math.min(1, n.velocity ?? 0.8));
+        const panner = ctx.createStereoPanner();
+        panner.pan.value = Math.max(-1, Math.min(1, n.notePan ?? trackPan));
+        source.connect(panner);
+        panner.connect(gain);
+        gain.connect(master);
+        source.start(start);
+        continue;
+      }
+
       const baseFreq = 440 * Math.pow(2, ((n.midi ?? 60) - 69) / 12);
       const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
 

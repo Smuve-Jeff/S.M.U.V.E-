@@ -1132,7 +1132,43 @@ describe("ExportService", () => {
       expect(fader).toBeTruthy();
       expect(fader!.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
     });
+
+    it("bounces an imported pad one-shot as PCM instead of its MIDI pitch", async () => {
+    const recording = recordingContext();
+    const sample = { duration: 0.4, sampleRate: 48000 } as AudioBuffer;
+    const sources: any[] = [];
+    recording.offline.createBufferSource = jest.fn(() => {
+      const node = {
+        buffer: null,
+        connect: jest.fn(),
+        start: jest.fn(),
+        stop: jest.fn(),
+        playbackRate: { setValueAtTime: jest.fn() },
+      };
+      sources.push(node);
+      return node;
+    });
+
+    await render(recording, [
+      track({
+        notes: [
+          {
+            id: "hit",
+            step: 0,
+            midi: 36,
+            length: 1,
+            velocity: 0.8,
+            params: { sampleBuffer: sample },
+          },
+        ],
+      }),
+    ]);
+
+      expect(sources[0].buffer).toBe(sample);
+      expect(sources[0].start).toHaveBeenCalledWith(0);
+    });
   });
+
   describe("offline master bus", () => {
     const bands = [
       { id: 1, threshold: -24, ratio: 3 },

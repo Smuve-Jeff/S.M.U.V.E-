@@ -18,6 +18,7 @@ import { AiService } from "../../services/ai.service";
 import { HapticService } from "../../services/haptic.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
+import { WavEncoder } from "../wav-encoder.util";
 
 interface DrumPad {
   id: string;
@@ -27,6 +28,13 @@ interface DrumPad {
   type: string;
   params: any;
   sampleBuffer?: AudioBuffer;
+  sampleName?: string;
+  sampleMeta?: {
+    sampleRate: number;
+    channels: number;
+    duration: number;
+    quality: 'STANDARD' | 'HIGH' | 'STUDIO';
+  };
 }
 
 interface DrumStyle {
@@ -71,6 +79,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   @ViewChild("sampleInput") sampleInput!: ElementRef<HTMLInputElement>;
 
   public pads = signal<DrumPad[]>([]);
+  public sampleBusy = signal(false);
   public viewMode = signal<"sequencer" | "knobs">("sequencer");
   public currentBar = signal(0);
   public barRange = [0, 1, 2, 3];
@@ -1433,27 +1442,129 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   openSamplePicker() {
-    this.sampleInput.nativeElement.click();
+    if (!this.selectedPad()) return;
+    this.sampleInput?.nativeElement.click();
   }
 
-  async onSampleSelected(event: any) {
-    const file = event.target.files?.[0];
-    if (file && this.selectedPad()) {
-      const arrayBuffer = await file.arrayBuffer();
-      const audioBuffer =
-        await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
-      this.pads.update((ps) =>
-        ps.map((p) =>
-          p.id === this.selectedPadId()
+  /**
+   * Replace the selected pad's engine with a real decoded one-shot. The pad
+   * name and tuning stay intact: a kick imported into KICK is still KICK, and
+   * the live stepper now plays the sample instead of synthesising its MIDI
+   * pitch. The file input is reset so importing the same file twice works.
+   */
+  async onSampleSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    const pad = this.selectedPad();
+    if (!file || !pad) return;
+    if (file.size > 32 * 1024 * 1024) {
+      this.snack.error('One-shot is larger than 32 MB. Trim it before importing.');
+      return;
+    }
+
+    this.sampleBusy.set(true);
+    try {
+      const audioBuffer = await this.audioEngine.ctx.decodeAudioData(
+        await file.arrayBuffer(),
+      );
+      if (!Number.isFinite(audioBuffer.duration) || audioBuffer.duration <= 0) {
+        throw new Error('The decoded sample is empty.');
+      }
+      if (audioBuffer.duration > 30) {
+        throw new Error('One-shots are limited to 30 seconds. Trim the file first.');
+      }
+      const quality = this.sampleQualityFor(audioBuffer.sampleRate);
+      this.pads.update((pads) =>
+        pads.map((candidate) =>
+          candidate.id === pad.id
             ? {
-                ...p,
+                ...candidate,
                 sampleBuffer: audioBuffer,
-                name: file.name.split(".")[0].toUpperCase().substring(0, 8),
+                sampleName: file.name,
+                sampleMeta: {
+                  sampleRate: audioBuffer.sampleRate,
+                  channels: audioBuffer.numberOfChannels,
+                  duration: audioBuffer.duration,
+                  quality,
+                },
               }
-            : p,
+            : candidate,
         ),
       );
       this.haptic.medium();
+      this.snack.success(
+        `${pad.name} loaded · ${quality} · ${audioBuffer.sampleRate / 1000} kHz`,
+      );
+    } catch (error: any) {
+      this.snack.error(
+        error?.message || 'Could not decode this one-shot. Use WAV, MP3, OGG, FLAC or M4A.',
+      );
+    } finally {
+      this.sampleBusy.set(false);
     }
+  }
+
+  /** Export the selected pad's loaded PCM as a 24-bit delivery-ready WAV. */
+  exportSelectedPadSample() {
+    const pad = this.selectedPad();
+    const buffer = pad?.sampleBuffer;
+    if (!pad || !buffer) {
+      this.snack.info('Import a one-shot first — this pad is still synthesis-only.');
+      return;
+    }
+    try {
+      const channels = Array.from(
+        { length: buffer.numberOfChannels },
+        (_, channel) => buffer.getChannelData(channel),
+      );
+      const blob = WavEncoder.encodeMultiChannel(
+        channels,
+        'wav-24',
+        buffer.sampleRate,
+        { dither: true },
+      );
+      const url = URL.createObjectURL(blob);
+      const safeName = (pad.sampleName || pad.name)
+        .replace(/\.[^.]+$/, '')
+        .replace(/[^\w.-]+/g, '_')
+        .slice(0, 48);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${safeName || 'one-shot'}_${pad.type}.wav`;
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      this.snack.success(`${pad.name} one-shot exported as 24-bit WAV`);
+    } catch {
+      this.snack.error('Could not encode this one-shot.');
+    }
+  }
+
+  clearSelectedPadSample() {
+    const pad = this.selectedPad();
+    if (!pad) return;
+    this.pads.update((pads) =>
+      pads.map((candidate) =>
+        candidate.id === pad.id
+          ? {
+              ...candidate,
+              sampleBuffer: undefined,
+              sampleName: undefined,
+              sampleMeta: undefined,
+            }
+          : candidate,
+      ),
+    );
+    this.snack.info(`${pad.name} returned to its synth engine`);
+  }
+
+  formatSampleDuration(duration: number): string {
+    return `${duration.toFixed(2)}s`;
+  }
+
+  private sampleQualityFor(sampleRate: number): 'STANDARD' | 'HIGH' | 'STUDIO' {
+    if (sampleRate >= 48000) return 'STUDIO';
+    if (sampleRate >= 44100) return 'HIGH';
+    return 'STANDARD';
   }
 }

@@ -1510,6 +1510,46 @@ describe('MusicManagerService live plugin insert wiring', () => {
     );
   });
 
+  it('plays an imported one-shot pad note through the sampler, not the synth', () => {
+    const triggerSampler = jest.fn();
+    (service as any).engine.triggerSampler = triggerSampler;
+    const triggerAttack = (service as any).engine.triggerAttack as jest.Mock;
+    triggerAttack.mockClear();
+    const sample = { duration: 0.42, sampleRate: 48000 } as AudioBuffer;
+
+    service.tracks.update((tracks) =>
+      tracks.map((t) =>
+        t.id === 'track-1'
+          ? {
+              ...t,
+              notes: [
+                {
+                  id: 'n1',
+                  step: 0,
+                  midi: 36,
+                  velocity: 0.75,
+                  length: 1,
+                  params: { sampleBuffer: sample },
+                },
+              ] as any,
+            }
+          : t
+      )
+    );
+
+    service.playStep(0, 0, 0.125);
+
+    expect(triggerSampler).toHaveBeenCalledWith(
+      'track-1',
+      sample,
+      0,
+      0.75,
+      0,
+      0.42,
+    );
+    expect(triggerAttack).not.toHaveBeenCalled();
+  });
+
   it('applies track gain once, on the fader, for note voices too', () => {
     const triggerAttack = (service as any).engine.triggerAttack as jest.Mock;
     const setBaseFaderGain = (service as any).engine.setBaseFaderGain as jest.Mock;

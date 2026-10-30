@@ -198,4 +198,68 @@ describe("DrumMachineComponent", () => {
       expect(mockHaptic.drumHit).toHaveBeenCalledWith(1);
     });
   });
+  it("imports a one-shot into the selected pad and reports its quality", async () => {
+    const pad = component.pads()[0];
+    const sample = {
+      duration: 0.4,
+      sampleRate: 48000,
+      numberOfChannels: 2,
+      getChannelData: jest.fn(() => new Float32Array(8)),
+    } as unknown as AudioBuffer;
+    (mockAudioEngine.ctx as any).decodeAudioData = jest
+      .fn()
+      .mockResolvedValue(sample);
+    const input = {
+      value: "kick.wav",
+      files: [
+        {
+          name: "kick.wav",
+          size: 1024,
+          arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(8)),
+        },
+      ],
+    } as any;
+
+    await component.onSampleSelected({ target: input } as any);
+
+    const updated = component.pads().find((candidate) => candidate.id === pad.id)!;
+    expect(updated.sampleBuffer).toBe(sample);
+    expect(updated.sampleName).toBe("kick.wav");
+    expect(updated.sampleMeta).toEqual({
+      sampleRate: 48000,
+      channels: 2,
+      duration: 0.4,
+      quality: "STUDIO",
+    });
+    expect(input.value).toBe("");
+  });
+
+  it("clears an imported one-shot back to the pad synth", () => {
+    const pad = component.pads()[0];
+    component.pads.update((pads) =>
+      pads.map((candidate) =>
+        candidate.id === pad.id
+          ? {
+              ...candidate,
+              sampleBuffer: { duration: 1 } as AudioBuffer,
+              sampleName: "kick.wav",
+              sampleMeta: {
+                sampleRate: 48000,
+                channels: 1,
+                duration: 1,
+                quality: "STUDIO" as const,
+              },
+            }
+          : candidate,
+      ),
+    );
+
+    component.clearSelectedPadSample();
+
+    const updated = component.pads().find((candidate) => candidate.id === pad.id)!;
+    expect(updated.sampleBuffer).toBeUndefined();
+    expect(updated.sampleName).toBeUndefined();
+    expect(updated.sampleMeta).toBeUndefined();
+  });
+
 });

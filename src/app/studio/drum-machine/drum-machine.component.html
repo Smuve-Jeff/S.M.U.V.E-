@@ -301,6 +301,72 @@
         ></app-knob>
       </div>
 
+      <!-- One-shot import/export: the pad keeps its kit identity, while the
+           imported PCM becomes what live playback and bounces actually use. -->
+      <section class="dm-sample-panel" aria-label="One-shot sample for selected pad">
+        <div class="dm-sample-head">
+          <span class="dm-sample-title">One-shot</span>
+          <span
+            *ngIf="pad.sampleMeta as meta"
+            class="dm-sample-quality"
+            [class.studio]="meta.quality === 'STUDIO'"
+          >{{ meta.quality }}</span>
+        </div>
+
+        <ng-container *ngIf="pad.sampleBuffer; else synthOnly">
+          <div class="dm-sample-name" [title]="pad.sampleName || pad.name">
+            {{ pad.sampleName || pad.name }}
+          </div>
+          <div class="dm-sample-meta" *ngIf="pad.sampleMeta as meta">
+            {{ meta.sampleRate / 1000 }} kHz · {{ meta.channels }} ch ·
+            {{ formatSampleDuration(meta.duration) }}
+          </div>
+        </ng-container>
+        <ng-template #synthOnly>
+          <div class="dm-sample-empty">
+            Synth engine · import a WAV or MP3 to use this pad as a sample
+          </div>
+        </ng-template>
+
+        <div class="dm-sample-actions">
+          <button
+            type="button"
+            class="dm-sample-action"
+            (click)="openSamplePicker()"
+            [disabled]="sampleBusy()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">upload</span>
+            {{ sampleBusy() ? 'Reading…' : 'Import' }}
+          </button>
+          <button
+            type="button"
+            class="dm-sample-action"
+            (click)="exportSelectedPadSample()"
+            [disabled]="!pad.sampleBuffer || sampleBusy()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">download</span>
+            Export WAV
+          </button>
+          <button
+            type="button"
+            class="dm-sample-action quiet"
+            (click)="clearSelectedPadSample()"
+            [disabled]="!pad.sampleBuffer || sampleBusy()"
+          >
+            Clear
+          </button>
+        </div>
+
+        <input
+          #sampleInput
+          class="dm-sample-input"
+          type="file"
+          accept="audio/*,.wav,.mp3,.ogg,.flac,.aiff,.m4a"
+          (change)="onSampleSelected($event)"
+          aria-label="Import a one-shot sample for this pad"
+        />
+      </section>
+
       <div class="dm-macro-row">
         <button type="button" class="dm-macro" (click)="clearCurrentPad()">
           <span>Clear Pad</span>

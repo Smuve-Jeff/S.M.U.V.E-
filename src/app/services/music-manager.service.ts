@@ -3613,6 +3613,29 @@ export class MusicManagerService {
 
               const notePan = n.notePan ?? t.pan;
 
+              // Imported drum/percussion one-shots are attached to the pad
+              // note. Play the PCM the artist loaded; falling through to the
+              // synth voice made an imported kick sound like a sine beep.
+              const oneShot = (n as any).params?.sampleBuffer as
+                | AudioBuffer
+                | undefined;
+              if (
+                oneShot &&
+                Number.isFinite(oneShot.duration) &&
+                oneShot.duration > 0 &&
+                typeof (this.engine as any).triggerSampler === 'function'
+              ) {
+                this.engine.triggerSampler(
+                  t.id,
+                  oneShot,
+                  microTime,
+                  n.velocity ?? 0.8,
+                  notePan,
+                  Math.max(0.01, oneShot.duration),
+                );
+                return;
+              }
+
               this.engine.triggerAttack(
                 t.id,
                 freq,
