@@ -24,6 +24,7 @@ import { AudioEngineService } from "../../services/audio-engine.service";
 import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gesture.service";
 import { HapticService } from "../../services/haptic.service";
 import { claimKeyEvent } from "../shared/keyboard-claim";
+import { StudioFocusService } from "../shared/studio-focus.service";
 import { DjMidiService } from "../../services/dj-midi.service";
 import { HardwareService } from "../../services/hardware.service";
 import { HistoryService } from "../../services/history.service";
@@ -64,6 +65,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   public readonly audioEngine = inject(AudioEngineService);
   public readonly touchGestures = inject(EnhancedTouchGestureService);
   private readonly haptic = inject(HapticService);
+  private readonly studioFocus = inject(StudioFocusService);
   public readonly djMidi = inject(DjMidiService);
   private readonly hardware = inject(HardwareService);
   private readonly history = inject(HistoryService);
@@ -2260,6 +2262,12 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  /** Pointing at this view makes it the owner of the shared shortcuts. */
+  @HostListener("pointerdown")
+  onPointerActivity(): void {
+    this.studioFocus.noteActivity("piano-roll");
+  }
+
   @HostListener("window:keydown", ["$event"])
   onKey(ev: KeyboardEvent) {
     if (
@@ -2423,6 +2431,10 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const mod = event.ctrlKey || event.metaKey;
     if (!mod || event.altKey) return;
     const key = event.key.toLowerCase();
+
+    // Shortcuts belong to the view the artist last touched; see
+    // StudioFocusService for why listener order is not enough.
+    if (!this.studioFocus.ownsShortcuts("piano-roll")) return;
 
     if (key === "c") {
       if (this.selectedNoteIds().size === 0) return;

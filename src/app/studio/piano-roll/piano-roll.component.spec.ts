@@ -14,6 +14,7 @@ import { HistoryService } from "../../services/history.service";
 import { AutomationService } from "../automation.service";
 import { Subject } from "rxjs";
 import { QuantizationService } from "../quantization.service";
+import { StudioFocusService } from "../shared/studio-focus.service";
 
 @Component({
   selector: "app-channel-rack",
@@ -1005,6 +1006,30 @@ describe("PianoRollComponent", () => {
     // was torn down still enables Paste after it is rebuilt.
     mockMusicManager.hasNoteClipboard.mockReturnValue(true);
     expect(component.canPasteNotes()).toBe(true);
+  });
+
+
+  it("stands down while another view owns the shortcuts", () => {
+    const focus = TestBed.inject(StudioFocusService);
+    const duplicate = jest
+      .spyOn(component, "duplicateSelection")
+      .mockImplementation(() => undefined);
+    component.selectedNoteIds.set(new Set(["n1"]));
+
+    focus.noteActivity("arrangement");
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true }),
+    );
+    expect(duplicate).not.toHaveBeenCalled();
+
+    component.onPointerActivity();
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true }),
+    );
+    expect(duplicate).toHaveBeenCalledTimes(1);
+
+    duplicate.mockRestore();
+    focus.noteActivity("piano-roll");
   });
 
 });

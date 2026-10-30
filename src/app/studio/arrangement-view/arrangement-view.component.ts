@@ -27,6 +27,7 @@ import {
 import { HistoryService } from "../../services/history.service";
 import { HapticService } from "../../services/haptic.service";
 import { claimKeyEvent } from "../shared/keyboard-claim";
+import { StudioFocusService } from "../shared/studio-focus.service";
 import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gesture.service";
 import { StudioTrack, StudioClip } from "../../types/studio.types";
 import {
@@ -79,6 +80,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   public readonly audioSession = inject(AudioSessionService);
   public readonly history = inject(HistoryService);
   private readonly haptic = inject(HapticService);
+  private readonly studioFocus = inject(StudioFocusService);
   private readonly enhancedGestures = inject(EnhancedTouchGestureService);
   private readonly stemSvc = inject(StemSeparationService);
   private readonly snackbar = inject(SnackbarService);
@@ -892,6 +894,12 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
    * the piano roll listens for Ctrl+D too, but only acts when it has a note
    * selection, so the two do not fire together in normal use.
    */
+  /** Pointing at this view makes it the owner of the shared shortcuts. */
+  @HostListener("pointerdown")
+  onPointerActivity(): void {
+    this.studioFocus.noteActivity("arrangement");
+  }
+
   @HostListener("window:keydown", ["$event"])
   onArrangementKeydown(event: KeyboardEvent): void {
     if (event.defaultPrevented || event.repeat || event.isComposing) return;
@@ -908,6 +916,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const mod = event.ctrlKey || event.metaKey;
     if (!mod || event.altKey) return;
     const key = event.key.toLowerCase();
+
+    // Shortcuts belong to the view the artist last touched; see
+    // StudioFocusService for why listener order is not enough.
+    if (!this.studioFocus.ownsShortcuts("arrangement")) return;
     if (key === "c") {
       if (this.selectedClipIds().size === 0) return;
       if (!claimKeyEvent(event)) return;

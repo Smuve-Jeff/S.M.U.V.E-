@@ -11,6 +11,7 @@ import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gestu
 import { HapticService } from "../../services/haptic.service";
 import { AiService } from "../../services/ai.service";
 import { SnackbarService } from "../../services/snackbar.service";
+import { StudioFocusService } from "../shared/studio-focus.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { RecordingStatusService } from "../recording-status.service";
 
@@ -754,6 +755,31 @@ describe("ArrangementViewComponent", () => {
       'button[aria-label="Paste clips at the playhead"]',
     ) as HTMLButtonElement | null;
     expect(paste?.disabled).toBe(false);
+  });
+
+
+  it("stands down while another view owns the shortcuts", () => {
+    const focus = TestBed.inject(StudioFocusService);
+    const duplicate = jest
+      .spyOn(component, "duplicateSelected")
+      .mockImplementation(() => undefined);
+    component.selectedClipIds.set(new Set(["c1"]));
+
+    focus.noteActivity("piano-roll");
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true }),
+    );
+    expect(duplicate).not.toHaveBeenCalled();
+
+    // Touching the arrangement hands the shortcut back.
+    component.onPointerActivity();
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true }),
+    );
+    expect(duplicate).toHaveBeenCalledTimes(1);
+
+    duplicate.mockRestore();
+    focus.noteActivity("arrangement");
   });
 
 });
