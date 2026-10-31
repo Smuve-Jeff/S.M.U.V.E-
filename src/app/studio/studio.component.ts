@@ -171,6 +171,49 @@ export function landingStudioView(options: {
   return options.restored ? "arrangement" : "quick-session";
 }
 
+/** First-visit Music Map marker: the auto-open is offered once, ever. */
+const MUSIC_MAP_SEEN_STORAGE_KEY = "smuve_music_map_seen";
+
+function readMusicMapSeen(): boolean {
+  if (typeof window === "undefined") return true; // SSR: never auto-open
+  try {
+    return window.localStorage.getItem(MUSIC_MAP_SEEN_STORAGE_KEY) === "1";
+  } catch {
+    return true; // storage refused: fail closed, no auto-open
+  }
+}
+
+function markMusicMapSeen(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(MUSIC_MAP_SEEN_STORAGE_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Should this visit greet the artist with the Music Map? Exactly three
+ * stars must align, once ever: a FRESH session (nothing restored, so an
+ * empty `tracks()` demo state is what they'll meet), no explicit `?view=`
+ * deep link (they know where they're going), and no guided `?tour=1`
+ * session (the First Beat tour already walks the same path — the map would
+ * double-cover it). A seen marker from any earlier visit vetoes the rest.
+ */
+export function shouldAutoOpenMusicMap(options: {
+  restored: boolean;
+  hasExplicitView: boolean;
+  guidedTour: boolean;
+  seenBefore: boolean;
+}): boolean {
+  return (
+    !options.restored &&
+    !options.hasExplicitView &&
+    !options.guidedTour &&
+    !options.seenBefore
+  );
+}
+
 /** 3-way theme storage key. Persists across sessions. */
 const THEME_STORAGE_KEY = "smuve_studio_theme";
 /** Stage FX ambience (aurora / marquee / sheens) storage key. */
@@ -1392,6 +1435,28 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  /** Music Map — the rail's one-tap mental-model sheet. */
+  openArchitectureMap(options: { auto?: boolean; hapticOnOpen?: boolean } = {}) {
+    if (this.showArchitectureMap()) return;
+    this.showArchitectureMap.set(true);
+    if (options.hapticOnOpen !== false) this.haptic.light();
+    this.studioTelemetry.trackEvent("music_map_opened", { auto: !!options.auto }, true);
+  }
+
+  closeArchitectureMap() {
+    if (!this.showArchitectureMap()) return;
+    this.showArchitectureMap.set(false);
+    // Any dismiss ends the story: the seen marker was already written when
+    // the auto-open fired, so a closed map never auto-opens again.
+  }
+
+  /** The map's CTA: hop onto the direct beat path and keep the telemetry trail. */
+  musicMapQuickSession() {
+    this.showArchitectureMap.set(false);
+    this.studioTelemetry.trackEvent("music_map_quick_session", {}, true);
+    this.setActiveView("quick-session");
+  }
+
   /** Restore the quick-start lane choice (stored → collapsed). */
   private initialMobileStartExpanded(): boolean {
     return this.hasLocalStorageKey(MOBILE_START_STORAGE_KEY, "open");
@@ -1698,6 +1763,22 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       restored,
     });
     if (landing) this.activeView.set(landing);
+
+    // One-shot Music Map: greet a brand-new artist's first visit with the
+    // mental model before the rail can feel like confusion. The marker is
+    // written when the auto-open fires, so even an instant dismiss caps it.
+    const tourParam = this.route.snapshot.queryParamMap.get("tour");
+    if (
+      shouldAutoOpenMusicMap({
+        restored,
+        hasExplicitView: !!this.route.snapshot.queryParamMap.get("view"),
+        guidedTour: tourParam === "1" || tourParam === "true",
+        seenBefore: readMusicMapSeen(),
+      })
+    ) {
+      markMusicMapSeen();
+      this.openArchitectureMap({ auto: true, hapticOnOpen: false });
+    }
     if (restored) {
       const source = this.projectWorkspace.lastRecoveredSource();
       this.snackbarService.info(

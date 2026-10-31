@@ -5,6 +5,7 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import {
   StudioComponent,
   landingStudioView,
+  shouldAutoOpenMusicMap,
 } from "./studio.component";
 import { AudioSessionService } from "./audio-session.service";
 import { AudioRecorderService } from "./audio-recorder.service";
@@ -772,6 +773,77 @@ describe("StudioComponent", () => {
     component.ngOnDestroy();
 
     expect(stopPreview).toHaveBeenCalledTimes(1);
+  });
+
+  // ── Music Map (architecture sheet) wiring ──
+  describe("music map", () => {
+    it("opens from the rail with haptic + telemetry and closes again", () => {
+      expect(component.showArchitectureMap()).toBe(false);
+
+      component.openArchitectureMap();
+      expect(component.showArchitectureMap()).toBe(true);
+      expect(mockHaptic.light).toHaveBeenCalled();
+      expect(mockStudioTelemetry.trackEvent).toHaveBeenCalledWith(
+        "music_map_opened",
+        { auto: false },
+        true,
+      );
+      // Re-opening while open is a no-op, not a second event.
+      mockStudioTelemetry.trackEvent.mockClear();
+      component.openArchitectureMap();
+      expect(mockStudioTelemetry.trackEvent).not.toHaveBeenCalled();
+
+      component.closeArchitectureMap();
+      expect(component.showArchitectureMap()).toBe(false);
+    });
+
+    it("auto-opens silently (no haptic) and flags the session as guided", () => {
+      component.openArchitectureMap({ auto: true, hapticOnOpen: false });
+      expect(component.showArchitectureMap()).toBe(true);
+      expect(mockStudioTelemetry.trackEvent).toHaveBeenCalledWith(
+        "music_map_opened",
+        { auto: true },
+        true,
+      );
+    });
+
+    it("jumps the CTA onto Quick Session and tracks the hop", () => {
+      component.openArchitectureMap({ auto: true, hapticOnOpen: false });
+      expect(component.activeView()).toBe("arrangement");
+
+      component.musicMapQuickSession();
+      expect(component.showArchitectureMap()).toBe(false);
+      expect(component.activeView()).toBe("quick-session");
+      expect(mockStudioTelemetry.trackEvent).toHaveBeenCalledWith(
+        "music_map_quick_session",
+        {},
+        true,
+      );
+    });
+
+    it('auto-open fires only for a fresh, unguided, never-seen visit', () => {
+      const base = {
+        hasExplicitView: false,
+        guidedTour: false,
+        seenBefore: false,
+      };
+      expect(shouldAutoOpenMusicMap({ restored: false, ...base })).toBe(true);
+
+      // Restored work: they've been here — the arrangement already tells.
+      expect(shouldAutoOpenMusicMap({ restored: true, ...base })).toBe(false);
+      // Deep link: they know where they're going.
+      expect(
+        shouldAutoOpenMusicMap({ restored: false, ...base, hasExplicitView: true }),
+      ).toBe(false);
+      // Guided tour: the First Beat tour walks the same path already.
+      expect(
+        shouldAutoOpenMusicMap({ restored: false, ...base, guidedTour: true }),
+      ).toBe(false);
+      // Seen once, ever: veto wins over everything else.
+      expect(
+        shouldAutoOpenMusicMap({ restored: false, ...base, seenBefore: true }),
+      ).toBe(false);
+    });
   });
 
   // ── Smart Creation sheet host wiring ──

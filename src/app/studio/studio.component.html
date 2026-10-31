@@ -983,7 +983,7 @@
       <button
         type="button"
         class="comp-rail-item"
-        (click)="showArchitectureMap.set(true)"
+        (click)="openArchitectureMap()"
         aria-label="Open the Studio architecture map"
         title="How the Studio makes music — the four layers and the beat path"
       >
@@ -3554,8 +3554,8 @@
 
   <app-architecture-map
     *ngIf="showArchitectureMap()"
-    (close)="showArchitectureMap.set(false)"
-    (onQuickSession)="showArchitectureMap.set(false); setActiveView('quick-session')"
+    (close)="closeArchitectureMap()"
+    (onQuickSession)="musicMapQuickSession()"
   ></app-architecture-map>
   <app-search-overlay></app-search-overlay>
   <app-snackbar></app-snackbar>

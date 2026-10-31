@@ -103,7 +103,16 @@ Undo (HistoryService), saving (ProjectService), AI producer (AiService), export
 
 ## 4. Mental model → "how do I make a beat?"
 
-With the architecture in hand, making a beat maps to four moves, not 24 views:
+With the architecture in hand, making a beat maps to four moves, not 24 views.
+The Studio now hands you this same mental model where you need it:
+the rail's **Music Map** button shows the four layers on tap, and it
+**auto-opens once** for a brand-new artist's first Studio visit — never on a
+restored project, a `?view=` deep link, or a guided `?tour=1` session
+(the First Beat Tour's five stations deep-link the artist through the very
+moves below: Quick Session → Drum Machine → Piano Roll → Arrangement →
+Export).
+
+The four moves:
 
 1. **Open Quick Session** (or Drum Machine if you know you want step-editing).
    AudioContext starts/resumes on your first tap — that is `AudioSessionService`
@@ -136,4 +145,5 @@ clock. Everything else is bookkeeping for the moment after the beat exists.
 | Instruments & presets               | `services/instruments.service.ts` |
 | Save/load/undo/export               | `ProjectService` / `HistoryService` / `ExportService` |
 | AI-driven creation                  | `services/ai.service.ts`, `studio/ai-band/`, `components/ai-produce/` |
-| The beginner path                   | `studio/quick-session/`, `components/first-beat-tour/` |
+| The beginner path                   | `studio/quick-session/`, `components/first-beat-tour/`, `services/onboarding.service.ts` (tour steps) |
+| Rail "Music Map" + first-visit auto-open | `studio/shared/architecture-map/`, `studio.component.ts` (`shouldAutoOpenMusicMap`, `smuve_music_map_seen`) |
