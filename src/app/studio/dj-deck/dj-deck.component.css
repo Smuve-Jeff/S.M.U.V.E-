@@ -2833,3 +2833,61 @@ Loop length chips were 11×30 and the LPF/HPF switches 27×24 on a 390px phone
     min-height: 36px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   NARROW PHONES (≤ 430px): the compact booth must fit the viewport.
+   The filter switch and the pitch nudge used to push the booth 22px
+   wider than the screen, so their right edge was cut off on Android.
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 430px) {
+  .dj-booth.mobile-mode {
+    overflow-x: hidden;
+  }
+  .dj-booth.mobile-mode .deck-chassis,
+  .dj-booth.mobile-mode .swipe-container,
+  .dj-booth.mobile-mode .tone-stack,
+  .dj-booth.mobile-mode .pitch-control {
+    min-width: 0;
+  }
+  .dj-booth.mobile-mode .pitch-nudge {
+    width: 34px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+  .dj-booth.mobile-mode .pitch-slider {
+    min-width: 0;
+    padding: 4px 6px;
+  }
+  .dj-booth.mobile-mode .filter-switch button {
+    padding-inline: 5px;
+    font-size: 10px;
+  }
+}
+
+/* Follow-up for the narrow-phone rule: the filter row still hung 4px over. */
+@media (max-width: 430px) {
+  .dj-booth.mobile-mode .deck-chassis {
+    max-width: 100%;
+  }
+  .dj-booth.mobile-mode .filter-group {
+    gap: 2px;
+  }
+  .dj-booth.mobile-mode .filter-switch {
+    gap: 0;
+  }
+  .dj-booth.mobile-mode .filter-switch button {
+    padding-inline: 3px;
+    font-size: 9px;
+  }
+}
+
+/* The coarse-pointer touch-target rule forces 44px minimum width on these
+   filter buttons, which is wider than a narrow deck can hold. Keep the height
+   for touch but let the width follow the deck. */
+@media (max-width: 430px) {
+  .dj-booth.mobile-mode .filter-switch button {
+    min-width: 32px;
+    padding-inline: 4px;
+    font-size: 10px;
+  }
+}

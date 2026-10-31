@@ -2408,3 +2408,25 @@ the workspace. */
     transform: translateY(-50%);
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   NARROW PHONES (≤ 430px): both AUX sends plus their dB readouts
+   must stay inside the strip instead of running past the screen.
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 430px) {
+  .mix-sends-row {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .mix-send-knob-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .mix-send-range {
+    width: 2.4rem;
+    min-width: 2.4rem;
+  }
+  .mix-send-db {
+    font-size: 10px;
+  }
+}
