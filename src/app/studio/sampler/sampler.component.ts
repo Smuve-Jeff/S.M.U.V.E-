@@ -92,8 +92,10 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   dragOver = signal(false);
   activeTab = signal<"zones" | "adsr" | "loops" | "routing">("zones");
 
-  // Waveform data for the selected zone
+  // Waveform data for the selected zone. `waveformChannels` keeps every
+  // channel so a one-sided stereo sample still draws at full height.
   waveformData = signal<Float32Array | null>(null);
+  waveformChannels = signal<Float32Array[] | null>(null);
   waveformDuration = signal(0);
   private suppressZoneClickPitch: number | null = null;
 
@@ -221,12 +223,18 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     const zone = this.sampler.getZone(pitch);
     if (!zone || zone.sampleBuffers.length === 0) {
       this.waveformData.set(null);
+      this.waveformChannels.set(null);
       this.waveformDuration.set(0);
       return;
     }
 
     const buffer = zone.sampleBuffers[0];
     this.waveformData.set(buffer.getChannelData(0));
+    this.waveformChannels.set(
+      Array.from({ length: buffer.numberOfChannels }, (_, index) =>
+        buffer.getChannelData(index),
+      ),
+    );
     this.waveformDuration.set(buffer.duration);
   }
 

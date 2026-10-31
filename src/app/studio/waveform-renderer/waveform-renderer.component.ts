@@ -11,6 +11,7 @@ import {
   SimpleChanges,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { foldChannelsToPeak } from "../waveform-peaks";
 
 @Component({
   selector: "app-waveform-renderer",
@@ -29,6 +30,11 @@ export class WaveformRendererComponent
 {
   /** Raw PCM data (Float32Array, -1..1). Null = placeholder / empty. */
   @Input() audioData: Float32Array | null = null;
+  /**
+   * Every channel of the source. Preferred over `audioData` so a stereo take
+   * with signal on one side only still reads at full height.
+   */
+  @Input() channels: readonly Float32Array[] | null = null;
   /** Duration in seconds. Used for playhead positioning. */
   @Input() duration = 0;
   /** Playback progress 0..1. Draws the playhead line. */
@@ -234,7 +240,9 @@ export class WaveformRendererComponent
    * Returns an array of {min, max} per pixel column.
    */
   private computePeaks(width: number): { min: number; max: number }[] {
-    const data = this.audioData;
+    const data = this.channels?.length
+      ? foldChannelsToPeak(this.channels)
+      : this.audioData;
     const peaks: { min: number; max: number }[] = [];
     if (!data || data.length === 0 || width <= 0) {
       // Return flat line

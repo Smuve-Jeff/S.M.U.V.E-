@@ -27,10 +27,11 @@ describe("MixerComponent", () => {
     engine: {
       ctx: {
         createAnalyser: () => ({
-          fftSize: 0,
+          fftSize: 64,
           connect: () => {},
-          frequencyBinCount: 0,
+          frequencyBinCount: 32,
           getByteFrequencyData: () => {},
+          getFloatTimeDomainData: (buffer: Float32Array) => buffer.fill(0),
         }),
       },
       outputLufs: signal(-14),
@@ -132,6 +133,35 @@ describe("MixerComponent", () => {
     const first = (component as any).analyserBuffers.get('1');
     (component as any).updateMeters();
     expect((component as any).analyserBuffers.get('1')).toBe(first);
+  });
+
+  it('measures meter level from the time domain, not frequency energy', () => {
+    const analyser = {
+      getFloatTimeDomainData: (buffer: Float32Array) =>
+        buffer.set([0, 0.2, -0.9, 0.4]),
+    } as unknown as AnalyserNode;
+
+    const level = (component as any).measurePeak(
+      analyser,
+      new Float32Array(4),
+    );
+
+    // Peak amplitude, clamped: a full-scale negative sample reads as 1.
+    expect(level).toBeCloseTo(0.9);
+  });
+
+  it('samples the master meter in the metering task, not the template', () => {
+    const masterAnalyser = {
+      fftSize: 128,
+      getFloatTimeDomainData: (buffer: Float32Array) => buffer.fill(0.5),
+    } as unknown as AnalyserNode;
+    (component as any).masterAnalyser = masterAnalyser;
+
+    (component as any).updateMeters();
+
+    // A signal, so change detection can never re-read the analyser mid-check.
+    expect((component as any).masterLevel()).toBeCloseTo(0.5);
+    expect((component as any).masterLevel).toEqual(expect.any(Function));
   });
 
   it('ends an in-flight fader gesture on pointer cancellation', () => {

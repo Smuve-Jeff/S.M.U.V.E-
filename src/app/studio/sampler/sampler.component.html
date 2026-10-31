@@ -96,6 +96,7 @@
       <div class="sampler-waveform-container sampler-waveform-surface">
         <app-waveform-renderer
           [audioData]="waveformData()"
+          [channels]="waveformChannels()"
           [duration]="waveformDuration()"
           [loopStart]="selectedZone()?.loopEnabled ? selectedZone()!.loopStart : null"
           [loopEnd]="selectedZone()?.loopEnabled ? selectedZone()!.loopEnd : null"

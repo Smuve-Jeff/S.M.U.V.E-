@@ -103,13 +103,20 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   private analyserMap = new Map<string, AnalyserNode>();
-  private analyserBuffers = new Map<string, Uint8Array<ArrayBuffer>>();
+  private analyserBuffers = new Map<string, Float32Array<ArrayBuffer>>();
   private analyserSources = new Map<string, AudioNode>();
-  private masterBuffer: Uint8Array<ArrayBuffer> | null = null;
+  private masterBuffer: Float32Array<ArrayBuffer> | null = null;
   private dragCleanup: (() => void) | null = null;
   trackLevels = signal<MeterReadings>({});
   trackPeakHolds = signal<MeterReadings>({});
   masterPeakHold = signal(0);
+  /**
+   * Master peak, sampled by the metering task. It used to be a method that
+   * pulled analyser data on every template evaluation, which made `scaleY`
+   * change between Angular's two dev-mode checks (NG0100) and ignored the
+   * scheduler's frame budget.
+   */
+  masterLevel = signal(0);
   private masterAnalyser?: AnalyserNode;
   /**
    * Live L/R phase correlation in [-1, 1], measured by the engine's stereo
@@ -191,15 +198,11 @@ export class MixerComponent implements OnInit, OnDestroy {
         this.analyserMap.set(track.id, analyser);
       }
       let data = this.analyserBuffers.get(track.id);
-      if (!data || data.length !== analyser.frequencyBinCount) {
-        data = new Uint8Array(analyser.frequencyBinCount);
+      if (!data || data.length !== analyser.fftSize) {
+        data = new Float32Array(analyser.fftSize);
         this.analyserBuffers.set(track.id, data);
       }
-      analyser.getByteFrequencyData(data);
-      const avg = data.length
-        ? data.reduce((a, b) => a + b, 0) / data.length / 255
-        : 0;
-      levels[track.id] = Math.max(0, Math.min(1, avg));
+      levels[track.id] = this.measurePeak(analyser, data);
     });
     this.trackLevels.set(levels);
 
@@ -216,7 +219,17 @@ export class MixerComponent implements OnInit, OnDestroy {
       const master = (this.audioSession.engine as any).masterAnalyser;
       if (master) this.masterAnalyser = master;
     }
-    const masterLvl = this.masterLevel();
+    let masterLvl = 0;
+    if (this.masterAnalyser) {
+      if (
+        !this.masterBuffer ||
+        this.masterBuffer.length !== this.masterAnalyser.fftSize
+      ) {
+        this.masterBuffer = new Float32Array(this.masterAnalyser.fftSize);
+      }
+      masterLvl = this.measurePeak(this.masterAnalyser, this.masterBuffer);
+    }
+    this.masterLevel.set(masterLvl);
     this.masterPeakHold.update((v) => Math.max(masterLvl, v - 0.015));
   }
 
@@ -227,15 +240,25 @@ export class MixerComponent implements OnInit, OnDestroy {
   getTrackPeakHold(id: string): number {
     return Math.min(1, this.trackPeakHolds()[id] || 0);
   }
-  masterLevel(): number {
-    if (!this.masterAnalyser) return 0;
-    if (!this.masterBuffer || this.masterBuffer.length !== this.masterAnalyser.frequencyBinCount) {
-      this.masterBuffer = new Uint8Array(this.masterAnalyser.frequencyBinCount);
+  /**
+   * Peak amplitude of a time-domain analyser buffer, clamped to 0..1.
+   *
+   * The meters used to average `getByteFrequencyData` (÷255 per track, ÷200
+   * for the master): that is spectral energy rather than level, and the two
+   * divisors disagreed about what full scale meant. Track and master now read
+   * the same measurement, and only from the metering task.
+   */
+  private measurePeak(
+    analyser: AnalyserNode,
+    buffer: Float32Array<ArrayBuffer>,
+  ): number {
+    analyser.getFloatTimeDomainData(buffer);
+    let peak = 0;
+    for (let i = 0; i < buffer.length; i++) {
+      const amplitude = Math.abs(buffer[i]);
+      if (amplitude > peak) peak = amplitude;
     }
-    const data = this.masterBuffer;
-    this.masterAnalyser.getByteFrequencyData(data);
-    const avg = data.reduce((a, b) => a + b, 0) / data.length || 0;
-    return Math.min(1, avg / 200);
+    return Math.min(1, peak);
   }
 
   // ---- Display helpers ----

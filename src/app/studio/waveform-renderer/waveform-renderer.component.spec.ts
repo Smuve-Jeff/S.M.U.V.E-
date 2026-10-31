@@ -36,6 +36,18 @@ describe("WaveformRendererComponent", () => {
     expect(component).toBeTruthy();
   });
 
+  it("draws every channel, not just the first", () => {
+    component.channels = [
+      new Float32Array([0, 0, 0, 0, 0, 0, 0, 0]),
+      new Float32Array([0.8, -0.8, 0.4, -0.4, 0.7, -0.7, 0.2, -0.2]),
+    ];
+
+    const peaks = (component as any).computePeaks(4);
+    const highest = Math.max(...peaks.map((peak: any) => peak.max));
+
+    expect(highest).toBeGreaterThan(0.5);
+  });
+
   it("emits loop handle updates when dragged", () => {
     const startSpy = jest.spyOn(component.loopStartChange, "emit");
     const canvas = fixture.nativeElement.querySelector(

@@ -792,22 +792,41 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   }
 
-  selectedImportWaveform(): Float32Array | null {
+  /** The buffer the import preview draws, enhanced render included. */
+  private selectedImportBuffer(): AudioBuffer | null {
     const audio = this.audioImport.selectedAudio();
     if (!audio) return null;
     // Show the enhanced render once the user applies it, so the waveform and
     // the audio preview always agree.
-    const buffer =
+    return (
       audio.enhancedBuffer ??
       audio.buffer ??
       audio.sampleStreamer?.getResidentBuffer() ??
-      null;
+      null
+    );
+  }
+
+  selectedImportWaveform(): Float32Array | null {
+    const buffer = this.selectedImportBuffer();
     if (!buffer) return null;
     const source = buffer.getChannelData(0);
     const zoom = Math.max(1, this.importWaveformZoom());
     if (zoom === 1) return source;
     const length = Math.max(256, Math.floor(source.length / zoom));
     return source.subarray(0, length);
+  }
+
+  /** Every channel of that buffer, so a one-sided stereo file still draws. */
+  selectedImportChannels(): Float32Array[] | null {
+    const buffer = this.selectedImportBuffer();
+    if (!buffer) return null;
+    const zoom = Math.max(1, this.importWaveformZoom());
+    return Array.from({ length: buffer.numberOfChannels }, (_, index) => {
+      const source = buffer.getChannelData(index);
+      if (zoom === 1) return source;
+      const length = Math.max(256, Math.floor(source.length / zoom));
+      return source.subarray(0, length);
+    });
   }
 
   onBezierCurveChanged(_curve: unknown): void {
