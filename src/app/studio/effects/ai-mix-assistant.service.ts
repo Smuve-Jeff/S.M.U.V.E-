@@ -59,7 +59,8 @@ export interface TrackAnalysis {
   trackId: string;
   trackName: string;
   instrumentType: string;
-  estimatedLoudness: number; // dBFS
+  /** Nominal dBFS derived from the fader — an estimate, never a measurement. */
+  estimatedLoudness: number;
   estimatedDynamicRange: number; // dB
   frequencyProfile: "dark" | "warm" | "balanced" | "bright" | "harsh";
   stereoWidth: "mono" | "narrow" | "balanced" | "wide";
@@ -783,6 +784,17 @@ export class AiMixAssistantService {
   /**
    * Analyze a single track based on its instrument type, position in mix, etc.
    */
+  /**
+   * Nominal loudness for a track, derived only from its fader. Nothing is
+   * metered here, so this must stay deterministic — a random value would make
+   * the panel's advice change every time the artist reopened it.
+   */
+  private estimateLoudness(track: TrackModel): number {
+    const gain = Number.isFinite((track as any)?.gain) ? (track as any).gain : 1;
+    const db = 20 * Math.log10(Math.max(gain, 0.001));
+    return Math.round((db - 6) * 10) / 10;
+  }
+
   analyzeTrack(
     track: TrackModel,
     index: number,
@@ -799,7 +811,7 @@ export class AiMixAssistantService {
       trackId: track.id,
       trackName: track.name || instType,
       instrumentType: instType,
-      estimatedLoudness: -6 - index * 2 + Math.random() * 4,
+      estimatedLoudness: this.estimateLoudness(track),
       estimatedDynamicRange:
         instType === "drums" ? 18 : instType === "vocal" ? 14 : 10,
       frequencyProfile: freqProfile,

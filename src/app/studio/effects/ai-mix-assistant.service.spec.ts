@@ -68,3 +68,39 @@ describe('AiMixAssistantService.autoMaster', () => {
     expect((engine as Record<string, unknown>)['masterShelf']).toBeUndefined();
   });
 });
+
+describe('AiMixAssistantService.analyzeTrack', () => {
+  let service: AiMixAssistantService;
+
+  const trackAt = (gain: number) =>
+    ({ id: 't1', name: 'Pad', instrumentId: 'pad', gain }) as any;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        AiMixAssistantService,
+        { provide: MusicManagerService, useValue: { tracks: signal([]) } },
+        { provide: AudioEngineService, useValue: {} },
+        { provide: IdeasGeneratorService, useValue: {} },
+      ],
+    });
+    service = TestBed.inject(AiMixAssistantService);
+  });
+
+  it('derives its loudness estimate from the fader, not from chance', () => {
+    const first = service.analyzeTrack(trackAt(1), 0, 1);
+    const second = service.analyzeTrack(trackAt(1), 0, 1);
+
+    // Unity fader, no metering: a fixed nominal value every time.
+    expect(first.estimatedLoudness).toBe(second.estimatedLoudness);
+    expect(first.estimatedLoudness).toBeCloseTo(-6, 5);
+  });
+
+  it('reads a quieter fader as quieter', () => {
+    const unity = service.analyzeTrack(trackAt(1), 0, 1).estimatedLoudness;
+    const quiet = service.analyzeTrack(trackAt(0.25), 0, 1).estimatedLoudness;
+
+    expect(quiet).toBeLessThan(unity);
+    expect(quiet).toBeCloseTo(-18, 1);
+  });
+});
