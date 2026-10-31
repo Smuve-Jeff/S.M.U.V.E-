@@ -1061,12 +1061,33 @@ describe("ThaSpotComponent", () => {
   });
 
   it("routes neural sync accept/decline through the social layer", () => {
+    socialServiceMock.acceptNeuralSyncRequest.mockReturnValueOnce(true);
+    const snackbar = TestBed.inject(SnackbarService) as any;
+
     component.acceptNeuralSync("peer-2");
     expect(socialServiceMock.acceptNeuralSyncRequest).toHaveBeenCalledWith(
       "peer-2",
     );
+    expect(snackbar.success).toHaveBeenCalledWith(
+      "NEURAL SYNC APPROVED — EXCHANGING DATA",
+    );
 
     component.declineNeuralSync();
     expect(socialServiceMock.declineNeuralSyncRequest).toHaveBeenCalled();
+  });
+
+  it("does not announce a neural sync the network never received", () => {
+    socialServiceMock.acceptNeuralSyncRequest.mockReturnValueOnce(false);
+    const snackbar = TestBed.inject(SnackbarService) as any;
+    snackbar.success.mockClear();
+
+    component.acceptNeuralSync("peer-2");
+
+    expect(snackbar.success).not.toHaveBeenCalledWith(
+      "NEURAL SYNC APPROVED — EXCHANGING DATA",
+    );
+    expect(snackbar.info).toHaveBeenCalledWith(
+      "NEURAL SYNC UNAVAILABLE — NOT CONNECTED TO THE NETWORK",
+    );
   });
 });

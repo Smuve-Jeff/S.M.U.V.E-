@@ -3667,7 +3667,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Accept an incoming neural-sync request. */
   acceptNeuralSync(fromUserId: string): void {
-    this.socialService.acceptNeuralSyncRequest(fromUserId);
+    const sent = this.socialService.acceptNeuralSyncRequest(fromUserId);
+    if (!sent) {
+      this.snackbarService.info(
+        "NEURAL SYNC UNAVAILABLE — NOT CONNECTED TO THE NETWORK",
+      );
+      return;
+    }
     this.snackbarService.success("NEURAL SYNC APPROVED — EXCHANGING DATA");
   }
 

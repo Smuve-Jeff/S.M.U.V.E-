@@ -239,13 +239,29 @@ describe('SocialNetworkingService', () => {
       fromUserName: 'RIVAL',
     });
 
-    service.acceptNeuralSyncRequest('rival-1');
+    expect(service.acceptNeuralSyncRequest('rival-1')).toBe(true);
 
     expect(mockSocket.emit).toHaveBeenCalledWith(
       'neural_sync_approve',
       expect.objectContaining({ toUserId: 'rival-1' })
     );
     expect(service.pendingNeuralSync()).toBeNull();
+  });
+
+  it('reports an unsent neural sync approval instead of pretending', () => {
+    socketHandlers.get('neural_sync_invite')?.({
+      fromUserId: 'rival-1',
+      fromUserName: 'RIVAL',
+    });
+    (service as any).socket = undefined;
+
+    expect(service.acceptNeuralSyncRequest('rival-1')).toBe(false);
+
+    expect(mockSocket.emit).not.toHaveBeenCalledWith(
+      'neural_sync_approve',
+      expect.anything()
+    );
+    expect(service.neuralSyncStatus()).not.toBe('syncing');
   });
 
   it('replaces the room buffer with server history on room_history', () => {

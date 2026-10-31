@@ -1087,8 +1087,16 @@ export class SocialNetworkingService {
   }
 
   /** Accept an incoming neural-sync request and exchange profile data. */
-  acceptNeuralSyncRequest(fromUserId: string) {
-    if (!fromUserId) return;
+  /**
+   * Approve a pending neural-sync request.
+   *
+   * Returns false when there is nobody to approve or no live socket, so the
+   * caller can tell the artist the approval never left the device instead of
+   * announcing a sync that is not happening.
+   */
+  acceptNeuralSyncRequest(fromUserId: string): boolean {
+    if (!fromUserId) return false;
+    if (!this.socket) return false;
     this.pendingNeuralSync.set(null);
     const currentProfile = this.profileService.profile();
     this.socket?.emit('neural_sync_approve', {
@@ -1099,6 +1107,7 @@ export class SocialNetworkingService {
       },
     });
     this.neuralSyncStatus.set('syncing');
+    return true;
   }
 
   /** Decline an incoming neural-sync request. */
