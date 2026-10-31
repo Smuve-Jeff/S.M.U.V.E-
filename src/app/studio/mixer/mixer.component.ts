@@ -808,7 +808,10 @@ export class MixerComponent implements OnInit, OnDestroy {
   applyNeuralMix(): void {
     this.neuralMixer.applyNeuralMix();
     this.haptic.medium();
-    this.snack.success("Neural mix applied");
+    // Say what the heuristic actually did: no EQ or analysis is involved.
+    this.snack.success(
+      "Rough balance applied — randomized ±5% gain nudge, compressor added where missing",
+    );
   }
 
   /** Master level captured when mute engaged, so unmute restores it exactly. */

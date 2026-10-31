@@ -106,6 +106,19 @@ describe("MixerComponent", () => {
     fixture.detectChanges();
   });
 
+
+  it("labels the balance chip for what the heuristic actually does", () => {
+    const chip = fixture.nativeElement.querySelector(
+      ".mix-ai-chip",
+    ) as HTMLButtonElement | null;
+
+    expect(chip?.textContent).toContain("Rough Balance");
+    // It is a randomized gain nudge, so the control must not promise an AI mix.
+    expect(chip?.textContent).not.toContain("AI Mix");
+    expect(chip?.getAttribute("aria-label")).toContain(
+      "randomized ±5% gain nudge",
+    );
+  });
   it("should create", () => {
     expect(component).toBeTruthy();
   });

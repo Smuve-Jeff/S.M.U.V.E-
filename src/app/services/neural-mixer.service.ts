@@ -9,6 +9,12 @@ export class NeuralMixerService {
   private musicManager = inject(MusicManagerService);
   private logger = inject(LoggingService);
 
+  /**
+   * A rough balance heuristic, not an analysis: every track's gain is nudged by
+   * a random amount within ±5%, and a safety compressor is added to tracks that
+   * have no FX. Nothing here reads the audio or touches EQ, so the UI must not
+   * describe it as an AI mix or an EQ balance.
+   */
   applyNeuralMix() {
     this.logger.info('Applying Neural Mix across all tracks...');
     this.musicManager.tracks().forEach((track) => {

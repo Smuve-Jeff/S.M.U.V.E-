@@ -235,14 +235,14 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       actions.push(
         {
           id: "neural",
-          label: "Neural Mix",
-          description: "Auto-balance all tracks",
+          label: "Rough Balance",
+          description: "Randomized ±5% gain nudge plus a safety compressor",
           icon: "tune",
           contexts: ["mixer", "mastering"],
           run: () => {
             this.neural.applyNeuralMix();
             this.haptic.medium();
-            return "Neural mix applied — levels/eq balanced across all tracks.";
+            return "Rough balance applied — randomized ±5% gain nudge; EQ untouched.";
           },
         },
         {
@@ -551,7 +551,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     if (lower.includes("mix") || lower.includes("balance")) {
       return this.personaAwareOfflineReply(
         input,
-        "Tap Neural Mix to balance the levels, then listen to the result in context.",
+        "Tap Rough Balance for a randomized gain nudge, then listen to the result in context.",
       );
     }
     if (lower.includes("chord")) {
@@ -650,7 +650,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     const lower = text.toLowerCase();
     let chips: string[] = [];
     if (/(mix|balance|level|volume|gain|eq)/.test(lower)) {
-      chips = ["Run Neural Mix", "How do I fix clipping?", "EQ tips for drums"];
+      chips = ["Run Rough Balance", "How do I fix clipping?", "EQ tips for drums"];
     } else if (/(chord|progression|harmony)/.test(lower)) {
       chips = [
         "Spark a melody in the same key",
@@ -701,7 +701,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       if (!actions.some((x) => x.id === a.id)) actions.push(a);
     };
     if (/(mix|balance|level|volume|gain|eq)/.test(lower)) {
-      add({ id: "neural-mix", label: "Neural mix" });
+      add({ id: "neural-mix", label: "Rough balance" });
     }
     if (/(chord|progression|harmony)/.test(lower)) {
       add({ id: "chords", label: "Add chords" });
@@ -766,7 +766,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
       case "neural-mix":
         this.neural.applyNeuralMix();
         result =
-          "Neural mix applied. Levels rebalanced without your input. As usual.";
+          "Rough balance applied — randomized ±5% gain nudge, no EQ change.";
         break;
       case "humanize": {
         const id = this.musicManager.selectedTrackId();
@@ -880,7 +880,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
         "Select a track, then Humanize or Arpeggiate from this panel to add life to the notes.",
       "drum-machine":
         "Press AI GROOVE in the drum header, then nudge velocities for a human feel.",
-      mixer: "Run Neural Mix to balance, then A/B against the original faders.",
+      mixer: "Run Rough Balance for a randomized gain nudge, then A/B against the original faders.",
       mastering:
         "Hit the streaming preset (-14 LUFS) and check the limiter ceiling.",
       dj: "Load a track on each deck, hit MASTER SYNC, and practice a crossfader transition.",
@@ -892,7 +892,7 @@ export class AiAssistantComponent implements OnInit, AfterViewInit, OnDestroy {
     return (
       "Fine. Here's your next move: " +
       (next[view] ||
-        "take the current idea to the Mixer, run Neural Mix, then bounce a rough draft and listen on phone speakers.")
+        "take the current idea to the Mixer, run Rough Balance, then bounce a rough draft and listen on phone speakers.")
     );
   }
 

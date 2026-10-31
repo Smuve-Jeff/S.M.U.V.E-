@@ -1704,7 +1704,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       case 'neural-mix':
         if (this.neural) {
           this.neural.applyNeuralMix();
-          result = 'Neural mix applied. Levels rebalanced without your input. As usual.';
+          result = 'Rough balance applied — randomized ±5% gain nudge, no EQ change.';
         } else {
           result = 'Neural mixer offline — open the Studio first.';
         }
