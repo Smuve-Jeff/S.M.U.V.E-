@@ -311,4 +311,59 @@ describe('AuthService', () => {
       );
     });
   });
+
+  describe('verification codes', () => {
+    const codeKey = `smuve_verification_${EMAIL}`;
+
+    it('shows the code it issued instead of claiming an email was sent', () => {
+      const issued = service.beginDemoVerification(EMAIL);
+      const stored = localStorage.getItem(codeKey);
+
+      expect(issued.success).toBe(true);
+      expect(stored).toMatch(/^\d{6}$/);
+      expect(issued.message).toContain('NO EMAIL IS SENT');
+      expect(issued.message).toContain(stored as string);
+    });
+
+    it('accepts the issued code and rejects any other six digits', async () => {
+      const issued = service.beginDemoVerification(EMAIL);
+      const stored = localStorage.getItem(codeKey) as string;
+      const wrong = stored === '123456' ? '654321' : '123456';
+
+      const rejected = await service.verifyEmail(wrong, EMAIL);
+      expect(rejected.success).toBe(false);
+
+      const accepted = await service.verifyEmail(stored, EMAIL);
+      expect(accepted.success).toBe(true);
+      expect(issued.success).toBe(true);
+      expect(localStorage.getItem(codeKey)).toBeNull();
+    }, 15000);
+
+    it('fails closed when no code was ever issued', async () => {
+      localStorage.clear();
+
+      const result = await service.verifyEmail('123456', EMAIL);
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('NO ACTIVE TRANSMISSION CODE. REQUEST A NEW ONE.');
+    }, 15000);
+
+    it('issues and displays a fresh code on resend', async () => {
+      service.beginDemoVerification(EMAIL);
+
+      const resent = await service.resendVerificationCode(EMAIL);
+      const stored = localStorage.getItem(codeKey) as string;
+
+      expect(resent.success).toBe(true);
+      expect(stored).toMatch(/^\d{6}$/);
+      expect(resent.message).toContain(stored);
+    });
+
+    it('refuses to pretend a resend happened without an address', async () => {
+      const result = await service.resendVerificationCode();
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('ENTER THE ADDRESS');
+    });
+  });
 });

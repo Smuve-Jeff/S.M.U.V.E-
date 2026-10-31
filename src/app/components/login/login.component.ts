@@ -152,7 +152,8 @@ export class LoginComponent implements OnInit {
 
   /**
    * Whether this signup can actually be verified: the demo store always can
-   * (it prints the code locally), the API only when it has a mail provider.
+   * (it shows the code on this screen), the API only when it has a mail
+   * provider.
    */
   private canVerifyChannel(): boolean {
     return this.usesApiAuth() ? this.apiVerificationAvailable() : true;
@@ -165,6 +166,15 @@ export class LoginComponent implements OnInit {
       this.verificationCode = '';
       this.isVerifying.set(true);
       this.isLoading.set(false);
+      if (!this.usesApiAuth()) {
+        // Local store: display the code instead of sending the artist to a
+        // screen whose only copy was in the console.
+        const issued = this.authService.beginDemoVerification(
+          this.credentials.email
+        );
+        this.isError.set(!issued.success);
+        this.message.set(issued.message);
+      }
       return;
     }
     const currentUser = this.authService.currentUser();
@@ -196,7 +206,9 @@ export class LoginComponent implements OnInit {
         this.isError.set(false);
         return;
       }
-      const result = await this.authService.resendVerificationCode();
+      const result = await this.authService.resendVerificationCode(
+        this.credentials.email
+      );
       this.message.set(result.message);
       this.isError.set(!result.success);
     } catch (e) {

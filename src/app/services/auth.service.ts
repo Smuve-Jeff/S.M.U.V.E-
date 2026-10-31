@@ -394,28 +394,12 @@ export class AuthService {
       };
     }
 
-    const MIN_CODE = 100000;
-    const CODE_RANGE = 900000;
-    const verificationCodeNumber =
-      typeof crypto !== 'undefined' &&
-      typeof (crypto as any).randomInt === 'function'
-        ? (crypto as any).randomInt(MIN_CODE, MIN_CODE + CODE_RANGE)
-        : Math.floor(MIN_CODE + Math.random() * CODE_RANGE);
-    const verificationCode = verificationCodeNumber.toString();
-    try {
-      localStorage.setItem(
-        `smuve_verification_${creds.email.toLowerCase()}`,
-        verificationCode
-      );
-    } catch {
-      // Best-effort: the account exists, only code delivery is degraded.
-      this.logger.warn('AUTH_ALERT: VERIFICATION CODE PERSISTENCE REJECTED.');
-    }
+    const verificationCode = this.issueDemoVerificationCode(creds.email);
 
     if (typeof window !== 'undefined') {
-      // In production, verification codes are sent via email/SMS.
-      // The demo stores it locally; we surface it through the registration
-      // result so the login component can display it inline.
+      // In production, verification codes are sent via email/SMS. The demo
+      // store has no mail pipeline: the code is kept locally and shown on the
+      // login surface, never claimed as delivered.
       console.log(
         `[demo] Verification code for ${creds.email}: ${verificationCode}`
       );
@@ -425,6 +409,47 @@ export class AuthService {
 
     // Auto-login after registration for demo purposes
     return this.login(creds);
+  }
+
+  /**
+   * Issue and store a fresh verification code for the local store.
+   *
+   * There is no mail pipeline here, so the code is handed back to the caller
+   * to display instead of pretending a transmission left the building.
+   */
+  private issueDemoVerificationCode(email: string): string {
+    const MIN_CODE = 100000;
+    const CODE_RANGE = 900000;
+    const code =
+      typeof crypto !== 'undefined' &&
+      typeof (crypto as any).randomInt === 'function'
+        ? (crypto as any).randomInt(MIN_CODE, MIN_CODE + CODE_RANGE).toString()
+        : Math.floor(MIN_CODE + Math.random() * CODE_RANGE).toString();
+    try {
+      localStorage.setItem(`smuve_verification_${email.toLowerCase()}`, code);
+    } catch {
+      // Best-effort: the account exists, only code delivery is degraded.
+      this.logger.warn('AUTH_ALERT: VERIFICATION CODE PERSISTENCE REJECTED.');
+    }
+    return code;
+  }
+
+  /**
+   * Issue a code and describe where it actually is.
+   *
+   * Local development cannot send mail. Asking for a code only the console
+   * knows left the artist stuck on the verification step; the surface now
+   * shows the code and says plainly that nothing was emailed.
+   */
+  beginDemoVerification(email: string): { success: boolean; message: string } {
+    if (!email) {
+      return { success: false, message: 'ENTER THE ADDRESS ON THE ACCOUNT.' };
+    }
+    const code = this.issueDemoVerificationCode(email);
+    return {
+      success: true,
+      message: `DEMO STORE: NO EMAIL IS SENT. YOUR VERIFICATION CODE IS ${code}.`,
+    };
   }
 
   /**
@@ -593,7 +618,15 @@ export class AuthService {
           message: 'STORAGE REJECTED. NEURAL LINK FAILS.',
         };
       }
-      if (storedCode && code !== storedCode) {
+      if (!storedCode) {
+        // Fail closed: with no issued code there is nothing this screen can
+        // check, and accepting any six digits made "verified" a decoration.
+        return {
+          success: false,
+          message: 'NO ACTIVE TRANSMISSION CODE. REQUEST A NEW ONE.',
+        };
+      }
+      if (code !== storedCode) {
         return { success: false, message: 'INVALID CIPHER. STOP GUESSING.' };
       }
     } else {
@@ -653,10 +686,15 @@ export class AuthService {
     return { success: true, message: 'CHANNEL SECURE. WELCOME TO THE ELITE.' };
   }
 
-  async resendVerificationCode() {
-    return {
-      success: true,
-      message: 'TRANSMISSION RE-SENT. DO NOT LOSE IT AGAIN.',
-    };
+  async resendVerificationCode(email?: string) {
+    if (!email) {
+      return {
+        success: false,
+        message: 'ENTER THE ADDRESS ON THE ACCOUNT TO ISSUE A CODE.',
+      };
+    }
+    // No mail pipeline exists in the local store: issue a new code and show
+    // it rather than claiming a transmission nobody can receive.
+    return this.beginDemoVerification(email);
   }
 }

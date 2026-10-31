@@ -24,6 +24,10 @@ describe('LoginComponent', () => {
       register: jest.fn(),
       verifyEmail: jest.fn(),
       resendVerificationCode: jest.fn(),
+      beginDemoVerification: jest.fn().mockReturnValue({
+        success: true,
+        message: 'DEMO STORE: NO EMAIL IS SENT. YOUR VERIFICATION CODE IS 123456.',
+      }),
       establishApiSession: jest.fn(),
       startGuestSession: jest.fn().mockReturnValue({ artistName: 'GUEST ARTIST' }),
     };
@@ -458,5 +462,47 @@ describe('LoginComponent', () => {
       })
     );
     expect(fixture.componentInstance.isError()).toBe(false);
+  });
+
+  it('shows the demo verification code on screen after signup', async () => {
+    const { fixture, authMock } = await build();
+    authMock.validatePassword.mockReturnValue({ isValid: true, errors: [] });
+    authMock.register.mockResolvedValue({
+      success: true,
+      message: 'IDENTITY SEALED.',
+    });
+    fixture.componentInstance.isRegistering.set(true);
+    fixture.componentInstance.artistName = 'NEW_ARTIST';
+    fixture.componentInstance.credentials = {
+      email: 'new@example.com',
+      password: 'Mixing!4Life',
+    };
+
+    await fixture.componentInstance.onSubmit();
+
+    expect(fixture.componentInstance.isVerifying()).toBe(true);
+    expect(authMock.beginDemoVerification).toHaveBeenCalledWith(
+      'new@example.com'
+    );
+    expect(fixture.componentInstance.message()).toContain(
+      'YOUR VERIFICATION CODE IS 123456'
+    );
+  });
+
+  it('asks the store for a new code when resending', async () => {
+    const { fixture, authMock } = await build();
+    authMock.resendVerificationCode.mockResolvedValue({
+      success: true,
+      message: 'DEMO STORE: NO EMAIL IS SENT. YOUR VERIFICATION CODE IS 654321.',
+    });
+    fixture.componentInstance.isVerifying.set(true);
+    fixture.componentInstance.credentials.email = 'new@example.com';
+
+    await fixture.componentInstance.onResendCode();
+
+    expect(authMock.resendVerificationCode).toHaveBeenCalledWith(
+      'new@example.com'
+    );
+    expect(fixture.componentInstance.message()).toContain('654321');
   });
 });
