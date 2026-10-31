@@ -1206,7 +1206,7 @@ export class CoWriteService {
       `That line has ${artist}'s energy — I hate that I like it.`,
       `${artist} would approve. I don't, but they would.`,
       `Interesting how ${artist}'s influence is bleeding through. Not bad. Not good. Just... interesting.`,
-      `I've cross-referenced that against ${artist}'s catalog. It holds up. Barely.`,
+      `That has ${artist}'s fingerprints on it. It holds up. Barely.`,
     ];
     return feedbacks[Math.floor(Math.random() * feedbacks.length)];
   }
