@@ -661,7 +661,7 @@ export class ProjectWorkspaceService {
           null;
       }
       if (record) {
-        return this.restoreStoredRecord(record as StoredProjectBundle);
+        return this.restoreStoredRecord(this.withMeter(record as StoredProjectBundle));
       }
     } catch (e) {
       this.logger.warn(`ProjectWorkspace: Load failed for ${projectId}`, e);
@@ -1049,14 +1049,15 @@ export class ProjectWorkspaceService {
       });
       if (!freshest) return false;
 
+      const normalized = this.withMeter(freshest);
       const source =
-        freshest.source || this.detectPersistenceSource(freshest.id);
+        normalized.source || this.detectPersistenceSource(normalized.id);
       const recoveredMeta = {
-        ...freshest.metadata,
+        ...normalized.metadata,
         lastOpenedAt: Date.now(),
       };
       const recoveredBundle: ProjectBundle = {
-        ...freshest,
+        ...normalized,
         metadata: recoveredMeta,
       };
 
@@ -1662,9 +1663,13 @@ export class ProjectWorkspaceService {
   /** Every valid stored project record, in storage order, un-collapsed. */
   private async readStoredProjects(): Promise<StoredProjectBundle[]> {
     const stored = await this.storage.getAllItems("projects");
-    return stored.filter(
-      (item): item is StoredProjectBundle => this.isStoredProjectBundle(item),
-    );
+    return stored
+      .filter(
+        (item): item is StoredProjectBundle => this.isStoredProjectBundle(item),
+      )
+      // Sets saved before meters were stored carry no field; materialise the
+      // 4/4 default on read so every export and the next save are explicit.
+      .map((record) => this.withMeter(record));
   }
 
   /**
@@ -1736,6 +1741,21 @@ export class ProjectWorkspaceService {
 
   private storedSavedAt(bundle: StoredProjectBundle): number {
     return bundle.savedAt || bundle.metadata?.updatedAt || 0;
+  }
+
+  /**
+   * Copy a stored record with an explicit meter. Records written before the
+   * meter was saved get 4/4 without mutating the object the storage layer
+   * returned; saves and exports built from it then carry the field.
+   */
+  private withMeter(record: StoredProjectBundle): StoredProjectBundle {
+    return {
+      ...record,
+      metadata: {
+        ...record.metadata,
+        timeSignature: this.normalizeMeter(record.metadata?.timeSignature),
+      },
+    };
   }
 
   private detectPersistenceSource(id: string): ProjectPersistenceSource {

@@ -1386,6 +1386,38 @@ describe("ProjectWorkspaceService", () => {
     expect(sets.find((set) => set.projectId === "proj_legacy")?.timeSignature).toEqual([4, 4]);
   });
 
+  it("backfills 4/4 into an older record when it is opened", async () => {
+    const legacy = {
+      id: "project_proj_old",
+      ...makeBundle(),
+      metadata: { ...metadata, id: "proj_old" },
+      savedAt: 700,
+      source: "manual",
+    };
+    getItem.mockResolvedValue(legacy);
+
+    const loaded = await service.loadProject("proj_old");
+
+    expect(loaded?.metadata.timeSignature).toEqual([4, 4]);
+    // The stored object is not mutated; the next save writes the field.
+    expect((legacy.metadata as any).timeSignature).toBeUndefined();
+  });
+
+  it("keeps the stored meter when an older record already has one", async () => {
+    const stored = {
+      id: "project_proj_seven",
+      ...makeBundle(),
+      metadata: { ...metadata, id: "proj_seven", timeSignature: [7, 8] },
+      savedAt: 800,
+      source: "manual",
+    };
+    getItem.mockResolvedValue(stored);
+
+    const loaded = await service.loadProject("proj_seven");
+
+    expect(loaded?.metadata.timeSignature).toEqual([7, 8]);
+  });
+
   it("loads a set whose only record is an autosave snapshot", async () => {
     const autosaveBundle = {
       id: "autosave_proj_solo",
