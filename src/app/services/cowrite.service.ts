@@ -990,6 +990,8 @@ export class CoWriteService {
 
   private readonly STORAGE_KEY = 'smuve_cowrite_projects';
   private projectsSignal = signal<CoWriteProject[]>([]);
+  /** Set when the last save could not be written to this device. */
+  readonly lastSaveError = signal<string | null>(null);
   get savedProjects() {
     return this.projectsSignal.asReadonly();
   }
@@ -1035,7 +1037,17 @@ export class CoWriteService {
     const existing = this.loadProjects();
     existing.unshift(project);
     if (existing.length > 50) existing.length = 50;
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(existing));
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(existing));
+    } catch (e) {
+      // Storage can refuse (quota, private mode). Do not pretend the project
+      // is on disk, and do not add it to the in-memory saved list either.
+      this.lastSaveError.set(
+        'This project could not be saved on this device. Copy the lyrics out before leaving.',
+      );
+      return null;
+    }
+    this.lastSaveError.set(null);
     this.projectsSignal.set(existing);
     return project;
   }

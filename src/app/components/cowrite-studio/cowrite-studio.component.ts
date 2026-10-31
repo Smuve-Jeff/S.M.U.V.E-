@@ -270,7 +270,11 @@ export class CowriteStudioComponent implements OnInit {
       this.projectNameInput.set('');
       setTimeout(() => this.saveConfirm.set(null), 3000);
     } else {
-      this.saveConfirm.set('No active session to save.');
+      // null means either "nothing to save" or "storage refused the write";
+      // report the real reason instead of blaming the missing session.
+      this.saveConfirm.set(
+        this.cowrite.lastSaveError() ?? 'No active session to save.',
+      );
       setTimeout(() => this.saveConfirm.set(null), 3000);
     }
   }
