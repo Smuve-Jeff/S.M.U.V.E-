@@ -209,4 +209,13 @@ describe('CommandCenterComponent', () => {
     expect(component.formatMetric('cpuLoad')).toMatch(/%$/);
     expect(component.formatMetric('latency')).toMatch(/ms$/);
   });
+
+  it('reports the real AI link state instead of a hardcoded sync claim', () => {
+    (mockAiService as any).connectionState = signal('offline');
+    (mockAiService as any).aiStatusLabel = () => 'Local knowledge';
+    fixture.detectChanges();
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Local knowledge');
+    expect(text).not.toContain('Neural Link: Synchronized');
+  });
 });
