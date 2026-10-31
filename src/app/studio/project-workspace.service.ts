@@ -851,11 +851,15 @@ export class ProjectWorkspaceService {
   async exportProjectBundle(): Promise<ProjectBundle> {
     const bundle = this.createSnapshot();
     bundle.exportedAt = Date.now();
-    await this.offlineSync.saveLocal(
-      `export_${bundle.metadata.id}_${bundle.exportedAt}`,
-      bundle,
-      30 * 24 * 60 * 60 * 1000,
-    );
+    // The download itself is the artist's file. The 30-day local cache is a
+    // vault write, and guest clearance promises none of those.
+    if (!this.isGuestSession) {
+      await this.offlineSync.saveLocal(
+        `export_${bundle.metadata.id}_${bundle.exportedAt}`,
+        bundle,
+        30 * 24 * 60 * 60 * 1000,
+      );
+    }
     return bundle;
   }
 
@@ -866,6 +870,17 @@ export class ProjectWorkspaceService {
       this.audioIntegrity.set(integrity);
       if (!integrity.ok) {
         throw new Error(describeAudioIntegrityFailure(integrity, "import"));
+      }
+      if (this.isGuestSession) {
+        // Open the bundle in this tab only. Writing a projects record, a
+        // last-opened pointer or a cloud copy would contradict the clearance
+        // page's "never written to a vault" promise.
+        this.restoreFromSnapshot(bundle);
+        this.persistenceError.set('');
+        this.logger.info(
+          "ProjectWorkspace: Guest import kept in tab; nothing persisted",
+        );
+        return true;
       }
       await this.requirePersistence();
       const stored = this.toStoredBundle(bundle, "import");
@@ -984,11 +999,15 @@ export class ProjectWorkspaceService {
     if (!integrity.ok) {
       throw new Error(describeAudioIntegrityFailure(integrity, "export"));
     }
-    void this.offlineSync.saveLocal(
-      `export_${bundle.metadata.id}_${bundle.exportedAt}`,
-      bundle,
-      30 * 24 * 60 * 60 * 1000,
-    );
+    // The downloaded archive is the artist's own file. The 30-day local cache
+    // is a vault write, and guest clearance promises none of those.
+    if (!this.isGuestSession) {
+      void this.offlineSync.saveLocal(
+        `export_${bundle.metadata.id}_${bundle.exportedAt}`,
+        bundle,
+        30 * 24 * 60 * 60 * 1000,
+      );
+    }
     const blob = buildProjectArchive(bundle);
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

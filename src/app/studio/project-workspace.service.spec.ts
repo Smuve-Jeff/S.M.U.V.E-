@@ -579,6 +579,62 @@ describe("ProjectWorkspaceService", () => {
     expect(saveItem).not.toHaveBeenCalled();
   });
 
+  it('downloads a guest export without caching it in the vault', () => {
+    authUser.set({ id: 'guest_1', role: 'Guest' });
+    service.restoreFromSnapshot(makeBundle());
+    const offline = TestBed.inject(OfflineSyncService) as any;
+    const originalCreate = (URL as any).createObjectURL;
+    const originalRevoke = (URL as any).revokeObjectURL;
+    (URL as any).createObjectURL = jest.fn(() => 'blob:guest-export');
+    (URL as any).revokeObjectURL = jest.fn();
+
+    try {
+      service.downloadProjectBundle();
+    } finally {
+      (URL as any).createObjectURL = originalCreate;
+      (URL as any).revokeObjectURL = originalRevoke;
+    }
+
+    expect((URL as any).createObjectURL).toBeDefined();
+    expect(offline.saveLocal).not.toHaveBeenCalled();
+  });
+
+  it('caches a signed-in export for recovery', () => {
+    service.restoreFromSnapshot(makeBundle());
+    const offline = TestBed.inject(OfflineSyncService) as any;
+    const originalCreate = (URL as any).createObjectURL;
+    const originalRevoke = (URL as any).revokeObjectURL;
+    (URL as any).createObjectURL = jest.fn(() => 'blob:artist-export');
+    (URL as any).revokeObjectURL = jest.fn();
+
+    try {
+      service.downloadProjectBundle();
+    } finally {
+      (URL as any).createObjectURL = originalCreate;
+      (URL as any).revokeObjectURL = originalRevoke;
+    }
+
+    expect(offline.saveLocal).toHaveBeenCalled();
+  });
+
+  it('opens a guest import in the tab without writing a project record', async () => {
+    authUser.set({ id: 'guest_1', role: 'Guest' });
+    const bundle = makeBundle();
+    const importUrl = (URL as any).createObjectURL;
+    (URL as any).createObjectURL = jest.fn(() => 'blob:noop');
+    (URL as any).revokeObjectURL = jest.fn();
+
+    try {
+      const result = await service.importProjectBundle(bundle);
+      expect(result).toBe(true);
+    } finally {
+      (URL as any).createObjectURL = importUrl;
+    }
+
+    expect(saveItem).not.toHaveBeenCalled();
+    expect(service.metadata()?.id).toBe(bundle.metadata.id);
+  });
+
   it('skips the recovery snapshot for a workspace that is already saved', async () => {
     service.isDirty.set(false);
 
