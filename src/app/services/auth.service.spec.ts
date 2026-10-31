@@ -366,4 +366,63 @@ describe('AuthService', () => {
       expect(result.message).toContain('ENTER THE ADDRESS');
     });
   });
+
+  describe('local password recovery', () => {
+    it(
+      'rotates the cipher so the new password signs in',
+      async () => {
+        await seedAccount();
+
+        const result = await service.resetLocalPassword(EMAIL, 'Recover!2Now');
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain('THIS BROWSER');
+
+        const login = await service.login({
+          email: EMAIL,
+          password: 'Recover!2Now',
+        });
+        expect(login.success).toBe(true);
+      },
+      30000
+    );
+
+    it(
+      'refuses a cipher that breaks policy',
+      async () => {
+        await seedAccount();
+
+        const result = await service.resetLocalPassword(EMAIL, 'short');
+
+        expect(result.success).toBe(false);
+        expect(result.message).toContain('PASSWORD TOO SHORT');
+      },
+      15000
+    );
+
+    it(
+      'refuses an address with no local record',
+      async () => {
+        const result = await service.resetLocalPassword(
+          'nobody@smuve.dev',
+          'Recover!2Now'
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.message).toBe('NO LOCAL ACCOUNT FOR THAT ADDRESS.');
+      },
+      15000
+    );
+
+    it(
+      'knows which addresses have a local record',
+      async () => {
+        await seedAccount();
+
+        expect(service.hasLocalAccount(EMAIL)).toBe(true);
+        expect(service.hasLocalAccount('nobody@smuve.dev')).toBe(false);
+      },
+      15000
+    );
+  });
 });

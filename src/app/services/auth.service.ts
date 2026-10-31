@@ -587,6 +587,90 @@ export class AuthService {
     return verifiedUser;
   }
 
+  /** Whether this browser holds an account record for the address. */
+  hasLocalAccount(email: string): boolean {
+    if (!email) return false;
+    if (
+      typeof localStorage === 'undefined' ||
+      !this.canUseStorage(localStorage)
+    ) {
+      return false;
+    }
+    try {
+      return !!localStorage.getItem(
+        `smuve_db_user_${email.toLowerCase().trim()}`
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Replace the cipher on a local account.
+   *
+   * The local store keeps its PBKDF2 hash in this browser and has no mail
+   * channel, so recovery cannot prove inbox ownership. The screen says so
+   * instead of pretending a link was delivered; this method changes only the
+   * record on this device.
+   */
+  async resetLocalPassword(email: string, password: string) {
+    const normalized = (email || '').toLowerCase().trim();
+    const validation = this.validatePassword(password);
+    if (!validation.isValid) {
+      return { success: false, message: validation.errors[0] };
+    }
+    if (
+      typeof localStorage === 'undefined' ||
+      !this.canUseStorage(localStorage)
+    ) {
+      return {
+        success: false,
+        message: 'STORAGE UNAVAILABLE. NEURAL LINK FAILS.',
+      };
+    }
+
+    let raw: string | null;
+    try {
+      raw = localStorage.getItem(`smuve_db_user_${normalized}`);
+    } catch {
+      return { success: false, message: 'STORAGE REJECTED. NEURAL LINK FAILS.' };
+    }
+    if (!raw) {
+      return { success: false, message: 'NO LOCAL ACCOUNT FOR THAT ADDRESS.' };
+    }
+
+    let record: Record<string, unknown>;
+    try {
+      record = JSON.parse(raw);
+    } catch {
+      return {
+        success: false,
+        message: 'LOCAL ACCOUNT RECORD UNREADABLE. SIGN UP AGAIN.',
+      };
+    }
+
+    const passwordHash = await this.deriveKey(
+      password,
+      GLOBAL_SECURITY_CONFIG.auth_salt
+    );
+    try {
+      localStorage.setItem(
+        `smuve_db_user_${normalized}`,
+        JSON.stringify({ ...record, passwordHash })
+      );
+      // A code issued for the previous cipher must not outlive it.
+      localStorage.removeItem(`smuve_verification_${normalized}`);
+    } catch {
+      return { success: false, message: 'STORAGE REJECTED. NEURAL LINK FAILS.' };
+    }
+
+    return {
+      success: true,
+      message:
+        'LOCAL CIPHER ROTATED FOR THIS BROWSER. NO OTHER DEVICE WAS CHANGED.',
+    };
+  }
+
   validatePassword(p: string) {
     const errors = [];
     if (p.length < 8)

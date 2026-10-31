@@ -37,6 +37,12 @@ export class ResetPasswordComponent implements OnInit {
   readonly isLoading = signal(false);
   readonly message = signal('');
   readonly isError = signal(false);
+  /**
+   * True when no recovery service answered but this browser holds a local
+   * account record. The screen then rotates that record's cipher and says
+   * plainly that nothing was emailed.
+   */
+  readonly localResetAvailable = signal(false);
 
   /** True when a token is present — the screen redeems instead of requesting. */
   readonly isRedeeming = computed(() => !!this.token());
@@ -81,10 +87,58 @@ export class ResetPasswordComponent implements OnInit {
       );
     } catch (err) {
       this.isError.set(true);
+      if (this.isRecoveryUnreachable(err) && this.authService.hasLocalAccount(email)) {
+        this.localResetAvailable.set(true);
+        this.message.set(
+          'RECOVERY SERVICE UNREACHABLE. THIS BROWSER HOLDS A LOCAL ACCOUNT — SET A NEW CIPHER BELOW. NOTHING IS EMAILED.'
+        );
+        return;
+      }
       this.message.set(this.describeFailure(err));
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /** Rotate the cipher on this browser's local account record. */
+  async onLocalReset(): Promise<void> {
+    if (this.isLoading()) return;
+
+    const validation = this.passwordValidation;
+    if (!validation.isValid) {
+      this.isError.set(true);
+      this.message.set(validation.errors[0]);
+      return;
+    }
+    if (this.password() !== this.confirmation()) {
+      this.isError.set(true);
+      this.message.set('The two cipher entries do not match.');
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.isError.set(false);
+    this.message.set('');
+    try {
+      const result = await this.authService.resetLocalPassword(
+        this.email(),
+        this.password()
+      );
+      this.isError.set(!result.success);
+      this.message.set(result.message);
+      if (result.success) {
+        setTimeout(() => void this.router.navigate(['/login']), 1200);
+      }
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  private isRecoveryUnreachable(err: unknown): boolean {
+    return (
+      err instanceof ApiAuthError &&
+      (err.status === 0 || err.status >= 500 || err.status === 404)
+    );
   }
 
   async onResetPassword(): Promise<void> {
