@@ -470,18 +470,17 @@ export class DeckService {
     else this.deckB.update((d) => ({ ...d, gain }));
   }
 
+  /**
+   * Match this deck to the other one. Copying the BPM readout alone left the
+   * audio at its old tempo, so this delegates to the real tempo/phase matcher
+   * the deck's SYNC buttons use.
+   */
   sync(id: DeckId) {
-    const target = id === 'A' ? this.deckB() : this.deckA();
-    if (id === 'A') {
-      this.deckA.update((d) => ({ ...d, bpm: target.bpm }));
-    } else {
-      this.deckB.update((d) => ({ ...d, bpm: target.bpm }));
-    }
+    this.autoSync(id);
   }
 
   syncProgress() {
-    // In a real app we would use an analyzer for BPM detection
-    // for now we just sync the positions and playing state
+    // Transport state comes from the engine; tempo matching lives in autoSync().
     this.syncDeckState('A');
     this.syncDeckState('B');
   }
