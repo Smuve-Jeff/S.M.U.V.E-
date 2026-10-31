@@ -1362,6 +1362,30 @@ describe("ProjectWorkspaceService", () => {
     );
   });
 
+  it("reports the saved meter next to the tempo in each set row", async () => {
+    getAllItems.mockResolvedValue([
+      {
+        id: "project_proj_meter",
+        ...makeBundle(),
+        metadata: { ...metadata, id: "proj_meter", timeSignature: [5, 4] },
+        savedAt: 600,
+        source: "manual",
+      },
+      {
+        id: "recovery_proj_legacy",
+        ...makeBundle(),
+        metadata: { ...metadata, id: "proj_legacy" },
+        savedAt: 500,
+        source: "recovery",
+      },
+    ]);
+
+    const sets = await service.listLocalProjects();
+
+    expect(sets.find((set) => set.projectId === "proj_meter")?.timeSignature).toEqual([5, 4]);
+    expect(sets.find((set) => set.projectId === "proj_legacy")?.timeSignature).toEqual([4, 4]);
+  });
+
   it("loads a set whose only record is an autosave snapshot", async () => {
     const autosaveBundle = {
       id: "autosave_proj_solo",

@@ -3501,7 +3501,7 @@
                 >
               </span>
               <span class="comp-sets-sub">
-                {{ set.bpm }} BPM · {{ set.trackCount }} track{{
+                {{ set.bpm }} BPM · {{ setMeterLabel(set) }} · {{ set.trackCount }} track{{
                   set.trackCount === 1 ? '' : 's'
                 }}
                 <ng-container *ngIf="set.genre">

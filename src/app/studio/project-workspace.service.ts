@@ -133,6 +133,8 @@ export interface LocalProjectSummary {
   recordId: string;
   name: string;
   bpm: number;
+  /** Saved meter of the set, e.g. [3, 4]. */
+  timeSignature: [number, number];
   genre: string;
   mood: string;
   tags: string[];
@@ -701,6 +703,7 @@ export class ProjectWorkspaceService {
         recordId: record.id,
         name: record.metadata.name || "Untitled Set",
         bpm: record.metadata.bpm,
+        timeSignature: this.normalizeMeter(record.metadata.timeSignature),
         genre: record.metadata.genre || "",
         mood: record.metadata.mood || "",
         tags: Array.isArray(record.metadata.tags)

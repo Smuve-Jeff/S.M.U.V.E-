@@ -3288,6 +3288,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     return new Date(savedAt).toLocaleDateString();
   }
 
+  /** Meter shown in the Sets row; legacy test fixtures may omit it. */
+  setMeterLabel(set: LocalProjectSummary): string {
+    const [beats, unit] = set.timeSignature ?? [4, 4];
+    return `${beats}/${unit}`;
+  }
+
   setSourceLabel(set: LocalProjectSummary): string {
     switch (set.source) {
       case 'manual':
