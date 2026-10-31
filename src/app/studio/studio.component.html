@@ -978,6 +978,18 @@
         <span class="material-symbols-outlined">home</span>
         <span class="comp-rail-label">Home</span>
       </button>
+      <!-- Music Map: one-tap explanation of how surfaces + document + engine
+           relate, for anyone stuck at "how do I make a beat?" -->
+      <button
+        type="button"
+        class="comp-rail-item"
+        (click)="showArchitectureMap.set(true)"
+        aria-label="Open the Studio architecture map"
+        title="How the Studio makes music — the four layers and the beat path"
+      >
+        <span class="material-symbols-outlined">menu_book</span>
+        <span class="comp-rail-label">Music Map</span>
+      </button>
       <!-- Grouped, scrollable view list — every stage stays reachable even
            when the window is short (the flat list used to clip below fold). -->
       <div class="comp-rail-scroll">
@@ -3540,6 +3552,11 @@
     (navigateToView)="setActiveView($any($event))"
   ></app-smart-creation-sheet>
 
+  <app-architecture-map
+    *ngIf="showArchitectureMap()"
+    (close)="showArchitectureMap.set(false)"
+    (onQuickSession)="showArchitectureMap.set(false); setActiveView('quick-session')"
+  ></app-architecture-map>
   <app-search-overlay></app-search-overlay>
   <app-snackbar></app-snackbar>
 

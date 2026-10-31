@@ -36,7 +36,15 @@ export interface OnboardingTour {
 const TOUR_STORAGE_KEY = 'smuve_tour_started';
 const TOUR_PROGRESS_KEY = 'smuve_tour_progress';
 
-/** Default 5-minute First Beat tour — wired into the store/component below. */
+/**
+ * Default 5-minute First Beat tour — wired into the store/component below.
+ *
+ * The stations follow the four beat-creation moves from
+ * docs/STUDIO_ARCHITECTURE_MAP.md: every surface is just a different editor
+ * over ONE song document (MusicManagerService.tracks()); the engine plays
+ * whatever that document says. So the tour follows the document, not the
+ * rail: set the tempo → program a pattern → add layers → arrange → ship.
+ */
 const DEFAULT_TOUR_STEPS: ReadonlyArray<{
   id: string;
   title: string;
@@ -46,48 +54,49 @@ const DEFAULT_TOUR_STEPS: ReadonlyArray<{
   queryParams?: Record<string, string>;
 }> = [
   {
-    id: 'tour-profile',
-    title: 'Lock the artist identity',
+    id: 'tour-tempo',
+    title: 'Set the tempo & take the wheel',
     description:
-      'Open the profile, set your artist name, and pick a primary genre so the rest of the tour can read it.',
-    route: 'profile',
-    cta: 'Open Profile',
-    queryParams: { tour: '1' },
-  },
-  {
-    id: 'tour-studio',
-    title: 'Step into the booth',
-    description:
-      'Visit the full studio. Drop a beat, swipe a synth, or trigger the AI Drummer. Anything counts.',
+      'Open Quick Session — the one-screen beat workspace. Pick a BPM starter or tap record. First move done.',
     route: 'studio',
-    cta: 'Open Studio',
-    queryParams: { tour: '1' },
+    cta: 'Open Quick Session',
+    queryParams: { view: 'quick-session', tour: '1' },
   },
   {
-    id: 'tour-produce',
-    title: 'Run One-Tap Produce',
+    id: 'tour-drum-pattern',
+    title: 'Program the drums',
     description:
-      'Try AI Produce — the orchestrator pulls the beat, the lyrics, and a quick mix preview together.',
-    route: 'produce',
-    cta: 'Open Produce',
-    queryParams: { tour: '1', seed: 'midnight-rooftop-808' },
+      'Tap steps in the Drum Machine. Every tap lands in the same song document — that one call IS writing music.',
+    route: 'studio',
+    cta: 'Open Drum Machine',
+    queryParams: { view: 'drum-machine', tour: '1' },
   },
   {
-    id: 'tour-store',
-    title: 'Browse the Store',
+    id: 'tour-layers',
+    title: 'Add the melodic layers',
     description:
-      'Pick a sound pack, instrument pack, or AI bundle. The 8-SKU catalog is yours to flip through.',
-    route: 'store',
-    cta: 'Open Store',
+      'Draw keys in the Piano Roll or chords in Chords. Each layer is another track in the same document — they always agree.',
+    route: 'studio',
+    cta: 'Open Piano Roll',
+    queryParams: { view: 'piano-roll', tour: '1' },
   },
   {
-    id: 'tour-strategy',
-    title: 'Plan the release',
+    id: 'tour-arrange',
+    title: 'Arrange the beat into a song',
     description:
-      'See how the strategy hub tracks catalog health, drops, and the career ecosystem signals.',
-    route: 'strategy',
-    cta: 'Open Intel',
-    queryParams: { tour: '1' },
+      'Drag patterns onto the Arrangement timeline. Nothing is re-created — the same data, replayed in order.',
+    route: 'studio',
+    cta: 'Open Arrangement',
+    queryParams: { view: 'arrangement', tour: '1' },
+  },
+  {
+    id: 'tour-mix-ship',
+    title: 'Mix, polish & ship the beat',
+    description:
+      'Balance the tracks in the Mixer, then Export the mixdown or stems. The document never changes — only how it presents.',
+    route: 'studio',
+    cta: 'Open Export',
+    queryParams: { view: 'export', tour: '1' },
   },
 ];
 

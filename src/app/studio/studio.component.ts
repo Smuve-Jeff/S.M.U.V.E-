@@ -60,6 +60,7 @@ import { StudioExportSurfaceComponent } from "./export-surface/studio-export-sur
 import { DrumMachineComponent } from "./drum-machine/drum-machine.component";
 import { PerformerComponent } from "./performer/performer.component";
 import { SnackbarComponent } from "./shared/snackbar/snackbar.component";
+import { ArchitectureMapComponent } from "./shared/architecture-map/architecture-map.component";
 import { SearchOverlayComponent } from "./shared/search-overlay/search-overlay.component";
 import { AiAssistantComponent } from "./shared/ai-assistant/ai-assistant.component";
 import { AiProduceComponent } from "../components/ai-produce/ai-produce.component";
@@ -264,6 +265,7 @@ const SELF_HOSTING_VIEWS = new Set<string>([
     QuickSessionComponent,
     SmartCreationSheetComponent,
     AudioRepairComponent,
+    ArchitectureMapComponent,
   ],
   templateUrl: "./studio.component.html",
   styleUrls: [
@@ -612,6 +614,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   activeView = signal<StudioView>("quick-session");
   private readonly studioFocus = inject(StudioFocusService);
   showSmartCreationSheet = signal(false);
+  /** One-tap "how does this machine make music?" sheet, opened from the rail. */
+  showArchitectureMap = signal(false);
   mobilePanel = signal<MobileStudioPanel | null>(null);
   showAiAssistant = signal(false);
   showNeuralFoundry = signal(false);
