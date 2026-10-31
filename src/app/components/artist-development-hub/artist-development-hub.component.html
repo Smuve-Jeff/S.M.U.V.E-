@@ -382,6 +382,34 @@
             </div>
           </div>
 
+          <!-- Artist Journey: the dossier the pathway reads, and its gaps -->
+          <div
+            class="bg-brand-dark/40 border border-white/5 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3"
+          >
+            <div class="flex-1 min-w-[14rem]">
+              <div class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-primary">
+                Artist Journey
+              </div>
+              <p class="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                @if (journeyGaps().length) {
+                  {{ journeyGaps().length }} dossier
+                  {{ journeyGaps().length === 1 ? 'answer is' : 'answers are' }}
+                  still blocking pathway steps:
+                  {{ journeyGaps().join(' · ') }}.
+                } @else {
+                  Every dossier field the pathway reads is recorded.
+                }
+              </p>
+            </div>
+            <button
+              type="button"
+              (click)="openJourney()"
+              class="px-4 py-2 rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-300 text-[9px] font-black uppercase tracking-widest hover:bg-violet-500/20 transition-all"
+            >
+              Open Artist Journey
+            </button>
+          </div>
+
           <!-- The single next move -->
           @if (nextAction(); as next) {
             <div

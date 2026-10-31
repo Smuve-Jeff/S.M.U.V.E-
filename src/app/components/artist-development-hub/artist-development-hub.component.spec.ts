@@ -332,6 +332,37 @@ describe('ArtistDevelopmentHubComponent', () => {
     expect(text()).toContain('Can run in parallel');
   });
 
+  it('closes the loop between the pathway and the Artist Journey dossier', async () => {
+    const { component, fixture, text } = await createComponent();
+
+    expect(component.journeyGaps().length).toBe(6);
+    expect(text()).toContain('Artist Journey');
+    expect(text()).toContain('still blocking pathway steps');
+
+    navigate.mockClear();
+    component.openJourney();
+    expect(navigate).toHaveBeenCalledWith(['/journey']);
+
+    profile.update(
+      (current) =>
+        ({
+          ...current,
+          musicalJourney: {
+            originStory: 'community',
+            artistNameMeaning: 'a name from my grandmother',
+            productionPhilosophy: 'Lo-Fi Grit',
+            releaseVelocity: 'Cyclic (Monthly)',
+            contentStrategy: 'Community First',
+            incomeStreams: ['Streaming'],
+          },
+        }) as any
+    );
+    fixture.detectChanges();
+
+    expect(component.journeyGaps()).toEqual([]);
+    expect(text()).toContain('Every dossier field the pathway reads is recorded');
+  });
+
   it('filters the catalog live by title, type or status', async () => {
     const { fixture, component } = await createComponent();
 

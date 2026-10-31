@@ -136,9 +136,9 @@ export class SmuveAdvisorComponent implements OnInit {
 
   /**
    * Room-arrival presence: when the artist navigates, S.M.U.V.E. follows and
-   * speaks the new room in a randomly chosen voice for it, then leaves a
-   * dismissible line above the advisor button. Throttled hard so moving around
-   * the app never becomes a lecture.
+   * leaves a dismissible line above the advisor button. Arrivals are silent —
+   * speech belongs to the explicit "hear it" buttons — and throttled so moving
+   * around the app never becomes a lecture.
    */
   readonly arrival = signal<{ label: string; line: string } | null>(null);
   private lastSurface: string | null = null;
@@ -175,7 +175,9 @@ export class SmuveAdvisorComponent implements OnInit {
     const now = Date.now();
     if (now - this.lastArrivalAt < 20_000) return;
     try {
-      const presence = director.announce();
+      // `presenceLine` composes the room read without speaking it; only the
+      // artist's own request to hear a room may use `announce()`.
+      const presence = director.presenceLine();
       this.lastArrivalAt = now;
       this.arrival.set({ label: presence.surfaceLabel, line: presence.line });
       if (this.arrivalTimer) clearTimeout(this.arrivalTimer);

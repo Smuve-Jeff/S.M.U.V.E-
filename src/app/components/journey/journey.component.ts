@@ -63,12 +63,20 @@ export class JourneyComponent {
       Boolean((p.artistName || '').trim()) &&
       (p.artistName || '').trim() !== 'New Artist';
     return [
-      identified && Boolean(journey.experienceLevel),
+      identified &&
+        Boolean(journey.experienceLevel) &&
+        Boolean(journey.originStory) &&
+        Boolean(journey.artistNameMeaning),
       identified && Boolean((p.primaryGenre || '').trim()),
       identified &&
         Boolean(journey.preferredBpmRange) &&
-        (p.skills?.length || 0) > 0,
-      identified && Boolean((journey.currentFocus || '').trim()),
+        (p.skills?.length || 0) > 0 &&
+        Boolean(journey.productionPhilosophy),
+      identified &&
+        Boolean((journey.currentFocus || '').trim()) &&
+        Boolean(journey.releaseVelocity) &&
+        Boolean(journey.contentStrategy) &&
+        (journey.incomeStreams?.length || 0) > 0,
       false,
     ];
   });
@@ -123,6 +131,65 @@ export class JourneyComponent {
     'Engineer',
     'Musician',
     'Manager',
+  ];
+
+  // Canonical option values shared with the artist questionnaire, so the two
+  // surfaces can never record different vocabularies for the same field.
+  readonly originStories = [
+    { label: 'Self-Discovery', value: 'self-taught', description: 'learned on your own' },
+    { label: 'Formal Training', value: 'formal', description: 'classical or academic' },
+    { label: 'Community Born', value: 'community', description: 'scene, church or family' },
+    { label: 'Industry Entry', value: 'industry', description: 'sessions and connections' },
+    { label: 'Digital Native', value: 'digital', description: 'born in the DAW' },
+    { label: 'Late Bloomer', value: 'late', description: 'found music later' },
+  ];
+
+  readonly productionPhilosophies = [
+    'Analog Warmth',
+    'Digital Precision',
+    'Lo-Fi Grit',
+    'Experimental Hybrid',
+    'Maximalist',
+    'Minimalist',
+  ];
+
+  readonly releaseVelocities = [
+    'Waterfall (Weekly)',
+    'Cyclic (Monthly)',
+    'Strategic (Quarterly)',
+    'Rare (Yearly)',
+  ];
+
+  readonly contentStrategies = [
+    'Organic Only',
+    'Paid Growth',
+    'Viral Hunt',
+    'Community First',
+    'Brand Collaborations',
+  ];
+
+  readonly successMetrics = [
+    'Creative Satisfaction',
+    'Algorithmic Dominance',
+    'Financial Revenue',
+    'Cultural Impact',
+    'Sync & Licensing',
+    'Live Performance',
+  ];
+
+  readonly incomeStreamOptions = [
+    { label: 'Streaming Royalties', value: 'Streaming' },
+    { label: 'Sync & Licensing', value: 'Sync Licensing' },
+    { label: 'Live Shows / Touring', value: 'Live Shows' },
+    { label: 'Merch', value: 'Merch' },
+    { label: 'Beat / Production Sales', value: 'Beat Sales' },
+    { label: 'Session Work', value: 'Session Work' },
+    { label: 'Teaching / Coaching', value: 'Teaching' },
+    { label: 'Patreon / Fan Subscriptions', value: 'Fan Subscriptions' },
+    { label: 'Sample Packs', value: 'Sample Packs' },
+    { label: 'Brand Deals', value: 'Brand Deals' },
+    { label: 'Distribution Services', value: 'Distribution' },
+    { label: 'Publishing / Placements', value: 'Publishing' },
   ];
 
   constructor() {
@@ -245,6 +312,25 @@ export class JourneyComponent {
 
   hasProductionStyle(style: string): boolean {
     return (this.profile().productionStyles || []).includes(style);
+  }
+
+  toggleIncomeStream(stream: string) {
+    this.profile.update((p) => {
+      const streams = p.musicalJourney?.incomeStreams || [];
+      return {
+        ...p,
+        musicalJourney: {
+          ...p.musicalJourney,
+          incomeStreams: streams.includes(stream)
+            ? streams.filter((entry) => entry !== stream)
+            : [...streams, stream],
+        },
+      };
+    });
+  }
+
+  hasIncomeStream(stream: string): boolean {
+    return (this.profile().musicalJourney?.incomeStreams || []).includes(stream);
   }
 
   /**

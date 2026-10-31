@@ -148,6 +148,12 @@ describe('JourneyComponent', () => {
         experienceLevel: 'Advanced',
         preferredBpmRange: '90-120',
         currentFocus: 'Finish the debut EP',
+        originStory: 'community',
+        artistNameMeaning: 'a name from my grandmother',
+        productionPhilosophy: 'Analog Warmth',
+        releaseVelocity: 'Cyclic (Monthly)',
+        contentStrategy: 'Organic Only',
+        incomeStreams: ['Streaming'],
       },
     }));
 
@@ -164,6 +170,43 @@ describe('JourneyComponent', () => {
     expect(updateProfile).toHaveBeenCalledTimes(1);
     expect(component.initialized()).toBe(true);
     expect(component.justSaved()).toBe(false);
+  });
+
+  it('records the dossier fields the Official Pathway evaluates', () => {
+    component.profile.update((p) => ({
+      ...p,
+      musicalJourney: {
+        ...p.musicalJourney,
+        originStory: 'community',
+        artistNameMeaning: 'a name from my grandmother',
+        productionPhilosophy: 'Lo-Fi Grit',
+        releaseVelocity: 'Cyclic (Monthly)',
+        contentStrategy: 'Community First',
+        primarySuccessMetric: 'Cultural Impact',
+        incomeStreams: ['Streaming', 'Live Shows'],
+      },
+    }));
+
+    component.updateProfile();
+    const saved = updateProfile.mock.calls.at(-1)![0];
+    expect(saved.musicalJourney.originStory).toBe('community');
+    expect(saved.musicalJourney.artistNameMeaning).toContain('grandmother');
+    expect(saved.musicalJourney.productionPhilosophy).toBe('Lo-Fi Grit');
+    expect(saved.musicalJourney.releaseVelocity).toBe('Cyclic (Monthly)');
+    expect(saved.musicalJourney.contentStrategy).toBe('Community First');
+    expect(saved.musicalJourney.primarySuccessMetric).toBe('Cultural Impact');
+    expect(saved.musicalJourney.incomeStreams).toEqual(['Streaming', 'Live Shows']);
+
+    // The choices come from the questionnaire's catalogue, not a second list.
+    expect(component.originStories.map((entry) => entry.value)).toContain('community');
+    expect(component.productionPhilosophies).toContain('Lo-Fi Grit');
+  });
+
+  it('toggles income streams as a canonical list', () => {
+    component.toggleIncomeStream('Streaming');
+    expect(component.hasIncomeStream('Streaming')).toBe(true);
+    component.toggleIncomeStream('Streaming');
+    expect(component.hasIncomeStream('Streaming')).toBe(false);
   });
 
   it('moves between sections with the arrow keys, but never while typing', () => {

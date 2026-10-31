@@ -240,6 +240,28 @@ export class ArtistDevelopmentHubComponent implements OnInit {
     this.router.navigate(['/profile']);
   }
 
+  /**
+   * The dossier fields the Official Pathway evaluates but the artist has not
+   * recorded yet. The hub used to name the gap without offering the surface
+   * that fills it, so these steps stayed blocked with no visible route.
+   */
+  readonly journeyGaps = computed<string[]>(() => {
+    const journey: any = this.userProfile.profile()?.musicalJourney ?? {};
+    const gaps: string[] = [];
+    if (!journey.originStory) gaps.push('your origin story');
+    if (!journey.artistNameMeaning) gaps.push('what your name means');
+    if (!journey.productionPhilosophy) gaps.push('your production philosophy');
+    if (!journey.releaseVelocity) gaps.push('a release cadence');
+    if (!journey.contentStrategy) gaps.push('a content strategy');
+    if (!(journey.incomeStreams?.length > 0)) gaps.push('an income stream');
+    return gaps;
+  });
+
+  /** Open the dossier wizard that records those fields. */
+  openJourney() {
+    this.router.navigate(['/journey']);
+  }
+
   // Signals from service
   activePanel = this.dev.activePanel;
   proRegistrations = this.dev.proRegistrations;

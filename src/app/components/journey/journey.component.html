@@ -86,6 +86,32 @@
         <div class="space-y-2">
           <label
             class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Origin Story</label
+          >
+          <select
+            [(ngModel)]="profile().musicalJourney.originStory"
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          >
+            <option value="" disabled>SELECT YOUR ORIGIN...</option>
+            <option *ngFor="let origin of originStories" [value]="origin.value">
+              {{ origin.label }} · {{ origin.description }}
+            </option>
+          </select>
+        </div>
+        <div class="space-y-2">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >What Your Name Means</label
+          >
+          <textarea
+            [(ngModel)]="profile().musicalJourney.artistNameMeaning"
+            placeholder="THE STORY OR SYMBOLISM BEHIND THE NAME..."
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-24 resize-none"
+          ></textarea>
+        </div>
+        <div class="space-y-2">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
             >Experience Level</label
           >
         <div class="mt-2 flex items-center gap-2 text-[9px] text-text-dim uppercase tracking-widest">
@@ -189,6 +215,21 @@
             </button>
           </div>
         </div>
+        <div class="space-y-2">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Production Philosophy</label
+          >
+          <select
+            [(ngModel)]="profile().musicalJourney.productionPhilosophy"
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          >
+            <option value="" disabled>SELECT YOUR PHILOSOPHY...</option>
+            <option *ngFor="let philosophy of productionPhilosophies" [value]="philosophy">
+              {{ philosophy }}
+            </option>
+          </select>
+        </div>
         <div class="space-y-3">
           <label
             class="text-[10px] font-black text-text-dim uppercase tracking-widest"
@@ -261,6 +302,73 @@
             placeholder="WHO DO YOU WANT TO WORK WITH?..."
             class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all h-24 resize-none"
           ></textarea>
+        </div>
+        <div class="space-y-2">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Release Cadence</label
+          >
+          <select
+            [(ngModel)]="profile().musicalJourney.releaseVelocity"
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          >
+            <option value="" disabled>SELECT YOUR RELEASE RHYTHM...</option>
+            <option *ngFor="let velocity of releaseVelocities" [value]="velocity">
+              {{ velocity }}
+            </option>
+          </select>
+        </div>
+        <div class="space-y-2">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Content Strategy</label
+          >
+          <select
+            [(ngModel)]="profile().musicalJourney.contentStrategy"
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          >
+            <option value="" disabled>HOW YOU FEED THE AUDIENCE...</option>
+            <option *ngFor="let strategy of contentStrategies" [value]="strategy">
+              {{ strategy }}
+            </option>
+          </select>
+        </div>
+        <div class="space-y-2">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Primary Success Metric</label
+          >
+          <select
+            [(ngModel)]="profile().musicalJourney.primarySuccessMetric"
+            class="w-full bg-background border border-border rounded-xl px-4 py-3 md:py-4 text-sm font-bold text-text-main focus:border-brand-primary outline-none transition-all"
+          >
+            <option value="" disabled>WHAT COUNTS AS A WIN...</option>
+            <option *ngFor="let metric of successMetrics" [value]="metric">
+              {{ metric }}
+            </option>
+          </select>
+        </div>
+        <div class="space-y-3">
+          <label
+            class="text-[10px] font-black text-text-dim uppercase tracking-widest"
+            >Income Streams</label
+          >
+          <div class="flex flex-wrap gap-2">
+            <button
+              *ngFor="let stream of incomeStreamOptions"
+              type="button"
+              (click)="toggleIncomeStream(stream.value)"
+              class="px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border"
+              [class.bg-brand-primary]="hasIncomeStream(stream.value)"
+              [class.text-black]="hasIncomeStream(stream.value)"
+              [class.border-brand-primary]="hasIncomeStream(stream.value)"
+              [class.bg-background]="!hasIncomeStream(stream.value)"
+              [class.text-text-dim]="!hasIncomeStream(stream.value)"
+              [class.border-border]="!hasIncomeStream(stream.value)"
+            >
+              {{ stream.label }}
+            </button>
+          </div>
         </div>
       </div>
 

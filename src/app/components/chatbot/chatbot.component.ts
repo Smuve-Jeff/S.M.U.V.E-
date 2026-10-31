@@ -308,16 +308,17 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /**
-   * The room changed while the console is open: S.M.U.V.E. speaks the new room
-   * in a randomly chosen voice for it, then leaves the line in the transcript
-   * with any verdict it already delivered there.
+   * The room changed while the console is open: S.M.U.V.E. files the new room
+   * in the transcript with any verdict it already delivered there. Arrivals are
+   * silent; the console speaks only when the artist asks it to.
    */
   private announceRoomArrival(): void {
     if (this.destroyed) return;
     const director = this.careerDirector;
     if (!director) return;
     try {
-      const presence = director.announce();
+      // Text only: navigating between pages must never start narration.
+      const presence = director.presenceLine();
       const verdict = this.caseFile?.latestVerdict(presence.surface) ?? null;
       const fileLine = verdict
         ? `\n\nCASE FILE // ${verdict.surfaceLabel}, ${this.agedOn(verdict.at)}: "${verdict.text}"`
