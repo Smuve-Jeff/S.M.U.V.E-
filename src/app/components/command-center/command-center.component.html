@@ -71,8 +71,7 @@
               >{{ metric }}</span
             >
             <span class="digital-readout text-xs font-bold text-brand-primary"
-              >{{ aiService.systemStatus()[metric]
-              }}{{ metric === 'latency' ? 'ms' : '%' }}</span
+              >{{ formatMetric(metric) }}</span
             >
           </div>
         }

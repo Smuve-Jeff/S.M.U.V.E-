@@ -202,4 +202,11 @@ describe('CommandCenterComponent', () => {
     expect(component.terminalLogs()[0].type).toBe('system');
     expect(component.commandHistory().length).toBe(0);
   });
+
+  it('marks unmeasured telemetry as unavailable instead of zero', () => {
+    // A metric the service leaves at zero (it cannot be measured in a browser).
+    expect(component.formatMetric('activeProcesses')).toBe('n/a');
+    expect(component.formatMetric('cpuLoad')).toMatch(/%$/);
+    expect(component.formatMetric('latency')).toMatch(/ms$/);
+  });
 });

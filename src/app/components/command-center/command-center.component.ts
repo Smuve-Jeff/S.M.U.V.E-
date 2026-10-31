@@ -294,6 +294,17 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
     }, 800);
   }
 
+  /**
+   * Browsers cannot measure CPU load, memory use or network latency directly,
+   * so those readings stay zero in the service. Render that as unavailable
+   * instead of a measured-looking "0%".
+   */
+  formatMetric(metric: string): string {
+    const value = (this.aiService.systemStatus() as any)[metric];
+    if (!value) return 'n/a';
+    return `${value}${metric === 'latency' ? 'ms' : '%'}`;
+  }
+
   getImpactColor(impact: string): string {
     switch (impact) {
       case 'Extreme':
