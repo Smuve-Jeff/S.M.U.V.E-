@@ -1094,7 +1094,15 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   async bounceSelected() {
     const tid = this.musicManager.selectedTrackId();
     if (!tid) return;
-    const result = await this.musicManager.bounceTrack(tid);
+    let result: Awaited<ReturnType<MusicManagerService["bounceTrack"]>>;
+    try {
+      result = await this.musicManager.bounceTrack(tid);
+    } catch (err) {
+      // A failed render must reach the artist, not reject into the void.
+      this.logger.error("Track bounce failed", err);
+      this.snackbar.show("🎚 Bounce failed — the track could not be rendered");
+      return;
+    }
     if (!result) {
       this.snackbar.show("🎚 Bounce failed — select a valid track");
       return;

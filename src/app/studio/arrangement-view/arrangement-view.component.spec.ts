@@ -53,6 +53,7 @@ describe("ArrangementViewComponent", () => {
     hasClipClipboard: jest.fn(() => false),
     duplicateTrack: jest.fn(() => "track_copy"),
     glueClips: jest.fn(),
+    bounceTrack: jest.fn(),
   };
 
   const mockHistory = {
@@ -132,6 +133,21 @@ describe("ArrangementViewComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it("reports a failed track bounce instead of letting the rejection escape", async () => {
+    mockMusicManager.bounceTrack.mockRejectedValueOnce(
+      new Error("render exploded"),
+    );
+
+    await expect(component.bounceSelected()).resolves.toBeUndefined();
+
+    expect(mockSnackbar.show).toHaveBeenCalledWith(
+      "🎚 Bounce failed — the track could not be rendered",
+    );
+    expect(mockSnackbar.show).not.toHaveBeenCalledWith(
+      expect.stringContaining("Bounced"),
+    );
   });
 
   it("marks the track header whose take is actually being written", () => {
