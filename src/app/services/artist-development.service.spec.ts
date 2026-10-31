@@ -323,4 +323,62 @@ describe('ArtistDevelopmentService (dev-hub)', () => {
     // No stored socials → the default platform list is seeded.
     expect(reloaded.socialAccounts().length).toBe(reloaded.SOCIAL_PLATFORMS.length);
   });
+  it('reports a device that refused to store the change', () => {
+    const setItem = jest
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+
+    sut.addProRegistration({
+      organization: 'BMI',
+      membershipId: 'MEM-2',
+      ipiNumber: '',
+      caeNumber: '',
+      publisher: '',
+      publisherIpi: '',
+      registrationDate: '2026-02-01',
+      status: 'active',
+      territories: ['Worldwide'],
+    } as any);
+
+    expect(sut.storageError()).toContain('could not be saved on this device');
+    setItem.mockRestore();
+  });
+
+  it('clears the notice once a write succeeds', () => {
+    const setItem = jest
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+    sut.addProRegistration({
+      organization: 'BMI',
+      membershipId: 'MEM-3',
+      ipiNumber: '',
+      caeNumber: '',
+      publisher: '',
+      publisherIpi: '',
+      registrationDate: '2026-03-01',
+      status: 'active',
+      territories: ['Worldwide'],
+    } as any);
+    expect(sut.storageError()).not.toBeNull();
+    setItem.mockRestore();
+
+    sut.addProRegistration({
+      organization: 'ASCAP',
+      membershipId: 'MEM-4',
+      ipiNumber: '',
+      caeNumber: '',
+      publisher: '',
+      publisherIpi: '',
+      registrationDate: '2026-04-01',
+      status: 'active',
+      territories: ['Worldwide'],
+    } as any);
+
+    expect(sut.storageError()).toBeNull();
+  });
+
 });

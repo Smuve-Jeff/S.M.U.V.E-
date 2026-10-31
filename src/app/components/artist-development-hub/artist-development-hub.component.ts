@@ -70,7 +70,7 @@ type HubPanel = ArtistDevelopmentPanel;
   ],
 })
 export class ArtistDevelopmentHubComponent implements OnInit {
-  private dev = inject(ArtistDevelopmentService);
+  readonly dev = inject(ArtistDevelopmentService);
   private router = inject(Router);
   private dialog = inject(InteractionDialogService);
   private pathwayService = inject(ArtistPathwayService);

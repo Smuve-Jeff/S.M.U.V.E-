@@ -1,4 +1,13 @@
 <div class="min-h-screen bg-brand-dark text-slate-100 p-4 md:p-8">
+  @if (dev.storageError()) {
+    <!-- The device refused the write: say so, or the panel implies it survived. -->
+    <p
+      class="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-amber-300"
+      role="status"
+    >
+      {{ dev.storageError() }}
+    </p>
+  }
   <!-- Header -->
   <div class="flex items-center justify-between mb-8">
     <div>

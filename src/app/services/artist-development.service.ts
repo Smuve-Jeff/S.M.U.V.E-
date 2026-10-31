@@ -165,6 +165,8 @@ export class ArtistDevelopmentService {
 
   // Active panel (updated with new panels)
   activePanel = signal<ArtistDevelopmentPanel | null>('pathway');
+  /** Set when this device refused to store an artist-development change. */
+  readonly storageError = signal<string | null>(null);
   isScanning = signal(false);
 
   // ── PRO Registry ──────────────────────────────────────
@@ -586,10 +588,24 @@ export class ArtistDevelopmentService {
     if (fp) this.digitalFingerprint.set(fp);
   }
 
-  private saveToStorage(key: string, data: any): void {
+  /**
+   * Writes a slice of the artist's record to this device.
+   *
+   * Storage can refuse (quota, private mode). A refusal is surfaced through
+   * `storageError` instead of being swallowed, because the panel would otherwise
+   * look like the change survived a reload when it did not.
+   */
+  private saveToStorage(key: string, data: any): boolean {
     try {
       localStorage.setItem(key, JSON.stringify(data));
-    } catch {}
+      if (this.storageError()) this.storageError.set(null);
+      return true;
+    } catch (e) {
+      this.storageError.set(
+        'This change could not be saved on this device. Export a backup before leaving.',
+      );
+      return false;
+    }
   }
 
   private loadFromStorage<T>(key: string): T | null {
