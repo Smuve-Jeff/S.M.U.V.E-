@@ -441,9 +441,9 @@
 
     <div class="header-right">
       <!-- Gamepad Status Indicator -->
-      <button
-        type="button"
+      <div
         class="header-btn gamepad-indicator"
+        role="status"
         aria-label="Controller status"
         [class.connected]="gamepadService.connectedGamepad() !== null"
         title="{{
@@ -457,7 +457,7 @@
             ? 'stadia_controller'
             : 'sync_disabled'
         }}</span>
-      </button>
+      </div>
       <button
         type="button"
         class="header-btn"
