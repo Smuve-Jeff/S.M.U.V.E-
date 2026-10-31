@@ -1746,4 +1746,22 @@ describe("StudioComponent", () => {
 
     expect(mockSnackbar.error).toHaveBeenCalledWith(refusal);
   });
+
+  it("does not claim an analysis when the project has no tracks", () => {
+    const musicManager = (component as any).musicManager;
+    const previous = musicManager.tracks();
+    musicManager.tracks.set([]);
+    const analyze = jest.spyOn((component as any).aiMixAssistant, "analyzeAll");
+    const info = jest.spyOn((component as any).snackbarService, "info");
+    const success = jest.spyOn((component as any).snackbarService, "success");
+
+    component.runAiMixAnalysis();
+
+    expect(analyze).not.toHaveBeenCalled();
+    expect(success).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalledWith(
+      "Add a track first — there is nothing to analyze yet."
+    );
+    musicManager.tracks.set(previous);
+  });
 });

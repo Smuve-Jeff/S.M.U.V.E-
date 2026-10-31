@@ -2811,16 +2811,25 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Run fresh AI mix analysis on all tracks */
   runAiMixAnalysis() {
+    const trackCount = this.musicManager.tracks().length;
+    // analyzeAll() has nothing to read on an empty project; reporting a
+    // successful analysis of zero tracks would be a claim with no work behind it.
+    if (trackCount === 0) {
+      this.snackbarService.info(
+        "Add a track first — there is nothing to analyze yet.",
+      );
+      return;
+    }
     this.aiMixAssistant.analyzeAll();
     this.studioTelemetry.trackEvent(
       "ai_mix_analysis_run",
-      { trackCount: this.musicManager.tracks().length },
+      { trackCount },
       true,
     );
     this.snackbarService.success(
       "AI Mix Assistant analyzed " +
-        this.musicManager.tracks().length +
-        " tracks",
+        trackCount +
+        (trackCount === 1 ? " track" : " tracks"),
     );
   }
 
