@@ -582,16 +582,31 @@ export class UserProfileService {
     await this.updateProfile({ gameStats: stats });
   }
 
-  exportProfile() {
-    const data = JSON.stringify(this.profile(), null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `smuve_profile_${this.profile().artistName}_${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    this.logger.info('Profile exported successfully.');
+  /**
+   * Download the profile as a JSON archive. Returns false when the browser
+   * cannot produce the file, so the caller never claims a backup that does
+   * not exist.
+   */
+  exportProfile(): boolean {
+    try {
+      const data = JSON.stringify(this.profile(), null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `smuve_profile_${this.profile().artistName}_${Date.now()}.json`;
+      // Firefox and mobile browsers cancel a download whose anchor is not in
+      // the document, and revoking the URL in the same tick can truncate it.
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      this.logger.info('Profile exported successfully.');
+      return true;
+    } catch (e) {
+      this.logger.warn('Profile export failed', e);
+      return false;
+    }
   }
 
   async importProfile(file: File): Promise<boolean> {

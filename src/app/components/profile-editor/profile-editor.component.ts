@@ -1037,11 +1037,18 @@ export class ProfileEditorComponent implements OnInit {
   }
 
   exportArchive(): void {
-    this.userProfileService.exportProfile();
-    this.archiveNotice.set({
-      kind: 'ok',
-      text: 'ARCHIVE EXPORTED. KEEP IT WITH YOUR RELEASES.',
-    });
+    const exported = this.userProfileService.exportProfile();
+    this.archiveNotice.set(
+      exported === false
+        ? {
+            kind: 'error',
+            text: 'ARCHIVE EXPORT FAILED. NOTHING WAS DOWNLOADED — TRY AGAIN.',
+          }
+        : {
+            kind: 'ok',
+            text: 'ARCHIVE EXPORTED. KEEP IT WITH YOUR RELEASES.',
+          },
+    );
   }
 
   async onProfileImport(event: any) {

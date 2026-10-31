@@ -1214,4 +1214,17 @@ describe('ProfileEditorComponent', () => {
       expect(text()).toContain('ARCHIVE EXPORTED');
     });
   });
+
+  it('reports a failed archive export instead of claiming success', async () => {
+    const { component } = await createComponent();
+    const service = (component as any).userProfileService;
+    const spy = jest.spyOn(service, 'exportProfile').mockReturnValue(false);
+
+    component.exportArchive();
+
+    const notice = component.archiveNotice();
+    expect(notice?.kind).toBe('error');
+    expect(notice?.text).toContain('FAILED');
+    spy.mockRestore();
+  });
 });
