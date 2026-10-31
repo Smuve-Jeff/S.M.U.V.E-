@@ -780,7 +780,10 @@ export class AudioRecorderViewComponent
     this.clearCaptureInputWatch();
     const tracks = this.currentStream()?.getAudioTracks?.() ?? [];
     for (const track of tracks) {
-      track.onended = () => this.handleCaptureInputLost();
+      track.onended = () => this.handleCaptureInputLost('ended');
+      // Safari does not always fire `ended` when the device goes away; it
+      // mutes the track instead. Both mean the take is no longer capturing.
+      track.onmute = () => this.handleCaptureInputLost('muted');
       this.watchedInputTracks.push(track);
     }
   }
@@ -789,6 +792,7 @@ export class AudioRecorderViewComponent
   private clearCaptureInputWatch(): void {
     for (const track of this.watchedInputTracks) {
       track.onended = null;
+      track.onmute = null;
     }
     this.watchedInputTracks = [];
   }
@@ -797,11 +801,13 @@ export class AudioRecorderViewComponent
    * The microphone disappeared mid-take: stop the take, say why, and drop the
    * dead stream so the next take opens a fresh input.
    */
-  private handleCaptureInputLost(): void {
+  private handleCaptureInputLost(reason: "ended" | "muted" = "ended"): void {
     if (this.captureState() !== "recording") return;
-    this.logger.warn("Recorder input ended mid-take");
+    this.logger.warn(`Recorder input ${reason} mid-take`);
     this.captureError.set(
-      "The microphone disconnected mid-take. The take was stopped — check the input before recording again.",
+      reason === "muted"
+        ? "The microphone stopped delivering audio mid-take (muted or disconnected). The take was stopped — check the input before recording again."
+        : "The microphone disconnected mid-take. The take was stopped — check the input before recording again.",
     );
     this.recorder.stopRecording();
     this.clearElapsedTimer();

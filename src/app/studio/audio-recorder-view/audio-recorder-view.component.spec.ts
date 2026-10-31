@@ -638,4 +638,21 @@ describe("AudioRecorderViewComponent", () => {
     expect(track.stop).toHaveBeenCalled();
   });
 
+  it('stops the take when the browser mutes the input instead of ending it', () => {
+    const track: any = { onended: null, onmute: null, stop: jest.fn() };
+    component.currentStream.set({
+      getAudioTracks: () => [track],
+      getTracks: () => [track],
+    } as any);
+    component.captureState.set('recording');
+
+    (component as any).watchCaptureInput();
+    expect(track.onmute).toBeInstanceOf(Function);
+
+    track.onmute();
+
+    expect(component.captureState()).toBe('idle');
+    expect(component.captureError()).toContain('stopped delivering audio');
+  });
+
 });
