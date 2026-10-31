@@ -1847,7 +1847,13 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     return game ? this.resolveLaunchWarning(game) : "";
   });
 
-  neuralSyncScore = computed(() => 85);
+  /** Share of the arcade library this artist has actually played. */
+  libraryClearedPercent = computed(() => {
+    const total = this.games().length;
+    return total
+      ? Math.round((this.playedGameIds().size / total) * 100)
+      : 0;
+  });
   gamingDirectives = computed(() => [
     "Execute daily challenge",
     "Maintain rank",
@@ -3939,7 +3945,7 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
     this.aiCompanionInput.set("");
     this.aiCompanionThinking.set(true);
 
-    // Simulate AI thinking delay
+    // A short pause so the reply does not snap in before the user's own line.
     await new Promise((r) => setTimeout(r, 800 + Math.random() * 1200));
 
     const aiResponses: Record<string, string[]> = {
@@ -3953,30 +3959,36 @@ export class ThaSpotComponent implements OnInit, OnDestroy, AfterViewInit {
         "Rival activity detected in your sector. Stay sharp.",
         "Your track record suggests high-performance potential.",
       ],
-      recommend: [
-        "Based on your profile, I recommend the Fighting Pit for competitive edge.",
-        "Your genre affinity suggests RPG deep runs would yield high session value.",
-        "Shooting Range cabinets show optimal match with your play style.",
-      ],
       help: [
         "Available commands: recommend, status, squad, leaderboard",
         "I can assist with game recommendations, matchmaking status, and squad coordination.",
       ],
-      status: [
-        `Systems nominal. ${this.onlineUsers().length} operatives online. Neural sync at ${this.neuralSyncScore()}%.`,
-      ],
     };
 
     const lower = text.toLowerCase();
-    let pool = aiResponses.default;
-    if (lower.includes("recommend") || lower.includes("suggest"))
-      pool = aiResponses.recommend;
-    else if (lower.includes("help") || lower.includes("what"))
-      pool = aiResponses.help;
-    else if (lower.includes("status") || lower.includes("systems"))
-      pool = aiResponses.status;
-
-    const response = pool[Math.floor(Math.random() * pool.length)];
+    let response: string;
+    if (lower.includes("recommend") || lower.includes("suggest")) {
+      // Answer from the real library and profile, not a canned cabinet name.
+      this.generateAiRecommendations();
+      const picks = this.aiRecommendations();
+      response = picks.length
+        ? "From your unplayed library: " +
+          picks
+            .map((game) => (game as any).title ?? (game as any).name ?? game.id)
+            .join(", ") +
+          "."
+        : "No unplayed games match your profile right now. Browse the floor for a cabinet.";
+    } else if (lower.includes("help") || lower.includes("what")) {
+      response =
+        aiResponses.help[Math.floor(Math.random() * aiResponses.help.length)];
+    } else if (lower.includes("status") || lower.includes("systems")) {
+      response = `Systems nominal. ${this.onlineUsers().length} operatives online.`;
+    } else {
+      response =
+        aiResponses.default[
+          Math.floor(Math.random() * aiResponses.default.length)
+        ];
+    }
 
     this.aiCompanionMessages.update((msgs) => [
       ...msgs,

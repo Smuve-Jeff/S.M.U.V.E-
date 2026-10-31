@@ -1248,11 +1248,11 @@
     <div class="sidebar-content custom-scrollbar">
       <div class="intel-card glass-v42">
         <div class="sync-score">
-          <div class="label">NEURAL SYNC</div>
-          <div class="value">{{ neuralSyncScore() }}%</div>
+          <div class="label">ARCADE CLEARED</div>
+          <div class="value">{{ libraryClearedPercent() }}%</div>
         </div>
         <div class="sync-bar">
-          <div class="fill" [style.width.%]="neuralSyncScore()"></div>
+          <div class="fill" [style.width.%]="libraryClearedPercent()"></div>
         </div>
       </div>
       <div class="directives-section">
