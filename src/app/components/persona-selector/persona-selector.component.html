@@ -76,7 +76,7 @@
           (click)="generatePreview()"
           [style.background]="currentPersona.color"
         >
-          Generate Response
+          Preview Persona Voice
         </button>
       </div>
 
@@ -86,15 +86,19 @@
           [style.background]="currentPersona.color + '22'"
           [style.color]="currentPersona.color"
         >
-          {{ currentPersona.name }} ›
+          {{ currentPersona.name }} · scripted sample
         </div>
         <p class="ps-response-text">{{ previewResponse() }}</p>
+        <p class="ps-preview-note">
+          A fixed sample of this persona's voice. It is not an analysis of your
+          project.
+        </p>
       </div>
 
       <div class="ps-preview-placeholder" *ngIf="!previewResponse()">
         <span class="ps-placeholder-icon">💬</span>
         <p>
-          Click "Generate Response" to hear
+          Preview the voice to hear
           {{ currentPersona.name.split(' ').pop() }} in action
         </p>
       </div>
