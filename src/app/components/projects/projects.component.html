@@ -31,6 +31,11 @@
         <h3 class="font-bold text-white uppercase tracking-tight">
           {{ project.name }}
         </h3>
+        <p
+          class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 mt-1"
+        >
+          {{ project.bpm }} BPM · {{ projectMeterLabel(project) }}
+        </p>
         <p class="text-xs text-slate-500 mt-1 line-clamp-1">
           {{ project.description }}
         </p>

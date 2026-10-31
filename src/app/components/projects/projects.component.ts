@@ -67,6 +67,12 @@ export class ProjectsComponent {
     this.selectedProject.set(project);
   }
 
+  /** Tempo + meter summary for the row; legacy/imported rows default to 4/4. */
+  projectMeterLabel(project: Project): string {
+    const [beats, unit] = project?.timeSignature ?? [4, 4];
+    return `${beats}/${unit}`;
+  }
+
   toggleTask(task: Task): void {
     task.completed = !task.completed;
   }

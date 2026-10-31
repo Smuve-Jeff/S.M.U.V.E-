@@ -137,6 +137,21 @@ describe('ProjectsComponent', () => {
     });
   });
 
+  describe('project meta', () => {
+    it('shows tempo and meter in the list, defaulting legacy rows to 4/4', async () => {
+      const { fixture, listSubject } = await createComponent();
+      listSubject.next([
+        { id: 'p1', name: 'Metered', bpm: 128, timeSignature: [3, 4], tasks: [] },
+        { id: 'p2', name: 'Legacy', bpm: 120, tasks: [] },
+      ]);
+      fixture.detectChanges();
+
+      const text = fixture.nativeElement.textContent as string;
+      expect(text).toContain('128 BPM · 3/4');
+      expect(text).toContain('120 BPM · 4/4');
+    });
+  });
+
   describe('finalizeReleaseCycle', () => {
     it('marks the selected project as Completed in both signals', async () => {
       const { component, dialogMock, uplinkMock } = await createComponent();
