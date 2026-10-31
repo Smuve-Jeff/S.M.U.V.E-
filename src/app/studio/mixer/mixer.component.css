@@ -2464,3 +2464,12 @@ the workspace. */
     font-size: 16px;
   }
 }
+
+/* The mobile output summary is a phone affordance. On wide screens it has no
+   layout of its own and rendered as a faded duplicate of the master strip's
+   LUFS/PEAK readout, so it stays out of the desktop console. */
+@media (min-width: 933px) {
+  .mix-mobile-summary {
+    display: none;
+  }
+}
