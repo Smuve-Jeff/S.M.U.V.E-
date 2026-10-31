@@ -2430,3 +2430,37 @@ the workspace. */
     font-size: 10px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   PHONE MIXER (≤ 430px): the output summary repeated the master
+   strip's LUFS/PEAK at display size and the strip track forced a wide
+   dead column. Deduplicate the readout and let the strips read as a
+   scroller with a neighbouring strip peeking instead of empty space.
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 430px) {
+  /* The master strip already shows LUFS and PEAK. */
+  .mix-mobile-summary {
+    display: none;
+  }
+  .mix-mobile-inspector {
+    margin-inline: 4px;
+  }
+  .mix-shell {
+    min-width: 0;
+  }
+  .mix-strips {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .mix-strips-track {
+    width: max-content;
+    max-width: none;
+  }
+  .mix-strip {
+    width: min(46vw, 172px);
+    min-width: 148px;
+  }
+  .mix-mobile-inspector h2 {
+    font-size: 16px;
+  }
+}
