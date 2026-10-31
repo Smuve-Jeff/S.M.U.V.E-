@@ -2940,3 +2940,13 @@ Loop length chips were 11×30 and the LPF/HPF switches 27×24 on a 390px phone
     font-size: 10px;
   }
 }
+
+/* A decoration inside the tone stack (a pseudo-element glow) extends past the
+   deck on phones: hiding the stack drops the deck's scrollWidth from 261 to
+   230, and disabling pseudo-elements drops it to 233, while every real control
+   fits within 3px. Clip the decoration at the stack, not the deck. */
+@media (max-width: 932px) {
+  .dj-booth.mobile-mode .tone-stack {
+    overflow: clip;
+  }
+}
