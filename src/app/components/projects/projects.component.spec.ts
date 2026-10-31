@@ -150,6 +150,17 @@ describe('ProjectsComponent', () => {
       expect(text).toContain('128 BPM · 3/4');
       expect(text).toContain('120 BPM · 4/4');
     });
+
+    it('repeats tempo and meter in the selected project header', async () => {
+      const { fixture, listSubject } = await createComponent();
+      listSubject.next([
+        { id: 'p1', name: 'Five', bpm: 140, timeSignature: [5, 4], tasks: [] },
+      ]);
+      fixture.detectChanges();
+
+      const meta = fixture.nativeElement.querySelector('.project-detail-meta');
+      expect(meta?.textContent).toContain('140 BPM · 5/4');
+    });
   });
 
   describe('finalizeReleaseCycle', () => {

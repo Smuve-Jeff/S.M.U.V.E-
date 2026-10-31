@@ -70,6 +70,10 @@
               >{{ project.status }}</span
             >
             <span
+              class="project-detail-meta text-[10px] font-black uppercase tracking-widest text-slate-500"
+              >{{ project.bpm }} BPM · {{ projectMeterLabel(project) }}</span
+            >
+            <span
               class="text-[10px] font-black uppercase tracking-widest text-slate-500"
               >Deadline: {{ project.deadline | date: 'MMM d, yyyy' }}</span
             >
