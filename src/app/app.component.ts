@@ -449,9 +449,21 @@ export class AppComponent {
       .subscribe(() => {
         // Activate the new service worker immediately and reload.
         // No dialog — returning users always get the latest build.
-        this.swUpdate!.activateUpdate().then(() => {
-          window.location.reload();
-        });
+        this.swUpdate!.activateUpdate().then(
+          () => window.location.reload(),
+          (error) => {
+            // Activation can fail offline or on a stale hash. Keep the current
+            // build and record why, rather than an unhandled rejection.
+            console.warn(
+              'S.M.U.V.E.: service worker update could not be activated',
+              error,
+            );
+            this.notificationService.show(
+              'The update could not be activated. Reload to try again.',
+              'warning',
+            );
+          },
+        );
       });
   }
 
