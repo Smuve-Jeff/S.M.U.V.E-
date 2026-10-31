@@ -26,6 +26,10 @@ function makeBareEngine() {
   // touches the real module-loading path (or an undefined LoggingService).
   (svc as any)._pluginChainWorkletLoaded = true;
   (svc as any).logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  // start() resolves tempo through the tempo map; a bare prototype instance has
+  // neither, which made the song-mode specs throw instead of testing behaviour.
+  (svc as any).tempo = signal(124);
+  (svc as any).tempoMap = [];
   return svc;
 }
 
@@ -205,7 +209,11 @@ function makeSongBareEngine(): AudioEngineService {
   (svc as any).outputLra = signal(0);
   (svc as any).outputTruePeak = signal(-120);
   (svc as any).loudnessMeter = null;
-  return svc;
+    // start() resolves tempo through the tempo map; a bare prototype instance
+  // has neither, which made song-mode specs throw instead of asserting.
+  (svc as any).tempo = signal(124);
+  (svc as any).tempoMap = [];
+return svc;
 }
 
 describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
