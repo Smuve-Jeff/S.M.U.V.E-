@@ -47,7 +47,9 @@ export class PluginStoreComponent {
     const a = document.createElement("a");
     a.href = url;
     a.download = `${manifest.id.replace(/[^\w.-]/g, "_")}.smuveplugin`;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     URL.revokeObjectURL(url);
     this.haptic.light();
     this.snack.success(`${manifest.name} exported · shareable plugin file`);

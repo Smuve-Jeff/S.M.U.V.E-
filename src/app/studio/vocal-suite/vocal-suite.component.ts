@@ -556,7 +556,9 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
     const a = document.createElement("a");
     a.href = url;
     a.download = `SMUVE_Vocal_${Date.now()}${buffer ? ".wav" : ".webm"}`;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 }

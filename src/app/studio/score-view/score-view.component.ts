@@ -409,7 +409,9 @@ export class ScoreViewComponent {
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = musicXmlFileName(this.musicManager.projectName);
+    document.body.appendChild(anchor);
     anchor.click();
+    anchor.remove();
     URL.revokeObjectURL(url);
   }
 

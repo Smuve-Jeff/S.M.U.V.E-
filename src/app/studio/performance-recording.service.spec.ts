@@ -276,7 +276,12 @@ describe("PerformanceRecordingService", () => {
     const clickSpy = jest.fn();
     const anchorSpy = jest
       .spyOn(document, "createElement")
-      .mockReturnValue({ click: clickSpy, href: "", download: "" } as any);
+      .mockReturnValue({
+        click: clickSpy,
+        remove: jest.fn(),
+        href: "",
+        download: "",
+      } as any);
     const t1 = createFakeTake("t1", 1);
     t1.name = "Take 1";
     service.takes.set([t1]);

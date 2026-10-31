@@ -332,7 +332,9 @@ export class VocalCompViewComponent implements OnDestroy {
       const a = document.createElement("a");
       a.href = compTake.url;
       a.download = fileName;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
 
       this.snackbar.success(`Comp "${group.sectionLabel}" exported as WAV`);
     } catch (e) {
@@ -355,7 +357,9 @@ export class VocalCompViewComponent implements OnDestroy {
         const a = document.createElement("a");
         a.href = take.url;
         a.download = `SMUVE_Take${take.takeNumber}_${group.sectionLabel.replace(/\s+/g, "_")}.wav`;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         // Small delay between downloads
         await new Promise((r) => setTimeout(r, 200));
       }
@@ -375,7 +379,9 @@ export class VocalCompViewComponent implements OnDestroy {
     const a = document.createElement("a");
     a.href = url;
     a.download = fileName;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     // Release the URL once the browser has taken the bytes; revoking it
     // synchronously can cancel a download that has not started yet.
     setTimeout(() => URL.revokeObjectURL(url), 0);

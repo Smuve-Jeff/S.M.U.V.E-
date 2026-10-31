@@ -422,7 +422,15 @@ export class PerformanceRecordingService implements OnDestroy {
     const a = document.createElement("a");
     a.href = take.url;
     a.download = `${take.name.replace(/\s+/g, "_")}.${extension}`;
+    // Attaching is best-effort: a host (or a test) can hand back a detached
+    // anchor stub, and that must not stop the click from being dispatched.
+    try {
+      document.body.appendChild(a);
+    } catch {
+      /* detached anchor */
+    }
     a.click();
+    a.remove();
   }
 
   private resetRecordingState(): void {
