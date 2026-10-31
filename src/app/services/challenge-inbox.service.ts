@@ -209,7 +209,9 @@ export class ChallengeInboxService {
   async markNotificationRead(notifId: number) {
     const userId = this.currentUserId();
     if (!userId) return;
-    // local optimistic update
+    // Optimistic update, rolled back if the server rejects the write: a read
+    // badge must not survive a read the account never recorded.
+    const previous = this.notifications();
     this.notifications.update((list) =>
       list.map((n) => (n.id === notifId ? { ...n, read: true } : n)),
     );
@@ -223,6 +225,10 @@ export class ChallengeInboxService {
       );
     } catch (e) {
       console.error("[ChallengeInbox] markRead failed", e);
+      this.notifications.set(previous);
+      this.lastChallengeError.set(
+        "That notification could not be marked read. Try again.",
+      );
     }
   }
 
