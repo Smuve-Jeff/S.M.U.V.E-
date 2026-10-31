@@ -489,11 +489,31 @@ export class MicrophoneService implements OnDestroy {
       this.mediaRecorder.start(100); // Collect data every 100ms
       this.isRecording.set(true);
       this.isPaused.set(false);
+      // A disconnected input leaves MediaRecorder "recording" a dead track,
+      // which would hand back a silent take as if it had been captured.
+      const audioTracks = stream.getAudioTracks?.() ?? [];
+      for (const track of audioTracks) {
+        track.onended = () => this.handleInputLost();
+      }
       this.startTimer();
       this.logger.info('Recording started');
     } catch (e) {
       this.logger.error('Failed to start MediaRecorder:', e);
     }
+  }
+
+  /**
+   * The physical input disappeared mid-take. Flush what was captured, stop
+   * claiming to record, and tell the artist instead of leaving a silent take
+   * that looks like a completed performance.
+   */
+  private handleInputLost(): void {
+    if (!this.isRecording()) return;
+    this.logger.warn('MicrophoneService: input track ended while recording');
+    this.lastError.set(
+      'The microphone disconnected mid-take. The take was stopped — check the input before recording again.',
+    );
+    void this.stopRecording();
   }
 
   /**
@@ -566,7 +586,11 @@ export class MicrophoneService implements OnDestroy {
     // in-flight MediaRecorder.stop() can still flush its final chunk.
     this.detachProcessedCapture();
     if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach((track) => track.stop());
+      this.mediaStream.getTracks().forEach((track) => {
+        // Our own teardown is not a device failure.
+        track.onended = null;
+        track.stop();
+      });
     }
     if (this.sourceNode) {
       try {

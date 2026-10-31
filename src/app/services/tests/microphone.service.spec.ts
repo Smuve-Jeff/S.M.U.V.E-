@@ -266,6 +266,30 @@ describe('MicrophoneService', () => {
       });
     });
 
+    it('reports and stops the take when the input disappears mid-recording', () => {
+      const track: any = { onended: null, stop: jest.fn() };
+      const fakeStream: any = {
+        getAudioTracks: () => [track],
+        getTracks: () => [track],
+      };
+      (service as any).mediaStream = fakeStream;
+
+      withMediaRecorder((Recorder) => {
+        service.startRecording();
+        const recorder = Recorder.mock.results[0].value;
+        // A running take, so stopRecording() actually asks the recorder to stop.
+        (service as any).mediaRecorder.state = 'recording';
+        expect(track.onended).toBeInstanceOf(Function);
+
+        track.onended!();
+
+        // The take is flushed rather than left "recording" a dead input.
+        expect(recorder.stop).toHaveBeenCalled();
+      });
+
+      expect(service.lastError()).toContain('microphone disconnected mid-take');
+    });
+
     it('drops the processed tap on stop so the raw input resumes', () => {
       service.attachProcessedCapture(processedNode());
 
