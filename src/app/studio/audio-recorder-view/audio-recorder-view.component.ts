@@ -766,7 +766,56 @@ export class AudioRecorderViewComponent
     return level === "silent" ? "Take is silent" : level === "low" ? "Take is very quiet" : "";
   }
 
+  /** Tracks whose `ended` event means the physical input went away. */
+  private watchedInputTracks: MediaStreamTrack[] = [];
+
+  /**
+   * Watch the capture tracks for `ended`.
+   *
+   * An unplugged interface leaves the recorder running against a dead track,
+   * so the take would stop on demand with nothing but silence in it. This is
+   * the only signal the browser gives us for that case.
+   */
+  private watchCaptureInput(): void {
+    this.clearCaptureInputWatch();
+    const tracks = this.currentStream()?.getAudioTracks?.() ?? [];
+    for (const track of tracks) {
+      track.onended = () => this.handleCaptureInputLost();
+      this.watchedInputTracks.push(track);
+    }
+  }
+
+  /** Detach before our own teardown, so stopping is not read as an unplug. */
+  private clearCaptureInputWatch(): void {
+    for (const track of this.watchedInputTracks) {
+      track.onended = null;
+    }
+    this.watchedInputTracks = [];
+  }
+
+  /**
+   * The microphone disappeared mid-take: stop the take, say why, and drop the
+   * dead stream so the next take opens a fresh input.
+   */
+  private handleCaptureInputLost(): void {
+    if (this.captureState() !== "recording") return;
+    this.logger.warn("Recorder input ended mid-take");
+    this.captureError.set(
+      "The microphone disconnected mid-take. The take was stopped — check the input before recording again.",
+    );
+    this.recorder.stopRecording();
+    this.clearElapsedTimer();
+    this.stopWaveform();
+    this.clearRecordingElapsedTimer();
+    this.recordingStatus.endRecording(this.captureStatusOwner);
+    this.captureState.set("idle");
+    this.snackbar.error(this.captureError()!);
+    this.clearCaptureInputWatch();
+    this.releaseInputStream();
+  }
+
   private releaseInputStream(): void {
+    this.clearCaptureInputWatch();
     this.currentStream()?.getTracks().forEach((track) => track.stop());
     this.currentStream.set(null);
   }
@@ -989,6 +1038,7 @@ export class AudioRecorderViewComponent
       await this.recorder.startRecording(captureStream);
       this.startedAt = Date.now();
       this.captureState.set("recording");
+      this.watchCaptureInput();
       this.recordingStatus.beginRecording(this.captureStatusOwner, {
         type: "audio-recorder",
         inputLabel: this.inputDeviceName(),

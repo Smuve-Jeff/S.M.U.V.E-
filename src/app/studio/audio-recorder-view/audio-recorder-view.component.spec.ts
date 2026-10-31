@@ -606,4 +606,36 @@ describe("AudioRecorderViewComponent", () => {
     );
     expect(mockMusicManager.addAudioTrack).not.toHaveBeenCalled();
   });
+  it('stops the take when the capture input disappears', () => {
+    component.captureState.set('recording');
+    const stopRecording = component.recorder.stopRecording as jest.Mock;
+    stopRecording.mockClear();
+
+    (component as any).handleCaptureInputLost();
+
+    expect(stopRecording).toHaveBeenCalled();
+    expect(component.captureState()).toBe('idle');
+    expect(component.captureError()).toContain(
+      'microphone disconnected mid-take',
+    );
+    expect(mockRecordingStatus.endRecording).toHaveBeenCalled();
+  });
+
+  it('detaches the input watch before its own teardown', () => {
+    const track: any = { onended: null, stop: jest.fn() };
+    component.currentStream.set({
+      getAudioTracks: () => [track],
+      getTracks: () => [track],
+    } as any);
+
+    (component as any).watchCaptureInput();
+    expect(track.onended).toBeInstanceOf(Function);
+
+    (component as any).releaseInputStream();
+
+    // Closing our own stream must not look like the device vanishing.
+    expect(track.onended).toBeNull();
+    expect(track.stop).toHaveBeenCalled();
+  });
+
 });
