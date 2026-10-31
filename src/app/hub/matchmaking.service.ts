@@ -1476,14 +1476,17 @@ export class MatchmakingService implements OnDestroy {
   copyLobbyInviteLink(): boolean {
     const link = this.lobbyInviteLink();
     if (!link) return false;
-    try {
-      navigator.clipboard.writeText(link);
-      this.notify.show("LOBBY INVITE LINK COPIED", "success");
-      return true;
-    } catch {
-      this.notify.show("FAILED TO COPY LINK", "warning");
+    if (!navigator.clipboard?.writeText) {
+      this.notify.show("CLIPBOARD ACCESS UNAVAILABLE — COPY THE LINK MANUALLY", "warning");
       return false;
     }
+    // The write is async: a synchronous try/catch cannot see a blocked
+    // clipboard, so success is only announced once the write resolves.
+    navigator.clipboard
+      .writeText(link)
+      .then(() => this.notify.show("LOBBY INVITE LINK COPIED", "success"))
+      .catch(() => this.notify.show("FAILED TO COPY LINK", "warning"));
+    return true;
   }
 
   async shareLobbyInvite(): Promise<void> {
