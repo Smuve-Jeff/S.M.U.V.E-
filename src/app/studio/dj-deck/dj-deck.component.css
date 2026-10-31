@@ -2923,3 +2923,20 @@ Loop length chips were 11×30 and the LPF/HPF switches 27×24 on a 390px phone
     transform: none;
   }
 }
+
+/* Landscape phones are wider than the 430px portrait breakpoint, so the 44px
+   coarse-pointer touch targets still applied and pushed the filter row 13px
+   outside the deck. Keep the touch height, let the width follow the deck. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .dj-booth.mobile-mode .filter-switch {
+    gap: 0;
+  }
+  .dj-booth.mobile-mode .filter-group {
+    gap: 2px;
+  }
+  .dj-booth.mobile-mode .filter-switch button {
+    min-width: 32px;
+    padding-inline: 4px;
+    font-size: 10px;
+  }
+}
