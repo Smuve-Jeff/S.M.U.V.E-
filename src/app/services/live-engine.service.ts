@@ -1,7 +1,7 @@
 import { Injectable, signal, inject } from '@angular/core';
 import * as Tone from 'tone';
 import { LoggingService } from './logging.service';
-import { InstrumentsService, InstrumentPreset } from './instruments.service';
+import { InstrumentsService, InstrumentPreset, sampleZoneRoot } from './instruments.service';
 import { AudioEngineService } from './audio-engine.service';
 import { HardwareService } from './hardware.service';
 
@@ -309,10 +309,10 @@ export class LiveEngineService {
         },
       });
       this.connectToFilter(this.currentInstrumentNode, config.cutoff || 2000);
-    } else if (preset.type === 'sample' && preset.zones?.length) {
-      const sampleMap: any = {};
+    } else if ((preset.type === 'sample' || preset.type === 'hybrid') && preset.zones?.length) {
+      const sampleMap: Record<string, string> = {};
       preset.zones.forEach(
-        (z) => (sampleMap[this.midiToNote(z.midiRange[0])] = z.url)
+        (z) => (sampleMap[this.midiToNote(sampleZoneRoot(z))] = z.url)
       );
       this.currentInstrumentNode = new Tone.Sampler({
         urls: sampleMap,

@@ -11,7 +11,10 @@ import { SampleStreamer } from './sample-streamer.service';
 import { ProjectService } from './project.service';
 import { HistoryService } from './history.service';
 import { PluginStoreService } from './plugin-store.service';
-import { InstrumentsService } from './instruments.service';
+import {
+  InstrumentsService,
+  synthParamsForPreset,
+} from './instruments.service';
 import { StemSeparationService } from './stem-separation.service';
 import { IdeaRecipe } from './ideas-generator.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
@@ -380,6 +383,7 @@ export class MusicManagerService {
 
   constructor() {
     this.setupProjectSync();
+    this.engine.onPreparePlayback = () => this.preparePlaybackSamples();
     this.engine.onScheduleStep = (step, time, duration) => {
       this.currentStep.set(step);
       this.playStep(step, time, duration);
@@ -1128,7 +1132,19 @@ export class MusicManagerService {
               ? {
                   ...x,
                   instrumentId: instId,
-                  synthParams: preset?.synth || x.synthParams,
+                  // Swapping to a preset that has no `synth` block (every
+                  // sample-based piano, kit, guitar…) used to keep the OLD
+                  // channel patch, so the track went on sounding like the
+                  // previous instrument. Give it a patch of its own instead.
+                  synthParams: preset
+                    ? preset.synth
+                      ? {
+                          ...preset.synth,
+                          oscillator: preset.synth.type,
+                          type: preset.synth.type,
+                        }
+                      : synthParamsForPreset(preset)
+                    : x.synthParams,
                 }
               : x
           )
@@ -3686,6 +3702,59 @@ export class MusicManagerService {
 
   // ── Playback engine stepper ───────────────────────────────────────
 
+  /** Expand arrangement pattern clips to absolute note positions for offline rendering. */
+  arrangementNotes(track: TrackModel): TrackNote[] {
+    const clips = track.clips ?? [];
+    if (!clips.length) return track.notes ?? [];
+    const span = Math.max(1, this.engine.loopLengthSteps?.() ?? 64);
+    const result: TrackNote[] = [];
+    for (const clip of clips) {
+      if (clip.type === 'audio') continue;
+      const start = Math.round((clip.start || 0) * 16);
+      const end = start + Math.max(1, Math.round((clip.length || 4) * 16));
+      const notes = this.notesForClip(track, clip, track.notes ?? []);
+      for (let base = start; base < end; base += span) {
+        for (const note of notes) {
+          if (note.step < 0 || note.step >= span || base + Math.floor(note.step) >= end) continue;
+          result.push({ ...note, step: base + note.step });
+        }
+      }
+    }
+    return result;
+  }
+
+  /** Preload the working notes and pattern clips before transport or export. */
+  async prepareTrackSamples(track: TrackModel, strict = false): Promise<void> {
+    if (!this.instruments.isSamplePreset?.(track.instrumentId)) return;
+    const notes = strict ? this.arrangementNotes(track) : [
+      ...(track.notes ?? []), ...this.arrangementNotes(track),
+    ];
+    const unique = new Map<string, TrackNote>();
+    for (const note of notes) {
+      if (note.params?.sampleBuffer?.duration > 0 ||
+          (note.params?.sampleRefId && this.stemAudioCache.has(note.params.sampleRefId))) continue;
+      unique.set(`${note.midi}:${note.velocity ?? 0.8}`, note);
+    }
+    await Promise.all([...unique.values()].map(async (note) => {
+      try {
+        await this.instruments.loadPresetSample(track.instrumentId, note.midi, note.velocity ?? 0.8);
+      } catch (error) {
+        if (strict) throw error;
+        this.logger.warn(`Studio: sample unavailable on “${track.name}”; using synth fallback.`, error);
+      }
+    }));
+  }
+
+  private preparePlaybackSamples(): Promise<void> | void {
+    const allTracks = this.tracks();
+    const hasSolo = allTracks.some((track) => track.soloed);
+    const tracks = allTracks.filter((track) =>
+      !track.muted && (!hasSolo || track.soloed || track.soloSafe) &&
+      track.type !== 'audio' && this.instruments.isSamplePreset?.(track.instrumentId));
+    if (!tracks.length) return;
+    return Promise.all(tracks.map((track) => this.prepareTrackSamples(track))).then(() => undefined);
+  }
+
   playStep(step: number, time: number, duration: number) {
     this.advanceSceneFollow(step);
     const STEPS_PER_BAR = 16;
@@ -3843,6 +3912,29 @@ export class MusicManagerService {
                   Math.max(0.01, oneShot.duration),
                 );
                 return;
+              }
+
+              if (this.instruments.isSamplePreset?.(t.instrumentId)) {
+                const sample = this.instruments.getPresetSample(
+                  t.instrumentId, n.midi, n.velocity ?? 0.8, n.pitchBend ?? 0,
+                );
+                if (sample) {
+                  const noteDuration = Math.max(0.01, n.length * duration * lengthMul);
+                  const sampleDuration = Math.min(
+                    sample.buffer.duration / sample.rate,
+                    sample.oneShot ? Infinity : noteDuration + sample.release,
+                  );
+                  this.engine.triggerSampler(
+                    t.id, sample.buffer, microTime, n.velocity ?? 0.8, notePan,
+                    sampleDuration, sample.rate, 0,
+                    sample.oneShot ? 0 : Math.min(sample.release, sampleDuration),
+                    0, 0, 48000, 2, true,
+                  );
+                  return;
+                }
+                // Notes added while playing are loaded for subsequent steps/loops.
+                void this.instruments.loadPresetSample(t.instrumentId, n.midi, n.velocity ?? 0.8)
+                  .catch((error) => this.logger.warn(`Studio: sample unavailable on “${t.name}”; using synth fallback.`, error));
               }
 
               this.engine.triggerAttack(

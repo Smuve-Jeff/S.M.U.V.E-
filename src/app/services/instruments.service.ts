@@ -3,11 +3,24 @@ import { AudioEngineService } from './audio-engine.service';
 
 export type SampleZone = {
   midiRange: [number, number];
+  /** Original MIDI pitch, when it cannot be inferred from the filename. */
+  rootNote?: number;
   url: string;
   rr?: number;
   velLayers?: { threshold: number; url: string }[];
   quality?: 'standard' | 'high';
 };
+
+/** MIDI root of a sample: explicit metadata, single-note zone, or filename. */
+export function sampleZoneRoot(zone: SampleZone): number {
+  if (zone.rootNote !== undefined) return zone.rootNote;
+  if (zone.midiRange[0] === zone.midiRange[1]) return zone.midiRange[0];
+  const match = zone.url.match(/(?:^|[/_-])([A-G])([#b]?)(-?\d+)(?:[_.]|$)/i);
+  if (!match) return 60;
+  const pitch: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  return (Number(match[3]) + 1) * 12 + pitch[match[1].toUpperCase()] +
+    (match[2] === '#' ? 1 : match[2] === 'b' ? -1 : 0);
+}
 
 export type InstrumentArticulation = {
   attack: number;
@@ -67,6 +80,105 @@ export interface InstrumentPreset {
   };
 }
 
+/**
+ * Oscillator fallback per category, used for presets that ship samples only.
+ * Their samples are the real instrument, but until a station's samples are
+ * loaded a channel still needs a timbre of its own rather than the previous
+ * instrument's patch.
+ */
+const CATEGORY_OSCILLATOR: Record<InstrumentPreset['category'], string> = {
+  piano: 'triangle',
+  keys: 'triangle',
+  organ: 'square',
+  brass: 'sawtooth',
+  woodwind: 'sine',
+  strings: 'sawtooth',
+  pad: 'sawtooth',
+  choir: 'sine',
+  guitar: 'sawtooth',
+  bass: 'sawtooth',
+  lead: 'square',
+  drum: 'triangle',
+  perc: 'triangle',
+  vfx: 'square',
+  world: 'triangle',
+  other: 'sine',
+};
+
+/**
+ * Synth patch for a preset that has no `synth` block of its own (every
+ * sample-based preset). Articulation — where the preset declares it — drives
+ * the envelope, and percussive categories get a one-shot shape instead of a
+ * sustaining one.
+ */
+export function synthParamsForPreset(preset: InstrumentPreset): {
+  oscillator: string;
+  type: string;
+  attack: number;
+  decay: number;
+  sustain: number;
+  release: number;
+  cutoff: number;
+  q: number;
+} {
+  const articulation = preset.articulation;
+  const percussive =
+    preset.category === 'drum' || preset.category === 'perc';
+  const oscillator = CATEGORY_OSCILLATOR[preset.category] ?? 'sine';
+  return {
+    oscillator,
+    type: oscillator,
+    attack: articulation?.attack ?? (percussive ? 0.002 : 0.02),
+    decay: percussive ? 0.18 : 0.25,
+    sustain: percussive ? 0 : 0.55,
+    release: articulation?.release ?? (percussive ? 0.12 : 0.35),
+    cutoff: percussive ? 8000 : 6000,
+    q: 1,
+  };
+}
+
+export type PresetSample = {
+  buffer: AudioBuffer;
+  rate: number;
+  oneShot: boolean;
+  release: number;
+};
+
+/** Schedule a preset sample into an offline track, matching live note length and pan. */
+export function scheduleOfflinePresetSample(
+  ctx: BaseAudioContext,
+  destination: AudioNode,
+  sample: PresetSample,
+  start: number,
+  duration: number,
+  velocity: number,
+  pan: number,
+): void {
+  const length = Math.max(0.001, Math.min(
+    sample.buffer.duration / sample.rate,
+    sample.oneShot ? Infinity : Math.max(0.01, duration) + sample.release,
+  ));
+  const source = ctx.createBufferSource();
+  source.buffer = sample.buffer;
+  source.playbackRate.setValueAtTime(sample.rate, start);
+  const panner = ctx.createStereoPanner();
+  panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), start);
+  const gain = ctx.createGain();
+  const peak = Math.max(0, velocity);
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.setTargetAtTime(peak, start, 0.005);
+  if (!sample.oneShot && sample.release > 0) {
+    const fade = Math.min(sample.release, length);
+    gain.gain.setValueAtTime(peak, start + length - fade);
+    gain.gain.linearRampToValueAtTime(0, start + length);
+  }
+  source.connect(panner);
+  panner.connect(gain);
+  gain.connect(destination);
+  source.start(start);
+  source.stop(start + length + 0.01);
+}
+
 @Injectable({ providedIn: 'root' })
 export class InstrumentsService {
   private audioEngine = inject(AudioEngineService);
@@ -87,11 +199,11 @@ export class InstrumentsService {
           velLayers: [
             {
               threshold: 64,
-              url: 'https://tonejs.github.io/audio/salamander/C4_vel1.mp3',
+              url: 'https://danigb.github.io/samples/splendid-grand-piano/PP-C4.m4a',
             },
             {
               threshold: 127,
-              url: 'https://tonejs.github.io/audio/salamander/C4_vel2.mp3',
+              url: 'https://danigb.github.io/samples/splendid-grand-piano/FF-C4.m4a',
             },
           ],
         },
@@ -129,7 +241,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [40, 88],
-          url: 'https://tonejs.github.io/audio/casio/G3.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/electric_guitar_clean-mp3/G3.mp3',
         },
       ],
     },
@@ -143,7 +255,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 96],
-          url: 'https://tonejs.github.io/audio/berlin/strings_sustain_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/string_ensemble_1-mp3/C4.mp3',
         },
       ],
     },
@@ -171,7 +283,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 103],
-          url: 'https://tonejs.github.io/audio/berlin/violin_sustain_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/violin-mp3/C4.mp3',
         },
       ],
     },
@@ -302,7 +414,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 84],
-          url: 'https://tonejs.github.io/audio/berlin/trumpet_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/trumpet-mp3/C4.mp3',
         },
       ],
       articulation: { attack: 0.08, release: 0.3, tone: 0.7, character: 0.6 },
@@ -317,7 +429,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 72],
-          url: 'https://tonejs.github.io/audio/berlin/trombone_C3.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/trombone-mp3/C3.mp3',
         },
       ],
     },
@@ -331,7 +443,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [34, 72],
-          url: 'https://tonejs.github.io/audio/berlin/fhorn_C3.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/french_horn-mp3/C3.mp3',
         },
       ],
     },
@@ -364,7 +476,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [60, 96],
-          url: 'https://tonejs.github.io/audio/berlin/flute_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/flute-mp3/C4.mp3',
         },
       ],
       articulation: { attack: 0.12, release: 0.4, tone: 0.8, character: 0.3 },
@@ -379,7 +491,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [50, 86],
-          url: 'https://tonejs.github.io/audio/berlin/clarinet_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/clarinet-mp3/C4.mp3',
         },
       ],
     },
@@ -393,7 +505,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [49, 81],
-          url: 'https://tonejs.github.io/audio/berlin/sax_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/alto_sax-mp3/C4.mp3',
         },
       ],
       articulation: { attack: 0.1, release: 0.35, tone: 0.75, character: 0.7 },
@@ -409,7 +521,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [48, 84],
-          url: 'https://tonejs.github.io/audio/berlin/choir_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/choir_aahs-mp3/C4.mp3',
         },
       ],
     },
@@ -442,7 +554,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 84],
-          url: 'https://tonejs.github.io/audio/berlin/choir_C5.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/choir_aahs-mp3/C5.mp3',
         },
       ],
       synth: {
@@ -485,7 +597,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 96],
-          url: 'https://tonejs.github.io/audio/berlin/organ_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/church_organ-mp3/C4.mp3',
         },
       ],
     },
@@ -500,7 +612,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [48, 84],
-          url: 'https://tonejs.github.io/audio/berlin/sitar_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/sitar-mp3/C4.mp3',
         },
       ],
     },
@@ -514,7 +626,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 90],
-          url: 'https://tonejs.github.io/audio/berlin/koto_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/koto-mp3/C4.mp3',
         },
       ],
     },
@@ -528,7 +640,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 84],
-          url: 'https://tonejs.github.io/audio/berlin/steeldrum_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/steel_drums-mp3/C4.mp3',
         },
       ],
     },
@@ -543,19 +655,19 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 36],
-          url: 'https://tonejs.github.io/audio/drum-samples/808/kick.mp3',
+          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/kick/bd_808.m4a',
         },
         {
           midiRange: [38, 38],
-          url: 'https://tonejs.github.io/audio/drum-samples/808/snare.mp3',
+          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/snare/elec_snare.m4a',
         },
         {
           midiRange: [42, 42],
-          url: 'https://tonejs.github.io/audio/drum-samples/808/hihat.mp3',
+          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/cymbal/drum_cymbal_closed.m4a',
         },
         {
           midiRange: [46, 46],
-          url: 'https://tonejs.github.io/audio/drum-samples/808/oh.mp3',
+          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/cymbal/drum_cymbal_open.m4a',
         },
       ],
     },
@@ -569,15 +681,15 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 36],
-          url: 'https://tonejs.github.io/audio/drum-samples/breakbeat/kick.mp3',
+          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/kick/drum_bass_soft.m4a',
         },
         {
           midiRange: [38, 38],
-          url: 'https://tonejs.github.io/audio/drum-samples/breakbeat/snare.mp3',
+          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/snare/drum_snare_soft.m4a',
         },
         {
           midiRange: [42, 42],
-          url: 'https://tonejs.github.io/audio/drum-samples/breakbeat/hihat.mp3',
+          url: 'https://danigb.github.io/samples/sample-pi/drums/one-shots/cymbal/drum_cymbal_pedal.m4a',
         },
       ],
     },
@@ -614,7 +726,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [40, 80],
-          url: 'https://tonejs.github.io/audio/nylon-guitar/C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_guitar_nylon-mp3/C4.mp3',
         },
       ],
       articulation: { attack: 0.15, release: 0.6, tone: 0.65, character: 0.4 },
@@ -713,7 +825,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [28, 55],
-          url: 'https://tonejs.github.io/audio/berlin/bass_C3.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/acoustic_bass-mp3/C3.mp3',
         },
       ],
       articulation: { attack: 0.2, release: 0.5, tone: 0.5, character: 0.6 },
@@ -729,15 +841,15 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [60, 60],
-          url: 'https://tonejs.github.io/audio/drum-samples/conga/high.mp3',
+          url: 'https://danigb.github.io/samples/vcsl/Struck%20Membranophones/Conga/Quinto_HitN_v2_rr1_Sum.m4a',
         },
         {
           midiRange: [62, 62],
-          url: 'https://tonejs.github.io/audio/drum-samples/conga/mid.mp3',
+          url: 'https://danigb.github.io/samples/vcsl/Struck%20Membranophones/Conga/Conga_HitN_v2_rr1_Sum.m4a',
         },
         {
           midiRange: [64, 64],
-          url: 'https://tonejs.github.io/audio/drum-samples/conga/low.mp3',
+          url: 'https://danigb.github.io/samples/vcsl/Struck%20Membranophones/Conga/Tumba_HitN_v2_rr1_Sum.m4a',
         },
       ],
     },
@@ -867,7 +979,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [48, 84],
-          url: 'https://tonejs.github.io/audio/berlin/strings_sustain_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/string_ensemble_1-mp3/C4.mp3',
         },
       ],
       synth: {
@@ -892,7 +1004,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [48, 84],
-          url: 'https://tonejs.github.io/audio/berlin/choir_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/choir_aahs-mp3/C4.mp3',
         },
       ],
       articulation: { attack: 0.5, release: 1.2, tone: 0.6, character: 0.9 },
@@ -907,7 +1019,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [55, 91],
-          url: 'https://tonejs.github.io/audio/berlin/flute_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/flute-mp3/C4.mp3',
         },
       ],
       articulation: { attack: 0.15, release: 0.5, tone: 0.7, character: 0.5 },
@@ -1125,7 +1237,7 @@ export class InstrumentsService {
       zones: [
         {
           midiRange: [36, 96],
-          url: 'https://tonejs.github.io/audio/berlin/violin_sustain_C4.mp3',
+          url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/violin-mp3/C4.mp3',
         },
       ],
       synth: {
@@ -1480,41 +1592,154 @@ export class InstrumentsService {
     return this.presets;
   }
 
+  /** Shared by audition, playback and offline exports. */
+  private previewBuffers = new Map<string, AudioBuffer>();
+  private pendingBuffers = new Map<string, Promise<AudioBuffer | null>>();
+
+  /** Select the closest matching root for overlapping zones, then a velocity layer. */
+  private sampleFor(presetId: string, midi: number, velocity: number) {
+    const preset = this.presets.find((p) => p.id === presetId);
+    if (!preset || (preset.type !== 'sample' && preset.type !== 'hybrid')) return null;
+    const zones = (preset.zones ?? []).filter(
+      (zone) => midi >= zone.midiRange[0] && midi <= zone.midiRange[1],
+    );
+    zones.sort((a, b) => Math.abs(midi - sampleZoneRoot(a)) - Math.abs(midi - sampleZoneRoot(b)));
+    const zone = zones[0];
+    if (!zone) return null;
+    const layers = [...(zone.velLayers ?? [])].sort((a, b) => a.threshold - b.threshold);
+    const velocity127 = Math.max(0, Math.min(127, velocity * 127));
+    const layer = layers.find((l) => velocity127 <= l.threshold) ?? layers[layers.length - 1];
+    return { preset, zone, url: layer?.url ?? zone.url, rootNote: sampleZoneRoot(zone) };
+  }
+
+  isSamplePreset(presetId: string): boolean {
+    const preset = this.presets.find((p) => p.id === presetId);
+    return !!preset && (preset.type === 'sample' || preset.type === 'hybrid') && !!preset.zones?.length;
+  }
+
+  async loadPresetSample(presetId: string, midi: number, velocity: number): Promise<void> {
+    const selection = this.sampleFor(presetId, midi, velocity);
+    if (!selection) throw new Error(`No sample zone for MIDI ${midi} in “${presetId}”.`);
+    const buffer = await this.loadPreviewBuffer(selection.url) ??
+      (selection.url !== selection.zone.url ? await this.loadPreviewBuffer(selection.zone.url) : null);
+    if (!buffer) throw new Error(`Sample for MIDI ${midi} in “${selection.preset.name}” could not be loaded.`);
+  }
+
+  getPresetSample(presetId: string, midi: number, velocity: number, pitchBend = 0) {
+    const selection = this.sampleFor(presetId, midi, velocity);
+    if (!selection) return null;
+    const buffer = this.previewBuffers.get(selection.url) ?? this.previewBuffers.get(selection.zone.url);
+    if (!buffer) return null;
+    return {
+      buffer,
+      rate: Math.pow(2, (midi + pitchBend - selection.rootNote) / 12),
+      oneShot: selection.preset.category === 'drum' || selection.preset.category === 'perc',
+      release: selection.preset.articulation?.release ?? 0.05,
+    };
+  }
+
+  /**
+   * The note an instrument should audition at: basses and kick-bearing kits
+   * play low, melodic instruments play middle C.
+   */
+  private previewNoteFor(preset: InstrumentPreset): number {
+    if (preset.category === 'bass') return 36;
+    if (preset.category === 'drum') return 36;
+    return 60;
+  }
+
+  /** Decode (and cache) a preset sample without pulling in HttpClient. */
+  private async loadPreviewBuffer(url: string): Promise<AudioBuffer | null> {
+    const cached = this.previewBuffers.get(url);
+    if (cached) return cached;
+    const pending = this.pendingBuffers.get(url);
+    if (pending) return pending;
+    const load = (async () => {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const bytes = await response.arrayBuffer();
+        const buffer = await this.audioEngine.ctx.decodeAudioData(bytes.slice(0));
+        if (!buffer || !(buffer.duration > 0)) return null;
+        this.previewBuffers.set(url, buffer);
+        return buffer;
+      } catch {
+        return null;
+      }
+    })();
+    this.pendingBuffers.set(url, load);
+    try {
+      return await load;
+    } finally {
+      this.pendingBuffers.delete(url);
+    }
+  }
+
+  /**
+   * One-shot preview of a preset.
+   *
+   * Everything here used to be a bare oscillator: sample presets auditioned
+   * as a fixed 440 Hz sine (the oscillator was never given the sample or even
+   * a frequency), and synth presets ignored their own attack/decay/sustain/
+   * release and filter. So "Audition" on a grand piano or an 808 kit played a
+   * beep, and two different presets were indistinguishable. Sample presets now
+   * play the sample they declare (falling back to their category patch when a
+   * sample cannot be fetched), and synth presets play their own patch through
+   * the same voice builder the arrangement uses.
+   */
   async audition(presetId: string) {
     const preset = this.presets.find((p) => p.id === presetId);
     if (!preset) return;
 
     const ctx = this.audioEngine.ctx;
     if (!ctx) return;
-    const now = ctx.currentTime;
-    const out = ctx.createGain();
-    out.connect(ctx.destination);
-    out.gain.setValueAtTime(0, now);
-    out.gain.linearRampToValueAtTime(0.3, now + 0.05);
-    out.gain.linearRampToValueAtTime(0, now + 0.5);
+    await this.audioEngine.resume();
 
-    if (preset.type === 'synth' && preset.synth) {
-      const osc = ctx.createOscillator();
-      const filter = ctx.createBiquadFilter();
+    const note = this.previewNoteFor(preset);
+    const freq = 440 * Math.pow(2, (note - 69) / 12);
 
-      osc.type = preset.synth.type as any;
-      osc.frequency.setValueAtTime(preset.category === 'bass' ? 110 : 440, now);
-
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(preset.synth.cutoff, now);
-      filter.Q.setValueAtTime(preset.synth.q, now);
-
-      osc.connect(filter);
-      filter.connect(out);
-
-      osc.start(now);
-      osc.stop(now + 0.5);
-    } else if (preset.type === 'sample' && preset.zones?.[0]) {
-      this.audioEngine.logger.info('Auditioning sample: ' + preset.name);
-      const osc = ctx.createOscillator();
-      osc.connect(out);
-      osc.start(now);
-      osc.stop(now + 0.2);
+    if ((preset.type === 'sample' || preset.type === 'hybrid') && preset.zones?.length) {
+      try {
+        await this.loadPresetSample(presetId, note, 0.9);
+      } catch {
+        // Audition retains its synth fallback when a sample is unavailable.
+      }
+      const sample = this.getPresetSample(presetId, note, 0.9);
+      if (sample) {
+        const { buffer, rate: playbackRate } = sample;
+        this.audioEngine.triggerSampler(
+          'preview',
+          buffer,
+          this.audioEngine.ctx.currentTime,
+          0.9,
+          0,
+          Math.min(2.5, Math.max(0.35, buffer.duration)),
+          playbackRate,
+        );
+        return;
+      }
     }
+
+    const params = preset.synth
+      ? {
+          ...preset.synth,
+          oscillator: preset.synth.type,
+          type: preset.synth.type,
+          q: preset.synth.resonance ?? preset.synth.q,
+        }
+      : synthParamsForPreset(preset);
+
+    this.audioEngine.triggerAttack(
+      'preview',
+      freq,
+      this.audioEngine.ctx.currentTime,
+      0.85,
+      0.9,
+      1,
+      0,
+      0,
+      0,
+      params,
+    );
   }
 }

@@ -11,6 +11,17 @@ PWA, with an Android and desktop build from the same codebase.
 
 ---
 
+## Studio sample credits
+
+Some Studio presets use [FluidR3 GM](https://github.com/gleitz/midi-js-soundfonts)
+by Frank Wen, pre-rendered by the MIDI.js Soundfonts project and shared under
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The presets select and
+pitch-shift those samples. Replacement percussion comes from the CC0
+[Sample Pi](https://github.com/alex-esc/sample-pi) and
+[Versilian Community Sample Library](https://github.com/sgossner/VCSL) collections;
+piano velocity layers use the public-domain Splendid Grand Piano via the
+[danigb/samples mirror](https://github.com/danigb/samples).
+
 ## Highlights
 
 - **22-view Studio** with WebGL piano roll, DJ decks, drum machine, mixer, channel rack,

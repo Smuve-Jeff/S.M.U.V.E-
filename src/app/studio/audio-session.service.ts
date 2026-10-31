@@ -355,7 +355,11 @@ export class AudioSessionService {
     this.recordToggleInFlight = true;
     try {
       await this.ensureCapture();
-      this.engine.start();
+      const preparation = this.engine.start();
+      if (preparation) {
+        await preparation;
+        if (!this.engine.isPlaying()) return;
+      }
       this.musicManager.startRecording();
       this.playbackState.set("recording");
       // Snapshot the destinations for the whole pass: arming a strip mid-pass

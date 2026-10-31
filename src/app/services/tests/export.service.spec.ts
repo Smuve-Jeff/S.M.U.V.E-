@@ -1133,6 +1133,28 @@ describe("ExportService", () => {
       expect(fader!.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
     });
 
+    it("loads and schedules a preset sample through the offline channel", async () => {
+      const recording = recordingContext();
+      const sample = { duration: 2 } as AudioBuffer;
+      const source = { buffer: null, connect: jest.fn(), start: jest.fn(), stop: jest.fn(), playbackRate: { setValueAtTime: jest.fn() } };
+      recording.offline.createBufferSource = jest.fn(() => source);
+      const instruments = (service as any).instruments;
+      jest.spyOn(instruments, "isSamplePreset").mockReturnValue(true);
+      jest.spyOn(instruments, "getPresetSample").mockReturnValue({ buffer: sample, rate: 2, oneShot: false, release: 0.05 });
+      const manager = (service as any).musicManager;
+      manager.prepareTrackSamples = jest.fn(async () => undefined);
+      manager.arrangementNotes = jest.fn((t: any) => t.notes);
+      audioEngineMock.scheduleOfflineNote.mockClear();
+      await render(recording, [track({ instrumentId: "grand-piano", notes: [
+        { midi: 72, step: 2, length: 2, velocity: 0.8 },
+      ] })]);
+      expect(manager.prepareTrackSamples).toHaveBeenCalledWith(expect.anything(), true);
+      expect(source.buffer).toBe(sample);
+      expect(source.playbackRate.setValueAtTime).toHaveBeenCalledWith(2, 0.25);
+      expect(source.start).toHaveBeenCalledWith(0.25);
+      expect(audioEngineMock.scheduleOfflineNote).not.toHaveBeenCalled();
+    });
+
     it("bounces an imported pad one-shot as PCM instead of its MIDI pitch", async () => {
     const recording = recordingContext();
     const sample = { duration: 0.4, sampleRate: 48000 } as AudioBuffer;

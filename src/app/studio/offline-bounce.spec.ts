@@ -60,6 +60,31 @@ describe("OfflineBounceService", () => {
     expect(service).toBeTruthy();
   });
 
+  it("loads and schedules the preset sample during a track bounce", async () => {
+    const sample = { duration: 2 } as AudioBuffer;
+    const source = { buffer: null, connect: jest.fn(), start: jest.fn(), stop: jest.fn(), playbackRate: { setValueAtTime: jest.fn() } };
+    const param = () => ({ value: 0, setValueAtTime: jest.fn(), setTargetAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() });
+    const ctx: any = {
+      destination: {},
+      createGain: jest.fn(() => ({ gain: param(), connect: jest.fn() })),
+      createStereoPanner: jest.fn(() => ({ pan: param(), connect: jest.fn() })),
+      createBufferSource: jest.fn(() => source),
+    };
+    const track = { id: 'piano', type: 'midi', instrumentId: 'grand-piano', gain: 0.8, pan: 0, clips: [],
+      notes: [{ step: 2, midi: 72, length: 2, velocity: 0.8 }] };
+    mockMusicManager.tracks = () => [track];
+    mockMusicManager.prepareTrackSamples = jest.fn(async () => undefined);
+    mockMusicManager.arrangementNotes = jest.fn(() => track.notes);
+    const instruments = (service as any).instruments;
+    jest.spyOn(instruments, 'isSamplePreset').mockReturnValue(true);
+    jest.spyOn(instruments, 'getPresetSample').mockReturnValue({ buffer: sample, rate: 2, oneShot: false, release: 0.05 });
+    await (service as any).renderArrangement(ctx, 64, 8, 44100, undefined, 'piano');
+    expect(mockMusicManager.prepareTrackSamples).toHaveBeenCalledWith(track, true);
+    expect(source.buffer).toBe(sample);
+    expect(source.playbackRate.setValueAtTime).toHaveBeenCalledWith(2, 0.25);
+    expect(source.start).toHaveBeenCalledWith(0.25);
+  });
+
   it("should start in idle state", () => {
     expect(service.progress().state).toBe("idle");
     expect(service.isBouncing()).toBe(false);

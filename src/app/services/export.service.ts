@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { AudioEngineService } from './audio-engine.service';
+import { InstrumentsService, scheduleOfflinePresetSample } from './instruments.service';
 import { connectOfflineMasterChain } from './offline-master-chain';
 import {
   FX_TYPE_TO_PLUGIN_ID,
@@ -72,6 +73,7 @@ export const EXPORT_FORMATS: ExportFormatInfo[] = [
 export class ExportService {
   private engine = inject(AudioEngineService);
   private musicManager = inject(MusicManagerService);
+  private instruments = inject(InstrumentsService);
   private logger = inject(LoggingService);
   private pluginStore = inject(PluginStoreService);
   /** Read-only here: the bounce samples the same curves playback evaluates. */
@@ -455,6 +457,9 @@ export class ExportService {
         track.type === 'bus'
       )
         continue;
+      if (track.type !== 'audio' && this.instruments.isSamplePreset(track.instrumentId)) {
+        await this.musicManager.prepareTrackSamples(track, true);
+      }
       const levelLane = laneFor(track.id, 'volume', 'gain');
       const panLane = laneFor(track.id, 'pan');
       const cutoffLane = laneFor(track.id, 'cutoff');
@@ -566,9 +571,11 @@ export class ExportService {
       if (track.type !== 'audio') {
         // With a pan lane the lane owns the channel's position, so a voice
         // carries only its own per-note pan instead of the static track pan.
-        this.scheduleTrackNotes(offline, input, track.notes ?? [],
+        const notes = this.instruments.isSamplePreset(track.instrumentId)
+          ? this.musicManager.arrangementNotes(track) : track.notes ?? [];
+        this.scheduleTrackNotes(offline, input, notes,
           track.synthParams ?? { type: 'sine' }, secondsPerStep,
-          panLane ? 0 : (track.pan ?? 0));
+          panLane ? 0 : (track.pan ?? 0), track.instrumentId);
       }
       for (const clip of track.clips ?? []) {
         if (clip.type !== 'audio') continue;
@@ -745,7 +752,8 @@ export class ExportService {
     notes: TrackNote[],
     params: any,
     secondsPerStep: number,
-    trackPan: number
+    trackPan: number,
+    instrumentId: string,
   ): void {
     for (const n of notes) {
       if (n.velocity <= 0) continue;
@@ -796,6 +804,15 @@ export class ExportService {
         0.05,
         (n.length ?? 1) * secondsPerStep * lengthMul
       );
+
+      if (this.instruments.isSamplePreset(instrumentId)) {
+        const sample = this.instruments.getPresetSample(
+          instrumentId, n.midi, n.velocity ?? 0.8, n.pitchBend ?? 0,
+        );
+        if (!sample) throw new Error(`Sample for MIDI ${n.midi} in “${instrumentId}” is unavailable.`);
+        scheduleOfflinePresetSample(ctx, master, sample, start, dur, n.velocity ?? 0.8, n.notePan ?? trackPan);
+        continue;
+      }
 
       // Slide notes: glide from the base pitch to the pitch-bend target
       const glideTo =

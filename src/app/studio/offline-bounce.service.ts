@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
+import { InstrumentsService, scheduleOfflinePresetSample } from "../services/instruments.service";
 import { MusicManagerService } from "../services/music-manager.service";
 import { WavEncoder } from "./wav-encoder.util";
 import { LoggingService } from "../services/logging.service";
@@ -49,6 +50,7 @@ export interface BounceResult {
 export class OfflineBounceService {
   private readonly engine = inject(AudioEngineService);
   private readonly musicManager = inject(MusicManagerService);
+  private readonly instruments = inject(InstrumentsService);
   private readonly logger = inject(LoggingService);
 
   readonly progress = signal<BounceProgress>({
@@ -391,10 +393,15 @@ export class OfflineBounceService {
         onProgress,
       );
 
+      if (track.type !== "audio" && this.instruments.isSamplePreset(track.instrumentId)) {
+        await this.musicManager.prepareTrackSamples(track, true);
+      }
       const trackGain = (track as any).gain ?? 0.8;
       const waveform = this.getTrackWaveform(track as any);
 
-      for (const note of track.notes) {
+      const notes = this.instruments.isSamplePreset(track.instrumentId)
+        ? this.musicManager.arrangementNotes(track) : track.notes;
+      for (const note of notes) {
         if (note.step >= totalSteps) continue;
         this.renderNote(
           ctx,
@@ -404,6 +411,8 @@ export class OfflineBounceService {
           masterGain,
           stepDuration,
           sampleRate,
+          track.instrumentId,
+          track.pan ?? 0,
         );
       }
 
@@ -484,14 +493,20 @@ export class OfflineBounceService {
       length: number;
       velocity: number;
       params?: any;
+      microOffset?: number;
+      pitchBend?: number;
+      notePan?: number;
+      articulation?: string;
     },
     trackGain: number,
     waveform: OscillatorType,
     destination: AudioNode,
     stepDuration: number,
     sampleRate: number,
+    instrumentId: string,
+    trackPan: number,
   ): void {
-    const startTime = note.step * stepDuration;
+    const startTime = Math.max(0, (note.step + (note.microOffset ?? 0)) * stepDuration);
     const duration = note.length * stepDuration;
     const freq = 440 * Math.pow(2, (note.midi - 69) / 12);
     const velocity = note.velocity ?? 0.8;
@@ -516,6 +531,20 @@ export class OfflineBounceService {
       source.connect(gain);
       gain.connect(destination);
       source.start(startTime);
+      return;
+    }
+
+    if (this.instruments.isSamplePreset(instrumentId)) {
+      const sample = this.instruments.getPresetSample(
+        instrumentId, note.midi, velocity, note.pitchBend ?? 0,
+      );
+      if (!sample) throw new Error(`Sample for MIDI ${note.midi} in “${instrumentId}” is unavailable.`);
+      const lengthMul = note.articulation === 'staccato' ? 0.25
+        : note.articulation === 'legato' ? 1.1
+        : note.articulation === 'pizzicato' ? 0.15
+        : note.articulation === 'accent' ? 0.5 : 1;
+      scheduleOfflinePresetSample(ctx, destination, sample, startTime,
+        duration * lengthMul, velocity * trackGain, note.notePan ?? trackPan);
       return;
     }
 

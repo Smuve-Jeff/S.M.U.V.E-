@@ -284,6 +284,33 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
     });
   });
 
+  describe('sample preparation', () => {
+    it('waits for samples before starting the clock and ignores a cancelled start', async () => {
+      let finish!: () => void;
+      const pending = new Promise<void>((resolve) => { finish = resolve; });
+      svc.onPreparePlayback = () => pending;
+      (svc as any).resume = jest.fn(() => Promise.resolve());
+      const messages = jest.fn();
+      (svc as any).workletNode = { port: { postMessage: messages } };
+      const starting = svc.start();
+      expect(messages).not.toHaveBeenCalled();
+      svc.stop();
+      messages.mockClear();
+      finish();
+      await starting;
+      expect(messages).not.toHaveBeenCalled();
+      expect(svc.isPlaying()).toBe(false);
+    });
+
+    it('stops scheduled preset sources when playback stops', () => {
+      const source = { stop: jest.fn() };
+      (svc as any).presetSampleSources = new Set([source]);
+      svc.stop();
+      expect(source.stop).toHaveBeenCalledWith(0);
+      expect((svc as any).presetSampleSources.size).toBe(0);
+    });
+  });
+
   describe('transport loop and stale playhead safety', () => {
     it('loops only the selected end-exclusive A/B range without ending the song', () => {
       svc.isPlaying.set(true);

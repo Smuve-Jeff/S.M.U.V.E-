@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import * as Tone from 'tone';
 import { LiveEngineService } from './live-engine.service';
 import { LoggingService } from './logging.service';
 import { InstrumentsService } from './instruments.service';
@@ -99,6 +100,17 @@ describe('LiveEngineService', () => {
   it('should set instrument', async () => {
     await service.setInstrument('analog-warmth');
     expect(service.activeInstrument()).toBe('analog-warmth');
+  });
+
+  it('assigns sample zones at their recorded pitches for melodic and hybrid presets', async () => {
+    await service.setInstrument('strat-elite-clean');
+    expect(Tone.Sampler).toHaveBeenLastCalledWith(expect.objectContaining({
+      urls: { G3: expect.stringContaining('/G3.mp3') },
+    }));
+    await service.setInstrument('whisper-choir');
+    expect(Tone.Sampler).toHaveBeenLastCalledWith(expect.objectContaining({
+      urls: { C5: expect.stringContaining('/C5.mp3') },
+    }));
   });
 
   it('should auto-load default instrument on initialize', async () => {

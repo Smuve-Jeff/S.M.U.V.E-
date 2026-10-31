@@ -1235,11 +1235,34 @@ export class AudioEngineService {
     return this._resumePromise;
   }
 
+  /** Optional asynchronous preparation of arrangement resources before transport starts. */
+  public onPreparePlayback?: () => Promise<void> | void;
+
+  private preparePlayback(begin: () => void): Promise<void> | void {
+    const generation = ++this.transportGeneration;
+    const preparation = this.onPreparePlayback?.();
+    if (!preparation) {
+      begin();
+      return;
+    }
+    return preparation.then(() => {
+      if (this.isPlaying() && generation === this.transportGeneration) begin();
+    }).catch((error) => {
+      if (generation !== this.transportGeneration) return;
+      console.warn('AudioEngine: playback preparation failed.', error);
+      this.stop();
+    });
+  }
+
   startCountIn(bars: number = 1) {
     this.resume();
     if (this.isPlaying()) return;
     this.isCountIn.set(true);
     this.isPlaying.set(true);
+    return this.preparePlayback(() => this.beginCountIn(bars));
+  }
+
+  private beginCountIn(bars: number) {
     // Integrated loudness describes a program from where it began, so the
     // measurement window restarts with the transport.
     this.resetLoudnessMeasurement();
@@ -1269,6 +1292,10 @@ export class AudioEngineService {
     this.resume();
     if (this.isPlaying()) return;
     this.isPlaying.set(true);
+    return this.preparePlayback(() => this.beginPlayback());
+  }
+
+  private beginPlayback() {
     this.resetLoudnessMeasurement();
     this.sendMidiStart();
     // Sprint A4 — fresh start resets the song-ended latching signal.
@@ -1301,6 +1328,7 @@ export class AudioEngineService {
   stop() {
     this.transportGeneration++;
     this.isPlaying.set(false);
+    this.isCountIn.set(false);
     this.sendMidiStop();
     if (this.workletNode) {
       this.workletNode.port.postMessage({ type: 'STOP' });
@@ -2637,6 +2665,10 @@ export class AudioEngineService {
     const released = voices.length;
     for (const voice of voices) voice.cut();
     voices.length = 0;
+    for (const source of this.presetSampleSources ?? []) {
+      try { source.stop(this.ctx.currentTime); } catch { /* already ended */ }
+    }
+    this.presetSampleSources?.clear();
     return released;
   }
 
@@ -3176,6 +3208,8 @@ export class AudioEngineService {
    * per-trigger VCA, so arrangement clips with `fadeIn`/`fadeOut` set get a
    * click-free envelope exactly like a professional DAW's clip fades.
    */
+  private presetSampleSources?: Set<AudioBufferSourceNode>;
+
   triggerSampler(
     trackId: string | number,
     bufferOrStreamer: AudioBuffer | SampleStreamer,
@@ -3189,7 +3223,8 @@ export class AudioEngineService {
     clipOriginSeconds: number = 0,
     clipLengthSeconds: number = 0,
     sampleRate: number = 48000,
-    _channels: number = 2
+    _channels: number = 2,
+    stopWithTransport: boolean = false,
   ) {
     const isStreamer =
       bufferOrStreamer instanceof SampleStreamer ||
@@ -3233,6 +3268,11 @@ export class AudioEngineService {
       source.buffer = buffer;
       source.playbackRate.setValueAtTime(playbackRate, time);
       source.connect(panner);
+      if (stopWithTransport) {
+        const sources = this.presetSampleSources ??= new Set();
+        sources.add(source);
+        source.onended = () => sources.delete(source);
+      }
       source.start(time);
       source.stop(time + safeDuration + 0.01);
       return;

@@ -394,6 +394,31 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
     service.tracks.set([makeTrack()]);
   });
 
+  it('preloads arrangement patterns and schedules preset samples instead of oscillators', async () => {
+    const buffer = { duration: 2 } as AudioBuffer;
+    const instruments = TestBed.inject(InstrumentsService);
+    Object.assign(instruments, {
+      isSamplePreset: jest.fn(() => true),
+      loadPresetSample: jest.fn(async () => undefined),
+      getPresetSample: jest.fn(() => ({ buffer, rate: 2, oneShot: false, release: 0.05 })),
+    });
+    Object.assign(engineMock, { triggerSampler: jest.fn() });
+    engineMock.triggerAttack.mockClear();
+    service.tracks.set([makeTrack({
+      instrumentId: 'grand-piano',
+      notes: [{ id: 'n1', midi: 72, step: 0, length: 2, velocity: 0.7 }],
+      clips: [{ id: 'c', type: 'midi', start: 1, length: 4 }],
+    })]);
+    await (engineMock as any).onPreparePlayback();
+    expect((instruments as any).loadPresetSample).toHaveBeenCalledWith('grand-piano', 72, 0.7);
+    expect(service.arrangementNotes(service.tracks()[0])[0].step).toBe(16);
+    service.playStep(16, 3, 0.25);
+    expect((engineMock as any).triggerSampler).toHaveBeenCalledWith(
+      'track-1', buffer, 3, 0.7, 0, 0.55, 2, 0, 0.05, 0, 0, 48000, 2, true,
+    );
+    expect(engineMock.triggerAttack).not.toHaveBeenCalled();
+  });
+
   it('captures the current pattern into a fixed scene slot and activates it', () => {
     service.tracks.set([
       makeTrack({
