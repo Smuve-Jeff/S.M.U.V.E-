@@ -147,6 +147,23 @@ export class SettingsComponent implements OnInit, OnDestroy {
     };
   });
 
+  /**
+   * Dossier answers the Official Pathway evaluates but this profile has not
+   * recorded. Settings used to report the context without naming what was
+   * missing or where to fix it, so the same gaps could never be closed here.
+   */
+  journeyGaps = computed<string[]>(() => {
+    const journey: any = this.profileService.profile()?.musicalJourney ?? {};
+    const gaps: string[] = [];
+    if (!journey.originStory) gaps.push('your origin story');
+    if (!journey.artistNameMeaning) gaps.push('what your name means');
+    if (!journey.productionPhilosophy) gaps.push('your production philosophy');
+    if (!journey.releaseVelocity) gaps.push('a release cadence');
+    if (!journey.contentStrategy) gaps.push('a content strategy');
+    if (!(journey.incomeStreams?.length > 0)) gaps.push('an income stream');
+    return gaps;
+  });
+
   appearanceSummary = computed(() => {
     const ui = this.settings().ui;
     return [

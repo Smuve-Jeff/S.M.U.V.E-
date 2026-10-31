@@ -220,6 +220,26 @@
           </button>
         </div>
 
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Auto-Open Piano Roll</h3>
+            <p class="text-xs text-text-dim">
+              Open the piano roll when a MIDI take or clip is selected, instead
+              of waiting for a second tap.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="updateSetting('ui', 'autoPianoRoll', !settings().ui.autoPianoRoll)"
+            class="toggle-btn"
+            [class.on]="settings().ui.autoPianoRoll"
+            [attr.aria-pressed]="settings().ui.autoPianoRoll"
+            aria-label="Toggle opening the piano roll automatically"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
         <div class="setting-group">
           <label class="setting-label">Profile → S.M.U.V.E. Context</label>
           <p class="text-xs text-text-dim">
@@ -241,6 +261,26 @@
               <strong class="appearance-summary-value">{{ profileAlignment().officialLinks }} links · {{ profileAlignment().catalogItems }} works</strong>
               <p class="appearance-summary-detail">No analytics are implied by a link alone</p>
             </div>
+          </div>
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p class="text-xs text-text-dim">
+              @if (journeyGaps().length) {
+                {{ journeyGaps().length }} dossier
+                {{ journeyGaps().length === 1 ? 'answer is' : 'answers are' }}
+                missing from the Official Pathway:
+                {{ journeyGaps().join(' · ') }}.
+              } @else {
+                Every dossier field the pathway reads is recorded.
+              }
+            </p>
+            <button
+              type="button"
+              (click)="uiService.navigateToView('journey')"
+              class="guide-link-btn shrink-0"
+            >
+              <span class="material-symbols-outlined text-sm">route</span>
+              <span>Continue Artist Journey</span>
+            </button>
           </div>
         </div>
 
@@ -690,6 +730,27 @@
             "
             class="toggle-btn"
             [class.on]="settings().ai.kbWriteAccess"
+          >
+            <div class="toggle-handle"></div>
+          </button>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <h3 class="setting-title">Mimic Mode</h3>
+            <p class="text-xs text-text-dim">
+              Let S.M.U.V.E. answer in the register your profile declares —
+              vocal range first, then delivery and genre. Off by default, and
+              it never replaces your persona unless you opt in.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="updateSetting('ai', 'aiMimicEnabled', !settings().ai.aiMimicEnabled)"
+            class="toggle-btn"
+            [class.on]="settings().ai.aiMimicEnabled"
+            [attr.aria-pressed]="settings().ai.aiMimicEnabled"
+            aria-label="Toggle S.M.U.V.E. mimicking the artist's declared register"
           >
             <div class="toggle-handle"></div>
           </button>

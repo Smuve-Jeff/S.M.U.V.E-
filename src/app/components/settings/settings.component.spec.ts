@@ -354,6 +354,58 @@ describe('SettingsComponent', () => {
     expect(component.profileAlignment().contextReady).toBe(false);
   });
 
+  it('names the dossier gaps blocking the pathway and closes them from the real fields', async () => {
+    const { component } = await createComponent();
+    const profileService = TestBed.inject(UserProfileService) as any;
+
+    expect(component.journeyGaps().length).toBe(6);
+
+    profileService.profile.update((current: any) => ({
+      ...current,
+      musicalJourney: {
+        ...(current.musicalJourney ?? {}),
+        originStory: 'community',
+        artistNameMeaning: 'a name from my grandmother',
+        productionPhilosophy: 'Lo-Fi Grit',
+        releaseVelocity: 'Cyclic (Monthly)',
+        contentStrategy: 'Community First',
+        incomeStreams: ['Streaming'],
+      },
+    }));
+
+    expect(component.journeyGaps()).toEqual([]);
+  });
+
+  it('persists the Auto-Open Piano Roll preference the UI service reads', async () => {
+    const { component } = await createComponent();
+    const updateProfile = TestBed.inject(UserProfileService).updateProfile as jest.Mock;
+
+    component.updateSetting('ui' as any, 'autoPianoRoll', true);
+
+    expect(updateProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          ui: expect.objectContaining({ autoPianoRoll: true }),
+        }),
+      })
+    );
+  });
+
+  it('persists the opt-in for Mimic Mode that the console reads', async () => {
+    const { component } = await createComponent();
+    const updateProfile = TestBed.inject(UserProfileService).updateProfile as jest.Mock;
+
+    component.updateSetting('ai' as any, 'aiMimicEnabled', true);
+
+    expect(updateProfile).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          ai: expect.objectContaining({ aiMimicEnabled: true }),
+        }),
+      })
+    );
+  });
+
   it('syncs theme changes through the shared UI service', async () => {
     const { component } = await createComponent();
     const uiService = TestBed.inject(UIService) as {
