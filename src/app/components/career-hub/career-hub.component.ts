@@ -148,13 +148,18 @@ export class CareerHubComponent {
     () => this.pitchCounts().Pending + this.pitchCounts().Reviewing
   );
 
-  revenueForecast = computed(() => {
+  /**
+   * Illustrative growth scenarios on already-recorded revenue. Not a forecast:
+   * the service applies a stated tax reserve and fixed growth steps, and the
+   * view labels them as scenarios.
+   */
+  revenueScenarios = computed(() => {
     if (!this.hasRevenue()) return [];
-    const dna = { streams: this.financials().totalRevenue * 250 };
-    const projection =
-      this.businessPipelineService.calculateRevenueProjections(dna);
+    const projection = this.businessPipelineService.calculateRevenueProjections({
+      revenue: this.trackedRevenue(),
+    });
     return projection.forecast.map((f: any) => ({
-      month: f.month,
+      label: f.label,
       amount: f.estimate,
     }));
   });

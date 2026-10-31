@@ -117,23 +117,24 @@
             class="col-span-12 lg:col-span-12 glass-v42 shadow-v42-xl rounded-2xl md:rounded-3xl p-6 border glass-v42 shadow-v42-xl border-white/10"
           >
             <h3 class="text-sm font-bold text-white uppercase mb-6">
-              Revenue Forecasting (AI Projected)
+              Revenue Scenarios (Illustrative)
             </h3>
             @if (hasRevenue()) {
               <p class="text-[10px] text-slate-500 mb-4">
-                Estimates scale from the
-                {{ formatMoney(trackedRevenue()) }} already recorded on the
-                profile. They are projections, not reported payouts.
+                Not a forecast: no market data is used. These apply fixed growth
+                steps to the net of the
+                {{ formatMoney(trackedRevenue()) }} already recorded, after a
+                20% tax reserve. They are scenarios, not reported payouts.
               </p>
               <div class="grid grid-cols-3 gap-4">
                 <div
-                  *ngFor="let f of revenueForecast()"
+                  *ngFor="let f of revenueScenarios()"
                   class="bg-black/40 p-4 rounded-xl border border-white/5"
                 >
                   <div
                     class="text-[8px] font-black text-slate-500 uppercase mb-1"
                   >
-                    {{ f.month }} Estimate
+                    {{ f.label }} growth
                   </div>
                   <div class="text-lg font-black text-brand-primary italic">
                     {{ formatCurrency(f.amount) }}
@@ -143,7 +144,7 @@
             } @else {
               <p class="text-xs text-slate-500 leading-relaxed">
                 No revenue is recorded yet, so there is nothing to project.
-                Add a payout on the profile's financial panes and the estimates
+                Add a payout on the profile's financial panes and the scenarios
                 appear here.
               </p>
             }

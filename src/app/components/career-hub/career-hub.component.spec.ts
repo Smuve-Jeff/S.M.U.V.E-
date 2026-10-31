@@ -118,7 +118,7 @@ describe('CareerHubComponent', () => {
       expect(text()).toContain('$4,500');
       expect(text()).toContain('$500 PENDING');
       expect(component.hasRevenue()).toBe(true);
-      expect(component.revenueForecast().length).toBeGreaterThan(0);
+      expect(component.revenueScenarios().length).toBeGreaterThan(0);
     });
   });
 

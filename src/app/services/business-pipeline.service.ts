@@ -100,22 +100,30 @@ export class BusinessPipelineService {
     await this.saveToProfile(updated);
   }
 
-  calculateRevenueProjections(artistDna: any): any {
-    const streams = artistDna.streams || 0;
-    const rate = 0.004; // Average Spotify rate
-    const gross = streams * rate;
-    const taxes = gross * 0.2;
-    const net = gross - taxes;
+  /**
+   * Illustrative revenue scenarios from money actually recorded on the profile.
+   *
+   * This is deliberately not a forecast: no market or streaming data is used.
+   * The tax reserve and growth steps are fixed, stated assumptions, and callers
+   * must present the output as a scenario rather than a prediction.
+   */
+  calculateRevenueProjections(recorded: { revenue: number }): any {
+    const revenue = Number.isFinite(recorded?.revenue)
+      ? Math.max(0, recorded.revenue)
+      : 0;
+    const taxReserveRate = 0.2;
+    const net = revenue * (1 - taxReserveRate);
+    const growth = [0.1, 0.5, 1.2];
 
     return {
-      grossRevenue: gross,
-      taxLiability: taxes,
-      netProfit: net,
-      forecast: [
-        { month: 'Next Month', estimate: net * 1.1 },
-        { month: 'In 3 Months', estimate: net * 1.5 },
-        { month: 'In 6 Months', estimate: net * 2.2 },
-      ],
+      recordedRevenue: revenue,
+      taxReserve: revenue * taxReserveRate,
+      netRevenue: net,
+      assumptions: { taxReserveRate, growth },
+      forecast: growth.map((rate) => ({
+        label: `+${Math.round(rate * 100)}%`,
+        estimate: net * (1 + rate),
+      })),
     };
   }
 
