@@ -382,6 +382,34 @@ describe("ProjectWorkspaceService", () => {
     expect(engine.timeSignature()).toEqual({ beats: 4, unit: 4 });
   });
 
+  it("saves a tempo or meter edit shortly after it lands", () => {
+    jest.useFakeTimers();
+    const save = jest.spyOn(service, "autoSave").mockResolvedValue(undefined);
+    service.autoSaveEnabled.set(true);
+    service.isDirty.set(true);
+
+    (service as any).scheduleTransportSave();
+    jest.advanceTimersByTime(1300);
+
+    expect(save).toHaveBeenCalledTimes(1);
+    save.mockRestore();
+    jest.useRealTimers();
+  });
+
+  it("does not write from the transport debounce while the set is clean", () => {
+    jest.useFakeTimers();
+    const save = jest.spyOn(service, "autoSave").mockResolvedValue(undefined);
+    service.autoSaveEnabled.set(true);
+    service.isDirty.set(false);
+
+    (service as any).scheduleTransportSave();
+    jest.advanceTimersByTime(1300);
+
+    expect(save).not.toHaveBeenCalled();
+    save.mockRestore();
+    jest.useRealTimers();
+  });
+
   it("applies the genre vocabulary the app actually offers", () => {
     // These are the questionnaire's own values; the old map keyed on lowercase
     // hyphenated names, so every one of them silently kept the previous tempo.

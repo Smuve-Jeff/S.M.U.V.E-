@@ -387,6 +387,7 @@ export class ProjectWorkspaceService {
     this.lastSavedSignature = this.lastObservedSignature;
     this.watchWorkspaceChanges();
     this.startAutoSave();
+    this.watchTransportEdits();
     this.installLifecyclePersistence();
     this.destroyRef.onDestroy(() => this.stopAutoSave());
     this.projectService.projectDeleted$
@@ -513,6 +514,8 @@ export class ProjectWorkspaceService {
 
   // ── Auto-Save ──────────────────────────────────────────
 
+  private transportSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
   private startAutoSave() {
     if (this.autoSaveTimer) clearInterval(this.autoSaveTimer);
 
@@ -521,6 +524,34 @@ export class ProjectWorkspaceService {
         this.autoSave();
       }
     }, this.autoSaveIntervalMs());
+  }
+
+  /**
+   * Tempo and meter edits used to wait for the 30 s autosave window (or a
+   * manual save). They now schedule one debounced autosave, so a quick tab
+   * close does not lose a change the engine is already playing.
+   */
+  private watchTransportEdits() {
+    effect(() => {
+      // The accessors already tolerate bare/mocked engines (`tempo` may be a
+      // plain `{ set }` in tests); reading them here tracks the real signals.
+      void this.currentTempo();
+      void this.currentMeter();
+      this.scheduleTransportSave();
+    });
+    this.destroyRef.onDestroy(() => {
+      if (this.transportSaveTimer) clearTimeout(this.transportSaveTimer);
+      this.transportSaveTimer = null;
+    });
+  }
+
+  private scheduleTransportSave(): void {
+    if (this.transportSaveTimer) clearTimeout(this.transportSaveTimer);
+    this.transportSaveTimer = setTimeout(() => {
+      this.transportSaveTimer = null;
+      if (!this.autoSaveEnabled() || !this.isDirty() || this.isSaving()) return;
+      void this.autoSave();
+    }, 1200);
   }
 
   async autoSave() {
