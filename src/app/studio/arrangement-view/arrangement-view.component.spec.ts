@@ -150,6 +150,43 @@ describe("ArrangementViewComponent", () => {
     );
   });
 
+  it("hands the bounce off through its own object URL and releases it", async () => {
+    const createUrl = jest
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("blob:bounce");
+    const revokeUrl = jest
+      .spyOn(URL, "revokeObjectURL")
+      .mockImplementation(() => undefined);
+    const click = jest
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    const blob = new Blob(["audio"]);
+    mockMusicManager.bounceTrack.mockResolvedValueOnce({
+      blob,
+      url: "blob:service",
+      format: "wav-32-float",
+    } as any);
+
+    jest.useFakeTimers();
+    try {
+      await component.bounceSelected();
+
+      expect(createUrl).toHaveBeenCalledWith(blob);
+      expect(click).toHaveBeenCalledTimes(1);
+      // Released only after the browser has had a chance to read the file.
+      expect(revokeUrl).not.toHaveBeenCalled();
+      jest.runAllTimers();
+      expect(revokeUrl).toHaveBeenCalledWith("blob:bounce");
+      // The bounce result's own URL stays valid for whoever reads it next.
+      expect(revokeUrl).not.toHaveBeenCalledWith("blob:service");
+    } finally {
+      jest.useRealTimers();
+      click.mockRestore();
+      createUrl.mockRestore();
+      revokeUrl.mockRestore();
+    }
+  });
+
   it("marks the track header whose take is actually being written", () => {
     receivingTrackIds.set(new Set(["1"]));
     mockAudioSession.isRecording.set(true);

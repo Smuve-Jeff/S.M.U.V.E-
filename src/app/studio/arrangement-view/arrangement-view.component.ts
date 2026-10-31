@@ -1111,12 +1111,17 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       this.musicManager.selectedTrack?.()?.name ??
       this.tracks().find((t) => t.id === tid)?.name ??
       "track";
+    // Hand the file off through our own handle on the rendered audio, so the
+    // bounce result keeps the URL it exposes, and release ours once the browser
+    // has taken the data.
+    const url = URL.createObjectURL(result.blob);
     const a = document.createElement("a");
-    a.href = result.url;
+    a.href = url;
     a.download = `${name}-bounce.wav`;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
     this.snackbar.show(`🎚 Bounced "${name}" → ${result.format}`);
   }
 
