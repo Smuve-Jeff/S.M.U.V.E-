@@ -87,4 +87,39 @@ describe('DjMidiService device gating', () => {
     (deviceA.onmidimessage as (m: unknown) => void)(noteOn);
     expect(service.lastMidiMessage()).not.toBeNull();
   });
+  it('logs a MIDI message the output device refused', () => {
+    const failedOutput = {
+      send: jest.fn(() => {
+        throw new Error('port closed');
+      }),
+    };
+    (service as any).midiOutputDeviceList = [failedOutput];
+    service.ccOutputIndex.set(0);
+    const warn = jest
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
+
+    service.sendCC(1, 64);
+
+    expect(failedOutput.send).toHaveBeenCalled();
+    // The activity log is the only place the artist can see a dropped send.
+    expect(service.midiLog().some((entry) => entry.type === 'send-failed')).toBe(
+      true,
+    );
+    warn.mockRestore();
+  });
+
+  it('logs nothing when the output accepted the message', () => {
+    const output = { send: jest.fn() };
+    (service as any).midiOutputDeviceList = [output];
+    service.ccOutputIndex.set(0);
+
+    service.sendCC(1, 64);
+
+    expect(output.send).toHaveBeenCalled();
+    expect(service.midiLog().some((entry) => entry.type === 'send-failed')).toBe(
+      false,
+    );
+  });
+
 });

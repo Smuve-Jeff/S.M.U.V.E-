@@ -313,7 +313,11 @@ export class DjMidiService {
     if (idx >= this.midiOutputDeviceList.length) return;
     try {
       this.midiOutputDeviceList[idx].send(bytes);
-    } catch {}
+    } catch (error) {
+      // The log panel is where the artist checks output; a dropped send must
+      // not disappear without a trace.
+      this.logMidiSendFailure(bytes[0] ?? 0, error);
+    }
   }
 
   /** Send MIDI Continue (0xFB) after pause */
@@ -339,7 +343,9 @@ export class DjMidiService {
     const clampedValue = Math.max(0, Math.min(127, Math.round(value)));
     try {
       this.midiOutputDeviceList[idx].send([status, controller & 0x7f, clampedValue]);
-    } catch {}
+    } catch (error) {
+      this.logMidiSendFailure(status, error);
+    }
   }
 
   /**
@@ -356,7 +362,9 @@ export class DjMidiService {
     const status = 0xe0 | (channel & 0x0f);
     try {
       this.midiOutputDeviceList[idx].send([status, raw & 0x7f, (raw >> 7) & 0x7f]);
-    } catch {}
+    } catch (error) {
+      this.logMidiSendFailure(status, error);
+    }
   }
 
   // ── MIDI Slave Sync ──────────────────────────────────
@@ -704,6 +712,15 @@ export class DjMidiService {
         }
         break;
     }
+  }
+
+  /**
+   * Record a MIDI message the output device refused, so the activity log shows
+   * a failed send instead of nothing at all.
+   */
+  private logMidiSendFailure(status: number, error: unknown): void {
+    this.pushMidiLog('send-failed', (status ?? 0) & 0x0f, status & 0xff, 0);
+    console.warn('DJ MIDI: output refused a message', error);
   }
 
   /** Push to the activity log, capped at MIDI_LOG_MAX */
