@@ -1107,6 +1107,14 @@ export class SocialNetworkingService {
       },
     });
     this.neuralSyncStatus.set('syncing');
+    // Same bounded wait as requestNeuralSync: an approval the server never
+    // acknowledges must not leave the hub claiming a sync is under way.
+    setTimeout(() => {
+      if (this.neuralSyncStatus() === 'syncing') {
+        console.warn('Neural sync approval was never acknowledged');
+        this.neuralSyncStatus.set('idle');
+      }
+    }, 10_000);
     return true;
   }
 

@@ -264,6 +264,38 @@ describe('SocialNetworkingService', () => {
     expect(service.neuralSyncStatus()).not.toBe('syncing');
   });
 
+  it('stops claiming a sync in progress when the approval is never acknowledged', () => {
+    jest.useFakeTimers();
+    try {
+      expect(service.acceptNeuralSyncRequest('rival-1')).toBe(true);
+      expect(service.neuralSyncStatus()).toBe('syncing');
+
+      jest.advanceTimersByTime(10_000);
+
+      expect(service.neuralSyncStatus()).toBe('idle');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('keeps a synced status when the server confirms before the timeout', () => {
+    jest.useFakeTimers();
+    try {
+      service.acceptNeuralSyncRequest('rival-1');
+      socketHandlers.get('neural_sync_complete')?.({
+        fromUserName: 'RIVAL',
+        syncData: {},
+      });
+      expect(service.neuralSyncStatus()).toBe('synced');
+
+      jest.advanceTimersByTime(10_000);
+
+      expect(service.neuralSyncStatus()).toBe('synced');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('replaces the room buffer with server history on room_history', () => {
     service.joinRoom('lobby-1');
     expect(mockSocket.emit).toHaveBeenCalledWith('join_room', 'lobby-1');
