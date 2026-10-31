@@ -153,12 +153,34 @@ export class MidiClockSyncService {
 
   private attachInputs(): void {
     this.detachInputs();
-    if (!this.access?.inputs) return;
+    if (!this.access?.inputs) {
+      this.handleSourceLost();
+      return;
+    }
     this.inputs = Array.from(this.access.inputs.values());
     for (const input of this.inputs) {
       input.onmidimessage = (event: { data: Uint8Array }) =>
         this.handleMessage(event);
     }
+    if (this.inputs.length === 0) this.handleSourceLost();
+  }
+
+  /**
+   * The clock source is gone (unplugged, disabled, or MIDI access dropped).
+   *
+   * The last measured tempo is not a live lock, and the engine must not stay
+   * pinned to a tempo nobody is sending. Reset to waiting and hand the artist's
+   * own tempo back; a returning clock re-locks from fresh pulses.
+   */
+  private handleSourceLost(): void {
+    this.tracker.reset();
+    this.pulseCount.set(0);
+    this.bpm.set(null);
+    if (this.tempoBeforeSync !== null) {
+      this.engine.tempo.set(this.tempoBeforeSync);
+      this.tempoBeforeSync = null;
+    }
+    this.status.set(this.enabled() ? "waiting" : "off");
   }
 
   private detachInputs(): void {
