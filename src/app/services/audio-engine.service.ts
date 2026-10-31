@@ -4546,19 +4546,67 @@ export class AudioEngineService {
     }
   }
 
+  private outputDeviceListenerBound = false;
+
+  /**
+   * Bind the hot-plug listener once, from the first enumeration. Doing it here
+   * keeps the engine free of constructor-time browser assumptions while still
+   * guaranteeing a re-check whenever the device list was ever loaded.
+   */
+  private bindOutputDeviceListener(): void {
+    if (this.outputDeviceListenerBound) return;
+    if (
+      typeof navigator === 'undefined' ||
+      !navigator.mediaDevices?.addEventListener
+    ) {
+      return;
+    }
+    this.outputDeviceListenerBound = true;
+    navigator.mediaDevices.addEventListener('devicechange', () => {
+      void this.refreshOutputDevices();
+    });
+  }
+
+  /**
+   * The chosen sink is no longer enumerated (unplugged or removed). Returning
+   * to the system default is the only honest state: leaving the removed
+   * device's name in the transport bar would claim audio goes somewhere it
+   * cannot.
+   */
+  private async releaseMissingOutputDevice(): Promise<void> {
+    try {
+      if ('setSinkId' in this.ctx) {
+        await (this.ctx as any).setSinkId('');
+      }
+    } catch (error) {
+      console.warn('AudioEngine: could not return to the default output', error);
+    }
+    this.selectedOutputDeviceId.set('');
+    this.outputDeviceName.set('System Default');
+  }
+
   async refreshOutputDevices(): Promise<void> {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices) return;
+    this.bindOutputDeviceListener();
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioOutputs = devices.filter((d) => d.kind === 'audiooutput');
       // Surface the full enumeration so the transport-bar dropdown can list every sink.
       this.outputDevices.set(audioOutputs);
-      const match = audioOutputs.find(
-        (d) => d.deviceId === this.selectedOutputDeviceId()
-      );
+
+      const selected = this.selectedOutputDeviceId();
+      if (
+        selected !== '' &&
+        !audioOutputs.some((d) => d.deviceId === selected)
+      ) {
+        await this.releaseMissingOutputDevice();
+        return;
+      }
+
+      const match = audioOutputs.find((d) => d.deviceId === selected);
       if (match?.label) {
         this.outputDeviceName.set(
-          this.selectedOutputDeviceId() === '' ? 'System Default' : match.label
+          selected === '' ? 'System Default' : match.label
         );
       }
     } catch {
