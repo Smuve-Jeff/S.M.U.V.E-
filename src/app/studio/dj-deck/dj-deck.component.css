@@ -2950,3 +2950,12 @@ Loop length chips were 11×30 and the LPF/HPF switches 27×24 on a 390px phone
     overflow: clip;
   }
 }
+
+/* The 3D tilt projects each outer deck ~4px past its column, so the console
+   reported a scrollable overflow made purely of decoration. Give the grid a
+   small padding allowance instead of clipping the decks. */
+@media (min-width: 933px) {
+  .booth-console {
+    padding-inline: 6px;
+  }
+}
