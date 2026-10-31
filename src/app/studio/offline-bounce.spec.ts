@@ -13,6 +13,8 @@ describe("OfflineBounceService", () => {
     mockAudioEngine = {
       tempo: () => 120,
       masterGain: { gain: { value: 0.8 } },
+      timeSignature: () => ({ beats: 4, unit: 4 }),
+      scheduleOfflineNote: jest.fn(),
     };
 
     mockMusicManager = {
@@ -83,6 +85,49 @@ describe("OfflineBounceService", () => {
     expect(source.buffer).toBe(sample);
     expect(source.playbackRate.setValueAtTime).toHaveBeenCalledWith(2, 0.25);
     expect(source.start).toHaveBeenCalledWith(0.25);
+  });
+
+  it("renders synth notes through the engine's shared voice builder", () => {
+    const destination = { connect: jest.fn() } as any;
+    const ctx: any = { createGain: jest.fn() };
+    const note = {
+      step: 4,
+      midi: 72,
+      length: 2,
+      velocity: 0.8,
+      params: { glideTo: 220 },
+    };
+    const instruments = (service as any).instruments;
+    const sampleSpy = jest
+      .spyOn(instruments, 'isSamplePreset')
+      .mockReturnValue(false);
+    (service as any).renderNote(
+      ctx,
+      note,
+      0.7,
+      { type: "sawtooth", cutoff: 1200, sustain: 0.4 },
+      destination,
+      0.125,
+      "synth-lead",
+      -0.25,
+    );
+    expect(mockAudioEngine.scheduleOfflineNote).toHaveBeenCalledTimes(1);
+    const [calledCtx, calledDest, freq, start, peak, duration, params, pan] =
+      mockAudioEngine.scheduleOfflineNote.mock.calls[0];
+    expect(calledCtx).toBe(ctx);
+    expect(calledDest).toBe(destination);
+    expect(freq).toBeCloseTo(523.25, 1);
+    expect(start).toBe(0.5);
+    expect(peak).toBeCloseTo(0.56, 5);
+    expect(duration).toBeCloseTo(0.25, 5);
+    expect(params).toMatchObject({
+      type: "sawtooth",
+      cutoff: 1200,
+      sustain: 0.4,
+      glideTo: 220,
+    });
+    expect(pan).toBe(-0.25);
+    sampleSpy.mockRestore();
   });
 
   it("should start in idle state", () => {

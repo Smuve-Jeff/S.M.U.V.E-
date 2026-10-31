@@ -1291,7 +1291,7 @@ export class AudioEngineService {
     // measurement window restarts with the transport.
     this.resetLoudnessMeasurement();
     const safeBars = Math.max(1, Math.floor(bars));
-    this.countInRemainingSteps = this.stepsPerBeat() * 4 * safeBars;
+    this.countInRemainingSteps = this.stepsPerBar() * safeBars;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
 
     if (this.workletNode) {
@@ -1436,8 +1436,8 @@ export class AudioEngineService {
     if (this.songEnded() || !this.isPlaying()) return;
 
     if (this.isCountIn()) {
-      if (step % this.stepsPerBeat() === 0) {
-        this.playMetronomeClick(time, step === 0, true);
+      if (step % this.stepsPerNotatedBeat() === 0) {
+        this.playMetronomeClick(time, step % this.stepsPerBar() === 0, true);
       }
       this.countInRemainingSteps--;
       if (this.countInRemainingSteps <= 0) {
@@ -1484,11 +1484,11 @@ export class AudioEngineService {
 
     this.onScheduleStep?.(loopedStep, time, stepDuration);
 
-    if (this.metronomeEnabled() && loopedStep % this.stepsPerBeat() === 0) {
-      this.playMetronomeClick(
-        time,
-        loopedStep % (this.stepsPerBeat() * 4) === 0
-      );
+    if (
+      this.metronomeEnabled() &&
+      loopedStep % this.stepsPerNotatedBeat() === 0
+    ) {
+      this.playMetronomeClick(time, loopedStep % this.stepsPerBar() === 0);
     }
 
     const visualDelay = (time - this.ctx.currentTime) * 1000;
@@ -1607,6 +1607,42 @@ export class AudioEngineService {
 
   stepsPerBeat() {
     return 4;
+  }
+
+  /**
+   * Notated meter of the bar. The sequencer grid stays 16th-note steps
+   * (`stepsPerBeat()` = 4 per quarter); the meter only changes how many
+   * steps make a bar, how beats are grouped, and how the metronome accents.
+   */
+  public timeSignature = signal({ beats: 4, unit: 4 });
+
+  beatsPerBar(): number {
+    return Math.max(1, Math.round(this.timeSignature().beats));
+  }
+
+  /** 16th steps in one notated beat: 4 in 4/4, 2 in 6/8, 8 in 2/2. */
+  stepsPerNotatedBeat(): number {
+    const unit = Math.max(1, Math.round(this.timeSignature().unit));
+    return Math.max(1, Math.round(16 / unit));
+  }
+
+  stepsPerBar(): number {
+    return this.beatsPerBar() * this.stepsPerNotatedBeat();
+  }
+
+  /** Seconds in one notated bar at a tempo (defaults to the live tempo). */
+  barSeconds(bpm: number = this.tempo()): number {
+    const unit = Math.max(1, Math.round(this.timeSignature().unit));
+    return this.beatsPerBar() * (60 / Math.max(1, bpm)) * (4 / unit);
+  }
+
+  /** Clamp and commit the meter; returns the value actually stored. */
+  setTimeSignature(beats: number, unit: number) {
+    const safeBeats = Math.min(16, Math.max(1, Math.round(Number(beats) || 4)));
+    const rawUnit = Math.round(Number(unit) || 4);
+    const safeUnit = [2, 4, 8, 16].includes(rawUnit) ? rawUnit : 4;
+    this.timeSignature.set({ beats: safeBeats, unit: safeUnit });
+    return this.timeSignature();
   }
 
   /**

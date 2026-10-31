@@ -99,20 +99,36 @@ export class TransportBarComponent {
   outputProfileLabel = this.audioEngine.outputProfileLabel;
 
   /**
-   * Stage 2.0 — live position readout (Bar : Beat : Sixteenth).
-   * 4/4 mapping over the engine's 16-step bar so producers get a
-   * DAW-grade position display without new engine state.
+   * Stage 2.0 — live position readout (Bar : Beat : Subdivision).
+   * The step grid is 16ths; the engine's meter decides how many steps a
+   * beat and a bar hold, so 3/4 and 6/8 read correctly instead of being
+   * forced through a 4/4 mapping.
    */
   positionReadout = computed(() => {
     const step = Math.max(0, Math.floor(this.audioEngine.visualStep()));
-    const bar = Math.floor(step / 16) + 1;
-    const beat = Math.floor((step % 16) / 4) + 1;
-    const sixteenth = (step % 4) + 1;
+    const beatSteps = this.audioEngine.stepsPerNotatedBeat?.() ?? 4;
+    const barSteps = this.audioEngine.stepsPerBar?.() ?? 16;
+    const bar = Math.floor(step / barSteps) + 1;
+    const beat = Math.floor((step % barSteps) / beatSteps) + 1;
+    const sixteenth = (step % beatSteps) + 1;
     return { bar, beat, sixteenth };
   });
 
-  /** Stage 2.0 — time signature chip (editable future, display now). */
-  timeSignature = "4/4";
+  /** Meter chip — the label and the accent grid share the engine's value. */
+  get timeSignature(): string {
+    const sig = this.audioEngine.timeSignature?.() ?? { beats: 4, unit: 4 };
+    return `${sig.beats}/${sig.unit}`;
+  }
+  readonly timeSignatureOptions = ["2/4", "3/4", "4/4", "5/4", "6/8", "7/8", "12/8"];
+
+  setTimeSignature(event: Event): void {
+    const value = (event.target as HTMLSelectElement | null)?.value ?? "";
+    const [beats, unit] = value.split("/").map((part) => Number(part));
+    if (!Number.isFinite(beats) || !Number.isFinite(unit)) return;
+    this.audioEngine.setTimeSignature?.(beats, unit);
+    this.haptic.light();
+    this.snack.info(`Time signature · ${this.timeSignature}`);
+  }
   /** Active monitor blend readout */
   monitorBlendPct = computed(() =>
     Math.round(this.audioEngine.monitorBlend() * 100),

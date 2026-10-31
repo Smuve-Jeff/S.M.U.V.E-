@@ -93,11 +93,12 @@ export class OfflineBounceService {
     try {
       const sampleRate = this.getSampleRate(format);
       const tempo = this.engine.tempo();
-      const stepsPerBar = 64;
       const totalSteps = this.computeTotalSteps(durationBars);
-      const totalBars = totalSteps / 16;
-      const barDuration = (60 / tempo) * 4; // seconds per bar
-      const totalDuration = totalBars * barDuration + tailSeconds;
+      const stepSeconds = 60 / tempo / 4;
+      // Bars are meter-aware (3/4, 6/8 …); the render length is straight
+      // step time plus the requested tail.
+      const totalBars = (totalSteps * stepSeconds) / this.secondsPerBar(tempo);
+      const totalDuration = totalSteps * stepSeconds + tailSeconds;
       const totalFrames = Math.ceil(totalDuration * sampleRate);
 
       this.updateProgress(
@@ -200,9 +201,9 @@ export class OfflineBounceService {
       const sampleRate = this.getSampleRate(format);
       const tempo = this.engine.tempo();
       const totalSteps = this.computeTotalSteps(undefined, trackId);
-      const totalBars = totalSteps / 16;
-      const barDuration = (60 / tempo) * 4;
-      const totalDuration = totalBars * barDuration + tailSeconds;
+      const stepSeconds = 60 / tempo / 4;
+      const totalBars = (totalSteps * stepSeconds) / this.secondsPerBar(tempo);
+      const totalDuration = totalSteps * stepSeconds + tailSeconds;
       const totalFrames = Math.ceil(totalDuration * sampleRate);
 
       const offlineCtx = new OfflineAudioContext(2, totalFrames, sampleRate);
@@ -397,7 +398,7 @@ export class OfflineBounceService {
         await this.musicManager.prepareTrackSamples(track, true);
       }
       const trackGain = (track as any).gain ?? 0.8;
-      const waveform = this.getTrackWaveform(track as any);
+      const synthParams = this.getTrackSynthParams(track as any);
 
       const notes = this.instruments.isSamplePreset(track.instrumentId)
         ? this.musicManager.arrangementNotes(track) : track.notes;
@@ -407,10 +408,9 @@ export class OfflineBounceService {
           ctx,
           note,
           trackGain,
-          waveform,
+          synthParams,
           masterGain,
           stepDuration,
-          sampleRate,
           track.instrumentId,
           track.pan ?? 0,
         );
@@ -421,7 +421,7 @@ export class OfflineBounceService {
       // instead of silently dropping it.
       const clips = (track as any).clips ?? [];
       if (clips.length > 0) {
-        const secPerBar = 4 * (60 / tempo);
+        const secPerBar = this.secondsPerBar(tempo);
         for (const clip of clips) {
           if (clip.type !== "audio") continue;
           let clipBuffer =
@@ -469,20 +469,10 @@ export class OfflineBounceService {
     );
   }
 
-  /** Extract the waveform type from a track's synthParams */
-  private getTrackWaveform(track: any): OscillatorType {
-    const raw = track?.synthParams?.type;
-    if (
-      typeof raw === "string" &&
-      (raw === "sine" ||
-        raw === "sawtooth" ||
-        raw === "square" ||
-        raw === "triangle" ||
-        raw === "sawtooth")
-    ) {
-      return raw;
-    }
-    return "sine";
+  /** The track's synth patch, shared with the live voice builder. */
+  private getTrackSynthParams(track: any): Record<string, any> {
+    const params = track?.synthParams;
+    return params && typeof params === "object" ? { ...params } : {};
   }
 
   private renderNote(
@@ -499,10 +489,9 @@ export class OfflineBounceService {
       articulation?: string;
     },
     trackGain: number,
-    waveform: OscillatorType,
+    synthParams: Record<string, any>,
     destination: AudioNode,
     stepDuration: number,
-    sampleRate: number,
     instrumentId: string,
     trackPan: number,
   ): void {
@@ -548,79 +537,29 @@ export class OfflineBounceService {
       return;
     }
 
-    // Use antialiased oscillator (bandlimited for saw/square)
-    const osc = this.createBounceOscillator(
+    // Same voice graph the artist hears: the track's filter, ADSR, sub
+    // oscillator, LFO, pitch glide and pan all reach the export instead of a
+    // bare oscillator with a fixed envelope.
+    this.engine.scheduleOfflineNote(
       ctx,
-      waveform,
+      destination,
       freq,
       startTime,
-      sampleRate,
+      velocity * Math.max(0, trackGain),
+      duration,
+      { ...synthParams, ...(note.params ?? {}) },
+      note.notePan ?? trackPan,
     );
-    const env = ctx.createGain();
-
-    env.gain.setValueAtTime(0, startTime);
-    env.gain.linearRampToValueAtTime(
-      velocity * trackGain * 0.5,
-      startTime + 0.005,
-    );
-    env.gain.setValueAtTime(
-      velocity * trackGain * 0.5,
-      startTime + duration * 0.7,
-    );
-    env.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-
-    osc.connect(env);
-    env.connect(destination);
-
-    osc.start(startTime);
-    osc.stop(startTime + duration + 0.1);
   }
 
-  /**
-   * Create a bandlimited oscillator in an OfflineAudioContext.
-   * For sawtooth/square, synthesize a bandlimited PeriodicWave to avoid
-   * aliasing at high frequencies.
-   */
-  private createBounceOscillator(
-    ctx: OfflineAudioContext,
-    type: OscillatorType,
-    freq: number,
-    startTime: number,
-    sampleRate: number,
-  ): OscillatorNode {
-    const osc = ctx.createOscillator();
-
-    if (type === "sawtooth" || type === "square") {
-      const nyquist = sampleRate / 2;
-      const maxHarmonics = Math.floor(nyquist / freq);
-      const real = new Float32Array(maxHarmonics + 1);
-      const imag = new Float32Array(maxHarmonics + 1);
-
-      if (type === "sawtooth") {
-        for (let h = 1; h <= maxHarmonics; h++) {
-          imag[h] = (1 / h) * Math.pow(1 - h / maxHarmonics, 0.3);
-        }
-      } else {
-        for (let h = 1; h <= maxHarmonics; h += 2) {
-          imag[h] = (1 / h) * Math.pow(1 - h / maxHarmonics, 0.3);
-        }
-      }
-
-      try {
-        const wave = ctx.createPeriodicWave(real, imag, {
-          disableNormalization: false,
-        });
-        osc.setPeriodicWave(wave);
-      } catch {
-        // Fallback to native type if PeriodicWave isn't supported
-        osc.type = type;
-      }
-    } else {
-      osc.type = type;
-    }
-
-    osc.frequency.setValueAtTime(freq, startTime);
-    return osc;
+  /** Notated bar length at a tempo; the meter lives on the engine. */
+  private secondsPerBar(tempo: number): number {
+    const sig: { beats?: number; unit?: number } | undefined = (
+      this.engine as any
+    ).timeSignature?.();
+    const beats = Math.max(1, Number(sig?.beats) || 4);
+    const unit = Math.max(1, Number(sig?.unit) || 4);
+    return beats * (60 / Math.max(1, tempo)) * (4 / unit);
   }
 
   /**

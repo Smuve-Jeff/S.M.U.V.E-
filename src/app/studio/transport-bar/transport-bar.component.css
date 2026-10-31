@@ -1859,3 +1859,22 @@
   letter-spacing: 0.08em;
   opacity: 0.7;
 }
+
+
+/* Meter select — the chip is now the control, not a static label. */
+select.ctb-timesig {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  padding-right: 6px;
+  font-family: var(--font-mono, monospace);
+}
+select.ctb-timesig:focus-visible {
+  outline: 2px solid var(--teal-300, #5dc4c2);
+  outline-offset: 2px;
+}
+select.ctb-timesig option {
+  background: var(--ivory-panel, #14192e);
+  color: var(--espresso-text, #e2e8f0);
+}

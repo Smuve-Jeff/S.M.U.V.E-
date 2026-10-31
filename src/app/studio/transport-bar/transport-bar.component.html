@@ -208,12 +208,17 @@
     role="group"
     aria-label="Playback position"
   >
-    <span
+    <select
       class="ctb-timesig"
-      title="Time signature — 4/4"
-      aria-label="Time signature 4 over 4"
-      >{{ timeSignature }}</span
+      [value]="timeSignature"
+      (change)="setTimeSignature($event)"
+      [title]="'Time signature — ' + timeSignature"
+      [attr.aria-label]="'Time signature ' + timeSignature"
     >
+      <option *ngFor="let sig of timeSignatureOptions" [value]="sig">
+        {{ sig }}
+      </option>
+    </select>
     <span class="ctb-position-readout" aria-live="off" aria-hidden="false">
       <b class="ctb-pos-bar">{{ positionReadout().bar }}</b
       ><i>:</i><span class="ctb-pos-beat">{{ positionReadout().beat }}</span

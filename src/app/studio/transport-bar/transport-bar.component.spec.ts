@@ -23,6 +23,7 @@ describe("TransportBarComponent", () => {
   let fixture: ComponentFixture<TransportBarComponent>;
 
   const playbackState = signal<"stopped" | "playing" | "recording">("stopped");
+  const meter = signal({ beats: 4, unit: 4 });
   const mockAudioSession = {
     playbackState,
     isPlaying: computed(() => playbackState() === "playing"),
@@ -57,6 +58,13 @@ describe("TransportBarComponent", () => {
       return next;
     }),
     tempo: signal(120),
+    timeSignature: meter,
+    stepsPerBar: () => meter().beats * (16 / meter().unit),
+    stepsPerNotatedBeat: () => 16 / meter().unit,
+    setTimeSignature: jest.fn((beats: number, unit: number) => {
+      meter.set({ beats, unit });
+      return { beats, unit };
+    }),
     metronomeEnabled: signal(false),
     isPlaying: jest.fn(() => true),
     isCountIn: jest.fn(() => false),
@@ -381,6 +389,11 @@ describe("TransportBarComponent", () => {
   });
 
   describe("Stage 2.0 position readout", () => {
+    beforeEach(() => {
+      meter.set({ beats: 4, unit: 4 });
+      mockAudioEngine.setTimeSignature.mockClear();
+    });
+
     it("maps the engine step to Bar : Beat : Sixteenth in 4/4", () => {
       // Step 25 → bar 2 (16 steps/bar), beat 3, sixteenth 2.
       mockAudioEngine.visualStep.set(25);
@@ -411,6 +424,30 @@ describe("TransportBarComponent", () => {
 
     it("exposes the 4/4 time signature chip", () => {
       expect(component.timeSignature).toBe("4/4");
+    });
+
+    it("maps the position through a 3/4 meter", () => {
+      component.setTimeSignature({ target: { value: "3/4" } } as any);
+      expect(mockAudioEngine.setTimeSignature).toHaveBeenCalledWith(3, 4);
+      expect(component.timeSignature).toBe("3/4");
+      // 3 beats × 4 steps = 12 steps per bar; step 15 is bar 2, beat 1.
+      mockAudioEngine.visualStep.set(15);
+      expect(component.positionReadout()).toEqual({
+        bar: 2,
+        beat: 1,
+        sixteenth: 4,
+      });
+    });
+
+    it("counts eighth-note beats in 6/8", () => {
+      component.setTimeSignature({ target: { value: "6/8" } } as any);
+      // 6 beats × 2 steps = 12 steps per bar; step 9 is beat 5, eighth 2.
+      mockAudioEngine.visualStep.set(9);
+      expect(component.positionReadout()).toEqual({
+        bar: 1,
+        beat: 5,
+        sixteenth: 2,
+      });
     });
   });
 

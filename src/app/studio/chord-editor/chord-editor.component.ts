@@ -5,6 +5,7 @@ import {
   computed,
   Output,
   EventEmitter,
+  OnDestroy,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -118,14 +119,30 @@ export interface ChordProgressionItem {
         </div>
         <div
           class="ce-progression studio-module-scroll"
-          cdkDropList
-          (cdkDropListDropped)="dropChord($event)"
+          (pointermove)="onDragMove($event)"
+          (pointerup)="endDrag()"
+          (pointercancel)="endDrag()"
         >
           <div
             *ngFor="let chord of progression(); let i = index"
             class="ce-chord-card"
-            cdkDrag
+            [class.ce-chord-dragging]="draggingIndex() === i"
             [style.border-left]="'3px solid ' + chordColor(i)"
+            tabindex="0"
+            role="button"
+            [attr.aria-grabbed]="draggingIndex() === i"
+            [attr.aria-label]="
+              'Chord ' +
+              chord.label +
+              ', position ' +
+              (i + 1) +
+              ' of ' +
+              progression().length +
+              '. Drag to reorder, or press Alt with the arrow keys.'
+            "
+            (pointerdown)="startDrag($event, i)"
+            (keydown.alt.arrowup)="moveChord(i, -1, $event)"
+            (keydown.alt.arrowdown)="moveChord(i, 1, $event)"
           >
             <div class="ce-chord-main">
               <span class="ce-chord-label">{{ chord.label }}</span>
@@ -557,6 +574,15 @@ export interface ChordProgressionItem {
         border-color: color-mix(in srgb, var(--ce-teal) 48%, var(--ce-line));
         background: color-mix(in srgb, var(--ce-teal) 7%, var(--ce-surface));
       }
+      .ce-chord-card:focus-visible {
+        outline: 2px solid var(--ce-teal);
+        outline-offset: 1px;
+      }
+      .ce-chord-dragging {
+        opacity: 0.55;
+        border-style: dashed;
+        cursor: grabbing;
+      }
       .ce-chord-quality,
       .ce-empty-state {
         color: var(--ce-muted);
@@ -682,7 +708,7 @@ export interface ChordProgressionItem {
     `,
   ],
 })
-export class ChordEditorComponent {
+export class ChordEditorComponent implements OnDestroy {
   private haptic = inject(HapticService);
   private snackbar = inject(SnackbarService);
   private musicManager = inject(MusicManagerService);
@@ -922,17 +948,136 @@ export class ChordEditorComponent {
     this.navigateToPianoRoll.emit();
   }
 
-  // Drag-and-drop (placeholder — real CDK would use DragDropModule)
-  dropChord(event: any) {
-    // Simplified reorder — in production use @angular/cdk/drag-drop
-    if (
-      event?.previousIndex !== undefined &&
-      event?.currentIndex !== undefined
-    ) {
-      const items = [...this.progression()];
-      const [moved] = items.splice(event.previousIndex, 1);
-      items.splice(event.currentIndex, 0, moved);
-      this.progression.set(items);
+  // ── Reorder ────────────────────────────────────────────
+  // Pointer-driven reorder with a floating drag ghost, live index tracking,
+  // auto-scroll near the list edges and an Alt+Arrow keyboard path. The list
+  // used to advertise "drag to arrange" through CDK attributes that were
+  // never imported, so the drop event never fired and the progression could
+  // not be reordered at all.
+  readonly draggingIndex = signal<number | null>(null);
+  private dragPointerId: number | null = null;
+  private dragGrabOffset = 0;
+  private dragGhost: HTMLElement | null = null;
+
+  startDrag(event: PointerEvent, index: number): void {
+    if (event.pointerType !== "touch" && event.button !== 0) return;
+    // The per-card buttons stay clickable; only the card body starts a drag.
+    if ((event.target as HTMLElement | null)?.closest("button")) return;
+    const card = event.currentTarget as HTMLElement | null;
+    if (!card) return;
+
+    event.preventDefault();
+    this.draggingIndex.set(index);
+    this.dragPointerId = event.pointerId;
+
+    const box = card.getBoundingClientRect();
+    this.dragGrabOffset = event.clientY - box.top;
+    try {
+      card.setPointerCapture(event.pointerId);
+    } catch {
+      /* Older hosts: the pointer still bubbles through the list. */
     }
+
+    const ghost = card.cloneNode(true) as HTMLElement;
+    ghost.removeAttribute("tabindex");
+    ghost.removeAttribute("role");
+    Object.assign(ghost.style, {
+      position: "fixed",
+      left: `${box.left}px`,
+      top: `${box.top}px`,
+      width: `${box.width}px`,
+      margin: "0",
+      pointerEvents: "none",
+      zIndex: "9999",
+      opacity: "0.92",
+      transform: "rotate(-1deg) scale(1.02)",
+      boxShadow: "0 14px 30px rgba(0, 0, 0, 0.4)",
+      borderRadius: "8px",
+      background: "var(--ivory-panel, #14192e)",
+    } satisfies Partial<CSSStyleDeclaration>);
+    document.body.appendChild(ghost);
+    this.dragGhost = ghost;
+  }
+
+  onDragMove(event: PointerEvent): void {
+    if (this.draggingIndex() === null || event.pointerId !== this.dragPointerId) {
+      return;
+    }
+    event.preventDefault();
+    if (this.dragGhost) {
+      this.dragGhost.style.top = `${event.clientY - this.dragGrabOffset}px`;
+    }
+
+    const list = event.currentTarget as HTMLElement | null;
+    if (!list) return;
+    const from = this.draggingIndex();
+    if (from === null) return;
+
+    const cards = Array.from(
+      list.querySelectorAll<HTMLElement>(".ce-chord-card"),
+    );
+    if (cards.length === 0) return;
+    const hovered = cards.findIndex((card) => {
+      const box = card.getBoundingClientRect();
+      return event.clientY < box.top + box.height / 2;
+    });
+    const to = hovered === -1 ? cards.length - 1 : hovered;
+    if (to !== from) {
+      this.reorder(from, to);
+      this.draggingIndex.set(to);
+      this.haptic.light();
+    }
+    this.autoScroll(list, event.clientY);
+  }
+
+  endDrag(): void {
+    if (this.draggingIndex() === null) return;
+    this.draggingIndex.set(null);
+    this.dragPointerId = null;
+    this.dragGhost?.remove();
+    this.dragGhost = null;
+    this.haptic.medium();
+  }
+
+  /** Alt+Arrow reordering keeps the list usable without a pointer. */
+  moveChord(index: number, delta: number, event?: Event): void {
+    event?.preventDefault();
+    const to = index + delta;
+    if (to < 0 || to >= this.progression().length) return;
+    this.reorder(index, to);
+    this.haptic.light();
+    if (typeof document !== "undefined") {
+      setTimeout(() => {
+        const cards = document.querySelectorAll<HTMLElement>(
+          ".ce-progression .ce-chord-card",
+        );
+        cards[to]?.focus();
+      });
+    }
+  }
+
+  private reorder(from: number, to: number): void {
+    this.progression.update((items) => {
+      if (from === to || from < 0 || from >= items.length) return items;
+      const next = [...items];
+      const [moved] = next.splice(from, 1);
+      next.splice(Math.max(0, Math.min(next.length, to)), 0, moved);
+      return next;
+    });
+  }
+
+  private autoScroll(list: HTMLElement, clientY: number): void {
+    const box = list.getBoundingClientRect();
+    const edge = 40;
+    if (clientY < box.top + edge) {
+      list.scrollTop -= Math.min(14, (box.top + edge - clientY) / 2);
+    } else if (clientY > box.bottom - edge) {
+      list.scrollTop += Math.min(14, (clientY - (box.bottom - edge)) / 2);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.dragGhost?.remove();
+    this.dragGhost = null;
   }
 }

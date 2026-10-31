@@ -28,23 +28,25 @@ audio engine and instrument services they drive.
 | Metronome | Clicks scheduled in the past (main-thread stall, or a re-timed beat) started late and produced a clipped double-click; the envelope opened with no attack. | Stale ticks are dropped, the rest are clamped to `currentTime`, and the click has a 2 ms attack and 60 ms decay. |
 | Recording | The count-in picker only applied to Play — REC started instantly, so the artist's first bar competed with the click. | `AudioSessionService.toggleRecord(countInBars)` runs the engine count-in, waits for it (`waitForCountIn()`), then arms the take. Pressing Stop during the count-in aborts the pass cleanly (the engine resolves waiters on stop). |
 | Dead code | `studio/effects/reverb.service.ts` was a placeholder class (empty `connect`/`disconnect`/`set`) injected nowhere; the real reverb is `ConvolutionReverbService`. | Removed the service and its spec. |
+| Chord editor | The list advertised drag-to-arrange through `cdkDropList`/`cdkDrag` attributes that were never imported, so the drop event never fired and progressions could not be reordered at all; `dropChord` was a dead placeholder. | Native pointer reorder with a floating drag ghost, live index tracking, edge auto-scroll, primary-button/button-hit filtering and an Alt+Arrow keyboard path that keeps focus on the moved card. |
+| Offline bounce | Synth notes were rendered by a private oscillator + fixed 5 ms envelope: the track's filter, ADSR, sub oscillator, LFO, glide and note pan were dropped, so an export did not match playback (`bounceTrack` also rendered clips against a hard-coded 4-beat bar). | `renderNote` calls the engine's shared `scheduleOfflineNote` voice builder with the track's own synth patch, and all bar/clip maths goes through the meter-aware bar length. |
+| Meter | The time-signature chip was a static `"4/4"` string; the metronome always accented every 4th quarter and the position readout forced a 16-step bar. | The chip is a meter select (2/4–12/8) backed by `AudioEngineService.timeSignature`. Metronome accents, count-in length, bar:beat:subdivision readout and bounce bar lengths all follow the selected meter (16th-note sequencer grid unchanged). |
 
-## Remaining known gaps (reported, not changed)
+## Remaining notes
 
-- **Chord editor drag-and-drop** uses a simplified index swap rather than
-  `@angular/cdk/drag-drop`; reordering works, but there is no drag ghost, auto-scroll or
-  keyboard reorder.
-- **Time signature** is a display chip hard-coded to 4/4; the engine's step model and
-  piano roll are 4/4-only by design.
-- **Offline bounce** builds a simpler voice graph than the live engine
-  (`OfflineBounceService.renderNote` vs `AudioEngineService`), so offline renders can
-  differ in character from real-time playback even though levels and sample zones match.
-- **Per-view visual QA** (phone/tablet layouts, touch targets) is not covered by these
-  checks; the sweep above is wiring, dead-control and stub coverage, not a pixel review.
+- **Sequencer grid.** The piano roll and step sequencer remain a 16th-note grid;
+  the meter changes bar grouping, accents, count-in and readout, not the number
+  of steps stored per pattern. A 3/4 pattern is 12 steps long at the default
+  four-bar loop.
+- **Per-view visual QA** (phone/tablet layouts, touch targets) is not covered by
+  these checks; the sweep above is wiring, dead-control and stub coverage, not a
+  pixel review.
+- **Auditioning** the pads, metronome and bounce needs an audio device; unit
+  tests and the production build cover the automation, not what the speakers do.
 
 ## Verification
 
-- Focused Jest suites: instruments, audio engine (both specs), audio session, transport
-  bar, piano roll, drum machine, quick session, music manager.
-- Production build (`npm run build`) is the submission gate; see the commit message for
-  the result of this pass.
+- Focused Jest suites: instruments, audio engine (both specs), audio session,
+  transport bar, chord editor, offline bounce, piano roll, drum machine, quick
+  session, music manager.
+- Production build (`npm run build`) is the submission gate.
