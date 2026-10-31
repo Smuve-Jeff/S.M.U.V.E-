@@ -1,13 +1,4 @@
-import {
-  Component,
-  inject,
-  effect,
-  signal,
-  HostListener,
-  computed,
-  DestroyRef,
-  Injector,
-} from '@angular/core';
+import { Component, inject, effect, signal, HostListener, computed, DestroyRef, Injector, ViewChild, ElementRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, Location } from '@angular/common';
 import {
@@ -187,6 +178,24 @@ export class AppComponent {
     offline: this.offlineSync.networkStatus() === 'offline',
   }));
 
+  /** The routed host is the scroll container the studio modules scroll inside. */
+  @ViewChild('routeHost')
+  private routeHost?: ElementRef<HTMLElement>;
+
+  private resetRouteScroll(): void {
+    const host = this.routeHost?.nativeElement;
+    if (!host) return;
+    host.scrollTop = 0;
+    // A routed view can reveal an active control during init (focus or an
+    // explicit reveal), which scrolls the host again. Reset once after that.
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        const latest = this.routeHost?.nativeElement;
+        if (latest) latest.scrollTop = 0;
+      });
+    }
+  }
+
   constructor() {
     this.breakIframeLoop();
     this.applyMobileDefaultPerformanceMode();
@@ -203,6 +212,7 @@ export class AppComponent {
       )
       .subscribe(() => {
         this.updateShellFromUrl(this.router.url);
+        this.resetRouteScroll();
       });
 
     effect(() => {

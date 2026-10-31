@@ -667,6 +667,7 @@
         [class.scroll-smooth]="!uiService.performanceMode()"
       >
         <div
+          #routeHost
           class="route-anim-host"
           [@routeAnim]="routeAnimState()"
           [@.disabled]="uiService.performanceMode()"
