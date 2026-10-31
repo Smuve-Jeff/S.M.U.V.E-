@@ -191,4 +191,20 @@ describe('PracticeSpaceComponent', () => {
     component.updateBpm(highEvent);
     expect(component.metronomeBpm()).toBe(120); // Should remain unchanged (250 is above 240)
   });
+
+  it('starts the metronome for the chosen protocol and stops it on a second press', () => {
+    jest.useFakeTimers();
+    try {
+      component.beginSession(component.protocols()[0]);
+      expect(component.activeProtocolId()).toBe('1');
+      expect(component.metronomeActive()).toBe(true);
+      expect(component.metronomeBpm()).toBe(90);
+
+      component.beginSession(component.protocols()[0]);
+      expect(component.activeProtocolId()).toBeNull();
+      expect(component.metronomeActive()).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

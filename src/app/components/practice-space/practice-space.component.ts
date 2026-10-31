@@ -46,6 +46,7 @@ export class PracticeSpaceComponent implements OnDestroy {
   protocols = signal<any[]>([
     {
       id: '1',
+      bpm: 90,
       title: 'Vocal Resonance',
       category: 'VOCAL',
       duration: '10m',
@@ -55,6 +56,7 @@ export class PracticeSpaceComponent implements OnDestroy {
     },
     {
       id: '2',
+      bpm: 110,
       title: 'Stage Presence',
       category: 'PERFORMANCE',
       duration: '15m',
@@ -64,6 +66,7 @@ export class PracticeSpaceComponent implements OnDestroy {
     },
     {
       id: '3',
+      bpm: 120,
       title: 'Lyric Memory',
       category: 'COGNITIVE',
       duration: '5m',
@@ -72,6 +75,26 @@ export class PracticeSpaceComponent implements OnDestroy {
       difficulty: 'Expert',
     },
   ]);
+
+  /** The protocol currently running, if any. */
+  activeProtocolId = signal<string | null>(null);
+
+  /**
+   * Start (or stop) a drill: the metronome runs at the protocol's tempo so the
+   * button does something real instead of pretending to coach.
+   */
+  beginSession(protocol: any) {
+    if (this.activeProtocolId() === protocol.id) {
+      if (this.metronomeActive()) this.toggleMetronome();
+      this.activeProtocolId.set(null);
+      return;
+    }
+    if (this.metronomeActive()) this.toggleMetronome();
+    this.metronomeBpm.set(protocol.bpm ?? this.metronomeBpm());
+    this.currentTick.set(0);
+    this.activeProtocolId.set(protocol.id);
+    this.toggleMetronome();
+  }
 
   toggleMetronome() {
     this.metronomeActive.update((v) => !v);

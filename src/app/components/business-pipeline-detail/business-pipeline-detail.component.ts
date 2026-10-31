@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { BusinessPipelineService } from '../../services/business-pipeline.service';
 import { BusinessStep } from '../../types/business.types';
 import { MerchDesignLabComponent } from '../business-modules/merch-design-lab.component';
@@ -25,6 +25,7 @@ export class BusinessPipelineDetailComponent implements OnInit {
   private bizService = inject(BusinessPipelineService);
   private userContext = inject(UserContextService);
   private dialog = inject(InteractionDialogService);
+  private router = inject(Router);
 
   pipelineId = signal<string | null>(null);
   activeModuleAction = signal<'Design' | 'Template' | null>(null);
@@ -71,6 +72,32 @@ export class BusinessPipelineDetailComponent implements OnInit {
         confirmLabel: 'Got it',
       });
     }
+  }
+
+  /** Hand the artist to the coach surface rather than faking advice here. */
+  askForGuidance() {
+    void this.router.navigate(['/artist-coach']);
+  }
+
+  /**
+   * A progress audit built from this pipeline's own steps. No projected
+   * revenue or invented metrics: just what is actually complete.
+   */
+  generateWeeklyAudit() {
+    const p = this.pipeline();
+    if (!p) return;
+    const stages = p.stages ?? [];
+    const steps = stages.flatMap((stage: any) => stage.steps ?? []);
+    const done = steps.filter((step: any) => step.status === 'Completed').length;
+    const next = steps.find((step: any) => step.status !== 'Completed');
+    void this.dialog.alert({
+      title: `${p.name} audit`,
+      message:
+        `${done} of ${steps.length} steps complete across ` +
+        `${stages.length} stage${stages.length === 1 ? '' : 's'}.` +
+        (next ? ` Next up: ${next.title}.` : ' Every step is complete.'),
+      confirmLabel: 'Got it',
+    });
   }
 
   closeAction() {

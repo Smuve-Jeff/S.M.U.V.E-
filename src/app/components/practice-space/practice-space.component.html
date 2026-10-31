@@ -131,9 +131,16 @@
                 >{{ protocol.category }}</span
               >
               <button
-                class="text-[10px] font-black text-white hover:text-brand-primary transition-colors uppercase tracking-widest"
+                (click)="beginSession(protocol)"
+                class="text-[10px] font-black hover:text-brand-primary transition-colors uppercase tracking-widest"
+                [class.text-brand-primary]="activeProtocolId() === protocol.id"
+                [class.text-white]="activeProtocolId() !== protocol.id"
               >
-                Begin Session
+                {{
+                  activeProtocolId() === protocol.id
+                    ? 'Session active'
+                    : 'Begin Session'
+                }}
               </button>
             </div>
           </div>
