@@ -13,10 +13,15 @@
       </p>
     </div>
     <button
+      type="button"
       (click)="saveLyrics()"
+      [title]="
+        saveError() ||
+        'Saves the draft in this browser only — it does not commit to the release pipeline.'
+      "
       class="bg-brand-primary text-black font-black uppercase tracking-tighter italic text-xs py-2 px-6 rounded-lg hover:scale-105 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
     >
-      Commit to Release
+      {{ saveError() ? 'Save Failed' : savedAt() ? 'Draft Saved' : 'Save Draft' }}
     </button>
   </div>
 
@@ -42,12 +47,15 @@
           class="text-xs font-black uppercase tracking-widest text-brand-primary mb-4 relative z-10 flex items-center gap-2"
         >
           <span class="w-2 h-2 bg-brand-primary rounded-full"></span>
-          Neural Rhyme Engine
+          Rhyme Starters
         </h3>
+        <p class="text-[9px] text-slate-500 mb-3 relative z-10">
+          Fixed writing prompts — not generated from your lyrics.
+        </p>
         <div class="space-y-3 relative z-10">
           <div
-            *ngFor="let suggestion of aiSuggestions()"
-            class="text-[10px] text-slate-400 bg-black/40 p-3 rounded-lg border border-white/5 hover:border-brand-primary/30 transition-all cursor-pointer"
+            *ngFor="let suggestion of rhymeStarters()"
+            class="text-[10px] text-slate-400 bg-black/40 p-3 rounded-lg border border-white/5"
           >
             {{ suggestion }}
           </div>
