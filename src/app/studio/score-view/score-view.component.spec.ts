@@ -288,12 +288,20 @@ describe("ScoreViewComponent", () => {
         .spyOn(HTMLAnchorElement.prototype, "click")
         .mockImplementation(() => undefined);
 
-      component.exportMusicXml();
+      jest.useFakeTimers();
+      try {
+        component.exportMusicXml();
 
-      expect(createObjectURL).toHaveBeenCalledTimes(1);
-      expect(click).toHaveBeenCalledTimes(1);
-      expect(revokeObjectURL).toHaveBeenCalledWith("blob:score");
-      click.mockRestore();
+        expect(createObjectURL).toHaveBeenCalledTimes(1);
+        expect(click).toHaveBeenCalledTimes(1);
+        // The blob is released only after the browser starts the download.
+        expect(revokeObjectURL).not.toHaveBeenCalled();
+        jest.runAllTimers();
+        expect(revokeObjectURL).toHaveBeenCalledWith("blob:score");
+      } finally {
+        jest.useRealTimers();
+        click.mockRestore();
+      }
     });
 
     it("does not write an empty chart", () => {

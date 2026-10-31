@@ -412,7 +412,9 @@ export class ScoreViewComponent {
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    URL.revokeObjectURL(url);
+    // Release the blob after the browser has taken the file, not while it is
+    // still reading it — an immediate revoke cancels the download in Firefox.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   /**

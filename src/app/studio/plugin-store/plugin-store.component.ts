@@ -50,7 +50,9 @@ export class PluginStoreComponent {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    // Release the blob after the browser has taken the file, not while it is
+    // still reading it — an immediate revoke cancels the download in Firefox.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
     this.haptic.light();
     this.snack.success(`${manifest.name} exported · shareable plugin file`);
   }
