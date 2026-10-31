@@ -27,6 +27,13 @@ export interface WizardStep {
   imports: [CommonModule],
   template: `
     <div class="wizard-shell">
+    @if (progressError()) {
+      <!-- Progress that did not reach storage must not look finished. -->
+      <p class="wizard-progress-error" role="status">
+        {{ progressError() }}
+      </p>
+    }
+
       <!-- Hero header -->
       <header class="wizard-hero">
         <div class="wizard-hero-icon">
@@ -196,6 +203,8 @@ export class BeginnerWizardComponent {
   ];
 
   doneSteps = signal<Set<number>>(this.loadDoneSteps());
+  /** Set when this device refused to store wizard progress. */
+  readonly progressError = signal<string | null>(null);
 
   completedCount = computed(() => this.doneSteps().size);
 
@@ -241,9 +250,18 @@ export class BeginnerWizardComponent {
     return new Set();
   }
 
+  /**
+   * Persist completed steps. Storage can refuse (quota, private mode); when it
+   * does the artist must be told, or finished steps silently reset on reload.
+   */
   private persistDoneSteps(set: Set<number>) {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(Array.from(set)));
-    } catch {}
+      if (this.progressError()) this.progressError.set(null);
+    } catch {
+      this.progressError.set(
+        "Progress could not be saved on this device. Finished steps may reset after a reload.",
+      );
+    }
   }
 }
