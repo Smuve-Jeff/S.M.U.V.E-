@@ -245,16 +245,31 @@ export class LiveStreamService {
           { headers: this.authHeaders() }
         )
       );
+      const confirmed = !!result?.success;
       this.currentStream.set(null);
       if (!this.pendingGolive()) {
         this.social.updateStatus({ live: false });
       }
-      this.notify.show('LIVE_STREAM_ENDED', 'info');
+      this.notify.show(
+        confirmed
+          ? 'LIVE_STREAM_ENDED'
+          : 'STREAM ENDED LOCALLY — SERVER DID NOT CONFIRM',
+        confirmed ? 'info' : 'warning',
+      );
       this.haptic.light();
-      return !!result?.success;
+      return confirmed;
     } catch (e) {
       console.error('[LiveStream] endStream failed', e);
-      this.notify.show('FAILED_TO_END_STREAM', 'warning');
+      // Capture and presence are already stopped above. Keep the local state
+      // consistent with that instead of still advertising a live stream.
+      this.currentStream.set(null);
+      if (!this.pendingGolive()) {
+        this.social.updateStatus({ live: false });
+      }
+      this.notify.show(
+        'STREAM ENDED LOCALLY — SERVER COULD NOT CONFIRM',
+        'warning',
+      );
       return false;
     }
   }
