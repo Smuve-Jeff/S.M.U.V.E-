@@ -2891,3 +2891,35 @@ Loop length chips were 11×30 and the LPF/HPF switches 27×24 on a 390px phone
     font-size: 10px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   PHONE PORTRAIT (≤ 430px): the three-column console squeezed both
+   turntables to ~180px, which is too small to cue on. Lay the console
+   out as a snap carousel instead: deck A, the central mixer and deck B
+   each take the full width and swipe horizontally, so nothing shrinks
+   and no control is off the page.
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 430px) and (orientation: portrait) {
+  .dj-booth.mobile-mode .booth-console {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 10px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .dj-booth.mobile-mode .booth-console > * {
+    flex: 0 0 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+  /* The booth tilt costs width without adding any on a phone. */
+  .dj-booth.mobile-mode .deck-a-transform,
+  .dj-booth.mobile-mode .deck-b-transform {
+    transform: none;
+  }
+}
