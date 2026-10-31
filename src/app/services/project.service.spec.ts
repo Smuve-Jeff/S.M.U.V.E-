@@ -6,7 +6,7 @@ import { SessionHistoryService } from './session-history.service';
 import { LoggingService } from './logging.service';
 
 const release = { id: 'release-1', name: 'Release', bpm: 120, tracks: [], tasks: [], status: 'Draft' };
-const bundle = { id: 'project_session-1', metadata: { id: 'session-1', name: 'Studio Session', bpm: 128 }, tracks: [], audioAssets: [{ id: 'audio-1' }], mixState: { volume: 0.7 } };
+const bundle = { id: 'project_session-1', metadata: { id: 'session-1', name: 'Studio Session', bpm: 128, timeSignature: [3, 4] }, tracks: [], audioAssets: [{ id: 'audio-1' }], mixState: { volume: 0.7 } };
 
 describe('ProjectService persistence', () => {
   let service: ProjectService;
@@ -39,6 +39,7 @@ describe('ProjectService persistence', () => {
     expect(projects.map((project) => project.name)).toEqual(['Release', 'Studio Session', 'Legacy Project']);
     expect(projects.every((project) => Array.isArray(project.tasks) && Array.isArray(project.masterChain))).toBe(true);
     expect(projects[1].bpm).toBe(128);
+    expect(projects[1].timeSignature).toEqual([3, 4]);
     expect(records.find((item) => item?.id === bundle.id)).toEqual(bundle);
   });
 
@@ -75,7 +76,11 @@ describe('ProjectService persistence', () => {
     expect(storage.saveItem).toHaveBeenCalledTimes(1);
     expect(storage.saveItem).toHaveBeenCalledWith('projects', expect.objectContaining({
       id: bundle.id, audioAssets: bundle.audioAssets, mixState: bundle.mixState,
-      metadata: expect.objectContaining({ id: 'session-1', name: 'Renamed Session' }),
+      metadata: expect.objectContaining({
+        id: 'session-1',
+        name: 'Renamed Session',
+        timeSignature: [3, 4],
+      }),
     }));
   });
 

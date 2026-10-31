@@ -439,6 +439,12 @@ export class MusicManagerService {
         if (project && this.tracks().length === 0) {
           this.tracks.set((project.tracks || []) as any);
           this.engine.tempo.set(project.bpm || 120);
+          if (Array.isArray(project.timeSignature)) {
+            this.engine.setTimeSignature(
+              project.timeSignature[0],
+              project.timeSignature[1],
+            );
+          }
           this.history.clear();
         }
       }
@@ -682,6 +688,12 @@ export class MusicManagerService {
     }
     if (snapshot.bpm && typeof snapshot.bpm === 'number') {
       this.engine.tempo.set(snapshot.bpm);
+    }
+    if (Array.isArray(snapshot.timeSignature)) {
+      this.engine.setTimeSignature(
+        snapshot.timeSignature[0],
+        snapshot.timeSignature[1],
+      );
     }
     // Sprint A3 Phase 5 — restore take-lane state saved in the snapshot.
     this.takeManager.restore(snapshot.takeState);

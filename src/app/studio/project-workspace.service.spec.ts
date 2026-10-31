@@ -236,6 +236,12 @@ describe("ProjectWorkspaceService", () => {
             engine: {
               stop: jest.fn(),
               tempo: { set: tempoSet },
+              timeSignature: signal({ beats: 4, unit: 4 }),
+              setTimeSignature: (beats: number, unit: number) => {
+                const engine = (TestBed.inject(MusicManagerService) as any).engine;
+                engine.timeSignature.set({ beats, unit });
+                return { beats, unit };
+              },
               masterGain: { gain: { value: 0.8 } },
               monoMonitoring: monitorMono,
               setMonoMonitoring: (enabled: boolean) => {
@@ -346,6 +352,34 @@ describe("ProjectWorkspaceService", () => {
     expect(snapshot.metadata.genre).toBe("house");
     expect(snapshot.tracks).toEqual(tracks());
     expect(tempoSet).toHaveBeenCalledWith(124);
+  });
+
+  it("stores the engine meter in the snapshot metadata", () => {
+    const engine = (TestBed.inject(MusicManagerService) as any).engine;
+    engine.setTimeSignature(3, 4);
+
+    const snapshot = service.createSnapshot();
+
+    expect(snapshot.metadata.timeSignature).toEqual([3, 4]);
+  });
+
+  it("restores the saved meter onto the engine", () => {
+    const engine = (TestBed.inject(MusicManagerService) as any).engine;
+    service.restoreFromSnapshot({
+      ...makeBundle(),
+      metadata: { ...metadata, timeSignature: [6, 8] },
+    });
+
+    expect(engine.timeSignature()).toEqual({ beats: 6, unit: 8 });
+  });
+
+  it("opens pre-meter bundles in 4/4 instead of inheriting the last set", () => {
+    const engine = (TestBed.inject(MusicManagerService) as any).engine;
+    engine.setTimeSignature(5, 4);
+
+    service.restoreFromSnapshot(makeBundle());
+
+    expect(engine.timeSignature()).toEqual({ beats: 4, unit: 4 });
   });
 
   it("applies the genre vocabulary the app actually offers", () => {
@@ -1197,6 +1231,12 @@ describe("ProjectWorkspaceService", () => {
             engine: {
               stop: jest.fn(),
               tempo: { set: tempoSet },
+              timeSignature: signal({ beats: 4, unit: 4 }),
+              setTimeSignature: (beats: number, unit: number) => {
+                const engine = (TestBed.inject(MusicManagerService) as any).engine;
+                engine.timeSignature.set({ beats, unit });
+                return { beats, unit };
+              },
               masterGain: { gain: { value: 0.8 } },
               monoMonitoring: monitorMono,
               setMonoMonitoring: (enabled: boolean) => {

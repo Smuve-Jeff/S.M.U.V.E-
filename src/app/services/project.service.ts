@@ -103,7 +103,7 @@ export class ProjectService {
     // Preserve Studio bundles and legacy database envelopes instead of
     // overwriting their metadata/audio assets with a release-page projection.
     const record = existing.metadata
-      ? { ...existing, metadata: { ...existing.metadata, name: updated.name, bpm: updated.bpm, updatedAt: updated.updatedAt }, tracks: updated.tracks, tasks: updated.tasks, status: updated.status }
+      ? { ...existing, metadata: { ...existing.metadata, name: updated.name, bpm: updated.bpm, timeSignature: updated.timeSignature, updatedAt: updated.updatedAt }, tracks: updated.tracks, tasks: updated.tasks, status: updated.status }
       : existing.data
         ? { ...existing, title: updated.name, data: updated, updatedAt: updated.updatedAt }
         : updated;
@@ -154,7 +154,9 @@ export class ProjectService {
       id: record.id,
       name,
       bpm: data.bpm || metadata?.bpm || 120,
-      timeSignature: Array.isArray(data.timeSignature) ? data.timeSignature : [4, 4],
+      timeSignature: this.normalizeTimeSignature(
+        data.timeSignature ?? metadata?.timeSignature,
+      ),
       status: data.status || 'Draft',
       createdAt: data.createdAt || metadata?.createdAt || 0,
       updatedAt: data.updatedAt || metadata?.updatedAt || record.updatedAt || 0,
@@ -163,6 +165,15 @@ export class ProjectService {
       tasks: Array.isArray(data.tasks) ? data.tasks.filter((task) => task && typeof task.description === 'string') : [],
       deadline: deadline && !Number.isNaN(deadline.getTime()) ? deadline : undefined,
     };
+  }
+
+  /** Clamp a stored meter to a supported signature; default 4/4. */
+  private normalizeTimeSignature(value: unknown): [number, number] {
+    const raw = Array.isArray(value) ? value : [];
+    const beats = Math.min(16, Math.max(1, Math.round(Number(raw[0]) || 4)));
+    const rawUnit = Math.round(Number(raw[1]) || 4);
+    const unit = [2, 4, 8, 16].includes(rawUnit) ? rawUnit : 4;
+    return [beats, unit];
   }
 
   public select(id: string) {

@@ -27,6 +27,8 @@ export interface ProjectMetadata {
   id: string;
   name: string;
   bpm: number;
+  /** [beats, beat-unit] of the notated bar, e.g. [3, 4]. */
+  timeSignature?: [number, number];
   key: string;
   genre: string;
   mood: string;
@@ -402,10 +404,12 @@ export class ProjectWorkspaceService {
   private initializeMetadata() {
     const existing = this.projectService.currentProject();
     if (existing) {
+      const meter = this.normalizeMeter(existing.timeSignature);
       this.metadata.set({
         id: (existing as Project & { metadata?: ProjectMetadata }).metadata?.id || existing.id,
         name: existing.name,
         bpm: existing.bpm,
+        timeSignature: meter,
         key: existing.timeSignature ? "C" : "C",
         genre: "pop",
         mood: "energetic",
@@ -415,6 +419,7 @@ export class ProjectWorkspaceService {
         lastOpenedAt: Date.now(),
         version: 1,
       });
+      this.musicManager.engine?.setTimeSignature?.(meter[0], meter[1]);
     } else {
       this.createNewMetadata();
     }
@@ -428,6 +433,7 @@ export class ProjectWorkspaceService {
       id: patch.id || `proj_${now}`,
       name: patch.name || "Untitled Project",
       bpm: patch.bpm ?? this.currentTempo() ?? 120,
+      timeSignature: this.normalizeMeter(patch.timeSignature),
       key: patch.key || "C",
       genre: patch.genre || "pop",
       mood: patch.mood || "energetic",
@@ -465,6 +471,7 @@ export class ProjectWorkspaceService {
     // Project-scoped performance and master state must not leak in from the
     // set that was open before this fresh one.
     this.resetProjectState();
+    this.musicManager.engine?.setTimeSignature?.(4, 4);
     const signature = this.captureStateSignature(
       meta,
       this.musicManager.tracks(),
@@ -1108,6 +1115,7 @@ export class ProjectWorkspaceService {
     const meta = {
       ...metadata,
       bpm: metadata.bpm || this.currentTempo() || 120,
+      timeSignature: this.currentMeter(),
     };
     const { tracks, audioAssets } = this.captureSnapshotTracks(audioAssetMode);
     const performance = this.capturePerformanceState();
@@ -1183,6 +1191,10 @@ export class ProjectWorkspaceService {
     if (bundle.metadata?.bpm) {
       this.musicManager.engine?.tempo?.set?.(bundle.metadata.bpm);
     }
+    // The meter travels with the set: reopening a 3/4 song must not inherit
+    // the previous set's 4/4 metronome and position readout.
+    const meter = this.normalizeMeter(bundle.metadata?.timeSignature);
+    this.musicManager.engine?.setTimeSignature?.(meter[0], meter[1]);
     // The structure effect that normally pushes song length runs after this
     // method, but the loop region is validated against it below. Set it now so
     // a saved loop near the end of the song is not rejected on restore.
@@ -1523,9 +1535,26 @@ export class ProjectWorkspaceService {
     return {
       ...meta,
       bpm: this.currentTempo() || meta.bpm,
+      timeSignature: this.currentMeter(),
       updatedAt: Date.now(),
       lastOpenedAt: meta.lastOpenedAt || Date.now(),
     };
+  }
+
+  /** The engine is the live source of truth; the metadata is the fallback. */
+  private currentMeter(): [number, number] {
+    const sig = this.musicManager.engine?.timeSignature?.();
+    if (sig) return this.normalizeMeter([sig.beats, sig.unit]);
+    return this.normalizeMeter(this.metadata()?.timeSignature);
+  }
+
+  /** Clamp a stored meter to a supported, playable signature. */
+  private normalizeMeter(value: unknown): [number, number] {
+    const raw = Array.isArray(value) ? value : [];
+    const beats = Math.min(16, Math.max(1, Math.round(Number(raw[0]) || 4)));
+    const rawUnit = Math.round(Number(raw[1]) || 4);
+    const unit = [2, 4, 8, 16].includes(rawUnit) ? rawUnit : 4;
+    return [beats, unit];
   }
 
   private currentTempo(): number {
@@ -1560,10 +1589,12 @@ export class ProjectWorkspaceService {
       performance: ProjectPerformanceState;
       master: ProjectMasterState;
     } = this.captureProjectState(),
+    meter: [number, number] = this.currentMeter(),
   ): string {
     return JSON.stringify({
       metadata: metadata ? { ...metadata, bpm: tempo, updatedAt: undefined, lastOpenedAt: undefined } : null,
       tempo,
+      meter,
       tracks,
       automation,
       structure,
@@ -1828,6 +1859,15 @@ export class ProjectWorkspaceService {
         !Number.isFinite(meta.bpm) || meta.bpm < 20 || meta.bpm > 300 ||
         !Array.isArray(bundle.tracks)) {
       throw new Error('Invalid project metadata or track list.');
+    }
+    if (meta.timeSignature !== undefined &&
+        (!Array.isArray(meta.timeSignature) ||
+         meta.timeSignature.length !== 2 ||
+         !Number.isFinite(meta.timeSignature[0]) ||
+         !Number.isFinite(meta.timeSignature[1]) ||
+         meta.timeSignature[0] < 1 || meta.timeSignature[0] > 16 ||
+         ![2, 4, 8, 16].includes(meta.timeSignature[1]))) {
+      throw new Error('Invalid time signature.');
     }
     if (bundle.structure !== undefined && (!Array.isArray(bundle.structure) || bundle.structure.some((section) =>
       !section || typeof section.id !== 'string' || typeof section.name !== 'string' || !Number.isInteger(section.length) || section.length < 1 || !Number.isFinite(section.start) || section.start < 0

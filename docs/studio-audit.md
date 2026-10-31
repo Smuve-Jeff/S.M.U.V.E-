@@ -38,6 +38,10 @@ audio engine and instrument services they drive.
   the meter changes bar grouping, accents, count-in and readout, not the number
   of steps stored per pattern. A 3/4 pattern is 12 steps long at the default
   four-bar loop.
+- **Meter persistence.** The chosen meter is saved in the set metadata
+  (`metadata.timeSignature`) with every manual save, autosave and export, and is
+  restored onto the engine when a set is opened. Sets saved before meters were
+  stored open in 4/4.
 - **Per-view visual QA** (phone/tablet layouts, touch targets) is not covered by
   these checks; the sweep above is wiring, dead-control and stub coverage, not a
   pixel review.
