@@ -11,6 +11,7 @@ import {
 import { SongwritingAssistantService } from '../../services/songwriting-assistant.service';
 import { SmuveStyleMimicService } from '../../services/smuve-style-mimic.service';
 import { AiService } from '../../services/ai.service';
+import { SnackbarService } from '../../services/snackbar.service';
 import { MelodyPianoRollComponent } from '../melody-piano-roll/melody-piano-roll.component';
 
 @Component({
@@ -25,6 +26,7 @@ export class CowriteStudioComponent implements OnInit {
   private songwriting = inject(SongwritingAssistantService);
   private styleMimic = inject(SmuveStyleMimicService);
   private ai = inject(AiService);
+  private snackbar = inject(SnackbarService);
 
   // Session state
   currentSession = this.cowrite.currentSession;
@@ -377,10 +379,19 @@ export class CowriteStudioComponent implements OnInit {
     return this.cowrite.getCompiledLyrics();
   }
 
-  copyLyrics() {
+  async copyLyrics() {
     const lyrics = this.getCompiledLyrics();
-    if (lyrics) {
-      navigator.clipboard.writeText(lyrics);
+    if (!lyrics) {
+      this.snackbar.info('There are no lyrics to copy yet.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(lyrics);
+      this.snackbar.success('Lyrics copied to the clipboard.');
+    } catch {
+      this.snackbar.error(
+        'Clipboard access was blocked — select and copy the lyrics manually.',
+      );
     }
   }
 
