@@ -97,6 +97,18 @@ export class RemixArenaComponent implements OnInit, OnDestroy {
     );
     const prompt = `Suggest a creative JavaScript function for a music remix engine that creates an interesting ${this.challenges()[0].title} style rhythm.`;
     const suggestion = await this.aiService.getAIResponse(prompt);
+    // An outage reply is not a suggestion: never paste it into the artist's
+    // code, and never report a deployment that did not happen.
+    // The service flips to 'offline' when it returns outage copy, so this
+    // catches every persona's severed-link line without matching its text.
+    if (!suggestion?.trim() || this.aiService.connectionState() === 'offline') {
+      this.isThinking.set(false);
+      this.notificationService.show(
+        'Remix AI is offline. Nothing was added to your code.',
+        'error'
+      );
+      return;
+    }
     this.code.update((c) => c + '\n\n// AI Suggestion:\n' + suggestion);
     this.isThinking.set(false);
     this.notificationService.show('Remix AI: Logic Deployed.', 'success');
