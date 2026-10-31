@@ -176,8 +176,9 @@ export class AutoSaveService {
       );
       this.lastSavedAt.set(Date.now());
     } catch (error) {
-      this.lastError.set('Cloud sync queued. Changes are safe locally.');
-      // Queue for offline sync instead of losing the save
+      // Queue for offline sync instead of losing the save — and only report a
+      // queued retry when the queue actually accepted one.
+      let queued = false;
       try {
         await this.offlineSync.queueOperation(
           'UPDATE',
@@ -189,11 +190,22 @@ export class AutoSaveService {
             userId,
           }
         );
-      } catch {
-        // Silent — local save already succeeded
+        queued = true;
+      } catch (queueError) {
+        this.logger.error(
+          'AutoSaveService: Offline queue refused the save',
+          queueError
+        );
       }
+      this.lastError.set(
+        queued
+          ? 'Cloud sync queued. Changes are safe locally.'
+          : 'Cloud sync failed and could not be queued. Changes are only on this device.',
+      );
       this.logger.error(
-        'AutoSaveService: Cloud sync failed, queued for retry',
+        queued
+          ? 'AutoSaveService: Cloud sync failed, queued for retry'
+          : 'AutoSaveService: Cloud sync failed, nothing queued',
         error
       );
     } finally {
