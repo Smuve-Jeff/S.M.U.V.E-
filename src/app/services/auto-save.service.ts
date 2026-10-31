@@ -6,6 +6,10 @@ import { LoggingService } from './logging.service';
 import { OfflineSyncService } from './offline-sync.service';
 import { AuthService } from './auth.service';
 
+/** Shown when this device refused to store the session. */
+const LOCAL_SAVE_FAILED =
+  'Changes could not be saved on this device. Export a backup before leaving.';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -85,8 +89,9 @@ export class AutoSaveService {
   }
 
   /**
-   * Instant local save — never blocks, never fails.
-   * Writes project snapshot directly to IndexedDB via OfflineSync.
+   * Instant local save — never blocks the editor, but it can fail (quota,
+   * blocked storage). A failure clears the local-saved flag and reports it
+   * rather than leaving a previous success claiming the work is safe.
    */
   private async saveLocalInstant(
     projectData: ReturnType<MusicManagerService['snapshotProject']>
@@ -98,7 +103,11 @@ export class AutoSaveService {
       });
       this.isLocalSaved.set(true);
       this.lastSavedAt.set(Date.now());
+      // A previous local-save failure is resolved by this successful write.
+      if (this.lastError() === LOCAL_SAVE_FAILED) this.lastError.set(null);
     } catch (e) {
+      this.isLocalSaved.set(false);
+      this.lastError.set(LOCAL_SAVE_FAILED);
       this.logger.error('AutoSaveService: Local save failed', e);
     }
   }

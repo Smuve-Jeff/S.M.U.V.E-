@@ -76,4 +76,28 @@ describe('AutoSaveService', () => {
 
     expect(offlineSync.saveLocal).not.toHaveBeenCalled();
   });
+  it('reports a failed local save instead of leaving the session marked safe', async () => {
+    const service = TestBed.inject(AutoSaveService);
+    offlineSync.saveLocal.mockRejectedValueOnce(new Error('quota exceeded'));
+
+    await (service as any).saveLocalInstant({ id: 'selected-id', tracks: [] });
+
+    // A failed write must not keep claiming the work is safe on this device.
+    expect(service.isLocalSaved()).toBe(false);
+    expect(service.lastError()).toContain('could not be saved on this device');
+  });
+
+  it('clears a previous local-save failure once a save succeeds', async () => {
+    const service = TestBed.inject(AutoSaveService);
+    const project = { id: 'selected-id', tracks: [] };
+    offlineSync.saveLocal.mockRejectedValueOnce(new Error('quota exceeded'));
+    await (service as any).saveLocalInstant(project);
+    expect(service.lastError()).not.toBeNull();
+
+    await (service as any).saveLocalInstant(project);
+
+    expect(service.isLocalSaved()).toBe(true);
+    expect(service.lastError()).toBeNull();
+  });
+
 });
