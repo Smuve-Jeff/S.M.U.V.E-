@@ -16,7 +16,10 @@ describe("AudioSessionService", () => {
 
   const engineMock = {
     isPlaying: jest.fn(() => false),
+    isCountIn: jest.fn(() => false),
     start: jest.fn(),
+    startCountIn: jest.fn(),
+    waitForCountIn: jest.fn(() => Promise.resolve()),
     stop: jest.fn(),
     setMasterOutputLevel: jest.fn(),
     visualStep: signal(32),
@@ -110,6 +113,11 @@ describe("AudioSessionService", () => {
     service = TestBed.inject(AudioSessionService);
     engineMock.stop.mockClear();
     engineMock.start.mockClear();
+    engineMock.startCountIn.mockReset();
+    engineMock.isPlaying.mockReturnValue(false);
+    engineMock.isCountIn.mockReturnValue(false);
+    engineMock.waitForCountIn.mockReset();
+    engineMock.waitForCountIn.mockResolvedValue(undefined);
     wakeLockMock.request.mockClear();
     wakeLockMock.release.mockClear();
     snackbarMock.warning.mockClear();
@@ -512,6 +520,38 @@ describe("AudioSessionService", () => {
       await Promise.resolve();
 
       expect(recordingEngineMock.initialize).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ── Count-in before the take ──
+  describe("count-in before REC", () => {
+    it("runs the click, then arms the take after it finishes", async () => {
+      engineMock.isPlaying.mockReturnValue(true);
+      engineMock.startCountIn.mockResolvedValue(undefined);
+      engineMock.waitForCountIn.mockImplementation(async () => {
+        engineMock.isCountIn.mockReturnValue(false);
+      });
+
+      await service.toggleRecord(1);
+
+      expect(engineMock.startCountIn).toHaveBeenCalledWith(1);
+      expect(engineMock.start).not.toHaveBeenCalled();
+      expect(musicManagerMock.startRecording).toHaveBeenCalledTimes(1);
+      expect(service.playbackState()).toBe("recording");
+    });
+
+    it("does not arm a take the artist stopped during the count-in", async () => {
+      engineMock.isPlaying.mockReturnValue(true);
+      engineMock.startCountIn.mockResolvedValue(undefined);
+      engineMock.waitForCountIn.mockImplementation(async () => {
+        engineMock.isPlaying.mockReturnValue(false);
+      });
+
+      await service.toggleRecord(2);
+
+      expect(musicManagerMock.startRecording).not.toHaveBeenCalled();
+      expect(service.playbackState()).toBe("stopped");
+      expect(service.isRecording()).toBe(false);
     });
   });
 

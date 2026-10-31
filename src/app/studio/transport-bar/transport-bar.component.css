@@ -1830,3 +1830,32 @@
   letter-spacing: 0.06em;
   color: color-mix(in srgb, var(--espresso-text, #f1e8d8) 62%, transparent);
 }
+
+
+/* Exact tempo entry inside the BPM dropdown (tenths supported) */
+.ctb-tempo-precise {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 14px 10px;
+}
+.ctb-tempo-input {
+  width: 92px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.ctb-tempo-input:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+.ctb-tempo-input-unit {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}

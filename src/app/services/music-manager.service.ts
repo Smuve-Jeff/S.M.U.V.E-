@@ -1119,7 +1119,7 @@ export class MusicManagerService {
 
   setInstrument(trackId: string, instId: string) {
     const t = this.tracks().find((x) => x.id === trackId);
-    if (!t) return;
+    if (!t || t.instrumentId === instId) return;
     const oldInstrument = t.instrumentId;
     const oldSynth = this.clone(t.synthParams);
     const preset = this.instruments.getPresets().find((p) => p.id === instId);

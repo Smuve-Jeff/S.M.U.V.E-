@@ -58,6 +58,14 @@ describe("TransportBarComponent", () => {
     }),
     tempo: signal(120),
     metronomeEnabled: signal(false),
+    isPlaying: jest.fn(() => true),
+    isCountIn: jest.fn(() => false),
+    // Mirrors the engine's clamp + tenth-of-a-BPM precision.
+    setTempo: jest.fn((bpm: number) => {
+      const clamped = Math.min(300, Math.max(20, Math.round(bpm * 10) / 10));
+      mockAudioEngine.tempo.set(clamped);
+      return clamped;
+    }),
     outputPeak: signal(0),
     outputRms: signal(0),
     outputLevelDb: () => -60,
@@ -451,6 +459,54 @@ describe("TransportBarComponent", () => {
       expect(mockAudioEngine.resume).toHaveBeenCalled();
       expect(mockAudioEngine.startCountIn).toHaveBeenCalledWith(1);
       expect(playbackState()).toBe("playing");
+    });
+
+    it("applies the same count-in before arming REC", () => {
+      component.countInBars.set(2);
+
+      component.toggleRecord();
+
+      expect(mockAudioSession.toggleRecord).toHaveBeenCalledWith(2);
+    });
+
+    it("does not leave Play latched when the count-in never starts", () => {
+      mockAudioEngine.isPlaying.mockReturnValueOnce(false);
+      component.countInBars.set(1);
+
+      component.togglePlay();
+
+      expect(playbackState()).toBe("stopped");
+    });
+  });
+
+  describe("precise tempo editing", () => {
+    const tempoEvent = (value: string) => {
+      const input = document.createElement("input");
+      input.value = value;
+      return { target: input } as unknown as Event;
+    };
+
+    it("accepts tenths of a BPM and shows them", () => {
+      component.onTempoInput(tempoEvent("124.5"));
+
+      expect(mockAudioEngine.tempo()).toBe(124.5);
+      expect(component.tempoLabel()).toBe("124.5");
+    });
+
+    it("clamps out-of-range input and echoes the committed value", () => {
+      const event = tempoEvent("400");
+      component.onTempoInput(event);
+
+      expect(mockAudioEngine.tempo()).toBe(300);
+      expect((event.target as HTMLInputElement).value).toBe("300");
+    });
+
+    it("restores the field when the entry is not a number", () => {
+      const event = tempoEvent("");
+      component.onTempoInput(event);
+
+      expect(mockAudioEngine.tempo()).toBe(120);
+      expect((event.target as HTMLInputElement).value).toBe("120");
     });
   });
 

@@ -1639,10 +1639,48 @@ export class InstrumentsService {
   }
 
   /**
-   * The note an instrument should audition at: basses and kick-bearing kits
-   * play low, melodic instruments play middle C.
+   * The note an instrument should audition at.
+   *
+   * A caller can name the note (the performance pads do — a snare must play
+   * its snare zone, not the kit's lowest note). With no note requested, basses
+   * and kick-bearing kits play low and melodic instruments play middle C; if
+   * that note is not mapped by a sampled instrument, the nearest zone root is
+   * used so an audition is never silent.
    */
-  private previewNoteFor(preset: InstrumentPreset): number {
+  private previewNoteFor(
+    preset: InstrumentPreset,
+    requestedNote?: number,
+  ): number {
+    const wanted = Number.isFinite(requestedNote)
+      ? Math.round(requestedNote as number)
+      : null;
+    const zones = preset.zones ?? [];
+
+    if (zones.length > 0) {
+      if (wanted !== null) {
+        const exact = zones.find(
+          (zone) => wanted >= zone.midiRange[0] && wanted <= zone.midiRange[1],
+        );
+        if (exact) return wanted;
+        // A pad assigned to a kit with different note names still has to
+        // sound: fall back to the closest declared zone instead of silence.
+        const nearest = [...zones].sort(
+          (a, b) =>
+            Math.abs(sampleZoneRoot(a) - wanted) -
+            Math.abs(sampleZoneRoot(b) - wanted),
+        )[0];
+        return sampleZoneRoot(nearest);
+      }
+      const fallback =
+        preset.category === 'bass' || preset.category === 'drum' ? 36 : 60;
+      const mapped = zones.find(
+        (zone) =>
+          fallback >= zone.midiRange[0] && fallback <= zone.midiRange[1],
+      );
+      return mapped ? fallback : sampleZoneRoot(zones[0]);
+    }
+
+    if (wanted !== null) return wanted;
     if (preset.category === 'bass') return 36;
     if (preset.category === 'drum') return 36;
     return 60;
@@ -1687,7 +1725,7 @@ export class InstrumentsService {
    * sample cannot be fetched), and synth presets play their own patch through
    * the same voice builder the arrangement uses.
    */
-  async audition(presetId: string) {
+  async audition(presetId: string, requestedNote?: number) {
     const preset = this.presets.find((p) => p.id === presetId);
     if (!preset) return;
 
@@ -1695,7 +1733,7 @@ export class InstrumentsService {
     if (!ctx) return;
     await this.audioEngine.resume();
 
-    const note = this.previewNoteFor(preset);
+    const note = this.previewNoteFor(preset, requestedNote);
     const freq = 440 * Math.pow(2, (note - 69) / 12);
 
     if ((preset.type === 'sample' || preset.type === 'hybrid') && preset.zones?.length) {

@@ -14,6 +14,13 @@ interface PadSlot {
   index: number;
   label: string;
   presetId: string | null;
+  /**
+   * MIDI note the pad auditions. Drum kits map one voice per note (36 kick,
+   * 38 snare, 42 closed hat, 46 open hat, 60/62/64 congas), so a pad without a
+   * note always auditioned the kick — "SNARE" played a kick drum. Every pad
+   * that names a drum voice therefore carries the note that voice lives on.
+   */
+  note?: number;
   color: string;
   active: boolean;
 }
@@ -32,33 +39,43 @@ export class SoundPadGridComponent {
   private haptic = inject(HapticService);
   private snackbar = inject(SnackbarService);
 
-  // ── Pad bank ─────────────────────────────────────────────
+  /**
+   * The 4×4 bank. Labels are the voices these pads actually trigger: the
+   * trap kit provides kick/snare/closed hat/open hat, the Afro-Cuban kit the
+   * congas, and the tonal pads play their own preset at middle C. Pads no
+   * longer claim sounds the presets do not contain (the old "CLAP", "CRASH"
+   * and "LOOP" pads all auditioned something else).
+   */
   pads = signal<PadSlot[]>([
     {
       index: 0,
       label: "KICK",
       presetId: "trap-kit-elite",
+      note: 36,
       color: "#FFB627",
       active: false,
     },
     {
       index: 1,
       label: "SNARE",
-      presetId: "lo-fi-kit",
+      presetId: "trap-kit-elite",
+      note: 38,
       color: "#FF8A3D",
       active: false,
     },
     {
       index: 2,
       label: "HAT",
-      presetId: "afro-cuban-kit",
+      presetId: "trap-kit-elite",
+      note: 42,
       color: "#FF1A8C",
       active: false,
     },
     {
       index: 3,
-      label: "CLAP",
-      presetId: "acoustic-kit-pro",
+      label: "OPEN HAT",
+      presetId: "trap-kit-elite",
+      note: 46,
       color: "#8B5CF6",
       active: false,
     },
@@ -66,84 +83,96 @@ export class SoundPadGridComponent {
       index: 4,
       label: "BASS",
       presetId: "sub-commander",
+      note: 36,
       color: "#00E5FF",
       active: false,
     },
     {
       index: 5,
-      label: "KEY",
-      presetId: "rhodes-mk2-stage",
-      color: "#34F5C5",
-      active: false,
-    },
-    {
-      index: 6,
-      label: "LEAD",
-      presetId: "minimoog-model-d-lead",
+      label: "808",
+      presetId: "trap-808-elite",
+      note: 36,
       color: "#FF1A4D",
       active: false,
     },
     {
+      index: 6,
+      label: "CONGA HI",
+      presetId: "afro-cuban-kit",
+      note: 60,
+      color: "#FFB627",
+      active: false,
+    },
+    {
       index: 7,
-      label: "PAD",
-      presetId: "analog-warmth",
+      label: "CONGA LO",
+      presetId: "afro-cuban-kit",
+      note: 64,
       color: "#A5F8FF",
       active: false,
     },
     {
       index: 8,
-      label: "VOX",
-      presetId: "choir-ensemble",
-      color: "#FFB627",
-      active: false,
-    },
-    {
-      index: 9,
-      label: "PERC",
-      presetId: "tabla-classic",
-      color: "#FF1A8C",
-      active: false,
-    },
-    {
-      index: 10,
-      label: "FX 1",
-      presetId: "cyber-stab",
-      color: "#8B5CF6",
-      active: false,
-    },
-    {
-      index: 11,
-      label: "FX 2",
-      presetId: "supersaw-stack",
+      label: "RHODES",
+      presetId: "rhodes-mk2-stage",
+      note: 60,
       color: "#34F5C5",
       active: false,
     },
     {
-      index: 12,
-      label: "LOOP 1",
-      presetId: "wavetable-dream",
-      color: "#00E5FF",
-      active: false,
-    },
-    {
-      index: 13,
-      label: "LOOP 2",
-      presetId: "vhs-memory",
-      color: "#FFB627",
-      active: false,
-    },
-    {
-      index: 14,
-      label: "808",
-      presetId: "trap-808-elite",
+      index: 9,
+      label: "MOOG",
+      presetId: "minimoog-model-d-lead",
+      note: 60,
       color: "#FF1A4D",
       active: false,
     },
     {
-      index: 15,
-      label: "CRASH",
-      presetId: "modern-kit-elite",
+      index: 10,
+      label: "WARM PAD",
+      presetId: "analog-warmth",
+      note: 60,
       color: "#A5F8FF",
+      active: false,
+    },
+    {
+      index: 11,
+      label: "CHOIR",
+      presetId: "choir-ensemble",
+      note: 60,
+      color: "#FFB627",
+      active: false,
+    },
+    {
+      index: 12,
+      label: "TABLA",
+      presetId: "tabla-classic",
+      note: 60,
+      color: "#FF1A8C",
+      active: false,
+    },
+    {
+      index: 13,
+      label: "STAB",
+      presetId: "cyber-stab",
+      note: 60,
+      color: "#8B5CF6",
+      active: false,
+    },
+    {
+      index: 14,
+      label: "SUPERSAW",
+      presetId: "supersaw-stack",
+      note: 60,
+      color: "#34F5C5",
+      active: false,
+    },
+    {
+      index: 15,
+      label: "VHS PAD",
+      presetId: "vhs-memory",
+      note: 60,
+      color: "#00E5FF",
       active: false,
     },
   ]);
@@ -153,9 +182,12 @@ export class SoundPadGridComponent {
   allPresets = computed(() => this.instruments.getPresets());
 
   // ── Stats ─────────────────────────────────────────────────
-  armedCount = computed(
+  /** Pads that hold a preset (what the "LOADED" readout reports). */
+  loadedCount = computed(
     () => this.pads().filter((p) => p.presetId !== null).length,
   );
+  /** Kept as an alias for the existing templates/tests. */
+  armedCount = this.loadedCount;
 
   triggerPad(index: number): void {
     const pad = this.pads()[index];
@@ -177,8 +209,10 @@ export class SoundPadGridComponent {
       );
     }, 250);
 
-    // 1) Audition the instrument (1-shot preview)
-    this.instruments.audition(pad.presetId).catch(() => undefined);
+    // 1) Audition the exact voice on the label (kick vs snare vs open hat).
+    this.instruments
+      .audition(pad.presetId, pad.note)
+      .catch(() => undefined);
     // 2) Pin to currently selected track so it commits
     const selected = this.musicManager.selectedTrackId();
     if (selected) {
@@ -192,6 +226,7 @@ export class SoundPadGridComponent {
       list.map((p) => ({
         ...p,
         presetId: null,
+        note: undefined,
         label: `EMPTY ${p.index + 1}`,
       })),
     );
@@ -206,7 +241,14 @@ export class SoundPadGridComponent {
     this.pads.update((list) =>
       list.map((p) =>
         p.index === index
-          ? { ...p, presetId, label: preset.name.slice(0, 8).toUpperCase() }
+          ? {
+              ...p,
+              presetId,
+              // A newly assigned instrument keeps its own default audition
+              // note: the previous pad's note may not exist on this preset.
+              note: undefined,
+              label: preset.name.slice(0, 8).toUpperCase(),
+            }
           : p,
       ),
     );

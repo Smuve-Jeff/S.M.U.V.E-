@@ -668,6 +668,8 @@ export class AudioEngineService {
   private schedulerHandle: any = null;
   private currentStep = 0;
   private countInRemainingSteps = 0;
+  /** Callers waiting for the running count-in to finish (see waitForCountIn). */
+  private countInWaiters: (() => void)[] = [];
   public onScheduleStep?: (
     step: number,
     time: number,
@@ -813,6 +815,12 @@ export class AudioEngineService {
     // tempo; every tempo write in the app goes through this signal.
     effect(() => {
       const bpm = Math.max(1, this.tempo());
+      // Keep the worklet's step clock on the dial. Without this a tempo edit
+      // during playback changed the echo and the readout but not the beat.
+      this.workletNode?.port.postMessage({
+        type: 'SET_TEMPO',
+        payload: bpm,
+      });
       const seconds = Math.max(0.02, Math.min(2, (60 / bpm) * 0.75));
       try {
         this.echoDelay.delayTime.setTargetAtTime(
@@ -1262,6 +1270,22 @@ export class AudioEngineService {
     return this.preparePlayback(() => this.beginCountIn(bars));
   }
 
+  /**
+   * Resolves when the running count-in finishes, or immediately when none is
+   * running. `stop()` also resolves it: a count-in the artist cancels must not
+   * leave an armed record pass waiting forever.
+   */
+  waitForCountIn(): Promise<void> {
+    if (!this.isCountIn()) return Promise.resolve();
+    return new Promise<void>((resolve) => this.countInWaiters.push(resolve));
+  }
+
+  private finishCountIn(): void {
+    const waiters = this.countInWaiters;
+    this.countInWaiters = [];
+    for (const resolve of waiters) resolve();
+  }
+
   private beginCountIn(bars: number) {
     // Integrated loudness describes a program from where it began, so the
     // measurement window restarts with the transport.
@@ -1327,8 +1351,10 @@ export class AudioEngineService {
 
   stop() {
     this.transportGeneration++;
+    const wasCountingIn = this.isCountIn();
     this.isPlaying.set(false);
     this.isCountIn.set(false);
+    if (wasCountingIn) this.finishCountIn();
     this.sendMidiStop();
     if (this.workletNode) {
       this.workletNode.port.postMessage({ type: 'STOP' });
@@ -1417,6 +1443,7 @@ export class AudioEngineService {
       if (this.countInRemainingSteps <= 0) {
         this.isCountIn.set(false);
         this.onCountInComplete?.();
+        this.finishCountIn();
         // Reset step in worklet if possible, else handle here
         if (this.workletNode)
           this.workletNode.port.postMessage({ type: 'RESET_STEP' });
@@ -1514,16 +1541,24 @@ export class AudioEngineService {
   ) {
     if (!this.metronomeEnabled() && !force) return;
     this.resume();
+    // A tick is scheduled with lookahead. When the main thread stalls (or a
+    // tempo change re-times the beat already queued) the scheduled time can be
+    // in the past, and starting an oscillator in the past delivers a clipped
+    // double-click. Drop a fully stale beat and clamp the rest to now.
+    if (time < this.ctx.currentTime - 0.05) return;
+    const when = Math.max(time, this.ctx.currentTime);
+    const level = Math.max(0.0001, Math.min(1, this.metronomeVolume()));
     const osc = this.ctx.createOscillator();
     const env = this.ctx.createGain();
-    osc.frequency.setValueAtTime(isDownbeat ? 1000 : 600, time);
-    env.gain.setValueAtTime(0, time);
-    env.gain.setTargetAtTime(this.metronomeVolume(), time, 0.005);
-    env.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    osc.frequency.setValueAtTime(isDownbeat ? 1000 : 600, when);
+    // 2 ms attack, 60 ms decay: a clean click instead of a DC step at onset.
+    env.gain.setValueAtTime(0, when);
+    env.gain.setTargetAtTime(level, when + 0.002, 0.001);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.06);
     osc.connect(env);
     env.connect(this.masterGain);
-    osc.start(time);
-    osc.stop(time + 0.1);
+    osc.start(when);
+    osc.stop(when + 0.08);
   }
 
   /**
@@ -1552,6 +1587,22 @@ export class AudioEngineService {
 
   getTempoMap(): { step: number; bpm: number }[] {
     return this.tempoMap.map((marker) => ({ ...marker }));
+  }
+
+  /**
+   * Commit a tempo with one-decimal precision (20-300 BPM).
+   *
+   * Tempo used to be edited straight through the signal, which left the
+   * AudioWorklet tick clock running at the old BPM until the next start.
+   * Everything (nudge buttons, presets, typed values, automation lanes) now
+   * lands on this signal, and the effect below pushes the value to the clock,
+   * so a tempo change is heard immediately instead of after a restart.
+   */
+  setTempo(bpm: number): number {
+    if (!Number.isFinite(bpm)) return this.tempo();
+    const clamped = Math.min(300, Math.max(20, Math.round(bpm * 10) / 10));
+    this.tempo.set(clamped);
+    return clamped;
   }
 
   stepsPerBeat() {

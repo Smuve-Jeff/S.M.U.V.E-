@@ -120,6 +120,11 @@ export class TransportBarComponent {
 
   showBpmDropdown = signal(false);
   bpmPresets = [80, 90, 100, 110, 120, 124, 128, 130, 140, 150, 160];
+  /** BPM readout without a pointless ".0" — but with the tenth when it matters. */
+  tempoLabel = computed(() => {
+    const bpm = this.audioEngine.tempo();
+    return Number.isInteger(bpm) ? String(bpm) : bpm.toFixed(1);
+  });
 
   /** Song tempo map — multiple tempo changes instead of one global BPM. */
   readonly tempoMap = inject(TempoMapService);
@@ -509,7 +514,7 @@ export class TransportBarComponent {
     this.hardwareOpen.update((open) => !open);
   }
 
-  togglePlay(): void {
+  async togglePlay(): Promise<void> {
     // CRITICAL: Browser autoplay policy requires the AudioContext resume()
     // happen inside a user gesture. This Play button click IS a gesture,
     // so we explicitly resume() before delegating to audioSession.
@@ -517,7 +522,14 @@ export class TransportBarComponent {
 
     if (!this.isPlaying() && this.countInBars() > 0) {
       // Use the engine's built-in count-in
-      this.audioEngine.startCountIn(this.countInBars());
+      const countIn = this.audioEngine.startCountIn(this.countInBars());
+      if (countIn) await countIn;
+      if (!this.audioEngine.isPlaying()) {
+        // Preparation failed or the transport was stopped: do not leave the
+        // shell showing "playing" over a silent engine.
+        this.audioSession.playbackState.set("stopped");
+        return;
+      }
       // Count-in sets the engine rolling immediately; mirror that state so
       // the transport cannot be pressed repeatedly during the count-in.
       this.audioSession.playbackState.set("playing");
@@ -532,8 +544,9 @@ export class TransportBarComponent {
     this.audioSession.togglePlay();
   }
   toggleRecord(): void {
-    // Priming capture is async; the session owns the in-flight guard.
-    void this.audioSession.toggleRecord();
+    // Priming capture is async; the session owns the in-flight guard. The
+    // count-in picker applies to REC as well as Play.
+    void this.audioSession.toggleRecord(this.countInBars());
   }
   stop(): void {
     this.audioSession.stop();
@@ -543,25 +556,32 @@ export class TransportBarComponent {
     this.audioSession.updateMasterVolume(v);
   }
   nudgeTempo(delta: number): void {
-    const clamped = Math.min(
-      300,
-      Math.max(20, this.audioEngine.tempo() + delta),
-    );
-    this.audioEngine.tempo.set(clamped);
+    this.audioEngine.setTempo(this.audioEngine.tempo() + delta);
   }
   setTempo(bpm: number): void {
     if (!Number.isFinite(bpm)) return;
-    this.audioEngine.tempo.set(Math.max(20, Math.min(300, Math.round(bpm))));
+    this.audioEngine.setTempo(bpm);
     this.showBpmDropdown.set(false);
   }
   toggleBpmDropdown(): void {
     this.showBpmDropdown.update((v) => !v);
   }
+  /**
+   * Typed tempo. Accepts tenths (124.5) instead of truncating to an integer,
+   * clamps to 20–300 and echoes the committed value back into the field so an
+   * out-of-range entry cannot leave the input disagreeing with the transport.
+   */
   onTempoInput(event: Event): void {
-    const val = parseInt((event.target as HTMLInputElement).value, 10);
-    if (!isNaN(val) && val >= 20 && val <= 300) {
-      this.audioEngine.tempo.set(val);
+    const input = event.target as HTMLInputElement;
+    const val = parseFloat(input.value);
+    if (!Number.isFinite(val)) {
+      input.value = this.tempoLabel();
+      return;
     }
+    const committed = this.audioEngine.setTempo(val);
+    input.value = Number.isInteger(committed)
+      ? String(committed)
+      : committed.toFixed(1);
   }
 
   toggleLoop(): void {

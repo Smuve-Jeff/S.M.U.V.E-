@@ -168,10 +168,10 @@
       "
       aria-haspopup="dialog"
       title="Tempo {{
-        audioEngine.tempo()
-      }} BPM — tap for preset list (80–160 BPM)"
+        tempoLabel()
+      }} BPM — tap to type an exact tempo or pick a preset"
     >
-      <span class="ctb-bpm-value">{{ audioEngine.tempo() }}</span>
+      <span class="ctb-bpm-value">{{ tempoLabel() }}</span>
       <span class="ctb-bpm-unit">BPM</span>
     </button>
     <button
@@ -839,6 +839,23 @@
     >
       <span class="material-symbols-outlined">close</span>
     </button>
+    <p class="ctb-dropdown-title">Exact tempo</p>
+    <div class="ctb-tempo-precise">
+      <input
+        type="number"
+        inputmode="decimal"
+        min="20"
+        max="300"
+        step="0.1"
+        class="ctb-tempo-input"
+        [value]="tempoLabel()"
+        (change)="onTempoInput($event)"
+        (keydown.enter)="onTempoInput($event)"
+        aria-label="Exact tempo in beats per minute, 20 to 300, tenths allowed"
+        title="Type an exact tempo (20–300 BPM, tenths allowed)"
+      />
+      <span class="ctb-tempo-input-unit">BPM</span>
+    </div>
     <p class="ctb-dropdown-title">BPM Presets</p>
     <div class="ctb-dropdown-grid">
       <button

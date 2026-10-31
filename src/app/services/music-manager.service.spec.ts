@@ -322,6 +322,44 @@ describe('MusicManagerService clip glue workflows', () => {
     expect(service.tracks()[0].notes.map((n) => n.id)).toEqual(['n1']);
   });
 
+  it('does not reset the patch or add history when selecting the current instrument', () => {
+    const patch = { type: 'triangle', cutoff: 1234 };
+    service.tracks.update((tracks) => tracks.map((track) => ({ ...track, synthParams: patch })));
+    service.replaceTrackNotes('track-1', [
+      { id: 'n1', midi: 60, step: 0, length: 1, velocity: 0.8 },
+    ], 'Edit Notes');
+    history.undo();
+    expect(history.canRedo()).toBe(true);
+
+    service.setInstrument('track-1', 'grand-piano');
+    service.setInstrument('track-1', 'grand-piano');
+
+    expect(service.tracks()[0].synthParams).toBe(patch);
+    expect(history.undoCount()).toBe(0);
+    expect(history.canRedo()).toBe(true);
+    history.redo();
+    expect(service.tracks()[0].notes.map((note) => note.id)).toEqual(['n1']);
+  });
+
+  it('keeps real instrument changes undoable and restores the edited patch', () => {
+    const oldPatch = { type: 'triangle', cutoff: 1234 };
+    service.tracks.update((tracks) => tracks.map((track) => ({ ...track, synthParams: oldPatch })));
+    jest.spyOn(TestBed.inject(InstrumentsService), 'getPresets').mockReturnValue([
+      { id: 'lead', name: 'Lead', type: 'synth', category: 'lead', tags: [],
+        synth: { type: 'sawtooth', attack: 0.1, decay: 0.2, sustain: 0.5, release: 0.3, cutoff: 800, q: 1 } },
+    ]);
+
+    service.setInstrument('track-1', 'lead');
+    expect(history.undoCount()).toBe(1);
+    expect(service.tracks()[0].instrumentId).toBe('lead');
+    expect(service.tracks()[0].synthParams.cutoff).toBe(800);
+    history.undo();
+    expect(service.tracks()[0].instrumentId).toBe('grand-piano');
+    expect(service.tracks()[0].synthParams).toEqual(oldPatch);
+    history.redo();
+    expect(service.tracks()[0].instrumentId).toBe('lead');
+  });
+
   it('ignores note replacement for an unknown track', () => {
     service.replaceTrackNotes('nope', [
       { id: 'n1', midi: 60, step: 0, length: 1, velocity: 0.8 },

@@ -328,7 +328,7 @@ export class AudioSessionService {
    * captured nothing. An input that cannot be opened is a warning, not a
    * blocker: the pass still records MIDI onto the armed track.
    */
-  async toggleRecord(): Promise<void> {
+  async toggleRecord(countInBars: number = 0): Promise<void> {
     if (this.recordToggleInFlight) return;
 
     if (this.isRecording()) {
@@ -355,10 +355,27 @@ export class AudioSessionService {
     this.recordToggleInFlight = true;
     try {
       await this.ensureCapture();
-      const preparation = this.engine.start();
-      if (preparation) {
-        await preparation;
+      if (countInBars > 0) {
+        // The click must finish before the take is armed: otherwise the first
+        // bar of the performance is covered by the count-in itself. The
+        // transport rolls during the count-in, exactly like Play.
+        const countIn = this.engine.startCountIn(countInBars);
+        if (countIn) await countIn;
         if (!this.engine.isPlaying()) return;
+        this.playbackState.set("playing");
+        await this.engine.waitForCountIn();
+        if (!this.engine.isPlaying()) {
+          // Stop pressed during the count-in — nothing was captured.
+          this.playbackState.set("stopped");
+          return;
+        }
+        if (this.engine.isCountIn()) return;
+      } else {
+        const preparation = this.engine.start();
+        if (preparation) {
+          await preparation;
+          if (!this.engine.isPlaying()) return;
+        }
       }
       this.musicManager.startRecording();
       this.playbackState.set("recording");

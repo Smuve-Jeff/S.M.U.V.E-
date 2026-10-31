@@ -123,6 +123,37 @@ describe('InstrumentsService', () => {
       expect(triggerAttack).not.toHaveBeenCalled();
     });
 
+    it('auditions the exact voice a pad names (snare, not the kick)', async () => {
+      (globalThis as any).fetch = jest.fn(async () => ({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }));
+
+      await service.audition('trap-kit-elite', 38);
+
+      const requested = ((globalThis as any).fetch as jest.Mock).mock
+        .calls[0][0] as string;
+      expect(requested).toContain('snare');
+      expect(triggerSampler).toHaveBeenCalledTimes(1);
+      // Zone root is 38, so the snare plays at its own pitch.
+      expect(triggerSampler.mock.calls[0][6]).toBeCloseTo(1, 5);
+    });
+
+    it('falls back to the nearest zone for a note the kit does not map', async () => {
+      (globalThis as any).fetch = jest.fn(async () => ({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }));
+
+      await service.audition('afro-cuban-kit', 36);
+
+      const requested = ((globalThis as any).fetch as jest.Mock).mock
+        .calls[0][0] as string;
+      // The quinto (60) is the closest conga to a low note.
+      expect(requested).toContain('Quinto');
+      expect(triggerSampler).toHaveBeenCalledTimes(1);
+    });
+
     it('falls back to a category patch when the sample cannot be fetched', async () => {
       (globalThis as any).fetch = jest.fn(async () => ({ ok: false }));
 
@@ -147,10 +178,13 @@ describe('InstrumentsService', () => {
       }));
       const padPresetIds = [
         'trap-kit-elite',
-        'lo-fi-kit',
-        'afro-cuban-kit',
-        'acoustic-kit-pro',
+        'trap-kit-elite',
+        'trap-kit-elite',
+        'trap-kit-elite',
         'sub-commander',
+        'trap-808-elite',
+        'afro-cuban-kit',
+        'afro-cuban-kit',
         'rhodes-mk2-stage',
         'minimoog-model-d-lead',
         'analog-warmth',
@@ -158,10 +192,7 @@ describe('InstrumentsService', () => {
         'tabla-classic',
         'cyber-stab',
         'supersaw-stack',
-        'wavetable-dream',
         'vhs-memory',
-        'trap-808-elite',
-        'modern-kit-elite',
       ];
 
       for (const id of padPresetIds) {
