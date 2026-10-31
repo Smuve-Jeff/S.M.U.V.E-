@@ -3950,3 +3950,9 @@ disclosure. Record arm, monitor and phantom stay visible. */
     display: none;
   }
 }
+
+/* A MIDI message the output device refused must not look like normal traffic. */
+.midi-log-row.midi-log-failed {
+  color: #f87171;
+  font-weight: 800;
+}

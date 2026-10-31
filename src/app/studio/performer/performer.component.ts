@@ -594,6 +594,8 @@ export class PerformerComponent implements OnDestroy, OnInit {
         return "⏹";
       case "continue":
         return "⏩";
+      case "send-failed":
+        return "⚠";
       default:
         return "•";
     }

@@ -309,6 +309,7 @@
           <div
             class="midi-log-row"
             [class.midi-log-clock]="entry.type === 'clock'"
+            [class.midi-log-failed]="entry.type === 'send-failed'"
           >
             <span class="midi-log-icon">{{ logTypeIcon(entry.type) }}</span>
             <span class="midi-log-type">{{

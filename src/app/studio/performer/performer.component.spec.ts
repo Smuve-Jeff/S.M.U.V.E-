@@ -287,4 +287,25 @@ describe("PerformerComponent", () => {
     expect(midi.toggleDevice).toHaveBeenCalledWith("Controller X");
     expect(component.isDeviceEnabled("Controller X")).toBe(false);
   });
+  it('renders a MIDI send the device refused as a failure row', () => {
+    component.midiLogOpen.set(true);
+    (component as any).midiService.midiLog.set([
+      {
+        id: 1,
+        type: 'send-failed',
+        channel: 0,
+        number: 176,
+        value: 0,
+        timestamp: 1,
+      },
+    ]);
+    fixture.detectChanges();
+
+    const row = fixture.nativeElement.querySelector('.midi-log-row');
+    // A dropped send must not read like ordinary traffic in the log.
+    expect(row?.classList).toContain('midi-log-failed');
+    expect(row?.textContent).toContain('SEND-FAILED');
+    expect(component.logTypeIcon('send-failed')).toBe('⚠');
+  });
+
 });
