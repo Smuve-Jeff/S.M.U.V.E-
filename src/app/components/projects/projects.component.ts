@@ -189,8 +189,10 @@ export class ProjectsComponent {
     const a = document.createElement('a');
     a.href = url;
     a.download = `smuve_project_${project.name}_${Date.now()}.json`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   async importProject(event: any) {

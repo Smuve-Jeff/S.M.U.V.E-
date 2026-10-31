@@ -1234,8 +1234,10 @@ export class ExportService {
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   // ── Sprint A6.5 — export share sheet ──────────────────────────────

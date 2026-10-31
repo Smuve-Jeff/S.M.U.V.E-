@@ -494,8 +494,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
       link.href = url;
       link.download = 'smuve-2fa-recovery-codes.txt';
       link.rel = 'noopener';
+      document.body.appendChild(link);
       link.click();
-      URL.revokeObjectURL(url);
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
       this.notificationService.show('Recovery codes downloaded.', 'success');
     } catch {
       this.notificationService.show('Download blocked by the browser.', 'error');

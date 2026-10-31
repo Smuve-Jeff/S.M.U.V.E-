@@ -1576,7 +1576,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       const anchor = document.createElement('a');
       anchor.href = url;
       anchor.download = `${safeName || 'one-shot'}_${pad.type}.wav`;
+      document.body.appendChild(anchor);
       anchor.click();
+      anchor.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       this.snack.success(`${pad.name} one-shot exported as 24-bit WAV`);
     } catch {
