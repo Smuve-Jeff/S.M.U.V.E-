@@ -135,8 +135,11 @@ describe("ProjectWorkspaceService", () => {
     expect(tracks()).toBe(beforeTracks);
   });
 
+  let authUser: ReturnType<typeof signal<any>>;
+
   beforeEach(() => {
     tracks = signal([{ id: "track-1", notes: [] }]);
+    authUser = signal<any>(null);
     stemAudioCache = new Map<string, any>();
     saveItem = jest.fn().mockResolvedValue(undefined);
     queueOperation = jest.fn().mockResolvedValue("sync_test_1");
@@ -162,7 +165,10 @@ describe("ProjectWorkspaceService", () => {
         { provide: AutomationService, useValue: { lanes: signal([]), macros: signal([]), modulationSources: signal([]) } },
         {
           provide: AuthService,
-          useValue: { currentUser: signal(null) },
+          useValue: {
+            currentUser: authUser,
+            isGuest: () => authUser()?.role === 'Guest',
+          },
         },
         {
           provide: MusicManagerService,
@@ -541,6 +547,36 @@ describe("ProjectWorkspaceService", () => {
     expect(service.lastPersistedAt()).toBe(0);
     expect(service.persistenceError()).toBe('Quota exceeded');
     expect(service.isSaving()).toBe(false);
+  });
+
+  it('refuses to save a guest session and writes nothing', async () => {
+    authUser.set({ id: 'guest_1', role: 'Guest' });
+    service.isDirty.set(true);
+
+    await expect(service.manualSave()).rejects.toThrow(
+      'Guest sessions are not saved'
+    );
+
+    expect(saveItem).not.toHaveBeenCalled();
+    expect(service.isDirty()).toBe(true);
+  });
+
+  it('skips auto-save for a guest session', async () => {
+    authUser.set({ id: 'guest_1', role: 'Guest' });
+    service.isDirty.set(true);
+
+    await service.autoSave();
+
+    expect(saveItem).not.toHaveBeenCalled();
+    expect(service.isDirty()).toBe(true);
+  });
+
+  it('writes no recovery snapshot for a guest session', async () => {
+    authUser.set({ id: 'guest_1', role: 'Guest' });
+
+    await (service as any).persistRecoverySnapshot();
+
+    expect(saveItem).not.toHaveBeenCalled();
   });
 
   it('skips the recovery snapshot for a workspace that is already saved', async () => {

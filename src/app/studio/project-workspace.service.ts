@@ -244,6 +244,16 @@ export function normalizeGenre(genre: string): string {
 @Injectable({ providedIn: "root" })
 export class ProjectWorkspaceService {
   private readonly auth = inject(AuthService);
+
+  /**
+   * Guest clearance promises work is never written to a vault. Auto-save,
+   * manual save and the page-hide recovery snapshot all ignored the session
+   * role, so a guest's project was persisted anyway — the opposite of what
+   * the login and guest-clearance screens say.
+   */
+  private get isGuestSession(): boolean {
+    return this.auth.isGuest?.() === true;
+  }
   private readonly musicManager = inject(MusicManagerService);
   private readonly projectService = inject(ProjectService);
   private readonly storage = inject(LocalStorageService);
@@ -506,6 +516,10 @@ export class ProjectWorkspaceService {
 
   async autoSave() {
     if (this.isSaving()) return;
+    if (this.isGuestSession) {
+      this.logger.info('ProjectWorkspace: Auto-save skipped for guest session');
+      return;
+    }
     try {
       const snapshot = this.createStoredSnapshot();
       const integrity = inspectProjectAudioIntegrity(snapshot);
@@ -539,6 +553,11 @@ export class ProjectWorkspaceService {
 
   async manualSave(): Promise<ProjectBundle> {
     if (this.isSaving()) throw new Error('A project save is already in progress.');
+    if (this.isGuestSession) {
+      throw new Error(
+        'Guest sessions are not saved. Create an account to keep this project.',
+      );
+    }
     this.isSaving.set(true);
     this.persistenceError.set('');
     // Bump the revision on every explicit save. The metadata version used to
@@ -1446,6 +1465,7 @@ export class ProjectWorkspaceService {
   }
 
   private async persistRecoverySnapshot(): Promise<void> {
+    if (this.isGuestSession) return;
     if (!this.metadata() || this.musicManager.tracks().length === 0) return;
     // A recovery snapshot exists to rescue work that is not on disk yet. Every
     // tab hide used to rewrite the whole (binary, multi-megabyte) bundle even

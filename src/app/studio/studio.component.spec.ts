@@ -1735,4 +1735,15 @@ describe("StudioComponent", () => {
     );
   });
 
+  it("passes a guest save refusal through to the artist", async () => {
+    const refusal =
+      "Guest sessions are not saved. Create an account to keep this project.";
+    mockProjectWorkspace.manualSave = jest
+      .fn()
+      .mockRejectedValue(new Error(refusal));
+
+    await expect(component.saveProject()).resolves.toBe(false);
+
+    expect(mockSnackbar.error).toHaveBeenCalledWith(refusal);
+  });
 });

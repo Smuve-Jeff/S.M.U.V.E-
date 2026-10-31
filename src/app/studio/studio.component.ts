@@ -2972,10 +2972,15 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.projectWorkspace.canRepairAudio()) {
         this.showAudioRepair.set(true);
       }
-      const message =
-        error instanceof Error && error.message.includes("no matching take")
-          ? error.message
-          : "Could not save project";
+      // An explanation the artist can act on must reach them verbatim: a
+      // guest refusal is not the same failure as a generic write error.
+      const actionable =
+        error instanceof Error &&
+        (error.message.includes("no matching take") ||
+          error.message.includes("Guest sessions are not saved"));
+      const message = actionable
+        ? (error as Error).message
+        : "Could not save project";
       this.snackbarService.error(message);
       return false;
     }
