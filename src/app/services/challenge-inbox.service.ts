@@ -58,6 +58,8 @@ export class ChallengeInboxService {
   notifications = signal<AppNotification[]>([]);
   loading = signal(false);
   lastSyncedAt = signal<number>(0);
+  /** Why the last load failed — the inbox must not read as empty instead. */
+  loadError = signal<string>("");
   lastChallengeError = signal<string | null>(null);
 
   pendingCount = computed(
@@ -118,6 +120,7 @@ export class ChallengeInboxService {
     const userId = this.currentUserId();
     if (!userId) return;
     this.loading.set(true);
+    this.loadError.set("");
     try {
       const records = await firstValueFrom(
         this.http.get<ChallengeRecord[]>(
@@ -138,6 +141,9 @@ export class ChallengeInboxService {
       }
     } catch (e) {
       console.error("[ChallengeInbox] loadInbox failed", e);
+      this.loadError.set(
+        "The inbox could not be loaded. Check your connection and retry.",
+      );
     } finally {
       this.loading.set(false);
     }

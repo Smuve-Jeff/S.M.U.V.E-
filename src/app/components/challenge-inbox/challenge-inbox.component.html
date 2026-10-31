@@ -65,6 +65,13 @@
 
   <!-- Content -->
   <main class="inbox-main">
+    @if (inbox.loadError()) {
+      <div class="inbox-load-error" role="alert">
+        <span class="material-symbols-outlined">cloud_off</span>
+        <p>{{ inbox.loadError() }}</p>
+        <button type="button" (click)="inbox.loadInbox('all')">Retry</button>
+      </div>
+    }
     <div
       class="empty-state glass-v42"
       *ngIf="filteredChallenges().length === 0"
