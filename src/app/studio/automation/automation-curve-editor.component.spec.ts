@@ -37,6 +37,24 @@ describe('AutomationCurveEditorComponent', () => {
     expect(component.lanes().length).toBe(2);
   });
 
+  it('offers bus tracks as automation targets', () => {
+    fixture.componentRef.setInput('trackId', 't1');
+    fixture.componentRef.setInput('tracks', [
+      { id: 't1', name: 'Lead', type: 'midi' },
+      { id: 'bus-1', name: 'Drum Bus', type: 'bus' },
+    ]);
+
+    component.setTarget({ target: { value: 'bus-1' } } as unknown as Event);
+    component.addParameter.set('cutoff');
+    component.addLane();
+
+    expect(component.activeTargetId()).toBe('bus-1');
+    expect(component.parametersForTarget()).toEqual(['volume', 'pan']);
+    const lane = automation.lanes()[0];
+    expect(lane.target.trackId).toBe('bus-1');
+    expect(lane.target.parameter).toBe('volume');
+  });
+
   it('adds a lane for the selected parameter and marks it selected', () => {
     fixture.componentRef.setInput('trackId', 't1');
     component.addParameter.set('cutoff');

@@ -769,6 +769,33 @@ describe("PianoRollComponent", () => {
     expect(mockMusicManager.addNoteToTrack).not.toHaveBeenCalled();
   });
 
+  it("snaps a velocity press to the nearest short-note bar", () => {
+    mockMusicManager.tracks.update((t) => [
+      {
+        ...t[0],
+        notes: [{ id: "v-near", midi: 60, step: 4, length: 1, velocity: 0.8 }],
+      },
+    ]);
+    const lane = {
+      scrollLeft: 0,
+      getBoundingClientRect: () =>
+        ({ left: 0, top: 0, width: 1024, height: 90, right: 1024, bottom: 90 }) as DOMRect,
+    };
+
+    component.onVelocityPointerDown({
+      currentTarget: lane,
+      clientX: 4 * component.cellWidth() - 8,
+      clientY: 45,
+      pointerType: "touch",
+    } as unknown as PointerEvent);
+
+    expect(mockMusicManager.updateNote).toHaveBeenCalledWith(
+      expect.any(String),
+      "v-near",
+      expect.objectContaining({ velocity: expect.any(Number) }),
+    );
+  });
+
   it("maps a velocity-lane drag against the lane's real height", () => {
     mockMusicManager.tracks.update((t) => [
       {

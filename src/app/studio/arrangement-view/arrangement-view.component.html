@@ -513,6 +513,7 @@
       aria-label="Automation curves"
     >
       <app-automation-curve-editor
+        [tracks]="tracks()"
         [barWidth]="barWidth()"
         [totalBars]="totalBars()"
         [trackId]="musicManager.selectedTrackId()"

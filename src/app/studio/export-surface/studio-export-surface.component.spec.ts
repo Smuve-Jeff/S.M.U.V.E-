@@ -182,6 +182,32 @@ describe("StudioExportSurfaceComponent", () => {
       await pending;
     });
 
+    it("cancels a mixdown between render stages", async () => {
+      let signal: AbortSignal | undefined;
+      exportService.renderProjectOffline.mockImplementation(
+        (options: any) =>
+          new Promise((_resolve, reject) => {
+            signal = options.signal;
+            signal!.addEventListener("abort", () =>
+              reject(new DOMException("Export cancelled.", "AbortError")),
+            );
+          }),
+      );
+
+      const pending = component.exportMixdown();
+      expect(component.busy()).toBe(true);
+      expect(component.canCancel()).toBe(true);
+      component.cancelExport();
+      expect(signal?.aborted).toBe(true);
+
+      await pending;
+      expect(component.busy()).toBe(false);
+      expect(component.feedback()).toEqual({
+        tone: "ok",
+        text: "Export cancelled",
+      });
+    });
+
     it("names the file after the bytes when a codec falls back to WAV", async () => {
       component.setFormat({ target: { value: "mp3" } } as unknown as Event);
 

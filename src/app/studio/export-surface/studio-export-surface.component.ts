@@ -77,7 +77,11 @@ export class StudioExportSurfaceComponent {
   readonly busy = signal(false);
   /** Null while a render is in flight without discrete steps. */
   readonly progress = signal<number | null>(null);
+  readonly eta = signal<string | null>(null);
+  readonly canCancel = signal(false);
   readonly status = signal("");
+  private exportStartedAt = 0;
+  private exportController: AbortController | null = null;
   readonly feedback = signal<ExportFeedback | null>(null);
 
   readonly formatLabel = computed(
@@ -159,13 +163,15 @@ export class StudioExportSurfaceComponent {
   async exportMixdown() {
     if (this.busy()) return;
 
-    this.begin("Rendering mixdown…");
+    this.begin("Rendering mixdown…", true);
     try {
       const buffer = await this.exportService.renderProjectOffline({
         sampleRate: this.sampleRate(),
+        signal: this.exportController?.signal,
         onProgress: (percent) => {
           this.progress.set(percent);
           this.status.set(`Rendering mixdown… ${percent}%`);
+          this.updateEta(percent);
         },
       });
 
@@ -189,8 +195,35 @@ export class StudioExportSurfaceComponent {
 
       this.finish("ok", `Downloaded ${filename}`);
     } catch (error) {
-      this.fail("Mixdown export failed", error);
+      if (this.isAbortError(error)) {
+        this.finish("ok", "Export cancelled");
+      } else {
+        this.fail("Mixdown export failed", error);
+      }
     }
+  }
+
+  /** Cancel between render stages; an in-flight audio render must finish. */
+  cancelExport() {
+    if (!this.canCancel() || !this.busy() || !this.exportController) return;
+    this.exportController.abort();
+    this.eta.set(null);
+    this.status.set("Finishing current render…");
+  }
+
+  private updateEta(percent: number) {
+    if (percent <= 0 || percent >= 100 || this.exportStartedAt <= 0) {
+      this.eta.set(null);
+      return;
+    }
+    const elapsed = (Date.now() - this.exportStartedAt) / 1000;
+    const remaining = Math.max(0, elapsed * (100 - percent) / percent);
+    const seconds = Math.round(remaining);
+    this.eta.set(`${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`);
+  }
+
+  private isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === "AbortError";
   }
 
   /** Master plus one WAV per unmuted track, zipped, with real file progress. */
@@ -292,16 +325,24 @@ export class StudioExportSurfaceComponent {
     }
   }
 
-  private begin(status: string) {
+  private begin(status: string, cancellable = false) {
     this.busy.set(true);
     this.progress.set(null);
+    this.eta.set(null);
+    this.canCancel.set(cancellable);
     this.feedback.set(null);
     this.status.set(status);
+    this.exportStartedAt = Date.now();
+    this.exportController = new AbortController();
   }
 
   private finish(tone: ExportFeedback["tone"], text: string) {
     this.busy.set(false);
     this.progress.set(null);
+    this.eta.set(null);
+    this.canCancel.set(false);
+    this.exportStartedAt = 0;
+    this.exportController = null;
     this.status.set("");
     this.feedback.set({ tone, text });
   }

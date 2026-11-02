@@ -142,12 +142,27 @@
 .export-progress-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.06em;
   color: var(--espresso-muted, #94a3c8);
+}
+
+.export-progress-head > :first-child {
+  margin-right: auto;
+}
+
+.export-progress-cancel {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .export-progress-track {

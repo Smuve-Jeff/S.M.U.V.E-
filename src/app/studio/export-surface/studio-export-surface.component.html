@@ -121,7 +121,16 @@
   <div class="export-progress" *ngIf="busy()" role="status" aria-live="polite">
     <div class="export-progress-head">
       <span>{{ status() }}</span>
+      <span *ngIf="eta() as eta">ETA {{ eta }}</span>
       <span *ngIf="progress() !== null">{{ progress() }}%</span>
+      <button
+        type="button"
+        class="export-progress-cancel"
+        *ngIf="canCancel()"
+        (click)="cancelExport()"
+      >
+        Cancel
+      </button>
     </div>
     <div
       class="export-progress-track"

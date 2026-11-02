@@ -410,6 +410,8 @@ export class ExportService {
        * render, so its exceptions are swallowed.
        */
       onProgress?: (percent: number) => void;
+      /** Abort between scheduling stages; Web Audio cannot interrupt startRendering. */
+      signal?: AbortSignal;
     } = {},
   ): Promise<AudioBuffer> {
     const timing = this.buildTempoTimeline();
@@ -437,6 +439,9 @@ export class ExportService {
     }
 
     const reportProgress = (percent: number): void => {
+      if (options.signal?.aborted) {
+        throw new DOMException('Export cancelled.', 'AbortError');
+      }
       const value = Math.max(0, Math.min(100, Math.round(percent)));
       try {
         options.onProgress?.(value);

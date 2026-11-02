@@ -50,6 +50,23 @@ const SAMPLES_PER_BAR = 16;
     <section class="automation-editor" aria-label="Automation curve editor">
       <header class="automation-toolbar">
         <span class="automation-title">AUTOMATION CURVES</span>
+        <label
+          class="automation-target"
+          *ngIf="busTracks().length > 0"
+        >
+          <span class="automation-target-label">Target</span>
+          <select
+            class="automation-target-select"
+            [value]="activeTargetId() ?? ''"
+            (change)="setTarget($event)"
+            aria-label="Automation target"
+          >
+            <option [value]="trackId() ?? ''">{{ trackLabel() }}</option>
+            <option *ngFor="let bus of busTracks()" [value]="bus.id">
+              BUS · {{ bus.name }}
+            </option>
+          </select>
+        </label>
         <label class="automation-add">
           <select
             class="automation-param-select"
@@ -57,14 +74,14 @@ const SAMPLES_PER_BAR = 16;
             (change)="setAddParameter($event)"
             aria-label="Parameter to automate"
           >
-            <option *ngFor="let parameter of parameters" [value]="parameter">
+            <option *ngFor="let parameter of parametersForTarget()" [value]="parameter">
               {{ parameterLabel(parameter) }}
             </option>
           </select>
           <button
             type="button"
             class="automation-add-btn"
-            [disabled]="!trackId"
+            [disabled]="!activeTargetId()"
             (click)="addLane()"
           >
             + Lane
@@ -192,13 +209,25 @@ const SAMPLES_PER_BAR = 16;
         letter-spacing: 0.14em;
         color: var(--espresso-muted, #6b6257);
       }
+      .automation-toolbar {
+        flex-wrap: wrap;
+      }
+      .automation-target,
       .automation-add {
         display: flex;
         align-items: center;
         gap: 6px;
       }
+      .automation-target-label {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--espresso-muted, #6b6257);
+      }
       .automation-param-select,
-      .automation-interp {
+      .automation-interp,
+      .automation-target-select {
         font-size: 11px;
         padding: 3px 6px;
         border-radius: 6px;
@@ -291,6 +320,8 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   readonly barWidth = input(200);
   readonly totalBars = input(64);
   readonly trackId = input<string | null>(null);
+  /** Project channels, used to offer bus tracks as automation targets. */
+  readonly tracks = input<readonly { id: string; name: string; type: string }[]>([]);
   @Output() openBezierEditor = new EventEmitter<string>();
 
   private readonly automation = inject(AutomationService);
@@ -313,12 +344,34 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   ];
   readonly addParameter = signal('volume');
   readonly selectedLaneId = signal<string | null>(null);
+  /** Manual target override; null follows the arrangement's selected track. */
+  readonly selectedTargetId = signal<string | null>(null);
+
+  readonly busTracks = computed(() =>
+    this.tracks()
+      .filter((track) => track.type === 'bus')
+      .map((track) => ({ id: track.id, name: track.name })),
+  );
+  readonly activeTargetId = computed(
+    () => this.selectedTargetId() ?? this.trackId(),
+  );
+  readonly activeTargetIsBus = computed(() =>
+    this.busTracks().some((bus) => bus.id === this.activeTargetId()),
+  );
+  readonly parametersForTarget = computed(() =>
+    this.activeTargetIsBus() ? ['volume', 'pan'] : this.parameters,
+  );
+  readonly trackLabel = computed(() => {
+    const id = this.trackId();
+    const track = this.tracks().find((candidate) => candidate.id === id);
+    return track ? `TRACK · ${track.name}` : 'Selected track';
+  });
 
   readonly lanes = computed(() => {
     const all = this.automation.lanes();
-    const trackId = this.trackId();
-    if (!trackId) return all;
-    return all.filter((lane) => lane.target.trackId === trackId);
+    const targetId = this.activeTargetId();
+    if (!targetId) return all;
+    return all.filter((lane) => lane.target.trackId === targetId);
   });
 
   readonly width = computed(() =>
@@ -381,10 +434,24 @@ export class AutomationCurveEditorComponent implements OnDestroy {
     this.addParameter.set((event.target as HTMLSelectElement).value);
   }
 
+  /** Switch the editor between the selected track and a project bus track. */
+  setTarget(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedTargetId.set(value && value !== this.trackId() ? value : null);
+    this.selectedLaneId.set(null);
+    if (!this.parametersForTarget().includes(this.addParameter())) {
+      this.addParameter.set(this.parametersForTarget()[0]);
+    }
+  }
+
   addLane(): void {
-    const trackId = this.trackId();
-    if (!trackId) return;
-    const lane = this.automation.ensureLane(trackId, this.addParameter(), {
+    const targetId = this.activeTargetId();
+    if (!targetId) return;
+    const parameters = this.parametersForTarget();
+    const parameter = parameters.includes(this.addParameter())
+      ? this.addParameter()
+      : parameters[0];
+    const lane = this.automation.ensureLane(targetId, parameter, {
       interpolation: 'smooth',
     });
     this.selectedLaneId.set(lane.id);

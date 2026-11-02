@@ -1528,7 +1528,23 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const velocity = Math.max(0.1, Math.min(1.5, 1 - y / laneHeight));
     const track = this.selectedTrack();
     if (!track) return;
-    const note = track.notes.find((n) => Math.floor(n.step) === step);
+    let note = track.notes.find((n) => Math.floor(n.step) === step);
+    if (!note) {
+      // Velocity bars are only a few pixels wide at normal zoom. On touch,
+      // accept the nearest bar within a finger-sized radius instead of
+      // requiring the exact step cell; mouse editing keeps the tighter band.
+      const touch =
+        event.pointerType === "touch" || event.pointerType === "pen";
+      const slopSteps = (touch ? 22 : 8) / Math.max(1, this.cellWidth());
+      let nearest = slopSteps;
+      for (const candidate of track.notes) {
+        const distance = Math.abs(candidate.step - x / Math.max(1, this.cellWidth()));
+        if (distance <= nearest) {
+          nearest = distance;
+          note = candidate;
+        }
+      }
+    }
     if (note) {
       this.musicManager.updateNote(track.id, note.id, { velocity });
       this.haptic.velocity(velocity);
