@@ -70,6 +70,7 @@ describe("EffectsRackUiComponent", () => {
   const automationMock = {
     captureWrite: jest.fn(() => true),
     ensureLane: jest.fn(),
+    writeSmoothing: jest.fn(() => 0.35),
   };
 
   const wasmPresetMock = {

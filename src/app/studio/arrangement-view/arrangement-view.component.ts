@@ -159,6 +159,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
    */
   readonly isRecordingAutomation = this.automation.writeEnabled;
   readonly automationMode = this.automation.writeMode;
+  readonly automationSmoothing = this.automation.writeSmoothing;
+  readonly automationSmoothingPercent = () =>
+    Math.round(this.automationSmoothing() * 100);
   clipActionsOpen = signal(false);
   overviewZoom = signal(1);
 
@@ -1565,6 +1568,11 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
         ? "Automation write: touch — release to stop writing"
         : "Automation write: latch — the last value keeps writing",
     );
+  }
+
+  setAutomationSmoothing(event: Event) {
+    const percent = Number((event.target as HTMLInputElement).value);
+    this.automation.setWriteSmoothing(percent / 100);
   }
 
   toggleGroup(trackId: string) {

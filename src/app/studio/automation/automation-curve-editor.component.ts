@@ -391,6 +391,17 @@ export class AutomationCurveEditorComponent implements OnDestroy {
     { id: 'aux:reverb', name: 'Reverb Return' },
     { id: 'aux:echo', name: 'Echo Return' },
   ];
+  readonly masterParameters = [
+    'volume',
+    'makeup',
+    'compressorThreshold',
+    'compressorRatio',
+    'limiterThreshold',
+    'filterHz',
+    'lowShelf',
+    'lowMid',
+    'highShelf',
+  ];
 
   /** Enabled FX slots expose their real plugin params as lane targets. */
   readonly fxParameters = computed(() => {
@@ -409,8 +420,10 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   readonly parametersForTarget = computed(() =>
     this.activeTargetIsVca()
       ? ['vca']
-      : this.activeTargetIsAux() || this.activeTargetIsMaster()
+      : this.activeTargetIsAux()
         ? ['volume']
+        : this.activeTargetIsMaster()
+          ? this.masterParameters
         : this.activeTargetIsBus()
           ? ['volume', 'pan']
           : [...this.parameters, ...this.fxParameters()],

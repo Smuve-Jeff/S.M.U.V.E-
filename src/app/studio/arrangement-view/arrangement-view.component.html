@@ -87,6 +87,22 @@
       >
         LATCH
       </button>
+      <label
+        *ngIf="isRecordingAutomation()"
+        class="automation-smoothing"
+        title="Smoothing applied to VCA and plugin knob writes"
+      >
+        SMOOTH {{ automationSmoothingPercent() }}%
+        <input
+          type="range"
+          min="0"
+          max="95"
+          step="5"
+          [value]="automationSmoothingPercent()"
+          (input)="setAutomationSmoothing($event)"
+          aria-label="Automation write smoothing"
+        />
+      </label>
       <button
         class="tactile-v42 px-3 py-1 text-[8px] font-black bg-blue-600/40"
         (click)="aiVariation()"

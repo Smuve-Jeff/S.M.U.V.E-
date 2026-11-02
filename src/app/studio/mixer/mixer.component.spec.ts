@@ -18,7 +18,10 @@ describe("MixerComponent", () => {
 
   const connectSidechain = jest.fn();
   const disconnectSidechain = jest.fn();
-  const mockAutomation = { captureWrite: jest.fn() };
+  const mockAutomation = {
+    captureWrite: jest.fn(),
+    writeSmoothing: jest.fn(() => 0.35),
+  };
 
   const mockAudioSession = {
     isPlaying: signal(false),

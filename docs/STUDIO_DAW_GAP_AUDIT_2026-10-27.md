@@ -54,8 +54,8 @@ spec or by the real service path, not merely that a control is rendered.
 - Automation write now covers fader, pan, send, VCA and plugin parameters, with
 touch/latch modes. Plugin-parameter curves also bounce: the offline renderer
 suspends at curve points and pushes each sampled value through the same FX
-plugin `setParam` path. Individual master worklet internals are still not lane
-targets.
+plugin `setParam` path. Selected master compressor, limiter, filter, makeup and
+tone parameters are now lane targets; per-band mastering internals are not.
 
 ## Channel rack / patterns / scenes
 

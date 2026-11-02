@@ -31,6 +31,13 @@ export function laneRange(
   }
   if (parameter === 'pan') return { min: -1, max: 1 };
   if (parameter === 'vca') return { min: 0, max: 1.5 };
+  if (parameter === 'makeup') return { min: -12, max: 12 };
+  if (parameter === 'compressorThreshold') return { min: -60, max: 0 };
+  if (parameter === 'compressorRatio') return { min: 1, max: 20 };
+  if (parameter === 'limiterThreshold') return { min: -6, max: -0.01 };
+  if (parameter === 'lowShelf' || parameter === 'lowMid' || parameter === 'highShelf') {
+    return { min: -18, max: 18 };
+  }
   if (/cutoff|freq|filter/i.test(parameter)) {
     return { min: 20, max: 20_000, logarithmic: true };
   }
@@ -78,6 +85,7 @@ export function laneParameterLabel(parameter: string): string {
   if (parameter === 'sendB') return 'SEND B';
   if (parameter === 'cutoff') return 'CHANNEL CUTOFF';
   if (parameter === 'vca') return 'VCA LEVEL';
+  if (parameter === 'filterHz') return 'MASTER FILTER';
   return parameter
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/_/g, ' ')

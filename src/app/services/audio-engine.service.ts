@@ -4499,8 +4499,26 @@ export class AudioEngineService {
       this.tempo.set(value);
       return;
     }
-    if (trackId === 'master' && (parameter === 'volume' || parameter === 'gain')) {
-      this.setMasterOutputLevel(Math.max(0, Math.min(1.5, value)));
+    if (trackId === 'master') {
+      if (parameter === 'volume' || parameter === 'gain') {
+        this.setMasterOutputLevel(Math.max(0, Math.min(1.5, value)));
+      } else if (parameter === 'makeup') {
+        this.setMasterMakeupDb(value);
+      } else if (parameter === 'compressorThreshold') {
+        this.configureCompressor({ threshold: value });
+      } else if (parameter === 'compressorRatio') {
+        this.setMasterCompressorRatio(value);
+      } else if (parameter === 'limiterThreshold') {
+        this.setMasterLimiterThreshold(value);
+      } else if (parameter === 'filterHz') {
+        this.setMasterFilterHz(value);
+      } else if (parameter === 'lowShelf') {
+        this.setMasterToneEq({ lowShelfDb: value });
+      } else if (parameter === 'lowMid') {
+        this.setMasterToneEq({ lowMidDb: value });
+      } else if (parameter === 'highShelf') {
+        this.setMasterToneEq({ highShelfDb: value });
+      }
       return;
     }
     // The lane editor offers `reverb`, but the reverb return lives on aux

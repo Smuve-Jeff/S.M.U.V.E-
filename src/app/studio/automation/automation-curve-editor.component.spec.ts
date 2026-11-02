@@ -81,7 +81,8 @@ describe('AutomationCurveEditorComponent', () => {
     fixture.componentRef.setInput('trackId', 't1');
 
     component.setTarget({ target: { value: 'master' } } as unknown as Event);
-    expect(component.parametersForTarget()).toEqual(['volume']);
+    expect(component.parametersForTarget()).toContain('volume');
+    expect(component.parametersForTarget()).toContain('compressorThreshold');
     component.addLane();
     expect(automation.lanes()[0].target.trackId).toBe('master');
 

@@ -87,6 +87,9 @@ export class AutomationService {
   writeEnabled = signal(false);
   /** Touch writes only while the control moves; latch holds the last value. */
   writeMode = signal<AutomationWriteMode>("touch");
+  /** 0..1 smoothing coefficient used by VCA / plugin knob writes. */
+  writeSmoothing = signal(0.35);
+  private readonly writePrefsKey = "smuve.automation.write-prefs";
 
   /** Last step the curves were evaluated at (the transport repeats steps). */
   private lastAutomationStep = -1;
@@ -97,6 +100,20 @@ export class AutomationService {
   >();
 
   constructor() {
+    this.restoreWritePreferences();
+    effect(() => {
+      const mode = this.writeMode();
+      const smoothing = this.writeSmoothing();
+      if (typeof localStorage === "undefined") return;
+      try {
+        localStorage.setItem(
+          this.writePrefsKey,
+          JSON.stringify({ mode, smoothing }),
+        );
+      } catch {
+        // Private-mode storage failures must not break the transport.
+      }
+    });
     /**
      * Read the curves while the song plays.
      *
@@ -293,6 +310,28 @@ export class AutomationService {
   setWriteMode(mode: AutomationWriteMode) {
     this.writeMode.set(mode);
     if (mode === "touch") this.heldWrites.clear();
+  }
+
+  setWriteSmoothing(value: number) {
+    if (!Number.isFinite(value)) return;
+    this.writeSmoothing.set(Math.max(0, Math.min(0.95, value)));
+  }
+
+  private restoreWritePreferences(): void {
+    if (typeof localStorage === "undefined") return;
+    try {
+      const raw = localStorage.getItem(this.writePrefsKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { mode?: unknown; smoothing?: unknown };
+      if (parsed.mode === "touch" || parsed.mode === "latch") {
+        this.writeMode.set(parsed.mode);
+      }
+      if (typeof parsed.smoothing === "number" && Number.isFinite(parsed.smoothing)) {
+        this.setWriteSmoothing(parsed.smoothing);
+      }
+    } catch {
+      // Corrupt preferences are ignored; defaults remain usable.
+    }
   }
 
   setLaneEnabled(laneId: string, enabled: boolean) {
