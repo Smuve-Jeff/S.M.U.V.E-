@@ -31,7 +31,7 @@ adoption or store shipment).
 | --- | --- | --- | --- | --- |
 | 1 | Quick Session | **Ahead** | `quick-session/` — transport, tempo, record, channels, starters on one screen; writes to the same document as every editor | Nobody ships a genuine one-screen "make something now" path beside a full DAW |
 | 2 | Drum Machine | At parity | `drum-machine/` — kits (808/909/LinnDrum/SP-1200/acoustic/lo-fi), 6 style generators, swing, probability, per-step params, sample import, AI fill | FL's per-step graph editors and cut groups are deeper |
-| 3 | Piano Roll | **Behind** | `piano-roll/` — 5 tools, velocity lane, scale lock, WebGL, sustain/CC64, CC lane UI, automation entry | **CC curves are edited and displayed but never reach the engine** (no `ccLane` reference in `audio-engine.service.ts`), and there is no MPE. FL and Cubasis play both |
+| 3 | Piano Roll | **Behind** | `piano-roll/` — 5 tools, velocity lane, scale lock, WebGL, sustain/CC64, CC lane UI, automation entry; **CC/pitch-bend lanes wired to playback and export 2 Nov 2026** | No MPE. FL and Cubasis still go deeper on per-note expression |
 | 4 | Vocal Suite | **Ahead** | `vocal-suite/` + `pitch-correction.service.ts` + `smart-recording.service.ts` — tuning, comping, punch-in, take editing, vocal mastering, AI vocal tools | Voloco matches real-time tuning; nobody combines comping + mastering in one mobile flow |
 | 5 | Quick Recorder | At parity | `audio-recorder-view/` — streamed capture, device pick, level meter, take list | BandLab's recorder is simpler; Audio Evolution has more routing |
 | 6 | Chords | At parity | `chord-editor/` — key/mode, chord types, progressions, voicing reorder | Chord packs in BandLab/FL are broader, but not editable progressions |
@@ -43,7 +43,7 @@ adoption or store shipment).
 | 12 | Channel Rack | At parity | `channel-rack/` — patterns, scene columns, polymeter, LFO, meters, pattern slots | FL's rack is the origin of the pattern model and remains deeper |
 | 13 | Score View | **Ahead** | `score-view/` — editable notation, rests, velocity shading, MusicXML import/export | None of the four ship notation |
 | 14 | Mixer | At parity | `mixer/` — VCA buses, sends A/B, sidechain routing, phase, width, buses, master strip | Cubasis: unlimited tracks, 8 inserts + 8 sends. Ours is 6/12/24 tracks by device tier (`studio-device-profile.service.ts`) |
-| 15 | Effects Rack | At parity | `effects-rack-ui/` — dynamic FX, per-track inserts, WASM plugin chain, sidechain | No third-party VST/AU; no per-insert preset browser or metering; Cubasis has 8 insert slots per channel |
+| 15 | Effects Rack | At parity | `effects-rack-ui/` — dynamic FX, per-track inserts, WASM plugin chain, sidechain, real per-insert meters, plugin-parameter knobs and automation | No third-party VST/AU; no per-insert preset browser yet; Cubasis has 8 insert slots per channel |
 | 16 | DJ Booth | **Ahead** | `dj-deck/` — two decks, stems, hot cues, loops, 7 FX, crossfader curves, MIDI mapping | Standalone DJ apps are deeper, but no DAW baseline has this beside arrangement |
 | 17 | Mastering | **Ahead** | `mastering-suite/` — LUFS targets, true peak, delivery targets, reference A/B, spectral view, AI assist | Cubasis Master Strip is the closest; no baseline offers platform delivery targets |
 | 18 | Export | **Ahead** | `export.service.ts` — WAV/MP3/FLAC, stems, MIDI, DAWproject, presets, progress, **automation rendered offline** | FL exports `.flp`; Cubasis DAWproject. We match interchange and beat both on stems/presets |
@@ -69,8 +69,8 @@ a live DJ booth, WASM plugin hosting and an AI band in one document. FL is
 deeper in the piano roll and sampler; Cubasis is deeper in routing and track
 count; BandLab is deeper in cloud, samples and generative AI. None is broader.
 
-**For collaboration and hardware-centric workflows: not yet.** Four gaps are
-real and should not be papered over:
+**For collaboration and hardware-centric workflows: not yet.** Four gaps were
+real and should not be papered over; the CC-lane one is now closed:
 
 1. **Cloud sync is a mock.** `cloud-sync.service.ts` injects `MockCloudServer`
    and pushes to `/mock-cloud/push`. BandLab's real cross-device projects and
@@ -79,10 +79,11 @@ real and should not be papered over:
    `navigator.requestMIDIAccess` (`live-engine.service.ts`,
    `dj-midi.service.ts`), which Android WebView does not implement. Cubasis
    supports class-compliant USB MIDI; we need a native Capacitor bridge.
-3. **CC lanes are silent.** The piano roll edits, learns, labels and displays
-   CC/pitch-bend lanes (`piano-roll.component.html:501`), but the engine never
-   reads them. A pro who draws a filter sweep hears nothing — worse than not
-   offering the lane.
+3. **CC lanes were silent — fixed 2 Nov 2026.** The piano roll edits, learns,
+   labels and displays CC/pitch-bend lanes (`piano-roll.component.html:501`).
+   The engine now samples those lanes into a controller curve per note, and the
+   shared voice builder schedules cutoff, pan, expression, pitch bend and
+   mod-wheel vibrato for both live playback and offline export.
 4. **The sample economy is thin.** 250K–2M sounds vs. a curated bank; no
    slicing/time-stretch in the sampler. Beatmakers judge this first.
 
@@ -131,7 +132,7 @@ architecture issue.
 | Sample ecosystem | 250K–2M sounds, packs, marketplace (BandLab/FL) | Curated presets + user imports | Beatmakers bounce |
 | Sampling depth | Slicing, time-stretch, auto-chop, per-step graphs (Koala/FL) | Zones, round-robin, ADSR, loop crossfade | Chopping a break is manual |
 | Track count / routing | Unlimited tracks, 8 inserts + 8 sends (Cubasis) | 6/12/24 by device tier; VCA + A/B sends | Large sessions hit a ceiling |
-| MIDI expression | 960 PPQ, full CC, MPE (Cubasis/FL) | 16th grid, CC lanes silent, no MPE | Drawbar/aftertouch performances cannot be captured |
+| MIDI expression | 960 PPQ, full CC, MPE (Cubasis/FL) | 16th grid, CC lanes wired to playback/export, no MPE | MPE and aftertouch input still cannot be captured |
 | Generative AI | SongStarter, Audio-to-MIDI, Voice Changer (BandLab) | Prompt beats, AI mix, AI band, stem split | Fewer one-tap generative tools |
 | Native plugin economy | None on mobile — but huge desktop ecosystems | WASM sandbox with a small catalog | Open architecture, thin content |
 
@@ -157,12 +158,13 @@ adaptive device tiers (6/12/24 tracks, 8/16/32 voices); bounded capture. Open:
 sample-rate normalisation (44.1 kHz devices run 48 kHz-tuned DSP without
 resampling) and auxiliary AudioContexts remain separate from the engine graph.
 
-### Automation — **At parity, one hole**
+### Automation — **At parity**
 
 Lanes with bezier editing, live write for fader/pan/sends/cutoff/reverb, and
 offline export now samples every enabled lane onto the same AudioParams
-(`export.service.ts:432`). Missing: plugin-parameter automation (write and
-playback), VCA/bus targets outside the rack, and automation of FX-slot params
+(`export.service.ts:432`). Plugin-parameter automation and per-insert metering
+shipped 2 Nov 2026; CC/pitch-bend lanes now reach live voices and the bounce.
+Still missing: VCA/bus targets outside the rack and automation of FX-slot params
 that are not lane targets.
 
 ### Project integrity — **Ahead locally, Blocking in the cloud**
@@ -192,16 +194,18 @@ free preview; not fine for a paid Play release.
 
 **Shipped in the 2 Nov 2026 follow-up pass:** ripple delete (removes the
 selected clips and closes the gap on each track), transport note-repeat (toggle
-plus rate cycling, driving the live retrigger), and user-authored templates
+plus rate cycling, driving the live retrigger), user-authored templates
 (save the current channels/tempo, reapply or delete them beside the fixed
-starters). The DJ booth's live-set capture/download and external MIDI clock
-follow were already shipped, contrary to the earlier backlog wording.
+starters), plugin-parameter automation with real per-insert metering, and
+CC/pitch-bend lanes wired into live playback and offline export. The DJ booth's
+live-set capture/download and external MIDI clock follow were already shipped,
+contrary to the earlier backlog wording.
 
 ### P0 — adoption blockers (do first)
 
 | Item | Why | Effort |
 | --- | --- | --- |
-| Wire CC/pitch-bend lanes into playback and export | Silent lanes are a correctness defect, not a missing feature | M |
+| ~~Wire CC/pitch-bend lanes into playback and export~~ **Shipped 2 Nov 2026** — sampled per note into the shared voice builder; live and export agree | Silent lanes were a correctness defect, not a missing feature | M |
 | Real cloud sync/auth behind `CloudSyncService` | Replaces the mock; unlocks cross-device and collab claims | L |
 | Native Android MIDI bridge (USB/BLE + clock) | Unblocks keyboard/pad users; closes Cubasis's biggest win | M |
 | Real Play Billing before selling SKUs | Mock purchases cannot ship | M |
@@ -210,7 +214,7 @@ follow were already shipped, contrary to the earlier backlog wording.
 
 | Item | Why | Effort |
 | --- | --- | --- |
-| Plugin-parameter automation + per-insert metering/preset browser | Closes the last automation hole; makes the WASM ecosystem usable | M |
+| ~~Plugin-parameter automation + per-insert metering~~ **Shipped 2 Nov 2026**; per-insert preset browser still open | Makes the WASM ecosystem usable | M |
 | Sampler slicing / transient chop / time-stretch | Beatmaker table stakes; Koala/FL lead here | M |
 | MPE / per-note expression | Aftertouch and pitch fields exist on notes but no input path | M |
 | Overlap crossfades + tempo lane in arrangement (ripple delete now ships) | Cubasis/FL timeline depth | M |
@@ -238,7 +242,7 @@ follow were already shipped, contrary to the earlier backlog wording.
   `cloud-sync.service.ts`, `storefront.service.ts`, `live-engine.service.ts`.
 - Reproduce the key negative findings:
   ```bash
-  rg -n "ccLane|ccValues" src/app/services/audio-engine.service.ts   # none
+  rg -n "sampleCcCurve|midiCc|VoiceControlPoint" src/app/services/audio-engine.service.ts src/app/services/music-manager.service.ts src/app/services/export.service.ts src/app/studio/automation.service.ts
   rg -n "slice|chop|transient" src/app/studio/sampler              # none
   rg -n "MockCloud|mock-cloud" src/app/services                    # mock sync
   rg -n "MockPlayBillingClient" src/app/services                   # mock billing
@@ -255,4 +259,4 @@ follow were already shipped, contrary to the earlier backlog wording.
 **Bottom line:** the Studio is the broadest mobile production environment in this
 comparison and is ahead on workflow integration, notation, comping, mastering,
 export and performance. It is not yet "more powerful for everyone" until real
-cloud, Android MIDI, CC playback and the sample/sampling depth are closed.
+cloud, Android MIDI and the sample/sampling depth are closed.

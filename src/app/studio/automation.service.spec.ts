@@ -45,6 +45,44 @@ describe("AutomationService", () => {
     expect(value).toBeLessThan(0.8);
   });
 
+  it("samples CC lanes into the normalized curve a voice consumes", () => {
+    for (const parameter of [
+      "cc_modulation",
+      "cc_expression",
+      "cc_pan",
+      "cc_cutoff",
+      "cc_pitchbend",
+    ]) {
+      const lane = service.addLane("1", parameter, { min: 0, max: 127 });
+      service.addPoint(lane.id, 0, 0);
+      service.addPoint(lane.id, 1, 127);
+    }
+
+    const curve = service.sampleCcCurve("1", 0, 1, 0.25);
+    expect(curve.length).toBeGreaterThan(2);
+    expect(curve[0]).toMatchObject({
+      modulation: 0,
+      expression: 0,
+      pan: -1,
+      cutoff: 20,
+      pitchBend: -1,
+    });
+    expect(curve[curve.length - 1].modulation).toBeCloseTo(1, 5);
+    expect(curve[curve.length - 1].expression).toBeCloseTo(1, 5);
+    expect(curve[curve.length - 1].pan).toBeCloseTo(1, 5);
+    expect(curve[curve.length - 1].cutoff).toBeCloseTo(20000, 3);
+    expect(curve[curve.length - 1].pitchBend).toBeCloseTo(1, 5);
+  });
+
+  it("keeps cc_ lane names off the mixer bridge", () => {
+    const lane = service.addLane("1", "cc_cutoff", { min: 0, max: 127 });
+    service.addPoint(lane.id, 0, 64);
+
+    service.applyAutomation(0, 0.1);
+
+    expect(engineMock.applyProductionParameter).not.toHaveBeenCalled();
+  });
+
   it("routes plugin lanes to the plugin store, not the mixer", () => {
     const lane = service.addLane("1", "plugin:smuve.reverb.v2:mix", {
       min: 0,

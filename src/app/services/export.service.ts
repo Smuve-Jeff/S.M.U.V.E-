@@ -622,7 +622,8 @@ export class ExportService {
           ? this.musicManager.arrangementNotes(track, bars * 16) : track.notes ?? [];
         this.scheduleTrackNotes(offline, input, notes,
           track.synthParams ?? { type: 'sine' }, secondsPerStep,
-          panLane ? 0 : (track.pan ?? 0), track.instrumentId, track.type === 'drum');
+          panLane ? 0 : (track.pan ?? 0), track.instrumentId, track.type === 'drum',
+          track.id);
       }
       for (const clip of track.clips ?? []) {
         if (clip.type !== 'audio') continue;
@@ -802,6 +803,7 @@ export class ExportService {
     trackPan: number,
     instrumentId: string,
     isDrum: boolean,
+    trackId: string,
   ): void {
     for (const n of notes) {
       if (n.velocity <= 0) continue;
@@ -810,6 +812,19 @@ export class ExportService {
 
       const start = Math.max(0, ((n.step ?? 0) + (n.microOffset ?? 0)) * secondsPerStep);
       const ratchet = isDrum ? drumRatchetCount(n.params) : 1;
+      // CC lanes are shared with live playback: sample the same curve over
+      // this note and hand it to the shared voice builder.
+      const noteStartStep = Math.max(0, (n.step ?? 0) + (n.microOffset ?? 0));
+      const midiCc = this.automation.sampleCcCurve(
+        trackId,
+        noteStartStep,
+        noteStartStep + Math.max(0.01, n.length ?? 1),
+        secondsPerStep,
+      );
+      const ccStart = midiCc[0];
+      const ccVelocity = (value: number): number =>
+        value * (ccStart?.expression ?? 1);
+      const ccPan = ccStart?.pan ?? n.notePan ?? trackPan;
 
       // Imported one-shot notes carry their decoded PCM. Schedule the sample
       // itself rather than synthesising the pad's MIDI pitch: the live stepper
@@ -829,9 +844,9 @@ export class ExportService {
           const source = ctx.createBufferSource();
           source.buffer = oneShot;
           const gain = ctx.createGain();
-          gain.gain.value = Math.max(0, Math.min(1, n.velocity ?? 0.8));
+          gain.gain.value = Math.max(0, Math.min(1, ccVelocity(n.velocity ?? 0.8)));
           const panner = ctx.createStereoPanner();
-          panner.pan.value = Math.max(-1, Math.min(1, n.notePan ?? trackPan));
+          panner.pan.value = Math.max(-1, Math.min(1, ccPan));
           source.connect(panner);
           panner.connect(gain);
           gain.connect(master);
@@ -855,14 +870,13 @@ export class ExportService {
       const dur = ratchet > 1
         ? Math.min(noteDuration, secondsPerStep / ratchet)
         : Math.max(0.05, noteDuration);
-
       if (this.instruments.isSamplePreset(instrumentId)) {
         const sample = this.instruments.getPresetSample(
           instrumentId, n.midi, n.velocity ?? 0.8, n.pitchBend ?? 0,
         );
         if (!sample) throw new Error(`Sample for MIDI ${n.midi} in “${instrumentId}” is unavailable.`);
         for (let hit = 0; hit < ratchet; hit++) {
-          scheduleOfflinePresetSample(ctx, master, sample, start + hit * secondsPerStep / ratchet, dur, n.velocity ?? 0.8, n.notePan ?? trackPan);
+          scheduleOfflinePresetSample(ctx, master, sample, start + hit * secondsPerStep / ratchet, dur, ccVelocity(n.velocity ?? 0.8), ccPan);
         }
         continue;
       }
@@ -877,7 +891,10 @@ export class ExportService {
           ? { ...params, glideTo: baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12) }
           : params;
 
-      const notePan = n.notePan ?? trackPan;
+      const notePan = ccPan;
+      const ccVoiceParams = midiCc.length
+        ? { ...voiceParams, midiCc }
+        : voiceParams;
       for (let hit = 0; hit < ratchet; hit++) {
         this.engine.scheduleOfflineNote(
           ctx,
@@ -886,7 +903,7 @@ export class ExportService {
           start + hit * secondsPerStep / ratchet,
           n.velocity ?? 0.8,
           dur,
-          voiceParams,
+          ccVoiceParams,
           notePan
         );
       }

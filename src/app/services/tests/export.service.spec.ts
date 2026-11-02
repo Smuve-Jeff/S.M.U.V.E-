@@ -1133,6 +1133,25 @@ describe("ExportService", () => {
       expect(fader!.gain.linearRampToValueAtTime).not.toHaveBeenCalled();
     });
 
+    it("bounces CC curves into the offline voice", async () => {
+      const recording = recordingContext();
+      const cutoff = lane("cc_cutoff", [
+        { time: 0, value: 0 },
+        { time: 4, value: 127 },
+      ]);
+      (service as any).automation.lanes.set([cutoff]);
+      audioEngineMock.scheduleOfflineNote.mockClear();
+
+      await render(recording, [
+        track({ notes: [{ step: 0, midi: 60, length: 4, velocity: 0.8 }] }),
+      ]);
+
+      const params = audioEngineMock.scheduleOfflineNote.mock.calls[0][6];
+      expect(params.midiCc.length).toBeGreaterThan(1);
+      expect(params.midiCc[0].cutoff).toBeCloseTo(20, 5);
+      expect(params.midiCc[params.midiCc.length - 1].cutoff).toBeGreaterThan(20);
+    });
+
     it("loads and schedules a preset sample through the offline channel", async () => {
       const recording = recordingContext();
       const sample = { duration: 2 } as AudioBuffer;

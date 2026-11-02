@@ -99,6 +99,24 @@ describe('MusicManagerService clip glue workflows', () => {
     }
   });
 
+  it('passes the sampled CC curve into live note playback', () => {
+    const automation = TestBed.inject(AutomationService);
+    const track = service.tracks()[0];
+    track.notes = [{ id: 'cc-note', midi: 60, step: 0, length: 4, velocity: 0.8 }];
+    service.tracks.set([...service.tracks()]);
+    const lane = automation.addLane(track.id, 'cc_cutoff', { min: 0, max: 127 });
+    automation.addPoint(lane.id, 0, 0);
+    automation.addPoint(lane.id, 4, 127);
+
+    engineMock.triggerAttack.mockClear();
+    service.playStep(0, 1, 0.25);
+
+    const call = engineMock.triggerAttack.mock.calls.find((entry) => entry[0] === track.id)!;
+    const params = call[9];
+    expect(params.midiCc.length).toBeGreaterThan(1);
+    expect(params.midiCc[0].cutoff).toBeCloseTo(20, 5);
+  });
+
   it('preserves simultaneous drum hits and recipe swing independently from 808 bass', () => {
     service.applyGeneratedRecipe({
       id: 'test', name: 'Test', glyph: '', bpm: 100, vibe: '', progression: [],

@@ -3959,6 +3959,23 @@ export class MusicManagerService {
               const ratchetDuration = ratchet > 1
                 ? Math.min(n.length * duration * lengthMul, duration / ratchet)
                 : n.length * duration * lengthMul;
+              // CC1/10/11/74 and pitch bend are automation lanes in the piano
+              // roll. Sample them across this note so the shared voice builder
+              // can schedule the curve; before this, the lanes were silent.
+              const noteStartStep = step + stepFraction;
+              const ccCurve = this.automation.sampleCcCurve(
+                t.id,
+                noteStartStep,
+                noteStartStep + Math.max(0.01, n.length),
+                duration,
+              );
+              const ccStart = ccCurve[0];
+              const voiceParams = ccCurve.length
+                ? { ...synthParams, midiCc: ccCurve }
+                : synthParams;
+              const ccVelocity = (value: number): number =>
+                value * (ccStart?.expression ?? 1);
+              const ccPan = ccStart?.pan ?? notePan;
 
               // Imported drum/percussion one-shots are attached to the pad
               // note by reference. Play the PCM the artist loaded; falling
@@ -3988,8 +4005,8 @@ export class MusicManagerService {
                     t.id,
                     oneShot,
                     microTime + hit * duration / ratchet,
-                    n.velocity ?? 0.8,
-                    notePan,
+                    ccVelocity(n.velocity ?? 0.8),
+                    ccPan,
                     Math.max(0.01, oneShot.duration),
                     1, 0, 0, 0, 0, 48000, 2, true,
                   );
@@ -4009,7 +4026,7 @@ export class MusicManagerService {
                   );
                   for (let hit = 0; hit < ratchet; hit++) {
                     this.engine.triggerSampler(
-                      t.id, sample.buffer, microTime + hit * duration / ratchet, n.velocity ?? 0.8, notePan,
+                      t.id, sample.buffer, microTime + hit * duration / ratchet, ccVelocity(n.velocity ?? 0.8), ccPan,
                       sampleDuration, sample.rate, 0,
                       sample.oneShot ? 0 : Math.min(sample.release, sampleDuration),
                       0, 0, 48000, 2, true,
@@ -4031,10 +4048,10 @@ export class MusicManagerService {
                   ratchetDuration,
                   // Track gain lives on the fader, not in the voice peak.
                   1.0,
-                  notePan,
+                  ccPan,
                   0,
                   0,
-                  synthParams
+                  voiceParams
                 );
               }
             });

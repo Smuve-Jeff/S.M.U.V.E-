@@ -1,5 +1,8 @@
 import { Injectable, effect, signal, inject } from "@angular/core";
-import { AudioEngineService } from "../services/audio-engine.service";
+import {
+  AudioEngineService,
+  type VoiceControlPoint,
+} from "../services/audio-engine.service";
 import { PluginStoreService } from "../services/plugin-store.service";
 import { bezierInterpolate, BezierPresets } from "./automation/bezier-utils";
 
@@ -392,6 +395,100 @@ export class AutomationService {
     return this.getValueAtTime(laneId, time, this.getMacroBiasForLane(lane));
   }
 
+  /**
+   * Sample the track's MIDI CC lanes into the curve a voice consumes.
+   *
+   * The piano roll stores CC1/10/11/74 and pitch bend as `cc_*` automation
+   * lanes. Before this, those curves were drawn, persisted and displayed but
+   * no audio path read them. The voice builder receives this curve and
+   * schedules the values across the note, so both live playback and the
+   * offline bounce follow the same controller movement.
+   */
+  sampleCcCurve(
+    trackId: string,
+    startStep: number,
+    endStep: number,
+    stepSeconds: number,
+  ): VoiceControlPoint[] {
+    const definitions: Array<{
+      key: keyof Omit<VoiceControlPoint, "at">;
+      parameter: string;
+      map: (value: number) => number;
+    }> = [
+      {
+        key: "modulation",
+        parameter: "cc_modulation",
+        map: (value) => Math.max(0, Math.min(1, value / 127)),
+      },
+      {
+        key: "expression",
+        parameter: "cc_expression",
+        map: (value) => Math.max(0, Math.min(1, value / 127)),
+      },
+      {
+        key: "pan",
+        parameter: "cc_pan",
+        map: (value) => Math.max(-1, Math.min(1, (value / 127) * 2 - 1)),
+      },
+      {
+        key: "cutoff",
+        parameter: "cc_cutoff",
+        // CC74 is a 0..127 sweep; map it logarithmically onto the audible
+        // band so the middle of the lane is not bunched at the top.
+        map: (value) => 20 * Math.pow(1000, Math.max(0, Math.min(127, value)) / 127),
+      },
+      {
+        key: "pitchBend",
+        parameter: "cc_pitchbend",
+        map: (value) => Math.max(-1, Math.min(1, (value / 127) * 2 - 1)),
+      },
+    ];
+
+    const active = definitions.flatMap((definition) => {
+      const lane = this.lanes().find(
+        (candidate) =>
+          candidate.enabled &&
+          candidate.target.trackId === trackId &&
+          candidate.target.parameter === definition.parameter,
+      );
+      return lane ? [{ ...definition, lane }] : [];
+    });
+    if (active.length === 0) return [];
+
+    // CC keyframes are written in transport-step units by the piano roll
+    // (`recordCcKeyframe` stores the playhead step). Sample in that same
+    // domain, then convert each point's offset to seconds for the voice.
+    const start = Math.max(0, Number.isFinite(startStep) ? startStep : 0);
+    const end = Math.max(start, Number.isFinite(endStep) ? endStep : start);
+    const secondsPerStep = Number.isFinite(stepSeconds) && stepSeconds > 0
+      ? stepSeconds
+      : 0.125;
+    const times = new Set<number>([start, end]);
+    for (const definition of active) {
+      for (const point of definition.lane.points) {
+        if (point.time > start && point.time < end) times.add(point.time);
+      }
+    }
+    // Half-step resolution: enough for a smooth sweep without one point per
+    // audio frame for every sustained note.
+    for (let time = start; time < end; time += 0.5) {
+      times.add(Math.round(time * 1000) / 1000);
+    }
+
+    return [...times]
+      .sort((a, b) => a - b)
+      .map((time) => {
+        const point: VoiceControlPoint = { at: (time - start) * secondsPerStep };
+        for (const definition of active) {
+          const value = this.sampleLane(definition.lane.id, time);
+          if (value !== null && Number.isFinite(value)) {
+            point[definition.key] = definition.map(value);
+          }
+        }
+        return point;
+      });
+  }
+
   private interpolate(
     start: number,
     end: number,
@@ -541,6 +638,9 @@ export class AutomationService {
         this.getMacroBiasForLane(lane),
       );
       if (value !== null) {
+        // CC lanes are consumed by the voice builder from `sampleCcCurve`;
+        // sending `cc_pan` to the mixer bridge would be a no-op field update.
+        if (lane.target.parameter.startsWith("cc_")) return;
         if (this.applyPluginParameter(lane.target.parameter, value)) return;
         this.engine.applyProductionParameter(
           lane.target.trackId,

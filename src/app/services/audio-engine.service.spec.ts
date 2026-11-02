@@ -1578,6 +1578,37 @@ describe('AudioEngineService.buildVoiceGraph (live/offline voice parity)', () =>
     expect(osc.connect).toHaveBeenCalledWith(filter);
   });
 
+  it('schedules MIDI CC curves across the note on the shared voice graph', () => {
+    const { svc, ctx, osc } = makeVoiceHarness();
+
+    svc.buildVoiceGraph(ctx, dest(), 220, 0, 1, 2, 0, {
+      cutoff: 1000,
+      sustain: 0.5,
+      midiCc: [
+        { at: 0, cutoff: 200, pan: -1, expression: 0.2, pitchBend: 0, modulation: 0 },
+        { at: 1, cutoff: 8000, pan: 1, expression: 1, pitchBend: 1, modulation: 1 },
+      ],
+    });
+
+    const filter = ctx.createBiquadFilter.mock.results[0].value;
+    expect(filter.frequency.setValueAtTime).toHaveBeenCalledWith(200, 0);
+    expect(filter.frequency.linearRampToValueAtTime).toHaveBeenCalledWith(8000, 1);
+
+    const panner = ctx.createStereoPanner.mock.results[0].value;
+    expect(panner.pan.setValueAtTime).toHaveBeenCalledWith(-1, 0);
+    expect(panner.pan.linearRampToValueAtTime).toHaveBeenCalledWith(1, 1);
+
+    const expression = ctx.createGain.mock.results[1].value;
+    expect(expression.gain.setValueAtTime).toHaveBeenCalledWith(0.2, 0);
+    expect(expression.gain.linearRampToValueAtTime).toHaveBeenCalledWith(1, 1);
+
+    // Pitch bend maps -1..1 onto ±2 semitones; the mod wheel builds a vibrato
+    // LFO whose depth follows the CC curve.
+    expect(osc.detune.setValueAtTime).toHaveBeenCalledWith(0, 0);
+    expect(osc.detune.linearRampToValueAtTime).toHaveBeenCalledWith(200, 1);
+    expect(ctx.createOscillator).toHaveBeenCalledTimes(1);
+  });
+
   it('reads the drum pad resonance key as filter Q', () => {
     const { svc, ctx } = makeVoiceHarness();
 

@@ -166,6 +166,26 @@ interface LiveVoice {
 }
 
 /**
+ * One sampled MIDI controller position for a voice. Times are seconds from the
+ * note start; only the lanes the track actually automates are present. The
+ * same curve is built by live playback and the offline bounce, so a filter
+ * sweep or expression ride sounds the same in both.
+ */
+export interface VoiceControlPoint {
+  at: number;
+  /** CC1 mod wheel, normalized 0..1. */
+  modulation?: number;
+  /** CC11 expression, normalized 0..1. */
+  expression?: number;
+  /** CC10 pan, -1..1. */
+  pan?: number;
+  /** CC74 cutoff in Hz. */
+  cutoff?: number;
+  /** Pitch bend, -1..1 (mapped to ±2 semitones). */
+  pitchBend?: number;
+}
+
+/**
  * Voice ceiling before the device profile classifies. Matches
  * `STUDIO_AUDIO_BUDGETS.high.maxVoices` — the desktop budget — so playback
  * is unchanged until `StudioDeviceProfileService` pushes the classified
@@ -2555,7 +2575,7 @@ export class AudioEngineService {
         this.masterWidthMerger.connect(this._preMasterGain);
       }
       this.masterPluginIds.set([]);
-      this.pluginMeterLevels.update((all) => {
+      this.ensurePluginMeterLevels().update((all) => {
         const next = { ...all };
         delete next["master"];
         return next;
@@ -2974,6 +2994,19 @@ export class AudioEngineService {
     onVoice?: (voice: LiveVoice) => void
   ): number {
     const p = params ?? {};
+    const ccPoints: VoiceControlPoint[] = Array.isArray(p.midiCc)
+      ? p.midiCc
+          .filter((point: any) => point && Number.isFinite(point.at))
+          .slice()
+          .sort((a: VoiceControlPoint, b: VoiceControlPoint) => a.at - b.at)
+      : [];
+    const ccStart = ccPoints[0];
+    const ccHas = (key: keyof VoiceControlPoint): boolean =>
+      ccPoints.some(
+        (point) =>
+          typeof point[key] === 'number' &&
+          Number.isFinite(point[key] as number)
+      );
     const oscType = p.oscillator || p.type || 'sine';
     const osc = this.createAntialiasedOscillator(
       ctx as AudioContext,
@@ -3001,7 +3034,10 @@ export class AudioEngineService {
       lfoTarget !== "volume" &&
       lfoTarget !== "pan";
     const hasFilter =
-      Number.isFinite(p.cutoff) || Boolean(p.filterType) || lfoSweepsFilter;
+      Number.isFinite(p.cutoff) ||
+      Boolean(p.filterType) ||
+      lfoSweepsFilter ||
+      ccHas('cutoff');
     let filter: BiquadFilterNode | null = null;
     let baseCutoffValue = 20000;
     if (hasFilter) {
@@ -3022,8 +3058,20 @@ export class AudioEngineService {
     }
 
     const panner = ctx.createStereoPanner();
-    panner.pan.setValueAtTime(pan, time);
+    const ccPan =
+      typeof ccStart?.pan === 'number' && Number.isFinite(ccStart.pan)
+        ? Math.max(-1, Math.min(1, ccStart.pan))
+        : pan;
+    panner.pan.setValueAtTime(ccPan, time);
     const vca = ctx.createGain();
+    const expressionGain = ccHas('expression') ? ctx.createGain() : null;
+    if (expressionGain) {
+      const level =
+        typeof ccStart?.expression === 'number'
+          ? Math.max(0, Math.min(1, ccStart.expression))
+          : 1;
+      expressionGain.gain.setValueAtTime(level, time);
+    }
 
     const safeDuration = Math.max(0.001, duration);
     const attack = Math.max(0.0001, Number(p.attack) || 0.01);
@@ -3072,7 +3120,12 @@ export class AudioEngineService {
       osc.connect(panner);
     }
     panner.connect(vca);
-    vca.connect(destination);
+    if (expressionGain) {
+      vca.connect(expressionGain);
+      expressionGain.connect(destination);
+    } else {
+      vca.connect(destination);
+    }
 
     // ── LFO ───────────────────────────────────────────────────────────────
     // The Synth's Filter Modulation section is applied per voice, on the same
@@ -3109,6 +3162,67 @@ export class AudioEngineService {
       }
     }
 
+    // ── MIDI CC curves ────────────────────────────────────────────────────
+    // The piano roll already records CC1/10/11/74 and pitch bend as `cc_*`
+    // automation lanes. This is where those curves become audio: the lane is
+    // sampled between the note's start and end, and the voice schedules the
+    // same values the offline bounce gets. A sustained pad therefore sweeps
+    // continuously instead of only taking the value at note-on.
+    let vibratoOsc: OscillatorNode | null = null;
+    const clampCc = (value: number, min: number, max: number): number =>
+      Math.max(min, Math.min(max, value));
+    const scheduleCc = (
+      param: AudioParam,
+      key: keyof VoiceControlPoint,
+      scale: (value: number) => number
+    ): void => {
+      let scheduled = false;
+      for (const point of ccPoints) {
+        const raw = point[key];
+        if (typeof raw !== 'number' || !Number.isFinite(raw)) continue;
+        const at = time + Math.max(0, point.at);
+        if (at > stopAt + 0.0001) break;
+        const value = scale(raw);
+        if (!scheduled) {
+          param.setValueAtTime(value, Math.max(time, at));
+          scheduled = true;
+        } else {
+          param.linearRampToValueAtTime(value, at);
+        }
+      }
+    };
+    if (filter && ccHas('cutoff')) {
+      scheduleCc(filter.frequency, 'cutoff', (value) =>
+        clampCc(value, 20, 20000)
+      );
+    }
+    if (ccHas('pan')) {
+      scheduleCc(panner.pan, 'pan', (value) => clampCc(value, -1, 1));
+    }
+    if (expressionGain) {
+      scheduleCc(expressionGain.gain, 'expression', (value) =>
+        clampCc(value, 0, 1)
+      );
+    }
+    if (ccHas('pitchBend')) {
+      scheduleCc(osc.detune, 'pitchBend', (value) => clampCc(value, -1, 1) * 200);
+    }
+    if (ccHas('modulation')) {
+      // Mod wheel → vibrato. Depth is in cents, capped at ±25 cents; a zero
+      // lane leaves the voice untouched.
+      vibratoOsc = ctx.createOscillator();
+      vibratoOsc.type = 'sine';
+      vibratoOsc.frequency.setValueAtTime(5.5, time);
+      const vibratoGain = ctx.createGain();
+      scheduleCc(vibratoGain.gain, 'modulation', (value) =>
+        clampCc(value, 0, 1) * 25
+      );
+      vibratoOsc.connect(vibratoGain);
+      vibratoGain.connect(osc.detune);
+      vibratoOsc.start(time);
+      vibratoOsc.stop(stopAt);
+    }
+
     // Sub oscillator — the Synth's SUB OSC toggle finally reaches the graph.
     // Gated at 40Hz so a low note cannot push its own sub-bass into the
     // inaudible/DC region.
@@ -3127,6 +3241,13 @@ export class AudioEngineService {
       );
       subOsc.connect(subGainNode);
       subGainNode.connect(filter ?? panner);
+      if (ccHas('pitchBend')) {
+        scheduleCc(
+          subOsc.detune,
+          'pitchBend',
+          (value) => clampCc(value, -1, 1) * 100
+        );
+      }
     }
 
     // Slide note support: glide the oscillator frequency over the note
@@ -3159,7 +3280,8 @@ export class AudioEngineService {
     onVoice?.({
       start: time,
       stopAt,
-      cut: () => this.cutVoice(ctx, vca, [osc, subOsc, lfoOsc], stopAt),
+      cut: () =>
+        this.cutVoice(ctx, vca, [osc, subOsc, lfoOsc, vibratoOsc], stopAt),
     });
 
     return stopAt;
@@ -3695,7 +3817,7 @@ export class AudioEngineService {
       /* already disconnected */
     }
     this.trackPluginInserts.delete(trackId);
-    this.pluginMeterLevels.update((all) => {
+    this.ensurePluginMeterLevels().update((all) => {
       const next = { ...all };
       delete next[`track:${trackId}`];
       return next;
@@ -3723,6 +3845,21 @@ export class AudioEngineService {
   readonly pluginMeterLevels = signal<
     Record<string, Array<{ id: string; peak: number }>>
   >({});
+
+  /**
+   * Lazy-safe accessor. Several engine tests build the service with
+   * `Object.create(AudioEngineService.prototype)`, which never runs field
+   * initialisers; those instances must still be able to install or release a
+   * plugin chain without throwing on the meter signal.
+   */
+  private ensurePluginMeterLevels() {
+    if (!this.pluginMeterLevels) {
+      (this as any).pluginMeterLevels = signal<
+        Record<string, Array<{ id: string; peak: number }>>
+      >({});
+    }
+    return this.pluginMeterLevels;
+  }
 
   private _pluginChainWorkletLoaded = false;
   private _pluginChainWorkletInitPromise: Promise<boolean> | null = null;
@@ -3828,7 +3965,7 @@ export class AudioEngineService {
             Number.isFinite(level.peak)
         )
         .map((level) => ({ id: level.id, peak: Math.max(0, level.peak) }));
-      this.pluginMeterLevels.update((all) => ({ ...all, [meterKey]: levels }));
+      this.ensurePluginMeterLevels().update((all) => ({ ...all, [meterKey]: levels }));
     };
 
     const insert: LivePluginInsert = {
