@@ -18,6 +18,7 @@ import type { SmartSheetMemory } from "../../../types/profile.types";
 import { WorkProtectionService } from "../../work-protection.service";
 import {
   CompositionAuditionService,
+  type AuditionMemoryEstimate,
   type AuditionScore,
 } from "../../../composer/composition-audition.service";
 import {
@@ -1555,6 +1556,16 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
+  /** Peak buffer cost before this saved section starts rendering. */
+  sectionPreviewMemory(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): AuditionMemoryEstimate | null {
+    return this.previewMemoryFor(
+      templateSectionToAuditionScore(template, section),
+    );
+  }
+
   /** True while a finished one-pass take for this section is being held. */
   private isHeldSectionPreview(
     template: ProjectTemplate,
@@ -1679,6 +1690,14 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
+  private previewMemoryFor(
+    score: AuditionScore | null,
+  ): AuditionMemoryEstimate | null {
+    return score
+      ? this.compositionAudition.memoryEstimateFor(score.durationSeconds)
+      : null;
+  }
+
   /** Optional slice position and remaining-time detail for render labels. */
   private renderDetail(): string {
     const detail = [
@@ -1717,6 +1736,17 @@ export class SmartCreationSheetComponent implements OnDestroy {
     return `${count} section${count === 1 ? "" : "s"} · ${this.previewPositionLabel(
       "one pass",
     )}`;
+  }
+
+  /** Peak buffer cost for the complete saved-section arrangement. */
+  sectionsPreviewMemory(
+    template: ProjectTemplate,
+  ): AuditionMemoryEstimate | null {
+    const sections = this.templateSections(template);
+    if (!sections.length) return null;
+    return this.previewMemoryFor(
+      templateSectionsToAuditionScore(template, sections),
+    );
   }
 
   /** Stop a full or tail arrangement take; false when none is active. */
@@ -2041,6 +2071,17 @@ export class SmartCreationSheetComponent implements OnDestroy {
     if (!this.mixPreviewActive(template)) return "";
     const count = this.selectedPatternCount(template);
     return `${count} row${count === 1 ? "" : "s"} · ${this.previewPositionLabel()}`;
+  }
+
+  /** Peak buffer cost for the currently selected mix rows. */
+  mixPreviewMemory(
+    template: ProjectTemplate,
+  ): AuditionMemoryEstimate | null {
+    const selections = this.selectedPatternSelections(template);
+    if (!selections.length) return null;
+    return this.previewMemoryFor(
+      templatePatternsToAuditionScore(template, selections),
+    );
   }
 
   /** Stable preview id for one breakdown row or one of its saved versions. */

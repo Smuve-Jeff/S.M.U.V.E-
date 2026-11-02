@@ -146,6 +146,11 @@ describe("SmartCreationSheetComponent", () => {
     renderProgress: signal(0),
     renderSliceLabel: jest.fn().mockReturnValue(""),
     renderEtaLabel: jest.fn().mockReturnValue(""),
+    memoryEstimateFor: jest.fn().mockReturnValue({
+      estimatedMb: 88,
+      budgetMb: 128,
+      exceedsBudget: false,
+    }),
     startScore: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn(),
     clear: jest.fn(),
@@ -2240,6 +2245,42 @@ describe("SmartCreationSheetComponent", () => {
     component.togglePatternSelection(template, details[1]);
 
     expect(mockCompositionAudition.stop).toHaveBeenCalled();
+  });
+
+  it("shows the memory estimate for mixes and saved section rows", () => {
+    const template = {
+      id: "tpl-memory",
+      name: "Memory Sketch",
+      bpm: 100,
+      tracks: [
+        {
+          name: "Lead",
+          instrumentId: "analog-warmth",
+          type: "midi",
+          notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+        },
+      ],
+    } as any;
+    component.toggleTemplateDetails(template);
+
+    expect(component.mixPreviewMemory(template)).toEqual({
+      estimatedMb: 88,
+      budgetMb: 128,
+      exceedsBudget: false,
+    });
+
+    const sectionTemplate = sectionTemplateFixture();
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    expect(component.sectionPreviewMemory(sectionTemplate, section)).toEqual({
+      estimatedMb: 88,
+      budgetMb: 128,
+      exceedsBudget: false,
+    });
+    expect(mockCompositionAudition.memoryEstimateFor).toHaveBeenCalled();
   });
 
   it("shows progress for the combined mix", () => {

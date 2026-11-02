@@ -1165,6 +1165,39 @@
   cursor: not-allowed;
 }
 
+.sc-preview-memory {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border: 1px solid rgba(119, 255, 192, 0.24);
+  border-radius: 999px;
+  background: rgba(119, 255, 192, 0.07);
+  color: #9beeff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sc-preview-memory em {
+  font-style: normal;
+  color: #ffd166;
+}
+
+.sc-preview-memory.is-high {
+  border-color: rgba(255, 209, 102, 0.52);
+  background: rgba(255, 209, 102, 0.1);
+  color: #ffe6a3;
+}
+
+.sc-preview-memory-section {
+  align-self: flex-start;
+  margin-left: 2px;
+}
+
 .sc-template-detail {
   display: flex;
   flex-direction: column;
