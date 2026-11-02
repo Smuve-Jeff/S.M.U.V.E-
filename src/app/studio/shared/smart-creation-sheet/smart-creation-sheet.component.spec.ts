@@ -13,7 +13,10 @@ import { UserProfileService } from "../../../services/user-profile.service";
 import { WorkProtectionService } from "../../work-protection.service";
 import { CompositionAuditionService } from "../../../composer/composition-audition.service";
 import { ProjectTemplateService } from "../../../services/project-template.service";
-import { templateSectionsPreviewId } from "../template-audition.util";
+import {
+  templateSectionPreviewId,
+  templateSectionsPreviewId,
+} from "../template-audition.util";
 import { signal } from "@angular/core";
 
 /** jsdom has no TouchEvent — build a plain Event carrying a single touch point. */
@@ -1415,7 +1418,8 @@ describe("SmartCreationSheetComponent", () => {
     expect(component.patternSelected(template, details[1])).toBe(false);
     expect(mockCompositionAudition.startScore).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: "template-preview-tpl-7-mix-0:slot-1@v1",
+        id: templateSectionPreviewId(template, section),
+        totalBars: 1,
         parts: [
           expect.objectContaining({
             notes: [expect.objectContaining({ midi: 60 })],
@@ -1648,6 +1652,14 @@ describe("SmartCreationSheetComponent", () => {
     component.adjustSectionBars(withSections, section, 1);
     expect(mockCompositionAudition.stop).toHaveBeenCalled();
 
+    mockCompositionAudition.stop.mockClear();
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(
+      templateSectionPreviewId(withSections, section),
+    );
+    component.adjustSectionBars(withSections, section, 1);
+    expect(mockCompositionAudition.stop).toHaveBeenCalledTimes(1);
+
     mockProjectTemplates.setTemplateSectionBars.mockClear();
     component.adjustSectionBars(withSections, { ...section, bars: 1 }, -1);
     component.adjustSectionBars(withSections, { ...section, bars: 32 }, 1);
@@ -1658,6 +1670,30 @@ describe("SmartCreationSheetComponent", () => {
     expect(mockSnackbar.error).toHaveBeenCalledWith(
       "Could not change this section's length.",
     );
+  });
+
+  it("loops a saved section only for its set number of bars", async () => {
+    const template = sectionTemplateFixture();
+    component.toggleTemplateDetails(template);
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      bars: 2,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+
+    await component.applySavedSection(template, section);
+
+    expect(mockCompositionAudition.startScore).toHaveBeenCalledTimes(1);
+    const [score, loop] = mockCompositionAudition.startScore.mock.calls[0];
+    expect(loop).toBe(true);
+    expect(score.id).toBe(templateSectionPreviewId(template, section));
+    expect(score.totalBars).toBe(2);
+    expect(score.parts[0].notes[0]).toMatchObject({ midi: 60, bar: 0 });
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      expect.stringContaining("section “Lift”"),
+    );
+    expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
   });
 
   it("plays saved sections once in their listed order", async () => {
@@ -1734,7 +1770,7 @@ describe("SmartCreationSheetComponent", () => {
       name: "Lift",
       rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
     };
-    const previewId = "template-preview-tpl-7-mix-0:slot-1@v1";
+    const previewId = templateSectionPreviewId(template, section);
 
     expect(component.sectionAuditionRendering(template, section)).toBe(false);
     mockCompositionAudition.playing.set(true);

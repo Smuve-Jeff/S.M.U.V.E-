@@ -478,7 +478,7 @@
                               ? 'Cancel this section render'
                               : sectionAuditionPlaying(tpl, section)
                                 ? 'Stop this section audition'
-                                : 'Audition these rows and versions in the mix'
+                                : 'Audition these rows for this section length'
                           "
                           [attr.aria-pressed]="sectionAuditionPlaying(tpl, section)"
                           [attr.aria-busy]="sectionAuditionRendering(tpl, section)"
@@ -505,7 +505,12 @@
                                 ? 'Rendering…'
                                 : section.rows.length +
                                   ' row' +
-                                  (section.rows.length === 1 ? '' : 's')
+                                  (section.rows.length === 1 ? '' : 's') +
+                                  ' · ' +
+                                  sectionBars(tpl, section) +
+                                  (sectionBars(tpl, section) === 1
+                                    ? ' bar'
+                                    : ' bars')
                             }}
                           </small>
                         </button>

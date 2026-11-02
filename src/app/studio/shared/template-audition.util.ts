@@ -312,6 +312,14 @@ export function templatePatternsToAuditionScore(
   );
 }
 
+const sectionRowSignature = (section: TemplateSection): string =>
+  section.rows
+    .map(
+      (row) =>
+        `${row.trackIndex}:${row.slotId ?? "live"}@${row.versionId ?? "active"}`,
+    )
+    .join(",");
+
 /** Stable id for a one-pass arrangement of saved sections in list order. */
 export const templateSectionsPreviewId = (
   templateId: string,
@@ -319,14 +327,8 @@ export const templateSectionsPreviewId = (
 ): string => {
   const signature = sections
     .map((section) => {
-      const rows = section.rows
-        .map(
-          (row) =>
-            `${row.trackIndex}:${row.slotId ?? "live"}@${row.versionId ?? "active"}`,
-        )
-        .join(",");
       const bars = section.bars ? `:${section.bars}bars` : "";
-      return `${section.id}${bars}[${rows}]`;
+      return `${section.id}${bars}[${sectionRowSignature(section)}]`;
     })
     .join("|");
   return `${templateMixPreviewPrefix(templateId)}arrangement-${signature}`;
@@ -421,6 +423,52 @@ function offsetPart(part: ComposerPart, bars: number): ComposerPart {
     notes: part.notes.map((note) => ({ ...note, bar: note.bar + bars })),
     hits: part.hits.map((hit) => ({ ...hit, bar: hit.bar + bars })),
   };
+}
+
+/**
+ * Stable id for one saved section's audition, including its length and rows so
+ * a changed section never reuses a stale rendered buffer.
+ */
+export const templateSectionPreviewId = (
+  template: ProjectTemplate,
+  section: TemplateSection,
+): string => {
+  const bars = templateSectionBars(template, section);
+  return `${templateMixPreviewPrefix(template.id)}section-${
+    section.id
+  }-${bars}b-${sectionRowSignature(section)}`;
+};
+
+/**
+ * Audition one saved section alone, looping only the bars that section
+ * occupies in the arrangement. Rows resolve exactly like the arrangement; a
+ * section whose notes all fall outside its set length has nothing to play.
+ */
+export function templateSectionToAuditionScore(
+  template: ProjectTemplate,
+  section: TemplateSection,
+): AuditionScore | null {
+  const bars = templateSectionBars(template, section);
+  const parts: ComposerPart[] = [];
+
+  resolveSectionRows(template, section).forEach((row, index) => {
+    const built = buildPart(
+      row.track,
+      row.notes,
+      `section-${section.id}-${index}`,
+    );
+    if (!built) return;
+    const part = trimPartToBars(built.part, bars);
+    if (part.notes.length || part.hits.length) parts.push(part);
+  });
+
+  if (!parts.length) return null;
+  return scoreFor(
+    template,
+    templateSectionPreviewId(template, section),
+    parts,
+    bars * 16,
+  );
 }
 
 /**

@@ -3,8 +3,10 @@ import {
   templatePatternsToAuditionScore,
   templatePatternToAuditionScore,
   templateSectionBars,
+  templateSectionPreviewId,
   templateSectionsPreviewId,
   templateSectionsToAuditionScore,
+  templateSectionToAuditionScore,
   templateToAuditionScore,
 } from './template-audition.util';
 import type { ProjectTemplate } from '../../services/project-template.service';
@@ -463,6 +465,44 @@ describe('templateSectionsToAuditionScore', () => {
       step: 8,
       length: 8,
     });
+  });
+
+  it("clips a single section audition to its set length", () => {
+    const sourceTemplate = source();
+    const oneBar = templateSectionToAuditionScore(sourceTemplate, {
+      ...intro,
+      bars: 1,
+    });
+
+    expect(oneBar).not.toBeNull();
+    expect(oneBar!.totalBars).toBe(1);
+    expect(oneBar!.durationSeconds).toBe(2);
+    expect(oneBar!.id).toBe(
+      templateSectionPreviewId(sourceTemplate, { ...intro, bars: 1 }),
+    );
+    // The version note starts in bar 2 and is dropped; the keys note remains.
+    expect(oneBar!.parts.flatMap((part) => part.notes).map((note) => note.bar))
+      .toEqual([0]);
+
+    const fourBars = templateSectionToAuditionScore(sourceTemplate, {
+      ...intro,
+      bars: 4,
+    });
+    expect(fourBars!.totalBars).toBe(4);
+    expect(fourBars!.parts.flatMap((part) => part.notes)[0].bar).toBe(1);
+    expect(templateSectionPreviewId(sourceTemplate, { ...intro, bars: 1 }))
+      .not.toBe(
+        templateSectionPreviewId(sourceTemplate, { ...intro, bars: 4 }),
+      );
+
+    expect(
+      templateSectionToAuditionScore(sourceTemplate, {
+        id: 'sec-empty',
+        name: 'Empty',
+        bars: 1,
+        rows: [{ trackIndex: 9, slotId: null }],
+      }),
+    ).toBeNull();
   });
 
   it('falls back to the live pattern and skips empty sections', () => {

@@ -29,6 +29,8 @@ import {
   templatePatternToAuditionScore,
   templatePreviewId,
   templateSectionBars,
+  templateSectionPreviewId,
+  templateSectionToAuditionScore,
   templateSectionsPreviewId,
   templateSectionsToAuditionScore,
   templateToAuditionScore,
@@ -999,8 +1001,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
     if (next === current) return;
 
-    // The arrangement's score and id are about to change; never leave the old
-    // take playing under a control that no longer points at it.
+    // The arrangement and this section's score are about to change; never
+    // leave the old take playing under a control that no longer points at it.
+    this.stopPreview(this.sectionPreviewId(template, section));
     this.stopSectionsPreview(template);
     const updated = this.projectTemplates.setTemplateSectionBars(
       template.id,
@@ -1016,7 +1019,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   /** Stop only the saved-section arrangement, not an unrelated preview. */
   private stopSectionsPreview(template: ProjectTemplate): void {
-    const id = this.sectionsPreviewId(template);
+    this.stopPreview(this.sectionsPreviewId(template));
+  }
+
+  /** Stop or cancel one specific preview, leaving every other score alone. */
+  private stopPreview(id: string | null): void {
     if (!id) return;
     const playing = this.previewPlaying(id);
     const rendering =
@@ -1300,7 +1307,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
-  /** Recall a named section and audition it without loading the template. */
+  /**
+   * Recall a named section and audition it without loading the template. The
+   * preview loops only the section's set number of bars, not its whole saved
+   * pattern.
+   */
   async applySavedSection(
     template: ProjectTemplate,
     section: TemplateSection,
@@ -1312,10 +1323,16 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.snackbar.info("This section no longer matches the template.");
       return;
     }
+    const score = templateSectionToAuditionScore(template, section);
+    if (!score) {
+      this.snackbar.info(
+        "This section has no playable notes at its set length.",
+      );
+      return;
+    }
 
     // A second click is a stop/cancel, never an immediate restart.
-    const previewId = templatePatternsPreviewId(template.id, selections);
-    if (this.previewPlaying(previewId)) {
+    if (this.previewPlaying(score.id)) {
       this.compositionAudition.stop();
       this.auditioningPreviewId.set(null);
       this.haptic.light();
@@ -1323,7 +1340,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       return;
     }
     if (
-      this.auditioningPreviewId() === previewId &&
+      this.auditioningPreviewId() === score.id &&
       this.compositionAudition.rendering()
     ) {
       this.compositionAudition.clear();
@@ -1344,11 +1361,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       ),
     );
     this.haptic.medium();
-    await this.auditionTemplateMix(
-      template,
-      undefined,
-      `section “${section.name}”`,
-    );
+    await this.previewScore(score, `section “${section.name}”`, true);
   }
 
   /** Valid rows/versions from a saved section, in saved order. */
@@ -1385,9 +1398,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
     template: ProjectTemplate,
     section: TemplateSection,
   ): string | null {
-    const selections = this.savedSectionSelections(template, section);
-    return selections.length
-      ? templatePatternsPreviewId(template.id, selections)
+    return this.savedSectionSelections(template, section).length
+      ? templateSectionPreviewId(template, section)
       : null;
   }
 
