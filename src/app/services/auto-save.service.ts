@@ -1,5 +1,6 @@
-import { Injectable, Injector, inject, effect, signal } from '@angular/core';
+import { Injectable, Injector, inject, effect } from '@angular/core';
 import { MusicManagerService } from './music-manager.service';
+import { AutoSaveStatusService } from './auto-save-status.service';
 import { DatabaseService } from './database.service';
 import { UserProfileService } from './user-profile.service';
 import { LoggingService } from './logging.service';
@@ -20,15 +21,17 @@ export class AutoSaveService {
   private logger = inject(LoggingService);
   private offlineSync = inject(OfflineSyncService);
   private injector = inject(Injector);
+  private status = inject(AutoSaveStatusService);
 
   private lastProjectHash = '';
   private lastProfileHash = '';
   private saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-  readonly isSaving = signal(false);
-  readonly lastSavedAt = signal<number | null>(null);
-  readonly lastError = signal<string | null>(null);
+  /** Mirrored into the shell-safe status store; see AutoSaveStatusService. */
+  readonly isSaving = this.status.isSaving;
+  readonly lastSavedAt = this.status.lastSavedAt;
+  readonly lastError = this.status.lastError;
   /** True when project is saved locally (offline-safe) */
-  readonly isLocalSaved = signal(false);
+  readonly isLocalSaved = this.status.isLocalSaved;
 
   /**
    * Whether the active session is guest clearance.

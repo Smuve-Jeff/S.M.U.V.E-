@@ -5,7 +5,6 @@ import { UIService } from '../ui.service';
 import { DeckService } from '../deck.service';
 import { AiService } from '../ai.service';
 import { NotificationService } from '../notification.service';
-import { StudioOrchestrationService } from '../studio-orchestration.service';
 
 describe('CommandPaletteService', () => {
   let service: CommandPaletteService;
@@ -13,7 +12,6 @@ describe('CommandPaletteService', () => {
   let deckService: any;
   let aiService: any;
   let notificationService: any;
-  let orchestrationService: any;
 
   beforeEach(() => {
     uiService = {
@@ -46,19 +44,6 @@ describe('CommandPaletteService', () => {
     notificationService = {
       show: jest.fn(),
     };
-    orchestrationService = {
-      paletteActions: signal([
-        {
-          id: 'studio-preview-ai',
-          label: 'Preview AI Fix',
-          description:
-            'Preview the primary AI fix for the current studio view.',
-          category: 'Studio AI',
-          keywords: ['studio', 'ai', 'preview'],
-          run: jest.fn(),
-        },
-      ]),
-    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -67,7 +52,6 @@ describe('CommandPaletteService', () => {
         { provide: DeckService, useValue: deckService },
         { provide: AiService, useValue: aiService },
         { provide: NotificationService, useValue: notificationService },
-        { provide: StudioOrchestrationService, useValue: orchestrationService },
       ],
     });
 
@@ -107,14 +91,27 @@ describe('CommandPaletteService', () => {
     expect(service.isOpen()).toBe(false);
   });
 
-  it('includes orchestration-driven studio actions', () => {
+  it('includes actions registered by the Studio orchestration layer', () => {
+    const run = jest.fn();
+    service.setExtensionActions('studio-orchestration', [
+      {
+        id: 'studio-preview-ai',
+        label: 'Preview AI Fix',
+        description:
+          'Preview the primary AI fix for the current studio view.',
+        category: 'Studio AI',
+        keywords: ['studio', 'ai', 'preview'],
+        run,
+      },
+    ]);
+
     const action = service
       .actions()
       .find((candidate) => candidate.id === 'studio-preview-ai');
 
     expect(action?.label).toBe('Preview AI Fix');
     action?.run();
-    expect(orchestrationService.paletteActions()[0].run).toHaveBeenCalled();
+    expect(run).toHaveBeenCalled();
   });
 
   it('executeCommandById runs the matching action by id', () => {

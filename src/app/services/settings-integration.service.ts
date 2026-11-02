@@ -1,6 +1,5 @@
 import { Injectable, inject, effect } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
-import { AiService } from './ai.service';
 import { AudioEngineService } from './audio-engine.service';
 
 @Injectable({
@@ -8,15 +7,9 @@ import { AudioEngineService } from './audio-engine.service';
 })
 export class SettingsIntegrationService {
   private profileService = inject(UserProfileService);
-  private aiService = inject(AiService);
   private audioEngine = inject(AudioEngineService);
 
   constructor() {
-    // AI Integration — persona changes are reactive via signals
-    effect(() => {
-      const _aiSettings = this.profileService.profile().settings.ai;
-    });
-
     // Audio Integration
     effect(() => {
       const audioSettings = this.profileService.profile().settings.audio;

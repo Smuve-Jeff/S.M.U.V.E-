@@ -1,10 +1,8 @@
 import { Injectable, Injector, computed, effect, inject, signal } from '@angular/core';
 import { UIService } from './ui.service';
 import { DeckService } from './deck.service';
-import { AiService } from './ai.service';
 import { NotificationService } from './notification.service';
 import { MainViewMode } from './user-context.service';
-import { StudioOrchestrationService } from './studio-orchestration.service';
 import type { CompositionCoreService } from '../composer/composition-core.service';
 import type { ComponentKind } from '../composer/composer.types';
 
@@ -150,10 +148,18 @@ export class CommandPaletteService {
   }
   private uiService = inject(UIService);
   private deckService = inject(DeckService);
-  private aiService = inject(AiService);
   private notificationService = inject(NotificationService);
-  private orchestration = inject(StudioOrchestrationService);
   private injector = inject(Injector);
+
+  private async performExecutiveAudit(): Promise<void> {
+    try {
+      const { AiService } = await import('./ai.service');
+      this.injector.get(AiService).performExecutiveAudit();
+      this.notificationService.show('Manual Audit Triggered', 'info', 2000);
+    } catch {
+      this.notificationService.show('AI audit is unavailable in this build.', 'warning', 2200);
+    }
+  }
 
   /**
    * Writes a genre-locked pass, then puts the artist in front of it. The
@@ -252,10 +258,7 @@ export class CommandPaletteService {
         description: 'Trigger a full executive AI audit.',
         category: 'AI',
         shortcut: 'Alt + A',
-        run: () => {
-          this.aiService.performExecutiveAudit();
-          this.notificationService.show('Manual Audit Triggered', 'info', 2000);
-        },
+        run: () => void this.performExecutiveAudit(),
       },
       {
         id: 'toggle-performance',
@@ -336,10 +339,6 @@ export class CommandPaletteService {
         category: 'Composition',
         keywords: ['compose', 'write', 'generate', 'song', 'score', ...action.keywords],
         run: () => this.composeStep(action.component),
-      })),
-      ...this.orchestration.paletteActions().map((action) => ({
-        ...action,
-        context: action.context as MainViewMode[] | undefined,
       })),
       ...recentActions,
       ...pinnedActions,

@@ -19,10 +19,8 @@ import { SmuveAdvisorComponent } from './components/smuve-advisor/smuve-advisor.
 import { SmuveTvPersistentPlayerComponent } from './components/smuve-tv-persistent-player/smuve-tv-persistent-player.component';
 import { NotificationService } from './services/notification.service';
 import { MainViewMode } from './services/user-context.service';
-import { AiService } from './services/ai.service';
-import { SettingsIntegrationService } from './services/settings-integration.service';
 import { DatabaseService } from './services/database.service';
-import { AutoSaveService } from './services/auto-save.service';
+import { AutoSaveStatusService } from './services/auto-save-status.service';
 import { CommandPaletteComponent } from './components/command-palette/command-palette.component';
 import { ArtistCoachCommandIntegrationService } from './services/artist-coach-command-integration.service';
 import { ArtistLifecycleCommandIntegrationService } from './services/artist-lifecycle-command-integration.service';
@@ -33,7 +31,6 @@ import { UserProfileService } from './services/user-profile.service';
 import { OfflineSyncService } from './services/offline-sync.service';
 import { InteractionDialogComponent } from './components/interaction-dialog/interaction-dialog.component';
 import { InteractionDialogService } from './services/interaction-dialog.service';
-import { AudioEngineService } from './services/audio-engine.service';
 import { ChallengeInboxService } from './services/challenge-inbox.service';
 import { LoggingService } from './services/logging.service';
 import { ViewConfig } from './services/workspace-registry';
@@ -103,11 +100,9 @@ interface NavigationGroup {
 export class AppComponent {
   authService = inject(AuthService);
   uiService = inject(UIService);
-  aiService = inject(AiService);
   notificationService = inject(NotificationService);
-  settingsIntegration = inject(SettingsIntegrationService);
   databaseService = inject(DatabaseService);
-  autoSaveService = inject(AutoSaveService);
+  autoSaveStatus = inject(AutoSaveStatusService);
   commandPalette = inject(CommandPaletteService);
   /** Registers one palette action per studio surface; injecting it is the point. */
   private readonly surfaceCommands = inject(StudioSurfaceCommandsService);
@@ -168,9 +163,9 @@ export class AppComponent {
   unreadNotifications = this.inboxService.unreadCount;
   pendingChallenges = this.inboxService.pendingCount;
   syncSummary = computed(() => ({
-    autoSaveBusy: this.autoSaveService.isSaving(),
-    lastSavedAt: this.autoSaveService.lastSavedAt(),
-    lastError: this.autoSaveService.lastError(),
+    autoSaveBusy: this.autoSaveStatus.isSaving(),
+    lastSavedAt: this.autoSaveStatus.lastSavedAt(),
+    lastError: this.autoSaveStatus.lastError(),
     isCloudSyncing: this.databaseService.isSyncing(),
     lastCloudSync: this.databaseService.lastSyncTime(),
     pending: this.offlineSync.pendingCount(),
@@ -204,6 +199,7 @@ export class AppComponent {
     this.setupAppUpdateNotifications();
     this.updateShellFromUrl(this.router.url);
     this.armAudioOnFirstUserGesture();
+    this.startAutoSave();
 
     this.router.events
       .pipe(
@@ -408,13 +404,21 @@ export class AppComponent {
       // as the first authenticated interaction arrives.
       if (this.isAuthRoute()) return;
       cleanup();
-      try {
-        this.injector.get(AudioEngineService).armOnFirstUserGesture();
-      } catch (error) {
-        // An unavailable audio implementation must not become a global anomaly
-        // or prevent the rest of the workspace from rendering.
-        this.logger.warn('Audio engine unavailable; continuing without audio.', error);
-      }
+      // The engine and its signal graph are sizeable. The Studio route already
+      // owns a direct reference, so importing here only costs a request on the
+      // first interaction with a non-audio surface — never the boot bundle.
+      void import('./services/audio-engine.service')
+        .then(({ AudioEngineService }) =>
+          this.injector.get(AudioEngineService).armOnFirstUserGesture()
+        )
+        .catch((error) => {
+          // An unavailable audio implementation must not become a global
+          // anomaly or prevent the rest of the workspace from rendering.
+          this.logger.warn(
+            'Audio engine unavailable; continuing without audio.',
+            error
+          );
+        });
     };
 
     // The shell can be torn down by tests or an embedding host before the
@@ -425,6 +429,49 @@ export class AppComponent {
     events.forEach((event) =>
       body.addEventListener(event, arm, { capture: true })
     );
+  }
+
+  /**
+   * Auto-save is a background concern, not boot chrome. Starting it after the
+   * first paint keeps the project graph out of the initial bundle without
+   * changing its app-wide scope: it still restores the last local project and
+   * watches every workspace once the browser is idle.
+   */
+  private startAutoSave(): void {
+    if (typeof window === 'undefined') return;
+
+    const load = () => {
+      void import('./services/auto-save.service')
+        .then(({ AutoSaveService }) => {
+          this.injector.get(AutoSaveService);
+        })
+        .catch((error) => {
+          this.logger.warn(
+            'Auto-save unavailable; continuing without background persistence.',
+            error
+          );
+        });
+
+      // Profile-backed audio and Stage FX settings were previously applied by
+      // an eager shell import. Start the same effects once the browser is idle
+      // instead of dropping them with the initial bundle.
+      void import('./services/settings-integration.service')
+        .then(({ SettingsIntegrationService }) => {
+          this.injector.get(SettingsIntegrationService);
+        })
+        .catch((error) => {
+          this.logger.warn(
+            'Settings integration unavailable; continuing with stored UI state.',
+            error
+          );
+        });
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(load, { timeout: 2000 });
+    } else {
+      window.setTimeout(load, 0);
+    }
   }
 
   private setupPwaListeners() {

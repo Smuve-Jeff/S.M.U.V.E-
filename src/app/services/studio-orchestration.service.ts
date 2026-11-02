@@ -8,6 +8,10 @@ import { SocialNetworkingService } from './social-networking.service';
 import { AiProduceService } from './ai-produce.service';
 import { AiMixAssistantService } from '../studio/effects/ai-mix-assistant.service';
 import {
+  CommandPaletteAction,
+  CommandPaletteService,
+} from './command-palette.service';
+import {
   AsyncCollaborationPacket,
   RemixLineageNode,
   RemixLineageRecord,
@@ -45,6 +49,7 @@ export class StudioOrchestrationService {
   private social = inject(SocialNetworkingService);
   private aiProduce = inject(AiProduceService);
   private aiMix = inject(AiMixAssistantService);
+  private palette = inject(CommandPaletteService);
 
   activeStudioView = signal<string>('arrangement');
   comments = signal<StudioComment[]>([]);
@@ -216,6 +221,19 @@ export class StudioOrchestrationService {
   });
 
   constructor() {
+    // Publish Studio-only actions through the palette's extension registry.
+    // The shell can then keep its palette graph lightweight while every action
+    // appears as soon as the Studio services are available.
+    effect(() => {
+      const actions: CommandPaletteAction[] = this.paletteActions().map(
+        (action) => ({
+          ...action,
+          context: action.context as CommandPaletteAction['context'],
+        })
+      );
+      this.palette.setExtensionActions('studio-orchestration', actions);
+    });
+
     effect(() => {
       const sync = this.social.sessionSyncState();
       if (!sync?.session) return;
