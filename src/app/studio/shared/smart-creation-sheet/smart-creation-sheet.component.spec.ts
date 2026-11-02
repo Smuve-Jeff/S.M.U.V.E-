@@ -1947,6 +1947,69 @@ describe("SmartCreationSheetComponent", () => {
     );
   });
 
+  it("follows the sounding section during full and tail previews", async () => {
+    const template = sectionTemplateFixture();
+    const intro = {
+      id: "sec-intro",
+      name: "Intro",
+      bars: 2,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const verse = {
+      id: "sec-verse",
+      name: "Verse",
+      bars: 1,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v2" }],
+    };
+    const hook = {
+      id: "sec-hook",
+      name: "Hook",
+      bars: 1,
+      rows: [{ trackIndex: 1, slotId: null }],
+    };
+    const withSections = { ...template, sections: [intro, verse, hook] };
+    component.toggleTemplateDetails(withSections);
+    const segments = component.sectionTimeline(withSections);
+
+    await component.auditionSavedSections(withSections);
+    const [full] = mockCompositionAudition.startScore.mock.calls[0];
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(full.id);
+    mockCompositionAudition.previewBars.set(4);
+    mockCompositionAudition.progress.set(0.5);
+    expect(component.sectionTimelineSegmentSounding(withSections, segments[1]))
+      .toBe(true);
+    expect(component.sectionTimelineSegmentSounding(withSections, segments[0]))
+      .toBe(false);
+    expect(component.sectionTimelineSegmentSounding(withSections, segments[2]))
+      .toBe(false);
+
+    mockCompositionAudition.progress.set(0.8);
+    expect(component.sectionTimelineSegmentSounding(withSections, segments[2]))
+      .toBe(true);
+
+    mockCompositionAudition.playing.set(false);
+    mockCompositionAudition.readyCompositionId.set(null);
+    await component.auditionTimelineSegment(withSections, segments[1]);
+    mockCompositionAudition.startScore.mockClear();
+    await component.playArrangementFromTimeline(withSections);
+    const [tail] = mockCompositionAudition.startScore.mock.calls[0];
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(tail.id);
+    mockCompositionAudition.previewBars.set(2);
+    mockCompositionAudition.progress.set(0.75);
+    expect(component.sectionTimelineSegmentSounding(withSections, segments[2]))
+      .toBe(true);
+    expect(component.sectionTimelineSegmentSounding(withSections, segments[0]))
+      .toBe(false);
+
+    mockCompositionAudition.progress.set(0.1);
+    expect(component.sectionTimelineSegmentSounding(withSections, segments[1]))
+      .toBe(true);
+    expect(component.sectionTimelineSegmentSounding(withSections, segments[2]))
+      .toBe(false);
+  });
+
   it("holds a finished one-pass section at 100% for a moment", async () => {
     const template = sectionTemplateFixture();
     component.toggleTemplateDetails(template);

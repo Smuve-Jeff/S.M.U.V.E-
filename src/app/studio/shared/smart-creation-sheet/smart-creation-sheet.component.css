@@ -1495,8 +1495,13 @@
   box-shadow: inset 0 0 0 2px #eaffff, 0 0 8px rgba(119, 255, 192, 0.8);
 }
 
-.sc-arrangement-timeline-span.is-anchor:not(.is-active) {
+.sc-arrangement-timeline-span.is-anchor:not(.is-active):not(.is-sounding) {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+
+.sc-arrangement-timeline-span.is-sounding {
+  opacity: 1;
+  box-shadow: inset 0 0 0 2px #77ffc0, 0 0 10px rgba(119, 255, 192, 0.85);
 }
 
 .sc-arrangement-timeline-legend {
@@ -1543,8 +1548,14 @@
   box-shadow: inset 0 0 0 1px rgba(119, 255, 192, 0.45);
 }
 
-.sc-arrangement-timeline-item.is-anchor:not(.is-active) {
+.sc-arrangement-timeline-item.is-anchor:not(.is-active):not(.is-sounding) {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+}
+
+.sc-arrangement-timeline-item.is-sounding {
+  background: rgba(119, 255, 192, 0.2);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px #77ffc0;
 }
 
 .sc-arrangement-timeline-dot {

@@ -197,6 +197,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   private readonly arrangementPreview = signal<{
     id: string;
     count: number;
+    startIndex: number;
   } | null>(null);
   /** One-pass take held at 100% for a moment after it finishes. */
   private readonly heldSectionPreview = signal<HeldSectionPreview | null>(null);
@@ -1173,7 +1174,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
     }
 
     this.stopTemplateMixPreview(template.id);
-    this.arrangementPreview.set({ id: score.id, count: tail.length });
+    this.arrangementPreview.set({
+      id: score.id,
+      count: tail.length,
+      startIndex,
+    });
     this.haptic.medium();
     await this.previewScore(
       score,
@@ -1582,7 +1587,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   /** Whichever arrangement take is active: all sections or a tail. */
   private activeArrangementPreview(
     template: ProjectTemplate,
-  ): { id: string; count: number } | null {
+  ): { id: string; count: number; startIndex: number } | null {
     const prefix = templateMixPreviewPrefix(template.id);
     const tail = this.arrangementPreview();
     if (
@@ -1598,9 +1603,47 @@ export class SmartCreationSheetComponent implements OnDestroy {
       full &&
       (this.previewPlaying(full) || this.isPreviewRendering(full))
     ) {
-      return { id: full, count: this.templateSections(template).length };
+      return {
+        id: full,
+        count: this.templateSections(template).length,
+        startIndex: 0,
+      };
     }
     return null;
+  }
+
+  /**
+   * Section currently sounding inside a full or tail arrangement, resolved
+   * from the rendered bar position so it follows the actual playhead.
+   */
+  private activeArrangementSectionId(
+    template: ProjectTemplate,
+  ): string | null {
+    const active = this.activeArrangementPreview(template);
+    if (!active || !this.compositionAudition.playing()) return null;
+
+    const segments = this.sectionTimeline(template);
+    if (!segments.length) return null;
+    const totalBars = Math.max(1, this.compositionAudition.previewBars());
+    const progress = Math.max(
+      0,
+      Math.min(1, this.compositionAudition.progress()),
+    );
+    const bar = Math.min(totalBars - 1, Math.floor(progress * totalBars));
+
+    let cursor = 0;
+    for (let index = active.startIndex; index < segments.length; index++) {
+      cursor += segments[index].bars;
+      if (bar < cursor) return segments[index].id;
+    }
+    return segments[segments.length - 1]?.id ?? null;
+  }
+
+  sectionTimelineSegmentSounding(
+    template: ProjectTemplate,
+    segment: SectionTimelineSegment,
+  ): boolean {
+    return this.activeArrangementSectionId(template) === segment.id;
   }
 
   /** True while saved sections are playing back-to-back, from any start. */
@@ -1672,7 +1715,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
     }
 
     this.stopTemplateMixPreview(template.id);
-    this.arrangementPreview.set({ id: score.id, count: sections.length });
+    this.arrangementPreview.set({
+      id: score.id,
+      count: sections.length,
+      startIndex: 0,
+    });
     this.haptic.medium();
     await this.previewScore(
       score,
