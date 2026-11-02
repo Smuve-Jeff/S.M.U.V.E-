@@ -99,6 +99,36 @@ describe('CompositionCoreService creative briefs', () => {
     expect(loaded!.rationale.join('\n')).not.toContain('Brief:');
   });
 
+  it('keeps earlier readings newest-first and restores one with its brief', () => {
+    service.setBrief('dark and 140 bpm');
+    const first = service.generate({ seed: 11 });
+    service.setBrief('bright and 96 bpm');
+    const second = service.generate({ seed: 12 });
+
+    expect(service.passHistory().map((pass) => pass.composition)).toEqual([second, first]);
+    expect(service.passHistory()[0].brief).toBe('bright and 96 bpm');
+
+    service.setBrief('');
+    const restored = service.restorePass(service.passHistory()[1]);
+
+    expect(restored).toBe(first);
+    expect(service.current()).toBe(first);
+    expect(service.briefText()).toBe('dark and 140 bpm');
+    expect(service.intensity().darkness).toBeCloseTo(first!.darkness, 5);
+  });
+
+  it('caps the history and collapses an identical re-run', () => {
+    for (let seed = 1; seed <= 13; seed++) {
+      service.generate({ seed });
+    }
+    expect(service.passHistory()).toHaveLength(service.maxPassHistory);
+
+    service.clearPassHistory();
+    service.generate({ seed: 5 });
+    service.generate({ seed: 5 });
+    expect(service.passHistory()).toHaveLength(1);
+  });
+
   it('leaves the dials alone when the brief says nothing actionable', () => {
     service.setIntensity({ darkness: 0.24 });
     service.setBrief('make it feel like a rainy night');

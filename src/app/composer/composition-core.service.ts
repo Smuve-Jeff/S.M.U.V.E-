@@ -31,6 +31,8 @@ import { ComposerUplinkService } from './composer-uplink.service';
 
 const LIBRARY_KEY = 'smuve.composer.library.v1';
 const MAX_SAVED = 60;
+/** Short session memory: enough to compare readings without becoming a log. */
+const MAX_PASS_HISTORY = 12;
 
 export interface ComposerIntensity {
   complexity: number;
@@ -41,6 +43,16 @@ export interface ComposerIntensity {
 export interface StudioHandoffResult {
   trackIds: string[];
   skipped: string[];
+}
+
+/** One generated reading kept for comparison and one-click restore. */
+export interface CompositionPass {
+  id: string;
+  composition: Composition;
+  /** The brief exactly as it stood when this pass was written. */
+  brief: string;
+  intensity: ComposerIntensity;
+  createdAt: number;
 }
 
 /**
@@ -76,6 +88,9 @@ export class CompositionCoreService {
   generating = signal(false);
   error = signal<string | null>(null);
   savedLibrary = signal<SavedComposition[]>([]);
+  /** Newest first, capped; session-only so it never bloats storage. */
+  passHistory = signal<CompositionPass[]>([]);
+  readonly maxPassHistory = MAX_PASS_HISTORY;
   appliedCompositionId = signal<string | null>(null);
   lastHandoff = signal<StudioHandoffResult | null>(null);
 
@@ -201,6 +216,7 @@ export class CompositionCoreService {
       };
       this.current.set(withContext);
       this.appliedCompositionId.set(null);
+      this.recordPass(withContext, this.briefText().trim());
       return withContext;
     } catch (cause: any) {
       this.error.set(`Generation failed: ${cause?.message ?? cause}`);
@@ -237,7 +253,51 @@ export class CompositionCoreService {
     };
     this.current.set(withContext);
     this.appliedCompositionId.set(null);
+    // Catalogue cards are exact seeds, not brief-steered passes.
+    this.recordPass(withContext, '');
     return withContext;
+  }
+
+  /** Puts an earlier pass back on the desk without regenerating it. */
+  restorePass(pass: CompositionPass): Composition {
+    const genre = GENRE_BY_ID.get(pass.composition.genreId);
+    if (genre) this.selectedGenreId.set(genre.id);
+    this.component.set(pass.composition.component);
+    this.briefText.set(pass.brief);
+    this.intensity.set({ ...pass.intensity });
+    this.current.set(pass.composition);
+    this.appliedCompositionId.set(null);
+    this.error.set(null);
+    return pass.composition;
+  }
+
+  clearPassHistory(): void {
+    this.passHistory.set([]);
+  }
+
+  private recordPass(composition: Composition, brief: string): void {
+    const duplicate = this.passHistory().find(
+      (pass) =>
+        pass.composition.id === composition.id &&
+        pass.composition.variation === composition.variation &&
+        pass.brief === brief
+    );
+    const entry: CompositionPass = duplicate ?? {
+      id: `${composition.id}-${composition.variation}-${Date.now().toString(36)}`,
+      composition,
+      brief,
+      intensity: {
+        complexity: composition.complexity,
+        energy: composition.energy,
+        darkness: composition.darkness,
+      },
+      createdAt: Date.now(),
+    };
+    const next = [entry, ...this.passHistory().filter((pass) => pass !== entry)].slice(
+      0,
+      MAX_PASS_HISTORY
+    );
+    this.passHistory.set(next);
   }
 
   /**

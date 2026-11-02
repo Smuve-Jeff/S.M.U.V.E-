@@ -447,6 +447,56 @@
       </section>
     }
 
+    @if (core.passHistory().length > 1) {
+      <section class="pass-history">
+        <div class="section-head">
+          <div>
+            <h2>Pass history</h2>
+            <p class="muted">
+              This session — compare each reading against the one on the desk, then
+              restore any of them. {{ core.passHistory().length }} of
+              {{ core.maxPassHistory }} kept.
+            </p>
+          </div>
+          <div class="section-actions">
+            <button type="button" class="btn btn-ghost" (click)="core.clearPassHistory()">
+              Clear history
+            </button>
+          </div>
+        </div>
+        <div class="pass-list">
+          @for (pass of core.passHistory(); track pass.id) {
+            <div class="pass-item" [class.current]="isCurrentPass(pass)">
+              <div class="pass-main">
+                <div class="pass-top">
+                  <strong>{{ pass.composition.title }}</strong>
+                  <span class="pass-mode">{{ pass.composition.variation }}</span>
+                </div>
+                <span class="pass-meta">
+                  {{ pass.composition.bpm }} BPM · {{ pass.composition.keyLabel }} ·
+                  {{ pass.composition.componentLabel }} · {{ pass.composition.totalBars }} bars
+                </span>
+                @if (pass.brief) {
+                  <span class="pass-brief">“{{ pass.brief }}”</span>
+                }
+              </div>
+              <div class="pass-side">
+                <span class="pass-delta">{{ passDelta(pass) }}</span>
+                <button
+                  type="button"
+                  class="btn btn-ghost"
+                  [disabled]="isCurrentPass(pass)"
+                  (click)="restorePass(pass)"
+                >
+                  {{ isCurrentPass(pass) ? 'On the desk' : 'Restore' }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
     <section class="saved">
       <div class="section-head">
         <div>

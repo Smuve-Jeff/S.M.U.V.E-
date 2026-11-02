@@ -21,7 +21,10 @@ import type {
   SavedComposition,
   VariationMode,
 } from '../../composer/composer.types';
-import { CompositionCoreService } from '../../composer/composition-core.service';
+import {
+  CompositionCoreService,
+  type CompositionPass,
+} from '../../composer/composition-core.service';
 import { ComposerUplinkService } from '../../composer/composer-uplink.service';
 import { CompositionAuditionService } from '../../composer/composition-audition.service';
 import { briefSummary } from '../../composer/composition-brief';
@@ -208,6 +211,33 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
 
   generateStep(kind: ComponentKind): void {
     this.core.generateStep(kind);
+  }
+
+  restorePass(pass: CompositionPass): void {
+    this.audition.stop();
+    this.core.restorePass(pass);
+    this.notify.show(`Restored “${pass.composition.title}”.`, 'info');
+  }
+
+  isCurrentPass(pass: CompositionPass): boolean {
+    return this.core.current() === pass.composition;
+  }
+
+  /** Compact delta against the pass currently on the desk. */
+  passDelta(pass: CompositionPass): string {
+    const current = this.core.current();
+    if (!current || current === pass.composition) return 'current';
+    const parts: string[] = [];
+    const bars = pass.composition.totalBars - current.totalBars;
+    if (bars) parts.push(`${bars > 0 ? '+' : ''}${bars} bars`);
+    const bpm = pass.composition.bpm - current.bpm;
+    if (bpm) parts.push(`${bpm > 0 ? '+' : ''}${bpm} BPM`);
+    const energy = Math.round((pass.composition.energy - current.energy) * 100);
+    if (energy) parts.push(`energy ${energy > 0 ? '+' : ''}${energy}%`);
+    const darkness = Math.round((pass.composition.darkness - current.darkness) * 100);
+    if (darkness) parts.push(`dark ${darkness > 0 ? '+' : ''}${darkness}%`);
+    if (pass.brief !== this.core.briefText().trim()) parts.push('brief differs');
+    return parts.join(' · ') || 'same shape';
   }
 
   sendToStudio(): void {
