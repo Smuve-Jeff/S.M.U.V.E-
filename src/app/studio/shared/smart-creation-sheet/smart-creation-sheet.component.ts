@@ -158,6 +158,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
   /** Saved section being renamed and its draft name. */
   readonly renamingSectionId = signal<string | null>(null);
   readonly sectionRenameName = signal("");
+  /** Whether the open breakdown shows the saved-section reorder list. */
+  readonly reorderingSections = signal(false);
   private selectedPatternTemplateId: string | null = null;
 
   @Output() closeSheet = new EventEmitter<void>();
@@ -823,6 +825,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.expandedSectionId.set(null);
       this.renamingSectionId.set(null);
       this.sectionRenameName.set("");
+      this.reorderingSections.set(false);
       this.clearPatternSelection();
       return;
     }
@@ -831,6 +834,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.expandedSectionId.set(null);
     this.renamingSectionId.set(null);
     this.sectionRenameName.set("");
+    this.reorderingSections.set(false);
     this.selectedPatternTemplateId = template.id;
     this.selectedPatternVersions.set(
       new Map(
@@ -1005,6 +1009,54 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.renamingSectionId.set(null);
     this.sectionRenameName.set("");
     this.haptic.light();
+  }
+
+  /** Switch the open breakdown between section audition and reordering. */
+  toggleSectionReorder(template: ProjectTemplate, event?: Event): void {
+    event?.stopPropagation();
+    if (
+      !this.reorderingSections() &&
+      this.templateSections(template).length < 2
+    ) {
+      return;
+    }
+    const next = !this.reorderingSections();
+    this.reorderingSections.set(next);
+    if (next) {
+      // The reorder list hides the audition controls, so never leave a loop
+      // playing with no visible way to stop it.
+      this.stopTemplateMixPreview(template.id);
+      this.expandedSectionId.set(null);
+      this.renamingSectionId.set(null);
+      this.sectionRenameName.set("");
+    }
+    this.haptic.light();
+  }
+
+  /** Move a saved section one place earlier or later without auditioning. */
+  moveSavedSection(
+    template: ProjectTemplate,
+    section: TemplateSection,
+    offset: number,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    if (
+      !this.projectTemplates.moveTemplateSection(
+        template.id,
+        section.id,
+        offset,
+      )
+    ) {
+      return;
+    }
+    this.haptic.light();
+  }
+
+  /** Accessible summary of the current saved-section order. */
+  sectionOrderLabel(template: ProjectTemplate): string {
+    const names = this.templateSections(template).map((section) => section.name);
+    return names.length ? `Order: ${names.join(" → ")}` : "";
   }
 
   /** Rename a saved section in place, preserving its rows and id. */
@@ -1558,6 +1610,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.expandedSectionId.set(null);
       this.renamingSectionId.set(null);
       this.sectionRenameName.set("");
+      this.reorderingSections.set(false);
       this.clearPatternSelection();
     }
     this.haptic.light();

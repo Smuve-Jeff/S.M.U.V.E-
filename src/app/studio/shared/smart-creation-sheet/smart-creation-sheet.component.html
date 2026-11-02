@@ -347,8 +347,81 @@
                   class="sc-template-section-list"
                   *ngIf="templateSections(tpl).length"
                 >
-                  <span class="sc-template-section-label">Saved sections</span>
-                  <div class="sc-template-section-items">
+                  <div class="sc-template-section-head">
+                    <span class="sc-template-section-label">Saved sections</span>
+                    <button
+                      type="button"
+                      class="sc-template-section-order-toggle"
+                      (click)="toggleSectionReorder(tpl, $event)"
+                      [disabled]="templateSections(tpl).length < 2"
+                      [attr.aria-pressed]="reorderingSections()"
+                      [attr.aria-label]="
+                        reorderingSections()
+                          ? 'Finish reordering saved sections'
+                          : 'Reorder saved sections'
+                      "
+                      [attr.title]="
+                        templateSections(tpl).length < 2
+                          ? 'Add at least two sections to reorder'
+                          : reorderingSections()
+                            ? 'Finish reordering'
+                            : 'Change the saved-section order'
+                      "
+                    >
+                      <span class="material-symbols-outlined">{{
+                        reorderingSections() ? 'check' : 'swap_vert'
+                      }}</span>
+                      <span>{{ reorderingSections() ? 'Done' : 'Reorder' }}</span>
+                    </button>
+                  </div>
+                  <div
+                    class="sc-template-section-order"
+                    *ngIf="reorderingSections()"
+                  >
+                    <div
+                      class="sc-template-section-order-row"
+                      *ngFor="
+                        let section of templateSections(tpl);
+                        let i = index;
+                        let first = first;
+                        let last = last
+                      "
+                    >
+                      <span class="sc-template-section-order-index">{{ i + 1 }}</span>
+                      <span class="sc-template-section-order-name">{{ section.name }}</span>
+                      <small>
+                        {{ section.rows.length }}
+                        {{ section.rows.length === 1 ? 'row' : 'rows' }}
+                      </small>
+                      <button
+                        type="button"
+                        class="sc-template-section-move"
+                        (click)="moveSavedSection(tpl, section, -1, $event)"
+                        [disabled]="first"
+                        [attr.aria-label]="'Move ' + section.name + ' earlier'"
+                        title="Move earlier"
+                      >
+                        <span class="material-symbols-outlined">arrow_upward</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="sc-template-section-move"
+                        (click)="moveSavedSection(tpl, section, 1, $event)"
+                        [disabled]="last"
+                        [attr.aria-label]="'Move ' + section.name + ' later'"
+                        title="Move later"
+                      >
+                        <span class="material-symbols-outlined">arrow_downward</span>
+                      </button>
+                    </div>
+                    <p class="sc-template-section-order-hint" aria-live="polite">
+                      {{ sectionOrderLabel(tpl) }}
+                    </p>
+                  </div>
+                  <div
+                    class="sc-template-section-items"
+                    *ngIf="!reorderingSections()"
+                  >
                     <div
                       class="sc-template-section-entry"
                       *ngFor="let section of templateSections(tpl)"

@@ -406,6 +406,76 @@ describe("ProjectTemplateService", () => {
     ).toBeNull();
   });
 
+  it("reorders saved sections and persists their order", () => {
+    const template = service.saveCurrentAsTemplate("Order Sketch", true);
+    const intro = service.saveTemplateSection(template!.id, "Intro", [
+      { trackIndex: 0, slotId: "slot-1" },
+    ]);
+    const verse = service.saveTemplateSection(template!.id, "Verse", [
+      { trackIndex: 1, slotId: "slot-1" },
+    ]);
+    const hook = service.saveTemplateSection(template!.id, "Hook", [
+      { trackIndex: 2, slotId: null },
+    ]);
+    expect(intro && verse && hook).toBeTruthy();
+    expect(service.userTemplates()[0].sections?.map((s) => s.name)).toEqual([
+      "Hook",
+      "Verse",
+      "Intro",
+    ]);
+
+    expect(
+      service.moveTemplateSection(template!.id, intro!.id, -1),
+    ).toBe(true);
+    expect(service.userTemplates()[0].sections?.map((s) => s.name)).toEqual([
+      "Hook",
+      "Intro",
+      "Verse",
+    ]);
+    expect(service.userTemplates()[0].sections?.[1]).toMatchObject({
+      id: intro!.id,
+      rows: intro!.rows,
+    });
+
+    expect(
+      service.moveTemplateSection(template!.id, intro!.id, -1),
+    ).toBe(true);
+    expect(service.userTemplates()[0].sections?.map((s) => s.name)).toEqual([
+      "Intro",
+      "Hook",
+      "Verse",
+    ]);
+    const stored = JSON.parse(
+      localStorage.getItem("smuve_user_templates_v1") ?? "[]",
+    );
+    expect(stored[0].sections.map((s: { name: string }) => s.name)).toEqual([
+      "Intro",
+      "Hook",
+      "Verse",
+    ]);
+
+    expect(
+      service.moveTemplateSection(template!.id, intro!.id, -1),
+    ).toBe(false);
+    expect(
+      service.moveTemplateSection(template!.id, verse!.id, 1),
+    ).toBe(false);
+    expect(
+      service.moveTemplateSection(template!.id, intro!.id, 0),
+    ).toBe(false);
+    expect(
+      service.moveTemplateSection(template!.id, "missing-section", 1),
+    ).toBe(false);
+    expect(
+      service.moveTemplateSection("missing-template", intro!.id, 1),
+    ).toBe(false);
+    expect(service.userTemplates()[0].sections?.map((s) => s.name)).toEqual([
+      "Intro",
+      "Hook",
+      "Verse",
+    ]);
+  });
+
   it("persists user templates and applies them like a starter", () => {
     const template = service.saveCurrentAsTemplate("Saved Sketch");
     expect(template).not.toBeNull();

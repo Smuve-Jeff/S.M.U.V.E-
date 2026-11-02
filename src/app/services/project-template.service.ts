@@ -791,6 +791,37 @@ export class ProjectTemplateService {
     return renamed;
   }
 
+  /** Move a saved section one place earlier (-1) or later (+1). */
+  moveTemplateSection(
+    templateId: string,
+    sectionId: string,
+    offset: number,
+  ): boolean {
+    if (!Number.isInteger(offset) || offset === 0) return false;
+    const templates = this.userTemplates();
+    const template = templates.find((candidate) => candidate.id === templateId);
+    const sections = template?.sections;
+    if (!template || !sections) return false;
+    const index = sections.findIndex((section) => section.id === sectionId);
+    const target = index + offset;
+    if (index < 0 || target < 0 || target >= sections.length) return false;
+
+    const reordered = [...sections];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(target, 0, moved);
+    const next = templates.map((candidate) =>
+      candidate.id === templateId
+        ? { ...candidate, sections: reordered }
+        : candidate,
+    );
+    this.userTemplates.set(next);
+    this.persist(next);
+    this.logger.info(
+      `ProjectTemplateService: Moved section ${moved.name} to position ${target + 1}`,
+    );
+    return true;
+  }
+
   /** Remove one named section from a user template. */
   deleteTemplateSection(templateId: string, sectionId: string): boolean {
     const templates = this.userTemplates();

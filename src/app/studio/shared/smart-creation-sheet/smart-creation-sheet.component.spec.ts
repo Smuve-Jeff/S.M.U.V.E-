@@ -149,6 +149,7 @@ describe("SmartCreationSheetComponent", () => {
     userTemplates: userTemplatesSignal,
     saveTemplateSection: jest.fn(),
     renameTemplateSection: jest.fn(),
+    moveTemplateSection: jest.fn(),
     deleteTemplateSection: jest.fn(),
     applyTemplate: jest.fn(),
     deleteUserTemplate: jest.fn(),
@@ -1484,6 +1485,62 @@ describe("SmartCreationSheetComponent", () => {
     component.toggleSectionDetails(section);
     expect(component.expandedSectionId()).toBeNull();
     expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+  });
+
+  it("reorders saved sections without auditioning or renaming them", () => {
+    const intro = {
+      id: "sec-intro",
+      name: "Intro",
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const hook = {
+      id: "sec-hook",
+      name: "Hook",
+      rows: [{ trackIndex: 1, slotId: null }],
+    };
+    const template = {
+      ...sectionTemplateFixture(),
+      sections: [intro, hook],
+    };
+
+    component.toggleTemplateDetails(template);
+    component.toggleSectionDetails(intro);
+    component.beginSectionRename(intro);
+    expect(component.expandedSectionId()).toBe("sec-intro");
+    expect(component.renamingSectionId()).toBe("sec-intro");
+    expect(component.sectionOrderLabel(template)).toBe(
+      "Order: Intro → Hook",
+    );
+
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(
+      "template-preview-tpl-7-mix-0:slot-1@v1",
+    );
+    component.toggleSectionReorder(template);
+    expect(component.reorderingSections()).toBe(true);
+    expect(mockCompositionAudition.stop).toHaveBeenCalled();
+    expect(component.expandedSectionId()).toBeNull();
+    expect(component.renamingSectionId()).toBeNull();
+    expect(component.sectionRenameName()).toBe("");
+
+    mockProjectTemplates.moveTemplateSection.mockReturnValue(true);
+    component.moveSavedSection(template, intro, 1);
+
+    expect(mockProjectTemplates.moveTemplateSection).toHaveBeenCalledWith(
+      "tpl-7",
+      "sec-intro",
+      1,
+    );
+    expect(mockHaptic.light).toHaveBeenCalled();
+    expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+
+    component.toggleSectionReorder(template);
+    expect(component.reorderingSections()).toBe(false);
+    component.toggleSectionReorder(template);
+    expect(component.reorderingSections()).toBe(true);
+    component.toggleTemplateDetails(template);
+    expect(component.reorderingSections()).toBe(false);
   });
 
   it("renames a saved section in place without auditioning it", () => {
