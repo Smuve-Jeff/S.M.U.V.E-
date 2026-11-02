@@ -52,6 +52,13 @@ export interface ComposeIntent {
   brief: string;
 }
 
+export type CompositionHistoryIntent =
+  | { kind: 'list' }
+  /** Positive offsets move to older readings; negative to newer. */
+  | { kind: 'relative'; offset: number }
+  /** 1-based, newest first. */
+  | { kind: 'index'; index: number };
+
 export interface ChatMusicOptions {
   /** When true, the confirmation is also spoken via SpeechSynthesisService. */
   speak?: boolean;
@@ -390,15 +397,153 @@ export class ChatMusicCommandEngineService {
         '  • "play C - Am - F - G" — chord progression',
         '  • "drop some drums" / "bassline in A minor" / "melody in E major"',
         '  • "/compose" or "/compose bassline" — write from your committed genre, mid-session',
+        '  • "go back to the previous reading" — restore an earlier pass',
         '  • "set tempo 90" — lock the BPM',
         '  • "preview" / "play it" — hear what I made',
         '  • "undo" — rewind the last edit',
         '  • "stop" — cut playback',
         '',
-        'Slash forms: /compose, /compose melody, /make, /drums, /bass, /chords, /melody, /tempo 128, /preview, /undo, /stop.',
+        'Slash forms: /compose, /compose melody, /compose history, /compose restore 2, /make, /drums, /bass, /chords, /melody, /tempo 128, /preview, /undo, /stop.',
       ].join('\n'),
       actions: [{ id: 'music-preview', label: 'Preview' }],
     };
+  }
+
+  // ── Composition history ───────────────────────────────────────────────────
+
+  /**
+   * Recognizes asks for earlier composition readings. Kept separate from
+   * generation so "/compose history" can never be mistaken for a new song.
+   */
+  detectCompositionHistoryIntent(text: string): CompositionHistoryIntent | null {
+    const lower = text.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!lower) return null;
+    if (/^(?:what|why|how|when|where|which|who|explain|teach|tell|discuss|should|could|can|do|does|is|are)\b/.test(lower)) {
+      return null;
+    }
+
+    const noun = /\b(?:reading|pass|version|composition|arrangement)s?\b/;
+
+    if (
+      /^\/compose\s+(?:history|list|passes|readings)\b/.test(lower) ||
+      (/^(?:show|list|display)\b/.test(lower) && /\b(?:history|passes|readings)\b/.test(lower))
+    ) {
+      return { kind: 'list' };
+    }
+
+    const restoreIndex =
+      lower.match(/^\/compose\s+(?:restore|load)\s+#?(\d+)$/) ??
+      lower.match(
+        /^(?:restore|load|bring back|switch to)\s+(?:the\s+)?(?:pass|reading|version|composition|arrangement)\s*#?(\d+)$/
+      ) ??
+      lower.match(
+        /^(?:restore|load|bring back|switch to)\s+(?:the\s+)?(\d+)(?:st|nd|rd|th)\s+(?:pass|reading|version|composition|arrangement)$/
+      );
+    if (restoreIndex) {
+      return { kind: 'index', index: Number(restoreIndex[1]) };
+    }
+
+    if (/\b(?:go|take me|step|move)\s+back\b/.test(lower) && noun.test(lower)) {
+      return { kind: 'relative', offset: this.historyCount(lower) ?? 1 };
+    }
+    if (/\b(?:\d+|one|two|three|four|five|six|seven|eight|nine)\s+(?:readings|passes|versions|compositions|arrangements)\s+back\b/.test(lower)) {
+      return { kind: 'relative', offset: this.historyCount(lower) ?? 1 };
+    }
+    if (/\b(?:previous|last|earlier)\s+(?:reading|pass|version|composition|arrangement)\b/.test(lower)) {
+      return { kind: 'relative', offset: this.historyCount(lower) ?? 1 };
+    }
+    if (
+      (/\b(?:go|take me|step|move)\s+forward\b/.test(lower) && noun.test(lower)) ||
+      /\b(?:next|following|newer)\s+(?:reading|pass|version|composition|arrangement)\b/.test(lower)
+    ) {
+      return { kind: 'relative', offset: -(this.historyCount(lower) ?? 1) };
+    }
+    return null;
+  }
+
+  /** "two" in "go back two readings" also lands here; defaults to one. */
+  private historyCount(text: string): number | null {
+    const numeric =
+      text.match(/\b(\d+)\s+(?:readings|passes|versions|compositions|arrangements)\b/) ??
+      text.match(/\bback\s+(\d+)\b/);
+    if (numeric) return Math.max(1, Number(numeric[1]));
+    const words: Record<string, number> = {
+      one: 1,
+      two: 2,
+      three: 3,
+      four: 4,
+      five: 5,
+      six: 6,
+      seven: 7,
+      eight: 8,
+      nine: 9,
+    };
+    const word = text.match(/\b(one|two|three|four|five|six|seven|eight|nine)\b/);
+    return word ? words[word[1]] ?? null : null;
+  }
+
+  /** Lists or restores a pass without leaving the conversation. */
+  async compositionHistory(intent: CompositionHistoryIntent): Promise<ChatMusicResult> {
+    const core = await this.loadCompositionCore();
+    if (!core) {
+      return { content: 'Composition Core is offline in this build.', actions: [] };
+    }
+    const history = core.passHistory();
+    if (!history.length) {
+      return {
+        content:
+          'No passes in history yet. Ask me to compose a song or a step first, then I can take you back.',
+        actions: [],
+      };
+    }
+
+    const currentIndex = history.findIndex((pass) => pass.composition === core.current());
+    if (intent.kind === 'list') {
+      return {
+        content: [
+          `🎼 PASS HISTORY — ${history.length} kept this session`,
+          ...history.map(
+            (pass, index) =>
+              `${index === currentIndex ? '▸' : ' '} ${index + 1}. ${pass.composition.title} — ${pass.composition.variation}, ${pass.composition.bpm} BPM${pass.brief ? ` · “${this.shortBrief(pass.brief)}”` : ''}`
+          ),
+          'Say "go back to the previous reading" or "/compose restore 2".',
+        ].join('\n'),
+        actions: [{ id: 'composer-open', label: 'Open Composition Core' }],
+      };
+    }
+
+    const targetIndex =
+      intent.kind === 'index'
+        ? intent.index - 1
+        : (currentIndex >= 0 ? currentIndex : -1) + intent.offset;
+    if (targetIndex < 0) {
+      return {
+        content: 'That is already the newest reading on the desk. Ask for a new variation instead.',
+        actions: [],
+      };
+    }
+    if (targetIndex >= history.length) {
+      return {
+        content: `I only kept ${history.length} pass${history.length === 1 ? '' : 'es'} this session — that is further back than I can take you.`,
+        actions: [],
+      };
+    }
+
+    const target = history[targetIndex];
+    core.restorePass(target);
+    return {
+      content: `Restored pass ${targetIndex + 1} of ${history.length} — the ${target.composition.variation} reading.\n${this.describeComposition(target.composition)}`,
+      actions: [
+        { id: 'composer-audition', label: 'Audition' },
+        { id: 'composer-load', label: 'Load into Studio' },
+        { id: 'composer-open', label: 'Open Composition Core' },
+      ],
+    };
+  }
+
+  private shortBrief(brief: string): string {
+    const clean = brief.replace(/\s+/g, ' ').trim();
+    return clean.length > 46 ? `${clean.slice(0, 45)}…` : clean;
   }
 
   // ── Composition Core (genre-locked) ───────────────────────────────────────
@@ -453,15 +598,19 @@ export class ChatMusicCommandEngineService {
     return null;
   }
 
-  /** Builds the pass on demand, loading the composition engine lazily. */
-  async compose(component: ComponentKind, brief = ''): Promise<ChatMusicResult> {
-    let core: CompositionCoreService | null = null;
+  /** Loads the composition engine only when a pass is actually requested. */
+  private async loadCompositionCore(): Promise<CompositionCoreService | null> {
     try {
       const module = await import('../composer/composition-core.service');
-      core = this.injector.get(module.CompositionCoreService, null);
+      return this.injector.get(module.CompositionCoreService, null);
     } catch {
-      core = null;
+      return null;
     }
+  }
+
+  /** Builds the pass on demand, loading the composition engine lazily. */
+  async compose(component: ComponentKind, brief = ''): Promise<ChatMusicResult> {
+    const core = await this.loadCompositionCore();
     if (!core) {
       return {
         content: 'Composition Core is offline in this build, so I cannot write that pass.',

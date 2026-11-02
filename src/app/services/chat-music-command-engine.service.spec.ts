@@ -6,7 +6,10 @@ import { AudioEngineService } from './audio-engine.service';
 import { SpeechSynthesisService } from './speech-synthesis.service';
 import { UserProfileService } from './user-profile.service';
 import { initialProfile, UserProfile } from '../types/profile.types';
-import { CompositionCoreService } from '../composer/composition-core.service';
+import {
+  CompositionCoreService,
+  type CompositionPass,
+} from '../composer/composition-core.service';
 import { ComponentKind, Composition } from '../composer/composer.types';
 
 function makeTrack(
@@ -41,6 +44,34 @@ function makeTrack(
   } as unknown as TrackModel;
 }
 
+function makeComposition(overrides: Partial<Composition> = {}): Composition {
+  return {
+    id: 'comp-1',
+    title: 'Concrete Protocol',
+    component: 'bassline',
+    componentLabel: 'Bassline',
+    genreLabel: 'House',
+    bpm: 124,
+    keyLabel: 'F# Minor (Aeolian)',
+    modeLabel: 'minor',
+    grooveName: 'Deep House Pocket',
+    totalBars: 32,
+    durationSeconds: 62,
+    variation: 'fresh',
+    sections: [
+      { label: 'Intro', bars: 4 },
+      { label: 'Drop', bars: 28 },
+    ] as unknown as Composition['sections'],
+    parts: [
+      { name: 'Bass', range: 'F#1–C#3' },
+      { name: 'Chords', range: 'F#3–A4', reference: true },
+    ] as unknown as Composition['parts'],
+    theory: ['F# natural minor; i–VI–III–VII.'],
+    rationale: ['The profile declared house, so the pocket leads.'],
+    ...overrides,
+  } as Composition;
+}
+
 describe('ChatMusicCommandEngineService', () => {
   let service: ChatMusicCommandEngineService;
   let tracks: ReturnType<typeof signal<TrackModel[]>>;
@@ -54,6 +85,9 @@ describe('ChatMusicCommandEngineService', () => {
   let composeGate: ReturnType<typeof signal<any>>;
   let generateStep: jest.Mock<Composition | null, [ComponentKind]>;
   let setBrief: jest.Mock;
+  let currentComposition: ReturnType<typeof signal<Composition | null>>;
+  let passHistory: ReturnType<typeof signal<CompositionPass[]>>;
+  let restorePass: jest.Mock;
 
   beforeEach(() => {
     tracks = signal<TrackModel[]>([]);
@@ -79,27 +113,20 @@ describe('ChatMusicCommandEngineService', () => {
     speak = jest.fn();
     profile = signal<UserProfile>({ ...initialProfile, settings: { ...initialProfile.settings, ai: { ...initialProfile.settings.ai, aiTotalControlEnabled: true } } });
     composeGate = signal({ ready: true, blockers: [] });
-    generateStep = jest.fn((component: ComponentKind) => ({
-      id: 'comp-1',
-      title: 'Concrete Protocol',
-      component,
-      componentLabel: component === 'full-song' ? 'Complete song' : component.replace('-', ' '),
-      genreLabel: 'House',
-      bpm: 124,
-      keyLabel: 'F#',
-      modeLabel: 'minor',
-      grooveName: 'Deep House Pocket',
-      totalBars: 32,
-      durationSeconds: 62,
-      sections: [{ label: 'Intro', bars: 4 }, { label: 'Drop', bars: 28 }],
-      parts: [
-        { name: 'Bass', range: 'F#1–C#3', reference: false },
-        { name: 'Chords', range: 'F#3–A4', reference: true },
-      ],
-      theory: ['F# natural minor; i–VI–III–VII.'],
-      rationale: ['The profile declared house, so the pocket leads.'],
-    } as unknown as Composition));
+    generateStep = jest.fn((component: ComponentKind) =>
+      makeComposition({
+        component,
+        componentLabel:
+          component === 'full-song' ? 'Complete song' : component.replace('-', ' '),
+      })
+    );
 
+    currentComposition = signal<Composition | null>(null);
+    passHistory = signal<CompositionPass[]>([]);
+    restorePass = jest.fn((pass: CompositionPass) => {
+      currentComposition.set(pass.composition);
+      return pass.composition;
+    });
     setBrief = jest.fn();
     const composerMock = {
       gate: composeGate,
@@ -107,7 +134,9 @@ describe('ChatMusicCommandEngineService', () => {
       generateStep,
       setBrief,
       error: () => null,
-      current: () => null,
+      current: () => currentComposition(),
+      passHistory: () => passHistory(),
+      restorePass,
     };
 
     const audioMock = {
@@ -507,6 +536,68 @@ describe('ChatMusicCommandEngineService', () => {
     expect(intent?.component).toBe('bassline');
     await service.compose(intent!.component, intent!.brief);
     expect(setBrief).toHaveBeenLastCalledWith('compose a darker bassline at 140 bpm');
+  });
+
+  it('detects history asks without mistaking them for generation', () => {
+    expect(service.detectCompositionHistoryIntent('go back to the previous reading')).toEqual({
+      kind: 'relative',
+      offset: 1,
+    });
+    expect(service.detectCompositionHistoryIntent('go back two readings')).toEqual({
+      kind: 'relative',
+      offset: 2,
+    });
+    expect(service.detectCompositionHistoryIntent('show my pass history')).toEqual({ kind: 'list' });
+    expect(service.detectCompositionHistoryIntent('/compose history')).toEqual({ kind: 'list' });
+    expect(service.detectCompositionHistoryIntent('/compose restore 2')).toEqual({
+      kind: 'index',
+      index: 2,
+    });
+    expect(service.detectCompositionHistoryIntent('how do I see my pass history?')).toBeNull();
+  });
+
+  it('lists passes and restores an earlier reading', async () => {
+    const older = makeComposition({ id: 'old', title: 'Older Reading', variation: 'fresh' });
+    const newer = makeComposition({ id: 'new', title: 'Newer Reading', variation: 'evolve' });
+    const passes: CompositionPass[] = [
+      { id: 'p2', composition: newer, brief: 'bright', intensity: { complexity: 0.5, energy: 0.7, darkness: 0.3 }, createdAt: 2 },
+      { id: 'p1', composition: older, brief: 'dark', intensity: { complexity: 0.6, energy: 0.8, darkness: 0.7 }, createdAt: 1 },
+    ];
+    passHistory.set(passes);
+    currentComposition.set(newer);
+
+    const listed = await service.compositionHistory({ kind: 'list' });
+    expect(listed.content).toContain('▸ 1. Newer Reading');
+    expect(listed.content).toContain('2. Older Reading');
+
+    const restored = await service.compositionHistory({ kind: 'relative', offset: 1 });
+    expect(restorePass).toHaveBeenCalledWith(passes[1]);
+    expect(restored.content).toContain('Restored pass 2 of 2');
+    expect(restored.content).toContain('Older Reading');
+    expect(restored.actions.map((action) => action.id)).toContain('composer-audition');
+  });
+
+  it('reports empty and out-of-range history honestly', async () => {
+    expect((await service.compositionHistory({ kind: 'list' })).content).toContain(
+      'No passes in history'
+    );
+
+    passHistory.set([
+      {
+        id: 'p1',
+        composition: makeComposition(),
+        brief: '',
+        intensity: { complexity: 0.5, energy: 0.7, darkness: 0.5 },
+        createdAt: 1,
+      },
+    ]);
+    currentComposition.set(passHistory()[0].composition);
+    expect(
+      (await service.compositionHistory({ kind: 'relative', offset: 5 })).content
+    ).toContain('further back');
+    expect(
+      (await service.compositionHistory({ kind: 'relative', offset: -1 })).content
+    ).toContain('newest reading');
   });
 
   it('refuses to compose when the artist profile gate is locked', async () => {
