@@ -4,6 +4,12 @@ import { signal } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { ProjectsComponent } from './projects.component';
 import { ProjectService } from '../../services/project.service';
+import { ProjectWorkspaceService } from '../../studio/project-workspace.service';
+
+const workspaceMock = {
+  metadata: jest.fn((): { id: string } | null => null),
+  isDirty: jest.fn(() => false),
+};
 import { InteractionDialogService } from '../../services/interaction-dialog.service';
 import { UplinkService } from '../../services/uplink.service';
 import {
@@ -46,6 +52,7 @@ describe('ProjectsComponent', () => {
         { provide: UplinkService, useValue: uplinkMock },
         { provide: UserProfileService, useValue: profileServiceMock },
         { provide: ProjectService, useValue: projectServiceMock },
+        { provide: ProjectWorkspaceService, useValue: workspaceMock },
       ],
     }).compileComponents();
 
@@ -187,4 +194,27 @@ describe('ProjectsComponent', () => {
       await expect(component.finalizeReleaseCycle()).resolves.toBeUndefined();
     });
   });
+
+  describe('deleting a project that is open in the Studio', () => {
+    it('refuses while that project has unsaved changes', async () => {
+      const { component, projectServiceMock, dialogMock } = await createComponent();
+      dialogMock.prompt.mockResolvedValueOnce('Open in Studio');
+      await component.addProject();
+      const openProject = component.selectedProject()!;
+      workspaceMock.metadata.mockReturnValue({ id: openProject.id });
+      workspaceMock.isDirty.mockReturnValue(true);
+
+      try {
+        await component.deleteProject(openProject);
+
+        expect(dialogMock.confirm).not.toHaveBeenCalled();
+        expect(projectServiceMock.remove).not.toHaveBeenCalled();
+        expect(component.projectError()).toContain('unsaved changes');
+      } finally {
+        workspaceMock.metadata.mockReturnValue(null);
+        workspaceMock.isDirty.mockReturnValue(false);
+      }
+    });
+  });
+
 });

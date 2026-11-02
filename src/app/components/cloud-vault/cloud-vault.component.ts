@@ -7,6 +7,7 @@ import { ConflictRecord, RemoteSnapshot } from '../../types/cloud-sync.types';
 import {
   OfflineSyncService,
 } from '../../services/offline-sync.service';
+import { WorkProtectionService } from '../../studio/work-protection.service';
 
 @Component({
   selector: 'app-cloud-vault',
@@ -19,6 +20,7 @@ export class CloudVaultComponent {
   cloud = inject(CloudSyncService);
   offline = inject(OfflineSyncService);
   private router = inject(Router);
+  private readonly workProtection = inject(WorkProtectionService);
 
   /** Push a demo project used for interactive showcase. */
   readonly demoProjectId = signal<string>('proj_demo_001');
@@ -123,10 +125,17 @@ export class CloudVaultComponent {
     }));
   }
 
-  restore(projectId: string, snapshot: RemoteSnapshot): void {
+  async restore(projectId: string, snapshot: RemoteSnapshot): Promise<void> {
+    // Restoring a cloud version replaces the open session, so the same gate
+    // that protects imports must run before it lands.
+    if (
+      !(await this.workProtection.preserveBeforeReplace("cloud_restore_vault"))
+    ) {
+      return;
+    }
     // Restore the snapshot's own payload — NOT the demo-project editor
     // textarea (which is only for the push demo).
-    this.cloud.restoreFromBackup(projectId, snapshot);
+    await this.cloud.restoreFromBackup(projectId, snapshot);
   }
 
   trackById = (_: number, item: { id: string }): string => item.id;

@@ -95,6 +95,8 @@ import { BeginnerPathService } from "./beginner-path.service";
         color: var(--teal-500, #00e5ff);
       }
 
+      /* Portrait phones: the action moves under the title and is capped at two
+         lines, so the strip cannot grow with a long instruction. */
       @media (max-width: 480px) {
         :host {
           padding: 4px 8px 0;
@@ -107,6 +109,40 @@ import { BeginnerPathService } from "./beginner-path.service";
 
         .beginner-step-hint-do {
           flex-basis: 100%;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+      }
+
+      /* Landscape phones: the canvas is ~200px tall, so the step keeps its
+         number and title only — one compact row instead of a second header. */
+      @media (max-height: 500px) {
+        :host {
+          padding: 2px 8px 0;
+        }
+
+        .beginner-step-hint {
+          flex-wrap: nowrap;
+          padding: 3px 8px;
+          gap: 2px 8px;
+        }
+
+        .beginner-step-hint-badge {
+          padding: 1px 6px;
+          font-size: 8px;
+        }
+
+        .beginner-step-hint-title {
+          font-size: 0.74rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .beginner-step-hint-do {
+          display: none;
         }
       }
     `,

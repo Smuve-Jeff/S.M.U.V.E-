@@ -6,6 +6,7 @@ import { UplinkService } from '../../services/uplink.service';
 import { UplinkConsoleComponent } from '../uplink-console/uplink-console.component';
 import { UserProfileService } from '../../services/user-profile.service';
 import { ProjectService } from '../../services/project.service';
+import { ProjectWorkspaceService } from '../../studio/project-workspace.service';
 import { Project, Task } from '../../types/studio.types';
 
 interface PlaybookPhase {
@@ -30,6 +31,7 @@ export class ProjectsComponent {
   private uplinkService = inject(UplinkService);
   private profileService = inject(UserProfileService);
   private projectService = inject(ProjectService);
+  private workspace = inject(ProjectWorkspaceService);
   private destroyRef = inject(DestroyRef);
   deletingProjectId = signal<string | null>(null);
   projectError = signal('');
@@ -169,6 +171,17 @@ export class ProjectsComponent {
 
   async deleteProject(project: Project): Promise<void> {
     if (this.deletingProjectId()) return;
+    // Deleting the open set would take its autosave records with it while the
+    // Studio still holds unsaved edits. Ask the artist to land them first.
+    if (
+      this.workspace.metadata()?.id === project.id &&
+      this.workspace.isDirty()
+    ) {
+      this.projectError.set(
+        "This project is open in the Studio with unsaved changes. Save or export it there before deleting.",
+      );
+      return;
+    }
     this.deletingProjectId.set(project.id);
     try {
       const confirmed = await this.dialog.confirm({

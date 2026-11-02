@@ -3308,6 +3308,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       tone: "danger",
     });
     if (!confirmed) return;
+    // The confirm covers consent, not recoverability: keep the open take that
+    // the restore is about to replace.
+    if (!(await this.preserveOpenSketch("cloud_version", true))) return;
 
     this.versionHistoryBusy.set(true);
     try {
