@@ -423,12 +423,56 @@
                         </button>
                         <button
                           type="button"
+                          class="sc-template-section-edit"
+                          (click)="beginSectionRename(section, $event)"
+                          [attr.aria-label]="'Rename section ' + section.name"
+                          title="Rename this section"
+                        >
+                          <span class="material-symbols-outlined">edit</span>
+                        </button>
+                        <button
+                          type="button"
                           class="sc-template-section-remove"
                           (click)="removeSavedSection(tpl, section, $event)"
                           [attr.aria-label]="'Delete section ' + section.name"
                           title="Delete this section"
                         >
                           <span class="material-symbols-outlined">delete</span>
+                        </button>
+                      </div>
+                      <div
+                        class="sc-template-section-rename"
+                        *ngIf="renamingSectionId() === section.id"
+                        (click)="$event.stopPropagation()"
+                      >
+                        <input
+                          type="text"
+                          [value]="sectionRenameName()"
+                          (input)="sectionRenameName.set($any($event.target).value)"
+                          (keydown.enter)="commitSectionRename(tpl, section, $event)"
+                          (keydown.escape)="cancelSectionRename($event)"
+                          [attr.maxlength]="40"
+                          [attr.aria-label]="'New name for section ' + section.name"
+                          placeholder="Section name"
+                        />
+                        <button
+                          type="button"
+                          class="sc-template-section-rename-save"
+                          (click)="commitSectionRename(tpl, section, $event)"
+                          [disabled]="!sectionRenameName().trim()"
+                          aria-label="Save section name"
+                          title="Save name"
+                        >
+                          <span class="material-symbols-outlined">check</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="sc-template-section-rename-cancel"
+                          (click)="cancelSectionRename($event)"
+                          aria-label="Cancel renaming section"
+                          title="Cancel"
+                        >
+                          <span class="material-symbols-outlined">close</span>
                         </button>
                       </div>
                       <div

@@ -128,6 +128,7 @@ describe("SmartCreationSheetComponent", () => {
   const mockSnackbar = {
     success: jest.fn(),
     info: jest.fn(),
+    error: jest.fn(),
   };
 
   const mockCompositionAudition = {
@@ -147,6 +148,7 @@ describe("SmartCreationSheetComponent", () => {
   const mockProjectTemplates = {
     userTemplates: userTemplatesSignal,
     saveTemplateSection: jest.fn(),
+    renameTemplateSection: jest.fn(),
     deleteTemplateSection: jest.fn(),
     applyTemplate: jest.fn(),
     deleteUserTemplate: jest.fn(),
@@ -1481,6 +1483,52 @@ describe("SmartCreationSheetComponent", () => {
     expect(component.expandedSectionId()).toBe("sec-1");
     component.toggleSectionDetails(section);
     expect(component.expandedSectionId()).toBeNull();
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+  });
+
+  it("renames a saved section in place without auditioning it", () => {
+    const template = sectionTemplateFixture();
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    mockProjectTemplates.renameTemplateSection.mockReturnValue({
+      ...section,
+      name: "Hook",
+    });
+
+    component.beginSectionRename(section);
+    expect(component.renamingSectionId()).toBe("sec-1");
+    expect(component.sectionRenameName()).toBe("Lift");
+
+    component.sectionRenameName.set("  Hook  ");
+    component.commitSectionRename(template, section);
+
+    expect(mockProjectTemplates.renameTemplateSection).toHaveBeenCalledWith(
+      "tpl-7",
+      "sec-1",
+      "  Hook  ",
+    );
+    expect(component.renamingSectionId()).toBeNull();
+    expect(component.sectionRenameName()).toBe("");
+    expect(mockSnackbar.success).toHaveBeenCalledWith(
+      'Renamed section to “Hook”.',
+    );
+    expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+
+    mockProjectTemplates.renameTemplateSection.mockClear();
+    component.beginSectionRename(section);
+    component.sectionRenameName.set("   ");
+    component.commitSectionRename(template, section);
+    expect(mockProjectTemplates.renameTemplateSection).not.toHaveBeenCalled();
+    expect(mockSnackbar.error).toHaveBeenCalledWith("Give the section a name.");
+    expect(component.renamingSectionId()).toBe("sec-1");
+
+    component.cancelSectionRename();
+    expect(component.renamingSectionId()).toBeNull();
+    expect(component.sectionRenameName()).toBe("");
     expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
   });
 

@@ -351,6 +351,61 @@ describe("ProjectTemplateService", () => {
     expect(service.deleteTemplateSection(template!.id, section!.id)).toBe(false);
   });
 
+  it("renames saved sections in place and rejects duplicate names", () => {
+    const template = service.saveCurrentAsTemplate("Rename Sketch", true);
+    const first = service.saveTemplateSection(template!.id, "Lead", [
+      { trackIndex: 0, slotId: "slot-1", versionId: "v1" },
+    ]);
+    const second = service.saveTemplateSection(template!.id, "Verse", [
+      { trackIndex: 1, slotId: "slot-1" },
+    ]);
+    expect(first && second).toBeTruthy();
+
+    const renamed = service.renameTemplateSection(
+      template!.id,
+      first!.id,
+      "  Hook  ",
+    );
+    expect(renamed).toMatchObject({
+      id: first!.id,
+      name: "Hook",
+      rows: first!.rows,
+    });
+    expect(service.userTemplates()[0].sections?.map((s) => s.name)).toEqual([
+      "Verse",
+      "Hook",
+    ]);
+    const stored = JSON.parse(
+      localStorage.getItem("smuve_user_templates_v1") ?? "[]",
+    );
+    expect(
+      stored[0].sections.find(
+        (section: { id: string }) => section.id === first!.id,
+      ),
+    ).toMatchObject({
+      id: first!.id,
+      name: "Hook",
+      rows: first!.rows,
+    });
+
+    expect(
+      service.renameTemplateSection(template!.id, first!.id, "  verse  "),
+    ).toBeNull();
+    expect(
+      service.renameTemplateSection(template!.id, first!.id, "   "),
+    ).toBeNull();
+    expect(
+      service.userTemplates()[0].sections?.find((s) => s.id === first!.id)
+        ?.name,
+    ).toBe("Hook");
+    expect(
+      service.renameTemplateSection(template!.id, "missing-section", "Hook"),
+    ).toBeNull();
+    expect(
+      service.renameTemplateSection("missing-template", first!.id, "Hook"),
+    ).toBeNull();
+  });
+
   it("persists user templates and applies them like a starter", () => {
     const template = service.saveCurrentAsTemplate("Saved Sketch");
     expect(template).not.toBeNull();

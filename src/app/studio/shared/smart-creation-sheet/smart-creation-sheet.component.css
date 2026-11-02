@@ -1463,6 +1463,99 @@
   color: #b8f7ff;
 }
 
+.sc-template-section-edit {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 4px;
+  border: 0;
+  border-left: 1px solid rgba(0, 229, 255, 0.12);
+  background: transparent;
+  color: rgba(184, 247, 255, 0.55);
+  cursor: pointer;
+}
+
+.sc-template-section-edit .material-symbols-outlined {
+  font-size: 12px;
+}
+
+.sc-template-section-edit:hover {
+  background: rgba(119, 255, 192, 0.1);
+  color: #b6ffdd;
+}
+
+.sc-template-section-rename {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.sc-template-section-rename input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 7px;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.32);
+  color: #f0fffd;
+  font: inherit;
+  font-size: 11px;
+}
+
+.sc-template-section-rename input::placeholder {
+  color: rgba(184, 247, 255, 0.35);
+}
+
+.sc-template-section-rename input:focus {
+  outline: none;
+  border-color: rgba(0, 229, 255, 0.6);
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.12);
+}
+
+.sc-template-section-rename-save,
+.sc-template-section-rename-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sc-template-section-rename-save .material-symbols-outlined,
+.sc-template-section-rename-cancel .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.sc-template-section-rename-save {
+  color: #77ffc0;
+}
+
+.sc-template-section-rename-save:hover:not(:disabled) {
+  background: rgba(119, 255, 192, 0.14);
+}
+
+.sc-template-section-rename-save:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sc-template-section-rename-cancel {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.sc-template-section-rename-cancel:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
 .sc-template-section-details {
   display: flex;
   flex-direction: column;

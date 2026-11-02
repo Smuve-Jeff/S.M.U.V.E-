@@ -751,6 +751,46 @@ export class ProjectTemplateService {
     return section;
   }
 
+  /** Rename a saved section in place, preserving its id and rows. */
+  renameTemplateSection(
+    templateId: string,
+    sectionId: string,
+    name: string,
+  ): TemplateSection | null {
+    const trimmed = name.trim().slice(0, MAX_SECTION_NAME);
+    if (!trimmed) return null;
+
+    const templates = this.userTemplates();
+    const template = templates.find((candidate) => candidate.id === templateId);
+    const sections = template?.sections;
+    const target = sections?.find((section) => section.id === sectionId);
+    if (!template || !sections || !target) return null;
+    const duplicate = sections.some(
+      (section) =>
+        section.id !== sectionId &&
+        section.name.trim().toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (duplicate) return null;
+
+    const renamed: TemplateSection = { ...target, name: trimmed };
+    const next = templates.map((candidate) =>
+      candidate.id === templateId
+        ? {
+            ...candidate,
+            sections: sections.map((section) =>
+              section.id === sectionId ? renamed : section,
+            ),
+          }
+        : candidate,
+    );
+    this.userTemplates.set(next);
+    this.persist(next);
+    this.logger.info(
+      `ProjectTemplateService: Renamed section ${target.name} to ${trimmed}`,
+    );
+    return renamed;
+  }
+
   /** Remove one named section from a user template. */
   deleteTemplateSection(templateId: string, sectionId: string): boolean {
     const templates = this.userTemplates();

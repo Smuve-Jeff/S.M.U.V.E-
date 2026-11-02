@@ -155,6 +155,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly sectionName = signal("");
   /** Saved section whose row/version contents are expanded. */
   readonly expandedSectionId = signal<string | null>(null);
+  /** Saved section being renamed and its draft name. */
+  readonly renamingSectionId = signal<string | null>(null);
+  readonly sectionRenameName = signal("");
   private selectedPatternTemplateId: string | null = null;
 
   @Output() closeSheet = new EventEmitter<void>();
@@ -818,12 +821,16 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.expandedTemplateId.set(null);
       this.sectionName.set("");
       this.expandedSectionId.set(null);
+      this.renamingSectionId.set(null);
+      this.sectionRenameName.set("");
       this.clearPatternSelection();
       return;
     }
     this.expandedTemplateId.set(template.id);
     this.sectionName.set("");
     this.expandedSectionId.set(null);
+    this.renamingSectionId.set(null);
+    this.sectionRenameName.set("");
     this.selectedPatternTemplateId = template.id;
     this.selectedPatternVersions.set(
       new Map(
@@ -986,6 +993,46 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.haptic.light();
   }
 
+  beginSectionRename(section: TemplateSection, event?: Event): void {
+    event?.stopPropagation();
+    this.renamingSectionId.set(section.id);
+    this.sectionRenameName.set(section.name);
+    this.haptic.light();
+  }
+
+  cancelSectionRename(event?: Event): void {
+    event?.stopPropagation();
+    this.renamingSectionId.set(null);
+    this.sectionRenameName.set("");
+    this.haptic.light();
+  }
+
+  /** Rename a saved section in place, preserving its rows and id. */
+  commitSectionRename(
+    template: ProjectTemplate,
+    section: TemplateSection,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    if (!this.sectionRenameName().trim()) {
+      this.snackbar.error("Give the section a name.");
+      return;
+    }
+    const renamed = this.projectTemplates.renameTemplateSection(
+      template.id,
+      section.id,
+      this.sectionRenameName(),
+    );
+    if (!renamed) {
+      this.snackbar.error("That section name is already in use.");
+      return;
+    }
+    this.renamingSectionId.set(null);
+    this.sectionRenameName.set("");
+    this.haptic.medium();
+    this.snackbar.success(`Renamed section to “${renamed.name}”.`);
+  }
+
   /** Store the current row/version choices under a reusable section name. */
   saveCurrentSection(template: ProjectTemplate, event?: Event): void {
     event?.stopPropagation();
@@ -1138,6 +1185,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
     }
     if (this.expandedSectionId() === section.id) {
       this.expandedSectionId.set(null);
+    }
+    if (this.renamingSectionId() === section.id) {
+      this.renamingSectionId.set(null);
+      this.sectionRenameName.set("");
     }
     this.haptic.light();
     this.snackbar.info(`Deleted section “${section.name}”.`);
@@ -1505,6 +1556,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.expandedTemplateId.set(null);
       this.sectionName.set("");
       this.expandedSectionId.set(null);
+      this.renamingSectionId.set(null);
+      this.sectionRenameName.set("");
       this.clearPatternSelection();
     }
     this.haptic.light();
