@@ -2507,6 +2507,17 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       cancelLabel: "Cancel",
     });
     if (confirmed) {
+      // The confirm dialog covers the intent, but "unsaved changes will be
+      // lost" should not be true when a snapshot is possible: try to keep the
+      // sketch in local Sets, and say so honestly when that fails.
+      if (this.projectWorkspace.isDirty()) {
+        const preserved = await this.projectWorkspace.autoSave();
+        if (!preserved) {
+          this.snackbarService.error(
+            "Your previous sketch could not be saved — starting a new session without it.",
+          );
+        }
+      }
       this.musicManager.newProject();
       this.projectWorkspace.startFreshProject({
         bpm: this.audioEngine.tempo(),
@@ -2517,11 +2528,12 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  applyTemplate(id: string) {
+  async applyTemplate(id: string): Promise<void> {
     const template = this.templateService.templates.find(
       (item) => item.id === id,
     );
     if (!template) return;
+    if (!(await this.preserveOpenSketch("template"))) return;
     this.templateService.applyTemplate(id);
     this.projectWorkspace.startFreshProject({
       name: template.name,
@@ -2539,6 +2551,50 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   /**
+   * Snapshot the open sketch before a one-tap path replaces the canvas.
+   *
+   * Resolves true when there is nothing to lose or the snapshot is durable.
+   * A recipe or template is a convenience; the artist's current idea is not
+   * replaceable, so when the save fails the caller stops instead of handing
+   * them a fresh project with the old one gone — and the artist is told why.
+   */
+  private async preserveOpenSketch(action: string): Promise<boolean> {
+    if (!this.projectWorkspace.isDirty()) return true;
+    if (this.authService.isGuest?.()) {
+      // Guests have nowhere to store a snapshot. Asking is the only honest
+      // protection: "save first, then try again" would strand them behind a
+      // save they cannot perform, and replacing silently loses the sketch
+      // for good.
+      return this.dialog.confirm({
+        title: "Replace this sketch?",
+        message:
+          "Guest sessions are not saved on this device. This sketch will be replaced and cannot be recovered. Create an account to keep your work.",
+        confirmLabel: "Replace it",
+        cancelLabel: "Keep my sketch",
+      });
+    }
+    if (await this.projectWorkspace.autoSave()) return true;
+    const reason =
+      typeof this.projectWorkspace.persistenceError === "function"
+        ? this.projectWorkspace.persistenceError()
+        : "";
+    this.snackbarService.error(
+      reason
+        ? `Nothing was replaced — your current idea could not be saved. ${reason}`
+        : "Nothing was replaced — your current idea could not be saved on this device. Save it first, then try again.",
+    );
+    this.studioTelemetry.trackEvent(
+      "studio_error",
+      {
+        action: `preserve_before_${action}`,
+        error: reason || "autosave_unavailable",
+      },
+      false,
+    );
+    return false;
+  }
+
+  /**
    * One-tap instrumental for the mobile quick-start lane: load a curated
    * recipe (drums + bass + chords + melody), set its tempo, snapshot the
    * previous sketch to local Sets so nothing is lost, and land on the
@@ -2548,11 +2604,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     const recipe = this.ideasGenerator.recipes.find((r) => r.id === recipeId);
     if (!recipe) return;
     this.haptic.medium();
-    // Preserve the current sketch before the recipe wipes the canvas — the
-    // mobile lane must never be the place where an idea disappears.
-    if (this.projectWorkspace.isDirty()) {
-      await this.projectWorkspace.autoSave();
-    }
+    // Never let a failed snapshot become a replaced canvas.
+    if (!(await this.preserveOpenSketch("quick_start"))) return;
     this.audioEngine.resume();
     this.musicManager.applyGeneratedRecipe(recipe);
     this.audioEngine.tempo.set(recipe.bpm);
@@ -2843,7 +2896,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
             );
             this.snackbarService.success(`Starter seeded · ${recipe.name}`);
           } else if (this.templateService.templates?.[0]) {
-            this.applyTemplate(this.templateService.templates[0].id);
+            void this.applyTemplate(this.templateService.templates[0].id);
           }
           if (action.targetView && isStudioView(action.targetView)) {
             this.setActiveView(action.targetView);

@@ -554,11 +554,19 @@ export class ProjectWorkspaceService {
     }, 1200);
   }
 
-  async autoSave() {
-    if (this.isSaving()) return;
+  /**
+   * Snapshot the open project.
+   *
+   * Resolves false when nothing was stored — a guest session, incomplete
+   * audio, or a failed write. Callers that are about to replace the canvas
+   * (a one-tap recipe, a template, a new session) use that answer to stop
+   * instead of discarding a sketch this device never received.
+   */
+  async autoSave(): Promise<boolean> {
+    if (this.isSaving()) return false;
     if (this.isGuestSession) {
       this.logger.info('ProjectWorkspace: Auto-save skipped for guest session');
-      return;
+      return false;
     }
     try {
       const snapshot = this.createStoredSnapshot();
@@ -571,7 +579,7 @@ export class ProjectWorkspaceService {
         this.logger.warn(
           "ProjectWorkspace: Auto-save skipped; audio is incomplete",
         );
-        return;
+        return false;
       }
       const stored = this.toStoredBundle(snapshot, "autosave");
       await this.requirePersistence();
@@ -585,9 +593,11 @@ export class ProjectWorkspaceService {
       );
 
       this.persistenceError.set('');
+      return true;
     } catch (e) {
       this.persistenceError.set(e instanceof Error ? e.message : 'Auto-save failed. Save or export a backup.');
       this.logger.warn("ProjectWorkspace: Auto-save failed", e);
+      return false;
     }
   }
 

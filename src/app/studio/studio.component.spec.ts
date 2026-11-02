@@ -117,7 +117,7 @@ describe("StudioComponent", () => {
     lastRecoveredAt: signal(null),
     lastRecoveredSource: signal(null),
     autoSaveEnabled: signal(true),
-    autoSave: jest.fn().mockResolvedValue(undefined),
+    autoSave: jest.fn().mockResolvedValue(true),
     listLocalProjects: jest.fn().mockResolvedValue([]),
     loadProject: jest.fn().mockResolvedValue(null),
     deleteLocalProject: jest.fn().mockResolvedValue(true),
@@ -451,7 +451,7 @@ describe("StudioComponent", () => {
     expect(component.templateService.templates).toEqual([]);
   });
 
-  it("starts a fresh workspace when applying a template", () => {
+  it("starts a fresh workspace when applying a template", async () => {
     mockTemplateService.templates = [
       {
         id: "trap-elite",
@@ -462,7 +462,7 @@ describe("StudioComponent", () => {
       },
     ];
 
-    component.applyTemplate("trap-elite");
+    await component.applyTemplate("trap-elite");
 
     expect(mockTemplateService.applyTemplate).toHaveBeenCalledWith(
       "trap-elite",
@@ -472,6 +472,40 @@ describe("StudioComponent", () => {
       bpm: 140,
       genre: "trap",
     });
+  });
+
+  it("snapshots a dirty sketch before a template replaces it", async () => {
+    mockTemplateService.templates = [
+      { id: "trap-elite", name: "Trap Elite", bpm: 140, genre: "trap", tracks: [] },
+    ];
+    mockProjectWorkspace.isDirty.set(true);
+
+    await component.applyTemplate("trap-elite");
+
+    expect(mockProjectWorkspace.autoSave).toHaveBeenCalled();
+    const autoSaveOrder = (
+      mockProjectWorkspace.autoSave as jest.Mock
+    ).mock.invocationCallOrder[0];
+    const applyOrder = (
+      mockTemplateService.applyTemplate as jest.Mock
+    ).mock.invocationCallOrder[0];
+    expect(autoSaveOrder).toBeLessThan(applyOrder);
+  });
+
+  it("refuses to apply a template when the sketch cannot be saved", async () => {
+    mockTemplateService.templates = [
+      { id: "trap-elite", name: "Trap Elite", bpm: 140, genre: "trap", tracks: [] },
+    ];
+    mockProjectWorkspace.isDirty.set(true);
+    mockProjectWorkspace.autoSave.mockResolvedValueOnce(false);
+
+    await component.applyTemplate("trap-elite");
+
+    expect(mockTemplateService.applyTemplate).not.toHaveBeenCalled();
+    expect(mockProjectWorkspace.startFreshProject).not.toHaveBeenCalled();
+    expect(mockSnackbar.error).toHaveBeenCalledWith(
+      expect.stringContaining("Nothing was replaced"),
+    );
   });
 
   it("syncs studio subview changes into the orchestration layer", () => {
@@ -1421,6 +1455,46 @@ describe("StudioComponent", () => {
       ).mock.invocationCallOrder[0];
       expect(autoSaveOrder).toBeLessThan(applyOrder);
       expect(mockAudioEngine.tempo()).toBe(140);
+    });
+
+    it("leaves the open sketch untouched when the snapshot fails", async () => {
+      mockIdeasGenerator.recipes = [trapRecipe];
+      mockProjectWorkspace.isDirty.set(true);
+      mockProjectWorkspace.persistenceError.set("Storage is blocked.");
+      mockProjectWorkspace.autoSave.mockResolvedValueOnce(false);
+
+      await component.quickStartRecipe("trap");
+
+      expect(mockProjectWorkspace.autoSave).toHaveBeenCalled();
+      expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
+      expect(mockProjectWorkspace.startFreshProject).not.toHaveBeenCalled();
+      expect(mockSnackbar.success).not.toHaveBeenCalled();
+      expect(mockSnackbar.error).toHaveBeenCalledWith(
+        expect.stringContaining("Nothing was replaced"),
+      );
+      expect(mockStudioTelemetry.trackEvent).toHaveBeenCalledWith(
+        "studio_error",
+        expect.objectContaining({ action: "preserve_before_quick_start" }),
+        false,
+      );
+      mockProjectWorkspace.persistenceError.set("");
+    });
+
+    it("asks a guest before replacing a sketch it cannot save", async () => {
+      mockIdeasGenerator.recipes = [trapRecipe];
+      mockProjectWorkspace.isDirty.set(true);
+      (mockAuthService as any).isGuest = () => true;
+      mockDialog.confirm.mockResolvedValueOnce(false);
+
+      await component.quickStartRecipe("trap");
+
+      expect(mockDialog.confirm).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Replace this sketch?" }),
+      );
+      expect(mockProjectWorkspace.autoSave).not.toHaveBeenCalled();
+      expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
+      expect(mockProjectWorkspace.startFreshProject).not.toHaveBeenCalled();
+      delete (mockAuthService as any).isGuest;
     });
 
     it("ignores unknown recipe ids", async () => {

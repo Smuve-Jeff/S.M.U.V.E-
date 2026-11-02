@@ -3,9 +3,9 @@
    ------------------------------------------------------------
    The guided "make your first song" surface that replaces the
    arrangement canvas while beginner mode is on. Scoped styling
-   only: the six step cards keep their `--card-accent` binding,
-   the progress fill keeps its width binding and every card still
-   navigates to the same target view on tap.
+   only: the step card keeps its `--card-accent` binding, the
+   progress fill keeps its width binding, and both step actions
+   (open the tool, mark it done) stay inside the card.
 
    Pass fixes two mobile-audit failures the surface shipped with:
      1. the action footer was `position: fixed`, so it floated over
@@ -152,7 +152,93 @@
   color: var(--espresso-muted, #94a3c8);
 }
 
-/* ── Step cards ──────────────────────────────────────────── */
+/* ── The path strip ──────────────────────────────────────── */
+
+/* Six words across the top: the entire process at a glance, with the current
+   step lit. It scrolls sideways on a phone rather than wrapping into a wall,
+   and every stop is a real jump. */
+.wizard-path {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 2px 0 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wizard-path::-webkit-scrollbar {
+  display: none;
+}
+
+.wizard-path-step {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 52px;
+  min-height: 44px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--espresso-muted, #94a3c8);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wizard-path-dot {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.14));
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.wizard-path-label {
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.wizard-path-done .wizard-path-dot {
+  border-color: color-mix(in srgb, var(--teal-600, #00b8d4) 62%, transparent);
+  color: var(--teal-400, #66f0ff);
+}
+
+.wizard-path-current {
+  color: var(--espresso-text, #f1f5ff);
+}
+
+.wizard-path-current .wizard-path-dot {
+  border-color: var(--teal-400, #66f0ff);
+  background: linear-gradient(
+    180deg,
+    var(--teal-400, #66f0ff) 0%,
+    var(--teal-500, #00e5ff) 100%
+  );
+  color: #06091a;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--teal-500, #00e5ff) 36%, transparent);
+}
+
+.wizard-path-step:focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 2px;
+}
+
+/* ── Step card ───────────────────────────────────────────── */
 
 .wizard-cards {
   display: grid;
@@ -180,18 +266,6 @@
   mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
 }
 
-@media (min-width: 600px) {
-  .wizard-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 900px) {
-  .wizard-cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 .wizard-card {
   position: relative;
   display: flex;
@@ -211,7 +285,7 @@
   color: inherit;
   font-family: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: default;
   overflow: hidden;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -241,7 +315,6 @@
   transition: opacity 180ms ease;
 }
 
-.wizard-card:hover,
 .wizard-card-active {
   border-color: var(--card-accent, var(--teal-500, #00e5ff));
   transform: translateY(-2px);
@@ -253,13 +326,8 @@
       color-mix(in srgb, var(--card-accent, var(--teal-500, #00e5ff)) 16%, transparent);
 }
 
-.wizard-card:hover::before,
 .wizard-card-active::before {
   opacity: 1;
-}
-
-.wizard-card:active {
-  transform: translateY(0) scale(0.99);
 }
 
 .wizard-card:focus-visible {
@@ -267,25 +335,18 @@
   outline-offset: 3px;
 }
 
-/* Completed steps stay fully legible — only the accent moves to teal. */
-.wizard-card-done {
-  border-color: color-mix(in srgb, var(--teal-600, #00b8d4) 52%, transparent);
-}
-
-.wizard-card-done::before {
-  background: linear-gradient(
-    90deg,
-    var(--teal-600, #00b8d4) 0%,
-    color-mix(in srgb, var(--teal-500, #00e5ff) 35%, transparent) 100%
-  );
-  opacity: 1;
+/* Badge and glyph share one row, so the step number never floats over copy. */
+.wizard-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
 }
 
 .wizard-card-step-badge {
-  position: absolute;
-  top: 14px;
-  right: 14px;
   display: grid;
+  flex: 0 0 auto;
   place-items: center;
   width: 28px;
   height: 28px;
@@ -296,16 +357,6 @@
   font-size: 11px;
   font-weight: 900;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-}
-
-.wizard-card-done .wizard-card-step-badge {
-  background: var(--teal-600, #00b8d4);
-  color: #06091a;
-}
-
-.wizard-check {
-  font-size: 15px;
-  line-height: 1;
 }
 
 .wizard-card-icon {
@@ -331,8 +382,8 @@
 }
 
 .wizard-card-title {
-  margin: 0 0 4px;
-  font-size: 1rem;
+  margin: 0 0 10px;
+  font-size: 1.25rem;
   font-weight: 900;
   letter-spacing: 0.01em;
   color: var(--espresso-text, #f1f5ff);
@@ -349,11 +400,113 @@
 }
 
 .wizard-card-desc {
-  margin: 0;
-  font-size: 0.82rem;
+  margin: 0 0 10px;
+  font-size: 0.92rem;
   font-weight: 400;
-  line-height: 1.45;
+  line-height: 1.5;
+  color: var(--espresso-text, #f1f5ff);
+}
+
+/* "Do this:" / "Sounds like:" — the two halves of a step a kid can act on. */
+.wizard-label {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--card-accent, var(--teal-500, #00e5ff));
+}
+
+.wizard-example {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px dashed
+    color-mix(in srgb, var(--card-accent, var(--teal-500, #00e5ff)) 34%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ivory-deep, #06091a) 45%, transparent);
+  font-size: 0.82rem;
+  line-height: 1.4;
   color: var(--espresso-muted, #94a3c8);
+}
+
+.wizard-example .material-symbols-outlined {
+  flex: 0 0 auto;
+  font-size: 16px;
+  line-height: 1.2;
+  color: var(--card-accent, var(--teal-500, #00e5ff));
+}
+
+/* Two big taps: open the tool, or say the step is finished. */
+.wizard-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.wizard-do,
+.wizard-next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 140px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: var(--studio-radius-sm, 10px);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wizard-do {
+  border: 1px solid var(--card-accent, var(--teal-500, #00e5ff));
+  background: var(--card-accent, var(--teal-500, #00e5ff));
+  color: #06091a;
+}
+
+.wizard-do .material-symbols-outlined {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.wizard-next {
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.16));
+  background: color-mix(in srgb, var(--ivory-deep, #06091a) 55%, transparent);
+  color: var(--espresso-text, #f1f5ff);
+}
+
+.wizard-do:active,
+.wizard-next:active {
+  transform: scale(0.98);
+}
+
+.wizard-do:focus-visible,
+.wizard-next:focus-visible {
+  outline: 2px solid var(--teal-500, #00e5ff);
+  outline-offset: 2px;
+}
+
+.wizard-finish {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--teal-600, #00b8d4) 46%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--teal-600, #00b8d4) 12%, transparent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--espresso-text, #f1f5ff);
 }
 
 .wizard-card-tip {
@@ -392,33 +545,6 @@
   font-size: 24px;
   line-height: 1;
   color: var(--card-accent, var(--teal-500, #00e5ff));
-}
-
-.wizard-card-cta {
-  align-self: flex-start;
-  padding: 5px 12px;
-  border: 1px solid
-    color-mix(in srgb, var(--card-accent, var(--teal-500, #00e5ff)) 45%, transparent);
-  border-radius: 999px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--card-accent, var(--teal-500, #00e5ff));
-  transition:
-    background 160ms ease,
-    color 160ms ease;
-}
-
-.wizard-card-active .wizard-card-cta {
-  background: var(--card-accent, var(--teal-500, #00e5ff));
-  color: #06091a;
-}
-
-.wizard-card-done .wizard-card-cta {
-  border-color: color-mix(in srgb, var(--teal-600, #00b8d4) 55%, transparent);
-  color: var(--teal-400, #66f0ff);
 }
 
 /* ── Action footer ───────────────────────────────────────── */
@@ -668,14 +794,6 @@
   }
 }
 
-/* A tap device has no hover state, so the lift would stick after a tap. */
-@media (hover: none) {
-  .wizard-card:hover {
-    transform: none;
-    box-shadow: none;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .wizard-hero-icon {
     animation: none;
@@ -683,15 +801,12 @@
 
   .wizard-card,
   .wizard-card::before,
-  .wizard-card-cta,
   .wizard-progress-fill,
   .wizard-footer-btn {
     transition: none;
   }
 
-  .wizard-card:hover,
-  .wizard-card-active,
-  .wizard-card:active {
+  .wizard-card-active {
     transform: none;
   }
 }

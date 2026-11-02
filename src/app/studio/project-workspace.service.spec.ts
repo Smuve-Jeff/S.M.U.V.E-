@@ -609,6 +609,16 @@ describe("ProjectWorkspaceService", () => {
     expect(restored[2]).toBeCloseTo(0.35, 5);
   });
 
+  it('reports a failed autosave instead of claiming the sketch is safe', async () => {
+    service.isDirty.set(true);
+    saveItem.mockRejectedValueOnce(new Error('Quota exceeded'));
+
+    await expect(service.autoSave()).resolves.toBe(false);
+
+    expect(service.isDirty()).toBe(true);
+    expect(service.persistenceError()).toBe('Quota exceeded');
+  });
+
   it('rejects failed local saves without clearing dirty state or reporting a saved timestamp', async () => {
     service.isDirty.set(true);
     saveItem.mockRejectedValueOnce(new Error('Quota exceeded'));
@@ -635,7 +645,7 @@ describe("ProjectWorkspaceService", () => {
     authUser.set({ id: 'guest_1', role: 'Guest' });
     service.isDirty.set(true);
 
-    await service.autoSave();
+    await expect(service.autoSave()).resolves.toBe(false);
 
     expect(saveItem).not.toHaveBeenCalled();
     expect(service.isDirty()).toBe(true);
@@ -908,7 +918,7 @@ describe("ProjectWorkspaceService", () => {
     ]);
     service.isDirty.set(true);
 
-    await service.autoSave();
+    await expect(service.autoSave()).resolves.toBe(false);
 
     expect(saveItem).not.toHaveBeenCalled();
     expect(service.persistenceError()).toContain('Auto-save paused');
