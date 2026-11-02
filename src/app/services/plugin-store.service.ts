@@ -6,6 +6,7 @@ import {
   wasmEqModule,
   wasmSaturationModule,
   wasmMasterChainModule,
+  wasmUtilityModule,
 } from '../studio/wasm/wasm-dsp-kernels';
 import { createAlgorithmicReverb } from '../studio/wasm/algorithmic-reverb';
 import { LoggingService } from './logging.service';
@@ -38,7 +39,14 @@ export interface DspPluginManifest {
   name: string;
   version: string;
   author: string;
-  category: 'Dynamics' | 'EQ' | 'Saturation' | 'Reverb' | 'Mastering';
+  category:
+    | 'Dynamics'
+    | 'EQ'
+    | 'Saturation'
+    | 'Reverb'
+    | 'Mastering'
+    | 'Utility'
+    | 'Filter';
   description: string;
   icon: string;
   /** Kernel name used when the whole plugin runs as one stage. */
@@ -72,7 +80,15 @@ export interface CommunityPluginPayload {
   };
 }
 
-const ALLOWED_CATEGORIES = new Set(['Dynamics', 'EQ', 'Saturation', 'Reverb', 'Mastering']);
+const ALLOWED_CATEGORIES = new Set([
+  'Dynamics',
+  'EQ',
+  'Saturation',
+  'Reverb',
+  'Mastering',
+  'Utility',
+  'Filter',
+]);
 
 function readArray(key: string): string[] {
   try {
@@ -295,6 +311,83 @@ export class PluginStoreService {
         out[27] = -1;
         return out;
       },
+    },
+    {
+      id: 'smuve.gate.v1',
+      name: 'Noise Gate',
+      version: '1.0.0',
+      author: 'S.M.U.V.E Labs',
+      category: 'Dynamics',
+      description:
+        'Stereo-linked gate with attack, release and a floor range — clean up noisy recordings without chopping tails.',
+      icon: 'sensor_door',
+      kernelName: 'gate',
+      moduleFactory: wasmUtilityModule,
+      params: [
+        { id: 'thresholdDb', label: 'Threshold', min: -80, max: -6, step: 1, default: -42, unit: 'dB' },
+        { id: 'attack', label: 'Attack', min: 0.0005, max: 0.05, step: 0.0005, default: 0.002, unit: 's' },
+        { id: 'release', label: 'Release', min: 0.01, max: 0.5, step: 0.01, default: 0.08, unit: 's' },
+        { id: 'rangeDb', label: 'Floor', min: -80, max: -6, step: 1, default: -60, unit: 'dB' },
+      ],
+      buildParams: (v) =>
+        new Float32Array([
+          v['thresholdDb'] ?? -42,
+          v['attack'] ?? 0.002,
+          v['release'] ?? 0.08,
+          v['rangeDb'] ?? -60,
+        ]),
+    },
+    {
+      id: 'smuve.transient.v1',
+      name: 'Transient Shaper',
+      version: '1.0.0',
+      author: 'S.M.U.V.E Labs',
+      category: 'Dynamics',
+      description:
+        'Independent attack and sustain shaping — punch up drums or soften brittle transients.',
+      icon: 'bolt',
+      kernelName: 'transient',
+      moduleFactory: wasmUtilityModule,
+      params: [
+        { id: 'attack', label: 'Attack', min: 0, max: 1, step: 0.01, default: 0.35 },
+        { id: 'sustain', label: 'Sustain', min: 0, max: 1, step: 0.01, default: 0.1 },
+        { id: 'sensitivity', label: 'Sensitivity', min: 0.25, max: 8, step: 0.25, default: 2 },
+      ],
+      buildParams: (v) =>
+        new Float32Array([v['attack'] ?? 0.35, v['sustain'] ?? 0.1, v['sensitivity'] ?? 2]),
+    },
+    {
+      id: 'smuve.width.v1',
+      name: 'Stereo Width',
+      version: '1.0.0',
+      author: 'S.M.U.V.E Labs',
+      category: 'Utility',
+      description:
+        'Mid/side width control from mono-safe collapse to an exaggerated stereo field.',
+      icon: 'open_in_full',
+      kernelName: 'width',
+      moduleFactory: wasmUtilityModule,
+      params: [
+        { id: 'width', label: 'Width', min: 0, max: 2, step: 0.01, default: 1 },
+      ],
+      buildParams: (v) => new Float32Array([v['width'] ?? 1]),
+    },
+    {
+      id: 'smuve.highpass.v1',
+      name: 'High-Pass Filter',
+      version: '1.0.0',
+      author: 'S.M.U.V.E Labs',
+      category: 'Filter',
+      description:
+        'Resonant 12 dB/octave high-pass — remove rumble and make room for the sub.',
+      icon: 'filter_alt',
+      kernelName: 'highpass',
+      moduleFactory: wasmUtilityModule,
+      params: [
+        { id: 'frequency', label: 'Frequency', min: 10, max: 1200, step: 1, default: 80, unit: 'Hz' },
+        { id: 'q', label: 'Q', min: 0.1, max: 4, step: 0.05, default: 0.707 },
+      ],
+      buildParams: (v) => new Float32Array([v['frequency'] ?? 80, v['q'] ?? 0.707]),
     },
   ];
 

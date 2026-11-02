@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from "@angular/core";
+import { Component, inject, signal, computed, OnDestroy } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { SoundPadComponent } from "../sound-pad/sound-pad.component";
 import {
@@ -32,7 +32,7 @@ interface PadSlot {
   templateUrl: "./sound-pad-grid.component.html",
   styleUrls: ["./sound-pad-grid.component.css", "../shared/platform-ux.css"],
 })
-export class SoundPadGridComponent {
+export class SoundPadGridComponent implements OnDestroy {
   private instruments = inject(InstrumentsService);
   private musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
@@ -177,6 +177,18 @@ export class SoundPadGridComponent {
     },
   ]);
 
+  // ── Note repeat ─────────────────────────────────────────
+  noteRepeatEnabled = signal(false);
+  /** 4 = quarter, 2 = eighth, 1 = sixteenth. */
+  repeatDivisions = [
+    { id: 4, label: "1/4" },
+    { id: 2, label: "1/8" },
+    { id: 1, label: "1/16" },
+  ];
+  repeatDivision = signal(1);
+  private repeatDelay: ReturnType<typeof setTimeout> | null = null;
+  private repeatTimer: ReturnType<typeof setInterval> | null = null;
+
   // ── Reassign form ────────────────────────────────────────
   public reassignIndex = signal<number | null>(null);
   allPresets = computed(() => this.instruments.getPresets());
@@ -218,6 +230,41 @@ export class SoundPadGridComponent {
     if (selected) {
       this.musicManager.setInstrument(selected, pad.presetId);
     }
+  }
+
+  toggleNoteRepeat(): void {
+    this.noteRepeatEnabled.update((value) => !value);
+    if (!this.noteRepeatEnabled()) this.stopPadRepeat();
+    this.haptic.light();
+  }
+
+  setRepeatDivision(event: Event): void {
+    const value = Number((event.target as HTMLSelectElement).value);
+    this.repeatDivision.set(value === 4 || value === 2 ? value : 1);
+  }
+
+  /** Hold a pad to retrigger at the current transport BPM. */
+  startPadRepeat(index: number): void {
+    this.stopPadRepeat();
+    if (!this.noteRepeatEnabled()) return;
+    this.repeatDelay = setTimeout(() => {
+      const division = this.repeatDivision();
+      const bpm = Math.max(20, Math.min(300, this.audioEngine.tempo?.() ?? 120));
+      const intervalMs = (60_000 / bpm) * (division / 4);
+      this.triggerPad(index);
+      this.repeatTimer = setInterval(() => this.triggerPad(index), intervalMs);
+    }, 320);
+  }
+
+  stopPadRepeat(): void {
+    if (this.repeatDelay) clearTimeout(this.repeatDelay);
+    if (this.repeatTimer) clearInterval(this.repeatTimer);
+    this.repeatDelay = null;
+    this.repeatTimer = null;
+  }
+
+  ngOnDestroy(): void {
+    this.stopPadRepeat();
   }
 
   clearAll(): void {

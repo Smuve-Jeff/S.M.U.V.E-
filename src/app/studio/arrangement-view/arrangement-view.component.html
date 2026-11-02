@@ -587,6 +587,25 @@
           </button>
           <button
             type="button"
+            class="arrangement-tempo-curve"
+            [class.is-ramp]="marker.curve === 'ramp'"
+            (click)="toggleTempoCurve(marker, $event)"
+            [attr.aria-pressed]="marker.curve === 'ramp'"
+            [attr.aria-label]="
+              marker.curve === 'ramp'
+                ? 'Tempo ramp enabled; switch to a step change'
+                : 'Make this a tempo automation ramp'
+            "
+            [title]="
+              marker.curve === 'ramp'
+                ? 'Ramp to next marker'
+                : 'Step change'
+            "
+          >
+            {{ marker.curve === 'ramp' ? '↗' : '→' }}
+          </button>
+          <button
+            type="button"
             class="arrangement-tempo-remove"
             (click)="removeTempoMarker(marker.id, $event)"
             [attr.aria-label]="'Remove tempo marker at bar ' + tempoMap.barOf(marker)"

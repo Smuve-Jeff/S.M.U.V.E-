@@ -184,6 +184,64 @@
     </div>
   </section>
 
+  <!-- Real audio group buses. Unlike VCAs these are summing channels with
+       their own fader, pan, inserts and meter; members feed them post-fader. -->
+  <section
+    class="mix-bus-rack mix-secondary"
+    *ngIf="mixerView() === 'routing' || busTracks().length > 0"
+    aria-label="Audio group buses and routing"
+  >
+    <header class="mix-bus-header">
+      <span class="material-symbols-outlined" aria-hidden="true">account_tree</span>
+      <h2>GROUP BUSES</h2>
+      <button
+        type="button"
+        class="mix-bus-add"
+        (click)="createBusTrack()"
+        aria-label="Create a group bus"
+        title="Create a summing group bus"
+      >
+        <span class="material-symbols-outlined">add</span>
+      </button>
+    </header>
+
+    <p class="mix-bus-empty" *ngIf="busTracks().length === 0">
+      Create a group bus to sum drums, vocals or stems through one fader, pan
+      and insert chain.
+    </p>
+
+    <div class="mix-bus-list" *ngIf="busTracks().length > 0">
+      <div class="mix-bus-row" *ngFor="let bus of busTracks(); trackBy: trackById">
+        <span class="material-symbols-outlined" aria-hidden="true">merge</span>
+        <span class="mix-bus-name">{{ bus.name }}</span>
+        <span class="mix-bus-count">{{ busMemberCount(bus.id) }} ch</span>
+        <button
+          type="button"
+          class="mix-bus-remove"
+          (click)="removeBusTrack(bus.id)"
+          [attr.aria-label]="'Remove group bus ' + bus.name"
+          title="Remove bus; members return to master"
+        >
+          <span class="material-symbols-outlined">delete</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="mix-bus-matrix" *ngIf="busTracks().length > 0">
+      <label class="mix-bus-route" *ngFor="let track of routableTracks(); trackBy: trackById">
+        <span class="mix-bus-route-name">{{ track.name }}</span>
+        <select
+          [ngModel]="track.busId || ''"
+          (ngModelChange)="routeTrack(track.id, $event)"
+          [attr.aria-label]="'Output bus for ' + track.name"
+        >
+          <option value="">Master</option>
+          <option *ngFor="let bus of busTracks()" [value]="bus.id">{{ bus.name }}</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
   <div class="mix-strips" role="list" aria-label="Mixer channel strips">
     <div class="mix-strips-track">
       <!-- Channel strips -->

@@ -832,6 +832,21 @@
           />
         </div>
         <div class="pr-inspector-pill pr-precision-pill">
+          <div class="pr-inspector-pill-label">MPE Timbre</div>
+          <div class="pr-inspector-pill-value">
+            {{ (selectedNoteTimbre() * 100).toFixed(0) }}%
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            [ngModel]="selectedNoteTimbre()"
+            (ngModelChange)="setSelectedTimbre($event)"
+            aria-label="Per-note MPE timbre (CC74)"
+          />
+        </div>
+        <div class="pr-inspector-pill pr-precision-pill">
           <div class="pr-inspector-pill-label">Length</div>
           <div class="pr-inspector-pill-value">
             {{ selectedNoteLength().toFixed(2) }}

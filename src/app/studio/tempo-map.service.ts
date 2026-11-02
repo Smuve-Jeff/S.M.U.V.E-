@@ -9,6 +9,8 @@ export interface TempoMarker {
   step: number;
   /** Beats per minute from this step onward. */
   bpm: number;
+  /** `ramp` glides to the next marker; absent/`step` holds this tempo. */
+  curve?: 'step' | 'ramp';
 }
 
 export const STEPS_PER_BAR = 16;
@@ -49,7 +51,9 @@ export class TempoMapService {
    * edit behind the panel.
    */
   private syncToEngine(): void {
-    const map = this.markers().map(({ step, bpm }) => ({ step, bpm }));
+    const map = this.markers().map(({ step, bpm, curve }) =>
+      curve === 'ramp' ? { step, bpm, curve } : { step, bpm },
+    );
     const apply = (this.engine as Partial<AudioEngineService>).setTempoMap;
     if (typeof apply === "function") {
       apply.call(this.engine, map);
@@ -60,9 +64,19 @@ export class TempoMapService {
   /** Tempo in force at an absolute step. Falls back to the global tempo. */
   bpmAtStep(step: number): number {
     let bpm = this.engine.tempo();
-    for (const marker of this.markers()) {
-      if (marker.step <= step) bpm = marker.bpm;
+    let index = -1;
+    const markers = this.markers();
+    for (let i = 0; i < markers.length; i++) {
+      if (markers[i].step <= step) index = i;
       else break;
+    }
+    if (index < 0) return bpm;
+    const marker = markers[index];
+    const next = markers[index + 1];
+    bpm = marker.bpm;
+    if (marker.curve === 'ramp' && next && next.step > marker.step) {
+      const progress = Math.max(0, Math.min(1, (step - marker.step) / (next.step - marker.step)));
+      bpm = marker.bpm + (next.bpm - marker.bpm) * progress;
     }
     return bpm;
   }
@@ -76,30 +90,34 @@ export class TempoMapService {
    * Add a marker. A second marker on the same step would be ambiguous — the
    * later one would silently win — so an existing marker is retuned instead.
    */
-  addMarker(step: number, bpm: number): TempoMarker | null {
+  addMarker(step: number, bpm: number, curve: 'step' | 'ramp' = 'step'): TempoMarker | null {
     const safeStep = Math.max(0, Math.round(step));
     const safeBpm = this.clampBpm(bpm);
     if (safeBpm === null) return null;
     const existing = this.markers().find((marker) => marker.step === safeStep);
     if (existing) {
-      this.updateMarker(existing.id, { bpm: safeBpm });
-      return { ...existing, bpm: safeBpm };
+      this.updateMarker(existing.id, { bpm: safeBpm, curve });
+      return { ...existing, bpm: safeBpm, curve };
     }
     const marker: TempoMarker = {
       id: `tempo_${Date.now()}_${Math.round(Math.random() * 1e6)}`,
       step: safeStep,
       bpm: safeBpm,
+      ...(curve === 'ramp' ? { curve } : {}),
     };
     this.markers.update((list) => this.sorted([...list, marker]));
     this.syncToEngine();
     return marker;
   }
 
-  updateMarker(id: string, patch: Partial<Pick<TempoMarker, "step" | "bpm">>) {
+  updateMarker(id: string, patch: Partial<Pick<TempoMarker, "step" | "bpm" | "curve">>) {
     const next: Partial<TempoMarker> = {};
     if (patch.bpm !== undefined) {
       const bpm = this.clampBpm(patch.bpm);
       if (bpm !== null) next.bpm = bpm;
+    }
+    if (patch.curve !== undefined) {
+      next.curve = patch.curve === 'ramp' ? 'ramp' : 'step';
     }
     if (patch.step !== undefined) next.step = Math.max(0, Math.round(patch.step));
     if (Object.keys(next).length === 0) return;
@@ -112,6 +130,13 @@ export class TempoMapService {
   removeMarker(id: string) {
     this.markers.update((list) => list.filter((marker) => marker.id !== id));
     this.syncToEngine();
+  }
+
+  /** Toggle one marker between a hard change and a tempo glide. */
+  toggleCurve(id: string): void {
+    const marker = this.markers().find((candidate) => candidate.id === id);
+    if (!marker) return;
+    this.updateMarker(id, { curve: marker.curve === 'ramp' ? 'step' : 'ramp' });
   }
 
   /**
@@ -134,6 +159,7 @@ export class TempoMapService {
               id: String(marker.id || `tempo_restored_${index}`),
               step: Math.max(0, Math.round(marker.step)),
               bpm: this.clampBpm(marker.bpm)!,
+              ...(marker.curve === 'ramp' ? { curve: 'ramp' as const } : {}),
             })),
         )
       : [];

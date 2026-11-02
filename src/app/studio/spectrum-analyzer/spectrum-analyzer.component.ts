@@ -8,7 +8,9 @@ import {
   OnDestroy,
   SimpleChanges,
   ViewChild,
+  inject,
 } from "@angular/core";
+import { UIService } from "../../services/ui.service";
 
 /** dB grid lines drawn behind the trace, loudest first. */
 const DB_GRID = [0, -6, -12, -24, -36, -48, -60];
@@ -120,6 +122,8 @@ export class SpectrumAnalyzerComponent
   private observer: ResizeObserver | null = null;
   private lastCssWidth = 0;
   private lastCssHeight = 0;
+  private lastLowPowerFrame = 0;
+  private readonly ui = inject(UIService, { optional: true });
 
   ngAfterViewInit() {
     const canvas = this.surface?.nativeElement;
@@ -203,8 +207,15 @@ export class SpectrumAnalyzerComponent
     if (this.rafId) return;
     if (this.prefersReducedMotion()) return; // one static frame is the whole UI
     if (typeof requestAnimationFrame !== "function") return;
-    const loop = () => {
-      if (!this.isHidden()) this.tick();
+    const loop = (timestamp = 0) => {
+      const lowPower = this.ui?.isLowPower?.() ?? false;
+      if (
+        !this.isHidden() &&
+        (!lowPower || timestamp - this.lastLowPowerFrame >= 100)
+      ) {
+        this.lastLowPowerFrame = timestamp;
+        this.tick();
+      }
       this.rafId = requestAnimationFrame(loop);
     };
     this.rafId = requestAnimationFrame(loop);

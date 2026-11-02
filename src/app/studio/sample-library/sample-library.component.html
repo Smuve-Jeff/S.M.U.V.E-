@@ -46,6 +46,36 @@
     </button>
   </nav>
 
+  <!-- FACTORY PACKS -->
+  <nav class="sl-packs studio-horizontal-rail" aria-label="Factory sample packs">
+    <button
+      *ngFor="let pack of packs()"
+      type="button"
+      class="sl-pack"
+      [class.sl-pack-active]="selectedPack() === pack.id"
+      (click)="selectPack(pack.id)"
+      [attr.aria-pressed]="selectedPack() === pack.id"
+    >
+      <span class="sl-pack-label">{{ pack.label }}</span>
+      <span class="sl-pack-count">{{ pack.count }}</span>
+    </button>
+  </nav>
+  <p class="sl-pack-blurb">
+    {{ selectedPackBlurb() }}
+    <button
+      type="button"
+      class="sl-fav-filter"
+      [class.is-active]="favoritesOnly()"
+      (click)="toggleFavoritesOnly()"
+      [attr.aria-pressed]="favoritesOnly()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">{{
+        favoritesOnly() ? 'star' : 'star_border'
+      }}</span>
+      Favorites {{ favorites().size }}
+    </button>
+  </p>
+
   <!-- GRID -->
   <div class="sl-grid studio-module-scroll" role="list">
     <article
@@ -75,6 +105,7 @@
       </div>
       <div class="sl-card-body">
         <div class="sl-card-name">{{ sample.name }}</div>
+        <div class="sl-card-pack">{{ packFor(sample) }}</div>
         <div class="sl-card-tags">
           <button
             *ngFor="let tag of sample.tags.slice(0, 3)"
@@ -96,6 +127,17 @@
           title="Preview"
         >
           <span class="material-symbols-outlined">play_arrow</span>
+        </button>
+        <button
+          type="button"
+          class="sl-icon-btn sl-fav-btn"
+          [class.is-favorite]="isFavorite(sample.id)"
+          (click)="toggleFavorite(sample.id, $event)"
+          [attr.aria-label]="(isFavorite(sample.id) ? 'Remove ' : 'Add ') + sample.name + (isFavorite(sample.id) ? ' from favorites' : ' to favorites')"
+          [attr.aria-pressed]="isFavorite(sample.id)"
+          title="Favorite"
+        >
+          <span class="material-symbols-outlined">{{ isFavorite(sample.id) ? 'star' : 'star_border' }}</span>
         </button>
         <button
           type="button"

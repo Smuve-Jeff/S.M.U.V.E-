@@ -1854,3 +1854,24 @@
   opacity: 0.45;
   cursor: default;
 }
+
+
+/* Tempo automation: step vs continuous ramp. */
+.arrangement-tempo-curve {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(43, 160, 156, 0.35);
+  border-radius: 5px;
+  background: rgba(14, 15, 18, 0.72);
+  color: #8ea0ae;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.arrangement-tempo-curve.is-ramp {
+  color: #34f5c5;
+  border-color: rgba(52, 245, 197, 0.55);
+  background: rgba(52, 245, 197, 0.14);
+}

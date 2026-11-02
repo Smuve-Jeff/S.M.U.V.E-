@@ -280,6 +280,45 @@
       </div>
     </div>
 
+    <div *ngIf="isReferenceLoaded()" class="ms-spectral-match">
+      <div class="ms-spectral-match-head">
+        <div>
+          <strong>SPECTRAL DELTA</strong>
+          <span>Master minus reference · per band</span>
+        </div>
+        <button
+          type="button"
+          class="ms-spectral-measure"
+          (click)="measureSpectralDelta()"
+          title="Compare the live master with the loaded reference"
+        >
+          MEASURE
+        </button>
+      </div>
+      <div class="ms-spectral-bands" *ngIf="referenceSpectralDelta() as deltas; else noSpectral">
+        <div class="ms-spectral-band" *ngFor="let band of spectralBands; let i = index">
+          <span class="ms-spectral-band-label">{{ band.label }}</span>
+          <div class="ms-spectral-band-track" [attr.title]="spectralBandSummary(deltas[i])">
+            <span class="ms-spectral-zero"></span>
+            <span
+              class="ms-spectral-band-bar"
+              [class.is-hot]="deltas[i] >= 0"
+              [class.is-cold]="deltas[i] < 0"
+              [style.height.%]="spectralBarHeight(deltas[i])"
+            ></span>
+          </div>
+          <span class="ms-spectral-band-value">
+            {{ deltas[i] > 0 ? '+' : '' }}{{ deltas[i] }}
+          </span>
+        </div>
+      </div>
+      <ng-template #noSpectral>
+        <p class="ms-spectral-empty">
+          Run the transport, then measure to see which bands need shaping.
+        </p>
+      </ng-template>
+    </div>
+
     <div
       *ngIf="isReferenceLoaded()"
       class="flex flex-wrap items-center gap-2 pt-1 border-t border-cyan-500/20"

@@ -59,6 +59,8 @@ export interface TrackNote {
   expression?: number;
   /** Channel aftertouch per-note (0..1) */
   aftertouch?: number;
+  /** MPE CC74 per-note timbre (0..1). Perceived as spectral brightness. */
+  timbre?: number;
   /** Pro Precision: articulation style */
   articulation?:
     | 'normal'
@@ -1240,14 +1242,22 @@ export class MusicManagerService {
         // nodes stay behind, so rewiring the rack here would be wrong.
         this.engine.releaseTrackPluginInsert(id);
         this.engine.removeTrackRouting(id);
-        this.tracks.update((ts) => ts.filter((t) => t.id !== id));
+        this.tracks.update((ts) =>
+          ts
+            .filter((t) => t.id !== id)
+            .map((t) =>
+              busMembers.includes(t.id) ? { ...t, busId: undefined } : t,
+            ),
+        );
         if (this.selectedTrackId() === id) this.selectedTrackId.set(null);
       },
       () => {
         this.tracks.update((ts) => {
           const next = [...ts];
           next.splice(idx, 0, snapshot);
-          return next;
+          return next.map((t) =>
+            busMembers.includes(t.id) ? { ...t, busId: id } : t,
+          );
         });
         this.selectedTrackId.set(prevSelected);
         if (snapshot.pluginIds?.length) {
@@ -2877,6 +2887,53 @@ export class MusicManagerService {
     this.engine.updateTrack(trackId, { busId });
   }
 
+  /**
+   * Route a channel into a real audio bus with a single undo step.
+   *
+   * `setTrackBus` is the low-level writer used by project hydration; this is
+   * the mixer command. The target must be an existing `bus` track and cannot
+   * be the channel itself. Routing the last member away leaves the bus as an
+   * empty summing channel rather than deleting it.
+   */
+  assignTrackToBus(trackId: string, busId: string | undefined): boolean {
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    if (!track) return false;
+    const requested = busId?.trim() || undefined;
+    const target =
+      requested &&
+      requested !== trackId &&
+      this.tracks().some(
+        (candidate) => candidate.id === requested && candidate.type === 'bus',
+      )
+        ? requested
+        : undefined;
+    if (target === track.busId) return true;
+    const before = track.busId;
+    const targetName = target
+      ? this.tracks().find((candidate) => candidate.id === target)?.name ?? 'Bus'
+      : 'Master';
+    this.runCommand(
+      `Route ${track.name} → ${targetName}`,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((candidate) =>
+            candidate.id === trackId ? { ...candidate, busId: target } : candidate,
+          ),
+        );
+        this.engine.setTrackBus(trackId, target);
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((candidate) =>
+            candidate.id === trackId ? { ...candidate, busId: before } : candidate,
+          ),
+        );
+        this.engine.setTrackBus(trackId, before);
+      },
+    );
+    return true;
+  }
+
   setPadRouting(padId: string, busId: string) {
     this.tracks.update((ts) =>
       ts.map((t) => {
@@ -4143,6 +4200,20 @@ export class MusicManagerService {
                   }
                 } else {
                   ccCurve = [{ at: 0, expression: touchGain }];
+                }
+              }
+              // MPE timbre (CC74) is authored per note. Map it onto the
+              // engine's existing cutoff CC curve, preserving any drawn CC74
+              // automation by only filling the lane when it is empty.
+              const timbre = Number(n.timbre);
+              if (n.timbre !== undefined && Number.isFinite(timbre)) {
+                const cutoff = 200 * Math.pow(60, Math.max(0, Math.min(1, timbre)));
+                if (ccCurve.length > 0) {
+                  for (const point of ccCurve) {
+                    if (point.cutoff === undefined) point.cutoff = cutoff;
+                  }
+                } else {
+                  ccCurve = [{ at: 0, cutoff }];
                 }
               }
               const ccStart = ccCurve[0];

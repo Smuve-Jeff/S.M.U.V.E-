@@ -1325,6 +1325,18 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.haptic.light();
   }
 
+  /** Toggle a marker between a hard tempo change and a continuous glide. */
+  toggleTempoCurve(marker: { id: string; curve?: 'step' | 'ramp' }, event: Event): void {
+    event.stopPropagation();
+    this.tempoMap.toggleCurve(marker.id);
+    this.haptic.light();
+    this.snackbar.info(
+      marker.curve === 'ramp'
+        ? 'Tempo change set to step'
+        : 'Tempo automation ramp enabled',
+    );
+  }
+
   seekToTempoMarker(step: number): void {
     this.musicManager.engine.seekToStep(step);
   }

@@ -14,6 +14,14 @@ interface LibraryCategory {
   count: number;
 }
 
+interface LibraryPack {
+  id: string;
+  label: string;
+  /** Short description shown in the shelf header. */
+  blurb: string;
+  count: number;
+}
+
 @Component({
   selector: "app-sample-library",
   standalone: true,
@@ -30,9 +38,14 @@ export class SampleLibraryComponent implements OnInit {
   private snackbar = inject(SnackbarService);
   private haptic = inject(HapticService);
 
+  private static readonly FAVORITES_KEY = "smuve_sample_favorites_v1";
+
   searchQuery = signal("");
   selectedCategory = signal<string>("all");
   selectedTag = signal<string | null>(null);
+  selectedPack = signal<string>("all");
+  favoritesOnly = signal(false);
+  favorites = signal<Set<string>>(this.loadFavorites());
 
   private rawSamples: Array<{
     id: string;
@@ -40,6 +53,8 @@ export class SampleLibraryComponent implements OnInit {
     category: string;
     tags: string[];
     icon: string;
+    /** Factory pack name; omitted entries fall back to a category pack. */
+    pack?: string;
   }> = [
     {
       id: "kick",
@@ -195,6 +210,150 @@ export class SampleLibraryComponent implements OnInit {
       tags: ["loop", "house"],
       icon: "loop",
     },
+    {
+      id: "rim",
+      name: "RIM TICK",
+      category: "drum",
+      tags: ["rim", "tick", "afro"],
+      icon: "graphic_eq",
+      pack: "Club Arsenal",
+    },
+    {
+      id: "tom",
+      name: "FLOOR TOM",
+      category: "drum",
+      tags: ["tom", "acoustic", "live"],
+      icon: "mic_external_on",
+      pack: "Club Arsenal",
+    },
+    {
+      id: "ride",
+      name: "RIDE WASH",
+      category: "drum",
+      tags: ["ride", "cymbal", "jazz"],
+      icon: "graphic_eq",
+      pack: "After Hours",
+    },
+    {
+      id: "break",
+      name: "BREAK SLICE",
+      category: "drum",
+      tags: ["break", "breakbeat", "loop"],
+      icon: "content_cut",
+      pack: "Club Arsenal",
+    },
+    {
+      id: "bass-808-slide",
+      name: "808 SLIDE",
+      category: "bass",
+      tags: ["808", "slide", "glide"],
+      icon: "waves",
+      pack: "Club Arsenal",
+    },
+    {
+      id: "bass-funk",
+      name: "FUNK BASS",
+      category: "bass",
+      tags: ["bass", "funk", "finger"],
+      icon: "waves",
+      pack: "After Hours",
+    },
+    {
+      id: "bass-upright",
+      name: "UPRIGHT BASS",
+      category: "bass",
+      tags: ["bass", "upright", "jazz"],
+      icon: "music_note",
+      pack: "After Hours",
+    },
+    {
+      id: "keys-organ",
+      name: "DRAW ORGAN",
+      category: "keys",
+      tags: ["organ", "keys", "soul"],
+      icon: "piano",
+      pack: "After Hours",
+    },
+    {
+      id: "keys-clav",
+      name: "CLAV FUNK",
+      category: "keys",
+      tags: ["clav", "funk", "keys"],
+      icon: "piano",
+      pack: "After Hours",
+    },
+    {
+      id: "keys-grand",
+      name: "CONCERT GRAND",
+      category: "keys",
+      tags: ["piano", "grand", "cinematic"],
+      icon: "piano",
+      pack: "Cinematic Tools",
+    },
+    {
+      id: "lead-square",
+      name: "SQUARE LEAD",
+      category: "lead",
+      tags: ["lead", "square", "retro"],
+      icon: "graphic_eq",
+      pack: "Club Arsenal",
+    },
+    {
+      id: "pad-choir",
+      name: "CHOIR PAD",
+      category: "pad",
+      tags: ["choir", "pad", "cinematic"],
+      icon: "layers",
+      pack: "Cinematic Tools",
+    },
+    {
+      id: "pad-analog",
+      name: "ANALOG PAD",
+      category: "pad",
+      tags: ["pad", "analog", "warm"],
+      icon: "layers",
+      pack: "After Hours",
+    },
+    {
+      id: "vocal-chop",
+      name: "VOCAL CHOP",
+      category: "vox",
+      tags: ["vocal", "chop", "hook"],
+      icon: "mic",
+      pack: "Club Arsenal",
+    },
+    {
+      id: "vocal-adlib",
+      name: "ADLIB STACK",
+      category: "vox",
+      tags: ["vocal", "adlib", "stack"],
+      icon: "mic",
+      pack: "After Hours",
+    },
+    {
+      id: "fx-glitch",
+      name: "GLITCH STUTTER",
+      category: "vfx",
+      tags: ["glitch", "stutter", "fx"],
+      icon: "auto_awesome",
+      pack: "Cinematic Tools",
+    },
+    {
+      id: "fx-sweep",
+      name: "SPECTRAL SWEEP",
+      category: "vfx",
+      tags: ["sweep", "riser", "fx"],
+      icon: "auto_awesome",
+      pack: "Cinematic Tools",
+    },
+    {
+      id: "loop-drill",
+      name: "DRILL LOOP",
+      category: "loop",
+      tags: ["loop", "drill", "sliding"],
+      icon: "loop",
+      pack: "Club Arsenal",
+    },
   ];
 
   categories = computed<LibraryCategory[]>(() => {
@@ -256,18 +415,75 @@ export class SampleLibraryComponent implements OnInit {
     ];
   });
 
+  /** Factory packs group the shelf into coherent production palettes. */
+  packs = computed<LibraryPack[]>(() => {
+    const definitions: Array<Pick<LibraryPack, "id" | "label" | "blurb">> = [
+      {
+        id: "all",
+        label: "All packs",
+        blurb: "Every factory sound in this install.",
+      },
+      {
+        id: "Club Arsenal",
+        label: "Club Arsenal",
+        blurb: "Hard drums, 808s and dancefloor-ready leads.",
+      },
+      {
+        id: "After Hours",
+        label: "After Hours",
+        blurb: "Warm keys, upright bass and late-night textures.",
+      },
+      {
+        id: "Cinematic Tools",
+        label: "Cinematic Tools",
+        blurb: "Pads, choir, grand piano and transition design.",
+      },
+    ];
+    return definitions.map((definition) => ({
+      ...definition,
+      count:
+        definition.id === "all"
+          ? this.rawSamples.length
+          : this.rawSamples.filter((sample) => this.packFor(sample) === definition.id)
+              .length,
+    }));
+  });
+
+  /** Category-derived pack for catalog entries written before packs existed. */
+  packFor(sample: { category: string; pack?: string }): string {
+    if (sample.pack) return sample.pack;
+    if (sample.category === "drum" || sample.category === "loop") {
+      return "Club Arsenal";
+    }
+    if (sample.category === "pad" || sample.category === "vfx") {
+      return "Cinematic Tools";
+    }
+    return "After Hours";
+  }
+
+  selectedPackBlurb(): string {
+    const pack = this.selectedPack();
+    return this.packs().find((entry) => entry.id === pack)?.blurb ?? "";
+  }
+
   filteredSamples = computed(() => {
     const q = this.searchQuery().toLowerCase();
     const cat = this.selectedCategory();
     const tag = this.selectedTag();
+    const pack = this.selectedPack();
+    const favoritesOnly = this.favoritesOnly();
+    const favorites = this.favorites();
     return this.rawSamples.filter((s) => {
       const matchesSearch =
         s.name.toLowerCase().includes(q) ||
         s.id.toLowerCase().includes(q) ||
+        this.packFor(s).toLowerCase().includes(q) ||
         s.tags.some((t) => t.toLowerCase().includes(q));
       const matchesCat = cat === "all" || s.category === cat;
       const matchesTag = !tag || s.tags.includes(tag);
-      return matchesSearch && matchesCat && matchesTag;
+      const matchesPack = pack === "all" || this.packFor(s) === pack;
+      const matchesFavorite = !favoritesOnly || favorites.has(s.id);
+      return matchesSearch && matchesCat && matchesTag && matchesPack && matchesFavorite;
     });
   });
 
@@ -347,6 +563,50 @@ export class SampleLibraryComponent implements OnInit {
     }
   }
 
+  selectPack(pack: string): void {
+    this.selectedPack.set(pack);
+    this.haptic.light();
+  }
+
+  toggleFavoritesOnly(): void {
+    this.favoritesOnly.update((value) => !value);
+    this.haptic.light();
+  }
+
+  isFavorite(sampleId: string): boolean {
+    return this.favorites().has(sampleId);
+  }
+
+  toggleFavorite(sampleId: string, event?: Event): void {
+    event?.stopPropagation();
+    const next = new Set(this.favorites());
+    if (next.has(sampleId)) next.delete(sampleId);
+    else next.add(sampleId);
+    this.favorites.set(next);
+    try {
+      localStorage.setItem(
+        SampleLibraryComponent.FAVORITES_KEY,
+        JSON.stringify([...next]),
+      );
+    } catch {
+      /* storage unavailable */
+    }
+    this.haptic.light();
+  }
+
+  private loadFavorites(): Set<string> {
+    try {
+      const raw = localStorage.getItem(SampleLibraryComponent.FAVORITES_KEY);
+      if (!raw) return new Set();
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed)
+        ? new Set(parsed.filter((entry): entry is string => typeof entry === 'string'))
+        : new Set();
+    } catch {
+      return new Set();
+    }
+  }
+
   /** Map library entry IDs to real InstrumentsService preset IDs so "Load"
    *  produces an audible track (the catalog is metadata-only). Unknown IDs
    *  fall back to ensureTrack's default instrument. */
@@ -372,6 +632,24 @@ export class SampleLibraryComponent implements OnInit {
     "loop-trap": "trap-kit-elite",
     "loop-rnb": "rhodes-mk2-stage",
     "loop-house": "modern-kit-elite",
+    rim: "afro-cuban-kit",
+    tom: "acoustic-kit-pro",
+    ride: "modern-kit-elite",
+    break: "trap-kit-elite",
+    "bass-808-slide": "trap-808-elite",
+    "bass-funk": "sub-commander",
+    "bass-upright": "reese-bass-neuro",
+    "keys-organ": "rhodes-mk2-stage",
+    "keys-clav": "wurlitzer-200a-ep",
+    "keys-grand": "grand-piano",
+    "lead-square": "supersaw-stack",
+    "pad-choir": "ob-xa-strings",
+    "pad-analog": "wavetable-dream",
+    "vocal-chop": "cyber-stab",
+    "vocal-adlib": "vhs-memory",
+    "fx-glitch": "cyber-stab",
+    "fx-sweep": "vhs-memory",
+    "loop-drill": "trap-kit-elite",
   };
 
   loadSample(sampleId: string): void {

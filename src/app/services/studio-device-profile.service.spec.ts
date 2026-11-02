@@ -46,6 +46,15 @@ describe('StudioDeviceProfileService · capability classifier', () => {
       expect(profile.reasons).toEqual([]);
     });
 
+    it('keeps session track authoring unlimited on every tier', () => {
+      expect(STUDIO_AUDIO_BUDGETS.high.maxTracks).toBe(Number.POSITIVE_INFINITY);
+      expect(STUDIO_AUDIO_BUDGETS.mid.maxTracks).toBe(Number.POSITIVE_INFINITY);
+      expect(STUDIO_AUDIO_BUDGETS.low.maxTracks).toBe(Number.POSITIVE_INFINITY);
+      // CPU protection stays in the voice and effect ceilings.
+      expect(STUDIO_AUDIO_BUDGETS.low.maxVoices).toBe(8);
+      expect(STUDIO_AUDIO_BUDGETS.low.maxActiveEffects).toBe(2);
+    });
+
     it('classifies a typical mid-range Android phone as mid, not low', () => {
       // 8 cores but only 4GB and a mobile WebView audio path: the common
       // Android case. It must keep the full feature set (tier 'ultra') while

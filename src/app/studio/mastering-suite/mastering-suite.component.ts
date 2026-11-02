@@ -20,6 +20,12 @@ import { PluginStoreService } from "../../services/plugin-store.service";
 import { MusicManagerService } from "../../services/music-manager.service";
 import { ABSOLUTE_GATE_LUFS } from "../../services/loudness-meter";
 import { SpectrumAnalyzerComponent } from "../spectrum-analyzer/spectrum-analyzer.component";
+import {
+  SPECTRAL_BANDS,
+  spectralDelta as computeSpectralDelta,
+  spectralProfileFromAnalyser,
+  spectralProfileFromBuffer,
+} from "./spectral-delta.util";
 
 interface MasteringBand {
   id: number;
@@ -126,6 +132,11 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   }>(null);
   referenceBusy = signal(false);
   private referenceBuffer: AudioBuffer | null = null;
+  /** Normalised log-band profile of the loaded reference. */
+  referenceSpectrum = signal<number[] | null>(null);
+  /** Positive = master has more energy in that band than the reference. */
+  referenceSpectralDelta = signal<number[] | null>(null);
+  readonly spectralBands = SPECTRAL_BANDS;
 
   isReferenceLoaded(): boolean {
     return this.referenceStats() !== null && this.referenceBuffer !== null;
@@ -164,6 +175,14 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
         lra: stats.lra,
         durationSec: stats.durationSec,
       });
+      try {
+        this.referenceSpectrum.set(spectralProfileFromBuffer(buffer));
+      } catch {
+        // A decoded reference can still be measured for loudness even if a
+        // host gives us a buffer without channel data (tests/minimal shims).
+        this.referenceSpectrum.set(null);
+      }
+      this.referenceSpectralDelta.set(null);
       this.snack.success(
         `Reference loaded · ${stats.lufs.toFixed(1)} LUFS · ${this.formatSeconds(stats.durationSec)}`,
       );
@@ -172,6 +191,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       this.referenceBuffer = null;
       this.referenceName.set(null);
       this.referenceStats.set(null);
+      this.referenceSpectrum.set(null);
+      this.referenceSpectralDelta.set(null);
       this.snack.error(
         "Reference import failed · " +
           (err instanceof Error ? err.message.toLowerCase() : "unsupported audio"),
@@ -214,6 +235,39 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.haptic.medium();
   }
 
+  /**
+   * Compare the live master's tonal balance with the loaded reference. This is
+   * a measurement, not an automatic EQ move: the artist sees the direction and
+   * size of each difference and can shape it with the bands below.
+   */
+  measureSpectralDelta(): void {
+    const reference = this.referenceSpectrum();
+    if (!reference) {
+      this.snack.info("Load a reference to compare spectral balance");
+      return;
+    }
+    const analyser =
+      (this.audioEngine as any).getMasterAnalyser?.() ?? this.audioEngine.masterAnalyser;
+    if (!analyser) {
+      this.snack.info("Start playback so the master analyser has signal");
+      return;
+    }
+    const master = spectralProfileFromAnalyser(analyser);
+    this.referenceSpectralDelta.set(computeSpectralDelta(reference, master));
+    this.haptic.light();
+    this.snack.info("Spectral balance measured against the reference");
+  }
+
+  spectralBarHeight(delta: number): number {
+    return Math.min(100, (Math.abs(delta) / 12) * 100);
+  }
+
+  spectralBandSummary(delta: number): string {
+    if (delta > 3) return "master hotter";
+    if (delta < -3) return "reference hotter";
+    return "matched";
+  }
+
   /** A/B playhead: audition the reference without the master chain in the way. */
   toggleReferenceAudition(): void {
     const buffer = this.referenceBuffer;
@@ -232,6 +286,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.referenceBuffer = null;
     this.referenceName.set(null);
     this.referenceStats.set(null);
+    this.referenceSpectrum.set(null);
+    this.referenceSpectralDelta.set(null);
     // A reference match without the reference is a leftover make-up skew.
     this.audioEngine.setMasterMakeupDb(0);
     this.snack.info("Reference cleared · makeup 0 dB");

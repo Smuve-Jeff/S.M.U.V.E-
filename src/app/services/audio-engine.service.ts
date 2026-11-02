@@ -638,7 +638,7 @@ export class AudioEngineService {
    * for projects that never use it. Owned by TempoMapService, which pushes it
    * through `setTempoMap()`.
    */
-  private tempoMap: { step: number; bpm: number }[] = [];
+  private tempoMap: { step: number; bpm: number; curve?: 'step' | 'ramp' }[] = [];
   public isPlaying = signal(false);
   public isRecording = signal(false);
   public isCountIn = signal(false);
@@ -1664,7 +1664,7 @@ export class AudioEngineService {
    * Replace the tempo map. The AudioWorklet owns the tick clock, so it needs
    * the map itself — the main-thread fallback scheduler asks `tempoAtStep()`.
    */
-  setTempoMap(map: { step: number; bpm: number }[]): void {
+  setTempoMap(map: { step: number; bpm: number; curve?: 'step' | 'ramp' }[]): void {
     this.tempoMap = [...map]
       .filter((entry) => Number.isFinite(entry.step) && Number.isFinite(entry.bpm))
       .sort((a, b) => a.step - b.step);
@@ -1674,29 +1674,61 @@ export class AudioEngineService {
     });
   }
 
-  /** Tempo in force at an absolute song step (last marker at or before it). */
+  /**
+   * Tempo in force at an absolute song step. A `ramp` marker interpolates
+   * continuously to the next marker; ordinary markers hold their value.
+   */
   tempoAtStep(step: number): number {
     let bpm = this.tempo();
-    for (const marker of this.tempoMap) {
-      if (marker.step <= step) bpm = marker.bpm;
+    let index = -1;
+    for (let i = 0; i < this.tempoMap.length; i++) {
+      if (this.tempoMap[i].step <= step) index = i;
       else break;
+    }
+    if (index < 0) return bpm;
+    const marker = this.tempoMap[index];
+    const next = this.tempoMap[index + 1];
+    bpm = marker.bpm;
+    if (marker.curve === 'ramp' && next && next.step > marker.step) {
+      const progress = Math.max(0, Math.min(1, (step - marker.step) / (next.step - marker.step)));
+      bpm = marker.bpm + (next.bpm - marker.bpm) * progress;
     }
     return bpm;
   }
 
   /** Elapsed arrangement time through the tempo map, in seconds. */
   secondsBetweenSteps(start: number, end: number): number {
-    let position = start;
+    if (end <= start) return 0;
+    const breakpoints = [
+      start,
+      ...this.tempoMap
+        .map((marker) => marker.step)
+        .filter((step) => step > start && step < end),
+      end,
+    ];
     let seconds = 0;
-    for (const marker of this.tempoMap) {
-      if (marker.step <= position || marker.step >= end) continue;
-      seconds += (marker.step - position) * 60 / this.tempoAtStep(position) / this.stepsPerBeat();
-      position = marker.step;
+    for (let i = 0; i < breakpoints.length - 1; i++) {
+      const from = breakpoints[i];
+      const to = breakpoints[i + 1];
+      const span = to - from;
+      if (span <= 0) continue;
+      // The mean of the ramp endpoints is an accurate, allocation-free
+      // integration for the short step windows the transport uses.
+      const marker = [...this.tempoMap]
+        .reverse()
+        .find((candidate) => candidate.step <= from);
+      const bpm = Math.max(
+        1,
+        marker?.curve === 'ramp'
+          ? (this.tempoAtStep(from) + this.tempoAtStep(to)) / 2
+          : this.tempoAtStep(from),
+      );
+      seconds += (span * 60) / bpm / this.stepsPerBeat();
     }
-    return seconds + Math.max(0, end - position) * 60 / this.tempoAtStep(position) / this.stepsPerBeat();
+    return seconds;
   }
 
-  getTempoMap(): { step: number; bpm: number }[] {
+  getTempoMap(): { step: number; bpm: number; curve?: 'step' | 'ramp' }[] {
     return this.tempoMap.map((marker) => ({ ...marker }));
   }
 

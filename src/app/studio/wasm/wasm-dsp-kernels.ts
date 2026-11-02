@@ -288,6 +288,122 @@ const saturationKernel: DspKernelFn = (
 };
 
 // ═══════════════════════════════════════════════════════════
+//  Noise Gate · Transient Shaper · Stereo Width · Filter
+// ═══════════════════════════════════════════════════════════
+
+const gateKernel: DspKernelFn = (
+  input: Float32Array,
+  output: Float32Array,
+  params: Float32Array,
+  sampleRate: number,
+) => {
+  // Params: [thresholdDb, attack, release, rangeDb]
+  const threshold = dbToLin(params[0] ?? -45);
+  const attack = Math.max(0.0005, params[1] ?? 0.002);
+  const release = Math.max(0.005, params[2] ?? 0.08);
+  const floor = dbToLin(params[3] ?? -60);
+  const attackCoeff = Math.exp(-1 / (sampleRate * attack));
+  const releaseCoeff = Math.exp(-1 / (sampleRate * release));
+  let envelope = 0;
+  let gain = 1;
+  const frameCount = input.length / 2;
+
+  for (let i = 0; i < frameCount; i++) {
+    const left = input[i * 2];
+    const right = input[i * 2 + 1];
+    const peak = Math.max(Math.abs(left), Math.abs(right));
+    const envCoeff = peak > envelope ? attackCoeff : releaseCoeff;
+    envelope = envCoeff * envelope + (1 - envCoeff) * peak;
+    const target = envelope >= threshold ? 1 : floor;
+    const gainCoeff = target > gain ? attackCoeff : releaseCoeff;
+    gain = gainCoeff * gain + (1 - gainCoeff) * target;
+    output[i * 2] = clamp(left * gain, -1, 1);
+    output[i * 2 + 1] = clamp(right * gain, -1, 1);
+  }
+};
+
+const transientKernel: DspKernelFn = (
+  input: Float32Array,
+  output: Float32Array,
+  params: Float32Array,
+  sampleRate: number,
+) => {
+  // Params: [attack (0..1), sustain (0..1), sensitivity (0.25..8)]
+  const attack = clamp(params[0] ?? 0.35, 0, 1);
+  const sustain = clamp(params[1] ?? 0.1, 0, 1);
+  const sensitivity = clamp(params[2] ?? 2, 0.25, 8);
+  const fastCoeff = Math.exp(-1 / (sampleRate * 0.0008));
+  const slowCoeff = Math.exp(-1 / (sampleRate * 0.045));
+  let fast = 0;
+  let slow = 0;
+  const frameCount = input.length / 2;
+
+  for (let i = 0; i < frameCount; i++) {
+    const left = input[i * 2];
+    const right = input[i * 2 + 1];
+    const peak = Math.max(Math.abs(left), Math.abs(right));
+    fast = Math.max(peak, fastCoeff * fast);
+    slow = Math.max(peak, slowCoeff * slow);
+    const transient = clamp(((fast - slow) / Math.max(fast, 1e-6)) * sensitivity, 0, 1);
+    const gain = clamp(1 + attack * transient * 1.6 - sustain * (1 - transient), 0, 4);
+    output[i * 2] = clamp(left * gain, -1, 1);
+    output[i * 2 + 1] = clamp(right * gain, -1, 1);
+  }
+};
+
+const widthKernel: DspKernelFn = (
+  input: Float32Array,
+  output: Float32Array,
+  params: Float32Array,
+) => {
+  // Params: [width]. 0 = mono, 1 = original, 2 = double side signal.
+  const width = clamp(params[0] ?? 1, 0, 2);
+  const frameCount = input.length / 2;
+  for (let i = 0; i < frameCount; i++) {
+    const left = input[i * 2];
+    const right = input[i * 2 + 1];
+    const mid = (left + right) * 0.5;
+    const side = (left - right) * 0.5 * width;
+    output[i * 2] = clamp(mid + side, -1, 1);
+    output[i * 2 + 1] = clamp(mid - side, -1, 1);
+  }
+};
+
+const highpassKernel: DspKernelFn = (
+  input: Float32Array,
+  output: Float32Array,
+  params: Float32Array,
+  sampleRate: number,
+) => {
+  // Params: [frequency, Q]
+  const frequency = clamp(params[0] ?? 80, 10, sampleRate * 0.45);
+  const q = Math.max(0.1, params[1] ?? 0.707);
+  const w0 = (2 * Math.PI * frequency) / sampleRate;
+  const cosW0 = Math.cos(w0);
+  const alpha = Math.sin(w0) / (2 * q);
+  const a0 = 1 + alpha;
+  const b0 = (1 + cosW0) / 2 / a0;
+  const b1 = -(1 + cosW0) / a0;
+  const b2 = (1 + cosW0) / 2 / a0;
+  const a1 = (-2 * cosW0) / a0;
+  const a2 = (1 - alpha) / a0;
+  let x1L = 0, x2L = 0, y1L = 0, y2L = 0;
+  let x1R = 0, x2R = 0, y1R = 0, y2R = 0;
+  const frameCount = input.length / 2;
+
+  for (let i = 0; i < frameCount; i++) {
+    const left = input[i * 2];
+    const right = input[i * 2 + 1];
+    const yL = b0 * left + b1 * x1L + b2 * x2L - a1 * y1L - a2 * y2L;
+    x2L = x1L; x1L = left; y2L = y1L; y1L = yL;
+    const yR = b0 * right + b1 * x1R + b2 * x2R - a1 * y1R - a2 * y2R;
+    x2R = x1R; x1R = right; y2R = y1R; y1R = yR;
+    output[i * 2] = clamp(yL, -1, 1);
+    output[i * 2 + 1] = clamp(yR, -1, 1);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
 //  Module Definitions (WasmDspModule wrappers)
 // ═══════════════════════════════════════════════════════════
 
@@ -331,6 +447,15 @@ export const wasmEqModule: () => WasmDspModule = () =>
 export const wasmSaturationModule: () => WasmDspModule = () =>
   createModule("smuve.saturation.v2", "Saturation / Exciter", {
     saturate: saturationKernel,
+  });
+
+/** Utility module: gate, transient shaper, stereo width and high-pass filter. */
+export const wasmUtilityModule: () => WasmDspModule = () =>
+  createModule("smuve.utility.v1", "Studio Utility Pack", {
+    gate: gateKernel,
+    transient: transientKernel,
+    width: widthKernel,
+    highpass: highpassKernel,
   });
 
 /** Full mastering chain: EQ → Compressor → Saturator → Limiter (monolithic kernel) */

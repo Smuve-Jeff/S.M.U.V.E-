@@ -40,6 +40,8 @@ export class HardwareConnectionsComponent {
   readonly calibrationRunning = signal(false);
   readonly loopbackRunning = signal(false);
   readonly calibrationNotice = signal<string | null>(null);
+  /** Result of the last MIDI-map portability action. */
+  readonly midiMapNotice = signal<string | null>(null);
 
   readonly midiDevices = computed(() => {
     const connected = this.midi.connectedDevices();
@@ -73,6 +75,51 @@ export class HardwareConnectionsComponent {
 
   connectMidi(): void {
     void this.midi.autoInit();
+  }
+
+  /** Defensive count so a partial test double cannot break the template. */
+  get midiBindingCount(): number {
+    return typeof this.midiLearn.bindings === 'function'
+      ? this.midiLearn.bindings().length
+      : 0;
+  }
+
+  exportMidiMap(): void {
+    const json = this.midiLearn.exportMappings();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'smuve-midi-map.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    this.midiMapNotice.set(
+      `Exported ${this.midiLearn.bindings().length} MIDI binding${
+        this.midiLearn.bindings().length === 1 ? '' : 's'
+      }`,
+    );
+  }
+
+  importMidiMap(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const count = this.midiLearn.importMappings(String(reader.result ?? ''));
+        this.midiMapNotice.set(`Imported ${count} MIDI binding${count === 1 ? '' : 's'}`);
+      } catch (error) {
+        this.midiMapNotice.set(
+          error instanceof Error ? error.message : 'Invalid MIDI map',
+        );
+      } finally {
+        input.value = '';
+      }
+    };
+    reader.readAsText(file);
   }
 
   refreshInputs(): void {

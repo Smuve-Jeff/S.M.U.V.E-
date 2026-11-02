@@ -43,6 +43,18 @@ describe("TempoMapService", () => {
     expect(service.bpmAtStep(40)).toBe(150);
   });
 
+  it("interpolates continuous tempo automation ramps", () => {
+    service.addMarker(0, 120, "ramp");
+    service.addMarker(16, 60);
+    expect(service.bpmAtStep(0)).toBe(120);
+    expect(service.bpmAtStep(8)).toBe(90);
+    expect(service.bpmAtStep(16)).toBe(60);
+    expect(engine.setTempoMap).toHaveBeenLastCalledWith([
+      { step: 0, bpm: 120, curve: "ramp" },
+      { step: 16, bpm: 60 },
+    ]);
+  });
+
   it("keeps markers sorted and reports 1-based bars", () => {
     service.addMarker(32, 140);
     service.addMarker(0, 100);

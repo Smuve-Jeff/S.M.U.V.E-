@@ -76,6 +76,27 @@
         </div>
       </section>
     </div>
+
+    <div class="hw-actions hw-midi-map-actions">
+      <button
+        type="button"
+        class="hw-link"
+        (click)="exportMidiMap()"
+        [disabled]="midiBindingCount === 0"
+        aria-label="Export the current MIDI learn map as a JSON file"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">download</span>
+        Export map
+      </button>
+      <label class="hw-link" role="button" tabindex="0">
+        <span class="material-symbols-outlined" aria-hidden="true">upload</span>
+        Import map
+        <input type="file" accept=".json,application/json" (change)="importMidiMap($event)" hidden />
+      </label>
+    </div>
+    <p class="hw-note" *ngIf="midiMapNotice()" role="status" aria-live="polite">
+      {{ midiMapNotice() }}
+    </p>
   </section>
 
   <!-- ── Microphone / interface ──────────────────────────────────────── -->

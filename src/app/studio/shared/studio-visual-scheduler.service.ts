@@ -1,4 +1,5 @@
-import { Injectable, OnDestroy } from "@angular/core";
+import { Injectable, OnDestroy, inject } from "@angular/core";
+import { UIService } from "../../services/ui.service";
 
 export interface StudioVisualTaskOptions {
   /** Maximum refresh rate for this task. Values are clamped to 8–60 Hz. */
@@ -23,6 +24,8 @@ type VisualTask = {
  */
 @Injectable({ providedIn: "root" })
 export class StudioVisualSchedulerService implements OnDestroy {
+  /** Optional so the scheduler remains usable in isolated visual tests. */
+  private readonly ui = inject(UIService, { optional: true });
   private readonly tasks = new Map<number, VisualTask>();
   private nextId = 1;
   private frame: number | null = null;
@@ -83,8 +86,15 @@ export class StudioVisualSchedulerService implements OnDestroy {
   }
 
   private runDueTasks(timestamp: number): void {
+    // Optimized mode is an explicit promise that heavy surfaces slow down
+    // without stopping audio. Cap the shared visual clock at ~15 fps and
+    // halve each task's requested rate; audio scheduling never uses this loop.
+    const lowPower = this.ui?.isLowPower?.() ?? false;
     for (const task of this.tasks.values()) {
-      if (timestamp - task.lastRun < task.intervalMs) continue;
+      const interval = lowPower
+        ? Math.max(1000 / 15, task.intervalMs * 2)
+        : task.intervalMs;
+      if (timestamp - task.lastRun < interval) continue;
       task.lastRun = timestamp;
       try {
         task.callback(timestamp);

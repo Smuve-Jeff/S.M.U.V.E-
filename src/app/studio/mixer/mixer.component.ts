@@ -92,6 +92,20 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.tracks().find((t) => t.id === this.selectedTrackId()),
   );
 
+  /** Real audio-summing group channels, distinct from VCA control groups. */
+  busTracks = computed(() =>
+    this.tracks().filter((track) => track.type === 'bus'),
+  );
+
+  /** Channels that can feed a bus. A bus cannot route into itself. */
+  routableTracks = computed(() =>
+    this.tracks().filter((track) => track.type !== 'bus'),
+  );
+
+  busMemberCount(busId: string): number {
+    return this.tracks().filter((track) => track.busId === busId).length;
+  }
+
   selectedTrackForMobile = computed(
     () => this.selectedTrack() ?? this.tracks()[0] ?? null,
   );
@@ -652,6 +666,57 @@ export class MixerComponent implements OnInit, OnDestroy {
       const value = bus ? (bus.muted ? 0 : bus.faderValue) : 1;
       if (typeof fn === "function") fn.call(this.engineApi, trackId, value);
     }
+  }
+
+  // ── Audio group buses (real summing channels) ───────────────────────
+  /** Create a bus channel and open the routing page so it can be used at once. */
+  createBusTrack(): void {
+    const manager = this.musicManager as any;
+    const bus =
+      typeof manager.createBus === 'function'
+        ? manager.createBus(`Group ${this.busTracks().length + 1}`)
+        : null;
+    if (!bus) {
+      this.snack.error('Group bus could not be created');
+      return;
+    }
+    this.mixerView.set('routing');
+    this.haptic.medium();
+    this.snack.success(`Group bus created · route channels into ${bus}`);
+  }
+
+
+  /** Move a channel between master and a group bus (undoable in the manager). */
+  routeTrack(trackId: string, busId: string): void {
+    const target = busId || undefined;
+    const manager = this.musicManager as any;
+    if (typeof manager.assignTrackToBus === 'function') {
+      manager.assignTrackToBus(trackId, target);
+    } else if (typeof manager.setTrackBus === 'function') {
+      manager.setTrackBus(trackId, target);
+    } else {
+      return;
+    }
+    this.haptic.light();
+    const trackName = this.findTrackName(trackId) || 'Channel';
+    const busName = target ? this.findTrackName(target) : 'Master';
+    this.snack.info(`${trackName} → ${busName}`);
+  }
+
+  async removeBusTrack(busId: string): Promise<void> {
+    const bus = this.tracks().find((track) => track.id === busId);
+    if (!bus) return;
+    const approved = await this.dialog.confirm({
+      title: 'Remove group bus',
+      message:
+        'Remove this bus? Its member channels return to the master output; their clips and settings are kept.',
+      confirmLabel: 'Remove bus',
+      tone: 'danger',
+    });
+    if (!approved) return;
+    this.musicManager.removeTrack(busId);
+    this.haptic.medium();
+    this.snack.info(`${bus.name} removed · members returned to master`);
   }
   toggleMute(id: string): void {
     this.haptic.preset("muteFlash");

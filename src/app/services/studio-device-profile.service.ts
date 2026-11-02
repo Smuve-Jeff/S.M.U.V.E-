@@ -50,7 +50,11 @@ export interface StudioAudioBudget {
   maxVoices: number;
   /** Live plugin inserts / effect slots on the hot path. */
   maxActiveEffects: number;
-  /** Audio tracks kept in the live graph. */
+  /**
+   * Session track ceiling. Authoring is unlimited on every tier; the live
+   * voice/effect budgets are what protect the device. Kept as a field so a
+   * restored profile or a test can still impose a deliberate ceiling.
+   */
   maxTracks: number;
 }
 
@@ -75,9 +79,13 @@ export interface StudioDeviceProfile {
 }
 
 export const STUDIO_AUDIO_BUDGETS: Record<StudioDeviceTier, StudioAudioBudget> = {
-  high: { maxVoices: 32, maxActiveEffects: 8, maxTracks: 24 },
-  mid: { maxVoices: 16, maxActiveEffects: 4, maxTracks: 12 },
-  low: { maxVoices: 8, maxActiveEffects: 2, maxTracks: 6 },
+  // Tracks are editor rows, not simultaneous voices. Cubasis-class sessions
+  // are judged on whether the whole song can be opened, so every tier keeps an
+  // unlimited authoring ceiling while CPU-heavy work stays capped by the live
+  // voice and active-effect budgets below.
+  high: { maxVoices: 32, maxActiveEffects: 8, maxTracks: Number.POSITIVE_INFINITY },
+  mid: { maxVoices: 16, maxActiveEffects: 4, maxTracks: Number.POSITIVE_INFINITY },
+  low: { maxVoices: 8, maxActiveEffects: 2, maxTracks: Number.POSITIVE_INFINITY },
 };
 
 /**

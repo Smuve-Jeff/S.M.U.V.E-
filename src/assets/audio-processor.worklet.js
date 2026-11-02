@@ -359,12 +359,25 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
     };
   }
 
-  /** Tempo in force at a song step: the last map entry at or before it. */
+  /**
+   * Tempo in force at a song step. A `ramp` marker interpolates to the next
+   * marker; every other marker holds its BPM. This mirrors the main-thread
+   * `tempoAtStep()` so the worklet clock and the fallback clock agree.
+   */
   tempoForStep(step) {
     let bpm = this.tempo;
-    for (const marker of this.tempoMap) {
-      if (marker.step <= step) bpm = marker.bpm;
+    let index = -1;
+    for (let i = 0; i < this.tempoMap.length; i++) {
+      if (this.tempoMap[i].step <= step) index = i;
       else break;
+    }
+    if (index < 0) return bpm > 0 ? bpm : this.tempo;
+    const marker = this.tempoMap[index];
+    const next = this.tempoMap[index + 1];
+    bpm = marker.bpm;
+    if (marker.curve === 'ramp' && next && next.step > marker.step) {
+      const progress = Math.max(0, Math.min(1, (step - marker.step) / (next.step - marker.step)));
+      bpm = marker.bpm + (next.bpm - marker.bpm) * progress;
     }
     return bpm > 0 ? bpm : this.tempo;
   }

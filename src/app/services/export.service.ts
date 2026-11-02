@@ -982,58 +982,109 @@ export class ExportService {
       .map((marker) => ({
         step: Math.max(0, Math.round(marker.step)),
         bpm: Math.max(20, Math.min(300, marker.bpm)),
+        curve: marker.curve === 'ramp' ? ('ramp' as const) : undefined,
       }))
       .sort((a, b) => a.step - b.step);
+
+    // A marker on step 0 replaces the initial tempo; later markers are
+    // breakpoints. Duplicate steps resolve to the last marker, matching the
+    // live engine's "last marker at or before this step" lookup.
     let initialBpm = base;
-    const segments: Array<{ step: number; bpm: number }> = [];
+    let initialCurve: 'ramp' | undefined;
+    const points: Array<{ step: number; bpm: number; curve?: 'ramp' }> = [];
     for (const marker of markers) {
       if (marker.step <= 0) {
         initialBpm = marker.bpm;
-      } else if (segments[segments.length - 1]?.step === marker.step) {
-        segments[segments.length - 1].bpm = marker.bpm;
+        initialCurve = marker.curve;
       } else {
-        segments.push({ ...marker });
+        const previous = points[points.length - 1];
+        if (previous?.step === marker.step) {
+          previous.bpm = marker.bpm;
+          previous.curve = marker.curve;
+        } else {
+          points.push({ ...marker });
+        }
       }
     }
 
+    const pointAtStep = (step: number) => {
+      let found: { step: number; bpm: number; curve?: 'ramp' } | undefined =
+        initialCurve ? { step: 0, bpm: initialBpm, curve: initialCurve } : undefined;
+      for (const point of points) {
+        if (point.step <= step) found = point;
+        else break;
+      }
+      return found;
+    };
+
     const bpmAtStep = (step: number): number => {
       let bpm = initialBpm;
-      for (const segment of segments) {
-        if (segment.step <= step) bpm = segment.bpm;
-        else break;
+      let active: { step: number; bpm: number; curve?: 'ramp' } | undefined =
+        initialCurve ? { step: 0, bpm: initialBpm, curve: initialCurve } : undefined;
+      let next: { step: number; bpm: number; curve?: 'ramp' } | undefined;
+      for (let i = 0; i < points.length; i++) {
+        if (points[i].step <= step) {
+          active = points[i];
+          next = points[i + 1];
+        } else {
+          next = points[i];
+          break;
+        }
+      }
+      if (!active) return bpm;
+      bpm = active.bpm;
+      if (active.curve === 'ramp' && next && next.step > active.step) {
+        const progress = Math.max(
+          0,
+          Math.min(1, (step - active.step) / (next.step - active.step)),
+        );
+        bpm = active.bpm + (next.bpm - active.bpm) * progress;
       }
       return bpm;
     };
+
     const timeAtStep = (step: number): number => {
       const target = Math.max(0, step);
-      let position = 0;
-      let bpm = initialBpm;
+      const breakpoints = [
+        0,
+        ...points.map((point) => point.step).filter((point) => point > 0 && point < target),
+        target,
+      ];
       let seconds = 0;
-      for (const segment of segments) {
-        if (segment.step >= target) break;
-        seconds += (segment.step - position) * (60 / bpm) / STEPS_PER_BEAT;
-        position = segment.step;
-        bpm = segment.bpm;
+      for (let i = 0; i < breakpoints.length - 1; i++) {
+        const from = breakpoints[i];
+        const to = breakpoints[i + 1];
+        const span = to - from;
+        if (span <= 0) continue;
+        const active = pointAtStep(from);
+        const bpm =
+          active?.curve === 'ramp'
+            ? (bpmAtStep(from) + bpmAtStep(to)) / 2
+            : bpmAtStep(from);
+        seconds += (span * 60) / Math.max(1, bpm) / STEPS_PER_BEAT;
       }
-      return seconds + (target - position) * (60 / bpm) / STEPS_PER_BEAT;
+      return seconds;
     };
+
     const stepAtTime = (time: number): number => {
       const target = Math.max(0, time);
-      let position = 0;
-      let bpm = initialBpm;
-      let elapsed = 0;
-      for (const segment of segments) {
-        const segmentSeconds = (segment.step - position) * (60 / bpm) / STEPS_PER_BEAT;
-        if (elapsed + segmentSeconds >= target) {
-          return position + (target - elapsed) * bpm * STEPS_PER_BEAT / 60;
-        }
-        elapsed += segmentSeconds;
-        position = segment.step;
-        bpm = segment.bpm;
+      if (target === 0) return 0;
+      // Time is monotonic, so a bounded binary search is stable for ramps and
+      // steps alike. Start from a generous upper bound and expand only if a
+      // very slow outro needs it.
+      let high = Math.max(64, target * 300 * STEPS_PER_BEAT + 64);
+      while (timeAtStep(high) < target) high *= 2;
+      let low = 0;
+      for (let i = 0; i < 56; i++) {
+        const middle = (low + high) / 2;
+        if (timeAtStep(middle) < target) low = middle;
+        else high = middle;
       }
-      return position + (target - elapsed) * bpm * STEPS_PER_BEAT / 60;
+      return (low + high) / 2;
     };
-    const minStepSeconds = 60 / Math.max(...[initialBpm, ...segments.map((segment) => segment.bpm), 20]) / STEPS_PER_BEAT;
+
+    const minStepSeconds =
+      60 / Math.max(...[initialBpm, ...points.map((point) => point.bpm), 20]) / STEPS_PER_BEAT;
 
     return {
       bpmAtStep,

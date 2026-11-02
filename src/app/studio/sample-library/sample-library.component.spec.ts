@@ -91,16 +91,45 @@ describe("SampleLibraryComponent", () => {
   });
 
   it("shows every sample by default", () => {
-    expect(component.filteredSamples().length).toBe(22);
+    expect(component.filteredSamples().length).toBe(40);
   });
 
   it("filters samples by search query across name, id and tags", () => {
     component.searchQuery.set("808");
     const ids = component.filteredSamples().map((s) => s.id);
-    expect(ids).toEqual(["kick"]);
+    expect(ids).toEqual(["kick", "bass-808-slide"]);
 
     component.searchQuery.set("sub");
     expect(component.filteredSamples().map((s) => s.id)).toEqual(["bass-sub"]);
+  });
+
+  it("groups the factory shelf into packs and filters by pack", () => {
+    const packs = component.packs();
+    expect(packs.map((pack) => pack.id)).toEqual([
+      "all",
+      "Club Arsenal",
+      "After Hours",
+      "Cinematic Tools",
+    ]);
+    component.selectPack("Cinematic Tools");
+    expect(
+      component.filteredSamples().every(
+        (sample) => component.packFor(sample) === "Cinematic Tools",
+      ),
+    ).toBe(true);
+    component.selectPack("all");
+  });
+
+  it("persists favourites and narrows the shelf to them", () => {
+    component.toggleFavorite("keys-grand");
+    expect(component.isFavorite("keys-grand")).toBe(true);
+    component.toggleFavoritesOnly();
+    expect(component.filteredSamples().map((sample) => sample.id)).toEqual([
+      "keys-grand",
+    ]);
+    component.toggleFavorite("keys-grand");
+    expect(component.filteredSamples()).toHaveLength(0);
+    component.toggleFavoritesOnly();
   });
 
   it("filters samples by category", () => {

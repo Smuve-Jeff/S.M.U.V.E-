@@ -392,6 +392,64 @@ export class StudioMidiLearnService {
     }
   }
 
+  /** Portable, human-readable MIDI map for another device or a collaborator. */
+  exportMappings(): string {
+    return JSON.stringify(
+      {
+        format: 'smuve-midi-map',
+        version: 1,
+        bindings: this.bindings(),
+      },
+      null,
+      2,
+    );
+  }
+
+  /**
+   * Import a previously exported map. Invalid entries are dropped; a payload
+   * with no usable bindings is rejected instead of silently wiping the map.
+   * Returns the number of active bindings after import.
+   */
+  importMappings(raw: string): number {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error('Invalid MIDI map — not valid JSON');
+    }
+    const entries = Array.isArray(parsed)
+      ? parsed
+      : parsed?.format === 'smuve-midi-map'
+        ? parsed.bindings
+        : null;
+    if (!Array.isArray(entries)) {
+      throw new Error('Invalid MIDI map — bindings array missing');
+    }
+    const valid = entries.filter(
+      (entry: any): entry is StudioMidiBinding =>
+        entry &&
+        typeof entry.id === 'string' &&
+        typeof entry.target === 'string' &&
+        typeof entry.label === 'string' &&
+        Number.isInteger(entry.channel) &&
+        entry.channel >= 0 &&
+        entry.channel <= 16 &&
+        Number.isInteger(entry.number) &&
+        entry.number >= 0 &&
+        entry.number <= 127 &&
+        (entry.type === 'cc' || entry.type === 'note'),
+    );
+    if (entries.length > 0 && valid.length === 0) {
+      throw new Error('Invalid MIDI map — no supported bindings');
+    }
+    // One binding per target: the map is a parameter map, not a layer stack.
+    const byTarget = new Map<string, StudioMidiBinding>();
+    for (const binding of valid) byTarget.set(binding.target, binding);
+    this.bindings.set([...byTarget.values()]);
+    this.persist();
+    return this.bindings().length;
+  }
+
   private persist(): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.bindings()));

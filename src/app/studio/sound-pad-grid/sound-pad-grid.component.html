@@ -14,6 +14,23 @@
       </div>
     </div>
     <div class="spg-actions">
+      <button
+        type="button"
+        class="spg-repeat-toggle"
+        [class.is-on]="noteRepeatEnabled()"
+        (click)="toggleNoteRepeat()"
+        [attr.aria-pressed]="noteRepeatEnabled()"
+        title="Hold a pad to retrigger at the project tempo"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">repeat</span>
+        Repeat
+      </button>
+      <label class="spg-repeat-rate" *ngIf="noteRepeatEnabled()">
+        <span>Rate</span>
+        <select [value]="repeatDivision()" (change)="setRepeatDivision($event)" aria-label="Note repeat division">
+          <option *ngFor="let division of repeatDivisions" [value]="division.id">{{ division.label }}</option>
+        </select>
+      </label>
       <div class="spg-kpi">
         <span class="spg-kpi-label">LOADED</span>
         <span class="spg-kpi-value"
@@ -46,6 +63,10 @@
       [class.spg-cell-reassigning]="reassignIndex() === pad.index"
       [style.--pad-color]="pad.color"
       (contextmenu)="$event.preventDefault(); openReassign(pad.index)"
+      (pointerdown)="startPadRepeat(pad.index)"
+      (pointerup)="stopPadRepeat()"
+      (pointercancel)="stopPadRepeat()"
+      (pointerleave)="stopPadRepeat()"
       role="gridcell"
       [attr.aria-label]="
         pad.label + (pad.presetId ? '' : ' — empty pad (long-press to assign)')

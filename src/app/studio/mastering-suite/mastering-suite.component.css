@@ -1342,3 +1342,102 @@
     height: 124px !important;
   }
 }
+
+
+/* Reference spectral matching */
+.ms-spectral-match {
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  border-radius: 10px;
+  background: rgba(8, 47, 73, 0.24);
+}
+.ms-spectral-match-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+.ms-spectral-match-head strong {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: #a5f3fc;
+}
+.ms-spectral-match-head span {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  color: #94a3b8;
+}
+.ms-spectral-measure {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.14);
+  color: #cffafe;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.ms-spectral-bands {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 4px;
+  align-items: end;
+}
+.ms-spectral-band { min-width: 0; text-align: center; }
+.ms-spectral-band-label,
+.ms-spectral-band-value {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: #94a3b8;
+}
+.ms-spectral-band-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  margin: 3px 0;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.72);
+  overflow: hidden;
+}
+.ms-spectral-zero {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 50%;
+  height: 1px;
+  background: rgba(148, 163, 184, 0.28);
+}
+.ms-spectral-band-bar {
+  width: 60%;
+  min-height: 2px;
+  border-radius: 2px;
+  transform: translateY(0);
+}
+.ms-spectral-band-bar.is-hot {
+  align-self: flex-start;
+  margin-top: 2px;
+  background: linear-gradient(180deg, #fb7185, #ef4444);
+}
+.ms-spectral-band-bar.is-cold {
+  align-self: flex-end;
+  margin-bottom: 2px;
+  background: linear-gradient(180deg, #22d3ee, #0e7490);
+}
+.ms-spectral-empty {
+  margin: 2px 0;
+  font-size: 9px;
+  color: #94a3b8;
+}
+@media (max-width: 520px) {
+  .ms-spectral-bands { gap: 2px; }
+  .ms-spectral-band-value { font-size: 7px; }
+}
