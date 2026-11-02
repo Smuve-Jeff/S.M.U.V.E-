@@ -49,6 +49,16 @@ export function planAuditionChunks(
   });
 }
 
+/** Human-readable remaining wall-clock estimate for a chunked render. */
+export function formatRenderEta(seconds: number | null): string {
+  if (seconds === null || !Number.isFinite(seconds)) return '';
+  const rounded = Math.max(1, Math.round(seconds));
+  if (rounded < 60) return `~${rounded}s left`;
+  const minutes = Math.floor(rounded / 60);
+  const rest = rounded % 60;
+  return rest ? `~${minutes}m ${rest}s left` : `~${minutes}m left`;
+}
+
 /**
  * Choose how much audio one offline render may cover. Smaller slices do not
  * shrink the final buffer, but they shorten the longest wait before progress
@@ -174,6 +184,12 @@ export class CompositionAuditionService {
   previewBars = signal(0);
   /** Completed fraction of the current chunked render, 0–1. */
   renderProgress = signal(0);
+  /** Slices completed in the current render. */
+  renderSlicesDone = signal(0);
+  /** Total slices planned for the current render; 0 when idle. */
+  renderSliceTotal = signal(0);
+  /** Rough wall-clock seconds left, null until a slice completes. */
+  renderEtaSeconds = signal<number | null>(null);
 
   private buffer: AudioBuffer | null = null;
   private noise: AudioBuffer | null = null;
@@ -247,9 +263,26 @@ export class CompositionAuditionService {
     this.renderToken++;
     this.rendering.set(false);
     this.renderProgress.set(0);
+    this.renderSlicesDone.set(0);
+    this.renderSliceTotal.set(0);
+    this.renderEtaSeconds.set(null);
     this.buffer = null;
     this.readyCompositionId.set(null);
     this.error.set(null);
+  }
+
+  /** "Slice 2/5" for a render that needs more than one pass. */
+  renderSliceLabel(): string {
+    const total = this.renderSliceTotal();
+    if (total <= 1) return '';
+    const done = Math.min(this.renderSlicesDone(), total);
+    return `Slice ${Math.min(done + 1, total)}/${total}`;
+  }
+
+  /** Rough remaining wall-clock time for a multi-slice render. */
+  renderEtaLabel(): string {
+    if (!this.rendering() || this.renderSliceTotal() <= 1) return '';
+    return formatRenderEta(this.renderEtaSeconds());
   }
 
   /** Renders the score to an AudioBuffer, then plays it. */
@@ -272,6 +305,9 @@ export class CompositionAuditionService {
     this.buffer = null;
     this.readyCompositionId.set(null);
     this.renderProgress.set(0);
+    this.renderSlicesDone.set(0);
+    this.renderSliceTotal.set(0);
+    this.renderEtaSeconds.set(null);
 
     try {
       const seconds = Math.max(2, score.durationSeconds);
@@ -283,6 +319,7 @@ export class CompositionAuditionService {
         this.renderChunkSeconds,
         this.chunkOverlapSeconds,
       );
+      this.renderSliceTotal.set(plan.length);
       const output = new AudioBuffer({
         length: totalFrames,
         numberOfChannels: 2,
@@ -292,8 +329,9 @@ export class CompositionAuditionService {
       let previous: AudioBuffer | null = null;
       let previousMainFrames = 0;
       let writeFrame = 0;
+      const renderStartedAt = Date.now();
 
-      for (const slice of plan) {
+      for (const [index, slice] of plan.entries()) {
         const frames = Math.max(
           1,
           Math.ceil(slice.renderSeconds * sampleRate),
@@ -346,10 +384,24 @@ export class CompositionAuditionService {
         this.renderProgress.set(
           Math.min(1, writeFrame / Math.max(1, totalFrames)),
         );
+        this.renderSlicesDone.set(index + 1);
+        const remaining = plan.length - index - 1;
+        this.renderEtaSeconds.set(
+          remaining > 0
+            ? Math.max(
+                1,
+                Math.round(
+                  ((Date.now() - renderStartedAt) / 1000 / (index + 1)) *
+                    remaining,
+                ),
+              )
+            : null,
+        );
       }
 
       if (token !== this.renderToken) return;
       this.renderProgress.set(1);
+      this.renderEtaSeconds.set(null);
       this.buffer = output;
       this.previewSeconds.set(Math.round(output.duration));
       this.previewBars.set(
@@ -366,6 +418,9 @@ export class CompositionAuditionService {
           (cause?.message ?? 'unknown audio error')
       );
       this.renderProgress.set(0);
+      this.renderSlicesDone.set(0);
+      this.renderSliceTotal.set(0);
+      this.renderEtaSeconds.set(null);
       this.notify.show('Audition rendering failed.', 'warning');
     } finally {
       if (token === this.renderToken) this.rendering.set(false);
@@ -424,6 +479,9 @@ export class CompositionAuditionService {
     this.readyCompositionId.set(null);
     this.rendering.set(false);
     this.renderProgress.set(0);
+    this.renderSlicesDone.set(0);
+    this.renderSliceTotal.set(0);
+    this.renderEtaSeconds.set(null);
     this.error.set(null);
   }
 

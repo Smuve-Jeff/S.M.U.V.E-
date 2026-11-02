@@ -144,6 +144,8 @@ describe("SmartCreationSheetComponent", () => {
     previewSeconds: signal(0),
     previewBars: signal(1),
     renderProgress: signal(0),
+    renderSliceLabel: jest.fn().mockReturnValue(""),
+    renderEtaLabel: jest.fn().mockReturnValue(""),
     startScore: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn(),
     clear: jest.fn(),
@@ -2157,12 +2159,14 @@ describe("SmartCreationSheetComponent", () => {
     mockCompositionAudition.playing.set(false);
     mockCompositionAudition.rendering.set(true);
     mockCompositionAudition.renderProgress.set(0.42);
+    mockCompositionAudition.renderSliceLabel.mockReturnValue("Slice 2/5");
+    mockCompositionAudition.renderEtaLabel.mockReturnValue("~18s left");
     component.auditioningPreviewId.set(score.id);
     expect(component.sectionsPreviewRendering(template)).toBe(true);
     expect(component.sectionsPreviewLabel(template)).toBe("Cancel · 42%");
     expect(component.sectionsPreviewProgressPercent(template)).toBe(42);
     expect(component.sectionsPreviewProgressLabel(template)).toContain(
-      "Rendering saved sections · 42%",
+      "Rendering saved sections · 42% · Slice 2/5 · ~18s left",
     );
 
     await component.auditionSavedSections(template);
@@ -2170,6 +2174,9 @@ describe("SmartCreationSheetComponent", () => {
     expect(mockCompositionAudition.clear).toHaveBeenCalled();
     expect(mockCompositionAudition.startScore).toHaveBeenCalledTimes(1);
     expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
+
+    mockCompositionAudition.renderSliceLabel.mockReturnValue("");
+    mockCompositionAudition.renderEtaLabel.mockReturnValue("");
   });
 
   it("marks a playing section and stops it on a second click", async () => {

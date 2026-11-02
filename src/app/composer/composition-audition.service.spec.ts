@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import {
   CompositionAuditionService,
   auditionChunkSecondsForDevice,
+  formatRenderEta,
   planAuditionChunks,
   writeAuditionChunk,
   type AuditionChunkBuffer,
@@ -28,6 +29,41 @@ function fakeOutput(frames: number, channels = 2) {
     getChannelData: (channel: number) => data[channel],
   };
 }
+
+describe('formatRenderEta', () => {
+  it('formats short, minute and exact-minute estimates', () => {
+    expect(formatRenderEta(null)).toBe('');
+    expect(formatRenderEta(18)).toBe('~18s left');
+    expect(formatRenderEta(61)).toBe('~1m 1s left');
+    expect(formatRenderEta(120)).toBe('~2m left');
+  });
+});
+
+describe('render progress labels', () => {
+  it('names the current slice and hides itself for a single-slice render', () => {
+    const service = Object.create(
+      CompositionAuditionService.prototype,
+    ) as CompositionAuditionService;
+    Object.assign(service as any, {
+      rendering: signal(true),
+      renderSlicesDone: signal(1),
+      renderSliceTotal: signal(5),
+      renderEtaSeconds: signal<number | null>(18),
+    });
+
+    expect(service.renderSliceLabel()).toBe('Slice 2/5');
+    expect(service.renderEtaLabel()).toBe('~18s left');
+
+    service.renderSlicesDone.set(5);
+    expect(service.renderSliceLabel()).toBe('Slice 5/5');
+
+    service.rendering.set(false);
+    expect(service.renderEtaLabel()).toBe('');
+
+    service.renderSliceTotal.set(1);
+    expect(service.renderSliceLabel()).toBe('');
+  });
+});
 
 describe('auditionChunkSecondsForDevice', () => {
   const device = (
@@ -229,6 +265,9 @@ describe('CompositionAuditionService chunked rendering', () => {
         previewSeconds: signal(0),
         previewBars: signal(0),
         renderProgress: signal(0),
+        renderSlicesDone: signal(0),
+        renderSliceTotal: signal(0),
+        renderEtaSeconds: signal<number | null>(null),
         buffer: null,
         noise: null,
         renderToken: 0,
@@ -272,6 +311,9 @@ describe('CompositionAuditionService chunked rendering', () => {
       expect(service.previewBars()).toBe(65);
       expect(service.readyCompositionId()).toBe('long-score');
       expect(service.renderProgress()).toBe(1);
+      expect(service.renderSlicesDone()).toBe(2);
+      expect(service.renderSliceTotal()).toBe(2);
+      expect(service.renderEtaSeconds()).toBeNull();
       expect((service as any).buffer.length).toBe(Math.ceil(130 * 44100));
       expect(service.error()).toBeNull();
     } finally {
@@ -289,6 +331,9 @@ describe('cancelRender', () => {
     Object.assign(service as any, {
       rendering: signal(true),
       renderProgress: signal(0.4),
+      renderSlicesDone: signal(1),
+      renderSliceTotal: signal(3),
+      renderEtaSeconds: signal<number | null>(12),
       readyCompositionId: signal<string | null>('old-score'),
       error: signal<string | null>('old error'),
       buffer: { length: 10 },
@@ -299,6 +344,9 @@ describe('cancelRender', () => {
 
     expect(service.rendering()).toBe(false);
     expect(service.renderProgress()).toBe(0);
+    expect(service.renderSlicesDone()).toBe(0);
+    expect(service.renderSliceTotal()).toBe(0);
+    expect(service.renderEtaSeconds()).toBeNull();
     expect(service.readyCompositionId()).toBeNull();
     expect(service.error()).toBeNull();
     expect((service as any).buffer).toBeNull();

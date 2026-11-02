@@ -1516,7 +1516,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
   ): boolean {
     return (
       this.isHeldSectionPreview(template, section) ||
-      this.sectionAuditionPlaying(template, section)
+      this.sectionAuditionPlaying(template, section) ||
+      this.sectionAuditionRendering(template, section)
     );
   }
 
@@ -1525,6 +1526,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
     template: ProjectTemplate,
     section: TemplateSection,
   ): number {
+    if (this.sectionAuditionRendering(template, section)) {
+      return this.renderProgressPercent();
+    }
     if (this.isHeldSectionPreview(template, section)) return 100;
     return this.sectionAuditionPlaying(template, section)
       ? this.previewProgressPercent()
@@ -1536,6 +1540,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
     template: ProjectTemplate,
     section: TemplateSection,
   ): string {
+    if (this.sectionAuditionRendering(template, section)) {
+      return `Rendering ${section.name} · ${this.renderProgressPercent()}%${this.renderDetail()}`;
+    }
     const held = this.heldSectionPreview();
     const id = this.sectionPreviewId(template, section);
     if (held && id === held.id) {
@@ -1672,6 +1679,17 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
+  /** Optional slice position and remaining-time detail for render labels. */
+  private renderDetail(): string {
+    const detail = [
+      this.compositionAudition.renderSliceLabel(),
+      this.compositionAudition.renderEtaLabel(),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    return detail ? ` · ${detail}` : "";
+  }
+
   sectionsPreviewLabel(template: ProjectTemplate): string {
     if (this.sectionsPreviewRendering(template)) {
       return `Cancel · ${this.renderProgressPercent()}%`;
@@ -1691,7 +1709,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   sectionsPreviewProgressLabel(template: ProjectTemplate): string {
     if (!this.sectionsPreviewActive(template)) return "";
     if (this.sectionsPreviewRendering(template)) {
-      return `Rendering saved sections · ${this.renderProgressPercent()}% · tap Cancel`;
+      return `Rendering saved sections · ${this.renderProgressPercent()}%${this.renderDetail()} · tap Cancel`;
     }
     const count =
       this.activeArrangementPreview(template)?.count ??
@@ -2018,7 +2036,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   mixPreviewProgressLabel(template: ProjectTemplate): string {
     if (this.mixAuditionRendering(template)) {
-      return `Rendering mix · ${this.renderProgressPercent()}% · tap to cancel`;
+      return `Rendering mix · ${this.renderProgressPercent()}%${this.renderDetail()} · tap to cancel`;
     }
     if (!this.mixPreviewActive(template)) return "";
     const count = this.selectedPatternCount(template);
@@ -2117,7 +2135,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     if (!active) return "";
     const take = active.version?.name ?? "Live pattern";
     if (this.isPreviewRendering(active.id)) {
-      return `Rendering ${take} · ${this.renderProgressPercent()}% · tap to cancel`;
+      return `Rendering ${take} · ${this.renderProgressPercent()}%${this.renderDetail()} · tap to cancel`;
     }
     return `${take} · ${this.previewPositionLabel()}`;
   }

@@ -136,7 +136,15 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
     const composition = this.core.current();
     if (!composition) return '';
     if (this.audition.rendering()) {
-      return `Synthesizing the written score · ${this.renderPercent()}%`;
+      const detail = [
+        this.audition.renderSliceLabel(),
+        this.audition.renderEtaLabel(),
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      return `Synthesizing the written score · ${this.renderPercent()}%${
+        detail ? ` · ${detail}` : ''
+      }`;
     }
     if (this.audition.playing()) {
       return `Playing the written score · ${this.audition.previewBars()} bars`;
