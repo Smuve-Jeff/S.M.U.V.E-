@@ -1,10 +1,12 @@
-import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { Injectable, Injector, computed, effect, inject, signal } from '@angular/core';
 import { UIService } from './ui.service';
 import { DeckService } from './deck.service';
 import { AiService } from './ai.service';
 import { NotificationService } from './notification.service';
 import { MainViewMode } from './user-context.service';
 import { StudioOrchestrationService } from './studio-orchestration.service';
+import type { CompositionCoreService } from '../composer/composition-core.service';
+import type { ComponentKind } from '../composer/composer.types';
 
 export interface CommandPaletteAction {
   id: string;
@@ -24,6 +26,63 @@ export interface InteractionTip {
   description: string;
   modes?: MainViewMode[];
 }
+
+/** Steps an artist reaches for mid-session, written straight from their genre. */
+const COMPOSE_ACTIONS: Array<{
+  component: ComponentKind;
+  label: string;
+  description: string;
+  keywords: string[];
+}> = [
+  {
+    component: 'full-song',
+    label: 'Compose: Complete Song',
+    description: 'Write a full genre-locked arrangement from the committed artist profile.',
+    keywords: ['full song', 'instrumental', 'beat', 'arrangement'],
+  },
+  {
+    component: 'bassline',
+    label: 'Compose: Bassline',
+    description: 'Write a bassline in the profile genre, key and pocket.',
+    keywords: ['bass', '808', 'low end'],
+  },
+  {
+    component: 'melody',
+    label: 'Compose: Melody',
+    description: 'Write a lead melody with motif development in the profile genre.',
+    keywords: ['hook', 'topline', 'lead'],
+  },
+  {
+    component: 'drums',
+    label: 'Compose: Drum Pattern',
+    description: 'Build a full kit pattern from the genre groove atlas.',
+    keywords: ['drums', 'groove', 'beat'],
+  },
+  {
+    component: 'chords',
+    label: 'Compose: Chord Progression',
+    description: 'Write a diatonic progression and comping part.',
+    keywords: ['chords', 'harmony', 'progression'],
+  },
+  {
+    component: 'kick',
+    label: 'Compose: Kick Pattern',
+    description: 'Write the kick foundation for the profile genre.',
+    keywords: ['kick', '808', 'low end'],
+  },
+  {
+    component: 'loop',
+    label: 'Compose: 8-Bar Loop',
+    description: 'Write a releasable loop pass in the profile genre.',
+    keywords: ['loop', '8 bar', 'idea'],
+  },
+  {
+    component: 'transition',
+    label: 'Compose: Transition',
+    description: 'Write a riser, fill or turnaround into the next section.',
+    keywords: ['transition', 'riser', 'fill'],
+  },
+];
 
 const INTERACTION_TIPS: InteractionTip[] = [
   {
@@ -94,6 +153,45 @@ export class CommandPaletteService {
   private aiService = inject(AiService);
   private notificationService = inject(NotificationService);
   private orchestration = inject(StudioOrchestrationService);
+  private injector = inject(Injector);
+
+  /**
+   * Writes a genre-locked pass, then puts the artist in front of it. The
+   * composition engine is imported on demand so its atlas stays out of the
+   * initial bundle.
+   */
+  private async composeStep(component: ComponentKind): Promise<void> {
+    let core: CompositionCoreService | null = null;
+    try {
+      const module = await import('../composer/composition-core.service');
+      core = this.injector.get(module.CompositionCoreService, null);
+    } catch {
+      core = null;
+    }
+    if (!core) {
+      this.notificationService.show('Composition Core is offline in this build.', 'warning', 2600);
+      return;
+    }
+    const gate = core.gate();
+    if (!gate.ready) {
+      const blocker = gate.blockers[0]?.label ?? 'complete your artist profile';
+      this.notificationService.show(`Composition locked — ${blocker}.`, 'warning', 3200);
+      this.uiService.navigateToView('profile');
+      return;
+    }
+    core.ensureGenreSelected();
+    const composition = core.generateStep(component);
+    if (!composition) {
+      this.notificationService.show(core.error() ?? 'Composition failed to generate.', 'warning', 3200);
+      return;
+    }
+    this.notificationService.show(
+      `Composed “${composition.title}” — ${composition.genreLabel} at ${composition.bpm} BPM.`,
+      'success',
+      2400
+    );
+    this.uiService.navigateToView('composer');
+  }
 
   isOpen = signal(false);
   showGuide = signal(false);
@@ -231,6 +329,14 @@ export class CommandPaletteService {
         keepOpen: true,
         run: () => this.openGuide(),
       },
+      ...COMPOSE_ACTIONS.map((action) => ({
+        id: `compose-${action.component}`,
+        label: action.label,
+        description: action.description,
+        category: 'Composition',
+        keywords: ['compose', 'write', 'generate', 'song', 'score', ...action.keywords],
+        run: () => this.composeStep(action.component),
+      })),
       ...this.orchestration.paletteActions().map((action) => ({
         ...action,
         context: action.context as MainViewMode[] | undefined,

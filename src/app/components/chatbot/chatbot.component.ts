@@ -54,6 +54,8 @@ import { SmuveWidgetComponent } from '../smuve-widget/smuve-widget.component';
 import { NeuralMixerService } from '../../services/neural-mixer.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { ChatMusicCommandEngineService } from '../../services/chat-music-command-engine.service';
+import type { CompositionCoreService } from '../../composer/composition-core.service';
+import type { CompositionAuditionService } from '../../composer/composition-audition.service';
 import {
   ChatAppCommandService,
   interpretAppRequest,
@@ -112,7 +114,10 @@ type MasterActionId =
   | 'music-preview'
   | 'music-undo'
   | 'music-stop'
-  | 'music-help';
+  | 'music-help'
+  | 'composer-open'
+  | 'composer-load'
+  | 'composer-audition';
 
 interface ChatAction {
   id: MasterActionId;
@@ -180,6 +185,25 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   /** Chat Music Command Engine — chat-driven creation / preview / undo / tempo. */
   private get chatMusic(): ChatMusicCommandEngineService | null {
     return this.injector.get(ChatMusicCommandEngineService, null);
+  }
+
+  /** Loads Composition Core only when an artist actually composes or acts on a pass. */
+  private async loadCompositionCore(): Promise<CompositionCoreService | null> {
+    try {
+      const module = await import('../../composer/composition-core.service');
+      return this.injector.get(module.CompositionCoreService, null);
+    } catch {
+      return null;
+    }
+  }
+
+  private async loadCompositionAudition(): Promise<CompositionAuditionService | null> {
+    try {
+      const module = await import('../../composer/composition-audition.service');
+      return this.injector.get(module.CompositionAuditionService, null);
+    } catch {
+      return null;
+    }
   }
   /** Existing profile fine-tuning compiler — reused rather than maintaining a second persona profile. */
   private get artistFinetune(): ArtistProfileFinetuneService | null {
@@ -826,7 +850,15 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       return { content: result.message, actions: [] };
     }
 
-    // 0) Chat Music Command Engine — chat-driven music creation, preview,
+    // 0a) Composition Core — genre-locked songs and single steps, parsed here
+    //     but loaded on demand so the composer atlas stays out of the initial bundle.
+    const composeComponent = this.chatMusic?.detectComposeIntent(trimmed) ?? null;
+    if (composeComponent) {
+      const result = await this.chatMusic!.compose(composeComponent);
+      return { content: result.content, actions: result.actions };
+    }
+
+    // 0b) Chat Music Command Engine — chat-driven music creation, preview,
     //    undo, tempo and stop. Handles its own slash + natural-language forms.
     const musicResult = this.chatMusic?.tryExecute(trimmed);
     if (musicResult) {
@@ -1651,7 +1683,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   /** One-tap AI apply — executes a Master action against the live app. */
-  runChatAction(action: ChatAction) {
+  async runChatAction(action: ChatAction) {
     if (this.isTyping()) return;
     const mutating = ['apply-mimic', 'tempo-90', 'tempo-124', 'tempo-140', 'chords', 'melody', 'neural-mix', 'music-undo'];
     if (mutating.includes(action.id) && this.profile().settings?.ai?.aiTotalControlEnabled !== true) {
@@ -1733,6 +1765,45 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       case 'music-help':
         result = this.chatMusic?.help().content ?? 'Music engine offline.';
         break;
+      case 'composer-open':
+        if (this.router) {
+          void this.router.navigate(['/composer']);
+          result = 'Composition Core open. The pass you asked for is loaded there.';
+        } else {
+          result = 'Navigation is unavailable right now.';
+        }
+        break;
+      case 'composer-load': {
+        const core = await this.loadCompositionCore();
+        if (!core?.current()) {
+          result = 'Nothing composed yet — ask me for a song or a step first.';
+          break;
+        }
+        if (this.profile()?.settings?.ai?.aiTotalControlEnabled !== true) {
+          result =
+            'Full-Control Mode is off. Enable it in Settings → AI before I change the Studio session.';
+          break;
+        }
+        const handoff = core.sendToStudio();
+        result = handoff.trackIds.length
+          ? `Loaded “${core.current()?.title}” into the Studio as ${handoff.trackIds.length} track${handoff.trackIds.length === 1 ? '' : 's'}${handoff.skipped.length ? `; skipped ${handoff.skipped.join(', ')}` : ''}.`
+          : 'Nothing could be loaded from that pass.';
+        break;
+      }
+      case 'composer-audition': {
+        const core = await this.loadCompositionCore();
+        const audition = await this.loadCompositionAudition();
+        const composition = core?.current();
+        if (!composition || !audition) {
+          result = 'Nothing to audition yet — ask me to compose first.';
+          break;
+        }
+        void audition.toggle(composition);
+        result = audition.error()
+          ? audition.error()!
+          : `Auditioning the written score of “${composition.title}”.`;
+        break;
+      }
       default:
         return;
     }

@@ -6,6 +6,8 @@ import { AudioEngineService } from './audio-engine.service';
 import { SpeechSynthesisService } from './speech-synthesis.service';
 import { UserProfileService } from './user-profile.service';
 import { initialProfile, UserProfile } from '../types/profile.types';
+import { CompositionCoreService } from '../composer/composition-core.service';
+import { ComponentKind, Composition } from '../composer/composer.types';
 
 function makeTrack(
   id: string,
@@ -49,6 +51,8 @@ describe('ChatMusicCommandEngineService', () => {
   let stopAudition: jest.Mock;
   let speak: jest.Mock;
   let profile: ReturnType<typeof signal<UserProfile>>;
+  let composeGate: ReturnType<typeof signal<any>>;
+  let generateStep: jest.Mock<Composition | null, [ComponentKind]>;
 
   beforeEach(() => {
     tracks = signal<TrackModel[]>([]);
@@ -73,6 +77,35 @@ describe('ChatMusicCommandEngineService', () => {
     stopAudition = jest.fn();
     speak = jest.fn();
     profile = signal<UserProfile>({ ...initialProfile, settings: { ...initialProfile.settings, ai: { ...initialProfile.settings.ai, aiTotalControlEnabled: true } } });
+    composeGate = signal({ ready: true, blockers: [] });
+    generateStep = jest.fn((component: ComponentKind) => ({
+      id: 'comp-1',
+      title: 'Concrete Protocol',
+      component,
+      componentLabel: component === 'full-song' ? 'Complete song' : component.replace('-', ' '),
+      genreLabel: 'House',
+      bpm: 124,
+      keyLabel: 'F#',
+      modeLabel: 'minor',
+      grooveName: 'Deep House Pocket',
+      totalBars: 32,
+      durationSeconds: 62,
+      sections: [{ label: 'Intro', bars: 4 }, { label: 'Drop', bars: 28 }],
+      parts: [
+        { name: 'Bass', range: 'F#1–C#3', reference: false },
+        { name: 'Chords', range: 'F#3–A4', reference: true },
+      ],
+      theory: ['F# natural minor; i–VI–III–VII.'],
+      rationale: ['The profile declared house, so the pocket leads.'],
+    } as unknown as Composition));
+
+    const composerMock = {
+      gate: composeGate,
+      ensureGenreSelected: jest.fn(),
+      generateStep,
+      error: () => null,
+      current: () => null,
+    };
 
     const audioMock = {
       tempo,
@@ -103,6 +136,7 @@ describe('ChatMusicCommandEngineService', () => {
         { provide: AudioEngineService, useValue: audioMock as any },
         { provide: SpeechSynthesisService, useValue: { speak } as any },
         { provide: UserProfileService, useValue: { profile } },
+        { provide: CompositionCoreService, useValue: composerMock as any },
       ],
     });
 
@@ -431,6 +465,50 @@ describe('ChatMusicCommandEngineService', () => {
   it('preserves flat and sharp key names without doubled accidentals', () => {
     expect(service.tryExecute('make a beat in Bb minor')!.content).toContain('Bb minor');
     expect(service.tryExecute('play Dbmaj7 - Ebm7')!.content).toContain('Dbmaj7');
+  });
+
+  it('composes a single step through Composition Core without touching the session', async () => {
+    const before = noteCount();
+    const component = service.detectComposeIntent('/compose bassline');
+    expect(component).toBe('bassline');
+    const result = await service.compose(component!);
+    expect(result.content).toContain('BASS');
+    expect(result.content).toContain('Concrete Protocol');
+    expect(result.content).toContain('Nothing touched your session yet');
+    expect(result.actions.map((action) => action.id)).toEqual([
+      'composer-audition',
+      'composer-load',
+      'composer-open',
+    ]);
+    expect(generateStep).toHaveBeenLastCalledWith('bassline');
+    expect(noteCount()).toBe(before);
+  });
+
+  it('treats a bare compose request as a complete song', async () => {
+    expect(service.detectComposeIntent('/compose')).toBe('full-song');
+    const result = await service.compose('full-song');
+    expect(result.content).toContain('COMPLETE SONG');
+    expect(generateStep).toHaveBeenLastCalledWith('full-song');
+    expect(service.detectComposeIntent('compose a melody')).toBe('melody');
+  });
+
+  it('recognizes genre-locked step asks in natural language', () => {
+    expect(service.detectComposeIntent('write me a bassline for my profile')).toBe('bassline');
+    expect(service.detectComposeIntent('make a melody for me')).toBe('melody');
+    expect(service.detectComposeIntent('how do I compose a bassline?')).toBeNull();
+    expect(service.tryExecute('how do I compose a bassline?')).toBeNull();
+  });
+
+  it('refuses to compose when the artist profile gate is locked', async () => {
+    composeGate.set({
+      ready: false,
+      blockers: [{ label: 'Artist profile committed', detail: 'Commit the profile.' }],
+    });
+    const result = await service.compose('drums');
+    expect(result.content).toContain('🔒');
+    expect(result.content).toContain('Artist profile committed');
+    expect(result.actions).toEqual([]);
+    expect(generateStep).not.toHaveBeenCalled();
   });
 
 });

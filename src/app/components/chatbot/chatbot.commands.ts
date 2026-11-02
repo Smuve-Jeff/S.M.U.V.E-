@@ -11,6 +11,11 @@ export const CHATBOT_COMMANDS = [
     category: 'Production',
   },
   {
+    command: 'COMPOSE',
+    description: 'Write a genre-locked song or step from your committed profile, in chat.',
+    category: 'Production',
+  },
+  {
     command: 'CHORD_PROGRESSION',
     description: 'Play a chord progression, e.g. "play C - Am - F - G".',
     category: 'Production',

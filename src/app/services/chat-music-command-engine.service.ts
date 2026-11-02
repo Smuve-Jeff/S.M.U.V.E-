@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Injector, inject } from '@angular/core';
 import {
   MusicManagerService,
   TrackNote,
@@ -7,6 +7,8 @@ import {
 import { AudioEngineService } from './audio-engine.service';
 import { SpeechSynthesisService } from './speech-synthesis.service';
 import { UserProfileService } from './user-profile.service';
+import type { CompositionCoreService } from '../composer/composition-core.service';
+import type { ComponentKind, Composition } from '../composer/composer.types';
 
 /**
  * Chat Music Command Engine — S.M.U.V.E 2.0's chat-driven music surface.
@@ -29,7 +31,10 @@ export type ChatMusicActionId =
   | 'music-preview'
   | 'music-undo'
   | 'music-stop'
-  | 'music-help';
+  | 'music-help'
+  | 'composer-open'
+  | 'composer-load'
+  | 'composer-audition';
 
 export interface ChatMusicAction {
   id: ChatMusicActionId;
@@ -229,6 +234,7 @@ const NUMERAL_DEGREE: Record<string, number> = {
 
 @Injectable({ providedIn: 'root' })
 export class ChatMusicCommandEngineService {
+  private injector = inject(Injector);
   private music = inject(MusicManagerService);
   private audio = inject(AudioEngineService);
   private speech = inject(SpeechSynthesisService);
@@ -377,15 +383,146 @@ export class ChatMusicCommandEngineService {
         '  • "make a beat at 140 in C minor" — full kit: drums, bass, chords, melody',
         '  • "play C - Am - F - G" — chord progression',
         '  • "drop some drums" / "bassline in A minor" / "melody in E major"',
+        '  • "/compose" or "/compose bassline" — write from your committed genre, mid-session',
         '  • "set tempo 90" — lock the BPM',
         '  • "preview" / "play it" — hear what I made',
         '  • "undo" — rewind the last edit',
         '  • "stop" — cut playback',
         '',
-        'Slash forms: /make, /drums, /bass, /chords, /melody, /tempo 128, /preview, /undo, /stop.',
+        'Slash forms: /compose, /compose melody, /make, /drums, /bass, /chords, /melody, /tempo 128, /preview, /undo, /stop.',
       ].join('\n'),
       actions: [{ id: 'music-preview', label: 'Preview' }],
     };
+  }
+
+  // ── Composition Core (genre-locked) ───────────────────────────────────────
+
+  /**
+   * Recognizes `/compose …` and explicit asks like "write me a bassline in my
+   * genre". A bare "compose" means a complete song. Questions and general
+   * discussion never generate — the chatbot answers those.
+   *
+   * Parsing stays in this eagerly-loaded service so the composer engine (and
+   * its 66-genre atlas) is only fetched when an artist actually composes.
+   */
+  detectComposeIntent(text: string): ComponentKind | null {
+    const lower = text.toLowerCase().replace(/\s+/g, ' ').trim();
+    let component: ComponentKind | null = null;
+
+    if (lower === '/compose' || lower === '/compose song' || lower === '/compose full song') {
+      component = 'full-song';
+    } else if (lower.startsWith('/compose ')) {
+      component = this.componentFromWords(lower.slice(9)) ?? 'full-song';
+    } else if (/^compose\b/.test(lower)) {
+      component = this.componentFromWords(lower.replace(/^compose/, '')) ?? 'full-song';
+    } else if (
+      /\b(?:write|make|build|generate|give me)\b.*\b(?:complete|full|whole)\s+(?:song|arrangement|instrumental|track)\b/.test(lower)
+    ) {
+      component = 'full-song';
+    } else if (
+      /\b(?:write|make|build|generate|give me)\b.*\b(?:bassline|melody|chords?|drum pattern|drums|kick|hats|snare|percussion|arp|loop|transition|counter[- ]melody)\b.*\b(?:my genre|my sound|my profile|my style|for me)\b/.test(lower)
+    ) {
+      component = this.componentFromWords(lower);
+    }
+
+    return component;
+  }
+
+  private componentFromWords(text: string): ComponentKind | null {
+    const words = text.toLowerCase();
+    if (/\b(?:arrangement|arrange|structure|form)\b/.test(words)) return 'arrangement';
+    if (/\b(?:bassline|bass line|bass)\b/.test(words)) return 'bassline';
+    if (/\b(?:counter[- ]melody|countermelody)\b/.test(words)) return 'counter-melody';
+    if (/\b(?:melody|topline|hook|lead line|riff)\b/.test(words)) return 'melody';
+    if (/\b(?:chords?|progression|harmony)\b/.test(words)) return 'chords';
+    if (/\b(?:arp|arpeggio)\b/.test(words)) return 'arp';
+    if (/\b(?:kick|808|sub hit)\b/.test(words)) return 'kick';
+    if (/\b(?:snare|clap)\b/.test(words)) return 'snare';
+    if (/\b(?:hats?|hi[- ]?hats?|shaker)\b/.test(words)) return 'hats';
+    if (/\b(?:percussion|perc|toms?|ride|congas?)\b/.test(words)) return 'percussion';
+    if (/\b(?:drums?|drum pattern|groove)\b/.test(words)) return 'drums';
+    if (/\b(?:loop|8[- ]bar loop|loop pass)\b/.test(words)) return 'loop';
+    if (/\b(?:transition|riser|build|fill|turnaround)\b/.test(words)) return 'transition';
+    if (/\b(?:song|track|beat|instrumental|full pass|whole thing|complete)\b/.test(words)) return 'full-song';
+    return null;
+  }
+
+  /** Builds the pass on demand, loading the composition engine lazily. */
+  async compose(component: ComponentKind): Promise<ChatMusicResult> {
+    let core: CompositionCoreService | null = null;
+    try {
+      const module = await import('../composer/composition-core.service');
+      core = this.injector.get(module.CompositionCoreService, null);
+    } catch {
+      core = null;
+    }
+    if (!core) {
+      return {
+        content: 'Composition Core is offline in this build, so I cannot write that pass.',
+        actions: [],
+      };
+    }
+    const gate = core.gate();
+    if (!gate.ready) {
+      return {
+        content: [
+          '🔒 I do not write for an unread artist. The Composition Core stays locked until the profile is committed:',
+          ...gate.blockers.map((blocker) => `  • ${blocker.label} — ${blocker.detail}`),
+          'Commit the profile, then ask again.',
+        ].join('\n'),
+        actions: [],
+      };
+    }
+
+    core.ensureGenreSelected();
+    const composition = core.generateStep(component);
+    if (!composition) {
+      return {
+        content: core.error() ?? 'That pass did not generate. Try again.',
+        actions: [],
+      };
+    }
+    return {
+      content: this.describeComposition(composition),
+      actions: [
+        { id: 'composer-audition', label: 'Audition' },
+        { id: 'composer-load', label: 'Load into Studio' },
+        { id: 'composer-open', label: 'Open Composition Core' },
+      ],
+    };
+  }
+
+  /** Short, speak-friendly summary — the score lives in Composition Core. */
+  private describeComposition(composition: Composition): string {
+    const headline = composition.component === 'full-song'
+      ? 'COMPLETE SONG'
+      : composition.componentLabel.toUpperCase();
+    const form = composition.sections
+      .map((section) => `${section.label} ${section.bars}`)
+      .join(' → ');
+    const parts = composition.parts
+      .filter((part) => !part.reference)
+      .slice(0, 5)
+      .map((part) => `${part.name} (${part.range})`)
+      .join(', ');
+    const time = `${Math.floor(composition.durationSeconds / 60)}:${String(
+      composition.durationSeconds % 60
+    ).padStart(2, '0')}`;
+
+    const partCount = composition.parts.filter((part) => !part.reference).length;
+
+    return [
+      `🎼 ${headline} — “${composition.title}”`,
+      `${composition.genreLabel} · ${composition.bpm} BPM · ${composition.keyLabel} ${composition.modeLabel} · ${composition.grooveName}`,
+      `${composition.totalBars} bars · ${time} · ${partCount} part${partCount === 1 ? '' : 's'}`,
+      form ? `Form: ${form}` : '',
+      parts ? `Pass: ${parts}` : '',
+      composition.theory[0] ? `Theory: ${composition.theory[0]}` : '',
+      composition.rationale[0] ? `Why: ${composition.rationale[0]}` : '',
+      'Audition it here, load it into the Studio, or open the Composition Core to shape it. Nothing touched your session yet.',
+    ]
+      .filter(Boolean)
+      .join('\n');
   }
 
   // ── Slash commands ────────────────────────────────────────────────────────
