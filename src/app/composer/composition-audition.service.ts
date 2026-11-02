@@ -58,7 +58,13 @@ export class CompositionAuditionService {
       return;
     }
     await this.render(composition);
-    if (this.buffer && !this.error()) this.play(composition);
+    if (
+      this.buffer &&
+      this.readyCompositionId() === composition.id &&
+      !this.error()
+    ) {
+      this.play(composition);
+    }
   }
 
   /**
@@ -72,7 +78,13 @@ export class CompositionAuditionService {
       return;
     }
     await this.render(composition);
-    if (this.buffer && !this.error()) this.play(composition);
+    if (
+      this.buffer &&
+      this.readyCompositionId() === composition.id &&
+      !this.error()
+    ) {
+      this.play(composition);
+    }
   }
 
   play(composition: Composition): void {
@@ -169,8 +181,21 @@ export class CompositionAuditionService {
       this.playBuffer();
       return;
     }
+    // Abandon any in-flight render so quickly switching rows never plays the
+    // pattern the artist moved away from.
+    this.renderToken++;
+    this.rendering.set(false);
+    this.buffer = null;
     await this.renderScore(score);
-    if (this.buffer && !this.error()) this.playBuffer();
+    // A newer preview may have finished first; only play this score if its
+    // render is still the current one.
+    if (
+      this.buffer &&
+      this.readyCompositionId() === score.id &&
+      !this.error()
+    ) {
+      this.playBuffer();
+    }
   }
 
   private playBuffer(): void {

@@ -280,16 +280,44 @@
                 <div class="sc-template-detail-head">
                   <strong>{{ detail.track }}</strong>
                   <span>{{ detail.slot }}</span>
+                  <button
+                    type="button"
+                    class="sc-template-detail-audition"
+                    [class.is-playing]="patternAuditionPlaying(tpl, detail)"
+                    (click)="auditionTemplatePattern(tpl, detail, $event)"
+                    [attr.aria-label]="
+                      patternAuditionPlaying(tpl, detail)
+                        ? 'Stop ' + detail.track + ' ' + detail.slot
+                        : 'Audition ' + detail.track + ' ' + detail.slot
+                    "
+                  >
+                    <span class="material-symbols-outlined">{{
+                      patternAuditionPlaying(tpl, detail) ? 'stop' : 'play_arrow'
+                    }}</span>
+                    <span>{{ patternAuditionLabel(tpl, detail) }}</span>
+                  </button>
                   <span class="sc-template-detail-launch">{{ detail.launch }}</span>
                 </div>
                 <p class="sc-template-detail-versions" *ngIf="detail.versions.length; else noVersions">
-                  <span
+                  <button
                     *ngFor="let version of detail.versions"
+                    type="button"
                     class="sc-template-version"
                     [class.is-active]="version.active"
+                    [class.is-playing]="patternAuditionPlaying(tpl, detail, version.id)"
+                    (click)="auditionTemplatePattern(tpl, detail, $event, version.id)"
+                    [attr.aria-label]="
+                      'Audition ' + detail.track + ' ' + detail.slot +
+                      ' version ' + version.name
+                    "
                   >
+                    <span class="material-symbols-outlined">{{
+                      patternAuditionPlaying(tpl, detail, version.id)
+                        ? 'stop'
+                        : 'play_arrow'
+                    }}</span>
                     {{ version.name }}<span *ngIf="version.active"> · active</span>
-                  </span>
+                  </button>
                 </p>
                 <ng-template #noVersions>
                   <p class="sc-template-detail-versions">Live pattern only — no saved versions.</p>

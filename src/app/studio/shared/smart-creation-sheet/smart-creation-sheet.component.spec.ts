@@ -1012,7 +1012,7 @@ describe("SmartCreationSheetComponent", () => {
   it("labels rendering and playback states and rejects patternless templates", async () => {
     const template = { id: "tpl-1", name: "Night Sketch", tracks: [] } as any;
     mockCompositionAudition.rendering.set(true);
-    component.auditioningTemplateId.set("tpl-1");
+    component.auditioningPreviewId.set("template-preview-tpl-1");
     expect(component.templateAuditionLabel(template)).toBe("Rendering…");
 
     mockCompositionAudition.rendering.set(false);
@@ -1027,6 +1027,124 @@ describe("SmartCreationSheetComponent", () => {
     );
   });
 
+  it("auditions one pattern row and one specific saved version", async () => {
+    const template = {
+      id: "tpl-2",
+      name: "Slot Sketch",
+      bpm: 110,
+      tracks: [
+        {
+          name: "Lead",
+          instrumentId: "analog-warmth",
+          type: "midi",
+          activePatternSlotId: "slot-1",
+          patternSlots: [
+            {
+              id: "slot-1",
+              name: "Verse",
+              notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+              activeVersionId: "v2",
+              versions: [
+                {
+                  id: "v1",
+                  name: "first",
+                  notes: [{ midi: 60, step: 0, length: 2, velocity: 0.7 }],
+                },
+                {
+                  id: "v2",
+                  name: "lift",
+                  notes: [{ midi: 67, step: 0, length: 4, velocity: 0.9 }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as any;
+    const [detail] = component.templateDetails(template);
+    const tracksBefore = JSON.stringify(mockMusicManager.tracks());
+
+    await component.auditionTemplatePattern(template, detail);
+
+    expect(mockCompositionAudition.startScore).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: "template-preview-tpl-2-0-slot-1-active",
+        parts: [
+          expect.objectContaining({
+            notes: [expect.objectContaining({ midi: 64 })],
+          }),
+        ],
+      }),
+    );
+
+    await component.auditionTemplatePattern(
+      template,
+      detail,
+      undefined,
+      "v1",
+    );
+
+    expect(mockCompositionAudition.startScore).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: "template-preview-tpl-2-0-slot-1-v1",
+        parts: [
+          expect.objectContaining({
+            notes: [expect.objectContaining({ midi: 60 })],
+          }),
+        ],
+      }),
+    );
+    expect(JSON.stringify(mockMusicManager.tracks())).toBe(tracksBefore);
+    expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
+  });
+
+  it("switches directly from the live slot to a saved version", async () => {
+    const template = {
+      id: "tpl-1",
+      name: "Night Sketch",
+      tracks: [
+        {
+          name: "Lead",
+          instrumentId: "analog-warmth",
+          type: "midi",
+          notes: [{ midi: 67, step: 0, length: 1, velocity: 0.8 }],
+          patternSlots: [
+            {
+              id: "slot-1",
+              name: "Verse",
+              notes: [{ midi: 67, step: 0, length: 4, velocity: 0.8 }],
+              versions: [
+                {
+                  id: "v1",
+                  name: "first",
+                  notes: [{ midi: 60, step: 0, length: 2, velocity: 0.7 }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as any;
+    const [detail] = component.templateDetails(template);
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(
+      "template-preview-tpl-1-0-slot-1-active",
+    );
+
+    await component.auditionTemplatePattern(
+      template,
+      detail,
+      undefined,
+      "v1",
+    );
+
+    expect(mockCompositionAudition.startScore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "template-preview-tpl-1-0-slot-1-v1",
+      }),
+    );
+  });
+
   it("lists pattern names, launch boundaries and saved versions", () => {
     const template = {
       tracks: [
@@ -1034,6 +1152,7 @@ describe("SmartCreationSheetComponent", () => {
           name: "Lead",
           patternSlots: [
             {
+              id: "slot-1",
               name: "Verse",
               launchQuantize: "1bar",
               activeVersionId: "v2",
@@ -1057,15 +1176,19 @@ describe("SmartCreationSheetComponent", () => {
       track: "Lead",
       slot: "Verse",
       launch: "wait 1bar",
+      trackIndex: 0,
+      slotId: "slot-1",
       versions: [
-        { name: "first", active: false },
-        { name: "lift", active: true },
+        { id: "v1", name: "first", active: false },
+        { id: "v2", name: "lift", active: true },
       ],
     });
     expect(details[1]).toEqual({
       track: "Legacy Keys",
       slot: "Pattern 1",
       launch: "grid default",
+      trackIndex: 1,
+      slotId: null,
       versions: [],
     });
 

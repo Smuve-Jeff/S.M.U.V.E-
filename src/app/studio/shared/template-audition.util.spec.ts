@@ -1,4 +1,7 @@
-import { templateToAuditionScore } from './template-audition.util';
+import {
+  templatePatternToAuditionScore,
+  templateToAuditionScore,
+} from './template-audition.util';
 import type { ProjectTemplate } from '../../services/project-template.service';
 
 const template = (overrides: Partial<ProjectTemplate> = {}): ProjectTemplate => ({
@@ -107,5 +110,51 @@ describe('templateToAuditionScore', () => {
     expect(score!.durationSeconds).toBeCloseTo((4 * 60) / 90 * 4, 5);
     expect(score!.parts[0].role).toBe('pad');
     expect(templateToAuditionScore(template({ tracks: [] }))).toBeNull();
+  });
+
+  it('resolves a single slot and a specific saved version', () => {
+    const source = template({
+      tracks: [
+        {
+          name: 'Lead',
+          instrumentId: 'analog-warmth',
+          type: 'midi',
+          activePatternSlotId: 'slot-1',
+          patternSlots: [
+            {
+              id: 'slot-1',
+              name: 'Verse',
+              notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+              activeVersionId: 'v2',
+              versions: [
+                {
+                  id: 'v1',
+                  name: 'first',
+                  notes: [{ midi: 60, step: 0, length: 2, velocity: 0.7 }],
+                },
+                {
+                  id: 'v2',
+                  name: 'lift',
+                  notes: [{ midi: 67, step: 4, length: 4, velocity: 0.9 }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const live = templatePatternToAuditionScore(source, 0, 'slot-1');
+    expect(live!.parts[0].notes[0].midi).toBe(64);
+    expect(live!.id).toBe('template-preview-tpl-0-slot-1-active');
+
+    const version = templatePatternToAuditionScore(source, 0, 'slot-1', 'v1');
+    expect(version!.parts[0].notes[0].midi).toBe(60);
+    expect(version!.id).toBe('template-preview-tpl-0-slot-1-v1');
+
+    expect(
+      templatePatternToAuditionScore(source, 0, 'slot-1', 'missing'),
+    ).toBeNull();
+    expect(templatePatternToAuditionScore(source, 3, 'slot-1')).toBeNull();
   });
 });

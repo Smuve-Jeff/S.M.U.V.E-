@@ -16,8 +16,16 @@ import { SnackbarService } from "../../../services/snackbar.service";
 import { UserProfileService } from "../../../services/user-profile.service";
 import type { SmartSheetMemory } from "../../../types/profile.types";
 import { WorkProtectionService } from "../../work-protection.service";
-import { CompositionAuditionService } from "../../../composer/composition-audition.service";
-import { templateToAuditionScore } from "../template-audition.util";
+import {
+  CompositionAuditionService,
+  type AuditionScore,
+} from "../../../composer/composition-audition.service";
+import {
+  templatePatternPreviewId,
+  templatePatternToAuditionScore,
+  templatePreviewId,
+  templateToAuditionScore,
+} from "../template-audition.util";
 import {
   ProjectTemplateService,
   type ProjectTemplate,
@@ -90,6 +98,15 @@ export interface VocalPreset {
   gradient: string;
 }
 
+interface TemplatePatternDetail {
+  track: string;
+  slot: string;
+  launch: string;
+  trackIndex: number;
+  slotId: string | null;
+  versions: { id: string; name: string; active: boolean }[];
+}
+
 @Component({
   selector: "app-smart-creation-sheet",
   standalone: true,
@@ -115,8 +132,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly includeTemplatePattern = signal(false);
   /** Which saved template's pattern breakdown is open. */
   readonly expandedTemplateId = signal<string | null>(null);
-  /** Template whose pattern is currently rendering or playing. */
-  readonly auditioningTemplateId = signal<string | null>(null);
+  /** Preview score id currently rendering or playing, if any. */
+  readonly auditioningPreviewId = signal<string | null>(null);
 
   @Output() closeSheet = new EventEmitter<void>();
   @Output() navigateToView = new EventEmitter<string>();
@@ -774,71 +791,103 @@ export class SmartCreationSheetComponent implements OnDestroy {
   }
 
   /** Pattern names and saved versions, grouped by channel. */
-  templateDetails(template: ProjectTemplate): {
-    track: string;
-    slot: string;
-    launch: string;
-    versions: { name: string; active: boolean }[];
-  }[] {
-    const details: {
-      track: string;
-      slot: string;
-      launch: string;
-      versions: { name: string; active: boolean }[];
-    }[] = [];
-    for (const track of template.tracks) {
+  templateDetails(template: ProjectTemplate): TemplatePatternDetail[] {
+    return template.tracks.flatMap((track, trackIndex) => {
       const slots = track.patternSlots ?? [];
-      if (!slots.length && track.notes?.length) {
-        details.push({
-          track: track.name,
-          slot: 'Pattern 1',
-          launch: 'grid default',
-          versions: [],
-        });
-        continue;
+      if (!slots.length) {
+        if (!track.notes?.length) return [];
+        return [
+          {
+            track: track.name,
+            slot: "Pattern 1",
+            launch: "grid default",
+            trackIndex,
+            slotId: null,
+            versions: [],
+          },
+        ];
       }
-      for (const slot of slots) {
-        details.push({
-          track: track.name,
-          slot: slot.name,
-          launch:
-            slot.launchQuantize === null || slot.launchQuantize === undefined
-              ? 'grid default'
-              : slot.launchQuantize === 'none'
-                ? 'no wait'
-                : `wait ${slot.launchQuantize}`,
-          versions: (slot.versions ?? []).map((version) => ({
-            name: version.name || version.id,
-            active: version.id === slot.activeVersionId,
-          })),
-        });
-      }
-    }
-    return details;
+      return slots.map((slot) => ({
+        track: track.name,
+        slot: slot.name,
+        launch:
+          slot.launchQuantize === null || slot.launchQuantize === undefined
+            ? "grid default"
+            : slot.launchQuantize === "none"
+              ? "no wait"
+              : `wait ${slot.launchQuantize}`,
+        trackIndex,
+        slotId: slot.id,
+        versions: (slot.versions ?? []).map((version) => ({
+          id: version.id,
+          name: version.name || version.id,
+          active: version.id === slot.activeVersionId,
+        })),
+      }));
+    });
   }
 
-  /** True while this template's pattern preview is the audible one. */
-  templateAuditionPlaying(template: ProjectTemplate): boolean {
+  private previewPlaying(scoreId: string): boolean {
     return (
       this.compositionAudition.playing() &&
-      this.compositionAudition.readyCompositionId() ===
-        `template-preview-${template.id}`
+      this.compositionAudition.readyCompositionId() === scoreId
     );
   }
 
-  templateAuditionLabel(template: ProjectTemplate): string {
+  private previewLabel(scoreId: string): string {
     if (
-      this.auditioningTemplateId() === template.id &&
+      this.auditioningPreviewId() === scoreId &&
       this.compositionAudition.rendering()
     ) {
       return "Rendering…";
     }
-    return this.templateAuditionPlaying(template) ? "Stop" : "Audition";
+    return this.previewPlaying(scoreId) ? "Stop" : "Audition";
+  }
+
+  /** True while the template-wide preview is the audible one. */
+  templateAuditionPlaying(template: ProjectTemplate): boolean {
+    return this.previewPlaying(templatePreviewId(template.id));
+  }
+
+  templateAuditionLabel(template: ProjectTemplate): string {
+    return this.previewLabel(templatePreviewId(template.id));
+  }
+
+  /** Stable preview id for one breakdown row or one of its saved versions. */
+  patternPreviewId(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+    versionId?: string,
+  ): string {
+    return templatePatternPreviewId(
+      template.id,
+      detail.trackIndex,
+      detail.slotId,
+      versionId,
+    );
+  }
+
+  patternAuditionPlaying(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+    versionId?: string,
+  ): boolean {
+    return this.previewPlaying(
+      this.patternPreviewId(template, detail, versionId),
+    );
+  }
+
+  patternAuditionLabel(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+    versionId?: string,
+  ): string {
+    return this.previewLabel(this.patternPreviewId(template, detail, versionId));
   }
 
   /**
-   * Hear a saved template's current pattern without loading it. The preview is
-   * a temporary score; tracks, clips and the open sketch stay exactly as they
+   * Hear every reopening pattern in a template without loading it. The preview
+   * is a temporary score; tracks, clips and the open sketch stay exactly as they
    * are until the artist explicitly loads the template.
    */
   async auditionTemplate(
@@ -851,25 +900,71 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.snackbar.info("This template has no MIDI or drum pattern to audition.");
       return;
     }
-    if (this.templateAuditionPlaying(template)) {
+    await this.previewScore(score, template.name);
+  }
+
+  /**
+   * Hear one breakdown row, or one specific saved version of it, without
+   * loading the template or changing which version is active.
+   */
+  async auditionTemplatePattern(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+    event?: Event,
+    versionId?: string,
+  ): Promise<void> {
+    event?.stopPropagation();
+    const score = templatePatternToAuditionScore(
+      template,
+      detail.trackIndex,
+      detail.slotId,
+      versionId,
+    );
+    if (!score) {
+      this.snackbar.info(
+        versionId
+          ? "This saved version has no playable notes."
+          : "This pattern has no playable notes.",
+      );
+      return;
+    }
+    const version = versionId
+      ? detail.versions.find((candidate) => candidate.id === versionId)
+      : undefined;
+    await this.previewScore(
+      score,
+      `${template.name} — ${detail.track} · ${detail.slot}${
+        version ? ` · ${version.name}` : ""
+      }`,
+    );
+  }
+
+  /** Start, switch or stop a temporary template preview. */
+  private async previewScore(
+    score: AuditionScore,
+    label: string,
+  ): Promise<void> {
+    if (this.previewPlaying(score.id)) {
       this.compositionAudition.stop();
-      this.auditioningTemplateId.set(null);
+      this.auditioningPreviewId.set(null);
       this.haptic.light();
       return;
     }
 
     this.haptic.light();
     this.audioEngine.resume();
-    this.auditioningTemplateId.set(template.id);
+    this.auditioningPreviewId.set(score.id);
     try {
       await this.compositionAudition.startScore(score);
       if (!this.compositionAudition.error()) {
         this.snackbar.info(
-          `Auditioning “${template.name}” — pattern only, nothing loaded.`,
+          `Auditioning ${label} — preview only, nothing loaded.`,
         );
       }
     } finally {
-      this.auditioningTemplateId.set(null);
+      if (this.auditioningPreviewId() === score.id) {
+        this.auditioningPreviewId.set(null);
+      }
     }
   }
 
