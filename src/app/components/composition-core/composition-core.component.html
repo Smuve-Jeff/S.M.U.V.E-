@@ -525,6 +525,14 @@
                     >
                       {{ comparisonAuditionLabel(card.id) }}
                     </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost"
+                      [disabled]="isCurrentCompareCard(card.id)"
+                      (click)="restoreCompareCard(card.id)"
+                    >
+                      {{ isCurrentCompareCard(card.id) ? 'On the desk' : 'Restore this side' }}
+                    </button>
                   </div>
                 </div>
               }

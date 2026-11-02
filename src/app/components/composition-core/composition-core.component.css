@@ -745,6 +745,8 @@ input[type='range'] {
 .compare-actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 2px;
 }
 

@@ -289,6 +289,12 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
     this.compareB.set(a);
   }
 
+  restoreCompareCard(passId: string): void {
+    const pass = this.core.passHistory().find((entry) => entry.id === passId);
+    if (!pass || this.core.current() === pass.composition) return;
+    this.restorePass(pass);
+  }
+
   clearCompare(): void {
     this.compareA.set(null);
     this.compareB.set(null);
