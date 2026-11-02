@@ -563,6 +563,10 @@ export class AudioEngineService {
   private _trackMeterBuffer = new Float32Array(0);
   private trackSendBGains = new Map<string, GainNode>();
   private trackOutputs = new Map<string, GainNode>();
+  /** Audio-bus parent per track. Empty means the master bus. */
+  private trackBusRoutes = new Map<string, string>();
+  /** Actual node each track output feeds, so re-routing can disconnect it. */
+  private trackOutputDestinations = new Map<string, AudioNode>();
   /** Per-track *base* (pre-VCA) gain. Stored separately so VCA bus multiplier
    *  can re-multiply without drifting across fader edits. */
   private baseFaderGains = new Map<string, number>();
@@ -3770,6 +3774,71 @@ export class AudioEngineService {
     return Math.min(1, peak);
   }
 
+  /**
+   * Route a track's post-fader output into an audio bus, or back to master.
+   *
+   * This is the live half of the same routing model the offline renderer
+   * uses: a bus is a real summing channel with its own inserts, fader, pan,
+   * sends and meter. Routing the bus into itself (or through a descendant)
+   * would create a feedback loop, so that request falls back to master.
+   */
+  setTrackBus(trackId: string | number, busId: string | undefined): void {
+    const id = trackId.toString();
+    const output = this.trackOutputs.get(id) ?? this.getTrackOutput(id);
+    const candidate = busId ? busId.toString() : '';
+    const safeBus =
+      candidate && candidate !== id && !this.wouldCreateBusCycle(id, candidate)
+        ? candidate
+        : '';
+    const destination = safeBus ? this.getTrackOutput(safeBus) : this.masterGain;
+    const previous = this.trackOutputDestinations.get(id);
+
+    // Disconnect only the old destination. `output.disconnect()` would also
+    // tear down the post-fader meter tap, which is a dead-end branch.
+    if (previous) {
+      try { output.disconnect(previous); } catch { /* already disconnected */ }
+    }
+    output.connect(destination);
+
+    if (safeBus) this.trackBusRoutes.set(id, safeBus);
+    else this.trackBusRoutes.delete(id);
+    this.trackOutputDestinations.set(id, destination);
+  }
+
+  /** Current audio-bus parent for a track (undefined = master). */
+  getTrackBus(trackId: string | number): string | undefined {
+    return this.trackBusRoutes.get(trackId.toString());
+  }
+
+  /**
+   * Remove a deleted track from the routing graph. Members of a deleted bus
+   * fall back to master immediately instead of feeding an orphaned node.
+   */
+  removeTrackRouting(trackId: string | number): void {
+    const id = trackId.toString();
+    const output = this.trackOutputs.get(id);
+    if (output) {
+      try { output.disconnect(); } catch { /* no outgoing edge */ }
+    }
+    this.trackOutputs.delete(id);
+    this.trackOutputDestinations.delete(id);
+    this.trackBusRoutes.delete(id);
+    for (const [memberId, parent] of [...this.trackBusRoutes.entries()]) {
+      if (parent === id) this.setTrackBus(memberId, undefined);
+    }
+  }
+
+  private wouldCreateBusCycle(trackId: string, busId: string): boolean {
+    let current: string | undefined = busId;
+    const seen = new Set<string>([trackId]);
+    while (current) {
+      if (seen.has(current)) return true;
+      seen.add(current);
+      current = this.trackBusRoutes.get(current);
+    }
+    return false;
+  }
+
   getTrackOutput(id: string): GainNode {
     if (!this.trackPhaseNodes.has(id)) {
       // Complete Pro Signal Chain
@@ -3803,6 +3872,7 @@ export class AudioEngineService {
       width.connect(fader);
       fader.connect(output);
       output.connect(this.masterGain);
+      this.trackOutputDestinations.set(id, this.masterGain);
 
       this.trackPhaseNodes.set(id, phase);
       this.trackWidthNodes.set(id, width);
@@ -4219,14 +4289,19 @@ export class AudioEngineService {
   updateTrack(id: string | number, patch: any) {
     const idStr = id.toString();
     this.getTrackOutput(idStr); // Ensure nodes exist
+    if (patch.busId !== undefined) this.setTrackBus(idStr, patch.busId);
 
     const fader = this.trackFaderGains.get(idStr);
     const phase = this.trackPhaseNodes.get(idStr);
     const width = this.trackWidthNodes.get(idStr);
     const filter = this.trackFilterNodes.get(idStr);
 
-    if (patch.gain !== undefined && fader)
-      fader.gain.setTargetAtTime(patch.gain, this.ctx.currentTime, 0.05);
+    if ((patch.gain !== undefined || patch.muted !== undefined) && fader) {
+      const previous = this.tracksMap.get(idStr) ?? {};
+      const baseGain = patch.gain ?? previous.gain ?? 0.8;
+      const targetGain = patch.muted === true ? 0 : baseGain;
+      fader.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.05);
+    }
 
     if (patch.phaseInvert !== undefined && phase)
       phase.gain.setTargetAtTime(

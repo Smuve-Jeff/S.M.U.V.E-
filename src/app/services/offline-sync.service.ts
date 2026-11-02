@@ -168,7 +168,7 @@ export class OfflineSyncService {
 
   /**
    * Register a local endpoint adapter. This keeps offline replay on the same
-   * domain service instead of sending synthetic URLs such as /mock-cloud/push
+   * domain service instead of sending synthetic URLs such as /cloud/push
    * through fetch. The queue remains durable; the adapter is re-registered by
    * its owning service on every app boot.
    */

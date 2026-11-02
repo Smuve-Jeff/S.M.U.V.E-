@@ -211,6 +211,23 @@ public class StudioNativePlugin extends Plugin {
         call.resolve();
     }
 
+    @PluginMethod
+    public void startPlayback(PluginCall call) {
+        Intent intent = new Intent(getContext(), StudioPlaybackService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ContextCompat.startForegroundService(getContext(), intent);
+        } else {
+            getContext().startService(intent);
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void stopPlayback(PluginCall call) {
+        getContext().stopService(new Intent(getContext(), StudioPlaybackService.class));
+        call.resolve();
+    }
+
     private MidiDeviceInfo findDevice(String id) {
         for (MidiDeviceInfo info : midiManager.getDevices()) {
             if (String.valueOf(info.getId()).equals(id)) return info;

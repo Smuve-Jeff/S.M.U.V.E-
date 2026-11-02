@@ -42,8 +42,13 @@ export class CloudProjectSnapshot {
   @Column({ type: 'varchar' })
   title: string;
 
-  @Column({ type: 'jsonb' })
-  data: unknown;
+  /** Inline payload for small snapshots; null when the body lives in R2. */
+  @Column({ type: 'jsonb', nullable: true })
+  data: unknown | null;
+
+  /** Private object key for large resumable snapshots. */
+  @Column({ type: 'varchar', name: 'storage_key', nullable: true })
+  storageKey: string | null;
 
   @Column({ type: 'int', name: 'byte_size', default: 0 })
   byteSize: number;

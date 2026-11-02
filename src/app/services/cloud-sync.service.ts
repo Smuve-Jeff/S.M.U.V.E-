@@ -20,7 +20,7 @@ const DEVICE_KEY = 'smuve_cloud_device';
 const TIMELINE_KEY = 'smuve_cloud_timeline';
 const PROJECTS_KEY = 'smuve_cloud_projects';
 const LOCAL_CACHE_STORE = 'offline_local_cache';
-const OFFLINE_PUSH_ENDPOINT = '/mock-cloud/push';
+const OFFLINE_PUSH_ENDPOINT = '/cloud/push';
 const PLATFORM =
   typeof navigator !== 'undefined' && navigator.platform
     ? navigator.platform
@@ -29,7 +29,7 @@ const PLATFORM =
 /**
  * Sprint D1 — CloudSyncService.
  *
- * Signal-driven orchestrator on top of MockCloudServer + OfflineSync.
+ * Signal-driven orchestrator on top of the authenticated cloud client + OfflineSync.
  * Responsibilities:
  *   • Stable per-device id + CloudDevice registry (persisted).
  *   • Push/pull envelopes with version-stamped manifests.

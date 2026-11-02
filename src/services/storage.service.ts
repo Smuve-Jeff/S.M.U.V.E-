@@ -8,17 +8,23 @@ const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const R2_PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN;
 
-const r2Configured = (): boolean =>
+const r2CredentialsConfigured = (): boolean =>
   Boolean(
     R2_ENDPOINT &&
       R2_ACCESS_KEY_ID &&
       R2_SECRET_ACCESS_KEY &&
-      R2_BUCKET_NAME &&
-      R2_PUBLIC_DOMAIN,
+      R2_BUCKET_NAME,
   );
 
-/** Whether object storage is usable, so callers can report it rather than throw. */
-export const storageConfigured = (): boolean => r2Configured();
+const r2Configured = (): boolean =>
+  r2CredentialsConfigured() && Boolean(R2_PUBLIC_DOMAIN);
+
+/**
+ * Whether private object storage is usable. Public media delivery also needs
+ * R2_PUBLIC_DOMAIN, but project snapshots are private and only require the
+ * bucket credentials.
+ */
+export const storageConfigured = (): boolean => r2CredentialsConfigured();
 
 /**
  * The S3 client, built on demand.
@@ -84,7 +90,7 @@ export const uploadToStorage = async (
  * a caller that treats the object as optional state never has to branch on why.
  */
 export const readJsonObject = async <T>(key: string): Promise<T | null> => {
-  if (!r2Configured()) return null;
+  if (!r2CredentialsConfigured()) return null;
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { GetObjectCommand } = await import("@aws-sdk/client-s3");
@@ -111,7 +117,7 @@ export const writeJsonObject = async (
   key: string,
   value: unknown,
 ): Promise<void> => {
-  if (!r2Configured()) {
+  if (!r2CredentialsConfigured()) {
     throw new AppError(503, "Upload storage is not configured");
   }
 
@@ -125,6 +131,106 @@ export const writeJsonObject = async (
       Key: key,
       Body: JSON.stringify(value, null, 2),
       ContentType: "application/json",
+    }),
+  );
+};
+
+
+/** Start an S3 multipart upload for a private project snapshot. */
+export const createCloudMultipartUpload = async (
+  key: string,
+  contentType = "application/json",
+): Promise<string> => {
+  if (!r2CredentialsConfigured()) {
+    throw new AppError(503, "Project storage is not configured");
+  }
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { CreateMultipartUploadCommand } = await import("@aws-sdk/client-s3");
+  const client = await s3Client();
+  const result = await client.send(
+    new CreateMultipartUploadCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      ContentType: contentType,
+    }),
+  );
+  if (!result.UploadId) {
+    throw new AppError(502, "Object storage did not return an upload id");
+  }
+  return result.UploadId;
+};
+
+/** Upload one resumable chunk and return the ETag needed to complete it. */
+export const uploadCloudPart = async (
+  key: string,
+  uploadId: string,
+  partNumber: number,
+  body: Buffer,
+): Promise<string> => {
+  if (!r2CredentialsConfigured()) {
+    throw new AppError(503, "Project storage is not configured");
+  }
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { UploadPartCommand } = await import("@aws-sdk/client-s3");
+  const client = await s3Client();
+  const result = await client.send(
+    new UploadPartCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      UploadId: uploadId,
+      PartNumber: partNumber,
+      Body: body,
+    }),
+  );
+  if (!result.ETag) {
+    throw new AppError(502, "Object storage did not return a part ETag");
+  }
+  return result.ETag;
+};
+
+/** Finish a multipart upload from the client-supplied part manifest. */
+export const completeCloudMultipartUpload = async (
+  key: string,
+  uploadId: string,
+  parts: Array<{ partNumber: number; etag: string }>,
+): Promise<void> => {
+  if (!r2CredentialsConfigured()) {
+    throw new AppError(503, "Project storage is not configured");
+  }
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { CompleteMultipartUploadCommand } = await import("@aws-sdk/client-s3");
+  const client = await s3Client();
+  await client.send(
+    new CompleteMultipartUploadCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      UploadId: uploadId,
+      MultipartUpload: {
+        Parts: [...parts]
+          .sort((a, b) => a.partNumber - b.partNumber)
+          .map((part) => ({
+            PartNumber: part.partNumber,
+            ETag: part.etag,
+          })),
+      },
+    }),
+  );
+};
+
+/** Abort an unfinished upload so R2 does not retain orphaned parts. */
+export const abortCloudMultipartUpload = async (
+  key: string,
+  uploadId: string,
+): Promise<void> => {
+  if (!r2CredentialsConfigured()) return;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { AbortMultipartUploadCommand } = await import("@aws-sdk/client-s3");
+  const client = await s3Client();
+  await client.send(
+    new AbortMultipartUploadCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      UploadId: uploadId,
     }),
   );
 };

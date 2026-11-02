@@ -101,6 +101,10 @@ app.use("/api/auth/reset-password", recoveryLimiter);
 // that is already parsed, whereas the reverse order would reject a legitimate
 // profile at the 100 kb default.
 app.use("/api/cloud", express.json({ limit: "25mb" }));
+app.use(
+  "/api/cloud/uploads",
+  express.raw({ type: "application/octet-stream", limit: "8mb" }),
+);
 app.use("/api/profile", express.json({ limit: PROFILE_JSON_LIMIT }));
 
 app.use(express.json());

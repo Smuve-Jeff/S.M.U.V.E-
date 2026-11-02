@@ -20,6 +20,7 @@ import {
 import { alignRecordingStart } from "./recording-start-alignment.util";
 import { ScreenWakeLockService } from "../services/screen-wake-lock.service";
 import { SnackbarService } from "../services/snackbar.service";
+import { NativePlaybackService } from "../services/native-playback.service";
 
 export interface MicChannel {
   id: string;
@@ -45,6 +46,7 @@ export class AudioSessionService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly wakeLock = inject(ScreenWakeLockService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly nativePlayback = inject(NativePlaybackService);
 
   /** Shared in-flight input open, so two gestures never open the same device
    *  twice — `StudioRecordingEngineService.initialize()` tears down the
@@ -261,6 +263,13 @@ export class AudioSessionService {
    */
   private finalizeForBackground(reason: string): void {
     if (!this.hasLiveSession()) return;
+    if (!this.isRecording() && this.isPlaying() && this.nativePlayback.active()) {
+      // The Android foreground service owns the process guarantee now. Keeping
+      // the transport alive is the whole point of background playback; the
+      // service stops on an explicit transport stop or when the app is killed.
+      this.logger.info(`AudioSession: continuing playback in background (${reason}).`);
+      return;
+    }
     this.lastBackgroundStopAt.set(Date.now());
     this.logger.info(`AudioSession: finalizing the session (${reason}).`);
     this.stop();
@@ -311,9 +320,11 @@ export class AudioSessionService {
   togglePlay(): void {
     if (this.engine.isPlaying()) {
       this.engine.stop();
+      void this.nativePlayback.stop();
       this.playbackState.set("stopped");
     } else {
       this.engine.start();
+      void this.nativePlayback.start();
       this.playbackState.set("playing");
     }
   }
@@ -417,6 +428,7 @@ export class AudioSessionService {
 
   stop(): void {
     this.engine.stop();
+    void this.nativePlayback.stop();
     if (this.recordingEngine.isRecording() || this.pendingTransportTake) {
       // Keep the promise: the take is not durable until the engine has flushed
       // the worklet, encoded the WAV, committed the IndexedDB write and the

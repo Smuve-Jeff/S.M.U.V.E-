@@ -1230,12 +1230,16 @@ export class MusicManagerService {
     if (idx < 0) return;
     const snapshot = this.clone(list[idx]);
     const prevSelected = this.selectedTrackId();
+    const busMembers = list
+      .filter((track) => track.busId === id)
+      .map((track) => track.id);
     this.runCommand(
       'Remove Track · ' + snapshot.name,
       () => {
         // Drop the live insert (and its chain poller) with the track: the mixer
         // nodes stay behind, so rewiring the rack here would be wrong.
         this.engine.releaseTrackPluginInsert(id);
+        this.engine.removeTrackRouting(id);
         this.tracks.update((ts) => ts.filter((t) => t.id !== id));
         if (this.selectedTrackId() === id) this.selectedTrackId.set(null);
       },
@@ -1253,6 +1257,8 @@ export class MusicManagerService {
             this.liveChainFor
           );
         }
+        if (snapshot.busId) this.engine.setTrackBus(id, snapshot.busId);
+        for (const memberId of busMembers) this.engine.setTrackBus(memberId, id);
       }
     );
   }
@@ -1646,11 +1652,13 @@ export class MusicManagerService {
         this.tracks.update((ts) =>
           ts.map((x) => (x.id === id ? { ...x, muted: !x.muted } : x))
         );
+        this.engine.updateTrack(id, { muted: !wasMuted });
       },
       () => {
         this.tracks.update((ts) =>
           ts.map((x) => (x.id === id ? { ...x, muted: wasMuted } : x))
         );
+        this.engine.updateTrack(id, { muted: wasMuted });
       }
     );
   }

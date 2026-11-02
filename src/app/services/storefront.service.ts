@@ -16,9 +16,8 @@ import {
  * Deterministic, offline-friendly storefront backed by Play Billing. The
  * catalog ships hard-coded so the UI works without a backend round trip.
  * Ownership and cart state persist in localStorage so a restored install
- * feels familiar. The "Play Billing backend" is a thin shim (see
- * play-billing.client.ts); until production ships the real client, every
- * purchase resolves deterministically after 1.2s.
+ * feels familiar. Purchases go through the native Google Play bridge in
+ * play-billing.client.ts; browsers report that billing is unavailable.
  *
  * Public surface:
  *   • SKUS signal: full catalog
@@ -345,7 +344,7 @@ export class StorefrontService {
   }
 
   /**
-   * Sprint C2 — Drive a single purchase through the billing shim.
+   * Drive a single purchase through Play Billing.
    * Returns the receipt token on success, caller decides ownership merge.
    */
   async purchase(skuId: string, qty: number = 1): Promise<ReceiptRecord | null> {
@@ -361,7 +360,7 @@ export class StorefrontService {
   }
 
   /**
-   * Check out every cart line through the billing shim. Lines that
+   * Check out every cart line through Play Billing. Lines that
    * succeed are promoted to ownership and removed from the cart; the
    * first failure stops the run (remaining lines stay queued for retry).
    * Lines whose SKU is already owned are skipped without re-billing.

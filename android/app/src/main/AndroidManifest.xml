@@ -56,6 +56,14 @@
             android:foregroundServiceType="microphone"
             android:stopWithTask="false" />
 
+        <!-- Studio playback: a mediaPlayback foreground service plus partial
+             wake lock keeps the WebView audio graph alive behind a lock screen. -->
+        <service
+            android:name=".StudioPlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback"
+            android:stopWithTask="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

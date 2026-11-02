@@ -37,6 +37,15 @@ import {
   type DawprojectTrack,
 } from '../studio/dawproject-export';
 
+/** Musical-to-seconds conversion for the offline renderer. */
+interface TempoTimeline {
+  bpmAtStep(step: number): number;
+  timeAtStep(step: number): number;
+  stepAtTime(time: number): number;
+  secondsForSteps(startStep: number, steps: number): number;
+  minStepSeconds: number;
+}
+
 /** Steps-per-beat grid used across the app (16th-note grid). */
 const STEPS_PER_BEAT = 4;
 
@@ -393,19 +402,30 @@ export class ExportService {
       sampleRate?: number;
     } = {},
   ): Promise<AudioBuffer> {
-    const tempo = Math.max(20, Math.min(300, this.engine.tempo()));
+    const timing = this.buildTempoTimeline();
     const tracks = this.musicManager.tracks();
-    const lastEventStep = tracks.reduce((end, track) => Math.max(end,
-      ...(track.notes ?? []).filter((note) => track.type !== 'drum' || !track.drumPatternLength || note.step < this.musicManager.drumPatternSpan(track)).map((note) => note.step + note.length),
+    const byId = new Map(tracks.map((track) => [track.id, track]));
+
+    const lastEventStep = tracks.reduce((end, track) => Math.max(
+      end,
+      ...(track.notes ?? [])
+        .filter((note) => track.type !== 'drum' || !track.drumPatternLength || note.step < this.musicManager.drumPatternSpan(track))
+        .map((note) => note.step + note.length),
       ...(track.clips ?? []).map((clip: any) => {
-        const clipSeconds = clip.clipLengthSeconds ?? clip.length * (60 / tempo) * 4;
-        return clip.start * 16 + clipSeconds / ((60 / tempo) / 4);
+        const startStep = Math.max(0, Number(clip.start) || 0) * 16;
+        const windowSteps = Math.max(0, Number(clip.length) || 0) * 16;
+        const clipSeconds = Number.isFinite(clip.clipLengthSeconds)
+          ? Math.max(0, clip.clipLengthSeconds)
+          : timing.secondsForSteps(startStep, windowSteps);
+        return timing.stepAtTime(timing.timeAtStep(startStep) + clipSeconds);
       }),
     ), 0);
     const bars = Math.max(1, this.musicManager.activeLoopBars(), Math.ceil(lastEventStep / 16));
-    const secondsPerBar = (60 / tempo) * 4;
-    const totalSeconds = Math.max(1, bars * secondsPerBar + 1);
-    if (!Number.isFinite(totalSeconds) || totalSeconds > 600) throw new Error('Offline export supports up to 10 minutes per render. Shorten the arrangement first.');
+    const totalSeconds = Math.max(1, timing.timeAtStep(bars * 16) + 1);
+    if (!Number.isFinite(totalSeconds) || totalSeconds > 600) {
+      throw new Error('Offline export supports up to 10 minutes per render. Shorten the arrangement first.');
+    }
+
     // Guard the context constructor: a NaN/0 rate throws deep inside WebAudio
     // with a message that says nothing about the export.
     const sampleRate =
@@ -424,13 +444,9 @@ export class ExportService {
       connectOfflineMasterChain(offline, master, this.engine);
     }
 
-    const secondsPerStep = (60 / tempo) / STEPS_PER_BEAT;
-
     // ── Automation ──────────────────────────────────────────────────────
-    // The bounce used to follow the static mix only: a lane drew a curve that
-    // song playback honoured, and the export dropped every keyframe. Each
-    // enabled lane is now sampled on a grid finer than the automation step and
-    // written as ramps onto the same node the live parameter drives.
+    // Each enabled lane is sampled on a grid finer than the shortest musical
+    // step, then written as ramps onto the same node the live parameter drives.
     const lanes = this.automation?.lanes?.() ?? [];
     const laneFor = (trackId: string, ...params: string[]) =>
       lanes.find(
@@ -442,9 +458,7 @@ export class ExportService {
 
     // ── Aux returns ─────────────────────────────────────────────────────
     // Send A is the reverb convolver, Send B the tempo-synced echo, both fed
-    // from the post-fader tap like `getTrackOutput` splices them. The impulse
-    // response is the live convolver's own buffer, so the tails match what the
-    // artist heard rather than a generic reverb.
+    // from the post-fader tap like `getTrackOutput` splices them.
     const sendSnapshot =
       typeof (this.engine as Partial<AudioEngineService>).getSendBusSnapshot ===
       'function'
@@ -469,10 +483,7 @@ export class ExportService {
       if (echoReturn || !sendSnapshot) return echoReturn;
       const sum = offline.createGain();
       const delay = offline.createDelay(2);
-      delay.delayTime.value = Math.max(
-        0.02,
-        Math.min(2, (60 / tempo) * 0.75),
-      );
+      delay.delayTime.value = Math.max(0.02, Math.min(2, (60 / timing.bpmAtStep(0)) * 0.75));
       const damp = offline.createBiquadFilter();
       damp.type = 'lowpass';
       damp.frequency.value = sendSnapshot.echo.dampingHz;
@@ -496,31 +507,49 @@ export class ExportService {
       !options.ignoreSolo &&
       !options.onlyTrackIds &&
       tracks.some((track) => track.soloed);
-    for (const track of tracks) {
-      if (options.onlyTrackIds && !options.onlyTrackIds.has(track.id)) continue;
-      if (
-        track.muted ||
-        (hasSolo && !track.soloed && !track.soloSafe) ||
-        track.type === 'bus'
-      )
-        continue;
-      if (track.type !== 'audio' && this.instruments.isSamplePreset(track.instrumentId)) {
-        await this.musicManager.prepareTrackSamples(track, true);
+
+    type OfflineChannel = { input: AudioNode; channel: GainNode };
+    const channels = new Map<string, OfflineChannel>();
+    const building = new Set<string>();
+
+    /**
+     * Build a channel once, recursively resolving its parent bus first.
+     * Returns the point where sources enter the channel (before inserts) and
+     * the post-fader gain that feeds the parent. A cycle is rejected with a
+     * master route rather than creating a feedback loop in the render graph.
+     */
+    const buildChannel = (track: TrackModel): OfflineChannel | null => {
+      const existing = channels.get(track.id);
+      if (existing) return existing;
+      if (building.has(track.id)) {
+        this.logger.warn(`Export: bus cycle at “${track.name}”; routing it to master.`);
+        return null;
       }
-      const levelLane = laneFor(track.id, 'volume', 'gain');
-      const panLane = laneFor(track.id, 'pan');
-      const cutoffLane = laneFor(track.id, 'cutoff');
+      building.add(track.id);
+
+      let destination: AudioNode = master;
+      if (!options.onlyTrackIds && track.busId) {
+        const busTrack = byId.get(track.busId);
+        if (busTrack && busTrack.type === 'bus' && busTrack.id !== track.id) {
+          const bus = buildChannel(busTrack);
+          if (bus) destination = bus.input;
+        }
+      }
 
       const channel = offline.createGain();
-      channel.gain.value = Math.max(0, Math.min(1.5, track.gain ?? track.volume ?? 0.8));
-      channel.connect(master);
+      const audible = track.type === 'bus'
+        ? !track.muted
+        : !track.muted && (!hasSolo || track.soloed || track.soloSafe);
+      channel.gain.value = audible
+        ? Math.max(0, Math.min(1.5, track.gain ?? track.volume ?? 0.8))
+        : 0;
+      channel.connect(destination);
 
-      // The channel chain mirrors `getTrackOutput`: sources → [cutoff] →
-      // [pan] → fader → master. Both insert stages exist only when a lane
-      // drives them, so an un-automated bounce keeps the exact old path.
       let input: AudioNode = channel;
       let panner: StereoPannerNode | null = null;
       let channelFilter: BiquadFilterNode | null = null;
+      const panLane = laneFor(track.id, 'pan');
+      const cutoffLane = laneFor(track.id, 'cutoff');
       if (panLane) {
         panner = offline.createStereoPanner();
         panner.pan.value = 0;
@@ -530,19 +559,13 @@ export class ExportService {
       if (cutoffLane) {
         channelFilter = offline.createBiquadFilter();
         channelFilter.type = 'lowpass';
-        channelFilter.frequency.value =
-          AudioEngineService.CHANNEL_FILTER_DEFAULT_HZ;
+        channelFilter.frequency.value = AudioEngineService.CHANNEL_FILTER_DEFAULT_HZ;
         channelFilter.Q.value = 0.0001;
         channelFilter.connect(input);
         input = channelFilter;
       }
 
       // Insert rack: the enabled macro slots, in the order the rack shows them.
-      // The plugin classes the live rack instantiates are built into the
-      // offline graph, so a bounced EQ/compressor/reverb is the artist's own
-      // DSP rather than a lookalike. A slot whose type has no plugin behind it
-      // (`Filter`, `Limiter`) stays data-only exactly as it is live, and a
-      // bypassed slot is skipped the way `rebuildChain` skips it.
       const fxSlots = track.fxSlots ?? [];
       for (let index = fxSlots.length - 1; index >= 0; index -= 1) {
         const slot = fxSlots[index];
@@ -555,8 +578,6 @@ export class ExportService {
             offline as unknown as AudioContext,
           );
           if (!plugin) continue;
-          // Same knob values the live rack gets, so the bounced insert is the
-          // one the artist dialled in rather than a factory default.
           bindFxSlotParams(plugin, slot.params);
           plugin.output.connect(input);
           input = plugin.input;
@@ -568,17 +589,18 @@ export class ExportService {
         }
       }
 
-      if (levelLane) {
+      const levelLane = laneFor(track.id, 'volume', 'gain');
+      if (audible && levelLane) {
         this.scheduleLaneCurve(channel.gain, levelLane, totalSeconds,
-          secondsPerStep, (value) => Math.max(0, Math.min(1.5, value)));
+          timing.minStepSeconds, (value) => Math.max(0, Math.min(1.5, value)));
       }
-      if (panLane && panner) {
+      if (audible && panLane && panner) {
         this.scheduleLaneCurve(panner.pan, panLane, totalSeconds,
-          secondsPerStep, (value) => Math.max(-1, Math.min(1, value)));
+          timing.minStepSeconds, (value) => Math.max(-1, Math.min(1, value)));
       }
-      if (cutoffLane && channelFilter) {
+      if (audible && cutoffLane && channelFilter) {
         this.scheduleLaneCurve(channelFilter.frequency, cutoffLane,
-          totalSeconds, secondsPerStep,
+          totalSeconds, timing.minStepSeconds,
           (value) => Math.max(20, Math.min(20000, value)));
       }
 
@@ -588,7 +610,7 @@ export class ExportService {
       const sendBLane = laneFor(track.id, 'sendB');
       const staticSendA = Math.max(0, Math.min(1, track.sendA ?? 0));
       const staticSendB = Math.max(0, Math.min(1, track.sendB ?? 0));
-      if (sendALane || staticSendA > 0) {
+      if (audible && (sendALane || staticSendA > 0)) {
         const bus = ensureReverbReturn();
         if (bus) {
           const send = offline.createGain();
@@ -597,11 +619,11 @@ export class ExportService {
           send.connect(bus);
           if (sendALane) {
             this.scheduleLaneCurve(send.gain, sendALane, totalSeconds,
-              secondsPerStep, (value) => Math.max(0, Math.min(1, value)));
+              timing.minStepSeconds, (value) => Math.max(0, Math.min(1, value)));
           }
         }
       }
-      if (sendBLane || staticSendB > 0) {
+      if (audible && (sendBLane || staticSendB > 0)) {
         const bus = ensureEchoReturn();
         if (bus) {
           const send = offline.createGain();
@@ -610,28 +632,46 @@ export class ExportService {
           send.connect(bus);
           if (sendBLane) {
             this.scheduleLaneCurve(send.gain, sendBLane, totalSeconds,
-              secondsPerStep, (value) => Math.max(0, Math.min(1, value)));
+              timing.minStepSeconds, (value) => Math.max(0, Math.min(1, value)));
           }
         }
       }
 
+      const result = { input, channel };
+      channels.set(track.id, result);
+      building.delete(track.id);
+      return result;
+    };
+
+    // Build every channel first: a member can be reached before its bus while
+    // iterating tracks, and the recursive builder has to connect into a bus
+    // whose inserts and fader already exist.
+    for (const track of tracks) buildChannel(track);
+
+    for (const track of tracks) {
+      if (track.type === 'bus') continue;
+      if (options.onlyTrackIds && !options.onlyTrackIds.has(track.id)) continue;
+      if (
+        track.muted ||
+        (hasSolo && !track.soloed && !track.soloSafe)
+      ) continue;
+      const built = channels.get(track.id);
+      if (!built) continue;
+      const input = built.input;
+
       if (track.type !== 'audio') {
-        // With a pan lane the lane owns the channel's position, so a voice
-        // carries only its own per-note pan instead of the static track pan.
         const notes = track.type === 'drum' || this.instruments.isSamplePreset(track.instrumentId)
-          ? this.musicManager.arrangementNotes(track, bars * 16) : track.notes ?? [];
+          ? this.musicManager.arrangementNotes(track, bars * 16)
+          : track.notes ?? [];
         this.scheduleTrackNotes(offline, input, notes,
-          track.synthParams ?? { type: 'sine' }, secondsPerStep,
-          panLane ? 0 : (track.pan ?? 0), track.instrumentId, track.type === 'drum',
-          track.id);
+          track.synthParams ?? { type: 'sine' }, timing,
+          laneFor(track.id, 'pan') ? 0 : (track.pan ?? 0),
+          track.instrumentId, track.type === 'drum', track.id);
       }
       for (const clip of track.clips ?? []) {
         if (clip.type !== 'audio') continue;
-        // One panner + one fade gain per clip: a clip's fade is its own
-        // envelope, so clips sharing a track cannot share a gain stage
-        // without one clip's fade doubling or muting the other.
         const pan = offline.createStereoPanner();
-        pan.pan.value = panLane
+        pan.pan.value = laneFor(track.id, 'pan')
           ? 0
           : Math.max(-1, Math.min(1, track.pan ?? 0));
         const fader = offline.createGain();
@@ -641,18 +681,19 @@ export class ExportService {
         let buffer = clip.audioData || (clip.audioRefId && this.musicManager.stemAudioCache.get(clip.audioRefId));
         let offset = Math.max(0, clip.offset ?? 0);
         if (!buffer && streamer) {
-          const sampleRate = (clip as any).clipSampleRate || 48000;
-          streamer.setPlayhead(Math.max(0, ((clip as any).clipOriginSeconds || 0) * sampleRate));
+          const clipSampleRate = (clip as any).clipSampleRate || 48000;
+          streamer.setPlayhead(Math.max(0, ((clip as any).clipOriginSeconds || 0) * clipSampleRate));
           buffer = streamer.getResidentBuffer();
           offset = streamer.getResidentOffsetSeconds?.() ?? 0;
         }
         if (!buffer) throw new Error(`Audio for “${track.name}” is unavailable. Restore or re-import the clip before export.`);
-        const start = Math.max(0, clip.start * secondsPerBar);
+        const startStep = Math.max(0, Number(clip.start) || 0) * 16;
+        const start = timing.timeAtStep(startStep);
+        const windowSeconds = timing.secondsForSteps(startStep, Math.max(0, Number(clip.length) || 0) * 16);
         const duration = Math.min(
-          clip.clipLengthSeconds ?? clip.length * secondsPerBar,
+          clip.clipLengthSeconds ?? windowSeconds,
           streamer ? streamer.getRemainingSecondsFrom((clip as any).clipOriginSeconds || 0) : Math.max(0, buffer.duration - offset),
         );
-        // Phase L: clip-level gain and reverse land here with the live path.
         const clipGain = (clip as any).clipGain ?? 1.0;
         const reversedClip = (clip as any).reversed && !streamer;
         const playbackBuffer = reversedClip
@@ -662,15 +703,18 @@ export class ExportService {
                 src.getChannelData(channelIndex).slice().reverse(),
             )
           : buffer;
-        // clipGain is the fade envelope's PEAK (this export's channel stage
-        // already carries track.gain), exactly as the live path composes it
-        // into triggerSampler's velocity — not a value to stamp before the
-        // envelope, which overwrote it at the same instant.
-        this.applyClipFade(fader.gain, start, duration, clip, secondsPerBar, clipGain);
+        const fadeInBars = Math.max(0, Math.min(clip.fadeIn ?? 0, clip.length));
+        const fadeOutBars = Math.max(0, Math.min(clip.fadeOut ?? 0, clip.length));
+        const fadeInSeconds = timing.secondsForSteps(startStep, fadeInBars * 16);
+        const fadeOutStartStep = startStep + Math.max(0, clip.length - fadeOutBars) * 16;
+        const fadeOutSeconds = timing.timeAtStep(startStep + Math.max(0, clip.length) * 16)
+          - timing.timeAtStep(fadeOutStartStep);
+        this.applyClipFade(fader.gain, start, duration, fadeInSeconds, fadeOutSeconds, clipGain);
         if (streamer) {
-          const sampleRate = (clip as any).clipSampleRate || 48000;
-          const sampleRateRatio = sampleRate / buffer.sampleRate;
-          const sourceRate = Math.max(0.01, (this.engine.tempo() / ((clip as any).originalBpm || this.engine.tempo())) * sampleRateRatio);
+          const clipSampleRate = (clip as any).clipSampleRate || 48000;
+          const sampleRateRatio = clipSampleRate / buffer.sampleRate;
+          const clipTempo = timing.bpmAtStep(startStep);
+          const sourceRate = Math.max(0.01, (clipTempo / ((clip as any).originalBpm || clipTempo)) * sampleRateRatio);
           let elapsed = 0;
           let sourcePosition = (clip as any).clipOriginSeconds || 0;
           let currentBuffer: AudioBuffer | null = buffer;
@@ -687,7 +731,7 @@ export class ExportService {
             elapsed += consumedSeconds / sourceRate;
             sourcePosition += consumedSeconds / sampleRateRatio;
             if (elapsed < duration - 0.000001) {
-              streamer.setPlayhead(sourcePosition * sampleRate);
+              streamer.setPlayhead(sourcePosition * clipSampleRate);
               currentBuffer = streamer.getResidentBuffer();
               currentOffset = streamer.getResidentOffsetSeconds?.() ?? 0;
             }
@@ -702,6 +746,82 @@ export class ExportService {
     }
 
     return offline.startRendering();
+  }
+
+  /**
+   * Convert the engine's tempo map into the musical clock used by the render.
+   * A map is optional; a project with no markers reduces to the former single
+   * BPM path, while each marker changes the seconds-per-step from that step on.
+   */
+  private buildTempoTimeline(): TempoTimeline {
+    const base = Math.max(20, Math.min(300, this.engine.tempo()));
+    const raw = (this.engine as Partial<AudioEngineService>).getTempoMap?.() ?? [];
+    const markers = raw
+      .filter((marker) => Number.isFinite(marker?.step) && Number.isFinite(marker?.bpm))
+      .map((marker) => ({
+        step: Math.max(0, Math.round(marker.step)),
+        bpm: Math.max(20, Math.min(300, marker.bpm)),
+      }))
+      .sort((a, b) => a.step - b.step);
+    let initialBpm = base;
+    const segments: Array<{ step: number; bpm: number }> = [];
+    for (const marker of markers) {
+      if (marker.step <= 0) {
+        initialBpm = marker.bpm;
+      } else if (segments[segments.length - 1]?.step === marker.step) {
+        segments[segments.length - 1].bpm = marker.bpm;
+      } else {
+        segments.push({ ...marker });
+      }
+    }
+
+    const bpmAtStep = (step: number): number => {
+      let bpm = initialBpm;
+      for (const segment of segments) {
+        if (segment.step <= step) bpm = segment.bpm;
+        else break;
+      }
+      return bpm;
+    };
+    const timeAtStep = (step: number): number => {
+      const target = Math.max(0, step);
+      let position = 0;
+      let bpm = initialBpm;
+      let seconds = 0;
+      for (const segment of segments) {
+        if (segment.step >= target) break;
+        seconds += (segment.step - position) * (60 / bpm) / STEPS_PER_BEAT;
+        position = segment.step;
+        bpm = segment.bpm;
+      }
+      return seconds + (target - position) * (60 / bpm) / STEPS_PER_BEAT;
+    };
+    const stepAtTime = (time: number): number => {
+      const target = Math.max(0, time);
+      let position = 0;
+      let bpm = initialBpm;
+      let elapsed = 0;
+      for (const segment of segments) {
+        const segmentSeconds = (segment.step - position) * (60 / bpm) / STEPS_PER_BEAT;
+        if (elapsed + segmentSeconds >= target) {
+          return position + (target - elapsed) * bpm * STEPS_PER_BEAT / 60;
+        }
+        elapsed += segmentSeconds;
+        position = segment.step;
+        bpm = segment.bpm;
+      }
+      return position + (target - elapsed) * bpm * STEPS_PER_BEAT / 60;
+    };
+    const minStepSeconds = 60 / Math.max(...[initialBpm, ...segments.map((segment) => segment.bpm), 20]) / STEPS_PER_BEAT;
+
+    return {
+      bpmAtStep,
+      timeAtStep,
+      stepAtTime,
+      secondsForSteps: (startStep, steps) =>
+        Math.max(0, timeAtStep(startStep + Math.max(0, steps)) - timeAtStep(startStep)),
+      minStepSeconds,
+    };
   }
 
   /**
@@ -726,20 +846,13 @@ export class ExportService {
     gain: AudioParam,
     start: number,
     duration: number,
-    clip: { length: number; fadeIn?: number; fadeOut?: number },
-    secondsPerBar: number,
+    fadeInSeconds: number,
+    fadeOutSeconds: number,
     peak: number = 1
   ): void {
     const safeDuration = Math.max(0.001, duration);
-    // Fades are stored in bars, like `start`/`length`; the clamp matches live.
-    const fadeIn = Math.max(
-      0,
-      Math.min(Math.min(clip.fadeIn ?? 0, clip.length) * secondsPerBar, safeDuration)
-    );
-    const fadeOut = Math.max(
-      0,
-      Math.min(Math.min(clip.fadeOut ?? 0, clip.length) * secondsPerBar, safeDuration)
-    );
+    const fadeIn = Math.max(0, Math.min(fadeInSeconds, safeDuration));
+    const fadeOut = Math.max(0, Math.min(fadeOutSeconds, safeDuration));
 
     gain.setValueAtTime(0, start);
     if (fadeIn > 0) gain.linearRampToValueAtTime(peak, start + fadeIn);
@@ -787,10 +900,10 @@ export class ExportService {
     param: AudioParam,
     lane: AutomationLane,
     totalSeconds: number,
-    secondsPerStep: number,
+    minStepSeconds: number,
     scale: (value: number) => number,
   ): void {
-    const grid = Math.max(0.01, secondsPerStep / 2);
+    const grid = Math.max(0.01, minStepSeconds / 2);
     const times = new Set<number>([0]);
     for (const point of lane.points) {
       if (point.time > 0 && point.time < totalSeconds) times.add(point.time);
@@ -822,7 +935,7 @@ export class ExportService {
     master: AudioNode,
     notes: TrackNote[],
     params: any,
-    secondsPerStep: number,
+    timing: TempoTimeline,
     trackPan: number,
     instrumentId: string,
     isDrum: boolean,
@@ -833,16 +946,18 @@ export class ExportService {
       // Probability gate — matches live playStep behavior
       if (n.probability !== undefined && Math.random() >= n.probability) continue;
 
-      const start = Math.max(0, ((n.step ?? 0) + (n.microOffset ?? 0)) * secondsPerStep);
+      const noteStartStep = Math.max(0, (n.step ?? 0) + (n.microOffset ?? 0));
+      const noteLength = Math.max(0.01, n.length ?? 1);
       const ratchet = isDrum ? drumRatchetCount(n.params) : 1;
+      const noteStepSeconds = timing.secondsForSteps(noteStartStep, noteLength) / noteLength;
+
       // CC lanes are shared with live playback: sample the same curve over
       // this note and hand it to the shared voice builder.
-      const noteStartStep = Math.max(0, (n.step ?? 0) + (n.microOffset ?? 0));
       let midiCc = this.automation.sampleCcCurve(
         trackId,
         noteStartStep,
-        noteStartStep + Math.max(0.01, n.length ?? 1),
-        secondsPerStep,
+        noteStartStep + noteLength,
+        noteStepSeconds,
       );
       const pressure = Number(n.aftertouch);
       if (Number.isFinite(pressure) && pressure > 0) {
@@ -873,6 +988,8 @@ export class ExportService {
             : undefined;
       if (oneShot && Number.isFinite(oneShot.duration) && oneShot.duration > 0) {
         for (let hit = 0; hit < ratchet; hit++) {
+          const hitStep = noteStartStep + (hit * noteLength) / ratchet;
+          const hitTime = timing.timeAtStep(hitStep);
           const source = ctx.createBufferSource();
           source.buffer = oneShot;
           const gain = ctx.createGain();
@@ -883,7 +1000,7 @@ export class ExportService {
               midiCc,
               'expression',
               (value) => Math.max(0, Math.min(1, oneShotVelocity * value)),
-              start,
+              hitTime,
             );
           } else {
             gain.gain.value = oneShotVelocity;
@@ -895,7 +1012,7 @@ export class ExportService {
               midiCc,
               'pan',
               (value) => Math.max(-1, Math.min(1, value)),
-              start,
+              hitTime,
             );
           } else {
             panner.pan.value = Math.max(-1, Math.min(1, ccPan));
@@ -903,7 +1020,7 @@ export class ExportService {
           source.connect(panner);
           panner.connect(gain);
           gain.connect(master);
-          source.start(start + hit * secondsPerStep / ratchet);
+          source.start(hitTime);
         }
         continue;
       }
@@ -919,17 +1036,20 @@ export class ExportService {
         case 'pizzicato': lengthMul = 0.15; break;
         case 'accent': lengthMul = 0.5; break;
       }
-      const noteDuration = (n.length ?? 1) * secondsPerStep * lengthMul;
-      const dur = ratchet > 1
-        ? Math.min(noteDuration, secondsPerStep / ratchet)
-        : Math.max(0.05, noteDuration);
+      const noteDuration = timing.secondsForSteps(noteStartStep, noteLength) * lengthMul;
       if (this.instruments.isSamplePreset(instrumentId)) {
         const sample = this.instruments.getPresetSample(
           instrumentId, n.midi, n.velocity ?? 0.8, n.pitchBend ?? 0,
         );
         if (!sample) throw new Error(`Sample for MIDI ${n.midi} in “${instrumentId}” is unavailable.`);
         for (let hit = 0; hit < ratchet; hit++) {
-          scheduleOfflinePresetSample(ctx, master, sample, start + hit * secondsPerStep / ratchet, dur, n.velocity ?? 0.8, ccPan, midiCc);
+          const hitStep = noteStartStep + (hit * noteLength) / ratchet;
+          const hitDuration = timing.secondsForSteps(hitStep, noteLength / ratchet);
+          scheduleOfflinePresetSample(
+            ctx, master, sample, timing.timeAtStep(hitStep),
+            ratchet > 1 ? Math.min(noteDuration, hitDuration) : Math.max(0.05, noteDuration),
+            n.velocity ?? 0.8, ccPan, midiCc,
+          );
         }
         continue;
       }
@@ -949,11 +1069,16 @@ export class ExportService {
         ? { ...voiceParams, midiCc }
         : voiceParams;
       for (let hit = 0; hit < ratchet; hit++) {
+        const hitStep = noteStartStep + (hit * noteLength) / ratchet;
+        const hitDuration = timing.secondsForSteps(hitStep, noteLength / ratchet);
+        const dur = ratchet > 1
+          ? Math.min(noteDuration, hitDuration)
+          : Math.max(0.05, noteDuration);
         this.engine.scheduleOfflineNote(
           ctx,
           master,
           freq,
-          start + hit * secondsPerStep / ratchet,
+          timing.timeAtStep(hitStep),
           n.velocity ?? 0.8,
           dur,
           ccVoiceParams,

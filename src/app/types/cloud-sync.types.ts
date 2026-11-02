@@ -1,10 +1,9 @@
 /**
  * Sprint D1 — Cloud Sync type contract.
  *
- * Models a deterministic, mock-cloud-backed project sync layer that pairs
- * with the existing OfflineSync queue. Every shape here is structural —
- * runtime validation happens in CloudSyncService + MockCloudServer so
- * storage is plain JSON-safe.
+ * Models the authenticated HTTP project sync layer that pairs with the
+ * existing OfflineSync queue. Every shape here is structural; the server
+ * hydrates large bodies from private object storage before returning them.
  */
 
 export type SyncDirection = 'push' | 'pull';
