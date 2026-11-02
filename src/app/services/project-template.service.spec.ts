@@ -49,6 +49,7 @@ describe("ProjectTemplateService", () => {
           {
             id: "slot-0",
             name: "Verse",
+            launchQuantize: "1bar",
             activeVersionId: "v1",
             versions: [
               {
@@ -64,6 +65,7 @@ describe("ProjectTemplateService", () => {
           {
             id: "slot-1",
             name: "Chorus",
+            launchQuantize: "4bar",
             activeVersionId: "v1",
             versions: [
               {
@@ -216,6 +218,8 @@ describe("ProjectTemplateService", () => {
       "Chorus",
     ]);
     expect(patterned?.tracks[0].activePatternSlotId).toBe("slot-0");
+    expect(patterned?.tracks[0].patternSlots?.[0].launchQuantize).toBe("1bar");
+    expect(patterned?.tracks[0].patternSlots?.[1].launchQuantize).toBe("4bar");
     expect(patterned?.tracks[0].patternSlots?.[1].notes[0].midi).toBe(67);
     expect(patterned?.tracks[2].drumPatternLength).toBe(16);
     expect(patterned?.tracks[2].notes?.[0]).toEqual({
@@ -251,6 +255,7 @@ describe("ProjectTemplateService", () => {
           expect.objectContaining({
             id: "slot-1",
             name: "Chorus",
+            launchQuantize: "4bar",
             versions: [
               expect.objectContaining({
                 notes: [expect.objectContaining({ midi: 67 })],

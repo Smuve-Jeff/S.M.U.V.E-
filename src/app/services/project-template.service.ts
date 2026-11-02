@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   MusicManagerService,
+  type LaunchQuantize,
   type PatternSlot,
 } from './music-manager.service';
 import { LoggingService } from './logging.service';
@@ -25,6 +26,8 @@ export interface TemplatePatternSlot {
   name: string;
   notes: TemplateNote[];
   steps?: boolean[];
+  /** The slot's own launch boundary; null inherits the session grid. */
+  launchQuantize?: LaunchQuantize | null;
 }
 
 export interface ProjectTemplateTrack {
@@ -142,6 +145,19 @@ function isTemplateClip(value: unknown): value is TemplateClip {
   );
 }
 
+function isTemplateLaunchQuantize(
+  value: unknown,
+): value is LaunchQuantize | null {
+  return (
+    value === null ||
+    value === undefined ||
+    value === 'none' ||
+    value === '1bar' ||
+    value === '2bar' ||
+    value === '4bar'
+  );
+}
+
 function isTemplatePatternSlot(value: unknown): value is TemplatePatternSlot {
   if (!value || typeof value !== 'object') return false;
   const slot = value as Partial<TemplatePatternSlot>;
@@ -152,7 +168,9 @@ function isTemplatePatternSlot(value: unknown): value is TemplatePatternSlot {
     Array.isArray(slot.notes) &&
     slot.notes.every(isTemplateNote) &&
     (slot.steps === undefined ||
-      (Array.isArray(slot.steps) && slot.steps.every((step) => typeof step === 'boolean')))
+      (Array.isArray(slot.steps) &&
+        slot.steps.every((step) => typeof step === 'boolean'))) &&
+    isTemplateLaunchQuantize(slot.launchQuantize)
   );
 }
 
@@ -507,6 +525,7 @@ export class ProjectTemplateService {
               name: slot.name || 'Pattern',
               notes: toTemplateNotes(source.notes ?? []),
               ...(steps ? { steps } : {}),
+              launchQuantize: slot.launchQuantize ?? null,
             };
           })
           .slice(0, MAX_TEMPLATE_SLOTS);
@@ -604,6 +623,7 @@ export class ProjectTemplateService {
               })),
             },
           ],
+          launchQuantize: slot.launchQuantize ?? null,
         }),
       );
       const activeSlotId =
