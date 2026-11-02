@@ -39,6 +39,9 @@
         >
           <span class="material-symbols-outlined">bolt</span>
           {{ id.split('.').slice(0, 2).join(' ') }}
+          <span class="er-chip-meter" aria-hidden="true">
+            <i [style.width.%]="meterPercent('track:' + track.id, id)"></i>
+          </span>
         </span>
         <span class="er-wasm-empty" *ngIf="trackPluginIds().length === 0">
           No WASM inserts — tap a plugin below
@@ -78,6 +81,9 @@
         >
           <span class="material-symbols-outlined">bolt</span>
           {{ id.split('.').slice(0, 2).join(' ') }}
+          <span class="er-chip-meter" aria-hidden="true">
+            <i [style.width.%]="meterPercent('master', id)"></i>
+          </span>
         </span>
         <span class="er-wasm-empty" *ngIf="masterPluginIds().length === 0">
           No master inserts — tap a plugin below
@@ -101,6 +107,86 @@
             hasMasterPlugin(manifest.id) ? 'BUS' : 'OFF'
           }}</span>
         </button>
+      </div>
+    </section>
+
+    <!-- Live plugin parameters: every installed insert exposes its real
+         automatable parameters instead of being an on/off chip. -->
+    <section
+      class="er-plugin-params"
+      *ngIf="trackPluginIds().length > 0 || masterPluginIds().length > 0"
+      aria-label="Plugin parameters and automation"
+    >
+      <div class="er-plugin-params-head">
+        <span class="material-symbols-outlined">tune</span>
+        <b>Plugin Parameters</b>
+        <small>automate any knob</small>
+      </div>
+
+      <div
+        class="er-plugin-card"
+        *ngFor="let id of trackPluginIds()"
+        [attr.aria-label]="(pluginManifest(id)?.name || id) + ' parameters'"
+      >
+        <header class="er-plugin-card-head">
+          <span class="er-plugin-badge">TRACK</span>
+          <b>{{ pluginManifest(id)?.name || id }}</b>
+        </header>
+        <div class="er-plugin-knobs">
+          <div class="er-plugin-knob" *ngFor="let param of pluginParams(id)">
+            <app-knob
+              [label]="param.label"
+              [min]="param.min"
+              [max]="param.max"
+              [step]="param.step"
+              [value]="pluginValue(id, param)"
+              [unit]="param.unit || ''"
+              (valueChange)="setPluginParam(id, param, $event)"
+            ></app-knob>
+            <button
+              type="button"
+              class="er-plugin-auto"
+              (click)="automatePluginParam(id, param)"
+              [attr.aria-label]="'Add automation lane for ' + param.label"
+              title="Add an automation lane for this parameter"
+            >
+              A
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="er-plugin-card er-plugin-card-master"
+        *ngFor="let id of masterPluginIds()"
+        [attr.aria-label]="(pluginManifest(id)?.name || id) + ' master parameters'"
+      >
+        <header class="er-plugin-card-head">
+          <span class="er-plugin-badge">MASTER</span>
+          <b>{{ pluginManifest(id)?.name || id }}</b>
+        </header>
+        <div class="er-plugin-knobs">
+          <div class="er-plugin-knob" *ngFor="let param of pluginParams(id)">
+            <app-knob
+              [label]="param.label"
+              [min]="param.min"
+              [max]="param.max"
+              [step]="param.step"
+              [value]="pluginValue(id, param)"
+              [unit]="param.unit || ''"
+              (valueChange)="setPluginParam(id, param, $event)"
+            ></app-knob>
+            <button
+              type="button"
+              class="er-plugin-auto"
+              (click)="automatePluginParam(id, param)"
+              [attr.aria-label]="'Add automation lane for ' + param.label"
+              title="Add an automation lane for this parameter"
+            >
+              A
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 

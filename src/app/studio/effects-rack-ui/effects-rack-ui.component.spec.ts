@@ -7,6 +7,7 @@ import {
 import { MusicManagerService } from "../../services/music-manager.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { PluginStoreService } from "../../services/plugin-store.service";
+import { AutomationService } from "../automation.service";
 
 /**
  * The rack's Add Effect button had no handler, the parameters panel rendered
@@ -59,6 +60,14 @@ describe("EffectsRackUiComponent", () => {
   const audioEngineMock = {
     masterPluginIds: signal<string[]>([]),
     installMasterPluginInsertAfterWidth: jest.fn(),
+    pluginMeterLevels: signal<
+      Record<string, Array<{ id: string; peak: number }>>
+    >({}),
+  };
+
+  const automationMock = {
+    captureWrite: jest.fn(() => true),
+    ensureLane: jest.fn(),
   };
 
   const pluginStoreMock = {
@@ -72,7 +81,16 @@ describe("EffectsRackUiComponent", () => {
       },
     ],
     preload: jest.fn(),
-    manifestFor: jest.fn(() => ({ kernelName: "process" })),
+    manifestFor: jest.fn((id: string) => ({
+      id,
+      name: "Algorithmic Reverb",
+      kernelName: "process",
+      params: [
+        { id: "mix", label: "Mix", min: 0, max: 1, step: 0.01, default: 0.4 },
+      ],
+    })),
+    valuesFor: jest.fn(() => ({ mix: 0.4 })),
+    setParam: jest.fn(),
     liveInsertSlot: jest.fn(() => null),
     loader: { getModule: jest.fn() },
   };
@@ -92,6 +110,7 @@ describe("EffectsRackUiComponent", () => {
         { provide: MusicManagerService, useValue: musicManagerMock },
         { provide: AudioEngineService, useValue: audioEngineMock },
         { provide: PluginStoreService, useValue: pluginStoreMock },
+        { provide: AutomationService, useValue: automationMock },
       ],
     }).compileComponents();
 
@@ -213,6 +232,62 @@ describe("EffectsRackUiComponent", () => {
     audioEngineMock.masterPluginIds.set([]);
     component.sendActiveToLiveChain();
     expect(musicManagerMock.setTrackPlugins).toHaveBeenCalledTimes(1);
+  });
+
+  it("writes plugin knobs to the store and records an automation keyframe", () => {
+    const param = {
+      id: "mix",
+      label: "Mix",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      default: 0.4,
+    };
+
+    component.setPluginParam("smuve.reverb.v2", param, 0.72);
+
+    expect(pluginStoreMock.setParam).toHaveBeenCalledWith(
+      "smuve.reverb.v2",
+      "mix",
+      0.72,
+    );
+    expect(automationMock.captureWrite).toHaveBeenCalledWith(
+      "track-1",
+      "plugin:smuve.reverb.v2:mix",
+      0.72,
+      { interpolation: "linear", min: 0, max: 1 },
+    );
+  });
+
+  it("creates a plugin automation lane with the parameter's real range", () => {
+    const param = {
+      id: "mix",
+      label: "Mix",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      default: 0.4,
+    };
+
+    component.automatePluginParam("smuve.reverb.v2", param);
+
+    expect(automationMock.ensureLane).toHaveBeenCalledWith(
+      "track-1",
+      "plugin:smuve.reverb.v2:mix",
+      { interpolation: "linear", min: 0, max: 1 },
+    );
+  });
+
+  it("shows the real worklet peak for each insert", () => {
+    expect(component.meterPercent("track:track-1", "smuve.reverb.v2")).toBe(0);
+
+    audioEngineMock.pluginMeterLevels.set({
+      "track:track-1": [{ id: "smuve.reverb.v2", peak: 0.25 }],
+    });
+
+    // sqrt(0.25) = 0.5 → half-scale meter.
+    expect(component.meterPercent("track:track-1", "smuve.reverb.v2")).toBe(50);
+    expect(component.meterPercent("master", "smuve.reverb.v2")).toBe(0);
   });
 
   it("hands the master chain to the engine as resolvable live slots", () => {

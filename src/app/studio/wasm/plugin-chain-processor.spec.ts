@@ -261,6 +261,28 @@ describe('plugin-chain-processor worklet', () => {
     });
   });
 
+  describe('per-slot metering', () => {
+    it('posts the post-kernel peak for each slot on the meter cadence', () => {
+      const processor = makeProcessor([
+        { id: 'smuve.saturation.v2', kernel: 'saturate', params: [0.4, 1, 0] },
+      ]);
+      const posts: Array<{ type?: string; levels?: Array<{ id: string; peak: number }> }> = [];
+      processor.port.postMessage = (message: any) => posts.push(message);
+
+      const { left, right } = testSignal();
+      // 30 Hz posting at 48 kHz needs ~12.5 quanta; render enough to be sure.
+      for (let i = 0; i < 20; i++) renderQuantum(processor, left, right);
+
+      const meterPosts = posts.filter((post) => post.type === 'levels');
+      expect(meterPosts.length).toBeGreaterThan(0);
+      const last = meterPosts[meterPosts.length - 1];
+      expect(last.levels).toHaveLength(1);
+      expect(last.levels?.[0].id).toBe('smuve.saturation.v2');
+      expect(last.levels?.[0].peak).toBeGreaterThan(0);
+      expect(last.levels?.[0].peak).toBeLessThanOrEqual(1);
+    });
+  });
+
   describe('degradation', () => {
     it('passes audio through for an unknown kernel instead of muting the track', () => {
       const { left, right } = testSignal();

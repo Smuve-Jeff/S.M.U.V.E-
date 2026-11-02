@@ -58,6 +58,17 @@ export function normToValue(norm: number, range: AutomationRange): number {
 
 /** Human label for a lane parameter (used by the editor + tests). */
 export function laneParameterLabel(parameter: string): string {
+  if (parameter.startsWith('plugin:')) {
+    const [, pluginId = '', paramId = ''] = parameter.split(':');
+    const pluginName = pluginId
+      .split('.')
+      .filter((part) => part && part !== 'smuve' && part !== 'v2')
+      .join(' ');
+    return `${pluginName || pluginId} · ${paramId}`
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/_/g, ' ')
+      .toUpperCase();
+  }
   if (parameter.startsWith('cc_')) {
     return `CC ${parameter.slice(3).trim().toUpperCase()}`;
   }

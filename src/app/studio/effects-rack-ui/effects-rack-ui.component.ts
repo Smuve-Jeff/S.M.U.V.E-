@@ -9,7 +9,9 @@ import { AudioEngineService } from "../../services/audio-engine.service";
 import {
   PluginStoreService,
   DspPluginManifest,
+  DspPluginParam,
 } from "../../services/plugin-store.service";
+import { AutomationService } from "../automation.service";
 import { KnobComponent } from "../shared/knob/knob.component";
 
 import {
@@ -33,6 +35,7 @@ export class EffectsRackUiComponent {
   private musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
   private pluginStore = inject(PluginStoreService);
+  private automation = inject(AutomationService);
 
   selectedTrack = this.musicManager.selectedTrack;
   activeSlot = signal(1);
@@ -91,6 +94,77 @@ export class EffectsRackUiComponent {
       pluginIds.map((id) => this.pluginStore.liveInsertSlot(id)),
     );
     this.pluginStore.preload(ids);
+  }
+
+  /** True per-slot peaks published by the plugin-chain worklet. */
+  private meterLevels = computed<
+    Record<string, Array<{ id: string; peak: number }>>
+  >(() => {
+    const levels = (this.audioEngine as { pluginMeterLevels?: () => Record<string, Array<{ id: string; peak: number }>> })
+      .pluginMeterLevels;
+    return typeof levels === "function" ? levels() : {};
+  });
+
+  /** Perceptual 0–100 meter height for one slot in a track/master chain. */
+  meterPercent(chainKey: string, pluginId: string): number {
+    const entry = (this.meterLevels()[chainKey] ?? []).find(
+      (level) => level.id === pluginId,
+    );
+    if (!entry || !Number.isFinite(entry.peak)) return 0;
+    const peak = Math.max(0, Math.min(1, entry.peak));
+    return Math.round(Math.sqrt(peak) * 100);
+  }
+
+  pluginManifest(pluginId: string): DspPluginManifest | null {
+    return this.pluginStore.manifestFor(pluginId);
+  }
+
+  pluginParams(pluginId: string): DspPluginParam[] {
+    return this.pluginManifest(pluginId)?.params ?? [];
+  }
+
+  pluginValue(pluginId: string, param: DspPluginParam): number {
+    const value = this.pluginStore.valuesFor(pluginId)[param.id];
+    return typeof value === "number" && Number.isFinite(value)
+      ? value
+      : param.default;
+  }
+
+  /**
+   * One knob writes the shared plugin store; the engine's 200 ms chain poll
+   * pushes it to the audio thread. Moving it while AUTO is armed and the
+   * transport runs records a `plugin:<id>:<param>` keyframe.
+   */
+  setPluginParam(
+    pluginId: string,
+    param: DspPluginParam,
+    value: number,
+  ): void {
+    this.pluginStore.setParam(pluginId, param.id, value);
+    const track = this.selectedTrack();
+    if (track) {
+      this.automation.captureWrite(
+        track.id,
+        `plugin:${pluginId}:${param.id}`,
+        value,
+        { interpolation: "linear", min: param.min, max: param.max },
+      );
+    }
+  }
+
+  /** Create the lane the curve editor and transport will read. */
+  automatePluginParam(pluginId: string, param: DspPluginParam): void {
+    const track = this.selectedTrack();
+    if (!track) return;
+    this.automation.ensureLane(
+      track.id,
+      `plugin:${pluginId}:${param.id}`,
+      {
+        interpolation: "linear",
+        min: param.min,
+        max: param.max,
+      },
+    );
   }
 
   fxSlots = computed(() => {

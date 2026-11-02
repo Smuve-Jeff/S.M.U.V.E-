@@ -1,5 +1,6 @@
 import { Injectable, effect, signal, inject } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
+import { PluginStoreService } from "../services/plugin-store.service";
 import { bezierInterpolate, BezierPresets } from "./automation/bezier-utils";
 
 export interface AutomationPoint {
@@ -61,6 +62,7 @@ export interface PerformanceMacro {
 })
 export class AutomationService {
   private readonly engine = inject(AudioEngineService);
+  private readonly pluginStore = inject(PluginStoreService, { optional: true });
   private idCounter = 0;
 
   private nextId(prefix: string): string {
@@ -143,12 +145,23 @@ export class AutomationService {
    * was captured. Only records while write is armed *and* the transport runs:
    * moving a fader while stopped is a mix decision, not automation.
    */
-  captureWrite(trackId: string, parameter: string, value: number): boolean {
+  captureWrite(
+    trackId: string,
+    parameter: string,
+    value: number,
+    options?: {
+      interpolation?: AutomationInterpolation;
+      min?: number;
+      max?: number;
+    },
+  ): boolean {
     if (!this.writeEnabled()) return false;
     const step = this.transportStep();
     if (step === null || !Number.isFinite(value)) return false;
 
-    const lane = this.ensureLane(trackId, parameter);
+    // Range must be supplied on the first write; otherwise a -60 dB threshold
+    // would create a 0..1 lane and clamp the captured value.
+    const lane = this.ensureLane(trackId, parameter, options);
     const time = this.timeAtStep(step);
     const min = lane.target.min ?? -Infinity;
     const max = lane.target.max ?? Infinity;
@@ -528,6 +541,7 @@ export class AutomationService {
         this.getMacroBiasForLane(lane),
       );
       if (value !== null) {
+        if (this.applyPluginParameter(lane.target.parameter, value)) return;
         this.engine.applyProductionParameter(
           lane.target.trackId,
           lane.target.parameter,
@@ -536,6 +550,20 @@ export class AutomationService {
         );
       }
     });
+  }
+
+  /**
+   * Plugin lanes use `plugin:<pluginId>:<paramId>` so they live in the same
+   * lane list, curve editor and macro/modulation system as mixer parameters.
+   * They are applied through the plugin store, which the engine already polls
+   * into the live chain — no second audio path is introduced.
+   */
+  private applyPluginParameter(parameter: string, value: number): boolean {
+    if (!parameter.startsWith("plugin:") || !this.pluginStore) return false;
+    const [, pluginId, paramId] = parameter.split(":");
+    if (!pluginId || !paramId) return false;
+    this.pluginStore.setParam(pluginId, paramId, value);
+    return true;
   }
 
   scheduleAutomation(startTime: number, duration: number, slices = 16) {

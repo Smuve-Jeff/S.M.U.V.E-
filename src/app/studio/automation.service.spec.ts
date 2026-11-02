@@ -2,6 +2,7 @@ import { signal } from "@angular/core";
 import { TestBed } from "@angular/core/testing";
 import { AutomationService } from "./automation.service";
 import { AudioEngineService } from "../services/audio-engine.service";
+import { PluginStoreService } from "../services/plugin-store.service";
 
 describe("AutomationService", () => {
   let service: AutomationService;
@@ -14,6 +15,7 @@ describe("AutomationService", () => {
     visualStep,
     tempo,
   };
+  const pluginStoreMock = { setParam: jest.fn() };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -24,6 +26,7 @@ describe("AutomationService", () => {
       providers: [
         AutomationService,
         { provide: AudioEngineService, useValue: engineMock },
+        { provide: PluginStoreService, useValue: pluginStoreMock },
       ],
     });
     service = TestBed.inject(AutomationService);
@@ -40,6 +43,26 @@ describe("AutomationService", () => {
     const [, , value] = engineMock.applyProductionParameter.mock.calls[0];
     expect(value).toBeGreaterThan(0.2);
     expect(value).toBeLessThan(0.8);
+  });
+
+  it("routes plugin lanes to the plugin store, not the mixer", () => {
+    const lane = service.addLane("1", "plugin:smuve.reverb.v2:mix", {
+      min: 0,
+      max: 1,
+    });
+    service.addPoint(lane.id, 0, 0);
+    service.addPoint(lane.id, 1, 1);
+
+    service.applyAutomation(0.5, 0.05);
+
+    expect(pluginStoreMock.setParam).toHaveBeenCalledWith(
+      "smuve.reverb.v2",
+      "mix",
+      expect.closeTo(0.5, 2),
+    );
+    // The mixer bridge must not also receive a parameter named
+    // `plugin:smuve.reverb.v2:mix`; that would be a no-op at best.
+    expect(engineMock.applyProductionParameter).not.toHaveBeenCalled();
   });
 
   it("supports macro + modulation mapped to lane", () => {
@@ -145,6 +168,28 @@ describe("AutomationService", () => {
     expect(lane.points).toHaveLength(1);
     expect(lane.points[0].time).toBeCloseTo(service.timeAtStep(4), 5);
     expect(lane.points[0].value).toBe(0.5);
+  });
+
+  it("captures the first plugin write with the parameter's real range", () => {
+    isPlaying.set(true);
+    visualStep.set(2);
+    service.setWriteEnabled(true);
+
+    expect(
+      service.captureWrite("t1", "plugin:smuve.dynamics.v2:thresholdDb", -36, {
+        min: -60,
+        max: 0,
+      }),
+    ).toBe(true);
+
+    const lane = service.lanes()[0];
+    expect(lane.target).toMatchObject({
+      parameter: "plugin:smuve.dynamics.v2:thresholdDb",
+      min: -60,
+      max: 0,
+    });
+    // The value must survive instead of being clamped into a 0..1 default.
+    expect(lane.points[0].value).toBe(-36);
   });
 
   it("collapses a drag inside one step and clamps to the lane range", () => {

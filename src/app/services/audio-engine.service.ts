@@ -57,6 +57,8 @@ interface LivePluginInsert {
   provider?: LivePluginChainProvider;
   /** Last chain posted to the audio thread — the poll only sends changes. */
   signature: string;
+  /** Key the worklet's per-slot meter posts are published under. */
+  meterKey: string;
   /** Chain poller; stopped when the insert is removed. */
   poll: ReturnType<typeof setInterval> | null;
 }
@@ -2553,10 +2555,24 @@ export class AudioEngineService {
         this.masterWidthMerger.connect(this._preMasterGain);
       }
       this.masterPluginIds.set([]);
+      this.pluginMeterLevels.update((all) => {
+        const next = { ...all };
+        delete next["master"];
+        return next;
+      });
       return;
     }
 
-    if (this.masterPluginInsert) return; // already installed — toggle handled elsewhere
+    // A chain edit while the insert is live must reach the audio thread. The
+    // old early return left the first chain installed forever, so adding a
+    // second master plugin changed the chips but not the sound.
+    if (this.masterPluginInsert) {
+      this.masterPluginInsert.ids = [...pluginIds];
+      this.masterPluginInsert.provider = getChain;
+      this.pushPluginChain(this.masterPluginInsert);
+      this.masterPluginIds.set([...pluginIds]);
+      return;
+    }
 
     // The worklet module loads asynchronously; re-enter this install once it
     // lands so a plugin toggled during boot still reaches the audio thread.
@@ -2568,7 +2584,7 @@ export class AudioEngineService {
       return;
     }
 
-    const insert = this.createLivePluginInsert(pluginIds, getChain, 2);
+    const insert = this.createLivePluginInsert(pluginIds, getChain, 2, "master");
     if (!insert) return;
 
     // Splice the insert between the M/S width merger and the pre-master
@@ -3627,7 +3643,14 @@ export class AudioEngineService {
       return;
     }
 
-    if (insert) return; // already installed — chain changes rebuild on next pass
+    // Keep an installed insert in sync with the track's current chain. A
+    // second toggle previously returned here and never reached the worklet.
+    if (insert) {
+      insert.ids = [...pluginIds];
+      insert.provider = getChain;
+      this.pushPluginChain(insert);
+      return;
+    }
 
     if (
       !this.whenPluginChainWorkletReady(() =>
@@ -3637,7 +3660,12 @@ export class AudioEngineService {
       return;
     }
 
-    const next = this.createLivePluginInsert(pluginIds, getChain, 1);
+    const next = this.createLivePluginInsert(
+      pluginIds,
+      getChain,
+      1,
+      `track:${trackId}`
+    );
     if (!next) return;
 
     rack.output.disconnect(width);
@@ -3667,6 +3695,11 @@ export class AudioEngineService {
       /* already disconnected */
     }
     this.trackPluginInserts.delete(trackId);
+    this.pluginMeterLevels.update((all) => {
+      const next = { ...all };
+      delete next[`track:${trackId}`];
+      return next;
+    });
   }
 
   // ── Live plugin insert host (plugin-chain-processor worklet) ─────────────
@@ -3682,6 +3715,14 @@ export class AudioEngineService {
   private masterPluginInsert: LivePluginInsert | null = null;
   /** Active plugin ids for the master-bus live insert. */
   readonly masterPluginIds = signal<string[]>([]);
+  /**
+   * True post-insert peaks from the plugin-chain worklet, keyed by `master`
+   * or `track:<trackId>`. Each entry is the peak after that slot's kernel, so
+   * the rack can meter every insert without a second analyser graph.
+   */
+  readonly pluginMeterLevels = signal<
+    Record<string, Array<{ id: string; peak: number }>>
+  >({});
 
   private _pluginChainWorkletLoaded = false;
   private _pluginChainWorkletInitPromise: Promise<boolean> | null = null;
@@ -3750,7 +3791,8 @@ export class AudioEngineService {
   private createLivePluginInsert(
     pluginIds: string[],
     provider: LivePluginChainProvider | undefined,
-    channels: 1 | 2
+    channels: 1 | 2,
+    meterKey: string
   ): LivePluginInsert | null {
     let node: AudioWorkletNode;
     try {
@@ -3771,12 +3813,31 @@ export class AudioEngineService {
       return null;
     }
 
+    node.port.onmessage = (event: MessageEvent) => {
+      const data = event.data as {
+        type?: string;
+        levels?: Array<{ id?: unknown; peak?: unknown }>;
+      } | null;
+      if (data?.type !== 'levels' || !Array.isArray(data.levels)) return;
+      const levels = data.levels
+        .filter(
+          (level): level is { id: string; peak: number } =>
+            !!level &&
+            typeof level.id === 'string' &&
+            typeof level.peak === 'number' &&
+            Number.isFinite(level.peak)
+        )
+        .map((level) => ({ id: level.id, peak: Math.max(0, level.peak) }));
+      this.pluginMeterLevels.update((all) => ({ ...all, [meterKey]: levels }));
+    };
+
     const insert: LivePluginInsert = {
       node,
       channels,
       ids: [...pluginIds],
       provider,
       signature: '',
+      meterKey,
       poll: null,
     };
     this.pushPluginChain(insert);

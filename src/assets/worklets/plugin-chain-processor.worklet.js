@@ -402,6 +402,9 @@ class PluginChainProcessor extends AudioWorkletProcessor {
     this._frames = new Float32Array(128 * 2);
     this._processed = new Float32Array(128 * 2);
     this._slots = [];
+    /** Frames accumulated since the last per-slot meter post (~30 Hz). */
+    this._meterFrames = 0;
+    this._meterInterval = Math.max(128, Math.round(sampleRate / 30));
 
     this.setChain(opts.chain || []);
 
@@ -421,9 +424,12 @@ class PluginChainProcessor extends AudioWorkletProcessor {
         kernel: slot.kernel || 'identity',
         params: toFloat32(slot.params),
         run: createKernelInstance(slot.kernel),
+        /** Peak since the last meter post, measured after this slot. */
+        peak: 0,
       });
     }
     this._slots = next;
+    this._meterFrames = 0;
   }
 
   process(inputs, outputs) {
@@ -454,10 +460,21 @@ class PluginChainProcessor extends AudioWorkletProcessor {
       interleaved[i * 2 + 1] = inR ? inR[i] || 0 : left;
     }
 
+    const meterFrames = frames * 2;
     for (let s = 0; s < this._slots.length; s++) {
       const slot = this._slots[s];
       slot.run(interleaved, processed, slot.params, sampleRate);
-      interleaved.set(processed.subarray(0, frames * 2));
+      interleaved.set(processed.subarray(0, meterFrames));
+
+      // Post-fader per-slot peak: this is the signal the next insert and the
+      // master bus actually receive, not the plugin's input.
+      let peak = 0;
+      for (let i = 0; i < meterFrames; i++) {
+        const value = processed[i];
+        const magnitude = value < 0 ? -value : value;
+        if (magnitude > peak) peak = magnitude;
+      }
+      if (peak > slot.peak) slot.peak = peak;
     }
 
     for (let i = 0; i < frames; i++) {
@@ -466,6 +483,23 @@ class PluginChainProcessor extends AudioWorkletProcessor {
     if (outR) {
       for (let i = 0; i < frames; i++) {
         outR[i] = interleaved[i * 2 + 1];
+      }
+    }
+
+    // Meter posts are throttled on the audio clock, so the UI gets useful
+    // levels without a message per 128-frame render quantum.
+    this._meterFrames += frames;
+    if (this._meterFrames >= this._meterInterval && this._slots.length > 0) {
+      this._meterFrames = 0;
+      const levels = this._slots.map((slot) => {
+        const peak = slot.peak;
+        slot.peak = 0;
+        return { id: slot.id, peak };
+      });
+      try {
+        this.port.postMessage({ type: 'levels', levels });
+      } catch {
+        // A closed context detaches the port; metering is non-essential audio.
       }
     }
 
