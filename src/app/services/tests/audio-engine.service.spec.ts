@@ -578,6 +578,26 @@ describe('AudioEngineService', () => {
     expect(src.stop).toHaveBeenCalled();
   });
 
+  it('gives an empty platter a velocity-gated scratch texture', () => {
+    const deck = service.getDeck('A');
+
+    service.beginScratchMonitor('A');
+
+    const voice = (service as any).scratchTextures.A;
+    expect(deck.scratchMonitor).toBe(true);
+    expect(voice).toBeDefined();
+    expect(voice.source.loop).toBe(true);
+
+    service.scratch('A', 0.5);
+    expect(voice.gain.gain.setTargetAtTime).toHaveBeenCalled();
+    expect(voice.filter.frequency.setTargetAtTime).toHaveBeenCalled();
+
+    service.endScratchMonitor('A');
+
+    expect((service as any).scratchTextures.A).toBeUndefined();
+    expect(voice.source.stop).toHaveBeenCalled();
+  });
+
   it('re-cues a parked deck inside a freshly engaged loop region', () => {
     const deck = service.getDeck('A');
     service.loadDeck('A', makeDeckBuffer());

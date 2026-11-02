@@ -719,6 +719,18 @@ export class AudioEngineService {
   private _sidechainWorkletLoaded = false;
   private deckA!: DeckChannel;
   private deckB!: DeckChannel;
+  /** Filtered noise voice used when an empty platter is scratched. */
+  private scratchTextures: Partial<
+    Record<
+      DeckId,
+      {
+        source: AudioBufferSourceNode;
+        filter: BiquadFilterNode;
+        gain: GainNode;
+      }
+    >
+  > = {};
+  private scratchNoiseBuffer: AudioBuffer | null = null;
   private crossfaderValue = 0.5;
   private crossfaderHamster = false;
   /** In-flight brake/spinback/transform intervals, keyed by deck id. */
@@ -1970,6 +1982,7 @@ export class AudioEngineService {
     }
 
     this.stopDeck(id);
+    this.stopScratchTexture(id);
     // Transport playback supersedes a platter monitor.
     deck.scratchMonitor = false;
     this.resume();
@@ -2174,9 +2187,15 @@ export class AudioEngineService {
    */
   beginScratchMonitor(id: DeckId) {
     const deck = this.getDeck(id);
-    if (!deck || !deck.buffer) return;
+    if (!deck) return;
+    void this.resume();
     deck.scratchMonitor = true;
-    this.startScratchMonitorSource(id);
+    // The contact transient is the tactile part of touching a record. It also
+    // gives an empty platter a voice; a loaded deck follows with the real
+    // groove monitor below.
+    this.playScratchContact(id);
+    if (deck.buffer) this.startScratchMonitorSource(id);
+    else this.startScratchTexture(id);
   }
 
   /** Stop the platter monitor, keeping the playhead where it was left. */
@@ -2184,6 +2203,7 @@ export class AudioEngineService {
     const deck = this.getDeck(id);
     if (!deck || !deck.scratchMonitor) return;
     this.stopDeckSources(deck);
+    this.stopScratchTexture(id);
     deck.scratchMonitor = false;
   }
 
@@ -2220,6 +2240,102 @@ export class AudioEngineService {
       } catch (e) {}
     });
     deck.sources = {};
+  }
+
+  /** Where a scratch texture enters the deck so it follows EQ and fader. */
+  private scratchTarget(deck: DeckChannel): AudioNode {
+    return (
+      deck.gains.other ??
+      deck.gains.instrumental ??
+      deck.gains.drums ??
+      deck.eqLow
+    );
+  }
+
+  private getScratchNoiseBuffer(): AudioBuffer {
+    if (this.scratchNoiseBuffer) return this.scratchNoiseBuffer;
+    const frames = Math.max(128, Math.round(this.ctx.sampleRate * 0.25));
+    const buffer = this.ctx.createBuffer(1, frames, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let filtered = 0;
+    for (let i = 0; i < data.length; i++) {
+      const white = Math.random() * 2 - 1;
+      filtered = filtered * 0.55 + white * 0.45;
+      data[i] = filtered;
+    }
+    this.scratchNoiseBuffer = buffer;
+    return buffer;
+  }
+
+  /** A short filtered tick when a hand lands on the vinyl. */
+  private playScratchContact(id: DeckId): void {
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const now = this.ctx.currentTime;
+    const source = this.ctx.createBufferSource();
+    source.buffer = this.getScratchNoiseBuffer();
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 2400;
+    filter.Q.value = 0.9;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.08, now + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.scratchTarget(deck));
+    source.start(now);
+    source.stop(now + 0.06);
+  }
+
+  /**
+   * Empty platters still need to answer the hand. A band-passed noise loop is
+   * gain-gated by scratch velocity, so a still finger is silent and a fast
+   * scrub opens up into a dry vinyl hiss.
+   */
+  private startScratchTexture(id: DeckId): void {
+    if (this.scratchTextures[id]) return;
+    const deck = this.getDeck(id);
+    if (!deck) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = this.getScratchNoiseBuffer();
+    source.loop = true;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1200;
+    filter.Q.value = 0.7;
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0;
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.scratchTarget(deck));
+    source.start();
+    this.scratchTextures[id] = { source, filter, gain };
+  }
+
+  private updateScratchTexture(id: DeckId, delta: number): void {
+    const voice = this.scratchTextures[id];
+    if (!voice) return;
+    const speed = Number.isFinite(delta)
+      ? Math.max(0, Math.min(1, Math.abs(delta)))
+      : 0;
+    const now = this.ctx.currentTime;
+    voice.gain.gain.setTargetAtTime(
+      speed < 0.01 ? 0 : 0.03 + speed * 0.12,
+      now,
+      0.015,
+    );
+    voice.filter.frequency.setTargetAtTime(900 + speed * 2400, now, 0.02);
+  }
+
+  private stopScratchTexture(id: DeckId): void {
+    const voice = this.scratchTextures[id];
+    if (!voice) return;
+    delete this.scratchTextures[id];
+    try {
+      voice.source.stop();
+    } catch (e) {}
   }
 
   /**
@@ -2329,6 +2445,8 @@ export class AudioEngineService {
     const deck = this.getDeck(id);
     if (!deck || !buffer) return;
     this.stopDeck(id);
+    this.stopScratchTexture(id);
+    deck.scratchMonitor = false;
     deck.buffer = buffer;
     deck.pauseOffset = 0;
     deck.rate = 1;
@@ -2405,6 +2523,10 @@ export class AudioEngineService {
   scratch(id: DeckId, delta: number) {
     const deck = this.getDeck(id);
     if (!deck) return;
+    if (!deck.buffer) {
+      this.updateScratchTexture(id, delta);
+      return;
+    }
     const speed = Number.isFinite(delta)
       ? Math.max(-2, Math.min(2, delta * 4))
       : 0;

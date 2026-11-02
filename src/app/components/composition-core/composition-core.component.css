@@ -978,6 +978,34 @@ input[type='range'] {
   color: #9fb0c9;
 }
 
+.audition-memory {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 10.5px;
+  color: #74859e;
+}
+
+.audition-memory strong {
+  color: #b8c7dc;
+  font-variant-numeric: tabular-nums;
+}
+
+.audition-memory.is-high {
+  color: #d6a94a;
+}
+
+.audition-memory.is-high strong {
+  color: #fde68a;
+}
+
+.audition-memory em {
+  font-style: normal;
+  font-weight: 700;
+  color: #fca5a5;
+}
+
 .audition-bar {
   height: 5px;
   border-radius: 999px;

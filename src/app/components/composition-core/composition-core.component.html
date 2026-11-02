@@ -311,6 +311,16 @@
             <span class="label">Audition</span>
             <span class="audition-note">{{ auditionNote() }}</span>
           </div>
+          @if (auditionMemory(); as memory) {
+            <div class="audition-memory" [class.is-high]="memory.exceedsBudget">
+              <span>Audition buffer</span>
+              <strong>~{{ memory.estimatedMb }} MB</strong>
+              <span>· {{ audition.renderChunkSeconds }}s slices</span>
+              @if (memory.exceedsBudget) {
+                <em>may exceed this device</em>
+              }
+            </div>
+          }
           <div
             class="audition-bar"
             [class.active]="audition.playing() || audition.rendering()"

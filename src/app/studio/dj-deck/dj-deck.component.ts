@@ -1297,6 +1297,8 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     // stopped: the monitor plays the groove under the hand, so the scratch is
     // audible while it is being performed (slip or not, playing or parked).
     this.engine.beginScratchMonitor(deck);
+    // A hand on the vinyl holds the groove still; only movement should speak.
+    this.engine.setDeckRate(deck, 0, false);
     // Catching a spinning record cancels the free-wheel of a previous flick.
     this.setPlatterSpin(deck, 0);
     this.haptics.preset("tick");
@@ -1467,11 +1469,12 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
     if (newPos < 0) newPos = 0;
     if (duration) newPos = Math.min(duration, newPos);
 
-    this.engine.seekDeck(deck, newPos);
-
     const SECONDS_PER_FRAME = 0.016;
     const velocity = (delta / SECONDS_PER_FRAME) * scrubSecondsPerRadian;
+    // Update the rate before re-cueing: the monitor's fresh source then starts
+    // at the scratch speed instead of the old transport rate.
     this.engine.setDeckRate(deck, velocity, false);
+    this.engine.seekDeck(deck, newPos);
     // The groove only speaks while the hand moves it: a stalled platter goes
     // quiet instead of running on at the speed of the last flick.
     this.armPlatterIdleTimer(deck);

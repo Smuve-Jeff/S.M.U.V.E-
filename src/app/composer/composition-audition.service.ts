@@ -59,6 +59,13 @@ export function formatRenderEta(seconds: number | null): string {
   return rest ? `~${minutes}m ${rest}s left` : `~${minutes}m left`;
 }
 
+/** The inline and pre-render memory picture for a stitched audition. */
+export interface AuditionMemoryEstimate {
+  estimatedMb: number;
+  budgetMb: number;
+  exceedsBudget: boolean;
+}
+
 /** A rough memory-pressure check before a long stitched audition. */
 export interface AuditionMemoryWarning {
   estimatedMb: number;
@@ -70,12 +77,12 @@ export interface AuditionMemoryWarning {
  * small fixed overhead. The browser has to hold all of them at the seam, so a
  * buffer that is fine on its own can still push a constrained phone over.
  */
-export function auditionMemoryWarning(
+export function auditionMemoryEstimate(
   durationSeconds: number,
   chunkSeconds: number,
   memoryGb: number | null,
   mobile: boolean,
-): AuditionMemoryWarning | null {
+): AuditionMemoryEstimate {
   const seconds = Math.max(2, durationSeconds);
   const chunk = Math.max(0.1, Math.min(seconds, chunkSeconds));
   const frames = Math.ceil(seconds * 44100);
@@ -94,7 +101,25 @@ export function auditionMemoryWarning(
         ? 2
         : 8;
   const budgetMb = Math.min(512, Math.max(128, Math.round(reported * 64)));
-  return estimatedMb > budgetMb ? { estimatedMb, budgetMb } : null;
+  return { estimatedMb, budgetMb, exceedsBudget: estimatedMb > budgetMb };
+}
+
+/** Returns a warning only when the estimate is beyond the device budget. */
+export function auditionMemoryWarning(
+  durationSeconds: number,
+  chunkSeconds: number,
+  memoryGb: number | null,
+  mobile: boolean,
+): AuditionMemoryWarning | null {
+  const estimate = auditionMemoryEstimate(
+    durationSeconds,
+    chunkSeconds,
+    memoryGb,
+    mobile,
+  );
+  return estimate.exceedsBudget
+    ? { estimatedMb: estimate.estimatedMb, budgetMb: estimate.budgetMb }
+    : null;
 }
 
 /**
@@ -324,6 +349,16 @@ export class CompositionAuditionService {
   renderEtaLabel(): string {
     if (!this.rendering() || this.renderSliceTotal() <= 1) return '';
     return formatRenderEta(this.renderEtaSeconds());
+  }
+
+  /** Peak memory the UI can show before the artist starts a render. */
+  memoryEstimateFor(durationSeconds: number): AuditionMemoryEstimate {
+    return auditionMemoryEstimate(
+      durationSeconds,
+      this.renderChunkSeconds ?? 120,
+      this.deviceSignals?.memoryGb ?? null,
+      this.deviceSignals?.mobile ?? false,
+    );
   }
 
   private warnAboutMemory(

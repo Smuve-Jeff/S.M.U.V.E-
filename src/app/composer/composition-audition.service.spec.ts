@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import {
   CompositionAuditionService,
   auditionChunkSecondsForDevice,
+  auditionMemoryEstimate,
   auditionMemoryWarning,
   formatRenderEta,
   planAuditionChunks,
@@ -41,6 +42,14 @@ describe('formatRenderEta', () => {
 });
 
 describe('auditionMemoryWarning', () => {
+  it('reports the full estimate and the device comparison inline', () => {
+    const estimate = auditionMemoryEstimate(600, 45, 2, true);
+    expect(estimate.estimatedMb).toBe(249);
+    expect(estimate.budgetMb).toBe(128);
+    expect(estimate.exceedsBudget).toBe(true);
+    expect(auditionMemoryEstimate(30, 120, 8, false).exceedsBudget).toBe(false);
+  });
+
   it('warns when a long phone audition needs more than the device budget', () => {
     const warning = auditionMemoryWarning(600, 45, 2, true);
     expect(warning).not.toBeNull();

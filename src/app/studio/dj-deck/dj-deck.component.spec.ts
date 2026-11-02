@@ -387,6 +387,8 @@ describe("DjDeckComponent", () => {
 
     expect(engine.pauseDeck).toHaveBeenCalledWith("A");
     expect(engine.beginScratchMonitor).toHaveBeenCalledWith("A");
+    // The monitor starts silent: a still finger must not let the groove run.
+    expect(engine.setDeckRate).toHaveBeenCalledWith("A", 0, false);
 
     component.onPlatterUp();
 

@@ -155,6 +155,13 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
     return `Audition the whole ${formatTrackDuration(composition.durationSeconds)} pass before loading it`;
   });
 
+  readonly auditionMemory = computed(() => {
+    const composition = this.core.current();
+    return composition
+      ? this.audition.memoryEstimateFor(composition.durationSeconds)
+      : null;
+  });
+
   readonly generateLabel = computed(() => {
     if (this.core.generating()) return 'Writing…';
     const option = this.components.find((entry) => entry.id === this.core.component());
