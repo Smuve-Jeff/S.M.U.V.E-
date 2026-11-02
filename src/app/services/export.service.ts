@@ -471,13 +471,12 @@ export class ExportService {
     const offline = new OfflineAudioContext(2, Math.ceil(totalSeconds * sampleRate), sampleRate);
     const master = offline.createGain();
     master.gain.value = this.engine.masterGain.gain.value;
-    if (options.onlyTrackIds) {
-      // A stem is pre-master material. Running each stem through the five-band
-      // bus would make a stem set that no longer sums to the mix.
-      master.connect(offline.destination);
-    } else {
-      connectOfflineMasterChain(offline, master, this.engine);
-    }
+    // A stem is pre-master material. Running each stem through the five-band
+    // bus would make a stem set that no longer sums to the mix.
+    const masterChain = options.onlyTrackIds
+      ? null
+      : connectOfflineMasterChain(offline, master, this.engine);
+    if (options.onlyTrackIds) master.connect(offline.destination);
     reportProgress(10);
 
     // ── Automation ──────────────────────────────────────────────────────
@@ -508,6 +507,54 @@ export class ExportService {
           (value) => Math.max(0, Math.min(1.5, value)),
         );
       }
+    }
+
+    if (masterChain) {
+      const scheduleMaster = (
+        parameter: string,
+        params: AudioParam[],
+        scale: (value: number) => number,
+      ): void => {
+        const lane = laneFor('master', parameter);
+        if (!lane) return;
+        for (const param of params) {
+          this.scheduleLaneCurve(
+            param,
+            lane,
+            totalSeconds,
+            timing.minStepSeconds,
+            scale,
+          );
+        }
+      };
+      scheduleMaster('makeup', [masterChain.makeup.gain], (value) =>
+        Math.pow(10, Math.max(-12, Math.min(12, value)) / 20),
+      );
+      scheduleMaster(
+        'compressorThreshold',
+        masterChain.compressors.map((comp) => comp.threshold),
+        (value) => Math.max(-60, Math.min(0, value)),
+      );
+      scheduleMaster(
+        'compressorRatio',
+        masterChain.compressors.map((comp) => comp.ratio),
+        (value) => Math.max(1, Math.min(20, value)),
+      );
+      scheduleMaster('limiterThreshold', [masterChain.limiter.threshold], (value) =>
+        Math.max(-6, Math.min(-0.01, value)),
+      );
+      scheduleMaster('filterHz', [masterChain.filter.frequency], (value) =>
+        Math.max(20, Math.min(20000, value)),
+      );
+      scheduleMaster('lowShelf', [masterChain.lowShelf.gain], (value) =>
+        Math.max(-18, Math.min(18, value)),
+      );
+      scheduleMaster('lowMid', [masterChain.lowMid.gain], (value) =>
+        Math.max(-18, Math.min(18, value)),
+      );
+      scheduleMaster('highShelf', [masterChain.highShelf.gain], (value) =>
+        Math.max(-18, Math.min(18, value)),
+      );
     }
 
     // ── Aux returns ─────────────────────────────────────────────────────

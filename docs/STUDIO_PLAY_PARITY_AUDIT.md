@@ -547,7 +547,7 @@ The gap is discovery and reach: comping lives in the vocal flow, not on every au
 - FL Mobile: automation clips in the playlist.
 
 **Gaps**
-- VCA fader moves, aux return trims, master volume and selected master worklet parameters now write lanes; per-band mastering internals remain outside the lane model.
+- VCA fader moves, aux return trims, master volume and selected master worklet parameters now write lanes; per-band mastering internals remain outside the lane model. The offline master chain schedules the selected master lanes.
 - No automation lane for tempo (same gap as §2).
 - Touch and latch write modes exist with adjustable, persisted write smoothing.
 

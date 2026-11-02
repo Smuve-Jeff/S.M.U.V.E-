@@ -1,5 +1,15 @@
 import type { AudioEngineService } from './audio-engine.service';
 
+export interface OfflineMasterChain {
+  makeup: GainNode;
+  lowShelf: BiquadFilterNode;
+  lowMid: BiquadFilterNode;
+  highShelf: BiquadFilterNode;
+  compressors: DynamicsCompressorNode[];
+  limiter: DynamicsCompressorNode;
+  filter: BiquadFilterNode;
+}
+
 /**
  * Splice the live master bus into an offline render.
  *
@@ -17,7 +27,7 @@ export function connectOfflineMasterChain(
   offline: OfflineAudioContext,
   input: AudioNode,
   engine: AudioEngineService,
-): void {
+): OfflineMasterChain | null {
   const ctx = offline as unknown as BaseAudioContext;
   if (
     typeof (ctx as any).createDynamicsCompressor !== 'function' ||
@@ -26,7 +36,7 @@ export function connectOfflineMasterChain(
   ) {
     // Older/partial test hosts still get a usable bounce rather than silence.
     input.connect(offline.destination);
-    return;
+    return null;
   }
 
   const finite = (value: unknown, fallback: number): number =>
@@ -56,11 +66,9 @@ export function connectOfflineMasterChain(
     12,
     0,
   );
-  if (Math.abs(makeupDb) > 0.001) {
-    const makeup = ctx.createGain();
-    makeup.gain.value = Math.pow(10, makeupDb / 20);
-    chain(makeup);
-  }
+  const makeup = ctx.createGain();
+  makeup.gain.value = Math.pow(10, makeupDb / 20);
+  chain(makeup);
 
   const tone: {
     lowShelfDb?: number;
@@ -83,6 +91,7 @@ export function connectOfflineMasterChain(
   lowMid.gain.value = clamp(tone.lowMidDb, -18, 18, 0);
   chain(lowMid);
 
+  const compressors: DynamicsCompressorNode[] = [];
   const bands: Array<{ id: number; threshold: number; ratio: number }> =
     typeof engine.getMasteringBands === 'function'
       ? engine.getMasteringBands()
@@ -122,6 +131,7 @@ export function connectOfflineMasterChain(
         bandTail = filter;
       }
       const comp = ctx.createDynamicsCompressor();
+      compressors.push(comp);
       comp.threshold.value = clamp(band?.threshold, -60, 0, -18);
       comp.ratio.value = clamp(band?.ratio, 1, 20, 4);
       comp.attack.value = 0.01;
@@ -136,6 +146,7 @@ export function connectOfflineMasterChain(
         ? engine.getCompressorSettings()
         : {};
     const comp = ctx.createDynamicsCompressor();
+    compressors.push(comp);
     comp.threshold.value = clamp(settings.threshold, -60, 0, -18);
     comp.ratio.value = clamp(settings.ratio, 1, 20, 4);
     comp.attack.value = 0.01;
@@ -188,12 +199,10 @@ export function connectOfflineMasterChain(
   chain(limiter);
 
   const masterFilterHz = finite(engine.masterEQ?.frequency?.value, 20000);
-  if (masterFilterHz < 19999) {
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = masterFilterHz;
-    chain(filter);
-  }
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = masterFilterHz;
+  chain(filter);
 
   const highShelf = ctx.createBiquadFilter();
   highShelf.type = 'highshelf';
@@ -202,5 +211,6 @@ export function connectOfflineMasterChain(
   chain(highShelf);
 
   tail.connect(offline.destination);
+  return { makeup, lowShelf, lowMid, highShelf, compressors, limiter, filter };
 }
 

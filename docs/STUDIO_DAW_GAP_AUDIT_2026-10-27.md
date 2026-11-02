@@ -55,7 +55,7 @@ spec or by the real service path, not merely that a control is rendered.
 touch/latch modes. Plugin-parameter curves also bounce: the offline renderer
 suspends at curve points and pushes each sampled value through the same FX
 plugin `setParam` path. Selected master compressor, limiter, filter, makeup and
-tone parameters are now lane targets; per-band mastering internals are not.
+tone parameters are now lane targets and are scheduled onto the offline master chain; per-band mastering internals are not.
 
 ## Channel rack / patterns / scenes
 

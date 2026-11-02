@@ -172,7 +172,7 @@ internals remain outside the lane model. VCA fader moves write lanes while the
 transport runs and automation is armed. Touch/latch write modes and adjustable
 smoothing are persisted. Plugin parameter curves are applied during offline
 export with `OfflineAudioContext` suspend points, so a bounce follows the same
-FX automation as playback.
+FX automation as playback. Selected master compressor, limiter, filter and tone lanes are also scheduled onto the offline master chain.
 
 ### Project integrity — **Ahead locally, Blocking in the cloud**
 
