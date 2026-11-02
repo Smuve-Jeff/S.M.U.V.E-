@@ -27,6 +27,7 @@ export function connectOfflineMasterChain(
   offline: OfflineAudioContext,
   input: AudioNode,
   engine: AudioEngineService,
+  forceBands = false,
 ): OfflineMasterChain | null {
   const ctx = offline as unknown as BaseAudioContext;
   if (
@@ -92,10 +93,27 @@ export function connectOfflineMasterChain(
   chain(lowMid);
 
   const compressors: DynamicsCompressorNode[] = [];
-  const bands: Array<{ id: number; threshold: number; ratio: number }> =
+  const existingBands =
     typeof engine.getMasteringBands === 'function'
       ? engine.getMasteringBands()
       : [];
+  let bands: Array<{ id: number; threshold: number; ratio: number }> =
+    Array.isArray(existingBands) ? existingBands : [];
+  if (forceBands && bands.length < 5) {
+    const settings: { threshold?: number; ratio?: number } =
+      typeof engine.getCompressorSettings === 'function'
+        ? engine.getCompressorSettings()
+        : {};
+    bands = Array.from({ length: 5 }, (_, index) => {
+      const id = index + 1;
+      const current = bands.find((band) => band.id === id);
+      return current ?? {
+        id,
+        threshold: settings.threshold ?? -18,
+        ratio: settings.ratio ?? 4,
+      };
+    });
+  }
   if (Array.isArray(bands) && bands.length > 0) {
     // Same LR4 split as the live fallback: each crossover is two cascaded
     // 12 dB/octave filters, so adjacent bands sum without a broad hole.

@@ -473,9 +473,15 @@ export class ExportService {
     master.gain.value = this.engine.masterGain.gain.value;
     // A stem is pre-master material. Running each stem through the five-band
     // bus would make a stem set that no longer sums to the mix.
+    const hasBandLanes = (this.automation?.lanes?.() ?? []).some(
+      (lane) =>
+        lane.enabled &&
+        lane.target.trackId === 'master' &&
+        /^band[1-5](Threshold|Ratio)$/.test(lane.target.parameter),
+    );
     const masterChain = options.onlyTrackIds
       ? null
-      : connectOfflineMasterChain(offline, master, this.engine);
+      : connectOfflineMasterChain(offline, master, this.engine, hasBandLanes);
     if (options.onlyTrackIds) master.connect(offline.destination);
     reportProgress(10);
 
@@ -555,6 +561,20 @@ export class ExportService {
       scheduleMaster('highShelf', [masterChain.highShelf.gain], (value) =>
         Math.max(-18, Math.min(18, value)),
       );
+      for (let band = 1; band <= 5; band += 1) {
+        const comp = masterChain.compressors[band - 1];
+        if (!comp) continue;
+        scheduleMaster(
+          `band${band}Threshold`,
+          [comp.threshold],
+          (value) => Math.max(-60, Math.min(0, value)),
+        );
+        scheduleMaster(
+          `band${band}Ratio`,
+          [comp.ratio],
+          (value) => Math.max(1, Math.min(20, value)),
+        );
+      }
     }
 
     // ── Aux returns ─────────────────────────────────────────────────────

@@ -4518,6 +4518,23 @@ export class AudioEngineService {
         this.setMasterToneEq({ lowMidDb: value });
       } else if (parameter === 'highShelf') {
         this.setMasterToneEq({ highShelfDb: value });
+      } else {
+        const bandMatch = /^band([1-5])(Threshold|Ratio)$/.exec(parameter);
+        if (bandMatch) {
+          const id = Number(bandMatch[1]);
+          const key = bandMatch[2] === 'Threshold' ? 'threshold' : 'ratio';
+          const existing = this.getMasteringBands();
+          const settings = this.getCompressorSettings();
+          const bands = Array.from({ length: 5 }, (_, index) => {
+            const bandId = index + 1;
+            const current = existing.find((band) => band.id === bandId);
+            return current
+              ? { ...current }
+              : { id: bandId, threshold: settings.threshold, ratio: settings.ratio };
+          });
+          bands[id - 1][key] = value;
+          this.setMasteringBands(bands);
+        }
       }
       return;
     }

@@ -83,6 +83,8 @@ describe('AutomationCurveEditorComponent', () => {
     component.setTarget({ target: { value: 'master' } } as unknown as Event);
     expect(component.parametersForTarget()).toContain('volume');
     expect(component.parametersForTarget()).toContain('compressorThreshold');
+    expect(component.parametersForTarget()).toContain('band1Threshold');
+    expect(component.parametersForTarget()).toContain('band5Ratio');
     component.addLane();
     expect(automation.lanes()[0].target.trackId).toBe('master');
 
