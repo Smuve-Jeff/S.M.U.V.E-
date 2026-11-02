@@ -442,19 +442,30 @@
                         {{ sectionTimelineSummary(tpl) }}
                       </span>
                     </div>
-                    <div class="sc-arrangement-timeline-track" aria-hidden="true">
-                      <span
+                    <div class="sc-arrangement-timeline-track">
+                      <button
                         *ngFor="let segment of sectionTimeline(tpl)"
+                        type="button"
                         class="sc-arrangement-timeline-span"
+                        [class.is-active]="sectionTimelineSegmentActive(tpl, segment)"
                         [style.background]="segment.color"
                         [style.flexGrow]="segment.bars"
-                      ></span>
+                        [attr.title]="sectionTimelineSegmentLabel(segment)"
+                        [attr.aria-label]="sectionTimelineAuditionLabel(segment)"
+                        [attr.aria-pressed]="sectionTimelineSegmentActive(tpl, segment)"
+                        (click)="auditionTimelineSegment(tpl, segment, $event)"
+                      ></button>
                     </div>
                     <div class="sc-arrangement-timeline-legend">
-                      <span
+                      <button
                         *ngFor="let segment of sectionTimeline(tpl)"
+                        type="button"
                         class="sc-arrangement-timeline-item"
+                        [class.is-active]="sectionTimelineSegmentActive(tpl, segment)"
                         [attr.title]="sectionTimelineSegmentLabel(segment)"
+                        [attr.aria-label]="sectionTimelineAuditionLabel(segment)"
+                        [attr.aria-pressed]="sectionTimelineSegmentActive(tpl, segment)"
+                        (click)="auditionTimelineSegment(tpl, segment, $event)"
                       >
                         <span
                           class="sc-arrangement-timeline-dot"
@@ -464,7 +475,7 @@
                         <span class="sc-arrangement-timeline-index">{{ segment.index + 1 }}</span>
                         <span class="sc-arrangement-timeline-name">{{ segment.name }}</span>
                         <span class="sc-arrangement-timeline-bars">{{ segment.bars }}b</span>
-                      </span>
+                      </button>
                     </div>
                   </div>
                   <div

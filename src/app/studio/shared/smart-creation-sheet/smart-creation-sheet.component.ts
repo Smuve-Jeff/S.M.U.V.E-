@@ -200,6 +200,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
     readonly TemplateSection[],
     SectionTimelineSegment[]
   >();
+  /** Auto lengths are read many times per frame; sections are immutable. */
+  private readonly sectionBarsCache = new WeakMap<
+    TemplateSection,
+    { template: ProjectTemplate; bars: number }
+  >();
   private selectedPatternTemplateId: string | null = null;
 
   @Output() closeSheet = new EventEmitter<void>();
@@ -1061,13 +1066,53 @@ export class SmartCreationSheetComponent implements OnDestroy {
     } · ${span}`;
   }
 
+  sectionTimelineAuditionLabel(segment: SectionTimelineSegment): string {
+    return `Audition ${segment.index + 1}. ${segment.name}, ${
+      segment.bars
+    } bar${segment.bars === 1 ? "" : "s"}`;
+  }
+
+  /** True while this timeline span's section is audible or held complete. */
+  sectionTimelineSegmentActive(
+    template: ProjectTemplate,
+    segment: SectionTimelineSegment,
+  ): boolean {
+    const section = this.sectionForTimelineSegment(template, segment);
+    return !!section && this.sectionPreviewActive(template, section);
+  }
+
+  /** Tap a timeline span or legend chip to audition that saved section. */
+  async auditionTimelineSegment(
+    template: ProjectTemplate,
+    segment: SectionTimelineSegment,
+    event?: Event,
+  ): Promise<void> {
+    event?.stopPropagation();
+    const section = this.sectionForTimelineSegment(template, segment);
+    if (!section) return;
+    await this.applySavedSection(template, section, event);
+  }
+
+  private sectionForTimelineSegment(
+    template: ProjectTemplate,
+    segment: SectionTimelineSegment,
+  ): TemplateSection | undefined {
+    return this.templateSections(template).find(
+      (section) => section.id === segment.id,
+    );
+  }
+
   /** Bounds for the arrangement-length stepper. */
   readonly minSectionBars = MIN_SECTION_BARS;
   readonly maxSectionBars = MAX_SECTION_BARS;
 
   /** Chosen arrangement length, or the length the saved patterns need. */
   sectionBars(template: ProjectTemplate, section: TemplateSection): number {
-    return templateSectionBars(template, section);
+    const cached = this.sectionBarsCache.get(section);
+    if (cached?.template === template) return cached.bars;
+    const bars = templateSectionBars(template, section);
+    this.sectionBarsCache.set(section, { template, bars });
+    return bars;
   }
 
   /** True until the artist sets an explicit length for this section. */
@@ -1616,7 +1661,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
     template: ProjectTemplate,
     section: TemplateSection,
   ): string | null {
-    return this.savedSectionSelections(template, section).length
+    // The audition score uses the same unfiltered row signature, so this id
+    // matches without rebuilding the breakdown map on every render.
+    return section.rows.length
       ? templateSectionPreviewId(template, section)
       : null;
   }

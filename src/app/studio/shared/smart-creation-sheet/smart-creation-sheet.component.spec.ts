@@ -1830,12 +1830,57 @@ describe("SmartCreationSheetComponent", () => {
     );
     expect(timeline).not.toBeNull();
     expect(timeline.getAttribute("aria-label")).toContain("1. Intro, 4 bars");
-    expect(
-      timeline.querySelectorAll(".sc-arrangement-timeline-span"),
-    ).toHaveLength(2);
+    const spans = timeline.querySelectorAll(
+      ".sc-arrangement-timeline-span",
+    );
+    expect(spans).toHaveLength(2);
+    expect((spans[0] as HTMLButtonElement).tagName).toBe("BUTTON");
+    expect(spans[0].getAttribute("aria-label")).toBe(
+      "Audition 1. Intro, 4 bars",
+    );
     expect(
       timeline.querySelectorAll(".sc-arrangement-timeline-item"),
     ).toHaveLength(2);
+  });
+
+  it("auditions a saved section from its timeline span", async () => {
+    const template = sectionTemplateFixture();
+    const intro = {
+      id: "sec-intro",
+      name: "Intro",
+      bars: 4,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const hook = {
+      id: "sec-hook",
+      name: "Hook",
+      rows: [{ trackIndex: 1, slotId: null }],
+    };
+    const withSections = { ...template, sections: [intro, hook] };
+    component.toggleTemplateDetails(withSections);
+    const segments = component.sectionTimeline(withSections);
+
+    await component.auditionTimelineSegment(withSections, segments[1]);
+
+    expect(mockCompositionAudition.startScore).toHaveBeenCalledTimes(1);
+    const [score, loop] = mockCompositionAudition.startScore.mock.calls[0];
+    expect(score.id).toBe(templateSectionPreviewId(withSections, hook));
+    expect(score.totalBars).toBe(1);
+    expect(loop).toBe(true);
+    expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
+
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(score.id);
+    expect(component.sectionTimelineSegmentActive(withSections, segments[1]))
+      .toBe(true);
+    expect(component.sectionTimelineSegmentActive(withSections, segments[0]))
+      .toBe(false);
+
+    await component.auditionTimelineSegment(withSections, segments[1]);
+    expect(mockCompositionAudition.stop).toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      'Stopped section “Hook”.',
+    );
   });
 
   it("holds a finished one-pass section at 100% for a moment", async () => {
