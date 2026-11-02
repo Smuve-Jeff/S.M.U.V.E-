@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import {
   CompositionAuditionService,
+  auditionChunkSecondsForDevice,
   planAuditionChunks,
   writeAuditionChunk,
   type AuditionChunkBuffer,
@@ -27,6 +28,52 @@ function fakeOutput(frames: number, channels = 2) {
     getChannelData: (channel: number) => data[channel],
   };
 }
+
+describe('auditionChunkSecondsForDevice', () => {
+  const device = (
+    overrides: Partial<{
+      cores: number;
+      memoryGb: number | null;
+      mobile: boolean;
+    }> = {},
+  ) => ({ cores: 8, memoryGb: 8, mobile: false, ...overrides });
+
+  it('shortens slices on low-memory phones', () => {
+    expect(
+      auditionChunkSecondsForDevice(device({ memoryGb: 2, mobile: true })),
+    ).toBe(45);
+    expect(
+      auditionChunkSecondsForDevice(device({ memoryGb: 4, mobile: true })),
+    ).toBe(60);
+  });
+
+  it('keeps 120-second slices on desktops with enough memory', () => {
+    expect(auditionChunkSecondsForDevice(device())).toBe(120);
+  });
+
+  it('uses 90-second slices on a high-memory phone', () => {
+    expect(
+      auditionChunkSecondsForDevice(device({ memoryGb: 8, mobile: true })),
+    ).toBe(90);
+  });
+
+  it('falls back to cores when the browser hides memory', () => {
+    expect(
+      auditionChunkSecondsForDevice(device({ memoryGb: null, cores: 4 })),
+    ).toBe(60);
+    expect(
+      auditionChunkSecondsForDevice(device({ memoryGb: null, cores: 6 })),
+    ).toBe(90);
+  });
+
+  it('is conservative on mobile when memory is unavailable', () => {
+    expect(
+      auditionChunkSecondsForDevice(
+        device({ memoryGb: null, mobile: true, cores: 8 }),
+      ),
+    ).toBe(60);
+  });
+});
 
 describe('planAuditionChunks', () => {
   it('splits a long score into two-minute slices with overlap tails', () => {

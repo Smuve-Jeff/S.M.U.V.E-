@@ -1,6 +1,10 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { NotificationService } from '../services/notification.service';
+import {
+  readStudioDeviceSignals,
+  type StudioDeviceSignals,
+} from '../services/studio-device-profile.service';
 import type { ComposerPart, Composition, DrumLane } from './composer.types';
 
 /** A score-shaped preview that does not need a full Composition record. */
@@ -43,6 +47,28 @@ export function planAuditionChunks(
       renderSeconds: isLast ? mainSeconds : mainSeconds + overlap,
     };
   });
+}
+
+/**
+ * Choose how much audio one offline render may cover. Smaller slices do not
+ * shrink the final buffer, but they shorten the longest wait before progress
+ * moves and before a cancel can stop the slice loop. Phones with little
+ * reported memory get the shortest slices; unknown memory is treated
+ * conservatively on mobile and neutrally on desktop.
+ */
+export function auditionChunkSecondsForDevice(
+  signals: Pick<StudioDeviceSignals, 'cores' | 'memoryGb' | 'mobile'>,
+): number {
+  if (signals.memoryGb !== null) {
+    if (signals.memoryGb <= 2) return 45;
+    if (signals.memoryGb <= 4) return 60;
+    if (signals.memoryGb < 8 || signals.mobile) return 90;
+    return 120;
+  }
+  if (signals.mobile) return 60;
+  if (signals.cores > 0 && signals.cores <= 4) return 60;
+  if (signals.cores > 0 && signals.cores <= 6) return 90;
+  return 120;
 }
 
 /** The slice of AudioBuffer the stitcher needs. */
@@ -130,8 +156,13 @@ export class CompositionAuditionService {
   private engine = inject(AudioEngineService);
   private notify = inject(NotificationService);
 
-  /** Bounded render slices keep long auditions from exhausting memory. */
-  readonly renderChunkSeconds = 120;
+  /**
+   * Bounded render slices keep long auditions from exhausting memory and let
+   * constrained phones reach progress updates and cancel checkpoints sooner.
+   */
+  readonly renderChunkSeconds = auditionChunkSecondsForDevice(
+    readStudioDeviceSignals(),
+  );
 
   /** Rendered tail crossfaded into the next slice. */
   readonly chunkOverlapSeconds = 1;
