@@ -254,12 +254,7 @@ non-zero guard.
 Covered by real work: `enhanced-touch-gesture.service.ts`,
 `studio/shared/platform-ux.css`, `tests/e2e/studio-touch-gestures.spec.ts`, the
 touch-oriented sound-pad grids, and the shipped 5-step onboarding tour (Master
-Plan C3). **Open:** the not-yet-covered ergonomics are the fine-motor surfaces —
-piano-roll note resize/velocity drag, arrangement clip trim/loop handles, and
-mixer fader precision on a 5" screen. These are CSS/`pointer`-level fixes, not
-architecture, and they are the cheapest competitor-visible win in the list
-(`touch-action`, larger hit targets, long-press context menus, haptic confirm on
-`haptic.service.ts`).
+Plan C3).**Partly closed 2 Nov 2026:** short piano-roll notes no longer lose their centre move zone inside the 20px touch resize band, and the arrangement trim/fade buttons get 44px coarse-pointer boxes instead of a 28px-wide target. Still open: velocity-bar precision on very short notes, a dedicated loop-handle touch pass, and on-device verification of the mixer's fine-fader mode on a 5" screen. These are CSS/`pointer`-level fixes, not architecture, and they are the cheapest competitor-visible win in the list (`touch-action`, larger hit targets, long-press context menus, haptic confirm on `haptic.service.ts`).
 
 ## 7. Instrument / plugin sound quality — **PARTIAL**
 

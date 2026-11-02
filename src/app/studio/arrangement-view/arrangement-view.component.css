@@ -1741,6 +1741,15 @@
     position: relative;
   }
 
+  /* The trim/fade pair is only two characters wide. Their vertical tap band
+     already meets the 44px floor, but the visible button stays 28px wide;
+     give these destructive edge edits a full finger-sized box too. */
+  .av-trim-btn,
+  .av-fade-btn {
+    min-width: 44px;
+    padding-inline: 10px;
+  }
+
   .mini-btn::after,
   .m-btn::after {
     content: '';

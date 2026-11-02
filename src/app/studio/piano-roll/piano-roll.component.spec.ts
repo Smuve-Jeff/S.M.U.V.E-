@@ -645,6 +645,27 @@ describe("PianoRollComponent", () => {
     component.onPointerUp({ pointerType: "mouse" } as PointerEvent);
   });
 
+  it("keeps a usable move zone on short notes at the touch resize slop", () => {
+    const note = {
+      id: "short-note",
+      midi: 60,
+      step: 0,
+      length: 1,
+      velocity: 0.8,
+    } as any;
+    component.selectedNoteIds.set(new Set([note.id]));
+    const width = component.cellWidth();
+
+    // Centre press moves; the right-edge band still resizes.
+    expect(component.isNoteResizeEdge(note, width / 2, 20)).toBe(false);
+    expect(component.isNoteResizeEdge(note, width - 4, 20)).toBe(true);
+
+    // A wide note keeps the full finger-sized edge band.
+    expect(
+      component.isNoteResizeEdge({ ...note, length: 4 }, 4 * width - 12, 20),
+    ).toBe(true);
+  });
+
   it("drag/resize touch gestures are owned by the touch path, not pointermove", () => {
     mockMusicManager.tracks.update((t) => [
       {

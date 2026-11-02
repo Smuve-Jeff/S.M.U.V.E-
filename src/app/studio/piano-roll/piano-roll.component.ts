@@ -255,11 +255,17 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
    * True when an x-offset (px) lands within the resize slop of a note's
    * right edge. Only selected notes expose the edge, so a plain click on an
    * unselected note still selects/moves instead of resizing.
+   *
+   * The touch slop is capped to a share of the note width. A flat 20px band
+   * made every one-step note at normal zoom entirely resize zone, so a phone
+   * user could no longer pick the note up and move it; short notes keep a
+   * centre move target while still exposing their right edge.
    */
   isNoteResizeEdge(note: TrackNote, offsetX: number, px = 8): boolean {
     if (!this.selectedNoteIds().has(note.id)) return false;
     const width = Math.max(0.125, note.length) * this.cellWidth();
-    return width - offsetX <= px && offsetX <= width + 4;
+    const edge = Math.min(px, Math.max(2, width * 0.45));
+    return width - offsetX <= edge && offsetX <= width + 4;
   }
 
   onNoteResizePointerDown(event: PointerEvent, note: TrackNote): void {
