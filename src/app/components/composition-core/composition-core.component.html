@@ -1,0 +1,446 @@
+<section class="core">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">S.M.U.V.E. · Composition Core</p>
+      <h1>Original music, on demand.</h1>
+      <p class="lede">
+        Complete songs or a single step — kick, bassline, melody, chord cycle, loop,
+        transition. Every pass is written from your genre, your tempo zone and your
+        declared sound. Nothing here is a preset with the serial numbers filed off.
+      </p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-value">{{ core.variantsPerGenre }}</span>
+        <span class="stat-label">variants per genre, on demand</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ core.genreOptions().length }}</span>
+        <span class="stat-label">genres inside your profile lane</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ core.savedLibrary().length }}</span>
+        <span class="stat-label">saved in your library</span>
+      </div>
+    </div>
+  </header>
+
+  @if (!uplink.gate().ready) {
+    <div class="gate">
+      <div class="gate-head">
+        <span class="lock">🔒</span>
+        <div>
+          <h2>Artist Profile uplink required</h2>
+          <p>
+            S.M.U.V.E. composes for a specific artist, not for everyone. The
+            interactive engine unlocks only when your profile interview is
+            committed and there is something real to read. This is the feature
+            that makes the output yours.
+          </p>
+        </div>
+      </div>
+      <ul class="blockers">
+        @for (blocker of uplink.gate().blockers; track blocker.id) {
+          <li>
+            <div>
+              <strong>{{ blocker.label }}</strong>
+              <p>{{ blocker.detail }}</p>
+            </div>
+            <a class="btn btn-ghost" [routerLink]="blocker.fixRoute">{{ blocker.fixLabel }}</a>
+          </li>
+        }
+      </ul>
+      <div class="gate-foot">
+        <a class="btn btn-primary" routerLink="/profile">Open artist profile</a>
+        <a class="btn btn-ghost" routerLink="/adaptive-profile">See what S.M.U.V.E. reads</a>
+      </div>
+    </div>
+  } @else {
+    <div class="uplink-bar">
+      <div class="uplink-identity">
+        <span class="dot"></span>
+        <span>
+          Uplink established · <strong>{{ uplink.gate().personalization.artistName }}</strong>
+          · {{ uplink.gate().genreLabel }}
+        </span>
+      </div>
+      <div class="uplink-notes">
+        @if (uplink.gate().personalization.tempoHint; as tempo) {
+          <span class="chip">tempo zone {{ tempo[0] }}–{{ tempo[1] }} BPM</span>
+        }
+        @if (uplink.gate().personalization.vocalRange) {
+          <span class="chip">{{ uplink.gate().personalization.vocalRange }}</span>
+        }
+        @if (uplink.gate().personalization.experience) {
+          <span class="chip">{{ uplink.gate().personalization.experience }}</span>
+        }
+      </div>
+    </div>
+
+    <div class="console">
+      <div class="console-block genre-block">
+        <label class="label" for="genre-select">Genre lock — generation follows this</label>
+        <select
+          id="genre-select"
+          class="select"
+          [value]="core.selectedGenre()?.id ?? ''"
+          (change)="selectGenre($event)"
+        >
+          @for (genre of core.genreOptions(); track genre.id) {
+            <option [value]="genre.id">
+              {{ genre.label }} · {{ genre.bpm[0] }}–{{ genre.bpm[1] }} BPM{{ genreIsOutOfProfile(genre) ? ' · expansion' : '' }}
+            </option>
+          }
+        </select>
+        @if (core.selectedGenre(); as genre) {
+          <p class="hint">
+            {{ genre.tagline }}
+            <span class="muted"> · {{ genreTempoLabel() }} · swing {{ (genre.swing * 100) | number: '1.0-0' }}%</span>
+          </p>
+          @if (!core.genreIsDeclared()) {
+            <p class="warn">
+              This is an expansion pick inside your genre family — your profile declares
+              {{ uplink.gate().genreLabel }}. Generation still adapts, but it is outside the
+              lane you declared.
+            </p>
+          }
+        }
+      </div>
+
+      <div class="console-block step-block">
+        <span class="label">Where do you need S.M.U.V.E.?</span>
+        <div class="step-grid">
+          @for (option of components; track option.id) {
+            <button
+              type="button"
+              class="step"
+              [class.active]="core.component() === option.id"
+              [title]="option.description"
+              (click)="setComponent(option.id)"
+            >
+              <span class="step-icon material-symbols-outlined">{{ option.icon }}</span>
+              <span>{{ option.shortLabel }}</span>
+            </button>
+          }
+        </div>
+        <p class="hint">{{ componentDescription(core.component()) }}</p>
+      </div>
+
+      <div class="console-block dials">
+        <div class="dial">
+          <div class="dial-head">
+            <span class="label">Complexity</span>
+            <span class="dial-value">{{ intensityPercent('complexity') }}%</span>
+          </div>
+          <input
+            type="range" min="0" max="100" step="1"
+            [value]="intensityPercent('complexity')"
+            (input)="selectIntensity('complexity', $event)"
+          />
+          <p class="hint">How much counter-line, arp and rhythmic detail gets written.</p>
+        </div>
+        <div class="dial">
+          <div class="dial-head">
+            <span class="label">Energy</span>
+            <span class="dial-value">{{ intensityPercent('energy') }}%</span>
+          </div>
+          <input
+            type="range" min="0" max="100" step="1"
+            [value]="intensityPercent('energy')"
+            (input)="selectIntensity('energy', $event)"
+          />
+          <p class="hint">How hard the arrangement pushes in hooks, fills and dynamics.</p>
+        </div>
+        <div class="dial">
+          <div class="dial-head">
+            <span class="label">Darkness</span>
+            <span class="dial-value">{{ intensityPercent('darkness') }}%</span>
+          </div>
+          <input
+            type="range" min="0" max="100" step="1"
+            [value]="intensityPercent('darkness')"
+            (input)="selectIntensity('darkness', $event)"
+          />
+          <p class="hint">Mode choice, register and harmonic weight.</p>
+        </div>
+      </div>
+
+      <div class="console-block generate-block">
+        <div class="generate-row">
+          <label class="mini-field">
+            <span>BPM override</span>
+            <input
+              type="number" min="40" max="220" placeholder="auto"
+              [value]="core.bpmOverride() ?? ''"
+              (change)="setBpm($event)"
+            />
+          </label>
+          <button type="button" class="toggle" [class.on]="core.lockKey()" (click)="toggleKeyLock()">
+            {{ core.lockKey() ? 'Key locked' : 'Key free' }}
+          </button>
+          <button type="button" class="btn btn-primary" [disabled]="!core.canGenerate()" (click)="generate()">
+            {{ generateLabel() }}
+          </button>
+        </div>
+        @if (core.error()) {
+          <p class="warn">{{ core.error() }}</p>
+        }
+        <p class="hint">
+          Seed-based and reproducible: the same brief always returns the same score.
+          Change one dial and it is a different record.
+        </p>
+      </div>
+    </div>
+
+    <section class="library" [class.collapsed]="!showLibrary()">
+      <div class="section-head">
+        <div>
+          <h2>Catalogue · {{ core.selectedGenre()?.label }}</h2>
+          <p class="muted">
+            {{ filteredCatalog().length }} ready variations. Every card is a different
+            key, tempo and groove pulled from the genre's rule set — not a remix of one loop.
+          </p>
+        </div>
+        <div class="section-actions">
+          <input
+            class="search" type="search" placeholder="Search titles, keys, moods…"
+            [value]="libraryQuery()" (input)="setLibraryQuery($event)"
+          />
+          <button type="button" class="btn btn-ghost" (click)="toggleLibrary()">
+            {{ showLibrary() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+      </div>
+      @if (showLibrary()) {
+        <div class="catalog-grid">
+          @for (entry of filteredCatalog(); track entry.id) {
+            <button type="button" class="catalog-card" (click)="generateFromEntry(entry, $event)">
+              <div class="catalog-top">
+                <span class="catalog-title">{{ entry.title }}</span>
+                <span class="mood">{{ entry.mood }}</span>
+              </div>
+              <div class="catalog-meta">
+                <span>{{ entry.bpm }} BPM</span>
+                <span>{{ entry.keyLabel }}</span>
+                <span>{{ formatDuration(entry.durationSeconds) }}</span>
+              </div>
+              <div class="catalog-hook">{{ entry.hook }}</div>
+              <span class="catalog-cta">Write this one →</span>
+            </button>
+          } @empty {
+            <p class="empty">No catalogue variation matches that search.</p>
+          }
+        </div>
+        <button type="button" class="btn btn-ghost full" (click)="generate()">
+          None of these — generate a brand new original
+        </button>
+      }
+    </section>
+
+    @if (core.current(); as composition) {
+      <section class="result">
+        <div class="result-head">
+          <div>
+            <p class="eyebrow">{{ composition.componentLabel }} · {{ composition.arrangementName }}</p>
+            <h2>{{ composition.title }}</h2>
+            <div class="meta-row">
+              <span class="chip strong">{{ composition.genreLabel }}</span>
+              <span class="chip">{{ composition.bpm }} BPM</span>
+              <span class="chip">{{ composition.keyLabel }}</span>
+              <span class="chip">{{ composition.grooveName }}</span>
+              <span class="chip">{{ composition.totalBars }} bars</span>
+              <span class="chip">{{ formatDuration(composition.durationSeconds) }}</span>
+              <span class="chip">{{ composition.mood }}</span>
+              <span class="chip">{{ totalEvents() }} events</span>
+            </div>
+          </div>
+          <div class="result-actions">
+            <button
+              type="button"
+              class="btn btn-audition"
+              [disabled]="audition.rendering()"
+              (click)="toggleAudition()"
+            >
+              {{ auditionLabel() }}
+            </button>
+            <button type="button" class="btn btn-primary" (click)="sendToStudio()">Load into Studio</button>
+            <button type="button" class="btn btn-ghost" (click)="save()">Save</button>
+            <button type="button" class="btn btn-ghost" (click)="copyBlueprint()">
+              {{ copied() ? 'Copied' : 'Copy blueprint' }}
+            </button>
+          </div>
+        </div>
+
+        <p class="persona">{{ composition.personaLine }}</p>
+
+        <div class="audition-panel" [class.live]="audition.playing()">
+          <div class="audition-head">
+            <span class="label">Audition</span>
+            <span class="audition-note">{{ auditionNote() }}</span>
+          </div>
+          <div class="audition-bar" [class.active]="audition.playing()">
+            <span class="audition-fill" [style.width.%]="audition.progress() * 100"></span>
+          </div>
+          @if (audition.error()) {
+            <p class="warn">{{ audition.error() }}</p>
+          }
+        </div>
+
+        <div class="variation-row">
+          <span class="label">Evolve it</span>
+          <button type="button" class="btn btn-ghost" (click)="regenerate('variation')">New variation</button>
+          <button type="button" class="btn btn-ghost" (click)="regenerate('evolve')">Evolve</button>
+          <button type="button" class="btn btn-ghost" (click)="regenerate('reharmonize')">Reharmonize</button>
+          <button type="button" class="btn btn-ghost" (click)="regenerate('intensify')">Intensify</button>
+          <button type="button" class="btn btn-ghost" (click)="regenerate('simplify')">Simplify</button>
+          <span class="divider"></span>
+          <button type="button" class="btn btn-ghost" (click)="generateStep('bassline')">Just the bassline</button>
+          <button type="button" class="btn btn-ghost" (click)="generateStep('melody')">Just the melody</button>
+          <button type="button" class="btn btn-ghost" (click)="generateStep('drums')">Just the drums</button>
+          <button type="button" class="btn btn-ghost" (click)="generateStep('chords')">Just the chords</button>
+          <button type="button" class="btn btn-ghost" (click)="generateStep('kick')">Just the kick</button>
+          <button type="button" class="btn btn-ghost" (click)="generateStep('transition')">Just a transition</button>
+        </div>
+
+        <div class="timeline">
+          @for (section of composition.sections; track section.id) {
+            <div
+              class="timeline-block"
+              [style.flex-grow]="section.bars"
+              [class.hook]="section.role === 'hook' || section.role === 'drop'"
+              [title]="section.development"
+            >
+              <span class="timeline-name">{{ section.label }}</span>
+              <span class="timeline-bars">{{ section.bars }} bars · E{{ (section.energy * 10) | number: '1.0-0' }}</span>
+              <span class="timeline-layers">{{ section.layers.join(' · ') }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="parts">
+          @for (preview of previews(); track preview.id) {
+            <article class="part">
+              <div class="part-head">
+                <div>
+                  <h3>{{ preview.part.name }}</h3>
+                  <p class="muted">
+                    {{ preview.part.instrument }} · {{ preview.part.range }} ·
+                    {{ preview.part.notes.length + preview.part.hits.length }} events
+                  </p>
+                </div>
+                @if (preview.part.reference) {
+                  <span class="chip">reference</span>
+                }
+              </div>
+              @if (preview.kind !== 'empty') {
+                <div class="grid" [class.drum-grid]="preview.kind === 'drums'">
+                  @for (lane of preview.lanes; track lane.label) {
+                    <div class="grid-row">
+                      <span class="grid-label">{{ lane.label }}</span>
+                      <div class="grid-cells">
+                        @for (cell of lane.cells; track $index) {
+                          <span
+                            class="cell"
+                            [class.on]="cell.on"
+                            [style.opacity]="cell.on ? 0.35 + cell.velocity * 0.65 : 0.08"
+                          ></span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+                <p class="part-mix">{{ preview.part.mixNote }}</p>
+              } @else {
+                <p class="empty">This part is silent in this pass.</p>
+              }
+            </article>
+          }
+        </div>
+
+        <div class="insights">
+          <article class="insight">
+            <h3>Why it works</h3>
+            <ul>
+              @for (line of composition.rationale; track $index) {
+                <li>{{ line }}</li>
+              }
+            </ul>
+          </article>
+          <article class="insight">
+            <h3>Theory readout</h3>
+            <ul>
+              @for (line of composition.theory; track $index) {
+                <li>{{ line }}</li>
+              }
+            </ul>
+          </article>
+          <article class="insight">
+            <h3>Production notes</h3>
+            <ul>
+              @for (line of composition.productionNotes; track $index) {
+                <li>{{ line }}</li>
+              }
+            </ul>
+          </article>
+          <article class="insight">
+            <h3>Market read</h3>
+            <p>{{ composition.marketNote }}</p>
+            <p class="muted">{{ composition.vocalDirection }}</p>
+            <div class="tag-row">
+              @for (tag of composition.tags; track tag) {
+                <span class="chip">{{ tag }}</span>
+              }
+            </div>
+          </article>
+          <article class="insight wide">
+            <h3>Study this to play it</h3>
+            <ul>
+              @for (line of composition.studyNotes; track $index) {
+                <li>{{ line }}</li>
+              }
+            </ul>
+            <a class="btn btn-ghost" routerLink="/academy">Open the Music Academy</a>
+          </article>
+          <article class="insight wide">
+            <h3>Delivery</h3>
+            <p>{{ composition.deliveryNote }}</p>
+            <a class="btn btn-ghost" routerLink="/produce">Compare with AI Produce</a>
+          </article>
+        </div>
+      </section>
+    } @else {
+      <section class="placeholder">
+        <h2>Nothing composed yet</h2>
+        <p>
+          Pick the step you need and write it. S.M.U.V.E. will return a scored
+          arrangement with sections, parts, theory and the production reasoning —
+          ready to load into the Studio.
+        </p>
+      </section>
+    }
+
+    <section class="saved">
+      <div class="section-head">
+        <div>
+          <h2>Your composition library</h2>
+          <p class="muted">Saved seeds — recompose exactly, anytime.</p>
+        </div>
+      </div>
+      @if (core.savedLibrary().length) {
+        <div class="saved-list">
+          @for (saved of core.savedLibrary(); track saved.id) {
+            <div class="saved-item">
+              <button type="button" class="saved-main" (click)="loadSaved(saved)">
+                <strong>{{ saved.title }}</strong>
+                <span>{{ saved.bpm }} BPM · {{ saved.keyLabel }} · {{ saved.component }}</span>
+              </button>
+              <button type="button" class="remove" (click)="removeSaved(saved, $event)" title="Remove">✕</button>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="empty">Nothing saved yet. Save a composition you want to keep.</p>
+      }
+    </section>
+  }
+</section>

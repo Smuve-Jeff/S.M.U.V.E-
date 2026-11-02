@@ -360,6 +360,26 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
     related: ['studio', 'release-pipeline', 'strategy'],
   },
   {
+    mode: 'composer',
+    routePath: '/composer',
+    label: 'Composition Core',
+    description:
+      'Genre-locked original songs, beats and single musical steps, built from your artist profile.',
+    icon: 'graphic_eq',
+    category: 'CREATIVE',
+    related: ['produce', 'studio', 'academy'],
+  },
+  {
+    mode: 'academy',
+    routePath: '/academy',
+    label: 'Music Academy',
+    description:
+      'Learn any instrument or train your voice with guided lessons, drills and studio practice.',
+    icon: 'school',
+    category: 'ARTIST',
+    related: ['practice', 'composer', 'vocal-suite'],
+  },
+  {
     mode: 'timeline',
     routePath: '/timeline',
     label: 'Session Timeline',

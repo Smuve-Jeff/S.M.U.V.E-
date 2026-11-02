@@ -1,0 +1,228 @@
+<section class="academy">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">S.M.U.V.E. · Music Academy</p>
+      <h1>Learn the instrument. Then own the record.</h1>
+      <p class="lede">
+        Every instrument, from absolute beginner to studio-ready, plus a vocal
+        coach that trains pitch, tone, strength and tuning as separate skills.
+        S.M.U.V.E. teaches the technique, gives you the drill, tells you what
+        “good” sounds like, and opens the Studio on the right instrument.
+      </p>
+      <div class="hero-chips">
+        <span class="chip">Suggested start: {{ academy.recommendedLevel() }}</span>
+        @if (academy.declaredGenre()) {
+          <span class="chip">Genre context: {{ academy.declaredGenre() }}</span>
+        }
+        <span class="chip">{{ academy.programs.length }} programs</span>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="value">{{ academy.overallPercent() }}%</span>
+        <span class="key">overall progress</span>
+      </div>
+      <div class="stat">
+        <span class="value">{{ academy.completedLessons() }}</span>
+        <span class="key">lessons completed</span>
+      </div>
+      <div class="stat">
+        <span class="value">{{ academy.selectedProgramProgress().percent }}%</span>
+        <span class="key">{{ academy.selectedProgram().label }}</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="browser">
+    <div class="browser-head">
+      <h2>Choose your instrument</h2>
+      <input
+        type="search"
+        class="search"
+        placeholder="Search instruments or skills…"
+        [value]="academy.search()"
+        (input)="setSearch($event)"
+      />
+    </div>
+    <div class="chips">
+      @for (chip of familyChips(); track chip.id) {
+        <button
+          type="button"
+          class="chip-btn"
+          [class.active]="academy.familyFilter() === chip.id"
+          (click)="setFamily(chip.id)"
+        >
+          {{ chip.label }}
+        </button>
+      }
+    </div>
+    <div class="program-grid">
+      @for (program of academy.filteredPrograms(); track program.id) {
+        <button
+          type="button"
+          class="program"
+          [class.active]="academy.selectedProgram().id === program.id"
+          (click)="selectProgram(program.id)"
+        >
+          <span class="program-emoji">{{ program.emoji }}</span>
+          <span class="program-body">
+            <strong>{{ program.label }}</strong>
+            <span class="program-family">{{ program.familyLabel }}</span>
+            <span class="program-bar">
+              <span class="program-fill" [style.width.%]="progressPercent(program.id)"></span>
+            </span>
+            <span class="program-meta">{{ progressPercent(program.id) }}% · {{ program.stages.length }} stages</span>
+          </span>
+        </button>
+      } @empty {
+        <p class="empty">No program matches that search.</p>
+      }
+    </div>
+  </section>
+
+  @if (academy.selectedProgram(); as program) {
+    <section class="detail">
+      <div class="detail-head">
+        <div class="detail-title">
+          <span class="detail-emoji">{{ program.emoji }}</span>
+          <div>
+            <p class="eyebrow">{{ program.familyLabel }}</p>
+            <h2>{{ program.label }}</h2>
+            <p class="summary">{{ program.summary }}</p>
+          </div>
+        </div>
+        <div class="detail-actions">
+          <button type="button" class="btn btn-primary" (click)="practice()">
+            Open in Studio
+          </button>
+          <button type="button" class="btn btn-ghost" (click)="reset()">Reset progress</button>
+        </div>
+      </div>
+
+      <div class="detail-meta">
+        <div><span class="meta-key">Tuning / setup</span><span class="meta-value">{{ program.tuning }}</span></div>
+        <div><span class="meta-key">You need</span><span class="meta-value">{{ program.rig }}</span></div>
+        <div><span class="meta-key">Core technique</span><span class="meta-value">{{ program.technique }}</span></div>
+      </div>
+
+      <div class="skill-grid">
+        <article>
+          <h3>Skills you are building</h3>
+          <ul>
+            @for (skill of program.skills; track skill) {
+              <li>{{ skill }}</li>
+            }
+          </ul>
+        </article>
+        <article>
+          <h3>Typical faults to fix</h3>
+          <ul>
+            @for (fault of program.faults; track fault) {
+              <li>{{ fault }}</li>
+            }
+          </ul>
+        </article>
+        <article>
+          <h3>Repertoire ladder</h3>
+          <ul>
+            @for (piece of program.repertoire; track piece) {
+              <li>{{ piece }}</li>
+            }
+          </ul>
+        </article>
+      </div>
+
+      <div class="stage-list">
+        @for (stage of program.stages; track stage.id) {
+          <article class="stage">
+            <div class="stage-head">
+              <div>
+                <span class="level" [attr.data-level]="stage.level">{{ stage.level }}</span>
+                <h3>{{ stage.label }}</h3>
+                <p>{{ stage.summary }}</p>
+              </div>
+              <span class="stage-count">{{ completedInStage(stage.id) }} / {{ stageLessons(stage.id) }}</span>
+            </div>
+            <ol class="lessons">
+              @for (lesson of stage.lessons; track lesson.id) {
+                <li class="lesson" [class.done]="academy.isComplete(lesson)">
+                  <button
+                    type="button"
+                    class="check"
+                    [attr.aria-pressed]="academy.isComplete(lesson)"
+                    [title]="academy.isComplete(lesson) ? 'Mark as not done' : 'Mark complete'"
+                    (click)="toggleLesson(lesson)"
+                  >
+                    {{ academy.isComplete(lesson) ? '✓' : '' }}
+                  </button>
+                  <div class="lesson-body">
+                    <div class="lesson-title">
+                      <h4>{{ lesson.title }}</h4>
+                      <span class="lesson-time">
+                        {{ lesson.minutes }} min{{ lesson.tempo ? ' · ' + lesson.tempo + ' BPM' : '' }}
+                      </span>
+                    </div>
+                    <p class="focus">{{ lesson.focus }}</p>
+                    <p class="drill"><strong>Drill:</strong> {{ lesson.drill }}</p>
+                    <p class="criteria"><strong>Pass when:</strong> {{ lesson.criteria }}</p>
+                    <p class="studio"><strong>In the Studio:</strong> {{ lesson.studioStep }}</p>
+                  </div>
+                </li>
+              }
+            </ol>
+          </article>
+        }
+      </div>
+
+      @if (academy.isVocalProgram()) {
+        <section class="vocal">
+          <div class="vocal-head">
+            <h2>Vocal coaching desk</h2>
+            <p>
+              Tuning is the last step, never the first. Train the performance, then
+              use the chain below — every plugin here is built into S.M.U.V.E.
+            </p>
+          </div>
+          <div class="preset-grid">
+            @for (preset of academy.vocalPresets; track preset.id) {
+              <article class="preset">
+                <h3>{{ preset.label }}</h3>
+                <p class="goal">{{ preset.goal }}</p>
+                <p class="autotune"><strong>Auto-Tune:</strong> {{ preset.autotune }}</p>
+                <ol class="chain">
+                  @for (step of preset.chain; track step.pluginName) {
+                    <li>
+                      <span class="plugin">{{ step.pluginName }}</span>
+                      <span class="setting">{{ step.setting }}</span>
+                      <span class="why">{{ step.why }}</span>
+                    </li>
+                  }
+                </ol>
+                <button type="button" class="btn btn-ghost preset-cta" (click)="applyChain(preset)">
+                  Insert this chain on a vocal track
+                </button>
+              </article>
+            }
+          </div>
+          <ul class="coach-notes">
+            @for (note of academy.vocalCoachNotes; track note) {
+              <li>{{ note }}</li>
+            }
+          </ul>
+          <a class="btn btn-ghost" routerLink="/vocal-suite">Open the Vocal Suite</a>
+        </section>
+      }
+    </section>
+  }
+
+  <footer class="foot">
+    <div>
+      <h3>Need something to play along to?</h3>
+      <p>
+        Generate a composition in your genre, load it into the Studio, then use the
+        lesson drills on a real part instead of a metronome.
+      </p>
+    </div>
+    <a class="btn btn-primary" routerLink="/composer">Open Composition Core</a>
+  </footer>
+</section>

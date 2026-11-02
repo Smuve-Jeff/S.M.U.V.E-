@@ -143,6 +143,20 @@ const protectedRoutes: Routes = [
       ),
   },
   {
+    path: 'composer',
+    loadComponent: () =>
+      import('./components/composition-core/composition-core.component').then(
+        (m) => m.CompositionCoreComponent
+      ),
+  },
+  {
+    path: 'academy',
+    loadComponent: () =>
+      import('./components/music-academy/music-academy.component').then(
+        (m) => m.MusicAcademyComponent
+      ),
+  },
+  {
     path: 'command-center',
     loadComponent: () =>
       import('./components/command-center/command-center.component').then(

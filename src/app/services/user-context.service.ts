@@ -29,6 +29,8 @@ export type MainViewMode =
   | 'projects'
   | 'release-pipeline'
   | 'produce'
+  | 'composer'
+  | 'academy'
   | 'lyric-editor'
   | 'remix-arena'
   | 'image-video-lab'
