@@ -474,6 +474,9 @@
               </button>
             </div>
             <p class="compare-delta">{{ pair.delta.join(' · ') }}</p>
+            <p class="compare-hint">
+              Audition either side without restoring it — the pass on the desk stays put.
+            </p>
             <div class="compare-grid">
               @for (card of [pair.a, pair.b]; track card.id; let i = $index) {
                 <div class="compare-card">
@@ -504,6 +507,16 @@
                       <span>Complexity {{ card.complexity }}%</span>
                       <div class="meter-track"><i [style.width.%]="card.complexity"></i></div>
                     </div>
+                  </div>
+                  <div class="compare-actions">
+                    <button
+                      type="button"
+                      class="btn btn-ghost"
+                      [disabled]="audition.rendering()"
+                      (click)="toggleCompareAudition(card.id)"
+                    >
+                      {{ comparisonAuditionLabel(card.id) }}
+                    </button>
                   </div>
                 </div>
               }

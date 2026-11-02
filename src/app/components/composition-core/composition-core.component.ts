@@ -252,6 +252,31 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
     return (slot === 'a' ? this.compareA() : this.compareB()) === pass.id;
   }
 
+  /** Auditions one comparison card straight from its saved pass. */
+  toggleCompareAudition(passId: string): void {
+    const pass = this.core.passHistory().find((entry) => entry.id === passId);
+    if (!pass) return;
+    if (this.isAuditioning(passId)) {
+      this.audition.stop();
+      return;
+    }
+    void this.audition.start(pass.composition);
+  }
+
+  isAuditioning(passId: string): boolean {
+    const pass = this.core.passHistory().find((entry) => entry.id === passId);
+    return Boolean(
+      pass &&
+        this.audition.playing() &&
+        this.audition.readyCompositionId() === pass.composition.id
+    );
+  }
+
+  comparisonAuditionLabel(passId: string): string {
+    if (this.audition.rendering()) return 'Rendering…';
+    return this.isAuditioning(passId) ? 'Stop audition' : 'Audition this side';
+  }
+
   clearCompare(): void {
     this.compareA.set(null);
     this.compareB.set(null);
