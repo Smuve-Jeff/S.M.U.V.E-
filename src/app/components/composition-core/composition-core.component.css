@@ -613,6 +613,16 @@ input[type='range'] {
   gap: 12px;
 }
 
+.compare-panel-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.compare-panel-actions .btn {
+  padding: 5px 10px;
+  font-size: 10.5px;
+}
+
 .compare-delta {
   margin: 0;
   font-size: 11.5px;
@@ -640,6 +650,23 @@ input[type='range'] {
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(7, 11, 18, 0.6);
+}
+
+.compare-card.current {
+  border-color: rgba(52, 211, 153, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.12);
+}
+
+.compare-current {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.16);
+  color: #6ee7b7;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .compare-card-head {

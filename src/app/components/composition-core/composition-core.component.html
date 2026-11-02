@@ -469,9 +469,14 @@
           <div class="compare-panel">
             <div class="compare-panel-head">
               <span class="label">A/B compare</span>
-              <button type="button" class="btn btn-ghost" (click)="clearCompare()">
-                Close compare
-              </button>
+              <div class="compare-panel-actions">
+                <button type="button" class="btn btn-ghost" (click)="swapCompare()">
+                  Swap A/B
+                </button>
+                <button type="button" class="btn btn-ghost" (click)="clearCompare()">
+                  Close compare
+                </button>
+              </div>
             </div>
             <p class="compare-delta">{{ pair.delta.join(' · ') }}</p>
             <p class="compare-hint">
@@ -479,11 +484,14 @@
             </p>
             <div class="compare-grid">
               @for (card of [pair.a, pair.b]; track card.id; let i = $index) {
-                <div class="compare-card">
+                <div class="compare-card" [class.current]="isCurrentCompareCard(card.id)">
                   <div class="compare-card-head">
                     <span class="compare-tag">{{ i === 0 ? 'A' : 'B' }}</span>
                     <strong>{{ card.title }}</strong>
                     <span class="pass-mode">{{ card.variation }}</span>
+                    @if (isCurrentCompareCard(card.id)) {
+                      <span class="compare-current">On the desk</span>
+                    }
                   </div>
                   <dl class="compare-stats">
                     <div><dt>Tempo</dt><dd>{{ card.bpm }} BPM</dd></div>

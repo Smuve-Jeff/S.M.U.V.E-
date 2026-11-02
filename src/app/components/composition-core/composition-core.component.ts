@@ -277,6 +277,18 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
     return this.isAuditioning(passId) ? 'Stop audition' : 'Audition this side';
   }
 
+  /** Which comparison card is the pass currently on the desk. */
+  isCurrentCompareCard(passId: string): boolean {
+    const pass = this.core.passHistory().find((entry) => entry.id === passId);
+    return Boolean(pass && this.core.current() === pass.composition);
+  }
+
+  swapCompare(): void {
+    const a = this.compareA();
+    this.compareA.set(this.compareB());
+    this.compareB.set(a);
+  }
+
   clearCompare(): void {
     this.compareA.set(null);
     this.compareB.set(null);
