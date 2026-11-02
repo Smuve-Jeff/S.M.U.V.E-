@@ -458,21 +458,29 @@
                         <span>{{ timelineFromLabel(tpl) }}</span>
                       </button>
                     </div>
-                    <div class="sc-arrangement-timeline-track">
-                      <button
-                        *ngFor="let segment of sectionTimeline(tpl)"
-                        type="button"
-                        class="sc-arrangement-timeline-span"
-                        [class.is-active]="sectionTimelineSegmentActive(tpl, segment)"
-                        [class.is-anchor]="sectionTimelineSegmentAnchor(tpl, segment)"
-                        [class.is-sounding]="sectionTimelineSegmentSounding(tpl, segment)"
-                        [style.background]="segment.color"
-                        [style.flexGrow]="segment.bars"
-                        [attr.title]="sectionTimelineSegmentLabel(segment)"
-                        [attr.aria-label]="sectionTimelineAuditionLabel(segment)"
-                        [attr.aria-pressed]="sectionTimelineSegmentActive(tpl, segment)"
-                        (click)="auditionTimelineSegment(tpl, segment, $event)"
-                      ></button>
+                    <div class="sc-arrangement-timeline-track-wrap">
+                      <div class="sc-arrangement-timeline-track">
+                        <button
+                          *ngFor="let segment of sectionTimeline(tpl)"
+                          type="button"
+                          class="sc-arrangement-timeline-span"
+                          [class.is-active]="sectionTimelineSegmentActive(tpl, segment)"
+                          [class.is-anchor]="sectionTimelineSegmentAnchor(tpl, segment)"
+                          [class.is-sounding]="sectionTimelineSegmentSounding(tpl, segment)"
+                          [style.background]="segment.color"
+                          [style.flexGrow]="segment.bars"
+                          [attr.title]="sectionTimelineSegmentLabel(segment)"
+                          [attr.aria-label]="sectionTimelineAuditionLabel(segment)"
+                          [attr.aria-pressed]="sectionTimelineSegmentActive(tpl, segment)"
+                          (click)="auditionTimelineSegment(tpl, segment, $event)"
+                        ></button>
+                      </div>
+                      <span
+                        class="sc-arrangement-timeline-cap"
+                        *ngIf="sectionTimelineCap(tpl) as cap"
+                        [style.left.%]="cap.percent"
+                        aria-hidden="true"
+                      ></span>
                     </div>
                     <div class="sc-arrangement-timeline-legend">
                       <button
@@ -496,6 +504,13 @@
                         <span class="sc-arrangement-timeline-name">{{ segment.name }}</span>
                         <span class="sc-arrangement-timeline-bars">{{ segment.bars }}b</span>
                       </button>
+                    </div>
+                    <div
+                      class="sc-arrangement-timeline-cap-note"
+                      *ngIf="sectionTimelineCap(tpl) as cap"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">timer</span>
+                      <span>Full preview stops at 2:00 · bar {{ cap.bar }}</span>
                     </div>
                   </div>
                   <div
