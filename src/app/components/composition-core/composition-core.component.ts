@@ -121,15 +121,23 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
 
   readonly briefChips = computed(() => briefSummary(this.core.brief()));
 
+  readonly renderPercent = computed(() =>
+    Math.round(
+      Math.max(0, Math.min(1, this.audition.renderProgress())) * 100,
+    ),
+  );
+
   readonly auditionLabel = computed(() => {
-    if (this.audition.rendering()) return 'Rendering…';
+    if (this.audition.rendering()) return 'Cancel render';
     return this.audition.playing() ? 'Stop audition' : 'Audition';
   });
 
   readonly auditionNote = computed(() => {
     const composition = this.core.current();
     if (!composition) return '';
-    if (this.audition.rendering()) return 'Synthesizing the written score in your browser…';
+    if (this.audition.rendering()) {
+      return `Synthesizing the written score · ${this.renderPercent()}%`;
+    }
     if (this.audition.playing()) {
       return `Playing the written score · ${this.audition.previewBars()} bars`;
     }
@@ -163,6 +171,10 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
   }
 
   toggleAudition(): void {
+    if (this.audition.rendering()) {
+      this.audition.cancelRender();
+      return;
+    }
     const composition = this.core.current();
     if (!composition) return;
     void this.audition.toggle(composition);
@@ -254,6 +266,10 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
   toggleCompareAudition(passId: string): void {
     const pass = this.core.passHistory().find((entry) => entry.id === passId);
     if (!pass) return;
+    if (this.audition.rendering()) {
+      this.audition.cancelRender();
+      return;
+    }
     if (this.isAuditioning(passId)) {
       this.audition.stop();
       return;
@@ -271,7 +287,7 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
   }
 
   comparisonAuditionLabel(passId: string): string {
-    if (this.audition.rendering()) return 'Rendering…';
+    if (this.audition.rendering()) return 'Cancel render';
     return this.isAuditioning(passId) ? 'Stop audition' : 'Audition this side';
   }
 

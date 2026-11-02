@@ -141,6 +141,8 @@ export class CompositionAuditionService {
   readyCompositionId = signal<string | null>(null);
   previewSeconds = signal(0);
   previewBars = signal(0);
+  /** Completed fraction of the current chunked render, 0–1. */
+  renderProgress = signal(0);
 
   private buffer: AudioBuffer | null = null;
   private noise: AudioBuffer | null = null;
@@ -204,6 +206,21 @@ export class CompositionAuditionService {
     this.engine.stopAudition();
   }
 
+  /**
+   * Abandon the current render. An OfflineAudioContext cannot be interrupted,
+   * so the slice already in flight finishes silently and the loop stops before
+   * scheduling the next one.
+   */
+  cancelRender(): void {
+    if (!this.rendering()) return;
+    this.renderToken++;
+    this.rendering.set(false);
+    this.renderProgress.set(0);
+    this.buffer = null;
+    this.readyCompositionId.set(null);
+    this.error.set(null);
+  }
+
   /** Renders the score to an AudioBuffer, then plays it. */
   async render(composition: Composition): Promise<void> {
     await this.renderScore({
@@ -223,6 +240,7 @@ export class CompositionAuditionService {
     this.error.set(null);
     this.buffer = null;
     this.readyCompositionId.set(null);
+    this.renderProgress.set(0);
 
     try {
       const seconds = Math.max(2, score.durationSeconds);
@@ -294,9 +312,13 @@ export class CompositionAuditionService {
         );
         previous = rendered;
         previousMainFrames = mainFrames;
+        this.renderProgress.set(
+          Math.min(1, writeFrame / Math.max(1, totalFrames)),
+        );
       }
 
       if (token !== this.renderToken) return;
+      this.renderProgress.set(1);
       this.buffer = output;
       this.previewSeconds.set(Math.round(output.duration));
       this.previewBars.set(
@@ -312,6 +334,7 @@ export class CompositionAuditionService {
         'Audition could not be rendered in this browser: ' +
           (cause?.message ?? 'unknown audio error')
       );
+      this.renderProgress.set(0);
       this.notify.show('Audition rendering failed.', 'warning');
     } finally {
       if (token === this.renderToken) this.rendering.set(false);
@@ -369,6 +392,7 @@ export class CompositionAuditionService {
     this.buffer = null;
     this.readyCompositionId.set(null);
     this.rendering.set(false);
+    this.renderProgress.set(0);
     this.error.set(null);
   }
 

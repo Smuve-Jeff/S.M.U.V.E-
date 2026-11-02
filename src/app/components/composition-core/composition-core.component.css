@@ -940,6 +940,11 @@ input[type='range'] {
   box-shadow: 0 0 32px rgba(56, 189, 248, 0.32);
 }
 
+.btn-audition.is-rendering {
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.2);
+}
+
 .audition-panel {
   display: flex;
   flex-direction: column;
@@ -953,6 +958,11 @@ input[type='range'] {
 .audition-panel.live {
   border-color: rgba(56, 189, 248, 0.45);
   background: rgba(56, 189, 248, 0.07);
+}
+
+.audition-panel.rendering {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.06);
 }
 
 .audition-head {

@@ -181,6 +181,7 @@ describe('CompositionAuditionService chunked rendering', () => {
         readyCompositionId: signal<string | null>(null),
         previewSeconds: signal(0),
         previewBars: signal(0),
+        renderProgress: signal(0),
         buffer: null,
         noise: null,
         renderToken: 0,
@@ -223,12 +224,38 @@ describe('CompositionAuditionService chunked rendering', () => {
       expect(service.previewSeconds()).toBe(130);
       expect(service.previewBars()).toBe(65);
       expect(service.readyCompositionId()).toBe('long-score');
+      expect(service.renderProgress()).toBe(1);
       expect((service as any).buffer.length).toBe(Math.ceil(130 * 44100));
       expect(service.error()).toBeNull();
     } finally {
       (globalThis as any).AudioBuffer = originalAudioBuffer;
       (globalThis as any).OfflineAudioContext = originalOffline;
     }
+  });
+});
+
+describe('cancelRender', () => {
+  it('abandons an in-flight render and resets its progress', () => {
+    const service = Object.create(
+      CompositionAuditionService.prototype,
+    ) as CompositionAuditionService;
+    Object.assign(service as any, {
+      rendering: signal(true),
+      renderProgress: signal(0.4),
+      readyCompositionId: signal<string | null>('old-score'),
+      error: signal<string | null>('old error'),
+      buffer: { length: 10 },
+      renderToken: 3,
+    });
+
+    service.cancelRender();
+
+    expect(service.rendering()).toBe(false);
+    expect(service.renderProgress()).toBe(0);
+    expect(service.readyCompositionId()).toBeNull();
+    expect(service.error()).toBeNull();
+    expect((service as any).buffer).toBeNull();
+    expect((service as any).renderToken).toBe(4);
   });
 });
 

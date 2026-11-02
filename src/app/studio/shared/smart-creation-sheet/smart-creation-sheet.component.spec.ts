@@ -143,9 +143,11 @@ describe("SmartCreationSheetComponent", () => {
     progress: signal(0),
     previewSeconds: signal(0),
     previewBars: signal(1),
+    renderProgress: signal(0),
     startScore: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn(),
     clear: jest.fn(),
+    cancelRender: jest.fn(),
   };
 
   const userTemplatesSignal = signal<any[]>([]);
@@ -1057,6 +1059,34 @@ describe("SmartCreationSheetComponent", () => {
     );
   });
 
+  it("cancels an in-flight template render instead of starting another", async () => {
+    const template = {
+      id: "tpl-1",
+      name: "Night Sketch",
+      tracks: [
+        {
+          name: "Lead",
+          instrumentId: "analog-warmth",
+          type: "midi",
+          notes: [{ midi: 67, step: 0, length: 1, velocity: 0.8 }],
+        },
+      ],
+    } as any;
+    mockCompositionAudition.rendering.set(true);
+    mockCompositionAudition.renderProgress.set(0.42);
+    component.auditioningPreviewId.set("template-preview-tpl-1");
+
+    await component.auditionTemplate(template);
+
+    expect(mockCompositionAudition.cancelRender).toHaveBeenCalled();
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+    expect(component.auditioningPreviewId()).toBeNull();
+
+    mockCompositionAudition.rendering.set(false);
+    mockCompositionAudition.renderProgress.set(0);
+    mockCompositionAudition.cancelRender.mockClear();
+  });
+
   it("stops a playing template audition instead of restarting it", async () => {
     const template = {
       id: "tpl-1",
@@ -1082,8 +1112,11 @@ describe("SmartCreationSheetComponent", () => {
   it("labels rendering and playback states and rejects patternless templates", async () => {
     const template = { id: "tpl-1", name: "Night Sketch", tracks: [] } as any;
     mockCompositionAudition.rendering.set(true);
+    mockCompositionAudition.renderProgress.set(0.42);
     component.auditioningPreviewId.set("template-preview-tpl-1");
-    expect(component.templateAuditionLabel(template)).toBe("Rendering…");
+    expect(component.templateAuditionLabel(template)).toBe(
+      "Cancel render · 42%",
+    );
 
     mockCompositionAudition.rendering.set(false);
     mockCompositionAudition.playing.set(true);
@@ -2123,9 +2156,14 @@ describe("SmartCreationSheetComponent", () => {
 
     mockCompositionAudition.playing.set(false);
     mockCompositionAudition.rendering.set(true);
+    mockCompositionAudition.renderProgress.set(0.42);
     component.auditioningPreviewId.set(score.id);
     expect(component.sectionsPreviewRendering(template)).toBe(true);
-    expect(component.sectionsPreviewLabel(template)).toBe("Rendering…");
+    expect(component.sectionsPreviewLabel(template)).toBe("Cancel · 42%");
+    expect(component.sectionsPreviewProgressPercent(template)).toBe(42);
+    expect(component.sectionsPreviewProgressLabel(template)).toContain(
+      "Rendering saved sections · 42%",
+    );
 
     await component.auditionSavedSections(template);
 

@@ -1658,22 +1658,41 @@ export class SmartCreationSheetComponent implements OnDestroy {
   }
 
   sectionsPreviewActive(template: ProjectTemplate): boolean {
-    return this.sectionsPreviewPlaying(template);
+    return (
+      this.sectionsPreviewPlaying(template) ||
+      this.sectionsPreviewRendering(template)
+    );
+  }
+
+  /** Rounded progress for the slice currently being synthesized. */
+  renderProgressPercent(): number {
+    return Math.round(
+      Math.max(0, Math.min(1, this.compositionAudition.renderProgress())) *
+        100,
+    );
   }
 
   sectionsPreviewLabel(template: ProjectTemplate): string {
-    if (this.sectionsPreviewRendering(template)) return "Rendering…";
+    if (this.sectionsPreviewRendering(template)) {
+      return `Cancel · ${this.renderProgressPercent()}%`;
+    }
     return this.sectionsPreviewPlaying(template) ? "Stop" : "Play all";
   }
 
   sectionsPreviewProgressPercent(template: ProjectTemplate): number {
-    return this.sectionsPreviewActive(template)
+    if (this.sectionsPreviewRendering(template)) {
+      return this.renderProgressPercent();
+    }
+    return this.sectionsPreviewPlaying(template)
       ? this.previewProgressPercent()
       : 0;
   }
 
   sectionsPreviewProgressLabel(template: ProjectTemplate): string {
     if (!this.sectionsPreviewActive(template)) return "";
+    if (this.sectionsPreviewRendering(template)) {
+      return `Rendering saved sections · ${this.renderProgressPercent()}% · tap Cancel`;
+    }
     const count =
       this.activeArrangementPreview(template)?.count ??
       this.templateSections(template).length;
@@ -1933,7 +1952,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.auditioningPreviewId() === scoreId &&
       this.compositionAudition.rendering()
     ) {
-      return "Rendering…";
+      return `Cancel render · ${this.renderProgressPercent()}%`;
     }
     return this.previewPlaying(scoreId) ? "Stop" : "Audition";
   }
@@ -1941,6 +1960,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
   /** True while the template-wide preview is the audible one. */
   templateAuditionPlaying(template: ProjectTemplate): boolean {
     return this.previewPlaying(templatePreviewId(template.id));
+  }
+
+  templateAuditionRendering(template: ProjectTemplate): boolean {
+    return this.isPreviewRendering(templatePreviewId(template.id));
   }
 
   templateAuditionLabel(template: ProjectTemplate): string {
@@ -1959,13 +1982,17 @@ export class SmartCreationSheetComponent implements OnDestroy {
     return this.previewPlaying(this.mixPreviewId(template));
   }
 
+  mixAuditionRendering(template: ProjectTemplate): boolean {
+    return this.isPreviewRendering(this.mixPreviewId(template));
+  }
+
   mixAuditionLabel(template: ProjectTemplate): string {
     const id = this.mixPreviewId(template);
     if (
       this.auditioningPreviewId() === id &&
       this.compositionAudition.rendering()
     ) {
-      return "Rendering…";
+      return `Cancel render · ${this.renderProgressPercent()}%`;
     }
     if (this.previewPlaying(id)) return "Stop mix";
     const count = this.selectedPatternCount(template);
@@ -1976,14 +2003,23 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   /** True while the combined arrangement preview is audible. */
   mixPreviewActive(template: ProjectTemplate): boolean {
-    return this.previewPlaying(this.mixPreviewId(template));
+    return (
+      this.previewPlaying(this.mixPreviewId(template)) ||
+      this.mixAuditionRendering(template)
+    );
   }
 
   mixPreviewProgressPercent(template: ProjectTemplate): number {
+    if (this.mixAuditionRendering(template)) {
+      return this.renderProgressPercent();
+    }
     return this.mixPreviewActive(template) ? this.previewProgressPercent() : 0;
   }
 
   mixPreviewProgressLabel(template: ProjectTemplate): string {
+    if (this.mixAuditionRendering(template)) {
+      return `Rendering mix · ${this.renderProgressPercent()}% · tap to cancel`;
+    }
     if (!this.mixPreviewActive(template)) return "";
     const count = this.selectedPatternCount(template);
     return `${count} row${count === 1 ? "" : "s"} · ${this.previewPositionLabel()}`;
@@ -2013,6 +2049,16 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
+  patternAuditionRendering(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+    versionId?: string,
+  ): boolean {
+    return this.isPreviewRendering(
+      this.patternPreviewId(template, detail, versionId),
+    );
+  }
+
   patternAuditionLabel(
     template: ProjectTemplate,
     detail: TemplatePatternDetail,
@@ -2030,10 +2076,14 @@ export class SmartCreationSheetComponent implements OnDestroy {
     version?: TemplatePatternDetail["versions"][number];
   } | null {
     const liveId = this.patternPreviewId(template, detail);
-    if (this.previewPlaying(liveId)) return { id: liveId };
+    if (this.previewPlaying(liveId) || this.isPreviewRendering(liveId)) {
+      return { id: liveId };
+    }
     for (const version of detail.versions) {
       const id = this.patternPreviewId(template, detail, version.id);
-      if (this.previewPlaying(id)) return { id, version };
+      if (this.previewPlaying(id) || this.isPreviewRendering(id)) {
+        return { id, version };
+      }
     }
     return null;
   }
@@ -2051,9 +2101,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
     template: ProjectTemplate,
     detail: TemplatePatternDetail,
   ): number {
-    return this.patternPreviewActive(template, detail)
-      ? this.previewProgressPercent()
-      : 0;
+    const active = this.activePatternPreview(template, detail);
+    if (!active) return 0;
+    return this.isPreviewRendering(active.id)
+      ? this.renderProgressPercent()
+      : this.previewProgressPercent();
   }
 
   /** Names the audible take and shows its bar/clock position while looping. */
@@ -2064,6 +2116,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
     const active = this.activePatternPreview(template, detail);
     if (!active) return "";
     const take = active.version?.name ?? "Live pattern";
+    if (this.isPreviewRendering(active.id)) {
+      return `Rendering ${take} · ${this.renderProgressPercent()}% · tap to cancel`;
+    }
     return `${take} · ${this.previewPositionLabel()}`;
   }
 
@@ -2188,6 +2243,15 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.clearHeldSectionPreview();
     if (this.previewPlaying(score.id)) {
       this.compositionAudition.stop();
+      this.auditioningPreviewId.set(null);
+      this.haptic.light();
+      return;
+    }
+    if (
+      this.auditioningPreviewId() === score.id &&
+      this.compositionAudition.rendering()
+    ) {
+      this.compositionAudition.cancelRender();
       this.auditioningPreviewId.set(null);
       this.haptic.light();
       return;

@@ -269,16 +269,22 @@
                     [disabled]="selectedPatternCount(tpl) === 0"
                     (click)="auditionTemplateMix(tpl, $event)"
                     [attr.aria-label]="
-                      mixAuditionPlaying(tpl)
-                        ? 'Stop mixed audition ' + tpl.name
-                        : 'Audition ' +
-                          selectedPatternCount(tpl) +
-                          ' selected rows from ' +
-                          tpl.name
+                      mixAuditionRendering(tpl)
+                        ? 'Cancel rendering mixed audition ' + tpl.name
+                        : mixAuditionPlaying(tpl)
+                          ? 'Stop mixed audition ' + tpl.name
+                          : 'Audition ' +
+                            selectedPatternCount(tpl) +
+                            ' selected rows from ' +
+                            tpl.name
                     "
                   >
                     <span class="material-symbols-outlined">{{
-                      mixAuditionPlaying(tpl) ? 'stop' : 'playlist_play'
+                      mixAuditionRendering(tpl)
+                        ? 'progress_activity'
+                        : mixAuditionPlaying(tpl)
+                          ? 'stop'
+                          : 'playlist_play'
                     }}</span>
                     <span>{{ mixAuditionLabel(tpl) }}</span>
                   </button>
@@ -287,13 +293,19 @@
                     class="sc-template-audition"
                     (click)="auditionTemplate(tpl, $event)"
                     [attr.aria-label]="
-                      templateAuditionPlaying(tpl)
-                        ? 'Stop template audition ' + tpl.name
-                        : 'Audition template ' + tpl.name
+                      templateAuditionRendering(tpl)
+                        ? 'Cancel rendering template ' + tpl.name
+                        : templateAuditionPlaying(tpl)
+                          ? 'Stop template audition ' + tpl.name
+                          : 'Audition template ' + tpl.name
                     "
                   >
                     <span class="material-symbols-outlined">{{
-                      templateAuditionPlaying(tpl) ? 'stop' : 'play_arrow'
+                      templateAuditionRendering(tpl)
+                        ? 'progress_activity'
+                        : templateAuditionPlaying(tpl)
+                          ? 'stop'
+                          : 'play_arrow'
                     }}</span>
                     <span>{{ templateAuditionLabel(tpl) }}</span>
                   </button>
@@ -591,7 +603,7 @@
                           <small>
                             {{
                               sectionAuditionRendering(tpl, section)
-                                ? 'Rendering…'
+                                ? 'Cancel render · ' + renderProgressPercent() + '%'
                                 : section.rows.length +
                                   ' row' +
                                   (section.rows.length === 1 ? '' : 's') +
@@ -823,15 +835,23 @@
                     type="button"
                     class="sc-template-detail-audition"
                     [class.is-playing]="patternAuditionPlaying(tpl, detail)"
+                    [class.is-rendering]="patternAuditionRendering(tpl, detail)"
+                    [attr.aria-busy]="patternAuditionRendering(tpl, detail)"
                     (click)="auditionTemplatePattern(tpl, detail, $event)"
                     [attr.aria-label]="
-                      patternAuditionPlaying(tpl, detail)
-                        ? 'Stop ' + detail.track + ' ' + detail.slot
-                        : 'Audition ' + detail.track + ' ' + detail.slot
+                      patternAuditionRendering(tpl, detail)
+                        ? 'Cancel rendering ' + detail.track + ' ' + detail.slot
+                        : patternAuditionPlaying(tpl, detail)
+                          ? 'Stop ' + detail.track + ' ' + detail.slot
+                          : 'Audition ' + detail.track + ' ' + detail.slot
                     "
                   >
                     <span class="material-symbols-outlined">{{
-                      patternAuditionPlaying(tpl, detail) ? 'stop' : 'play_arrow'
+                      patternAuditionRendering(tpl, detail)
+                        ? 'progress_activity'
+                        : patternAuditionPlaying(tpl, detail)
+                          ? 'stop'
+                          : 'play_arrow'
                     }}</span>
                     <span>{{ patternAuditionLabel(tpl, detail) }}</span>
                   </button>
@@ -894,19 +914,25 @@
                     class="sc-template-version"
                     [class.is-active]="version.active"
                     [class.is-playing]="patternAuditionPlaying(tpl, detail, version.id)"
+                    [class.is-rendering]="patternAuditionRendering(tpl, detail, version.id)"
+                    [attr.aria-busy]="patternAuditionRendering(tpl, detail, version.id)"
                     (click)="auditionTemplatePattern(tpl, detail, $event, version.id)"
                     [attr.aria-label]="
-                      (patternAuditionPlaying(tpl, detail, version.id)
-                        ? 'Stop '
-                        : 'Audition ') +
+                      (patternAuditionRendering(tpl, detail, version.id)
+                        ? 'Cancel rendering '
+                        : patternAuditionPlaying(tpl, detail, version.id)
+                          ? 'Stop '
+                          : 'Audition ') +
                       detail.track + ' ' + detail.slot +
                       ' version ' + version.name
                     "
                   >
                     <span class="material-symbols-outlined">{{
-                      patternAuditionPlaying(tpl, detail, version.id)
-                        ? 'stop'
-                        : 'play_arrow'
+                      patternAuditionRendering(tpl, detail, version.id)
+                        ? 'progress_activity'
+                        : patternAuditionPlaying(tpl, detail, version.id)
+                          ? 'stop'
+                          : 'play_arrow'
                     }}</span>
                     {{ version.name }}<span *ngIf="version.active"> · active</span>
                   </button>

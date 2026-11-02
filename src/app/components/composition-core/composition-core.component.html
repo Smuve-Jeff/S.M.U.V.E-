@@ -286,7 +286,8 @@
             <button
               type="button"
               class="btn btn-audition"
-              [disabled]="audition.rendering()"
+              [class.is-rendering]="audition.rendering()"
+              [attr.aria-busy]="audition.rendering()"
               (click)="toggleAudition()"
             >
               {{ auditionLabel() }}
@@ -301,13 +302,27 @@
 
         <p class="persona">{{ composition.personaLine }}</p>
 
-        <div class="audition-panel" [class.live]="audition.playing()">
+        <div
+          class="audition-panel"
+          [class.live]="audition.playing()"
+          [class.rendering]="audition.rendering()"
+        >
           <div class="audition-head">
             <span class="label">Audition</span>
             <span class="audition-note">{{ auditionNote() }}</span>
           </div>
-          <div class="audition-bar" [class.active]="audition.playing()">
-            <span class="audition-fill" [style.width.%]="audition.progress() * 100"></span>
+          <div
+            class="audition-bar"
+            [class.active]="audition.playing() || audition.rendering()"
+          >
+            <span
+              class="audition-fill"
+              [style.width.%]="
+                (audition.rendering()
+                  ? audition.renderProgress()
+                  : audition.progress()) * 100
+              "
+            ></span>
           </div>
           @if (audition.error()) {
             <p class="warn">{{ audition.error() }}</p>
@@ -520,7 +535,7 @@
                     <button
                       type="button"
                       class="btn btn-ghost"
-                      [disabled]="audition.rendering()"
+                      [attr.aria-busy]="audition.rendering()"
                       (click)="toggleCompareAudition(card.id)"
                     >
                       {{ comparisonAuditionLabel(card.id) }}
