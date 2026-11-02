@@ -1390,7 +1390,7 @@ describe("SmartCreationSheetComponent", () => {
     expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
   });
 
-  it("applies and deletes a saved section without loading the template", () => {
+  it("auditions and deletes a saved section without loading the template", async () => {
     const template = sectionTemplateFixture();
     component.toggleTemplateDetails(template);
     const section = {
@@ -1402,16 +1402,27 @@ describe("SmartCreationSheetComponent", () => {
       ],
     };
 
-    component.applySavedSection(template, section);
+    await component.applySavedSection(template, section);
 
     const details = component.templateDetails(template);
     expect(component.selectedPatternCount(template)).toBe(1);
     expect(component.patternMixVersionId(template, details[0])).toBe("v1");
     expect(component.patternSelected(template, details[1])).toBe(false);
-    expect(mockSnackbar.success).toHaveBeenCalledWith(
-      expect.stringContaining("1 row"),
+    expect(mockCompositionAudition.startScore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "template-preview-tpl-7-mix-0:slot-1@v1",
+        parts: [
+          expect.objectContaining({
+            notes: [expect.objectContaining({ midi: 60 })],
+          }),
+        ],
+      }),
+      true,
     );
-    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      expect.stringContaining("section “Lift”"),
+    );
+    expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
 
     mockProjectTemplates.deleteTemplateSection.mockReturnValue(true);
     component.removeSavedSection(template, section);

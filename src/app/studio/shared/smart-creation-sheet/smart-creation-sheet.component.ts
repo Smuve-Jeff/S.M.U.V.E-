@@ -955,12 +955,12 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
-  /** Recall a named section without loading or changing the template. */
-  applySavedSection(
+  /** Recall a named section and audition it without loading the template. */
+  async applySavedSection(
     template: ProjectTemplate,
     section: TemplateSection,
     event?: Event,
-  ): void {
+  ): Promise<void> {
     event?.stopPropagation();
     const details = new Map(
       this.templateDetails(template).map((detail) => [
@@ -989,10 +989,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.selectedPatternTemplateId = template.id;
     this.selectedPatternVersions.set(next);
     this.haptic.medium();
-    this.snackbar.success(
-      `Section “${section.name}” applied — ${next.size} row${
-        next.size === 1 ? "" : "s"
-      } in the mix.`,
+    await this.auditionTemplateMix(
+      template,
+      undefined,
+      `section “${section.name}”`,
     );
   }
 
@@ -1298,6 +1298,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   async auditionTemplateMix(
     template: ProjectTemplate,
     event?: Event,
+    designation?: string,
   ): Promise<void> {
     event?.stopPropagation();
     const selections = this.selectedPatternSelections(template);
@@ -1313,7 +1314,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
     const rows = score.parts.length;
     await this.previewScore(
       score,
-      `${template.name} — ${rows} row${rows === 1 ? "" : "s"} mixed`,
+      `${template.name} — ${
+        designation ?? `${rows} row${rows === 1 ? "" : "s"} mixed`
+      }`,
       true,
     );
   }
