@@ -123,9 +123,11 @@ export function frequencyToMidi(frequency: number): number {
 /**
  * Transcribe a monophonic AudioBuffer into notes.
  *
- * Frame hop is 10 ms at 48 kHz (512 samples), which is responsive enough for
- * vocals without inventing a note for every consonant. Segments shorter than
- * three frames are discarded as breath noise.
+ * Analysis runs at roughly 12 kHz (a box-filtered decimation of the source),
+ * which keeps the autocorrelation cost bounded on a phone. The frame hop is
+ * 10 ms at that rate, responsive enough for vocals without inventing a note
+ * for every consonant. Segments shorter than three frames are discarded as
+ * breath noise.
  */
 export function transcribeMonophonic(
   buffer: AudioBuffer,
@@ -133,10 +135,27 @@ export function transcribeMonophonic(
 ): TranscribedNote[] {
   if (!buffer || buffer.length === 0) return [];
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  const sampleRate = buffer.sampleRate;
-  const data = buffer.getChannelData(0);
-  const frameSize = 2048;
-  const hop = Math.max(64, Math.round(sampleRate * 0.01));
+  const sourceRate = buffer.sampleRate;
+  const source = buffer.getChannelData(0);
+
+  // Pitch information sits below 1.2 kHz, so analysing at ~12 kHz loses no
+  // note while cutting the lag search by 4× versus a 48 kHz frame.
+  const decimation = Math.max(1, Math.round(sourceRate / 12_000));
+  const sampleRate = sourceRate / decimation;
+  let data = source;
+  if (decimation > 1) {
+    const downsampled = new Float32Array(Math.floor(source.length / decimation));
+    for (let i = 0; i < downsampled.length; i++) {
+      const base = i * decimation;
+      let sum = 0;
+      for (let j = 0; j < decimation; j++) sum += source[base + j];
+      downsampled[i] = sum / decimation;
+    }
+    data = downsampled;
+  }
+
+  const frameSize = Math.max(256, Math.round(sampleRate * 0.043));
+  const hop = Math.max(32, Math.round(sampleRate * 0.01));
   const frames: Array<{ midi: number; rms: number } | null> = [];
 
   let peakRms = 0;

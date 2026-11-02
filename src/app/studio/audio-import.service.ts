@@ -146,6 +146,10 @@ type EditSnapshot = Pick<
 >;
 
 import { resampleToRate } from './audio-resample.util';
+import { transcribeMonophonic } from './audio-to-midi.util';
+
+/** A phrase, not a whole song: keeps the pitch search responsive on a phone. */
+const MAX_TRANSCRIBE_SECONDS = 30;
 
 @Injectable({ providedIn: "root" })
 export class AudioImportService {
@@ -169,6 +173,8 @@ export class AudioImportService {
   enhancePreset = signal<EnhancePreset>("clean");
   /** True while an offline enhancement render is in flight. */
   isEnhancing = signal(false);
+  /** True while the selected import is being transcribed to MIDI. */
+  isTranscribing = signal(false);
   /** Preset catalogue for the UI. */
   readonly enhancePresets = ENHANCE_PRESETS;
 
@@ -512,6 +518,77 @@ export class AudioImportService {
     const ratio = Math.max(0.25, Math.min(4, sourceBpm / targetBpm));
     this.setStretchRatio(ratio);
     return Math.round(ratio * 1000) / 1000;
+  }
+
+  /**
+   * Transcribe the selected import into a new MIDI track.
+   *
+   * The selected trim, tempo stretch and pitch shift are applied first, so the
+   * notes describe what the artist hears rather than the raw file. Long sources
+   * are capped to a phrase-length window; a monophonic transcriber is the honest
+   * scope here — chords and drums need a different model.
+   *
+   * Returns the number of notes written (0 when there was nothing usable).
+   */
+  async transcribeSelectedToMidi(): Promise<number> {
+    if (this.isTranscribing()) return 0;
+    const audio = this.selectedAudio();
+    if (!audio) {
+      this.snackbar.warning("Select an imported audio file first");
+      return 0;
+    }
+    const prepared = this.transcriptionSource(audio);
+    if (!prepared) {
+      this.snackbar.info("No decoded audio is available to transcribe");
+      return 0;
+    }
+
+    this.isTranscribing.set(true);
+    try {
+      const notes = transcribeMonophonic(prepared.buffer);
+      if (notes.length === 0) {
+        this.snackbar.info("No clear pitch found in this audio");
+        return 0;
+      }
+
+      const trackId = this.musicManager.addTrack(
+        `MIDI · ${audio.name}`,
+        "grand-piano",
+        "midi",
+      );
+      if (!trackId) {
+        this.snackbar.warning(
+          "Track limit reached — free a channel, then transcribe again",
+        );
+        return 0;
+      }
+
+      const tempo = this.audioEngine.tempo?.() ?? 120;
+      const stepSeconds = 60 / Math.max(20, tempo) / 4;
+      const stamp = Date.now();
+      const mapped = notes.map((note, index) => ({
+        id: `midi_${stamp}_${index}`,
+        midi: note.midi,
+        step: Math.max(0, Math.round(note.startSec / stepSeconds)),
+        length: Math.max(1, Math.round(note.durationSec / stepSeconds)),
+        velocity: note.velocity,
+      }));
+
+      // One history step for the whole phrase, not one per detected note.
+      this.musicManager.replaceTrackNotes(trackId, mapped, "Transcribe Audio");
+      this.snackbar.success(
+        `Transcribed ${mapped.length} note${mapped.length === 1 ? "" : "s"} to MIDI${
+          prepared.truncated ? ` (first ${MAX_TRANSCRIBE_SECONDS}s)` : ""
+        }`,
+      );
+      return mapped.length;
+    } catch (e) {
+      this.logger.error("Audio-to-MIDI failed", e);
+      this.snackbar.error("Could not transcribe this audio");
+      return 0;
+    } finally {
+      this.isTranscribing.set(false);
+    }
   }
 
   setPitchSemitones(value: number | string) {
@@ -1179,6 +1256,75 @@ export class AudioImportService {
     this.importedAudio.update((prev) =>
       prev.map((a) => (a.id === current.id ? updated : a)),
     );
+  }
+
+  /**
+   * Build the buffer the transcriber should hear: the enhanced render when one
+   * exists, trimmed to the selection, then stretched and pitch-shifted. The
+   * source is never mutated.
+   */
+  private transcriptionSource(
+    audio: ImportedAudio,
+  ): { buffer: AudioBuffer; truncated: boolean } | null {
+    const raw =
+      audio.enhancedBuffer ??
+      audio.buffer ??
+      audio.sampleStreamer?.getResidentBuffer() ??
+      null;
+    if (!raw || raw.length === 0) return null;
+
+    let buffer = raw;
+    const trimStart = Math.max(0, Math.min(1, audio.trimStart ?? 0));
+    const trimEnd = Math.max(0, Math.min(1, audio.trimEnd ?? 1));
+    const startFrame = Math.floor(raw.length * trimStart);
+    const endFrame = Math.ceil(raw.length * trimEnd);
+    if (endFrame > startFrame && (startFrame > 0 || endFrame < raw.length)) {
+      buffer = this.sliceBuffer(raw, startFrame, endFrame);
+    }
+
+    if (Math.abs((audio.stretchRatio ?? 1) - 1) > 0.001) {
+      buffer = this.stretchBuffer(buffer, audio.stretchRatio);
+    }
+    if (Math.abs(audio.pitchSemitones ?? 0) > 0.001) {
+      buffer = this.pitchShiftBuffer(buffer, audio.pitchSemitones);
+    }
+
+    const maxFrames = Math.max(
+      1,
+      Math.floor(MAX_TRANSCRIBE_SECONDS * buffer.sampleRate),
+    );
+    const residentWindowOnly =
+      !!audio.sampleStreamer &&
+      audio.duration > MAX_TRANSCRIBE_SECONDS &&
+      trimStart <= 0 &&
+      trimEnd >= 1;
+    const truncated = buffer.length > maxFrames || residentWindowOnly;
+    if (buffer.length > maxFrames) {
+      buffer = this.sliceBuffer(buffer, 0, maxFrames);
+    }
+    return { buffer, truncated };
+  }
+
+  /** Copy a frame range into a new buffer without touching the source. */
+  private sliceBuffer(
+    source: AudioBuffer,
+    startFrame: number,
+    endFrame: number,
+  ): AudioBuffer {
+    const start = Math.max(0, Math.min(startFrame, source.length));
+    const end = Math.max(start + 1, Math.min(endFrame, source.length));
+    const length = end - start;
+    const out = this.audioEngine.ctx.createBuffer(
+      source.numberOfChannels,
+      length,
+      source.sampleRate,
+    );
+    for (let ch = 0; ch < source.numberOfChannels; ch++) {
+      out
+        .getChannelData(ch)
+        .set(source.getChannelData(ch).subarray(start, start + length));
+    }
+    return out;
   }
 
   private interleaveChannels(buffer: AudioBuffer): Float32Array {

@@ -10,6 +10,14 @@ import { createSampleStreamer } from "../services/sample-streamer.service";
 describe("AudioImportService (stretch engine)", () => {
   let service: AudioImportService;
   let addAudioTrackMock: jest.Mock;
+  let addTrackMock: jest.Mock;
+  let replaceTrackNotesMock: jest.Mock;
+  let snackbarMock: {
+    warning: jest.Mock;
+    error: jest.Mock;
+    success: jest.Mock;
+    info: jest.Mock;
+  };
 
   function makeBuffer(
     ctx: any,
@@ -26,6 +34,7 @@ describe("AudioImportService (stretch engine)", () => {
   }
 
   beforeEach(() => {
+    jest.clearAllMocks();
     (globalThis.URL as any).createObjectURL ??= jest.fn(() => "blob:mock");
     (globalThis.URL as any).revokeObjectURL ??= jest.fn();
     const ctx = {
@@ -60,7 +69,11 @@ describe("AudioImportService (stretch engine)", () => {
         { provide: AudioEngineService, useValue: audioEngineMock },
         {
           provide: MusicManagerService,
-          useValue: { addAudioTrack: (addAudioTrackMock = jest.fn()) },
+          useValue: {
+            addAudioTrack: (addAudioTrackMock = jest.fn()),
+            addTrack: (addTrackMock = jest.fn(() => "track-midi")),
+            replaceTrackNotes: (replaceTrackNotesMock = jest.fn()),
+          },
         },
         {
           provide: LoggingService,
@@ -68,12 +81,12 @@ describe("AudioImportService (stretch engine)", () => {
         },
         {
           provide: SnackbarService,
-          useValue: {
+          useValue: (snackbarMock = {
             warning: jest.fn(),
             error: jest.fn(),
             success: jest.fn(),
             info: jest.fn(),
-          },
+          }),
         },
       ],
     });
@@ -137,6 +150,105 @@ describe("AudioImportService (stretch engine)", () => {
     expect(service.matchSelectedToProjectTempo(0)).toBeNull();
     service.selectedAudio.set(null);
     expect(service.matchSelectedToProjectTempo(120)).toBeNull();
+  });
+
+  it("transcribes the selected import into one batched MIDI track", async () => {
+    const buf = makeBuffer(service.audioEngine.ctx, 35280, 440, 44100);
+    const imported: any = {
+      id: "midi-1",
+      name: "hummed hook",
+      buffer: buf,
+      blob: new Blob(),
+      url: "blob:hum",
+      duration: buf.duration,
+      sampleRate: buf.sampleRate,
+      channels: 1,
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1,
+      pitchSemitones: 0,
+      fadeIn: 0,
+      fadeOut: 0,
+      loopStart: 0,
+      loopEnd: 1,
+      normalize: false,
+      editedBlob: null,
+      editedUrl: null,
+      enhancedBuffer: null,
+      enhancedPreset: null,
+      sampleStreamer: null,
+    };
+    service.importedAudio.set([imported]);
+    service.selectedAudio.set(imported);
+
+    await expect(service.transcribeSelectedToMidi()).resolves.toBe(1);
+
+    expect(addTrackMock).toHaveBeenCalledWith(
+      "MIDI · hummed hook",
+      "grand-piano",
+      "midi",
+    );
+    expect(replaceTrackNotesMock).toHaveBeenCalledTimes(1);
+    const [trackId, notes] = replaceTrackNotesMock.mock.calls[0];
+    expect(trackId).toBe("track-midi");
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toMatchObject({ midi: 69, step: 0 });
+    expect(notes[0].length).toBeGreaterThanOrEqual(1);
+    expect(notes[0].velocity).toBeGreaterThan(0);
+    expect(snackbarMock.success).toHaveBeenCalledWith(
+      expect.stringContaining("Transcribed 1 note to MIDI"),
+    );
+    expect(service.isTranscribing()).toBe(false);
+  });
+
+  it("does not create a MIDI track when the import has no clear pitch", async () => {
+    const buf = makeBuffer(service.audioEngine.ctx, 17640, 440, 44100);
+    buf.getChannelData(0).fill(0);
+    const imported: any = {
+      id: "midi-2",
+      name: "silence",
+      buffer: buf,
+      blob: new Blob(),
+      url: "blob:silence",
+      duration: buf.duration,
+      sampleRate: buf.sampleRate,
+      channels: 1,
+      trimStart: 0,
+      trimEnd: 1,
+      gain: 1,
+      stretchRatio: 1,
+      pitchSemitones: 0,
+      fadeIn: 0,
+      fadeOut: 0,
+      loopStart: 0,
+      loopEnd: 1,
+      normalize: false,
+      editedBlob: null,
+      editedUrl: null,
+      enhancedBuffer: null,
+      enhancedPreset: null,
+      sampleStreamer: null,
+    };
+    service.importedAudio.set([imported]);
+    service.selectedAudio.set(imported);
+
+    await expect(service.transcribeSelectedToMidi()).resolves.toBe(0);
+    expect(addTrackMock).not.toHaveBeenCalled();
+    expect(replaceTrackNotesMock).not.toHaveBeenCalled();
+    expect(snackbarMock.info).toHaveBeenCalledWith(
+      "No clear pitch found in this audio",
+    );
+  });
+
+  it("requires a selected import before transcribing", async () => {
+    service.selectedAudio.set(null);
+
+    await expect(service.transcribeSelectedToMidi()).resolves.toBe(0);
+    expect(addTrackMock).not.toHaveBeenCalled();
+    expect(snackbarMock.warning).toHaveBeenCalledWith(
+      "Select an imported audio file first",
+    );
   });
 
   it("should keep imported-audio state empty by default", () => {

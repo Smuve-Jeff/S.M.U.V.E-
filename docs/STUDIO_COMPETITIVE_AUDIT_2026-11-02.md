@@ -84,8 +84,9 @@ real and should not be papered over; the CC-lane one is now closed:
    The engine now samples those lanes into a controller curve per note, and the
    shared voice builder schedules cutoff, pan, expression, pitch bend and
    mod-wheel vibrato for both live playback and offline export.
-4. **The sample economy is thin.** 250K–2M sounds vs. a curated bank; no
-   slicing/time-stretch in the sampler. Beatmakers judge this first.
+4. **The sample economy is thin.** 250K–2M sounds vs. a curated bank. Slicing,
+   transient chopping, pitch-shift and tempo-match now ship in the sampler, but
+   the catalog itself is still the gap. Beatmakers judge this first.
 
 Everything else on the "Behind" list is a feature-depth issue, not an
 architecture issue.
@@ -130,7 +131,7 @@ architecture issue.
 | Cloud / collab | Real projects, sync, community, distribution (BandLab) | Local-first; `MockCloudServer`; peer/socket co-write layer depends on a server | A lost phone loses the project; no cross-device workflow |
 | Hardware MIDI | USB MIDI, MIDI clock, Ableton Link (Cubasis) | Web MIDI only (desktop browsers); Android WebView lacks it | Keyboard/pad owners cannot use their gear on Android |
 | Sample ecosystem | 250K–2M sounds, packs, marketplace (BandLab/FL) | Curated presets + user imports | Beatmakers bounce |
-| Sampling depth | Slicing, time-stretch, auto-chop, per-step graphs (Koala/FL) | Zones, round-robin, ADSR, loop crossfade | Chopping a break is manual |
+| Sampling depth | Slicing, time-stretch, auto-chop, per-step graphs (Koala/FL) | Zones, round-robin, ADSR, loop crossfade, equal/transient slicing, pitch-shift and tempo-match | Per-step graphs and a deeper chop editor remain |
 | Track count / routing | Unlimited tracks, 8 inserts + 8 sends (Cubasis) | 6/12/24 by device tier; VCA + A/B sends | Large sessions hit a ceiling |
 | MIDI expression | 960 PPQ, full CC, MPE (Cubasis/FL) | 16th grid, CC lanes wired, channel/poly aftertouch input, per-note pressure authoring | MPE member-channel bend/pressure voice routing added |
 | Generative AI | SongStarter, Audio-to-MIDI, Voice Changer (BandLab) | Prompt beats, AI mix, AI band, stem split | Fewer one-tap generative tools |
@@ -228,7 +229,7 @@ contrary to the earlier backlog wording.
 | Sample/pack marketplace (licensed + community) | Only way to answer 250K–2M sounds | L |
 | Ableton Link / MIDI clock input | Sync with hardware and other apps | M |
 | Record-a-set export from the DJ booth | Turns the booth into a performance tool | S |
-| Audio-to-MIDI and voice-changer AI | BandLab's most-used generative tools | M |
+| ~~Audio-to-MIDI (monophonic)~~ **Shipped 2 Nov 2026** — recorder takes and any selected import, capped at a 30 s phrase; voice-changer AI remains | BandLab's most-used generative tools | M |
 | User-authored project templates | **Shipped 2 Nov 2026** — save/apply/delete beside the fixed starters | S |
 | Live memory estimate in Engine Metrics | Surfaces the streaming model honestly | S |
 
@@ -243,7 +244,7 @@ contrary to the earlier backlog wording.
 - Reproduce the key negative findings:
   ```bash
   rg -n "sampleCcCurve|midiCc|VoiceControlPoint" src/app/services/audio-engine.service.ts src/app/services/music-manager.service.ts src/app/services/export.service.ts src/app/studio/automation.service.ts
-  rg -n "slice|chop|transient" src/app/studio/sampler              # none
+  rg -n "slice|chop|transient" src/app/studio/sampler              # slicing + auto-chop
   rg -n "MockCloud|mock-cloud" src/app/services                    # mock sync
   rg -n "MockPlayBillingClient" src/app/services                   # mock billing
   rg -n "requestMIDIAccess" src/app                                # Web MIDI only

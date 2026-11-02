@@ -3219,6 +3219,17 @@
           <button
             type="button"
             class="comp-meta-action-btn"
+            [disabled]="audioImport.isTranscribing()"
+            [attr.aria-busy]="audioImport.isTranscribing()"
+            (click)="audioImport.transcribeSelectedToMidi()"
+            title="Transcribe the selected phrase into a MIDI track"
+          >
+            <span class="material-symbols-outlined">graphic_eq</span>
+            {{ audioImport.isTranscribing() ? 'Transcribing…' : 'To MIDI' }}
+          </button>
+          <button
+            type="button"
+            class="comp-meta-action-btn"
             (click)="audioImport.addToProject(selAudio)"
           >
             <span class="material-symbols-outlined">library_music</span>
