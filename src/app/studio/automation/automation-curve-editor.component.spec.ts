@@ -85,6 +85,8 @@ describe('AutomationCurveEditorComponent', () => {
     expect(component.parametersForTarget()).toContain('compressorThreshold');
     expect(component.parametersForTarget()).toContain('band1Threshold');
     expect(component.parametersForTarget()).toContain('band5Ratio');
+    expect(component.parametersForTarget()).toContain('band1Attack');
+    expect(component.parametersForTarget()).toContain('band5Release');
     component.addLane();
     expect(automation.lanes()[0].target.trackId).toBe('master');
 

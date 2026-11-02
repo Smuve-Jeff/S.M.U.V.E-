@@ -485,7 +485,13 @@ export class AudioEngineService {
   private readonly masterMultibandCompressors: DynamicsCompressorNode[] = [];
   private masterMultibandWired = false;
   private masteringBandsState:
-    | Array<{ id: number; threshold: number; ratio: number }>
+    | Array<{
+        id: number;
+        threshold: number;
+        ratio: number;
+        attack?: number;
+        release?: number;
+      }>
     | null = null;
 
   // ── Pro: Quantum Spectral Mastering & Metering Nodes ────────
@@ -1018,6 +1024,8 @@ export class AudioEngineService {
       if (!band) return;
       comp.threshold.setTargetAtTime(band.threshold, now, 0.05);
       comp.ratio.setTargetAtTime(band.ratio, now, 0.05);
+      comp.attack?.setTargetAtTime?.(band.attack ?? 0.01, now, 0.05);
+      comp.release?.setTargetAtTime?.(band.release ?? 0.1, now, 0.05);
     });
   }
 
@@ -1034,7 +1042,13 @@ export class AudioEngineService {
    * compressor for the pre-built multiband tree.
    */
   setMasteringBands(
-    bands: ReadonlyArray<{ id: number; threshold: number; ratio: number }>,
+    bands: ReadonlyArray<{
+      id: number;
+      threshold: number;
+      ratio: number;
+      attack?: number;
+      release?: number;
+    }>,
   ): void {
     const normalized = bands
       .filter(
@@ -1043,11 +1057,21 @@ export class AudioEngineService {
           Number.isFinite(b.threshold) &&
           Number.isFinite(b.ratio),
       )
-      .map((b) => ({
-        id: Math.round(b.id),
-        threshold: Math.round(Math.max(-60, Math.min(0, b.threshold)) * 10) / 10,
-        ratio: Math.round(Math.max(1, Math.min(20, b.ratio)) * 10) / 10,
-      }))
+      .map((b) => {
+        const attack = Number(b.attack);
+        const release = Number(b.release);
+        return {
+          id: Math.round(b.id),
+          threshold: Math.round(Math.max(-60, Math.min(0, b.threshold)) * 10) / 10,
+          ratio: Math.round(Math.max(1, Math.min(20, b.ratio)) * 10) / 10,
+          ...(Number.isFinite(attack)
+            ? { attack: Math.round(Math.max(0.001, Math.min(1, attack)) * 1000) / 1000 }
+            : {}),
+          ...(Number.isFinite(release)
+            ? { release: Math.round(Math.max(0.005, Math.min(3, release)) * 1000) / 1000 }
+            : {}),
+        };
+      })
       .sort((a, b) => a.id - b.id);
     if (normalized.length === 0) return;
     this.masteringBandsState = normalized;
@@ -1059,7 +1083,13 @@ export class AudioEngineService {
     this.applyMasteringBandsToFallback();
   }
 
-  getMasteringBands(): Array<{ id: number; threshold: number; ratio: number }> {
+  getMasteringBands(): Array<{
+    id: number;
+    threshold: number;
+    ratio: number;
+    attack?: number;
+    release?: number;
+  }> {
     return (this.masteringBandsState ?? []).map((b) => ({ ...b }));
   }
 
@@ -4519,18 +4549,37 @@ export class AudioEngineService {
       } else if (parameter === 'highShelf') {
         this.setMasterToneEq({ highShelfDb: value });
       } else {
-        const bandMatch = /^band([1-5])(Threshold|Ratio)$/.exec(parameter);
+        const bandMatch = /^band([1-5])(Threshold|Ratio|Attack|Release)$/.exec(parameter);
         if (bandMatch) {
           const id = Number(bandMatch[1]);
-          const key = bandMatch[2] === 'Threshold' ? 'threshold' : 'ratio';
+          const key =
+            bandMatch[2] === 'Threshold'
+              ? 'threshold'
+              : bandMatch[2] === 'Ratio'
+                ? 'ratio'
+                : bandMatch[2] === 'Attack'
+                  ? 'attack'
+                  : 'release';
           const existing = this.getMasteringBands();
           const settings = this.getCompressorSettings();
-          const bands = Array.from({ length: 5 }, (_, index) => {
+          const bands: Array<{
+            id: number;
+            threshold: number;
+            ratio: number;
+            attack?: number;
+            release?: number;
+          }> = Array.from({ length: 5 }, (_, index) => {
             const bandId = index + 1;
             const current = existing.find((band) => band.id === bandId);
             return current
               ? { ...current }
-              : { id: bandId, threshold: settings.threshold, ratio: settings.ratio };
+              : {
+                  id: bandId,
+                  threshold: settings.threshold,
+                  ratio: settings.ratio,
+                  attack: 0.01,
+                  release: 0.1,
+                };
           });
           bands[id - 1][key] = value;
           this.setMasteringBands(bands);

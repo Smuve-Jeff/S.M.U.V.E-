@@ -168,7 +168,7 @@ shipped 2 Nov 2026; CC/pitch-bend lanes now reach live voices and the bounce.
 Bus tracks, VCA buses, enabled FX-slot plugin parameters, aux return trims,
 master volume and selected master compressor/limiter/filter/tone parameters and per-band
 thresholds/ratios are now selectable automation targets in the arrangement
-editor; per-band attack/release remain outside the lane model. VCA fader moves write lanes while the
+editor; per-band threshold, ratio, attack and release lanes are exposed. VCA fader moves write lanes while the
 transport runs and automation is armed. Touch/latch write modes and adjustable
 smoothing are persisted. Plugin parameter curves are applied during offline
 export with `OfflineAudioContext` suspend points, so a bounce follows the same

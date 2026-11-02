@@ -290,11 +290,15 @@ class MasteringMultiband {
       if (!band) continue;
       const threshold = Number(cfg.threshold);
       const ratio = Number(cfg.ratio);
+      const attack = Number(cfg.attack);
+      const release = Number(cfg.release);
       band.compressor.configure({
         ...(Number.isFinite(threshold)
           ? { thresholdDb: clamp(threshold, -60, 0) }
           : {}),
         ...(Number.isFinite(ratio) ? { ratio: clamp(ratio, 1, 20) } : {}),
+        ...(Number.isFinite(attack) ? { attack: clamp(attack, 0.001, 1) } : {}),
+        ...(Number.isFinite(release) ? { release: clamp(release, 0.005, 3) } : {}),
       });
     }
   }

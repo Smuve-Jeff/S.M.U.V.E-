@@ -411,6 +411,16 @@ export class AutomationCurveEditorComponent implements OnDestroy {
     'band4Ratio',
     'band5Threshold',
     'band5Ratio',
+    'band1Attack',
+    'band1Release',
+    'band2Attack',
+    'band2Release',
+    'band3Attack',
+    'band3Release',
+    'band4Attack',
+    'band4Release',
+    'band5Attack',
+    'band5Release',
   ];
 
   /** Enabled FX slots expose their real plugin params as lane targets. */
