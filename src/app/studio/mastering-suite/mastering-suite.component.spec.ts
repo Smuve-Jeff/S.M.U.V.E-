@@ -285,6 +285,22 @@ describe("MasteringSuite reference A/B", () => {
       );
     });
 
+    it("restores the pre-preset knee on reset", () => {
+      component.applyPreset(preset("streaming"));
+      component.updateBandCompressor(3, "knee", "18.5");
+      expect(component.bands().find((b) => b.id === 3)!.knee).toBe(18.5);
+
+      component.resetPresetEq();
+
+      const band = component.bands().find((b) => b.id === 3)!;
+      expect(band.knee).toBe(6);
+      expect(engineMock.setMasteringBands).toHaveBeenLastCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 3, knee: 6 }),
+        ]),
+      );
+    });
+
     it("does nothing when no preset has shaped the EQ", () => {
       component.resetPresetEq();
 
