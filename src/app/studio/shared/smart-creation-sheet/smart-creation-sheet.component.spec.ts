@@ -11,6 +11,7 @@ import { AudioEngineService } from "../../../services/audio-engine.service";
 import { SnackbarService } from "../../../services/snackbar.service";
 import { UserProfileService } from "../../../services/user-profile.service";
 import { WorkProtectionService } from "../../work-protection.service";
+import { CompositionAuditionService } from "../../../composer/composition-audition.service";
 import { signal } from "@angular/core";
 
 /** jsdom has no TouchEvent — build a plain Event carrying a single touch point. */
@@ -87,6 +88,15 @@ describe("SmartCreationSheetComponent", () => {
     info: jest.fn(),
   };
 
+  const mockCompositionAudition = {
+    rendering: signal(false),
+    playing: signal(false),
+    error: signal<string | null>(null),
+    readyCompositionId: signal<string | null>(null),
+    startScore: jest.fn().mockResolvedValue(undefined),
+    stop: jest.fn(),
+  };
+
   const mockUserProfileService = {
     profile: signal<any>({ settings: { studio: {} } }),
     // Faithful to the real service: the patch is merged into the profile signal
@@ -104,6 +114,10 @@ describe("SmartCreationSheetComponent", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockCompositionAudition.rendering.set(false);
+    mockCompositionAudition.playing.set(false);
+    mockCompositionAudition.error.set(null);
+    mockCompositionAudition.readyCompositionId.set(null);
     window.localStorage.removeItem(SHEET_MEMORY_KEY);
     mockUserProfileService.profile.set({ settings: { studio: {} } });
     await TestBed.configureTestingModule({
@@ -114,6 +128,10 @@ describe("SmartCreationSheetComponent", () => {
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: SnackbarService, useValue: mockSnackbar },
+        {
+          provide: CompositionAuditionService,
+          useValue: mockCompositionAudition,
+        },
         { provide: UserProfileService, useValue: mockUserProfileService },
         {
           provide: WorkProtectionService,
@@ -923,6 +941,90 @@ describe("SmartCreationSheetComponent", () => {
     expect(
       component.templateContents({ tracks: [{ notes: [] }] } as any),
     ).toBe("");
+  });
+
+  it("auditions a saved template pattern without loading the template", async () => {
+    const template = {
+      id: "tpl-1",
+      name: "Night Sketch",
+      bpm: 96,
+      tracks: [
+        {
+          name: "Sub Bass",
+          instrumentId: "sub-commander",
+          type: "midi",
+          notes: [{ midi: 33, step: 0, length: 4, velocity: 0.9 }],
+        },
+        {
+          name: "Drums",
+          instrumentId: "trap-kit-elite",
+          type: "drum",
+          notes: [{ midi: 36, step: 0, length: 1, velocity: 0.9 }],
+        },
+      ],
+    } as any;
+    const tracksBefore = JSON.stringify(mockMusicManager.tracks());
+
+    await component.auditionTemplate(template);
+
+    expect(mockAudioEngine.resume).toHaveBeenCalled();
+    expect(mockCompositionAudition.startScore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "template-preview-tpl-1",
+        bpm: 96,
+        totalBars: 1,
+        parts: expect.arrayContaining([
+          expect.objectContaining({ role: "bass" }),
+          expect.objectContaining({ role: "drums" }),
+        ]),
+      }),
+    );
+    expect(JSON.stringify(mockMusicManager.tracks())).toBe(tracksBefore);
+    expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
+    expect(mockMusicManager.addTrack).not.toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      expect.stringContaining("nothing loaded"),
+    );
+  });
+
+  it("stops a playing template audition instead of restarting it", async () => {
+    const template = {
+      id: "tpl-1",
+      name: "Night Sketch",
+      tracks: [
+        {
+          name: "Lead",
+          instrumentId: "analog-warmth",
+          type: "midi",
+          notes: [{ midi: 67, step: 0, length: 1, velocity: 0.8 }],
+        },
+      ],
+    } as any;
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set("template-preview-tpl-1");
+
+    await component.auditionTemplate(template);
+
+    expect(mockCompositionAudition.stop).toHaveBeenCalled();
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+  });
+
+  it("labels rendering and playback states and rejects patternless templates", async () => {
+    const template = { id: "tpl-1", name: "Night Sketch", tracks: [] } as any;
+    mockCompositionAudition.rendering.set(true);
+    component.auditioningTemplateId.set("tpl-1");
+    expect(component.templateAuditionLabel(template)).toBe("Rendering…");
+
+    mockCompositionAudition.rendering.set(false);
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set("template-preview-tpl-1");
+    expect(component.templateAuditionLabel(template)).toBe("Stop");
+
+    await component.auditionTemplate(template);
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      "This template has no MIDI or drum pattern to audition.",
+    );
   });
 
   it("lists pattern names, launch boundaries and saved versions", () => {

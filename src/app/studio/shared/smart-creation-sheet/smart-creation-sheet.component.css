@@ -1084,6 +1084,45 @@
   background: rgba(0, 0, 0, 0.18);
 }
 
+.sc-template-details-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.sc-template-details-hint {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sc-template-audition {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.08);
+  color: #00e5ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.sc-template-audition .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.sc-template-audition:hover {
+  background: rgba(0, 229, 255, 0.16);
+}
+
 .sc-template-detail {
   display: flex;
   flex-direction: column;

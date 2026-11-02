@@ -1,0 +1,111 @@
+import { templateToAuditionScore } from './template-audition.util';
+import type { ProjectTemplate } from '../../services/project-template.service';
+
+const template = (overrides: Partial<ProjectTemplate> = {}): ProjectTemplate => ({
+  id: 'tpl',
+  name: 'Night Sketch',
+  bpm: 120,
+  genre: 'user',
+  tracks: [
+    {
+      name: 'Sub Bass',
+      instrumentId: 'sub-commander',
+      type: 'midi',
+      notes: [{ midi: 33, step: 0, length: 4, velocity: 0.9 }],
+    },
+    {
+      name: 'Keys',
+      instrumentId: 'grand-piano',
+      type: 'midi',
+      notes: [{ midi: 60, step: 8, length: 2, velocity: 0.7 }],
+    },
+    {
+      name: 'Drums',
+      instrumentId: 'trap-kit-elite',
+      type: 'drum',
+      notes: [
+        { midi: 36, step: 0, length: 1, velocity: 0.95 },
+        { midi: 42, step: 2, length: 1, velocity: 0.5 },
+      ],
+    },
+  ],
+  ...overrides,
+});
+
+describe('templateToAuditionScore', () => {
+  it('projects every playable channel into a four-bar preview score', () => {
+    const score = templateToAuditionScore(template());
+
+    expect(score).not.toBeNull();
+    expect(score!.id).toBe('template-preview-tpl');
+    expect(score!.bpm).toBe(120);
+    expect(score!.parts).toHaveLength(3);
+    expect(score!.parts.map((part) => part.role)).toEqual([
+      'bass',
+      'chords',
+      'drums',
+    ]);
+    expect(score!.parts[0].notes[0]).toEqual({
+      bar: 0,
+      step: 0,
+      midi: 33,
+      length: 4,
+      velocity: 0.9,
+    });
+    expect(score!.parts[2].hits.map((hit) => hit.lane)).toEqual([
+      'kick',
+      'hat',
+    ]);
+  });
+
+  it('uses the active pattern when the live notes are absent', () => {
+    const score = templateToAuditionScore(
+      template({
+        tracks: [
+          {
+            name: 'Lead',
+            instrumentId: 'analog-warmth',
+            type: 'midi',
+            activePatternSlotId: 'slot-1',
+            patternSlots: [
+              {
+                id: 'slot-0',
+                name: 'Verse',
+                notes: [{ midi: 60, step: 0, length: 1, velocity: 0.7 }],
+              },
+              {
+                id: 'slot-1',
+                name: 'Chorus',
+                notes: [{ midi: 67, step: 4, length: 2, velocity: 0.8 }],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(score!.parts[0].notes[0].midi).toBe(67);
+    expect(score!.parts[0].notes[0].step).toBe(4);
+  });
+
+  it('expands the preview length to the last written step and rejects an empty template', () => {
+    const score = templateToAuditionScore(
+      template({
+        bpm: 90,
+        tracks: [
+          {
+            name: 'Pad',
+            instrumentId: 'ethereal-wind',
+            type: 'midi',
+            notes: [{ midi: 50, step: 48, length: 4, velocity: 0.5 }],
+          },
+        ],
+      }),
+    );
+
+    expect(score!.totalBars).toBe(4);
+    expect(score!.durationSeconds).toBeCloseTo((4 * 60) / 90 * 4, 5);
+    expect(score!.parts[0].role).toBe('pad');
+    expect(templateToAuditionScore(template({ tracks: [] }))).toBeNull();
+  });
+});

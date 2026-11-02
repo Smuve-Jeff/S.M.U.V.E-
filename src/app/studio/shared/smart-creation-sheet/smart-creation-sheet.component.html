@@ -256,6 +256,26 @@
               class="sc-template-details"
               [id]="'template-details-' + tpl.id"
             >
+              <div class="sc-template-details-head">
+                <span class="sc-template-details-hint">
+                  Preview the reopening pattern — no channels are replaced.
+                </span>
+                <button
+                  type="button"
+                  class="sc-template-audition"
+                  (click)="auditionTemplate(tpl, $event)"
+                  [attr.aria-label]="
+                    templateAuditionPlaying(tpl)
+                      ? 'Stop template audition ' + tpl.name
+                      : 'Audition template ' + tpl.name
+                  "
+                >
+                  <span class="material-symbols-outlined">{{
+                    templateAuditionPlaying(tpl) ? 'stop' : 'play_arrow'
+                  }}</span>
+                  <span>{{ templateAuditionLabel(tpl) }}</span>
+                </button>
+              </div>
               <div class="sc-template-detail" *ngFor="let detail of templateDetails(tpl)">
                 <div class="sc-template-detail-head">
                   <strong>{{ detail.track }}</strong>

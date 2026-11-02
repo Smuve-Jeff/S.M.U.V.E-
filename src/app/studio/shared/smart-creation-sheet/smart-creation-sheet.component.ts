@@ -16,6 +16,8 @@ import { SnackbarService } from "../../../services/snackbar.service";
 import { UserProfileService } from "../../../services/user-profile.service";
 import type { SmartSheetMemory } from "../../../types/profile.types";
 import { WorkProtectionService } from "../../work-protection.service";
+import { CompositionAuditionService } from "../../../composer/composition-audition.service";
+import { templateToAuditionScore } from "../template-audition.util";
 import {
   ProjectTemplateService,
   type ProjectTemplate,
@@ -104,6 +106,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   private readonly workProtection = inject(WorkProtectionService);
   private profile = inject(UserProfileService);
   private projectTemplates = inject(ProjectTemplateService);
+  private compositionAudition = inject(CompositionAuditionService);
 
   /** The artist's own saved channel/tempo templates, newest first. */
   readonly userTemplates = this.projectTemplates.userTemplates;
@@ -112,6 +115,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly includeTemplatePattern = signal(false);
   /** Which saved template's pattern breakdown is open. */
   readonly expandedTemplateId = signal<string | null>(null);
+  /** Template whose pattern is currently rendering or playing. */
+  readonly auditioningTemplateId = signal<string | null>(null);
 
   @Output() closeSheet = new EventEmitter<void>();
   @Output() navigateToView = new EventEmitter<string>();
@@ -810,6 +815,62 @@ export class SmartCreationSheetComponent implements OnDestroy {
       }
     }
     return details;
+  }
+
+  /** True while this template's pattern preview is the audible one. */
+  templateAuditionPlaying(template: ProjectTemplate): boolean {
+    return (
+      this.compositionAudition.playing() &&
+      this.compositionAudition.readyCompositionId() ===
+        `template-preview-${template.id}`
+    );
+  }
+
+  templateAuditionLabel(template: ProjectTemplate): string {
+    if (
+      this.auditioningTemplateId() === template.id &&
+      this.compositionAudition.rendering()
+    ) {
+      return "Rendering…";
+    }
+    return this.templateAuditionPlaying(template) ? "Stop" : "Audition";
+  }
+
+  /**
+   * Hear a saved template's current pattern without loading it. The preview is
+   * a temporary score; tracks, clips and the open sketch stay exactly as they
+   * are until the artist explicitly loads the template.
+   */
+  async auditionTemplate(
+    template: ProjectTemplate,
+    event?: Event,
+  ): Promise<void> {
+    event?.stopPropagation();
+    const score = templateToAuditionScore(template);
+    if (!score) {
+      this.snackbar.info("This template has no MIDI or drum pattern to audition.");
+      return;
+    }
+    if (this.templateAuditionPlaying(template)) {
+      this.compositionAudition.stop();
+      this.auditioningTemplateId.set(null);
+      this.haptic.light();
+      return;
+    }
+
+    this.haptic.light();
+    this.audioEngine.resume();
+    this.auditioningTemplateId.set(template.id);
+    try {
+      await this.compositionAudition.startScore(score);
+      if (!this.compositionAudition.error()) {
+        this.snackbar.info(
+          `Auditioning “${template.name}” — pattern only, nothing loaded.`,
+        );
+      }
+    } finally {
+      this.auditioningTemplateId.set(null);
+    }
   }
 
   async applyUserTemplate(id: string): Promise<void> {

@@ -3,6 +3,15 @@ import { AudioEngineService } from '../services/audio-engine.service';
 import { NotificationService } from '../services/notification.service';
 import type { ComposerPart, Composition, DrumLane } from './composer.types';
 
+/** A score-shaped preview that does not need a full Composition record. */
+export interface AuditionScore {
+  id: string;
+  bpm: number;
+  durationSeconds: number;
+  totalBars: number;
+  parts: ComposerPart[];
+}
+
 /**
  * Audition renderer.
  *
@@ -82,6 +91,17 @@ export class CompositionAuditionService {
 
   /** Renders the score to an AudioBuffer, then plays it. */
   async render(composition: Composition): Promise<void> {
+    await this.renderScore({
+      id: composition.id,
+      bpm: composition.bpm,
+      durationSeconds: composition.durationSeconds,
+      totalBars: composition.totalBars,
+      parts: composition.parts,
+    });
+  }
+
+  /** Render any score-shaped part list without requiring a Composition. */
+  async renderScore(score: AuditionScore): Promise<void> {
     if (this.rendering()) return;
     const token = ++this.renderToken;
     this.rendering.set(true);
@@ -92,9 +112,9 @@ export class CompositionAuditionService {
     try {
       const seconds = Math.min(
         this.maxAuditionSeconds,
-        Math.max(2, composition.durationSeconds)
+        Math.max(2, score.durationSeconds)
       );
-      const stepSeconds = 60 / Math.max(40, composition.bpm) / 4;
+      const stepSeconds = 60 / Math.max(40, score.bpm) / 4;
       const sampleRate = 44100;
       const frames = Math.ceil(seconds * sampleRate);
       const ctx = new OfflineAudioContext(2, frames, sampleRate);
@@ -112,7 +132,7 @@ export class CompositionAuditionService {
 
       this.noise = this.makeNoiseBuffer(ctx, 1.2);
 
-      for (const part of composition.parts) {
+      for (const part of score.parts) {
         // Reference harmony is context, not a deliverable; leave it out.
         if (part.reference) continue;
         if (part.hits.length) this.scheduleDrums(ctx, master, part, stepSeconds, seconds);
@@ -125,11 +145,11 @@ export class CompositionAuditionService {
       this.previewSeconds.set(Math.round(rendered.duration));
       this.previewBars.set(
         Math.min(
-          composition.totalBars,
+          score.totalBars,
           Math.ceil(rendered.duration / (stepSeconds * 16))
         )
       );
-      this.readyCompositionId.set(composition.id);
+      this.readyCompositionId.set(score.id);
     } catch (cause: any) {
       if (token !== this.renderToken) return;
       this.error.set(
@@ -140,6 +160,24 @@ export class CompositionAuditionService {
     } finally {
       if (token === this.renderToken) this.rendering.set(false);
     }
+  }
+
+  /** Force a score preview to play, without changing any project state. */
+  async startScore(score: AuditionScore): Promise<void> {
+    this.stop();
+    if (this.buffer && this.readyCompositionId() === score.id) {
+      this.playBuffer();
+      return;
+    }
+    await this.renderScore(score);
+    if (this.buffer && !this.error()) this.playBuffer();
+  }
+
+  private playBuffer(): void {
+    if (!this.buffer) return;
+    this.engine.playAudition(this.buffer, () => {
+      // The engine clears its own playback flags; nothing else to release.
+    });
   }
 
   clear(): void {
