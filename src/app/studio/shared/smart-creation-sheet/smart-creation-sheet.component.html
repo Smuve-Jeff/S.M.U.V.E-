@@ -298,6 +298,28 @@
                   </button>
                   <span class="sc-template-detail-launch">{{ detail.launch }}</span>
                 </div>
+                <div
+                  class="sc-template-detail-progress"
+                  *ngIf="patternPreviewActive(tpl, detail)"
+                >
+                  <div
+                    class="sc-template-detail-progress-track"
+                    role="progressbar"
+                    aria-label="Pattern preview progress"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    [attr.aria-valuenow]="patternPreviewProgressPercent(tpl, detail)"
+                    [attr.aria-valuetext]="patternPreviewProgressLabel(tpl, detail)"
+                  >
+                    <div
+                      class="sc-template-detail-progress-fill"
+                      [style.width.%]="patternPreviewProgressPercent(tpl, detail)"
+                    ></div>
+                  </div>
+                  <span class="sc-template-detail-progress-label">
+                    {{ patternPreviewProgressLabel(tpl, detail) }}
+                  </span>
+                </div>
                 <p class="sc-template-detail-versions" *ngIf="detail.versions.length; else noVersions">
                   <button
                     *ngFor="let version of detail.versions"
@@ -307,7 +329,10 @@
                     [class.is-playing]="patternAuditionPlaying(tpl, detail, version.id)"
                     (click)="auditionTemplatePattern(tpl, detail, $event, version.id)"
                     [attr.aria-label]="
-                      'Audition ' + detail.track + ' ' + detail.slot +
+                      (patternAuditionPlaying(tpl, detail, version.id)
+                        ? 'Stop '
+                        : 'Audition ') +
+                      detail.track + ' ' + detail.slot +
                       ' version ' + version.name
                     "
                   >

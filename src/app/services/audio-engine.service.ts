@@ -4231,8 +4231,9 @@ export class AudioEngineService {
   private auditionSource: AudioBufferSourceNode | null = null;
   private readonly auditionMonitorGain = this.ctx.createGain();
   readonly auditionPlaying = signal(false);
-  readonly auditionProgress = signal(0); // 0..1
+  readonly auditionProgress = signal(0); // 0..1, wraps while looping
   readonly auditionDuration = signal(0); // seconds
+  readonly auditionLooping = signal(false);
 
   /**
    * Audition a rendered AudioBuffer through the live audio context. Connects
@@ -4240,30 +4241,42 @@ export class AudioEngineService {
    * so the loop never feeds back through the plugin chain or limiter.
    *
    * @param onEnd optional callback fired when the source finishes naturally
-   *              or is stopped.
+   *              or is stopped. Not fired while looping.
+   * @param options.loop repeat until `stopAudition()` is called.
    */
-  playAudition(buffer: AudioBuffer, onEnd?: () => void): void {
+  playAudition(
+    buffer: AudioBuffer,
+    onEnd?: () => void,
+    options?: { loop?: boolean },
+  ): void {
     this.stopAudition();
     if (this.ctx.state === 'suspended') void this.ctx.resume();
 
     this.auditionMonitorGain.connect(this.ctx.destination);
     this.auditionMonitorGain.gain.value = 0.95;
 
+    const loop = options?.loop === true;
     const src = this.ctx.createBufferSource();
     src.buffer = buffer;
+    src.loop = loop;
     src.connect(this.auditionMonitorGain);
     const startTs = performance.now();
     this.auditionSource = src;
     this.auditionPlaying.set(true);
     this.auditionDuration.set(buffer.duration);
+    this.auditionLooping.set(loop);
     this.auditionProgress.set(0);
 
     const tick = () => {
       if (this.auditionSource !== src) return;
       const elapsed = (performance.now() - startTs) / 1000;
-      const ratio = Math.min(1, elapsed / Math.max(0.001, buffer.duration));
+      const duration = Math.max(0.001, buffer.duration);
+      // A looping source never ends, so show where we are in the current pass.
+      const ratio = loop
+        ? (elapsed % duration) / duration
+        : Math.min(1, elapsed / duration);
       this.auditionProgress.set(ratio);
-      if (ratio < 1 && this.auditionPlaying()) {
+      if ((loop || ratio < 1) && this.auditionPlaying()) {
         requestAnimationFrame(tick);
       }
     };
@@ -4271,6 +4284,7 @@ export class AudioEngineService {
       if (this.auditionSource !== src) return;
       this.auditionSource = null;
       this.auditionPlaying.set(false);
+      this.auditionLooping.set(false);
       this.auditionProgress.set(0);
       onEnd?.();
     };
@@ -4279,6 +4293,7 @@ export class AudioEngineService {
   }
 
   stopAudition(): void {
+    this.auditionLooping.set(false);
     const src = this.auditionSource;
     if (!src) return;
     try {

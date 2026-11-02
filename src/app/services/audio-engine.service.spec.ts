@@ -22,6 +22,7 @@ function makeBareEngine() {
   (svc as any).auditionPlaying = signal(false);
   (svc as any).auditionProgress = signal(0);
   (svc as any).auditionDuration = signal(0);
+  (svc as any).auditionLooping = signal(false);
   (svc as any).masterPluginIds = signal<string[]>([]);
   // Live plugin inserts are hosted by the plugin-chain worklet; bare instances
   // start with the module "loaded" and a stub logger so a unit test never
@@ -590,17 +591,28 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
 
       svc.playAudition(buf);
       expect(sp.start).toHaveBeenCalled();
+      expect(sp.loop).toBe(false);
       expect(svc.auditionPlaying()).toBe(true);
+      expect(svc.auditionLooping()).toBe(false);
       expect(svc.auditionDuration()).toBe(4);
 
       svc.stopAudition();
       expect(sp.stop).toHaveBeenCalled();
+
+      svc.playAudition(buf, undefined, { loop: true });
+      expect(sp.loop).toBe(true);
+      expect(sp.start).toHaveBeenCalledTimes(2);
+      expect(svc.auditionLooping()).toBe(true);
+
+      svc.stopAudition();
+      expect(svc.auditionLooping()).toBe(false);
     });
 
     it('auditionPlayback is false at rest', () => {
       svc = makeBareEngine();
       expect(svc.auditionPlaying()).toBe(false);
       expect(svc.auditionProgress()).toBe(0);
+      expect(svc.auditionLooping()).toBe(false);
     });
   });
 

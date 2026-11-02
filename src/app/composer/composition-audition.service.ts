@@ -92,9 +92,7 @@ export class CompositionAuditionService {
       void this.render(composition);
       return;
     }
-    this.engine.playAudition(this.buffer, () => {
-      // The engine clears its own playback flags; nothing else to release.
-    });
+    this.playBuffer();
   }
 
   stop(): void {
@@ -174,11 +172,14 @@ export class CompositionAuditionService {
     }
   }
 
-  /** Force a score preview to play, without changing any project state. */
-  async startScore(score: AuditionScore): Promise<void> {
+  /**
+   * Force a score preview to play, without changing any project state. Pass
+   * `loop` for short pattern auditions that should repeat until stopped.
+   */
+  async startScore(score: AuditionScore, loop = false): Promise<void> {
     this.stop();
     if (this.buffer && this.readyCompositionId() === score.id) {
-      this.playBuffer();
+      this.playBuffer(loop);
       return;
     }
     // Abandon any in-flight render so quickly switching rows never plays the
@@ -194,15 +195,19 @@ export class CompositionAuditionService {
       this.readyCompositionId() === score.id &&
       !this.error()
     ) {
-      this.playBuffer();
+      this.playBuffer(loop);
     }
   }
 
-  private playBuffer(): void {
+  private playBuffer(loop = false): void {
     if (!this.buffer) return;
-    this.engine.playAudition(this.buffer, () => {
-      // The engine clears its own playback flags; nothing else to release.
-    });
+    this.engine.playAudition(
+      this.buffer,
+      () => {
+        // The engine clears its own playback flags; nothing else to release.
+      },
+      { loop },
+    );
   }
 
   clear(): void {

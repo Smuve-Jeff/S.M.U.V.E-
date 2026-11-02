@@ -885,6 +885,69 @@ export class SmartCreationSheetComponent implements OnDestroy {
     return this.previewLabel(this.patternPreviewId(template, detail, versionId));
   }
 
+  /** The live row or saved version currently audible for this row, if any. */
+  private activePatternPreview(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+  ): {
+    id: string;
+    version?: TemplatePatternDetail["versions"][number];
+  } | null {
+    const liveId = this.patternPreviewId(template, detail);
+    if (this.previewPlaying(liveId)) return { id: liveId };
+    for (const version of detail.versions) {
+      const id = this.patternPreviewId(template, detail, version.id);
+      if (this.previewPlaying(id)) return { id, version };
+    }
+    return null;
+  }
+
+  /** Whether this row has an audible preview to show progress for. */
+  patternPreviewActive(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+  ): boolean {
+    return this.activePatternPreview(template, detail) !== null;
+  }
+
+  /** Position in the current pass, 0–100, for the row progress strip. */
+  patternPreviewProgressPercent(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+  ): number {
+    if (!this.patternPreviewActive(template, detail)) return 0;
+    return Math.round(
+      Math.max(0, Math.min(1, this.compositionAudition.progress())) * 100,
+    );
+  }
+
+  /** Names the audible take and shows its bar/clock position while looping. */
+  patternPreviewProgressLabel(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+  ): string {
+    const active = this.activePatternPreview(template, detail);
+    if (!active) return "";
+    const progress = Math.max(
+      0,
+      Math.min(1, this.compositionAudition.progress()),
+    );
+    const seconds = Math.max(0, this.compositionAudition.previewSeconds());
+    const bars = Math.max(1, this.compositionAudition.previewBars());
+    const bar = Math.min(bars, Math.floor(progress * bars) + 1);
+    const take = active.version?.name ?? "Live pattern";
+    return `${take} · bar ${bar}/${bars} · ${this.previewClock(
+      progress * seconds,
+    )} / ${this.previewClock(seconds)} · loop`;
+  }
+
+  private previewClock(seconds: number): string {
+    const total = Math.max(0, Math.round(seconds));
+    return `${Math.floor(total / 60)}:${(total % 60)
+      .toString()
+      .padStart(2, "0")}`;
+  }
+
   /**
    * Hear every reopening pattern in a template without loading it. The preview
    * is a temporary score; tracks, clips and the open sketch stay exactly as they
@@ -936,6 +999,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       `${template.name} — ${detail.track} · ${detail.slot}${
         version ? ` · ${version.name}` : ""
       }`,
+      true,
     );
   }
 
@@ -943,6 +1007,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   private async previewScore(
     score: AuditionScore,
     label: string,
+    loop = false,
   ): Promise<void> {
     if (this.previewPlaying(score.id)) {
       this.compositionAudition.stop();
@@ -955,7 +1020,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.audioEngine.resume();
     this.auditioningPreviewId.set(score.id);
     try {
-      await this.compositionAudition.startScore(score);
+      await this.compositionAudition.startScore(score, loop);
       if (!this.compositionAudition.error()) {
         this.snackbar.info(
           `Auditioning ${label} — preview only, nothing loaded.`,

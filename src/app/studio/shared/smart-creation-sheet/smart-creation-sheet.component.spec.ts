@@ -93,6 +93,9 @@ describe("SmartCreationSheetComponent", () => {
     playing: signal(false),
     error: signal<string | null>(null),
     readyCompositionId: signal<string | null>(null),
+    progress: signal(0),
+    previewSeconds: signal(0),
+    previewBars: signal(1),
     startScore: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn(),
   };
@@ -118,6 +121,9 @@ describe("SmartCreationSheetComponent", () => {
     mockCompositionAudition.playing.set(false);
     mockCompositionAudition.error.set(null);
     mockCompositionAudition.readyCompositionId.set(null);
+    mockCompositionAudition.progress.set(0);
+    mockCompositionAudition.previewSeconds.set(0);
+    mockCompositionAudition.previewBars.set(1);
     window.localStorage.removeItem(SHEET_MEMORY_KEY);
     mockUserProfileService.profile.set({ settings: { studio: {} } });
     await TestBed.configureTestingModule({
@@ -978,6 +984,7 @@ describe("SmartCreationSheetComponent", () => {
           expect.objectContaining({ role: "drums" }),
         ]),
       }),
+      false,
     );
     expect(JSON.stringify(mockMusicManager.tracks())).toBe(tracksBefore);
     expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
@@ -1075,6 +1082,7 @@ describe("SmartCreationSheetComponent", () => {
           }),
         ],
       }),
+      true,
     );
 
     await component.auditionTemplatePattern(
@@ -1093,6 +1101,7 @@ describe("SmartCreationSheetComponent", () => {
           }),
         ],
       }),
+      true,
     );
     expect(JSON.stringify(mockMusicManager.tracks())).toBe(tracksBefore);
     expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
@@ -1142,6 +1151,63 @@ describe("SmartCreationSheetComponent", () => {
       expect.objectContaining({
         id: "template-preview-tpl-1-0-slot-1-v1",
       }),
+      true,
+    );
+  });
+
+  it("shows looping progress for the audible row and names its version", () => {
+    const template = {
+      id: "tpl-3",
+      name: "Progress Sketch",
+      tracks: [
+        {
+          name: "Lead",
+          instrumentId: "analog-warmth",
+          type: "midi",
+          patternSlots: [
+            {
+              id: "slot-1",
+              name: "Hook",
+              notes: [{ midi: 67, step: 0, length: 4, velocity: 0.8 }],
+              versions: [
+                {
+                  id: "v1",
+                  name: "first",
+                  notes: [{ midi: 60, step: 0, length: 2, velocity: 0.7 }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as any;
+    const [detail] = component.templateDetails(template);
+
+    expect(component.patternPreviewActive(template, detail)).toBe(false);
+    expect(component.patternPreviewProgressPercent(template, detail)).toBe(0);
+    expect(component.patternPreviewProgressLabel(template, detail)).toBe("");
+
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(
+      "template-preview-tpl-3-0-slot-1-v1",
+    );
+    mockCompositionAudition.progress.set(0.5);
+    mockCompositionAudition.previewSeconds.set(8);
+    mockCompositionAudition.previewBars.set(2);
+
+    expect(component.patternPreviewActive(template, detail)).toBe(true);
+    expect(component.patternPreviewProgressPercent(template, detail)).toBe(50);
+    expect(component.patternPreviewProgressLabel(template, detail)).toContain(
+      "first",
+    );
+    expect(component.patternPreviewProgressLabel(template, detail)).toContain(
+      "bar 2/2",
+    );
+    expect(component.patternPreviewProgressLabel(template, detail)).toContain(
+      "0:04 / 0:08",
+    );
+    expect(component.patternPreviewProgressLabel(template, detail)).toContain(
+      "loop",
     );
   });
 
