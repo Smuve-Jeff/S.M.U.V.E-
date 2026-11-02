@@ -955,6 +955,15 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
+  /** True while this saved section is the mix being auditioned. */
+  sectionAuditionPlaying(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): boolean {
+    const id = this.sectionPreviewId(template, section);
+    return !!id && this.previewPlaying(id);
+  }
+
   /** Recall a named section and audition it without loading the template. */
   async applySavedSection(
     template: ProjectTemplate,
@@ -962,13 +971,62 @@ export class SmartCreationSheetComponent implements OnDestroy {
     event?: Event,
   ): Promise<void> {
     event?.stopPropagation();
+    const selections = this.savedSectionSelections(template, section);
+    if (!selections.length) {
+      this.snackbar.info("This section no longer matches the template.");
+      return;
+    }
+
+    // A second click is a stop/cancel, never an immediate restart.
+    const previewId = templatePatternsPreviewId(template.id, selections);
+    if (this.previewPlaying(previewId)) {
+      this.compositionAudition.stop();
+      this.auditioningPreviewId.set(null);
+      this.haptic.light();
+      this.snackbar.info(`Stopped section “${section.name}”.`);
+      return;
+    }
+    if (
+      this.auditioningPreviewId() === previewId &&
+      this.compositionAudition.rendering()
+    ) {
+      this.compositionAudition.clear();
+      this.auditioningPreviewId.set(null);
+      this.haptic.light();
+      this.snackbar.info(`Stopped section “${section.name}”.`);
+      return;
+    }
+
+    this.stopTemplateMixPreview(template.id);
+    this.selectedPatternTemplateId = template.id;
+    this.selectedPatternVersions.set(
+      new Map(
+        selections.map((selection) => [
+          templatePatternSelectionKey(selection.trackIndex, selection.slotId),
+          selection.versionId ?? null,
+        ]),
+      ),
+    );
+    this.haptic.medium();
+    await this.auditionTemplateMix(
+      template,
+      undefined,
+      `section “${section.name}”`,
+    );
+  }
+
+  /** Valid rows/versions from a saved section, in saved order. */
+  private savedSectionSelections(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): TemplatePatternSelection[] {
     const details = new Map(
       this.templateDetails(template).map((detail) => [
         templatePatternSelectionKey(detail.trackIndex, detail.slotId),
         detail,
       ]),
     );
-    const next = new Map<string, string | null>();
+    const selections: TemplatePatternSelection[] = [];
     for (const row of section.rows) {
       const key = templatePatternSelectionKey(row.trackIndex, row.slotId);
       const detail = details.get(key);
@@ -978,22 +1036,23 @@ export class SmartCreationSheetComponent implements OnDestroy {
         detail.versions.some((version) => version.id === row.versionId)
           ? row.versionId
           : null;
-      next.set(key, versionId);
+      selections.push({
+        trackIndex: row.trackIndex,
+        slotId: row.slotId,
+        versionId,
+      });
     }
-    if (!next.size) {
-      this.snackbar.info("This section no longer matches the template.");
-      return;
-    }
+    return selections;
+  }
 
-    this.stopTemplateMixPreview(template.id);
-    this.selectedPatternTemplateId = template.id;
-    this.selectedPatternVersions.set(next);
-    this.haptic.medium();
-    await this.auditionTemplateMix(
-      template,
-      undefined,
-      `section “${section.name}”`,
-    );
+  private sectionPreviewId(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): string | null {
+    const selections = this.savedSectionSelections(template, section);
+    return selections.length
+      ? templatePatternsPreviewId(template.id, selections)
+      : null;
   }
 
   removeSavedSection(

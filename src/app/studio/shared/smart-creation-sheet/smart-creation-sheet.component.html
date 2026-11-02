@@ -351,18 +351,31 @@
                   <div class="sc-template-section-items">
                     <div
                       class="sc-template-section-item"
+                      [class.is-playing]="sectionAuditionPlaying(tpl, section)"
                       *ngFor="let section of templateSections(tpl)"
                     >
                       <button
                         type="button"
                         class="sc-template-section-apply"
-                        title="Audition these rows and versions in the mix"
+                        [class.is-playing]="sectionAuditionPlaying(tpl, section)"
+                        [attr.title]="
+                          sectionAuditionPlaying(tpl, section)
+                            ? 'Stop this section audition'
+                            : 'Audition these rows and versions in the mix'
+                        "
+                        [attr.aria-pressed]="sectionAuditionPlaying(tpl, section)"
                         (click)="applySavedSection(tpl, section, $event)"
                         [attr.aria-label]="
-                          'Audition section ' + section.name
+                          (sectionAuditionPlaying(tpl, section)
+                            ? 'Stop section '
+                            : 'Audition section ') + section.name
                         "
                       >
-                        <span class="material-symbols-outlined">playlist_play</span>
+                        <span class="material-symbols-outlined">{{
+                          sectionAuditionPlaying(tpl, section)
+                            ? 'stop'
+                            : 'playlist_play'
+                        }}</span>
                         <span>{{ section.name }}</span>
                         <small>
                           {{ section.rows.length }} row{{

@@ -1355,6 +1355,12 @@
   background: rgba(0, 229, 255, 0.05);
 }
 
+.sc-template-section-item.is-playing {
+  border-color: rgba(119, 255, 192, 0.6);
+  background: rgba(119, 255, 192, 0.12);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.16);
+}
+
 .sc-template-section-apply {
   display: inline-flex;
   align-items: center;
@@ -1378,8 +1384,17 @@
   color: rgba(255, 255, 255, 0.45);
 }
 
-.sc-template-section-apply:hover {
+.sc-template-section-apply:hover,
+.sc-template-section-apply.is-playing {
   background: rgba(0, 229, 255, 0.12);
+}
+
+.sc-template-section-apply.is-playing {
+  color: #fff;
+}
+
+.sc-template-section-apply.is-playing .material-symbols-outlined {
+  color: #77ffc0;
 }
 
 .sc-template-section-remove {

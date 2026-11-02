@@ -1436,6 +1436,34 @@ describe("SmartCreationSheetComponent", () => {
     );
   });
 
+  it("marks a playing section and stops it on a second click", async () => {
+    const template = sectionTemplateFixture();
+    component.toggleTemplateDetails(template);
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const previewId = "template-preview-tpl-7-mix-0:slot-1@v1";
+
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(previewId);
+    expect(component.sectionAuditionPlaying(template, section)).toBe(true);
+
+    await component.applySavedSection(template, section);
+
+    expect(mockCompositionAudition.stop).toHaveBeenCalled();
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith('Stopped section “Lift”.');
+
+    mockCompositionAudition.playing.set(false);
+    mockCompositionAudition.rendering.set(true);
+    component.auditioningPreviewId.set(previewId);
+    await component.applySavedSection(template, section);
+    expect(mockCompositionAudition.clear).toHaveBeenCalled();
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+  });
+
   it("stops a playing mix when its row selection changes", () => {
     const template = {
       id: "tpl-5",
