@@ -21,6 +21,8 @@ export interface SampleMap {
   zones: SampleZone[];
 }
 
+import { resampleToRate } from '../studio/audio-resample.util';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -130,7 +132,10 @@ export class FileLoaderService {
     }
 
     try {
-      return await ctx.decodeAudioData(arrayBuffer.slice(0));
+      const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
+      // Normalise to the graph's rate so imported PCM matches the engine's
+      // filters, envelopes and clock instead of drifting at 44.1 kHz.
+      return await resampleToRate(ctx, decoded, ctx.sampleRate);
     } catch (_error) {
       throw new Error('Failed to decode audio file');
     }

@@ -50,6 +50,7 @@ import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.
 import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
 import { AutomationCurveEditorComponent } from "../automation/automation-curve-editor.component";
 import { AutomationService } from "../automation.service";
+import { STEPS_PER_BAR, TempoMapService } from "../tempo-map.service";
 import { ArrangementMarkersService } from "../arrangement-markers.service";
 import { RecordingStatusService } from "../recording-status.service";
 
@@ -144,6 +145,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   /** The visible editing mode is explicit; the low-level renderer tool follows it. */
   editMode = signal<ArrangementTool>("select");
   activeTool = signal<"select" | "blade" | "glue">("select");
+  readonly tempoMap = inject(TempoMapService);
   selectedClipIds = signal<Set<string>>(new Set());
   snapEnabled = signal(true);
   private readonly automation = inject(AutomationService);
@@ -1228,6 +1230,56 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * Crossfade exactly two overlapping audio clips on the same track.
+   *
+   * The overlap is the shared time range; the earlier clip fades out across
+   * it and the later clip fades in, so the hand-off is equal-power at the
+   * centre instead of a hard cut. Requires two audio clips; MIDI clips have
+   * no waveform to cross.
+   */
+  crossfadeSelected(): void {
+    const ids = Array.from(this.selectedClipIds());
+    if (ids.length !== 2) {
+      this.snackbar.info("Select two overlapping audio clips to crossfade");
+      return;
+    }
+    const first = this.findClipOwner(ids[0]);
+    const second = this.findClipOwner(ids[1]);
+    if (!first || !second || first.track.id !== second.track.id) {
+      this.snackbar.info("Crossfade needs two clips on the same track");
+      return;
+    }
+    if (first.clip.type !== "audio" || second.clip.type !== "audio") {
+      this.snackbar.info("Crossfade applies to audio clips only");
+      return;
+    }
+
+    const [left, right] =
+      first.clip.start <= second.clip.start
+        ? [first, second]
+        : [second, first];
+    const leftEnd = left.clip.start + left.clip.length;
+    const rightEnd = right.clip.start + right.clip.length;
+    const overlap = Math.min(leftEnd, rightEnd) - right.clip.start;
+    if (overlap <= 0) {
+      this.snackbar.info("Move the clips so they overlap, then crossfade");
+      return;
+    }
+
+    this.musicManager.updateClip(left.track.id, left.clip.id, {
+      fadeOut: overlap,
+    });
+    this.musicManager.updateClip(right.track.id, right.clip.id, {
+      fadeIn: overlap,
+    });
+    this.haptic.medium();
+    this.markDirty();
+    this.snackbar.show(
+      `🎚 Crossfade ${this.formatFade(overlap)} · ${left.clip.name || "clip"} → ${right.clip.name || "clip"}`,
+    );
+  }
+
   /** Fade value (bars) of the first selected clip, 0 when none. */
   firstSelectedFade(side: "in" | "out"): number {
     const clip = this.findFirstSelectedClip();
@@ -1239,6 +1291,39 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   formatFade(bars: number): string {
     if (!bars || bars <= 0) return "none";
     return bars === 0.5 ? "½ bar" : `${bars} bar${bars === 1 ? "" : "s"}`;
+  }
+
+  /** Pin the current tempo at the playhead's bar from the arrangement lane. */
+  addTempoHere(): void {
+    const bar = Math.floor(this.musicManager.currentStep() / STEPS_PER_BAR);
+    const marker = this.tempoMap.addMarker(
+      bar * STEPS_PER_BAR,
+      this.musicManager.engine.tempo(),
+    );
+    if (!marker) {
+      this.snackbar.info("Tempo must be between 20 and 300 BPM");
+      return;
+    }
+    this.haptic.light();
+    this.snackbar.show(
+      `⏱ Tempo ${marker.bpm} BPM pinned at bar ${this.tempoMap.barOf(marker)}`,
+    );
+  }
+
+  removeTempoMarker(id: string, event: Event): void {
+    event.stopPropagation();
+    this.tempoMap.removeMarker(id);
+    this.haptic.light();
+  }
+
+  seekToTempoMarker(step: number): void {
+    this.musicManager.engine.seekToStep(step);
+  }
+
+  /** Marker position as a percentage of the arrangement's visible bars. */
+  tempoMarkerLeft(step: number): number {
+    const bars = Math.max(1, this.effectiveBars());
+    return Math.max(0, Math.min(100, (step / (STEPS_PER_BAR * bars)) * 100));
   }
 
   /** Delete all selected clips (history-aware). */

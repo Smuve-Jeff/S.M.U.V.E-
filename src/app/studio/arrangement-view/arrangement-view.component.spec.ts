@@ -15,12 +15,30 @@ import { StudioFocusService } from "../shared/studio-focus.service";
 import { InteractionDialogService } from "../../services/interaction-dialog.service";
 import { RecordingStatusService } from "../recording-status.service";
 
+import { TempoMapService } from "../tempo-map.service";
+
 describe("ArrangementViewComponent", () => {
   let component: ArrangementViewComponent;
   let fixture: ComponentFixture<ArrangementViewComponent>;
 
   const mockDialog = {
     confirm: jest.fn().mockResolvedValue(true),
+  };
+
+  const tempoMarkers = signal([
+    { id: "tempo-1", step: 16, bpm: 90 },
+  ]);
+  const mockTempoMap = {
+    markers: tempoMarkers,
+    addMarker: jest.fn((step: number, bpm: number) => ({
+      id: "tempo-new",
+      step,
+      bpm,
+    })),
+    removeMarker: jest.fn(),
+    barOf: jest.fn((marker: { step: number }) =>
+      Math.floor(marker.step / 16) + 1,
+    ),
   };
 
   const mockAudioSession = {
@@ -106,6 +124,7 @@ describe("ArrangementViewComponent", () => {
       imports: [ArrangementViewComponent, CommonModule, FormsModule],
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
+        { provide: TempoMapService, useValue: mockTempoMap },
         { provide: RecordingStatusService, useValue: mockRecordingStatus },
         {
           provide: MusicManagerService,
@@ -752,6 +771,75 @@ describe("ArrangementViewComponent", () => {
     expect(component.selectedClipIds()).toEqual(new Set());
     expect(mockSnackbar.show).toHaveBeenCalledWith(
       expect.stringContaining("Deleted 2 clips"),
+    );
+  });
+
+  it("pins the tempo map at the playhead bar", () => {
+    mockMusicManager.currentStep.set(32);
+    component.addTempoHere();
+    expect(mockTempoMap.addMarker).toHaveBeenCalledWith(32, 124);
+  });
+
+  it("crossfades two overlapping audio clips on the same track", () => {
+    mockMusicManager.tracks.set([
+      {
+        id: "1",
+        name: "Lead",
+        clips: [
+          {
+            id: "clip-a",
+            start: 0,
+            length: 4,
+            name: "Verse",
+            type: "audio",
+          },
+          {
+            id: "clip-b",
+            start: 3,
+            length: 4,
+            name: "Chorus",
+            type: "audio",
+          },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(["clip-a", "clip-b"]));
+
+    component.crossfadeSelected();
+
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith("1", "clip-a", {
+      fadeOut: 1,
+    });
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith("1", "clip-b", {
+      fadeIn: 1,
+    });
+    expect(mockSnackbar.show).toHaveBeenCalledWith(
+      expect.stringContaining("Crossfade"),
+    );
+  });
+
+  it("refuses to crossfade clips that do not overlap", () => {
+    mockMusicManager.tracks.set([
+      {
+        id: "1",
+        name: "Lead",
+        clips: [
+          { id: "clip-a", start: 0, length: 2, type: "audio" },
+          { id: "clip-b", start: 3, length: 2, type: "audio" },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(["clip-a", "clip-b"]));
+
+    component.crossfadeSelected();
+
+    expect(mockMusicManager.updateClip).not.toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      expect.stringContaining("overlap"),
     );
   });
 

@@ -19,6 +19,7 @@ import { HapticService } from "../../services/haptic.service";
 import { WaveformRendererComponent } from "../waveform-renderer/waveform-renderer.component";
 import { AudioImportService } from "../audio-import.service";
 import { SnackbarService } from "../../services/snackbar.service";
+import { sliceAudioBuffer } from "../sampler-slice.util";
 
 interface SamplerZoneUI {
   pitch: number;
@@ -387,6 +388,40 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     this.refreshZones();
     this.updateWaveform(pitch);
     this.snackbar.success(`Tempo-matched ${source} → ${target} BPM`);
+  }
+
+  /**
+   * Chop the selected zone's sample into equal slices and map them to
+   * consecutive pads starting at the selected pitch. Each slice is a real
+   * AudioBuffer, so pads audition and play independently.
+   */
+  sliceSelected(count = 8): void {
+    if (!this.sampler || this.selectedPitch() === null) return;
+    const basePitch = this.selectedPitch()!;
+    const zone = this.sampler.getZone(basePitch);
+    const buffer = zone?.sampleBuffers?.[0];
+    if (!buffer) {
+      this.haptic.heavy();
+      return;
+    }
+
+    const ctx = this.audioEngine.ctx as BaseAudioContext;
+    const slices = sliceAudioBuffer(ctx, buffer, count);
+    if (slices.length === 0) {
+      this.snackbar.info("This sample is too short to slice");
+      return;
+    }
+
+    slices.forEach((slice, index) => {
+      const pitch = Math.min(127, basePitch + index);
+      this.sampler!.loadSampleToSlot(pitch, slice, 0);
+    });
+    this.haptic.medium();
+    this.refreshZones();
+    this.updateWaveform(basePitch);
+    this.snackbar.success(
+      `✂ Sliced into ${slices.length} pads from MIDI ${basePitch}`,
+    );
   }
 
   // ── Output Channel ──────────────────────────────────

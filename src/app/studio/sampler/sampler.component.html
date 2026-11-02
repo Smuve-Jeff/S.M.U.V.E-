@@ -19,6 +19,18 @@
         <span>{{ isImporting() ? 'Importing...' : 'Import Sample' }}</span>
       </button>
 
+      <!-- Chop into eight pads -->
+      <button
+        type="button"
+        class="sampler-btn sampler-btn-slice"
+        (click)="sliceSelected()"
+        [disabled]="selectedPitch() === null"
+        title="Slice the selected sample into 8 pads"
+      >
+        <span class="material-symbols-outlined">content_cut</span>
+        <span>Slice ×8</span>
+      </button>
+
       <!-- Stop All -->
       <button
         type="button"

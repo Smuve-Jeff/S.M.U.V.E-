@@ -1753,6 +1753,78 @@
   }
 }
 
+/* ── Tempo lane ── */
+.arrangement-tempo-lane {
+  margin: 8px 10px 0;
+  padding: 8px 10px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.arrangement-tempo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.arrangement-tempo-title {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.arrangement-tempo-add,
+.arrangement-tempo-seek,
+.arrangement-tempo-remove {
+  min-height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 10px;
+}
+
+.arrangement-tempo-add {
+  padding: 0 10px;
+}
+
+.arrangement-tempo-track {
+  position: relative;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.arrangement-tempo-marker {
+  position: absolute;
+  top: 2px;
+  display: flex;
+  gap: 2px;
+  transform: translateX(-2px);
+}
+
+.arrangement-tempo-seek {
+  padding: 0 6px;
+  border-color: rgba(14, 124, 123, 0.6);
+  background: rgba(14, 124, 123, 0.24);
+  white-space: nowrap;
+}
+
+.arrangement-tempo-remove {
+  width: 24px;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.arrangement-tempo-empty {
+  margin: 0;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
 /* Paste is dimmed until something has been copied. Without this the button
    reads as merely inactive rather than as waiting on a copy. */
 .arrangement-sheet-grid .studio-secondary-button:disabled {

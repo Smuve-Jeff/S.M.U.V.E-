@@ -145,6 +145,8 @@ type EditSnapshot = Pick<
   | "normalize"
 >;
 
+import { resampleToRate } from './audio-resample.util';
+
 @Injectable({ providedIn: "root" })
 export class AudioImportService {
   private fileLoader = inject(FileLoaderService);
@@ -961,7 +963,11 @@ export class AudioImportService {
       if (audio.editedBlob) {
         try {
           const ab = await audio.editedBlob.arrayBuffer();
-          return await this.audioEngine.ctx.decodeAudioData(ab);
+          return await resampleToRate(
+            this.audioEngine.ctx,
+            await this.audioEngine.ctx.decodeAudioData(ab),
+            this.audioEngine.ctx.sampleRate,
+          );
         } catch {
           // continue to blob fallback
         }
@@ -1044,7 +1050,11 @@ export class AudioImportService {
         null;
       try {
         const arrayBuffer = await blob.arrayBuffer();
-        buffer = await this.audioEngine.ctx.decodeAudioData(arrayBuffer);
+        buffer = await resampleToRate(
+          this.audioEngine.ctx,
+          await this.audioEngine.ctx.decodeAudioData(arrayBuffer),
+          this.audioEngine.ctx.sampleRate,
+        );
       } catch (e) {
         // Edited re-decode failed (rare) — fall back to the unedited buffer
         // so the import still lands in the arrangement.

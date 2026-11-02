@@ -223,6 +223,15 @@
           <span class="material-symbols-outlined text-[10px]">trending_down</span>
           FO
         </button>
+        <button
+          (click)="crossfadeSelected()"
+          class="mini-btn tactile-v42 executive-glass av-fade-btn"
+          title="Crossfade two overlapping audio clips on the same track"
+          aria-label="Crossfade selected clips"
+        >
+          <span class="material-symbols-outlined text-[10px]">compare_arrows</span>
+          XFD
+        </button>
         <!-- Phase F2 — delete selected clips -->
         <button
           (click)="deleteSelected()"
@@ -509,9 +518,56 @@
         [trackId]="musicManager.selectedTrackId()"
         (openBezierEditor)="openBezierEditor.emit($event)"
       ></app-automation-curve-editor>
+    </section>    <section class="arrangement-tempo-lane" aria-label="Tempo map lane">
+      <div class="arrangement-tempo-head">
+        <span class="arrangement-tempo-title">TEMPO LANE</span>
+        <button
+          type="button"
+          class="arrangement-tempo-add"
+          (click)="addTempoHere()"
+          title="Pin the current tempo at the playhead"
+        >
+          + AT PLAYHEAD
+        </button>
+      </div>
+      <div
+        class="arrangement-tempo-track"
+        *ngIf="tempoMap.markers().length > 0; else noTempoMarkers"
+      >
+        <div
+          class="arrangement-tempo-marker"
+          *ngFor="let marker of tempoMap.markers()"
+          [style.left.%]="tempoMarkerLeft(marker.step)"
+        >
+          <button
+            type="button"
+            class="arrangement-tempo-seek"
+            (click)="seekToTempoMarker(marker.step)"
+            [attr.aria-label]="'Seek to ' + marker.bpm + ' BPM at bar ' + tempoMap.barOf(marker)"
+          >
+            {{ marker.bpm }} · BAR {{ tempoMap.barOf(marker) }}
+          </button>
+          <button
+            type="button"
+            class="arrangement-tempo-remove"
+            (click)="removeTempoMarker(marker.id, $event)"
+            [attr.aria-label]="'Remove tempo marker at bar ' + tempoMap.barOf(marker)"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+      <ng-template #noTempoMarkers>
+        <p class="arrangement-tempo-empty">
+          One tempo throughout. Add a change at the playhead.
+        </p>
+      </ng-template>
     </section>
 
-    <section class="arrangement-overview" aria-label="Arrangement overview">
+    <section
+      class="arrangement-overview"
+      aria-label="Arrangement overview"
+    >
       <div class="arrangement-overview-head">
         <span class="arrangement-overview-title">OVERVIEW</span>
         <span class="arrangement-overview-readout">
