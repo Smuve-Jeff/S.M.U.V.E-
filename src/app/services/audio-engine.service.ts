@@ -491,6 +491,7 @@ export class AudioEngineService {
         ratio: number;
         attack?: number;
         release?: number;
+        knee?: number;
       }>
     | null = null;
 
@@ -1026,6 +1027,7 @@ export class AudioEngineService {
       comp.ratio.setTargetAtTime(band.ratio, now, 0.05);
       comp.attack?.setTargetAtTime?.(band.attack ?? 0.01, now, 0.05);
       comp.release?.setTargetAtTime?.(band.release ?? 0.1, now, 0.05);
+      comp.knee?.setTargetAtTime?.(band.knee ?? 6, now, 0.05);
     });
   }
 
@@ -1048,6 +1050,7 @@ export class AudioEngineService {
       ratio: number;
       attack?: number;
       release?: number;
+      knee?: number;
     }>,
   ): void {
     const normalized = bands
@@ -1060,6 +1063,7 @@ export class AudioEngineService {
       .map((b) => {
         const attack = Number(b.attack);
         const release = Number(b.release);
+        const knee = Number(b.knee);
         return {
           id: Math.round(b.id),
           threshold: Math.round(Math.max(-60, Math.min(0, b.threshold)) * 10) / 10,
@@ -1069,6 +1073,9 @@ export class AudioEngineService {
             : {}),
           ...(Number.isFinite(release)
             ? { release: Math.round(Math.max(0.005, Math.min(3, release)) * 1000) / 1000 }
+            : {}),
+          ...(Number.isFinite(knee)
+            ? { knee: Math.round(Math.max(0, Math.min(40, knee)) * 10) / 10 }
             : {}),
         };
       })
@@ -1089,6 +1096,7 @@ export class AudioEngineService {
     ratio: number;
     attack?: number;
     release?: number;
+    knee?: number;
   }> {
     return (this.masteringBandsState ?? []).map((b) => ({ ...b }));
   }
@@ -4549,7 +4557,7 @@ export class AudioEngineService {
       } else if (parameter === 'highShelf') {
         this.setMasterToneEq({ highShelfDb: value });
       } else {
-        const bandMatch = /^band([1-5])(Threshold|Ratio|Attack|Release)$/.exec(parameter);
+        const bandMatch = /^band([1-5])(Threshold|Ratio|Attack|Release|Knee)$/.exec(parameter);
         if (bandMatch) {
           const id = Number(bandMatch[1]);
           const key =
@@ -4559,7 +4567,9 @@ export class AudioEngineService {
                 ? 'ratio'
                 : bandMatch[2] === 'Attack'
                   ? 'attack'
-                  : 'release';
+                  : bandMatch[2] === 'Release'
+                    ? 'release'
+                    : 'knee';
           const existing = this.getMasteringBands();
           const settings = this.getCompressorSettings();
           const bands: Array<{
@@ -4568,6 +4578,7 @@ export class AudioEngineService {
             ratio: number;
             attack?: number;
             release?: number;
+            knee?: number;
           }> = Array.from({ length: 5 }, (_, index) => {
             const bandId = index + 1;
             const current = existing.find((band) => band.id === bandId);
@@ -4579,6 +4590,7 @@ export class AudioEngineService {
                   ratio: settings.ratio,
                   attack: 0.01,
                   release: 0.1,
+                  knee: 6,
                 };
           });
           bands[id - 1][key] = value;

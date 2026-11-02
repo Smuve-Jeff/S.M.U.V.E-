@@ -38,12 +38,13 @@ export function laneRange(
   if (parameter === 'lowShelf' || parameter === 'lowMid' || parameter === 'highShelf') {
     return { min: -18, max: 18 };
   }
-  const bandMatch = /^band([1-5])(Threshold|Ratio|Attack|Release)$/.exec(parameter);
+  const bandMatch = /^band([1-5])(Threshold|Ratio|Attack|Release|Knee)$/.exec(parameter);
   if (bandMatch) {
     if (bandMatch[2] === 'Threshold') return { min: -60, max: 0 };
     if (bandMatch[2] === 'Ratio') return { min: 1, max: 20 };
     if (bandMatch[2] === 'Attack') return { min: 0.001, max: 1 };
-    return { min: 0.005, max: 3 };
+    if (bandMatch[2] === 'Release') return { min: 0.005, max: 3 };
+    return { min: 0, max: 40 };
   }
   if (/cutoff|freq|filter/i.test(parameter)) {
     return { min: 20, max: 20_000, logarithmic: true };
@@ -93,7 +94,7 @@ export function laneParameterLabel(parameter: string): string {
   if (parameter === 'cutoff') return 'CHANNEL CUTOFF';
   if (parameter === 'vca') return 'VCA LEVEL';
   if (parameter === 'filterHz') return 'MASTER FILTER';
-  const bandMatch = /^band([1-5])(Threshold|Ratio|Attack|Release)$/.exec(parameter);
+  const bandMatch = /^band([1-5])(Threshold|Ratio|Attack|Release|Knee)$/.exec(parameter);
   if (bandMatch) return `BAND ${bandMatch[1]} ${bandMatch[2].toUpperCase()}`;
   return parameter
     .replace(/([a-z])([A-Z])/g, '$1 $2')

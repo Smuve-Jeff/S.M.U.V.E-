@@ -31,6 +31,7 @@ interface MasteringBand {
   /** Compressor attack/release in seconds; the UI shows milliseconds. */
   attack: number;
   release: number;
+  knee: number;
 }
 
 interface MasteringPreset {
@@ -405,6 +406,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       ratio: 4.1,
       attack: 0.01,
       release: 0.1,
+      knee: 6,
     },
     {
       id: 2,
@@ -415,6 +417,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       ratio: 2.5,
       attack: 0.01,
       release: 0.1,
+      knee: 6,
     },
     {
       id: 3,
@@ -425,6 +428,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       ratio: 1.8,
       attack: 0.01,
       release: 0.1,
+      knee: 6,
     },
     {
       id: 4,
@@ -435,6 +439,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       ratio: 2.1,
       attack: 0.01,
       release: 0.1,
+      knee: 6,
     },
     {
       id: 5,
@@ -445,6 +450,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       ratio: 1.5,
       attack: 0.01,
       release: 0.1,
+      knee: 6,
     },
   ]);
 
@@ -493,6 +499,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       ratio: number;
       attack: number;
       release: number;
+      knee: number;
     }
   > | null = null;
 
@@ -609,6 +616,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
           ratio: b.ratio,
           attack: b.attack,
           release: b.release,
+          knee: b.knee,
         },
       ]),
     );
@@ -700,7 +708,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
    */
   updateBandCompressor(
     bandId: number,
-    field: "threshold" | "ratio" | "attack" | "release",
+    field: "threshold" | "ratio" | "attack" | "release" | "knee",
     rawValue: string | number,
   ): void {
     const raw = String(rawValue).trim();
@@ -714,7 +722,9 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
           ? Math.max(1, Math.min(20, numeric))
           : field === "attack"
             ? Math.max(0.001, Math.min(1, numeric))
-            : Math.max(0.005, Math.min(3, numeric));
+            : field === "release"
+              ? Math.max(0.005, Math.min(3, numeric))
+              : Math.max(0, Math.min(40, numeric));
     const value =
       field === "attack" || field === "release"
         ? Math.round(clamped * 1000) / 1000
@@ -731,7 +741,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
   /** Commit an input edit and show the clamped value the model accepted. */
   onBandCompressorChange(
     bandId: number,
-    field: "threshold" | "ratio",
+    field: "threshold" | "ratio" | "knee",
     event: Event,
   ): void {
     const input = event.target as HTMLInputElement | null;

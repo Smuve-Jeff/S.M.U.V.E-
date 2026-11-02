@@ -477,7 +477,7 @@ export class ExportService {
       (lane) =>
         lane.enabled &&
         lane.target.trackId === 'master' &&
-        /^band[1-5](Threshold|Ratio|Attack|Release)$/.test(lane.target.parameter),
+        /^band[1-5](Threshold|Ratio|Attack|Release|Knee)$/.test(lane.target.parameter),
     );
     const masterChain = options.onlyTrackIds
       ? null
@@ -583,6 +583,11 @@ export class ExportService {
           `band${band}Release`,
           [comp.release],
           (value) => Math.max(0.005, Math.min(3, value)),
+        );
+        scheduleMaster(
+          `band${band}Knee`,
+          [comp.knee],
+          (value) => Math.max(0, Math.min(40, value)),
         );
       }
     }

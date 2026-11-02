@@ -103,6 +103,7 @@ export function connectOfflineMasterChain(
     ratio: number;
     attack?: number;
     release?: number;
+    knee?: number;
   }> = Array.isArray(existingBands) ? existingBands : [];
   if (forceBands && bands.length < 5) {
     const settings: { threshold?: number; ratio?: number } =
@@ -118,6 +119,7 @@ export function connectOfflineMasterChain(
         ratio: settings.ratio ?? 4,
         attack: 0.01,
         release: 0.14,
+        knee: 6,
       };
     });
   }
@@ -161,6 +163,7 @@ export function connectOfflineMasterChain(
       comp.ratio.value = clamp(band?.ratio, 1, 20, 4);
       comp.attack.value = clamp(band?.attack, 0.001, 1, 0.01);
       comp.release.value = clamp(band?.release, 0.005, 3, 0.14);
+      comp.knee.value = clamp(band?.knee, 0, 40, 6);
       bandTail.connect(comp);
       comp.connect(sum);
     });

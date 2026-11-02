@@ -506,6 +506,20 @@
                 />
                 <span>ms</span>
               </label>
+              <label class="mastering-band-comp-row">
+                <span>KNEE</span>
+                <input
+                  type="number"
+                  [value]="band.knee"
+                  (change)="onBandCompressorChange(band.id, 'knee', $event)"
+                  min="0"
+                  max="40"
+                  step="0.5"
+                  inputmode="decimal"
+                  [attr.aria-label]="band.name + ' compressor knee in dB'"
+                />
+                <span>dB</span>
+              </label>
             </div>
           </div>
         }

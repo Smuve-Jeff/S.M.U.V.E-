@@ -292,6 +292,7 @@ class MasteringMultiband {
       const ratio = Number(cfg.ratio);
       const attack = Number(cfg.attack);
       const release = Number(cfg.release);
+      const knee = Number(cfg.knee);
       band.compressor.configure({
         ...(Number.isFinite(threshold)
           ? { thresholdDb: clamp(threshold, -60, 0) }
@@ -299,6 +300,7 @@ class MasteringMultiband {
         ...(Number.isFinite(ratio) ? { ratio: clamp(ratio, 1, 20) } : {}),
         ...(Number.isFinite(attack) ? { attack: clamp(attack, 0.001, 1) } : {}),
         ...(Number.isFinite(release) ? { release: clamp(release, 0.005, 3) } : {}),
+        ...(Number.isFinite(knee) ? { kneeDb: clamp(knee, 0, 40) } : {}),
       });
     }
   }

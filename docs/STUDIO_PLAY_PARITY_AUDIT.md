@@ -45,7 +45,7 @@ us, or stop Play review from shipping us).
 | 13 | DJ deck | **Ahead** | No record-a-set export; no external MIDI-clock *input* | S |
 | 14 | Mastering suite | Ahead | Reference A/B with loudness matching and one-tap delivery-target conform; no preset idempotence, no spectral delta, no FLAC | M |
 | 15 | Performance mode / pads / performer | At parity | Pad MIDI learn is per-screen; no MIDI-map import/export | S |
-| 16 | Automation | At parity | Aux returns, master volume and selected compressor/limiter/filter/tone parameters are lane targets; per-band threshold, ratio, attack and release lanes are exposed and editable on each Mastering Suite band card | S |
+| 16 | Automation | At parity | Aux returns, master volume and selected compressor/limiter/filter/tone parameters are lane targets; per-band threshold, ratio, attack, release and knee lanes are exposed and editable on each Mastering Suite band card | S |
 | 17 | Export / bounce / share | Behind | Stems, 24-bit and 48 kHz now ship; no FLAC, MP3 bitrate fixed, no project interchange, no export job | **L** |
 | 18 | Project workspace / cloud | **Blocking** | Cloud sync is `MockCloudServer` in the shipping build | **L** |
 | 19 | MIDI hardware + sync | **Blocking** | Web MIDI only; Android WebView has no `requestMIDIAccess` | M |
@@ -547,7 +547,7 @@ The gap is discovery and reach: comping lives in the vocal flow, not on every au
 - FL Mobile: automation clips in the playlist.
 
 **Gaps**
-- VCA fader moves, aux return trims, master volume and selected master worklet parameters now write lanes; per-band threshold, ratio, attack and release lanes now write. The offline master chain schedules the selected master lanes.
+- VCA fader moves, aux return trims, master volume and selected master worklet parameters now write lanes; per-band threshold, ratio, attack, release and knee lanes now write. The offline master chain schedules the selected master lanes.
 - No automation lane for tempo (same gap as §2).
 - Touch and latch write modes exist with adjustable, persisted write smoothing.
 

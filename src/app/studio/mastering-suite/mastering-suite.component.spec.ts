@@ -353,6 +353,23 @@ describe("MasteringSuite reference A/B", () => {
       );
     });
 
+    it("edits per-band compressor knee", () => {
+      const input = { value: "12.5" } as HTMLInputElement;
+
+      component.onBandCompressorChange(2, "knee", {
+        target: input,
+      } as unknown as Event);
+
+      const band = component.bands().find((b) => b.id === 2)!;
+      expect(band.knee).toBe(12.5);
+      expect(input.value).toBe("12.5");
+      expect(engineMock.setMasteringBands).toHaveBeenLastCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 2, knee: 12.5 }),
+        ]),
+      );
+    });
+
     it("pushes band compressor edits into the live master chain", () => {
       component.updateBandCompressor(3, "threshold", "-9.24");
 
