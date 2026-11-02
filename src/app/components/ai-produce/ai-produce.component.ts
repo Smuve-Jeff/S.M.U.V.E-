@@ -21,6 +21,8 @@ import {
 } from '../../services/audio-engine-latency.service';
 import { NotificationService } from '../../services/notification.service';
 import { MusicManagerService } from '../../services/music-manager.service';
+import { formatMemoryBytes } from '../../services/memory-estimate.util';
+import { StudioRecordingEngineService } from '../../studio/studio-recording-engine.service';
 
 interface GenreOption {
   value: string;
@@ -46,11 +48,37 @@ export class AiProduceComponent implements OnDestroy {
   private music = inject(MusicManagerService);
   public engine = inject(AudioEngineService);
   public latency = inject(AudioEngineLatencyService);
+  public recorder = inject(StudioRecordingEngineService);
   private router = inject(Router);
   /** Whether the voice-preview stage card has visible artifacts. */
   hasVoicePreview = computed(() => !!this.produce.currentVoicePreview());
   /** Pull cached latency snapshot for the engine metrics sub-card. */
   engineSnapshot = computed(() => this.latency.snapshot());
+  /**
+   * Live memory wall: JS heap when Chromium exposes it, plus the recorder's
+   * bounded resident PCM. Spilled capture bytes live in IndexedDB, so they are
+   * labelled as spilled rather than added to the resident figure.
+   */
+  memoryReadout = computed(() => {
+    const snapshot = this.engineSnapshot();
+    const capture = this.recorder.capture;
+    const used = snapshot.jsHeapUsedBytes;
+    const limit = snapshot.jsHeapLimitBytes;
+    const residentBytes = capture?.residentBytes ?? 0;
+    const spilledFrames = capture?.spilledFrames ?? 0;
+    const spilledBytes = spilledFrames * 2 * 4;
+    return {
+      heapLabel:
+        used === null || limit === null
+          ? 'Not exposed'
+          : `${formatMemoryBytes(used)} / ${formatMemoryBytes(limit)}`,
+      heapRatio:
+        used !== null && limit !== null && limit > 0 ? used / limit : 0,
+      captureLabel: formatMemoryBytes(residentBytes),
+      spillLabel:
+        spilledBytes > 0 ? `${formatMemoryBytes(spilledBytes)} spilled` : 'none',
+    };
+  });
 
   /** Sprint X3 — benchmark CTA state. */
   isBenchmarking = signal(false);

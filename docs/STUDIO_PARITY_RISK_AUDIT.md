@@ -97,7 +97,7 @@ through the engine graph, which is a design change, not a `latencyHint`.
 (`audio-engine-latency.service.ts:317`) as the trigger for a one-time
 `OfflineAudioContext` resample of imported stems.
 
-## 2. Memory & sample streaming — **OPEN** (everything is fully decoded)
+## 2. Memory & sample streaming — **PARTIAL** (long imports stream; other paths still decode)
 
 `decodeAudioData` appears in 20+ places (`file-loader.service.ts:64/81/133`,
 `library.service.ts:59`, `audio-import.service.ts:770`,
@@ -135,7 +135,7 @@ take itself ~64 MB rather than ~1.4 GB. Nothing is rebuilt or re-decoded, and
 there is no longer a spike at the instant the artist presses stop. The per-channel peak is measured during that same encode, so the
 comp lane reads a level instead of decoding or re-scanning the performance.
 
-**Still open:**
+**Shipped in this item:**
 1. ~~A `SampleStreamer` for long imports: keep a bounded preview buffer resident,~~
    **shipped (`src/app/services/sample-streamer.service.ts` +
    `src/app/studio/audio-import.service.ts` +
@@ -150,9 +150,18 @@ comp lane reads a level instead of decoding or re-scanning the performance.
    `clipLengthSeconds`, `clipSampleRate`, `clipChannels`) onto the arrangement
    clip, and `playStep` / `triggerSampler` schedule from the streamer's resident
    window while advancing its playhead.
-2. Surface a live memory estimate (resident bytes from the capture buffer, plus
-   `performance.memory` where available) in the Engine Metrics card so the
-   artist sees the wall before they hit it.
+2. ~~Surface a live memory estimate (resident bytes from the capture buffer, plus
+   `performance.memory` where available) in the Engine Metrics card~~
+   **shipped 2 Nov 2026:** the `/produce` Engine Metrics card shows JS heap
+   used/limit when Chromium exposes `performance.memory`, the recorder's
+   resident PCM window, and spilled PCM as a separate label so IndexedDB bytes
+   are never counted as RAM. Browsers that hide heap counters say "Not
+   exposed" instead of inventing a number.
+
+**Still open:** the other `decodeAudioData` call sites (short one-shots, library
+previews and several editor imports) still decode whole files. The new readout
+makes their heap cost visible; moving those paths onto the streamer is the
+remaining work.
 
 ## 3. Battery / thermal — **PARTIAL**
 

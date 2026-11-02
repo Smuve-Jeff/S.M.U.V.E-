@@ -231,7 +231,7 @@ contrary to the earlier backlog wording.
 | Record-a-set export from the DJ booth | Turns the booth into a performance tool | S |
 | ~~Audio-to-MIDI (monophonic)~~ **Shipped 2 Nov 2026** — recorder takes and any selected import, capped at a 30 s phrase; voice-changer AI remains | BandLab's most-used generative tools | M |
 | User-authored project templates | **Shipped 2 Nov 2026** — save/apply/delete beside the fixed starters | S |
-| Live memory estimate in Engine Metrics | Surfaces the streaming model honestly | S |
+| ~~Live memory estimate in Engine Metrics~~ **Shipped 2 Nov 2026** — used/limit JS heap plus the recorder's resident PCM window, with spilled PCM called out separately | Surfaces the streaming model honestly | S |
 
 ---
 

@@ -10,6 +10,7 @@ import { AudioEngineService } from './audio-engine.service';
 import { LoggingService } from './logging.service';
 import { UserProfileService } from './user-profile.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
+import { readHeapMemory } from './memory-estimate.util';
 import {
   findClickBursts,
   loopbackConfidence,
@@ -64,6 +65,9 @@ export interface LatencySnapshot {
   performanceTier: 'ultra' | 'performance';
   cpuHeadroomHint: 'headroom' | 'near' | 'tight';
   contextState: AudioContextState;
+  /** Chromium-only JS heap counters; null when the host does not expose them. */
+  jsHeapUsedBytes: number | null;
+  jsHeapLimitBytes: number | null;
 }
 
 export interface BenchmarkResult {
@@ -460,6 +464,7 @@ export class AudioEngineLatencyService {
         : totalLatencyMs < 60
           ? 'near'
           : 'tight';
+    const heap = readHeapMemory();
     return {
       sampleRateHz: sampleRate,
       baseLatencySec: base,
@@ -473,6 +478,8 @@ export class AudioEngineLatencyService {
       performanceTier,
       cpuHeadroomHint,
       contextState: ctx?.state ?? 'suspended',
+      jsHeapUsedBytes: heap?.usedBytes ?? null,
+      jsHeapLimitBytes: heap?.limitBytes ?? null,
     };
   }
 

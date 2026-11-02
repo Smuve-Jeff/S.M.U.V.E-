@@ -878,6 +878,15 @@
   color: var(--success);
 }
 
+.memory-subvalue {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
 /* Sprint X3 — Engine benchmark CTA */
 .benchmark-row {
   margin-top: 0.6rem;

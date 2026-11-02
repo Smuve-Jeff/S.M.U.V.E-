@@ -414,6 +414,25 @@
         <span class="meta-label">CPU Tier</span>
         <span class="meta-value">{{ snap.performanceTier }}</span>
       </div>
+      <ng-container *ngIf="memoryReadout() as mem">
+        <div>
+          <span class="meta-label">JS Heap</span>
+          <span class="meta-value"
+            [class.is-tight]="mem.heapRatio >= 0.8"
+            [class.is-near]="mem.heapRatio >= 0.6 && mem.heapRatio < 0.8">
+            {{ mem.heapLabel }}
+          </span>
+        </div>
+        <div>
+          <span class="meta-label">Capture RAM</span>
+          <span class="meta-value" [title]="'Spilled PCM: ' + mem.spillLabel">
+            {{ mem.captureLabel }}
+          </span>
+          <span class="memory-subvalue" *ngIf="mem.spillLabel !== 'none'">
+            {{ mem.spillLabel }}
+          </span>
+        </div>
+      </ng-container>
     </div>
     <!-- Sprint X3 — Engine benchmark CTA. Drives the latency service's
          OfflineAudioContext render from this page so users can spot-check
