@@ -66,14 +66,22 @@ describe("ProjectTemplateService", () => {
             id: "slot-1",
             name: "Chorus",
             launchQuantize: "4bar",
-            activeVersionId: "v1",
+            activeVersionId: "v2",
             versions: [
               {
                 id: "v1",
-                name: "v1",
+                name: "first",
                 steps: new Array(64).fill(false),
                 notes: [
                   { id: "n4", midi: 67, step: 0, length: 4, velocity: 0.82 },
+                ],
+              },
+              {
+                id: "v2",
+                name: "lift",
+                steps: new Array(64).fill(false),
+                notes: [
+                  { id: "n5", midi: 69, step: 2, length: 2, velocity: 0.86 },
                 ],
               },
             ],
@@ -220,7 +228,13 @@ describe("ProjectTemplateService", () => {
     expect(patterned?.tracks[0].activePatternSlotId).toBe("slot-0");
     expect(patterned?.tracks[0].patternSlots?.[0].launchQuantize).toBe("1bar");
     expect(patterned?.tracks[0].patternSlots?.[1].launchQuantize).toBe("4bar");
-    expect(patterned?.tracks[0].patternSlots?.[1].notes[0].midi).toBe(67);
+    expect(patterned?.tracks[0].patternSlots?.[1].notes[0].midi).toBe(69);
+    expect(
+      patterned?.tracks[0].patternSlots?.[1].versions?.map(
+        (version) => version.name,
+      ),
+    ).toEqual(["first", "lift"]);
+    expect(patterned?.tracks[0].patternSlots?.[1].activeVersionId).toBe("v2");
     expect(patterned?.tracks[2].drumPatternLength).toBe(16);
     expect(patterned?.tracks[2].notes?.[0]).toEqual({
       midi: 36,
@@ -256,11 +270,17 @@ describe("ProjectTemplateService", () => {
             id: "slot-1",
             name: "Chorus",
             launchQuantize: "4bar",
-            versions: [
+            activeVersionId: "v2",
+            versions: expect.arrayContaining([
               expect.objectContaining({
+                id: "v1",
                 notes: [expect.objectContaining({ midi: 67 })],
               }),
-            ],
+              expect.objectContaining({
+                id: "v2",
+                notes: [expect.objectContaining({ midi: 69 })],
+              }),
+            ]),
           }),
         ]),
       }),

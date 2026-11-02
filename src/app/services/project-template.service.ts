@@ -21,11 +21,22 @@ export interface TemplateClip {
   patternSlotId?: string | null;
 }
 
-export interface TemplatePatternSlot {
+export interface TemplatePatternVersion {
   id: string;
   name: string;
   notes: TemplateNote[];
   steps?: boolean[];
+}
+
+export interface TemplatePatternSlot {
+  id: string;
+  name: string;
+  /** Live editor state, which may be newer than the saved versions. */
+  notes: TemplateNote[];
+  steps?: boolean[];
+  /** Saved versions, oldest first. */
+  versions?: TemplatePatternVersion[];
+  activeVersionId?: string;
   /** The slot's own launch boundary; null inherits the session grid. */
   launchQuantize?: LaunchQuantize | null;
 }
@@ -86,6 +97,10 @@ const MAX_TEMPLATE_NAME = 60;
 const MAX_TEMPLATE_NOTES = 512;
 const MAX_TEMPLATE_CLIPS = 128;
 const MAX_TEMPLATE_SLOTS = 16;
+const MAX_TEMPLATE_VERSIONS = 12;
+
+const normalizeSteps = (steps?: boolean[]): boolean[] =>
+  Array.from({ length: 64 }, (_, index) => !!steps?.[index]);
 
 type TemplateSourceNote = {
   midi: number;
@@ -158,6 +173,23 @@ function isTemplateLaunchQuantize(
   );
 }
 
+function isTemplatePatternVersion(
+  value: unknown,
+): value is TemplatePatternVersion {
+  if (!value || typeof value !== 'object') return false;
+  const version = value as Partial<TemplatePatternVersion>;
+  return (
+    typeof version.id === 'string' &&
+    version.id.length > 0 &&
+    typeof version.name === 'string' &&
+    Array.isArray(version.notes) &&
+    version.notes.every(isTemplateNote) &&
+    (version.steps === undefined ||
+      (Array.isArray(version.steps) &&
+        version.steps.every((step) => typeof step === 'boolean')))
+  );
+}
+
 function isTemplatePatternSlot(value: unknown): value is TemplatePatternSlot {
   if (!value || typeof value !== 'object') return false;
   const slot = value as Partial<TemplatePatternSlot>;
@@ -170,6 +202,11 @@ function isTemplatePatternSlot(value: unknown): value is TemplatePatternSlot {
     (slot.steps === undefined ||
       (Array.isArray(slot.steps) &&
         slot.steps.every((step) => typeof step === 'boolean'))) &&
+    (slot.versions === undefined ||
+      (Array.isArray(slot.versions) &&
+        slot.versions.every(isTemplatePatternVersion))) &&
+    (slot.activeVersionId === undefined ||
+      typeof slot.activeVersionId === 'string') &&
     isTemplateLaunchQuantize(slot.launchQuantize)
   );
 }
@@ -517,14 +554,28 @@ export class ProjectTemplateService {
               slot.id === activeSlotId
                 ? { notes: track.notes ?? [], steps: track.steps ?? [] }
                 : slot.versions.at(-1) ?? { notes: [], steps: [] };
-            const steps = Array.isArray(source.steps)
-              ? Array.from({ length: 64 }, (_, index) => !!source.steps[index])
-              : undefined;
+            const versions = slot.versions
+              .slice(-MAX_TEMPLATE_VERSIONS)
+              .map((version) => ({
+                id: version.id,
+                name: version.name,
+                notes: toTemplateNotes(version.notes ?? []),
+                steps: normalizeSteps(version.steps),
+              }));
+            const activeVersionId =
+              versions.find((version) => version.id === slot.activeVersionId)
+                ?.id ?? versions.at(-1)?.id;
             return {
               id: slot.id,
               name: slot.name || 'Pattern',
               notes: toTemplateNotes(source.notes ?? []),
-              ...(steps ? { steps } : {}),
+              steps: normalizeSteps(source.steps),
+              ...(versions.length
+                ? {
+                    versions,
+                    ...(activeVersionId ? { activeVersionId } : {}),
+                  }
+                : {}),
               launchQuantize: slot.launchQuantize ?? null,
             };
           })
@@ -603,42 +654,58 @@ export class ProjectTemplateService {
       if (!trackId) break;
 
       const patternSlots: PatternSlot[] = (t.patternSlots ?? []).map(
-        (slot, slotIndex) => ({
-          id: slot.id,
-          name: slot.name,
-          activeVersionId: 'v1',
-          versions: [
-            {
-              id: 'v1',
-              name: 'v1',
-              steps:
-                slot.steps?.length === 64
-                  ? [...slot.steps]
-                  : Array.from({ length: 64 }, (_, index) =>
-                      !!slot.steps?.[index],
-                    ),
-              notes: slot.notes.map((entry, index) => ({
-                ...entry,
-                id: `tpl_${trackId}_${slotIndex}_${index}`,
-              })),
-            },
-          ],
-          launchQuantize: slot.launchQuantize ?? null,
-        }),
+        (slot, slotIndex) => {
+          const versions = slot.versions?.length
+            ? slot.versions
+                .slice(-MAX_TEMPLATE_VERSIONS)
+                .map((version, versionIndex) => ({
+                  id: version.id || `v${versionIndex + 1}`,
+                  name: version.name || `v${versionIndex + 1}`,
+                  steps: normalizeSteps(version.steps),
+                  notes: version.notes.map((entry, index) => ({
+                    ...entry,
+                    id: `tpl_${trackId}_${slotIndex}_${versionIndex}_${index}`,
+                  })),
+                }))
+            : [
+                {
+                  id: 'v1',
+                  name: 'v1',
+                  steps: normalizeSteps(slot.steps),
+                  notes: slot.notes.map((entry, index) => ({
+                    ...entry,
+                    id: `tpl_${trackId}_${slotIndex}_0_${index}`,
+                  })),
+                },
+              ];
+          const activeVersionId =
+            versions.find((version) => version.id === slot.activeVersionId)
+              ?.id ?? versions[versions.length - 1].id;
+          return {
+            id: slot.id,
+            name: slot.name,
+            activeVersionId,
+            versions,
+            launchQuantize: slot.launchQuantize ?? null,
+          };
+        },
       );
       const activeSlotId =
         patternSlots.find((slot) => slot.id === t.activePatternSlotId)?.id ??
         patternSlots[0]?.id ??
         null;
-      const activeSlot = patternSlots.find(
+      const activeTemplateSlot = t.patternSlots?.find(
         (slot) => slot.id === activeSlotId,
       );
-      const activeNotes =
-        activeSlot?.versions[0].notes ??
-        (t.notes ?? []).map((entry, index) => ({
-          ...entry,
-          id: `tpl_${trackId}_${index}`,
-        }));
+      const activeNotes = activeTemplateSlot
+        ? activeTemplateSlot.notes.map((entry, index) => ({
+            ...entry,
+            id: `tpl_${trackId}_live_${index}`,
+          }))
+        : (t.notes ?? []).map((entry, index) => ({
+            ...entry,
+            id: `tpl_${trackId}_${index}`,
+          }));
       const hasPattern =
         patternSlots.length > 0 || (t.notes?.length ?? 0) > 0;
       if (!hasPattern) continue;
@@ -652,7 +719,7 @@ export class ProjectTemplateService {
             patternSlots,
             activePatternSlotId: activeSlotId,
             notes: activeNotes,
-            steps: activeSlot?.versions[0].steps ?? [],
+            steps: normalizeSteps(activeTemplateSlot?.steps),
             ...(t.type === 'drum'
               ? { drumPatternLength: t.drumPatternLength ?? 16 }
               : {}),
