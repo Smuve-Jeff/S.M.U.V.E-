@@ -34,6 +34,7 @@ import {
 import {
   ProjectTemplateService,
   type ProjectTemplate,
+  type TemplateSection,
 } from "../../../services/project-template.service";
 
 export interface GenreStarter {
@@ -143,6 +144,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly selectedPatternVersions = signal<
     ReadonlyMap<string, string | null>
   >(new Map());
+  /** Name being edited for a reusable section of the current breakdown. */
+  readonly sectionName = signal("");
   private selectedPatternTemplateId: string | null = null;
 
   @Output() closeSheet = new EventEmitter<void>();
@@ -804,10 +807,12 @@ export class SmartCreationSheetComponent implements OnDestroy {
     if (isOpen) {
       this.stopTemplateMixPreview(template.id);
       this.expandedTemplateId.set(null);
+      this.sectionName.set("");
       this.clearPatternSelection();
       return;
     }
     this.expandedTemplateId.set(template.id);
+    this.sectionName.set("");
     this.selectedPatternTemplateId = template.id;
     this.selectedPatternVersions.set(
       new Map(
@@ -916,6 +921,92 @@ export class SmartCreationSheetComponent implements OnDestroy {
     // or finish rendering over the artist's new choice.
     this.stopTemplateMixPreview(template.id);
     this.haptic.light();
+  }
+
+  templateSections(template: ProjectTemplate): TemplateSection[] {
+    return template.sections ?? [];
+  }
+
+  /** Store the current row/version choices under a reusable section name. */
+  saveCurrentSection(template: ProjectTemplate, event?: Event): void {
+    event?.stopPropagation();
+    const rows = this.selectedPatternSelections(template);
+    if (!this.sectionName().trim() || !rows.length) {
+      this.snackbar.info("Name the section and keep at least one row selected.");
+      return;
+    }
+    const section = this.projectTemplates.saveTemplateSection(
+      template.id,
+      this.sectionName(),
+      rows,
+    );
+    if (!section) {
+      this.snackbar.error(
+        "Could not save this section — check its name, selected rows, or the section limit.",
+      );
+      return;
+    }
+    this.sectionName.set("");
+    this.haptic.medium();
+    this.snackbar.success(
+      `Saved section “${section.name}” with ${section.rows.length} row${
+        section.rows.length === 1 ? "" : "s"
+      }.`,
+    );
+  }
+
+  /** Recall a named section without loading or changing the template. */
+  applySavedSection(
+    template: ProjectTemplate,
+    section: TemplateSection,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    const details = new Map(
+      this.templateDetails(template).map((detail) => [
+        templatePatternSelectionKey(detail.trackIndex, detail.slotId),
+        detail,
+      ]),
+    );
+    const next = new Map<string, string | null>();
+    for (const row of section.rows) {
+      const key = templatePatternSelectionKey(row.trackIndex, row.slotId);
+      const detail = details.get(key);
+      if (!detail) continue;
+      const versionId =
+        row.versionId &&
+        detail.versions.some((version) => version.id === row.versionId)
+          ? row.versionId
+          : null;
+      next.set(key, versionId);
+    }
+    if (!next.size) {
+      this.snackbar.info("This section no longer matches the template.");
+      return;
+    }
+
+    this.stopTemplateMixPreview(template.id);
+    this.selectedPatternTemplateId = template.id;
+    this.selectedPatternVersions.set(next);
+    this.haptic.medium();
+    this.snackbar.success(
+      `Section “${section.name}” applied — ${next.size} row${
+        next.size === 1 ? "" : "s"
+      } in the mix.`,
+    );
+  }
+
+  removeSavedSection(
+    template: ProjectTemplate,
+    section: TemplateSection,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    if (!this.projectTemplates.deleteTemplateSection(template.id, section.id)) {
+      return;
+    }
+    this.haptic.light();
+    this.snackbar.info(`Deleted section “${section.name}”.`);
   }
 
   private clearPatternSelection(): void {
@@ -1275,6 +1366,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     if (this.expandedTemplateId() === id) {
       this.stopTemplateMixPreview(id);
       this.expandedTemplateId.set(null);
+      this.sectionName.set("");
       this.clearPatternSelection();
     }
     this.haptic.light();

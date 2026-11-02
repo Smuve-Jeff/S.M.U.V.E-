@@ -1258,6 +1258,150 @@
   color: #eaffff;
 }
 
+.sc-template-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(119, 255, 192, 0.14);
+  border-radius: 8px;
+  background: rgba(119, 255, 192, 0.035);
+}
+
+.sc-template-section-save {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sc-template-section-save input {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.24);
+  color: #f2fffd;
+  font: inherit;
+  font-size: 11px;
+}
+
+.sc-template-section-save input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.sc-template-section-save input:focus-visible {
+  outline: 2px solid rgba(0, 229, 255, 0.7);
+  outline-offset: 1px;
+}
+
+.sc-template-section-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border: 1px solid rgba(119, 255, 192, 0.32);
+  border-radius: 999px;
+  background: rgba(119, 255, 192, 0.08);
+  color: #9dffd1;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.sc-template-section-save-btn .material-symbols-outlined {
+  font-size: 13px;
+}
+
+.sc-template-section-save-btn:hover:not(:disabled) {
+  background: rgba(119, 255, 192, 0.16);
+}
+
+.sc-template-section-save-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.sc-template-section-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sc-template-section-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(184, 247, 255, 0.55);
+}
+
+.sc-template-section-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sc-template-section-item {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.05);
+}
+
+.sc-template-section-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border: 0;
+  background: transparent;
+  color: #b8f7ff;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.sc-template-section-apply .material-symbols-outlined {
+  font-size: 12px;
+}
+
+.sc-template-section-apply small {
+  margin-left: 2px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.sc-template-section-apply:hover {
+  background: rgba(0, 229, 255, 0.12);
+}
+
+.sc-template-section-remove {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 5px;
+  border: 0;
+  border-left: 1px solid rgba(0, 229, 255, 0.12);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+}
+
+.sc-template-section-remove .material-symbols-outlined {
+  font-size: 12px;
+}
+
+.sc-template-section-remove:hover {
+  background: rgba(255, 120, 120, 0.12);
+  color: #ffb4b4;
+}
+
 .sc-template-detail-audition {
   display: inline-flex;
   align-items: center;

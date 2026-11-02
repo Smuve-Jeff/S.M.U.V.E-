@@ -302,9 +302,62 @@ describe("ProjectTemplateService", () => {
     );
   });
 
+  it("saves, updates and deletes named row/version sections", () => {
+    const template = service.saveCurrentAsTemplate("Section Sketch", true);
+    expect(template).not.toBeNull();
+
+    const section = service.saveTemplateSection(template!.id, "Verse lift", [
+      { trackIndex: 0, slotId: "slot-1", versionId: "v1" },
+      { trackIndex: 2, slotId: null, versionId: null },
+      { trackIndex: 9, slotId: "gone", versionId: "missing" },
+    ]);
+
+    expect(section).not.toBeNull();
+    expect(section?.name).toBe("Verse lift");
+    expect(section?.rows).toEqual([
+      { trackIndex: 0, slotId: "slot-1", versionId: "v1" },
+      { trackIndex: 2, slotId: null, versionId: null },
+      { trackIndex: 9, slotId: "gone", versionId: "missing" },
+    ]);
+    expect(service.userTemplates()[0].sections?.[0].id).toBe(section!.id);
+
+    const updated = service.saveTemplateSection(
+      template!.id,
+      "  verse lift  ",
+      [{ trackIndex: 0, slotId: "slot-0", versionId: "v1" }],
+    );
+    expect(updated?.id).toBe(section!.id);
+    expect(service.userTemplates()[0].sections).toHaveLength(1);
+    expect(service.userTemplates()[0].sections?.[0].rows).toEqual([
+      { trackIndex: 0, slotId: "slot-0", versionId: "v1" },
+    ]);
+
+    expect(
+      service.saveTemplateSection(template!.id, "   ", [
+        { trackIndex: 0, slotId: null },
+      ]),
+    ).toBeNull();
+    expect(
+      service.saveTemplateSection(template!.id, "No rows", []),
+    ).toBeNull();
+    expect(
+      service.saveTemplateSection("missing-template", "Ghost", [
+        { trackIndex: 0, slotId: null },
+      ]),
+    ).toBeNull();
+
+    expect(service.deleteTemplateSection(template!.id, section!.id)).toBe(true);
+    expect(service.userTemplates()[0].sections).toHaveLength(0);
+    expect(service.deleteTemplateSection(template!.id, section!.id)).toBe(false);
+  });
+
   it("persists user templates and applies them like a starter", () => {
     const template = service.saveCurrentAsTemplate("Saved Sketch");
     expect(template).not.toBeNull();
+    const section = service.saveTemplateSection(template!.id, "Verse lift", [
+      { trackIndex: 0, slotId: "slot-1", versionId: "v1" },
+    ]);
+    expect(section).not.toBeNull();
 
     // A fresh service instance reads the stored list back.
     TestBed.resetTestingModule();
@@ -322,6 +375,11 @@ describe("ProjectTemplateService", () => {
     expect(reloaded.userTemplates().map((t) => t.name)).toEqual([
       "Saved Sketch",
     ]);
+    expect(reloaded.userTemplates()[0].sections?.[0]).toMatchObject({
+      id: section!.id,
+      name: "Verse lift",
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    });
 
     reloaded.applyTemplate(template!.id);
     expect(newProject).toHaveBeenCalledWith(true);

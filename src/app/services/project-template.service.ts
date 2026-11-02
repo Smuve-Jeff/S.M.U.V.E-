@@ -56,12 +56,53 @@ export interface ProjectTemplateTrack {
   activePatternSlotId?: string;
 }
 
+/** One row/version choice inside a reusable section of a template preview. */
+export interface TemplateSectionRow {
+  trackIndex: number;
+  slotId: string | null;
+  /** Saved version to use, or null/undefined for the row's live pattern. */
+  versionId?: string | null;
+}
+
+/** Named row/version selection that can be recalled from a template. */
+export interface TemplateSection {
+  id: string;
+  name: string;
+  rows: TemplateSectionRow[];
+}
+
 export interface ProjectTemplate {
   id: string;
   name: string;
   bpm: number;
   genre: string;
   tracks: ProjectTemplateTrack[];
+  /** Reusable preview selections; absent on starter and older templates. */
+  sections?: TemplateSection[];
+}
+
+function toSectionRows(
+  rows: readonly TemplateSectionRow[],
+): TemplateSectionRow[] {
+  const seen = new Set<string>();
+  const normalized: TemplateSectionRow[] = [];
+  for (const row of rows) {
+    if (normalized.length >= MAX_SECTION_ROWS) break;
+    if (!Number.isInteger(row.trackIndex) || row.trackIndex < 0) continue;
+    const slotId = typeof row.slotId === 'string' ? row.slotId : null;
+    const key = `${row.trackIndex}:${slotId ?? 'live'}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    normalized.push({
+      trackIndex: row.trackIndex,
+      slotId,
+      versionId:
+        typeof row.versionId === 'string' && row.versionId
+          ? row.versionId
+          : null,
+    });
+  }
+  return normalized;
 }
 
 const note = (
@@ -98,6 +139,9 @@ const MAX_TEMPLATE_NOTES = 512;
 const MAX_TEMPLATE_CLIPS = 128;
 const MAX_TEMPLATE_SLOTS = 16;
 const MAX_TEMPLATE_VERSIONS = 12;
+const MAX_TEMPLATE_SECTIONS = 12;
+const MAX_SECTION_NAME = 40;
+const MAX_SECTION_ROWS = 64;
 
 const normalizeSteps = (steps?: boolean[]): boolean[] =>
   Array.from({ length: 64 }, (_, index) => !!steps?.[index]);
@@ -190,6 +234,34 @@ function isTemplatePatternVersion(
   );
 }
 
+function isTemplateSectionRow(value: unknown): value is TemplateSectionRow {
+  if (!value || typeof value !== 'object') return false;
+  const row = value as Partial<TemplateSectionRow>;
+  return (
+    Number.isInteger(row.trackIndex) &&
+    (row.trackIndex ?? -1) >= 0 &&
+    (row.slotId === null || typeof row.slotId === 'string') &&
+    (row.versionId === undefined ||
+      row.versionId === null ||
+      typeof row.versionId === 'string')
+  );
+}
+
+function isTemplateSection(value: unknown): value is TemplateSection {
+  if (!value || typeof value !== 'object') return false;
+  const section = value as Partial<TemplateSection>;
+  return (
+    typeof section.id === 'string' &&
+    section.id.length > 0 &&
+    typeof section.name === 'string' &&
+    section.name.trim().length > 0 &&
+    Array.isArray(section.rows) &&
+    section.rows.length > 0 &&
+    section.rows.length <= MAX_SECTION_ROWS &&
+    section.rows.every(isTemplateSectionRow)
+  );
+}
+
 function isTemplatePatternSlot(value: unknown): value is TemplatePatternSlot {
   if (!value || typeof value !== 'object') return false;
   const slot = value as Partial<TemplatePatternSlot>;
@@ -255,7 +327,14 @@ function readUserTemplates(): ProjectTemplate[] {
               .activePatternSlotId === undefined ||
               typeof (track as { activePatternSlotId?: unknown })
                 .activePatternSlotId === 'string'),
-        )
+        ) &&
+        ((template as { sections?: unknown }).sections === undefined ||
+          (Array.isArray((template as { sections?: unknown }).sections) &&
+            ((template as { sections?: unknown[] }).sections ?? []).length <=
+              MAX_TEMPLATE_SECTIONS &&
+            ((template as { sections?: unknown[] }).sections ?? []).every(
+              isTemplateSection,
+            )))
       );
     });
   } catch {
@@ -620,6 +699,75 @@ export class ProjectTemplateService {
       `ProjectTemplateService: Saved user template ${template.name}`,
     );
     return template;
+  }
+
+  /**
+   * Save the current row/version choices as a named section on a user
+   * template. Reusing a name updates that section in place.
+   */
+  saveTemplateSection(
+    templateId: string,
+    name: string,
+    rows: readonly TemplateSectionRow[],
+  ): TemplateSection | null {
+    const trimmed = name.trim().slice(0, MAX_SECTION_NAME);
+    const normalized = toSectionRows(rows);
+    if (!trimmed || !normalized.length) return null;
+
+    const templates = this.userTemplates();
+    const template = templates.find((candidate) => candidate.id === templateId);
+    if (!template) return null;
+
+    const sections = template.sections ?? [];
+    const existing = sections.find(
+      (section) => section.name.trim().toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (!existing && sections.length >= MAX_TEMPLATE_SECTIONS) return null;
+
+    const section: TemplateSection = {
+      id:
+        existing?.id ??
+        `section-${Date.now().toString(36)}-${Math.random()
+          .toString(36)
+          .slice(2, 7)}`,
+      name: trimmed,
+      rows: normalized,
+    };
+    const nextSections = [
+      section,
+      ...sections.filter((candidate) => candidate.id !== section.id),
+    ].slice(0, MAX_TEMPLATE_SECTIONS);
+    const next = templates.map((candidate) =>
+      candidate.id === templateId
+        ? { ...candidate, sections: nextSections }
+        : candidate,
+    );
+
+    this.userTemplates.set(next);
+    this.persist(next);
+    this.logger.info(
+      `ProjectTemplateService: Saved section ${section.name} on ${template.name}`,
+    );
+    return section;
+  }
+
+  /** Remove one named section from a user template. */
+  deleteTemplateSection(templateId: string, sectionId: string): boolean {
+    const templates = this.userTemplates();
+    const template = templates.find((candidate) => candidate.id === templateId);
+    const sections = template?.sections;
+    if (!template || !sections?.length) return false;
+    const nextSections = sections.filter((section) => section.id !== sectionId);
+    if (nextSections.length === sections.length) return false;
+
+    const next = templates.map((candidate) =>
+      candidate.id === templateId
+        ? { ...candidate, sections: nextSections }
+        : candidate,
+    );
+    this.userTemplates.set(next);
+    this.persist(next);
+    return true;
   }
 
   /** Remove one of the artist's templates. Fixed starters are not deletable. */

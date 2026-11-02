@@ -320,6 +320,69 @@
                   {{ mixPreviewProgressLabel(tpl) }}
                 </span>
               </div>
+              <div class="sc-template-sections">
+                <div class="sc-template-section-save">
+                  <input
+                    type="text"
+                    maxlength="40"
+                    placeholder="Name this row/version mix"
+                    [value]="sectionName()"
+                    (input)="sectionName.set($any($event.target).value)"
+                    (keydown.enter)="saveCurrentSection(tpl, $event)"
+                    [attr.aria-label]="'Section name for ' + tpl.name"
+                  />
+                  <button
+                    type="button"
+                    class="sc-template-section-save-btn"
+                    [disabled]="
+                      !sectionName().trim() || selectedPatternCount(tpl) === 0
+                    "
+                    (click)="saveCurrentSection(tpl, $event)"
+                  >
+                    <span class="material-symbols-outlined">bookmark_add</span>
+                    Save section
+                  </button>
+                </div>
+                <div
+                  class="sc-template-section-list"
+                  *ngIf="templateSections(tpl).length"
+                >
+                  <span class="sc-template-section-label">Saved sections</span>
+                  <div class="sc-template-section-items">
+                    <div
+                      class="sc-template-section-item"
+                      *ngFor="let section of templateSections(tpl)"
+                    >
+                      <button
+                        type="button"
+                        class="sc-template-section-apply"
+                        title="Load these rows and versions into the mix"
+                        (click)="applySavedSection(tpl, section, $event)"
+                        [attr.aria-label]="
+                          'Apply section ' + section.name + ' to the mix'
+                        "
+                      >
+                        <span class="material-symbols-outlined">playlist_add_check</span>
+                        <span>{{ section.name }}</span>
+                        <small>
+                          {{ section.rows.length }} row{{
+                            section.rows.length === 1 ? '' : 's'
+                          }}
+                        </small>
+                      </button>
+                      <button
+                        type="button"
+                        class="sc-template-section-remove"
+                        (click)="removeSavedSection(tpl, section, $event)"
+                        [attr.aria-label]="'Delete section ' + section.name"
+                        title="Delete this section"
+                      >
+                        <span class="material-symbols-outlined">delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div class="sc-template-detail" *ngFor="let detail of templateDetails(tpl)">
                 <div class="sc-template-detail-head">
                   <label

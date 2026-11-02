@@ -12,6 +12,7 @@ import { SnackbarService } from "../../../services/snackbar.service";
 import { UserProfileService } from "../../../services/user-profile.service";
 import { WorkProtectionService } from "../../work-protection.service";
 import { CompositionAuditionService } from "../../../composer/composition-audition.service";
+import { ProjectTemplateService } from "../../../services/project-template.service";
 import { signal } from "@angular/core";
 
 /** jsdom has no TouchEvent — build a plain Event carrying a single touch point. */
@@ -38,6 +39,47 @@ const tap = (target: HTMLElement) =>
   target.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
 const SHEET_MEMORY_KEY = "smuve_smart_sheet_memory";
+
+const sectionTemplateFixture = () =>
+  ({
+    id: "tpl-7",
+    name: "Section Sketch",
+    bpm: 100,
+    tracks: [
+      {
+        name: "Lead",
+        instrumentId: "analog-warmth",
+        type: "midi",
+        activePatternSlotId: "slot-1",
+        patternSlots: [
+          {
+            id: "slot-1",
+            name: "Verse",
+            notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+            activeVersionId: "v2",
+            versions: [
+              {
+                id: "v1",
+                name: "first",
+                notes: [{ midi: 60, step: 0, length: 2, velocity: 0.7 }],
+              },
+              {
+                id: "v2",
+                name: "lift",
+                notes: [{ midi: 67, step: 4, length: 4, velocity: 0.9 }],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        name: "Keys",
+        instrumentId: "grand-piano",
+        type: "midi",
+        notes: [{ midi: 48, step: 4, length: 2, velocity: 0.6 }],
+      },
+    ],
+  }) as any;
 
 const readMemory = () =>
   JSON.parse(window.localStorage.getItem(SHEET_MEMORY_KEY) || "null");
@@ -101,6 +143,16 @@ describe("SmartCreationSheetComponent", () => {
     clear: jest.fn(),
   };
 
+  const userTemplatesSignal = signal<any[]>([]);
+  const mockProjectTemplates = {
+    userTemplates: userTemplatesSignal,
+    saveTemplateSection: jest.fn(),
+    deleteTemplateSection: jest.fn(),
+    applyTemplate: jest.fn(),
+    deleteUserTemplate: jest.fn(),
+    saveCurrentAsTemplate: jest.fn(),
+  };
+
   const mockUserProfileService = {
     profile: signal<any>({ settings: { studio: {} } }),
     // Faithful to the real service: the patch is merged into the profile signal
@@ -125,6 +177,7 @@ describe("SmartCreationSheetComponent", () => {
     mockCompositionAudition.progress.set(0);
     mockCompositionAudition.previewSeconds.set(0);
     mockCompositionAudition.previewBars.set(1);
+    userTemplatesSignal.set([]);
     window.localStorage.removeItem(SHEET_MEMORY_KEY);
     mockUserProfileService.profile.set({ settings: { studio: {} } });
     await TestBed.configureTestingModule({
@@ -139,6 +192,7 @@ describe("SmartCreationSheetComponent", () => {
           provide: CompositionAuditionService,
           useValue: mockCompositionAudition,
         },
+        { provide: ProjectTemplateService, useValue: mockProjectTemplates },
         { provide: UserProfileService, useValue: mockUserProfileService },
         {
           provide: WorkProtectionService,
@@ -1300,6 +1354,75 @@ describe("SmartCreationSheetComponent", () => {
       true,
     );
     expect(JSON.stringify(template)).toBe(before);
+  });
+
+  it("saves the current row and version choices as a named section", () => {
+    const template = sectionTemplateFixture();
+    component.toggleTemplateDetails(template);
+    const [lead] = component.templateDetails(template);
+    component.setPatternMixVersion(template, lead, "v1");
+    component.sectionName.set("  Lift  ");
+
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      rows: [
+        { trackIndex: 0, slotId: "slot-1", versionId: "v1" },
+        { trackIndex: 1, slotId: null, versionId: null },
+      ],
+    };
+    mockProjectTemplates.saveTemplateSection.mockReturnValue(section);
+
+    component.saveCurrentSection(template);
+
+    expect(mockProjectTemplates.saveTemplateSection).toHaveBeenCalledWith(
+      "tpl-7",
+      "  Lift  ",
+      [
+        { trackIndex: 0, slotId: "slot-1", versionId: "v1" },
+        { trackIndex: 1, slotId: null, versionId: null },
+      ],
+    );
+    expect(component.sectionName()).toBe("");
+    expect(mockSnackbar.success).toHaveBeenCalledWith(
+      expect.stringContaining("Lift"),
+    );
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+  });
+
+  it("applies and deletes a saved section without loading the template", () => {
+    const template = sectionTemplateFixture();
+    component.toggleTemplateDetails(template);
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      rows: [
+        { trackIndex: 0, slotId: "slot-1", versionId: "v1" },
+        { trackIndex: 9, slotId: "gone", versionId: "missing" },
+      ],
+    };
+
+    component.applySavedSection(template, section);
+
+    const details = component.templateDetails(template);
+    expect(component.selectedPatternCount(template)).toBe(1);
+    expect(component.patternMixVersionId(template, details[0])).toBe("v1");
+    expect(component.patternSelected(template, details[1])).toBe(false);
+    expect(mockSnackbar.success).toHaveBeenCalledWith(
+      expect.stringContaining("1 row"),
+    );
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+
+    mockProjectTemplates.deleteTemplateSection.mockReturnValue(true);
+    component.removeSavedSection(template, section);
+
+    expect(mockProjectTemplates.deleteTemplateSection).toHaveBeenCalledWith(
+      "tpl-7",
+      "sec-1",
+    );
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      expect.stringContaining("Lift"),
+    );
   });
 
   it("stops a playing mix when its row selection changes", () => {
