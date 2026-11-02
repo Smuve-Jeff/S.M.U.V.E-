@@ -37,6 +37,8 @@ export interface DawprojectClip {
   length: number;
   /** Set for rendered/recorded clips that have audio attached. */
   audioId?: string;
+  /** Expanded absolute notes for this clip, when its pattern differs from the track. */
+  notes?: DawprojectNote[];
 }
 
 export interface DawprojectTrack {
@@ -142,14 +144,16 @@ function clipXml(
     ].join("\n");
   }
 
-  const notes = track.notes
-    .filter((note) => {
+  const notes = (clip.notes ?? track.notes.filter((note) => {
       const noteBar = note.step / 16;
       return noteBar >= clip.start && noteBar < clip.start + clip.length;
-    })
+    }))
     .map((note) => {
-      const local = note.step - clip.start * 16;
-      return `            <Note time="${beats(local)}" duration="${beats(Math.max(1, note.length))}" channel="0" key="${Math.max(0, Math.min(127, Math.round(note.midi)))}" vel="${Math.max(0, Math.min(1, note.velocity)).toFixed(3)}"/>`;
+      // Timing offsets and ratchets can move a hit outside the source clip.
+      // Preserve the clip window; place its exported event at the nearest edge.
+      const clipSteps = clip.length * 16;
+      const local = Math.max(0, Math.min(Math.max(0, clipSteps - 0.001), note.step - clip.start * 16));
+      return `            <Note time="${beats(local)}" duration="${beats(Math.max(0.001, note.length))}" channel="0" key="${Math.max(0, Math.min(127, Math.round(note.midi)))}" vel="${Math.max(0, Math.min(1, note.velocity)).toFixed(3)}"/>`;
     });
 
   if (notes.length === 0) {

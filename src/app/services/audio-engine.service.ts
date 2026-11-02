@@ -660,6 +660,8 @@ export class AudioEngineService {
   );
   public currentBeat = signal(0);
   public visualStep = signal(0);
+  /** Unwrapped pattern clock, except when an explicit transport loop resets it. */
+  public visualPatternStep = signal(0);
   /** Audio-clock time the current `visualStep` begins on (see transportStepAt). */
   private visualStepTime = 0;
   /** Duration of the step `visualStep` represents, in seconds. */
@@ -667,13 +669,19 @@ export class AudioEngineService {
   private nextNoteTime = 0;
   private schedulerHandle: any = null;
   private currentStep = 0;
+  /** Reject ticks and visual timers from before a seek or stop. */
+  private clockGeneration = 0;
+  private resumeAudioAtNextStep = false;
   private countInRemainingSteps = 0;
+  private countInStartStep = 0;
   /** Callers waiting for the running count-in to finish (see waitForCountIn). */
   private countInWaiters: (() => void)[] = [];
   public onScheduleStep?: (
     step: number,
     time: number,
-    duration: number
+    duration: number,
+    patternStep?: number,
+    resumeAudio?: boolean
   ) => void;
   public onCountInComplete?: () => void;
   /** Sprint A4 — fire-once callback when song-mode playback reaches the end. */
@@ -1292,6 +1300,8 @@ export class AudioEngineService {
     this.resetLoudnessMeasurement();
     const safeBars = Math.max(1, Math.floor(bars));
     this.countInRemainingSteps = this.stepsPerBar() * safeBars;
+    this.countInStartStep = this.currentStep;
+    if (!this.workletNode) this.currentStep = 0;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
 
     if (this.workletNode) {
@@ -1303,7 +1313,7 @@ export class AudioEngineService {
         type: 'SET_TEMPO_MAP',
         payload: this.tempoMap,
       });
-      this.workletNode.port.postMessage({ type: 'START' });
+      this.workletNode.port.postMessage({ type: 'START', payload: { step: 0, generation: this.clockGeneration, time: this.nextNoteTime } });
     } else {
       this.schedulerHandle = setInterval(
         () => this.scheduler(),
@@ -1340,7 +1350,7 @@ export class AudioEngineService {
         type: 'SET_TEMPO_MAP',
         payload: this.tempoMap,
       });
-      this.workletNode.port.postMessage({ type: 'START' });
+      this.workletNode.port.postMessage({ type: 'START', payload: { step: this.currentStep, generation: this.clockGeneration, time: this.nextNoteTime } });
     } else {
       this.schedulerHandle = setInterval(
         () => this.scheduler(),
@@ -1351,13 +1361,15 @@ export class AudioEngineService {
 
   stop() {
     this.transportGeneration++;
+    this.clockGeneration++;
+    this.resumeAudioAtNextStep = false;
     const wasCountingIn = this.isCountIn();
     this.isPlaying.set(false);
     this.isCountIn.set(false);
     if (wasCountingIn) this.finishCountIn();
     this.sendMidiStop();
     if (this.workletNode) {
-      this.workletNode.port.postMessage({ type: 'STOP' });
+      this.workletNode.port.postMessage({ type: 'STOP', payload: { generation: this.clockGeneration } });
     }
     if (this.schedulerHandle) {
       clearInterval(this.schedulerHandle);
@@ -1366,6 +1378,7 @@ export class AudioEngineService {
     this.currentStep = 0;
     this.currentBeat.set(0);
     this.visualStep.set(0);
+    this.visualPatternStep.set(0);
     this.visualStepTime = 0;
     this.visualStepDuration = 0;
     // Voices are scheduled ahead of the clock, so a stop that only halts the
@@ -1387,7 +1400,8 @@ export class AudioEngineService {
       );
       this.workletNode.port.onmessage = (event) => {
         if (event.data.type === 'TICK') {
-          const { step, time, duration } = event.data.payload;
+          const { step, time, duration, generation } = event.data.payload;
+          if (generation !== this.clockGeneration) return;
           this.handleTick(step, time, duration);
         }
       };
@@ -1444,10 +1458,18 @@ export class AudioEngineService {
         this.isCountIn.set(false);
         this.onCountInComplete?.();
         this.finishCountIn();
-        // Reset step in worklet if possible, else handle here
-        if (this.workletNode)
-          this.workletNode.port.postMessage({ type: 'RESET_STEP' });
-        else this.currentStep = 0;
+        // Resume the selected position after count-in, not always step zero.
+        this.resumeAudioAtNextStep = true;
+        if (this.workletNode) {
+          this.clockGeneration++;
+          this.workletNode.port.postMessage({ type: 'SEEK', payload: {
+            step: this.countInStartStep, generation: this.clockGeneration,
+            time: time + stepDuration,
+          } });
+        } else {
+          // scheduler() increments once after this tick.
+          this.currentStep = this.countInStartStep - 1;
+        }
       }
       return;
     }
@@ -1482,7 +1504,12 @@ export class AudioEngineService {
 
     const loopedStep = displayStep;
 
-    this.onScheduleStep?.(loopedStep, time, stepDuration);
+    // An explicit A/B loop intentionally restarts the channel cycle.
+    const patternStep = this.playMode() === 'pattern' && !(this.playbackLoopEnabled() && hasRegion)
+      ? step : loopedStep;
+    const resumeAudio = this.resumeAudioAtNextStep;
+    this.resumeAudioAtNextStep = false;
+    this.onScheduleStep?.(loopedStep, time, stepDuration, patternStep, resumeAudio);
 
     if (
       this.metronomeEnabled() &&
@@ -1492,11 +1519,12 @@ export class AudioEngineService {
     }
 
     const visualDelay = (time - this.ctx.currentTime) * 1000;
-    const generation = this.transportGeneration;
+    const generation = this.clockGeneration;
     setTimeout(
       () => {
-        if (!this.isPlaying() || generation !== this.transportGeneration) return;
+        if (!this.isPlaying() || generation !== this.clockGeneration) return;
         this.visualStep.set(loopedStep);
+        this.visualPatternStep.set(patternStep);
         this.visualStepTime = time;
         this.visualStepDuration = stepDuration;
         this.currentBeat.set(loopedStep / this.stepsPerBeat());
@@ -1512,22 +1540,17 @@ export class AudioEngineService {
     ) {
       // Read the tempo per step so a tempo map actually bends the timeline
       // instead of only changing the first step of the buffer.
+      const tempoStep = this.playMode() === 'pattern' && !this.playbackLoopEnabled()
+        ? this.currentStep % this.loopLengthSteps() : this.currentStep;
       const stepDuration =
-        60 / this.tempoAtStep(this.currentStep) / this.stepsPerBeat();
+        60 / this.tempoAtStep(tempoStep) / this.stepsPerBeat();
       this.handleTick(this.currentStep, this.nextNoteTime, stepDuration);
       if (!this.isPlaying()) break;
       this.nextNoteTime += stepDuration;
       if (!this.isCountIn()) {
-        // Sprint A4: in song mode the counter goes straight — handleTick
-        // detects the boundary and calls stop() (which clears the
-        // schedulerHandle on its next tick). In pattern mode we wrap to
-        // the existing loopLengthSteps to preserve the original behaviour.
-        if (this.playMode() === 'song' || this.playbackLoopEnabled()) {
-          this.currentStep++;
-        } else {
-          this.currentStep =
-            (this.currentStep + 1) % this.loopLengthSteps();
-        }
+        // handleTick wraps the display; the raw counter keeps independent
+        // odd-length drum cycles running across the transport boundary.
+        this.currentStep++;
       } else {
         this.currentStep++;
       }
@@ -1583,6 +1606,18 @@ export class AudioEngineService {
       else break;
     }
     return bpm;
+  }
+
+  /** Elapsed arrangement time through the tempo map, in seconds. */
+  secondsBetweenSteps(start: number, end: number): number {
+    let position = start;
+    let seconds = 0;
+    for (const marker of this.tempoMap) {
+      if (marker.step <= position || marker.step >= end) continue;
+      seconds += (marker.step - position) * 60 / this.tempoAtStep(position) / this.stepsPerBeat();
+      position = marker.step;
+    }
+    return seconds + Math.max(0, end - position) * 60 / this.tempoAtStep(position) / this.stepsPerBeat();
   }
 
   getTempoMap(): { step: number; bpm: number }[] {
@@ -1684,7 +1719,8 @@ export class AudioEngineService {
         : this.playMode() === 'song'
           ? this.songLengthSteps()
           : this.loopLengthSteps();
-      return start + (position % Math.max(1, end - start));
+      const span = Math.max(1, end - start);
+      return start + (((position - start) % span + span) % span);
     }
     if (this.playMode() === 'song') return position;
     const length = Math.max(1, this.loopLengthSteps());
@@ -3312,6 +3348,7 @@ export class AudioEngineService {
     sampleRate: number = 48000,
     _channels: number = 2,
     stopWithTransport: boolean = false,
+    fadeElapsedSeconds: number = 0,
   ) {
     const isStreamer =
       bufferOrStreamer instanceof SampleStreamer ||
@@ -3329,20 +3366,33 @@ export class AudioEngineService {
     if (!buffer) return;
     const initialOffset = streamer
       ? Math.max(0, clipOriginSeconds - (streamer.getResidentStartSeconds?.() ?? 0))
-      : 0;
+      : Math.max(0, clipOriginSeconds);
 
     const panner = this.ctx.createStereoPanner();
     panner.pan.setValueAtTime(pan, time);
     const gain = this.ctx.createGain();
     const safeDuration = Math.max(0.001, duration);
-    const fadeIn = Math.max(0, Math.min(fadeInSec || 0, safeDuration));
-    const fadeOut = Math.max(0, Math.min(fadeOutSec || 0, safeDuration));
-    gain.gain.setValueAtTime(0, time);
-    if (fadeIn > 0) gain.gain.linearRampToValueAtTime(velocity, time + fadeIn);
-    else gain.gain.setTargetAtTime(velocity, time, 0.005);
+    const fadeElapsed = Math.max(0, fadeElapsedSeconds);
+    const total = fadeElapsed + safeDuration;
+    const fadeIn = Math.max(0, Math.min(fadeInSec || 0, total));
+    const fadeOut = Math.max(0, Math.min(fadeOutSec || 0, total));
+    const fadeOutStart = Math.max(fadeIn, total - fadeOut);
+    const envelopeAt = (position: number) => {
+      if (fadeIn > 0 && position < fadeIn) return velocity * position / fadeIn;
+      if (fadeOut > 0 && position >= fadeOutStart)
+        return velocity * Math.max(0, (total - position) / Math.max(0.001, total - fadeOutStart));
+      return velocity;
+    };
+    if (fadeElapsed === 0) {
+      gain.gain.setValueAtTime(0, time);
+      if (fadeIn > 0) gain.gain.linearRampToValueAtTime(velocity, time + fadeIn);
+      else gain.gain.setTargetAtTime(velocity, time, 0.005);
+    } else {
+      gain.gain.setValueAtTime(envelopeAt(fadeElapsed), time);
+      if (fadeIn > fadeElapsed) gain.gain.linearRampToValueAtTime(velocity, time + fadeIn - fadeElapsed);
+    }
     if (fadeOut > 0) {
-      const fadeStart = time + Math.max(fadeIn, safeDuration - fadeOut);
-      gain.gain.setValueAtTime(velocity, fadeStart);
+      if (fadeOutStart > fadeElapsed) gain.gain.setValueAtTime(velocity, time + fadeOutStart - fadeElapsed);
       gain.gain.linearRampToValueAtTime(0, time + safeDuration);
     } else {
       gain.gain.setValueAtTime(velocity, time + safeDuration - 0.001);
@@ -3360,7 +3410,12 @@ export class AudioEngineService {
         sources.add(source);
         source.onended = () => sources.delete(source);
       }
-      source.start(time);
+      if (initialOffset >= buffer.duration) {
+        if (stopWithTransport) this.presetSampleSources?.delete(source);
+        return;
+      }
+      if (initialOffset > 0) source.start(time, initialOffset);
+      else source.start(time);
       source.stop(time + safeDuration + 0.01);
       return;
     }
@@ -3391,6 +3446,11 @@ export class AudioEngineService {
       source.buffer = currentBuffer;
       source.playbackRate.setValueAtTime(rate, time + elapsed);
       source.connect(panner);
+      if (stopWithTransport) {
+        const sources = this.presetSampleSources ??= new Set();
+        sources.add(source);
+        source.onended = () => sources.delete(source);
+      }
       source.start(time + elapsed, offset, consumed);
       const playedSeconds = consumed / rate;
       elapsed += playedSeconds;
@@ -3964,13 +4024,45 @@ export class AudioEngineService {
     if (this.playMode() === mode) return;
     this.playMode.set(mode);
     if (this.isPlaying()) {
+      this.clockGeneration++;
       this.currentStep = 0;
       this.visualStep.set(0);
+      this.visualPatternStep.set(0);
       this.currentBeat.set(0);
-      // Tell the worklet to restart its step counter from 0 so the
-      // next TICK aligns with our Angular-side state.
-      this.workletNode?.port.postMessage({ type: 'RESET_STEP' });
+      this.resumeAudioAtNextStep = true;
+      this.allNotesOff();
+      this.nextNoteTime = this.ctx.currentTime + 0.05;
+      this.workletNode?.port.postMessage({ type: 'SEEK', payload: {
+        step: 0, generation: this.clockGeneration, time: this.nextNoteTime,
+      } });
     }
+  }
+
+  /** Seek within the current song/pattern or enabled A/B loop. */
+  seekToStep(step: number): number | null {
+    if (!Number.isFinite(step) || this.isRecording() || this.isCountIn()) return null;
+    const length = Math.max(1, this.playMode() === 'song' ? this.songLengthSteps() : this.loopLengthSteps());
+    const start = this.playbackLoopEnabled() && this.playbackLoopStart() !== null && this.playbackLoopEnd() !== null
+      ? this.playbackLoopStart()! : 0;
+    const end = this.playbackLoopEnabled() && this.playbackLoopStart() !== null && this.playbackLoopEnd() !== null
+      ? Math.min(length, this.playbackLoopEnd()!) : length;
+    const position = Math.max(start, Math.min(Math.max(start, end - 1), Math.round(step)));
+    const rawStep = position - start;
+    this.clockGeneration++;
+    this.currentStep = rawStep;
+    this.resumeAudioAtNextStep = true;
+    this.songEnded.set(false);
+    this.visualStep.set(position);
+    this.visualPatternStep.set(position);
+    this.currentBeat.set(position / this.stepsPerBeat());
+    this.nextNoteTime = this.ctx.currentTime + 0.05;
+    this.visualStepTime = this.nextNoteTime;
+    this.visualStepDuration = 60 / this.tempoAtStep(position) / this.stepsPerBeat();
+    if (this.isPlaying()) this.allNotesOff();
+    this.workletNode?.port.postMessage({ type: 'SEEK', payload: {
+      step: rawStep, generation: this.clockGeneration, time: this.nextNoteTime,
+    } });
+    return position;
   }
 
   /**

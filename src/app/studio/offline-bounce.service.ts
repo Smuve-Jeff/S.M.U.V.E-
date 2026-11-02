@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { InstrumentsService, scheduleOfflinePresetSample } from "../services/instruments.service";
-import { MusicManagerService } from "../services/music-manager.service";
+import { drumRatchetCount, MusicManagerService } from "../services/music-manager.service";
 import { WavEncoder } from "./wav-encoder.util";
 import { LoggingService } from "../services/logging.service";
 import { connectOfflineMasterChain } from "../services/offline-master-chain";
@@ -118,6 +118,8 @@ export class OfflineBounceService {
         totalDuration,
         sampleRate,
         onProgress,
+        undefined,
+        durationBars === undefined ? totalSteps - 16 : totalSteps,
       );
 
       this.updateProgress(
@@ -214,6 +216,7 @@ export class OfflineBounceService {
         sampleRate,
         undefined,
         trackId,
+        totalSteps - 16,
       );
 
       const renderedBuffer = await offlineCtx.startRendering();
@@ -323,6 +326,7 @@ export class OfflineBounceService {
         if (endSteps > maxStep) maxStep = endSteps;
       }
       for (const note of track.notes) {
+        if (track.type === 'drum' && track.drumPatternLength && note.step >= this.musicManager.drumPatternSpan(track)) continue;
         const end = note.step + note.length;
         if (end > maxStep) maxStep = end;
       }
@@ -338,6 +342,7 @@ export class OfflineBounceService {
     sampleRate: number,
     onProgress?: (p: BounceProgress) => void,
     onlyTrackId?: string,
+    musicalEndStep = totalSteps,
   ): Promise<void> {
     const tempo = this.engine.tempo();
     const stepsPerBeat = 4;
@@ -400,8 +405,8 @@ export class OfflineBounceService {
       const trackGain = (track as any).gain ?? 0.8;
       const synthParams = this.getTrackSynthParams(track as any);
 
-      const notes = this.instruments.isSamplePreset(track.instrumentId)
-        ? this.musicManager.arrangementNotes(track) : track.notes;
+      const notes = track.type === "drum" || this.instruments.isSamplePreset(track.instrumentId)
+        ? this.musicManager.arrangementNotes(track, musicalEndStep) : track.notes;
       for (const note of notes) {
         if (note.step >= totalSteps) continue;
         this.renderNote(
@@ -413,6 +418,7 @@ export class OfflineBounceService {
           stepDuration,
           track.instrumentId,
           track.pan ?? 0,
+          track.type === "drum",
         );
       }
 
@@ -484,6 +490,7 @@ export class OfflineBounceService {
       velocity: number;
       params?: any;
       microOffset?: number;
+      probability?: number;
       pitchBend?: number;
       notePan?: number;
       articulation?: string;
@@ -494,9 +501,14 @@ export class OfflineBounceService {
     stepDuration: number,
     instrumentId: string,
     trackPan: number,
+    isDrum = false,
   ): void {
+    if (isDrum && note.probability !== undefined && Math.random() >= note.probability) return;
     const startTime = Math.max(0, (note.step + (note.microOffset ?? 0)) * stepDuration);
-    const duration = note.length * stepDuration;
+    const ratchet = isDrum ? drumRatchetCount(note.params) : 1;
+    const duration = ratchet > 1
+      ? Math.min(note.length * stepDuration, stepDuration / ratchet)
+      : note.length * stepDuration;
     const freq = 440 * Math.pow(2, (note.midi - 69) / 12);
     const velocity = note.velocity ?? 0.8;
 
@@ -513,13 +525,15 @@ export class OfflineBounceService {
           ? this.musicManager.stemAudioCache.get(note.params.sampleRefId)
           : undefined;
     if (oneShot && Number.isFinite(oneShot.duration) && oneShot.duration > 0) {
-      const source = ctx.createBufferSource();
-      source.buffer = oneShot;
-      const gain = ctx.createGain();
-      gain.gain.value = Math.max(0, Math.min(1, velocity * trackGain));
-      source.connect(gain);
-      gain.connect(destination);
-      source.start(startTime);
+      for (let hit = 0; hit < ratchet; hit++) {
+        const source = ctx.createBufferSource();
+        source.buffer = oneShot;
+        const gain = ctx.createGain();
+        gain.gain.value = Math.max(0, Math.min(1, velocity * trackGain));
+        source.connect(gain);
+        gain.connect(destination);
+        source.start(startTime + hit * stepDuration / ratchet);
+      }
       return;
     }
 
@@ -532,24 +546,29 @@ export class OfflineBounceService {
         : note.articulation === 'legato' ? 1.1
         : note.articulation === 'pizzicato' ? 0.15
         : note.articulation === 'accent' ? 0.5 : 1;
-      scheduleOfflinePresetSample(ctx, destination, sample, startTime,
-        duration * lengthMul, velocity * trackGain, note.notePan ?? trackPan);
+      for (let hit = 0; hit < ratchet; hit++) {
+        scheduleOfflinePresetSample(ctx, destination, sample, startTime + hit * stepDuration / ratchet,
+          ratchet > 1 ? Math.min(note.length * stepDuration * lengthMul, stepDuration / ratchet) : duration * lengthMul,
+          velocity * trackGain, note.notePan ?? trackPan);
+      }
       return;
     }
 
     // Same voice graph the artist hears: the track's filter, ADSR, sub
     // oscillator, LFO, pitch glide and pan all reach the export instead of a
     // bare oscillator with a fixed envelope.
-    this.engine.scheduleOfflineNote(
-      ctx,
-      destination,
-      freq,
-      startTime,
-      velocity * Math.max(0, trackGain),
-      duration,
-      { ...synthParams, ...(note.params ?? {}) },
-      note.notePan ?? trackPan,
-    );
+    for (let hit = 0; hit < ratchet; hit++) {
+      this.engine.scheduleOfflineNote(
+        ctx,
+        destination,
+        freq,
+        startTime + hit * stepDuration / ratchet,
+        velocity * Math.max(0, trackGain),
+        duration,
+        { ...synthParams, ...(note.params ?? {}) },
+        note.notePan ?? trackPan,
+      );
+    }
   }
 
   /** Notated bar length at a tempo; the meter lives on the engine. */

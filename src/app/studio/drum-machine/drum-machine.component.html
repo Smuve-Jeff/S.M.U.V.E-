@@ -53,6 +53,17 @@
       </span>
       <span>{{ audioSession.isPlaying() ? 'Pattern follows transport' : 'Transport ready' }}</span>
     </div>
+    <label class="dm-pattern-context-readout" *ngIf="drumTracks().length">
+      <span class="dm-context-label">DRUM CHANNEL</span>
+      <select
+        [ngModel]="drumTrack()?.id"
+        (ngModelChange)="selectDrumTrack($event)"
+        aria-label="Drum channel"
+      >
+        <option *ngFor="let track of drumTracks()" [value]="track.id">{{ track.name }}</option>
+      </select>
+    </label>
+    <span *ngIf="!drumTracks().length" role="status">Add a drum channel to edit the grid.</span>
     <div class="dm-pattern-context-readout">
       <span class="dm-context-label">BPM</span>
       <strong>{{ audioEngine.tempo() }}</strong>
@@ -156,11 +167,11 @@
       </div>
     </div>
 
-    <div class="dm-polymeter-block" aria-label="Pattern length and polymeter">
-      <span class="dm-polymeter-label">LENGTH</span>
-      <div class="dm-polymeter-options" role="group" aria-label="Pattern length">
+    <div class="dm-polymeter-block" aria-label="Drum channel length and polymeter">
+      <span class="dm-polymeter-label">CHANNEL LENGTH</span>
+      <div class="dm-polymeter-options" role="group" aria-label="Drum channel length">
         <button
-          *ngFor="let length of [5, 7, 9, 11, 13, 16]"
+          *ngFor="let length of [5, 7, 9, 11, 13, 16, 32, 64]"
           type="button"
           class="dm-polymeter-option"
           [class.active]="polymeter() === length"
@@ -170,7 +181,7 @@
           {{ length }}
         </button>
       </div>
-      <span class="dm-polymeter-hint">Longer patterns scroll inside the step rail.</span>
+      <span class="dm-polymeter-hint">Channel cycle in steps. Notes beyond the length are kept but do not play.</span>
     </div>
   </section>
 
@@ -205,6 +216,7 @@
           type="button"
           class="dm-bar-tab"
           [class.active]="currentBar() === bar"
+          [disabled]="bar * 16 >= polymeter()"
           (click)="currentBar.set(bar)"
           [attr.aria-label]="'Switch to bar ' + (bar + 1)"
           [attr.aria-pressed]="currentBar() === bar"
@@ -235,6 +247,7 @@
             "
             type="button"
             class="dm-step"
+            [disabled]="currentBar() * 16 + s >= polymeter()"
             [class.on]="getPadStep(pad.id, currentBar() * 16 + s).active"
             [class.beat-end]="s === 3 || s === 7 || s === 11"
             [class.bar-end]="s === 15"
@@ -374,7 +387,7 @@
             >delete_sweep</span
           >
         </button>
-        <button type="button" class="dm-macro" (click)="doublePattern()">
+        <button type="button" class="dm-macro" (click)="doublePattern()" [disabled]="polymeter() < 64" title="Requires a 64-step channel cycle">
           <span>Double Pattern</span>
           <span class="material-symbols-outlined" style="font-size: 16px"
             >repeat_one</span
@@ -386,7 +399,7 @@
             >fluorescent</span
           >
         </button>
-        <button type="button" class="dm-macro" (click)="generateFill()">
+        <button type="button" class="dm-macro" (click)="generateFill()" [disabled]="polymeter() < 64" title="Requires a 64-step channel cycle">
           <span>Fill (Bar 4)</span>
           <span class="material-symbols-outlined" style="font-size: 16px"
             >waterfall_chart</span
@@ -403,7 +416,7 @@
           class="dm-macro warn"
           (click)="generateEuclidean(5)"
         >
-          <span>Euclidean 5/16</span>
+          <span>Euclidean 5/{{ polymeter() < 16 ? polymeter() : 16 }}</span>
           <span class="material-symbols-outlined" style="font-size: 16px"
             >auto_awesome</span
           >
@@ -546,23 +559,25 @@
         </div>
         <div
           class="dm-vel-strip"
-          (pointerdown)="setStepGraphValue($event)"
+          (pointerdown)="onGraphPointerDown($event)"
           (pointermove)="onGraphPointerMove($event)"
+          (pointerup)="onGraphPointerUp($event)"
+          (pointercancel)="onGraphPointerUp($event)"
+          (lostpointercapture)="onGraphPointerUp($event)"
         >
           <div
             *ngFor="let step of selectedPadSteps(); let i = index"
             class="dm-vel-bar"
+            [class.outside-cycle]="currentBar() * 16 + i >= polymeter()"
             [style.height.%]="
               (graphTarget() === 'velocity'
                 ? step.velocity
                 : step.probability) * 100
             "
             [style.opacity]="
-              (graphTarget() === 'velocity'
-                ? step.velocity
-                : step.probability) > 0.05
-                ? 1
-                : 0.2
+              currentBar() * 16 + i >= polymeter()
+                ? 0.25
+                : ((graphTarget() === 'velocity' ? step.velocity : step.probability) > 0.05 ? 1 : 0.2)
             "
             [style.background]="
               graphTarget() === 'probability' && step.probability < 0.5

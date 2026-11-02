@@ -262,6 +262,7 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
     this.isPlaying = false;
     this.nextNoteTime = 0;
     this.currentStep = 0;
+    this.clockGeneration = 0;
     this.lookahead = 0.05; // 50ms
 
     // DSP instances (one per "voice" — pooled)
@@ -283,12 +284,22 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
       switch (type) {
         case 'START': {
           this.isPlaying = true;
-          this.nextNoteTime = currentTime;
+          this.currentStep = payload?.step ?? this.currentStep;
+          this.clockGeneration = payload?.generation ?? this.clockGeneration;
+          this.nextNoteTime = Math.max(currentTime, payload?.time ?? currentTime);
           break;
         }
         case 'STOP': {
           this.isPlaying = false;
           this.currentStep = 0;
+          this.clockGeneration = payload?.generation ?? this.clockGeneration;
+          this.activeNotes.clear();
+          break;
+        }
+        case 'SEEK': {
+          this.currentStep = payload.step;
+          this.clockGeneration = payload.generation;
+          this.nextNoteTime = Math.max(currentTime, payload.time);
           this.activeNotes.clear();
           break;
         }
@@ -377,6 +388,7 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
           type: 'TICK',
           payload: {
             step: this.currentStep,
+            generation: this.clockGeneration,
             time: this.nextNoteTime,
             duration: stepDuration,
           },

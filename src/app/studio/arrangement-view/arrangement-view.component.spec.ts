@@ -32,6 +32,7 @@ describe("ArrangementViewComponent", () => {
     musicManager: { addAutomationLane: jest.fn() },
   };
 
+  const seekToStep = jest.fn((step: number) => Math.min(63, Math.max(0, step)));
   const mockMusicManager = {
     tracks: signal([
       { id: "1", name: "Lead", clips: [], mute: false, solo: false },
@@ -108,7 +109,7 @@ describe("ArrangementViewComponent", () => {
         { provide: RecordingStatusService, useValue: mockRecordingStatus },
         {
           provide: MusicManagerService,
-          useValue: { ...mockMusicManager, engine: { tempo: signal(124) } },
+          useValue: { ...mockMusicManager, engine: { tempo: signal(124), seekToStep } },
         },
         {
           provide: AudioEngineService,
@@ -133,6 +134,29 @@ describe("ArrangementViewComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it("routes overview and ruler clicks to the transport and shows the clamped position", () => {
+    const overview = { getBoundingClientRect: () => ({ left: 100, width: 200 }) };
+    component.seekFromOverview({ currentTarget: overview, clientX: 300 } as any);
+    expect(seekToStep).toHaveBeenCalledWith(64);
+    expect(mockMusicManager.currentStep()).toBe(63);
+    (component as any).isGlInitialized = true;
+    (component as any).glCanvas = { nativeElement: { getBoundingClientRect: () => ({}) } };
+    (component as any).gridViewport = { nativeElement: {} };
+    (component as any).glRenderer = { screenToWorld: () => ({ x: 250, y: 0 }), markDirty: jest.fn(), destroy: jest.fn() };
+    component.onGridPointerDown({ clientX: 0, clientY: 0 } as any);
+    expect(seekToStep).toHaveBeenLastCalledWith(20);
+    expect(mockMusicManager.currentStep()).toBe(20);
+  });
+
+  it("refuses to seek while recording", () => {
+    mockAudioSession.isRecording.set(true);
+    try {
+      component.seekFromOverview({ currentTarget: { getBoundingClientRect: () => ({ left: 0, width: 100 }) }, clientX: 50 } as any);
+      expect(seekToStep).not.toHaveBeenCalled();
+      expect(mockSnackbar.info).toHaveBeenCalledWith(expect.stringContaining('Stop recording'));
+    } finally { mockAudioSession.isRecording.set(false); }
   });
 
   it("reports a failed track bounce instead of letting the rejection escape", async () => {

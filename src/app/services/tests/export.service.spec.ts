@@ -1155,6 +1155,86 @@ describe("ExportService", () => {
       expect(audioEngineMock.scheduleOfflineNote).not.toHaveBeenCalled();
     });
 
+    it("renders the drum manager's swing-adjusted arrangement for synth kits", async () => {
+      const recording = recordingContext();
+      const manager = (service as any).musicManager;
+      const raw = { id: 'hit', step: 1, midi: 36, length: 1, velocity: 0.8 };
+      manager.arrangementNotes = jest.fn(() => [{ ...raw, microOffset: 0.5 }]);
+      audioEngineMock.scheduleOfflineNote.mockClear();
+      await render(recording, [track({ type: 'drum', instrumentId: 'synth-kit', notes: [raw] })]);
+      expect(manager.arrangementNotes).toHaveBeenCalledWith(expect.objectContaining({ type: 'drum' }), 64);
+      expect(audioEngineMock.scheduleOfflineNote.mock.calls[0][3]).toBeCloseTo(0.1875);
+    });
+
+    it("renders the actual five-step drum cycle throughout the mix", async () => {
+      const recording = recordingContext();
+      const realManager = Object.create(MusicManagerService.prototype) as MusicManagerService;
+      (realManager as any).engine = { loopLengthSteps: () => 64 };
+      const manager = (service as any).musicManager;
+      manager.arrangementNotes = realManager.arrangementNotes.bind(realManager);
+      manager.drumPatternSpan = realManager.drumPatternSpan.bind(realManager);
+      audioEngineMock.scheduleOfflineNote.mockClear();
+      await render(recording, [track({ type: 'drum', drumPatternLength: 5, instrumentId: 'synth-kit', notes: [
+        { id: 'hit', step: 1, midi: 36, length: 1, velocity: 0.8 },
+        { id: 'hidden', step: 8, midi: 38, length: 1, velocity: 0.8 },
+      ] })]);
+      expect(audioEngineMock.scheduleOfflineNote.mock.calls.map((call: any[]) => call[3])).toEqual(
+        Array.from({ length: 13 }, (_, i) => (1 + i * 5) * 0.125),
+      );
+    });
+
+    it("renders ratcheted drum synths with one probability decision", async () => {
+      const recording = recordingContext();
+      const manager = (service as any).musicManager;
+      const hit = { id: 'hit', step: 1, midi: 36, length: 1, velocity: 0.8, microOffset: 0.5, probability: 0.75, params: { ratchet: 4 } };
+      manager.arrangementNotes = jest.fn(() => [hit]);
+      const random = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+      try {
+        audioEngineMock.scheduleOfflineNote.mockClear();
+        await render(recording, [track({ type: 'drum', instrumentId: 'synth-kit', notes: [hit] })]);
+        expect(random).toHaveBeenCalledTimes(1);
+        expect(audioEngineMock.scheduleOfflineNote.mock.calls.map((call: any[]) => call[3])).toEqual([0.1875, 0.21875, 0.25, 0.28125]);
+        expect(audioEngineMock.scheduleOfflineNote.mock.calls.every((call: any[]) => call[5] === 0.03125)).toBe(true);
+      } finally { random.mockRestore(); }
+    });
+
+    it("repeats preset kit samples at the same step subdivisions", async () => {
+      const recording = recordingContext();
+      const sources: any[] = [];
+      recording.offline.createBufferSource = jest.fn(() => {
+        const node = { buffer: null, connect: jest.fn(), start: jest.fn(), stop: jest.fn(), playbackRate: { setValueAtTime: jest.fn() } };
+        sources.push(node);
+        return node;
+      });
+      const sample = { duration: 0.4 } as AudioBuffer;
+      const instruments = (service as any).instruments;
+      jest.spyOn(instruments, 'isSamplePreset').mockReturnValue(true);
+      jest.spyOn(instruments, 'getPresetSample').mockReturnValue({ buffer: sample, rate: 1, oneShot: true, release: 0 });
+      const hit = { id: 'hit', step: 0, midi: 36, length: 1, velocity: 0.8, params: { ratchet: 2 } };
+      const manager = (service as any).musicManager;
+      manager.arrangementNotes = jest.fn(() => [hit]);
+      manager.prepareTrackSamples = jest.fn(async () => undefined);
+      await render(recording, [track({ type: 'drum', instrumentId: 'kit', notes: [hit] })]);
+      expect(sources.map((source) => source.start.mock.calls[0][0])).toEqual([0, 0.0625]);
+      expect(sources.every((source) => source.buffer === sample)).toBe(true);
+    });
+
+    it("repeats an imported drum one-shot in the offline mix", async () => {
+      const recording = recordingContext();
+      const sources: any[] = [];
+      recording.offline.createBufferSource = jest.fn(() => {
+        const node = { buffer: null, connect: jest.fn(), start: jest.fn() };
+        sources.push(node);
+        return node;
+      });
+      const sample = { duration: 0.4 } as AudioBuffer;
+      const hit = { id: 'hit', step: 0, midi: 36, length: 1, velocity: 0.8, params: { ratchet: 2, sampleBuffer: sample } };
+      (service as any).musicManager.arrangementNotes = jest.fn(() => [hit]);
+      await render(recording, [track({ type: 'drum', instrumentId: 'synth-kit', notes: [hit] })]);
+      expect(sources.map((source) => source.start.mock.calls[0][0])).toEqual([0, 0.0625]);
+      expect(sources.every((source) => source.buffer === sample)).toBe(true);
+    });
+
     it("bounces an imported pad one-shot as PCM instead of its MIDI pitch", async () => {
     const recording = recordingContext();
     const sample = { duration: 0.4, sampleRate: 48000 } as AudioBuffer;

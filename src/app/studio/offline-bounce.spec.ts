@@ -87,6 +87,91 @@ describe("OfflineBounceService", () => {
     expect(source.start).toHaveBeenCalledWith(0.25);
   });
 
+  it("uses swing-adjusted drum notes for a synth-kit track bounce", async () => {
+    const param = () => ({ value: 0, setValueAtTime: jest.fn(), setTargetAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() });
+    const ctx: any = { destination: {}, createGain: jest.fn(() => ({ gain: param(), connect: jest.fn() })) };
+    const note = { step: 1, midi: 36, length: 1, velocity: 0.8 };
+    const track = { id: 'drums', type: 'drum', instrumentId: 'synth-kit', gain: 0.8, pan: 0, clips: [], notes: [note] };
+    mockMusicManager.tracks = () => [track];
+    mockMusicManager.arrangementNotes = jest.fn(() => [{ ...note, microOffset: 0.5 }]);
+    await (service as any).renderArrangement(ctx, 64, 8, 44100, undefined, 'drums');
+    expect(mockMusicManager.arrangementNotes).toHaveBeenCalledWith(track, 64);
+    expect(mockAudioEngine.scheduleOfflineNote.mock.calls[0][3]).toBeCloseTo(0.1875);
+  });
+
+  it("schedules the actual drum cycle in a track bounce", async () => {
+    const manager = Object.create(MusicManagerService.prototype) as MusicManagerService;
+    (manager as any).engine = { loopLengthSteps: () => 64 };
+    const track = { id: 'drums', type: 'drum', drumPatternLength: 5, instrumentId: 'synth-kit', gain: 1, pan: 0, clips: [],
+      notes: [{ id: 'hit', step: 1, midi: 36, length: 1, velocity: 0.8 }, { id: 'hidden', step: 8, midi: 38, length: 1, velocity: 0.8 }] };
+    mockMusicManager.tracks = () => [track];
+    mockMusicManager.arrangementNotes = manager.arrangementNotes.bind(manager);
+    const param = () => ({ value: 0, setValueAtTime: jest.fn(), setTargetAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() });
+    const ctx: any = { destination: {}, createGain: jest.fn(() => ({ gain: param(), connect: jest.fn() })) };
+    await (service as any).renderArrangement(ctx, 16, 2, 44100, undefined, 'drums', 13);
+    expect(mockAudioEngine.scheduleOfflineNote.mock.calls.map((call: any[]) => call[3])).toEqual([0.125, 0.75, 1.375]);
+  });
+
+  it("does not extend a bounce for hidden notes beyond the drum cycle", () => {
+    mockMusicManager.tracks = () => [{ id: 'drums', type: 'drum', drumPatternLength: 5, clips: [], notes: [{ step: 100, length: 1 }] }];
+    mockMusicManager.drumPatternSpan = () => 5;
+    expect((service as any).computeTotalSteps()).toBe(80);
+  });
+
+  it("passes only the musical duration, excluding the extra tail bar, to drum expansion", async () => {
+    const track = { id: 'drums', type: 'drum', instrumentId: 'synth-kit', gain: 1, pan: 0, clips: [], notes: [] };
+    mockMusicManager.tracks = () => [track];
+    mockMusicManager.arrangementNotes = jest.fn(() => []);
+    const render = jest.spyOn(service as any, 'renderArrangement').mockResolvedValue(undefined);
+    const result = await service.bounce('wav-16');
+    expect(result).toBeTruthy();
+    expect(render.mock.calls[0][1]).toBe(80);
+    expect(render.mock.calls[0][6]).toBe(64);
+    if (result) URL.revokeObjectURL(result.url);
+    const explicit = await service.bounce('wav-16', 2);
+    expect(explicit).toBeTruthy();
+    expect(render.mock.calls[1][6]).toBe(32);
+    if (explicit) URL.revokeObjectURL(explicit.url);
+    const stem = await service.bounceTrack('drums', 'wav-16');
+    expect(stem).toBeTruthy();
+    expect(render.mock.calls[2][6]).toBe(64);
+    if (stem) URL.revokeObjectURL(stem.url);
+  });
+
+  it("repeats a swung drum hit in a track bounce and skips a failed probability gate", () => {
+    const note = { step: 1, midi: 36, length: 1, velocity: 0.8, microOffset: 0.5, probability: 0.5, params: { ratchet: 4 } };
+    const random = jest.spyOn(Math, 'random').mockReturnValue(0.25);
+    try {
+      (service as any).renderNote({}, note, 1, {}, {}, 0.125, 'synth-kit', 0, true);
+      expect(random).toHaveBeenCalledTimes(1);
+      expect(mockAudioEngine.scheduleOfflineNote.mock.calls.map((call: any[]) => call[3])).toEqual([0.1875, 0.21875, 0.25, 0.28125]);
+      random.mockReturnValue(0.75);
+      mockAudioEngine.scheduleOfflineNote.mockClear();
+      (service as any).renderNote({}, note, 1, {}, {}, 0.125, 'synth-kit', 0, true);
+      expect(mockAudioEngine.scheduleOfflineNote).not.toHaveBeenCalled();
+    } finally { random.mockRestore(); }
+  });
+
+  it("retriggers preset and imported samples during a track bounce", () => {
+    const starts: number[] = [];
+    const param = () => ({ value: 0, setValueAtTime: jest.fn(), setTargetAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() });
+    const ctx: any = {
+      createGain: jest.fn(() => ({ gain: param(), connect: jest.fn() })),
+      createStereoPanner: jest.fn(() => ({ pan: param(), connect: jest.fn() })),
+      createBufferSource: jest.fn(() => ({ buffer: null, connect: jest.fn(), playbackRate: param(), start: jest.fn((time) => starts.push(time)), stop: jest.fn() })),
+    };
+    const sample = { duration: 0.4 } as AudioBuffer;
+    const instruments = (service as any).instruments;
+    jest.spyOn(instruments, 'isSamplePreset').mockReturnValue(true);
+    jest.spyOn(instruments, 'getPresetSample').mockReturnValue({ buffer: sample, rate: 1, oneShot: true, release: 0 });
+    const note = { step: 0, midi: 36, length: 1, velocity: 0.8, params: { ratchet: 2 } };
+    (service as any).renderNote(ctx, note, 1, {}, {}, 0.125, 'kit', 0, true);
+    expect(starts).toEqual([0, 0.0625]);
+    starts.length = 0;
+    (service as any).renderNote(ctx, { ...note, params: { ...note.params, sampleBuffer: sample } }, 1, {}, {}, 0.125, 'kit', 0, true);
+    expect(starts).toEqual([0, 0.0625]);
+  });
+
   it("renders synth notes through the engine's shared voice builder", () => {
     const destination = { connect: jest.fn() } as any;
     const ctx: any = { createGain: jest.fn() };

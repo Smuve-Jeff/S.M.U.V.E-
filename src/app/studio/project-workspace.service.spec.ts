@@ -354,6 +354,14 @@ describe("ProjectWorkspaceService", () => {
     expect(tempoSet).toHaveBeenCalledWith(124);
   });
 
+  it("round-trips the saved drum channel cycle length", () => {
+    tracks.set([{ id: 'drums', type: 'drum', drumPatternLength: 7, notes: [], clips: [] }] as any);
+    const snapshot = JSON.parse(JSON.stringify(service.createSnapshot()));
+    tracks.set([]);
+    service.restoreFromSnapshot(snapshot);
+    expect(tracks()[0].drumPatternLength).toBe(7);
+  });
+
   it("stores the engine meter in the snapshot metadata", () => {
     const engine = (TestBed.inject(MusicManagerService) as any).engine;
     engine.setTimeSignature(3, 4);

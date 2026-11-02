@@ -11,6 +11,7 @@ import { StudioRecordingEngineService } from '../studio/studio-recording-engine.
 import { LoggingService } from './logging.service';
 import { TakeManagerService } from './take-manager.service';
 import { AutomationService } from '../studio/automation.service';
+import { IdeasGeneratorService } from './ideas-generator.service';
 
 describe('MusicManagerService clip glue workflows', () => {
   let service: MusicManagerService;
@@ -73,6 +74,174 @@ describe('MusicManagerService clip glue workflows', () => {
         activePatternSlotId: null,
       } as any,
     ]);
+  });
+
+  it('turns every starter drum lane into playable kick, snare and hat notes', () => {
+    const recipes = new IdeasGeneratorService().recipes;
+    for (const recipe of recipes) {
+      service.applyGeneratedRecipe(recipe);
+      const source = recipe.tracks.find((track) => track.drum)!;
+      const track = service.tracks().find((candidate) => candidate.type === 'drum')!;
+      expect(track.id).toBe(MusicManagerService.DRUM_TRACK_ID);
+      expect(track.instrumentId).toBe('trap-kit-elite');
+      for (const [midi, steps] of [[36, source.drum!.kick], [38, source.drum!.snare], [42, source.drum!.hat]] as const) {
+        expect(track.notes.filter((note) => note.midi === midi).map((note) => note.step)).toEqual(steps);
+      }
+      const first = track.notes[0];
+      engineMock.triggerAttack.mockClear();
+      service.playStep(first.step, 1, 0.25);
+      expect(engineMock.triggerAttack.mock.calls.some((call) => call[0] === track.id)).toBe(true);
+      const rendered = service.arrangementNotes(track);
+      expect(rendered).toHaveLength(track.notes.length);
+      rendered.forEach((note) => {
+        expect(note.microOffset ?? 0).toBe(note.step % 2 ? source.drum!.swing ?? 0 : 0);
+      });
+    }
+  });
+
+  it('preserves simultaneous drum hits and recipe swing independently from 808 bass', () => {
+    service.applyGeneratedRecipe({
+      id: 'test', name: 'Test', glyph: '', bpm: 100, vibe: '', progression: [],
+      tracks: [
+        { name: 'Bass', instrumentId: 'trap-808-elite', notes: [{ midi: 36, step: 0, length: 1, velocity: 1 }] },
+        { name: 'Drums', instrumentId: 'trap-808-elite', notes: [], drum: { kick: [1], snare: [1], hat: [1], swing: 0.3 } },
+      ],
+    });
+    const [bass, drums] = service.tracks();
+    expect(bass).toMatchObject({ type: 'midi', instrumentId: 'trap-808-elite' });
+    expect(drums.notes.map((note) => note.midi)).toEqual([36, 38, 42]);
+    expect(drums.drumSwing).toBe(0.3);
+    expect(service.arrangementNotes(drums).every((note) => note.microOffset === 0.3)).toBe(true);
+    history.undo();
+    expect(service.tracks()[0].id).toBe('track-1');
+    history.redo();
+    expect(service.tracks()[1].notes).toHaveLength(3);
+  });
+
+  it('applies channel swing to live and rendered drum notes without moving another track', () => {
+    const base = service.tracks()[0];
+    service.tracks.set([
+      { ...base, id: 'kit', type: 'drum', drumSwing: 0.5, notes: [{ id: 'hit', midi: 36, step: 1, length: 1, velocity: 0.8, microOffset: 0.1 }] },
+      { ...base, id: 'bass', notes: [{ id: 'bass-note', midi: 48, step: 1, length: 1, velocity: 0.8 }] },
+    ]);
+    engineMock.triggerAttack.mockClear();
+    service.playStep(1, 1, 0.25);
+    const drumCall = engineMock.triggerAttack.mock.calls.find((call) => call[0] === 'kit')!;
+    const bassCall = engineMock.triggerAttack.mock.calls.find((call) => call[0] === 'bass')!;
+    expect(drumCall[2]).toBeCloseTo(1.15);
+    expect(bassCall[2]).toBe(1);
+    expect(service.arrangementNotes(service.tracks()[0])[0].microOffset).toBeCloseTo(0.6);
+    expect(service.tracks()[0].notes[0].microOffset).toBe(0.1);
+  });
+
+  it('schedules swung drum ratchets evenly with one probability decision', () => {
+    const base = service.tracks()[0];
+    service.tracks.set([{ ...base, id: 'kit', type: 'drum', drumSwing: 0.5,
+      notes: [{ id: 'hit', midi: 36, step: 1, length: 1, velocity: 0.8, probability: 0.75, params: { ratchet: 4 } }],
+    }]);
+    const random = jest.spyOn(Math, 'random').mockReturnValue(0.5);
+    try {
+      engineMock.triggerAttack.mockClear();
+      service.playStep(1, 1, 0.25);
+      expect(random).toHaveBeenCalledTimes(1);
+      expect(engineMock.triggerAttack.mock.calls.map((call) => call[2])).toEqual([1.125, 1.1875, 1.25, 1.3125]);
+      expect(engineMock.triggerAttack.mock.calls.every((call) => call[4] === 0.0625)).toBe(true);
+      random.mockReturnValue(0.9);
+      engineMock.triggerAttack.mockClear();
+      service.playStep(1, 1, 0.25);
+      expect(engineMock.triggerAttack).not.toHaveBeenCalled();
+    } finally { random.mockRestore(); }
+  });
+
+  it('retriggers imported and preset drum samples', () => {
+    const base = service.tracks()[0];
+    const sampler = jest.fn();
+    (service as any).engine.triggerSampler = sampler;
+    const sample = { duration: 1 } as AudioBuffer;
+    service.stemAudioCache.set('kick', sample);
+    service.tracks.set([{ ...base, id: 'kit', type: 'drum', notes: [
+      { id: 'hit', midi: 36, step: 0, length: 1, velocity: 0.8, params: { ratchet: 3, sampleRefId: 'kick' } },
+    ] }]);
+    service.playStep(0, 1, 0.3);
+    expect(sampler.mock.calls.map((call) => call[2])).toEqual([1, 1.1, 1.2]);
+    service.stemAudioCache.delete('kick');
+    const instruments = (service as any).instruments;
+    instruments.isSamplePreset = jest.fn(() => true);
+    instruments.getPresetSample = jest.fn(() => ({ buffer: sample, rate: 1, oneShot: true, release: 0.05 }));
+    service.tracks.update((tracks) => tracks.map((track) => ({ ...track, notes: [{ ...track.notes[0], params: { ratchet: 2 } }] })));
+    sampler.mockClear();
+    service.playStep(0, 1, 0.3);
+    expect(sampler.mock.calls.map((call) => call[2])).toEqual([1, 1.15]);
+  });
+
+  it('keeps swing relative to the pattern when clips start on an odd step', () => {
+    const base = service.tracks()[0];
+    const track = { ...base, type: 'drum' as const, drumSwing: 0.5,
+      notes: [{ id: 'hit', midi: 36, step: 1, length: 1, velocity: 0.8 }],
+      clips: [{ id: 'clip', start: 1 / 16, length: 1, type: 'midi' as const }],
+    } as any;
+    expect(service.arrangementNotes(track)[0]).toMatchObject({ step: 2, microOffset: 0.5 });
+  });
+
+  it('runs independent drum cycles across the transport wrap and preserves hidden hits', () => {
+    const base = service.tracks()[0];
+    const note = (id: string, step: number) => ({ id, midi: 36, step, length: 1, velocity: 0.8 });
+    service.tracks.set([
+      { ...base, id: 'five', type: 'drum', drumPatternLength: 5, notes: [note('a', 0), note('hidden', 5)] },
+      { ...base, id: 'seven', type: 'drum', drumPatternLength: 7, notes: [note('b', 0)] },
+      { ...base, id: 'melody', notes: [note('c', 0)] },
+    ]);
+    engineMock.triggerAttack.mockClear();
+    for (let raw = 0; raw <= 70; raw++) service.playStep(raw % 64, raw, 0.25, raw);
+    const calls = engineMock.triggerAttack.mock.calls;
+    expect(calls.filter((c) => c[0] === 'five').map((c) => c[2])).toEqual(Array.from({ length: 15 }, (_, i) => i * 5));
+    expect(calls.filter((c) => c[0] === 'seven').map((c) => c[2])).toEqual(Array.from({ length: 11 }, (_, i) => i * 7));
+    expect(calls.filter((c) => c[0] === 'melody').map((c) => c[2])).toEqual([0, 64]);
+    expect(service.tracks()[0].notes).toHaveLength(2);
+    expect(service.drumStepAt(service.tracks()[0], 1, 65)).toBe(0);
+  });
+
+  it('expands cycles within clip-relative windows and the requested no-clip render duration', () => {
+    const base = service.tracks()[0];
+    const note = { id: 'n', midi: 36, step: 1, length: 1, velocity: 0.8 };
+    const hidden = { ...note, id: 'hidden', step: 7 };
+    const track = { ...base, type: 'drum' as const, drumPatternLength: 5, drumSwing: 0.5, notes: [note, hidden] };
+    expect(service.arrangementNotes(track, 13).map((n) => n.step)).toEqual([1, 6, 11]);
+    expect(service.arrangementNotes(track, 13).every((n) => n.microOffset === 0.5)).toBe(true);
+    const clipped = { ...track, clips: [{ id: 'c', type: 'midi' as const, start: 1 / 16, length: 1 }] } as any;
+    expect(service.arrangementNotes(clipped).map((n) => n.step)).toEqual([2, 7, 12]);
+    expect(service.drumStepAt(clipped, 0)).toBeNull();
+    expect(service.drumStepAt(clipped, 7)).toBe(1);
+    engineMock.triggerAttack.mockClear();
+    service.tracks.set([clipped]);
+    for (let step = 0; step < 18; step++) service.playStep(step, step, 0.25);
+    expect(engineMock.triggerAttack.mock.calls.map((c) => c[2])).toEqual([2.125, 7.125, 12.125]);
+    expect(service.arrangementNotes({ ...track, drumPatternLength: undefined }, 13).map((n) => n.step)).toEqual([1, 7]);
+  });
+
+  it('keeps a full-loop drum clip in phase across the pattern transport wrap', () => {
+    const track = { ...service.tracks()[0], type: 'drum' as const, drumPatternLength: 5,
+      notes: [{ id: 'x', midi: 36, step: 0, length: 1, velocity: 1 }],
+      clips: [{ id: 'clip', type: 'midi' as const, start: 0, length: 4 }],
+    } as any;
+    service.tracks.set([track]);
+    engineMock.triggerAttack.mockClear();
+    for (let raw = 60; raw <= 70; raw++) service.playStep(raw % 64, raw, 0.25, raw);
+    expect(engineMock.triggerAttack.mock.calls.map((call) => call[2])).toEqual([60, 65, 70]);
+    expect(service.drumStepAt(track, 1, 65)).toBe(0);
+  });
+
+  it('persists and undoes channel cycle length without changing notes', () => {
+    const track = { ...service.tracks()[0], type: 'drum' as const, notes: [{ id: 'x', midi: 36, step: 20, length: 1, velocity: 1 }] };
+    service.tracks.set([track]);
+    service.applyTrackPatch(track.id, { drumPatternLength: 7 });
+    const snapshot = JSON.parse(JSON.stringify(service.tracks()));
+    expect(snapshot[0].drumPatternLength).toBe(7);
+    history.undo();
+    expect(service.tracks()[0].drumPatternLength).toBeUndefined();
+    history.redo();
+    expect(service.tracks()[0].notes[0].step).toBe(20);
+    expect(service.tracks()[0].drumPatternLength).toBe(7);
   });
 
   it('keeps the Session grid launch boundary and resets it for a new project', () => {
@@ -1437,7 +1606,9 @@ describe('MusicManagerService live plugin insert wiring', () => {
       1.5,
       12,
       48000,
-      1
+      1,
+      true,
+      0,
     );
 
     // Classic short clip (no clipStreamer) still triggers with its AudioBuffer
@@ -1462,7 +1633,13 @@ describe('MusicManagerService live plugin insert wiring', () => {
       expect.any(Number),
       1,
       0,
-      0
+      0,
+      0,
+      expect.any(Number),
+      48000,
+      2,
+      true,
+      0,
     );
 
     // Reversed classic clip (no clipStreamer) — engine.reverseBuffer flips the
@@ -1497,8 +1674,34 @@ describe('MusicManagerService live plugin insert wiring', () => {
       expect.any(Number),
       1,
       0,
-      0
+      0,
+      0,
+      expect.any(Number),
+      48000,
+      2,
+      true,
+      0,
     );
+  });
+
+  it('resumes buffered and streamed clips at the seek position without retriggering on later ticks', () => {
+    const triggerSampler = jest.fn();
+    (service as any).engine.triggerSampler = triggerSampler;
+    (service as any).engine.calculatePlaybackRate = jest.fn(() => 2);
+    const buffer = { duration: 20 } as AudioBuffer;
+    const streamer = { setPlayhead: jest.fn(), getResidentBuffer: jest.fn(), advancePlayhead: jest.fn() } as any;
+    service.tracks.set([
+      { ...makeTrack(), id: 'buffered', type: 'audio', clips: [{ id: 'a', type: 'audio', start: 1, length: 4, audioData: buffer, offset: 1, fadeIn: 2 }] },
+      { ...makeTrack(), id: 'streamed', type: 'audio', clips: [{ id: 'b', type: 'audio', start: 1, length: 4, clipStreamer: streamer, clipOriginSeconds: 3, clipLengthSeconds: 8, clipSampleRate: 48000, clipChannels: 2 }] },
+    ] as any);
+    service.playStep(24, 5, 0.125, 24, true);
+    expect(triggerSampler).toHaveBeenCalledTimes(2);
+    expect(triggerSampler).toHaveBeenCalledWith('buffered', buffer, 5, 1, 0, 7, 2, 4, 0, 3, 7, 48000, 2, true, 1);
+    expect(triggerSampler).toHaveBeenCalledWith('streamed', streamer, 5, 1, 0, 7, 2, 0, 0, 5, 8, 48000, 2, true, 1);
+    expect(streamer.setPlayhead).toHaveBeenCalledWith(5 * 48000);
+    triggerSampler.mockClear();
+    service.playStep(25, 5.125, 0.125);
+    expect(triggerSampler).not.toHaveBeenCalled();
   });
 
   it('applies clip-level gain to streamed clips exactly as to buffered clips', () => {
@@ -1562,7 +1765,9 @@ describe('MusicManagerService live plugin insert wiring', () => {
       0,
       12,
       48000,
-      1
+      1,
+      true,
+      0,
     );
 
     triggerSampler.mockClear();
@@ -1588,7 +1793,13 @@ describe('MusicManagerService live plugin insert wiring', () => {
       expect.any(Number),
       1,
       0,
-      0
+      0,
+      0,
+      expect.any(Number),
+      48000,
+      2,
+      true,
+      0,
     );
   });
 
@@ -1628,6 +1839,7 @@ describe('MusicManagerService live plugin insert wiring', () => {
       0.75,
       0,
       0.42,
+      1, 0, 0, 0, 0, 48000, 2, true,
     );
     expect(triggerAttack).not.toHaveBeenCalled();
   });
@@ -1669,6 +1881,7 @@ describe('MusicManagerService live plugin insert wiring', () => {
       0.8,
       0,
       0.5,
+      1, 0, 0, 0, 0, 48000, 2, true,
     );
     expect(triggerAttack).not.toHaveBeenCalled();
     service.stemAudioCache.delete('drum-sample-ref');

@@ -27,6 +27,7 @@ import { AudioSessionService } from "./audio-session.service";
 import { AudioRecorderService } from "./audio-recorder.service";
 import { AtmosphericLightService } from "./atmospheric-light.service";
 import { AudioEngineService } from "../services/audio-engine.service";
+import { ExportService } from "../services/export.service";
 import { CloudSyncService } from "../services/cloud-sync.service";
 import { FileLoaderService } from "../services/file-loader.service";
 import type { RemoteSnapshot } from "../types/cloud-sync.types";
@@ -607,6 +608,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   collaboration = inject(CollaborationService);
   public readonly uiService = inject(UIService);
   public readonly musicManager = inject(MusicManagerService);
+  private readonly exportService = inject(ExportService);
   public readonly aiService = inject(AiService);
   private readonly authService = inject(AuthService);
   private readonly userProfile = inject(UserProfileService);
@@ -3941,10 +3943,13 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       // Convert music manager tracks to MidiTrackData
       const midiTracks: MidiTrackData[] = [];
       const tracks = this.musicManager.tracks();
+      const endStep = this.exportService.interchangeEndStep();
 
       tracks.forEach((track) => {
         if (track.type === "audio" || track.type === "bus") return; // Skip audio/bus
-        if (track.notes.length === 0) {
+        const notes = track.type === "drum"
+          ? this.exportService.interchangeDrumNotes(track, endStep) : track.notes;
+        if (notes.length === 0) {
           // Still include an empty track so arrangement is preserved
           midiTracks.push({
             name: track.name || "Untitled",
@@ -3954,7 +3959,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           return;
         }
 
-        const midiNotes = track.notes.map((n) => {
+        const midiNotes = notes.map((n) => {
           const ticksPerBeat = 480;
           const ticksPerStep = ticksPerBeat / 4; // 16th note = 120 ticks
           return {
@@ -3963,9 +3968,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
               1,
               Math.min(127, Math.round((n.velocity ?? 0.8) * 127)),
             ),
-            startTick: Math.round(
-              n.step * ticksPerStep + (n.microOffset ?? 0) * ticksPerStep,
-            ),
+            startTick: Math.max(0, Math.round(
+              (n.step + (track.type === "drum" ? 0 : (n.microOffset ?? 0))) * ticksPerStep,
+            )),
             durationTicks: Math.max(
               1,
               Math.round((n.length ?? 1) * ticksPerStep),

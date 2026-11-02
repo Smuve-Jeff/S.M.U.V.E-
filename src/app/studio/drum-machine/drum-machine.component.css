@@ -348,8 +348,12 @@
   border-radius: 50%;
   margin-bottom: 8px;
 }
-.dm-step:hover:not(.on) {
+.dm-step:hover:not(.on):not(:disabled) {
   background: var(--teal-100);
+}
+.dm-step:disabled, .dm-bar-tab:disabled, .dm-macro:disabled, .dm-vel-bar.outside-cycle {
+  opacity: 0.25;
+  cursor: not-allowed;
 }
 
 /* ---- right inspector (knobs + sliders) ---- */
@@ -423,6 +427,7 @@
   padding: 4px;
   height: 56px;
   align-items: end;
+  touch-action: none;
 }
 .dm-vel-bar {
   background: linear-gradient(180deg, var(--teal-400) 0%, var(--teal-600) 100%);

@@ -4,8 +4,10 @@ import { InstrumentsService, scheduleOfflinePresetSample } from './instruments.s
 import { connectOfflineMasterChain } from './offline-master-chain';
 import {
   FX_TYPE_TO_PLUGIN_ID,
+  drumRatchetCount,
   MusicManagerService,
   TrackNote,
+  TrackModel,
 } from './music-manager.service';
 import { AutomationLane, AutomationService } from '../studio/automation.service';
 import { PluginRegistry } from '../studio/effects/plugin-interface';
@@ -189,6 +191,41 @@ export class ExportService {
     return zip;
   }
 
+  /** Musical export duration, matching the offline mix (without its audio tail). */
+  interchangeEndStep(): number {
+    const tempo = Math.max(20, Math.min(300, this.engine.tempo()));
+    const lastStep = this.musicManager.tracks().reduce((end, track) => Math.max(end,
+      ...(track.notes ?? [])
+        .filter((note) => track.type !== 'drum' || !track.drumPatternLength || note.step < this.musicManager.drumPatternSpan(track))
+        .map((note) => note.step + note.length),
+      ...(track.clips ?? []).map((clip) => {
+        const seconds = clip.clipLengthSeconds ?? clip.length * (60 / tempo) * 4;
+        return clip.start * 16 + seconds / ((60 / tempo) / 4);
+      }),
+    ), 0);
+    return Math.max(16, this.musicManager.activeLoopBars() * 16, Math.ceil(lastStep / 16) * 16);
+  }
+
+  /** Flatten drum cycles, swing and ratchets for deterministic interchange notes. */
+  interchangeDrumNotes(track: TrackModel, endStep: number): TrackNote[] {
+    return this.musicManager.arrangementNotes(track, endStep).flatMap((note) => {
+      // MIDI and DAWproject do not reproduce the live per-cycle random gate.
+      // A zero-probability hit is never played; all other hits are exported.
+      if ((note.probability ?? 1) <= 0 || (note.velocity ?? 0.8) <= 0) return [];
+      const count = drumRatchetCount(note.params);
+      const multiplier = note.articulation === 'staccato' ? 0.25
+        : note.articulation === 'legato' ? 1.1
+        : note.articulation === 'pizzicato' ? 0.15
+        : note.articulation === 'accent' ? 0.5 : 1;
+      const length = (note.length ?? 1) * multiplier;
+      return Array.from({ length: count }, (_, hit) => ({
+        ...note,
+        step: note.step + (note.microOffset ?? 0) + hit / count,
+        length: count > 1 ? Math.min(length, 1 / count) : length,
+      }));
+    });
+  }
+
   /**
    * DAWproject interchange bundle: `project.xml` plus every rendered or
    * recorded clip's audio, zipped as `.dawproject` (Bitwig / Studio One /
@@ -201,6 +238,7 @@ export class ExportService {
   async exportDawproject(): Promise<Blob> {
     const tempo = this.engine.tempo();
     const audioBuffers = new Map<string, AudioBuffer>();
+    const endStep = this.interchangeEndStep();
 
     const tracks: DawprojectTrack[] = this.musicManager.tracks().map((track) => {
       const clips: DawprojectClip[] = (track.clips ?? []).map((clip: any) => {
@@ -215,6 +253,11 @@ export class ExportService {
           start: Number(clip.start) || 0,
           length: Math.max(0.25, Number(clip.length) || 1),
           audioId: cacheId && buffer ? cacheId : undefined,
+          ...(track.type === 'drum' && clip.type !== 'audio' ? {
+            notes: this.interchangeDrumNotes({ ...track, clips: [clip] }, endStep).map((note) => ({
+              step: note.step, length: note.length, midi: note.midi, velocity: note.velocity,
+            })),
+          } : {}),
         };
       });
 
@@ -224,10 +267,14 @@ export class ExportService {
         const lastStep = Math.max(
           ...track.notes.map((note) => note.step + (note.length || 1)),
         );
+        const drumNotes = track.type === 'drum' ? this.interchangeDrumNotes(track, endStep) : null;
         clips.push({
           name: track.name,
           start: 0,
-          length: Math.max(1, Math.ceil(lastStep / 16)),
+          length: drumNotes && track.drumPatternLength ? endStep / 16 : Math.max(1, Math.ceil(lastStep / 16)),
+          ...(drumNotes ? { notes: drumNotes.map((note) => ({
+            step: note.step, length: note.length, midi: note.midi, velocity: note.velocity,
+          })) } : {}),
         });
       }
 
@@ -349,7 +396,7 @@ export class ExportService {
     const tempo = Math.max(20, Math.min(300, this.engine.tempo()));
     const tracks = this.musicManager.tracks();
     const lastEventStep = tracks.reduce((end, track) => Math.max(end,
-      ...(track.notes ?? []).map((note) => note.step + note.length),
+      ...(track.notes ?? []).filter((note) => track.type !== 'drum' || !track.drumPatternLength || note.step < this.musicManager.drumPatternSpan(track)).map((note) => note.step + note.length),
       ...(track.clips ?? []).map((clip: any) => {
         const clipSeconds = clip.clipLengthSeconds ?? clip.length * (60 / tempo) * 4;
         return clip.start * 16 + clipSeconds / ((60 / tempo) / 4);
@@ -571,11 +618,11 @@ export class ExportService {
       if (track.type !== 'audio') {
         // With a pan lane the lane owns the channel's position, so a voice
         // carries only its own per-note pan instead of the static track pan.
-        const notes = this.instruments.isSamplePreset(track.instrumentId)
-          ? this.musicManager.arrangementNotes(track) : track.notes ?? [];
+        const notes = track.type === 'drum' || this.instruments.isSamplePreset(track.instrumentId)
+          ? this.musicManager.arrangementNotes(track, bars * 16) : track.notes ?? [];
         this.scheduleTrackNotes(offline, input, notes,
           track.synthParams ?? { type: 'sine' }, secondsPerStep,
-          panLane ? 0 : (track.pan ?? 0), track.instrumentId);
+          panLane ? 0 : (track.pan ?? 0), track.instrumentId, track.type === 'drum');
       }
       for (const clip of track.clips ?? []) {
         if (clip.type !== 'audio') continue;
@@ -754,6 +801,7 @@ export class ExportService {
     secondsPerStep: number,
     trackPan: number,
     instrumentId: string,
+    isDrum: boolean,
   ): void {
     for (const n of notes) {
       if (n.velocity <= 0) continue;
@@ -761,6 +809,7 @@ export class ExportService {
       if (n.probability !== undefined && Math.random() >= n.probability) continue;
 
       const start = Math.max(0, ((n.step ?? 0) + (n.microOffset ?? 0)) * secondsPerStep);
+      const ratchet = isDrum ? drumRatchetCount(n.params) : 1;
 
       // Imported one-shot notes carry their decoded PCM. Schedule the sample
       // itself rather than synthesising the pad's MIDI pitch: the live stepper
@@ -776,16 +825,18 @@ export class ExportService {
             ? this.musicManager.stemAudioCache.get(noteParams.sampleRefId)
             : undefined;
       if (oneShot && Number.isFinite(oneShot.duration) && oneShot.duration > 0) {
-        const source = ctx.createBufferSource();
-        source.buffer = oneShot;
-        const gain = ctx.createGain();
-        gain.gain.value = Math.max(0, Math.min(1, n.velocity ?? 0.8));
-        const panner = ctx.createStereoPanner();
-        panner.pan.value = Math.max(-1, Math.min(1, n.notePan ?? trackPan));
-        source.connect(panner);
-        panner.connect(gain);
-        gain.connect(master);
-        source.start(start);
+        for (let hit = 0; hit < ratchet; hit++) {
+          const source = ctx.createBufferSource();
+          source.buffer = oneShot;
+          const gain = ctx.createGain();
+          gain.gain.value = Math.max(0, Math.min(1, n.velocity ?? 0.8));
+          const panner = ctx.createStereoPanner();
+          panner.pan.value = Math.max(-1, Math.min(1, n.notePan ?? trackPan));
+          source.connect(panner);
+          panner.connect(gain);
+          gain.connect(master);
+          source.start(start + hit * secondsPerStep / ratchet);
+        }
         continue;
       }
 
@@ -800,17 +851,19 @@ export class ExportService {
         case 'pizzicato': lengthMul = 0.15; break;
         case 'accent': lengthMul = 0.5; break;
       }
-      const dur = Math.max(
-        0.05,
-        (n.length ?? 1) * secondsPerStep * lengthMul
-      );
+      const noteDuration = (n.length ?? 1) * secondsPerStep * lengthMul;
+      const dur = ratchet > 1
+        ? Math.min(noteDuration, secondsPerStep / ratchet)
+        : Math.max(0.05, noteDuration);
 
       if (this.instruments.isSamplePreset(instrumentId)) {
         const sample = this.instruments.getPresetSample(
           instrumentId, n.midi, n.velocity ?? 0.8, n.pitchBend ?? 0,
         );
         if (!sample) throw new Error(`Sample for MIDI ${n.midi} in “${instrumentId}” is unavailable.`);
-        scheduleOfflinePresetSample(ctx, master, sample, start, dur, n.velocity ?? 0.8, n.notePan ?? trackPan);
+        for (let hit = 0; hit < ratchet; hit++) {
+          scheduleOfflinePresetSample(ctx, master, sample, start + hit * secondsPerStep / ratchet, dur, n.velocity ?? 0.8, n.notePan ?? trackPan);
+        }
         continue;
       }
 
@@ -825,16 +878,18 @@ export class ExportService {
           : params;
 
       const notePan = n.notePan ?? trackPan;
-      this.engine.scheduleOfflineNote(
-        ctx,
-        master,
-        freq,
-        start,
-        n.velocity ?? 0.8,
-        dur,
-        voiceParams,
-        notePan
-      );
+      for (let hit = 0; hit < ratchet; hit++) {
+        this.engine.scheduleOfflineNote(
+          ctx,
+          master,
+          freq,
+          start + hit * secondsPerStep / ratchet,
+          n.velocity ?? 0.8,
+          dur,
+          voiceParams,
+          notePan
+        );
+      }
     }
   }
 
@@ -1003,10 +1058,11 @@ export class ExportService {
     const sequenceName =
       this.musicManager.projectName || 'S.M.U.V.E Project';
     const midiTracks: MidiTrackData[] = [];
+    const endStep = this.interchangeEndStep();
 
     for (const track of this.musicManager.tracks()) {
       if (track.muted || track.type === 'audio' || track.type === 'bus') continue;
-      const notes = track.notes ?? [];
+      const notes = track.type === 'drum' ? this.interchangeDrumNotes(track, endStep) : track.notes ?? [];
       if (notes.length === 0) continue;
 
       const midiNotes: MidiNoteEvent[] = notes

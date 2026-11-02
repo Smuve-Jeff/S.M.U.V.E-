@@ -15,6 +15,7 @@ import { AudioSessionService } from "../audio-session.service";
 import { KnobComponent } from "../shared/knob/knob.component";
 import { MusicManagerService } from "../../services/music-manager.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
+import { InstrumentsService } from "../../services/instruments.service";
 import { AiService } from "../../services/ai.service";
 import { HapticService } from "../../services/haptic.service";
 import { SnackbarService } from "../../services/snackbar.service";
@@ -66,6 +67,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public musicManager = inject(MusicManagerService);
   public audioEngine = inject(AudioEngineService);
   public audioSession = inject(AudioSessionService);
+  private instruments = inject(InstrumentsService);
   public aiService = inject(AiService);
   private haptic = inject(HapticService);
   private snack = inject(SnackbarService);
@@ -78,10 +80,18 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }> = [];
   private stepLongPressTimer: ReturnType<typeof setTimeout> | null = null;
   private suppressStepClick = false;
+  private graphPointerId: number | null = null;
 
   @ViewChild("sampleInput") sampleInput!: ElementRef<HTMLInputElement>;
 
   public pads = signal<DrumPad[]>([]);
+  public readonly drumTracks = computed(() =>
+    this.musicManager.tracks().filter((track) => track.type === "drum"),
+  );
+  public readonly drumTrack = computed(() => {
+    const tracks = this.drumTracks();
+    return tracks.find((track) => track.id === this.musicManager.selectedTrackId()) ?? tracks[0] ?? null;
+  });
   public sampleBusy = signal(false);
   public viewMode = signal<"sequencer" | "knobs">("sequencer");
   public currentBar = signal(0);
@@ -93,7 +103,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     this.pads().find((p) => p.id === this.selectedPadId()),
   );
   public graphTarget = signal<"velocity" | "probability">("velocity");
-  public polymeter = signal<number>(16);
+  public polymeter = computed(() => {
+    const length = this.drumTrack()?.drumPatternLength;
+    return Number.isInteger(length) && length! >= 1 && length! <= 64 ? length! : 64;
+  });
   public stepSheetOpen = signal(false);
   public selectedStepPadId = signal<string | null>(null);
   public selectedStepIndex = signal(0);
@@ -122,7 +135,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   public selectedPadSteps = computed(() => {
     const pad = this.selectedPad();
     if (!pad) return [];
-    return Array.from({ length: 64 }, (_, i) => this.getPadStep(pad.id, i));
+    const start = this.currentBar() * 16;
+    return Array.from({ length: 16 }, (_, i) => this.getPadStep(pad.id, start + i));
   });
 
   // ── Pro: AI Style picker ───────────────────────────────────
@@ -218,8 +232,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   selectedDrumStyle = signal<DrumStyle>(this.drumStyles[0]);
 
   // ── Pro: Swing slider ──────────────────────────────────────
-  /** Swing 0..75% — pushes off-beat 16ths back */
-  swingPercent = signal(20);
+  /** Offset of odd sixteenths on the selected drum channel. */
+  swingPercent = computed(() => Math.round((this.drumTrack()?.drumSwing ?? 0) * 100));
   /** Phone-only: AI style, swing and groove rails (restored on demand). */
   phoneToolsOpen = signal(false);
 
@@ -282,7 +296,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   /** Apply a named groove: sets swing % and re-humanizes velocities. */
   applyGroove(groove: (typeof this.grooveTemplates)[number]): void {
     this.haptic.medium();
-    this.swingPercent.set(groove.swing);
+    this.setSwing(groove.swing);
     this.activeGrooveId.set(groove.id);
     const track = this.getDrumTrack();
     if (track) {
@@ -732,7 +746,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     // up (and audition) before any step exists on the new pattern.
     effect(() => {
       const track = this.getDrumTrack();
-      if (track) this.hydratePadSamplesFromTrack(track);
+      this.hydratePadSamplesFromTrack(track ?? {});
+      const length = this.polymeter();
+      if (this.currentBar() * 16 >= length) this.currentBar.set(Math.floor((length - 1) / 16));
     });
   }
 
@@ -743,12 +759,17 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   openStepSheet(pad: DrumPad, stepIndex: number): void {
+    if (this.resolveStepIdx(stepIndex) >= this.polymeter()) return;
     this.selectPad(pad.id);
     const step = this.getPadStep(pad.id, this.resolveStepIdx(stepIndex));
     this.selectedStepPadId.set(pad.id);
     this.selectedStepIndex.set(this.resolveStepIdx(stepIndex));
     this.selectedStepProbability.set(step.probability);
     this.selectedStepRatchet.set(Number((step as any).ratchet ?? 1));
+    if (!step.active) {
+      this.snack.info("Turn on this step before editing its settings");
+      return;
+    }
     this.stepSheetOpen.set(true);
   }
 
@@ -775,12 +796,16 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       this.suppressStepClick = false;
       return;
     }
-    this.toggleStep(pad.id, this.resolveStepIdx(stepIndex));
+    if (this.resolveStepIdx(stepIndex) < this.polymeter()) {
+      this.toggleStep(pad.id, this.resolveStepIdx(stepIndex));
+    }
   }
 
   setPolymeter(value: number): void {
-    const allowed = [5, 7, 9, 11, 13, 16];
-    this.polymeter.set(allowed.includes(value) ? value : 16);
+    const track = this.getDrumTrack();
+    if (!track || ![5, 7, 9, 11, 13, 16, 32, 64].includes(value)) return;
+    this.musicManager.applyTrackPatch(track.id, { drumPatternLength: value }, "Set Drum Pattern Length");
+    if (this.currentBar() * 16 >= value) this.currentBar.set(Math.floor((value - 1) / 16));
     this.haptic.light();
   }
 
@@ -864,9 +889,15 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   private getDrumTrack() {
-    return this.musicManager
-      .tracks()
-      .find((t) => t.id === MusicManagerService.DRUM_TRACK_ID);
+    return this.drumTrack();
+  }
+
+  selectDrumTrack(trackId: string): void {
+    const track = this.drumTracks().find((candidate) => candidate.id === trackId);
+    if (track) {
+      this.musicManager.selectedTrackId.set(trackId);
+      this.hydratePadSamplesFromTrack(track);
+    }
   }
 
   private clearDrumPattern() {
@@ -892,7 +923,6 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (existingNote) {
       this.musicManager.removeNotes(drumTrack.id, [existingNote.id]);
     } else {
-      const swing = this.applySwing(stepIndex);
       this.musicManager.addNoteToTrack(drumTrack.id, {
         id: "drum_" + Date.now() + Math.random(),
         midi: pad.midi,
@@ -904,16 +934,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
           ...pad.params,
           sampleBuffer: pad.sampleBuffer,
           sampleRefId: pad.sampleRefId,
-          swing,
         },
       });
     }
-  }
-
-  /** Apply swing to a step index: off-beat 16ths (odd) get pushed back */
-  applySwing(step: number): number {
-    if (step % 2 === 0) return 0; // on-beat unchanged
-    return this.swingPercent() / 100; // 0..0.75 fraction of a 16th pushed
   }
 
   selectPad(id: string) {
@@ -924,20 +947,24 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const pad = this.selectedPad();
     if (!pad) return;
     const track = this.getDrumTrack();
+    if (!track) {
+      this.snack.info("Add a drum channel before opening the piano roll");
+      return;
+    }
     this.selectedPadId.set(pad.id);
-    this.musicManager.selectedTrackId.set(MusicManagerService.DRUM_TRACK_ID);
-    const padNotes = track?.notes.filter((n) => n.midi === pad.midi) ?? [];
+    this.musicManager.selectedTrackId.set(track.id);
+    const padNotes = track.notes.filter((n) => n.midi === pad.midi);
     if (padNotes.length === 0) {
       this.musicManager.requestCrossLink({
         view: "piano-roll",
-        trackId: MusicManagerService.DRUM_TRACK_ID,
+        trackId: track.id,
         label: pad.name + " pad",
       });
     } else {
       const steps = padNotes.map((n) => n.step);
       this.musicManager.requestCrossLink({
         view: "piano-roll",
-        trackId: MusicManagerService.DRUM_TRACK_ID,
+        trackId: track.id,
         noteRange: {
           startStep: Math.max(0, Math.floor(Math.min(...steps))),
           endStep: Math.ceil(Math.max(...steps)) + 1,
@@ -957,28 +984,30 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     );
     return {
       active: !!note,
-      velocity: note?.velocity || 0.8,
-      probability: note?.probability || 1.0,
+      velocity: note?.velocity ?? 0.8,
+      probability: note?.probability ?? 1.0,
       ratchet: Number((note?.params as any)?.ratchet ?? 1),
     };
   }
 
   isStepPlaying(pad: DrumPad) {
-    const currentStep = this.audioEngine.visualStep() % 64;
-    return (
-      this.audioSession.isPlaying() &&
-      !!this.getDrumTrack()?.notes.find(
-        (n) => n.midi === pad.midi && n.step === currentStep,
-      )
-    );
+    const track = this.getDrumTrack();
+    const currentStep = track ? this.musicManager.drumStepAt(
+      track, this.audioEngine.visualStep(), this.audioEngine.visualPatternStep?.() ?? this.audioEngine.visualStep(),
+    ) : null;
+    return this.audioSession.isPlaying() && currentStep !== null &&
+      !!track?.notes.find((n) => n.midi === pad.midi && Math.floor(n.step) === currentStep);
   }
 
   isGlobalStep(step: number) {
-    return this.audioEngine.visualStep() % 64 === step;
+    const track = this.getDrumTrack();
+    return !!track && this.musicManager.drumStepAt(
+      track, this.audioEngine.visualStep(), this.audioEngine.visualPatternStep?.() ?? this.audioEngine.visualStep(),
+    ) === step;
   }
 
   resolveStepIdx(stepIdx: number) {
-    return this.highDensity() ? stepIdx : stepIdx + this.currentBar() * 16;
+    return stepIdx + this.currentBar() * 16;
   }
 
   togglePlay(): void {
@@ -1021,7 +1050,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     this.haptic.impact("heavy");
     const pad = this.selectedPad();
     if (!pad) return;
-    for (let i = 0; i < 64; i++) {
+    for (let i = 0; i < this.polymeter(); i++) {
       if (Math.random() > 0.9) this.toggleStep(pad.id, i);
     }
   }
@@ -1079,7 +1108,13 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   setSwing(pct: number): void {
-    this.swingPercent.set(Math.max(0, Math.min(75, pct)));
+    const track = this.getDrumTrack();
+    if (!track || !Number.isFinite(pct)) return;
+    this.musicManager.applyTrackPatch(
+      track.id,
+      { drumSwing: Math.max(0, Math.min(75, pct)) / 100 },
+      "Set Drum Swing",
+    );
     this.haptic.light();
   }
 
@@ -1161,6 +1196,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     if (!pad) return;
     const track = this.getDrumTrack();
     if (!track) return;
+    steps = Math.min(steps, this.polymeter());
+    pulses = Math.min(pulses, steps);
     const existing = track.notes.filter(
       (n) => n.midi === pad.midi && n.step < steps,
     );
@@ -1199,7 +1236,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   randomizeAll() {
     this.clearDrumPattern();
     this.pads().forEach((p) => {
-      for (let i = 0; i < 64; i++) {
+      for (let i = 0; i < this.polymeter(); i++) {
         if (Math.random() > 0.9) this.toggleStep(p.id, i);
       }
     });
@@ -1272,38 +1309,40 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
   }
 
   // ── Step Probability & Velocity Graph ──────────────────────
-  /** Set velocity or probability for a step in the strip based on graphTarget */
-  setStepGraphValue(stepIdx: number, event: PointerEvent): void {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const y = event.clientY - rect.top;
-    const value = Math.max(0.05, Math.min(1.0, 1.0 - y / rect.height));
+  /** Edit the visible bar on pointer down and while dragging. */
+  setStepGraphValue(event: PointerEvent): void {
+    const strip = event.currentTarget as HTMLElement;
+    const rect = strip.getBoundingClientRect();
     const track = this.getDrumTrack();
     const pad = this.selectedPad();
-    if (!track || !pad) return;
-    const actualStep = this.resolveStepIdx(stepIdx);
+    if (!track || !pad || rect.width <= 0 || rect.height <= 0) return;
+    const x = event.clientX - rect.left;
+    if (x < 0 || x >= rect.width) return;
+    const stepIdx = Math.min(15, Math.floor(x / (rect.width / 16)));
+    if (this.currentBar() * 16 + stepIdx >= this.polymeter()) return;
+    const value = Math.max(0.05, Math.min(1, 1 - (event.clientY - rect.top) / rect.height));
     const note = track.notes.find(
-      (n) => n.midi === pad.midi && n.step === actualStep,
+      (n) => n.midi === pad.midi && n.step === this.currentBar() * 16 + stepIdx,
     );
-    if (note) {
-      if (this.graphTarget() === "velocity") {
-        this.musicManager.updateNote(track.id, note.id, { velocity: value });
-      } else {
-        this.musicManager.updateNote(track.id, note.id, { probability: value });
-      }
-      this.haptic.velocity(value);
-    }
+    if (!note) return;
+    this.musicManager.updateNote(track.id, note.id,
+      this.graphTarget() === "velocity" ? { velocity: value } : { probability: value });
+    this.haptic.velocity(value);
   }
 
-  /** Drag to paint velocity/probability across steps */
+  onGraphPointerDown(event: PointerEvent): void {
+    if (event.button !== 0) return;
+    this.graphPointerId = event.pointerId;
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+    this.setStepGraphValue(event);
+  }
+
   onGraphPointerMove(event: PointerEvent): void {
-    if (event.buttons !== 1) return;
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const stepWidth = rect.width / 16;
-    const stepIdx = Math.floor(x / stepWidth);
-    if (stepIdx >= 0 && stepIdx < 16) {
-      this.setStepGraphValue(stepIdx, event);
-    }
+    if (this.graphPointerId === event.pointerId) this.setStepGraphValue(event);
+  }
+
+  onGraphPointerUp(event: PointerEvent): void {
+    if (this.graphPointerId === event.pointerId) this.graphPointerId = null;
   }
 
   // ── Fill / Variation Generator ────────────────────────────
@@ -1350,7 +1389,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const track = this.getDrumTrack();
     if (!track) return;
     this.haptic.medium();
-    track.notes.forEach((n) => {
+    track.notes.filter((n) => n.step < this.polymeter()).forEach((n) => {
       if (Math.random() < 0.2) {
         // Toggle some hits off
         this.musicManager.removeNotes(track.id, [n.id]);
@@ -1367,7 +1406,7 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     // Add a few new random hits
     this.pads().forEach((p) => {
       for (let i = 0; i < 3; i++) {
-        const s = Math.floor(Math.random() * 64);
+        const s = Math.floor(Math.random() * this.polymeter());
         const exists = track.notes.find(
           (n) => n.midi === p.midi && n.step === s,
         );
@@ -1443,6 +1482,9 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
 
   triggerPad(pad: DrumPad, velocity = 1) {
     this.haptic.impact("light");
+    const track = this.getDrumTrack();
+    if (!track) return;
+    this.audioEngine.resume();
     const freq = 440 * Math.pow(2, (pad.midi - 69) / 12);
     const sampleBuffer =
       pad.sampleBuffer ??
@@ -1451,16 +1493,31 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
         : undefined);
     if (sampleBuffer) {
       this.audioEngine.triggerSampler(
-        MusicManagerService.DRUM_TRACK_ID,
+        track.id,
         sampleBuffer,
         this.audioEngine.ctx.currentTime,
         velocity,
         pad.params.pan,
         pad.params.decay || 0.3,
       );
+    } else if (this.instruments.isSamplePreset(track.instrumentId)) {
+      const playSample = () => {
+        const sample = this.instruments.getPresetSample(track.instrumentId, pad.midi, velocity);
+        if (!sample) return false;
+        this.audioEngine.triggerSampler(
+          track.id, sample.buffer, this.audioEngine.ctx.currentTime, velocity,
+          pad.params.pan, sample.buffer.duration / sample.rate, sample.rate,
+        );
+        return true;
+      };
+      if (!playSample()) {
+        void this.instruments.loadPresetSample(track.instrumentId, pad.midi, velocity)
+          .then(() => { if (!playSample()) this.snack.warning(`No sample available for ${pad.name}`); })
+          .catch(() => this.snack.warning(`No sample available for ${pad.name}`));
+      }
     } else {
       this.audioEngine.triggerAttack(
-        MusicManagerService.DRUM_TRACK_ID,
+        track.id,
         freq,
         this.audioEngine.ctx.currentTime,
         velocity,
@@ -1490,7 +1547,8 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
     const file = input.files?.[0];
     input.value = '';
     const pad = this.selectedPad();
-    if (!file || !pad) return;
+    const track = this.getDrumTrack();
+    if (!file || !pad || !track) return;
     if (file.size > 32 * 1024 * 1024) {
       this.snack.error('One-shot is larger than 32 MB. Trim it before importing.');
       return;
@@ -1506,6 +1564,10 @@ export class DrumMachineComponent implements OnInit, OnDestroy {
       }
       if (audioBuffer.duration > 30) {
         throw new Error('One-shots are limited to 30 seconds. Trim the file first.');
+      }
+      if (this.getDrumTrack()?.id !== track.id) {
+        this.snack.info('Drum channel changed — sample was not imported.');
+        return;
       }
       const quality = this.sampleQualityFor(audioBuffer.sampleRate);
       const previousRefId = pad.sampleRefId;

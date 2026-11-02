@@ -3,6 +3,7 @@ import { ExportService, EXPORT_FORMATS } from './export.service';
 import { AudioEngineService } from './audio-engine.service';
 import { MusicManagerService } from './music-manager.service';
 import { LoggingService } from './logging.service';
+import { parseMidiFile } from '../studio/midi-reader.util';
 
 describe('ExportService (Sprint A6)', () => {
   let svc: ExportService;
@@ -104,6 +105,81 @@ describe('ExportService (Sprint A6)', () => {
     const blob = svc.exportProjectMidi();
     expect(blob.type).toBe('audio/midi');
     expect(blob.size).toBeGreaterThan(40); // header + conductor + lead track
+  });
+
+  it('exports clip-relative drum cycles, swing and ratchets as MIDI notes', async () => {
+    const manager = Object.create(MusicManagerService.prototype) as MusicManagerService;
+    (manager as any).engine = { loopLengthSteps: () => 64 };
+    (manager as any).projectService = { currentProject: () => null };
+    (manager as any).activeLoopBars = () => 6;
+    const note = { id: 'hit', midi: 36, step: 1, length: 1, velocity: 0.8, microOffset: 0.1, probability: 0.2, params: { ratchet: 2 } };
+    const track: any = { id: 'drums', name: 'Drums', type: 'drum', drumPatternLength: 5, drumSwing: 0.5,
+      activePatternSlotId: 'a', notes: [note, { ...note, id: 'hidden', midi: 39, step: 8 }, { ...note, id: 'never', midi: 40, step: 0, probability: 0 }],
+      patternSlots: [{ id: 'b', versions: [{ notes: [{ ...note, id: 'other', midi: 38, step: 2, params: {} }] }] }],
+      clips: [{ id: 'first', type: 'midi', start: 1, length: 0.5, patternSlotId: 'a' }, { id: 'second', type: 'midi', start: 4, length: 0.5, patternSlotId: 'b' }],
+    };
+    (manager as any).tracks = () => [track];
+    (svc as any).musicManager = manager;
+    const parsed = parseMidiFile(await svc.exportProjectMidi().arrayBuffer());
+    const notes = parsed.tracks.find((t) => t.name === 'Drums')!.notes;
+    expect(notes.map((n) => [n.note, n.startTick, n.durationTicks])).toEqual([
+      [36, 2112, 60], [36, 2172, 60], [36, 2712, 60], [36, 2772, 60],
+      [38, 7932, 120], [38, 8532, 120],
+    ]);
+  });
+
+  it('exports a free-running drum cycle for the musical duration in MIDI and DAWproject', async () => {
+    const manager = Object.create(MusicManagerService.prototype) as MusicManagerService;
+    (manager as any).engine = { loopLengthSteps: () => 64 };
+    (manager as any).projectService = { currentProject: () => null };
+    (manager as any).activeLoopBars = () => 2;
+    (manager as any).stemAudioCache = new Map();
+    const track: any = { id: 'drums', name: 'Drums', type: 'drum', drumPatternLength: 7,
+      gain: 1, pan: 0, clips: [], notes: [
+        { id: 'hit', midi: 36, step: 0, length: 1, velocity: 0.8 },
+        { id: 'hidden', midi: 38, step: 9, length: 1, velocity: 0.8 },
+      ] };
+    (manager as any).tracks = () => [track];
+    (svc as any).musicManager = manager;
+    const parsed = parseMidiFile(await svc.exportProjectMidi().arrayBuffer());
+    expect(parsed.tracks.find((t) => t.name === 'Drums')!.notes.map((n) => n.startTick)).toEqual([0, 840, 1680, 2520, 3360]);
+    const bytes = new Uint8Array(await (await svc.exportDawproject()).arrayBuffer());
+    const view = new DataView(bytes.buffer);
+    const nameLength = view.getUint16(26, true);
+    const size = view.getUint32(22, true);
+    const xml = new TextDecoder().decode(bytes.slice(30 + nameLength, 30 + nameLength + size));
+    const document = new DOMParser().parseFromString(xml, 'application/xml');
+    expect(document.querySelector('parsererror')).toBeNull();
+    const clip = document.querySelector('Arrangement Clip')!;
+    expect(clip.getAttribute('duration')).toBe('8');
+    expect(Array.from(clip.querySelectorAll('Note')).map((n) => [n.getAttribute('key'), n.getAttribute('time')])).toEqual([
+      ['36', '0'], ['36', '1.75'], ['36', '3.5'], ['36', '5.25'], ['36', '7'],
+    ]);
+  });
+
+  it('keeps each DAWproject clip tied to its own overlapping drum pattern', async () => {
+    const manager = Object.create(MusicManagerService.prototype) as MusicManagerService;
+    (manager as any).engine = { loopLengthSteps: () => 64 };
+    (manager as any).projectService = { currentProject: () => null };
+    (manager as any).activeLoopBars = () => 4;
+    (manager as any).stemAudioCache = new Map();
+    const note = { id: 'n', midi: 36, step: 1, length: 1, velocity: 0.8, microOffset: 0.1, params: { ratchet: 2 } };
+    const track: any = { id: 'drums', name: 'Drums', type: 'drum', drumPatternLength: 5, drumSwing: 0.5, gain: 1, pan: 0,
+      activePatternSlotId: 'a', notes: [note], patternSlots: [{ id: 'b', versions: [{ notes: [{ ...note, midi: 38, step: 2, params: {} }] }] }],
+      clips: [{ id: 'a', name: 'A', type: 'midi', start: 1, length: 0.5, patternSlotId: 'a' }, { id: 'b', name: 'B', type: 'midi', start: 1, length: 0.5, patternSlotId: 'b' }] };
+    (manager as any).tracks = () => [track];
+    (svc as any).musicManager = manager;
+    const bytes = new Uint8Array(await (await svc.exportDawproject()).arrayBuffer());
+    const view = new DataView(bytes.buffer);
+    const start = 30 + view.getUint16(26, true);
+    const xml = new TextDecoder().decode(bytes.slice(start, start + view.getUint32(22, true)));
+    const document = new DOMParser().parseFromString(xml, 'application/xml');
+    expect(document.querySelector('parsererror')).toBeNull();
+    const clips = Array.from(document.querySelectorAll('Arrangement Clip'));
+    expect(clips.map((clip) => [clip.getAttribute('name'), Array.from(clip.querySelectorAll('Note')).map((note) => [note.getAttribute('key'), note.getAttribute('time'), note.getAttribute('duration')])])).toEqual([
+      ['A', [['36', '0.4', '0.125'], ['36', '0.525', '0.125'], ['36', '1.65', '0.125'], ['36', '1.775', '0.125']]],
+      ['B', [['38', '0.525', '0.25'], ['38', '1.775', '0.25']]],
+    ]);
   });
 
   it('exportProjectMidi skips muted, audio, and empty tracks', () => {

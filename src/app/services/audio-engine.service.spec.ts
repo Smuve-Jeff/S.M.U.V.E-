@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { readFileSync } from 'fs';
+import { runInNewContext } from 'vm';
 import { signal } from '@angular/core';
 import {
   AudioEngineService,
@@ -190,12 +192,17 @@ function makeSongBareEngine(): AudioEngineService {
   svc.playbackLoopStart = signal(null);
   svc.playbackLoopEnd = signal(null);
   (svc as any).transportGeneration = 0;
+  (svc as any).clockGeneration = 0;
+  (svc as any).resumeAudioAtNextStep = false;
+  (svc as any).isRecording = signal(false);
   (svc as any).currentBeat = signal(0);
   (svc as any).visualStep = signal(0);
+  (svc as any).visualPatternStep = signal(0);
   (svc as any).isPlaying = signal(false);
   // handleTick short-circuits the count-in path; this signal must exist
   // because handleTick calls it before reaching the song-mode branch.
   (svc as any).isCountIn = signal(false);
+  (svc as any).timeSignature = signal({ beats: 4, unit: 4 });
   (svc as any).metronomeEnabled = signal(false);
   (svc as any).metronomeVolume = signal(0);
   (svc as any).midiOutputs = [];
@@ -321,6 +328,131 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       for (const tick of [0, 1, 2, 3, 4, 65]) (svc as any).handleTick(tick, 0, 0.1);
       expect(scheduled).toEqual([16, 17, 18, 19, 16, 17]);
       expect(svc.songEnded()).toBe(false);
+    });
+
+    it('keeps an unwrapped pattern phase while display steps wrap, and resets at an explicit loop', () => {
+      svc.playMode.set('pattern');
+      svc.isPlaying.set(true);
+      const scheduled: number[][] = [];
+      svc.onScheduleStep = (step, _time, _duration, patternStep) => scheduled.push([step, patternStep!]);
+      (svc as any).handleTick(63, 0, 0.1);
+      (svc as any).handleTick(64, 0, 0.1);
+      expect(scheduled).toEqual([[63, 63], [0, 64]]);
+      svc.setPlaybackLoop(4, 8);
+      svc.playbackLoopEnabled.set(true);
+      (svc as any).handleTick(4, 0, 0.1);
+      expect(scheduled[2]).toEqual([4, 4]);
+    });
+
+    it('keeps the fallback scheduler counter unwrapped at the transport boundary', () => {
+      svc.playMode.set('pattern');
+      svc.isPlaying.set(true);
+      (svc as any).currentStep = 63;
+      (svc as any).nextNoteTime = -0.1;
+      const scheduled: number[][] = [];
+      svc.onScheduleStep = (step, _time, _duration, patternStep) => scheduled.push([step, patternStep!]);
+      (svc as any).scheduler();
+      expect(scheduled.slice(0, 2)).toEqual([[63, 63], [0, 64]]);
+    });
+
+    it('seeks stopped playback, clamps boundaries and starts the fallback scheduler at that position', () => {
+      expect(svc.seekToStep(24)).toBe(24);
+      expect(svc.visualStep()).toBe(24);
+      expect(svc.currentBeat()).toBe(6);
+      svc.isPlaying.set(true);
+      const scheduled = jest.fn();
+      svc.onScheduleStep = scheduled;
+      (svc as any).scheduler();
+      expect(scheduled).toHaveBeenCalledWith(24, 0.05, expect.any(Number), 24, true);
+      expect(svc.seekToStep(999)).toBe(63);
+      expect(svc.seekToStep(-10)).toBe(0);
+      expect(svc.seekToStep(NaN)).toBeNull();
+    });
+
+    it('maps seeks into A/B loops and prevents seeking during recording and count-in', () => {
+      svc.setPlaybackLoop(16, 20);
+      svc.playbackLoopEnabled.set(true);
+      expect(svc.seekToStep(18)).toBe(18);
+      svc.isPlaying.set(true);
+      expect(svc.transportStepAt(0.05)).toBe(18);
+      const scheduled = jest.fn();
+      svc.onScheduleStep = scheduled;
+      (svc as any).scheduler();
+      expect(scheduled).toHaveBeenCalledWith(18, 0.05, expect.any(Number), 18, true);
+      expect(svc.seekToStep(100)).toBe(19);
+      svc.isRecording.set(true);
+      expect(svc.seekToStep(16)).toBeNull();
+      svc.isRecording.set(false);
+      svc.isCountIn.set(true);
+      expect(svc.seekToStep(16)).toBeNull();
+      expect(svc.visualStep()).toBe(19);
+    });
+
+    it('rejects stale visual callbacks and sends the new generation to the worklet', () => {
+      jest.useFakeTimers();
+      try {
+        svc.isPlaying.set(true);
+        (svc as any).handleTick(8, 1, 0.1);
+        const postMessage = jest.fn();
+        (svc as any).workletNode = { port: { postMessage } };
+        expect(svc.seekToStep(24)).toBe(24);
+        expect(postMessage).toHaveBeenCalledWith({ type: 'SEEK', payload: { step: 24, generation: 1, time: 0.05 } });
+        jest.runOnlyPendingTimers();
+        expect(svc.visualStep()).toBe(24);
+      } finally { jest.useRealTimers(); }
+    });
+
+    it('runs the worklet seek protocol and rejects a queued old-generation tick', async () => {
+      enableFakeWorkletNode();
+      try {
+        (svc as any).ctx.audioWorklet = { addModule: jest.fn().mockResolvedValue(undefined) };
+        await (svc as any).initWorklet();
+        const port = FakeWorkletNode.instances[0].port as any;
+        svc.isPlaying.set(true);
+        const scheduled = jest.fn();
+        svc.onScheduleStep = scheduled;
+        svc.seekToStep(24);
+        port.onmessage({ data: { type: 'TICK', payload: { step: 0, generation: 0, time: 0, duration: 0.1 } } });
+        expect(scheduled).not.toHaveBeenCalled();
+        port.onmessage({ data: { type: 'TICK', payload: { step: 24, generation: 1, time: 0.05, duration: 0.1 } } });
+        expect(scheduled).toHaveBeenCalledWith(24, 0.05, 0.1, 24, true);
+      } finally { restoreAudioWorkletNode(); }
+    });
+
+    it('runs the processor after a seek at the requested step and generation', () => {
+      let Processor: any;
+      const clock = { currentTime: 1, sampleRate: 48000 };
+      class BaseProcessor { port = { onmessage: null as any, postMessage: jest.fn() }; }
+      const script = readFileSync('src/assets/audio-processor.worklet.js', 'utf8');
+      runInNewContext(script, { ...clock, AudioWorkletProcessor: BaseProcessor, registerProcessor: (_name: string, cls: any) => { Processor = cls; } });
+      const processor = new Processor();
+      processor.port.onmessage({ data: { type: 'START', payload: { step: 0, generation: 0, time: 1 } } });
+      processor.port.onmessage({ data: { type: 'SEEK', payload: { step: 24, generation: 1, time: 1 } } });
+      processor.process([[new Float32Array(1), new Float32Array(1)]], [[new Float32Array(1), new Float32Array(1)]], {});
+      expect(processor.port.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'TICK', payload: expect.objectContaining({ step: 24, generation: 1, time: 1 }) }));
+    });
+
+    it('resumes the selected position after a fallback count-in', () => {
+      svc.seekToStep(24);
+      svc.isPlaying.set(true);
+      svc.isCountIn.set(true);
+      (svc as any).countInStartStep = 24;
+      (svc as any).countInRemainingSteps = 1;
+      (svc as any).countInWaiters = [];
+      (svc as any).currentStep = 1;
+      (svc as any).nextNoteTime = 0;
+      const scheduled = jest.fn();
+      svc.onScheduleStep = scheduled;
+      (svc as any).scheduler();
+      (svc as any).nextNoteTime = 0;
+      (svc as any).scheduler();
+      expect(scheduled).toHaveBeenCalledWith(24, 0, expect.any(Number), 24, true);
+    });
+
+    it('integrates tempo changes when finding audio clip positions', () => {
+      svc.setTempoMap([{ step: 8, bpm: 60 }]);
+      svc.tempo.set(120);
+      expect(svc.secondsBetweenSteps(0, 16)).toBe(3);
     });
 
     it('rejects reversed and out-of-song markers', () => {

@@ -15,6 +15,7 @@ describe('AudioEngineService', () => {
         value: 0,
         setTargetAtTime: jest.fn(),
         setValueAtTime: jest.fn(),
+        linearRampToValueAtTime: jest.fn(),
         exponentialRampToValueAtTime: jest.fn(),
       },
       delayTime: { value: 0, setTargetAtTime: jest.fn() },
@@ -247,9 +248,7 @@ describe('AudioEngineService', () => {
     const gains = mockAudioContext.createGain.mock.results.map(
       (r: any) => r.value
     );
-    const vca =
-      gains.find((g: any) => g.gain.setTargetAtTime.mock.calls.length > 0) ||
-      gains.at(-1);
+    const vca = gains.find((g: any) => g.gain.setValueAtTime.mock.calls.some((call: any[]) => call[0] === 0 && call[1] === 1.25));
     const panners = mockAudioContext.createStereoPanner.mock.results.map(
       (r: any) => r.value
     );
@@ -260,10 +259,9 @@ describe('AudioEngineService', () => {
     expect(osc.type).toBe('square');
     expect(osc.frequency.setValueAtTime).toHaveBeenCalledWith(440, 1.25);
     expect(panner.pan.setValueAtTime).toHaveBeenCalledWith(-0.25, 1.25);
-    // The envelope opens from silence and reaches peak after the attack
-    // (1.25 + 0.02); the target-ramp helper keeps its 10 ms time constant.
+    // The envelope opens from silence and ramps to its peak after the attack.
     expect(vca.gain.setValueAtTime).toHaveBeenCalledWith(0, 1.25);
-    expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(2, 1.27, 0.01);
+    expect(vca.gain.linearRampToValueAtTime).toHaveBeenCalledWith(2, 1.27);
     expect(vca.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
       0.001,
       1.25 + 0.5 + 0.3
@@ -304,6 +302,19 @@ describe('AudioEngineService', () => {
     expect(panner.pan.setValueAtTime).toHaveBeenCalledWith(0.4, 2);
     expect(vca.gain.setTargetAtTime).toHaveBeenCalledWith(0.8, 2, 0.005);
     expect(source.start).toHaveBeenCalledWith(2);
+  });
+
+  it('seeks buffered clips into the source and fade, then stops them with transport', () => {
+    const buffer = { duration: 10 } as AudioBuffer;
+    service.triggerSampler(1, buffer, 2, 0.8, 0, 4, 1, 4, 0, 3, 4, 48000, 2, true, 2);
+    const source = mockAudioContext.createBufferSource.mock.results.at(-1)?.value;
+    const vca = mockAudioContext.createGain.mock.results.map((result: any) => result.value)
+      .find((gain: any) => gain.gain.setValueAtTime.mock.calls.some((call: any[]) => call[0] === 0.4 && call[1] === 2));
+    expect(source.start).toHaveBeenCalledWith(2, 3);
+    expect(vca.gain.setValueAtTime).toHaveBeenCalledWith(0.4, 2);
+    expect(vca.gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.8, 4);
+    service.allNotesOff();
+    expect(source.stop).toHaveBeenLastCalledWith(0);
   });
 
   it('should schedule a SampleStreamer resident window at the requested source offset', () => {
@@ -375,8 +386,8 @@ describe('AudioEngineService', () => {
 
     (service as any).scheduler();
 
-    expect(scheduled).toHaveBeenNthCalledWith(1, 0, 0.01, 0.0625);
-    expect(scheduled).toHaveBeenNthCalledWith(2, 1, 0.0725, 0.0625);
+    expect(scheduled).toHaveBeenNthCalledWith(1, 0, 0.01, 0.0625, 0, false);
+    expect(scheduled).toHaveBeenNthCalledWith(2, 1, 0.0725, 0.0625, 1, false);
     // expect(service.currentBeat()).toBe(1 / 4); // setTimeout async
 
     const oscillators = mockAudioContext.createOscillator.mock.results.map(

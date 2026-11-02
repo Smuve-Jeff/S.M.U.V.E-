@@ -210,9 +210,17 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       0,
       Math.min(1, (event.clientX - rect.left) / rect.width),
     );
-    this.musicManager.currentStep.set(
-      Math.round(ratio * 16 * Math.max(1, this.effectiveBars())),
-    );
+    this.seekToStep(Math.round(ratio * 16 * Math.max(1, this.effectiveBars())));
+  }
+
+  private seekToStep(step: number): void {
+    if (this.audioSession.isRecording() || this.engine?.isRecording?.() || this.engine?.isCountIn?.()) {
+      this.snackbar.info("Stop recording or count-in before seeking");
+      return;
+    }
+    const position = this.engine?.seekToStep(step);
+    if (position === null || position === undefined) return;
+    this.musicManager.currentStep.set(position);
     this.markDirty();
   }
 
@@ -511,7 +519,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       // Clicked on ruler area — seek playhead
       const seekBar = Math.max(0, barX);
       const seekStep = Math.round(seekBar * 16);
-      this.musicManager.currentStep.set(seekStep);
+      this.seekToStep(seekStep);
       return;
     }
 

@@ -15,6 +15,8 @@ import { AiService } from "../services/ai.service";
 import { UIService } from "../services/ui.service";
 import { NotificationService } from "../services/notification.service";
 import { MusicManagerService } from "../services/music-manager.service";
+import { ExportService } from "../services/export.service";
+import { MidiWriter } from "./midi-writer.util";
 import { UserProfileService } from "../services/user-profile.service";
 import { AiCopilotService } from "./ai-copilot.service";
 import { HapticService } from "../services/haptic.service";
@@ -302,6 +304,10 @@ describe("StudioComponent", () => {
         { provide: UIService, useValue: uiServiceMock },
         { provide: NotificationService, useValue: {} },
         { provide: MusicManagerService, useValue: mockMusicManager },
+        { provide: ExportService, useValue: {
+          interchangeEndStep: jest.fn(() => 32),
+          interchangeDrumNotes: jest.fn(() => [{ midi: 36, step: 1.5, microOffset: 0.5, length: 0.5, velocity: 0.8 }]),
+        } },
         { provide: UserProfileService, useValue: mockUserProfileService },
         { provide: AiCopilotService, useValue: {} },
         { provide: HapticService, useValue: mockHaptic },
@@ -363,6 +369,16 @@ describe("StudioComponent", () => {
 
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it("uses expanded drum notes in the studio MIDI export without applying swing twice", () => {
+    mockMusicManager.tracks.set([{ id: 'drums', name: 'Drums', type: 'drum', notes: [] }] as any);
+    const writer = jest.spyOn(MidiWriter, 'toArrayBuffer');
+    jest.spyOn(component as any, 'downloadBlob').mockImplementation(() => {});
+    try {
+      component.exportMidi();
+      expect(writer).toHaveBeenCalledWith([expect.objectContaining({ notes: [expect.objectContaining({ startTick: 180, durationTicks: 60 })] })], expect.any(Number), expect.any(String));
+    } finally { writer.mockRestore(); }
   });
 
   it("exposes an active view signal initialised by the queryParamMap mock", () => {

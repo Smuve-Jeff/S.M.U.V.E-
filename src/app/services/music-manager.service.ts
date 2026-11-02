@@ -16,7 +16,7 @@ import {
   synthParamsForPreset,
 } from './instruments.service';
 import { StemSeparationService } from './stem-separation.service';
-import { IdeaRecipe } from './ideas-generator.service';
+import { IdeaRecipe, IdeaTrack } from './ideas-generator.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { LoggingService } from './logging.service';
 import {
@@ -67,6 +67,12 @@ export interface TrackNote {
     | 'accent';
   /** Pro Precision: note pan override (-1..1) */
   notePan?: number;
+}
+
+/** Number of evenly spaced retriggers within one drum step. */
+export function drumRatchetCount(params: any): number {
+  const value = Number(params?.ratchet);
+  return Number.isFinite(value) ? Math.max(1, Math.min(4, Math.round(value))) : 1;
 }
 
 export interface FxSlot {
@@ -201,6 +207,10 @@ export interface TrackModel extends StudioTrack {
   activePatternSlotId?: string | null;
   patternSlots?: PatternSlot[];
   swingAmount?: number;
+  /** Drum-channel swing as a fraction of a sixteenth note (0..0.75). */
+  drumSwing?: number;
+  /** Optional channel cycle in sixteenth-note steps; absent preserves legacy transport length. */
+  drumPatternLength?: number;
   collapsed?: boolean;
   stepVelocities?: Record<number, number>;
   /**
@@ -384,9 +394,9 @@ export class MusicManagerService {
   constructor() {
     this.setupProjectSync();
     this.engine.onPreparePlayback = () => this.preparePlaybackSamples();
-    this.engine.onScheduleStep = (step, time, duration) => {
+    this.engine.onScheduleStep = (step, time, duration, patternStep, resumeAudio) => {
       this.currentStep.set(step);
-      this.playStep(step, time, duration);
+      this.playStep(step, time, duration, patternStep, resumeAudio);
     };
 
     // Song mode is the arrangement: entering it leaves the live scene behind so
@@ -3346,7 +3356,7 @@ export class MusicManagerService {
     const newTracks: TrackModel[] = [];
     const stepsByTrack = new Map<string, boolean[]>();
     recipe.tracks.forEach((rt) => {
-      const built = this.buildRecipeTrack(rt);
+      const built = this.buildRecipeTrack(rt, newTracks.some((track) => track.type === 'drum'));
       newTracks.push(built);
       if (rt.drum) {
         stepsByTrack.set(
@@ -3383,35 +3393,57 @@ export class MusicManagerService {
   }
 
   /** Build a `TrackModel` matching addTrack()'s shape, from a recipe track. */
-  private buildRecipeTrack(rt: {
-    name: string;
-    instrumentId: string;
-    notes: IdeaRecipe['tracks'][0]['notes'];
-  }): TrackModel {
-    const id = rt.instrumentId.includes('drum')
+  private buildRecipeTrack(rt: IdeaTrack, hasDrumTrack: boolean): TrackModel {
+    const isDrum = !!rt.drum;
+    const id = isDrum && !hasDrumTrack
       ? MusicManagerService.DRUM_TRACK_ID
       : 'track_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    // Older starter data names the melodic 808 bass for its drum lane. Use the
+    // actual kit for drum lanes only; an 808 bass part must remain melodic.
+    const instrumentId = isDrum && rt.instrumentId === 'trap-808-elite'
+      ? 'trap-kit-elite'
+      : rt.instrumentId;
     const preset = this.instruments
       .getPresets()
-      .find((p) => p.id === rt.instrumentId);
+      .find((p) => p.id === instrumentId);
+    const drumNotes: TrackNote[] = rt.drum
+      ? ([
+          [36, rt.drum.kick],
+          [38, rt.drum.snare],
+          [42, rt.drum.hat],
+        ] as const).flatMap(([midi, steps]) =>
+          steps.filter((step) => Number.isInteger(step) && step >= 0 && step < 64)
+            .map((step) => ({
+              id: `recipe_${id}_${midi}_${step}`,
+              midi,
+              step,
+              length: 1,
+              velocity: 0.8,
+            }))
+        )
+      : [];
     return {
       id,
       name: rt.name,
-      type: rt.instrumentId.includes('drum') ? 'drum' : 'midi',
-      instrumentId: rt.instrumentId,
+      type: isDrum ? 'drum' : 'midi',
+      instrumentId,
+      ...(isDrum ? { drumSwing: rt.drum?.swing ?? 0 } : {}),
       muted: false,
       soloed: false,
       volume: 0.8,
       gain: 0.8,
       pan: 0,
       clips: [],
-      notes: rt.notes.map((n, i) => ({
-        id: `recipe_${id}_${i}`,
-        midi: n.midi,
-        step: n.step,
-        length: n.length,
-        velocity: n.velocity,
-      })),
+      notes: [
+        ...rt.notes.map((n, i) => ({
+          id: `recipe_${id}_${i}`,
+          midi: n.midi,
+          step: n.step,
+          length: n.length,
+          velocity: n.velocity,
+        })),
+        ...drumNotes,
+      ],
       steps: new Array(64).fill(false),
       fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
       sendA: 0,
@@ -3479,7 +3511,7 @@ export class MusicManagerService {
         name: labels[key] ?? key,
         instrumentId: 'sampler-elite',
         notes: [],
-      });
+      }, false);
       track.id = trackId;
       track.type = 'audio';
       newTracks.push(track);
@@ -3714,21 +3746,54 @@ export class MusicManagerService {
 
   // ── Playback engine stepper ───────────────────────────────────────
 
-  /** Expand arrangement pattern clips to absolute note positions for offline rendering. */
-  arrangementNotes(track: TrackModel): TrackNote[] {
+  /** Apply drum-channel swing before moving a pattern note to song time. */
+  private noteWithDrumSwing(track: TrackModel, note: TrackNote): TrackNote {
+    if (track.type !== 'drum' || !Number.isFinite(track.drumSwing) || Math.floor(note.step) % 2 === 0) return note;
+    const swing = Math.max(0, Math.min(0.75, track.drumSwing!));
+    return { ...note, microOffset: (note.microOffset ?? 0) + swing };
+  }
+
+  /** Invalid or absent saved values retain the legacy transport-length cycle. */
+  drumPatternSpan(track: TrackModel): number {
+    const length = track.drumPatternLength;
+    return track.type === 'drum' && Number.isInteger(length) && length! >= 1 && length! <= 64
+      ? length! : Math.max(1, this.engine.loopLengthSteps?.() ?? 64);
+  }
+
+  /** Local drum step currently playing, or null outside a MIDI clip. */
+  drumStepAt(track: TrackModel, step: number, patternStep = step): number | null {
     const clips = track.clips ?? [];
-    if (!clips.length) return track.notes ?? [];
-    const span = Math.max(1, this.engine.loopLengthSteps?.() ?? 64);
+    const freeRunning = this.scenePlaybackActive() || !clips.length;
+    const clip = freeRunning ? null : clips.find((c) => c.type !== 'audio' &&
+      step >= Math.round((c.start || 0) * 16) &&
+      step < Math.round((c.start || 0) * 16) + Math.max(1, Math.round((c.length || 4) * 16)));
+    if (!freeRunning && !clip) return null;
+    const start = clip ? Math.round((clip.start || 0) * 16) : 0;
+    const end = clip ? start + Math.max(1, Math.round((clip.length || 4) * 16)) : Infinity;
+    const position = freeRunning || (start === 0 && end >= (this.engine.loopLengthSteps?.() ?? 64))
+      ? patternStep : step - start;
+    const span = this.drumPatternSpan(track);
+    return ((position % span) + span) % span;
+  }
+
+  /** Expand pattern clips to absolute note positions for offline rendering. */
+  arrangementNotes(track: TrackModel, endStep?: number): TrackNote[] {
+    const clips = track.clips ?? [];
+    const span = this.drumPatternSpan(track);
+    // Existing projects with no explicit drum cycle keep their old export behavior.
+    if (!clips.length && !(track.type === 'drum' && track.drumPatternLength && endStep !== undefined))
+      return (track.notes ?? []).map((note) => this.noteWithDrumSwing(track, note));
+    const windows = clips.length ? clips : [{ start: 0, length: endStep! / 16, type: 'midi' } as StudioClip];
     const result: TrackNote[] = [];
-    for (const clip of clips) {
+    for (const clip of windows) {
       if (clip.type === 'audio') continue;
       const start = Math.round((clip.start || 0) * 16);
-      const end = start + Math.max(1, Math.round((clip.length || 4) * 16));
+      const end = Math.min(endStep ?? Infinity, start + Math.max(1, Math.round((clip.length || 4) * 16)));
       const notes = this.notesForClip(track, clip, track.notes ?? []);
       for (let base = start; base < end; base += span) {
         for (const note of notes) {
           if (note.step < 0 || note.step >= span || base + Math.floor(note.step) >= end) continue;
-          result.push({ ...note, step: base + note.step });
+          result.push({ ...this.noteWithDrumSwing(track, note), step: base + note.step });
         }
       }
     }
@@ -3738,7 +3803,7 @@ export class MusicManagerService {
   /** Preload the working notes and pattern clips before transport or export. */
   async prepareTrackSamples(track: TrackModel, strict = false): Promise<void> {
     if (!this.instruments.isSamplePreset?.(track.instrumentId)) return;
-    const notes = strict ? this.arrangementNotes(track) : [
+    const notes = strict ? this.arrangementNotes(track, track.clips?.length ? undefined : this.drumPatternSpan(track)) : [
       ...(track.notes ?? []), ...this.arrangementNotes(track),
     ];
     const unique = new Map<string, TrackNote>();
@@ -3767,7 +3832,7 @@ export class MusicManagerService {
     return Promise.all(tracks.map((track) => this.prepareTrackSamples(track))).then(() => undefined);
   }
 
-  playStep(step: number, time: number, duration: number) {
+  playStep(step: number, time: number, duration: number, patternStep = step, resumeAudio = false) {
     this.advanceSceneFollow(step);
     const STEPS_PER_BAR = 16;
     const stepInBar = step % STEPS_PER_BAR;
@@ -3836,12 +3901,11 @@ export class MusicManagerService {
           // pattern, so it must start the pattern where it starts. The old
           // global `step % 64` phase made a clip drawn at bar 8.5 begin on
           // pattern step 8 — i.e. play the wrong bar of its own pattern.
-          const patternSpan = Math.max(
-            1,
-            this.engine.loopLengthSteps?.() ?? 64,
-          );
-          const localStep =
-            ((step - startStep) % patternSpan + patternSpan) % patternSpan;
+          const patternSpan = this.drumPatternSpan(t);
+          const continuousClip = startStep === 0 && endStep >= (this.engine.loopLengthSteps?.() ?? 64);
+          const position = t.type === 'drum' && (this.scenePlaybackActive() || !clips.length || continuousClip)
+            ? patternStep : step - startStep;
+          const localStep = ((position % patternSpan) + patternSpan) % patternSpan;
           clipNotes
             .filter((n) => Math.floor(n.step) === localStep)
             .forEach((n) => {
@@ -3857,7 +3921,7 @@ export class MusicManagerService {
               const stepFraction = n.step - Math.floor(n.step);
               const microTime =
                 swungTime +
-                (n.microOffset ?? 0) * duration +
+                (this.noteWithDrumSwing(t, n).microOffset ?? 0) * duration +
                 stepFraction * duration;
               const baseFreq = 440 * Math.pow(2, (n.midi - 69) / 12);
               const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
@@ -3891,6 +3955,10 @@ export class MusicManagerService {
               }
 
               const notePan = n.notePan ?? t.pan;
+              const ratchet = t.type === 'drum' ? drumRatchetCount(n.params) : 1;
+              const ratchetDuration = ratchet > 1
+                ? Math.min(n.length * duration * lengthMul, duration / ratchet)
+                : n.length * duration * lengthMul;
 
               // Imported drum/percussion one-shots are attached to the pad
               // note by reference. Play the PCM the artist loaded; falling
@@ -3915,14 +3983,17 @@ export class MusicManagerService {
                 oneShot.duration > 0 &&
                 typeof (this.engine as any).triggerSampler === 'function'
               ) {
-                this.engine.triggerSampler(
-                  t.id,
-                  oneShot,
-                  microTime,
-                  n.velocity ?? 0.8,
-                  notePan,
-                  Math.max(0.01, oneShot.duration),
-                );
+                for (let hit = 0; hit < ratchet; hit++) {
+                  this.engine.triggerSampler(
+                    t.id,
+                    oneShot,
+                    microTime + hit * duration / ratchet,
+                    n.velocity ?? 0.8,
+                    notePan,
+                    Math.max(0.01, oneShot.duration),
+                    1, 0, 0, 0, 0, 48000, 2, true,
+                  );
+                }
                 return;
               }
 
@@ -3931,17 +4002,19 @@ export class MusicManagerService {
                   t.instrumentId, n.midi, n.velocity ?? 0.8, n.pitchBend ?? 0,
                 );
                 if (sample) {
-                  const noteDuration = Math.max(0.01, n.length * duration * lengthMul);
+                  const noteDuration = Math.max(0.01, ratchetDuration);
                   const sampleDuration = Math.min(
                     sample.buffer.duration / sample.rate,
                     sample.oneShot ? Infinity : noteDuration + sample.release,
                   );
-                  this.engine.triggerSampler(
-                    t.id, sample.buffer, microTime, n.velocity ?? 0.8, notePan,
-                    sampleDuration, sample.rate, 0,
-                    sample.oneShot ? 0 : Math.min(sample.release, sampleDuration),
-                    0, 0, 48000, 2, true,
-                  );
+                  for (let hit = 0; hit < ratchet; hit++) {
+                    this.engine.triggerSampler(
+                      t.id, sample.buffer, microTime + hit * duration / ratchet, n.velocity ?? 0.8, notePan,
+                      sampleDuration, sample.rate, 0,
+                      sample.oneShot ? 0 : Math.min(sample.release, sampleDuration),
+                      0, 0, 48000, 2, true,
+                    );
+                  }
                   return;
                 }
                 // Notes added while playing are loaded for subsequent steps/loops.
@@ -3949,35 +4022,42 @@ export class MusicManagerService {
                   .catch((error) => this.logger.warn(`Studio: sample unavailable on “${t.name}”; using synth fallback.`, error));
               }
 
-              this.engine.triggerAttack(
-                t.id,
-                freq,
-                microTime,
-                n.velocity,
-                n.length * duration * lengthMul,
-                // Track gain lives on the fader primed above, never doubled
-                // into the voice peak.
-                1.0,
-                notePan,
-                0,
-                0,
-                synthParams
-              );
+              for (let hit = 0; hit < ratchet; hit++) {
+                this.engine.triggerAttack(
+                  t.id,
+                  freq,
+                  microTime + hit * duration / ratchet,
+                  n.velocity,
+                  ratchetDuration,
+                  // Track gain lives on the fader, not in the voice peak.
+                  1.0,
+                  notePan,
+                  0,
+                  0,
+                  synthParams
+                );
+              }
             });
         }
 
-        if (clip.type === 'audio' && step === startStep) {
+        if (clip.type === 'audio' && (step === startStep || resumeAudio)) {
           // Audio can be either inline (legacy) or cached by id (stem splits).
           const audioData =
             (clip as any).audioData ||
             ((clip as any).audioRefId &&
               this.stemAudioCache.get((clip as any).audioRefId));
-          if (audioData) {
+          if (audioData || clip.clipStreamer) {
             const rate = this.engine.calculatePlaybackRate(
               (clip as any).originalBpm || this.engine.tempo()
             );
-            const clipDur =
-              clip.length * 4 * (60 / this.engine.tempo());
+            const elapsed = this.engine.secondsBetweenSteps?.(startStep, step) ?? (step - startStep) * duration;
+            const fullClipDur = Math.min(
+              this.engine.secondsBetweenSteps?.(startStep, endStep) ?? clip.length * 4 * (60 / this.engine.tempo()),
+              clip.clipLengthSeconds ?? Infinity,
+            );
+            const clipDur = fullClipDur - elapsed;
+            if (clipDur <= 0) return;
+            const sourceOrigin = (clip.clipStreamer ? (clip.clipOriginSeconds ?? 0) : (clip.offset ?? 0)) + elapsed * rate;
             // Phase F2 — clip fade envelope. Fades are stored in bars on
             // the clip (matching start/length units); convert to seconds.
             const secPerBar = 4 * (60 / this.engine.tempo());
@@ -3990,8 +4070,7 @@ export class MusicManagerService {
             // the engine advances the clip playhead per invocation.
             if ((clip as any).clipStreamer) {
               (clip as any).clipStreamer.setPlayhead(
-                ((clip as any).clipOriginSeconds || 0) *
-                  ((clip as any).clipSampleRate || 48000)
+                sourceOrigin * ((clip as any).clipSampleRate || 48000)
               );
               this.engine.triggerSampler(
                 t.id,
@@ -4006,10 +4085,12 @@ export class MusicManagerService {
                 rate,
                 fadeInSec,
                 fadeOutSec,
-                (clip as any).clipOriginSeconds ?? 0,
+                sourceOrigin,
                 (clip as any).clipLengthSeconds ?? clipDur,
                 (clip as any).clipSampleRate ?? 48000,
                 (clip as any).clipChannels ?? 2,
+                true,
+                elapsed,
               );
             } else {
               const reversedClip = (clip as any).reversed && !(
@@ -4031,7 +4112,13 @@ export class MusicManagerService {
                 clipDur,
                 rate,
                 fadeInSec,
-                fadeOutSec
+                fadeOutSec,
+                sourceOrigin,
+                clipDur,
+                (clip as any).clipSampleRate ?? 48000,
+                (clip as any).clipChannels ?? 2,
+                true,
+                elapsed,
               );
             }
           }

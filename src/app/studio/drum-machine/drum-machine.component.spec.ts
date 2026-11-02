@@ -4,6 +4,7 @@ import { MusicManagerService } from "../../services/music-manager.service";
 import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { AiService } from "../../services/ai.service";
+import { InstrumentsService } from "../../services/instruments.service";
 import { HapticService } from "../../services/haptic.service";
 import { signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
@@ -22,11 +23,14 @@ describe("DrumMachineComponent", () => {
   const mockAudioSession = createMockAudioSession();
 
   const mockMusicManager = {
-    tracks: signal([
-      { id: MusicManagerService.DRUM_TRACK_ID, notes: [] as any[] },
+    tracks: signal<any[]>([
+      { id: MusicManagerService.DRUM_TRACK_ID, type: "drum", instrumentId: "synth-kit", name: "Drums", notes: [] },
     ]),
+    selectedTrackId: signal<string | null>(MusicManagerService.DRUM_TRACK_ID),
+    requestCrossLink: jest.fn(),
     stemAudioCache: new Map<string, AudioBuffer>(),
     currentStep: signal(0),
+    drumStepAt: (track: any, step: number, patternStep = step) => patternStep % (track.drumPatternLength ?? 64),
     applyTrackPatch: jest.fn((trackId: string, patch: any) => {
       mockMusicManager.tracks.set(
         mockMusicManager.tracks().map((track: any) =>
@@ -63,7 +67,12 @@ describe("DrumMachineComponent", () => {
   };
 
   const mockAudioEngine = createMockAudioEngine();
-  const mockHaptic = createMockHapticService();
+  const mockHaptic = { ...createMockHapticService(), velocity: jest.fn() };
+  const mockInstruments = {
+    isSamplePreset: jest.fn(() => false),
+    getPresetSample: jest.fn(),
+    loadPresetSample: jest.fn(),
+  };
 
   const mockAiService = {
     generateStrategicDecree: jest.fn(),
@@ -72,15 +81,18 @@ describe("DrumMachineComponent", () => {
 
   beforeEach(async () => {
     mockMusicManager.tracks.set([
-      { id: MusicManagerService.DRUM_TRACK_ID, notes: [] },
+      { id: MusicManagerService.DRUM_TRACK_ID, type: "drum", instrumentId: "synth-kit", name: "Drums", notes: [] },
     ]);
+    mockMusicManager.selectedTrackId.set(MusicManagerService.DRUM_TRACK_ID);
     mockMusicManager.stemAudioCache.clear();
+    mockInstruments.isSamplePreset.mockReturnValue(false);
     await TestBed.configureTestingModule({
       imports: [DrumMachineComponent, CommonModule, FormsModule],
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: MusicManagerService, useValue: mockMusicManager },
         { provide: AudioEngineService, useValue: mockAudioEngine },
+        { provide: InstrumentsService, useValue: mockInstruments },
         { provide: HapticService, useValue: mockHaptic },
         { provide: AiService, useValue: mockAiService },
       ],
@@ -108,6 +120,143 @@ describe("DrumMachineComponent", () => {
     const padId = component.pads()[0].id;
     component.toggleStep(padId, 0);
     expect(component.getPadStep(padId, 0).active).toBe(true);
+  });
+
+  it("edits and auditions the chosen drum channel without changing the other kit", () => {
+    const first = mockMusicManager.tracks()[0];
+    const second = { id: "second-kit", type: "drum", instrumentId: "synth-kit", name: "Second kit", notes: [] };
+    mockMusicManager.tracks.set([first, second]);
+    component.selectDrumTrack(second.id);
+    const pad = component.pads()[0];
+    component.toggleStep(pad.id, 3);
+    component.triggerPad(pad);
+    component.crossLinkSelectedPad();
+
+    expect(first.notes).toHaveLength(0);
+    expect(second.notes).toEqual([expect.objectContaining({ midi: 36, step: 3 })]);
+    expect(mockAudioEngine.triggerAttack).toHaveBeenLastCalledWith(second.id, expect.any(Number), 0, 1, expect.any(Number), 1, expect.any(Number), 0, 0, expect.any(Object));
+    expect(mockMusicManager.requestCrossLink).toHaveBeenLastCalledWith(expect.objectContaining({ trackId: second.id }));
+  });
+
+  it("keeps imported one-shots isolated when switching kits", () => {
+    const buffer = { duration: 0.4 } as AudioBuffer;
+    mockMusicManager.stemAudioCache.set('first-sample', buffer);
+    const first = { ...mockMusicManager.tracks()[0], drumPadSamples: [{ id: 'pad-36', sampleRefId: 'first-sample' }] };
+    const second = { id: 'second-kit', type: 'drum', instrumentId: 'synth-kit', name: 'Second kit', notes: [] };
+    mockMusicManager.tracks.set([first, second]);
+    component.selectDrumTrack(first.id);
+    expect(component.pads()[0].sampleBuffer).toBe(buffer);
+    component.selectDrumTrack(second.id);
+    expect(component.pads()[0].sampleBuffer).toBeUndefined();
+    component.selectDrumTrack(first.id);
+    expect(component.pads()[0].sampleBuffer).toBe(buffer);
+  });
+
+  it("uses the selected kit sample when auditioning a pad", () => {
+    const buffer = { duration: 0.4 } as AudioBuffer;
+    mockInstruments.isSamplePreset.mockReturnValue(true);
+    mockInstruments.getPresetSample.mockReturnValue({ buffer, rate: 1, oneShot: true });
+    component.triggerPad(component.pads()[0]);
+    expect(mockAudioEngine.triggerSampler).toHaveBeenLastCalledWith(
+      MusicManagerService.DRUM_TRACK_ID, buffer, 0, 1, expect.any(Number), 0.4, 1,
+    );
+  });
+
+  it("stores swing on the selected kit and follows the selected channel", () => {
+    const first = mockMusicManager.tracks()[0];
+    const second = { id: 'second-kit', type: 'drum', instrumentId: 'synth-kit', name: 'Second kit', notes: [], drumSwing: 0.1 };
+    mockMusicManager.tracks.set([first, second]);
+    component.setSwing(55);
+    expect(mockMusicManager.tracks()[0].drumSwing).toBe(0.55);
+    component.selectDrumTrack(second.id);
+    expect(component.swingPercent()).toBe(10);
+    component.setSwing(25);
+    expect(mockMusicManager.tracks()[1].drumSwing).toBe(0.25);
+    expect(mockMusicManager.tracks()[0].drumSwing).toBe(0.55);
+  });
+
+  it("sets channel cycle length, preserves outside notes, and disables out-of-cycle steps", () => {
+    const pad = component.pads()[0];
+    component.toggleStep(pad.id, 20);
+    component.currentBar.set(1);
+    component.setPolymeter(5);
+    expect(component.polymeter()).toBe(5);
+    expect(component.currentBar()).toBe(0);
+    expect(component.getPadStep(pad.id, 20).active).toBe(true);
+    component.onStepClick(pad, 5);
+    expect(component.getPadStep(pad.id, 5).active).toBe(false);
+    fixture.detectChanges();
+    const steps = fixture.nativeElement.querySelectorAll('.dm-step-row:first-child .dm-step');
+    expect(steps[4].disabled).toBe(false);
+    expect(steps[5].disabled).toBe(true);
+    const tabs = fixture.nativeElement.querySelectorAll('.dm-bar-tab');
+    expect(tabs[1].disabled).toBe(true);
+    component.setPolymeter(64);
+    expect(component.getPadStep(pad.id, 20).active).toBe(true);
+  });
+
+  it("follows the selected channel length and resets an inaccessible bar", () => {
+    mockMusicManager.tracks.set([
+      mockMusicManager.tracks()[0],
+      { id: 'short', type: 'drum', name: 'Short', instrumentId: 'synth-kit', notes: [], drumPatternLength: 7 },
+    ]);
+    component.currentBar.set(3);
+    component.selectDrumTrack('short');
+    fixture.detectChanges();
+    expect(component.polymeter()).toBe(7);
+    expect(component.currentBar()).toBe(0);
+    component.setPolymeter(9);
+    expect(mockMusicManager.tracks()[0].drumPatternLength).toBeUndefined();
+    expect(mockMusicManager.tracks()[1].drumPatternLength).toBe(9);
+  });
+
+  it("keeps variation accents inside the cycle and leaves hidden notes untouched", () => {
+    component.toggleStep('pad-36', 20);
+    component.setPolymeter(5);
+    const random = jest.spyOn(Math, 'random').mockReturnValue(0.9);
+    try {
+      component.generateVariation();
+      expect(component.getPadStep('pad-36', 20).active).toBe(true);
+      expect(mockMusicManager.tracks()[0].notes.filter((n: any) => n.step !== 20).every((n: any) => n.step < 5)).toBe(true);
+      expect(mockMusicManager.tracks()[0].notes.some((n: any) => n.step === 4)).toBe(true);
+    } finally { random.mockRestore(); }
+  });
+
+  it("edits the visible bar by tap and drag for velocity and probability", () => {
+    component.currentBar.set(2);
+    component.toggleStep('pad-36', 34);
+    component.toggleStep('pad-36', 35);
+    const strip = fixture.nativeElement.querySelector('.dm-vel-strip') as HTMLElement;
+    jest.spyOn(strip, 'getBoundingClientRect').mockReturnValue({ left: 10, top: 20, width: 160, height: 100 } as DOMRect);
+    const pointer = (x: number, y: number) => ({ currentTarget: strip, clientX: x, clientY: y, button: 0, pointerId: 1 }) as PointerEvent;
+    component.onGraphPointerDown(pointer(35, 70));
+    component.onGraphPointerMove(pointer(45, 45));
+    component.onGraphPointerUp(pointer(45, 45));
+    expect(component.getPadStep('pad-36', 34).velocity).toBe(0.5);
+    expect(component.getPadStep('pad-36', 35).velocity).toBe(0.75);
+    component.graphTarget.set('probability');
+    component.onGraphPointerDown(pointer(35, 100));
+    expect(component.getPadStep('pad-36', 34).probability).toBeCloseTo(0.2);
+    expect(component.selectedPadSteps()).toHaveLength(16);
+  });
+
+  it("maps step taps to the selected bar even in high-density mode", () => {
+    component.currentBar.set(2);
+    component.padsCollapsed.set(true);
+    component.inspectorCollapsed.set(true);
+    component.onStepClick(component.pads()[0], 3);
+    expect(component.getPadStep('pad-36', 35).active).toBe(true);
+  });
+
+  it("only opens step settings for an active hit and stores its ratchet", () => {
+    const pad = component.pads()[0];
+    component.openStepSheet(pad, 1);
+    expect(component.stepSheetOpen()).toBe(false);
+    component.toggleStep(pad.id, 1);
+    component.openStepSheet(pad, 1);
+    expect(component.stepSheetOpen()).toBe(true);
+    component.updateSelectedStepRatchet(3);
+    expect(component.getPadStep(pad.id, 1).ratchet).toBe(3);
   });
 
   it("handles collapsibility correctly", () => {
