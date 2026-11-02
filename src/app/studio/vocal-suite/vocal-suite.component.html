@@ -358,6 +358,24 @@
             </button>
             <button
               type="button"
+              (click)="shiftVoice(-5)"
+              [disabled]="isProcessingTake()"
+              aria-label="Voice changer: deep voice"
+              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Voice Deep
+            </button>
+            <button
+              type="button"
+              (click)="shiftVoice(7)"
+              [disabled]="isProcessingTake()"
+              aria-label="Voice changer: bright voice"
+              class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Voice Bright
+            </button>
+            <button
+              type="button"
               (click)="routeTakeToArrangement()"
               aria-label="Add the edited take to the arrangement"
               class="px-4 py-2 bg-white/5 border border-fl-border rounded text-[10px] font-bold uppercase tracking-widest hover:bg-vocal-primary transition-all"

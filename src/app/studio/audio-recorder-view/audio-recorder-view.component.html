@@ -402,6 +402,7 @@
         >{{ isRecordingSaving(lastTake.id) ? 'SAVING…' : 'Save on Device' }}</button>
         <button type="button" (click)="keepLatestTake()" [disabled]="deviceSwitchLocked()">Keep</button>
         <button type="button" (click)="retryLatestTake()" [disabled]="deviceSwitchLocked()">Retry</button>
+        <button type="button" (click)="latestTakeToMidi()" [disabled]="!lastTake.url">To MIDI</button>
         <button type="button" class="is-primary" (click)="addLatestToArrangement()" [disabled]="!lastTake.url">Add to Song</button>
       </div>
     </section>

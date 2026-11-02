@@ -61,6 +61,8 @@ interface RecordingListEntry {
   savedOffline?: boolean;
 }
 
+import { transcribeMonophonic } from "../audio-to-midi.util";
+
 @Component({
   selector: "app-audio-recorder-view",
   standalone: true,
@@ -184,6 +186,55 @@ export class AudioRecorderViewComponent
   );
   capturePathLabel = signal("Raw microphone input");
   latestRecording = computed(() => this.recordings()[0] ?? null);
+  /**
+   * Transcribe the latest take into a new MIDI track.
+   *
+   * Decodes the take, runs the monophonic transcriber, then quantises each
+   * note to the current 16th-note grid. The audio take is left untouched, so
+   * the artist can keep both or delete either.
+   */
+  async latestTakeToMidi(): Promise<void> {
+    const take = this.latestRecording();
+    const musicManager = this.musicManager;
+    const audioEngine = this.audioEngine;
+    if (!take?.url || !musicManager || !audioEngine) {
+      this.snackbar.error("Record a take first");
+      return;
+    }
+    try {
+      const response = await fetch(take.url);
+      const buffer = await audioEngine.ctx.decodeAudioData(
+        await response.arrayBuffer(),
+      );
+      const notes = transcribeMonophonic(buffer);
+      if (notes.length === 0) {
+        this.snackbar.info("No clear pitch found in this take");
+        return;
+      }
+      const stepSeconds = 60 / audioEngine.tempo() / 4;
+      const trackId = musicManager.addTrack(
+        `MIDI · ${take.name}`,
+        "grand-piano",
+      );
+      notes.forEach((note, index) => {
+        musicManager.addNoteToTrack(trackId, {
+          id: `midi_${Date.now()}_${index}`,
+          midi: note.midi,
+          step: Math.max(0, Math.round(note.startSec / stepSeconds)),
+          length: Math.max(1, Math.round(note.durationSec / stepSeconds)),
+          velocity: note.velocity,
+        } as any);
+      });
+      this.haptic.medium();
+      this.snackbar.success(
+        `Transcribed ${notes.length} note${notes.length === 1 ? "" : "s"} to MIDI`,
+      );
+    } catch (error) {
+      this.logger.error("Audio-to-MIDI failed", error);
+      this.snackbar.error("Could not transcribe this take");
+    }
+  }
+
   captureStatusLabel = computed(() => {
     // "Ready to record" is a promise the machine cannot keep with no input.
     if (this.showNoInputNotice() && this.captureState() === "idle") {

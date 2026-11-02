@@ -33,6 +33,7 @@ import { WavEncoder } from "../wav-encoder.util";
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
 import { peakNormalizeInPlace, trimSilenceEdges } from "../take-edit.util";
 import { SmartRecordingService } from "../smart-recording.service";
+import { AudioImportService } from "../audio-import.service";
 
 type ViewMode = "pipeline" | "console";
 type PipelineStep = "setup" | "record" | "edit" | "master";
@@ -65,6 +66,7 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
   private logger = inject(LoggingService);
   private snackbar = inject(SnackbarService);
   public readonly hardware = inject(HardwareService);
+  private readonly audioImport = inject(AudioImportService, { optional: true });
   private readonly haptic = inject(HapticService);
   private readonly visualScheduler = inject(StudioVisualSchedulerService);
   private readonly smartRecording = inject(SmartRecordingService);
@@ -352,6 +354,26 @@ export class VocalSuiteComponent implements AfterViewInit, OnDestroy {
       this.editedTake = trimmed;
       return `Trimmed ${(before - trimmed.duration).toFixed(2)}s of silence`;
     });
+  }
+
+  /**
+   * Voice-changer presets: shift the working take while keeping its timing.
+   * These are offline, non-destructive edits on the loaded take; route it to
+   * the arrangement when the character is right.
+   */
+  async shiftVoice(semitones: number): Promise<string | null> {
+    if (!this.audioImport) {
+      this.snackbar.error("Voice shifting is unavailable on this host");
+      return null;
+    }
+    return this.editTake(
+      `Shifting voice ${semitones > 0 ? "+" : ""}${semitones} st…`,
+      (buffer) => {
+        const shifted = this.audioImport!.pitchShiftBuffer(buffer, semitones);
+        this.editedTake = shifted;
+        return `Voice shifted ${semitones > 0 ? "+" : ""}${semitones} semitones`;
+      },
+    );
   }
 
   // ── Take routing ─────────────────────────────────────────
