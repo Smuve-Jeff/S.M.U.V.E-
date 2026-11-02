@@ -28,6 +28,10 @@ import {
 import { ComposerUplinkService } from '../../composer/composer-uplink.service';
 import { CompositionAuditionService } from '../../composer/composition-audition.service';
 import { briefSummary } from '../../composer/composition-brief';
+import {
+  comparePasses,
+  type PassComparison,
+} from '../../composer/composition-compare';
 import { NotificationService } from '../../services/notification.service';
 
 interface PreviewCell {
@@ -82,6 +86,15 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
   readonly libraryQuery = signal('');
   readonly showLibrary = signal(true);
   readonly copied = signal(false);
+  readonly compareA = signal<string | null>(null);
+  readonly compareB = signal<string | null>(null);
+
+  readonly comparison = computed<PassComparison | null>(() => {
+    const history = this.core.passHistory();
+    const a = history.find((pass) => pass.id === this.compareA());
+    const b = history.find((pass) => pass.id === this.compareB());
+    return a && b ? comparePasses(a, b) : null;
+  });
 
   readonly filteredCatalog = computed(() => {
     const query = this.libraryQuery().trim().toLowerCase();
@@ -221,6 +234,32 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
 
   isCurrentPass(pass: CompositionPass): boolean {
     return this.core.current() === pass.composition;
+  }
+
+  setCompare(slot: 'a' | 'b', pass: CompositionPass, event: Event): void {
+    event.stopPropagation();
+    const target = slot === 'a' ? this.compareA : this.compareB;
+    const other = slot === 'a' ? this.compareB : this.compareA;
+    if (target() === pass.id) {
+      target.set(null);
+      return;
+    }
+    if (other() === pass.id) other.set(null);
+    target.set(pass.id);
+  }
+
+  isCompareSelected(slot: 'a' | 'b', pass: CompositionPass): boolean {
+    return (slot === 'a' ? this.compareA() : this.compareB()) === pass.id;
+  }
+
+  clearCompare(): void {
+    this.compareA.set(null);
+    this.compareB.set(null);
+  }
+
+  clearHistory(): void {
+    this.clearCompare();
+    this.core.clearPassHistory();
   }
 
   /** Compact delta against the pass currently on the desk. */

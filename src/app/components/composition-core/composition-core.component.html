@@ -459,11 +459,58 @@
             </p>
           </div>
           <div class="section-actions">
-            <button type="button" class="btn btn-ghost" (click)="core.clearPassHistory()">
+            <button type="button" class="btn btn-ghost" (click)="clearHistory()">
               Clear history
             </button>
           </div>
         </div>
+
+        @if (comparison(); as pair) {
+          <div class="compare-panel">
+            <div class="compare-panel-head">
+              <span class="label">A/B compare</span>
+              <button type="button" class="btn btn-ghost" (click)="clearCompare()">
+                Close compare
+              </button>
+            </div>
+            <p class="compare-delta">{{ pair.delta.join(' · ') }}</p>
+            <div class="compare-grid">
+              @for (card of [pair.a, pair.b]; track card.id; let i = $index) {
+                <div class="compare-card">
+                  <div class="compare-card-head">
+                    <span class="compare-tag">{{ i === 0 ? 'A' : 'B' }}</span>
+                    <strong>{{ card.title }}</strong>
+                    <span class="pass-mode">{{ card.variation }}</span>
+                  </div>
+                  <dl class="compare-stats">
+                    <div><dt>Tempo</dt><dd>{{ card.bpm }} BPM</dd></div>
+                    <div><dt>Key</dt><dd>{{ card.keyLabel }}</dd></div>
+                    <div><dt>Length</dt><dd>{{ card.bars }} bars · {{ card.duration }}</dd></div>
+                    <div><dt>Parts</dt><dd>{{ card.partCount }}</dd></div>
+                  </dl>
+                  <p class="compare-line"><span>Form</span>{{ card.form }}</p>
+                  <p class="compare-line"><span>Pass</span>{{ card.parts }}</p>
+                  <p class="compare-line brief"><span>Brief</span>{{ card.brief }}</p>
+                  <div class="compare-meters">
+                    <div class="compare-meter">
+                      <span>Energy {{ card.energy }}%</span>
+                      <div class="meter-track"><i [style.width.%]="card.energy"></i></div>
+                    </div>
+                    <div class="compare-meter">
+                      <span>Darkness {{ card.darkness }}%</span>
+                      <div class="meter-track"><i [style.width.%]="card.darkness"></i></div>
+                    </div>
+                    <div class="compare-meter">
+                      <span>Complexity {{ card.complexity }}%</span>
+                      <div class="meter-track"><i [style.width.%]="card.complexity"></i></div>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
         <div class="pass-list">
           @for (pass of core.passHistory(); track pass.id) {
             <div class="pass-item" [class.current]="isCurrentPass(pass)">
@@ -481,6 +528,22 @@
                 }
               </div>
               <div class="pass-side">
+                <div class="compare-picks">
+                  <button
+                    type="button"
+                    class="pick"
+                    [class.active]="isCompareSelected('a', pass)"
+                    (click)="setCompare('a', pass, $event)"
+                    title="Set as A"
+                  >A</button>
+                  <button
+                    type="button"
+                    class="pick"
+                    [class.active]="isCompareSelected('b', pass)"
+                    (click)="setCompare('b', pass, $event)"
+                    title="Set as B"
+                  >B</button>
+                </div>
                 <span class="pass-delta">{{ passDelta(pass) }}</span>
                 <button
                   type="button"
