@@ -321,6 +321,26 @@
                     }}</span>
                     <span>{{ templateAuditionLabel(tpl) }}</span>
                   </button>
+                  <ng-container
+                    *ngIf="
+                      !templateAuditionPlaying(tpl) &&
+                      !templateAuditionRendering(tpl)
+                    "
+                  >
+                    <span
+                      class="sc-preview-memory"
+                      *ngIf="templatePreviewMemory(tpl) as memory"
+                      [class.is-high]="memory.exceedsBudget"
+                      [attr.title]="
+                        'Peak template buffer ~' + memory.estimatedMb +
+                        ' MB; ' + memory.budgetMb +
+                        ' MB safe on this device'
+                      "
+                    >
+                      ~{{ memory.estimatedMb }} MB
+                      <em *ngIf="memory.exceedsBudget">device risk</em>
+                    </span>
+                  </ng-container>
                 </div>
               </div>
               <div

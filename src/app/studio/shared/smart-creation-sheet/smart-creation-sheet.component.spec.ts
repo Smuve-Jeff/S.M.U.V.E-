@@ -2268,6 +2268,11 @@ describe("SmartCreationSheetComponent", () => {
       budgetMb: 128,
       exceedsBudget: false,
     });
+    expect(component.templatePreviewMemory(template)).toEqual({
+      estimatedMb: 88,
+      budgetMb: 128,
+      exceedsBudget: false,
+    });
     const [detail] = component.templateDetails(template);
     expect(component.patternPreviewMemory(template, detail)).toEqual({
       estimatedMb: 88,

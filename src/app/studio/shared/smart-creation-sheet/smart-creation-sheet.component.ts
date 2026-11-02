@@ -2018,6 +2018,13 @@ export class SmartCreationSheetComponent implements OnDestroy {
     return this.previewLabel(templatePreviewId(template.id));
   }
 
+  /** Peak buffer cost for the template-wide audition. */
+  templatePreviewMemory(
+    template: ProjectTemplate,
+  ): AuditionMemoryEstimate | null {
+    return this.previewMemoryFor(templateToAuditionScore(template));
+  }
+
   /** Stable id for the mix of the currently selected breakdown rows. */
   private mixPreviewId(template: ProjectTemplate): string {
     return templatePatternsPreviewId(
