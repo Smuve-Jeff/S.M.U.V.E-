@@ -51,9 +51,11 @@ spec or by the real service path, not merely that a control is rendered.
   reached nothing. `reverb` now drives the aux reverb send (send A) and `cutoff`
   sweeps a new per-channel lowpass; send moves are captured while write is armed
   and `sendA`/`sendB` are offered as lane targets.
-- Automation write now covers fader, pan, send, VCA and plugin parameters.
-  Plugin-parameter curves are still live-only — the offline renderer applies
-  mixer/VCA lanes but not plugin-param lanes.
+- Automation write now covers fader, pan, send, VCA and plugin parameters, with
+touch/latch modes. Plugin-parameter curves also bounce: the offline renderer
+suspends at curve points and pushes each sampled value through the same FX
+plugin `setParam` path. Individual master worklet internals are still not lane
+targets.
 
 ## Channel rack / patterns / scenes
 

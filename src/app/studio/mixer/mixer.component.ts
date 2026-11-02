@@ -630,6 +630,7 @@ export class MixerComponent implements OnInit, OnDestroy {
       interpolation: 'linear',
       min: 0,
       max: 1.5,
+      smoothing: 0.35,
     });
   }
 

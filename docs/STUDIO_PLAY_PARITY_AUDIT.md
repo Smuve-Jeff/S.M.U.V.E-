@@ -45,7 +45,7 @@ us, or stop Play review from shipping us).
 | 13 | DJ deck | **Ahead** | No record-a-set export; no external MIDI-clock *input* | S |
 | 14 | Mastering suite | Ahead | Reference A/B with loudness matching and one-tap delivery-target conform; no preset idempotence, no spectral delta, no FLAC | M |
 | 15 | Performance mode / pads / performer | At parity | Pad MIDI learn is per-screen; no MIDI-map import/export | S |
-| 16 | Automation | At parity | No automation for aux return buses or master worklet params | S |
+| 16 | Automation | At parity | Aux returns and master volume are lane targets; master worklet internals are not individually exposed | S |
 | 17 | Export / bounce / share | Behind | Stems, 24-bit and 48 kHz now ship; no FLAC, MP3 bitrate fixed, no project interchange, no export job | **L** |
 | 18 | Project workspace / cloud | **Blocking** | Cloud sync is `MockCloudServer` in the shipping build | **L** |
 | 19 | MIDI hardware + sync | **Blocking** | Web MIDI only; Android WebView has no `requestMIDIAccess` | M |
@@ -547,12 +547,12 @@ The gap is discovery and reach: comping lives in the vocal flow, not on every au
 - FL Mobile: automation clips in the playlist.
 
 **Gaps**
-- VCA fader moves now write `vca:<busId>` lanes; aux return buses and master worklet params remain outside the lane model.
+- VCA fader moves, aux return trims and master volume now write lanes; master worklet internals remain outside the lane model.
 - No automation lane for tempo (same gap as §2).
-- No touch-write/latch modes (read-only + manual points today).
+- Touch and latch write modes exist with fixed smoothing; there is no adjustable smoothing control.
 
 **Improvements**
-- **S** — Expose aux return and master worklet params to the same lane model.
+- **S** — Expose individual master worklet internals to the same lane model.
 - **M** — Touch/latch write with smoothing.
 - **S** — "Show automated params" filter in the lane picker.
 

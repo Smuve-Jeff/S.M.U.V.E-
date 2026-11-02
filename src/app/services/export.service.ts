@@ -491,6 +491,24 @@ export class ExportService {
           lane.target.trackId === trackId &&
           params.includes(lane.target.parameter),
       );
+    const pluginAutomation: Array<{
+      plugin: { setParam(id: string, value: number): void };
+      lane: AutomationLane;
+      paramId: string;
+    }> = [];
+
+    if (!options.onlyTrackIds) {
+      const masterLane = laneFor('master', 'volume', 'gain');
+      if (masterLane) {
+        this.scheduleLaneCurve(
+          master.gain,
+          masterLane,
+          totalSeconds,
+          timing.minStepSeconds,
+          (value) => Math.max(0, Math.min(1.5, value)),
+        );
+      }
+    }
 
     // ── Aux returns ─────────────────────────────────────────────────────
     // Send A is the reverb convolver, Send B the tempo-synced echo, both fed
@@ -509,6 +527,16 @@ export class ExportService {
       convolver.buffer = sendSnapshot.impulse;
       const wet = offline.createGain();
       wet.gain.value = sendSnapshot.reverbWet;
+      const returnLane = laneFor('aux:reverb', 'volume');
+      if (returnLane) {
+        this.scheduleLaneCurve(
+          wet.gain,
+          returnLane,
+          totalSeconds,
+          timing.minStepSeconds,
+          (value) => Math.max(0, Math.min(1, value)),
+        );
+      }
       sum.connect(convolver);
       convolver.connect(wet);
       wet.connect(master);
@@ -527,6 +555,16 @@ export class ExportService {
       feedback.gain.value = sendSnapshot.echo.feedback;
       const wet = offline.createGain();
       wet.gain.value = sendSnapshot.echo.wet;
+      const returnLane = laneFor('aux:echo', 'volume');
+      if (returnLane) {
+        this.scheduleLaneCurve(
+          wet.gain,
+          returnLane,
+          totalSeconds,
+          timing.minStepSeconds,
+          (value) => Math.max(0, Math.min(1, value)),
+        );
+      }
       sum.connect(delay);
       delay.connect(damp);
       damp.connect(feedback);
@@ -658,6 +696,20 @@ export class ExportService {
           );
           if (!plugin) continue;
           bindFxSlotParams(plugin, slot.params);
+          const prefix = `plugin:${pluginId}:`;
+          for (const lane of lanes) {
+            if (
+              lane.enabled &&
+              lane.target.trackId === track.id &&
+              lane.target.parameter.startsWith(prefix)
+            ) {
+              pluginAutomation.push({
+                plugin,
+                lane,
+                paramId: lane.target.parameter.slice(prefix.length),
+              });
+            }
+          }
           plugin.output.connect(input);
           input = plugin.input;
         } catch (error) {
@@ -829,6 +881,7 @@ export class ExportService {
     }
 
     reportProgress(72);
+    this.schedulePluginAutomation(offline, pluginAutomation, totalSeconds);
     const rendered = await offline.startRendering();
     reportProgress(92);
     return rendered;
@@ -979,6 +1032,60 @@ export class ExportService {
       } else {
         param.linearRampToValueAtTime(value, at);
       }
+    }
+  }
+
+  /**
+   * Plugin DSP parameters are not guaranteed to be AudioParams. Suspend the
+   * offline render at each lane point, push the sampled value through
+   * `setParam`, then resume — this keeps every registered FX plugin automatable
+   * without a second, plugin-specific scheduling API.
+   */
+  private schedulePluginAutomation(
+    offline: OfflineAudioContext,
+    entries: Array<{
+      plugin: { setParam(id: string, value: number): void };
+      lane: AutomationLane;
+      paramId: string;
+    }>,
+    totalSeconds: number,
+  ): void {
+    if (entries.length === 0) return;
+    const suspend = (offline as unknown as {
+      suspend?: (when: number) => Promise<void>;
+    }).suspend;
+    if (typeof suspend !== 'function') return;
+
+    // A curve that starts at time zero must not lose its first value to the
+    // slot's static default before the first suspend point arrives.
+    for (const entry of entries) {
+      const initial = this.automation.getValueAtTime(entry.lane.id, 0);
+      if (initial !== null && Number.isFinite(initial)) {
+        entry.plugin.setParam(entry.paramId, initial);
+      }
+    }
+
+    const times = new Set<number>();
+    for (const entry of entries) {
+      for (const point of entry.lane.points) {
+        if (point.time > 0.001 && point.time < totalSeconds - 0.02) {
+          times.add(Math.round(point.time * 1000) / 1000);
+        }
+      }
+    }
+    for (const time of [...times].sort((a, b) => a - b)) {
+      void suspend.call(offline, time).then(() => {
+        try {
+          for (const entry of entries) {
+            const value = this.automation.getValueAtTime(entry.lane.id, time);
+            if (value !== null && Number.isFinite(value)) {
+              entry.plugin.setParam(entry.paramId, value);
+            }
+          }
+        } finally {
+          void offline.resume().catch(() => {});
+        }
+      }).catch(() => {});
     }
   }
 

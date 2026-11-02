@@ -4499,6 +4499,10 @@ export class AudioEngineService {
       this.tempo.set(value);
       return;
     }
+    if (trackId === 'master' && (parameter === 'volume' || parameter === 'gain')) {
+      this.setMasterOutputLevel(Math.max(0, Math.min(1.5, value)));
+      return;
+    }
     // The lane editor offers `reverb`, but the reverb return lives on aux
     // send A — without this mapping the lane drew a curve nothing followed.
     if (parameter === 'reverb') {

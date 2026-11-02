@@ -77,6 +77,24 @@ describe('AutomationCurveEditorComponent', () => {
     );
   });
 
+  it('offers master and aux return automation targets', () => {
+    fixture.componentRef.setInput('trackId', 't1');
+
+    component.setTarget({ target: { value: 'master' } } as unknown as Event);
+    expect(component.parametersForTarget()).toEqual(['volume']);
+    component.addLane();
+    expect(automation.lanes()[0].target.trackId).toBe('master');
+
+    component.setTarget({ target: { value: 'aux:reverb' } } as unknown as Event);
+    component.addLane();
+    expect(automation.lanes()[1].target).toEqual({
+      trackId: 'aux:reverb',
+      parameter: 'volume',
+      min: undefined,
+      max: undefined,
+    });
+  });
+
   it('offers VCA buses as automation targets', () => {
     fixture.componentRef.setInput('trackId', 't1');
     fixture.componentRef.setInput('vcaTargets', [

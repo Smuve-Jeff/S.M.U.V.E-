@@ -123,7 +123,7 @@ describe("MixerComponent", () => {
       `vca:${busId}`,
       "vca",
       0.75,
-      { interpolation: "linear", min: 0, max: 1.5 },
+      { interpolation: "linear", min: 0, max: 1.5, smoothing: 0.35 },
     );
   });
 

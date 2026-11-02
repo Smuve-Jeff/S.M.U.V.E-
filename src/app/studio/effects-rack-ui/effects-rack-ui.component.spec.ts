@@ -268,7 +268,7 @@ describe("EffectsRackUiComponent", () => {
       "track-1",
       "plugin:smuve.reverb.v2:mix",
       0.72,
-      { interpolation: "linear", min: 0, max: 1 },
+      { interpolation: "linear", min: 0, max: 1, smoothing: 0.35 },
     );
   });
 

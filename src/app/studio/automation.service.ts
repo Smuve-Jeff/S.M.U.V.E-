@@ -18,6 +18,7 @@ export interface AutomationPoint {
 }
 
 export type AutomationInterpolation = "linear" | "step" | "smooth" | "bezier";
+export type AutomationWriteMode = "touch" | "latch";
 
 export interface AutomationTarget {
   trackId: string;
@@ -84,9 +85,16 @@ export class AutomationService {
    * and the transport runs, fader and pan moves are captured as keyframes.
    */
   writeEnabled = signal(false);
+  /** Touch writes only while the control moves; latch holds the last value. */
+  writeMode = signal<AutomationWriteMode>("touch");
 
   /** Last step the curves were evaluated at (the transport repeats steps). */
   private lastAutomationStep = -1;
+  /** Last captured value per lane, used by latch mode and write smoothing. */
+  private readonly heldWrites = new Map<
+    string,
+    { trackId: string; parameter: string; value: number }
+  >();
 
   constructor() {
     /**
@@ -103,12 +111,14 @@ export class AutomationService {
       const step = this.transportStep();
       if (step === null) {
         this.lastAutomationStep = -1;
+        this.heldWrites.clear();
         return;
       }
       if (step === this.lastAutomationStep) return;
       this.lastAutomationStep = step;
       if (this.lanes().length === 0) return;
       this.applyAutomation(this.timeAtStep(step), this.stepDurationSeconds());
+      this.extendLatchedWrites(step);
     });
   }
 
@@ -158,11 +168,20 @@ export class AutomationService {
       interpolation?: AutomationInterpolation;
       min?: number;
       max?: number;
+      /** 0..1 coefficient for touch-write smoothing; 0 disables it. */
+      smoothing?: number;
     },
   ): boolean {
     if (!this.writeEnabled()) return false;
     const step = this.transportStep();
     if (step === null || !Number.isFinite(value)) return false;
+
+    const key = `${trackId}\u0000${parameter}`;
+    const previous = this.heldWrites.get(key);
+    const smoothing = Math.max(0, Math.min(1, options?.smoothing ?? 0));
+    const smoothed = previous && smoothing > 0
+      ? previous.value + (value - previous.value) * smoothing
+      : value;
 
     // Range must be supplied on the first write; otherwise a -60 dB threshold
     // would create a 0..1 lane and clamp the captured value.
@@ -170,14 +189,31 @@ export class AutomationService {
     const time = this.timeAtStep(step);
     const min = lane.target.min ?? -Infinity;
     const max = lane.target.max ?? Infinity;
+    const clamped = Math.min(max, Math.max(min, smoothed));
     // One keyframe per step: a drag emits dozens of moves, and baking every
     // one would leave a staircase of near-identical points in the lane.
     const points = lane.points.filter(
       (point) => Math.abs(point.time - time) > 0.001,
     );
-    points.push({ time, value: Math.min(max, Math.max(min, value)) });
+    points.push({ time, value: clamped });
     this.setPoints(lane.id, points);
+    this.heldWrites.set(key, { trackId, parameter, value: clamped });
     return true;
+  }
+
+  /** Latch keeps writing the last touched value on every transport step. */
+  private extendLatchedWrites(step: number): void {
+    if (!this.writeEnabled() || this.writeMode() !== "latch") return;
+    if (this.heldWrites.size === 0) return;
+    const time = this.timeAtStep(step);
+    for (const held of this.heldWrites.values()) {
+      const lane = this.ensureLane(held.trackId, held.parameter);
+      const points = lane.points.filter(
+        (point) => Math.abs(point.time - time) > 0.001,
+      );
+      points.push({ time, value: held.value });
+      this.setPoints(lane.id, points);
+    }
   }
 
   addLane(
@@ -251,6 +287,12 @@ export class AutomationService {
   /** Arm/disarm automation write (the arrangement's AUTO button). */
   setWriteEnabled(enabled: boolean) {
     this.writeEnabled.set(!!enabled);
+    if (!enabled) this.heldWrites.clear();
+  }
+
+  setWriteMode(mode: AutomationWriteMode) {
+    this.writeMode.set(mode);
+    if (mode === "touch") this.heldWrites.clear();
   }
 
   setLaneEnabled(laneId: string, enabled: boolean) {
@@ -645,6 +687,18 @@ export class AutomationService {
         if (lane.target.parameter.startsWith("cc_")) return;
         if (this.applyPluginParameter(lane.target.parameter, value)) return;
         if (this.applyVcaParameter(lane.target.trackId, value)) return;
+        if (lane.target.trackId.startsWith("aux:")) {
+          if (lane.target.trackId === "aux:reverb") {
+            this.engine.setMasterReverbWet(Math.max(0, Math.min(1, value)));
+          } else if (lane.target.trackId === "aux:echo") {
+            this.engine.setMasterEchoWet(Math.max(0, Math.min(1, value)));
+          }
+          return;
+        }
+        if (lane.target.trackId === "master") {
+          this.engine.applyProductionParameter("master", lane.target.parameter, value, duration);
+          return;
+        }
         this.engine.applyProductionParameter(
           lane.target.trackId,
           lane.target.parameter,

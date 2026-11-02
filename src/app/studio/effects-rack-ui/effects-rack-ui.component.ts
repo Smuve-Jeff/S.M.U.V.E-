@@ -161,7 +161,7 @@ export class EffectsRackUiComponent {
         track.id,
         `plugin:${pluginId}:${param.id}`,
         value,
-        { interpolation: "linear", min: param.min, max: param.max },
+        { interpolation: "linear", min: param.min, max: param.max, smoothing: 0.35 },
       );
     }
   }

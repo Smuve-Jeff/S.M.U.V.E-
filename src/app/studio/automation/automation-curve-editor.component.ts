@@ -73,6 +73,10 @@ const SAMPLES_PER_BAR = 16;
             >
               VCA · {{ vca.name }}
             </option>
+            <option value="master">MASTER · Master Bus</option>
+            <option *ngFor="let aux of auxReturns" [value]="aux.id">
+              AUX · {{ aux.name }}
+            </option>
           </select>
         </label>
         <label class="automation-add">
@@ -377,6 +381,17 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   readonly activeTargetIsVca = computed(() =>
     (this.activeTargetId() ?? '').startsWith('vca:'),
   );
+  readonly activeTargetIsAux = computed(() =>
+    (this.activeTargetId() ?? '').startsWith('aux:'),
+  );
+  readonly activeTargetIsMaster = computed(
+    () => this.activeTargetId() === 'master',
+  );
+  readonly auxReturns = [
+    { id: 'aux:reverb', name: 'Reverb Return' },
+    { id: 'aux:echo', name: 'Echo Return' },
+  ];
+
   /** Enabled FX slots expose their real plugin params as lane targets. */
   readonly fxParameters = computed(() => {
     const track = this.tracks().find((candidate) => candidate.id === this.trackId());
@@ -394,13 +409,14 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   readonly parametersForTarget = computed(() =>
     this.activeTargetIsVca()
       ? ['vca']
-      : this.activeTargetIsBus()
-        ? ['volume', 'pan']
-        : [...this.parameters, ...this.fxParameters()],
+      : this.activeTargetIsAux() || this.activeTargetIsMaster()
+        ? ['volume']
+        : this.activeTargetIsBus()
+          ? ['volume', 'pan']
+          : [...this.parameters, ...this.fxParameters()],
   );
   readonly trackLabel = computed(() => {
-    const id = this.trackId();
-    const track = this.tracks().find((candidate) => candidate.id === id);
+    const track = this.tracks().find((candidate) => candidate.id === this.trackId());
     return track ? `TRACK · ${track.name}` : 'Selected track';
   });
 

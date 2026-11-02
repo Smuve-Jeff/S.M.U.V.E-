@@ -68,6 +68,26 @@
         AUTO
       </button>
       <button
+        *ngIf="isRecordingAutomation()"
+        class="tactile-v42 px-2 py-1 text-[8px] font-black"
+        [class.bg-emerald-500]="automationMode() === 'touch'"
+        [attr.aria-pressed]="automationMode() === 'touch'"
+        (click)="setAutomationMode('touch')"
+        title="Touch write: capture only while the control moves"
+      >
+        TOUCH
+      </button>
+      <button
+        *ngIf="isRecordingAutomation()"
+        class="tactile-v42 px-2 py-1 text-[8px] font-black"
+        [class.bg-amber-500]="automationMode() === 'latch'"
+        [attr.aria-pressed]="automationMode() === 'latch'"
+        (click)="setAutomationMode('latch')"
+        title="Latch write: keep writing the last touched value"
+      >
+        LATCH
+      </button>
+      <button
         class="tactile-v42 px-3 py-1 text-[8px] font-black bg-blue-600/40"
         (click)="aiVariation()"
       >

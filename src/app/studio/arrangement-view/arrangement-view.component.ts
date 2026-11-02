@@ -158,6 +158,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
    * the same state the write path reads.
    */
   readonly isRecordingAutomation = this.automation.writeEnabled;
+  readonly automationMode = this.automation.writeMode;
   clipActionsOpen = signal(false);
   overviewZoom = signal(1);
 
@@ -1554,6 +1555,16 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     } else {
       this.snackbar.info("Automation write off — curves play back as drawn");
     }
+  }
+
+  setAutomationMode(mode: "touch" | "latch") {
+    this.automation.setWriteMode(mode);
+    this.haptic.light();
+    this.snackbar.info(
+      mode === "touch"
+        ? "Automation write: touch — release to stop writing"
+        : "Automation write: latch — the last value keeps writing",
+    );
   }
 
   toggleGroup(trackId: string) {
