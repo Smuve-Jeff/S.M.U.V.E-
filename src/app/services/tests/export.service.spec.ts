@@ -507,8 +507,12 @@ describe("ExportService", () => {
     (service as any).musicManager.activeLoopBars = jest.fn(() => 2);
     (service as any).musicManager.tracks = jest.fn(() => []);
 
+    const percents: number[] = [];
     try {
-      await service.renderProjectOffline({ sampleRate: 48000 });
+      await service.renderProjectOffline({
+        sampleRate: 48000,
+        onProgress: (percent) => percents.push(percent),
+      });
     } finally {
       if (original === undefined) {
         delete (globalThis as any).OfflineAudioContext;
@@ -519,6 +523,9 @@ describe("ExportService", () => {
 
     // 2 bars at 120 BPM = 4 s, plus the 1 s tail: 5 s of frames at 48 kHz.
     expect(contexts).toEqual([[2, 5 * 48000, 48000]]);
+    expect(percents[0]).toBe(8);
+    expect(percents.at(-1)).toBe(92);
+    expect(percents).toEqual([...percents].sort((a, b) => a - b));
   });
 
   it("renders only the requested tracks and can ignore solo for a stem set", async () => {

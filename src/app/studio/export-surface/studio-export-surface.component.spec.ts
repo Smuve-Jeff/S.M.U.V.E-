@@ -148,9 +148,12 @@ describe("StudioExportSurfaceComponent", () => {
 
       await component.exportMixdown();
 
-      expect(exportService.renderProjectOffline).toHaveBeenCalledWith({
-        sampleRate: 48000,
-      });
+      expect(exportService.renderProjectOffline).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sampleRate: 48000,
+          onProgress: expect.any(Function),
+        }),
+      );
       expect(exportService.applySmuvePolish).toHaveBeenCalled();
       expect(exportService.exportToFormat).toHaveBeenCalledWith({}, "wav24");
       expect(exportService.downloadBlob).toHaveBeenCalledWith(
@@ -159,6 +162,24 @@ describe("StudioExportSurfaceComponent", () => {
       );
       expect(component.busy()).toBe(false);
       expect(component.feedback()?.tone).toBe("ok");
+    });
+
+    it("feeds real render progress into the export meter", async () => {
+      let report: ((percent: number) => void) | undefined;
+      exportService.renderProjectOffline.mockImplementation(
+        async (options: any) => {
+          report = options.onProgress;
+          return {};
+        },
+      );
+
+      const pending = component.exportMixdown();
+      expect(report).toBeDefined();
+      report!(37);
+
+      expect(component.progress()).toBe(37);
+      expect(component.status()).toBe("Rendering mixdown… 37%");
+      await pending;
     });
 
     it("names the file after the bytes when a codec falls back to WAV", async () => {

@@ -400,6 +400,12 @@ export class ExportService {
       ignoreSolo?: boolean;
       /** Delivery sample rate (default 44.1 kHz). */
       sampleRate?: number;
+      /**
+       * Render progress, 0–100. Fired after setup, once per scheduled track,
+       * and after the offline context finishes; a listener may not abort the
+       * render, so its exceptions are swallowed.
+       */
+      onProgress?: (percent: number) => void;
     } = {},
   ): Promise<AudioBuffer> {
     const timing = this.buildTempoTimeline();
@@ -426,6 +432,16 @@ export class ExportService {
       throw new Error('Offline export supports up to 10 minutes per render. Shorten the arrangement first.');
     }
 
+    const reportProgress = (percent: number): void => {
+      const value = Math.max(0, Math.min(100, Math.round(percent)));
+      try {
+        options.onProgress?.(value);
+      } catch {
+        // A progress listener must never be able to abort an export.
+      }
+    };
+    reportProgress(8);
+
     // Guard the context constructor: a NaN/0 rate throws deep inside WebAudio
     // with a message that says nothing about the export.
     const sampleRate =
@@ -443,6 +459,7 @@ export class ExportService {
     } else {
       connectOfflineMasterChain(offline, master, this.engine);
     }
+    reportProgress(10);
 
     // ── Automation ──────────────────────────────────────────────────────
     // Each enabled lane is sampled on a grid finer than the shortest musical
@@ -507,6 +524,24 @@ export class ExportService {
       !options.ignoreSolo &&
       !options.onlyTrackIds &&
       tracks.some((track) => track.soloed);
+
+    // Sample presets are loaded lazily by the live path. The offline renderer
+    // must ask for the same banks before it schedules a note, otherwise
+    // getPresetSample below either fails or reads a stale/empty cache. Only
+    // load tracks that will actually sound: a muted or solo-excluded track
+    // must not turn a missing bank into a failed export.
+    if (typeof this.musicManager.prepareTrackSamples === "function") {
+      const audibleTracks = tracks.filter((track) => {
+        if (track.type === 'bus' || track.muted) return false;
+        if (options.onlyTrackIds) return options.onlyTrackIds.has(track.id);
+        return !hasSolo || track.soloed || track.soloSafe;
+      });
+      await Promise.all(
+        audibleTracks.map((track) =>
+          this.musicManager.prepareTrackSamples(track, true),
+        ),
+      );
+    }
 
     type OfflineChannel = { input: AudioNode; channel: GainNode };
     const channels = new Map<string, OfflineChannel>();
@@ -646,9 +681,13 @@ export class ExportService {
     // Build every channel first: a member can be reached before its bus while
     // iterating tracks, and the recursive builder has to connect into a bus
     // whose inserts and fader already exist.
-    for (const track of tracks) buildChannel(track);
+    for (const [index, track] of tracks.entries()) {
+      buildChannel(track);
+      reportProgress(10 + ((index + 1) / Math.max(1, tracks.length)) * 10);
+    }
 
-    for (const track of tracks) {
+    for (const [index, track] of tracks.entries()) {
+      reportProgress(20 + (index / Math.max(1, tracks.length)) * 50);
       if (track.type === 'bus') continue;
       if (options.onlyTrackIds && !options.onlyTrackIds.has(track.id)) continue;
       if (
@@ -745,7 +784,10 @@ export class ExportService {
       }
     }
 
-    return offline.startRendering();
+    reportProgress(72);
+    const rendered = await offline.startRendering();
+    reportProgress(92);
+    return rendered;
   }
 
   /**

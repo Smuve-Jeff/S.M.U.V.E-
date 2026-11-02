@@ -596,10 +596,11 @@ The gap is discovery and reach: comping lives in the vocal flow, not on every au
    toggle used by the WAV and stem actions. **Still open:** MP3 bitrate is fixed at
    192 k, and the share/social path (`exportAndShare`) always renders at 44.1 kHz.
 4. **No project interchange**: no `.flp`, no DAWproject, no AAF (§19).
-5. **Export is a blocking button, not a job.** `TransportBar.exportWav()` sets
-   `isExporting` and disables the menu ("Rendering…"), but a multi-minute arrangement
-   shows no percentage, no ETA and no cancel; `ExportService` exposes neither progress
-   nor an abort path, unlike `OfflineBounceService.bounce` which has both.
+5. **Export progress — partly closed 2 Nov 2026.** The Export surface's
+   mixdown now consumes `renderProjectOffline({ onProgress })` and shows real
+   percentages through render, polish and encode. `TransportBar.exportWav()`
+   still shows only "Rendering…" for a multi-minute arrangement, and no export
+   path has an ETA or cancel; `ExportService` exposes progress but no abort path.
 6. **Video export is a separate flow** without a "share to social" preset (9:16 vs 16:9).
 
 **Improvements**

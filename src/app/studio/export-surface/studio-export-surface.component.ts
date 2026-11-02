@@ -163,11 +163,17 @@ export class StudioExportSurfaceComponent {
     try {
       const buffer = await this.exportService.renderProjectOffline({
         sampleRate: this.sampleRate(),
+        onProgress: (percent) => {
+          this.progress.set(percent);
+          this.status.set(`Rendering mixdown… ${percent}%`);
+        },
       });
 
+      this.progress.set(94);
       this.status.set("Applying master polish…");
       const polished = await this.exportService.applySmuvePolish(buffer);
 
+      this.progress.set(98);
       this.status.set(`Encoding ${this.formatLabel()}…`);
       const blob = await this.exportService.exportToFormat(
         polished,
@@ -179,6 +185,7 @@ export class StudioExportSurfaceComponent {
         blob.type === "audio/wav" ? "wav" : this.formatInfo().ext;
       const filename = `${this.projectBase()}_${Date.now()}.${extension}`;
       this.exportService.downloadBlob(blob, filename);
+      this.progress.set(100);
 
       this.finish("ok", `Downloaded ${filename}`);
     } catch (error) {
