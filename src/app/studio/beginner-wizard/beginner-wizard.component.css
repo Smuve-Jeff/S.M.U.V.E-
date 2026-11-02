@@ -152,6 +152,93 @@
   color: var(--espresso-muted, #94a3c8);
 }
 
+/* ── Starters ────────────────────────────────────────────── */
+
+.wizard-starters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 680px;
+  margin: 6px auto 0;
+  flex: 0 0 auto;
+}
+
+.wizard-starters-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wizard-starters-note {
+  font-size: 0.78rem;
+  color: var(--espresso-muted, #94a3c8);
+}
+
+.wizard-starter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.wizard-starter {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  border: 1px solid var(--ivory-line, rgba(180, 200, 255, 0.1));
+  background: var(--ivory-deep, #06091a);
+  color: var(--espresso-text, #f1f5ff);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.wizard-starter:hover,
+.wizard-starter:focus-visible {
+  border-color: var(--teal-500, #00e5ff);
+  background: color-mix(in srgb, var(--teal-500, #00e5ff) 10%, transparent);
+  outline: none;
+}
+
+.wizard-starter:active {
+  transform: translateY(1px);
+}
+
+.wizard-starter .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--teal-400, #66f0ff);
+}
+
+.wizard-starter-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.wizard-starter-copy strong {
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.wizard-starter-copy small {
+  font-size: 0.68rem;
+  color: var(--espresso-muted, #94a3c8);
+  line-height: 1.25;
+}
+
+@media (max-width: 560px) {
+  .wizard-starters-note {
+    display: none;
+  }
+}
+
 /* ── The path strip ──────────────────────────────────────── */
 
 /* Six words across the top: the entire process at a glance, with the current

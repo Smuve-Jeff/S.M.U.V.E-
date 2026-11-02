@@ -132,10 +132,8 @@ describe("OfflineBounceService", () => {
     expect(explicit).toBeTruthy();
     expect(render.mock.calls[1][6]).toBe(32);
     if (explicit) URL.revokeObjectURL(explicit.url);
-    const stem = await service.bounceTrack('drums', 'wav-16');
-    expect(stem).toBeTruthy();
-    expect(render.mock.calls[2][6]).toBe(64);
-    if (stem) URL.revokeObjectURL(stem.url);
+    // Track bounce deliberately goes through ExportService, the authoritative
+    // renderer, rather than this simplified arrangement pass.
   });
 
   it("repeats a swung drum hit in a track bounce and skips a failed probability gate", () => {

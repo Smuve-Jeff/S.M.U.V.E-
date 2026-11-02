@@ -1146,36 +1146,57 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.setActiveView(view);
   }
 
-  /** Navigate from wizard with a preset auto-load */
-  onWizardLaunchWithPreset(payload: { view: string; preset: string }) {
-    if (isStudioView(payload.view)) {
-      this.setActiveView(payload.view);
+  /**
+   * Start a beginner sketch from the wizard: either a blank piano-and-drums
+   * session or one of the complete idea recipes. Replacing the canvas is
+   * guarded by the same snapshot as every other starter, so a previous idea is
+   * never silently discarded.
+   */
+  async onWizardLaunchWithPreset(payload: {
+    view: string;
+    preset: string;
+  }): Promise<void> {
+    this.haptic.medium();
+    const recipe: IdeaRecipe | undefined =
+      payload.preset === "blank"
+        ? undefined
+        : this.ideasGenerator.recipes.find(
+            (entry) => entry.id === payload.preset,
+          );
+    if (payload.preset !== "blank" && !recipe) return;
+    if (!(await this.preserveOpenSketch("beginner_starter"))) return;
+
+    this.audioEngine.resume();
+    if (recipe) {
+      this.musicManager.applyGeneratedRecipe(recipe);
+      this.audioEngine.tempo.set(recipe.bpm);
+      this.projectWorkspace.startFreshProject({
+        name: recipe.name,
+        bpm: recipe.bpm,
+        genre: recipe.id,
+      });
+    } else {
+      this.musicManager.newProject();
+      this.audioEngine.tempo.set(120);
+      this.projectWorkspace.startFreshProject({
+        name: "My First Song",
+        bpm: 120,
+        genre: "pop",
+      });
     }
-    // Auto-configure based on the preset type
-    switch (payload.preset) {
-      case "house":
-        // Auto-apply house drum style and set tempo
-        this.audioEngine.tempo.set(124);
-        this.snackbarService.info(
-          "Beginner preset loaded: House beat at 124 BPM — tap Generate Style in the drum machine!",
-        );
-        break;
-      case "c-major-beginner":
-        // Set a beginner-friendly tempo and notify
-        this.audioEngine.tempo.set(100);
-        this.snackbarService.info(
-          "Beginner preset loaded: C Major scale locked at 100 BPM — try the white keys!",
-        );
-        break;
-      case "lofi-85":
-        this.audioEngine.tempo.set(85);
-        this.snackbarService.info(
-          "Beginner preset loaded: Lo-Fi vibe at 85 BPM",
-        );
-        break;
-      default:
-        this.snackbarService.info("Preset loaded — explore and have fun!");
-    }
+
+    const view = isStudioView(payload.view) ? payload.view : "drum-machine";
+    this.setActiveView(view);
+    this.snackbarService.success(
+      recipe
+        ? `${recipe.name} · ${recipe.bpm} BPM — every part is yours to change.`
+        : "Blank canvas ready — piano and drums, nothing written.",
+    );
+    this.studioTelemetry.trackEvent(
+      "beginner_starter_loaded",
+      { preset: payload.preset, view },
+      true,
+    );
   }
 
   /**

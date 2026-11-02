@@ -4051,6 +4051,26 @@ button.comp-meta-state-pill:focus-visible {
   transition: background 0.2s ease, color 0.2s ease;
 }
 
+.comp-project-menu-label {
+  padding: 6px 12px 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.comp-project-menu-sub {
+  padding-left: 20px;
+}
+
+.comp-project-menu-meta {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+}
+
 .comp-project-menu-item:hover,
 .comp-project-menu-item:focus {
   background: rgba(255, 255, 255, 0.1);

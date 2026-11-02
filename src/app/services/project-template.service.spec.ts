@@ -23,6 +23,7 @@ describe("ProjectTemplateService", () => {
     tracks: jest.fn(() => [
       { id: "1", name: "Lead", instrumentId: "analog-warmth", type: "midi" },
       { id: "2", name: "Vox", instrumentId: "grand-piano", type: "audio" },
+      { id: "3", name: "Drums", instrumentId: "trap-808-elite", type: "drum" },
     ]),
   };
 
@@ -61,6 +62,12 @@ describe("ProjectTemplateService", () => {
     expect(addTrack).toHaveBeenCalledWith(
       template.tracks[0].name,
       template.tracks[0].instrumentId,
+      template.tracks[0].type,
+    );
+    expect(addTrack).toHaveBeenCalledWith(
+      template.tracks[template.tracks.length - 1].name,
+      template.tracks[template.tracks.length - 1].instrumentId,
+      "drum",
     );
     expect(tempo()).toBe(template.bpm);
   });
@@ -80,6 +87,7 @@ describe("ProjectTemplateService", () => {
     expect(template?.tracks).toEqual([
       { name: "Lead", instrumentId: "analog-warmth", type: "midi" },
       { name: "Vox", instrumentId: "grand-piano", type: "audio" },
+      { name: "Drums", instrumentId: "trap-808-elite", type: "drum" },
     ]);
     expect(service.userTemplates()[0].id).toBe(template?.id);
   });
@@ -107,7 +115,12 @@ describe("ProjectTemplateService", () => {
 
     reloaded.applyTemplate(template!.id);
     expect(newProject).toHaveBeenCalledWith(true);
-    expect(addTrack).toHaveBeenCalledTimes(2);
+    expect(addTrack).toHaveBeenCalledTimes(3);
+    expect(addTrack).toHaveBeenCalledWith(
+      "Drums",
+      "trap-808-elite",
+      "drum",
+    );
   });
 
   it("rejects an empty save and deletes a user template", () => {

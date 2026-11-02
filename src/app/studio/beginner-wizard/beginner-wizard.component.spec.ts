@@ -56,6 +56,29 @@ describe("BeginnerWizardComponent", () => {
       });
     });
 
+    it("starts from a blank canvas or a complete groove without ticking steps", () => {
+      const launches: { view: string; preset: string }[] = [];
+      component.launchWithPreset.subscribe((payload) => launches.push(payload));
+
+      (
+        fixture.nativeElement.querySelector(
+          '[data-starter="blank"]',
+        ) as HTMLButtonElement
+      ).click();
+      (
+        fixture.nativeElement.querySelector(
+          '[data-starter="house"]',
+        ) as HTMLButtonElement
+      ).click();
+
+      expect(launches).toEqual([
+        { view: "drum-machine", preset: "blank" },
+        { view: "drum-machine", preset: "house" },
+      ]);
+      expect(component.completedCount()).toBe(0);
+      expect(haptic.medium).toHaveBeenCalled();
+    });
+
     it("opens the real tool for the step on screen", () => {
       const views: string[] = [];
       component.navigateToView.subscribe((view) => views.push(view));

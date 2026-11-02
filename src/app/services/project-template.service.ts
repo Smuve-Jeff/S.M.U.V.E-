@@ -7,7 +7,11 @@ export interface ProjectTemplate {
   name: string;
   bpm: number;
   genre: string;
-  tracks: { name: string; instrumentId: string; type: 'midi' | 'audio' }[];
+  tracks: {
+    name: string;
+    instrumentId: string;
+    type: 'midi' | 'audio' | 'drum';
+  }[];
 }
 
 /** User templates are local-only, like the rest of the project workspace. */
@@ -35,7 +39,11 @@ function readUserTemplates(): ProjectTemplate[] {
             !!track &&
             typeof (track as { name?: unknown }).name === 'string' &&
             typeof (track as { instrumentId?: unknown }).instrumentId ===
-              'string',
+              'string' &&
+            ((track as { type?: unknown }).type === undefined ||
+              ['midi', 'audio', 'drum'].includes(
+                (track as { type?: unknown }).type as string,
+              )),
         )
       );
     });
@@ -61,7 +69,7 @@ export class ProjectTemplateService {
         { name: 'Hybrid Lead', instrumentId: 'analog-warmth', type: 'midi' },
         { name: 'Elite Piano', instrumentId: 'grand-piano', type: 'midi' },
         { name: 'Deep Sub', instrumentId: 'sub-commander', type: 'midi' },
-        { name: 'Studio Drums', instrumentId: 'trap-808-elite', type: 'midi' },
+        { name: 'Studio Drums', instrumentId: 'trap-808-elite', type: 'drum' },
       ],
     },
     {
@@ -73,7 +81,7 @@ export class ProjectTemplateService {
         { name: '808 Bass', instrumentId: 'trap-808-elite', type: 'midi' },
         { name: 'Dark Keys', instrumentId: 'grand-piano', type: 'midi' },
         { name: 'Cyber Lead', instrumentId: 'cyber-stab', type: 'midi' },
-        { name: 'Drums', instrumentId: 'trap-808-elite', type: 'midi' },
+        { name: 'Drums', instrumentId: 'trap-808-elite', type: 'drum' },
       ],
     },
     {
@@ -101,7 +109,7 @@ export class ProjectTemplateService {
         { name: 'Analog Pad', instrumentId: 'ethereal-wind', type: 'midi' },
         { name: 'Sub Bass', instrumentId: 'sub-commander', type: 'midi' },
         { name: 'Neon Lead', instrumentId: 'neon-shimmer', type: 'midi' },
-        { name: 'Cyber Drums', instrumentId: 'cyber-stab', type: 'midi' },
+        { name: 'Cyber Drums', instrumentId: 'trap-808-elite', type: 'drum' },
       ],
     },
   ];
@@ -132,7 +140,11 @@ export class ProjectTemplateService {
       .map((track) => ({
         name: track.name,
         instrumentId: track.instrumentId || 'grand-piano',
-        type: (track.type === 'audio' ? 'audio' : 'midi') as 'midi' | 'audio',
+        type: (track.type === 'audio'
+          ? 'audio'
+          : track.type === 'drum'
+            ? 'drum'
+            : 'midi') as 'midi' | 'audio' | 'drum',
       }));
     if (tracks.length === 0) return null;
 
@@ -182,7 +194,7 @@ export class ProjectTemplateService {
 
     this.musicManager.newProject(true);
     for (const t of template.tracks) {
-      if (!this.musicManager.addTrack(t.name, t.instrumentId)) break;
+      if (!this.musicManager.addTrack(t.name, t.instrumentId, t.type)) break;
     }
     this.musicManager.engine.tempo.set(template.bpm);
     this.logger.info(

@@ -59,6 +59,67 @@ export type { WizardStep } from "./beginner-path.service";
         </span>
       </header>
 
+      <!-- From-scratch or a complete groove: a beginner should not have to
+           face an empty timeline to get moving. -->
+      <section class="wizard-starters" aria-labelledby="wizard-starters-title">
+        <div class="wizard-starters-head">
+          <span id="wizard-starters-title" class="wizard-label">Start from</span>
+          <span class="wizard-starters-note">
+            A blank canvas or a ready groove — every part stays editable.
+          </span>
+        </div>
+        <div class="wizard-starter-grid">
+          <button
+            type="button"
+            class="wizard-starter"
+            data-starter="blank"
+            (click)="launchStarter('blank', 'drum-machine')"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">add_box</span>
+            <span class="wizard-starter-copy">
+              <strong>Blank canvas</strong>
+              <small>Piano and drums, nothing written</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="wizard-starter"
+            data-starter="house"
+            (click)="launchStarter('house', 'drum-machine')"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">album</span>
+            <span class="wizard-starter-copy">
+              <strong>House groove</strong>
+              <small>124 BPM · beat, bass, chords</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="wizard-starter"
+            data-starter="trap"
+            (click)="launchStarter('trap', 'drum-machine')"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">graphic_eq</span>
+            <span class="wizard-starter-copy">
+              <strong>Trap groove</strong>
+              <small>140 BPM · 808s and dark keys</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="wizard-starter"
+            data-starter="lofi"
+            (click)="launchStarter('lofi', 'piano-roll')"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">piano</span>
+            <span class="wizard-starter-copy">
+              <strong>Café Lo-Fi</strong>
+              <small>78 BPM · dusty keys to play over</small>
+            </span>
+          </button>
+        </div>
+      </section>
+
       <!-- The whole path at a glance. Tap a word to jump; nothing is marked
            done until its step is finished. -->
       <nav class="wizard-path" aria-label="All six steps">
@@ -184,6 +245,10 @@ export type { WizardStep } from "./beginner-path.service";
 export class BeginnerWizardComponent {
   @Output() navigateToView = new EventEmitter<string>();
   @Output() switchToPro = new EventEmitter<void>();
+  @Output() launchWithPreset = new EventEmitter<{
+    view: string;
+    preset: string;
+  }>();
 
   private haptic = inject(HapticService);
 
@@ -227,6 +292,12 @@ export class BeginnerWizardComponent {
     if (index === -1) return;
     this.haptic.light();
     this.stepIndex.set(index);
+  }
+
+  /** Start a fresh sketch from a blank canvas or a complete groove. */
+  launchStarter(preset: string, view: string) {
+    this.haptic.medium();
+    this.launchWithPreset.emit({ view, preset });
   }
 
   /** Open the real Studio tool for the step on screen. */

@@ -6,6 +6,7 @@ export type StudioTelemetryEventName =
   | "view_changed"
   | "smart_creation_opened"
   | "starter_recipe_seeded"
+  | "beginner_starter_loaded"
   | "new_project_created"
   | "template_applied"
   | "recording_mode_changed"

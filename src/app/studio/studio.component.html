@@ -118,6 +118,16 @@
         <button type="button" class="comp-project-menu-item" (click)="newProject(); toggleProjectMenu()">
           <span class="material-symbols-outlined">add_circle</span> New Project
         </button>
+        <div class="comp-project-menu-label">Start from a template</div>
+        <button
+          *ngFor="let template of templateService.allTemplates"
+          type="button"
+          class="comp-project-menu-item comp-project-menu-sub"
+          (click)="applyTemplate(template.id); toggleProjectMenu()"
+        >
+          <span class="material-symbols-outlined">auto_awesome</span> {{ template.name }}
+          <span class="comp-project-menu-meta">{{ template.bpm }} BPM</span>
+        </button>
         <button type="button" class="comp-project-menu-item" (click)="toggleSetsBrowser(); toggleProjectMenu()">
           <span class="material-symbols-outlined">folder_special</span> Open Project…
         </button>

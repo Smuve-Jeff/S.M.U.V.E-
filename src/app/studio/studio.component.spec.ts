@@ -394,6 +394,68 @@ describe("StudioComponent", () => {
     expect(mockProjectWorkspace.startFreshProject).toHaveBeenCalled();
   });
 
+  it("starts a beginner recipe in the drum machine after preserving the sketch", async () => {
+    mockIdeasGenerator.recipes = [
+      { id: "house", name: "Rooftop · House", bpm: 124, vibe: "warm" } as any,
+    ];
+    const preserve = jest
+      .spyOn(component as any, "preserveOpenSketch")
+      .mockResolvedValue(true);
+    try {
+      await component.onWizardLaunchWithPreset({
+        view: "drum-machine",
+        preset: "house",
+      });
+      expect(preserve).toHaveBeenCalledWith("beginner_starter");
+      expect(mockMusicManager.applyGeneratedRecipe).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "house" }),
+      );
+      expect(mockAudioEngine.tempo()).toBe(124);
+      expect(mockProjectWorkspace.startFreshProject).toHaveBeenCalledWith(
+        expect.objectContaining({ bpm: 124, genre: "house" }),
+      );
+      expect(component.activeView()).toBe("drum-machine");
+    } finally {
+      preserve.mockRestore();
+    }
+  });
+
+  it("refuses an unknown beginner starter without replacing the session", async () => {
+    const preserve = jest.spyOn(component as any, "preserveOpenSketch");
+    mockMusicManager.newProject.mockClear();
+    mockMusicManager.applyGeneratedRecipe.mockClear();
+    try {
+      await component.onWizardLaunchWithPreset({
+        view: "drum-machine",
+        preset: "does-not-exist",
+      });
+      expect(preserve).not.toHaveBeenCalled();
+      expect(mockMusicManager.newProject).not.toHaveBeenCalled();
+      expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
+    } finally {
+      preserve.mockRestore();
+    }
+  });
+
+  it("starts a blank beginner canvas with piano and drums at 120 BPM", async () => {
+    const preserve = jest
+      .spyOn(component as any, "preserveOpenSketch")
+      .mockResolvedValue(true);
+    try {
+      await component.onWizardLaunchWithPreset({
+        view: "drum-machine",
+        preset: "blank",
+      });
+      expect(mockMusicManager.newProject).toHaveBeenCalled();
+      expect(mockAudioEngine.tempo()).toBe(120);
+      expect(mockProjectWorkspace.startFreshProject).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "My First Song", bpm: 120 }),
+      );
+    } finally {
+      preserve.mockRestore();
+    }
+  });
+
   it("lands an empty session on Quick Session", () => {
     expect(
       landingStudioView({ hasExplicitView: false, restored: false }),
