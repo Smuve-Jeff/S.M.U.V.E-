@@ -35,11 +35,15 @@ export type ChatMusicActionId =
   | 'music-help'
   | 'composer-open'
   | 'composer-load'
-  | 'composer-audition';
+  | 'composer-audition'
+  | 'composer-load-a'
+  | 'composer-load-b';
 
 export interface ChatMusicAction {
   id: ChatMusicActionId;
   label: string;
+  /** E.g. the exact pass id a load action targets. */
+  data?: string;
 }
 
 export interface ChatMusicResult {
@@ -554,6 +558,40 @@ export class ChatMusicCommandEngineService {
         `B brief: ${brief(comparison.b.brief)}`,
         'Nothing was restored. Say which pass number you want on the desk.',
       ].join('\n'),
+      actions: [
+        { id: 'composer-load-a', label: 'Load A into Studio', data: history[a.index].id },
+        { id: 'composer-load-b', label: 'Load B into Studio', data: history[b.index].id },
+        { id: 'composer-open', label: 'Open Composition Core' },
+      ],
+    };
+  }
+
+  /** Loads a specific pass into the Studio without navigating away from chat. */
+  async loadPassIntoStudio(passId: string): Promise<ChatMusicResult> {
+    const core = await this.loadCompositionCore();
+    if (!core) {
+      return { content: 'Composition Core is offline in this build.', actions: [] };
+    }
+    const pass = core.passHistory().find((entry) => entry.id === passId);
+    if (!pass) {
+      return {
+        content: 'That pass is no longer in history. Compare again and pick a side.',
+        actions: [],
+      };
+    }
+
+    core.restorePass(pass);
+    const handoff = core.sendToStudio({ navigate: false });
+    if (!handoff.trackIds.length) {
+      return {
+        content: `“${pass.composition.title}” could not be loaded — the Studio may be at its track limit.`,
+        actions: [],
+      };
+    }
+    return {
+      content: `Loaded “${pass.composition.title}” (${pass.composition.variation}) into the Studio as ${handoff.trackIds.length} track${handoff.trackIds.length === 1 ? '' : 's'}${
+        handoff.skipped.length ? `; skipped ${handoff.skipped.join(', ')}` : ''
+      }. You are still in the conversation.`,
       actions: [{ id: 'composer-open', label: 'Open Composition Core' }],
     };
   }

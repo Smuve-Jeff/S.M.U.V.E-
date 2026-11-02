@@ -91,6 +91,7 @@ describe('ChatMusicCommandEngineService', () => {
   let currentComposition: ReturnType<typeof signal<Composition | null>>;
   let passHistory: ReturnType<typeof signal<CompositionPass[]>>;
   let restorePass: jest.Mock;
+  let sendToStudio: jest.Mock;
 
   beforeEach(() => {
     tracks = signal<TrackModel[]>([]);
@@ -130,6 +131,7 @@ describe('ChatMusicCommandEngineService', () => {
       currentComposition.set(pass.composition);
       return pass.composition;
     });
+    sendToStudio = jest.fn(() => ({ trackIds: ['track-1', 'track-2'], skipped: [] }));
     setBrief = jest.fn();
     const composerMock = {
       gate: composeGate,
@@ -140,6 +142,7 @@ describe('ChatMusicCommandEngineService', () => {
       current: () => currentComposition(),
       passHistory: () => passHistory(),
       restorePass,
+      sendToStudio,
     };
 
     const audioMock = {
@@ -621,6 +624,8 @@ describe('ChatMusicCommandEngineService', () => {
     expect(byNumber.content).toContain('B · Newest Reading');
     expect(byNumber.content).toContain('tempo +44 BPM');
     expect(byNumber.content).toContain('Nothing was restored');
+    expect(byNumber.actions.find((action) => action.id === 'composer-load-a')?.data).toBe('p1');
+    expect(byNumber.actions.find((action) => action.id === 'composer-load-b')?.data).toBe('p3');
 
     const byName = await service.compositionCompare({
       a: { kind: 'title', query: 'middle reading' },
@@ -646,6 +651,34 @@ describe('ChatMusicCommandEngineService', () => {
       b: { kind: 'index', index: 2 },
     });
     expect(result.content).toContain('at least two passes');
+  });
+
+  it('loads a compared pass into the Studio without navigating', async () => {
+    const pass = makeComposition({ id: 'old', title: 'Older Reading' });
+    passHistory.set([
+      {
+        id: 'p1',
+        composition: pass,
+        brief: 'dark',
+        intensity: { complexity: 0.6, energy: 0.6, darkness: 0.6 },
+        createdAt: 1,
+      },
+    ]);
+
+    const result = await service.loadPassIntoStudio('p1');
+
+    expect(restorePass).toHaveBeenCalledWith(passHistory()[0]);
+    expect(sendToStudio).toHaveBeenCalledWith({ navigate: false });
+    expect(result.content).toContain('Loaded “Older Reading”');
+    expect(result.content).toContain('2 tracks');
+    expect(result.content).toContain('still in the conversation');
+  });
+
+  it('reports a pass that has left history instead of loading the wrong one', async () => {
+    const result = await service.loadPassIntoStudio('missing');
+    expect(result.content).toContain('no longer in history');
+    expect(restorePass).not.toHaveBeenCalled();
+    expect(sendToStudio).not.toHaveBeenCalled();
   });
 
   it('asks for a number when a title matches more than one pass', async () => {

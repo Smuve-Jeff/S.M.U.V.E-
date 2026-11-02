@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { CompositionCoreService } from './composition-core.service';
 import { ComposerUplinkService } from './composer-uplink.service';
 import { GENRE_BY_ID } from './atlas';
@@ -10,6 +10,12 @@ import { NotificationService } from '../services/notification.service';
 
 describe('CompositionCoreService creative briefs', () => {
   let service: CompositionCoreService;
+  let musicMock: { addTrack: jest.Mock; replaceTrackNotes: jest.Mock };
+  let engineMock: {
+    setTempo: jest.Mock;
+    setSongLengthSteps: jest.Mock;
+    setPlayMode: jest.Mock;
+  };
 
   /** Builds a fresh service instance, as a page reload would. */
   const createService = () => {
@@ -29,13 +35,23 @@ describe('CompositionCoreService creative briefs', () => {
       isDeclaredGenre: () => true,
       personalizationLines: () => [],
     };
+    let trackCounter = 0;
+    musicMock = {
+      addTrack: jest.fn(() => `track-${++trackCounter}`),
+      replaceTrackNotes: jest.fn(),
+    };
+    engineMock = {
+      setTempo: jest.fn(),
+      setSongLengthSteps: jest.fn(),
+      setPlayMode: jest.fn(),
+    };
 
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
         { provide: ComposerUplinkService, useValue: uplink },
-        { provide: MusicManagerService, useValue: {} },
-        { provide: AudioEngineService, useValue: {} },
+        { provide: MusicManagerService, useValue: musicMock },
+        { provide: AudioEngineService, useValue: engineMock },
         { provide: NotificationService, useValue: { show: jest.fn() } },
       ],
     });
@@ -173,6 +189,24 @@ describe('CompositionCoreService creative briefs', () => {
     service.clearPassHistory();
     createService();
     expect(service.passHistory()).toHaveLength(0);
+  });
+
+  it('hands a pass to the Studio without navigating when asked', () => {
+    service.setBrief('dark and 140 bpm');
+    service.generate({ seed: 42 });
+    const navigate = jest
+      .spyOn(TestBed.inject(Router), 'navigate')
+      .mockResolvedValue(true);
+
+    const quiet = service.sendToStudio({ navigate: false });
+    expect(quiet.trackIds.length).toBeGreaterThan(0);
+    expect(musicMock.addTrack).toHaveBeenCalled();
+    expect(musicMock.replaceTrackNotes).toHaveBeenCalled();
+    expect(engineMock.setTempo).toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+
+    service.sendToStudio();
+    expect(navigate).toHaveBeenCalledWith(['/studio'], { queryParams: { view: 'arrangement' } });
   });
 
   it('leaves the dials alone when the brief says nothing actionable', () => {

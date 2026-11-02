@@ -669,7 +669,14 @@ export class CompositionCoreService {
    * Reference parts (context harmony) are skipped unless the artist asks for
    * them, and every skipped track is reported rather than silently dropped.
    */
-  sendToStudio(options: { includeReference?: boolean; replaceExisting?: boolean } = {}): StudioHandoffResult {
+  sendToStudio(
+    options: {
+      includeReference?: boolean;
+      replaceExisting?: boolean;
+      /** Chat handoffs load the session without pulling focus from the conversation. */
+      navigate?: boolean;
+    } = {}
+  ): StudioHandoffResult {
     const composition = this.current();
     if (!composition) {
       this.notify.show('Generate a composition first.', 'warning');
@@ -713,7 +720,9 @@ export class CompositionCoreService {
         }.`,
         skipped.length ? 'warning' : 'success'
       );
-      this.router.navigate(['/studio'], { queryParams: { view: 'arrangement' } });
+      if (options.navigate !== false) {
+        this.router.navigate(['/studio'], { queryParams: { view: 'arrangement' } });
+      }
     } else {
       this.notify.show('Nothing could be loaded — check the Studio track limit.', 'warning');
     }

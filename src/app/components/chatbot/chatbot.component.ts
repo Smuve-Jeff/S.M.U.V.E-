@@ -117,7 +117,9 @@ type MasterActionId =
   | 'music-help'
   | 'composer-open'
   | 'composer-load'
-  | 'composer-audition';
+  | 'composer-audition'
+  | 'composer-load-a'
+  | 'composer-load-b';
 
 interface ChatAction {
   id: MasterActionId;
@@ -1713,7 +1715,18 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
   /** One-tap AI apply — executes a Master action against the live app. */
   async runChatAction(action: ChatAction) {
     if (this.isTyping()) return;
-    const mutating = ['apply-mimic', 'tempo-90', 'tempo-124', 'tempo-140', 'chords', 'melody', 'neural-mix', 'music-undo'];
+    const mutating = [
+      'apply-mimic',
+      'tempo-90',
+      'tempo-124',
+      'tempo-140',
+      'chords',
+      'melody',
+      'neural-mix',
+      'music-undo',
+      'composer-load-a',
+      'composer-load-b',
+    ];
     if (mutating.includes(action.id) && this.profile().settings?.ai?.aiTotalControlEnabled !== true) {
       this.messages.update((m) => [...m, { id: this.nextMessageId(), role: 'assistant', text: 'Full-Control Mode is off. Enable it before applying session edits.', timestamp: Date.now() }]);
       return;
@@ -1830,6 +1843,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         result = audition.error()
           ? audition.error()!
           : `Auditioning the written score of “${composition.title}”.`;
+        break;
+      }
+      case 'composer-load-a':
+      case 'composer-load-b': {
+        if (!action.data) {
+          result = 'That comparison no longer points at a pass. Compare again first.';
+          break;
+        }
+        const loaded = await this.chatMusic?.loadPassIntoStudio(action.data);
+        result = loaded?.content ?? 'Composition Core is offline.';
         break;
       }
       default:
