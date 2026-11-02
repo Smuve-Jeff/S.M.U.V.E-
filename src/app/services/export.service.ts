@@ -116,12 +116,16 @@ export class ExportService {
    */
   async exportProjectWav(
     bitDepth: 16 | 24 = 16,
-    sampleRate: number = 44100
+    sampleRate: number = 44100,
+    onProgress?: (percent: number) => void,
   ): Promise<Blob> {
     this.logger.info(
       `Starting offline PCM WAV (${bitDepth}-bit, ${sampleRate} Hz) export...`
     );
-    const buffer = await this.renderProjectOffline({ sampleRate });
+    const buffer = await this.renderProjectOffline({
+      sampleRate,
+      ...(onProgress ? { onProgress } : {}),
+    });
     const blob = await this.exportToFormat(
       buffer,
       bitDepth === 24 ? 'wav24' : 'wav'

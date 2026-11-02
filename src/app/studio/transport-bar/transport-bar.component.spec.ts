@@ -353,14 +353,52 @@ describe("TransportBarComponent", () => {
       .spyOn(TestBed.inject(ExportService), 'exportProjectWav')
       .mockResolvedValueOnce(new Blob(['wav'], { type: 'audio/wav' }));
     await component.exportWav();
-    expect(exportWav).toHaveBeenCalledWith(16, 48000);
+    expect(exportWav).toHaveBeenCalledWith(16, 48000, expect.any(Function));
 
     // The rate is not a WAV-only setting: stems carry it too.
     const exportStems = jest
       .spyOn(TestBed.inject(ExportService), 'exportStems')
       .mockResolvedValueOnce(new Blob(['zip'], { type: 'application/zip' }));
     await component.exportStems();
-    expect(exportStems).toHaveBeenCalledWith({ bitDepth: 24, sampleRate: 48000 });
+    expect(exportStems).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bitDepth: 24,
+        sampleRate: 48000,
+        onProgress: expect.any(Function),
+      }),
+    );
+  });
+
+  it('shows real render progress while a WAV export is running', async () => {
+    let report: ((percent: number) => void) | undefined;
+    let resolve!: (blob: Blob) => void;
+    jest
+      .spyOn(TestBed.inject(ExportService), 'exportProjectWav')
+      .mockImplementation(
+        (
+          _bitDepth: 16 | 24,
+          _sampleRate: number,
+          onProgress?: (percent: number) => void,
+        ) => {
+          report = onProgress;
+          return new Promise<Blob>((done) => {
+            resolve = done;
+          });
+        },
+      );
+
+    const pending = component.exportWav();
+    expect(component.isExporting()).toBe(true);
+    expect(report).toBeDefined();
+    report!(42);
+
+    expect(component.exportProgress()).toBe(42);
+    expect(component.exportProgressLabel()).toBe('Rendering… 42%');
+
+    resolve(new Blob(['wav'], { type: 'audio/wav' }));
+    await pending;
+    expect(component.exportProgress()).toBeNull();
+    expect(component.isExporting()).toBe(false);
   });
 
   it('surfaces render failures and clears the exporting busy state', async () => {

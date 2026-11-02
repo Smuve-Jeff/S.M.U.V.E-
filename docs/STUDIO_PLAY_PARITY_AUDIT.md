@@ -597,10 +597,11 @@ The gap is discovery and reach: comping lives in the vocal flow, not on every au
    192 k, and the share/social path (`exportAndShare`) always renders at 44.1 kHz.
 4. **No project interchange**: no `.flp`, no DAWproject, no AAF (§19).
 5. **Export progress — partly closed 2 Nov 2026.** The Export surface's
-   mixdown now consumes `renderProjectOffline({ onProgress })` and shows real
-   percentages through render, polish and encode. `TransportBar.exportWav()`
-   still shows only "Rendering…" for a multi-minute arrangement, and no export
-   path has an ETA or cancel; `ExportService` exposes progress but no abort path.
+   mixdown consumes `renderProjectOffline({ onProgress })` and shows real
+   percentages through render, polish and encode. The transport's 16/24-bit
+   WAV and stem exports now show the same render percentage instead of a bare
+   "Rendering…". No export path has an ETA or cancel; `ExportService` exposes
+   progress but no abort path.
 6. **Video export is a separate flow** without a "share to social" preset (9:16 vs 16:9).
 
 **Improvements**

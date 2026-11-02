@@ -836,6 +836,24 @@
     <button type="button" class="ctb-dropdown-action" (click)="shareMidi()">
       <span class="material-symbols-outlined">ios_share</span> Share MIDI
     </button>
+    <div
+      class="ctb-export-progress"
+      *ngIf="isExporting()"
+      role="status"
+      aria-live="polite"
+    >
+      <span class="ctb-export-progress-label">{{ exportProgressLabel() }}</span>
+      <span
+        class="ctb-export-progress-track"
+        *ngIf="exportProgress() !== null"
+        aria-hidden="true"
+      >
+        <span
+          class="ctb-export-progress-fill"
+          [style.width.%]="exportProgress() ?? 0"
+        ></span>
+      </span>
+    </div>
   </div>
   <!-- Pro: Ideas Generator trigger -->
   <div class="ctb-group ctb-ideas-group">

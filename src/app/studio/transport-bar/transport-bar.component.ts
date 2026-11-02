@@ -51,6 +51,8 @@ export class TransportBarComponent {
   /** Real history stack — bound so Undo/Redo buttons actually reverse mutations. */
   readonly history = inject(HistoryService);
   isExporting = signal(false);
+  /** Real render progress for the current WAV/stem export, or null when idle. */
+  exportProgress = signal<number | null>(null);
   /**
    * Delivery sample rate for WAV mixdowns and stems.
    *
@@ -814,6 +816,12 @@ export class TransportBarComponent {
     return this.exportSampleRate() === 48000 ? '48 kHz' : '44.1 kHz';
   }
 
+  /** Export status text; a percentage only when the renderer has reported one. */
+  exportProgressLabel(): string {
+    const percent = this.exportProgress();
+    return percent === null ? 'Rendering…' : `Rendering… ${percent}%`;
+  }
+
   /** Flip the delivery rate between the two specs the exporter offers. */
   toggleExportSampleRate(): void {
     if (this.isExporting()) return;
@@ -825,12 +833,18 @@ export class TransportBarComponent {
   async exportWav() {
     if (this.isExporting()) return;
     this.isExporting.set(true);
+    this.exportProgress.set(0);
     try {
-      await this.exportService.exportProjectWav(16, this.exportSampleRate());
+      await this.exportService.exportProjectWav(
+        16,
+        this.exportSampleRate(),
+        (percent) => this.exportProgress.set(percent),
+      );
     } catch (error) {
       this.snack.error('WAV export failed · ' + (error instanceof Error ? error.message : 'unknown error'));
     } finally {
       this.isExporting.set(false);
+      this.exportProgress.set(null);
     }
   }
 
@@ -838,12 +852,18 @@ export class TransportBarComponent {
   async exportWav24() {
     if (this.isExporting()) return;
     this.isExporting.set(true);
+    this.exportProgress.set(0);
     try {
-      await this.exportService.exportProjectWav(24, this.exportSampleRate());
+      await this.exportService.exportProjectWav(
+        24,
+        this.exportSampleRate(),
+        (percent) => this.exportProgress.set(percent),
+      );
     } catch (error) {
       this.snack.error('24-bit WAV export failed · ' + (error instanceof Error ? error.message : 'unknown error'));
     } finally {
       this.isExporting.set(false);
+      this.exportProgress.set(null);
     }
   }
 
@@ -851,10 +871,16 @@ export class TransportBarComponent {
   async exportStems() {
     if (this.isExporting()) return;
     this.isExporting.set(true);
+    this.exportProgress.set(0);
     try {
       await this.exportService.exportStems({
         bitDepth: 24,
         sampleRate: this.exportSampleRate(),
+        onProgress: (completed, total) => {
+          this.exportProgress.set(
+            total > 0 ? Math.round((completed / total) * 100) : 0,
+          );
+        },
       });
       this.snack.success(
         `Stems exported · .zip (master + one 24-bit WAV per track at ${this.exportRateLabel()})`,
@@ -866,6 +892,7 @@ export class TransportBarComponent {
       );
     } finally {
       this.isExporting.set(false);
+      this.exportProgress.set(null);
     }
   }
 
@@ -884,6 +911,7 @@ export class TransportBarComponent {
   async shareExport(): Promise<void> {
     if (this.isExporting()) return;
     this.isExporting.set(true);
+    this.exportProgress.set(null);
     try {
       const used = await this.exportService.exportAndShare("wav");
       this.haptic.medium();

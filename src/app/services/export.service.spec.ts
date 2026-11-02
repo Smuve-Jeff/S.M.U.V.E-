@@ -317,6 +317,24 @@ describe('ExportService (Sprint A6)', () => {
     );
   });
 
+  it('forwards render progress from a WAV export', async () => {
+    const render = jest
+      .spyOn(svc, 'renderProjectOffline')
+      .mockImplementationOnce(async (options: any) => {
+        options.onProgress?.(41);
+        return fakeBuffer;
+      });
+    jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
+    const percents: number[] = [];
+
+    await svc.exportProjectWav(16, 44100, (percent) => percents.push(percent));
+
+    expect(percents).toEqual([41]);
+    expect(render).toHaveBeenCalledWith(
+      expect.objectContaining({ onProgress: expect.any(Function) }),
+    );
+  });
+
   it('exportProjectWav(24) renders once and names the file as 24-bit', async () => {
     jest.spyOn(svc, 'renderProjectOffline').mockResolvedValueOnce(fakeBuffer);
     const download = jest.spyOn(svc, 'downloadBlob').mockImplementation(() => {});
