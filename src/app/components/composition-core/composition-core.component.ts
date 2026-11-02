@@ -24,6 +24,7 @@ import type {
 import { CompositionCoreService } from '../../composer/composition-core.service';
 import { ComposerUplinkService } from '../../composer/composer-uplink.service';
 import { CompositionAuditionService } from '../../composer/composition-audition.service';
+import { briefSummary } from '../../composer/composition-brief';
 import { NotificationService } from '../../services/notification.service';
 
 interface PreviewCell {
@@ -102,6 +103,8 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
     return composition.parts.map((part) => this.buildPreview(part));
   });
 
+  readonly briefChips = computed(() => briefSummary(this.core.brief()));
+
   readonly auditionLabel = computed(() => {
     if (this.audition.rendering()) return 'Rendering…';
     return this.audition.playing() ? 'Stop audition' : 'Audition';
@@ -166,6 +169,10 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
 
   setComponent(kind: ComponentKind): void {
     this.core.setComponent(kind);
+  }
+
+  setBrief(event: Event): void {
+    this.core.setBrief((event.target as HTMLTextAreaElement).value);
   }
 
   selectIntensity(key: 'complexity' | 'energy' | 'darkness', event: Event): void {

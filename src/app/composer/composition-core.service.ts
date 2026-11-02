@@ -3,6 +3,10 @@ import { Router } from '@angular/router';
 import { MusicManagerService, TrackNote } from '../services/music-manager.service';
 import { AudioEngineService } from '../services/audio-engine.service';
 import { NotificationService } from '../services/notification.service';
+import {
+  briefRationale,
+  parseCompositionBrief,
+} from './composition-brief';
 import type {
   CatalogEntry,
   ComponentKind,
@@ -62,6 +66,9 @@ export class CompositionCoreService {
 
   selectedGenreId = signal<string | null>(null);
   component = signal<ComponentKind>('full-song');
+  /** Free-text creative direction; parsed into steering values, never genre. */
+  briefText = signal('');
+  readonly brief = computed(() => parseCompositionBrief(this.briefText()));
   intensity = signal<ComposerIntensity>({ complexity: 0.6, energy: 0.68, darkness: 0.5 });
   bpmOverride = signal<number | null>(null);
   lockKey = signal(true);
@@ -127,6 +134,10 @@ export class CompositionCoreService {
     this.appliedCompositionId.set(null);
   }
 
+  setBrief(text: string): void {
+    this.briefText.set(text ?? '');
+  }
+
   setIntensity(patch: Partial<ComposerIntensity>): void {
     this.intensity.update((current) => ({
       complexity: clamp01(patch.complexity ?? current.complexity),
@@ -162,24 +173,31 @@ export class CompositionCoreService {
     this.error.set(null);
     try {
       const settings = this.intensity();
-      const keyPreference = this.lockKey() ? this.current()?.keyLabel : undefined;
+      const brief = this.brief();
+      // Brief beats the dials; an explicit override from the caller beats both.
+      const keyPreference =
+        brief.keyLabel ?? (this.lockKey() ? this.current()?.keyLabel : undefined);
       const composition = composeWithGenre(genre, {
         genreId: genre.id,
         component: this.component(),
         seed: overrides.seed ?? randomSeed(),
         motifSeed: overrides.motifSeed,
         variation: overrides.variation ?? 'fresh',
-        bpm: this.bpmOverride() ?? overrides.bpm,
-        complexity: overrides.complexity ?? settings.complexity,
-        energy: overrides.energy ?? settings.energy,
-        darkness: overrides.darkness ?? settings.darkness,
+        bpm: this.bpmOverride() ?? overrides.bpm ?? brief.bpm,
+        complexity: overrides.complexity ?? brief.complexity ?? settings.complexity,
+        energy: overrides.energy ?? brief.energy ?? settings.energy,
+        darkness: overrides.darkness ?? brief.darkness ?? settings.darkness,
         title: overrides.title,
         keyLabel: overrides.keyLabel ?? keyPreference,
-        bars: overrides.bars ?? 8,
+        bars: overrides.bars ?? brief.bars ?? 8,
       });
       const withContext: Composition = {
         ...composition,
-        rationale: [...composition.rationale, ...this.personalizedLines()],
+        rationale: [
+          ...composition.rationale,
+          ...this.personalizedLines(),
+          ...briefRationale(brief),
+        ],
       };
       this.current.set(withContext);
       this.appliedCompositionId.set(null);

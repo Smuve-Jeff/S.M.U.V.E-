@@ -282,6 +282,37 @@
   grid-column: span 1;
 }
 
+.brief-block {
+  grid-column: 1 / -1;
+}
+
+.brief-input {
+  width: 100%;
+  min-height: 58px;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #070b12;
+  color: #e8eefc;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.brief-input:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+}
+
+.brief-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 .dials {
   grid-column: 1 / -1;
   display: grid;

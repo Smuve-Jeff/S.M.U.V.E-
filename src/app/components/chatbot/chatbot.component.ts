@@ -852,9 +852,12 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
 
     // 0a) Composition Core — genre-locked songs and single steps, parsed here
     //     but loaded on demand so the composer atlas stays out of the initial bundle.
-    const composeComponent = this.chatMusic?.detectComposeIntent(trimmed) ?? null;
-    if (composeComponent) {
-      const result = await this.chatMusic!.compose(composeComponent);
+    const composeRequest = this.chatMusic?.detectComposeIntent(trimmed) ?? null;
+    if (composeRequest) {
+      const result = await this.chatMusic!.compose(
+        composeRequest.component,
+        composeRequest.brief
+      );
       return { content: result.content, actions: result.actions };
     }
 

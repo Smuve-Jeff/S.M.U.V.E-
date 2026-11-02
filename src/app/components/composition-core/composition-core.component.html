@@ -126,6 +126,34 @@
         <p class="hint">{{ componentDescription(core.component()) }}</p>
       </div>
 
+      <div class="console-block brief-block">
+        <label class="label" for="brief-input">Creative brief — steer this pass, never the genre</label>
+        <textarea
+          id="brief-input"
+          class="brief-input"
+          rows="2"
+          placeholder="e.g. darker and slower, 140 BPM, half-time feel, inspired by Portishead"
+          [value]="core.briefText()"
+          (input)="setBrief($event)"
+        ></textarea>
+        <div class="brief-chips">
+          @for (chip of briefChips(); track chip) {
+            <span class="chip">{{ chip }}</span>
+          }
+          @if (!briefChips().length) {
+            <span class="hint">
+              Optional. The genre lock holds — a brief only moves mood, tempo, key,
+              length and texture.
+            </span>
+          }
+        </div>
+        @if (core.brief().references.length) {
+          <p class="hint">
+            References are read as direction, not imitation. The score stays original.
+          </p>
+        }
+      </div>
+
       <div class="console-block dials">
         <div class="dial">
           <div class="dial-head">

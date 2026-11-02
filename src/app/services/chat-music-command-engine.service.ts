@@ -46,6 +46,12 @@ export interface ChatMusicResult {
   actions: ChatMusicAction[];
 }
 
+export interface ComposeIntent {
+  component: ComponentKind;
+  /** The artist's own words, passed through as creative direction. */
+  brief: string;
+}
+
 export interface ChatMusicOptions {
   /** When true, the confirmation is also spoken via SpeechSynthesisService. */
   speak?: boolean;
@@ -405,7 +411,7 @@ export class ChatMusicCommandEngineService {
    * Parsing stays in this eagerly-loaded service so the composer engine (and
    * its 66-genre atlas) is only fetched when an artist actually composes.
    */
-  detectComposeIntent(text: string): ComponentKind | null {
+  detectComposeIntent(text: string): ComposeIntent | null {
     const lower = text.toLowerCase().replace(/\s+/g, ' ').trim();
     let component: ComponentKind | null = null;
 
@@ -425,7 +431,7 @@ export class ChatMusicCommandEngineService {
       component = this.componentFromWords(lower);
     }
 
-    return component;
+    return component ? { component, brief: text.trim() } : null;
   }
 
   private componentFromWords(text: string): ComponentKind | null {
@@ -448,7 +454,7 @@ export class ChatMusicCommandEngineService {
   }
 
   /** Builds the pass on demand, loading the composition engine lazily. */
-  async compose(component: ComponentKind): Promise<ChatMusicResult> {
+  async compose(component: ComponentKind, brief = ''): Promise<ChatMusicResult> {
     let core: CompositionCoreService | null = null;
     try {
       const module = await import('../composer/composition-core.service');
@@ -475,6 +481,7 @@ export class ChatMusicCommandEngineService {
     }
 
     core.ensureGenreSelected();
+    if (brief) core.setBrief(brief);
     const composition = core.generateStep(component);
     if (!composition) {
       return {
@@ -519,6 +526,7 @@ export class ChatMusicCommandEngineService {
       parts ? `Pass: ${parts}` : '',
       composition.theory[0] ? `Theory: ${composition.theory[0]}` : '',
       composition.rationale[0] ? `Why: ${composition.rationale[0]}` : '',
+      composition.rationale.find((line) => line.startsWith('Brief:')) ?? '',
       'Audition it here, load it into the Studio, or open the Composition Core to shape it. Nothing touched your session yet.',
     ]
       .filter(Boolean)

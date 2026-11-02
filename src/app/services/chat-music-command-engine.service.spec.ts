@@ -53,6 +53,7 @@ describe('ChatMusicCommandEngineService', () => {
   let profile: ReturnType<typeof signal<UserProfile>>;
   let composeGate: ReturnType<typeof signal<any>>;
   let generateStep: jest.Mock<Composition | null, [ComponentKind]>;
+  let setBrief: jest.Mock;
 
   beforeEach(() => {
     tracks = signal<TrackModel[]>([]);
@@ -99,10 +100,12 @@ describe('ChatMusicCommandEngineService', () => {
       rationale: ['The profile declared house, so the pocket leads.'],
     } as unknown as Composition));
 
+    setBrief = jest.fn();
     const composerMock = {
       gate: composeGate,
       ensureGenreSelected: jest.fn(),
       generateStep,
+      setBrief,
       error: () => null,
       current: () => null,
     };
@@ -469,9 +472,9 @@ describe('ChatMusicCommandEngineService', () => {
 
   it('composes a single step through Composition Core without touching the session', async () => {
     const before = noteCount();
-    const component = service.detectComposeIntent('/compose bassline');
-    expect(component).toBe('bassline');
-    const result = await service.compose(component!);
+    const intent = service.detectComposeIntent('/compose bassline');
+    expect(intent?.component).toBe('bassline');
+    const result = await service.compose(intent!.component, intent!.brief);
     expect(result.content).toContain('BASS');
     expect(result.content).toContain('Concrete Protocol');
     expect(result.content).toContain('Nothing touched your session yet');
@@ -485,18 +488,25 @@ describe('ChatMusicCommandEngineService', () => {
   });
 
   it('treats a bare compose request as a complete song', async () => {
-    expect(service.detectComposeIntent('/compose')).toBe('full-song');
+    expect(service.detectComposeIntent('/compose')?.component).toBe('full-song');
     const result = await service.compose('full-song');
     expect(result.content).toContain('COMPLETE SONG');
     expect(generateStep).toHaveBeenLastCalledWith('full-song');
-    expect(service.detectComposeIntent('compose a melody')).toBe('melody');
+    expect(service.detectComposeIntent('compose a melody')?.component).toBe('melody');
   });
 
   it('recognizes genre-locked step asks in natural language', () => {
-    expect(service.detectComposeIntent('write me a bassline for my profile')).toBe('bassline');
-    expect(service.detectComposeIntent('make a melody for me')).toBe('melody');
+    expect(service.detectComposeIntent('write me a bassline for my profile')?.component).toBe('bassline');
+    expect(service.detectComposeIntent('make a melody for me')?.component).toBe('melody');
     expect(service.detectComposeIntent('how do I compose a bassline?')).toBeNull();
     expect(service.tryExecute('how do I compose a bassline?')).toBeNull();
+  });
+
+  it("passes the artist's brief through to Composition Core", async () => {
+    const intent = service.detectComposeIntent('compose a darker bassline at 140 bpm');
+    expect(intent?.component).toBe('bassline');
+    await service.compose(intent!.component, intent!.brief);
+    expect(setBrief).toHaveBeenLastCalledWith('compose a darker bassline at 140 bpm');
   });
 
   it('refuses to compose when the artist profile gate is locked', async () => {
