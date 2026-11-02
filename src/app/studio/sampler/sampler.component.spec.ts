@@ -7,6 +7,22 @@ import { AudioSessionService } from "../audio-session.service";
 import { AudioImportService } from "../audio-import.service";
 import { SnackbarService } from "../../services/snackbar.service";
 
+function transientBuffer(
+  impulses: number[],
+  length: number,
+  sampleRate = 1000,
+): AudioBuffer {
+  const data = new Float32Array(length);
+  for (const frame of impulses) data[frame] = 1;
+  return {
+    numberOfChannels: 1,
+    length,
+    sampleRate,
+    duration: length / sampleRate,
+    getChannelData: () => data,
+  } as unknown as AudioBuffer;
+}
+
 describe("SamplerComponent", () => {
   let component: SamplerComponent;
   let fixture: ComponentFixture<SamplerComponent>;
@@ -43,6 +59,19 @@ describe("SamplerComponent", () => {
           port: { postMessage: jest.fn() },
           connect: jest.fn(),
           disconnect: jest.fn(),
+        }),
+        createBuffer: jest.fn((channels: number, length: number, sampleRate: number) => {
+          const data = Array.from(
+            { length: channels },
+            () => new Float32Array(length),
+          );
+          return {
+            numberOfChannels: channels,
+            length,
+            sampleRate,
+            duration: length / sampleRate,
+            getChannelData: (channel: number) => data[channel],
+          };
         }),
       } as unknown as AudioContext,
     };
@@ -104,6 +133,7 @@ describe("SamplerComponent", () => {
     expect(component.modulation()).toBe(0);
     expect(component.isImporting()).toBe(false);
     expect(component.dragOver()).toBe(false);
+    expect(component.autoChopSensitivity()).toBe(55);
   });
 
   it("should have output channels defined", () => {
@@ -171,6 +201,55 @@ describe("SamplerComponent", () => {
   it("should start with stretch controls at defaults", () => {
     expect(component.stretchSemitones()).toBe(0);
     expect(component.stretchSourceBpm()).toBe(120);
+  });
+
+  it("auto-chops detected transients onto consecutive pads", () => {
+    const buffer = transientBuffer([500, 1200, 2000], 3000);
+    const samplerMock = {
+      getZone: jest.fn().mockReturnValue({ sampleBuffers: [buffer] }),
+      getAllZones: jest.fn().mockReturnValue([]),
+      loadSampleToSlot: jest.fn(),
+      dispose: jest.fn(),
+    };
+    (component as any).sampler = samplerMock;
+    component.selectedPitch.set(60);
+    const snackbar = TestBed.inject(SnackbarService) as any;
+
+    component.autoChopSelected();
+
+    expect(samplerMock.loadSampleToSlot.mock.calls.length).toBeGreaterThan(1);
+    expect(samplerMock.loadSampleToSlot.mock.calls[0][0]).toBe(60);
+    expect(samplerMock.loadSampleToSlot.mock.calls[0][2]).toBe(0);
+    expect(snackbar.success).toHaveBeenCalledWith(
+      expect.stringContaining("Auto-chopped"),
+    );
+  });
+
+  it("explains when no transients are detected", () => {
+    const data = new Float32Array(3000).fill(0.5);
+    const buffer = {
+      numberOfChannels: 1,
+      length: data.length,
+      sampleRate: 1000,
+      duration: 3,
+      getChannelData: () => data,
+    } as unknown as AudioBuffer;
+    const samplerMock = {
+      getZone: jest.fn().mockReturnValue({ sampleBuffers: [buffer] }),
+      getAllZones: jest.fn().mockReturnValue([]),
+      loadSampleToSlot: jest.fn(),
+      dispose: jest.fn(),
+    };
+    (component as any).sampler = samplerMock;
+    component.selectedPitch.set(60);
+    const snackbar = TestBed.inject(SnackbarService) as any;
+
+    component.autoChopSelected();
+
+    expect(samplerMock.loadSampleToSlot).not.toHaveBeenCalled();
+    expect(snackbar.info).toHaveBeenCalledWith(
+      expect.stringContaining("No transients found"),
+    );
   });
 
   it("should no-op pitch shift when no sample is loaded", async () => {

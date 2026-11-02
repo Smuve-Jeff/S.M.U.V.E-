@@ -19,7 +19,11 @@ import { HapticService } from "../../services/haptic.service";
 import { WaveformRendererComponent } from "../waveform-renderer/waveform-renderer.component";
 import { AudioImportService } from "../audio-import.service";
 import { SnackbarService } from "../../services/snackbar.service";
-import { sliceAudioBuffer } from "../sampler-slice.util";
+import {
+  detectTransientFrames,
+  sliceAudioBuffer,
+  sliceAudioBufferAtFrames,
+} from "../sampler-slice.util";
 
 interface SamplerZoneUI {
   pitch: number;
@@ -72,6 +76,9 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
   stretchSemitones = signal(0);
   /** Source BPM for tempo-matching the selected zone to the project tempo. */
   stretchSourceBpm = signal(120);
+
+  /** 0..100 confidence for transient auto-chop; 55 suits drums and loops. */
+  autoChopSensitivity = signal(55);
 
   @ViewChild("dropZone") dropZoneRef!: ElementRef<HTMLDivElement>;
 
@@ -421,6 +428,56 @@ export class SamplerComponent implements AfterViewInit, OnDestroy {
     this.updateWaveform(basePitch);
     this.snackbar.success(
       `✂ Sliced into ${slices.length} pads from MIDI ${basePitch}`,
+    );
+  }
+
+  /**
+   * Detect transient attacks and map variable-length slices to consecutive
+   * pads. Unlike equal slicing, each pad starts on an onset and keeps the
+   * audio up to the next hit, so a chopped break retains its groove.
+   */
+  autoChopSelected(maxSlices = 16): void {
+    if (!this.sampler || this.selectedPitch() === null) return;
+    const basePitch = this.selectedPitch()!;
+    const zone = this.sampler.getZone(basePitch);
+    const buffer = zone?.sampleBuffers?.[0];
+    if (!buffer) {
+      this.haptic.heavy();
+      return;
+    }
+
+    const onsets = detectTransientFrames(buffer, {
+      sensitivity: this.autoChopSensitivity() / 100,
+      maxSlices,
+    });
+    if (onsets.length === 0) {
+      this.haptic.heavy();
+      this.snackbar.info(
+        "No transients found — lower Chop Sense or use Slice ×8",
+      );
+      return;
+    }
+
+    const ctx = this.audioEngine.ctx as BaseAudioContext;
+    const slices = sliceAudioBufferAtFrames(ctx, buffer, [
+      0,
+      ...onsets.map((onset) => onset.frame),
+    ]);
+    if (slices.length <= 1) {
+      this.snackbar.info("This sample is too short to auto-chop");
+      return;
+    }
+
+    slices.forEach((slice, index) => {
+      const pitch = basePitch + index;
+      if (pitch > 127) return;
+      this.sampler!.loadSampleToSlot(pitch, slice, 0);
+    });
+    this.haptic.medium();
+    this.refreshZones();
+    this.updateWaveform(basePitch);
+    this.snackbar.success(
+      `✂ Auto-chopped into ${slices.length} pads from MIDI ${basePitch}`,
     );
   }
 

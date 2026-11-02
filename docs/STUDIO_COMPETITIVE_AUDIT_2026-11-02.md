@@ -50,7 +50,7 @@ adoption or store shipment).
 | 19 | Performance | At parity | `performance-mode/` — velocity zones, pad scenes, live triggering | Cubasis pads/note-repeat are comparable |
 | 20 | Sound Browser | **Behind** | `sound-browser/` — search, tags, favourites, similar, previews | BandLab: 250K+ samples and 436+ instruments; FL: 1,000+ sounds (2M with FL Cloud) |
 | 21 | Sample Library | **Behind** | `sample-library/` — recorded takes, imports, categories, tags | No cloud sample marketplace or licensed pack store |
-| 22 | Sampler | **Behind** | `sampler/` — zones, round-robin, ADSR, loop points/crossfade, key mapping | No slicing, transient detection, time-stretch or auto-chop (Koala/FL lead here) |
+| 22 | Sampler | At parity | `sampler/` — zones, round-robin, ADSR, loop points/crossfade, key mapping, equal slicing, transient auto-chop | No licensed sample marketplace or per-step graph editor (Koala/FL remain deeper) |
 | 23 | Plugin Store | Ahead in architecture, **Behind in catalog** | `plugin-store/` — sandboxed WASM DSP, JS fallback, community `.smuveplugin` export/import | Mobile DAWs host no third-party plugins at all; our catalog is small |
 | 24 | Performer | **Ahead** | `performer/` — live layout, X/Y pad, arpeggiator, scene launcher, performance recording, FX macros | No baseline combines a live performance surface with the DAW document |
 
@@ -215,7 +215,7 @@ contrary to the earlier backlog wording.
 | Item | Why | Effort |
 | --- | --- | --- |
 | ~~Plugin-parameter automation + per-insert metering~~ **Shipped 2 Nov 2026**; ~~WASM insert preset browser~~ **Shipped 2 Nov 2026** — 15 factory sounds plus per-plugin user presets | Makes the WASM ecosystem usable | M |
-| Sampler slicing / transient chop / time-stretch | Beatmaker table stakes; Koala/FL lead here | M |
+| ~~Sampler transient chop~~ **Shipped 2 Nov 2026** — energy-rise onset detection maps variable-length slices to pads; equal Slice ×8 remains | Beatmaker table stakes; Koala/FL lead here | M |
 | MPE per-note expression | Full MPE per-channel note voices, bend range and pressure routing are wired; deeper modulation-matrix editing remains | M |
 | Overlap crossfades + tempo lane in arrangement (ripple delete now ships) | Cubasis/FL timeline depth | M |
 | Transport note-repeat | **Shipped 2 Nov 2026** — toggle + rate cycling in the transport drives the live retrigger | S |

@@ -31,6 +31,18 @@
         <span>Slice ×8</span>
       </button>
 
+      <!-- Detect attacks and map variable-length slices to pads -->
+      <button
+        type="button"
+        class="sampler-btn sampler-btn-chop"
+        (click)="autoChopSelected()"
+        [disabled]="selectedPitch() === null"
+        title="Detect transients and auto-chop the selected sample"
+      >
+        <span class="material-symbols-outlined">auto_awesome</span>
+        <span>Auto Chop</span>
+      </button>
+
       <!-- Stop All -->
       <button
         type="button"
@@ -188,6 +200,20 @@
           <div class="sampler-editor-row">
             <label>Samples</label>
             <span class="sampler-editor-value">{{ zone.sampleCount }}</span>
+          </div>
+          <div class="sampler-editor-row">
+            <label>Chop Sense</label>
+            <input
+              type="range"
+              class="sampler-adsr-slider"
+              min="0"
+              max="100"
+              step="1"
+              [value]="autoChopSensitivity()"
+              (input)="autoChopSensitivity.set(getInputValue($event))"
+              title="Lower for quiet ghosts, raise to ignore room noise"
+            />
+            <span class="sampler-adsr-val">{{ autoChopSensitivity() }}%</span>
           </div>
           <div class="sampler-editor-row">
             <label>Round Robin</label>

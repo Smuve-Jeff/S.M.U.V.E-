@@ -1375,3 +1375,22 @@
     min-height: 48px;
   }
 }
+
+/* Transient chopping: a distinct action beside the predictable equal slice. */
+.sampler-btn.sampler-btn-chop {
+  border-color: color-mix(in srgb, var(--sampler-teal, #0e7c7b) 45%, var(--sampler-line));
+  background: color-mix(in srgb, var(--sampler-teal, #0e7c7b) 9%, var(--sampler-panel));
+  color: var(--sampler-teal, #0e7c7b);
+}
+
+.sampler-btn.sampler-btn-chop:hover,
+.sampler-btn.sampler-btn-chop:focus-visible {
+  border-color: var(--sampler-teal, #0e7c7b);
+  background: color-mix(in srgb, var(--sampler-teal, #0e7c7b) 16%, var(--sampler-panel));
+  color: var(--sampler-teal, #0e7c7b);
+}
+
+.sampler-btn.sampler-btn-chop:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
