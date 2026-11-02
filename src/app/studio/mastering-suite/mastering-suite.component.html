@@ -478,6 +478,34 @@
                 />
                 <span>:1</span>
               </label>
+              <label class="mastering-band-comp-row">
+                <span>ATK</span>
+                <input
+                  type="number"
+                  [value]="band.attack * 1000"
+                  (change)="onBandTimeChange(band.id, 'attack', $event)"
+                  min="1"
+                  max="1000"
+                  step="1"
+                  inputmode="numeric"
+                  [attr.aria-label]="band.name + ' compressor attack in milliseconds'"
+                />
+                <span>ms</span>
+              </label>
+              <label class="mastering-band-comp-row">
+                <span>REL</span>
+                <input
+                  type="number"
+                  [value]="band.release * 1000"
+                  (change)="onBandTimeChange(band.id, 'release', $event)"
+                  min="5"
+                  max="3000"
+                  step="1"
+                  inputmode="numeric"
+                  [attr.aria-label]="band.name + ' compressor release in milliseconds'"
+                />
+                <span>ms</span>
+              </label>
             </div>
           </div>
         }

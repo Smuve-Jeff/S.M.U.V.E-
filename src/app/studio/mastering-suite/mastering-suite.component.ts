@@ -28,6 +28,9 @@ interface MasteringBand {
   gain: number;
   threshold: number;
   ratio: number;
+  /** Compressor attack/release in seconds; the UI shows milliseconds. */
+  attack: number;
+  release: number;
 }
 
 interface MasteringPreset {
@@ -400,6 +403,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       gain: -1.2,
       threshold: -12.4,
       ratio: 4.1,
+      attack: 0.01,
+      release: 0.1,
     },
     {
       id: 2,
@@ -408,6 +413,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       gain: -0.5,
       threshold: -8.1,
       ratio: 2.5,
+      attack: 0.01,
+      release: 0.1,
     },
     {
       id: 3,
@@ -416,6 +423,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       gain: 0,
       threshold: -2.4,
       ratio: 1.8,
+      attack: 0.01,
+      release: 0.1,
     },
     {
       id: 4,
@@ -424,6 +433,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       gain: 0.8,
       threshold: -4.2,
       ratio: 2.1,
+      attack: 0.01,
+      release: 0.1,
     },
     {
       id: 5,
@@ -432,6 +443,8 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
       gain: 1.5,
       threshold: -1.2,
       ratio: 1.5,
+      attack: 0.01,
+      release: 0.1,
     },
   ]);
 
@@ -474,7 +487,13 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
    */
   private presetAnchorBands: Map<
     number,
-    { gain: number; threshold: number; ratio: number }
+    {
+      gain: number;
+      threshold: number;
+      ratio: number;
+      attack: number;
+      release: number;
+    }
   > | null = null;
 
   /** Master compressor threshold/ratio before the first preset shaped it. */
@@ -584,7 +603,13 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.presetAnchorBands ??= new Map(
       this.bands().map((b) => [
         b.id,
-        { gain: b.gain ?? 0, threshold: b.threshold, ratio: b.ratio },
+        {
+          gain: b.gain ?? 0,
+          threshold: b.threshold,
+          ratio: b.ratio,
+          attack: b.attack,
+          release: b.release,
+        },
       ]),
     );
     this.presetAnchorCompressor ??= (this.audioEngine as any)
@@ -675,7 +700,7 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
    */
   updateBandCompressor(
     bandId: number,
-    field: "threshold" | "ratio",
+    field: "threshold" | "ratio" | "attack" | "release",
     rawValue: string | number,
   ): void {
     const raw = String(rawValue).trim();
@@ -685,8 +710,15 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     const clamped =
       field === "threshold"
         ? Math.max(-60, Math.min(0, numeric))
-        : Math.max(1, Math.min(20, numeric));
-    const value = Math.round(clamped * 10) / 10;
+        : field === "ratio"
+          ? Math.max(1, Math.min(20, numeric))
+          : field === "attack"
+            ? Math.max(0.001, Math.min(1, numeric))
+            : Math.max(0.005, Math.min(3, numeric));
+    const value =
+      field === "attack" || field === "release"
+        ? Math.round(clamped * 1000) / 1000
+        : Math.round(clamped * 10) / 10;
     this.bands.update((arr) =>
       arr.map((b) => (b.id === bandId ? { ...b, [field]: value } : b)),
     );
@@ -707,6 +739,22 @@ export class MasteringSuiteComponent implements AfterViewInit, OnDestroy {
     this.updateBandCompressor(bandId, field, input.value);
     const band = this.bands().find((b) => b.id === bandId);
     if (band) input.value = String(band[field]);
+  }
+
+  /** Edit attack/release in the millisecond unit the band card displays. */
+  onBandTimeChange(
+    bandId: number,
+    field: "attack" | "release",
+    event: Event,
+  ): void {
+    const input = event.target as HTMLInputElement | null;
+    if (!input) return;
+    const milliseconds = Number(input.value);
+    if (input.value.trim() && Number.isFinite(milliseconds)) {
+      this.updateBandCompressor(bandId, field, milliseconds / 1000);
+    }
+    const band = this.bands().find((b) => b.id === bandId);
+    if (band) input.value = String(Math.round(band[field] * 1000));
   }
 
   /** Push the visible five-band compressor state into the live master chain. */

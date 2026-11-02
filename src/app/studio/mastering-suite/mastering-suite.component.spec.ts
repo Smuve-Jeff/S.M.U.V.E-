@@ -334,6 +334,25 @@ describe("MasteringSuite reference A/B", () => {
       expect(input.value).toBe("2.5");
     });
 
+    it("edits per-band attack and release in milliseconds", () => {
+      const attack = { value: "25" } as HTMLInputElement;
+      const release = { value: "180" } as HTMLInputElement;
+
+      component.onBandTimeChange(1, "attack", { target: attack } as unknown as Event);
+      component.onBandTimeChange(1, "release", { target: release } as unknown as Event);
+
+      const band = component.bands().find((b) => b.id === 1)!;
+      expect(band.attack).toBe(0.025);
+      expect(band.release).toBe(0.18);
+      expect(attack.value).toBe("25");
+      expect(release.value).toBe("180");
+      expect(engineMock.setMasteringBands).toHaveBeenLastCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 1, attack: 0.025, release: 0.18 }),
+        ]),
+      );
+    });
+
     it("pushes band compressor edits into the live master chain", () => {
       component.updateBandCompressor(3, "threshold", "-9.24");
 
