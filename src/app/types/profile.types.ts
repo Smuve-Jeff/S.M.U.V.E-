@@ -174,6 +174,8 @@ export interface SmartSheetMemory {
   lastVocalPresetId?: string;
   lastChordMoodId?: string;
   lastTab?: string;
+  /** Saved-section auditions loop their set bars instead of playing once. */
+  sectionAuditionLoop?: boolean;
   /** Epoch (ms) of the newest write; the account copy only wins when it is newer. */
   updatedAt?: number;
   /** Per-item use stamps keyed by category (`starter:trap`, `vocal:…`,

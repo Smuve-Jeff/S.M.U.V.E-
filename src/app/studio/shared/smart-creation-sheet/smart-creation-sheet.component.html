@@ -353,6 +353,27 @@
                     <div class="sc-template-section-head-actions">
                       <button
                         type="button"
+                        class="sc-template-section-order-toggle sc-template-section-loop"
+                        (click)="toggleSectionAuditionLoop(tpl, $event)"
+                        [attr.aria-pressed]="sectionAuditionLoop()"
+                        [attr.aria-label]="
+                          sectionAuditionLoop()
+                            ? 'Section auditions loop their set bars; switch to one pass'
+                            : 'Section auditions play one pass; switch to looping'
+                        "
+                        [attr.title]="
+                          sectionAuditionLoop()
+                            ? 'Section auditions loop — tap for one pass'
+                            : 'Section auditions play one pass — tap to loop'
+                        "
+                      >
+                        <span class="material-symbols-outlined">{{
+                          sectionAuditionLoop() ? 'repeat' : 'repeat_one'
+                        }}</span>
+                        <span>{{ sectionAuditionLoop() ? 'Loop' : '1 pass' }}</span>
+                      </button>
+                      <button
+                        type="button"
                         class="sc-template-section-order-toggle sc-template-section-play"
                         [class.is-playing]="sectionsPreviewPlaying(tpl)"
                         [class.is-rendering]="sectionsPreviewRendering(tpl)"

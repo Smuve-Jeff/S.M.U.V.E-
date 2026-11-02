@@ -1696,6 +1696,52 @@ describe("SmartCreationSheetComponent", () => {
     expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
   });
 
+  it("switches section auditions between looping and one pass", async () => {
+    const template = sectionTemplateFixture();
+    component.toggleTemplateDetails(template);
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      bars: 2,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const previewId = templateSectionPreviewId(template, section);
+
+    expect(component.sectionAuditionLoop()).toBe(true);
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(previewId);
+
+    component.toggleSectionAuditionLoop(template);
+
+    expect(component.sectionAuditionLoop()).toBe(false);
+    expect(mockCompositionAudition.stop).toHaveBeenCalled();
+    expect(mockHaptic.light).toHaveBeenCalled();
+    expect(readMemory().sectionAuditionLoop).toBe(false);
+
+    mockCompositionAudition.playing.set(false);
+    mockCompositionAudition.readyCompositionId.set(null);
+    await component.applySavedSection(template, section);
+
+    expect(mockCompositionAudition.startScore).toHaveBeenCalledTimes(1);
+    expect(mockCompositionAudition.startScore.mock.calls[0][1]).toBe(false);
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      expect.stringContaining("one pass"),
+    );
+  });
+
+  it("remembers the one-pass choice on the next launch", () => {
+    window.localStorage.setItem(
+      SHEET_MEMORY_KEY,
+      JSON.stringify({ sectionAuditionLoop: false, updatedAt: Date.now() }),
+    );
+
+    const fresh = TestBed.createComponent(
+      SmartCreationSheetComponent,
+    ).componentInstance;
+
+    expect(fresh.sectionAuditionLoop()).toBe(false);
+  });
+
   it("plays saved sections once in their listed order", async () => {
     const intro = {
       id: "sec-intro",

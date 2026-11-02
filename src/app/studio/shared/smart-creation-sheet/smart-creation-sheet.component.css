@@ -1349,6 +1349,33 @@
   margin-left: auto;
 }
 
+/* The saved-section header controls are taps, not decoration. */
+.sc-template-section-head-actions .sc-template-section-order-toggle {
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 10px;
+}
+
+.sc-template-section-loop[aria-pressed="false"] {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(184, 247, 255, 0.72);
+}
+
+.sc-template-section-loop[aria-pressed="false"]:hover {
+  border-color: rgba(0, 229, 255, 0.4);
+  background: rgba(0, 229, 255, 0.1);
+  color: #b8f7ff;
+}
+
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+  .sc-template-section-head-actions .sc-template-section-order-toggle {
+    min-height: 44px;
+    padding: 6px 12px;
+    font-size: 10.5px;
+  }
+}
+
 .sc-template-section-label {
   font-size: 9px;
   font-weight: 700;

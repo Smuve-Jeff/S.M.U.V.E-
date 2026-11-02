@@ -167,6 +167,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly sectionRenameName = signal("");
   /** Whether the open breakdown shows the saved-section reorder list. */
   readonly reorderingSections = signal(false);
+  /** Saved-section auditions repeat their set bars until stopped. */
+  readonly sectionAuditionLoop = signal(true);
   private selectedPatternTemplateId: string | null = null;
 
   @Output() closeSheet = new EventEmitter<void>();
@@ -311,6 +313,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
   private applyMemory(memory: SmartSheetMemory): void {
     const tab = memory.lastTab;
     if (isSmartSheetTab(tab)) this.activeTab.set(tab);
+
+    if (typeof memory.sectionAuditionLoop === "boolean") {
+      this.sectionAuditionLoop.set(memory.sectionAuditionLoop);
+    }
 
     const starterId = memory.lastStarterId;
     if (starterId && this.genreStarters.some((s) => s.id === starterId)) {
@@ -1118,6 +1124,34 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.haptic.light();
   }
 
+  /**
+   * Choose whether saved-section auditions loop their set bars or play once.
+   * The preference is remembered and any section take already running stops,
+   * so the next tap cannot contradict the switch.
+   */
+  toggleSectionAuditionLoop(template?: ProjectTemplate, event?: Event): void {
+    event?.stopPropagation();
+    const next = !this.sectionAuditionLoop();
+    this.sectionAuditionLoop.set(next);
+    if (template) this.stopActiveSectionAudition(template.id);
+    this.remember({ sectionAuditionLoop: next });
+    this.haptic.light();
+  }
+
+  /** Stop whichever saved section (not arrangement) is rendering or playing. */
+  private stopActiveSectionAudition(templateId: string): void {
+    const prefix = `${templateMixPreviewPrefix(templateId)}section-`;
+    const playingId = this.compositionAudition.readyCompositionId();
+    if (playingId?.startsWith(prefix) && this.compositionAudition.playing()) {
+      this.compositionAudition.stop();
+    }
+    const renderingId = this.auditioningPreviewId();
+    if (renderingId?.startsWith(prefix)) {
+      this.compositionAudition.clear();
+      this.auditioningPreviewId.set(null);
+    }
+  }
+
   /** Move a saved section one place earlier or later without auditioning. */
   moveSavedSection(
     template: ProjectTemplate,
@@ -1361,7 +1395,12 @@ export class SmartCreationSheetComponent implements OnDestroy {
       ),
     );
     this.haptic.medium();
-    await this.previewScore(score, `section “${section.name}”`, true);
+    const loop = this.sectionAuditionLoop();
+    await this.previewScore(
+      score,
+      `section “${section.name}”${loop ? "" : " · one pass"}`,
+      loop,
+    );
   }
 
   /** Valid rows/versions from a saved section, in saved order. */
