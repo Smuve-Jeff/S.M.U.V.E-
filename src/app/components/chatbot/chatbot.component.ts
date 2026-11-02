@@ -119,7 +119,9 @@ type MasterActionId =
   | 'composer-load'
   | 'composer-audition'
   | 'composer-load-a'
-  | 'composer-load-b';
+  | 'composer-load-b'
+  | 'composer-audition-a'
+  | 'composer-audition-b';
 
 interface ChatAction {
   id: MasterActionId;
@@ -1843,6 +1845,16 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
         result = audition.error()
           ? audition.error()!
           : `Auditioning the written score of “${composition.title}”.`;
+        break;
+      }
+      case 'composer-audition-a':
+      case 'composer-audition-b': {
+        if (!action.data) {
+          result = 'That comparison no longer points at a pass. Compare again first.';
+          break;
+        }
+        const auditioned = await this.chatMusic?.auditionPass(action.data);
+        result = auditioned?.content ?? 'Audition playback is unavailable.';
         break;
       }
       case 'composer-load-a':

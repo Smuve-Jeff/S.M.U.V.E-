@@ -52,6 +52,20 @@ export class CompositionAuditionService {
     if (this.buffer && !this.error()) this.play(composition);
   }
 
+  /**
+   * Forces this exact composition to play. Unlike `toggle`, this never just
+   * stops — used when an artist picks a specific side of an A/B comparison.
+   */
+  async start(composition: Composition): Promise<void> {
+    this.stop();
+    if (this.buffer && this.readyCompositionId() === composition.id) {
+      this.play(composition);
+      return;
+    }
+    await this.render(composition);
+    if (this.buffer && !this.error()) this.play(composition);
+  }
+
   play(composition: Composition): void {
     if (!this.buffer) {
       void this.render(composition);

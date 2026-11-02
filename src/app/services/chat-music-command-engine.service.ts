@@ -37,7 +37,9 @@ export type ChatMusicActionId =
   | 'composer-load'
   | 'composer-audition'
   | 'composer-load-a'
-  | 'composer-load-b';
+  | 'composer-load-b'
+  | 'composer-audition-a'
+  | 'composer-audition-b';
 
 export interface ChatMusicAction {
   id: ChatMusicActionId;
@@ -559,10 +561,44 @@ export class ChatMusicCommandEngineService {
         'Nothing was restored. Say which pass number you want on the desk.',
       ].join('\n'),
       actions: [
+        { id: 'composer-audition-a', label: 'Audition A', data: history[a.index].id },
+        { id: 'composer-audition-b', label: 'Audition B', data: history[b.index].id },
         { id: 'composer-load-a', label: 'Load A into Studio', data: history[a.index].id },
         { id: 'composer-load-b', label: 'Load B into Studio', data: history[b.index].id },
         { id: 'composer-open', label: 'Open Composition Core' },
       ],
+    };
+  }
+
+  /** Auditions one side of a comparison without restoring or loading it. */
+  async auditionPass(passId: string): Promise<ChatMusicResult> {
+    const core = await this.loadCompositionCore();
+    if (!core) {
+      return { content: 'Composition Core is offline in this build.', actions: [] };
+    }
+    const pass = core.passHistory().find((entry) => entry.id === passId);
+    if (!pass) {
+      return {
+        content: 'That pass is no longer in history. Compare again and pick a side.',
+        actions: [],
+      };
+    }
+    const audition = await this.loadCompositionAudition();
+    if (!audition) {
+      return { content: 'Audition playback is unavailable in this browser.', actions: [] };
+    }
+
+    await audition.start(pass.composition);
+    if (audition.error()) {
+      return { content: audition.error()!, actions: [] };
+    }
+    const shortened =
+      pass.composition.durationSeconds > audition.maxAuditionSeconds
+        ? ` — the first ${Math.round(audition.maxAuditionSeconds / 60)} minutes of ${Math.ceil(pass.composition.durationSeconds / 60)}`
+        : '';
+    return {
+      content: `Auditioning “${pass.composition.title}” (${pass.composition.variation})${shortened}. The pass on the desk is untouched.`,
+      actions: [],
     };
   }
 
@@ -783,6 +819,22 @@ export class ChatMusicCommandEngineService {
     if (/\b(?:transition|riser|build|fill|turnaround)\b/.test(words)) return 'transition';
     if (/\b(?:song|track|beat|instrumental|full pass|whole thing|complete)\b/.test(words)) return 'full-song';
     return null;
+  }
+
+  private async loadCompositionAudition(): Promise<{
+    playing: () => boolean;
+    maxAuditionSeconds: number;
+    error: () => string | null;
+    stop: () => void;
+    toggle: (composition: Composition) => Promise<void>;
+    start: (composition: Composition) => Promise<void>;
+  } | null> {
+    try {
+      const module = await import('../composer/composition-audition.service');
+      return this.injector.get(module.CompositionAuditionService, null);
+    } catch {
+      return null;
+    }
   }
 
   /** Loads the composition engine only when a pass is actually requested. */

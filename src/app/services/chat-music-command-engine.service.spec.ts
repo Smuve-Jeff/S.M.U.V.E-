@@ -10,6 +10,7 @@ import {
   CompositionCoreService,
   type CompositionPass,
 } from '../composer/composition-core.service';
+import { CompositionAuditionService } from '../composer/composition-audition.service';
 import { ComponentKind, Composition } from '../composer/composer.types';
 
 function makeTrack(
@@ -92,6 +93,15 @@ describe('ChatMusicCommandEngineService', () => {
   let passHistory: ReturnType<typeof signal<CompositionPass[]>>;
   let restorePass: jest.Mock;
   let sendToStudio: jest.Mock;
+  let auditionPlaying: ReturnType<typeof signal<boolean>>;
+  let auditionMock: {
+    toggle: jest.Mock;
+    start: jest.Mock;
+    stop: jest.Mock;
+    playing: () => boolean;
+    error: () => string | null;
+    maxAuditionSeconds: number;
+  };
 
   beforeEach(() => {
     tracks = signal<TrackModel[]>([]);
@@ -132,6 +142,19 @@ describe('ChatMusicCommandEngineService', () => {
       return pass.composition;
     });
     sendToStudio = jest.fn(() => ({ trackIds: ['track-1', 'track-2'], skipped: [] }));
+    auditionPlaying = signal(false);
+    auditionMock = {
+      toggle: jest.fn(async () => {
+        auditionPlaying.set(true);
+      }),
+      start: jest.fn(async () => {
+        auditionPlaying.set(true);
+      }),
+      stop: jest.fn(() => auditionPlaying.set(false)),
+      playing: () => auditionPlaying(),
+      error: () => null,
+      maxAuditionSeconds: 120,
+    };
     setBrief = jest.fn();
     const composerMock = {
       gate: composeGate,
@@ -175,6 +198,7 @@ describe('ChatMusicCommandEngineService', () => {
         { provide: SpeechSynthesisService, useValue: { speak } as any },
         { provide: UserProfileService, useValue: { profile } },
         { provide: CompositionCoreService, useValue: composerMock as any },
+        { provide: CompositionAuditionService, useValue: auditionMock },
       ],
     });
 
@@ -626,6 +650,15 @@ describe('ChatMusicCommandEngineService', () => {
     expect(byNumber.content).toContain('Nothing was restored');
     expect(byNumber.actions.find((action) => action.id === 'composer-load-a')?.data).toBe('p1');
     expect(byNumber.actions.find((action) => action.id === 'composer-load-b')?.data).toBe('p3');
+    expect(byNumber.actions.find((action) => action.id === 'composer-audition-a')?.data).toBe('p1');
+    expect(byNumber.actions.find((action) => action.id === 'composer-audition-b')?.data).toBe('p3');
+
+    const auditioned = await service.auditionPass('p1');
+    expect(auditionMock.start).toHaveBeenCalledWith(oldest);
+    expect(currentComposition()).toBe(newest);
+    expect(restorePass).not.toHaveBeenCalled();
+    expect(auditioned.content).toContain('Auditioning “Oldest Reading”');
+    expect(auditioned.content).toContain('untouched');
 
     const byName = await service.compositionCompare({
       a: { kind: 'title', query: 'middle reading' },
