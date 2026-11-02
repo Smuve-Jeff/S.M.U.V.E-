@@ -2,17 +2,56 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { MusicManagerService } from './music-manager.service';
 import { LoggingService } from './logging.service';
 
+export interface TemplateNote {
+  midi: number;
+  step: number;
+  length: number;
+  velocity: number;
+}
+
+export interface ProjectTemplateTrack {
+  name: string;
+  instrumentId: string;
+  type: 'midi' | 'audio' | 'drum';
+  /** Fixed starters ship a four-bar pattern; user templates stay channel-only. */
+  notes?: TemplateNote[];
+  /** One-bar drum cycle, looped across the four-bar clip. */
+  drumPatternLength?: number;
+}
+
 export interface ProjectTemplate {
   id: string;
   name: string;
   bpm: number;
   genre: string;
-  tracks: {
-    name: string;
-    instrumentId: string;
-    type: 'midi' | 'audio' | 'drum';
-  }[];
+  tracks: ProjectTemplateTrack[];
 }
+
+const note = (
+  midi: number,
+  step: number,
+  length = 1,
+  velocity = 0.8,
+): TemplateNote => ({ midi, step, length, velocity });
+
+const chord = (
+  midis: number[],
+  step: number,
+  length = 6,
+  velocity = 0.6,
+): TemplateNote[] => midis.map((midi) => note(midi, step, length, velocity));
+
+const hits = (
+  midi: number,
+  steps: number[],
+  velocity = 0.8,
+): TemplateNote[] => steps.map((step) => note(midi, step, 1, velocity));
+
+/** Repeat a one-bar cell across the four bars the template clip spans. */
+const repeat = (cell: TemplateNote[], times = 4, span = 16): TemplateNote[] =>
+  Array.from({ length: times }, (_, bar) =>
+    cell.map((entry) => ({ ...entry, step: entry.step + bar * span })),
+  ).flat();
 
 /** User templates are local-only, like the rest of the project workspace. */
 const USER_TEMPLATES_KEY = 'smuve_user_templates_v1';
@@ -66,10 +105,52 @@ export class ProjectTemplateService {
       bpm: 128,
       genre: 'house',
       tracks: [
-        { name: 'Hybrid Lead', instrumentId: 'analog-warmth', type: 'midi' },
-        { name: 'Elite Piano', instrumentId: 'grand-piano', type: 'midi' },
-        { name: 'Deep Sub', instrumentId: 'sub-commander', type: 'midi' },
-        { name: 'Studio Drums', instrumentId: 'trap-808-elite', type: 'drum' },
+        {
+          name: 'Hybrid Lead',
+          instrumentId: 'analog-warmth',
+          type: 'midi',
+          notes: repeat([
+            note(69, 0, 2, 0.85),
+            note(72, 3, 1, 0.75),
+            note(76, 6, 2, 0.85),
+            note(79, 10, 1, 0.9),
+            note(76, 12, 2, 0.8),
+            note(72, 15, 1, 0.7),
+          ]),
+        },
+        {
+          name: 'Elite Piano',
+          instrumentId: 'grand-piano',
+          type: 'midi',
+          notes: [
+            ...chord([57, 60, 64], 0, 6, 0.62),
+            ...chord([53, 57, 60], 16, 6, 0.58),
+            ...chord([48, 52, 55], 32, 6, 0.62),
+            ...chord([55, 59, 62], 48, 6, 0.58),
+          ],
+        },
+        {
+          name: 'Deep Sub',
+          instrumentId: 'sub-commander',
+          type: 'midi',
+          notes: [
+            note(33, 0, 14, 0.9),
+            note(29, 16, 14, 0.9),
+            note(36, 32, 14, 0.9),
+            note(31, 48, 14, 0.9),
+          ],
+        },
+        {
+          name: 'Studio Drums',
+          instrumentId: 'trap-kit-elite',
+          type: 'drum',
+          drumPatternLength: 16,
+          notes: [
+            ...hits(36, [0, 4, 8, 12], 0.95),
+            ...hits(38, [4, 12], 0.62),
+            ...hits(42, [0, 2, 4, 6, 8, 10, 12, 14], 0.5),
+          ],
+        },
       ],
     },
     {
@@ -78,10 +159,53 @@ export class ProjectTemplateService {
       bpm: 140,
       genre: 'trap',
       tracks: [
-        { name: '808 Bass', instrumentId: 'trap-808-elite', type: 'midi' },
-        { name: 'Dark Keys', instrumentId: 'grand-piano', type: 'midi' },
-        { name: 'Cyber Lead', instrumentId: 'cyber-stab', type: 'midi' },
-        { name: 'Drums', instrumentId: 'trap-808-elite', type: 'drum' },
+        {
+          name: '808 Bass',
+          instrumentId: 'trap-808-elite',
+          type: 'midi',
+          notes: repeat([
+            note(36, 0, 6, 0.95),
+            note(31, 6, 3, 0.85),
+            note(34, 10, 5, 0.9),
+            note(36, 15, 1, 0.8),
+          ]),
+        },
+        {
+          name: 'Dark Keys',
+          instrumentId: 'grand-piano',
+          type: 'midi',
+          notes: [
+            ...chord([48, 51, 55], 0, 6, 0.58),
+            ...chord([44, 48, 51], 16, 6, 0.54),
+            ...chord([46, 50, 53], 32, 6, 0.58),
+            ...chord([48, 51, 55], 48, 6, 0.54),
+          ],
+        },
+        {
+          name: 'Cyber Lead',
+          instrumentId: 'cyber-stab',
+          type: 'midi',
+          notes: repeat([
+            note(72, 0, 2, 0.82),
+            note(75, 4, 1, 0.72),
+            note(79, 6, 2, 0.86),
+            note(82, 10, 1, 0.78),
+            note(79, 12, 2, 0.8),
+            note(75, 15, 1, 0.7),
+          ]),
+        },
+        {
+          name: 'Drums',
+          instrumentId: 'trap-kit-elite',
+          type: 'drum',
+          drumPatternLength: 16,
+          notes: [
+            ...hits(36, [0, 3, 7, 10, 14], 0.95),
+            ...hits(38, [4, 12], 0.72),
+            ...hits(42, [0, 2, 4, 6, 8, 10, 12, 14], 0.48),
+            ...hits(42, [3, 7, 11, 15], 0.32),
+          ],
+        },
       ],
     },
     {
@@ -90,14 +214,53 @@ export class ProjectTemplateService {
       bpm: 92,
       genre: 'rnb',
       tracks: [
-        { name: 'P-Bass', instrumentId: 'p-bass-elite', type: 'midi' },
-        { name: 'Ethereal Keys', instrumentId: 'neon-shimmer', type: 'midi' },
+        {
+          name: 'P-Bass',
+          instrumentId: 'p-bass-elite',
+          type: 'midi',
+          notes: repeat([
+            note(38, 0, 6, 0.88),
+            note(41, 6, 2, 0.78),
+            note(45, 8, 4, 0.84),
+            note(48, 12, 4, 0.76),
+          ]),
+        },
+        {
+          name: 'Ethereal Keys',
+          instrumentId: 'neon-shimmer',
+          type: 'midi',
+          notes: [
+            ...chord([50, 53, 57], 0, 7, 0.56),
+            ...chord([46, 50, 53], 16, 7, 0.5),
+            ...chord([41, 45, 48], 32, 7, 0.56),
+            ...chord([48, 52, 55], 48, 7, 0.5),
+          ],
+        },
         {
           name: 'Strat Guitar',
           instrumentId: 'strat-elite-clean',
           type: 'midi',
+          notes: repeat([
+            note(62, 0, 2, 0.66),
+            note(65, 3, 1, 0.58),
+            note(69, 5, 2, 0.62),
+            note(72, 8, 2, 0.6),
+            note(69, 11, 1, 0.56),
+            note(65, 13, 2, 0.58),
+          ]),
         },
-        { name: 'Vocal Lead', instrumentId: 'grand-piano', type: 'midi' },
+        {
+          name: 'Vocal Lead',
+          instrumentId: 'grand-piano',
+          type: 'midi',
+          notes: repeat([
+            note(69, 0, 3, 0.72),
+            note(72, 4, 2, 0.68),
+            note(74, 7, 3, 0.74),
+            note(77, 11, 2, 0.7),
+            note(74, 14, 2, 0.62),
+          ]),
+        },
       ],
     },
     {
@@ -106,10 +269,50 @@ export class ProjectTemplateService {
       bpm: 115,
       genre: 'ambient',
       tracks: [
-        { name: 'Analog Pad', instrumentId: 'ethereal-wind', type: 'midi' },
-        { name: 'Sub Bass', instrumentId: 'sub-commander', type: 'midi' },
-        { name: 'Neon Lead', instrumentId: 'neon-shimmer', type: 'midi' },
-        { name: 'Cyber Drums', instrumentId: 'trap-808-elite', type: 'drum' },
+        {
+          name: 'Analog Pad',
+          instrumentId: 'ethereal-wind',
+          type: 'midi',
+          notes: [
+            ...chord([54, 57, 61], 0, 14, 0.5),
+            ...chord([50, 54, 57], 16, 14, 0.46),
+            ...chord([45, 49, 52], 32, 14, 0.5),
+            ...chord([52, 56, 59], 48, 14, 0.46),
+          ],
+        },
+        {
+          name: 'Sub Bass',
+          instrumentId: 'sub-commander',
+          type: 'midi',
+          notes: [
+            note(30, 0, 12, 0.9),
+            note(38, 16, 12, 0.84),
+            note(33, 32, 12, 0.88),
+            note(40, 48, 12, 0.84),
+          ],
+        },
+        {
+          name: 'Neon Lead',
+          instrumentId: 'neon-shimmer',
+          type: 'midi',
+          notes: repeat([
+            note(66, 0, 2, 0.78),
+            note(69, 4, 2, 0.74),
+            note(73, 8, 2, 0.82),
+            note(76, 12, 2, 0.76),
+          ]),
+        },
+        {
+          name: 'Cyber Drums',
+          instrumentId: 'trap-kit-elite',
+          type: 'drum',
+          drumPatternLength: 16,
+          notes: [
+            ...hits(36, [0, 4, 8, 12], 0.92),
+            ...hits(38, [4, 12], 0.66),
+            ...hits(42, [2, 6, 10, 14], 0.48),
+          ],
+        },
       ],
     },
   ];
@@ -194,7 +397,37 @@ export class ProjectTemplateService {
 
     this.musicManager.newProject(true);
     for (const t of template.tracks) {
-      if (!this.musicManager.addTrack(t.name, t.instrumentId, t.type)) break;
+      const trackId = this.musicManager.addTrack(
+        t.name,
+        t.instrumentId,
+        t.type,
+      );
+      if (!trackId) break;
+      if (!t.notes?.length) continue;
+
+      // Fixed starters ship a playable four-bar phrase, not just channels.
+      // Note ids are derived from the track so a re-apply is deterministic.
+      this.musicManager.replaceTrackNotes(
+        trackId,
+        t.notes.map((entry, index) => ({
+          ...entry,
+          id: `tpl_${trackId}_${index}`,
+        })),
+        `Template · ${t.name}`,
+      );
+      if (t.type === 'drum') {
+        this.musicManager.applyTrackPatch(
+          trackId,
+          { drumPatternLength: t.drumPatternLength ?? 16 },
+          `Template · ${t.name} cycle`,
+        );
+      }
+      this.musicManager.addClipToTrack(trackId, {
+        name: `${t.name} · 4 bars`,
+        start: 0,
+        length: 4,
+        type: 'midi',
+      });
     }
     this.musicManager.engine.tempo.set(template.bpm);
     this.logger.info(

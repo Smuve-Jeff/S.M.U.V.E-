@@ -16,9 +16,15 @@ describe("ProjectTemplateService", () => {
   const tempo = signal(120);
   const newProject = jest.fn();
   const addTrack = jest.fn((name: string) => `track-${name}`);
+  const replaceTrackNotes = jest.fn();
+  const addClipToTrack = jest.fn();
+  const applyTrackPatch = jest.fn();
   const musicManager = {
     newProject,
     addTrack,
+    replaceTrackNotes,
+    addClipToTrack,
+    applyTrackPatch,
     engine: { tempo },
     tracks: jest.fn(() => [
       { id: "1", name: "Lead", instrumentId: "analog-warmth", type: "midi" },
@@ -44,12 +50,29 @@ describe("ProjectTemplateService", () => {
     service = TestBed.inject(ProjectTemplateService);
   });
 
-  it("ships usable starter templates with real instrument ids", () => {
+  it("ships playable starter templates with real instrument ids and patterns", () => {
     expect(service.templates.length).toBeGreaterThanOrEqual(4);
     for (const template of service.templates) {
       expect(template.tracks.length).toBeGreaterThan(0);
       expect(template.bpm).toBeGreaterThan(0);
       expect(template.tracks.every((track) => !!track.instrumentId)).toBe(true);
+      for (const track of template.tracks) {
+        expect(track.notes?.length).toBeGreaterThan(0);
+        expect(
+          track.notes!.every(
+            (note) =>
+              note.step >= 0 &&
+              note.step < 64 &&
+              note.length > 0 &&
+              note.velocity > 0 &&
+              note.velocity <= 1,
+          ),
+        ).toBe(true);
+        if (track.type === "drum") {
+          expect(track.drumPatternLength).toBe(16);
+          expect(track.notes!.every((note) => note.step < 16)).toBe(true);
+        }
+      }
     }
   });
 
@@ -66,8 +89,26 @@ describe("ProjectTemplateService", () => {
     );
     expect(addTrack).toHaveBeenCalledWith(
       template.tracks[template.tracks.length - 1].name,
-      template.tracks[template.tracks.length - 1].instrumentId,
+      "trap-kit-elite",
       "drum",
+    );
+    expect(replaceTrackNotes).toHaveBeenCalledTimes(template.tracks.length);
+    expect(addClipToTrack).toHaveBeenCalledTimes(template.tracks.length);
+    expect(replaceTrackNotes).toHaveBeenCalledWith(
+      `track-${template.tracks[0].name}`,
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: expect.stringContaining(`track-${template.tracks[0].name}`),
+          midi: template.tracks[0].notes![0].midi,
+          step: template.tracks[0].notes![0].step,
+        }),
+      ]),
+      expect.stringContaining("Template"),
+    );
+    expect(applyTrackPatch).toHaveBeenCalledWith(
+      "track-Studio Drums",
+      { drumPatternLength: 16 },
+      expect.stringContaining("Template"),
     );
     expect(tempo()).toBe(template.bpm);
   });
@@ -121,6 +162,9 @@ describe("ProjectTemplateService", () => {
       "trap-808-elite",
       "drum",
     );
+    // User templates stay channel/tempo snapshots; they carry no notes.
+    expect(replaceTrackNotes).not.toHaveBeenCalled();
+    expect(addClipToTrack).not.toHaveBeenCalled();
   });
 
   it("rejects an empty save and deletes a user template", () => {
