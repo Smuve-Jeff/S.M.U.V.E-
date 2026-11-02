@@ -40,9 +40,18 @@ jest.mock('tone', () => {
       set: jest.fn(),
       connect: jest.fn(),
       dispose: jest.fn(),
+      detune: { value: 0, rampTo: jest.fn() },
+    })),
+    Synth: jest.fn().mockImplementation(() => ({
+      triggerAttack: jest.fn(),
+      triggerRelease: jest.fn(),
+      set: jest.fn(),
+      connect: jest.fn(),
+      dispose: jest.fn(),
+      detune: { value: 0, rampTo: jest.fn() },
     })),
     Gain: jest.fn().mockImplementation(() => ({
-      gain: { value: 1 },
+      gain: { value: 1, rampTo: jest.fn() },
       connect: jest.fn(),
       disconnect: jest.fn(),
       dispose: jest.fn(),
@@ -56,7 +65,6 @@ jest.mock('tone', () => {
     })),
     start: jest.fn().mockResolvedValue(true),
     now: jest.fn().mockReturnValue(0),
-    Synth: jest.fn(),
     setContext: jest.fn(),
     getContext: jest.fn().mockReturnValue({ rawContext: 'mock-ctx' }),
     getDestination: jest.fn().mockReturnValue({ connect: jest.fn() }),
@@ -204,7 +212,35 @@ describe('LiveEngineService', () => {
     const spy = jest.spyOn(service, 'triggerNoteStart');
     const msg = { data: [0x90, 60, 100] }; // Note On, C4, vel 100
     (service as any).handleMidiMessage(msg);
-    expect(spy).toHaveBeenCalledWith(60, 100 / 127);
+    expect(spy).toHaveBeenCalledWith(60, 100 / 127, 0);
+  });
+
+  it('routes MPE member-channel bend and pressure to that note only', async () => {
+    await service.setInstrument('analog-warmth');
+
+    (service as any).handleMidiMessage({ data: [0x91, 60, 100] });
+    (service as any).handleMidiMessage({ data: [0x92, 64, 100] });
+    const voices = (service as any).mpeVoices as Map<string, any>;
+    expect(voices.size).toBe(2);
+    const first = voices.get('1:60');
+    const second = voices.get('2:64');
+    expect(first).toBeTruthy();
+    expect(second).toBeTruthy();
+
+    (service as any).handleMidiMessage({ data: [0xe1, 127, 127] });
+    expect(first.node.detune.rampTo).toHaveBeenCalled();
+    const firstCents = first.node.detune.rampTo.mock.calls.at(-1)[0];
+    expect(firstCents).toBeGreaterThan(4700);
+    expect(second.node.detune.rampTo).toHaveBeenCalledTimes(1);
+    expect(second.node.detune.rampTo.mock.calls[0][0]).toBe(0);
+
+    (service as any).handleMidiMessage({ data: [0xd1, 127, 0] });
+    expect(first.gain.gain.rampTo).toHaveBeenCalledWith(1, 0.03);
+    expect(second.gain.gain.rampTo).not.toHaveBeenCalledWith(1, 0.03);
+
+    (service as any).handleMidiMessage({ data: [0x81, 60, 0] });
+    expect(voices.has('1:60')).toBe(false);
+    expect(first.node.triggerRelease).toHaveBeenCalled();
   });
 
   it('should handle sustain pedal CC', () => {

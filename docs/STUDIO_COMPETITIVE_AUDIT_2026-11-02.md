@@ -31,7 +31,7 @@ adoption or store shipment).
 | --- | --- | --- | --- | --- |
 | 1 | Quick Session | **Ahead** | `quick-session/` — transport, tempo, record, channels, starters on one screen; writes to the same document as every editor | Nobody ships a genuine one-screen "make something now" path beside a full DAW |
 | 2 | Drum Machine | At parity | `drum-machine/` — kits (808/909/LinnDrum/SP-1200/acoustic/lo-fi), 6 style generators, swing, probability, per-step params, sample import, AI fill | FL's per-step graph editors and cut groups are deeper |
-| 3 | Piano Roll | **Behind** | `piano-roll/` — 5 tools, velocity lane, scale lock, WebGL, sustain/CC64, CC lane UI, automation entry; **CC/pitch-bend lanes wired to playback and export 2 Nov 2026; channel/poly aftertouch and per-note pressure input added** | Full MPE note-ID pitch routing is still absent; FL and Cubasis go deeper on per-note expression |
+| 3 | Piano Roll | **Behind** | `piano-roll/` — 5 tools, velocity lane, scale lock, WebGL, sustain/CC64, CC lane UI, automation entry; **CC/pitch-bend lanes wired to playback and export 2 Nov 2026; channel/poly aftertouch and per-note pressure input added** | MPE member-channel bend and pressure now route to per-note voices; FL and Cubasis still have deeper per-note modulation editing |
 | 4 | Vocal Suite | **Ahead** | `vocal-suite/` + `pitch-correction.service.ts` + `smart-recording.service.ts` — tuning, comping, punch-in, take editing, vocal mastering, AI vocal tools | Voloco matches real-time tuning; nobody combines comping + mastering in one mobile flow |
 | 5 | Quick Recorder | At parity | `audio-recorder-view/` — streamed capture, device pick, level meter, take list | BandLab's recorder is simpler; Audio Evolution has more routing |
 | 6 | Chords | At parity | `chord-editor/` — key/mode, chord types, progressions, voicing reorder | Chord packs in BandLab/FL are broader, but not editable progressions |
@@ -132,7 +132,7 @@ architecture issue.
 | Sample ecosystem | 250K–2M sounds, packs, marketplace (BandLab/FL) | Curated presets + user imports | Beatmakers bounce |
 | Sampling depth | Slicing, time-stretch, auto-chop, per-step graphs (Koala/FL) | Zones, round-robin, ADSR, loop crossfade | Chopping a break is manual |
 | Track count / routing | Unlimited tracks, 8 inserts + 8 sends (Cubasis) | 6/12/24 by device tier; VCA + A/B sends | Large sessions hit a ceiling |
-| MIDI expression | 960 PPQ, full CC, MPE (Cubasis/FL) | 16th grid, CC lanes wired, channel/poly aftertouch input, per-note pressure authoring | Full MPE note-ID pitch routing is not implemented |
+| MIDI expression | 960 PPQ, full CC, MPE (Cubasis/FL) | 16th grid, CC lanes wired, channel/poly aftertouch input, per-note pressure authoring | MPE member-channel bend/pressure voice routing added |
 | Generative AI | SongStarter, Audio-to-MIDI, Voice Changer (BandLab) | Prompt beats, AI mix, AI band, stem split | Fewer one-tap generative tools |
 | Native plugin economy | None on mobile — but huge desktop ecosystems | WASM sandbox with a small catalog | Open architecture, thin content |
 
@@ -216,7 +216,7 @@ contrary to the earlier backlog wording.
 | --- | --- | --- |
 | ~~Plugin-parameter automation + per-insert metering~~ **Shipped 2 Nov 2026**; per-insert preset browser still open | Makes the WASM ecosystem usable | M |
 | Sampler slicing / transient chop / time-stretch | Beatmaker table stakes; Koala/FL lead here | M |
-| Full MPE note-ID pitch routing | Channel/poly aftertouch and per-note pressure/pitch fields are now wired; multi-channel MPE voice allocation is the remaining piece | M |
+| MPE per-note expression | Full MPE per-channel note voices, bend range and pressure routing are wired; deeper modulation-matrix editing remains | M |
 | Overlap crossfades + tempo lane in arrangement (ripple delete now ships) | Cubasis/FL timeline depth | M |
 | Transport note-repeat | **Shipped 2 Nov 2026** — toggle + rate cycling in the transport drives the live retrigger | S |
 | Sample-rate normalisation for imports | 44.1 kHz devices currently run 48 kHz-tuned DSP | S |
