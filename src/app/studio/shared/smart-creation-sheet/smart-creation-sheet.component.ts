@@ -28,12 +28,15 @@ import {
   templatePatternsToAuditionScore,
   templatePatternToAuditionScore,
   templatePreviewId,
+  templateSectionBars,
   templateSectionsPreviewId,
   templateSectionsToAuditionScore,
   templateToAuditionScore,
   type TemplatePatternSelection,
 } from "../template-audition.util";
 import {
+  MAX_SECTION_BARS,
+  MIN_SECTION_BARS,
   ProjectTemplateService,
   type ProjectTemplate,
   type TemplateSection,
@@ -949,6 +952,79 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   templateSections(template: ProjectTemplate): TemplateSection[] {
     return template.sections ?? [];
+  }
+
+  /** Bounds for the arrangement-length stepper. */
+  readonly minSectionBars = MIN_SECTION_BARS;
+  readonly maxSectionBars = MAX_SECTION_BARS;
+
+  /** Chosen arrangement length, or the length the saved patterns need. */
+  sectionBars(template: ProjectTemplate, section: TemplateSection): number {
+    return templateSectionBars(template, section);
+  }
+
+  /** True until the artist sets an explicit length for this section. */
+  sectionLengthIsAuto(section: TemplateSection): boolean {
+    return typeof section.bars !== "number";
+  }
+
+  /** Accessible readout for the length stepper. */
+  sectionLengthLabel(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): string {
+    const bars = this.sectionBars(template, section);
+    return `${bars} bar${bars === 1 ? "" : "s"}${
+      this.sectionLengthIsAuto(section) ? " · auto" : ""
+    }`;
+  }
+
+  /**
+   * Lengthen or shorten one saved section in the arrangement preview. The
+   * change is persisted with the template and only the preview projection is
+   * affected; no channel, clip or version is loaded.
+   */
+  adjustSectionBars(
+    template: ProjectTemplate,
+    section: TemplateSection,
+    offset: number,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    if (!Number.isInteger(offset) || offset === 0) return;
+    const current = this.sectionBars(template, section);
+    const next = Math.max(
+      MIN_SECTION_BARS,
+      Math.min(MAX_SECTION_BARS, current + offset),
+    );
+    if (next === current) return;
+
+    // The arrangement's score and id are about to change; never leave the old
+    // take playing under a control that no longer points at it.
+    this.stopSectionsPreview(template);
+    const updated = this.projectTemplates.setTemplateSectionBars(
+      template.id,
+      section.id,
+      next,
+    );
+    if (!updated) {
+      this.snackbar.error("Could not change this section's length.");
+      return;
+    }
+    this.haptic.light();
+  }
+
+  /** Stop only the saved-section arrangement, not an unrelated preview. */
+  private stopSectionsPreview(template: ProjectTemplate): void {
+    const id = this.sectionsPreviewId(template);
+    if (!id) return;
+    const playing = this.previewPlaying(id);
+    const rendering =
+      this.auditioningPreviewId() === id &&
+      this.compositionAudition.rendering();
+    if (playing) this.compositionAudition.stop();
+    if (rendering) this.compositionAudition.clear();
+    if (playing || rendering) this.auditioningPreviewId.set(null);
   }
 
   /** Resolve saved rows and versions to readable names before auditioning. */

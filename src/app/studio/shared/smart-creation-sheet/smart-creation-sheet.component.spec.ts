@@ -13,6 +13,7 @@ import { UserProfileService } from "../../../services/user-profile.service";
 import { WorkProtectionService } from "../../work-protection.service";
 import { CompositionAuditionService } from "../../../composer/composition-audition.service";
 import { ProjectTemplateService } from "../../../services/project-template.service";
+import { templateSectionsPreviewId } from "../template-audition.util";
 import { signal } from "@angular/core";
 
 /** jsdom has no TouchEvent — build a plain Event carrying a single touch point. */
@@ -149,6 +150,7 @@ describe("SmartCreationSheetComponent", () => {
     userTemplates: userTemplatesSignal,
     saveTemplateSection: jest.fn(),
     renameTemplateSection: jest.fn(),
+    setTemplateSectionBars: jest.fn(),
     moveTemplateSection: jest.fn(),
     deleteTemplateSection: jest.fn(),
     applyTemplate: jest.fn(),
@@ -1587,6 +1589,75 @@ describe("SmartCreationSheetComponent", () => {
     expect(component.renamingSectionId()).toBeNull();
     expect(component.sectionRenameName()).toBe("");
     expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+  });
+
+  it("sets a saved section's arrangement length without loading the template", () => {
+    const template = sectionTemplateFixture();
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const withSections = { ...template, sections: [section] };
+    component.toggleTemplateDetails(withSections);
+
+    expect(component.sectionBars(withSections, section)).toBe(1);
+    expect(component.sectionLengthIsAuto(section)).toBe(true);
+    expect(component.sectionLengthLabel(withSections, section)).toBe(
+      "1 bar · auto",
+    );
+
+    mockProjectTemplates.setTemplateSectionBars.mockReturnValue({
+      ...section,
+      bars: 2,
+    });
+    component.adjustSectionBars(withSections, section, 1);
+
+    expect(mockProjectTemplates.setTemplateSectionBars).toHaveBeenCalledWith(
+      "tpl-7",
+      "sec-1",
+      2,
+    );
+    expect(mockHaptic.light).toHaveBeenCalled();
+    expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+    expect(component.sectionLengthIsAuto({ ...section, bars: 2 })).toBe(false);
+    expect(
+      component.sectionLengthLabel(withSections, { ...section, bars: 2 }),
+    ).toBe("2 bars");
+  });
+
+  it("stops the arrangement before changing its length and clamps the ends", () => {
+    const template = sectionTemplateFixture();
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const withSections = { ...template, sections: [section] };
+    component.toggleTemplateDetails(withSections);
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(
+      templateSectionsPreviewId("tpl-7", [section]),
+    );
+    mockProjectTemplates.setTemplateSectionBars.mockReturnValue({
+      ...section,
+      bars: 2,
+    });
+
+    component.adjustSectionBars(withSections, section, 1);
+    expect(mockCompositionAudition.stop).toHaveBeenCalled();
+
+    mockProjectTemplates.setTemplateSectionBars.mockClear();
+    component.adjustSectionBars(withSections, { ...section, bars: 1 }, -1);
+    component.adjustSectionBars(withSections, { ...section, bars: 32 }, 1);
+    expect(mockProjectTemplates.setTemplateSectionBars).not.toHaveBeenCalled();
+
+    mockProjectTemplates.setTemplateSectionBars.mockReturnValue(null);
+    component.adjustSectionBars(withSections, section, 1);
+    expect(mockSnackbar.error).toHaveBeenCalledWith(
+      "Could not change this section's length.",
+    );
   });
 
   it("plays saved sections once in their listed order", async () => {

@@ -6,6 +6,7 @@ import type {
   PartRole,
 } from '../../composer/composer.types';
 import type { AuditionScore } from '../../composer/composition-audition.service';
+import { MAX_SECTION_BARS } from '../../services/project-template.service';
 import type {
   ProjectTemplate,
   ProjectTemplateTrack,
@@ -324,11 +325,93 @@ export const templateSectionsPreviewId = (
             `${row.trackIndex}:${row.slotId ?? "live"}@${row.versionId ?? "active"}`,
         )
         .join(",");
-      return `${section.id}[${rows}]`;
+      const bars = section.bars ? `:${section.bars}bars` : "";
+      return `${section.id}${bars}[${rows}]`;
     })
     .join("|");
   return `${templateMixPreviewPrefix(templateId)}arrangement-${signature}`;
 };
+
+/** One saved row resolved to its notes; stale rows are skipped. */
+interface ResolvedSectionRow {
+  track: ProjectTemplateTrack;
+  notes: TemplateNote[];
+  key: string;
+}
+
+function resolveSectionRows(
+  template: ProjectTemplate,
+  section: TemplateSection,
+): ResolvedSectionRow[] {
+  const seen = new Set<string>();
+  const resolved: ResolvedSectionRow[] = [];
+
+  for (const row of section.rows) {
+    const key = templatePatternSelectionKey(row.trackIndex, row.slotId);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const track = template.tracks[row.trackIndex];
+    if (!track) continue;
+    const slot = row.slotId
+      ? track.patternSlots?.find((candidate) => candidate.id === row.slotId)
+      : undefined;
+    if (row.slotId && !slot) continue;
+    const version = row.versionId
+      ? slot?.versions?.find((candidate) => candidate.id === row.versionId)
+      : undefined;
+    const notes = version
+      ? version.notes
+      : slot
+        ? slot.notes?.length
+          ? slot.notes
+          : activeNotes(track)
+        : activeNotes(track);
+    resolved.push({ track, notes, key });
+  }
+
+  return resolved;
+}
+
+/**
+ * Bars a saved section occupies in the arrangement preview: the artist's
+ * chosen length, or the length its longest saved pattern actually needs.
+ */
+export function templateSectionBars(
+  template: ProjectTemplate,
+  section: TemplateSection,
+): number {
+  if (typeof section.bars === 'number' && Number.isFinite(section.bars)) {
+    return Math.max(1, Math.min(MAX_SECTION_BARS, Math.round(section.bars)));
+  }
+
+  let maxStep = 0;
+  for (const row of resolveSectionRows(template, section)) {
+    for (const note of playable(row.notes)) {
+      maxStep = Math.max(maxStep, note.step + Math.max(1, note.length));
+    }
+  }
+  return Math.max(1, Math.ceil(maxStep / 16));
+}
+
+/** Drop or shorten anything that would spill into the next section. */
+function trimPartToBars(part: ComposerPart, bars: number): ComposerPart {
+  const maxStep = Math.max(1, bars) * 16;
+  const position = (bar: number, step: number): number => bar * 16 + step;
+  return {
+    ...part,
+    notes: part.notes
+      .filter((note) => position(note.bar, note.step) < maxStep)
+      .map((note) => ({
+        ...note,
+        length: Math.min(
+          note.length,
+          maxStep - position(note.bar, note.step),
+        ),
+      })),
+    hits: part.hits.filter((hit) => position(hit.bar, hit.step) < maxStep),
+  };
+}
 
 /** Shift every note and drum hit in a part by a whole number of bars. */
 function offsetPart(part: ComposerPart, bars: number): ComposerPart {
@@ -345,9 +428,11 @@ function offsetPart(part: ComposerPart, bars: number): ComposerPart {
  *
  * Each section contributes its saved rows and chosen versions, with missing
  * versions falling back to the live pattern just like the section audition.
- * A section lasts as long as its longest pattern and the next section begins
- * on the following bar. Only the projection is changed; the template and the
- * live project are never touched.
+ * A section lasts as long as its set length (or its longest pattern when no
+ * length is set) and the next section begins on the following bar. Notes that
+ * would spill past a set length are trimmed so sections never overlap. Only
+ * the projection is changed; the template and the live project are never
+ * touched.
  */
 export function templateSectionsToAuditionScore(
   template: ProjectTemplate,
@@ -359,45 +444,20 @@ export function templateSectionsToAuditionScore(
   let startBar = 0;
 
   sections.forEach((section, sectionIndex) => {
-    const seen = new Set<string>();
+    const sectionBars = templateSectionBars(template, section);
     const sectionParts: ComposerPart[] = [];
-    let sectionMaxStep = 0;
 
-    for (const row of section.rows) {
-      const key = templatePatternSelectionKey(row.trackIndex, row.slotId);
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const track = template.tracks[row.trackIndex];
-      if (!track) continue;
-      const slot = row.slotId
-        ? track.patternSlots?.find((candidate) => candidate.id === row.slotId)
-        : undefined;
-      if (row.slotId && !slot) continue;
-      const version = row.versionId
-        ? slot?.versions?.find(
-            (candidate) => candidate.id === row.versionId,
-          )
-        : undefined;
-      const notes = version
-        ? version.notes
-        : slot
-          ? slot.notes?.length
-            ? slot.notes
-            : activeNotes(track)
-          : activeNotes(track);
+    for (const row of resolveSectionRows(template, section)) {
       const built = buildPart(
-        track,
-        notes,
-        `sections-${sectionIndex}-${key.replace(":", "-")}`,
+        row.track,
+        row.notes,
+        `sections-${sectionIndex}-${row.key.replace(":", "-")}`,
       );
       if (!built) continue;
-      sectionParts.push(built.part);
-      sectionMaxStep = Math.max(sectionMaxStep, built.maxStep);
+      sectionParts.push(trimPartToBars(built.part, sectionBars));
     }
 
     if (!sectionParts.length) return;
-    const sectionBars = Math.max(1, Math.ceil(sectionMaxStep / 16));
     parts.push(...sectionParts.map((part) => offsetPart(part, startBar)));
     startBar += sectionBars;
   });

@@ -351,6 +351,57 @@ describe("ProjectTemplateService", () => {
     expect(service.deleteTemplateSection(template!.id, section!.id)).toBe(false);
   });
 
+  it("sets a saved section's arrangement length, clamped and persisted", () => {
+    const template = service.saveCurrentAsTemplate("Length Sketch", true);
+    const section = service.saveTemplateSection(template!.id, "Intro", [
+      { trackIndex: 0, slotId: "slot-1" },
+    ]);
+    expect(section).not.toBeNull();
+    expect(section!.bars).toBeUndefined();
+
+    const four = service.setTemplateSectionBars(
+      template!.id,
+      section!.id,
+      4,
+    );
+    expect(four).toMatchObject({
+      id: section!.id,
+      name: "Intro",
+      rows: section!.rows,
+      bars: 4,
+    });
+    expect(service.userTemplates()[0].sections?.[0].bars).toBe(4);
+    const stored = JSON.parse(
+      localStorage.getItem("smuve_user_templates_v1") ?? "[]",
+    );
+    expect(stored[0].sections[0].bars).toBe(4);
+
+    // Updating the rows by name keeps the length the artist chose.
+    service.saveTemplateSection(template!.id, "  intro  ", [
+      { trackIndex: 1, slotId: null },
+    ]);
+    expect(service.userTemplates()[0].sections?.[0].bars).toBe(4);
+
+    expect(
+      service.setTemplateSectionBars(template!.id, section!.id, 0)?.bars,
+    ).toBe(1);
+    expect(
+      service.setTemplateSectionBars(template!.id, section!.id, 99)?.bars,
+    ).toBe(32);
+    expect(
+      service.setTemplateSectionBars(template!.id, section!.id, 6.6)?.bars,
+    ).toBe(7);
+    expect(
+      service.setTemplateSectionBars(template!.id, section!.id, Number.NaN),
+    ).toBeNull();
+    expect(
+      service.setTemplateSectionBars(template!.id, "missing-section", 4),
+    ).toBeNull();
+    expect(
+      service.setTemplateSectionBars("missing-template", section!.id, 4),
+    ).toBeNull();
+  });
+
   it("renames saved sections in place and rejects duplicate names", () => {
     const template = service.saveCurrentAsTemplate("Rename Sketch", true);
     const first = service.saveTemplateSection(template!.id, "Lead", [
@@ -483,6 +534,7 @@ describe("ProjectTemplateService", () => {
       { trackIndex: 0, slotId: "slot-1", versionId: "v1" },
     ]);
     expect(section).not.toBeNull();
+    service.setTemplateSectionBars(template!.id, section!.id, 5);
 
     // A fresh service instance reads the stored list back.
     TestBed.resetTestingModule();
@@ -504,6 +556,7 @@ describe("ProjectTemplateService", () => {
       id: section!.id,
       name: "Verse lift",
       rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+      bars: 5,
     });
 
     reloaded.applyTemplate(template!.id);

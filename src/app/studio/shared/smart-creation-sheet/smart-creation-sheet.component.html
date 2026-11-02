@@ -259,7 +259,7 @@
               <div class="sc-template-details-head">
                 <span class="sc-template-details-hint">
                   Preview a row, mix selected rows, or play saved sections in
-                  order — no channels are replaced.
+                  order at their set lengths — no channels are replaced.
                 </span>
                 <div class="sc-template-details-actions">
                   <button
@@ -426,7 +426,9 @@
                       <span class="sc-template-section-order-name">{{ section.name }}</span>
                       <small>
                         {{ section.rows.length }}
-                        {{ section.rows.length === 1 ? 'row' : 'rows' }}
+                        {{ section.rows.length === 1 ? 'row' : 'rows' }} ·
+                        {{ sectionBars(tpl, section) }}
+                        {{ sectionBars(tpl, section) === 1 ? 'bar' : 'bars' }}
                       </small>
                       <button
                         type="button"
@@ -547,6 +549,60 @@
                         >
                           <span class="material-symbols-outlined">delete</span>
                         </button>
+                      </div>
+                      <div
+                        class="sc-template-section-length"
+                        title="Bars this section occupies in the arrangement preview"
+                      >
+                        <span class="sc-template-section-length-label">Length</span>
+                        <span
+                          class="sc-template-section-length-auto"
+                          *ngIf="sectionLengthIsAuto(section)"
+                          title="Uses the length this section's longest pattern needs"
+                        >
+                          auto
+                        </span>
+                        <div class="sc-template-section-length-control" aria-live="polite">
+                          <button
+                            type="button"
+                            class="sc-template-section-length-step"
+                            (click)="adjustSectionBars(tpl, section, -1, $event)"
+                            [disabled]="sectionBars(tpl, section) <= minSectionBars"
+                            [attr.aria-label]="
+                              'Shorten section ' + section.name + ' by one bar'
+                            "
+                            [attr.title]="
+                              sectionBars(tpl, section) <= minSectionBars
+                                ? 'A section is at least one bar'
+                                : 'One bar shorter'
+                            "
+                          >
+                            <span class="material-symbols-outlined">remove</span>
+                          </button>
+                          <span
+                            class="sc-template-section-length-value"
+                            [attr.aria-label]="sectionLengthLabel(tpl, section)"
+                          >
+                            {{ sectionBars(tpl, section) }}
+                            {{ sectionBars(tpl, section) === 1 ? 'bar' : 'bars' }}
+                          </span>
+                          <button
+                            type="button"
+                            class="sc-template-section-length-step"
+                            (click)="adjustSectionBars(tpl, section, 1, $event)"
+                            [disabled]="sectionBars(tpl, section) >= maxSectionBars"
+                            [attr.aria-label]="
+                              'Lengthen section ' + section.name + ' by one bar'
+                            "
+                            [attr.title]="
+                              sectionBars(tpl, section) >= maxSectionBars
+                                ? 'A section can occupy up to ' + maxSectionBars + ' bars'
+                                : 'One bar longer'
+                            "
+                          >
+                            <span class="material-symbols-outlined">add</span>
+                          </button>
+                        </div>
                       </div>
                       <div
                         class="sc-template-section-rename"

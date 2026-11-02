@@ -2,6 +2,7 @@ import {
   templatePatternsPreviewId,
   templatePatternsToAuditionScore,
   templatePatternToAuditionScore,
+  templateSectionBars,
   templateSectionsPreviewId,
   templateSectionsToAuditionScore,
   templateToAuditionScore,
@@ -397,6 +398,71 @@ describe('templateSectionsToAuditionScore', () => {
     expect(reverse!.parts[1].notes[0].bar).toBe(2);
     expect(reverse!.parts[2].notes[0].bar).toBe(1);
     expect(reverse!.totalBars).toBe(3);
+  });
+
+  it("uses each section's set length and starts the next section after it", () => {
+    const sourceTemplate = source();
+    const sizedIntro = { ...intro, bars: 4 };
+    const sizedHook = { ...hook, bars: 2 };
+    const score = templateSectionsToAuditionScore(sourceTemplate, [
+      sizedIntro,
+      sizedHook,
+    ]);
+
+    expect(score!.totalBars).toBe(6);
+    expect(score!.durationSeconds).toBe(12);
+    expect(score!.parts[0].notes[0].bar).toBe(1);
+    expect(score!.parts[1].notes[0].bar).toBe(0);
+    expect(score!.parts[2].notes[0].bar).toBe(4);
+    expect(score!.id).toBe(
+      templateSectionsPreviewId(sourceTemplate.id, [sizedIntro, sizedHook]),
+    );
+
+    // Auto length still measures the saved pattern.
+    expect(templateSectionBars(sourceTemplate, intro)).toBe(2);
+    expect(templateSectionBars(sourceTemplate, sizedIntro)).toBe(4);
+    expect(templateSectionsPreviewId('tpl', [intro])).not.toBe(
+      templateSectionsPreviewId('tpl', [{ ...intro, bars: 2 }]),
+    );
+  });
+
+  it('pads a longer section and trims notes past a shorter one', () => {
+    const padded = templateSectionsToAuditionScore(source(), [
+      { ...hook, bars: 3 },
+      hook,
+    ]);
+    expect(padded!.totalBars).toBe(4);
+    expect(padded!.parts[0].notes[0].bar).toBe(0);
+    expect(padded!.parts[1].notes[0].bar).toBe(3);
+
+    const overflowing = template({
+      tracks: [
+        {
+          name: 'Lead',
+          instrumentId: 'analog-warmth',
+          type: 'midi',
+          notes: [
+            { midi: 60, step: 8, length: 16, velocity: 0.8 },
+            { midi: 62, step: 20, length: 2, velocity: 0.7 },
+          ],
+        },
+      ],
+    });
+    const clipped = templateSectionsToAuditionScore(overflowing, [
+      {
+        id: 'sec-clipped',
+        name: 'Clipped',
+        bars: 1,
+        rows: [{ trackIndex: 0, slotId: null }],
+      },
+    ]);
+    expect(clipped!.totalBars).toBe(1);
+    expect(clipped!.parts[0].notes).toHaveLength(1);
+    expect(clipped!.parts[0].notes[0]).toMatchObject({
+      bar: 0,
+      step: 8,
+      length: 8,
+    });
   });
 
   it('falls back to the live pattern and skips empty sections', () => {

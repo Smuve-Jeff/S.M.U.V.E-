@@ -1510,6 +1510,141 @@
   gap: 4px;
 }
 
+/* Arrangement length stepper: readable on a phone in portrait or landscape,
+   and still dense enough for Chrome desktop. */
+.sc-template-section-length {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 3px 5px 3px 8px;
+  border: 1px solid rgba(0, 229, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.sc-template-section-length-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(184, 247, 255, 0.55);
+}
+
+.sc-template-section-length-auto {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.09);
+  color: rgba(155, 238, 255, 0.72);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sc-template-section-length-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.sc-template-section-length-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 229, 255, 0.07);
+  color: #9beeff;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 140ms ease, border-color 140ms ease,
+    transform 100ms ease;
+}
+
+.sc-template-section-length-step .material-symbols-outlined {
+  font-size: 17px;
+}
+
+.sc-template-section-length-step:hover:not(:disabled),
+.sc-template-section-length-step:focus-visible {
+  border-color: rgba(119, 255, 192, 0.5);
+  background: rgba(119, 255, 192, 0.14);
+  color: #b6ffdd;
+}
+
+.sc-template-section-length-step:focus-visible {
+  outline: 2px solid rgba(0, 229, 255, 0.75);
+  outline-offset: 1px;
+}
+
+.sc-template-section-length-step:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.sc-template-section-length-step:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.sc-template-section-length-value {
+  min-width: 54px;
+  padding: 0 4px;
+  text-align: center;
+  color: #f0fffd;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Touch: 44px minimum targets, with a little more room between them. */
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+  .sc-template-section-length {
+    gap: 4px 10px;
+    padding: 4px 4px 4px 9px;
+  }
+
+  .sc-template-section-length-step {
+    width: 44px;
+    height: 44px;
+  }
+
+  .sc-template-section-length-step .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  .sc-template-section-length-value {
+    min-width: 62px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .sc-template-section-length-control {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  .sc-template-section-length-value {
+    flex: 1 1 auto;
+  }
+}
+
+/* Landscape phones lose height, not width, so keep the row compact. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .sc-template-section-length {
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+}
+
 .sc-template-section-item {
   display: inline-flex;
   align-items: stretch;

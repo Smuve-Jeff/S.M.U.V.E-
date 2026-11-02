@@ -69,6 +69,11 @@ export interface TemplateSection {
   id: string;
   name: string;
   rows: TemplateSectionRow[];
+  /**
+   * Bars this section occupies in the arrangement preview. Absent means the
+   * length its longest saved pattern needs.
+   */
+  bars?: number;
 }
 
 export interface ProjectTemplate {
@@ -142,6 +147,16 @@ const MAX_TEMPLATE_VERSIONS = 12;
 const MAX_TEMPLATE_SECTIONS = 12;
 const MAX_SECTION_NAME = 40;
 const MAX_SECTION_ROWS = 64;
+/** Arrangement length limits; one bar is the shortest playable section. */
+export const MIN_SECTION_BARS = 1;
+export const MAX_SECTION_BARS = 32;
+
+/** Round a requested section length into the supported bar range. */
+export const clampSectionBars = (bars: number): number =>
+  Math.max(
+    MIN_SECTION_BARS,
+    Math.min(MAX_SECTION_BARS, Math.round(bars)),
+  );
 
 const normalizeSteps = (steps?: boolean[]): boolean[] =>
   Array.from({ length: 64 }, (_, index) => !!steps?.[index]);
@@ -258,7 +273,11 @@ function isTemplateSection(value: unknown): value is TemplateSection {
     Array.isArray(section.rows) &&
     section.rows.length > 0 &&
     section.rows.length <= MAX_SECTION_ROWS &&
-    section.rows.every(isTemplateSectionRow)
+    section.rows.every(isTemplateSectionRow) &&
+    (section.bars === undefined ||
+      (Number.isInteger(section.bars) &&
+        section.bars >= MIN_SECTION_BARS &&
+        section.bars <= MAX_SECTION_BARS))
   );
 }
 
@@ -732,6 +751,8 @@ export class ProjectTemplateService {
           .slice(2, 7)}`,
       name: trimmed,
       rows: normalized,
+      // Re-saving a section keeps the length the artist already chose.
+      ...(existing?.bars ? { bars: existing.bars } : {}),
     };
     const nextSections = [
       section,
@@ -789,6 +810,43 @@ export class ProjectTemplateService {
       `ProjectTemplateService: Renamed section ${target.name} to ${trimmed}`,
     );
     return renamed;
+  }
+
+  /**
+   * Set how many bars a saved section occupies in the arrangement preview.
+   * The value is clamped to the supported range and persisted with the
+   * template; rows, name and order are untouched.
+   */
+  setTemplateSectionBars(
+    templateId: string,
+    sectionId: string,
+    bars: number,
+  ): TemplateSection | null {
+    if (!Number.isFinite(bars)) return null;
+    const nextBars = clampSectionBars(bars);
+    const templates = this.userTemplates();
+    const template = templates.find((candidate) => candidate.id === templateId);
+    const sections = template?.sections;
+    const target = sections?.find((section) => section.id === sectionId);
+    if (!template || !sections || !target) return null;
+
+    const updated: TemplateSection = { ...target, bars: nextBars };
+    const next = templates.map((candidate) =>
+      candidate.id === templateId
+        ? {
+            ...candidate,
+            sections: sections.map((section) =>
+              section.id === sectionId ? updated : section,
+            ),
+          }
+        : candidate,
+    );
+    this.userTemplates.set(next);
+    this.persist(next);
+    this.logger.info(
+      `ProjectTemplateService: Set section ${target.name} to ${nextBars} bars`,
+    );
+    return updated;
   }
 
   /** Move a saved section one place earlier (-1) or later (+1). */
