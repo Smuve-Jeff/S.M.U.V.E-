@@ -113,6 +113,13 @@ interface TemplatePatternDetail {
   versions: { id: string; name: string; active: boolean }[];
 }
 
+interface TemplateSectionDetailRow {
+  track: string;
+  slot: string;
+  version: string;
+  available: boolean;
+}
+
 @Component({
   selector: "app-smart-creation-sheet",
   standalone: true,
@@ -146,6 +153,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
   >(new Map());
   /** Name being edited for a reusable section of the current breakdown. */
   readonly sectionName = signal("");
+  /** Saved section whose row/version contents are expanded. */
+  readonly expandedSectionId = signal<string | null>(null);
   private selectedPatternTemplateId: string | null = null;
 
   @Output() closeSheet = new EventEmitter<void>();
@@ -808,11 +817,13 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.stopTemplateMixPreview(template.id);
       this.expandedTemplateId.set(null);
       this.sectionName.set("");
+      this.expandedSectionId.set(null);
       this.clearPatternSelection();
       return;
     }
     this.expandedTemplateId.set(template.id);
     this.sectionName.set("");
+    this.expandedSectionId.set(null);
     this.selectedPatternTemplateId = template.id;
     this.selectedPatternVersions.set(
       new Map(
@@ -925,6 +936,54 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   templateSections(template: ProjectTemplate): TemplateSection[] {
     return template.sections ?? [];
+  }
+
+  /** Resolve saved rows and versions to readable names before auditioning. */
+  sectionDetailRows(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): TemplateSectionDetailRow[] {
+    const details = new Map(
+      this.templateDetails(template).map((detail) => [
+        templatePatternSelectionKey(detail.trackIndex, detail.slotId),
+        detail,
+      ]),
+    );
+    return section.rows.map((row) => {
+      const detail = details.get(
+        templatePatternSelectionKey(row.trackIndex, row.slotId),
+      );
+      if (!detail) {
+        return {
+          track:
+            template.tracks[row.trackIndex]?.name ??
+            `Track ${row.trackIndex + 1}`,
+          slot: "Pattern missing",
+          version: "No longer in template",
+          available: false,
+        };
+      }
+      const version = row.versionId
+        ? detail.versions.find((candidate) => candidate.id === row.versionId)
+        : undefined;
+      return {
+        track: detail.track,
+        slot: detail.slot,
+        version: row.versionId
+          ? version?.name ?? "Live pattern (saved version missing)"
+          : "Live pattern",
+        available: true,
+      };
+    });
+  }
+
+  /** Reveal a saved section's rows without starting its audition. */
+  toggleSectionDetails(section: TemplateSection, event?: Event): void {
+    event?.stopPropagation();
+    this.expandedSectionId.update((current) =>
+      current === section.id ? null : section.id,
+    );
+    this.haptic.light();
   }
 
   /** Store the current row/version choices under a reusable section name. */
@@ -1076,6 +1135,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
     event?.stopPropagation();
     if (!this.projectTemplates.deleteTemplateSection(template.id, section.id)) {
       return;
+    }
+    if (this.expandedSectionId() === section.id) {
+      this.expandedSectionId.set(null);
     }
     this.haptic.light();
     this.snackbar.info(`Deleted section “${section.name}”.`);
@@ -1442,6 +1504,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
       this.stopTemplateMixPreview(id);
       this.expandedTemplateId.set(null);
       this.sectionName.set("");
+      this.expandedSectionId.set(null);
       this.clearPatternSelection();
     }
     this.haptic.light();

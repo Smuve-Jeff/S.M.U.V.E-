@@ -1436,6 +1436,54 @@ describe("SmartCreationSheetComponent", () => {
     );
   });
 
+  it("shows saved section rows and versions without auditioning", () => {
+    const template = sectionTemplateFixture();
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      rows: [
+        { trackIndex: 0, slotId: "slot-1", versionId: "v1" },
+        { trackIndex: 1, slotId: null, versionId: null },
+        { trackIndex: 9, slotId: "gone", versionId: "missing" },
+      ],
+    };
+
+    const rows = component.sectionDetailRows(template, section);
+    expect(rows[0]).toEqual({
+      track: "Lead",
+      slot: "Verse",
+      version: "first",
+      available: true,
+    });
+    expect(rows[1]).toEqual({
+      track: "Keys",
+      slot: "Pattern 1",
+      version: "Live pattern",
+      available: true,
+    });
+    expect(rows[2]).toEqual({
+      track: "Track 10",
+      slot: "Pattern missing",
+      version: "No longer in template",
+      available: false,
+    });
+
+    const missingVersion = component.sectionDetailRows(template, {
+      id: "sec-2",
+      name: "Stale version",
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "gone" }],
+    });
+    expect(missingVersion[0].version).toBe(
+      "Live pattern (saved version missing)",
+    );
+
+    component.toggleSectionDetails(section);
+    expect(component.expandedSectionId()).toBe("sec-1");
+    component.toggleSectionDetails(section);
+    expect(component.expandedSectionId()).toBeNull();
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+  });
+
   it("marks a playing section and stops it on a second click", async () => {
     const template = sectionTemplateFixture();
     component.toggleTemplateDetails(template);

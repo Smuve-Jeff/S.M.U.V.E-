@@ -350,61 +350,106 @@
                   <span class="sc-template-section-label">Saved sections</span>
                   <div class="sc-template-section-items">
                     <div
-                      class="sc-template-section-item"
-                      [class.is-playing]="sectionAuditionPlaying(tpl, section)"
-                      [class.is-rendering]="sectionAuditionRendering(tpl, section)"
+                      class="sc-template-section-entry"
                       *ngFor="let section of templateSections(tpl)"
                     >
-                      <button
-                        type="button"
-                        class="sc-template-section-apply"
+                      <div
+                        class="sc-template-section-item"
                         [class.is-playing]="sectionAuditionPlaying(tpl, section)"
                         [class.is-rendering]="sectionAuditionRendering(tpl, section)"
-                        [attr.title]="
-                          sectionAuditionRendering(tpl, section)
-                            ? 'Cancel this section render'
-                            : sectionAuditionPlaying(tpl, section)
-                              ? 'Stop this section audition'
-                              : 'Audition these rows and versions in the mix'
-                        "
-                        [attr.aria-pressed]="sectionAuditionPlaying(tpl, section)"
-                        [attr.aria-busy]="sectionAuditionRendering(tpl, section)"
-                        (click)="applySavedSection(tpl, section, $event)"
-                        [attr.aria-label]="
-                          (sectionAuditionRendering(tpl, section)
-                            ? 'Cancel rendering section '
-                            : sectionAuditionPlaying(tpl, section)
-                              ? 'Stop section '
-                              : 'Audition section ') + section.name
-                        "
                       >
-                        <span class="material-symbols-outlined">{{
-                          sectionAuditionRendering(tpl, section)
-                            ? 'progress_activity'
-                            : sectionAuditionPlaying(tpl, section)
-                              ? 'stop'
-                              : 'playlist_play'
-                        }}</span>
-                        <span>{{ section.name }}</span>
-                        <small>
-                          {{
+                        <button
+                          type="button"
+                          class="sc-template-section-apply"
+                          [class.is-playing]="sectionAuditionPlaying(tpl, section)"
+                          [class.is-rendering]="sectionAuditionRendering(tpl, section)"
+                          [attr.title]="
                             sectionAuditionRendering(tpl, section)
-                              ? 'Rendering…'
-                              : section.rows.length +
-                                ' row' +
-                                (section.rows.length === 1 ? '' : 's')
-                          }}
-                        </small>
-                      </button>
-                      <button
-                        type="button"
-                        class="sc-template-section-remove"
-                        (click)="removeSavedSection(tpl, section, $event)"
-                        [attr.aria-label]="'Delete section ' + section.name"
-                        title="Delete this section"
+                              ? 'Cancel this section render'
+                              : sectionAuditionPlaying(tpl, section)
+                                ? 'Stop this section audition'
+                                : 'Audition these rows and versions in the mix'
+                          "
+                          [attr.aria-pressed]="sectionAuditionPlaying(tpl, section)"
+                          [attr.aria-busy]="sectionAuditionRendering(tpl, section)"
+                          (click)="applySavedSection(tpl, section, $event)"
+                          [attr.aria-label]="
+                            (sectionAuditionRendering(tpl, section)
+                              ? 'Cancel rendering section '
+                              : sectionAuditionPlaying(tpl, section)
+                                ? 'Stop section '
+                                : 'Audition section ') + section.name
+                          "
+                        >
+                          <span class="material-symbols-outlined">{{
+                            sectionAuditionRendering(tpl, section)
+                              ? 'progress_activity'
+                              : sectionAuditionPlaying(tpl, section)
+                                ? 'stop'
+                                : 'playlist_play'
+                          }}</span>
+                          <span>{{ section.name }}</span>
+                          <small>
+                            {{
+                              sectionAuditionRendering(tpl, section)
+                                ? 'Rendering…'
+                                : section.rows.length +
+                                  ' row' +
+                                  (section.rows.length === 1 ? '' : 's')
+                            }}
+                          </small>
+                        </button>
+                        <button
+                          type="button"
+                          class="sc-template-section-toggle"
+                          (click)="toggleSectionDetails(section, $event)"
+                          [attr.aria-expanded]="expandedSectionId() === section.id"
+                          [attr.aria-controls]="'template-section-details-' + section.id"
+                          [attr.aria-label]="
+                            (expandedSectionId() === section.id ? 'Hide' : 'Show') +
+                            ' rows in section ' + section.name
+                          "
+                          [attr.title]="
+                            expandedSectionId() === section.id
+                              ? 'Hide section contents'
+                              : 'Show rows and versions'
+                          "
+                        >
+                          <span class="material-symbols-outlined">{{
+                            expandedSectionId() === section.id
+                              ? 'expand_less'
+                              : 'expand_more'
+                          }}</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="sc-template-section-remove"
+                          (click)="removeSavedSection(tpl, section, $event)"
+                          [attr.aria-label]="'Delete section ' + section.name"
+                          title="Delete this section"
+                        >
+                          <span class="material-symbols-outlined">delete</span>
+                        </button>
+                      </div>
+                      <div
+                        class="sc-template-section-details"
+                        *ngIf="expandedSectionId() === section.id"
+                        [id]="'template-section-details-' + section.id"
                       >
-                        <span class="material-symbols-outlined">delete</span>
-                      </button>
+                        <span class="sc-template-section-details-head">
+                          Rows in this section
+                        </span>
+                        <ul>
+                          <li
+                            *ngFor="let row of sectionDetailRows(tpl, section)"
+                            [class.is-missing]="!row.available"
+                          >
+                            <span class="sc-template-section-row-track">{{ row.track }}</span>
+                            <span class="sc-template-section-row-slot">{{ row.slot }}</span>
+                            <span class="sc-template-section-row-version">{{ row.version }}</span>
+                          </li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
