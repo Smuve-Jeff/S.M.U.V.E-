@@ -55,6 +55,9 @@ export class TransportBarComponent {
   exportProgress = signal<number | null>(null);
   /** True only while a cancellable WAV/stem export is running. */
   exportCanCancel = signal(false);
+  /** Rough remaining render time once enough progress has arrived. */
+  exportEta = signal<string | null>(null);
+  private exportStartedAt = 0;
   private exportAbort: AbortController | null = null;
   /**
    * Delivery sample rate for WAV mixdowns and stems.
@@ -837,6 +840,29 @@ export class TransportBarComponent {
     return error instanceof DOMException && error.name === 'AbortError';
   }
 
+  private beginExport(): void {
+    this.exportStartedAt = Date.now();
+    this.exportEta.set(null);
+  }
+
+  /** Progress plus a conservative ETA after a second of real samples. */
+  private updateExportProgress(percent: number): void {
+    this.exportProgress.set(percent);
+    const elapsed = Date.now() - this.exportStartedAt;
+    if (percent <= 3 || percent >= 100 || elapsed < 1200) {
+      this.exportEta.set(null);
+      return;
+    }
+    const remainingMs = (elapsed / percent) * (100 - percent);
+    if (remainingMs < 5000) {
+      this.exportEta.set('<5s');
+      return;
+    }
+    const seconds = Math.ceil(remainingMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    this.exportEta.set(`${minutes}:${String(seconds % 60).padStart(2, '0')}`);
+  }
+
   /** Flip the delivery rate between the two specs the exporter offers. */
   toggleExportSampleRate(): void {
     if (this.isExporting()) return;
@@ -851,11 +877,12 @@ export class TransportBarComponent {
     this.exportProgress.set(0);
     this.exportAbort = new AbortController();
     this.exportCanCancel.set(true);
+    this.beginExport();
     try {
       await this.exportService.exportProjectWav(
         16,
         this.exportSampleRate(),
-        (percent) => this.exportProgress.set(percent),
+        (percent) => this.updateExportProgress(percent),
         this.exportAbort.signal,
       );
     } catch (error) {
@@ -864,6 +891,7 @@ export class TransportBarComponent {
     } finally {
       this.isExporting.set(false);
       this.exportProgress.set(null);
+      this.exportEta.set(null);
       this.exportCanCancel.set(false);
       this.exportAbort = null;
     }
@@ -876,11 +904,12 @@ export class TransportBarComponent {
     this.exportProgress.set(0);
     this.exportAbort = new AbortController();
     this.exportCanCancel.set(true);
+    this.beginExport();
     try {
       await this.exportService.exportProjectWav(
         24,
         this.exportSampleRate(),
-        (percent) => this.exportProgress.set(percent),
+        (percent) => this.updateExportProgress(percent),
         this.exportAbort.signal,
       );
     } catch (error) {
@@ -889,6 +918,7 @@ export class TransportBarComponent {
     } finally {
       this.isExporting.set(false);
       this.exportProgress.set(null);
+      this.exportEta.set(null);
       this.exportCanCancel.set(false);
       this.exportAbort = null;
     }
@@ -901,13 +931,14 @@ export class TransportBarComponent {
     this.exportProgress.set(0);
     this.exportAbort = new AbortController();
     this.exportCanCancel.set(true);
+    this.beginExport();
     try {
       await this.exportService.exportStems({
         bitDepth: 24,
         sampleRate: this.exportSampleRate(),
         signal: this.exportAbort.signal,
         onProgress: (completed, total) => {
-          this.exportProgress.set(
+          this.updateExportProgress(
             total > 0 ? Math.round((completed / total) * 100) : 0,
           );
         },
@@ -924,6 +955,7 @@ export class TransportBarComponent {
     } finally {
       this.isExporting.set(false);
       this.exportProgress.set(null);
+      this.exportEta.set(null);
       this.exportCanCancel.set(false);
       this.exportAbort = null;
     }

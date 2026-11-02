@@ -10,6 +10,7 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { KnobComponent } from "../shared/knob/knob.component";
 import { SidechainRoutingService } from "../sidechain-routing.service";
+import { AutomationService } from "../automation.service";
 
 describe("MixerComponent", () => {
   let component: MixerComponent;
@@ -17,6 +18,7 @@ describe("MixerComponent", () => {
 
   const connectSidechain = jest.fn();
   const disconnectSidechain = jest.fn();
+  const mockAutomation = { captureWrite: jest.fn() };
 
   const mockAudioSession = {
     isPlaying: signal(false),
@@ -97,6 +99,7 @@ describe("MixerComponent", () => {
         { provide: RecordingStatusService, useValue: recordingStatusMock },
         { provide: InteractionDialogService, useValue: mockDialog },
         { provide: AudioEngineService, useValue: mockAudioSession.engine },
+        { provide: AutomationService, useValue: mockAutomation },
         SidechainRoutingService,
       ],
     }).compileComponents();
@@ -106,6 +109,23 @@ describe("MixerComponent", () => {
     fixture.detectChanges();
   });
 
+
+  it("captures a VCA fader move as a vca lane write", () => {
+    component.vcaBuses.createBus("Drums");
+    const busId =
+      component.vcaBuses.buses()[component.vcaBuses.buses().length - 1].id;
+
+    component.onVcaFaderInput(busId, {
+      target: { value: "0.75" },
+    } as unknown as Event);
+
+    expect(mockAutomation.captureWrite).toHaveBeenCalledWith(
+      `vca:${busId}`,
+      "vca",
+      0.75,
+      { interpolation: "linear", min: 0, max: 1.5 },
+    );
+  });
 
   it("labels the balance chip for what the heuristic actually does", () => {
     const chip = fixture.nativeElement.querySelector(

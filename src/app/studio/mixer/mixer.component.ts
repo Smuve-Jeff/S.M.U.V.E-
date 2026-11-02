@@ -16,6 +16,7 @@ import {
 } from "../../services/music-manager.service";
 import { NeuralMixerService } from "../../services/neural-mixer.service";
 import { VcaBusService } from "../vca-bus.service";
+import { AutomationService } from "../automation.service";
 import { SidechainRoutingService } from "../sidechain-routing.service";
 import { HapticService } from "../../services/haptic.service";
 import { AiService } from "../../services/ai.service";
@@ -51,6 +52,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   private readonly neuralMixer = inject(NeuralMixerService);
   private readonly haptic = inject(HapticService);
   public readonly vcaBuses = inject(VcaBusService);
+  private readonly automation = inject(AutomationService, { optional: true });
   private readonly sidechainRouting = inject(SidechainRoutingService);
   public readonly aiService = inject(AiService);
   private readonly snack = inject(SnackbarService);
@@ -624,6 +626,11 @@ export class MixerComponent implements OnInit, OnDestroy {
     if (Number.isNaN(value)) return;
     this.vcaBuses.setBusFader(busId, value);
     this.refreshAllVcas();
+    this.automation?.captureWrite(`vca:${busId}`, 'vca', value, {
+      interpolation: 'linear',
+      min: 0,
+      max: 1.5,
+    });
   }
 
   toggleVcaMute(busId: string): void {

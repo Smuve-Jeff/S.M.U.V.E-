@@ -51,8 +51,9 @@ spec or by the real service path, not merely that a control is rendered.
   reached nothing. `reverb` now drives the aux reverb send (send A) and `cutoff`
   sweeps a new per-channel lowpass; send moves are captured while write is armed
   and `sendA`/`sendB` are offered as lane targets.
-- **Gap: automation write does not cover plugin parameters**, and automation is
-  live-only — `ExportService.renderProjectOffline` does not apply the curves.
+- Automation write now covers fader, pan, send, VCA and plugin parameters.
+  Plugin-parameter curves are still live-only — the offline renderer applies
+  mixer/VCA lanes but not plugin-param lanes.
 
 ## Channel rack / patterns / scenes
 

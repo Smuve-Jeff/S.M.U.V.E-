@@ -55,6 +55,28 @@ describe('AutomationCurveEditorComponent', () => {
     expect(lane.target.parameter).toBe('volume');
   });
 
+  it('offers enabled FX-slot plugin parameters as lane targets', () => {
+    fixture.componentRef.setInput('trackId', 't1');
+    fixture.componentRef.setInput('tracks', [
+      {
+        id: 't1',
+        name: 'Vocal',
+        type: 'audio',
+        fxSlots: [
+          { type: 'Reverb', enabled: true },
+          { type: 'Compressor', enabled: false },
+        ],
+      },
+    ]);
+
+    expect(component.parametersForTarget()).toContain(
+      'plugin:smuve.reverb.v1:wet',
+    );
+    expect(component.parametersForTarget()).not.toContain(
+      'plugin:smuve.compressor.v1:ratio',
+    );
+  });
+
   it('offers VCA buses as automation targets', () => {
     fixture.componentRef.setInput('trackId', 't1');
     fixture.componentRef.setInput('vcaTargets', [

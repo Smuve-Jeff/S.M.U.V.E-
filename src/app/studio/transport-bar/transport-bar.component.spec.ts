@@ -393,18 +393,23 @@ describe("TransportBarComponent", () => {
         },
       );
 
+    const now = jest.spyOn(Date, 'now').mockReturnValue(1_000);
     const pending = component.exportWav();
     expect(component.isExporting()).toBe(true);
     expect(report).toBeDefined();
+    now.mockReturnValue(4_000);
     report!(42);
 
     expect(component.exportProgress()).toBe(42);
     expect(component.exportProgressLabel()).toBe('Rendering… 42%');
+    expect(component.exportEta()).toBe('<5s');
 
     resolve(new Blob(['wav'], { type: 'audio/wav' }));
     await pending;
     expect(component.exportProgress()).toBeNull();
+    expect(component.exportEta()).toBeNull();
     expect(component.isExporting()).toBe(false);
+    now.mockRestore();
   });
 
   it('surfaces render failures and clears the exporting busy state', async () => {

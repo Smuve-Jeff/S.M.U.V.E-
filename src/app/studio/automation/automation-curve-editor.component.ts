@@ -14,6 +14,8 @@ import {
   AutomationLane,
   AutomationService,
 } from '../automation.service';
+import { FX_TYPE_TO_PLUGIN_ID } from '../../services/music-manager.service';
+import { FX_PARAM_SPECS } from '../effects/fx-param-specs';
 import {
   AutomationRange,
   laneParameterLabel,
@@ -327,7 +329,14 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   readonly totalBars = input(64);
   readonly trackId = input<string | null>(null);
   /** Project channels, used to offer bus tracks as automation targets. */
-  readonly tracks = input<readonly { id: string; name: string; type: string }[]>([]);
+  readonly tracks = input<
+    readonly {
+      id: string;
+      name: string;
+      type: string;
+      fxSlots?: readonly { type: string; enabled?: boolean }[];
+    }[]
+  >([]);
   readonly vcaTargets = input<readonly { id: string; name: string }[]>([]);
   @Output() openBezierEditor = new EventEmitter<string>();
 
@@ -368,12 +377,26 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   readonly activeTargetIsVca = computed(() =>
     (this.activeTargetId() ?? '').startsWith('vca:'),
   );
+  /** Enabled FX slots expose their real plugin params as lane targets. */
+  readonly fxParameters = computed(() => {
+    const track = this.tracks().find((candidate) => candidate.id === this.trackId());
+    const ids = new Set<string>();
+    for (const slot of track?.fxSlots ?? []) {
+      if (slot.enabled === false) continue;
+      const pluginId = FX_TYPE_TO_PLUGIN_ID[slot.type];
+      if (!pluginId) continue;
+      for (const spec of FX_PARAM_SPECS[slot.type] ?? []) {
+        ids.add(`plugin:${pluginId}:${spec.id}`);
+      }
+    }
+    return [...ids];
+  });
   readonly parametersForTarget = computed(() =>
     this.activeTargetIsVca()
       ? ['vca']
       : this.activeTargetIsBus()
         ? ['volume', 'pan']
-        : this.parameters,
+        : [...this.parameters, ...this.fxParameters()],
   );
   readonly trackLabel = computed(() => {
     const id = this.trackId();

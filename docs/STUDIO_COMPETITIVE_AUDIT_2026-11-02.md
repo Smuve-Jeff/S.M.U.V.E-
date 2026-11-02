@@ -165,8 +165,10 @@ Lanes with bezier editing, live write for fader/pan/sends/cutoff/reverb, and
 offline export now samples every enabled lane onto the same AudioParams
 (`export.service.ts:432`). Plugin-parameter automation and per-insert metering
 shipped 2 Nov 2026; CC/pitch-bend lanes now reach live voices and the bounce.
-Bus tracks and VCA buses are now selectable automation targets in the arrangement
-editor; FX-slot params that are not lane targets remain.
+Bus tracks, VCA buses and enabled FX-slot plugin parameters are now selectable
+automation targets in the arrangement editor; aux return buses and master
+worklet params remain outside the lane model. VCA fader moves write lanes while
+the transport runs and automation is armed.
 
 ### Project integrity — **Ahead locally, Blocking in the cloud**
 

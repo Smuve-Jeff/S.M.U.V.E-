@@ -203,6 +203,13 @@
   white-space: nowrap;
 }
 
+.ctb-export-progress-eta {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+
 .ctb-export-progress-cancel {
   min-height: 28px;
   padding: 0 8px;
