@@ -209,31 +209,74 @@
           </span>
         </label>
         <div class="sc-template-list" *ngIf="userTemplates().length > 0; else noUserTemplates">
-          <div class="sc-template-row" *ngFor="let tpl of userTemplates()">
-            <button
-              type="button"
-              class="sc-template-apply"
-              (click)="applyUserTemplate(tpl.id)"
-              [attr.aria-label]="'Load template ' + tpl.name"
+          <ng-container *ngFor="let tpl of userTemplates()">
+            <div class="sc-template-row">
+              <button
+                type="button"
+                class="sc-template-apply"
+                (click)="applyUserTemplate(tpl.id)"
+                [attr.aria-label]="'Load template ' + tpl.name"
+              >
+                <strong>{{ tpl.name }}</strong>
+                <span>
+                  {{ tpl.bpm }} BPM · {{ tpl.tracks.length }} channels
+                  <ng-container *ngIf="templateContents(tpl) as contents">
+                    · {{ contents }}
+                  </ng-container>
+                </span>
+              </button>
+              <button
+                *ngIf="templateHasPattern(tpl)"
+                type="button"
+                class="sc-template-expand"
+                (click)="toggleTemplateDetails(tpl.id)"
+                [attr.aria-expanded]="expandedTemplateId() === tpl.id"
+                [attr.aria-controls]="'template-details-' + tpl.id"
+                [attr.aria-label]="
+                  (expandedTemplateId() === tpl.id ? 'Hide' : 'Show') +
+                  ' patterns in ' + tpl.name
+                "
+              >
+                <span class="material-symbols-outlined">{{
+                  expandedTemplateId() === tpl.id ? 'expand_less' : 'expand_more'
+                }}</span>
+              </button>
+              <button
+                type="button"
+                class="sc-template-delete"
+                (click)="deleteUserTemplate(tpl.id, $event)"
+                [attr.aria-label]="'Delete template ' + tpl.name"
+                title="Delete this template"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
+            <div
+              *ngIf="expandedTemplateId() === tpl.id && templateHasPattern(tpl)"
+              class="sc-template-details"
+              [id]="'template-details-' + tpl.id"
             >
-              <strong>{{ tpl.name }}</strong>
-              <span>
-                {{ tpl.bpm }} BPM · {{ tpl.tracks.length }} channels
-                <ng-container *ngIf="templateContents(tpl) as contents">
-                  · {{ contents }}
-                </ng-container>
-              </span>
-            </button>
-            <button
-              type="button"
-              class="sc-template-delete"
-              (click)="deleteUserTemplate(tpl.id, $event)"
-              [attr.aria-label]="'Delete template ' + tpl.name"
-              title="Delete this template"
-            >
-              <span class="material-symbols-outlined">delete</span>
-            </button>
-          </div>
+              <div class="sc-template-detail" *ngFor="let detail of templateDetails(tpl)">
+                <div class="sc-template-detail-head">
+                  <strong>{{ detail.track }}</strong>
+                  <span>{{ detail.slot }}</span>
+                  <span class="sc-template-detail-launch">{{ detail.launch }}</span>
+                </div>
+                <p class="sc-template-detail-versions" *ngIf="detail.versions.length; else noVersions">
+                  <span
+                    *ngFor="let version of detail.versions"
+                    class="sc-template-version"
+                    [class.is-active]="version.active"
+                  >
+                    {{ version.name }}<span *ngIf="version.active"> · active</span>
+                  </span>
+                </p>
+                <ng-template #noVersions>
+                  <p class="sc-template-detail-versions">Live pattern only — no saved versions.</p>
+                </ng-template>
+              </div>
+            </div>
+          </ng-container>
         </div>
         <ng-template #noUserTemplates>
           <p class="sc-section-hint">No saved templates yet.</p>

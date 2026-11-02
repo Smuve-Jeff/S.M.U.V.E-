@@ -110,6 +110,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly newTemplateName = signal("");
   /** Optional: capture the active MIDI/drum pattern and clip windows. */
   readonly includeTemplatePattern = signal(false);
+  /** Which saved template's pattern breakdown is open. */
+  readonly expandedTemplateId = signal<string | null>(null);
 
   @Output() closeSheet = new EventEmitter<void>();
   @Output() navigateToView = new EventEmitter<string>();
@@ -759,6 +761,57 @@ export class SmartCreationSheetComponent implements OnDestroy {
     }`;
   }
 
+  toggleTemplateDetails(templateId: string): void {
+    this.haptic.light();
+    this.expandedTemplateId.update((current) =>
+      current === templateId ? null : templateId,
+    );
+  }
+
+  /** Pattern names and saved versions, grouped by channel. */
+  templateDetails(template: ProjectTemplate): {
+    track: string;
+    slot: string;
+    launch: string;
+    versions: { name: string; active: boolean }[];
+  }[] {
+    const details: {
+      track: string;
+      slot: string;
+      launch: string;
+      versions: { name: string; active: boolean }[];
+    }[] = [];
+    for (const track of template.tracks) {
+      const slots = track.patternSlots ?? [];
+      if (!slots.length && track.notes?.length) {
+        details.push({
+          track: track.name,
+          slot: 'Pattern 1',
+          launch: 'grid default',
+          versions: [],
+        });
+        continue;
+      }
+      for (const slot of slots) {
+        details.push({
+          track: track.name,
+          slot: slot.name,
+          launch:
+            slot.launchQuantize === null || slot.launchQuantize === undefined
+              ? 'grid default'
+              : slot.launchQuantize === 'none'
+                ? 'no wait'
+                : `wait ${slot.launchQuantize}`,
+          versions: (slot.versions ?? []).map((version) => ({
+            name: version.name || version.id,
+            active: version.id === slot.activeVersionId,
+          })),
+        });
+      }
+    }
+    return details;
+  }
+
   async applyUserTemplate(id: string): Promise<void> {
     if (!(await this.workProtection.preserveBeforeReplace("user_template"))) {
       return;
@@ -774,6 +827,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   deleteUserTemplate(id: string, event: Event): void {
     event.stopPropagation();
     if (!this.projectTemplates.deleteUserTemplate(id)) return;
+    if (this.expandedTemplateId() === id) this.expandedTemplateId.set(null);
     this.haptic.light();
   }
 

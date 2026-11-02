@@ -924,4 +924,52 @@ describe("SmartCreationSheetComponent", () => {
       component.templateContents({ tracks: [{ notes: [] }] } as any),
     ).toBe("");
   });
+
+  it("lists pattern names, launch boundaries and saved versions", () => {
+    const template = {
+      tracks: [
+        {
+          name: "Lead",
+          patternSlots: [
+            {
+              name: "Verse",
+              launchQuantize: "1bar",
+              activeVersionId: "v2",
+              versions: [
+                { id: "v1", name: "first" },
+                { id: "v2", name: "lift" },
+              ],
+            },
+          ],
+        },
+        {
+          name: "Legacy Keys",
+          notes: [{ midi: 60 }],
+          patternSlots: [],
+        },
+      ],
+    } as any;
+
+    const details = component.templateDetails(template);
+    expect(details[0]).toEqual({
+      track: "Lead",
+      slot: "Verse",
+      launch: "wait 1bar",
+      versions: [
+        { name: "first", active: false },
+        { name: "lift", active: true },
+      ],
+    });
+    expect(details[1]).toEqual({
+      track: "Legacy Keys",
+      slot: "Pattern 1",
+      launch: "grid default",
+      versions: [],
+    });
+
+    component.toggleTemplateDetails("tpl-1");
+    expect(component.expandedTemplateId()).toBe("tpl-1");
+    component.toggleTemplateDetails("tpl-1");
+    expect(component.expandedTemplateId()).toBeNull();
+  });
 });
