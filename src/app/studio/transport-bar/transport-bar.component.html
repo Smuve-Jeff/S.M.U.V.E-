@@ -424,6 +424,30 @@
         <span class="ctb-ext-status" aria-live="polite">{{ midiClock.statusLabel() }}</span>
       </div>
 
+      <div class="ctb-group ctb-note-repeat" role="group" aria-label="Note repeat">
+        <button
+          type="button"
+          class="ctb-ext-btn"
+          [class.ctb-ext-on]="noteRepeatEnabled()"
+          (click)="toggleNoteRepeat()"
+          [attr.aria-pressed]="noteRepeatEnabled()"
+          aria-label="Note repeat for the live keyboard"
+          title="Repeat held notes at the chosen rate"
+        >
+          <span class="material-symbols-outlined">replay</span>
+          <span>REPEAT</span>
+        </button>
+        <button
+          type="button"
+          class="ctb-ext-btn ctb-repeat-rate"
+          (click)="cycleNoteRepeatRate()"
+          [attr.aria-label]="'Note repeat rate ' + noteRepeatRateLabel()"
+          [title]="'Note repeat rate: ' + noteRepeatRateLabel() + ' (tap to cycle)'"
+        >
+          {{ noteRepeatRateLabel() }}
+        </button>
+      </div>
+
       <div class="ctb-group ctb-hardware" role="group" aria-label="External connections">
         <button
           type="button"

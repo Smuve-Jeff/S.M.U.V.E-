@@ -20,10 +20,15 @@ describe("ProjectTemplateService", () => {
     newProject,
     addTrack,
     engine: { tempo },
+    tracks: jest.fn(() => [
+      { id: "1", name: "Lead", instrumentId: "analog-warmth", type: "midi" },
+      { id: "2", name: "Vox", instrumentId: "grand-piano", type: "audio" },
+    ]),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
     tempo.set(120);
     TestBed.configureTestingModule({
       providers: [
@@ -64,5 +69,54 @@ describe("ProjectTemplateService", () => {
     service.applyTemplate("not-a-template");
     expect(newProject).not.toHaveBeenCalled();
     expect(addTrack).not.toHaveBeenCalled();
+  });
+
+  it("saves the current channels and tempo as a user template", () => {
+    const template = service.saveCurrentAsTemplate("  My Sketch  ");
+
+    expect(template).not.toBeNull();
+    expect(template?.name).toBe("My Sketch");
+    expect(template?.bpm).toBe(120);
+    expect(template?.tracks).toEqual([
+      { name: "Lead", instrumentId: "analog-warmth", type: "midi" },
+      { name: "Vox", instrumentId: "grand-piano", type: "audio" },
+    ]);
+    expect(service.userTemplates()[0].id).toBe(template?.id);
+  });
+
+  it("persists user templates and applies them like a starter", () => {
+    const template = service.saveCurrentAsTemplate("Saved Sketch");
+    expect(template).not.toBeNull();
+
+    // A fresh service instance reads the stored list back.
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        ProjectTemplateService,
+        { provide: MusicManagerService, useValue: musicManager },
+        {
+          provide: LoggingService,
+          useValue: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+        },
+      ],
+    });
+    const reloaded = TestBed.inject(ProjectTemplateService);
+    expect(reloaded.userTemplates().map((t) => t.name)).toEqual([
+      "Saved Sketch",
+    ]);
+
+    reloaded.applyTemplate(template!.id);
+    expect(newProject).toHaveBeenCalledWith(true);
+    expect(addTrack).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects an empty save and deletes a user template", () => {
+    expect(service.saveCurrentAsTemplate("   ")).toBeNull();
+
+    const template = service.saveCurrentAsTemplate("Delete Me");
+    expect(template).not.toBeNull();
+    expect(service.deleteUserTemplate(template!.id)).toBe(true);
+    expect(service.userTemplates()).toHaveLength(0);
+    expect(service.deleteUserTemplate(template!.id)).toBe(false);
   });
 });

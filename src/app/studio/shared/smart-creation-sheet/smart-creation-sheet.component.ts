@@ -16,6 +16,7 @@ import { SnackbarService } from "../../../services/snackbar.service";
 import { UserProfileService } from "../../../services/user-profile.service";
 import type { SmartSheetMemory } from "../../../types/profile.types";
 import { WorkProtectionService } from "../../work-protection.service";
+import { ProjectTemplateService } from "../../../services/project-template.service";
 
 export interface GenreStarter {
   id: string;
@@ -99,6 +100,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
   private snackbar = inject(SnackbarService);
   private readonly workProtection = inject(WorkProtectionService);
   private profile = inject(UserProfileService);
+  private projectTemplates = inject(ProjectTemplateService);
+
+  /** The artist's own saved channel/tempo templates, newest first. */
+  readonly userTemplates = this.projectTemplates.userTemplates;
+  readonly newTemplateName = signal("");
 
   @Output() closeSheet = new EventEmitter<void>();
   @Output() navigateToView = new EventEmitter<string>();
@@ -690,6 +696,39 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
     this.navigateToView.emit("arrangement");
     this.closeSheet.emit();
+  }
+
+  saveTemplate(): void {
+    const template = this.projectTemplates.saveCurrentAsTemplate(
+      this.newTemplateName(),
+    );
+    if (!template) {
+      this.snackbar.error(
+        "Add at least one channel and give the template a name",
+      );
+      return;
+    }
+    this.newTemplateName.set("");
+    this.haptic.medium();
+    this.snackbar.success(`Saved template “${template.name}”`);
+  }
+
+  async applyUserTemplate(id: string): Promise<void> {
+    if (!(await this.workProtection.preserveBeforeReplace("user_template"))) {
+      return;
+    }
+    this.audioEngine.resume();
+    this.projectTemplates.applyTemplate(id);
+    this.haptic.medium();
+    this.snackbar.success("Template loaded — channels and tempo restored");
+    this.navigateToView.emit("arrangement");
+    this.closeSheet.emit();
+  }
+
+  deleteUserTemplate(id: string, event: Event): void {
+    event.stopPropagation();
+    if (!this.projectTemplates.deleteUserTemplate(id)) return;
+    this.haptic.light();
   }
 
   setupVocalRecording(): void {

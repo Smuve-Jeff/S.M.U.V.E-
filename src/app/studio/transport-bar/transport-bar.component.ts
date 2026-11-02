@@ -28,6 +28,7 @@ import { MidiClockSyncService } from "../midi-clock-sync.service";
 import { GamepadService } from "../../services/gamepad.service";
 import { HardwareConnectionsComponent } from "../hardware-connections/hardware-connections.component";
 import { StudioMidiLearnService } from "../studio-midi-learn.service";
+import { LiveEngineService } from "../../services/live-engine.service";
 
 @Component({
   selector: "app-transport-bar",
@@ -160,6 +161,58 @@ export class TransportBarComponent {
 
   /** External MIDI clock-in: a hardware sequencer can drive this transport. */
   readonly midiClock = inject(MidiClockSyncService);
+
+  /**
+   * Note repeat for the live keyboard. The performer arpeggiator already
+   * retriggers held notes at a musical rate; the transport exposes it where
+   * players look for it. Optional so the transport still renders in hosts
+   * that never construct the live engine.
+   */
+  private readonly liveEngine = inject(LiveEngineService, { optional: true });
+  readonly noteRepeatEnabled = computed(
+    () => this.liveEngine?.arpeggiatorEnabled() ?? false,
+  );
+  readonly noteRepeatRate = computed(
+    () => this.liveEngine?.arpeggiatorRate() ?? "8n",
+  );
+  readonly noteRepeatRateLabel = computed(
+    () =>
+      this.noteRepeatRates.find(
+        (rate) => rate.value === this.noteRepeatRate(),
+      )?.label ?? "1/8",
+  );
+  private static readonly REPEAT_RATES = [
+    { value: "4n", label: "1/4" },
+    { value: "8n", label: "1/8" },
+    { value: "8t", label: "1/8T" },
+    { value: "16n", label: "1/16" },
+  ];
+  readonly noteRepeatRates = TransportBarComponent.REPEAT_RATES;
+
+  toggleNoteRepeat(): void {
+    if (!this.liveEngine) {
+      this.snack.info("Note repeat needs the live instrument engine");
+      return;
+    }
+    this.liveEngine.arpeggiatorEnabled.update((enabled) => !enabled);
+    this.haptic.light();
+    this.snack.info(
+      this.liveEngine.arpeggiatorEnabled()
+        ? "Note repeat on — hold keys to retrigger"
+        : "Note repeat off",
+    );
+  }
+
+  cycleNoteRepeatRate(): void {
+    if (!this.liveEngine) return;
+    const index = this.noteRepeatRates.findIndex(
+      (rate) => rate.value === this.liveEngine?.arpeggiatorRate(),
+    );
+    const next =
+      this.noteRepeatRates[(index + 1) % this.noteRepeatRates.length];
+    this.liveEngine.arpeggiatorRate.set(next.value);
+    this.haptic.light();
+  }
 
   toggleMonoMonitoring(): void {
     this.haptic.light();

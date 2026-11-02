@@ -755,6 +755,30 @@ describe("ArrangementViewComponent", () => {
     );
   });
 
+  it("ripple delete closes the removed range and pulls later clips left", () => {
+    mockMusicManager.tracks.set([
+      {
+        id: "1",
+        name: "Lead",
+        clips: [
+          { id: "clip-1", start: 0, length: 4, name: "Clip A", type: "midi" },
+          { id: "clip-2", start: 4, length: 4, name: "Clip B", type: "midi" },
+        ],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    component.selectedClipIds.set(new Set(["clip-1"]));
+
+    component.deleteSelectedRippled();
+
+    expect(mockMusicManager.removeClip).toHaveBeenCalledWith("1", "clip-1");
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith("1", "clip-2", {
+      start: 0,
+    });
+    expect(component.selectedClipIds()).toEqual(new Set());
+  });
+
   it("copies the selected clips without their ids", () => {
     mockMusicManager.tracks.set([
       {

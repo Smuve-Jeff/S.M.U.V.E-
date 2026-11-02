@@ -175,6 +175,55 @@
         </button>
       </div>
 
+      <section class="sc-user-templates" aria-label="My saved templates">
+        <div class="sc-panel-head">
+          <span class="sc-section-kicker">MY TEMPLATES</span>
+          <p class="sc-section-hint">
+            Save this session's channels and tempo, then rebuild it in one tap.
+          </p>
+        </div>
+        <div class="sc-template-save">
+          <input
+            class="sc-template-input"
+            type="text"
+            placeholder="Template name"
+            maxlength="60"
+            [value]="newTemplateName()"
+            (input)="newTemplateName.set($any($event.target).value)"
+            aria-label="New template name"
+          />
+          <button type="button" class="sc-link-btn" (click)="saveTemplate()">
+            <span class="material-symbols-outlined">save</span>
+            SAVE CURRENT
+          </button>
+        </div>
+        <div class="sc-template-list" *ngIf="userTemplates().length > 0; else noUserTemplates">
+          <div class="sc-template-row" *ngFor="let tpl of userTemplates()">
+            <button
+              type="button"
+              class="sc-template-apply"
+              (click)="applyUserTemplate(tpl.id)"
+              [attr.aria-label]="'Load template ' + tpl.name"
+            >
+              <strong>{{ tpl.name }}</strong>
+              <span>{{ tpl.bpm }} BPM · {{ tpl.tracks.length }} channels</span>
+            </button>
+            <button
+              type="button"
+              class="sc-template-delete"
+              (click)="deleteUserTemplate(tpl.id, $event)"
+              [attr.aria-label]="'Delete template ' + tpl.name"
+              title="Delete this template"
+            >
+              <span class="material-symbols-outlined">delete</span>
+            </button>
+          </div>
+        </div>
+        <ng-template #noUserTemplates>
+          <p class="sc-section-hint">No saved templates yet.</p>
+        </ng-template>
+      </section>
+
       <div class="sc-panel-footer">
         <span class="sc-footer-label">Want full control?</span>
         <button type="button" class="sc-link-btn" (click)="openDrumMachine()">

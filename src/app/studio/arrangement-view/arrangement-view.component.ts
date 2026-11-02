@@ -1262,6 +1262,62 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  /**
+   * Ripple delete: remove the selected clips and close the time range they
+   * occupied on every affected track, pulling later clips left so the edit
+   * does not leave a silent hole. Clips that merely start inside the range
+   * but were not selected are moved to its head, never deleted silently.
+   */
+  deleteSelectedRippled(): void {
+    const ids = Array.from(this.selectedClipIds());
+    if (ids.length === 0) return;
+
+    const spans = new Map<string, { start: number; end: number }>();
+    const removed = new Set<string>();
+    ids.forEach((id) => {
+      const found = this.findClipOwner(id);
+      if (!found) return;
+      const start = Number(found.clip.start ?? 0);
+      const end = start + Math.max(0, Number(found.clip.length ?? 0));
+      const span = spans.get(found.track.id);
+      spans.set(found.track.id, {
+        start: span ? Math.min(span.start, start) : start,
+        end: span ? Math.max(span.end, end) : end,
+      });
+      removed.add(id);
+    });
+    if (removed.size === 0) return;
+
+    removed.forEach((id) => {
+      const found = this.findClipOwner(id);
+      if (found) this.musicManager.removeClip(found.track.id, id);
+    });
+
+    let moved = 0;
+    spans.forEach((span, trackId) => {
+      const width = Math.max(0, span.end - span.start);
+      if (width <= 0) return;
+      const track = this.tracks().find((candidate) => candidate.id === trackId);
+      (track?.clips ?? []).forEach((clip) => {
+        if (removed.has(clip.id)) return;
+        const start = Number(clip.start ?? 0);
+        if (start < span.start) return;
+        const next = Math.max(span.start, start - width);
+        if (next === start) return;
+        this.musicManager.updateClip(trackId, clip.id, { start: next });
+        moved++;
+      });
+    });
+
+    this.selectedClipIds.set(new Set());
+    this.haptic.medium();
+    this.markDirty();
+    this.snackbar.show(
+      `↩ Ripple deleted ${removed.size} clip${removed.size === 1 ? "" : "s"}` +
+        (moved > 0 ? ` · moved ${moved}` : ""),
+    );
+  }
+
   // ── Pattern-per-clip editing ─────────────────────────────────────
 
   /** A MIDI/drum clip can reference a pattern; audio clips cannot. */

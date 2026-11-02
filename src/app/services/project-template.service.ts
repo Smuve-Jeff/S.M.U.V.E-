@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { MusicManagerService } from './music-manager.service';
 import { LoggingService } from './logging.service';
 
@@ -8,6 +8,40 @@ export interface ProjectTemplate {
   bpm: number;
   genre: string;
   tracks: { name: string; instrumentId: string; type: 'midi' | 'audio' }[];
+}
+
+/** User templates are local-only, like the rest of the project workspace. */
+const USER_TEMPLATES_KEY = 'smuve_user_templates_v1';
+const MAX_USER_TEMPLATES = 20;
+const MAX_TEMPLATE_NAME = 60;
+
+function readUserTemplates(): ProjectTemplate[] {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(USER_TEMPLATES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((template): template is ProjectTemplate => {
+      return (
+        !!template &&
+        typeof template.id === 'string' &&
+        typeof template.name === 'string' &&
+        Number.isFinite(template.bpm) &&
+        Array.isArray(template.tracks) &&
+        template.tracks.length > 0 &&
+        template.tracks.every(
+          (track: unknown) =>
+            !!track &&
+            typeof (track as { name?: unknown }).name === 'string' &&
+            typeof (track as { instrumentId?: unknown }).instrumentId ===
+              'string',
+        )
+      );
+    });
+  } catch {
+    return [];
+  }
 }
 
 @Injectable({
@@ -72,8 +106,78 @@ export class ProjectTemplateService {
     },
   ];
 
+  /** Templates the artist saved from their own sessions, newest first. */
+  readonly userTemplates = signal<ProjectTemplate[]>(readUserTemplates());
+
+  /** Fixed starters first, then the artist's own. */
+  readonly allTemplates = computed<ProjectTemplate[]>(() => [
+    ...this.templates,
+    ...this.userTemplates(),
+  ]);
+
+  /**
+   * Capture the current session's channels and tempo as a reusable template.
+   *
+   * Only channel identity is stored — name, instrument and audio/MIDI kind —
+   * which is the same contract the fixed starters use. Notes, clips and mix
+   * state belong to the project, not to a template.
+   */
+  saveCurrentAsTemplate(name: string): ProjectTemplate | null {
+    const trimmed = name.trim().slice(0, MAX_TEMPLATE_NAME);
+    if (!trimmed) return null;
+
+    const tracks = this.musicManager
+      .tracks()
+      .filter((track) => track.type !== 'bus')
+      .map((track) => ({
+        name: track.name,
+        instrumentId: track.instrumentId || 'grand-piano',
+        type: (track.type === 'audio' ? 'audio' : 'midi') as 'midi' | 'audio',
+      }));
+    if (tracks.length === 0) return null;
+
+    const template: ProjectTemplate = {
+      id: `user-${Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 7)}`,
+      name: trimmed,
+      bpm: this.musicManager.engine.tempo(),
+      genre: 'user',
+      tracks,
+    };
+
+    const next = [template, ...this.userTemplates()].slice(
+      0,
+      MAX_USER_TEMPLATES,
+    );
+    this.userTemplates.set(next);
+    this.persist(next);
+    this.logger.info(
+      `ProjectTemplateService: Saved user template ${template.name}`,
+    );
+    return template;
+  }
+
+  /** Remove one of the artist's templates. Fixed starters are not deletable. */
+  deleteUserTemplate(id: string): boolean {
+    const next = this.userTemplates().filter((template) => template.id !== id);
+    if (next.length === this.userTemplates().length) return false;
+    this.userTemplates.set(next);
+    this.persist(next);
+    return true;
+  }
+
+  private persist(templates: ProjectTemplate[]): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.setItem(USER_TEMPLATES_KEY, JSON.stringify(templates));
+    } catch {
+      // Storage full or refused: the in-memory list still works this session.
+    }
+  }
+
   applyTemplate(templateId: string) {
-    const template = this.templates.find((t) => t.id === templateId);
+    const template = this.allTemplates().find((t) => t.id === templateId);
     if (!template) return;
 
     this.musicManager.newProject(true);
@@ -82,7 +186,7 @@ export class ProjectTemplateService {
     });
     this.musicManager.engine.tempo.set(template.bpm);
     this.logger.info(
-      `ProjectTemplateService: Applied template ${template.name}`
+      `ProjectTemplateService: Applied template ${template.name}`,
     );
   }
 }
