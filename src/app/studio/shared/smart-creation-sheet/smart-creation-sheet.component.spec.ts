@@ -1427,6 +1427,7 @@ describe("SmartCreationSheetComponent", () => {
         ],
       }),
       true,
+      expect.any(Function),
     );
     expect(mockSnackbar.info).toHaveBeenCalledWith(
       expect.stringContaining("section “Lift”"),
@@ -1777,6 +1778,64 @@ describe("SmartCreationSheetComponent", () => {
     );
     expect(component.sectionPreviewProgressPercent(template, other)).toBe(0);
     expect(component.sectionPreviewProgressLabel(template, other)).toBe("");
+  });
+
+  it("holds a finished one-pass section at 100% for a moment", async () => {
+    const template = sectionTemplateFixture();
+    component.toggleTemplateDetails(template);
+    component.sectionAuditionLoop.set(false);
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      bars: 2,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+
+    await component.applySavedSection(template, section);
+    const onEnd = mockCompositionAudition.startScore.mock.calls[0][2];
+    expect(typeof onEnd).toBe("function");
+    mockCompositionAudition.previewBars.set(2);
+    mockCompositionAudition.previewSeconds.set(4);
+
+    jest.useFakeTimers();
+    try {
+      onEnd(true);
+
+      expect(component.sectionPreviewActive(template, section)).toBe(true);
+      expect(component.sectionPreviewProgressPercent(template, section)).toBe(
+        100,
+      );
+      expect(component.sectionPreviewProgressLabel(template, section)).toBe(
+        "bar 2/2 · 0:04 / 0:04 · one pass",
+      );
+
+      jest.advanceTimersByTime(1900);
+      expect(component.sectionPreviewActive(template, section)).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("does not hold the strip when a one-pass section is stopped early", async () => {
+    const template = sectionTemplateFixture();
+    component.toggleTemplateDetails(template);
+    component.sectionAuditionLoop.set(false);
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      bars: 2,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+
+    await component.applySavedSection(template, section);
+    const onEnd = mockCompositionAudition.startScore.mock.calls[0][2];
+    mockCompositionAudition.previewBars.set(2);
+    mockCompositionAudition.previewSeconds.set(4);
+    onEnd(false);
+
+    expect(component.sectionPreviewActive(template, section)).toBe(false);
+    expect(component.sectionPreviewProgressPercent(template, section)).toBe(0);
+    expect(component.sectionPreviewProgressLabel(template, section)).toBe("");
   });
 
   it("plays saved sections once in their listed order", async () => {

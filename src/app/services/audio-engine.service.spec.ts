@@ -608,6 +608,57 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       expect(svc.auditionLooping()).toBe(false);
     });
 
+    it('reports natural completion separately from an explicit stop', () => {
+      svc = makeBareEngine();
+      const sources: any[] = [];
+      const makeSource = () => {
+        const sp = {
+          connect: jest.fn(),
+          disconnect: jest.fn(),
+          start: jest.fn(),
+          stop: jest.fn(),
+          onended: null as (() => void) | null,
+          buffer: null,
+        };
+        sources.push(sp);
+        return sp;
+      };
+      (svc as any).auditionSource = null;
+      (svc as any).auditionMonitorGain = {
+        connect: jest.fn(),
+        disconnect: jest.fn(),
+        gain: { value: 0 },
+      };
+      (svc as any).ctx = {
+        createBufferSource: jest.fn(() => makeSource()),
+        destination: {},
+        state: 'running',
+        resume: jest.fn(() => Promise.resolve()),
+        sampleRate: 44100,
+      };
+      const buf: any = {
+        duration: 4,
+        numberOfChannels: 2,
+        sampleRate: 44100,
+        length: 176400,
+        getChannelData: () => new Float32Array(176400),
+      };
+
+      const natural = jest.fn();
+      svc.playAudition(buf, natural);
+      sources[0].onended!();
+      expect(natural).toHaveBeenCalledWith(true);
+      expect(svc.auditionPlaying()).toBe(false);
+      expect(svc.auditionProgress()).toBe(1);
+
+      const stopped = jest.fn();
+      svc.playAudition(buf, stopped);
+      svc.stopAudition();
+      sources[1].onended!();
+      expect(stopped).toHaveBeenCalledWith(false);
+      expect(svc.auditionProgress()).toBe(0);
+    });
+
     it('auditionPlayback is false at rest', () => {
       svc = makeBareEngine();
       expect(svc.auditionPlaying()).toBe(false);

@@ -4229,6 +4229,8 @@ export class AudioEngineService {
   /** Source + monitoring gain dedicated to auditioning offline buffers, wired
    *  straight to ctx.destination so it bypasses master gain + limiter. */
   private auditionSource: AudioBufferSourceNode | null = null;
+  /** Source whose end came from an explicit stop, not natural completion. */
+  private auditionStoppedSource: AudioBufferSourceNode | null = null;
   private readonly auditionMonitorGain = this.ctx.createGain();
   readonly auditionPlaying = signal(false);
   readonly auditionProgress = signal(0); // 0..1, wraps while looping
@@ -4240,13 +4242,14 @@ export class AudioEngineService {
    * via a private monitor gain to ctx.destination — never into masterGain,
    * so the loop never feeds back through the plugin chain or limiter.
    *
-   * @param onEnd optional callback fired when the source finishes naturally
-   *              or is stopped. Not fired while looping.
+   * @param onEnd optional callback fired when the source finishes; the flag
+   *              is true only for a natural end and false when stopped. A
+   *              looping source reports only when it is stopped.
    * @param options.loop repeat until `stopAudition()` is called.
    */
   playAudition(
     buffer: AudioBuffer,
-    onEnd?: () => void,
+    onEnd?: (natural: boolean) => void,
     options?: { loop?: boolean },
   ): void {
     this.stopAudition();
@@ -4281,12 +4284,21 @@ export class AudioEngineService {
       }
     };
     src.onended = () => {
-      if (this.auditionSource !== src) return;
+      if (this.auditionSource !== src) {
+        if (this.auditionStoppedSource === src) {
+          this.auditionStoppedSource = null;
+        }
+        return;
+      }
+      const stopped = this.auditionStoppedSource === src;
+      this.auditionStoppedSource = null;
       this.auditionSource = null;
       this.auditionPlaying.set(false);
       this.auditionLooping.set(false);
-      this.auditionProgress.set(0);
-      onEnd?.();
+      // A natural end leaves the playhead at the end so a caller can show a
+      // completed pass; an explicit stop rewinds it.
+      this.auditionProgress.set(stopped ? 0 : 1);
+      onEnd?.(!stopped);
     };
     src.start();
     requestAnimationFrame(tick);
@@ -4295,7 +4307,11 @@ export class AudioEngineService {
   stopAudition(): void {
     this.auditionLooping.set(false);
     const src = this.auditionSource;
-    if (!src) return;
+    if (!src) {
+      this.auditionStoppedSource = null;
+      return;
+    }
+    this.auditionStoppedSource = src;
     try {
       src.stop();
     } catch { /* already stopped */ }

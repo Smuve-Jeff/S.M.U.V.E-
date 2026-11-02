@@ -174,12 +174,18 @@ export class CompositionAuditionService {
 
   /**
    * Force a score preview to play, without changing any project state. Pass
-   * `loop` for short pattern auditions that should repeat until stopped.
+   * `loop` for short pattern auditions that should repeat until stopped. The
+   * optional `onEnd` reports whether a one-pass take finished naturally or
+   * was stopped, so the caller can hold its completed progress briefly.
    */
-  async startScore(score: AuditionScore, loop = false): Promise<void> {
+  async startScore(
+    score: AuditionScore,
+    loop = false,
+    onEnd?: (natural: boolean) => void,
+  ): Promise<void> {
     this.stop();
     if (this.buffer && this.readyCompositionId() === score.id) {
-      this.playBuffer(loop);
+      this.playBuffer(loop, onEnd);
       return;
     }
     // Abandon any in-flight render so quickly switching rows never plays the
@@ -195,17 +201,18 @@ export class CompositionAuditionService {
       this.readyCompositionId() === score.id &&
       !this.error()
     ) {
-      this.playBuffer(loop);
+      this.playBuffer(loop, onEnd);
     }
   }
 
-  private playBuffer(loop = false): void {
+  private playBuffer(
+    loop = false,
+    onEnd?: (natural: boolean) => void,
+  ): void {
     if (!this.buffer) return;
     this.engine.playAudition(
       this.buffer,
-      () => {
-        // The engine clears its own playback flags; nothing else to release.
-      },
+      (natural) => onEnd?.(natural),
       { loop },
     );
   }

@@ -60,6 +60,8 @@ export interface GenreStarter {
 const MEMORY_KEY = "smuve_smart_sheet_memory";
 /** Coalesce account pushes: a tab tap must not upload the whole profile. */
 const ACCOUNT_SYNC_DEBOUNCE_MS = 900;
+/** Keep a finished one-pass section strip at 100% long enough to read. */
+const SECTION_PROGRESS_HOLD_MS = 1800;
 /** Chips kept in the combined Recently Used row. */
 const MAX_RECENT_ITEMS = 4;
 
@@ -127,6 +129,13 @@ interface TemplateSectionDetailRow {
   available: boolean;
 }
 
+/** A completed one-pass section take, held briefly at 100%. */
+interface HeldSectionPreview {
+  id: string;
+  bars: number;
+  seconds: number;
+}
+
 @Component({
   selector: "app-smart-creation-sheet",
   standalone: true,
@@ -169,6 +178,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly reorderingSections = signal(false);
   /** Saved-section auditions repeat their set bars until stopped. */
   readonly sectionAuditionLoop = signal(true);
+  /** One-pass take held at 100% for a moment after it finishes. */
+  private readonly heldSectionPreview = signal<HeldSectionPreview | null>(null);
+  private heldSectionTimer: ReturnType<typeof setTimeout> | null = null;
+  private destroyed = false;
   private selectedPatternTemplateId: string | null = null;
 
   @Output() closeSheet = new EventEmitter<void>();
@@ -269,6 +282,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    this.clearHeldSectionPreview();
     // A coalesced push must not die with the sheet if it closes inside the window.
     this.flushMemorySync();
   }
@@ -826,6 +841,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   /** Open or close a breakdown and seed its combined-preview selection. */
   toggleTemplateDetails(template: ProjectTemplate): void {
     this.haptic.light();
+    this.clearHeldSectionPreview();
     const isOpen = this.expandedTemplateId() === template.id;
     const previousId = this.expandedTemplateId();
     if (previousId && previousId !== template.id) {
@@ -1000,6 +1016,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   ): void {
     event?.stopPropagation();
     if (!Number.isInteger(offset) || offset === 0) return;
+    this.clearHeldSectionPreview();
     const current = this.sectionBars(template, section);
     const next = Math.max(
       MIN_SECTION_BARS,
@@ -1026,6 +1043,30 @@ export class SmartCreationSheetComponent implements OnDestroy {
   /** Stop only the saved-section arrangement, not an unrelated preview. */
   private stopSectionsPreview(template: ProjectTemplate): void {
     this.stopPreview(this.sectionsPreviewId(template));
+  }
+
+  /** Keep a completed one-pass section take visible at 100% for a moment. */
+  private holdSectionPreview(id: string): void {
+    const bars = Math.max(1, this.compositionAudition.previewBars());
+    const seconds = Math.max(0, this.compositionAudition.previewSeconds());
+    this.clearHeldSectionPreview();
+    this.heldSectionPreview.set({ id, bars, seconds });
+    this.heldSectionTimer = setTimeout(() => {
+      this.heldSectionTimer = null;
+      if (this.heldSectionPreview()?.id === id) {
+        this.heldSectionPreview.set(null);
+      }
+    }, SECTION_PROGRESS_HOLD_MS);
+  }
+
+  private clearHeldSectionPreview(): void {
+    if (this.heldSectionTimer !== null) {
+      clearTimeout(this.heldSectionTimer);
+      this.heldSectionTimer = null;
+    }
+    if (this.heldSectionPreview() !== null) {
+      this.heldSectionPreview.set(null);
+    }
   }
 
   /** Stop or cancel one specific preview, leaving every other score alone. */
@@ -1113,6 +1154,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     }
     const next = !this.reorderingSections();
     this.reorderingSections.set(next);
+    this.clearHeldSectionPreview();
     if (next) {
       // The reorder list hides the audition controls, so never leave a loop
       // playing with no visible way to stop it.
@@ -1133,6 +1175,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     event?.stopPropagation();
     const next = !this.sectionAuditionLoop();
     this.sectionAuditionLoop.set(next);
+    this.clearHeldSectionPreview();
     if (template) this.stopActiveSectionAudition(template.id);
     this.remember({ sectionAuditionLoop: next });
     this.haptic.light();
@@ -1246,7 +1289,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
     template: ProjectTemplate,
     section: TemplateSection,
   ): boolean {
-    return this.sectionAuditionPlaying(template, section);
+    return (
+      this.isHeldSectionPreview(template, section) ||
+      this.sectionAuditionPlaying(template, section)
+    );
   }
 
   /** Position in the current section pass, 0–100. */
@@ -1254,7 +1300,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
     template: ProjectTemplate,
     section: TemplateSection,
   ): number {
-    return this.sectionPreviewActive(template, section)
+    if (this.isHeldSectionPreview(template, section)) return 100;
+    return this.sectionAuditionPlaying(template, section)
       ? this.previewProgressPercent()
       : 0;
   }
@@ -1264,10 +1311,25 @@ export class SmartCreationSheetComponent implements OnDestroy {
     template: ProjectTemplate,
     section: TemplateSection,
   ): string {
-    if (!this.sectionPreviewActive(template, section)) return "";
+    const held = this.heldSectionPreview();
+    const id = this.sectionPreviewId(template, section);
+    if (held && id === held.id) {
+      const clock = this.previewClock(held.seconds);
+      return `bar ${held.bars}/${held.bars} · ${clock} / ${clock} · one pass`;
+    }
+    if (!this.sectionAuditionPlaying(template, section)) return "";
     return this.previewPositionLabel(
       this.sectionAuditionLoop() ? "loop" : "one pass",
     );
+  }
+
+  /** True while a finished one-pass take for this section is being held. */
+  private isHeldSectionPreview(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): boolean {
+    const id = this.sectionPreviewId(template, section);
+    return !!id && this.heldSectionPreview()?.id === id;
   }
 
   /** True while this saved section's mix is rendering for playback. */
@@ -1429,6 +1491,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
       score,
       `section “${section.name}”${loop ? "" : " · one pass"}`,
       loop,
+      (natural) => {
+        if (natural && !loop && !this.destroyed) {
+          this.holdSectionPreview(score.id);
+        }
+      },
     );
   }
 
@@ -1477,6 +1544,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     event?: Event,
   ): void {
     event?.stopPropagation();
+    this.clearHeldSectionPreview();
     if (!this.projectTemplates.deleteTemplateSection(template.id, section.id)) {
       return;
     }
@@ -1808,7 +1876,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
     score: AuditionScore,
     label: string,
     loop = false,
+    onEnd?: (natural: boolean) => void,
   ): Promise<void> {
+    this.clearHeldSectionPreview();
     if (this.previewPlaying(score.id)) {
       this.compositionAudition.stop();
       this.auditioningPreviewId.set(null);
@@ -1820,7 +1890,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.audioEngine.resume();
     this.auditioningPreviewId.set(score.id);
     try {
-      await this.compositionAudition.startScore(score, loop);
+      if (onEnd) {
+        await this.compositionAudition.startScore(score, loop, onEnd);
+      } else {
+        await this.compositionAudition.startScore(score, loop);
+      }
       if (!this.compositionAudition.error()) {
         this.snackbar.info(
           `Auditioning ${label} — preview only, nothing loaded.`,
