@@ -1050,6 +1050,12 @@
       (touchend)="onCanvasTouchEnd($event)"
       [ngSwitch]="activeView()"
     >
+      <!-- Beginner Mode follows the artist into every tool: the current step
+           stays on screen instead of vanishing with the wizard. -->
+      <app-beginner-step-hint
+        *ngIf="showBeginnerStepHint()"
+      ></app-beginner-step-hint>
+
       <!-- Arrangement / Beginner Wizard (toggled by mode) -->
       <ng-container *ngSwitchCase="'arrangement'">
         <div

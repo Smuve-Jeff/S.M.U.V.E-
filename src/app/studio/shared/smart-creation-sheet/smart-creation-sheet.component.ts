@@ -15,6 +15,7 @@ import { AudioEngineService } from "../../../services/audio-engine.service";
 import { SnackbarService } from "../../../services/snackbar.service";
 import { UserProfileService } from "../../../services/user-profile.service";
 import type { SmartSheetMemory } from "../../../types/profile.types";
+import { WorkProtectionService } from "../../work-protection.service";
 
 export interface GenreStarter {
   id: string;
@@ -96,6 +97,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   private musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
   private snackbar = inject(SnackbarService);
+  private readonly workProtection = inject(WorkProtectionService);
   private profile = inject(UserProfileService);
 
   @Output() closeSheet = new EventEmitter<void>();
@@ -655,8 +657,12 @@ export class SmartCreationSheetComponent implements OnDestroy {
     this.sheetDragOffset.set(0);
   }
 
-  loadStarter(starter: GenreStarter): void {
+  async loadStarter(starter: GenreStarter): Promise<void> {
     this.haptic.medium();
+    // A starter replaces the whole sketch; never trade an unsaved one for it.
+    if (!(await this.workProtection.preserveBeforeReplace("smart_starter"))) {
+      return;
+    }
     this.audioEngine.resume();
     this.lastStarterId.set(starter.id);
     this.rememberUse(RECENT_PREFIX.Pack + starter.id, {

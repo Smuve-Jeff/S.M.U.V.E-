@@ -1330,9 +1330,8 @@ describe("StudioComponent", () => {
       expect(component.setsBusy()).toBe(false);
     });
 
-    it("opens a stored set after the dirty-session confirm", async () => {
+    it("snapshots a dirty sketch before opening another set", async () => {
       mockProjectWorkspace.isDirty.set(true);
-      mockDialog.confirm.mockResolvedValue(true);
       mockProjectWorkspace.loadProject.mockResolvedValue({
         metadata: { ...storedSet, id: "proj_a" },
         tracks: [],
@@ -1340,9 +1339,14 @@ describe("StudioComponent", () => {
 
       await component.openStoredSet(storedSet as any);
 
-      expect(mockDialog.confirm).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Open another set?" }),
-      );
+      expect(mockProjectWorkspace.autoSave).toHaveBeenCalled();
+      const saveOrder = (
+        mockProjectWorkspace.autoSave as jest.Mock
+      ).mock.invocationCallOrder[0];
+      const openOrder = (
+        mockProjectWorkspace.loadProject as jest.Mock
+      ).mock.invocationCallOrder.at(-1)!;
+      expect(saveOrder).toBeLessThan(openOrder);
       expect(mockProjectWorkspace.loadProject).toHaveBeenCalledWith("proj_a");
       expect(mockHistory.clear).toHaveBeenCalled();
       expect(component.activeView()).toBe("arrangement");
@@ -1350,14 +1354,17 @@ describe("StudioComponent", () => {
       expect(mockSnackbar.success).toHaveBeenCalled();
     });
 
-    it("keeps the session when the dirty-session confirm is declined", async () => {
+    it("keeps the session when the dirty sketch cannot be saved", async () => {
       mockProjectWorkspace.isDirty.set(true);
-      mockDialog.confirm.mockResolvedValue(false);
+      mockProjectWorkspace.autoSave.mockResolvedValueOnce(false);
 
       await component.openStoredSet(storedSet as any);
 
       expect(mockProjectWorkspace.loadProject).not.toHaveBeenCalled();
       expect(mockProjectWorkspace.isDirty()).toBe(true);
+      expect(mockSnackbar.error).toHaveBeenCalledWith(
+        expect.stringContaining("Nothing was replaced"),
+      );
     });
 
     it("refuses to reopen the set that is already open", async () => {

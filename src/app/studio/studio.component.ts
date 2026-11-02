@@ -97,6 +97,8 @@ import { SoundPadGridComponent } from "./sound-pad-grid/sound-pad-grid.component
 import { AudioRecorderViewComponent } from "./audio-recorder-view/audio-recorder-view.component";
 import { SampleLibraryComponent } from "./sample-library/sample-library.component";
 import { BeginnerWizardComponent } from "./beginner-wizard/beginner-wizard.component";
+import { BeginnerStepHintComponent } from "./beginner-wizard/beginner-step-hint.component";
+import { WorkProtectionService } from "./work-protection.service";
 import { ChordEditorComponent } from "./chord-editor/chord-editor.component";
 import { MidiInputWidgetComponent } from "./midi-input-widget/midi-input-widget.component";
 import { SamplerComponent } from "./sampler/sampler.component";
@@ -295,6 +297,7 @@ const SELF_HOSTING_VIEWS = new Set<string>([
     AudioRecorderViewComponent,
     SampleLibraryComponent,
     BeginnerWizardComponent,
+    BeginnerStepHintComponent,
     ChordEditorComponent,
     MidiInputWidgetComponent,
     SamplerComponent,
@@ -617,6 +620,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   private projectService = inject(ProjectService);
   private readonly haptic = inject(HapticService);
   private readonly dialog = inject(InteractionDialogService);
+  private readonly workProtection = inject(WorkProtectionService);
   private readonly snackbarService = inject(SnackbarService);
   private readonly logger = inject(LoggingService);
   private readonly ideasGenerator = inject(IdeasGeneratorService);
@@ -1084,6 +1088,14 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** The real arrangement canvas is shown in Pro mode, or past the gate. */
   showArrangementStage = computed(
     () => !this.isBeginnerMode() || this.arrangementGateOpen(),
+  );
+
+  /**
+   * The current first-song step stays visible in every tool. The arrangement
+   * slot is excluded because the wizard already shows the whole step there.
+   */
+  showBeginnerStepHint = computed(
+    () => this.isBeginnerMode() && this.activeView() !== "arrangement",
   );
 
   openArrangementGate() {
@@ -2558,40 +2570,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * replaceable, so when the save fails the caller stops instead of handing
    * them a fresh project with the old one gone — and the artist is told why.
    */
-  private async preserveOpenSketch(action: string): Promise<boolean> {
-    if (!this.projectWorkspace.isDirty()) return true;
-    if (this.authService.isGuest?.()) {
-      // Guests have nowhere to store a snapshot. Asking is the only honest
-      // protection: "save first, then try again" would strand them behind a
-      // save they cannot perform, and replacing silently loses the sketch
-      // for good.
-      return this.dialog.confirm({
-        title: "Replace this sketch?",
-        message:
-          "Guest sessions are not saved on this device. This sketch will be replaced and cannot be recovered. Create an account to keep your work.",
-        confirmLabel: "Replace it",
-        cancelLabel: "Keep my sketch",
-      });
-    }
-    if (await this.projectWorkspace.autoSave()) return true;
-    const reason =
-      typeof this.projectWorkspace.persistenceError === "function"
-        ? this.projectWorkspace.persistenceError()
-        : "";
-    this.snackbarService.error(
-      reason
-        ? `Nothing was replaced — your current idea could not be saved. ${reason}`
-        : "Nothing was replaced — your current idea could not be saved on this device. Save it first, then try again.",
-    );
-    this.studioTelemetry.trackEvent(
-      "studio_error",
-      {
-        action: `preserve_before_${action}`,
-        error: reason || "autosave_unavailable",
-      },
-      false,
-    );
-    return false;
+  private async preserveOpenSketch(
+    action: string,
+    alreadyConfirmed = false,
+  ): Promise<boolean> {
+    return this.workProtection.preserveBeforeReplace(action, alreadyConfirmed);
   }
 
   /**
@@ -2886,6 +2869,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
           await this.runInsightsLatencyProbe();
           break;
         case "seed_starter": {
+          if (!(await this.preserveOpenSketch("coach_starter"))) break;
           const recipe = this.ideasGenerator.recipes?.[0];
           if (recipe) {
             this.musicManager.applyGeneratedRecipe(recipe);
@@ -3157,13 +3141,10 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
         throw new Error('Project file exceeds the 512 MiB import limit.');
       }
       const format = archived ? 'smuve-zip' : 'smuve-json';
-      if (this.projectWorkspace.isDirty()) {
-        const replace = await this.dialog.confirm({
-          title: 'Replace current project?', message: 'Loading this file replaces your unsaved session. Save or export a backup first.',
-          confirmLabel: 'Load project', cancelLabel: 'Keep session', tone: 'danger',
-        });
-        if (!replace) return;
-      }
+      // Importing replaces the canvas. Snapshot the open sketch first and stop
+      // when it cannot be stored; choosing the file is the confirmation, so a
+      // guest is not asked a second time.
+      if (!(await this.preserveOpenSketch("import", true))) return;
       const bundle = await readProjectFile(file);
       const success = await this.projectWorkspace.importProjectBundle(bundle);
       if (success) {
@@ -3453,17 +3434,9 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.snackbarService.info("That set is already open");
       return;
     }
-    if (this.projectWorkspace.isDirty()) {
-      const replace = await this.dialog.confirm({
-        title: 'Open another set?',
-        message:
-          'Opening this set replaces your unsaved session. Save or export a backup first.',
-        confirmLabel: 'Open set',
-        cancelLabel: 'Keep session',
-        tone: 'danger',
-      });
-      if (!replace) return;
-    }
+    // Opening another set replaces the open sketch. Tapping the set is the
+    // intent, so preserve the sketch and stop only if it cannot be stored.
+    if (!(await this.preserveOpenSketch("stored_set", true))) return;
     this.setsBusy.set(true);
     this.setsError.set('');
     try {

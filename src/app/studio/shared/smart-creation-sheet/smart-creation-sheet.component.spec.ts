@@ -10,6 +10,7 @@ import { MusicManagerService } from "../../../services/music-manager.service";
 import { AudioEngineService } from "../../../services/audio-engine.service";
 import { SnackbarService } from "../../../services/snackbar.service";
 import { UserProfileService } from "../../../services/user-profile.service";
+import { WorkProtectionService } from "../../work-protection.service";
 import { signal } from "@angular/core";
 
 /** jsdom has no TouchEvent — build a plain Event carrying a single touch point. */
@@ -114,6 +115,10 @@ describe("SmartCreationSheetComponent", () => {
         { provide: AudioEngineService, useValue: mockAudioEngine },
         { provide: SnackbarService, useValue: mockSnackbar },
         { provide: UserProfileService, useValue: mockUserProfileService },
+        {
+          provide: WorkProtectionService,
+          useValue: { preserveBeforeReplace: jest.fn().mockResolvedValue(true) },
+        },
       ],
     }).compileComponents();
 
@@ -139,12 +144,12 @@ describe("SmartCreationSheetComponent", () => {
     expect(component.activeTab()).toBe("ai");
   });
 
-  it("loads a genre starter groove into timeline", () => {
+  it("loads a genre starter groove into timeline", async () => {
     const navigateSpy = jest.spyOn(component.navigateToView, "emit");
     const closeSpy = jest.spyOn(component.closeSheet, "emit");
 
     const starter: GenreStarter = component.genreStarters[0];
-    component.loadStarter(starter);
+    await component.loadStarter(starter);
 
     expect(mockHaptic.medium).toHaveBeenCalled();
     expect(mockAudioEngine.resume).toHaveBeenCalled();
@@ -475,11 +480,11 @@ describe("SmartCreationSheetComponent", () => {
 
   // ── Remembering the last pack & preset ─────────────────────────────
 
-  it("persists the last groove, preset and tab, then restores them on relaunch", () => {
+  it("persists the last groove, preset and tab, then restores them on relaunch", async () => {
     const starter = component.genreStarters[2];
     const preset = component.vocalPresets[3];
 
-    component.loadStarter(starter);
+    await component.loadStarter(starter);
     component.applyVocalPreset(preset);
     component.setTab("chords");
 
@@ -519,6 +524,8 @@ describe("SmartCreationSheetComponent", () => {
 
     const closeSpy = jest.spyOn(fresh.closeSheet, "emit");
     tap(resumeBar);
+    // The starter path passes the preservation gate before it applies.
+    await Promise.resolve();
 
     expect(mockMusicManager.applyGeneratedRecipe).toHaveBeenCalled();
     expect(mockAudioEngine.tempo()).toBe(starter.bpm);
@@ -611,14 +618,14 @@ describe("SmartCreationSheetComponent", () => {
 
   // ── Combined Recently Used row ─────────────────────────────────────
 
-  it("stays hidden until something has been used, then caps at four entries", () => {
+  it("stays hidden until something has been used, then caps at four entries", async () => {
     expect(component.recentItems()).toEqual([]);
     expect(fixture.nativeElement.querySelector(".sc-recent-row")).toBeFalsy();
 
     jest.useFakeTimers();
     try {
       for (const starter of component.genreStarters.slice(0, 3)) {
-        component.loadStarter(starter);
+        await component.loadStarter(starter);
         jest.advanceTimersByTime(12);
       }
       component.applyVocalPreset(component.vocalPresets[0]);
@@ -635,10 +642,10 @@ describe("SmartCreationSheetComponent", () => {
     ).toHaveLength(4);
   });
 
-  it("orders the Recent row newest-first across all three catalogues", () => {
+  it("orders the Recent row newest-first across all three catalogues", async () => {
     jest.useFakeTimers();
     try {
-      component.loadStarter(component.genreStarters[1]);
+      await component.loadStarter(component.genreStarters[1]);
       jest.advanceTimersByTime(50);
       component.applyVocalPreset(component.vocalPresets[0]);
       jest.advanceTimersByTime(50);
@@ -666,11 +673,11 @@ describe("SmartCreationSheetComponent", () => {
     expect(chips[2].textContent).toContain("Pack");
   });
 
-  it("reuses Recent chips through their own action paths", () => {
+  it("reuses Recent chips through their own action paths", async () => {
     const starter = component.genreStarters[4];
     const preset = component.vocalPresets[3];
 
-    component.loadStarter(starter);
+    await component.loadStarter(starter);
     component.applyVocalPreset(preset);
     fixture.detectChanges();
 
@@ -682,6 +689,8 @@ describe("SmartCreationSheetComponent", () => {
       ).find((chip) => chip.textContent?.includes(kind))!;
 
     tap(chipFor("Pack"));
+    // The starter path now passes the preservation gate before it applies.
+    await Promise.resolve();
     expect(mockAudioEngine.tempo()).toBe(starter.bpm);
     expect(mockMusicManager.applyGeneratedRecipe).toHaveBeenCalled();
 
