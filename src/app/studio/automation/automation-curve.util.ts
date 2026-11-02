@@ -30,6 +30,7 @@ export function laneRange(
     };
   }
   if (parameter === 'pan') return { min: -1, max: 1 };
+  if (parameter === 'vca') return { min: 0, max: 1.5 };
   if (/cutoff|freq|filter/i.test(parameter)) {
     return { min: 20, max: 20_000, logarithmic: true };
   }
@@ -76,6 +77,7 @@ export function laneParameterLabel(parameter: string): string {
   if (parameter === 'sendA') return 'SEND A';
   if (parameter === 'sendB') return 'SEND B';
   if (parameter === 'cutoff') return 'CHANNEL CUTOFF';
+  if (parameter === 'vca') return 'VCA LEVEL';
   return parameter
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/_/g, ' ')

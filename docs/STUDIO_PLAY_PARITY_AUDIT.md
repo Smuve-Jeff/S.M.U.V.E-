@@ -601,7 +601,8 @@ The gap is discovery and reach: comping lives in the vocal flow, not on every au
    percentages through render, polish and encode. The transport's 16/24-bit
    WAV and stem exports now show the same render percentage instead of a bare
    "Rendering…". The mixdown adds an ETA and a best-effort Cancel that aborts
-   between render stages; the transport exports still have no cancel control.
+   between render stages; transport WAV and stem exports have the same
+   best-effort Cancel (without an ETA).
 6. **Video export is a separate flow** without a "share to social" preset (9:16 vs 16:9).
 
 **Improvements**

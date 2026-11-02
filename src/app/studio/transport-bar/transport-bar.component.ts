@@ -53,6 +53,9 @@ export class TransportBarComponent {
   isExporting = signal(false);
   /** Real render progress for the current WAV/stem export, or null when idle. */
   exportProgress = signal<number | null>(null);
+  /** True only while a cancellable WAV/stem export is running. */
+  exportCanCancel = signal(false);
+  private exportAbort: AbortController | null = null;
   /**
    * Delivery sample rate for WAV mixdowns and stems.
    *
@@ -818,8 +821,20 @@ export class TransportBarComponent {
 
   /** Export status text; a percentage only when the renderer has reported one. */
   exportProgressLabel(): string {
+    if (this.exportAbort?.signal.aborted) return 'Finishing current render…';
     const percent = this.exportProgress();
     return percent === null ? 'Rendering…' : `Rendering… ${percent}%`;
+  }
+
+  /** Abort between render stages; Web Audio cannot interrupt startRendering. */
+  cancelExport(): void {
+    if (!this.exportCanCancel() || !this.exportAbort) return;
+    this.exportAbort.abort();
+    this.snack.info('Finishing current render…');
+  }
+
+  private isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError';
   }
 
   /** Flip the delivery rate between the two specs the exporter offers. */
@@ -834,17 +849,23 @@ export class TransportBarComponent {
     if (this.isExporting()) return;
     this.isExporting.set(true);
     this.exportProgress.set(0);
+    this.exportAbort = new AbortController();
+    this.exportCanCancel.set(true);
     try {
       await this.exportService.exportProjectWav(
         16,
         this.exportSampleRate(),
         (percent) => this.exportProgress.set(percent),
+        this.exportAbort.signal,
       );
     } catch (error) {
-      this.snack.error('WAV export failed · ' + (error instanceof Error ? error.message : 'unknown error'));
+      if (this.isAbortError(error)) this.snack.info('Export cancelled');
+      else this.snack.error('WAV export failed · ' + (error instanceof Error ? error.message : 'unknown error'));
     } finally {
       this.isExporting.set(false);
       this.exportProgress.set(null);
+      this.exportCanCancel.set(false);
+      this.exportAbort = null;
     }
   }
 
@@ -853,17 +874,23 @@ export class TransportBarComponent {
     if (this.isExporting()) return;
     this.isExporting.set(true);
     this.exportProgress.set(0);
+    this.exportAbort = new AbortController();
+    this.exportCanCancel.set(true);
     try {
       await this.exportService.exportProjectWav(
         24,
         this.exportSampleRate(),
         (percent) => this.exportProgress.set(percent),
+        this.exportAbort.signal,
       );
     } catch (error) {
-      this.snack.error('24-bit WAV export failed · ' + (error instanceof Error ? error.message : 'unknown error'));
+      if (this.isAbortError(error)) this.snack.info('Export cancelled');
+      else this.snack.error('24-bit WAV export failed · ' + (error instanceof Error ? error.message : 'unknown error'));
     } finally {
       this.isExporting.set(false);
       this.exportProgress.set(null);
+      this.exportCanCancel.set(false);
+      this.exportAbort = null;
     }
   }
 
@@ -872,10 +899,13 @@ export class TransportBarComponent {
     if (this.isExporting()) return;
     this.isExporting.set(true);
     this.exportProgress.set(0);
+    this.exportAbort = new AbortController();
+    this.exportCanCancel.set(true);
     try {
       await this.exportService.exportStems({
         bitDepth: 24,
         sampleRate: this.exportSampleRate(),
+        signal: this.exportAbort.signal,
         onProgress: (completed, total) => {
           this.exportProgress.set(
             total > 0 ? Math.round((completed / total) * 100) : 0,
@@ -887,12 +917,15 @@ export class TransportBarComponent {
       );
       this.haptic.medium();
     } catch (error) {
-      this.snack.error(
+      if (this.isAbortError(error)) this.snack.info('Export cancelled');
+      else this.snack.error(
         'Stem export failed · ' + (error instanceof Error ? error.message : 'unknown error'),
       );
     } finally {
       this.isExporting.set(false);
       this.exportProgress.set(null);
+      this.exportCanCancel.set(false);
+      this.exportAbort = null;
     }
   }
 

@@ -52,7 +52,7 @@ const SAMPLES_PER_BAR = 16;
         <span class="automation-title">AUTOMATION CURVES</span>
         <label
           class="automation-target"
-          *ngIf="busTracks().length > 0"
+          *ngIf="busTracks().length > 0 || vcaTargets().length > 0"
         >
           <span class="automation-target-label">Target</span>
           <select
@@ -64,6 +64,12 @@ const SAMPLES_PER_BAR = 16;
             <option [value]="trackId() ?? ''">{{ trackLabel() }}</option>
             <option *ngFor="let bus of busTracks()" [value]="bus.id">
               BUS · {{ bus.name }}
+            </option>
+            <option
+              *ngFor="let vca of vcaTargets()"
+              [value]="'vca:' + vca.id"
+            >
+              VCA · {{ vca.name }}
             </option>
           </select>
         </label>
@@ -322,6 +328,7 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   readonly trackId = input<string | null>(null);
   /** Project channels, used to offer bus tracks as automation targets. */
   readonly tracks = input<readonly { id: string; name: string; type: string }[]>([]);
+  readonly vcaTargets = input<readonly { id: string; name: string }[]>([]);
   @Output() openBezierEditor = new EventEmitter<string>();
 
   private readonly automation = inject(AutomationService);
@@ -358,8 +365,15 @@ export class AutomationCurveEditorComponent implements OnDestroy {
   readonly activeTargetIsBus = computed(() =>
     this.busTracks().some((bus) => bus.id === this.activeTargetId()),
   );
+  readonly activeTargetIsVca = computed(() =>
+    (this.activeTargetId() ?? '').startsWith('vca:'),
+  );
   readonly parametersForTarget = computed(() =>
-    this.activeTargetIsBus() ? ['volume', 'pan'] : this.parameters,
+    this.activeTargetIsVca()
+      ? ['vca']
+      : this.activeTargetIsBus()
+        ? ['volume', 'pan']
+        : this.parameters,
   );
   readonly trackLabel = computed(() => {
     const id = this.trackId();

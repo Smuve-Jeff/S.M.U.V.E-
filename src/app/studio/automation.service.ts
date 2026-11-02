@@ -4,6 +4,7 @@ import {
   type VoiceControlPoint,
 } from "../services/audio-engine.service";
 import { PluginStoreService } from "../services/plugin-store.service";
+import { VcaBusService } from "./vca-bus.service";
 import { bezierInterpolate, BezierPresets } from "./automation/bezier-utils";
 
 export interface AutomationPoint {
@@ -66,6 +67,7 @@ export interface PerformanceMacro {
 export class AutomationService {
   private readonly engine = inject(AudioEngineService);
   private readonly pluginStore = inject(PluginStoreService, { optional: true });
+  private readonly vcaBuses = inject(VcaBusService, { optional: true });
   private idCounter = 0;
 
   private nextId(prefix: string): string {
@@ -642,6 +644,7 @@ export class AutomationService {
         // sending `cc_pan` to the mixer bridge would be a no-op field update.
         if (lane.target.parameter.startsWith("cc_")) return;
         if (this.applyPluginParameter(lane.target.parameter, value)) return;
+        if (this.applyVcaParameter(lane.target.trackId, value)) return;
         this.engine.applyProductionParameter(
           lane.target.trackId,
           lane.target.parameter,
@@ -650,6 +653,23 @@ export class AutomationService {
         );
       }
     });
+  }
+
+  /**
+   * VCA lanes use `vca:<busId>` and drive every assigned track's engine VCA
+   * multiplier. The bus's own fader is a mix control, not a live write target:
+   * automation must not overwrite the saved fader while playback is running.
+   */
+  private applyVcaParameter(trackId: string, value: number): boolean {
+    if (!trackId.startsWith("vca:") || !this.vcaBuses) return false;
+    const busId = trackId.slice(4);
+    const bus = this.vcaBuses.buses().find((candidate) => candidate.id === busId);
+    if (!bus) return true;
+    const level = bus.muted ? 0 : Math.max(0, Math.min(1.5, value));
+    for (const assignedTrackId of this.vcaBuses.trackIdsForBus(busId)) {
+      this.engine.setVcaMultiplier(assignedTrackId, level);
+    }
+    return true;
   }
 
   /**

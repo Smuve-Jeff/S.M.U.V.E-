@@ -203,6 +203,17 @@
   white-space: nowrap;
 }
 
+.ctb-export-progress-cancel {
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 .ctb-export-progress-track {
   flex: 1 1 auto;
   height: 4px;

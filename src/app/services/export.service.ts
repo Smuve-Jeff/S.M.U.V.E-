@@ -10,6 +10,7 @@ import {
   TrackModel,
 } from './music-manager.service';
 import { AutomationLane, AutomationService } from '../studio/automation.service';
+import { VcaBusService } from '../studio/vca-bus.service';
 import { PluginRegistry } from '../studio/effects/plugin-interface';
 import { bindFxSlotParams } from '../studio/effects/fx-param-specs';
 import { VideoEngineService } from './video-engine.service';
@@ -89,6 +90,7 @@ export class ExportService {
   private pluginStore = inject(PluginStoreService);
   /** Read-only here: the bounce samples the same curves playback evaluates. */
   private automation = inject(AutomationService);
+  private vcaBuses = inject(VcaBusService, { optional: true });
   private videoEngine = inject(VideoEngineService);
 
   /** True while a canvas capture is recording. */
@@ -118,6 +120,7 @@ export class ExportService {
     bitDepth: 16 | 24 = 16,
     sampleRate: number = 44100,
     onProgress?: (percent: number) => void,
+    signal?: AbortSignal,
   ): Promise<Blob> {
     this.logger.info(
       `Starting offline PCM WAV (${bitDepth}-bit, ${sampleRate} Hz) export...`
@@ -125,6 +128,7 @@ export class ExportService {
     const buffer = await this.renderProjectOffline({
       sampleRate,
       ...(onProgress ? { onProgress } : {}),
+      ...(signal ? { signal } : {}),
     });
     const blob = await this.exportToFormat(
       buffer,
@@ -156,6 +160,8 @@ export class ExportService {
       sampleRate?: number;
       /** Reports completed files out of the total (master + one per track). */
       onProgress?: (completed: number, total: number) => void;
+      /** Abort between stem renders; an in-flight audio render must finish. */
+      signal?: AbortSignal;
     } = {}
   ): Promise<Blob> {
     const bitDepth = options.bitDepth ?? 24;
@@ -178,7 +184,10 @@ export class ExportService {
     };
 
     const totalFiles = 1 + tracks.length;
-    const master = await this.renderProjectOffline({ sampleRate });
+    const master = await this.renderProjectOffline({
+      sampleRate,
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
     entries.push({
       name: uniqueName('MASTER'),
       data: new Uint8Array(await this.audioBufferToWav(master, bitDepth)),
@@ -190,6 +199,7 @@ export class ExportService {
         onlyTrackIds: new Set([track.id]),
         ignoreSolo: true,
         sampleRate,
+        ...(options.signal ? { signal: options.signal } : {}),
       });
       entries.push({
         name: uniqueName(track.name || 'Track'),
@@ -587,7 +597,32 @@ export class ExportService {
       channel.gain.value = audible
         ? Math.max(0, Math.min(1.5, track.gain ?? track.volume ?? 0.8))
         : 0;
-      channel.connect(destination);
+
+      // VCA is a control multiplier, not an audio bus. Give the channel its own
+      // post-fader gain node so an offline curve can ride the group without
+      // overwriting the track fader's own automation.
+      const vcaId = this.vcaBuses?.assignments()[track.id];
+      if (vcaId) {
+        const vcaGain = offline.createGain();
+        const vcaBus = this.vcaBuses!.buses().find((bus) => bus.id === vcaId);
+        const vcaLane = laneFor(`vca:${vcaId}`, 'vca', 'volume');
+        vcaGain.gain.value = vcaBus?.muted
+          ? 0
+          : this.vcaBuses!.effectiveMultiplier(track.id);
+        channel.connect(vcaGain);
+        vcaGain.connect(destination);
+        if (audible && vcaLane && !vcaBus?.muted) {
+          this.scheduleLaneCurve(
+            vcaGain.gain,
+            vcaLane,
+            totalSeconds,
+            timing.minStepSeconds,
+            (value) => Math.max(0, Math.min(1.5, value)),
+          );
+        }
+      } else {
+        channel.connect(destination);
+      }
 
       let input: AudioNode = channel;
       let panner: StereoPannerNode | null = null;

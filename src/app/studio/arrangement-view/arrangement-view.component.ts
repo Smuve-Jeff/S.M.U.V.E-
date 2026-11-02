@@ -49,6 +49,7 @@ import {
 import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.service";
 import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio-bottom-sheet.component";
 import { AutomationCurveEditorComponent } from "../automation/automation-curve-editor.component";
+import { VcaBusService } from "../vca-bus.service";
 import { AutomationService } from "../automation.service";
 import { STEPS_PER_BAR, TempoMapService } from "../tempo-map.service";
 import { ArrangementMarkersService } from "../arrangement-markers.service";
@@ -78,6 +79,7 @@ export type ArrangementTool =
 })
 export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   public readonly musicManager = inject(MusicManagerService);
+  public readonly vcaBuses = inject(VcaBusService);
   public readonly audioSession = inject(AudioSessionService);
   public readonly history = inject(HistoryService);
   private readonly haptic = inject(HapticService);

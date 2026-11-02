@@ -353,7 +353,12 @@ describe("TransportBarComponent", () => {
       .spyOn(TestBed.inject(ExportService), 'exportProjectWav')
       .mockResolvedValueOnce(new Blob(['wav'], { type: 'audio/wav' }));
     await component.exportWav();
-    expect(exportWav).toHaveBeenCalledWith(16, 48000, expect.any(Function));
+    expect(exportWav).toHaveBeenCalledWith(
+      16,
+      48000,
+      expect.any(Function),
+      expect.any(AbortSignal),
+    );
 
     // The rate is not a WAV-only setting: stems carry it too.
     const exportStems = jest
@@ -364,6 +369,7 @@ describe("TransportBarComponent", () => {
       expect.objectContaining({
         bitDepth: 24,
         sampleRate: 48000,
+        signal: expect.any(AbortSignal),
         onProgress: expect.any(Function),
       }),
     );

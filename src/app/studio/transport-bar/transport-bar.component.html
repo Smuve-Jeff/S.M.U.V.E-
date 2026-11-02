@@ -843,6 +843,14 @@
       aria-live="polite"
     >
       <span class="ctb-export-progress-label">{{ exportProgressLabel() }}</span>
+      <button
+        type="button"
+        class="ctb-export-progress-cancel"
+        *ngIf="exportCanCancel()"
+        (click)="cancelExport()"
+      >
+        Cancel
+      </button>
       <span
         class="ctb-export-progress-track"
         *ngIf="exportProgress() !== null"
