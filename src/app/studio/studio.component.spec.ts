@@ -434,6 +434,19 @@ describe("StudioComponent", () => {
     expect(component.showArrangementStage()).toBe(false);
   });
 
+  it("returns from a tool to the guided steps even if the arrangement gate was open", () => {
+    component.arrangementGateOpen.set(true);
+    component.setActiveView("drum-machine");
+
+    component.returnToBeginnerWizard();
+
+    expect(component.activeView()).toBe("arrangement");
+    expect(component.arrangementGateOpen()).toBe(false);
+    expect(component.showArrangementStage()).toBe(false);
+    expect(component.isBeginnerMode()).toBe(true);
+    expect(mockProjectWorkspace.startFreshProject).not.toHaveBeenCalled();
+  });
+
   it("keeps Beginner Mode on when the wizard navigates to other views", () => {
     component.onWizardNavigate("drum-machine");
     expect(uiServiceMock.setBeginnerMode).not.toHaveBeenCalled();

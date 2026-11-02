@@ -95,14 +95,30 @@ describe("BeginnerWizardComponent", () => {
       expect(fixture.nativeElement.querySelector(".wizard-finish")).toBeTruthy();
     });
 
-    it("resumes at the first unfinished step on the next visit", () => {
+    it("resumes at the first unfinished step on a fresh session", () => {
       localStorage.setItem("smuve_wizard_done", JSON.stringify([1, 2]));
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        imports: [BeginnerWizardComponent],
+        providers: [{ provide: HapticService, useValue: haptic }],
+      });
 
       const resumed = TestBed.createComponent(BeginnerWizardComponent);
 
       expect(resumed.componentInstance.currentStep().title).toBe(
         "Sing or Rap on It",
       );
+    });
+
+    it("returns to the selected step after the wizard is remounted", () => {
+      component.goToStep(5);
+      fixture.destroy();
+
+      const returned = TestBed.createComponent(BeginnerWizardComponent);
+      returned.detectChanges();
+
+      expect(returned.componentInstance.currentStep().id).toBe(5);
+      expect(returned.componentInstance.completedCount()).toBe(0);
     });
 
     it("starts over from step one and clears the ticks", () => {

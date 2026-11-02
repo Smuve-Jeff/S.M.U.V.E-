@@ -23,6 +23,19 @@ describe("BeginnerStepHintComponent", () => {
     expect(text).toContain("Open the Recorder");
   });
 
+  it("offers an accessible button that requests the guided steps", () => {
+    const fixture = TestBed.createComponent(BeginnerStepHintComponent);
+    const onReturn = jest.fn();
+    fixture.componentInstance.returnToWizard.subscribe(onReturn);
+    fixture.detectChanges();
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector("button");
+    expect(button.type).toBe("button");
+    expect(button.getAttribute("aria-label")).toContain("Return to guided steps");
+    button.click();
+    expect(onReturn).toHaveBeenCalledTimes(1);
+  });
+
   it("follows a step selected in the wizard", () => {
     const fixture = TestBed.createComponent(BeginnerStepHintComponent);
     fixture.detectChanges();

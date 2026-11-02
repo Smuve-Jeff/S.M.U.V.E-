@@ -1,4 +1,4 @@
-import { Component, computed, inject } from "@angular/core";
+import { Component, computed, EventEmitter, inject, Output } from "@angular/core";
 import { BeginnerPathService } from "./beginner-path.service";
 
 /**
@@ -7,23 +7,30 @@ import { BeginnerPathService } from "./beginner-path.service";
  * path vanished the moment someone opened the Beat Machine or Recorder.
  *
  * Visibility is the parent's decision (Beginner Mode, and not the arrangement
- * view where the wizard already shows the step), so this component stays a
- * plain readout with no navigation of its own.
+ * view where the wizard already shows the step). The parent handles returning
+ * to the wizard when the artist activates the strip.
  */
 @Component({
   selector: "app-beginner-step-hint",
   standalone: true,
   template: `
-    <aside class="beginner-step-hint" aria-label="Beginner step">
+    <button
+      type="button"
+      class="beginner-step-hint"
+      [attr.aria-label]="'Return to guided steps: Step ' + step().id + ' of ' + total() + ', ' + step().title"
+      title="Return to guided steps"
+      (click)="returnToWizard.emit()"
+    >
       <span class="beginner-step-hint-badge">
         Step {{ step().id }} of {{ total() }}
       </span>
       <span class="beginner-step-hint-title">{{ step().title }}</span>
+      <span class="beginner-step-hint-return" aria-hidden="true">↩ Steps</span>
       <span class="beginner-step-hint-do">
         <span class="beginner-step-hint-label">Do this:</span>
         {{ step().description }}
       </span>
-    </aside>
+    </button>
   `,
   styles: [
     `
@@ -38,6 +45,8 @@ import { BeginnerPathService } from "./beginner-path.service";
         flex-wrap: wrap;
         align-items: baseline;
         gap: 4px 10px;
+        box-sizing: border-box;
+        width: 100%;
         max-width: 900px;
         margin: 0 auto;
         padding: 8px 12px;
@@ -51,6 +60,21 @@ import { BeginnerPathService } from "./beginner-path.service";
         );
         font-family: var(--font-sans);
         line-height: 1.35;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .beginner-step-hint:focus-visible {
+        outline: 2px solid var(--teal-400, #66f0ff);
+        outline-offset: 2px;
+      }
+
+      .beginner-step-hint-return {
+        flex: 0 0 auto;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--teal-400, #66f0ff);
+        white-space: nowrap;
       }
 
       .beginner-step-hint-badge {
@@ -149,6 +173,8 @@ import { BeginnerPathService } from "./beginner-path.service";
   ],
 })
 export class BeginnerStepHintComponent {
+  @Output() returnToWizard = new EventEmitter<void>();
+
   private readonly path = inject(BeginnerPathService);
 
   readonly step = this.path.currentStep;

@@ -6,9 +6,9 @@ const { chromium } = require('playwright');
  * line, but on a landscape phone (a workspace of roughly 200px) it collapses
  * to one row so the tool's own header stays on screen.
  *
- * Measured against this component's real stylesheet and DOM on 2026-11-02:
- *   360x640 -> 66.5px tall, instruction visible on two lines.
- *   568x320 -> 24.0px tall, instruction hidden, title still on one row.
+ * Measured in the Studio on 2026-11-02:
+ *   360x640 -> 66.5px tall, instruction visible.
+ *   568x320 -> 24.0px tall, instruction hidden, 139px of tool below it.
  */
 const BASE = 'http://127.0.0.1:3000';
 const PORTRAIT = { width: 360, height: 640 };

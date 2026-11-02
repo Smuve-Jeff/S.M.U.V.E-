@@ -494,6 +494,16 @@ body .comp-shell .comp-chrome-rail {
   }
 }
 
+/* Short landscape phones: the assistant FAB is a 44px button pinned to the
+   bottom edge of this tier, so the 76px reserve only shrank the workspace —
+   on a 320px-tall phone it left 79px of tool under the beginner step strip.
+   Keep a small scroll-end clearance instead of a dock-sized one. */
+@media (max-width: 932px) and (orientation: landscape) and (max-height: 500px) {
+  body .comp-shell .studio-primary-canvas {
+    padding-bottom: 16px;
+  }
+}
+
 /* ----------------------------------------------------------------------------
    6. TWO CLIPPING BUGS THE FULL-BLEED WINDOW EXPOSED
    Both were present before this pass; the extra 195px of shell made them

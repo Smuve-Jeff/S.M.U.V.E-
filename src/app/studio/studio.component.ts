@@ -1113,6 +1113,11 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     this.arrangementGateOpen.set(false);
   }
 
+  returnToBeginnerWizard() {
+    this.arrangementGateOpen.set(false);
+    this.setActiveView("arrangement");
+  }
+
   toggleBeginnerMode() {
     this.haptic.light();
     const next = !this.isBeginnerMode();

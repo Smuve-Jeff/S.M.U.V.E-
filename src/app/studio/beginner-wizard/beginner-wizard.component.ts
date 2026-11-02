@@ -198,18 +198,12 @@ export class BeginnerWizardComponent {
 
   private readonly beginnerPath = inject(BeginnerPathService);
 
-  constructor() {
-    // The in-tool hint shows the same step the wizard is on, including after
-    // a jump from the path strip.
-    this.beginnerPath.select(this.currentStep().id);
-  }
-
   doneSteps = signal<Set<number>>(this.loadDoneSteps());
   /** Set when this device refused to store wizard progress. */
   readonly progressError = signal<string | null>(null);
 
-  /** Which step is on screen. Resumes where the artist left off. */
-  stepIndex = signal(this.firstUnfinishedIndex());
+  /** Shared with the in-tool strip, including when the wizard is remounted. */
+  stepIndex = this.beginnerPath.stepIndex;
 
   currentStep = computed(() => this.steps[this.stepIndex()]);
 
@@ -233,7 +227,6 @@ export class BeginnerWizardComponent {
     if (index === -1) return;
     this.haptic.light();
     this.stepIndex.set(index);
-    this.beginnerPath.select(id);
   }
 
   /** Open the real Studio tool for the step on screen. */
@@ -255,7 +248,6 @@ export class BeginnerWizardComponent {
     } else if (!this.isLastStep()) {
       this.stepIndex.set(this.stepIndex() + 1);
     }
-    this.beginnerPath.select(this.currentStep().id);
   }
 
   resetWizard() {
@@ -263,7 +255,6 @@ export class BeginnerWizardComponent {
     this.doneSteps.set(new Set());
     this.persistDoneSteps(new Set());
     this.stepIndex.set(0);
-    this.beginnerPath.select(this.steps[0].id);
   }
 
   private markDone(id: number) {
@@ -272,13 +263,6 @@ export class BeginnerWizardComponent {
     next.add(id);
     this.doneSteps.set(next);
     this.persistDoneSteps(next);
-  }
-
-  /** First step without a tick; the last step when everything is done. */
-  private firstUnfinishedIndex(): number {
-    const done = this.doneSteps();
-    const index = this.steps.findIndex((step) => !done.has(step.id));
-    return index === -1 ? this.steps.length - 1 : index;
   }
 
   private loadDoneSteps(): Set<number> {
