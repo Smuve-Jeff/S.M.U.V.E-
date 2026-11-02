@@ -226,7 +226,8 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
   /** Compact delta against the pass currently on the desk. */
   passDelta(pass: CompositionPass): string {
     const current = this.core.current();
-    if (!current || current === pass.composition) return 'current';
+    if (!current) return 'not on the desk';
+    if (current === pass.composition) return 'current';
     const parts: string[] = [];
     const bars = pass.composition.totalBars - current.totalBars;
     if (bars) parts.push(`${bars > 0 ? '+' : ''}${bars} bars`);

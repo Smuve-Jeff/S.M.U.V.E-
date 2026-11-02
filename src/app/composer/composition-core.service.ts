@@ -30,6 +30,7 @@ import { GENRE_BY_ID } from './atlas';
 import { ComposerUplinkService } from './composer-uplink.service';
 
 const LIBRARY_KEY = 'smuve.composer.library.v1';
+const PASS_HISTORY_KEY = 'smuve.composer.history.v1';
 const MAX_SAVED = 60;
 /** Short session memory: enough to compare readings without becoming a log. */
 const MAX_PASS_HISTORY = 12;
@@ -52,6 +53,36 @@ export interface CompositionPass {
   /** The brief exactly as it stood when this pass was written. */
   brief: string;
   intensity: ComposerIntensity;
+  createdAt: number;
+  /** Kept so reload can reproduce the engine's RNG sequence exactly. */
+  titleProvided?: boolean;
+  keyProvided?: boolean;
+  bpmProvided?: boolean;
+}
+
+/**
+ * Compact persisted form: parameters, not scores. The score is rebuilt from
+ * its seed, so a full history costs a few kilobytes instead of megabytes.
+ */
+interface PersistedPass {
+  id: string;
+  title: string;
+  genreId: string;
+  seed: number;
+  motifSeed: number;
+  variation: VariationMode;
+  component: ComponentKind;
+  bars: number;
+  /** Provenance flags: omitted values consume RNG draws and must stay omitted. */
+  titleProvided: boolean;
+  keyProvided: boolean;
+  bpmProvided: boolean;
+  bpm: number;
+  keyLabel: string;
+  complexity: number;
+  energy: number;
+  darkness: number;
+  brief: string;
   createdAt: number;
 }
 
@@ -135,6 +166,7 @@ export class CompositionCoreService {
 
   constructor() {
     this.savedLibrary.set(this.readLibrary());
+    this.passHistory.set(this.readPassHistory());
   }
 
   /** Ensures a genre is selected as soon as the gate opens. */
@@ -216,7 +248,14 @@ export class CompositionCoreService {
       };
       this.current.set(withContext);
       this.appliedCompositionId.set(null);
-      this.recordPass(withContext, this.briefText().trim());
+      this.recordPass(withContext, this.briefText().trim(), {
+        titleProvided: overrides.title !== undefined,
+        keyProvided:
+          overrides.keyLabel !== undefined ||
+          brief.keyLabel !== undefined ||
+          keyPreference !== undefined,
+        bpmProvided: this.bpmOverride() !== null || overrides.bpm !== undefined || brief.bpm !== undefined,
+      });
       return withContext;
     } catch (cause: any) {
       this.error.set(`Generation failed: ${cause?.message ?? cause}`);
@@ -254,7 +293,11 @@ export class CompositionCoreService {
     this.current.set(withContext);
     this.appliedCompositionId.set(null);
     // Catalogue cards are exact seeds, not brief-steered passes.
-    this.recordPass(withContext, '');
+    this.recordPass(withContext, '', {
+      titleProvided: true,
+      keyProvided: true,
+      bpmProvided: true,
+    });
     return withContext;
   }
 
@@ -273,9 +316,14 @@ export class CompositionCoreService {
 
   clearPassHistory(): void {
     this.passHistory.set([]);
+    this.writePassHistory([]);
   }
 
-  private recordPass(composition: Composition, brief: string): void {
+  private recordPass(
+    composition: Composition,
+    brief: string,
+    provenance: { titleProvided: boolean; keyProvided: boolean; bpmProvided: boolean }
+  ): void {
     const duplicate = this.passHistory().find(
       (pass) =>
         pass.composition.id === composition.id &&
@@ -292,12 +340,123 @@ export class CompositionCoreService {
         darkness: composition.darkness,
       },
       createdAt: Date.now(),
+      titleProvided: provenance.titleProvided,
+      keyProvided: provenance.keyProvided,
+      bpmProvided: provenance.bpmProvided,
     };
     const next = [entry, ...this.passHistory().filter((pass) => pass !== entry)].slice(
       0,
       MAX_PASS_HISTORY
     );
     this.passHistory.set(next);
+    this.writePassHistory(next);
+  }
+
+  /** Rebuilds persisted passes from their deterministic generation parameters. */
+  private readPassHistory(): CompositionPass[] {
+    try {
+      const raw = localStorage.getItem(PASS_HISTORY_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      const passes: CompositionPass[] = [];
+      for (const record of parsed) {
+        const pass = this.hydratePass(record);
+        if (pass) passes.push(pass);
+        if (passes.length >= MAX_PASS_HISTORY) break;
+      }
+      return passes;
+    } catch {
+      return [];
+    }
+  }
+
+  private hydratePass(record: any): CompositionPass | null {
+    if (
+      !record ||
+      typeof record.genreId !== 'string' ||
+      typeof record.seed !== 'number' ||
+      typeof record.component !== 'string' ||
+      typeof record.variation !== 'string'
+    ) {
+      return null;
+    }
+    const genre = GENRE_BY_ID.get(record.genreId);
+    if (!genre) return null;
+    try {
+      const composition = composeWithGenre(genre, {
+        genreId: genre.id,
+        component: record.component as ComponentKind,
+        seed: record.seed,
+        motifSeed: typeof record.motifSeed === 'number' ? record.motifSeed : undefined,
+        // Stored values are already post-variation. Passing the mode again
+        // would re-apply its intensity adjustment and change the score.
+        variation: 'fresh',
+        bpm: record.bpmProvided === true && typeof record.bpm === 'number' ? record.bpm : undefined,
+        keyLabel:
+          record.keyProvided === true && typeof record.keyLabel === 'string'
+            ? record.keyLabel
+            : undefined,
+        complexity: typeof record.complexity === 'number' ? record.complexity : 0.6,
+        energy: typeof record.energy === 'number' ? record.energy : 0.6,
+        darkness: typeof record.darkness === 'number' ? record.darkness : 0.5,
+        // An implicit title must stay implicit so the engine burns the same
+        // RNG draw it did originally; the stored title is applied afterwards.
+        title: record.titleProvided === true ? record.title : undefined,
+        bars: typeof record.bars === 'number' ? record.bars : 8,
+      });
+      const brief = typeof record.brief === 'string' ? record.brief : '';
+      const title = typeof record.title === 'string' ? record.title : composition.title;
+      return {
+        id: typeof record.id === 'string' ? record.id : composition.id,
+        composition: {
+          ...composition,
+          title,
+          variation: record.variation as VariationMode,
+          rationale: [...composition.rationale, ...briefRationale(parseCompositionBrief(brief))],
+        },
+        brief,
+        intensity: {
+          complexity: composition.complexity,
+          energy: composition.energy,
+          darkness: composition.darkness,
+        },
+        createdAt: typeof record.createdAt === 'number' ? record.createdAt : Date.now(),
+        titleProvided: record.titleProvided === true,
+        keyProvided: record.keyProvided === true,
+        bpmProvided: record.bpmProvided === true,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private writePassHistory(passes: CompositionPass[]): void {
+    try {
+      const records: PersistedPass[] = passes.map((pass) => ({
+        titleProvided: pass.titleProvided === true,
+        keyProvided: pass.keyProvided === true,
+        bpmProvided: pass.bpmProvided === true,
+        id: pass.id,
+        title: pass.composition.title,
+        genreId: pass.composition.genreId,
+        seed: pass.composition.seed,
+        motifSeed: pass.composition.motifSeed,
+        variation: pass.composition.variation,
+        component: pass.composition.component,
+        bars: pass.composition.totalBars,
+        bpm: pass.composition.bpm,
+        keyLabel: pass.composition.keyLabel,
+        complexity: pass.composition.complexity,
+        energy: pass.composition.energy,
+        darkness: pass.composition.darkness,
+        brief: pass.brief,
+        createdAt: pass.createdAt,
+      }));
+      localStorage.setItem(PASS_HISTORY_KEY, JSON.stringify(records));
+    } catch {
+      // Storage can be unavailable; the in-memory history still works.
+    }
   }
 
   /**

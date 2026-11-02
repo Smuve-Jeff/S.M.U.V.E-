@@ -501,7 +501,7 @@ export class ChatMusicCommandEngineService {
     if (intent.kind === 'list') {
       return {
         content: [
-          `🎼 PASS HISTORY — ${history.length} kept this session`,
+          `🎼 PASS HISTORY — ${history.length} kept on this device`,
           ...history.map(
             (pass, index) =>
               `${index === currentIndex ? '▸' : ' '} ${index + 1}. ${pass.composition.title} — ${pass.composition.variation}, ${pass.composition.bpm} BPM${pass.brief ? ` · “${this.shortBrief(pass.brief)}”` : ''}`

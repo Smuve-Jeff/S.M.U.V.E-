@@ -11,8 +11,9 @@ import { NotificationService } from '../services/notification.service';
 describe('CompositionCoreService creative briefs', () => {
   let service: CompositionCoreService;
 
-  beforeEach(() => {
-    localStorage.clear();
+  /** Builds a fresh service instance, as a page reload would. */
+  const createService = () => {
+    TestBed.resetTestingModule();
     const genre = GENRE_BY_ID.get('house');
     if (!genre) throw new Error('house genre missing from atlas');
 
@@ -39,6 +40,11 @@ describe('CompositionCoreService creative briefs', () => {
       ],
     });
     service = TestBed.inject(CompositionCoreService);
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    createService();
   });
 
   it('steers tempo, key and darkness from the brief', () => {
@@ -127,6 +133,46 @@ describe('CompositionCoreService creative briefs', () => {
     service.generate({ seed: 5 });
     service.generate({ seed: 5 });
     expect(service.passHistory()).toHaveLength(1);
+  });
+
+  it('rebuilds the exact history after a reload', () => {
+    service.setBrief('dark and 140 bpm');
+    service.generate({ seed: 21 });
+    service.generate({ seed: 22, variation: 'evolve' });
+    const before = service.passHistory().map((pass) => ({
+      id: pass.id,
+      brief: pass.brief,
+      variation: pass.composition.variation,
+      score: JSON.stringify({
+        bpm: pass.composition.bpm,
+        key: pass.composition.keyLabel,
+        bars: pass.composition.totalBars,
+        parts: pass.composition.parts.map((part) => ({ notes: part.notes, hits: part.hits })),
+      }),
+    }));
+
+    createService();
+
+    const after = service.passHistory().map((pass) => ({
+      id: pass.id,
+      brief: pass.brief,
+      variation: pass.composition.variation,
+      score: JSON.stringify({
+        bpm: pass.composition.bpm,
+        key: pass.composition.keyLabel,
+        bars: pass.composition.totalBars,
+        parts: pass.composition.parts.map((part) => ({ notes: part.notes, hits: part.hits })),
+      }),
+    }));
+    expect(after).toEqual(before);
+    expect(service.passHistory()[0].brief).toBe('dark and 140 bpm');
+  });
+
+  it('keeps a cleared history cleared after a reload', () => {
+    service.generate({ seed: 3 });
+    service.clearPassHistory();
+    createService();
+    expect(service.passHistory()).toHaveLength(0);
   });
 
   it('leaves the dials alone when the brief says nothing actionable', () => {
