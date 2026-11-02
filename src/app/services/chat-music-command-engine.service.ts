@@ -592,12 +592,8 @@ export class ChatMusicCommandEngineService {
     if (audition.error()) {
       return { content: audition.error()!, actions: [] };
     }
-    const shortened =
-      pass.composition.durationSeconds > audition.maxAuditionSeconds
-        ? ` — the first ${Math.round(audition.maxAuditionSeconds / 60)} minutes of ${Math.ceil(pass.composition.durationSeconds / 60)}`
-        : '';
     return {
-      content: `Auditioning “${pass.composition.title}” (${pass.composition.variation})${shortened}. The pass on the desk is untouched.`,
+      content: `Auditioning “${pass.composition.title}” (${pass.composition.variation}). The pass on the desk is untouched.`,
       actions: [],
     };
   }
@@ -823,7 +819,6 @@ export class ChatMusicCommandEngineService {
 
   private async loadCompositionAudition(): Promise<{
     playing: () => boolean;
-    maxAuditionSeconds: number;
     error: () => string | null;
     stop: () => void;
     toggle: (composition: Composition) => Promise<void>;

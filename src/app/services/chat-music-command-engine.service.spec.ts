@@ -100,7 +100,6 @@ describe('ChatMusicCommandEngineService', () => {
     stop: jest.Mock;
     playing: () => boolean;
     error: () => string | null;
-    maxAuditionSeconds: number;
   };
 
   beforeEach(() => {
@@ -153,7 +152,6 @@ describe('ChatMusicCommandEngineService', () => {
       stop: jest.fn(() => auditionPlaying.set(false)),
       playing: () => auditionPlaying(),
       error: () => null,
-      maxAuditionSeconds: 120,
     };
     setBrief = jest.fn();
     const composerMock = {

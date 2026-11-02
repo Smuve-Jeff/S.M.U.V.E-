@@ -149,14 +149,6 @@ export interface SectionTimelineSegment {
   color: string;
 }
 
-/** Where the full arrangement crosses the audition renderer's time cap. */
-export interface SectionTimelineCap {
-  /** Position across the full timeline, 0–100. */
-  percent: number;
-  /** One-based bar the cap reaches. */
-  bar: number;
-}
-
 @Component({
   selector: "app-smart-creation-sheet",
   standalone: true,
@@ -1056,26 +1048,6 @@ export class SmartCreationSheetComponent implements OnDestroy {
     return `${bars} bar${bars === 1 ? "" : "s"} total`;
   }
 
-  /**
-   * The point where the full arrangement exceeds the 2:00 audition cap, or
-   * null when the whole render fits. Bars are constant-time at one tempo, so
-   * the cap maps directly onto the proportional timeline.
-   */
-  sectionTimelineCap(template: ProjectTemplate): SectionTimelineCap | null {
-    const totalBars = this.sectionTimelineTotalBars(template);
-    if (!totalBars) return null;
-    const bpm = Math.max(40, Math.min(240, template.bpm || 120));
-    const secondsPerBar = (60 / bpm) * 4;
-    const maxSeconds = this.compositionAudition.maxAuditionSeconds;
-    if (totalBars * secondsPerBar <= maxSeconds) return null;
-
-    const capBars = maxSeconds / secondsPerBar;
-    return {
-      percent: Math.min(100, (capBars / totalBars) * 100),
-      bar: Math.max(1, Math.ceil(capBars)),
-    };
-  }
-
   /** Full text alternative for the visual timeline. */
   sectionTimelineAriaLabel(template: ProjectTemplate): string {
     const segments = this.sectionTimeline(template);
@@ -1088,10 +1060,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
           }`,
       )
       .join("; ");
-    const cap = this.sectionTimelineCap(template);
     return `Arrangement timeline: ${spans}. ${this.sectionTimelineSummary(
       template,
-    )}.${cap ? ` The full preview stops at 2:00, around bar ${cap.bar}.` : ""}`;
+    )}.`;
   }
 
   sectionTimelineSegmentLabel(segment: SectionTimelineSegment): string {

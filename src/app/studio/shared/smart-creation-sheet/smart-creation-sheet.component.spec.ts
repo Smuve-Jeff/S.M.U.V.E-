@@ -143,7 +143,6 @@ describe("SmartCreationSheetComponent", () => {
     progress: signal(0),
     previewSeconds: signal(0),
     previewBars: signal(1),
-    maxAuditionSeconds: 120,
     startScore: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn(),
     clear: jest.fn(),
@@ -1946,57 +1945,6 @@ describe("SmartCreationSheetComponent", () => {
     expect(mockSnackbar.info).toHaveBeenCalledWith(
       "Stopped the saved-section arrangement.",
     );
-  });
-
-  it("marks the two-minute cap when the full arrangement exceeds it", () => {
-    const template = sectionTemplateFixture();
-    const long = {
-      id: "sec-long",
-      name: "Long",
-      bars: 32,
-      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
-    };
-    const capped = {
-      ...template,
-      bpm: 40,
-      sections: [long, { ...long, id: "sec-long-2", name: "Long 2" }],
-    };
-
-    expect(component.sectionTimelineCap(capped)).toEqual({
-      percent: 31.25,
-      bar: 20,
-    });
-    expect(component.sectionTimelineAriaLabel(capped)).toContain(
-      "stops at 2:00, around bar 20",
-    );
-
-    const short = {
-      ...template,
-      bpm: 100,
-      sections: [{ ...long, id: "sec-short", name: "Short", bars: 5 }],
-    };
-    expect(component.sectionTimelineCap(short)).toBeNull();
-
-    const exact = {
-      ...template,
-      bpm: 40,
-      sections: [{ ...long, id: "sec-exact", name: "Exact", bars: 20 }],
-    };
-    expect(component.sectionTimelineCap(exact)).toBeNull();
-
-    userTemplatesSignal.set([capped]);
-    component.toggleTemplateDetails(capped);
-    fixture.detectChanges();
-    const marker: HTMLElement = fixture.nativeElement.querySelector(
-      ".sc-arrangement-timeline-cap",
-    );
-    expect(marker).not.toBeNull();
-    expect(marker.style.left).toBe("31.25%");
-    const note: HTMLElement = fixture.nativeElement.querySelector(
-      ".sc-arrangement-timeline-cap-note",
-    );
-    expect(note.textContent).toContain("Full preview stops at 2:00");
-    expect(note.textContent).toContain("bar 20");
   });
 
   it("follows the sounding section during full and tail previews", async () => {

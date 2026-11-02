@@ -12,6 +12,108 @@ export interface AuditionScore {
   parts: ComposerPart[];
 }
 
+/** One slice of a long score, with a tail used for the next crossfade. */
+export interface AuditionChunkPlan {
+  startSeconds: number;
+  mainSeconds: number;
+  renderSeconds: number;
+}
+
+/**
+ * Split a score into bounded slices. Every slice but the last renders an extra
+ * overlap tail; the next slice crossfades over that tail, so the joined audio
+ * has no seam at the boundary.
+ */
+export function planAuditionChunks(
+  totalSeconds: number,
+  chunkSeconds = 120,
+  overlapSeconds = 1,
+): AuditionChunkPlan[] {
+  const total = Math.max(0.001, totalSeconds);
+  const chunk = Math.max(0.1, chunkSeconds);
+  const overlap = Math.min(Math.max(0, overlapSeconds), chunk / 4);
+  const count = Math.max(1, Math.ceil(total / chunk - 1e-9));
+  return Array.from({ length: count }, (_, index) => {
+    const startSeconds = index * chunk;
+    const mainSeconds = Math.min(chunk, total - startSeconds);
+    const isLast = index === count - 1;
+    return {
+      startSeconds,
+      mainSeconds,
+      renderSeconds: isLast ? mainSeconds : mainSeconds + overlap,
+    };
+  });
+}
+
+/** The slice of AudioBuffer the stitcher needs. */
+export interface AuditionChunkBuffer {
+  length: number;
+  numberOfChannels: number;
+  getChannelData(channel: number): Float32Array;
+}
+
+/**
+ * Copy one rendered slice into the full score, crossfading its first overlap
+ * with the previous slice's tail. Returns the new write position.
+ */
+export function writeAuditionChunk(
+  output: AuditionChunkBuffer,
+  previous: AuditionChunkBuffer | null,
+  previousMainFrames: number,
+  chunk: AuditionChunkBuffer,
+  chunkMainFrames: number,
+  overlapFrames: number,
+  writeFrame: number,
+): number {
+  const mainFrames = Math.max(
+    0,
+    Math.min(chunkMainFrames, chunk.length, output.length - writeFrame),
+  );
+  const channels = Math.min(output.numberOfChannels, chunk.numberOfChannels);
+
+  if (!previous || overlapFrames <= 0) {
+    for (let channel = 0; channel < channels; channel++) {
+      output
+        .getChannelData(channel)
+        .set(chunk.getChannelData(channel).subarray(0, mainFrames), writeFrame);
+    }
+    return writeFrame + mainFrames;
+  }
+
+  const previousTail = Math.max(0, previous.length - previousMainFrames);
+  const blendFrames = Math.max(
+    0,
+    Math.min(
+      overlapFrames,
+      mainFrames,
+      previousTail,
+      output.length - writeFrame,
+    ),
+  );
+  const blendChannels = Math.min(channels, previous.numberOfChannels);
+
+  for (let channel = 0; channel < blendChannels; channel++) {
+    const from = previous.getChannelData(channel);
+    const to = output.getChannelData(channel);
+    const next = chunk.getChannelData(channel);
+    for (let frame = 0; frame < blendFrames; frame++) {
+      const mix = (frame + 1) / (blendFrames + 1);
+      to[writeFrame + frame] =
+        from[previousMainFrames + frame] * (1 - mix) + next[frame] * mix;
+    }
+  }
+
+  for (let channel = 0; channel < channels; channel++) {
+    output
+      .getChannelData(channel)
+      .set(
+        chunk.getChannelData(channel).subarray(blendFrames, mainFrames),
+        writeFrame + blendFrames,
+      );
+  }
+  return writeFrame + mainFrames;
+}
+
 /**
  * Audition renderer.
  *
@@ -28,8 +130,11 @@ export class CompositionAuditionService {
   private engine = inject(AudioEngineService);
   private notify = inject(NotificationService);
 
-  /** Hard cap so an audition always starts quickly. */
-  readonly maxAuditionSeconds = 120;
+  /** Bounded render slices keep long auditions from exhausting memory. */
+  readonly renderChunkSeconds = 120;
+
+  /** Rendered tail crossfaded into the next slice. */
+  readonly chunkOverlapSeconds = 1;
 
   rendering = signal(false);
   error = signal<string | null>(null);
@@ -120,44 +225,85 @@ export class CompositionAuditionService {
     this.readyCompositionId.set(null);
 
     try {
-      const seconds = Math.min(
-        this.maxAuditionSeconds,
-        Math.max(2, score.durationSeconds)
-      );
+      const seconds = Math.max(2, score.durationSeconds);
       const stepSeconds = 60 / Math.max(40, score.bpm) / 4;
       const sampleRate = 44100;
-      const frames = Math.ceil(seconds * sampleRate);
-      const ctx = new OfflineAudioContext(2, frames, sampleRate);
+      const totalFrames = Math.ceil(seconds * sampleRate);
+      const plan = planAuditionChunks(
+        seconds,
+        this.renderChunkSeconds,
+        this.chunkOverlapSeconds,
+      );
+      const output = new AudioBuffer({
+        length: totalFrames,
+        numberOfChannels: 2,
+        sampleRate,
+      });
+      const overlapFrames = Math.round(this.chunkOverlapSeconds * sampleRate);
+      let previous: AudioBuffer | null = null;
+      let previousMainFrames = 0;
+      let writeFrame = 0;
 
-      const master = ctx.createGain();
-      master.gain.value = 0.9;
-      const compressor = ctx.createDynamicsCompressor();
-      compressor.threshold.value = -18;
-      compressor.knee.value = 24;
-      compressor.ratio.value = 3;
-      compressor.attack.value = 0.004;
-      compressor.release.value = 0.18;
-      master.connect(compressor);
-      compressor.connect(ctx.destination);
+      for (const slice of plan) {
+        const frames = Math.max(
+          1,
+          Math.ceil(slice.renderSeconds * sampleRate),
+        );
+        const ctx = new OfflineAudioContext(2, frames, sampleRate);
 
-      this.noise = this.makeNoiseBuffer(ctx, 1.2);
+        const master = ctx.createGain();
+        master.gain.value = 0.9;
+        const compressor = ctx.createDynamicsCompressor();
+        compressor.threshold.value = -18;
+        compressor.knee.value = 24;
+        compressor.ratio.value = 3;
+        compressor.attack.value = 0.004;
+        compressor.release.value = 0.18;
+        master.connect(compressor);
+        compressor.connect(ctx.destination);
 
-      for (const part of score.parts) {
-        // Reference harmony is context, not a deliverable; leave it out.
-        if (part.reference) continue;
-        if (part.hits.length) this.scheduleDrums(ctx, master, part, stepSeconds, seconds);
-        if (part.notes.length) this.scheduleNotes(ctx, master, part, stepSeconds, seconds);
+        this.noise = this.makeNoiseBuffer(ctx, 1.2);
+        const from = slice.startSeconds;
+        const until = from + slice.renderSeconds;
+
+        for (const part of score.parts) {
+          // Reference harmony is context, not a deliverable; leave it out.
+          if (part.reference) continue;
+          if (part.hits.length) {
+            this.scheduleDrums(ctx, master, part, stepSeconds, from, until);
+          }
+          if (part.notes.length) {
+            this.scheduleNotes(ctx, master, part, stepSeconds, from, until);
+          }
+        }
+
+        const rendered = await ctx.startRendering();
+        if (token !== this.renderToken) return;
+        const mainFrames = Math.min(
+          Math.ceil(slice.mainSeconds * sampleRate),
+          totalFrames - writeFrame,
+        );
+        writeFrame = writeAuditionChunk(
+          output,
+          previous,
+          previousMainFrames,
+          rendered,
+          mainFrames,
+          overlapFrames,
+          writeFrame,
+        );
+        previous = rendered;
+        previousMainFrames = mainFrames;
       }
 
-      const rendered = await ctx.startRendering();
       if (token !== this.renderToken) return;
-      this.buffer = rendered;
-      this.previewSeconds.set(Math.round(rendered.duration));
+      this.buffer = output;
+      this.previewSeconds.set(Math.round(output.duration));
       this.previewBars.set(
         Math.min(
           score.totalBars,
-          Math.ceil(rendered.duration / (stepSeconds * 16))
-        )
+          Math.ceil(output.duration / (stepSeconds * 16)),
+        ),
       );
       this.readyCompositionId.set(score.id);
     } catch (cause: any) {
@@ -233,12 +379,13 @@ export class CompositionAuditionService {
     bus: AudioNode,
     part: ComposerPart,
     stepSeconds: number,
-    limitSeconds: number
+    fromSeconds: number,
+    toSeconds: number,
   ): void {
     for (const hit of part.hits) {
       const time = (hit.bar * 16 + hit.step) * stepSeconds;
-      if (time >= limitSeconds) continue;
-      this.drum(ctx, bus, hit.lane, time, hit.velocity);
+      if (time < fromSeconds || time >= toSeconds) continue;
+      this.drum(ctx, bus, hit.lane, time - fromSeconds, hit.velocity);
     }
   }
 
@@ -247,15 +394,43 @@ export class CompositionAuditionService {
     bus: AudioNode,
     part: ComposerPart,
     stepSeconds: number,
-    limitSeconds: number
+    fromSeconds: number,
+    toSeconds: number,
   ): void {
     const voice = this.voiceFor(part.role);
     for (const note of part.notes) {
       const time = (note.bar * 16 + note.step) * stepSeconds;
-      if (time >= limitSeconds) continue;
       const duration = Math.max(0.05, note.length * stepSeconds * 0.94);
+      const end = time + duration;
       const freq = 440 * Math.pow(2, (note.midi - 69) / 12);
-      this.tone(ctx, bus, voice, freq, time, duration, note.velocity, Boolean(note.slide));
+
+      if (time >= fromSeconds && time < toSeconds) {
+        this.tone(
+          ctx,
+          bus,
+          voice,
+          freq,
+          time - fromSeconds,
+          duration,
+          note.velocity,
+          Boolean(note.slide),
+          0,
+        );
+      } else if (time < fromSeconds && end > fromSeconds) {
+        // A held note that began in an earlier slice resumes with its envelope
+        // already in progress, so the crossfade joins without a restart click.
+        this.tone(
+          ctx,
+          bus,
+          voice,
+          freq,
+          0,
+          duration,
+          note.velocity,
+          Boolean(note.slide),
+          fromSeconds - time,
+        );
+      }
     }
   }
 
@@ -292,10 +467,12 @@ export class CompositionAuditionService {
     voice: { type: OscillatorType; cutoff: number; gain: number; attack: number },
     freq: number,
     time: number,
-    duration: number,
+    noteDuration: number,
     velocity: number,
-    slide: boolean
+    slide: boolean,
+    offsetSeconds: number,
   ): void {
+    if (offsetSeconds >= noteDuration) return;
     const osc = ctx.createOscillator();
     osc.type = voice.type;
     const filter = ctx.createBiquadFilter();
@@ -304,21 +481,54 @@ export class CompositionAuditionService {
     filter.Q.value = 0.6;
     const gain = ctx.createGain();
     const peak = Math.max(0.0001, voice.gain * Math.min(1, velocity));
+
     if (slide) {
-      osc.frequency.setValueAtTime(freq * 0.94, time);
-      osc.frequency.exponentialRampToValueAtTime(freq, time + Math.min(0.18, duration * 0.4));
+      const slideDuration = Math.min(0.18, noteDuration * 0.4);
+      const slideStart = freq * 0.94;
+      if (offsetSeconds < slideDuration) {
+        const currentFreq =
+          slideStart *
+          Math.pow(freq / slideStart, offsetSeconds / Math.max(0.0001, slideDuration));
+        osc.frequency.setValueAtTime(currentFreq, time);
+        osc.frequency.exponentialRampToValueAtTime(
+          freq,
+          time + Math.max(0.001, slideDuration - offsetSeconds),
+        );
+      } else {
+        osc.frequency.setValueAtTime(freq, time);
+      }
     } else {
       osc.frequency.setValueAtTime(freq, time);
     }
-    const attackEnd = time + Math.min(voice.attack, duration * 0.5);
-    gain.gain.setValueAtTime(0.0001, time);
-    gain.gain.exponentialRampToValueAtTime(peak, attackEnd);
-    gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+    const attack = Math.min(voice.attack, noteDuration * 0.5);
+    if (offsetSeconds < attack) {
+      const startGain =
+        0.0001 *
+        Math.pow(peak / 0.0001, offsetSeconds / Math.max(0.0001, attack));
+      gain.gain.setValueAtTime(Math.max(0.0001, startGain), time);
+      gain.gain.exponentialRampToValueAtTime(
+        Math.max(0.0002, peak),
+        time + Math.max(0.001, attack - offsetSeconds),
+      );
+    } else {
+      const decay =
+        (offsetSeconds - attack) /
+        Math.max(0.0001, noteDuration - attack);
+      gain.gain.setValueAtTime(
+        Math.max(0.0001, peak * Math.pow(0.0001 / peak, decay)),
+        time,
+      );
+    }
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      time + Math.max(0.001, noteDuration - offsetSeconds),
+    );
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(bus);
     osc.start(time);
-    osc.stop(time + duration + 0.02);
+    osc.stop(time + Math.max(0.001, noteDuration - offsetSeconds) + 0.02);
   }
 
   /* ── Drum voices ─────────────────────────────────────────────── */

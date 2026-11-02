@@ -136,9 +136,7 @@ export class CompositionCoreComponent implements OnInit, OnDestroy {
     if (this.audition.readyCompositionId() === composition.id) {
       return `Rendered ${formatTrackDuration(this.audition.previewSeconds())} · synthesized from the score, not a mix`;
     }
-    return composition.durationSeconds > this.audition.maxAuditionSeconds
-      ? `Audition plays the first ${formatTrackDuration(this.audition.maxAuditionSeconds)} of ${formatTrackDuration(composition.durationSeconds)}`
-      : `Audition the whole ${formatTrackDuration(composition.durationSeconds)} pass before loading it`;
+    return `Audition the whole ${formatTrackDuration(composition.durationSeconds)} pass before loading it`;
   });
 
   readonly generateLabel = computed(() => {
