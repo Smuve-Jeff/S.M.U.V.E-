@@ -219,6 +219,21 @@ describe('LiveEngineService', () => {
     expect((service as any).sustainActive).toBe(false);
   });
 
+  it('applies channel and polyphonic aftertouch to the live filter', () => {
+    const rampTo = jest.fn();
+    (service as any).filterNode = { frequency: { rampTo } };
+    (service as any).activePreset = { synth: { cutoff: 1000 } };
+
+    (service as any).handleMidiMessage({ data: [0xd0, 64, 0] });
+    expect(service.aftertouch()).toBeCloseTo(64 / 127, 5);
+    expect(rampTo).toHaveBeenCalled();
+
+    rampTo.mockClear();
+    (service as any).handleMidiMessage({ data: [0xa0, 60, 127] });
+    expect(service.aftertouch()).toBe(1);
+    expect(rampTo).toHaveBeenCalledWith(expect.closeTo(20000, 0), 0.03);
+  });
+
   it('should initialize with fallback when grand-piano preset fails', async () => {
     // Clear the instrument so the fallback is triggered
     (service as any).currentInstrumentNode = null;

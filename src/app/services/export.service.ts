@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { AudioEngineService } from './audio-engine.service';
+import { AudioEngineService, type VoiceControlPoint } from './audio-engine.service';
 import { InstrumentsService, scheduleOfflinePresetSample } from './instruments.service';
 import { connectOfflineMasterChain } from './offline-master-chain';
 import {
@@ -760,6 +760,29 @@ export class ExportService {
    * at the few points the artist happened to place. Sampling covers the whole
    * render, so the final value holds through the tail.
    */
+  /** Write a sampled CC curve onto an AudioParam for sampler notes. */
+  private scheduleControlCurve(
+    param: AudioParam,
+    points: VoiceControlPoint[],
+    key: keyof VoiceControlPoint,
+    scale: (value: number) => number,
+    startTime = 0,
+  ): void {
+    let scheduled = false;
+    for (const point of points) {
+      const raw = point[key];
+      if (typeof raw !== 'number' || !Number.isFinite(raw)) continue;
+      const at = startTime + Math.max(0, point.at);
+      const value = scale(raw);
+      if (!scheduled) {
+        param.setValueAtTime(value, at);
+        scheduled = true;
+      } else {
+        param.linearRampToValueAtTime(value, at);
+      }
+    }
+  }
+
   private scheduleLaneCurve(
     param: AudioParam,
     lane: AutomationLane,
@@ -815,15 +838,24 @@ export class ExportService {
       // CC lanes are shared with live playback: sample the same curve over
       // this note and hand it to the shared voice builder.
       const noteStartStep = Math.max(0, (n.step ?? 0) + (n.microOffset ?? 0));
-      const midiCc = this.automation.sampleCcCurve(
+      let midiCc = this.automation.sampleCcCurve(
         trackId,
         noteStartStep,
         noteStartStep + Math.max(0.01, n.length ?? 1),
         secondsPerStep,
       );
+      const pressure = Number(n.aftertouch);
+      if (Number.isFinite(pressure) && pressure > 0) {
+        const touchGain = 0.5 + 0.5 * Math.max(0, Math.min(1, pressure));
+        if (midiCc.length > 0) {
+          for (const point of midiCc) {
+            point.expression = (point.expression ?? 1) * touchGain;
+          }
+        } else {
+          midiCc = [{ at: 0, expression: touchGain }];
+        }
+      }
       const ccStart = midiCc[0];
-      const ccVelocity = (value: number): number =>
-        value * (ccStart?.expression ?? 1);
       const ccPan = ccStart?.pan ?? n.notePan ?? trackPan;
 
       // Imported one-shot notes carry their decoded PCM. Schedule the sample
@@ -844,9 +876,30 @@ export class ExportService {
           const source = ctx.createBufferSource();
           source.buffer = oneShot;
           const gain = ctx.createGain();
-          gain.gain.value = Math.max(0, Math.min(1, ccVelocity(n.velocity ?? 0.8)));
+          const oneShotVelocity = Math.max(0, Math.min(1, n.velocity ?? 0.8));
+          if (midiCc.some((point) => typeof point.expression === 'number')) {
+            this.scheduleControlCurve(
+              gain.gain,
+              midiCc,
+              'expression',
+              (value) => Math.max(0, Math.min(1, oneShotVelocity * value)),
+              start,
+            );
+          } else {
+            gain.gain.value = oneShotVelocity;
+          }
           const panner = ctx.createStereoPanner();
-          panner.pan.value = Math.max(-1, Math.min(1, ccPan));
+          if (midiCc.some((point) => typeof point.pan === 'number')) {
+            this.scheduleControlCurve(
+              panner.pan,
+              midiCc,
+              'pan',
+              (value) => Math.max(-1, Math.min(1, value)),
+              start,
+            );
+          } else {
+            panner.pan.value = Math.max(-1, Math.min(1, ccPan));
+          }
           source.connect(panner);
           panner.connect(gain);
           gain.connect(master);
@@ -876,7 +929,7 @@ export class ExportService {
         );
         if (!sample) throw new Error(`Sample for MIDI ${n.midi} in “${instrumentId}” is unavailable.`);
         for (let hit = 0; hit < ratchet; hit++) {
-          scheduleOfflinePresetSample(ctx, master, sample, start + hit * secondsPerStep / ratchet, dur, ccVelocity(n.velocity ?? 0.8), ccPan);
+          scheduleOfflinePresetSample(ctx, master, sample, start + hit * secondsPerStep / ratchet, dur, n.velocity ?? 0.8, ccPan, midiCc);
         }
         continue;
       }

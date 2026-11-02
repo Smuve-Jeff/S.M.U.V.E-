@@ -117,6 +117,21 @@ describe('MusicManagerService clip glue workflows', () => {
     expect(params.midiCc[0].cutoff).toBeCloseTo(20, 5);
   });
 
+  it('applies per-note aftertouch as a pressure offset on the voice', () => {
+    const track = service.tracks()[0];
+    track.notes = [
+      { id: 'touch-note', midi: 60, step: 0, length: 4, velocity: 0.8, aftertouch: 0.8 },
+    ];
+    service.tracks.set([...service.tracks()]);
+
+    engineMock.triggerAttack.mockClear();
+    service.playStep(0, 1, 0.25);
+
+    const call = engineMock.triggerAttack.mock.calls.find((entry) => entry[0] === track.id)!;
+    const params = call[9];
+    expect(params.midiCc[0].expression).toBeCloseTo(0.9, 5);
+  });
+
   it('preserves simultaneous drum hits and recipe swing independently from 808 bass', () => {
     service.applyGeneratedRecipe({
       id: 'test', name: 'Test', glyph: '', bpm: 100, vibe: '', progression: [],
@@ -639,7 +654,7 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
     expect(service.arrangementNotes(service.tracks()[0])[0].step).toBe(16);
     service.playStep(16, 3, 0.25);
     expect((engineMock as any).triggerSampler).toHaveBeenCalledWith(
-      'track-1', buffer, 3, 0.7, 0, 0.55, 2, 0, 0.05, 0, 0, 48000, 2, true,
+      'track-1', buffer, 3, 0.7, 0, 0.55, 2, 0, 0.05, 0, 0, 48000, 2, true, 0, [],
     );
     expect(engineMock.triggerAttack).not.toHaveBeenCalled();
   });
@@ -1857,7 +1872,7 @@ describe('MusicManagerService live plugin insert wiring', () => {
       0.75,
       0,
       0.42,
-      1, 0, 0, 0, 0, 48000, 2, true,
+      1, 0, 0, 0, 0, 48000, 2, true, 0, [],
     );
     expect(triggerAttack).not.toHaveBeenCalled();
   });
@@ -1899,7 +1914,7 @@ describe('MusicManagerService live plugin insert wiring', () => {
       0.8,
       0,
       0.5,
-      1, 0, 0, 0, 0, 48000, 2, true,
+      1, 0, 0, 0, 0, 48000, 2, true, 0, [],
     );
     expect(triggerAttack).not.toHaveBeenCalled();
     service.stemAudioCache.delete('drum-sample-ref');

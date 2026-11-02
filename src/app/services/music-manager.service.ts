@@ -3963,18 +3963,29 @@ export class MusicManagerService {
               // roll. Sample them across this note so the shared voice builder
               // can schedule the curve; before this, the lanes were silent.
               const noteStartStep = step + stepFraction;
-              const ccCurve = this.automation.sampleCcCurve(
+              let ccCurve = this.automation.sampleCcCurve(
                 t.id,
                 noteStartStep,
                 noteStartStep + Math.max(0.01, n.length),
                 duration,
               );
+              // Per-note aftertouch is held for the note. Multiplying the
+              // curve preserves any CC11 ride instead of replacing it.
+              const pressure = Number(n.aftertouch);
+              if (Number.isFinite(pressure) && pressure > 0) {
+                const touchGain = 0.5 + 0.5 * Math.max(0, Math.min(1, pressure));
+                if (ccCurve.length > 0) {
+                  for (const point of ccCurve) {
+                    point.expression = (point.expression ?? 1) * touchGain;
+                  }
+                } else {
+                  ccCurve = [{ at: 0, expression: touchGain }];
+                }
+              }
               const ccStart = ccCurve[0];
               const voiceParams = ccCurve.length
                 ? { ...synthParams, midiCc: ccCurve }
                 : synthParams;
-              const ccVelocity = (value: number): number =>
-                value * (ccStart?.expression ?? 1);
               const ccPan = ccStart?.pan ?? notePan;
 
               // Imported drum/percussion one-shots are attached to the pad
@@ -4005,10 +4016,10 @@ export class MusicManagerService {
                     t.id,
                     oneShot,
                     microTime + hit * duration / ratchet,
-                    ccVelocity(n.velocity ?? 0.8),
+                    n.velocity ?? 0.8,
                     ccPan,
                     Math.max(0.01, oneShot.duration),
-                    1, 0, 0, 0, 0, 48000, 2, true,
+                    1, 0, 0, 0, 0, 48000, 2, true, 0, ccCurve,
                   );
                 }
                 return;
@@ -4026,10 +4037,10 @@ export class MusicManagerService {
                   );
                   for (let hit = 0; hit < ratchet; hit++) {
                     this.engine.triggerSampler(
-                      t.id, sample.buffer, microTime + hit * duration / ratchet, ccVelocity(n.velocity ?? 0.8), ccPan,
+                      t.id, sample.buffer, microTime + hit * duration / ratchet, n.velocity ?? 0.8, ccPan,
                       sampleDuration, sample.rate, 0,
                       sample.oneShot ? 0 : Math.min(sample.release, sampleDuration),
-                      0, 0, 48000, 2, true,
+                      0, 0, 48000, 2, true, 0, ccCurve,
                     );
                   }
                   return;

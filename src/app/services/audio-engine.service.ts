@@ -3033,11 +3033,20 @@ export class AudioEngineService {
       lfoTarget !== "pitch" &&
       lfoTarget !== "volume" &&
       lfoTarget !== "pan";
+    // CC1 routing comes from the track's synth patch. The old code hard-wired
+    // it to 5.5 Hz / 25 cents of vibrato, so the wheel could not drive the
+    // filter, volume or pan.
+    const modWheel =
+      p.modWheel && typeof p.modWheel === 'object' ? p.modWheel : {};
+    const modWheelTarget = String(modWheel.target || 'vibrato');
+    const modWheelRate = clampFinite(modWheel.rate, 0.1, 20, 5.5);
+    const modWheelDepth = clampFinite(modWheel.depth, 0, 1, 0.25);
     const hasFilter =
       Number.isFinite(p.cutoff) ||
       Boolean(p.filterType) ||
       lfoSweepsFilter ||
-      ccHas('cutoff');
+      ccHas('cutoff') ||
+      (ccHas('modulation') && modWheelTarget === 'cutoff');
     let filter: BiquadFilterNode | null = null;
     let baseCutoffValue = 20000;
     if (hasFilter) {
@@ -3064,7 +3073,11 @@ export class AudioEngineService {
         : pan;
     panner.pan.setValueAtTime(ccPan, time);
     const vca = ctx.createGain();
-    const expressionGain = ccHas('expression') ? ctx.createGain() : null;
+    const expressionGain =
+      ccHas('expression') ||
+      (ccHas('modulation') && modWheelTarget === 'volume')
+        ? ctx.createGain()
+        : null;
     if (expressionGain) {
       const level =
         typeof ccStart?.expression === 'number'
@@ -3208,19 +3221,34 @@ export class AudioEngineService {
       scheduleCc(osc.detune, 'pitchBend', (value) => clampCc(value, -1, 1) * 200);
     }
     if (ccHas('modulation')) {
-      // Mod wheel → vibrato. Depth is in cents, capped at ±25 cents; a zero
-      // lane leaves the voice untouched.
-      vibratoOsc = ctx.createOscillator();
-      vibratoOsc.type = 'sine';
-      vibratoOsc.frequency.setValueAtTime(5.5, time);
-      const vibratoGain = ctx.createGain();
-      scheduleCc(vibratoGain.gain, 'modulation', (value) =>
-        clampCc(value, 0, 1) * 25
-      );
-      vibratoOsc.connect(vibratoGain);
-      vibratoGain.connect(osc.detune);
-      vibratoOsc.start(time);
-      vibratoOsc.stop(stopAt);
+      let modDestination: AudioParam | null = null;
+      let modAmount = 0;
+      if (modWheelTarget === 'cutoff' && filter) {
+        modDestination = filter.frequency;
+        modAmount = baseCutoffValue * 0.8 * modWheelDepth;
+      } else if (modWheelTarget === 'volume' && expressionGain) {
+        modDestination = expressionGain.gain;
+        modAmount = modWheelDepth;
+      } else if (modWheelTarget === 'pan') {
+        modDestination = panner.pan;
+        modAmount = modWheelDepth;
+      } else {
+        modDestination = osc.detune;
+        modAmount = 100 * modWheelDepth;
+      }
+      if (modDestination) {
+        vibratoOsc = ctx.createOscillator();
+        vibratoOsc.type = 'sine';
+        vibratoOsc.frequency.setValueAtTime(modWheelRate, time);
+        const vibratoGain = ctx.createGain();
+        scheduleCc(vibratoGain.gain, 'modulation', (value) =>
+          clampCc(value, 0, 1) * modAmount
+        );
+        vibratoOsc.connect(vibratoGain);
+        vibratoGain.connect(modDestination);
+        vibratoOsc.start(time);
+        vibratoOsc.stop(stopAt);
+      }
     }
 
     // Sub oscillator — the Synth's SUB OSC toggle finally reaches the graph.
@@ -3487,6 +3515,7 @@ export class AudioEngineService {
     _channels: number = 2,
     stopWithTransport: boolean = false,
     fadeElapsedSeconds: number = 0,
+    control: VoiceControlPoint[] = [],
   ) {
     const isStreamer =
       bufferOrStreamer instanceof SampleStreamer ||
@@ -3506,9 +3535,44 @@ export class AudioEngineService {
       ? Math.max(0, clipOriginSeconds - (streamer.getResidentStartSeconds?.() ?? 0))
       : Math.max(0, clipOriginSeconds);
 
+    const ccPoints: VoiceControlPoint[] = Array.isArray(control)
+      ? control
+          .filter((point) => point && Number.isFinite(point.at))
+          .slice()
+          .sort((a, b) => a.at - b.at)
+      : [];
+    const ccStart = ccPoints[0];
+    const ccHas = (key: keyof VoiceControlPoint): boolean =>
+      ccPoints.some(
+        (point) =>
+          typeof point[key] === 'number' &&
+          Number.isFinite(point[key] as number),
+      );
+    const ccPan =
+      typeof ccStart?.pan === 'number' && Number.isFinite(ccStart.pan)
+        ? Math.max(-1, Math.min(1, ccStart.pan))
+        : pan;
     const panner = this.ctx.createStereoPanner();
-    panner.pan.setValueAtTime(pan, time);
+    panner.pan.setValueAtTime(ccPan, time);
+    const filter = ccHas('cutoff') ? this.ctx.createBiquadFilter() : null;
+    if (filter) {
+      filter.type = 'lowpass';
+      const cutoff =
+        typeof ccStart?.cutoff === 'number' && Number.isFinite(ccStart.cutoff)
+          ? Math.max(20, Math.min(20000, ccStart.cutoff))
+          : 20000;
+      filter.frequency.setValueAtTime(cutoff, time);
+      filter.Q.setValueAtTime(0.0001, time);
+    }
     const gain = this.ctx.createGain();
+    const expressionGain = ccHas('expression') ? this.ctx.createGain() : null;
+    if (expressionGain) {
+      const level =
+        typeof ccStart?.expression === 'number'
+          ? Math.max(0, Math.min(1, ccStart.expression))
+          : 1;
+      expressionGain.gain.setValueAtTime(level, time);
+    }
     const safeDuration = Math.max(0.001, duration);
     const fadeElapsed = Math.max(0, fadeElapsedSeconds);
     const total = fadeElapsed + safeDuration;
@@ -3535,8 +3599,56 @@ export class AudioEngineService {
     } else {
       gain.gain.setValueAtTime(velocity, time + safeDuration - 0.001);
     }
-    panner.connect(gain);
-    gain.connect(this.getTrackOutput(trackId.toString()));
+    let samplerTail: AudioNode = panner;
+    if (filter) {
+      panner.connect(filter);
+      samplerTail = filter;
+    }
+    samplerTail.connect(gain);
+    if (expressionGain) {
+      gain.connect(expressionGain);
+      expressionGain.connect(this.getTrackOutput(trackId.toString()));
+    } else {
+      gain.connect(this.getTrackOutput(trackId.toString()));
+    }
+
+    // Sample voices follow the same CC lanes as synth voices.
+    const ccStopAt = time + total + 0.05;
+    const scheduleSamplerCc = (
+      param: AudioParam,
+      key: keyof VoiceControlPoint,
+      scale: (value: number) => number,
+    ): void => {
+      let scheduled = false;
+      for (const point of ccPoints) {
+        const raw = point[key];
+        if (typeof raw !== 'number' || !Number.isFinite(raw)) continue;
+        const at = time + Math.max(0, point.at);
+        if (at > ccStopAt + 0.0001) break;
+        const value = scale(raw);
+        if (!scheduled) {
+          param.setValueAtTime(value, Math.max(time, at));
+          scheduled = true;
+        } else {
+          param.linearRampToValueAtTime(value, at);
+        }
+      }
+    };
+    if (filter && ccHas('cutoff')) {
+      scheduleSamplerCc(filter.frequency, 'cutoff', (value) =>
+        Math.max(20, Math.min(20000, value)),
+      );
+    }
+    if (ccHas('pan')) {
+      scheduleSamplerCc(panner.pan, 'pan', (value) =>
+        Math.max(-1, Math.min(1, value)),
+      );
+    }
+    if (expressionGain) {
+      scheduleSamplerCc(expressionGain.gain, 'expression', (value) =>
+        Math.max(0, Math.min(1, value)),
+      );
+    }
 
     if (!streamer) {
       const source = this.ctx.createBufferSource();

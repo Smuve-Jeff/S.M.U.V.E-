@@ -189,6 +189,7 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
     cutoff: 2000,
     q: 1,
     distortion: 0.1,
+    modWheel: { target: "vibrato", rate: 5.5, depth: 0.25 },
   };
 
   // ── LFO parameters ───────────────────────────────────
@@ -526,6 +527,22 @@ export class SynthesizerComponent implements OnInit, AfterViewInit, OnDestroy {
       // engine-wide default LFO.
       this.audioEngine.setLfoParams({ ...this.lfoParams });
     }
+  }
+
+  /** CC1 routing, stored on the track's synth patch. */
+  updateModWheelParam(param: "target" | "rate" | "depth", value: any): void {
+    const current =
+      this.synthParams.modWheel ?? {
+        target: "vibrato",
+        rate: 5.5,
+        depth: 0.25,
+      };
+    const next = {
+      ...current,
+      [param]: param === "target" ? value : Number(value),
+    };
+    this.synthParams.modWheel = next;
+    this.updateSynthParam("modWheel", next);
   }
 
   // ── Waveform visualization ───────────────────────────

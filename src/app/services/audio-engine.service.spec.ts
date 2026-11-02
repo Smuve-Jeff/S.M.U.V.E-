@@ -1609,6 +1609,30 @@ describe('AudioEngineService.buildVoiceGraph (live/offline voice parity)', () =>
     expect(ctx.createOscillator).toHaveBeenCalledTimes(1);
   });
 
+  it('routes CC1 through the patch-configured mod-wheel target', () => {
+    const { svc, ctx } = makeVoiceHarness();
+
+    svc.buildVoiceGraph(ctx, dest(), 220, 0, 1, 2, 0, {
+      cutoff: 1000,
+      sustain: 0.5,
+      modWheel: { target: 'cutoff', rate: 7, depth: 0.5 },
+      midiCc: [
+        { at: 0, modulation: 0 },
+        { at: 1, modulation: 1 },
+      ],
+    });
+
+    const filter = ctx.createBiquadFilter.mock.results[0].value;
+    const lfo = ctx.createOscillator.mock.results[0].value;
+    expect(lfo.frequency.setValueAtTime).toHaveBeenCalledWith(7, 0);
+    const lfoGain = ctx.createGain.mock.results[1].value;
+    expect(lfoGain.gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+      1000 * 0.8 * 0.5,
+      1,
+    );
+    expect(lfoGain.connect).toHaveBeenCalledWith(filter.frequency);
+  });
+
   it('reads the drum pad resonance key as filter Q', () => {
     const { svc, ctx } = makeVoiceHarness();
 

@@ -375,6 +375,13 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const first = track.notes.find((n) => ids.has(n.id));
     return Number((first?.probability ?? 1.0).toFixed(2));
   });
+  selectedNoteAftertouch = computed(() => {
+    const track = this.selectedTrack();
+    const ids = this.selectedNoteIds();
+    if (!track || ids.size === 0) return 0;
+    const first = track.notes.find((n) => ids.has(n.id));
+    return Number((first?.aftertouch ?? 0).toFixed(2));
+  });
   selectedNoteMicroOffset = computed(() => {
     const track = this.selectedTrack();
     const ids = this.selectedNoteIds();
@@ -2193,6 +2200,15 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     Array.from(this.selectedNoteIds()).forEach((id) =>
       this.musicManager.updateNote(track.id, id, {
         microOffset: Number(value.toFixed(3)),
+      }),
+    );
+  }
+  setSelectedAftertouch(value: number) {
+    const track = this.selectedTrack();
+    if (!track) return;
+    Array.from(this.selectedNoteIds()).forEach((id) =>
+      this.musicManager.updateNote(track.id, id, {
+        aftertouch: Math.max(0, Math.min(1, value)),
       }),
     );
   }

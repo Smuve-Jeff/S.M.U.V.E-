@@ -43,6 +43,8 @@ export class LiveEngineService {
   currentScale = signal<number[]>([0, 2, 4, 5, 7, 9, 11]); // C Major
   scaleMode = signal<'major' | 'minor' | 'blues' | 'pentatonic'>('major');
   smartChords = signal(false);
+  /** Last channel/polyphonic pressure, normalized 0..1. */
+  aftertouch = signal(0);
 
   // Arpeggiator State
   arpeggiatorEnabled = signal(false);
@@ -134,6 +136,12 @@ export class LiveEngineService {
         break;
       case 14: // Pitch Bend
         this.handlePitchBend(data1, data2);
+        break;
+      case 13: // Channel pressure (mono aftertouch)
+        this.setAftertouch(data1 / 127);
+        break;
+      case 10: // Polyphonic aftertouch
+        this.setAftertouch(data2 / 127, data1);
         break;
       case 12: // Program Change (instrument select)
         break;
@@ -362,6 +370,21 @@ export class LiveEngineService {
   setPitchBend(val: number) {
     if (this.currentInstrumentNode)
       (this.currentInstrumentNode as any).set({ detune: val * 200 });
+  }
+  /**
+   * Aftertouch expression. Tone's PolySynth has no per-note gain, so channel
+   * and poly pressure open the live filter together; external keyboards and
+   * MPE controllers still get an audible expression path.
+   */
+  setAftertouch(value: number, _note?: number) {
+    const normalized = Number.isFinite(value)
+      ? Math.max(0, Math.min(1, value))
+      : 0;
+    this.aftertouch.set(normalized);
+    if (!this.filterNode) return;
+    const baseCutoff = this.activePreset?.synth?.cutoff || 2000;
+    const cutoff = baseCutoff + normalized * (20000 - baseCutoff);
+    this.filterNode.frequency.rampTo(Math.min(20000, cutoff), 0.03);
   }
   setModWheel(val: number) {
     if (!this.currentInstrumentNode || !this.filterNode) return;

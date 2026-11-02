@@ -55,6 +55,8 @@ export class HardwareService {
   onMidiNoteOff?: (note: number) => void;
   /** Callback fired for any MIDI CC message (controller 0-127, value 0-127). */
   onMidiCC?: (controller: number, value: number) => void;
+  /** Channel/polyphonic aftertouch. `note` is -1 for channel pressure. */
+  onMidiAftertouch?: (note: number, pressure: number) => void;
 
   // ── Sustain Pedal (CC64 + Half-Pedal CC68) ──────────────
   /** True while the sustain pedal is held down (MIDI CC64 >= 64). */
@@ -212,6 +214,12 @@ export class HardwareService {
           } else {
             this.heldNotes.set(data1, count);
           }
+        } else if (command === 0xd0) {
+          // Channel pressure: one value for every sounding note.
+          this.zone.run(() => this.onMidiAftertouch?.(-1, data1 / 127));
+        } else if (command === 0xa0) {
+          // Polyphonic pressure: per-note pressure as MPE controllers send it.
+          this.zone.run(() => this.onMidiAftertouch?.(data1, data2 / 127));
         } else if (command === 0xb0) {
           // CC message — sustain pedal is CC64 (0x40), half-pedal CC68 (0x44)
           this.zone.run(() => {

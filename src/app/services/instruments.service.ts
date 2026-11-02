@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { AudioEngineService } from './audio-engine.service';
+import { AudioEngineService, type VoiceControlPoint } from './audio-engine.service';
 
 export type SampleZone = {
   midiRange: [number, number];
@@ -153,6 +153,7 @@ export function scheduleOfflinePresetSample(
   duration: number,
   velocity: number,
   pan: number,
+  control: VoiceControlPoint[] = [],
 ): void {
   const length = Math.max(0.001, Math.min(
     sample.buffer.duration / sample.rate,
@@ -161,8 +162,15 @@ export function scheduleOfflinePresetSample(
   const source = ctx.createBufferSource();
   source.buffer = sample.buffer;
   source.playbackRate.setValueAtTime(sample.rate, start);
+  const points = Array.isArray(control)
+    ? control.filter((point) => point && Number.isFinite(point.at))
+    : [];
+  const startPoint = points[0];
   const panner = ctx.createStereoPanner();
-  panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), start);
+  panner.pan.setValueAtTime(
+    Math.max(-1, Math.min(1, startPoint?.pan ?? pan)),
+    start,
+  );
   const gain = ctx.createGain();
   const peak = Math.max(0, velocity);
   gain.gain.setValueAtTime(0, start);
@@ -172,9 +180,52 @@ export function scheduleOfflinePresetSample(
     gain.gain.setValueAtTime(peak, start + length - fade);
     gain.gain.linearRampToValueAtTime(0, start + length);
   }
+  const expressionGain = points.some(
+    (point) => typeof point.expression === 'number',
+  )
+    ? ctx.createGain()
+    : null;
+  if (expressionGain) {
+    expressionGain.gain.setValueAtTime(
+      Math.max(0, Math.min(1, startPoint?.expression ?? 1)),
+      start,
+    );
+  }
+  const schedule = (
+    param: AudioParam,
+    key: keyof VoiceControlPoint,
+    scale: (value: number) => number,
+  ): void => {
+    let scheduled = false;
+    for (const point of points) {
+      const raw = point[key];
+      if (typeof raw !== 'number' || !Number.isFinite(raw)) continue;
+      const at = start + Math.max(0, point.at);
+      const value = scale(raw);
+      if (!scheduled) {
+        param.setValueAtTime(value, at);
+        scheduled = true;
+      } else {
+        param.linearRampToValueAtTime(value, at);
+      }
+    }
+  };
+  if (points.some((point) => typeof point.pan === 'number')) {
+    schedule(panner.pan, 'pan', (value) => Math.max(-1, Math.min(1, value)));
+  }
+  if (expressionGain) {
+    schedule(expressionGain.gain, 'expression', (value) =>
+      Math.max(0, Math.min(1, value)),
+    );
+  }
   source.connect(panner);
   panner.connect(gain);
-  gain.connect(destination);
+  if (expressionGain) {
+    gain.connect(expressionGain);
+    expressionGain.connect(destination);
+  } else {
+    gain.connect(destination);
+  }
   source.start(start);
   source.stop(start + length + 0.01);
 }
