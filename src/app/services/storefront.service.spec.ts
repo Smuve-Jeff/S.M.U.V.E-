@@ -29,6 +29,8 @@ describe('StorefrontService · Sprint C2', () => {
     });
     sut = TestBed.inject(StorefrontService);
     billing = TestBed.inject(MockPlayBillingClient);
+    // These tests exercise catalog/ownership logic, not the native bridge.
+    sut.setBilling(billing);
   });
 
   afterEach(() => {

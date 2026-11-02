@@ -796,6 +796,7 @@ export class ChatMusicCommandEngineService {
       return existing.id;
     }
     const id = this.music.addTrack(name, instrumentId, type);
+    if (!id) return '';
     snapshot.createdTrackIds ??= [];
     snapshot.createdTrackIds.push(id);
     snapshot.notes.push({ trackId: id, notes: [] });

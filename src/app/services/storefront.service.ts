@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { NotificationService } from './notification.service';
-import { MockPlayBillingClient, PlayBillingClient } from './play-billing.client';
+import { NativePlayBillingClient, PlayBillingClient } from './play-billing.client';
 import {
   CartLine,
   OwnershipState,
@@ -84,7 +84,7 @@ function isCartLine(x: any): x is CartLine {
 export class StorefrontService {
   private notify = inject(NotificationService);
   /** Injectable for tests — swap with a stub billing client. */
-  private billing: PlayBillingClient = inject(MockPlayBillingClient);
+  private billing: PlayBillingClient = inject(NativePlayBillingClient);
 
   /**
    * Sprint C2 — seed catalog. Hard-coded so the UI works without a

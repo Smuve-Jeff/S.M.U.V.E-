@@ -12,6 +12,7 @@ import { LoggingService } from './logging.service';
 import { TakeManagerService } from './take-manager.service';
 import { AutomationService } from '../studio/automation.service';
 import { IdeasGeneratorService } from './ideas-generator.service';
+import { StudioDeviceProfileService } from './studio-device-profile.service';
 
 describe('MusicManagerService clip glue workflows', () => {
   let service: MusicManagerService;
@@ -1123,6 +1124,18 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
       providers: [
         MusicManagerService,
         HistoryService,
+        // Rack-wiring tests run against a desktop profile so the device cap
+        // does not mask insert ordering/undo behavior.
+        {
+          provide: StudioDeviceProfileService,
+          useValue: {
+            budget: () => ({
+              maxVoices: 32,
+              maxActiveEffects: 8,
+              maxTracks: 24,
+            }),
+          },
+        },
         { provide: AudioEngineService, useValue: engineMock },
         { provide: ProjectService, useValue: { currentProject: signal(null) } },
         { provide: PluginStoreService, useValue: { preload: jest.fn() } },

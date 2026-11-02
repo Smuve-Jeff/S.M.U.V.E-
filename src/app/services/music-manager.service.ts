@@ -19,6 +19,8 @@ import { StemSeparationService } from './stem-separation.service';
 import { IdeaRecipe, IdeaTrack } from './ideas-generator.service';
 import { StudioRecordingEngineService } from '../studio/studio-recording-engine.service';
 import { LoggingService } from './logging.service';
+import { NotificationService } from './notification.service';
+import { StudioDeviceProfileService } from './studio-device-profile.service';
 import {
   copyPatternName,
   isSamePattern,
@@ -234,9 +236,11 @@ export class MusicManagerService {
   private history = inject(HistoryService);
   private instruments = inject(InstrumentsService);
   private pluginStore = inject(PluginStoreService);
+  private deviceProfile = inject(StudioDeviceProfileService, { optional: true });
   private recordingEngine = inject(StudioRecordingEngineService);
   private stemSplitter = inject(StemSeparationService);
   private logger = inject(LoggingService);
+  private notify = inject(NotificationService, { optional: true });
   /** Sprint A3 Phase 4 — comp/take source for active-take playback. */
   private takeManager = inject(TakeManagerService);
   private automation = inject(AutomationService);
@@ -264,6 +268,44 @@ export class MusicManagerService {
 
   tracks = signal<TrackModel[]>([]);
   selectedTrackId = signal<string | null>(null);
+
+  /**
+   * Device ceilings are enforced at the authoring boundary. Restored projects
+   * are allowed to load above budget so opening a session never deletes work;
+   * the live rack simply instantiates the permitted number of inserts.
+   */
+  readonly trackLimit = computed(
+    () => this.deviceProfile?.budget().maxTracks ?? Number.POSITIVE_INFINITY,
+  );
+  readonly effectLimit = computed(
+    () =>
+      this.deviceProfile?.budget().maxActiveEffects ?? Number.POSITIVE_INFINITY,
+  );
+  readonly atTrackLimit = computed(
+    () => this.tracks().length >= this.trackLimit(),
+  );
+
+  /** True when another track can be authored on this device class. */
+  canAddTrack(additional = 1): boolean {
+    return this.tracks().length + Math.max(0, additional) <= this.trackLimit();
+  }
+
+  /** Enabled macro slots + live plugin inserts on this track. */
+  activeEffectCount(trackId: string): number {
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    if (!track) return 0;
+    return (
+      (track.fxSlots ?? []).filter((slot) => slot.enabled !== false).length +
+      (track.pluginIds?.length ?? 0)
+    );
+  }
+
+  canAddEffect(trackId: string, additional = 1): boolean {
+    return (
+      this.activeEffectCount(trackId) + Math.max(0, additional) <=
+      this.effectLimit()
+    );
+  }
   /**
    * Default launch boundary for Session cells without their own override.
    * Project state, not a component preference: it is captured in the project
@@ -711,7 +753,21 @@ export class MusicManagerService {
 
   // ── Tracks ─────────────────────────────────────────────────────────
 
-  addTrack(name: string, instrumentId: string, type: TrackType = 'midi') {
+  addTrack(
+    name: string,
+    instrumentId: string,
+    type: TrackType = 'midi',
+  ): string | null {
+    if (!this.canAddTrack()) {
+      this.logger.warn(
+        `Track budget reached (${this.trackLimit()}); "${name}" was not created.`,
+      );
+      this.notify?.show(
+        `Track limit reached (${this.trackLimit()}). Remove a track before adding another.`,
+        'warning',
+      );
+      return null;
+    }
     // The drum kit is addressed by a well-known id (drum-machine kit state,
     // pad routing, swing). Derive it from the track TYPE as well as the
     // instrument id — no shipped preset id contains "drum" — but only for the
@@ -767,6 +823,19 @@ export class MusicManagerService {
     if (!t) return;
     const prev = [...(t.pluginIds ?? [])];
     const next = [...pluginIds];
+    if (
+      next.length > prev.length &&
+      !this.canAddEffect(trackId, next.length - prev.length)
+    ) {
+      this.logger.warn(
+        `Effect budget reached (${this.effectLimit()}); plugin insert was not added.`,
+      );
+      this.notify?.show(
+        `Effect limit reached (${this.effectLimit()}). Bypass an insert first.`,
+        'warning',
+      );
+      return;
+    }
     this.runCommand(
       'Edit WASM Chain · ' + t.name,
       () => {
@@ -853,6 +922,16 @@ export class MusicManagerService {
   addFxSlot(trackId: string, type: string): string | null {
     const t = this.tracks().find((x) => x.id === trackId);
     if (!t) return null;
+    if (!this.canAddEffect(trackId)) {
+      this.logger.warn(
+        `Effect budget reached (${this.effectLimit()}) on ${t.name}; ${type} was not added.`,
+      );
+      this.notify?.show(
+        `Effect limit reached (${this.effectLimit()}) on ${t.name}. Bypass an insert first.`,
+        'warning',
+      );
+      return null;
+    }
     const before = this.clone(t.fxSlots ?? []);
     const slot: FxSlot = {
       id: `fx_${type.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${Date.now().toString(36)}`,
@@ -911,10 +990,51 @@ export class MusicManagerService {
     );
   }
 
+  /**
+   * Recall a saved insert preset onto one slot as a single undoable edit.
+   * Presets are additive: keys the preset does not mention keep their value.
+   */
+  applyFxSlotPreset(
+    trackId: string,
+    slotId: string,
+    params: Record<string, number>,
+  ): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    const slot = t?.fxSlots?.find((candidate) => candidate.id === slotId);
+    if (!t || !slot || !params) return;
+    const before = this.clone(t.fxSlots ?? []);
+    const clean: Record<string, number> = {};
+    for (const [key, value] of Object.entries(params)) {
+      if (typeof value === 'number' && Number.isFinite(value)) clean[key] = value;
+    }
+    if (Object.keys(clean).length === 0) return;
+    const after = before.map((candidate) =>
+      candidate.id === slotId
+        ? { ...candidate, params: { ...(candidate.params ?? {}), ...clean } }
+        : candidate,
+    );
+    this.runCommand(
+      `Apply ${slot.type} Preset · ${t.name}`,
+      () => this.writeFxSlots(trackId, after),
+      () => this.writeFxSlots(trackId, before),
+    );
+  }
+
   /** Toggle a macro FX slot's bypass state (undoable). */
   toggleFxSlot(trackId: string, slotId: string): void {
     const t = this.tracks().find((x) => x.id === trackId);
     if (!t) return;
+    const target = (t.fxSlots ?? []).find((slot) => slot.id === slotId);
+    if (target && target.enabled === false && !this.canAddEffect(trackId)) {
+      this.logger.warn(
+        `Effect budget reached (${this.effectLimit()}); enable failed.`,
+      );
+      this.notify?.show(
+        `Effect limit reached (${this.effectLimit()}). Bypass an insert first.`,
+        'warning',
+      );
+      return;
+    }
     const before = this.clone(t.fxSlots ?? []);
     const after = before.map((s) =>
       s.id === slotId ? { ...s, enabled: !s.enabled } : s
@@ -954,19 +1074,44 @@ export class MusicManagerService {
       ?.getTrackEffectsRack;
     if (typeof getRack !== 'function') return;
     const rack = getRack.call(this.engine, trackId);
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    const pluginCount = track?.pluginIds?.length ?? 0;
+    const macroRoom = Math.max(0, this.effectLimit() - pluginCount);
+    const pluginSlots = slots.filter(
+      (slot) => !!FX_TYPE_TO_PLUGIN_ID[slot.type],
+    );
+    // Bypassed slots still occupy a position in the rack and must survive a
+    // toggle; only *enabled* slots consume the active-effect budget.
+    const activeIds = new Set(
+      pluginSlots
+        .filter((slot) => slot.enabled !== false)
+        .slice(0, macroRoom)
+        .map((slot) => slot.id),
+    );
+    const liveSlots = pluginSlots.filter(
+      (slot) => slot.enabled === false || activeIds.has(slot.id),
+    );
+    const allowed = new Set(liveSlots.map((slot) => slot.id));
 
     const assigned = new Map(this.fxInsertSlots.get(trackId) ?? []);
 
-    // Release inserts whose slot was removed, bypassed away, or had its type swapped.
+    // Release inserts whose slot was removed, bypassed away, had its type
+    // swapped, or fell outside this device's active-effect budget.
     for (const [fxSlotId, entry] of assigned) {
       const slot = slots.find((s) => s.id === fxSlotId);
-      if (slot && FX_TYPE_TO_PLUGIN_ID[slot.type] === entry.pluginId) continue;
+      if (
+        slot &&
+        allowed.has(slot.id) &&
+        FX_TYPE_TO_PLUGIN_ID[slot.type] === entry.pluginId
+      ) {
+        continue;
+      }
       rack.removeInsert(entry.insertId);
       assigned.delete(fxSlotId);
     }
 
-    // Instantiate the plugins for any new slot.
-    for (const slot of slots) {
+    // Instantiate the plugins for any new slot that fits the budget.
+    for (const slot of liveSlots) {
       const pluginId = FX_TYPE_TO_PLUGIN_ID[slot.type];
       if (!pluginId || assigned.has(slot.id)) continue;
       const insert = rack.addInsert(pluginId);
@@ -975,28 +1120,28 @@ export class MusicManagerService {
 
     // Inserts append on creation, so re-seat them in the displayed chain order.
     let index = 0;
-    for (const slot of slots) {
+    for (const slot of liveSlots) {
       const entry = assigned.get(slot.id);
       if (!entry) continue;
       rack.moveInsert(entry.insertId, index);
       index += 1;
     }
 
-    // Mirror each slot's bypass state onto its plugin.
+    // Mirror each allowed slot's bypass state onto its plugin.
     for (const [fxSlotId, entry] of assigned) {
       const slot = slots.find((s) => s.id === fxSlotId);
+      if (!slot || !allowed.has(slot.id)) continue;
       const rackSlot = rack.inserts.find((s) => s.id === entry.insertId);
-      if (!slot || !rackSlot) continue;
+      if (!rackSlot) continue;
       if (rackSlot.plugin.enabled !== slot.enabled) {
         rack.toggleInsert(entry.insertId);
       }
     }
 
-    // Push each slot's knob values into its plugin. `slot.params` used to be
-    // written by the panel and read by nothing, so Decay or Threshold moved a
-    // number while the audio stayed at the plugin's defaults. This is the one
-    // place the panel and the graph are joined, and it runs on every edit.
-    for (const slot of slots) {
+    // Push each allowed slot's knob values into its plugin. `slot.params` used
+    // to be written by the panel and read by nothing, so Decay or Threshold
+    // moved a number while the audio stayed at the plugin's defaults.
+    for (const slot of liveSlots) {
       const entry = assigned.get(slot.id);
       if (!entry) continue;
       const rackSlot = rack.inserts.find((s) => s.id === entry.insertId);
@@ -1034,6 +1179,16 @@ export class MusicManagerService {
    * clean and can be re-loaded from the plugin rack if wanted.
    */
   duplicateTrack(trackId: string): string | null {
+    if (!this.canAddTrack()) {
+      this.logger.warn(
+        `Track budget reached (${this.trackLimit()}); duplicate was not created.`,
+      );
+      this.notify?.show(
+        `Track limit reached (${this.trackLimit()}). Remove a track before duplicating.`,
+        'warning',
+      );
+      return null;
+    }
     const list = this.tracks();
     const idx = list.findIndex((t) => t.id === trackId);
     if (idx < 0) return null;

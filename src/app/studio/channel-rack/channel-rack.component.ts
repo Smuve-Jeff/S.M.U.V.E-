@@ -399,6 +399,7 @@ export class ChannelRackComponent implements OnInit, OnDestroy {
       type,
     );
     this.addTrackOpen.set(false);
+    if (!id) return null;
     this.snackbar.success(
       `➕ ${preset?.name ?? instrumentId} added to the rack`,
     );

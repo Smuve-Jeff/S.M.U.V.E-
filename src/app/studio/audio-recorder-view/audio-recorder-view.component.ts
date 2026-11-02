@@ -216,6 +216,7 @@ export class AudioRecorderViewComponent
         `MIDI · ${take.name}`,
         "grand-piano",
       );
+      if (!trackId) return;
       notes.forEach((note, index) => {
         musicManager.addNoteToTrack(trackId, {
           id: `midi_${Date.now()}_${index}`,

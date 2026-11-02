@@ -21,6 +21,7 @@ import projectsRouter, { identityRouter } from "@/routes/project.routes";
 import gameInviteRoutes from "@/routes/game-invite.routes";
 import liveStreamRoutes from "@/routes/live-stream.routes";
 import roomRoutes from "@/routes/room.routes";
+import cloudRoutes from "@/routes/cloud.routes";
 
 const app = express();
 
@@ -99,6 +100,7 @@ app.use("/api/auth/reset-password", recoveryLimiter);
 // its own budget. Mounted BEFORE the global parser: body-parser skips a body
 // that is already parsed, whereas the reverse order would reject a legitimate
 // profile at the 100 kb default.
+app.use("/api/cloud", express.json({ limit: "25mb" }));
 app.use("/api/profile", express.json({ limit: PROFILE_JSON_LIMIT }));
 
 app.use(express.json());
@@ -137,6 +139,7 @@ app.use("/api/projects", projectsRouter);
 app.use("/api/identity", identityRouter);
 app.use("/api/games", gameInviteRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/cloud", cloudRoutes);
 // Live-stream / Go-Live surfaces. Mounted at /api/users for per-host
 // authorization, plus a public /api/live-streams prefix for the
 // viewer tap-to-join lookup.

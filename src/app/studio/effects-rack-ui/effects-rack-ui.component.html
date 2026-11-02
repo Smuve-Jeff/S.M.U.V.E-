@@ -201,9 +201,9 @@
         tabindex="0"
         [class.active]="activeSlot() === i + 1"
         [class.disabled]="!slot.enabled"
-        (click)="activeSlot.set(i + 1)"
-        (keydown.enter)="activeSlot.set(i + 1)"
-        (keydown.space)="activeSlot.set(i + 1); $event.preventDefault()"
+        (click)="selectSlot(i + 1)"
+        (keydown.enter)="selectSlot(i + 1)"
+        (keydown.space)="selectSlot(i + 1); $event.preventDefault()"
         [attr.aria-pressed]="activeSlot() === i + 1"
         [attr.aria-label]="
           'Effect ' +
@@ -316,6 +316,69 @@
             <span class="material-symbols-outlined">bolt</span>
             Send to live chain
           </button>
+        </div>
+
+        <!-- Named presets for this insert type. A preset round-trips the
+             slot's full parameter surface and recalls as one undo step. -->
+        <div class="er-preset-browser" aria-label="Effect presets">
+          <div class="er-preset-head">
+            <span class="material-symbols-outlined">bookmarks</span>
+            <b>{{ slot.type }} Presets</b>
+            <small>{{ presetsForSlot(slot.type).length }} saved</small>
+          </div>
+          <div class="er-preset-load">
+            <select
+              class="er-preset-select"
+              aria-label="Load an effect preset"
+              [ngModel]="selectedPresetId()"
+              (ngModelChange)="selectedPresetId.set($event)"
+            >
+              <option value="">Choose a preset…</option>
+              <option
+                *ngFor="let preset of presetsForSlot(slot.type)"
+                [value]="preset.id"
+              >
+                {{ preset.name }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="er-params-btn"
+              [disabled]="!selectedPresetId()"
+              (click)="applySelectedPreset()"
+            >
+              Load
+            </button>
+            <button
+              type="button"
+              class="er-params-btn er-preset-delete"
+              [disabled]="!selectedPresetId()"
+              (click)="deleteSelectedPreset()"
+              title="Delete the selected preset"
+            >
+              <span class="material-symbols-outlined">delete</span>
+            </button>
+          </div>
+          <div class="er-preset-save">
+            <input
+              type="text"
+              class="er-preset-name"
+              maxlength="48"
+              placeholder="Name this insert sound"
+              [ngModel]="presetName()"
+              (ngModelChange)="presetName.set($event)"
+              (keydown.enter)="saveActivePreset()"
+            />
+            <button
+              type="button"
+              class="er-params-btn er-params-btn-live"
+              [disabled]="!presetName().trim()"
+              (click)="saveActivePreset()"
+            >
+              <span class="material-symbols-outlined">save</span>
+              Save
+            </button>
+          </div>
         </div>
 
         <!-- Slot mix bar — reflects the slot's real wet/dry value. -->

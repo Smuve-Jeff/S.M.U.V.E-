@@ -12,6 +12,8 @@ import {
   DspPluginParam,
 } from "../../services/plugin-store.service";
 import { AutomationService } from "../automation.service";
+import { EffectPresetService } from "../effects/effect-preset.service";
+import { NotificationService } from "../../services/notification.service";
 import { KnobComponent } from "../shared/knob/knob.component";
 
 import {
@@ -36,6 +38,8 @@ export class EffectsRackUiComponent {
   private audioEngine = inject(AudioEngineService);
   private pluginStore = inject(PluginStoreService);
   private automation = inject(AutomationService);
+  private notify = inject(NotificationService);
+  readonly effectPresets = inject(EffectPresetService);
 
   selectedTrack = this.musicManager.selectedTrack;
   activeSlot = signal(1);
@@ -57,9 +61,14 @@ export class EffectsRackUiComponent {
     const track = this.selectedTrack();
     if (!track) return;
     const current = this.trackPluginIds();
-    const next = current.includes(manifest.id)
-      ? current.filter((x) => x !== manifest.id)
-      : [...current, manifest.id];
+    const adding = !current.includes(manifest.id);
+    if (adding && !this.canAddEffect(track.id)) {
+      this.showEffectBudget();
+      return;
+    }
+    const next = adding
+      ? [...current, manifest.id]
+      : current.filter((x) => x !== manifest.id);
     this.musicManager.setTrackPlugins(track.id, next);
   }
 
@@ -182,6 +191,11 @@ export class EffectsRackUiComponent {
   toggleFx(slotId: string) {
     const track = this.selectedTrack();
     if (!track) return;
+    const target = this.fxSlots().find((slot) => slot.id === slotId);
+    if (target?.enabled === false && !this.canAddEffect(track.id)) {
+      this.showEffectBudget();
+      return;
+    }
     // Undoable through the manager rather than a raw signal write.
     this.musicManager.toggleFxSlot(track.id, slotId);
   }
@@ -215,6 +229,11 @@ export class EffectsRackUiComponent {
   addFxSlot(type: string): void {
     const track = this.selectedTrack();
     if (!track) return;
+    if (!this.canAddEffect(track.id)) {
+      this.showEffectBudget();
+      this.addMenuOpen.set(false);
+      return;
+    }
     const id = this.musicManager.addFxSlot(track.id, type);
     this.addMenuOpen.set(false);
     if (!id) return;
@@ -244,6 +263,51 @@ export class EffectsRackUiComponent {
   paramValue(slot: FxSlot | null, spec: FxParamSpec): number {
     const raw = slot?.params?.[spec.id];
     return typeof raw === "number" && Number.isFinite(raw) ? raw : spec.default;
+  }
+
+  // ── Per-insert preset browser ────────────────────────────────────
+  presetName = signal("");
+  selectedPresetId = signal("");
+
+  presetsForSlot(type: string | undefined) {
+    return this.effectPresets.presetsFor(type);
+  }
+
+  selectSlot(index: number): void {
+    this.activeSlot.set(index);
+    this.selectedPresetId.set("");
+  }
+
+  saveActivePreset(): void {
+    const slot = this.activeFxSlot();
+    const name = this.presetName().trim();
+    if (!slot || !name) return;
+    const preset = this.effectPresets.save(name, slot.type, slot.params);
+    if (!preset) return;
+    this.selectedPresetId.set(preset.id);
+    this.presetName.set("");
+    this.notify.show(`Saved ${slot.type} preset “${preset.name}”.`, "success");
+  }
+
+  applySelectedPreset(): void {
+    const track = this.selectedTrack();
+    const slot = this.activeFxSlot();
+    const preset = this.presetsForSlot(slot?.type).find(
+      (candidate) => candidate.id === this.selectedPresetId(),
+    );
+    if (!track || !slot || !preset) return;
+    this.musicManager.applyFxSlotPreset(track.id, slot.id, preset.params);
+    this.notify.show(`Recalled “${preset.name}”.`, "info");
+  }
+
+  deleteSelectedPreset(): void {
+    const preset = this.presetsForSlot(this.activeFxSlot()?.type).find(
+      (candidate) => candidate.id === this.selectedPresetId(),
+    );
+    if (!preset) return;
+    this.effectPresets.remove(preset.id);
+    this.selectedPresetId.set("");
+    this.notify.show(`Deleted preset “${preset.name}”.`, "info");
   }
 
   /** Persist a knob move onto the slot (coalesced in history). */
@@ -322,6 +386,26 @@ export class EffectsRackUiComponent {
     if (!manifestId) return;
     const current = this.trackPluginIds();
     if (current.includes(manifestId)) return;
+    if (!this.canAddEffect(track.id)) {
+      this.showEffectBudget();
+      return;
+    }
     this.musicManager.setTrackPlugins(track.id, [...current, manifestId]);
+  }
+
+  private canAddEffect(trackId: string): boolean {
+    const canAdd = (this.musicManager as any).canAddEffect;
+    return typeof canAdd === 'function' ? canAdd.call(this.musicManager, trackId) : true;
+  }
+
+  private showEffectBudget(): void {
+    const limit = (this.musicManager as any).effectLimit;
+    const value = typeof limit === 'function' ? limit.call(this.musicManager) : null;
+    this.notify.show(
+      value
+        ? `This device supports ${value} active effects per track. Bypass one first.`
+        : 'The active-effect budget for this track is full. Bypass one first.',
+      'warning',
+    );
   }
 }

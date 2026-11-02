@@ -742,7 +742,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   createGroup() {
-    this.musicManager.addTrack("New Group", "none", "bus");
+    if (this.musicManager.addTrack("New Group", "none", "bus")) {
+      this.markDirty();
+    }
   }
 
   selectTrack(id: string) {
@@ -808,8 +810,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   addTrack() {
-    this.musicManager.addTrack("New Track", "grand-piano");
-    this.markDirty();
+    if (this.musicManager.addTrack("New Track", "grand-piano")) {
+      this.markDirty();
+    }
   }
 
   /**
@@ -1521,8 +1524,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   aiSuggestArrangement() {
     this.haptic.impact("heavy");
     this.duplicateSelected();
-    this.musicManager.addTrack("AI Pad", "glass-pad", "midi");
-    this.markDirty();
+    if (this.musicManager.addTrack("AI Pad", "glass-pad", "midi")) {
+      this.markDirty();
+    }
   }
 
   aiMixTransition() {

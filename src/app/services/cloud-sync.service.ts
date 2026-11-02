@@ -2,7 +2,10 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { OfflineSyncService } from './offline-sync.service';
 import { LocalStorageService } from './local-storage.service';
 import { LoggingService } from './logging.service';
-import { MockCloudServer } from './mock-cloud-server';
+import {
+  CLOUD_SERVER,
+  CloudServerClient,
+} from './cloud-server-client';
 import {
   CloudDevice,
   ConflictRecord,
@@ -39,7 +42,7 @@ const PLATFORM =
  */
 @Injectable({ providedIn: 'root' })
 export class CloudSyncService {
-  private cloud = inject(MockCloudServer);
+  private cloud = inject<CloudServerClient>(CLOUD_SERVER);
   private offlineSync = inject(OfflineSyncService);
   private storage = inject(LocalStorageService);
   private logger = inject(LoggingService);
@@ -67,6 +70,10 @@ export class CloudSyncService {
 
   /** Dashboard-visible remote snapshot index, refreshed by refresh(). */
   readonly cloudProjects = signal<RemoteSnapshot[]>([]);
+
+  /** Snapshot history cache so synchronous dashboards keep working. */
+  readonly remoteSnapshots = signal<Record<string, RemoteSnapshot[]>>({});
+  private refreshing = false;
 
   /** Most recent ~50 sync timeline entries. */
   readonly timeline = signal<SyncTimelineEntry[]>([]);
@@ -270,7 +277,8 @@ export class CloudSyncService {
         status: 'success',
         at: Date.now(),
       });
-      this.cloudProjects.set(this.cloud.listProjects());
+      if (result.snapshot) this.rememberSnapshot(result.snapshot);
+      await this.refresh();
       return 'success';
     } catch (err) {
       this.logger.error('CloudSync: push failed', err);
@@ -325,6 +333,7 @@ export class CloudSyncService {
         byteSize: snapshot.byteSize,
       };
       await this.persistManifest(projectId, manifest);
+      this.rememberSnapshot(snapshot);
       this.pullStatus.set('success');
       this.appendTimeline({
         id: this.timelineId(),
@@ -458,7 +467,7 @@ export class CloudSyncService {
       at: Date.now(),
       note: 'Queued edit replayed after network recovery',
     });
-    this.cloudProjects.set(this.cloud.listProjects());
+    await this.refresh();
   }
 
   // ─── Restore / refresh ─────────────────────────────────────────────
@@ -477,7 +486,8 @@ export class CloudSyncService {
     if (restoredPayload === undefined || restoredPayload === null) {
       throw new Error('The selected cloud version has no restorable project data.');
     }
-    const latest = this.cloud.listSnapshots(projectId)[0];
+    const snapshots = await this.cloud.listSnapshots(projectId);
+    const latest = snapshots[0];
     const manifest: ProjectManifest = {
       projectId,
       version: Math.max(latest?.version ?? 0, snapshot.version) + 1,
@@ -496,13 +506,92 @@ export class CloudSyncService {
     }
   }
 
-  /** Pull the cloud's latest snapshots into the local index. */
-  refresh(): void {
-    this.cloudProjects.set(this.cloud.listProjects());
+  /**
+   * Pull the cloud's latest projects and their histories into the local
+   * index. HTTP reads are async; callers that fired `refresh()` synchronously
+   * still get reactive updates when the request settles.
+   */
+  async refresh(): Promise<void> {
+    if (this.refreshing) return;
+    this.refreshing = true;
+    try {
+      const projects = await this.cloud.listProjects();
+      this.cloudProjects.set(projects);
+      const histories = await Promise.all(
+        projects.map(async (project) => {
+          const snapshots = await this.cloud.listSnapshots(project.projectId);
+          return [project.projectId, snapshots] as const;
+        }),
+      );
+      this.remoteSnapshots.set(Object.fromEntries(histories));
+    } catch (err) {
+      this.logger.warn('CloudSync: refresh failed', err);
+    } finally {
+      this.refreshing = false;
+    }
   }
 
+  /** Cached history for the synchronous version panels. */
   listSnapshots(projectId: string): RemoteSnapshot[] {
-    return this.cloud.listSnapshots(projectId);
+    const cached = this.remoteSnapshots()[projectId];
+    if (cached) return cached;
+    return this.cloudProjects().filter(
+      (snapshot) => snapshot.projectId === projectId,
+    );
+  }
+
+  /**
+   * Demo-only conflict injection for the cloud vault: shows the conflict UI
+   * without needing a second physical device or a mock-only seed hook.
+   */
+  seedDemoConflict(projectId: string): void {
+    const latest = this.cloudProjects().find(
+      (snapshot) => snapshot.projectId === projectId,
+    );
+    if (!latest) return;
+    const remoteVersion = latest.version + 2;
+    const remoteSnapshot: RemoteSnapshot = {
+      ...latest,
+      deviceId: 'dev_remote_phone',
+      deviceName: 'Remote Phone',
+      version: remoteVersion,
+      timestamp: Date.now(),
+      data: latest.data ?? { remote: true },
+    };
+    this.conflictMap.update((map) => ({
+      ...map,
+      [projectId]: {
+        projectId,
+        localVersion: latest.version,
+        remoteVersion,
+        remoteDeviceId: remoteSnapshot.deviceId,
+        remoteDeviceName: remoteSnapshot.deviceName ?? remoteSnapshot.deviceId,
+        remoteSnapshot,
+        detectedAt: Date.now(),
+      },
+    }));
+  }
+
+  private rememberSnapshot(snapshot: RemoteSnapshot): void {
+    this.remoteSnapshots.update((cache) => {
+      const list = cache[snapshot.projectId] ?? [];
+      const next = [snapshot, ...list.filter(
+        (item) =>
+          !(
+            item.deviceId === snapshot.deviceId &&
+            item.version === snapshot.version
+          ),
+      )];
+      return { ...cache, [snapshot.projectId]: next };
+    });
+    this.cloudProjects.update((projects) => {
+      const rest = projects.filter(
+        (project) => project.projectId !== snapshot.projectId,
+      );
+      return [snapshot, ...rest].sort(
+        (a, b) => b.timestamp - a.timestamp || b.version - a.version,
+      );
+    });
   }
 
   // ─── Network toggle for the dashboard ──────────────────────────────

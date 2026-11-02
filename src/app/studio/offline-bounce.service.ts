@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from "@angular/core";
+import { Injectable, Injector, inject, signal } from "@angular/core";
 import { AudioEngineService } from "../services/audio-engine.service";
 import { InstrumentsService, scheduleOfflinePresetSample } from "../services/instruments.service";
 import { drumRatchetCount, MusicManagerService } from "../services/music-manager.service";
@@ -52,6 +52,12 @@ export class OfflineBounceService {
   private readonly musicManager = inject(MusicManagerService);
   private readonly instruments = inject(InstrumentsService);
   private readonly logger = inject(LoggingService);
+  /**
+   * Lazy because ExportService → MusicManagerService → this service is a
+   * construction cycle. The exporter is only resolved when a track bounce
+   * actually starts, after every constructor has finished.
+   */
+  private readonly injector = inject(Injector);
 
   readonly progress = signal<BounceProgress>({
     state: "idle",
@@ -201,30 +207,26 @@ export class OfflineBounceService {
 
     try {
       const sampleRate = this.getSampleRate(format);
-      const tempo = this.engine.tempo();
-      const totalSteps = this.computeTotalSteps(undefined, trackId);
-      const stepSeconds = 60 / tempo / 4;
-      const totalBars = (totalSteps * stepSeconds) / this.secondsPerBar(tempo);
-      const totalDuration = totalSteps * stepSeconds + tailSeconds;
-      const totalFrames = Math.ceil(totalDuration * sampleRate);
-
-      const offlineCtx = new OfflineAudioContext(2, totalFrames, sampleRate);
-      await this.renderArrangement(
-        offlineCtx,
-        totalSteps,
-        totalDuration,
+      // One renderer, not two. Track bounce/freeze used to run the simplified
+      // scheduling path above, which had no automation, CC curves, aux sends or
+      // insert rack — so a frozen track could sound unlike the same track in
+      // the full export. ExportService is the authoritative renderer; resolve it
+      // lazily to avoid the MusicManager construction cycle.
+      const { ExportService } = await import("../services/export.service");
+      const exporter = this.injector.get(ExportService);
+      const renderedBuffer = await exporter.renderProjectOffline({
+        onlyTrackIds: new Set([trackId]),
+        ignoreSolo: true,
         sampleRate,
-        undefined,
-        trackId,
-        totalSteps - 16,
-      );
-
-      const renderedBuffer = await offlineCtx.startRendering();
+      });
+      const totalDuration = renderedBuffer.duration;
+      const totalBars =
+        (totalDuration - tailSeconds) / this.secondsPerBar(this.engine.tempo());
       this.updateProgress("encoding", 90, `Encoding to ${format}…`, undefined);
       const result = this.buildResult(
         renderedBuffer,
         format,
-        sampleRate,
+        renderedBuffer.sampleRate,
         totalDuration,
       );
 

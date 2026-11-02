@@ -21,6 +21,8 @@ import { TokenService } from './services/token.service';
 import { LoginConfirmationService } from './services/login-confirmation.service';
 import { GlobalErrorHandler } from './services/error-handler.service';
 import { ArtistLifecycleAlertService } from './services/artist-lifecycle-alert.service';
+import { CLOUD_SERVER } from './services/cloud-server-client';
+import { HttpCloudServer } from './services/http-cloud-server';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -51,6 +53,7 @@ export const appConfig: ApplicationConfig = {
     DatabaseService,
     TokenService,
     LoginConfirmationService,
+    { provide: CLOUD_SERVER, useClass: HttpCloudServer },
     /*
      * Angular falls back to its built-in handler unless one is provided, and
      * the built-in one only logs to the console. Without this registration the

@@ -1765,3 +1765,79 @@
     padding: 7px;
   }
 }
+
+/* ── Per-insert presets ─────────────────────────────────────── */
+.er-preset-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--fx-line, var(--espresso-line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--fx-surface, #fbf7ec) 82%, transparent);
+}
+
+.er-preset-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fx-teal, var(--teal-500));
+}
+
+.er-preset-head .material-symbols-outlined { font-size: 15px; }
+.er-preset-head small {
+  margin-left: auto;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: var(--fx-muted, var(--espresso-muted));
+}
+
+.er-preset-load,
+.er-preset-save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.er-preset-select,
+.er-preset-name {
+  flex: 1 1 150px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--fx-line, var(--espresso-line));
+  border-radius: 8px;
+  background: var(--fx-surface, var(--ivory-paper));
+  color: var(--fx-ink, var(--espresso-text));
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.er-preset-select:focus-visible,
+.er-preset-name:focus-visible {
+  outline: 2px solid var(--fx-teal, var(--teal-500));
+  outline-offset: 1px;
+}
+
+.er-preset-delete {
+  width: 36px;
+  justify-content: center;
+  padding: 0;
+}
+
+.er-params-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .er-preset-select,
+  .er-preset-name { min-height: 44px; }
+  .er-preset-delete { width: 44px; min-height: 44px; }
+}

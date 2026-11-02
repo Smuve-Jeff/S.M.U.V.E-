@@ -3256,7 +3256,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     this.versionHistoryBusy.set(true);
     try {
-      this.cloudSync.refresh();
+      await this.cloudSync.refresh();
       this.versionHistory.set(this.cloudSync.listSnapshots(projectId));
     } catch (error) {
       this.logger.warn("Could not read cloud version history", error);

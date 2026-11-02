@@ -181,9 +181,9 @@ export class ProjectTemplateService {
     if (!template) return;
 
     this.musicManager.newProject(true);
-    template.tracks.forEach((t) => {
-      this.musicManager.addTrack(t.name, t.instrumentId);
-    });
+    for (const t of template.tracks) {
+      if (!this.musicManager.addTrack(t.name, t.instrumentId)) break;
+    }
     this.musicManager.engine.tempo.set(template.bpm);
     this.logger.info(
       `ProjectTemplateService: Applied template ${template.name}`,

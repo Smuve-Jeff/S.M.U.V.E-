@@ -100,6 +100,10 @@ export class MidiImportService {
         DEFAULT_INSTRUMENT,
         'midi',
       );
+      if (!trackId) {
+        this.logger.warn('MIDI import stopped at the device track limit.');
+        break;
+      }
       this.musicManager.replaceTrackNotes(trackId, notes, "Import MIDI");
 
       summary.trackCount++;

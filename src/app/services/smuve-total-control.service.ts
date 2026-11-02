@@ -803,7 +803,13 @@ export class SmuveTotalControlService {
     }
     if (cmd.action?.startsWith('add ')) {
       const name = cmd.action.replace('add ', '').trim();
-      this.musicManager.addTrack(name, 'grand-piano');
+      const id = this.musicManager.addTrack(name, 'grand-piano');
+      if (!id) {
+        return {
+          success: false,
+          message: `Track limit reached (${this.musicManager.trackLimit()}). Remove a track first.`,
+        };
+      }
       return {
         success: true,
         message: `Track "${name}" created and armed. Ready for input. Don't embarrass S.M.U.V.E.`,

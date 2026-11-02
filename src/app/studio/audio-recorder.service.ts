@@ -2,6 +2,7 @@ import { Subject } from "rxjs";
 import { Injectable, inject, signal, OnDestroy } from "@angular/core";
 import { LocalStorageService } from "../services/local-storage.service";
 import { LoggingService } from "../services/logging.service";
+import { NativeCaptureService } from "../services/native-capture.service";
 import { TakeLevel } from "./audio-recorder-view/take-level";
 
 export interface RecordingSettings {
@@ -28,6 +29,7 @@ export interface RecordingItem {
 export class AudioRecorderService implements OnDestroy {
   private localStorageService = inject(LocalStorageService);
   private logger = inject(LoggingService);
+  private nativeCapture = inject(NativeCaptureService);
 
   isRecording = signal(false);
   recordedBlobs: Blob[] = [];
@@ -70,6 +72,7 @@ export class AudioRecorderService implements OnDestroy {
   }
 
   ngOnDestroy() {
+    void this.nativeCapture.stop();
     this.revokeAllUrls();
   }
 
@@ -164,16 +167,23 @@ export class AudioRecorderService implements OnDestroy {
       } finally {
         this.isRecording.set(false);
         this.pendingMidi = [];
+        void this.nativeCapture.stop();
       }
     };
 
     this.startedAtMs = Date.now();
     this.mediaRecorder.start();
     this.isRecording.set(true);
+    // Android needs a microphone-typed foreground service before the screen
+    // can lock. Web builds resolve this as a no-op.
+    void this.nativeCapture.start();
   }
 
   stopRecording() {
-    if (!this.mediaRecorder) return;
+    if (!this.mediaRecorder) {
+      void this.nativeCapture.stop();
+      return;
+    }
     try {
       if (this.mediaRecorder.state !== "inactive") {
         this.mediaRecorder.stop();

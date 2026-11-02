@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, inject, NgZone } from '@angular/core';
 import { LoggingService } from './logging.service';
 import { AudioInputDevice, MicrophoneService } from './microphone.service';
+import { NativeMidiService } from './native-midi.service';
 
 export interface MidiInputDevice {
   id: string;
@@ -20,6 +21,7 @@ export interface HardwareStatus {
 export class HardwareService {
   private logger = inject(LoggingService);
   private micService = inject(MicrophoneService);
+  private nativeMidi = inject(NativeMidiService);
   private zone = inject(NgZone);
 
   status = signal<HardwareStatus>({
@@ -159,20 +161,49 @@ export class HardwareService {
     this.status.update((s) => ({ ...s, midiDevicesConnected: Math.max(0, Math.floor(count)) }));
   }
 
-  /** Initialize Web MIDI input and forward note events to the callback. */
+  /** Initialize Web MIDI input, falling back to Android's native MIDI API. */
   private initMidiInput(): void {
-    if (typeof navigator === 'undefined' || typeof (navigator as any).requestMIDIAccess !== 'function') {
+    if (typeof navigator === 'undefined') return;
+    const request = (navigator as any)?.requestMIDIAccess;
+    if (typeof request !== 'function') {
+      void this.initNativeMidi();
       return;
     }
 
     this.zone.runOutsideAngular(() => {
-      (navigator as any).requestMIDIAccess().then((midi: any) => {
+      request.call(navigator).then((midi: any) => {
         this.refreshMidiInputs(midi);
         midi.onstatechange = () => this.refreshMidiInputs(midi);
       }).catch(() => {
-        // MIDI access denied or unavailable
+        // Android WebViews usually have no Web MIDI at all; when access is
+        // refused, try the platform bridge before declaring MIDI unavailable.
+        void this.initNativeMidi();
       });
     });
+  }
+
+  /**
+   * Connect the Android MIDI bridge. A native controller is listed with the
+   * same `MidiInputDevice` shape as a Web MIDI input, so every existing
+   * keyboard/MPE/CC consumer keeps working without a second code path.
+   */
+  private async initNativeMidi(): Promise<void> {
+    try {
+      if (!(await this.nativeMidi.init())) return;
+      this.nativeMidi.onMessage = (data) => this.handleMidiData(data);
+      await this.nativeMidi.connectInputs();
+      const inputs: MidiInputDevice[] = this.nativeMidi.devices().map((device) => ({
+        id: device.id,
+        name: device.name || 'MIDI Device',
+        manufacturer: device.manufacturer || '',
+      }));
+      this.zone.run(() => {
+        this.midiInputs.set(inputs);
+        this.updateMidiCount(inputs.length);
+      });
+    } catch {
+      // No native bridge / no connected hardware is a valid state.
+    }
   }
 
   private refreshMidiInputs(midi: any): void {
@@ -183,85 +214,79 @@ export class HardwareService {
         name: input.name || 'MIDI Device',
         manufacturer: input.manufacturer || '',
       });
-
-      // Wire note-on / note-off handlers
-      input.onmidimessage = (event: any) => {
-        const [status, data1, data2] = event.data;
-        const command = status & 0xf0;
-
-        if (command === 0x90 && data2 > 0) {
-          // Note on
-          this.heldNotes.set(data1, (this.heldNotes.get(data1) ?? 0) + 1);
-          this.sustainedNotes.delete(data1);
-          this.noteVelocities.set(data1, data2);
-          this.zone.run(() => {
-            this.onMidiNoteOn?.(data1, data2);
-          });
-        } else if (command === 0x80 || (command === 0x90 && data2 === 0)) {
-          // Note off — if the sustain pedal is down, defer until pedal release
-          const count = (this.heldNotes.get(data1) ?? 1) - 1;
-          if (count <= 0) {
-            this.heldNotes.delete(data1);
-            const velocity = this.noteVelocities.get(data1) ?? 100;
-            this.noteVelocities.delete(data1);
-            if (this.sustainActive()) {
-              this.sustainedNotes.set(data1, velocity);
-            } else {
-              this.zone.run(() => {
-                this.onMidiNoteOff?.(data1);
-              });
-            }
-          } else {
-            this.heldNotes.set(data1, count);
-          }
-        } else if (command === 0xd0) {
-          // Channel pressure: one value for every sounding note.
-          this.zone.run(() => this.onMidiAftertouch?.(-1, data1 / 127));
-        } else if (command === 0xa0) {
-          // Polyphonic pressure: per-note pressure as MPE controllers send it.
-          this.zone.run(() => this.onMidiAftertouch?.(data1, data2 / 127));
-        } else if (command === 0xb0) {
-          // CC message — sustain pedal is CC64 (0x40), half-pedal CC68 (0x44)
-          this.zone.run(() => {
-            if (data1 === 64) {
-              if (data2 >= 64) {
-                this.sustainActive.set(true);
-                this.sustainAmount.set(127);
-              } else {
-                this.sustainActive.set(false);
-                this.sustainAmount.set(0);
-                // Release every note that was held through the pedal
-                const released = this.sustainedNotes.size;
-                this.sustainedNotes.forEach((_, note) => this.onMidiNoteOff?.(note));
-                this.sustainedNotes.clear();
-                if (released > 0) this.lastSustainReleaseCount.set(released);
-              }
-            } else if (data1 === 68) {
-              // Half-pedal: continuous pedal position. Notes struck softer
-              // than the current position release first (velocity-aware).
-              this.sustainAmount.set(data2);
-              if (data2 < 64) {
-                let released = 0;
-                this.sustainedNotes.forEach((velocity, note) => {
-                  if (velocity < data2) {
-                    this.onMidiNoteOff?.(note);
-                    this.sustainedNotes.delete(note);
-                    released++;
-                  }
-                });
-                if (released > 0) this.lastSustainReleaseCount.set(released);
-              }
-            }
-            this.onMidiCC?.(data1, data2);
-          });
-        }
-      };
-
+      input.onmidimessage = (event: any) => this.handleMidiData(event.data);
     }
 
     this.zone.run(() => {
       this.midiInputs.set(inputs);
       this.updateMidiCount(inputs.length);
     });
+  }
+
+  /**
+   * Shared MIDI byte decoder for Web MIDI and the Android bridge.
+   * `data` is a status byte followed by its data bytes.
+   */
+  private handleMidiData(data: ArrayLike<number>): void {
+    if (!data || data.length < 2) return;
+    const status = Number(data[0]) & 0xff;
+    const data1 = Number(data[1]) & 0x7f;
+    const data2 = data.length > 2 ? Number(data[2]) & 0x7f : 0;
+    const command = status & 0xf0;
+
+    if (command === 0x90 && data2 > 0) {
+      this.heldNotes.set(data1, (this.heldNotes.get(data1) ?? 0) + 1);
+      this.sustainedNotes.delete(data1);
+      this.noteVelocities.set(data1, data2);
+      this.zone.run(() => this.onMidiNoteOn?.(data1, data2));
+    } else if (command === 0x80 || (command === 0x90 && data2 === 0)) {
+      const count = (this.heldNotes.get(data1) ?? 1) - 1;
+      if (count <= 0) {
+        this.heldNotes.delete(data1);
+        const velocity = this.noteVelocities.get(data1) ?? 100;
+        this.noteVelocities.delete(data1);
+        if (this.sustainActive()) {
+          this.sustainedNotes.set(data1, velocity);
+        } else {
+          this.zone.run(() => this.onMidiNoteOff?.(data1));
+        }
+      } else {
+        this.heldNotes.set(data1, count);
+      }
+    } else if (command === 0xd0) {
+      this.zone.run(() => this.onMidiAftertouch?.(-1, data1 / 127));
+    } else if (command === 0xa0) {
+      this.zone.run(() => this.onMidiAftertouch?.(data1, data2 / 127));
+    } else if (command === 0xb0) {
+      this.zone.run(() => {
+        if (data1 === 64) {
+          if (data2 >= 64) {
+            this.sustainActive.set(true);
+            this.sustainAmount.set(127);
+          } else {
+            this.sustainActive.set(false);
+            this.sustainAmount.set(0);
+            const released = this.sustainedNotes.size;
+            this.sustainedNotes.forEach((_, note) => this.onMidiNoteOff?.(note));
+            this.sustainedNotes.clear();
+            if (released > 0) this.lastSustainReleaseCount.set(released);
+          }
+        } else if (data1 === 68) {
+          this.sustainAmount.set(data2);
+          if (data2 < 64) {
+            let released = 0;
+            this.sustainedNotes.forEach((velocity, note) => {
+              if (velocity < data2) {
+                this.onMidiNoteOff?.(note);
+                this.sustainedNotes.delete(note);
+                released++;
+              }
+            });
+            if (released > 0) this.lastSustainReleaseCount.set(released);
+          }
+        }
+        this.onMidiCC?.(data1, data2);
+      });
+    }
   }
 }

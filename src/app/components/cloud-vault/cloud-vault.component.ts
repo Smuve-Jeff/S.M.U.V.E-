@@ -52,7 +52,7 @@ export class CloudVaultComponent {
   readonly snapshotsFor = signal<Record<string, RemoteSnapshot[]>>({});
 
   constructor() {
-    this.cloud.refresh();
+    void this.cloud.refresh();
   }
 
   goBack(): void {
@@ -63,29 +63,15 @@ export class CloudVaultComponent {
     this.cloud.toggleSimulatedOffline();
   }
 
-  seedOtherDevice(): void {
-    // Quick demo helper — manually push a competing edit from a
-    // different device so the user can see a conflict fire.
-    this.cloud.refresh();
+  async seedOtherDevice(): Promise<void> {
+    // Quick demo helper — waits for the real cloud index, then injects a
+    // competing remote version into the conflict view. No mock-only hooks.
+    await this.cloud.refresh();
     const targetId = this.demoProjectId();
-    const currentRemote = this.cloud
-      .cloudProjects()
-      .find((p) => p.projectId === targetId);
-    const stubVersion = (currentRemote?.version ?? 0) + 2;
-    (this.cloud as any).cloud.__seed?.([
-      ...this.cloud.cloudProjects(),
-      {
-        projectId: targetId,
-        deviceId: 'dev_remote_phone',
-        version: stubVersion,
-        data: { remote: true, editedAt: Date.now() },
-        timestamp: Date.now(),
-        title: currentRemote?.title ?? 'First Beat Demo',
-        byteSize: 64,
-      },
-    ]);
-    // Refresh internal store accessor name.
-    this.cloud.refresh();
+    if (!this.cloud.cloudProjects().some((p) => p.projectId === targetId)) {
+      await this.cloud.push(targetId, this.demoTitle(), this.parsePayload());
+    }
+    this.cloud.seedDemoConflict(targetId);
   }
 
   parsePayload(): unknown {
@@ -102,20 +88,20 @@ export class CloudVaultComponent {
       this.demoTitle(),
       this.parsePayload()
     );
-    this.cloud.refresh();
+    void this.cloud.refresh();
   }
 
   async pullDemo(): Promise<void> {
     const snap = await this.cloud.pull(this.demoProjectId());
     if (snap) {
-      this.cloud.refresh();
+      await this.cloud.refresh();
     }
   }
 
   async resolve(projectId: string, strategy: 'mine' | 'theirs' | 'merge'): Promise<void> {
     const payload = strategy === 'merge' ? this.parsePayload() : undefined;
     await this.cloud.resolveConflict(projectId, strategy, payload);
-    this.cloud.refresh();
+    await this.cloud.refresh();
   }
 
   loadSnapshots(projectId: string): void {

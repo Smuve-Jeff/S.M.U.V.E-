@@ -489,13 +489,12 @@ export class AiProduceService {
     this.aiMix.recommendInstruments(inferred);
     const trackIds: string[] = [];
     for (const slot of roleInstruments) {
-      trackIds.push(
-        this.music.addTrack(
-          `${idea.title} · ${slot.suffix}`,
-          slot.instrumentId,
-          slot.type
-        )
+      const trackId = this.music.addTrack(
+        `${idea.title} · ${slot.suffix}`,
+        slot.instrumentId,
+        slot.type,
       );
+      if (trackId) trackIds.push(trackId);
     }
     this.appliedTrackIds.set(trackIds);
     this.pushLog(

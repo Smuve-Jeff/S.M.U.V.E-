@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { CloudSyncService } from './cloud-sync.service';
 import { MockCloudServer } from './mock-cloud-server';
+import { CLOUD_SERVER } from './cloud-server-client';
 import { OfflineSyncService } from './offline-sync.service';
 import { LocalStorageService } from './local-storage.service';
 
@@ -52,6 +53,7 @@ describe('CloudSyncService (D1)', () => {
       providers: [
         CloudSyncService,
         MockCloudServer,
+        { provide: CLOUD_SERVER, useExisting: MockCloudServer },
         { provide: OfflineSyncService, useClass: StubOfflineSync },
         { provide: LocalStorageService, useClass: StubStorage },
       ],
