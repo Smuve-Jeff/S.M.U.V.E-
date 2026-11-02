@@ -191,6 +191,13 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly reorderingSections = signal(false);
   /** Saved-section auditions repeat their set bars until stopped. */
   readonly sectionAuditionLoop = signal(true);
+  /** Timeline section the From-here control starts from. */
+  private readonly timelineAnchorId = signal<string | null>(null);
+  /** Current arrangement take; a tail preview starts partway through. */
+  private readonly arrangementPreview = signal<{
+    id: string;
+    count: number;
+  } | null>(null);
   /** One-pass take held at 100% for a moment after it finishes. */
   private readonly heldSectionPreview = signal<HeldSectionPreview | null>(null);
   private heldSectionTimer: ReturnType<typeof setTimeout> | null = null;
@@ -865,6 +872,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   toggleTemplateDetails(template: ProjectTemplate): void {
     this.haptic.light();
     this.clearHeldSectionPreview();
+    this.timelineAnchorId.set(null);
     const isOpen = this.expandedTemplateId() === template.id;
     const previousId = this.expandedTemplateId();
     if (previousId && previousId !== template.id) {
@@ -1090,7 +1098,90 @@ export class SmartCreationSheetComponent implements OnDestroy {
     event?.stopPropagation();
     const section = this.sectionForTimelineSegment(template, segment);
     if (!section) return;
+    // Tapping a span sets both the single-section take and the From anchor.
+    this.timelineAnchorId.set(segment.id);
     await this.applySavedSection(template, section, event);
+  }
+
+  /** The tapped section, or the first one before the artist picks a span. */
+  private timelineAnchorSegment(
+    template: ProjectTemplate,
+  ): SectionTimelineSegment | null {
+    const segments = this.sectionTimeline(template);
+    return (
+      segments.find((segment) => segment.id === this.timelineAnchorId()) ??
+      segments[0] ??
+      null
+    );
+  }
+
+  sectionTimelineSegmentAnchor(
+    template: ProjectTemplate,
+    segment: SectionTimelineSegment,
+  ): boolean {
+    return this.timelineAnchorSegment(template)?.id === segment.id;
+  }
+
+  timelineFromLabel(template: ProjectTemplate): string {
+    if (
+      this.sectionsPreviewPlaying(template) ||
+      this.sectionsPreviewRendering(template)
+    ) {
+      return "Stop";
+    }
+    const anchor = this.timelineAnchorSegment(template);
+    return anchor ? `From ${anchor.name}` : "From here";
+  }
+
+  timelineFromAriaLabel(template: ProjectTemplate): string {
+    if (
+      this.sectionsPreviewPlaying(template) ||
+      this.sectionsPreviewRendering(template)
+    ) {
+      return "Stop the saved-section arrangement";
+    }
+    const anchor = this.timelineAnchorSegment(template);
+    return anchor
+      ? `Play from ${anchor.name} through the end of the arrangement`
+      : "Play from the first saved section through the end";
+  }
+
+  /** Play the anchor section and every section after it, once. */
+  async playArrangementFromTimeline(
+    template: ProjectTemplate,
+    event?: Event,
+  ): Promise<void> {
+    event?.stopPropagation();
+    if (this.stopArrangementPreview(template)) {
+      this.haptic.light();
+      this.snackbar.info("Stopped the saved-section arrangement.");
+      return;
+    }
+
+    const anchor = this.timelineAnchorSegment(template);
+    if (!anchor) return;
+    const sections = this.templateSections(template);
+    const startIndex = Math.max(
+      0,
+      sections.findIndex((section) => section.id === anchor.id),
+    );
+    const tail = sections.slice(startIndex);
+    const score = templateSectionsToAuditionScore(template, tail);
+    if (!score) {
+      this.snackbar.info("These saved sections have no playable notes.");
+      return;
+    }
+
+    this.stopTemplateMixPreview(template.id);
+    this.arrangementPreview.set({ id: score.id, count: tail.length });
+    this.haptic.medium();
+    await this.previewScore(
+      score,
+      `${tail.length} saved section${
+        tail.length === 1 ? "" : "s"
+      } from “${anchor.name}”`,
+      false,
+    );
   }
 
   private sectionForTimelineSegment(
@@ -1156,6 +1247,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     // leave the old take playing under a control that no longer points at it.
     this.stopPreview(this.sectionPreviewId(template, section));
     this.stopSectionsPreview(template);
+    this.stopArrangementPreview(template);
     const updated = this.projectTemplates.setTemplateSectionBars(
       template.id,
       section.id,
@@ -1480,19 +1572,46 @@ export class SmartCreationSheetComponent implements OnDestroy {
       : null;
   }
 
-  /** True while saved sections are playing back-to-back in listed order. */
-  sectionsPreviewPlaying(template: ProjectTemplate): boolean {
-    const id = this.sectionsPreviewId(template);
-    return !!id && this.previewPlaying(id);
-  }
-
-  sectionsPreviewRendering(template: ProjectTemplate): boolean {
-    const id = this.sectionsPreviewId(template);
+  private isPreviewRendering(id: string): boolean {
     return (
-      !!id &&
       this.auditioningPreviewId() === id &&
       this.compositionAudition.rendering()
     );
+  }
+
+  /** Whichever arrangement take is active: all sections or a tail. */
+  private activeArrangementPreview(
+    template: ProjectTemplate,
+  ): { id: string; count: number } | null {
+    const prefix = templateMixPreviewPrefix(template.id);
+    const tail = this.arrangementPreview();
+    if (
+      tail &&
+      tail.id.startsWith(prefix) &&
+      (this.previewPlaying(tail.id) || this.isPreviewRendering(tail.id))
+    ) {
+      return tail;
+    }
+
+    const full = this.sectionsPreviewId(template);
+    if (
+      full &&
+      (this.previewPlaying(full) || this.isPreviewRendering(full))
+    ) {
+      return { id: full, count: this.templateSections(template).length };
+    }
+    return null;
+  }
+
+  /** True while saved sections are playing back-to-back, from any start. */
+  sectionsPreviewPlaying(template: ProjectTemplate): boolean {
+    const active = this.activeArrangementPreview(template);
+    return !!active && this.previewPlaying(active.id);
+  }
+
+  sectionsPreviewRendering(template: ProjectTemplate): boolean {
+    const active = this.activeArrangementPreview(template);
+    return !!active && this.isPreviewRendering(active.id);
   }
 
   sectionsPreviewActive(template: ProjectTemplate): boolean {
@@ -1512,18 +1631,39 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   sectionsPreviewProgressLabel(template: ProjectTemplate): string {
     if (!this.sectionsPreviewActive(template)) return "";
-    const count = this.templateSections(template).length;
+    const count =
+      this.activeArrangementPreview(template)?.count ??
+      this.templateSections(template).length;
     return `${count} section${count === 1 ? "" : "s"} · ${this.previewPositionLabel(
       "one pass",
     )}`;
   }
 
-  /** Play the saved sections once, in their current listed order. */
+  /** Stop a full or tail arrangement take; false when none is active. */
+  private stopArrangementPreview(template: ProjectTemplate): boolean {
+    const active = this.activeArrangementPreview(template);
+    if (!active) return false;
+    if (this.previewPlaying(active.id)) this.compositionAudition.stop();
+    if (this.isPreviewRendering(active.id)) this.compositionAudition.clear();
+    if (this.auditioningPreviewId() === active.id) {
+      this.auditioningPreviewId.set(null);
+    }
+    this.arrangementPreview.set(null);
+    return true;
+  }
+
+  /** Play all saved sections once, in their current listed order. */
   async auditionSavedSections(
     template: ProjectTemplate,
     event?: Event,
   ): Promise<void> {
     event?.stopPropagation();
+    if (this.stopArrangementPreview(template)) {
+      this.haptic.light();
+      this.snackbar.info("Stopped the saved-section arrangement.");
+      return;
+    }
+
     const sections = this.templateSections(template);
     const score = templateSectionsToAuditionScore(template, sections);
     if (!score) {
@@ -1531,25 +1671,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
       return;
     }
 
-    if (this.previewPlaying(score.id)) {
-      this.compositionAudition.stop();
-      this.auditioningPreviewId.set(null);
-      this.haptic.light();
-      this.snackbar.info("Stopped the saved-section arrangement.");
-      return;
-    }
-    if (
-      this.auditioningPreviewId() === score.id &&
-      this.compositionAudition.rendering()
-    ) {
-      this.compositionAudition.clear();
-      this.auditioningPreviewId.set(null);
-      this.haptic.light();
-      this.snackbar.info("Stopped the saved-section arrangement.");
-      return;
-    }
-
     this.stopTemplateMixPreview(template.id);
+    this.arrangementPreview.set({ id: score.id, count: sections.length });
     this.haptic.medium();
     await this.previewScore(
       score,
@@ -1675,6 +1798,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
   ): void {
     event?.stopPropagation();
     this.clearHeldSectionPreview();
+    if (this.timelineAnchorId() === section.id) {
+      this.timelineAnchorId.set(null);
+    }
     if (!this.projectTemplates.deleteTemplateSection(template.id, section.id)) {
       return;
     }
@@ -1696,6 +1822,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   private stopTemplateMixPreview(templateId: string): void {
     const prefix = templateMixPreviewPrefix(templateId);
+    const arrangement = this.arrangementPreview();
+    if (arrangement?.id.startsWith(prefix)) {
+      this.arrangementPreview.set(null);
+    }
     const readyId = this.compositionAudition.readyCompositionId();
     if (readyId?.startsWith(prefix) && this.compositionAudition.playing()) {
       this.compositionAudition.stop();

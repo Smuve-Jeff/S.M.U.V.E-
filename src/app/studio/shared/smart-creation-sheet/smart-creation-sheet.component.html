@@ -441,6 +441,22 @@
                       <span class="sc-arrangement-timeline-total">
                         {{ sectionTimelineSummary(tpl) }}
                       </span>
+                      <button
+                        type="button"
+                        class="sc-arrangement-timeline-from"
+                        [class.is-playing]="sectionsPreviewPlaying(tpl)"
+                        [attr.aria-label]="timelineFromAriaLabel(tpl)"
+                        [attr.title]="timelineFromAriaLabel(tpl)"
+                        (click)="playArrangementFromTimeline(tpl, $event)"
+                      >
+                        <span class="material-symbols-outlined">{{
+                          sectionsPreviewPlaying(tpl) ||
+                          sectionsPreviewRendering(tpl)
+                            ? 'stop'
+                            : 'play_arrow'
+                        }}</span>
+                        <span>{{ timelineFromLabel(tpl) }}</span>
+                      </button>
                     </div>
                     <div class="sc-arrangement-timeline-track">
                       <button
@@ -448,6 +464,7 @@
                         type="button"
                         class="sc-arrangement-timeline-span"
                         [class.is-active]="sectionTimelineSegmentActive(tpl, segment)"
+                        [class.is-anchor]="sectionTimelineSegmentAnchor(tpl, segment)"
                         [style.background]="segment.color"
                         [style.flexGrow]="segment.bars"
                         [attr.title]="sectionTimelineSegmentLabel(segment)"
@@ -462,6 +479,7 @@
                         type="button"
                         class="sc-arrangement-timeline-item"
                         [class.is-active]="sectionTimelineSegmentActive(tpl, segment)"
+                        [class.is-anchor]="sectionTimelineSegmentAnchor(tpl, segment)"
                         [attr.title]="sectionTimelineSegmentLabel(segment)"
                         [attr.aria-label]="sectionTimelineAuditionLabel(segment)"
                         [attr.aria-pressed]="sectionTimelineSegmentActive(tpl, segment)"

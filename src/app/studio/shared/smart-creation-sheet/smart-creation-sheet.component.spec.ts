@@ -1841,6 +1841,10 @@ describe("SmartCreationSheetComponent", () => {
     expect(
       timeline.querySelectorAll(".sc-arrangement-timeline-item"),
     ).toHaveLength(2);
+    const from = timeline.querySelector(
+      ".sc-arrangement-timeline-from",
+    ) as HTMLButtonElement;
+    expect(from.textContent).toContain("From Intro");
   });
 
   it("auditions a saved section from its timeline span", async () => {
@@ -1880,6 +1884,66 @@ describe("SmartCreationSheetComponent", () => {
     expect(mockCompositionAudition.stop).toHaveBeenCalled();
     expect(mockSnackbar.info).toHaveBeenCalledWith(
       'Stopped section “Hook”.',
+    );
+  });
+
+  it("plays from the tapped timeline section to the end", async () => {
+    const template = sectionTemplateFixture();
+    const intro = {
+      id: "sec-intro",
+      name: "Intro",
+      bars: 2,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const verse = {
+      id: "sec-verse",
+      name: "Verse",
+      bars: 1,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v2" }],
+    };
+    const hook = {
+      id: "sec-hook",
+      name: "Hook",
+      bars: 1,
+      rows: [{ trackIndex: 1, slotId: null }],
+    };
+    const withSections = { ...template, sections: [intro, verse, hook] };
+    component.toggleTemplateDetails(withSections);
+    const segments = component.sectionTimeline(withSections);
+
+    await component.auditionTimelineSegment(withSections, segments[1]);
+    expect(component.timelineFromLabel(withSections)).toBe("From Verse");
+    mockCompositionAudition.startScore.mockClear();
+
+    await component.playArrangementFromTimeline(withSections);
+
+    expect(mockCompositionAudition.startScore).toHaveBeenCalledTimes(1);
+    const [score, loop] = mockCompositionAudition.startScore.mock.calls[0];
+    expect(loop).toBe(false);
+    expect(score.totalBars).toBe(2);
+    expect(score.parts).toHaveLength(2);
+    expect(score.parts[0].notes[0]).toMatchObject({ midi: 67, bar: 0 });
+    expect(score.parts[1].notes[0].bar).toBe(1);
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      expect.stringContaining("from “Verse”"),
+    );
+    expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
+
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(score.id);
+    mockCompositionAudition.previewBars.set(2);
+    mockCompositionAudition.previewSeconds.set(4);
+    mockCompositionAudition.progress.set(0.5);
+    expect(component.sectionsPreviewPlaying(withSections)).toBe(true);
+    expect(component.sectionsPreviewLabel(withSections)).toBe("Stop");
+    expect(component.sectionsPreviewProgressLabel(withSections)).toContain(
+      "2 sections",
+    );
+
+    await component.playArrangementFromTimeline(withSections);
+    expect(mockCompositionAudition.stop).toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      "Stopped the saved-section arrangement.",
     );
   });
 
