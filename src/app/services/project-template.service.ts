@@ -9,14 +9,22 @@ export interface TemplateNote {
   velocity: number;
 }
 
+export interface TemplateClip {
+  start: number;
+  length: number;
+  type: 'midi' | 'audio';
+}
+
 export interface ProjectTemplateTrack {
   name: string;
   instrumentId: string;
   type: 'midi' | 'audio' | 'drum';
-  /** Fixed starters ship a four-bar pattern; user templates stay channel-only. */
+  /** Four-bar starter phrase, or captured pattern when the artist opted in. */
   notes?: TemplateNote[];
-  /** One-bar drum cycle, looped across the four-bar clip. */
+  /** One-bar drum cycle, looped across clips. */
   drumPatternLength?: number;
+  /** Captured MIDI/drum clip windows; absent on channel-only templates. */
+  clips?: TemplateClip[];
 }
 
 export interface ProjectTemplate {
@@ -57,6 +65,35 @@ const repeat = (cell: TemplateNote[], times = 4, span = 16): TemplateNote[] =>
 const USER_TEMPLATES_KEY = 'smuve_user_templates_v1';
 const MAX_USER_TEMPLATES = 20;
 const MAX_TEMPLATE_NAME = 60;
+const MAX_TEMPLATE_NOTES = 512;
+const MAX_TEMPLATE_CLIPS = 128;
+
+function isTemplateNote(value: unknown): value is TemplateNote {
+  if (!value || typeof value !== 'object') return false;
+  const note = value as Partial<TemplateNote>;
+  return (
+    Number.isFinite(note.midi) &&
+    Number.isFinite(note.step) &&
+    Number.isFinite(note.length) &&
+    Number.isFinite(note.velocity) &&
+    note.step! >= 0 &&
+    note.length! > 0 &&
+    note.velocity! >= 0 &&
+    note.velocity! <= 1
+  );
+}
+
+function isTemplateClip(value: unknown): value is TemplateClip {
+  if (!value || typeof value !== 'object') return false;
+  const clip = value as Partial<TemplateClip>;
+  return (
+    Number.isFinite(clip.start) &&
+    Number.isFinite(clip.length) &&
+    clip.start! >= 0 &&
+    clip.length! > 0 &&
+    (clip.type === 'midi' || clip.type === 'audio')
+  );
+}
 
 function readUserTemplates(): ProjectTemplate[] {
   if (typeof localStorage === 'undefined') return [];
@@ -82,7 +119,17 @@ function readUserTemplates(): ProjectTemplate[] {
             ((track as { type?: unknown }).type === undefined ||
               ['midi', 'audio', 'drum'].includes(
                 (track as { type?: unknown }).type as string,
-              )),
+              )) &&
+            ((track as { notes?: unknown }).notes === undefined ||
+              (Array.isArray((track as { notes?: unknown }).notes) &&
+                ((track as { notes?: unknown[] }).notes ?? []).every(
+                  isTemplateNote,
+                ))) &&
+            ((track as { clips?: unknown }).clips === undefined ||
+              (Array.isArray((track as { clips?: unknown }).clips) &&
+                ((track as { clips?: unknown[] }).clips ?? []).every(
+                  isTemplateClip,
+                ))),
         )
       );
     });
@@ -329,26 +376,62 @@ export class ProjectTemplateService {
   /**
    * Capture the current session's channels and tempo as a reusable template.
    *
-   * Only channel identity is stored — name, instrument and audio/MIDI kind —
-   * which is the same contract the fixed starters use. Notes, clips and mix
-   * state belong to the project, not to a template.
+   * Channel identity is always stored. With `includePattern`, the active
+   * MIDI/drum pattern and its clip windows are captured too, so a personal
+   * starter can reopen with its groove. Audio clips are skipped because their
+   * source buffers are project data and do not travel in a template.
    */
-  saveCurrentAsTemplate(name: string): ProjectTemplate | null {
+  saveCurrentAsTemplate(
+    name: string,
+    includePattern = false,
+  ): ProjectTemplate | null {
     const trimmed = name.trim().slice(0, MAX_TEMPLATE_NAME);
     if (!trimmed) return null;
 
     const tracks = this.musicManager
       .tracks()
       .filter((track) => track.type !== 'bus')
-      .map((track) => ({
-        name: track.name,
-        instrumentId: track.instrumentId || 'grand-piano',
-        type: (track.type === 'audio'
+      .map((track) => {
+        const type = (track.type === 'audio'
           ? 'audio'
           : track.type === 'drum'
             ? 'drum'
-            : 'midi') as 'midi' | 'audio' | 'drum',
-      }));
+            : 'midi') as 'midi' | 'audio' | 'drum';
+        const channel: ProjectTemplateTrack = {
+          name: track.name,
+          instrumentId: track.instrumentId || 'grand-piano',
+          type,
+        };
+        if (!includePattern || type === 'audio') return channel;
+
+        const notes = (track.notes ?? [])
+          .filter((entry) => Number.isFinite(entry.step) && entry.step >= 0)
+          .slice(0, MAX_TEMPLATE_NOTES)
+          .map((entry) => ({
+            midi: entry.midi,
+            step: entry.step,
+            length: Math.max(0.0625, entry.length || 1),
+            velocity: Math.min(1, Math.max(0, entry.velocity ?? 0.8)),
+          }));
+        const clips = (track.clips ?? [])
+          .filter((clip) => clip.type !== 'audio')
+          .slice(0, MAX_TEMPLATE_CLIPS)
+          .map((clip) => ({
+            start: Math.max(0, clip.start || 0),
+            length: Math.max(0.25, clip.length || 4),
+            type: 'midi' as const,
+          }));
+        return {
+          ...channel,
+          ...(notes.length ? { notes } : {}),
+          // Present even when empty: it marks a captured pattern rather than a
+          // fixed four-bar starter.
+          clips,
+          ...(type === 'drum'
+            ? { drumPatternLength: track.drumPatternLength ?? 16 }
+            : {}),
+        };
+      });
     if (tracks.length === 0) return null;
 
     const template: ProjectTemplate = {
@@ -422,12 +505,32 @@ export class ProjectTemplateService {
           `Template · ${t.name} cycle`,
         );
       }
-      this.musicManager.addClipToTrack(trackId, {
-        name: `${t.name} · 4 bars`,
-        start: 0,
-        length: 4,
-        type: 'midi',
-      });
+      if (t.clips?.length) {
+        for (const clip of t.clips) {
+          this.musicManager.addClipToTrack(trackId, {
+            name: `${t.name} · pattern`,
+            start: clip.start,
+            length: clip.length,
+            type: clip.type === 'audio' ? 'audio' : 'midi',
+          });
+        }
+      } else {
+        // Fixed starters span four bars. A captured pattern with no clips keeps
+        // whatever length its notes actually need.
+        const lastNoteStep = t.notes.reduce(
+          (end, entry) => Math.max(end, entry.step + entry.length),
+          0,
+        );
+        const length = t.clips
+          ? Math.max(1, Math.ceil(lastNoteStep / 16))
+          : 4;
+        this.musicManager.addClipToTrack(trackId, {
+          name: `${t.name} · ${length} bars`,
+          start: 0,
+          length,
+          type: 'midi',
+        });
+      }
     }
     this.musicManager.engine.tempo.set(template.bpm);
     this.logger.info(

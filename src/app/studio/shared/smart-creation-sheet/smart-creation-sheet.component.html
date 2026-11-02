@@ -197,6 +197,17 @@
             SAVE CURRENT
           </button>
         </div>
+        <label class="sc-template-pattern">
+          <input
+            type="checkbox"
+            [checked]="includeTemplatePattern()"
+            (change)="includeTemplatePattern.set($any($event.target).checked)"
+          />
+          <span>
+            Include the current pattern and clips
+            <small>MIDI and drum channels only — audio channels stay empty.</small>
+          </span>
+        </label>
         <div class="sc-template-list" *ngIf="userTemplates().length > 0; else noUserTemplates">
           <div class="sc-template-row" *ngFor="let tpl of userTemplates()">
             <button
@@ -206,7 +217,10 @@
               [attr.aria-label]="'Load template ' + tpl.name"
             >
               <strong>{{ tpl.name }}</strong>
-              <span>{{ tpl.bpm }} BPM · {{ tpl.tracks.length }} channels</span>
+              <span>
+                {{ tpl.bpm }} BPM · {{ tpl.tracks.length }} channels
+                <ng-container *ngIf="templateHasPattern(tpl)"> · pattern</ng-container>
+              </span>
             </button>
             <button
               type="button"

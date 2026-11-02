@@ -968,6 +968,40 @@
   align-items: center;
 }
 
+.sc-template-pattern {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.sc-template-pattern input {
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  accent-color: var(--teal-500, #00e5ff);
+  flex: 0 0 auto;
+}
+
+.sc-template-pattern span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sc-template-pattern small {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10.5px;
+}
+
 .sc-template-input {
   flex: 1;
   min-width: 0;

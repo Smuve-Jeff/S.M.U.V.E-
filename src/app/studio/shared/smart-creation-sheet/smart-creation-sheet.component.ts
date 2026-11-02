@@ -105,6 +105,8 @@ export class SmartCreationSheetComponent implements OnDestroy {
   /** The artist's own saved channel/tempo templates, newest first. */
   readonly userTemplates = this.projectTemplates.userTemplates;
   readonly newTemplateName = signal("");
+  /** Optional: capture the active MIDI/drum pattern and clip windows. */
+  readonly includeTemplatePattern = signal(false);
 
   @Output() closeSheet = new EventEmitter<void>();
   @Output() navigateToView = new EventEmitter<string>();
@@ -701,6 +703,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
   saveTemplate(): void {
     const template = this.projectTemplates.saveCurrentAsTemplate(
       this.newTemplateName(),
+      this.includeTemplatePattern(),
     );
     if (!template) {
       this.snackbar.error(
@@ -708,9 +711,18 @@ export class SmartCreationSheetComponent implements OnDestroy {
       );
       return;
     }
+    const withPattern = this.includeTemplatePattern();
     this.newTemplateName.set("");
     this.haptic.medium();
-    this.snackbar.success(`Saved template “${template.name}”`);
+    this.snackbar.success(
+      withPattern
+        ? `Saved template “${template.name}” with its pattern`
+        : `Saved template “${template.name}”`,
+    );
+  }
+
+  templateHasPattern(template: { tracks: { notes?: unknown[] }[] }): boolean {
+    return template.tracks.some((track) => (track.notes?.length ?? 0) > 0);
   }
 
   async applyUserTemplate(id: string): Promise<void> {

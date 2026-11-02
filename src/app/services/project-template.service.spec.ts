@@ -27,9 +27,33 @@ describe("ProjectTemplateService", () => {
     applyTrackPatch,
     engine: { tempo },
     tracks: jest.fn(() => [
-      { id: "1", name: "Lead", instrumentId: "analog-warmth", type: "midi" },
-      { id: "2", name: "Vox", instrumentId: "grand-piano", type: "audio" },
-      { id: "3", name: "Drums", instrumentId: "trap-808-elite", type: "drum" },
+      {
+        id: "1",
+        name: "Lead",
+        instrumentId: "analog-warmth",
+        type: "midi",
+        notes: [
+          { id: "n1", midi: 60, step: 0, length: 4, velocity: 0.8 },
+        ],
+        clips: [{ id: "c1", start: 1, length: 2, type: "midi" }],
+      },
+      {
+        id: "2",
+        name: "Vox",
+        instrumentId: "grand-piano",
+        type: "audio",
+        notes: [{ id: "n2", midi: 64, step: 0, length: 1, velocity: 0.7 }],
+        clips: [{ id: "c2", start: 0, length: 1, type: "audio" }],
+      },
+      {
+        id: "3",
+        name: "Drums",
+        instrumentId: "trap-kit-elite",
+        type: "drum",
+        drumPatternLength: 16,
+        notes: [{ id: "n3", midi: 36, step: 0, length: 1, velocity: 0.9 }],
+        clips: [{ id: "c3", start: 0, length: 4, type: "midi" }],
+      },
     ]),
   };
 
@@ -128,9 +152,57 @@ describe("ProjectTemplateService", () => {
     expect(template?.tracks).toEqual([
       { name: "Lead", instrumentId: "analog-warmth", type: "midi" },
       { name: "Vox", instrumentId: "grand-piano", type: "audio" },
-      { name: "Drums", instrumentId: "trap-808-elite", type: "drum" },
+      { name: "Drums", instrumentId: "trap-kit-elite", type: "drum" },
     ]);
     expect(service.userTemplates()[0].id).toBe(template?.id);
+  });
+
+  it("captures the current pattern and clip windows only when asked", () => {
+    const plain = service.saveCurrentAsTemplate("Channels only");
+    expect(plain?.tracks[0].notes).toBeUndefined();
+    expect(plain?.tracks[0].clips).toBeUndefined();
+
+    const patterned = service.saveCurrentAsTemplate("With pattern", true);
+    expect(patterned).not.toBeNull();
+    expect(patterned?.tracks[0].notes).toEqual([
+      { midi: 60, step: 0, length: 4, velocity: 0.8 },
+    ]);
+    expect(patterned?.tracks[0].clips).toEqual([
+      { start: 1, length: 2, type: "midi" },
+    ]);
+    expect(patterned?.tracks[2].drumPatternLength).toBe(16);
+    expect(patterned?.tracks[2].notes?.[0]).toEqual({
+      midi: 36,
+      step: 0,
+      length: 1,
+      velocity: 0.9,
+    });
+    // Audio clips reference project buffers, so they do not travel.
+    expect(patterned?.tracks[1].notes).toBeUndefined();
+    expect(patterned?.tracks[1].clips).toBeUndefined();
+  });
+
+  it("applies a captured pattern at its original clip positions", () => {
+    const template = service.saveCurrentAsTemplate("Pattern Sketch", true);
+    expect(template).not.toBeNull();
+    jest.clearAllMocks();
+
+    service.applyTemplate(template!.id);
+
+    expect(replaceTrackNotes).toHaveBeenCalledWith(
+      "track-Lead",
+      [expect.objectContaining({ midi: 60, step: 0, length: 4 })],
+      expect.stringContaining("Template"),
+    );
+    expect(addClipToTrack).toHaveBeenCalledWith(
+      "track-Lead",
+      expect.objectContaining({ start: 1, length: 2, type: "midi" }),
+    );
+    expect(applyTrackPatch).toHaveBeenCalledWith(
+      "track-Drums",
+      { drumPatternLength: 16 },
+      expect.any(String),
+    );
   });
 
   it("persists user templates and applies them like a starter", () => {
@@ -159,7 +231,7 @@ describe("ProjectTemplateService", () => {
     expect(addTrack).toHaveBeenCalledTimes(3);
     expect(addTrack).toHaveBeenCalledWith(
       "Drums",
-      "trap-808-elite",
+      "trap-kit-elite",
       "drum",
     );
     // User templates stay channel/tempo snapshots; they carry no notes.
