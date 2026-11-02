@@ -210,3 +210,87 @@ export function templatePatternToAuditionScore(
     built.maxStep,
   );
 }
+
+/** One breakdown row selected for a combined arrangement preview. */
+export interface TemplatePatternSelection {
+  trackIndex: number;
+  slotId: string | null;
+}
+
+export const templatePatternSelectionKey = (
+  trackIndex: number,
+  slotId: string | null | undefined,
+): string => `${trackIndex}:${slotId ?? "live"}`;
+
+export const templateMixPreviewPrefix = (templateId: string): string =>
+  `template-preview-${templateId}-mix-`;
+
+/** Stable id for the current set of rows, independent of selection order. */
+export const templatePatternsPreviewId = (
+  templateId: string,
+  selections: readonly TemplatePatternSelection[],
+): string => {
+  const keys = [
+    ...new Set(
+      selections.map((selection) =>
+        templatePatternSelectionKey(selection.trackIndex, selection.slotId),
+      ),
+    ),
+  ].sort();
+  return `${templateMixPreviewPrefix(templateId)}${keys.join("~")}`;
+};
+
+/**
+ * Combine several breakdown rows into one score so their patterns play
+ * together. Each row contributes its live pattern; the score lasts as long as
+ * the longest selected pattern. Nothing is restored or written to the project.
+ */
+export function templatePatternsToAuditionScore(
+  template: ProjectTemplate,
+  selections: readonly TemplatePatternSelection[],
+): AuditionScore | null {
+  if (!selections.length) return null;
+
+  const seen = new Set<string>();
+  const parts: ComposerPart[] = [];
+  let maxStep = 0;
+
+  for (const selection of selections) {
+    const key = templatePatternSelectionKey(
+      selection.trackIndex,
+      selection.slotId,
+    );
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const track = template.tracks[selection.trackIndex];
+    if (!track) continue;
+    const slot = selection.slotId
+      ? track.patternSlots?.find(
+          (candidate) => candidate.id === selection.slotId,
+        )
+      : undefined;
+    if (selection.slotId && !slot) continue;
+    const notes = slot
+      ? slot.notes?.length
+        ? slot.notes
+        : activeNotes(track)
+      : activeNotes(track);
+    const built = buildPart(
+      track,
+      notes,
+      `${selection.trackIndex}-${selection.slotId ?? "live"}-mix`,
+    );
+    if (!built) continue;
+    parts.push(built.part);
+    maxStep = Math.max(maxStep, built.maxStep);
+  }
+
+  if (!parts.length) return null;
+  return scoreFor(
+    template,
+    templatePatternsPreviewId(template.id, selections),
+    parts,
+    maxStep,
+  );
+}

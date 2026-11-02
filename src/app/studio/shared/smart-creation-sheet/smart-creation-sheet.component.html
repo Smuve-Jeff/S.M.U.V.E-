@@ -229,7 +229,7 @@
                 *ngIf="templateHasPattern(tpl)"
                 type="button"
                 class="sc-template-expand"
-                (click)="toggleTemplateDetails(tpl.id)"
+                (click)="toggleTemplateDetails(tpl)"
                 [attr.aria-expanded]="expandedTemplateId() === tpl.id"
                 [attr.aria-controls]="'template-details-' + tpl.id"
                 [attr.aria-label]="
@@ -258,26 +258,85 @@
             >
               <div class="sc-template-details-head">
                 <span class="sc-template-details-hint">
-                  Preview the reopening pattern — no channels are replaced.
+                  Preview a row or mix selected rows — no channels are replaced.
                 </span>
-                <button
-                  type="button"
-                  class="sc-template-audition"
-                  (click)="auditionTemplate(tpl, $event)"
-                  [attr.aria-label]="
-                    templateAuditionPlaying(tpl)
-                      ? 'Stop template audition ' + tpl.name
-                      : 'Audition template ' + tpl.name
-                  "
+                <div class="sc-template-details-actions">
+                  <button
+                    type="button"
+                    class="sc-template-mix"
+                    [class.is-playing]="mixAuditionPlaying(tpl)"
+                    [disabled]="selectedPatternCount(tpl) === 0"
+                    (click)="auditionTemplateMix(tpl, $event)"
+                    [attr.aria-label]="
+                      mixAuditionPlaying(tpl)
+                        ? 'Stop mixed audition ' + tpl.name
+                        : 'Audition ' +
+                          selectedPatternCount(tpl) +
+                          ' selected rows from ' +
+                          tpl.name
+                    "
+                  >
+                    <span class="material-symbols-outlined">{{
+                      mixAuditionPlaying(tpl) ? 'stop' : 'playlist_play'
+                    }}</span>
+                    <span>{{ mixAuditionLabel(tpl) }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="sc-template-audition"
+                    (click)="auditionTemplate(tpl, $event)"
+                    [attr.aria-label]="
+                      templateAuditionPlaying(tpl)
+                        ? 'Stop template audition ' + tpl.name
+                        : 'Audition template ' + tpl.name
+                    "
+                  >
+                    <span class="material-symbols-outlined">{{
+                      templateAuditionPlaying(tpl) ? 'stop' : 'play_arrow'
+                    }}</span>
+                    <span>{{ templateAuditionLabel(tpl) }}</span>
+                  </button>
+                </div>
+              </div>
+              <div
+                class="sc-template-detail-progress sc-template-mix-progress"
+                *ngIf="mixPreviewActive(tpl)"
+              >
+                <div
+                  class="sc-template-detail-progress-track"
+                  role="progressbar"
+                  aria-label="Combined pattern preview progress"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  [attr.aria-valuenow]="mixPreviewProgressPercent(tpl)"
+                  [attr.aria-valuetext]="mixPreviewProgressLabel(tpl)"
                 >
-                  <span class="material-symbols-outlined">{{
-                    templateAuditionPlaying(tpl) ? 'stop' : 'play_arrow'
-                  }}</span>
-                  <span>{{ templateAuditionLabel(tpl) }}</span>
-                </button>
+                  <div
+                    class="sc-template-detail-progress-fill"
+                    [style.width.%]="mixPreviewProgressPercent(tpl)"
+                  ></div>
+                </div>
+                <span class="sc-template-detail-progress-label">
+                  {{ mixPreviewProgressLabel(tpl) }}
+                </span>
               </div>
               <div class="sc-template-detail" *ngFor="let detail of templateDetails(tpl)">
                 <div class="sc-template-detail-head">
+                  <label
+                    class="sc-template-detail-mix"
+                    title="Include this row in the combined preview"
+                  >
+                    <input
+                      type="checkbox"
+                      [checked]="patternSelected(tpl, detail)"
+                      (change)="togglePatternSelection(tpl, detail, $event)"
+                      [attr.aria-label]="
+                        'Include ' + detail.track + ' ' + detail.slot +
+                        ' in the combined preview'
+                      "
+                    />
+                    <span>Mix</span>
+                  </label>
                   <strong>{{ detail.track }}</strong>
                   <span>{{ detail.slot }}</span>
                   <button

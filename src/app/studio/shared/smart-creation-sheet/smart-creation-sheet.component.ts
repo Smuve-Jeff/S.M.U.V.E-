@@ -21,10 +21,15 @@ import {
   type AuditionScore,
 } from "../../../composer/composition-audition.service";
 import {
+  templateMixPreviewPrefix,
   templatePatternPreviewId,
+  templatePatternSelectionKey,
+  templatePatternsPreviewId,
+  templatePatternsToAuditionScore,
   templatePatternToAuditionScore,
   templatePreviewId,
   templateToAuditionScore,
+  type TemplatePatternSelection,
 } from "../template-audition.util";
 import {
   ProjectTemplateService,
@@ -134,6 +139,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly expandedTemplateId = signal<string | null>(null);
   /** Preview score id currently rendering or playing, if any. */
   readonly auditioningPreviewId = signal<string | null>(null);
+  /** Breakdown rows included in the combined arrangement preview. */
+  readonly selectedPatternKeys = signal<ReadonlySet<string>>(new Set());
+  private selectedPatternTemplateId: string | null = null;
 
   @Output() closeSheet = new EventEmitter<void>();
   @Output() navigateToView = new EventEmitter<string>();
@@ -783,11 +791,93 @@ export class SmartCreationSheetComponent implements OnDestroy {
     }`;
   }
 
-  toggleTemplateDetails(templateId: string): void {
+  /** Open or close a breakdown and seed its combined-preview selection. */
+  toggleTemplateDetails(template: ProjectTemplate): void {
     this.haptic.light();
-    this.expandedTemplateId.update((current) =>
-      current === templateId ? null : templateId,
+    const isOpen = this.expandedTemplateId() === template.id;
+    const previousId = this.expandedTemplateId();
+    if (previousId && previousId !== template.id) {
+      this.stopTemplateMixPreview(previousId);
+    }
+    if (isOpen) {
+      this.stopTemplateMixPreview(template.id);
+      this.expandedTemplateId.set(null);
+      this.clearPatternSelection();
+      return;
+    }
+    this.expandedTemplateId.set(template.id);
+    this.selectedPatternTemplateId = template.id;
+    this.selectedPatternKeys.set(
+      new Set(
+        this.templateDetails(template).map((detail) =>
+          templatePatternSelectionKey(detail.trackIndex, detail.slotId),
+        ),
+      ),
     );
+  }
+
+  /** Rows currently selected for the mix, in breakdown order. */
+  selectedPatternSelections(
+    template: ProjectTemplate,
+  ): TemplatePatternSelection[] {
+    if (this.selectedPatternTemplateId !== template.id) return [];
+    return this.templateDetails(template)
+      .filter((detail) => this.patternSelected(template, detail))
+      .map((detail) => ({
+        trackIndex: detail.trackIndex,
+        slotId: detail.slotId,
+      }));
+  }
+
+  selectedPatternCount(template: ProjectTemplate): number {
+    return this.selectedPatternSelections(template).length;
+  }
+
+  patternSelected(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+  ): boolean {
+    if (this.selectedPatternTemplateId !== template.id) return false;
+    return this.selectedPatternKeys().has(
+      templatePatternSelectionKey(detail.trackIndex, detail.slotId),
+    );
+  }
+
+  /** Include or exclude one row from the combined arrangement preview. */
+  togglePatternSelection(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    const key = templatePatternSelectionKey(detail.trackIndex, detail.slotId);
+    const next = new Set(this.selectedPatternKeys());
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    this.selectedPatternTemplateId = template.id;
+    this.selectedPatternKeys.set(next);
+    // The old mix no longer matches the selection; never let it keep playing
+    // or finish rendering over the artist's new choice.
+    this.stopTemplateMixPreview(template.id);
+    this.haptic.light();
+  }
+
+  private clearPatternSelection(): void {
+    this.selectedPatternTemplateId = null;
+    this.selectedPatternKeys.set(new Set());
+  }
+
+  private stopTemplateMixPreview(templateId: string): void {
+    const prefix = templateMixPreviewPrefix(templateId);
+    const readyId = this.compositionAudition.readyCompositionId();
+    if (readyId?.startsWith(prefix) && this.compositionAudition.playing()) {
+      this.compositionAudition.stop();
+    }
+    const renderingId = this.auditioningPreviewId();
+    if (renderingId?.startsWith(prefix)) {
+      this.compositionAudition.clear();
+      this.auditioningPreviewId.set(null);
+    }
   }
 
   /** Pattern names and saved versions, grouped by channel. */
@@ -853,6 +943,48 @@ export class SmartCreationSheetComponent implements OnDestroy {
     return this.previewLabel(templatePreviewId(template.id));
   }
 
+  /** Stable id for the mix of the currently selected breakdown rows. */
+  private mixPreviewId(template: ProjectTemplate): string {
+    return templatePatternsPreviewId(
+      template.id,
+      this.selectedPatternSelections(template),
+    );
+  }
+
+  mixAuditionPlaying(template: ProjectTemplate): boolean {
+    return this.previewPlaying(this.mixPreviewId(template));
+  }
+
+  mixAuditionLabel(template: ProjectTemplate): string {
+    const id = this.mixPreviewId(template);
+    if (
+      this.auditioningPreviewId() === id &&
+      this.compositionAudition.rendering()
+    ) {
+      return "Rendering…";
+    }
+    if (this.previewPlaying(id)) return "Stop mix";
+    const count = this.selectedPatternCount(template);
+    return count
+      ? `Mix ${count} row${count === 1 ? "" : "s"}`
+      : "Mix rows";
+  }
+
+  /** True while the combined arrangement preview is audible. */
+  mixPreviewActive(template: ProjectTemplate): boolean {
+    return this.previewPlaying(this.mixPreviewId(template));
+  }
+
+  mixPreviewProgressPercent(template: ProjectTemplate): number {
+    return this.mixPreviewActive(template) ? this.previewProgressPercent() : 0;
+  }
+
+  mixPreviewProgressLabel(template: ProjectTemplate): string {
+    if (!this.mixPreviewActive(template)) return "";
+    const count = this.selectedPatternCount(template);
+    return `${count} row${count === 1 ? "" : "s"} · ${this.previewPositionLabel()}`;
+  }
+
   /** Stable preview id for one breakdown row or one of its saved versions. */
   patternPreviewId(
     template: ProjectTemplate,
@@ -915,10 +1047,9 @@ export class SmartCreationSheetComponent implements OnDestroy {
     template: ProjectTemplate,
     detail: TemplatePatternDetail,
   ): number {
-    if (!this.patternPreviewActive(template, detail)) return 0;
-    return Math.round(
-      Math.max(0, Math.min(1, this.compositionAudition.progress())) * 100,
-    );
+    return this.patternPreviewActive(template, detail)
+      ? this.previewProgressPercent()
+      : 0;
   }
 
   /** Names the audible take and shows its bar/clock position while looping. */
@@ -928,6 +1059,17 @@ export class SmartCreationSheetComponent implements OnDestroy {
   ): string {
     const active = this.activePatternPreview(template, detail);
     if (!active) return "";
+    const take = active.version?.name ?? "Live pattern";
+    return `${take} · ${this.previewPositionLabel()}`;
+  }
+
+  private previewProgressPercent(): number {
+    return Math.round(
+      Math.max(0, Math.min(1, this.compositionAudition.progress())) * 100,
+    );
+  }
+
+  private previewPositionLabel(): string {
     const progress = Math.max(
       0,
       Math.min(1, this.compositionAudition.progress()),
@@ -935,8 +1077,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     const seconds = Math.max(0, this.compositionAudition.previewSeconds());
     const bars = Math.max(1, this.compositionAudition.previewBars());
     const bar = Math.min(bars, Math.floor(progress * bars) + 1);
-    const take = active.version?.name ?? "Live pattern";
-    return `${take} · bar ${bar}/${bars} · ${this.previewClock(
+    return `bar ${bar}/${bars} · ${this.previewClock(
       progress * seconds,
     )} / ${this.previewClock(seconds)} · loop`;
   }
@@ -1003,6 +1144,33 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
+  /**
+   * Hear the selected breakdown rows together. The mix uses each row's live
+   * pattern, loops like an individual preview and never loads the template.
+   */
+  async auditionTemplateMix(
+    template: ProjectTemplate,
+    event?: Event,
+  ): Promise<void> {
+    event?.stopPropagation();
+    const selections = this.selectedPatternSelections(template);
+    if (!selections.length) {
+      this.snackbar.info("Select at least one pattern row to mix.");
+      return;
+    }
+    const score = templatePatternsToAuditionScore(template, selections);
+    if (!score) {
+      this.snackbar.info("The selected rows have no playable notes.");
+      return;
+    }
+    const rows = score.parts.length;
+    await this.previewScore(
+      score,
+      `${template.name} — ${rows} row${rows === 1 ? "" : "s"} mixed`,
+      true,
+    );
+  }
+
   /** Start, switch or stop a temporary template preview. */
   private async previewScore(
     score: AuditionScore,
@@ -1048,7 +1216,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
   deleteUserTemplate(id: string, event: Event): void {
     event.stopPropagation();
     if (!this.projectTemplates.deleteUserTemplate(id)) return;
-    if (this.expandedTemplateId() === id) this.expandedTemplateId.set(null);
+    if (this.expandedTemplateId() === id) {
+      this.stopTemplateMixPreview(id);
+      this.expandedTemplateId.set(null);
+      this.clearPatternSelection();
+    }
     this.haptic.light();
   }
 

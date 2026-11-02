@@ -1,4 +1,6 @@
 import {
+  templatePatternsPreviewId,
+  templatePatternsToAuditionScore,
   templatePatternToAuditionScore,
   templateToAuditionScore,
 } from './template-audition.util';
@@ -156,5 +158,71 @@ describe('templateToAuditionScore', () => {
       templatePatternToAuditionScore(source, 0, 'slot-1', 'missing'),
     ).toBeNull();
     expect(templatePatternToAuditionScore(source, 3, 'slot-1')).toBeNull();
+  });
+});
+
+describe('templatePatternsToAuditionScore', () => {
+  it('combines the selected rows and keeps a stable id regardless of order', () => {
+    const source = template();
+    const before = JSON.stringify(source);
+    const selections = [
+      { trackIndex: 0, slotId: null },
+      { trackIndex: 2, slotId: null },
+    ];
+
+    const score = templatePatternsToAuditionScore(source, selections);
+
+    expect(score).not.toBeNull();
+    expect(score!.parts.map((part) => part.role)).toEqual(['bass', 'drums']);
+    expect(score!.id).toBe('template-preview-tpl-mix-0:live~2:live');
+    expect(
+      templatePatternsToAuditionScore(source, [...selections].reverse())!.id,
+    ).toBe(score!.id);
+    expect(JSON.stringify(source)).toBe(before);
+  });
+
+  it('uses the longest selected row for the mix length', () => {
+    const score = templatePatternsToAuditionScore(
+      template({
+        tracks: [
+          {
+            name: 'Lead',
+            instrumentId: 'analog-warmth',
+            type: 'midi',
+            notes: [{ midi: 67, step: 0, length: 4, velocity: 0.8 }],
+          },
+          {
+            name: 'Pad',
+            instrumentId: 'ethereal-wind',
+            type: 'midi',
+            notes: [{ midi: 50, step: 48, length: 4, velocity: 0.5 }],
+          },
+        ],
+      }),
+      [
+        { trackIndex: 0, slotId: null },
+        { trackIndex: 1, slotId: null },
+      ],
+    );
+
+    expect(score!.totalBars).toBe(4);
+    expect(score!.parts).toHaveLength(2);
+  });
+
+  it('deduplicates rows and rejects empty or invalid selections', () => {
+    const source = template();
+    const one = templatePatternsToAuditionScore(source, [
+      { trackIndex: 0, slotId: null },
+      { trackIndex: 0, slotId: null },
+    ]);
+    expect(one!.parts).toHaveLength(1);
+
+    expect(templatePatternsToAuditionScore(source, [])).toBeNull();
+    expect(
+      templatePatternsToAuditionScore(source, [{ trackIndex: 9, slotId: null }]),
+    ).toBeNull();
+    expect(templatePatternsPreviewId('tpl', [])).toBe(
+      'template-preview-tpl-mix-',
+    );
   });
 });

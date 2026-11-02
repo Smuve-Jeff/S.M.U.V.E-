@@ -1088,14 +1088,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
   padding-bottom: 4px;
 }
 
 .sc-template-details-hint {
+  flex: 1 1 140px;
   font-size: 10.5px;
   line-height: 1.35;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.sc-template-details-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
 }
 
 .sc-template-audition {
@@ -1121,6 +1132,37 @@
 
 .sc-template-audition:hover {
   background: rgba(0, 229, 255, 0.16);
+}
+
+.sc-template-mix {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border: 1px solid rgba(119, 255, 192, 0.35);
+  border-radius: 999px;
+  background: rgba(119, 255, 192, 0.08);
+  color: #77ffc0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.sc-template-mix .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.sc-template-mix:hover:not(:disabled),
+.sc-template-mix.is-playing {
+  background: rgba(119, 255, 192, 0.18);
+}
+
+.sc-template-mix:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
 }
 
 .sc-template-detail {
@@ -1150,6 +1192,31 @@
 .sc-template-detail-head span {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.65);
+}
+
+.sc-template-detail-mix {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(119, 255, 192, 0.72);
+  cursor: pointer;
+}
+
+.sc-template-detail-head .sc-template-detail-mix span {
+  font-size: 9px;
+  color: rgba(119, 255, 192, 0.72);
+}
+
+.sc-template-detail-mix input {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: #00e5ff;
+  cursor: pointer;
 }
 
 .sc-template-detail-audition {
@@ -1193,6 +1260,10 @@
   gap: 8px;
   flex-wrap: wrap;
   padding-top: 1px;
+}
+
+.sc-template-mix-progress {
+  padding: 0 0 2px;
 }
 
 .sc-template-detail-progress-track {

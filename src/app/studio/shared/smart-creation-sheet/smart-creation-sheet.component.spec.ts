@@ -98,6 +98,7 @@ describe("SmartCreationSheetComponent", () => {
     previewBars: signal(1),
     startScore: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn(),
+    clear: jest.fn(),
   };
 
   const mockUserProfileService = {
@@ -1155,6 +1156,159 @@ describe("SmartCreationSheetComponent", () => {
     );
   });
 
+  it("mixes selected rows into one looping arrangement preview", async () => {
+    const template = {
+      id: "tpl-5",
+      name: "Section Sketch",
+      bpm: 100,
+      tracks: [
+        {
+          name: "Sub Bass",
+          instrumentId: "sub-commander",
+          type: "midi",
+          notes: [{ midi: 33, step: 0, length: 4, velocity: 0.9 }],
+        },
+        {
+          name: "Drums",
+          instrumentId: "trap-kit-elite",
+          type: "drum",
+          notes: [{ midi: 36, step: 0, length: 1, velocity: 0.9 }],
+        },
+      ],
+    } as any;
+    component.toggleTemplateDetails(template);
+    const details = component.templateDetails(template);
+    const tracksBefore = JSON.stringify(mockMusicManager.tracks());
+
+    expect(component.selectedPatternCount(template)).toBe(2);
+    component.togglePatternSelection(template, details[1]);
+    expect(component.selectedPatternCount(template)).toBe(1);
+    expect(component.patternSelected(template, details[0])).toBe(true);
+    expect(component.patternSelected(template, details[1])).toBe(false);
+
+    await component.auditionTemplateMix(template);
+
+    expect(mockCompositionAudition.startScore).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: "template-preview-tpl-5-mix-0:live",
+        bpm: 100,
+        totalBars: 1,
+        parts: [expect.objectContaining({ role: "bass" })],
+      }),
+      true,
+    );
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      expect.stringContaining("1 row mixed"),
+    );
+
+    component.togglePatternSelection(template, details[1]);
+    await component.auditionTemplateMix(template);
+
+    expect(mockCompositionAudition.startScore).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: "template-preview-tpl-5-mix-0:live~1:live",
+        parts: [
+          expect.objectContaining({ role: "bass" }),
+          expect.objectContaining({ role: "drums" }),
+        ],
+      }),
+      true,
+    );
+    expect(JSON.stringify(mockMusicManager.tracks())).toBe(tracksBefore);
+    expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
+  });
+
+  it("stops a playing mix when its row selection changes", () => {
+    const template = {
+      id: "tpl-5",
+      name: "Section Sketch",
+      tracks: [
+        {
+          name: "Lead",
+          instrumentId: "analog-warmth",
+          type: "midi",
+          notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+        },
+        {
+          name: "Keys",
+          instrumentId: "grand-piano",
+          type: "midi",
+          notes: [{ midi: 60, step: 4, length: 2, velocity: 0.7 }],
+        },
+      ],
+    } as any;
+    component.toggleTemplateDetails(template);
+    const details = component.templateDetails(template);
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(
+      "template-preview-tpl-5-mix-0:live~1:live",
+    );
+
+    component.togglePatternSelection(template, details[1]);
+
+    expect(mockCompositionAudition.stop).toHaveBeenCalled();
+  });
+
+  it("shows progress for the combined mix", () => {
+    const template = {
+      id: "tpl-5",
+      name: "Section Sketch",
+      tracks: [
+        {
+          name: "Lead",
+          instrumentId: "analog-warmth",
+          type: "midi",
+          notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+        },
+        {
+          name: "Keys",
+          instrumentId: "grand-piano",
+          type: "midi",
+          notes: [{ midi: 60, step: 4, length: 2, velocity: 0.7 }],
+        },
+      ],
+    } as any;
+    component.toggleTemplateDetails(template);
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(
+      "template-preview-tpl-5-mix-0:live~1:live",
+    );
+    mockCompositionAudition.progress.set(0.5);
+    mockCompositionAudition.previewSeconds.set(8);
+    mockCompositionAudition.previewBars.set(2);
+
+    expect(component.mixPreviewActive(template)).toBe(true);
+    expect(component.mixPreviewProgressPercent(template)).toBe(50);
+    expect(component.mixPreviewProgressLabel(template)).toContain("2 rows");
+    expect(component.mixPreviewProgressLabel(template)).toContain("bar 2/2");
+    expect(component.mixAuditionLabel(template)).toBe("Stop mix");
+  });
+
+  it("requires at least one selected row before mixing", async () => {
+    const template = {
+      id: "tpl-5",
+      name: "Section Sketch",
+      tracks: [
+        {
+          name: "Lead",
+          instrumentId: "analog-warmth",
+          type: "midi",
+          notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+        },
+      ],
+    } as any;
+    component.toggleTemplateDetails(template);
+    const [detail] = component.templateDetails(template);
+    component.togglePatternSelection(template, detail);
+
+    await component.auditionTemplateMix(template);
+
+    expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      "Select at least one pattern row to mix.",
+    );
+  });
+
   it("shows looping progress for the audible row and names its version", () => {
     const template = {
       id: "tpl-3",
@@ -1213,6 +1367,8 @@ describe("SmartCreationSheetComponent", () => {
 
   it("lists pattern names, launch boundaries and saved versions", () => {
     const template = {
+      id: "tpl-1",
+      name: "Detail Sketch",
       tracks: [
         {
           name: "Lead",
@@ -1258,9 +1414,11 @@ describe("SmartCreationSheetComponent", () => {
       versions: [],
     });
 
-    component.toggleTemplateDetails("tpl-1");
+    component.toggleTemplateDetails(template);
     expect(component.expandedTemplateId()).toBe("tpl-1");
-    component.toggleTemplateDetails("tpl-1");
+    expect(component.selectedPatternCount(template)).toBe(2);
+    component.toggleTemplateDetails(template);
     expect(component.expandedTemplateId()).toBeNull();
+    expect(component.selectedPatternCount(template)).toBe(0);
   });
 });
