@@ -1376,6 +1376,123 @@
   }
 }
 
+/* Proportional arrangement spans, with a readable legend under the track. */
+.sc-arrangement-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 7px;
+  border: 1px solid rgba(0, 229, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.sc-arrangement-timeline-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sc-arrangement-timeline-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(184, 247, 255, 0.55);
+}
+
+.sc-arrangement-timeline-total {
+  flex: 0 0 auto;
+  color: rgba(119, 255, 192, 0.82);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sc-arrangement-timeline-track {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sc-arrangement-timeline-span {
+  flex: 1 1 0;
+  min-width: 2px;
+  border-radius: 2px;
+  opacity: 0.92;
+}
+
+.sc-arrangement-timeline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 9px;
+}
+
+.sc-arrangement-timeline-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 9px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.sc-arrangement-timeline-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  opacity: 0.92;
+}
+
+.sc-arrangement-timeline-index {
+  color: rgba(184, 247, 255, 0.42);
+  font-variant-numeric: tabular-nums;
+}
+
+.sc-arrangement-timeline-name {
+  max-width: 84px;
+  overflow: hidden;
+  color: #eaffff;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sc-arrangement-timeline-bars {
+  flex: 0 0 auto;
+  color: rgba(184, 247, 255, 0.58);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+  .sc-arrangement-timeline-track {
+    height: 16px;
+  }
+
+  .sc-arrangement-timeline-item {
+    font-size: 10px;
+  }
+
+  .sc-arrangement-timeline-name {
+    max-width: 96px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .sc-arrangement-timeline-track {
+    height: 10px;
+  }
+
+  .sc-arrangement-timeline-item {
+    font-size: 9px;
+  }
+}
+
 .sc-template-section-label {
   font-size: 9px;
   font-weight: 700;

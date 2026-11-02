@@ -431,6 +431,43 @@
                     </div>
                   </div>
                   <div
+                    class="sc-arrangement-timeline"
+                    *ngIf="templateSections(tpl).length"
+                    role="group"
+                    [attr.aria-label]="sectionTimelineAriaLabel(tpl)"
+                  >
+                    <div class="sc-arrangement-timeline-head">
+                      <span class="sc-arrangement-timeline-label">Arrangement</span>
+                      <span class="sc-arrangement-timeline-total">
+                        {{ sectionTimelineSummary(tpl) }}
+                      </span>
+                    </div>
+                    <div class="sc-arrangement-timeline-track" aria-hidden="true">
+                      <span
+                        *ngFor="let segment of sectionTimeline(tpl)"
+                        class="sc-arrangement-timeline-span"
+                        [style.background]="segment.color"
+                        [style.flexGrow]="segment.bars"
+                      ></span>
+                    </div>
+                    <div class="sc-arrangement-timeline-legend">
+                      <span
+                        *ngFor="let segment of sectionTimeline(tpl)"
+                        class="sc-arrangement-timeline-item"
+                        [attr.title]="sectionTimelineSegmentLabel(segment)"
+                      >
+                        <span
+                          class="sc-arrangement-timeline-dot"
+                          [style.background]="segment.color"
+                          aria-hidden="true"
+                        ></span>
+                        <span class="sc-arrangement-timeline-index">{{ segment.index + 1 }}</span>
+                        <span class="sc-arrangement-timeline-name">{{ segment.name }}</span>
+                        <span class="sc-arrangement-timeline-bars">{{ segment.bars }}b</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div
                     class="sc-template-section-order"
                     *ngIf="reorderingSections()"
                   >

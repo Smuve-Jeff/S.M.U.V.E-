@@ -1780,6 +1780,64 @@ describe("SmartCreationSheetComponent", () => {
     expect(component.sectionPreviewProgressLabel(template, other)).toBe("");
   });
 
+  it("shows each saved section's bar span in the arrangement timeline", () => {
+    const template = sectionTemplateFixture();
+    const intro = {
+      id: "sec-intro",
+      name: "Intro",
+      bars: 4,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const hook = {
+      id: "sec-hook",
+      name: "Hook",
+      rows: [{ trackIndex: 1, slotId: null }],
+    };
+    const withSections = { ...template, sections: [intro, hook] };
+
+    const segments = component.sectionTimeline(withSections);
+    expect(segments).toHaveLength(2);
+    expect(segments[0]).toMatchObject({
+      id: "sec-intro",
+      name: "Intro",
+      bars: 4,
+      startBar: 0,
+      endBar: 4,
+      color: "#00e5ff",
+    });
+    expect(segments[1]).toMatchObject({
+      id: "sec-hook",
+      name: "Hook",
+      bars: 1,
+      startBar: 4,
+      endBar: 5,
+      color: "#77ffc0",
+    });
+    expect(component.sectionTimelineTotalBars(withSections)).toBe(5);
+    expect(component.sectionTimelineSummary(withSections)).toBe("5 bars total");
+    expect(component.sectionTimelineAriaLabel(withSections)).toBe(
+      "Arrangement timeline: 1. Intro, 4 bars; 2. Hook, 1 bar. 5 bars total.",
+    );
+    expect(component.sectionTimelineSegmentLabel(segments[1])).toBe(
+      "2. Hook · 1 bar · bar 5",
+    );
+
+    userTemplatesSignal.set([withSections]);
+    component.toggleTemplateDetails(withSections);
+    fixture.detectChanges();
+    const timeline: HTMLElement = fixture.nativeElement.querySelector(
+      ".sc-arrangement-timeline",
+    );
+    expect(timeline).not.toBeNull();
+    expect(timeline.getAttribute("aria-label")).toContain("1. Intro, 4 bars");
+    expect(
+      timeline.querySelectorAll(".sc-arrangement-timeline-span"),
+    ).toHaveLength(2);
+    expect(
+      timeline.querySelectorAll(".sc-arrangement-timeline-item"),
+    ).toHaveLength(2);
+  });
+
   it("holds a finished one-pass section at 100% for a moment", async () => {
     const template = sectionTemplateFixture();
     component.toggleTemplateDetails(template);

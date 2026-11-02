@@ -88,6 +88,8 @@ export interface RecentItem {
 }
 
 const SHEET_TABS: SmartSheetTab[] = ["beats", "vocals", "chords", "ai"];
+/** Alternating span colours; long arrangements repeat the palette. */
+const SECTION_TIMELINE_TONES = ["#00e5ff", "#77ffc0", "#b8a1ff", "#ffd166"];
 
 const isSmartSheetTab = (value: string | undefined): value is SmartSheetTab =>
   !!value && (SHEET_TABS as string[]).includes(value);
@@ -136,6 +138,17 @@ interface HeldSectionPreview {
   seconds: number;
 }
 
+/** One proportional span in the saved-section arrangement timeline. */
+export interface SectionTimelineSegment {
+  id: string;
+  index: number;
+  name: string;
+  bars: number;
+  startBar: number;
+  endBar: number;
+  color: string;
+}
+
 @Component({
   selector: "app-smart-creation-sheet",
   standalone: true,
@@ -182,6 +195,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
   private readonly heldSectionPreview = signal<HeldSectionPreview | null>(null);
   private heldSectionTimer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
+  /** Section arrays are replaced on every edit, so identity is a safe key. */
+  private readonly sectionTimelineCache = new WeakMap<
+    readonly TemplateSection[],
+    SectionTimelineSegment[]
+  >();
   private selectedPatternTemplateId: string | null = null;
 
   @Output() closeSheet = new EventEmitter<void>();
@@ -976,6 +994,71 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   templateSections(template: ProjectTemplate): TemplateSection[] {
     return template.sections ?? [];
+  }
+
+  /** Proportional spans for the saved-section arrangement, in listed order. */
+  sectionTimeline(template: ProjectTemplate): SectionTimelineSegment[] {
+    const sections = this.templateSections(template);
+    if (!sections.length) return [];
+    const cached = this.sectionTimelineCache.get(sections);
+    if (cached) return cached;
+
+    const segments: SectionTimelineSegment[] = [];
+    let startBar = 0;
+    sections.forEach((section, index) => {
+      const bars = this.sectionBars(template, section);
+      segments.push({
+        id: section.id,
+        index,
+        name: section.name,
+        bars,
+        startBar,
+        endBar: startBar + bars,
+        color: SECTION_TIMELINE_TONES[index % SECTION_TIMELINE_TONES.length],
+      });
+      startBar += bars;
+    });
+    this.sectionTimelineCache.set(sections, segments);
+    return segments;
+  }
+
+  sectionTimelineTotalBars(template: ProjectTemplate): number {
+    return this.sectionTimeline(template).reduce(
+      (total, segment) => total + segment.bars,
+      0,
+    );
+  }
+
+  sectionTimelineSummary(template: ProjectTemplate): string {
+    const bars = this.sectionTimelineTotalBars(template);
+    return `${bars} bar${bars === 1 ? "" : "s"} total`;
+  }
+
+  /** Full text alternative for the visual timeline. */
+  sectionTimelineAriaLabel(template: ProjectTemplate): string {
+    const segments = this.sectionTimeline(template);
+    if (!segments.length) return "";
+    const spans = segments
+      .map(
+        (segment) =>
+          `${segment.index + 1}. ${segment.name}, ${segment.bars} bar${
+            segment.bars === 1 ? "" : "s"
+          }`,
+      )
+      .join("; ");
+    return `Arrangement timeline: ${spans}. ${this.sectionTimelineSummary(
+      template,
+    )}.`;
+  }
+
+  sectionTimelineSegmentLabel(segment: SectionTimelineSegment): string {
+    const span =
+      segment.bars === 1
+        ? `bar ${segment.startBar + 1}`
+        : `bars ${segment.startBar + 1}–${segment.endBar}`;
+    return `${segment.index + 1}. ${segment.name} · ${segment.bars} bar${
+      segment.bars === 1 ? "" : "s"
+    } · ${span}`;
   }
 
   /** Bounds for the arrangement-length stepper. */
