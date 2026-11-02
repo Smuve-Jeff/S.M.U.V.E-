@@ -43,7 +43,7 @@ adoption or store shipment).
 | 12 | Channel Rack | At parity | `channel-rack/` — patterns, scene columns, polymeter, LFO, meters, pattern slots | FL's rack is the origin of the pattern model and remains deeper |
 | 13 | Score View | **Ahead** | `score-view/` — editable notation, rests, velocity shading, MusicXML import/export | None of the four ship notation |
 | 14 | Mixer | At parity | `mixer/` — VCA buses, sends A/B, sidechain routing, phase, width, buses, master strip | Cubasis: unlimited tracks, 8 inserts + 8 sends. Ours is 6/12/24 tracks by device tier (`studio-device-profile.service.ts`) |
-| 15 | Effects Rack | At parity | `effects-rack-ui/` — dynamic FX, per-track inserts, WASM plugin chain, sidechain, real per-insert meters, plugin-parameter knobs and automation | No third-party VST/AU; no per-insert preset browser yet; Cubasis has 8 insert slots per channel |
+| 15 | Effects Rack | At parity | `effects-rack-ui/` — dynamic FX, per-track inserts, WASM plugin chain, sidechain, real per-insert meters, plugin-parameter knobs and automation, factory/user presets for macro and WASM inserts | No third-party VST/AU; Cubasis has 8 insert slots per channel |
 | 16 | DJ Booth | **Ahead** | `dj-deck/` — two decks, stems, hot cues, loops, 7 FX, crossfader curves, MIDI mapping | Standalone DJ apps are deeper, but no DAW baseline has this beside arrangement |
 | 17 | Mastering | **Ahead** | `mastering-suite/` — LUFS targets, true peak, delivery targets, reference A/B, spectral view, AI assist | Cubasis Master Strip is the closest; no baseline offers platform delivery targets |
 | 18 | Export | **Ahead** | `export.service.ts` — WAV/MP3/FLAC, stems, MIDI, DAWproject, presets, progress, **automation rendered offline** | FL exports `.flp`; Cubasis DAWproject. We match interchange and beat both on stems/presets |
@@ -214,7 +214,7 @@ contrary to the earlier backlog wording.
 
 | Item | Why | Effort |
 | --- | --- | --- |
-| ~~Plugin-parameter automation + per-insert metering~~ **Shipped 2 Nov 2026**; per-insert preset browser still open | Makes the WASM ecosystem usable | M |
+| ~~Plugin-parameter automation + per-insert metering~~ **Shipped 2 Nov 2026**; ~~WASM insert preset browser~~ **Shipped 2 Nov 2026** — 15 factory sounds plus per-plugin user presets | Makes the WASM ecosystem usable | M |
 | Sampler slicing / transient chop / time-stretch | Beatmaker table stakes; Koala/FL lead here | M |
 | MPE per-note expression | Full MPE per-channel note voices, bend range and pressure routing are wired; deeper modulation-matrix editing remains | M |
 | Overlap crossfades + tempo lane in arrangement (ripple delete now ships) | Cubasis/FL timeline depth | M |

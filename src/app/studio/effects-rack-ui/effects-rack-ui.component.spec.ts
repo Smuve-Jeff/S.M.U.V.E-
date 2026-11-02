@@ -8,6 +8,8 @@ import { MusicManagerService } from "../../services/music-manager.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { PluginStoreService } from "../../services/plugin-store.service";
 import { AutomationService } from "../automation.service";
+import { WasmInsertPresetService } from "../effects/wasm-insert-preset.service";
+import { NotificationService } from "../../services/notification.service";
 
 /**
  * The rack's Add Effect button had no handler, the parameters panel rendered
@@ -70,6 +72,14 @@ describe("EffectsRackUiComponent", () => {
     ensureLane: jest.fn(),
   };
 
+  const wasmPresetMock = {
+    presetsFor: jest.fn(() => []),
+    save: jest.fn(),
+    remove: jest.fn(),
+  };
+
+  const notifyMock = { show: jest.fn() };
+
   const pluginStoreMock = {
     catalog: [
       {
@@ -103,6 +113,7 @@ describe("EffectsRackUiComponent", () => {
     ];
     track.pluginIds = [];
     tracksSignal.set([{ ...track }]);
+    wasmPresetMock.presetsFor.mockReturnValue([]);
 
     await TestBed.configureTestingModule({
       imports: [EffectsRackUiComponent],
@@ -111,6 +122,8 @@ describe("EffectsRackUiComponent", () => {
         { provide: AudioEngineService, useValue: audioEngineMock },
         { provide: PluginStoreService, useValue: pluginStoreMock },
         { provide: AutomationService, useValue: automationMock },
+        { provide: WasmInsertPresetService, useValue: wasmPresetMock },
+        { provide: NotificationService, useValue: notifyMock },
       ],
     }).compileComponents();
 
@@ -288,6 +301,94 @@ describe("EffectsRackUiComponent", () => {
     // sqrt(0.25) = 0.5 → half-scale meter.
     expect(component.meterPercent("track:track-1", "smuve.reverb.v2")).toBe(50);
     expect(component.meterPercent("master", "smuve.reverb.v2")).toBe(0);
+  });
+
+  it("recalls a WASM preset through the plugin store and skips unknown params", () => {
+    track.pluginIds = ["smuve.reverb.v2"];
+    tracksSignal.set([{ ...track }]);
+    wasmPresetMock.presetsFor.mockReturnValue([
+      {
+        id: "wasm-room",
+        name: "Room",
+        pluginId: "smuve.reverb.v2",
+        params: { mix: 0.72, removedInV3: 1 },
+        factory: false,
+        createdAt: 1,
+      },
+    ]);
+
+    component.selectPluginPreset("track:smuve.reverb.v2", "wasm-room");
+    component.applyPluginPreset("smuve.reverb.v2", "track:smuve.reverb.v2");
+
+    expect(pluginStoreMock.setParam).toHaveBeenCalledWith(
+      "smuve.reverb.v2",
+      "mix",
+      0.72,
+    );
+    expect(pluginStoreMock.setParam).not.toHaveBeenCalledWith(
+      "smuve.reverb.v2",
+      "removedInV3",
+      1,
+    );
+    expect(notifyMock.show).toHaveBeenCalledWith(
+      "Recalled “Room”.",
+      "info",
+    );
+  });
+
+  it("saves the plugin's current values and selects the new preset", () => {
+    const saved = {
+      id: "wasm-saved",
+      name: "My Room",
+      pluginId: "smuve.reverb.v2",
+      params: { mix: 0.4 },
+      factory: false,
+      createdAt: 2,
+    };
+    wasmPresetMock.save.mockReturnValue(saved);
+
+    component.setPluginPresetNameValue("track:smuve.reverb.v2", "My Room");
+    component.savePluginPreset("smuve.reverb.v2", "track:smuve.reverb.v2");
+
+    expect(wasmPresetMock.save).toHaveBeenCalledWith(
+      "My Room",
+      "smuve.reverb.v2",
+      { mix: 0.4 },
+    );
+    expect(component.pluginPresetSelection("track:smuve.reverb.v2")).toBe(
+      "wasm-saved",
+    );
+    expect(component.pluginPresetNameValue("track:smuve.reverb.v2")).toBe("");
+  });
+
+  it("deletes user presets but leaves factory presets intact", () => {
+    wasmPresetMock.presetsFor.mockReturnValue([
+      {
+        id: "factory:smuve.reverb.v2:0",
+        name: "Tight Room",
+        pluginId: "smuve.reverb.v2",
+        params: { mix: 0.22 },
+        factory: true,
+        createdAt: 0,
+      },
+      {
+        id: "wasm-user",
+        name: "Mine",
+        pluginId: "smuve.reverb.v2",
+        params: { mix: 0.5 },
+        factory: false,
+        createdAt: 1,
+      },
+    ]);
+
+    component.selectPluginPreset("master:smuve.reverb.v2", "factory:smuve.reverb.v2:0");
+    component.deletePluginPreset("smuve.reverb.v2", "master:smuve.reverb.v2");
+    expect(wasmPresetMock.remove).not.toHaveBeenCalled();
+
+    component.selectPluginPreset("master:smuve.reverb.v2", "wasm-user");
+    component.deletePluginPreset("smuve.reverb.v2", "master:smuve.reverb.v2");
+    expect(wasmPresetMock.remove).toHaveBeenCalledWith("wasm-user");
+    expect(component.pluginPresetSelection("master:smuve.reverb.v2")).toBe("");
   });
 
   it("hands the master chain to the engine as resolvable live slots", () => {

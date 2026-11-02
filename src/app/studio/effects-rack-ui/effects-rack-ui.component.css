@@ -1831,6 +1831,12 @@
   padding: 0;
 }
 
+.er-plugin-presets {
+  margin-top: 10px;
+  padding: 9px;
+  background: color-mix(in srgb, var(--fx-canvas, #f5efe0) 55%, transparent);
+}
+
 .er-params-btn:disabled {
   opacity: 0.42;
   cursor: not-allowed;

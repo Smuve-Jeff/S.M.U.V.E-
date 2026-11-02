@@ -13,6 +13,10 @@ import {
 } from "../../services/plugin-store.service";
 import { AutomationService } from "../automation.service";
 import { EffectPresetService } from "../effects/effect-preset.service";
+import {
+  WasmInsertPreset,
+  WasmInsertPresetService,
+} from "../effects/wasm-insert-preset.service";
 import { NotificationService } from "../../services/notification.service";
 import { KnobComponent } from "../shared/knob/knob.component";
 
@@ -40,6 +44,7 @@ export class EffectsRackUiComponent {
   private automation = inject(AutomationService);
   private notify = inject(NotificationService);
   readonly effectPresets = inject(EffectPresetService);
+  readonly wasmPresets = inject(WasmInsertPresetService);
 
   selectedTrack = this.musicManager.selectedTrack;
   activeSlot = signal(1);
@@ -308,6 +313,84 @@ export class EffectsRackUiComponent {
     this.effectPresets.remove(preset.id);
     this.selectedPresetId.set("");
     this.notify.show(`Deleted preset “${preset.name}”.`, "info");
+  }
+
+  // ── WASM insert presets ──────────────────────────────────────────
+  private pluginPresetSelections = signal<Record<string, string>>({});
+  private pluginPresetNames = signal<Record<string, string>>({});
+
+  pluginPresets(pluginId: string): WasmInsertPreset[] {
+    return this.wasmPresets.presetsFor(pluginId);
+  }
+
+  pluginPresetSelection(key: string): string {
+    return this.pluginPresetSelections()[key] ?? "";
+  }
+
+  selectPluginPreset(key: string, presetId: string): void {
+    this.pluginPresetSelections.update((all) => ({ ...all, [key]: presetId }));
+  }
+
+  pluginPresetNameValue(key: string): string {
+    return this.pluginPresetNames()[key] ?? "";
+  }
+
+  setPluginPresetNameValue(key: string, name: string): void {
+    this.pluginPresetNames.update((all) => ({ ...all, [key]: name }));
+  }
+
+  private findPluginPreset(
+    pluginId: string,
+    key: string,
+  ): WasmInsertPreset | null {
+    const presetId = this.pluginPresetSelection(key);
+    if (!presetId) return null;
+    return (
+      this.wasmPresets
+        .presetsFor(pluginId)
+        .find((preset) => preset.id === presetId) ?? null
+    );
+  }
+
+  isFactoryPluginPreset(pluginId: string, key: string): boolean {
+    return this.findPluginPreset(pluginId, key)?.factory === true;
+  }
+
+  applyPluginPreset(pluginId: string, key: string): void {
+    const preset = this.findPluginPreset(pluginId, key);
+    const manifest = this.pluginStore.manifestFor(pluginId);
+    if (!preset || !manifest) return;
+    const allowed = new Set(manifest.params.map((param) => param.id));
+    for (const [paramId, value] of Object.entries(preset.params)) {
+      if (!allowed.has(paramId) || !Number.isFinite(value)) continue;
+      this.pluginStore.setParam(pluginId, paramId, value);
+    }
+    this.notify.show(`Recalled “${preset.name}”.`, "info");
+  }
+
+  savePluginPreset(pluginId: string, key: string): void {
+    const name = this.pluginPresetNameValue(key).trim();
+    if (!name) return;
+    const preset = this.wasmPresets.save(
+      name,
+      pluginId,
+      this.pluginStore.valuesFor(pluginId),
+    );
+    if (!preset) return;
+    this.pluginPresetSelections.update((all) => ({
+      ...all,
+      [key]: preset.id,
+    }));
+    this.pluginPresetNames.update((all) => ({ ...all, [key]: "" }));
+    this.notify.show(`Saved “${preset.name}”.`, "success");
+  }
+
+  deletePluginPreset(pluginId: string, key: string): void {
+    const preset = this.findPluginPreset(pluginId, key);
+    if (!preset || preset.factory) return;
+    this.wasmPresets.remove(preset.id);
+    this.pluginPresetSelections.update((all) => ({ ...all, [key]: "" }));
+    this.notify.show(`Deleted “${preset.name}”.`, "info");
   }
 
   /** Persist a knob move onto the slot (coalesced in history). */

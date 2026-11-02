@@ -154,6 +154,12 @@
             </button>
           </div>
         </div>
+        <ng-container
+          *ngTemplateOutlet="
+            wasmPresetBrowser;
+            context: { pluginId: id, presetKey: 'track:' + id }
+          "
+        ></ng-container>
       </div>
 
       <div
@@ -187,6 +193,12 @@
             </button>
           </div>
         </div>
+        <ng-container
+          *ngTemplateOutlet="
+            wasmPresetBrowser;
+            context: { pluginId: id, presetKey: 'master:' + id }
+          "
+        ></ng-container>
       </div>
     </section>
 
@@ -405,3 +417,71 @@
     </section>
   </div>
 </div>
+<ng-template #wasmPresetBrowser let-pluginId="pluginId" let-presetKey="presetKey">
+  <div
+    class="er-preset-browser er-plugin-presets"
+    [attr.aria-label]="(pluginManifest(pluginId)?.name || pluginId) + ' presets'"
+  >
+    <div class="er-preset-head">
+      <span class="material-symbols-outlined">bookmarks</span>
+      <b>{{ pluginManifest(pluginId)?.name || pluginId }} Presets</b>
+      <small>{{ pluginPresets(pluginId).length }} available</small>
+    </div>
+    <div class="er-preset-load">
+      <select
+        class="er-preset-select"
+        aria-label="Load a WASM insert preset"
+        [ngModel]="pluginPresetSelection(presetKey)"
+        (ngModelChange)="selectPluginPreset(presetKey, $event)"
+      >
+        <option value="">Choose a preset…</option>
+        <option
+          *ngFor="let preset of pluginPresets(pluginId)"
+          [value]="preset.id"
+        >
+          {{ preset.name }}{{ preset.factory ? ' · factory' : '' }}
+        </option>
+      </select>
+      <button
+        type="button"
+        class="er-params-btn"
+        [disabled]="!pluginPresetSelection(presetKey)"
+        (click)="applyPluginPreset(pluginId, presetKey)"
+      >
+        Load
+      </button>
+      <button
+        type="button"
+        class="er-params-btn er-preset-delete"
+        [disabled]="
+          !pluginPresetSelection(presetKey) ||
+          isFactoryPluginPreset(pluginId, presetKey)
+        "
+        (click)="deletePluginPreset(pluginId, presetKey)"
+        title="Delete the selected user preset"
+      >
+        <span class="material-symbols-outlined">delete</span>
+      </button>
+    </div>
+    <div class="er-preset-save">
+      <input
+        type="text"
+        class="er-preset-name"
+        maxlength="48"
+        placeholder="Name this plugin sound"
+        [ngModel]="pluginPresetNameValue(presetKey)"
+        (ngModelChange)="setPluginPresetNameValue(presetKey, $event)"
+        (keydown.enter)="savePluginPreset(pluginId, presetKey)"
+      />
+      <button
+        type="button"
+        class="er-params-btn er-params-btn-live"
+        [disabled]="!pluginPresetNameValue(presetKey).trim()"
+        (click)="savePluginPreset(pluginId, presetKey)"
+      >
+        <span class="material-symbols-outlined">save</span>
+        Save
+      </button>
+    </div>
+  </div>
+</ng-template>
