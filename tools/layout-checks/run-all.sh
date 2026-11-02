@@ -10,6 +10,7 @@ probes=(
   scroll-check
   dj-carousel-check
   overhang-check
+  beginner-strip-check
 )
 
 failed=0
