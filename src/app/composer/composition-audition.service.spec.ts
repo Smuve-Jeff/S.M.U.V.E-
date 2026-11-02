@@ -2,6 +2,7 @@ import { signal } from '@angular/core';
 import {
   CompositionAuditionService,
   auditionChunkSecondsForDevice,
+  auditionMemoryWarning,
   formatRenderEta,
   planAuditionChunks,
   writeAuditionChunk,
@@ -36,6 +37,49 @@ describe('formatRenderEta', () => {
     expect(formatRenderEta(18)).toBe('~18s left');
     expect(formatRenderEta(61)).toBe('~1m 1s left');
     expect(formatRenderEta(120)).toBe('~2m left');
+  });
+});
+
+describe('auditionMemoryWarning', () => {
+  it('warns when a long phone audition needs more than the device budget', () => {
+    const warning = auditionMemoryWarning(600, 45, 2, true);
+    expect(warning).not.toBeNull();
+    expect(warning!.estimatedMb).toBeGreaterThan(warning!.budgetMb);
+    expect(warning!.budgetMb).toBe(128);
+  });
+
+  it('stays quiet for short takes and roomy desktops', () => {
+    expect(auditionMemoryWarning(30, 120, 8, false)).toBeNull();
+    expect(auditionMemoryWarning(600, 45, 8, false)).toBeNull();
+  });
+
+  it('uses a conservative budget when the browser hides memory', () => {
+    expect(auditionMemoryWarning(600, 60, null, true)?.budgetMb).toBe(128);
+    expect(auditionMemoryWarning(2400, 60, null, false)?.budgetMb).toBe(512);
+  });
+});
+
+describe('memory warning at render start', () => {
+  it('notifies once per score when the stitched buffer is too large', () => {
+    const service = Object.create(
+      CompositionAuditionService.prototype,
+    ) as any;
+    Object.assign(service, {
+      notify: { show: jest.fn() },
+      deviceSignals: { memoryGb: 2, mobile: true },
+      renderChunkSeconds: 45,
+      warnedForMemory: new Set<string>(),
+    });
+    const score = { id: 'long-score', durationSeconds: 600 };
+
+    service.warnAboutMemory(score, 45);
+    service.warnAboutMemory(score, 45);
+
+    expect(service.notify.show).toHaveBeenCalledTimes(1);
+    expect(service.notify.show).toHaveBeenCalledWith(
+      expect.stringContaining('about 249 MB'),
+      'warning',
+    );
   });
 });
 

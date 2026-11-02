@@ -59,6 +59,44 @@ export function formatRenderEta(seconds: number | null): string {
   return rest ? `~${minutes}m ${rest}s left` : `~${minutes}m left`;
 }
 
+/** A rough memory-pressure check before a long stitched audition. */
+export interface AuditionMemoryWarning {
+  estimatedMb: number;
+  budgetMb: number;
+}
+
+/**
+ * Estimate the full output, the current and previous slice buffers, and a
+ * small fixed overhead. The browser has to hold all of them at the seam, so a
+ * buffer that is fine on its own can still push a constrained phone over.
+ */
+export function auditionMemoryWarning(
+  durationSeconds: number,
+  chunkSeconds: number,
+  memoryGb: number | null,
+  mobile: boolean,
+): AuditionMemoryWarning | null {
+  const seconds = Math.max(2, durationSeconds);
+  const chunk = Math.max(0.1, Math.min(seconds, chunkSeconds));
+  const frames = Math.ceil(seconds * 44100);
+  const sliceFrames = Math.ceil(chunk * 44100);
+  const bytesPerFrame = 2 * Float32Array.BYTES_PER_ELEMENT;
+  const estimatedMb = Math.ceil(
+    (frames * bytesPerFrame +
+      sliceFrames * bytesPerFrame * 2 +
+      16 * 1024 * 1024) /
+      (1024 * 1024),
+  );
+  const reported =
+    memoryGb !== null && Number.isFinite(memoryGb) && memoryGb > 0
+      ? memoryGb
+      : mobile
+        ? 2
+        : 8;
+  const budgetMb = Math.min(512, Math.max(128, Math.round(reported * 64)));
+  return estimatedMb > budgetMb ? { estimatedMb, budgetMb } : null;
+}
+
 /**
  * Choose how much audio one offline render may cover. Smaller slices do not
  * shrink the final buffer, but they shorten the longest wait before progress
@@ -166,12 +204,14 @@ export class CompositionAuditionService {
   private engine = inject(AudioEngineService);
   private notify = inject(NotificationService);
 
+  private readonly deviceSignals = readStudioDeviceSignals();
+
   /**
    * Bounded render slices keep long auditions from exhausting memory and let
    * constrained phones reach progress updates and cancel checkpoints sooner.
    */
   readonly renderChunkSeconds = auditionChunkSecondsForDevice(
-    readStudioDeviceSignals(),
+    this.deviceSignals,
   );
 
   /** Rendered tail crossfaded into the next slice. */
@@ -194,6 +234,7 @@ export class CompositionAuditionService {
   private buffer: AudioBuffer | null = null;
   private noise: AudioBuffer | null = null;
   private renderToken = 0;
+  private warnedForMemory: Set<string> | null = null;
 
   readonly playing = computed(() => this.engine.auditionPlaying());
   readonly progress = computed(() => this.engine.auditionProgress());
@@ -285,6 +326,27 @@ export class CompositionAuditionService {
     return formatRenderEta(this.renderEtaSeconds());
   }
 
+  private warnAboutMemory(
+    score: AuditionScore,
+    chunkSeconds: number,
+  ): void {
+    const warning = auditionMemoryWarning(
+      score.durationSeconds,
+      chunkSeconds,
+      this.deviceSignals?.memoryGb ?? null,
+      this.deviceSignals?.mobile ?? false,
+    );
+    if (!warning) return;
+    const warned = (this.warnedForMemory ??= new Set<string>());
+    if (warned.has(score.id)) return;
+    warned.add(score.id);
+    const minutes = Math.max(1, Math.round(score.durationSeconds / 60));
+    this.notify.show(
+      `This ~${minutes} min audition needs about ${warning.estimatedMb} MB to stitch. Your device may run low on memory; cancel is available while it renders.`,
+      'warning',
+    );
+  }
+
   /** Renders the score to an AudioBuffer, then plays it. */
   async render(composition: Composition): Promise<void> {
     await this.renderScore({
@@ -320,6 +382,7 @@ export class CompositionAuditionService {
         this.chunkOverlapSeconds,
       );
       this.renderSliceTotal.set(plan.length);
+      this.warnAboutMemory(score, this.renderChunkSeconds ?? 120);
       const output = new AudioBuffer({
         length: totalFrames,
         numberOfChannels: 2,
