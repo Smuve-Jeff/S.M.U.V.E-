@@ -215,6 +215,8 @@ export function templatePatternToAuditionScore(
 export interface TemplatePatternSelection {
   trackIndex: number;
   slotId: string | null;
+  /** Chosen saved version, or null/omitted for the row's live pattern. */
+  versionId?: string | null;
 }
 
 export const templatePatternSelectionKey = (
@@ -232,9 +234,13 @@ export const templatePatternsPreviewId = (
 ): string => {
   const keys = [
     ...new Set(
-      selections.map((selection) =>
-        templatePatternSelectionKey(selection.trackIndex, selection.slotId),
-      ),
+      selections.map((selection) => {
+        const row = templatePatternSelectionKey(
+          selection.trackIndex,
+          selection.slotId,
+        );
+        return selection.versionId ? `${row}@${selection.versionId}` : row;
+      }),
     ),
   ].sort();
   return `${templateMixPreviewPrefix(templateId)}${keys.join("~")}`;
@@ -242,8 +248,9 @@ export const templatePatternsPreviewId = (
 
 /**
  * Combine several breakdown rows into one score so their patterns play
- * together. Each row contributes its live pattern; the score lasts as long as
- * the longest selected pattern. Nothing is restored or written to the project.
+ * together. Each row contributes its live pattern or chosen saved version; the
+ * score lasts as long as the longest selected pattern. Nothing is restored or
+ * written to the project.
  */
 export function templatePatternsToAuditionScore(
   template: ProjectTemplate,
@@ -271,11 +278,19 @@ export function templatePatternsToAuditionScore(
         )
       : undefined;
     if (selection.slotId && !slot) continue;
-    const notes = slot
-      ? slot.notes?.length
-        ? slot.notes
-        : activeNotes(track)
-      : activeNotes(track);
+    const version = selection.versionId
+      ? slot?.versions?.find(
+          (candidate) => candidate.id === selection.versionId,
+        )
+      : undefined;
+    if (selection.versionId && !version) continue;
+    const notes = version
+      ? version.notes
+      : slot
+        ? slot.notes?.length
+          ? slot.notes
+          : activeNotes(track)
+        : activeNotes(track);
     const built = buildPart(
       track,
       notes,

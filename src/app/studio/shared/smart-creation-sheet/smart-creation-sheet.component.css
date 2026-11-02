@@ -1219,6 +1219,45 @@
   cursor: pointer;
 }
 
+.sc-template-mix-version {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.sc-template-mix-version > span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(119, 255, 192, 0.72);
+}
+
+.sc-template-mix-version select {
+  min-width: 0;
+  max-width: 210px;
+  padding: 2px 6px;
+  border: 1px solid rgba(119, 255, 192, 0.24);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #d8fff2;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.sc-template-mix-version select:focus-visible {
+  outline: 2px solid rgba(0, 229, 255, 0.7);
+  outline-offset: 1px;
+}
+
+.sc-template-mix-version select option {
+  background: #0c171a;
+  color: #eaffff;
+}
+
 .sc-template-detail-audition {
   display: inline-flex;
   align-items: center;

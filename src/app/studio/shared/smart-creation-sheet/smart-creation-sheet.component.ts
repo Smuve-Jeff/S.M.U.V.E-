@@ -139,8 +139,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
   readonly expandedTemplateId = signal<string | null>(null);
   /** Preview score id currently rendering or playing, if any. */
   readonly auditioningPreviewId = signal<string | null>(null);
-  /** Breakdown rows included in the combined arrangement preview. */
-  readonly selectedPatternKeys = signal<ReadonlySet<string>>(new Set());
+  /** Breakdown rows in the combined preview, mapped to a chosen version. */
+  readonly selectedPatternVersions = signal<
+    ReadonlyMap<string, string | null>
+  >(new Map());
   private selectedPatternTemplateId: string | null = null;
 
   @Output() closeSheet = new EventEmitter<void>();
@@ -807,10 +809,13 @@ export class SmartCreationSheetComponent implements OnDestroy {
     }
     this.expandedTemplateId.set(template.id);
     this.selectedPatternTemplateId = template.id;
-    this.selectedPatternKeys.set(
-      new Set(
-        this.templateDetails(template).map((detail) =>
-          templatePatternSelectionKey(detail.trackIndex, detail.slotId),
+    this.selectedPatternVersions.set(
+      new Map(
+        this.templateDetails(template).map(
+          (detail): [string, string | null] => [
+            templatePatternSelectionKey(detail.trackIndex, detail.slotId),
+            null,
+          ],
         ),
       ),
     );
@@ -826,6 +831,10 @@ export class SmartCreationSheetComponent implements OnDestroy {
       .map((detail) => ({
         trackIndex: detail.trackIndex,
         slotId: detail.slotId,
+        versionId:
+          this.selectedPatternVersions().get(
+            templatePatternSelectionKey(detail.trackIndex, detail.slotId),
+          ) ?? null,
       }));
   }
 
@@ -838,9 +847,56 @@ export class SmartCreationSheetComponent implements OnDestroy {
     detail: TemplatePatternDetail,
   ): boolean {
     if (this.selectedPatternTemplateId !== template.id) return false;
-    return this.selectedPatternKeys().has(
+    return this.selectedPatternVersions().has(
       templatePatternSelectionKey(detail.trackIndex, detail.slotId),
     );
+  }
+
+  /** Selected version for the row's mix contribution; empty means live. */
+  patternMixVersionId(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+  ): string {
+    if (!this.patternSelected(template, detail)) return "";
+    return (
+      this.selectedPatternVersions().get(
+        templatePatternSelectionKey(detail.trackIndex, detail.slotId),
+      ) ?? ""
+    );
+  }
+
+  /** Choose a saved version (or the live pattern) for one mixed row. */
+  selectPatternMixVersion(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+    event: Event,
+  ): void {
+    event.stopPropagation();
+    const select = event.target as HTMLSelectElement;
+    this.setPatternMixVersion(template, detail, select.value || null);
+  }
+
+  /** Programmatic entry point used by the row selector and its tests. */
+  setPatternMixVersion(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+    versionId: string | null,
+  ): void {
+    if (!this.patternSelected(template, detail)) return;
+    if (
+      versionId &&
+      !detail.versions.some((version) => version.id === versionId)
+    ) {
+      return;
+    }
+    const key = templatePatternSelectionKey(detail.trackIndex, detail.slotId);
+    if ((this.selectedPatternVersions().get(key) ?? null) === versionId) return;
+    const next = new Map(this.selectedPatternVersions());
+    next.set(key, versionId);
+    this.selectedPatternTemplateId = template.id;
+    this.selectedPatternVersions.set(next);
+    this.stopTemplateMixPreview(template.id);
+    this.haptic.light();
   }
 
   /** Include or exclude one row from the combined arrangement preview. */
@@ -851,11 +907,11 @@ export class SmartCreationSheetComponent implements OnDestroy {
   ): void {
     event?.stopPropagation();
     const key = templatePatternSelectionKey(detail.trackIndex, detail.slotId);
-    const next = new Set(this.selectedPatternKeys());
+    const next = new Map(this.selectedPatternVersions());
     if (next.has(key)) next.delete(key);
-    else next.add(key);
+    else next.set(key, null);
     this.selectedPatternTemplateId = template.id;
-    this.selectedPatternKeys.set(next);
+    this.selectedPatternVersions.set(next);
     // The old mix no longer matches the selection; never let it keep playing
     // or finish rendering over the artist's new choice.
     this.stopTemplateMixPreview(template.id);
@@ -864,7 +920,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
 
   private clearPatternSelection(): void {
     this.selectedPatternTemplateId = null;
-    this.selectedPatternKeys.set(new Set());
+    this.selectedPatternVersions.set(new Map());
   }
 
   private stopTemplateMixPreview(templateId: string): void {

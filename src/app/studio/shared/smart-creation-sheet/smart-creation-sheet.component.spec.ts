@@ -1218,6 +1218,90 @@ describe("SmartCreationSheetComponent", () => {
     expect(mockMusicManager.applyGeneratedRecipe).not.toHaveBeenCalled();
   });
 
+  it("lets each mixed row use a chosen saved version", async () => {
+    const template = {
+      id: "tpl-6",
+      name: "Versioned Section",
+      bpm: 112,
+      tracks: [
+        {
+          name: "Lead",
+          instrumentId: "analog-warmth",
+          type: "midi",
+          activePatternSlotId: "slot-1",
+          patternSlots: [
+            {
+              id: "slot-1",
+              name: "Verse",
+              notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+              activeVersionId: "v2",
+              versions: [
+                {
+                  id: "v1",
+                  name: "first",
+                  notes: [{ midi: 60, step: 0, length: 2, velocity: 0.7 }],
+                },
+                {
+                  id: "v2",
+                  name: "lift",
+                  notes: [{ midi: 67, step: 4, length: 4, velocity: 0.9 }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: "Keys",
+          instrumentId: "grand-piano",
+          type: "midi",
+          notes: [{ midi: 48, step: 4, length: 2, velocity: 0.6 }],
+        },
+      ],
+    } as any;
+    component.toggleTemplateDetails(template);
+    const [lead] = component.templateDetails(template);
+    const before = JSON.stringify(template);
+
+    expect(component.patternMixVersionId(template, lead)).toBe("");
+    component.setPatternMixVersion(template, lead, "v1");
+    expect(component.patternMixVersionId(template, lead)).toBe("v1");
+
+    await component.auditionTemplateMix(template);
+
+    expect(mockCompositionAudition.startScore).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: "template-preview-tpl-6-mix-0:slot-1@v1~1:live",
+        parts: [
+          expect.objectContaining({
+            notes: [expect.objectContaining({ midi: 60 })],
+          }),
+          expect.objectContaining({
+            notes: [expect.objectContaining({ midi: 48 })],
+          }),
+        ],
+      }),
+      true,
+    );
+
+    component.setPatternMixVersion(template, lead, null);
+    expect(component.patternMixVersionId(template, lead)).toBe("");
+
+    await component.auditionTemplateMix(template);
+
+    expect(mockCompositionAudition.startScore).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        id: "template-preview-tpl-6-mix-0:slot-1~1:live",
+        parts: expect.arrayContaining([
+          expect.objectContaining({
+            notes: [expect.objectContaining({ midi: 64 })],
+          }),
+        ]),
+      }),
+      true,
+    );
+    expect(JSON.stringify(template)).toBe(before);
+  });
+
   it("stops a playing mix when its row selection changes", () => {
     const template = {
       id: "tpl-5",

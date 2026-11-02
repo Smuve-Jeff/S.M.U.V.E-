@@ -358,6 +358,34 @@
                   <span class="sc-template-detail-launch">{{ detail.launch }}</span>
                 </div>
                 <div
+                  class="sc-template-mix-version"
+                  *ngIf="patternSelected(tpl, detail) && detail.versions.length"
+                >
+                  <span>Mix uses</span>
+                  <select
+                    title="Used only in the combined preview; the active version is unchanged"
+                    [attr.aria-label]="
+                      'Version used by the combined preview for ' +
+                      detail.track + ' ' + detail.slot
+                    "
+                    (change)="selectPatternMixVersion(tpl, detail, $event)"
+                  >
+                    <option
+                      value=""
+                      [selected]="patternMixVersionId(tpl, detail) === ''"
+                    >
+                      Live pattern
+                    </option>
+                    <option
+                      *ngFor="let version of detail.versions"
+                      [value]="version.id"
+                      [selected]="patternMixVersionId(tpl, detail) === version.id"
+                    >
+                      {{ version.name }}{{ version.active ? ' · active' : '' }}
+                    </option>
+                  </select>
+                </div>
+                <div
                   class="sc-template-detail-progress"
                   *ngIf="patternPreviewActive(tpl, detail)"
                 >

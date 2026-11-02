@@ -181,6 +181,88 @@ describe('templatePatternsToAuditionScore', () => {
     expect(JSON.stringify(source)).toBe(before);
   });
 
+  it('uses a chosen saved version for a mixed row', () => {
+    const source = template({
+      tracks: [
+        {
+          name: 'Lead',
+          instrumentId: 'analog-warmth',
+          type: 'midi',
+          activePatternSlotId: 'slot-1',
+          patternSlots: [
+            {
+              id: 'slot-1',
+              name: 'Verse',
+              notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+              activeVersionId: 'v2',
+              versions: [
+                {
+                  id: 'v1',
+                  name: 'first',
+                  notes: [{ midi: 60, step: 0, length: 2, velocity: 0.7 }],
+                },
+                {
+                  id: 'v2',
+                  name: 'lift',
+                  notes: [{ midi: 67, step: 4, length: 4, velocity: 0.9 }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'Keys',
+          instrumentId: 'grand-piano',
+          type: 'midi',
+          notes: [{ midi: 48, step: 4, length: 2, velocity: 0.6 }],
+        },
+      ],
+    });
+    const before = JSON.stringify(source);
+
+    const score = templatePatternsToAuditionScore(source, [
+      { trackIndex: 0, slotId: 'slot-1', versionId: 'v1' },
+      { trackIndex: 1, slotId: null },
+    ]);
+
+    expect(score!.parts[0].notes[0].midi).toBe(60);
+    expect(score!.parts[1].notes[0].midi).toBe(48);
+    expect(score!.id).toBe('template-preview-tpl-mix-0:slot-1@v1~1:live');
+    expect(JSON.stringify(source)).toBe(before);
+  });
+
+  it('skips a mix row whose chosen version no longer exists', () => {
+    const source = template({
+      tracks: [
+        {
+          name: 'Lead',
+          instrumentId: 'analog-warmth',
+          type: 'midi',
+          patternSlots: [
+            {
+              id: 'slot-1',
+              name: 'Verse',
+              notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+              versions: [
+                {
+                  id: 'v1',
+                  name: 'first',
+                  notes: [{ midi: 60, step: 0, length: 2, velocity: 0.7 }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(
+      templatePatternsToAuditionScore(source, [
+        { trackIndex: 0, slotId: 'slot-1', versionId: 'missing' },
+      ]),
+    ).toBeNull();
+  });
+
   it('uses the longest selected row for the mix length', () => {
     const score = templatePatternsToAuditionScore(
       template({
