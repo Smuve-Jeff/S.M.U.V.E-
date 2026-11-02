@@ -1,5 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { MusicManagerService } from './music-manager.service';
+import {
+  MusicManagerService,
+  type PatternSlot,
+} from './music-manager.service';
 import { LoggingService } from './logging.service';
 
 export interface TemplateNote {
@@ -13,6 +16,15 @@ export interface TemplateClip {
   start: number;
   length: number;
   type: 'midi' | 'audio';
+  /** Which captured pattern slot this clip plays; null follows the live one. */
+  patternSlotId?: string | null;
+}
+
+export interface TemplatePatternSlot {
+  id: string;
+  name: string;
+  notes: TemplateNote[];
+  steps?: boolean[];
 }
 
 export interface ProjectTemplateTrack {
@@ -25,6 +37,9 @@ export interface ProjectTemplateTrack {
   drumPatternLength?: number;
   /** Captured MIDI/drum clip windows; absent on channel-only templates. */
   clips?: TemplateClip[];
+  /** Every referenced pattern, so verse and chorus stay distinct. */
+  patternSlots?: TemplatePatternSlot[];
+  activePatternSlotId?: string;
 }
 
 export interface ProjectTemplate {
@@ -67,12 +82,41 @@ const MAX_USER_TEMPLATES = 20;
 const MAX_TEMPLATE_NAME = 60;
 const MAX_TEMPLATE_NOTES = 512;
 const MAX_TEMPLATE_CLIPS = 128;
+const MAX_TEMPLATE_SLOTS = 16;
+
+type TemplateSourceNote = {
+  midi: number;
+  step: number;
+  length: number;
+  velocity?: number;
+};
+
+function toTemplateNotes(notes: TemplateSourceNote[]): TemplateNote[] {
+  return notes
+    .filter(
+      (entry) =>
+        Number.isFinite(entry.midi) &&
+        entry.midi >= 0 &&
+        entry.midi <= 127 &&
+        Number.isFinite(entry.step) &&
+        entry.step >= 0,
+    )
+    .slice(0, MAX_TEMPLATE_NOTES)
+    .map((entry) => ({
+      midi: entry.midi,
+      step: entry.step,
+      length: Math.max(0.0625, entry.length || 1),
+      velocity: Math.min(1, Math.max(0, entry.velocity ?? 0.8)),
+    }));
+}
 
 function isTemplateNote(value: unknown): value is TemplateNote {
   if (!value || typeof value !== 'object') return false;
   const note = value as Partial<TemplateNote>;
   return (
     Number.isFinite(note.midi) &&
+    note.midi! >= 0 &&
+    note.midi! <= 127 &&
     Number.isFinite(note.step) &&
     Number.isFinite(note.length) &&
     Number.isFinite(note.velocity) &&
@@ -91,7 +135,24 @@ function isTemplateClip(value: unknown): value is TemplateClip {
     Number.isFinite(clip.length) &&
     clip.start! >= 0 &&
     clip.length! > 0 &&
-    (clip.type === 'midi' || clip.type === 'audio')
+    (clip.type === 'midi' || clip.type === 'audio') &&
+    (clip.patternSlotId === undefined ||
+      clip.patternSlotId === null ||
+      typeof clip.patternSlotId === 'string')
+  );
+}
+
+function isTemplatePatternSlot(value: unknown): value is TemplatePatternSlot {
+  if (!value || typeof value !== 'object') return false;
+  const slot = value as Partial<TemplatePatternSlot>;
+  return (
+    typeof slot.id === 'string' &&
+    slot.id.length > 0 &&
+    typeof slot.name === 'string' &&
+    Array.isArray(slot.notes) &&
+    slot.notes.every(isTemplateNote) &&
+    (slot.steps === undefined ||
+      (Array.isArray(slot.steps) && slot.steps.every((step) => typeof step === 'boolean')))
   );
 }
 
@@ -129,7 +190,16 @@ function readUserTemplates(): ProjectTemplate[] {
               (Array.isArray((track as { clips?: unknown }).clips) &&
                 ((track as { clips?: unknown[] }).clips ?? []).every(
                   isTemplateClip,
-                ))),
+                ))) &&
+            ((track as { patternSlots?: unknown }).patternSlots === undefined ||
+              (Array.isArray((track as { patternSlots?: unknown }).patternSlots) &&
+                ((track as { patternSlots?: unknown[] }).patternSlots ?? []).every(
+                  isTemplatePatternSlot,
+                ))) &&
+            ((track as { activePatternSlotId?: unknown })
+              .activePatternSlotId === undefined ||
+              typeof (track as { activePatternSlotId?: unknown })
+                .activePatternSlotId === 'string'),
         )
       );
     });
@@ -404,15 +474,7 @@ export class ProjectTemplateService {
         };
         if (!includePattern || type === 'audio') return channel;
 
-        const notes = (track.notes ?? [])
-          .filter((entry) => Number.isFinite(entry.step) && entry.step >= 0)
-          .slice(0, MAX_TEMPLATE_NOTES)
-          .map((entry) => ({
-            midi: entry.midi,
-            step: entry.step,
-            length: Math.max(0.0625, entry.length || 1),
-            velocity: Math.min(1, Math.max(0, entry.velocity ?? 0.8)),
-          }));
+        const notes = toTemplateNotes(track.notes ?? []);
         const clips = (track.clips ?? [])
           .filter((clip) => clip.type !== 'audio')
           .slice(0, MAX_TEMPLATE_CLIPS)
@@ -420,13 +482,47 @@ export class ProjectTemplateService {
             start: Math.max(0, clip.start || 0),
             length: Math.max(0.25, clip.length || 4),
             type: 'midi' as const,
+            patternSlotId: clip.patternSlotId ?? null,
           }));
+        const activeSlotId =
+          track.activePatternSlotId ?? track.patternSlots?.[0]?.id ?? null;
+        const referenced = new Set<string>();
+        for (const clip of clips) {
+          if (clip.patternSlotId) referenced.add(clip.patternSlotId);
+        }
+        if (activeSlotId) referenced.add(activeSlotId);
+
+        const patternSlots: TemplatePatternSlot[] = (track.patternSlots ?? [])
+          .filter((slot) => referenced.has(slot.id))
+          .map((slot) => {
+            const source =
+              slot.id === activeSlotId
+                ? { notes: track.notes ?? [], steps: track.steps ?? [] }
+                : slot.versions.at(-1) ?? { notes: [], steps: [] };
+            const steps = Array.isArray(source.steps)
+              ? Array.from({ length: 64 }, (_, index) => !!source.steps[index])
+              : undefined;
+            return {
+              id: slot.id,
+              name: slot.name || 'Pattern',
+              notes: toTemplateNotes(source.notes ?? []),
+              ...(steps ? { steps } : {}),
+            };
+          })
+          .slice(0, MAX_TEMPLATE_SLOTS);
+
         return {
           ...channel,
           ...(notes.length ? { notes } : {}),
           // Present even when empty: it marks a captured pattern rather than a
           // fixed four-bar starter.
           clips,
+          ...(patternSlots.length
+            ? {
+                patternSlots,
+                ...(activeSlotId ? { activePatternSlotId: activeSlotId } : {}),
+              }
+            : {}),
           ...(type === 'drum'
             ? { drumPatternLength: track.drumPatternLength ?? 16 }
             : {}),
@@ -486,38 +582,100 @@ export class ProjectTemplateService {
         t.type,
       );
       if (!trackId) break;
-      if (!t.notes?.length) continue;
 
-      // Fixed starters ship a playable four-bar phrase, not just channels.
-      // Note ids are derived from the track so a re-apply is deterministic.
-      this.musicManager.replaceTrackNotes(
-        trackId,
-        t.notes.map((entry, index) => ({
+      const patternSlots: PatternSlot[] = (t.patternSlots ?? []).map(
+        (slot, slotIndex) => ({
+          id: slot.id,
+          name: slot.name,
+          activeVersionId: 'v1',
+          versions: [
+            {
+              id: 'v1',
+              name: 'v1',
+              steps:
+                slot.steps?.length === 64
+                  ? [...slot.steps]
+                  : Array.from({ length: 64 }, (_, index) =>
+                      !!slot.steps?.[index],
+                    ),
+              notes: slot.notes.map((entry, index) => ({
+                ...entry,
+                id: `tpl_${trackId}_${slotIndex}_${index}`,
+              })),
+            },
+          ],
+        }),
+      );
+      const activeSlotId =
+        patternSlots.find((slot) => slot.id === t.activePatternSlotId)?.id ??
+        patternSlots[0]?.id ??
+        null;
+      const activeSlot = patternSlots.find(
+        (slot) => slot.id === activeSlotId,
+      );
+      const activeNotes =
+        activeSlot?.versions[0].notes ??
+        (t.notes ?? []).map((entry, index) => ({
           ...entry,
           id: `tpl_${trackId}_${index}`,
-        })),
-        `Template · ${t.name}`,
-      );
-      if (t.type === 'drum') {
+        }));
+      const hasPattern =
+        patternSlots.length > 0 || (t.notes?.length ?? 0) > 0;
+      if (!hasPattern) continue;
+
+      if (patternSlots.length) {
+        // One patch restores every referenced pattern and makes the intended
+        // one live, so the editor and the clips agree immediately.
         this.musicManager.applyTrackPatch(
           trackId,
-          { drumPatternLength: t.drumPatternLength ?? 16 },
-          `Template · ${t.name} cycle`,
+          {
+            patternSlots,
+            activePatternSlotId: activeSlotId,
+            notes: activeNotes,
+            steps: activeSlot?.versions[0].steps ?? [],
+            ...(t.type === 'drum'
+              ? { drumPatternLength: t.drumPatternLength ?? 16 }
+              : {}),
+          },
+          `Template · ${t.name}`,
         );
+      } else {
+        this.musicManager.replaceTrackNotes(
+          trackId,
+          activeNotes,
+          `Template · ${t.name}`,
+        );
+        if (t.type === 'drum') {
+          this.musicManager.applyTrackPatch(
+            trackId,
+            { drumPatternLength: t.drumPatternLength ?? 16 },
+            `Template · ${t.name} cycle`,
+          );
+        }
       }
+
       if (t.clips?.length) {
         for (const clip of t.clips) {
+          const clipSlotId = t.patternSlots
+            ? clip.patternSlotId &&
+              t.patternSlots.some((slot) => slot.id === clip.patternSlotId)
+              ? clip.patternSlotId
+              : null
+            : undefined;
           this.musicManager.addClipToTrack(trackId, {
             name: `${t.name} · pattern`,
             start: clip.start,
             length: clip.length,
             type: clip.type === 'audio' ? 'audio' : 'midi',
+            ...(clipSlotId !== undefined
+              ? { patternSlotId: clipSlotId }
+              : {}),
           });
         }
       } else {
         // Fixed starters span four bars. A captured pattern with no clips keeps
         // whatever length its notes actually need.
-        const lastNoteStep = t.notes.reduce(
+        const lastNoteStep = activeNotes.reduce(
           (end, entry) => Math.max(end, entry.step + entry.length),
           0,
         );

@@ -35,7 +35,48 @@ describe("ProjectTemplateService", () => {
         notes: [
           { id: "n1", midi: 60, step: 0, length: 4, velocity: 0.8 },
         ],
-        clips: [{ id: "c1", start: 1, length: 2, type: "midi" }],
+        clips: [
+          {
+            id: "c1",
+            start: 1,
+            length: 2,
+            type: "midi",
+            patternSlotId: "slot-1",
+          },
+        ],
+        activePatternSlotId: "slot-0",
+        patternSlots: [
+          {
+            id: "slot-0",
+            name: "Verse",
+            activeVersionId: "v1",
+            versions: [
+              {
+                id: "v1",
+                name: "v1",
+                steps: new Array(64).fill(false),
+                notes: [
+                  { id: "n1", midi: 60, step: 0, length: 4, velocity: 0.8 },
+                ],
+              },
+            ],
+          },
+          {
+            id: "slot-1",
+            name: "Chorus",
+            activeVersionId: "v1",
+            versions: [
+              {
+                id: "v1",
+                name: "v1",
+                steps: new Array(64).fill(false),
+                notes: [
+                  { id: "n4", midi: 67, step: 0, length: 4, velocity: 0.82 },
+                ],
+              },
+            ],
+          },
+        ],
       },
       {
         id: "2",
@@ -168,8 +209,14 @@ describe("ProjectTemplateService", () => {
       { midi: 60, step: 0, length: 4, velocity: 0.8 },
     ]);
     expect(patterned?.tracks[0].clips).toEqual([
-      { start: 1, length: 2, type: "midi" },
+      { start: 1, length: 2, type: "midi", patternSlotId: "slot-1" },
     ]);
+    expect(patterned?.tracks[0].patternSlots?.map((slot) => slot.name)).toEqual([
+      "Verse",
+      "Chorus",
+    ]);
+    expect(patterned?.tracks[0].activePatternSlotId).toBe("slot-0");
+    expect(patterned?.tracks[0].patternSlots?.[1].notes[0].midi).toBe(67);
     expect(patterned?.tracks[2].drumPatternLength).toBe(16);
     expect(patterned?.tracks[2].notes?.[0]).toEqual({
       midi: 36,
@@ -189,14 +236,39 @@ describe("ProjectTemplateService", () => {
 
     service.applyTemplate(template!.id);
 
-    expect(replaceTrackNotes).toHaveBeenCalledWith(
+    expect(replaceTrackNotes).not.toHaveBeenCalledWith(
       "track-Lead",
-      [expect.objectContaining({ midi: 60, step: 0, length: 4 })],
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(applyTrackPatch).toHaveBeenCalledWith(
+      "track-Lead",
+      expect.objectContaining({
+        activePatternSlotId: "slot-0",
+        notes: [expect.objectContaining({ midi: 60, step: 0, length: 4 })],
+        patternSlots: expect.arrayContaining([
+          expect.objectContaining({ id: "slot-0", name: "Verse" }),
+          expect.objectContaining({
+            id: "slot-1",
+            name: "Chorus",
+            versions: [
+              expect.objectContaining({
+                notes: [expect.objectContaining({ midi: 67 })],
+              }),
+            ],
+          }),
+        ]),
+      }),
       expect.stringContaining("Template"),
     );
     expect(addClipToTrack).toHaveBeenCalledWith(
       "track-Lead",
-      expect.objectContaining({ start: 1, length: 2, type: "midi" }),
+      expect.objectContaining({
+        start: 1,
+        length: 2,
+        type: "midi",
+        patternSlotId: "slot-1",
+      }),
     );
     expect(applyTrackPatch).toHaveBeenCalledWith(
       "track-Drums",
