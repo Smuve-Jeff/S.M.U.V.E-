@@ -9,6 +9,7 @@ import { SpeechSynthesisService } from './speech-synthesis.service';
 import { UserProfileService } from './user-profile.service';
 import type { CompositionCoreService } from '../composer/composition-core.service';
 import type { ComponentKind, Composition } from '../composer/composer.types';
+import { comparePasses } from '../composer/composition-compare';
 
 /**
  * Chat Music Command Engine — S.M.U.V.E 2.0's chat-driven music surface.
@@ -58,6 +59,16 @@ export type CompositionHistoryIntent =
   | { kind: 'relative'; offset: number }
   /** 1-based, newest first. */
   | { kind: 'index'; index: number };
+
+export type CompareSelector =
+  | { kind: 'index'; index: number }
+  | { kind: 'relative'; offset: number }
+  | { kind: 'title'; query: string };
+
+export interface ComposeCompareIntent {
+  a: CompareSelector;
+  b: CompareSelector;
+}
 
 export interface ChatMusicOptions {
   /** When true, the confirmation is also spoken via SpeechSynthesisService. */
@@ -398,6 +409,7 @@ export class ChatMusicCommandEngineService {
         '  • "drop some drums" / "bassline in A minor" / "melody in E major"',
         '  • "/compose" or "/compose bassline" — write from your committed genre, mid-session',
         '  • "go back to the previous reading" — restore an earlier pass',
+        '  • "compare pass 1 and pass 3" — A/B two readings without restoring',
         '  • "set tempo 90" — lock the BPM',
         '  • "preview" / "play it" — hear what I made',
         '  • "undo" — rewind the last edit',
@@ -406,6 +418,143 @@ export class ChatMusicCommandEngineService {
         'Slash forms: /compose, /compose melody, /compose history, /compose restore 2, /make, /drums, /bass, /chords, /melody, /tempo 128, /preview, /undo, /stop.',
       ].join('\n'),
       actions: [{ id: 'music-preview', label: 'Preview' }],
+    };
+  }
+
+  // ── Composition comparison ────────────────────────────────────────────────
+
+  /**
+   * Recognizes "compare pass 1 and 3", "/compose compare 2 4" and named asks.
+   * Comparison never restores; it only reports what moved.
+   */
+  detectCompositionCompareIntent(text: string): ComposeCompareIntent | null {
+    const lower = text.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (!lower) return null;
+    if (/^(?:what|why|how|when|where|which|who|explain|teach|tell|discuss|should|could|can|do|does|is|are)\b/.test(lower)) {
+      return null;
+    }
+
+    let rest: string | null = null;
+    if (lower.startsWith('/compose compare ')) {
+      rest = lower.slice('/compose compare '.length).trim();
+    } else if (/^(?:compare|a\/b)\b/.test(lower)) {
+      rest = lower.replace(/^(?:compare|a\/b)\s*/, '').trim();
+    }
+    if (!rest) return null;
+
+    if (
+      /^(?:my\s+)?(?:the\s+)?(?:last|latest)\s+(?:two|2)\s+(?:passes|readings|versions|compositions|arrangements)$/.test(
+        rest
+      )
+    ) {
+      return { a: { kind: 'index', index: 2 }, b: { kind: 'index', index: 1 } };
+    }
+
+    const pair = rest.match(/^#?(\d+)\s+#?(\d+)$/);
+    const parts = pair
+      ? [pair[1], pair[2]]
+      : rest.split(/\s+(?:and|with|to|vs\.?|against)\s+/i);
+    if (parts.length !== 2) return null;
+
+    const a = this.parseCompareSelector(parts[0]);
+    const b = this.parseCompareSelector(parts[1]);
+    return a && b ? { a, b } : null;
+  }
+
+  private parseCompareSelector(raw: string): CompareSelector | null {
+    const part = raw.trim().replace(/[?.!,]+$/, '').trim();
+    if (!part) return null;
+
+    const quoted = part.match(/^["“'](.+)["”']$/);
+    if (quoted) return { kind: 'title', query: quoted[1].trim() };
+
+    const numeric = part.match(
+      /^(?:the\s+)?(?:pass|reading|version|composition|arrangement)?\s*#?(\d+)$/
+    );
+    if (numeric) return { kind: 'index', index: Number(numeric[1]) };
+
+    if (/^(?:the\s+)?(?:current|latest|newest)(?:\s+(?:pass|reading|version|composition|one))?$/.test(part)) {
+      return { kind: 'relative', offset: 0 };
+    }
+    if (/^(?:the\s+)?(?:previous|last|earlier)(?:\s+(?:pass|reading|version|composition|one))?$/.test(part)) {
+      return { kind: 'relative', offset: 1 };
+    }
+    if (/^(?:the|my|current|latest|newest|previous|last|earlier)\b/.test(part)) return null;
+    if (part.length >= 2) return { kind: 'title', query: part };
+    return null;
+  }
+
+  /** Reports A/B differences without changing what is on the desk. */
+  async compositionCompare(intent: ComposeCompareIntent): Promise<ChatMusicResult> {
+    const core = await this.loadCompositionCore();
+    if (!core) {
+      return { content: 'Composition Core is offline in this build.', actions: [] };
+    }
+    const history = core.passHistory();
+    if (history.length < 2) {
+      return {
+        content:
+          'I need at least two passes from this session to compare. Compose another reading first.',
+        actions: [],
+      };
+    }
+
+    const currentIndex = history.findIndex((pass) => pass.composition === core.current());
+    const resolve = (
+      selector: CompareSelector
+    ): { index: number } | { error: string } => {
+      if (selector.kind === 'index') {
+        const index = selector.index - 1;
+        return index >= 0 && index < history.length
+          ? { index }
+          : {
+              error: `There is no pass ${selector.index}. I kept ${history.length} this session.`,
+            };
+      }
+      if (selector.kind === 'relative') {
+        const base = currentIndex >= 0 ? currentIndex : 0;
+        const index = base + selector.offset;
+        return index >= 0 && index < history.length
+          ? { index }
+          : { error: 'That reading is outside the history I kept.' };
+      }
+
+      const query = selector.query.toLowerCase();
+      const matches = history
+        .map((pass, index) => ({ pass, index }))
+        .filter(({ pass }) => pass.composition.title.toLowerCase().includes(query));
+      if (!matches.length) {
+        return { error: `No pass title matches “${selector.query}”.` };
+      }
+      if (matches.length > 1) {
+        const list = matches
+          .map(({ pass, index }) => `${index + 1}. ${pass.composition.title} (${pass.composition.variation})`)
+          .join(', ');
+        return {
+          error: `“${selector.query}” matches ${matches.length} passes: ${list}. Use numbers instead.`,
+        };
+      }
+      return { index: matches[0].index };
+    };
+
+    const a = resolve(intent.a);
+    if ('error' in a) return { content: a.error, actions: [] };
+    const b = resolve(intent.b);
+    if ('error' in b) return { content: b.error, actions: [] };
+
+    const comparison = comparePasses(history[a.index], history[b.index]);
+    const brief = (text: string) => (text === '—' ? 'none' : `“${text}”`);
+    return {
+      content: [
+        `🎼 A/B COMPARE — pass ${a.index + 1} vs pass ${b.index + 1}`,
+        `A · ${comparison.a.title} (${comparison.a.variation}) · ${comparison.a.bpm} BPM · ${comparison.a.keyLabel} · ${comparison.a.bars} bars`,
+        `B · ${comparison.b.title} (${comparison.b.variation}) · ${comparison.b.bpm} BPM · ${comparison.b.keyLabel} · ${comparison.b.bars} bars`,
+        `Moved in B: ${comparison.delta.join(' · ')}`,
+        `A brief: ${brief(comparison.a.brief)}`,
+        `B brief: ${brief(comparison.b.brief)}`,
+        'Nothing was restored. Say which pass number you want on the desk.',
+      ].join('\n'),
+      actions: [{ id: 'composer-open', label: 'Open Composition Core' }],
     };
   }
 

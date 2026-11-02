@@ -850,7 +850,24 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       return { content: result.message, actions: [] };
     }
 
-    // 0a) Composition history — list or restore an earlier pass. Checked
+    // A bare comparison/restore command gets usage, never a surprise song.
+    if (/^\/compose\s+(?:compare|restore)\s*$/.test(lower)) {
+      return {
+        content: trimmed.toLowerCase().includes('compare')
+          ? 'Name two passes: "/compose compare 1 3" or "compare the last two passes".'
+          : 'Name a pass: "/compose restore 2" or "go back to the previous reading".',
+        actions: [],
+      };
+    }
+
+    // 0a) Composition comparison — A/B two readings by number or name.
+    const compareIntent = this.chatMusic?.detectCompositionCompareIntent(trimmed) ?? null;
+    if (compareIntent) {
+      const result = await this.chatMusic!.compositionCompare(compareIntent);
+      return { content: result.content, actions: result.actions };
+    }
+
+    // 0b) Composition history — list or restore an earlier pass. Checked
     //     before generation so "/compose history" never writes a new song.
     const historyIntent = this.chatMusic?.detectCompositionHistoryIntent(trimmed) ?? null;
     if (historyIntent) {
@@ -858,7 +875,7 @@ export class ChatbotComponent implements OnInit, AfterViewChecked, OnDestroy {
       return { content: result.content, actions: result.actions };
     }
 
-    // 0b) Composition Core — genre-locked songs and single steps, parsed here
+    // 0c) Composition Core — genre-locked songs and single steps, parsed here
     //     but loaded on demand so the composer atlas stays out of the initial bundle.
     const composeRequest = this.chatMusic?.detectComposeIntent(trimmed) ?? null;
     if (composeRequest) {

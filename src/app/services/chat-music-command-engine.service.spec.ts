@@ -57,6 +57,9 @@ function makeComposition(overrides: Partial<Composition> = {}): Composition {
     grooveName: 'Deep House Pocket',
     totalBars: 32,
     durationSeconds: 62,
+    energy: 0.6,
+    darkness: 0.5,
+    complexity: 0.55,
     variation: 'fresh',
     sections: [
       { label: 'Intro', bars: 4 },
@@ -575,6 +578,91 @@ describe('ChatMusicCommandEngineService', () => {
     expect(restored.content).toContain('Restored pass 2 of 2');
     expect(restored.content).toContain('Older Reading');
     expect(restored.actions.map((action) => action.id)).toContain('composer-audition');
+  });
+
+  it('detects A/B comparison requests without treating them as generation', () => {
+    expect(service.detectCompositionCompareIntent('/compose compare 1 3')).toEqual({
+      a: { kind: 'index', index: 1 },
+      b: { kind: 'index', index: 3 },
+    });
+    expect(
+      service.detectCompositionCompareIntent('compare the previous reading with the current one')
+    ).toEqual({ a: { kind: 'relative', offset: 1 }, b: { kind: 'relative', offset: 0 } });
+    expect(service.detectCompositionCompareIntent('compare the last two passes')).toEqual({
+      a: { kind: 'index', index: 2 },
+      b: { kind: 'index', index: 1 },
+    });
+    expect(
+      service.detectCompositionCompareIntent('compare "Concrete Protocol" and "Older Reading"')
+    ).toEqual({
+      a: { kind: 'title', query: 'concrete protocol' },
+      b: { kind: 'title', query: 'older reading' },
+    });
+    expect(service.detectCompositionCompareIntent('how do these passes compare?')).toBeNull();
+  });
+
+  it('compares two passes by number and by name without restoring', async () => {
+    const newest = makeComposition({ id: 'new', title: 'Newest Reading', bpm: 140, variation: 'evolve' });
+    const middle = makeComposition({ id: 'mid', title: 'Middle Reading', bpm: 120 });
+    const oldest = makeComposition({ id: 'old', title: 'Oldest Reading', bpm: 96 });
+    passHistory.set([
+      { id: 'p3', composition: newest, brief: 'bright', intensity: { complexity: 0.6, energy: 0.8, darkness: 0.3 }, createdAt: 3 },
+      { id: 'p2', composition: middle, brief: 'dark', intensity: { complexity: 0.6, energy: 0.6, darkness: 0.6 }, createdAt: 2 },
+      { id: 'p1', composition: oldest, brief: 'chill', intensity: { complexity: 0.4, energy: 0.3, darkness: 0.5 }, createdAt: 1 },
+    ]);
+    currentComposition.set(newest);
+
+    const byNumber = await service.compositionCompare({
+      a: { kind: 'index', index: 3 },
+      b: { kind: 'index', index: 1 },
+    });
+    expect(byNumber.content).toContain('A/B COMPARE — pass 3 vs pass 1');
+    expect(byNumber.content).toContain('A · Oldest Reading');
+    expect(byNumber.content).toContain('B · Newest Reading');
+    expect(byNumber.content).toContain('tempo +44 BPM');
+    expect(byNumber.content).toContain('Nothing was restored');
+
+    const byName = await service.compositionCompare({
+      a: { kind: 'title', query: 'middle reading' },
+      b: { kind: 'title', query: 'newest reading' },
+    });
+    expect(byName.content).toContain('A · Middle Reading');
+    expect(byName.content).toContain('B · Newest Reading');
+    expect(restorePass).not.toHaveBeenCalled();
+  });
+
+  it('needs two passes before comparing', async () => {
+    passHistory.set([
+      {
+        id: 'p1',
+        composition: makeComposition(),
+        brief: '',
+        intensity: { complexity: 0.6, energy: 0.6, darkness: 0.5 },
+        createdAt: 1,
+      },
+    ]);
+    const result = await service.compositionCompare({
+      a: { kind: 'index', index: 1 },
+      b: { kind: 'index', index: 2 },
+    });
+    expect(result.content).toContain('at least two passes');
+  });
+
+  it('asks for a number when a title matches more than one pass', async () => {
+    const first = makeComposition({ id: 'a', title: 'Same Name', variation: 'fresh' });
+    const second = makeComposition({ id: 'b', title: 'Same Name', variation: 'evolve' });
+    passHistory.set([
+      { id: 'p2', composition: second, brief: '', intensity: { complexity: 0.6, energy: 0.6, darkness: 0.5 }, createdAt: 2 },
+      { id: 'p1', composition: first, brief: '', intensity: { complexity: 0.6, energy: 0.6, darkness: 0.5 }, createdAt: 1 },
+    ]);
+    currentComposition.set(second);
+
+    const result = await service.compositionCompare({
+      a: { kind: 'title', query: 'same name' },
+      b: { kind: 'index', index: 1 },
+    });
+    expect(result.content).toContain('matches 2 passes');
+    expect(result.content).toContain('1. Same Name (evolve)');
   });
 
   it('reports empty and out-of-range history honestly', async () => {
