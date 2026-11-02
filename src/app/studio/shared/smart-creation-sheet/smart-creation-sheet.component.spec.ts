@@ -897,4 +897,31 @@ describe("SmartCreationSheetComponent", () => {
       fixture.nativeElement.querySelectorAll(".sc-chord-mood-card").length,
     ).toBe(component.chordMoods.length);
   });
+
+  it("summarizes saved template patterns and versions", () => {
+    const template = {
+      tracks: [
+        { notes: [{ midi: 60 }], patternSlots: [] },
+        {
+          patternSlots: [
+            { versions: [{}, {}] },
+            { versions: [{}] },
+          ],
+        },
+      ],
+    } as any;
+    expect(component.templatePatternCount(template)).toBe(3);
+    expect(component.templateVersionCount(template)).toBe(3);
+    expect(component.templateContents(template)).toBe(
+      "3 patterns · 3 versions",
+    );
+    expect(
+      component.templateContents({
+        tracks: [{ notes: [{}], patternSlots: [{ versions: [{}] }] }],
+      } as any),
+    ).toBe("1 pattern · 1 version");
+    expect(
+      component.templateContents({ tracks: [{ notes: [] }] } as any),
+    ).toBe("");
+  });
 });

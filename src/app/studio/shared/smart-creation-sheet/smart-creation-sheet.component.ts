@@ -16,7 +16,10 @@ import { SnackbarService } from "../../../services/snackbar.service";
 import { UserProfileService } from "../../../services/user-profile.service";
 import type { SmartSheetMemory } from "../../../types/profile.types";
 import { WorkProtectionService } from "../../work-protection.service";
-import { ProjectTemplateService } from "../../../services/project-template.service";
+import {
+  ProjectTemplateService,
+  type ProjectTemplate,
+} from "../../../services/project-template.service";
 
 export interface GenreStarter {
   id: string;
@@ -721,8 +724,39 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
-  templateHasPattern(template: { tracks: { notes?: unknown[] }[] }): boolean {
-    return template.tracks.some((track) => (track.notes?.length ?? 0) > 0);
+  templateHasPattern(template: ProjectTemplate): boolean {
+    return this.templatePatternCount(template) > 0;
+  }
+
+  templatePatternCount(template: ProjectTemplate): number {
+    return template.tracks.reduce((total, track) => {
+      const slots = track.patternSlots?.length ?? 0;
+      return total + (slots || (track.notes?.length ? 1 : 0));
+    }, 0);
+  }
+
+  templateVersionCount(template: ProjectTemplate): number {
+    return template.tracks.reduce(
+      (total, track) =>
+        total +
+        (track.patternSlots ?? []).reduce(
+          (slotTotal, slot) => slotTotal + (slot.versions?.length ?? 0),
+          0,
+        ),
+      0,
+    );
+  }
+
+  /** Human summary for a template row; empty for channel-only templates. */
+  templateContents(template: ProjectTemplate): string {
+    const patterns = this.templatePatternCount(template);
+    if (!patterns) return '';
+    const versions = this.templateVersionCount(template);
+    return `${patterns} pattern${patterns === 1 ? '' : 's'}${
+      versions
+        ? ` · ${versions} version${versions === 1 ? '' : 's'}`
+        : ''
+    }`;
   }
 
   async applyUserTemplate(id: string): Promise<void> {

@@ -219,7 +219,9 @@
               <strong>{{ tpl.name }}</strong>
               <span>
                 {{ tpl.bpm }} BPM · {{ tpl.tracks.length }} channels
-                <ng-container *ngIf="templateHasPattern(tpl)"> · pattern</ng-container>
+                <ng-container *ngIf="templateContents(tpl) as contents">
+                  · {{ contents }}
+                </ng-container>
               </span>
             </button>
             <button
