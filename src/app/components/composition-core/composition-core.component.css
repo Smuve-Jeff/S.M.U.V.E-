@@ -941,6 +941,16 @@ input[type='range'] {
   color: #93a3bb;
 }
 
+.saved-main .saved-brief {
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: #7dd3fc;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .saved-main:hover {
   background: rgba(16, 185, 129, 0.08);
 }

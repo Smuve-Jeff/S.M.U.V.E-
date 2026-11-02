@@ -296,6 +296,7 @@ export class CompositionCoreService {
       id: `${composition.id}-${Date.now().toString(36)}`,
       title: composition.title,
       genreId: composition.genreId,
+      brief: this.briefText().trim() || undefined,
       seed: composition.seed,
       motifSeed: composition.motifSeed,
       component: composition.component,
@@ -321,6 +322,7 @@ export class CompositionCoreService {
     if (!genre) return null;
     this.selectedGenreId.set(genre.id);
     this.component.set(saved.component);
+    this.briefText.set(saved.brief ?? '');
     this.intensity.set({
       complexity: saved.complexity,
       energy: saved.energy,
@@ -341,7 +343,11 @@ export class CompositionCoreService {
     });
     this.current.set({
       ...composition,
-      rationale: [...composition.rationale, ...this.personalizedLines()],
+      rationale: [
+        ...composition.rationale,
+        ...this.personalizedLines(),
+        ...briefRationale(this.brief()),
+      ],
     });
     this.appliedCompositionId.set(null);
     return this.current();
@@ -364,13 +370,18 @@ export class CompositionCoreService {
       if (!raw) return [];
       const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return [];
-      return parsed.filter(
-        (entry: any) =>
-          entry &&
-          typeof entry.title === 'string' &&
-          typeof entry.seed === 'number' &&
-          typeof entry.genreId === 'string'
-      );
+      return parsed
+        .filter(
+          (entry: any) =>
+            entry &&
+            typeof entry.title === 'string' &&
+            typeof entry.seed === 'number' &&
+            typeof entry.genreId === 'string'
+        )
+        .map((entry: any) => ({
+          ...entry,
+          brief: typeof entry.brief === 'string' ? entry.brief : undefined,
+        }));
     } catch {
       return [];
     }

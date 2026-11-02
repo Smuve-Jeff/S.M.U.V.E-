@@ -388,6 +388,8 @@ export interface SavedComposition {
   id: string;
   title: string;
   genreId: string;
+  /** The creative direction that produced this pass, kept for reproduction. */
+  brief?: string;
   seed: number;
   motifSeed: number;
   component: ComponentKind;

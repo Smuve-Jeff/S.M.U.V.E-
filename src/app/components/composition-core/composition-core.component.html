@@ -451,7 +451,7 @@
       <div class="section-head">
         <div>
           <h2>Your composition library</h2>
-          <p class="muted">Saved seeds — recompose exactly, anytime.</p>
+          <p class="muted">Saved seeds and briefs — recompose the score and its direction exactly.</p>
         </div>
       </div>
       @if (core.savedLibrary().length) {
@@ -461,6 +461,9 @@
               <button type="button" class="saved-main" (click)="loadSaved(saved)">
                 <strong>{{ saved.title }}</strong>
                 <span>{{ saved.bpm }} BPM · {{ saved.keyLabel }} · {{ saved.component }}</span>
+                @if (saved.brief) {
+                  <span class="saved-brief">“{{ saved.brief }}”</span>
+                }
               </button>
               <button type="button" class="remove" (click)="removeSaved(saved, $event)" title="Remove">✕</button>
             </div>

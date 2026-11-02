@@ -12,6 +12,7 @@ describe('CompositionCoreService creative briefs', () => {
   let service: CompositionCoreService;
 
   beforeEach(() => {
+    localStorage.clear();
     const genre = GENRE_BY_ID.get('house');
     if (!genre) throw new Error('house genre missing from atlas');
 
@@ -59,6 +60,43 @@ describe('CompositionCoreService creative briefs', () => {
     expect(composition!.bpm).toBe(96);
     expect(composition!.keyLabel).toMatch(/^C /);
     expect(composition!.keyLabel.toLowerCase()).toContain('major');
+  });
+
+  it('saves the brief with the pass and restores both together', () => {
+    service.setBrief('dark and 140 bpm in F# minor');
+    service.generate({ seed: 42 });
+    const saved = service.saveCurrent();
+    expect(saved?.brief).toBe('dark and 140 bpm in F# minor');
+
+    service.setBrief('');
+    service.setIntensity({ darkness: 0.2 });
+    const loaded = service.loadSaved(saved!);
+
+    expect(service.briefText()).toBe('dark and 140 bpm in F# minor');
+    expect(loaded!.bpm).toBe(140);
+    expect(loaded!.darkness).toBeGreaterThan(0.7);
+    expect(loaded!.rationale.join('\n')).toContain('Brief:');
+  });
+
+  it('restores older saved entries that predate briefs', () => {
+    service.setBrief('bright');
+    const legacy = {
+      id: 'legacy-1',
+      title: 'Old Pass',
+      genreId: 'house',
+      seed: 42,
+      motifSeed: 99,
+      component: 'full-song' as const,
+      bpm: 124,
+      keyLabel: 'F# Minor (Aeolian)',
+      complexity: 0.6,
+      energy: 0.6,
+      darkness: 0.6,
+      savedAt: Date.now(),
+    };
+    const loaded = service.loadSaved(legacy);
+    expect(service.briefText()).toBe('');
+    expect(loaded!.rationale.join('\n')).not.toContain('Brief:');
   });
 
   it('leaves the dials alone when the brief says nothing actionable', () => {
