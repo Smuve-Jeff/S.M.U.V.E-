@@ -1361,6 +1361,11 @@
   box-shadow: 0 0 10px rgba(0, 229, 255, 0.16);
 }
 
+.sc-template-section-item.is-rendering {
+  border-color: rgba(255, 209, 102, 0.55);
+  background: rgba(255, 209, 102, 0.1);
+}
+
 .sc-template-section-apply {
   display: inline-flex;
   align-items: center;
@@ -1395,6 +1400,30 @@
 
 .sc-template-section-apply.is-playing .material-symbols-outlined {
   color: #77ffc0;
+}
+
+.sc-template-section-apply.is-rendering {
+  background: rgba(255, 209, 102, 0.1);
+  color: #ffe6a3;
+}
+
+.sc-template-section-apply.is-rendering .material-symbols-outlined {
+  color: #ffd166;
+  animation: scSectionRendering 0.9s linear infinite;
+}
+
+.sc-template-section-apply.is-rendering small {
+  color: rgba(255, 230, 163, 0.78);
+}
+
+@keyframes scSectionRendering {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-template-section-apply.is-rendering .material-symbols-outlined {
+    animation: none;
+  }
 }
 
 .sc-template-section-remove {

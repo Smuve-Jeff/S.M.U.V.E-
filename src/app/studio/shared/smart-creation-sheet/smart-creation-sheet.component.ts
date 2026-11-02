@@ -964,6 +964,19 @@ export class SmartCreationSheetComponent implements OnDestroy {
     return !!id && this.previewPlaying(id);
   }
 
+  /** True while this saved section's mix is rendering for playback. */
+  sectionAuditionRendering(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): boolean {
+    const id = this.sectionPreviewId(template, section);
+    return (
+      !!id &&
+      this.auditioningPreviewId() === id &&
+      this.compositionAudition.rendering()
+    );
+  }
+
   /** Recall a named section and audition it without loading the template. */
   async applySavedSection(
     template: ProjectTemplate,

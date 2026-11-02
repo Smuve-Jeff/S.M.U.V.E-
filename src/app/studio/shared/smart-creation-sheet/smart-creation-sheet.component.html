@@ -352,34 +352,47 @@
                     <div
                       class="sc-template-section-item"
                       [class.is-playing]="sectionAuditionPlaying(tpl, section)"
+                      [class.is-rendering]="sectionAuditionRendering(tpl, section)"
                       *ngFor="let section of templateSections(tpl)"
                     >
                       <button
                         type="button"
                         class="sc-template-section-apply"
                         [class.is-playing]="sectionAuditionPlaying(tpl, section)"
+                        [class.is-rendering]="sectionAuditionRendering(tpl, section)"
                         [attr.title]="
-                          sectionAuditionPlaying(tpl, section)
-                            ? 'Stop this section audition'
-                            : 'Audition these rows and versions in the mix'
+                          sectionAuditionRendering(tpl, section)
+                            ? 'Cancel this section render'
+                            : sectionAuditionPlaying(tpl, section)
+                              ? 'Stop this section audition'
+                              : 'Audition these rows and versions in the mix'
                         "
                         [attr.aria-pressed]="sectionAuditionPlaying(tpl, section)"
+                        [attr.aria-busy]="sectionAuditionRendering(tpl, section)"
                         (click)="applySavedSection(tpl, section, $event)"
                         [attr.aria-label]="
-                          (sectionAuditionPlaying(tpl, section)
-                            ? 'Stop section '
-                            : 'Audition section ') + section.name
+                          (sectionAuditionRendering(tpl, section)
+                            ? 'Cancel rendering section '
+                            : sectionAuditionPlaying(tpl, section)
+                              ? 'Stop section '
+                              : 'Audition section ') + section.name
                         "
                       >
                         <span class="material-symbols-outlined">{{
-                          sectionAuditionPlaying(tpl, section)
-                            ? 'stop'
-                            : 'playlist_play'
+                          sectionAuditionRendering(tpl, section)
+                            ? 'progress_activity'
+                            : sectionAuditionPlaying(tpl, section)
+                              ? 'stop'
+                              : 'playlist_play'
                         }}</span>
                         <span>{{ section.name }}</span>
                         <small>
-                          {{ section.rows.length }} row{{
-                            section.rows.length === 1 ? '' : 's'
+                          {{
+                            sectionAuditionRendering(tpl, section)
+                              ? 'Rendering…'
+                              : section.rows.length +
+                                ' row' +
+                                (section.rows.length === 1 ? '' : 's')
                           }}
                         </small>
                       </button>

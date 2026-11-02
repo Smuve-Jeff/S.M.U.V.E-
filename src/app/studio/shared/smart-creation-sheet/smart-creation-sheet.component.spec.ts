@@ -1446,9 +1446,11 @@ describe("SmartCreationSheetComponent", () => {
     };
     const previewId = "template-preview-tpl-7-mix-0:slot-1@v1";
 
+    expect(component.sectionAuditionRendering(template, section)).toBe(false);
     mockCompositionAudition.playing.set(true);
     mockCompositionAudition.readyCompositionId.set(previewId);
     expect(component.sectionAuditionPlaying(template, section)).toBe(true);
+    expect(component.sectionAuditionRendering(template, section)).toBe(false);
 
     await component.applySavedSection(template, section);
 
@@ -1459,6 +1461,8 @@ describe("SmartCreationSheetComponent", () => {
     mockCompositionAudition.playing.set(false);
     mockCompositionAudition.rendering.set(true);
     component.auditioningPreviewId.set(previewId);
+    expect(component.sectionAuditionRendering(template, section)).toBe(true);
+    expect(component.sectionAuditionPlaying(template, section)).toBe(false);
     await component.applySavedSection(template, section);
     expect(mockCompositionAudition.clear).toHaveBeenCalled();
     expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
