@@ -258,7 +258,8 @@
             >
               <div class="sc-template-details-head">
                 <span class="sc-template-details-hint">
-                  Preview a row or mix selected rows — no channels are replaced.
+                  Preview a row, mix selected rows, or play saved sections in
+                  order — no channels are replaced.
                 </span>
                 <div class="sc-template-details-actions">
                   <button
@@ -349,30 +350,64 @@
                 >
                   <div class="sc-template-section-head">
                     <span class="sc-template-section-label">Saved sections</span>
-                    <button
-                      type="button"
-                      class="sc-template-section-order-toggle"
-                      (click)="toggleSectionReorder(tpl, $event)"
-                      [disabled]="templateSections(tpl).length < 2"
-                      [attr.aria-pressed]="reorderingSections()"
-                      [attr.aria-label]="
-                        reorderingSections()
-                          ? 'Finish reordering saved sections'
-                          : 'Reorder saved sections'
-                      "
-                      [attr.title]="
-                        templateSections(tpl).length < 2
-                          ? 'Add at least two sections to reorder'
-                          : reorderingSections()
-                            ? 'Finish reordering'
-                            : 'Change the saved-section order'
-                      "
-                    >
-                      <span class="material-symbols-outlined">{{
-                        reorderingSections() ? 'check' : 'swap_vert'
-                      }}</span>
-                      <span>{{ reorderingSections() ? 'Done' : 'Reorder' }}</span>
-                    </button>
+                    <div class="sc-template-section-head-actions">
+                      <button
+                        type="button"
+                        class="sc-template-section-order-toggle sc-template-section-play"
+                        [class.is-playing]="sectionsPreviewPlaying(tpl)"
+                        [class.is-rendering]="sectionsPreviewRendering(tpl)"
+                        (click)="auditionSavedSections(tpl, $event)"
+                        [attr.aria-pressed]="sectionsPreviewPlaying(tpl)"
+                        [attr.aria-busy]="sectionsPreviewRendering(tpl)"
+                        [attr.aria-label]="
+                          sectionsPreviewRendering(tpl)
+                            ? 'Cancel rendering the saved-section arrangement'
+                            : sectionsPreviewPlaying(tpl)
+                              ? 'Stop the saved-section arrangement'
+                              : 'Play all saved sections in order'
+                        "
+                        [attr.title]="
+                          sectionsPreviewRendering(tpl)
+                            ? 'Cancel this arrangement render'
+                            : sectionsPreviewPlaying(tpl)
+                              ? 'Stop the arrangement preview'
+                              : 'Play every saved section once, in order'
+                        "
+                      >
+                        <span class="material-symbols-outlined">{{
+                          sectionsPreviewRendering(tpl)
+                            ? 'progress_activity'
+                            : sectionsPreviewPlaying(tpl)
+                              ? 'stop'
+                              : 'playlist_play'
+                        }}</span>
+                        <span>{{ sectionsPreviewLabel(tpl) }}</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="sc-template-section-order-toggle"
+                        (click)="toggleSectionReorder(tpl, $event)"
+                        [disabled]="templateSections(tpl).length < 2"
+                        [attr.aria-pressed]="reorderingSections()"
+                        [attr.aria-label]="
+                          reorderingSections()
+                            ? 'Finish reordering saved sections'
+                            : 'Reorder saved sections'
+                        "
+                        [attr.title]="
+                          templateSections(tpl).length < 2
+                            ? 'Add at least two sections to reorder'
+                            : reorderingSections()
+                              ? 'Finish reordering'
+                              : 'Change the saved-section order'
+                        "
+                      >
+                        <span class="material-symbols-outlined">{{
+                          reorderingSections() ? 'check' : 'swap_vert'
+                        }}</span>
+                        <span>{{ reorderingSections() ? 'Done' : 'Reorder' }}</span>
+                      </button>
+                    </div>
                   </div>
                   <div
                     class="sc-template-section-order"
@@ -569,6 +604,28 @@
                       </div>
                     </div>
                   </div>
+                </div>
+                <div
+                  class="sc-template-detail-progress sc-template-sections-progress"
+                  *ngIf="sectionsPreviewActive(tpl)"
+                >
+                  <div
+                    class="sc-template-detail-progress-track"
+                    role="progressbar"
+                    aria-label="Saved-section arrangement progress"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    [attr.aria-valuenow]="sectionsPreviewProgressPercent(tpl)"
+                    [attr.aria-valuetext]="sectionsPreviewProgressLabel(tpl)"
+                  >
+                    <div
+                      class="sc-template-detail-progress-fill"
+                      [style.width.%]="sectionsPreviewProgressPercent(tpl)"
+                    ></div>
+                  </div>
+                  <span class="sc-template-detail-progress-label">
+                    {{ sectionsPreviewProgressLabel(tpl) }}
+                  </span>
                 </div>
               </div>
               <div class="sc-template-detail" *ngFor="let detail of templateDetails(tpl)">

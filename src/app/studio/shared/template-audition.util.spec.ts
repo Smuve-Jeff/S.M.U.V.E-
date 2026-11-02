@@ -2,6 +2,8 @@ import {
   templatePatternsPreviewId,
   templatePatternsToAuditionScore,
   templatePatternToAuditionScore,
+  templateSectionsPreviewId,
+  templateSectionsToAuditionScore,
   templateToAuditionScore,
 } from './template-audition.util';
 import type { ProjectTemplate } from '../../services/project-template.service';
@@ -306,5 +308,121 @@ describe('templatePatternsToAuditionScore', () => {
     expect(templatePatternsPreviewId('tpl', [])).toBe(
       'template-preview-tpl-mix-',
     );
+  });
+});
+
+describe('templateSectionsToAuditionScore', () => {
+  const source = () =>
+    template({
+      tracks: [
+        {
+          name: 'Lead',
+          instrumentId: 'analog-warmth',
+          type: 'midi',
+          activePatternSlotId: 'slot-1',
+          patternSlots: [
+            {
+              id: 'slot-1',
+              name: 'Verse',
+              notes: [{ midi: 64, step: 0, length: 4, velocity: 0.8 }],
+              versions: [
+                {
+                  id: 'v1',
+                  name: 'long',
+                  notes: [{ midi: 60, step: 16, length: 4, velocity: 0.7 }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'Keys',
+          instrumentId: 'grand-piano',
+          type: 'midi',
+          notes: [{ midi: 48, step: 0, length: 4, velocity: 0.6 }],
+        },
+      ],
+    });
+
+  const intro = {
+    id: 'sec-intro',
+    name: 'Intro',
+    rows: [
+      { trackIndex: 0, slotId: 'slot-1', versionId: 'v1' },
+      { trackIndex: 1, slotId: null },
+    ],
+  };
+  const hook = {
+    id: 'sec-hook',
+    name: 'Hook',
+    rows: [{ trackIndex: 1, slotId: null }],
+  };
+
+  it('sequences sections at bar boundaries and shifts their notes', () => {
+    const templateSource = source();
+    const before = JSON.stringify(templateSource);
+    const score = templateSectionsToAuditionScore(templateSource, [
+      intro,
+      hook,
+    ]);
+
+    expect(score).not.toBeNull();
+    expect(score!.totalBars).toBe(3);
+    expect(score!.durationSeconds).toBe(6);
+    expect(score!.parts).toHaveLength(3);
+    expect(score!.parts.map((part) => part.role)).toEqual([
+      'melody',
+      'chords',
+      'chords',
+    ]);
+    expect(score!.parts[0].notes[0]).toMatchObject({ midi: 60, bar: 1 });
+    expect(score!.parts[1].notes[0].bar).toBe(0);
+    expect(score!.parts[2].notes[0].bar).toBe(2);
+    expect(new Set(score!.parts.map((part) => part.id)).size).toBe(3);
+    expect(score!.id).toBe(
+      templateSectionsPreviewId(templateSource.id, [intro, hook]),
+    );
+    expect(score!.id.startsWith('template-preview-tpl-mix-arrangement-')).toBe(
+      true,
+    );
+    expect(JSON.stringify(templateSource)).toBe(before);
+  });
+
+  it('changes the preview id when the section order changes', () => {
+    const forward = templateSectionsToAuditionScore(source(), [intro, hook]);
+    const reverse = templateSectionsToAuditionScore(source(), [hook, intro]);
+
+    expect(forward!.id).not.toBe(reverse!.id);
+    expect(reverse!.parts[0].notes[0].bar).toBe(0);
+    expect(reverse!.parts[1].notes[0].bar).toBe(2);
+    expect(reverse!.parts[2].notes[0].bar).toBe(1);
+    expect(reverse!.totalBars).toBe(3);
+  });
+
+  it('falls back to the live pattern and skips empty sections', () => {
+    const fallback = templateSectionsToAuditionScore(source(), [
+      {
+        id: 'sec-fallback',
+        name: 'Fallback',
+        rows: [{ trackIndex: 0, slotId: 'slot-1', versionId: 'missing' }],
+      },
+    ]);
+    expect(fallback!.parts[0].notes[0].midi).toBe(64);
+    expect(fallback!.totalBars).toBe(1);
+
+    const empty = {
+      id: 'sec-empty',
+      name: 'Empty',
+      rows: [{ trackIndex: 9, slotId: null }],
+    };
+    const afterEmpty = templateSectionsToAuditionScore(source(), [
+      empty,
+      hook,
+    ]);
+    expect(afterEmpty!.parts).toHaveLength(1);
+    expect(afterEmpty!.parts[0].notes[0].bar).toBe(0);
+    expect(afterEmpty!.totalBars).toBe(1);
+    expect(templateSectionsToAuditionScore(source(), [empty])).toBeNull();
+    expect(templateSectionsToAuditionScore(source(), [])).toBeNull();
   });
 });

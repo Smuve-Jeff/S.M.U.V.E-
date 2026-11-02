@@ -28,6 +28,8 @@ import {
   templatePatternsToAuditionScore,
   templatePatternToAuditionScore,
   templatePreviewId,
+  templateSectionsPreviewId,
+  templateSectionsToAuditionScore,
   templateToAuditionScore,
   type TemplatePatternSelection,
 } from "../template-audition.util";
@@ -1135,6 +1137,93 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
+  private sectionsPreviewId(template: ProjectTemplate): string | null {
+    const sections = this.templateSections(template);
+    return sections.length
+      ? templateSectionsPreviewId(template.id, sections)
+      : null;
+  }
+
+  /** True while saved sections are playing back-to-back in listed order. */
+  sectionsPreviewPlaying(template: ProjectTemplate): boolean {
+    const id = this.sectionsPreviewId(template);
+    return !!id && this.previewPlaying(id);
+  }
+
+  sectionsPreviewRendering(template: ProjectTemplate): boolean {
+    const id = this.sectionsPreviewId(template);
+    return (
+      !!id &&
+      this.auditioningPreviewId() === id &&
+      this.compositionAudition.rendering()
+    );
+  }
+
+  sectionsPreviewActive(template: ProjectTemplate): boolean {
+    return this.sectionsPreviewPlaying(template);
+  }
+
+  sectionsPreviewLabel(template: ProjectTemplate): string {
+    if (this.sectionsPreviewRendering(template)) return "Rendering…";
+    return this.sectionsPreviewPlaying(template) ? "Stop" : "Play all";
+  }
+
+  sectionsPreviewProgressPercent(template: ProjectTemplate): number {
+    return this.sectionsPreviewActive(template)
+      ? this.previewProgressPercent()
+      : 0;
+  }
+
+  sectionsPreviewProgressLabel(template: ProjectTemplate): string {
+    if (!this.sectionsPreviewActive(template)) return "";
+    const count = this.templateSections(template).length;
+    return `${count} section${count === 1 ? "" : "s"} · ${this.previewPositionLabel(
+      "one pass",
+    )}`;
+  }
+
+  /** Play the saved sections once, in their current listed order. */
+  async auditionSavedSections(
+    template: ProjectTemplate,
+    event?: Event,
+  ): Promise<void> {
+    event?.stopPropagation();
+    const sections = this.templateSections(template);
+    const score = templateSectionsToAuditionScore(template, sections);
+    if (!score) {
+      this.snackbar.info("These saved sections have no playable notes.");
+      return;
+    }
+
+    if (this.previewPlaying(score.id)) {
+      this.compositionAudition.stop();
+      this.auditioningPreviewId.set(null);
+      this.haptic.light();
+      this.snackbar.info("Stopped the saved-section arrangement.");
+      return;
+    }
+    if (
+      this.auditioningPreviewId() === score.id &&
+      this.compositionAudition.rendering()
+    ) {
+      this.compositionAudition.clear();
+      this.auditioningPreviewId.set(null);
+      this.haptic.light();
+      this.snackbar.info("Stopped the saved-section arrangement.");
+      return;
+    }
+
+    this.stopTemplateMixPreview(template.id);
+    this.haptic.medium();
+    await this.previewScore(
+      score,
+      `${sections.length} saved section${
+        sections.length === 1 ? "" : "s"
+      } in order`,
+      false,
+    );
+  }
+
   /** Recall a named section and audition it without loading the template. */
   async applySavedSection(
     template: ProjectTemplate,
@@ -1453,7 +1542,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     );
   }
 
-  private previewPositionLabel(): string {
+  private previewPositionLabel(trailing = "loop"): string {
     const progress = Math.max(
       0,
       Math.min(1, this.compositionAudition.progress()),
@@ -1463,7 +1552,7 @@ export class SmartCreationSheetComponent implements OnDestroy {
     const bar = Math.min(bars, Math.floor(progress * bars) + 1);
     return `bar ${bar}/${bars} · ${this.previewClock(
       progress * seconds,
-    )} / ${this.previewClock(seconds)} · loop`;
+    )} / ${this.previewClock(seconds)} · ${trailing}`;
   }
 
   private previewClock(seconds: number): string {

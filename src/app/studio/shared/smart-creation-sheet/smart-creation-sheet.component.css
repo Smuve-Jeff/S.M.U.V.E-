@@ -1336,7 +1336,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.sc-template-section-head-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
 }
 
 .sc-template-section-label {
@@ -1375,6 +1385,35 @@
 .sc-template-section-order-toggle:disabled {
   opacity: 0.38;
   cursor: not-allowed;
+}
+
+.sc-template-section-play {
+  border-color: rgba(119, 255, 192, 0.28);
+  background: rgba(119, 255, 192, 0.06);
+  color: #b6ffdd;
+}
+
+.sc-template-section-play.is-playing {
+  border-color: rgba(119, 255, 192, 0.6);
+  background: rgba(119, 255, 192, 0.14);
+  color: #fff;
+}
+
+.sc-template-section-play.is-rendering {
+  border-color: rgba(255, 209, 102, 0.45);
+  background: rgba(255, 209, 102, 0.1);
+  color: #ffe6a3;
+}
+
+.sc-template-section-play.is-rendering .material-symbols-outlined {
+  color: #ffd166;
+  animation: scSectionRendering 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-template-section-play.is-rendering .material-symbols-outlined {
+    animation: none;
+  }
 }
 
 .sc-template-section-order {
@@ -1805,6 +1844,10 @@
 
 .sc-template-mix-progress {
   padding: 0 0 2px;
+}
+
+.sc-template-sections-progress {
+  padding: 2px 2px 0;
 }
 
 .sc-template-detail-progress-track {

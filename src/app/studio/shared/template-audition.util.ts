@@ -10,6 +10,7 @@ import type {
   ProjectTemplate,
   ProjectTemplateTrack,
   TemplateNote,
+  TemplateSection,
 } from '../../services/project-template.service';
 
 const DRUM_LANES: Record<number, DrumLane> = {
@@ -307,5 +308,105 @@ export function templatePatternsToAuditionScore(
     templatePatternsPreviewId(template.id, selections),
     parts,
     maxStep,
+  );
+}
+
+/** Stable id for a one-pass arrangement of saved sections in list order. */
+export const templateSectionsPreviewId = (
+  templateId: string,
+  sections: readonly TemplateSection[],
+): string => {
+  const signature = sections
+    .map((section) => {
+      const rows = section.rows
+        .map(
+          (row) =>
+            `${row.trackIndex}:${row.slotId ?? "live"}@${row.versionId ?? "active"}`,
+        )
+        .join(",");
+      return `${section.id}[${rows}]`;
+    })
+    .join("|");
+  return `${templateMixPreviewPrefix(templateId)}arrangement-${signature}`;
+};
+
+/** Shift every note and drum hit in a part by a whole number of bars. */
+function offsetPart(part: ComposerPart, bars: number): ComposerPart {
+  if (!bars) return part;
+  return {
+    ...part,
+    notes: part.notes.map((note) => ({ ...note, bar: note.bar + bars })),
+    hits: part.hits.map((hit) => ({ ...hit, bar: hit.bar + bars })),
+  };
+}
+
+/**
+ * Sequence saved sections into one one-pass score, in their listed order.
+ *
+ * Each section contributes its saved rows and chosen versions, with missing
+ * versions falling back to the live pattern just like the section audition.
+ * A section lasts as long as its longest pattern and the next section begins
+ * on the following bar. Only the projection is changed; the template and the
+ * live project are never touched.
+ */
+export function templateSectionsToAuditionScore(
+  template: ProjectTemplate,
+  sections: readonly TemplateSection[],
+): AuditionScore | null {
+  if (!sections.length) return null;
+
+  const parts: ComposerPart[] = [];
+  let startBar = 0;
+
+  sections.forEach((section, sectionIndex) => {
+    const seen = new Set<string>();
+    const sectionParts: ComposerPart[] = [];
+    let sectionMaxStep = 0;
+
+    for (const row of section.rows) {
+      const key = templatePatternSelectionKey(row.trackIndex, row.slotId);
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const track = template.tracks[row.trackIndex];
+      if (!track) continue;
+      const slot = row.slotId
+        ? track.patternSlots?.find((candidate) => candidate.id === row.slotId)
+        : undefined;
+      if (row.slotId && !slot) continue;
+      const version = row.versionId
+        ? slot?.versions?.find(
+            (candidate) => candidate.id === row.versionId,
+          )
+        : undefined;
+      const notes = version
+        ? version.notes
+        : slot
+          ? slot.notes?.length
+            ? slot.notes
+            : activeNotes(track)
+          : activeNotes(track);
+      const built = buildPart(
+        track,
+        notes,
+        `sections-${sectionIndex}-${key.replace(":", "-")}`,
+      );
+      if (!built) continue;
+      sectionParts.push(built.part);
+      sectionMaxStep = Math.max(sectionMaxStep, built.maxStep);
+    }
+
+    if (!sectionParts.length) return;
+    const sectionBars = Math.max(1, Math.ceil(sectionMaxStep / 16));
+    parts.push(...sectionParts.map((part) => offsetPart(part, startBar)));
+    startBar += sectionBars;
+  });
+
+  if (!parts.length) return null;
+  return scoreFor(
+    template,
+    templateSectionsPreviewId(template.id, sections),
+    parts,
+    startBar * 16,
   );
 }

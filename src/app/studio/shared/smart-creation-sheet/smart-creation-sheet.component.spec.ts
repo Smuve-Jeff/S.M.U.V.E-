@@ -1589,6 +1589,72 @@ describe("SmartCreationSheetComponent", () => {
     expect(mockCompositionAudition.startScore).not.toHaveBeenCalled();
   });
 
+  it("plays saved sections once in their listed order", async () => {
+    const intro = {
+      id: "sec-intro",
+      name: "Intro",
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const hook = {
+      id: "sec-hook",
+      name: "Hook",
+      rows: [{ trackIndex: 1, slotId: null }],
+    };
+    const template = {
+      ...sectionTemplateFixture(),
+      sections: [intro, hook],
+    };
+    component.toggleTemplateDetails(template);
+
+    await component.auditionSavedSections(template);
+
+    expect(mockCompositionAudition.startScore).toHaveBeenCalledTimes(1);
+    const [score, loop] = mockCompositionAudition.startScore.mock.calls[0];
+    expect(loop).toBe(false);
+    expect(score.totalBars).toBe(2);
+    expect(score.parts).toHaveLength(2);
+    expect(score.parts[0].notes[0]).toMatchObject({ midi: 60, bar: 0 });
+    expect(score.parts[1].notes[0].bar).toBe(1);
+    expect(score.id).toContain("template-preview-tpl-7-mix-arrangement-");
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      "Auditioning 2 saved sections in order — preview only, nothing loaded.",
+    );
+    expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
+    expect(mockProjectTemplates.saveTemplateSection).not.toHaveBeenCalled();
+
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(score.id);
+    mockCompositionAudition.previewBars.set(2);
+    mockCompositionAudition.previewSeconds.set(4);
+    mockCompositionAudition.progress.set(0.5);
+    expect(component.sectionsPreviewPlaying(template)).toBe(true);
+    expect(component.sectionsPreviewLabel(template)).toBe("Stop");
+    expect(component.sectionsPreviewProgressLabel(template)).toBe(
+      "2 sections · bar 2/2 · 0:02 / 0:04 · one pass",
+    );
+
+    await component.auditionSavedSections(template);
+
+    expect(mockCompositionAudition.stop).toHaveBeenCalled();
+    expect(mockCompositionAudition.startScore).toHaveBeenCalledTimes(1);
+    expect(mockSnackbar.info).toHaveBeenCalledWith(
+      "Stopped the saved-section arrangement.",
+    );
+    expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
+
+    mockCompositionAudition.playing.set(false);
+    mockCompositionAudition.rendering.set(true);
+    component.auditioningPreviewId.set(score.id);
+    expect(component.sectionsPreviewRendering(template)).toBe(true);
+    expect(component.sectionsPreviewLabel(template)).toBe("Rendering…");
+
+    await component.auditionSavedSections(template);
+
+    expect(mockCompositionAudition.clear).toHaveBeenCalled();
+    expect(mockCompositionAudition.startScore).toHaveBeenCalledTimes(1);
+    expect(mockProjectTemplates.applyTemplate).not.toHaveBeenCalled();
+  });
+
   it("marks a playing section and stops it on a second click", async () => {
     const template = sectionTemplateFixture();
     component.toggleTemplateDetails(template);
