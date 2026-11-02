@@ -2012,6 +2012,24 @@
   padding: 2px 2px 0;
 }
 
+.sc-template-section-progress {
+  padding: 1px 2px 3px;
+}
+
+.sc-template-section-progress .sc-template-detail-progress-track {
+  height: 4px;
+}
+
+@media (hover: none), (pointer: coarse), (any-pointer: coarse) {
+  .sc-template-section-progress .sc-template-detail-progress-track {
+    height: 6px;
+  }
+
+  .sc-template-section-progress .sc-template-detail-progress-label {
+    font-size: 10px;
+  }
+}
+
 .sc-template-detail-progress-track {
   flex: 1 1 100px;
   min-width: 70px;

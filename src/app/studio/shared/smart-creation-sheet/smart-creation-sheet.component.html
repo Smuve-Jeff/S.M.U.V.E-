@@ -577,6 +577,28 @@
                         </button>
                       </div>
                       <div
+                        class="sc-template-detail-progress sc-template-section-progress"
+                        *ngIf="sectionPreviewActive(tpl, section)"
+                      >
+                        <div
+                          class="sc-template-detail-progress-track"
+                          role="progressbar"
+                          aria-label="Section audition progress"
+                          aria-valuemin="0"
+                          aria-valuemax="100"
+                          [attr.aria-valuenow]="sectionPreviewProgressPercent(tpl, section)"
+                          [attr.aria-valuetext]="sectionPreviewProgressLabel(tpl, section)"
+                        >
+                          <div
+                            class="sc-template-detail-progress-fill"
+                            [style.width.%]="sectionPreviewProgressPercent(tpl, section)"
+                          ></div>
+                        </div>
+                        <span class="sc-template-detail-progress-label">
+                          {{ sectionPreviewProgressLabel(tpl, section) }}
+                        </span>
+                      </div>
+                      <div
                         class="sc-template-section-length"
                         title="Bars this section occupies in the arrangement preview"
                       >

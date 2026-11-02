@@ -1241,6 +1241,35 @@ export class SmartCreationSheetComponent implements OnDestroy {
     return !!id && this.previewPlaying(id);
   }
 
+  /** True while this saved section is audible, in either audition mode. */
+  sectionPreviewActive(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): boolean {
+    return this.sectionAuditionPlaying(template, section);
+  }
+
+  /** Position in the current section pass, 0–100. */
+  sectionPreviewProgressPercent(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): number {
+    return this.sectionPreviewActive(template, section)
+      ? this.previewProgressPercent()
+      : 0;
+  }
+
+  /** Bar and clock position for the active section, naming the pass mode. */
+  sectionPreviewProgressLabel(
+    template: ProjectTemplate,
+    section: TemplateSection,
+  ): string {
+    if (!this.sectionPreviewActive(template, section)) return "";
+    return this.previewPositionLabel(
+      this.sectionAuditionLoop() ? "loop" : "one pass",
+    );
+  }
+
   /** True while this saved section's mix is rendering for playback. */
   sectionAuditionRendering(
     template: ProjectTemplate,

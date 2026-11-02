@@ -1742,6 +1742,43 @@ describe("SmartCreationSheetComponent", () => {
     expect(fresh.sectionAuditionLoop()).toBe(false);
   });
 
+  it("shows progress for the active section in both audition modes", () => {
+    const template = sectionTemplateFixture();
+    const section = {
+      id: "sec-1",
+      name: "Lift",
+      bars: 4,
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v1" }],
+    };
+    const other = {
+      ...section,
+      id: "sec-2",
+      name: "Hook",
+      rows: [{ trackIndex: 0, slotId: "slot-1", versionId: "v2" }],
+    };
+    mockCompositionAudition.playing.set(true);
+    mockCompositionAudition.readyCompositionId.set(
+      templateSectionPreviewId(template, section),
+    );
+    mockCompositionAudition.progress.set(0.5);
+    mockCompositionAudition.previewBars.set(4);
+    mockCompositionAudition.previewSeconds.set(8);
+
+    expect(component.sectionPreviewActive(template, section)).toBe(true);
+    expect(component.sectionPreviewActive(template, other)).toBe(false);
+    expect(component.sectionPreviewProgressPercent(template, section)).toBe(50);
+    expect(component.sectionPreviewProgressLabel(template, section)).toBe(
+      "bar 3/4 · 0:04 / 0:08 · loop",
+    );
+
+    component.sectionAuditionLoop.set(false);
+    expect(component.sectionPreviewProgressLabel(template, section)).toBe(
+      "bar 3/4 · 0:04 / 0:08 · one pass",
+    );
+    expect(component.sectionPreviewProgressPercent(template, other)).toBe(0);
+    expect(component.sectionPreviewProgressLabel(template, other)).toBe("");
+  });
+
   it("plays saved sections once in their listed order", async () => {
     const intro = {
       id: "sec-intro",
