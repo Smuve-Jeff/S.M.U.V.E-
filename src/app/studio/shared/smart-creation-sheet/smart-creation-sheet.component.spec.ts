@@ -2268,8 +2268,22 @@ describe("SmartCreationSheetComponent", () => {
       budgetMb: 128,
       exceedsBudget: false,
     });
+    const [detail] = component.templateDetails(template);
+    expect(component.patternPreviewMemory(template, detail)).toEqual({
+      estimatedMb: 88,
+      budgetMb: 128,
+      exceedsBudget: false,
+    });
 
     const sectionTemplate = sectionTemplateFixture();
+    const [versionDetail] = component.templateDetails(sectionTemplate);
+    expect(
+      component.patternPreviewMemory(sectionTemplate, versionDetail, "v1"),
+    ).toEqual({
+      estimatedMb: 88,
+      budgetMb: 128,
+      exceedsBudget: false,
+    });
     const section = {
       id: "sec-1",
       name: "Lift",

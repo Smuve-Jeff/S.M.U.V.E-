@@ -894,6 +894,20 @@
                     <span>{{ patternAuditionLabel(tpl, detail) }}</span>
                   </button>
                   <span class="sc-template-detail-launch">{{ detail.launch }}</span>
+                  <ng-container *ngIf="!patternPreviewActive(tpl, detail)">
+                    <span
+                      class="sc-preview-memory"
+                      *ngIf="patternPreviewMemory(tpl, detail) as memory"
+                      [class.is-high]="memory.exceedsBudget"
+                      [attr.title]="
+                        'Peak row buffer ~' + memory.estimatedMb + ' MB; ' +
+                        memory.budgetMb + ' MB safe on this device'
+                      "
+                    >
+                      ~{{ memory.estimatedMb }} MB
+                      <em *ngIf="memory.exceedsBudget">device risk</em>
+                    </span>
+                  </ng-container>
                 </div>
                 <div
                   class="sc-template-mix-version"
@@ -973,6 +987,23 @@
                           : 'play_arrow'
                     }}</span>
                     {{ version.name }}<span *ngIf="version.active"> · active</span>
+                    <ng-container *ngIf="!patternPreviewActive(tpl, detail)">
+                      <span
+                        class="sc-preview-memory sc-preview-memory-inline"
+                        *ngIf="
+                          patternPreviewMemory(tpl, detail, version.id) as memory
+                        "
+                        [class.is-high]="memory.exceedsBudget"
+                        [attr.title]="
+                          'Peak version buffer ~' + memory.estimatedMb +
+                          ' MB; ' + memory.budgetMb +
+                          ' MB safe on this device'
+                        "
+                      >
+                        ~{{ memory.estimatedMb }} MB
+                        <em *ngIf="memory.exceedsBudget">risk</em>
+                      </span>
+                    </ng-container>
                   </button>
                 </p>
                 <ng-template #noVersions>

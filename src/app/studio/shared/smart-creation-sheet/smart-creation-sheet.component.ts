@@ -2126,6 +2126,22 @@ export class SmartCreationSheetComponent implements OnDestroy {
     return this.previewLabel(this.patternPreviewId(template, detail, versionId));
   }
 
+  /** Peak buffer cost for one live row or one saved version. */
+  patternPreviewMemory(
+    template: ProjectTemplate,
+    detail: TemplatePatternDetail,
+    versionId?: string,
+  ): AuditionMemoryEstimate | null {
+    return this.previewMemoryFor(
+      templatePatternToAuditionScore(
+        template,
+        detail.trackIndex,
+        detail.slotId,
+        versionId,
+      ),
+    );
+  }
+
   /** The live row or saved version currently audible for this row, if any. */
   private activePatternPreview(
     template: ProjectTemplate,

@@ -1198,6 +1198,23 @@
   margin-left: 2px;
 }
 
+.sc-preview-memory-inline {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 8px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: rgba(184, 247, 255, 0.62);
+}
+
+.sc-preview-memory-inline.is-high {
+  border: 0;
+  background: transparent;
+  color: #ffd166;
+}
+
 .sc-template-detail {
   display: flex;
   flex-direction: column;
