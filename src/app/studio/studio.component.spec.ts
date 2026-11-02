@@ -838,6 +838,56 @@ describe("StudioComponent", () => {
     expect(stopPreview).toHaveBeenCalledTimes(1);
   });
 
+  it("streams comp-take audition instead of decoding the whole take", async () => {
+    const play = jest.fn().mockResolvedValue(undefined);
+    const pause = jest.fn();
+    const load = jest.fn();
+    const element: any = {
+      preload: "",
+      play,
+      pause,
+      load,
+      removeAttribute: jest.fn(),
+      onended: null,
+      onerror: null,
+    };
+    const connect = jest.fn();
+    const disconnect = jest.fn();
+    const createMediaElementSource = jest.fn(() => ({ connect, disconnect }));
+    const originalAudio = (globalThis as any).Audio;
+    const originalCreate = (mockAudioEngine.ctx as any).createMediaElementSource;
+    const originalDecode = (mockAudioEngine.ctx as any).decodeAudioData;
+    const originalMasterGain = (mockAudioEngine as any).masterGain;
+    (globalThis as any).Audio = jest.fn(() => element);
+    (mockAudioEngine.ctx as any).createMediaElementSource = createMediaElementSource;
+    (mockAudioEngine as any).masterGain = {};
+    (mockAudioEngine.ctx as any).decodeAudioData = jest.fn();
+
+    try {
+      await component.previewCompTake({
+        id: "take_stream",
+        url: "blob:take_stream",
+      } as any);
+
+      expect(createMediaElementSource).toHaveBeenCalledWith(element);
+      expect(connect).toHaveBeenCalledWith((mockAudioEngine as any).masterGain);
+      expect(play).toHaveBeenCalledTimes(1);
+      expect((mockAudioEngine.ctx as any).decodeAudioData).not.toHaveBeenCalled();
+      expect(component.previewingTakeId()).toBe("take_stream");
+
+      component.stopCompTakePreview();
+      expect(pause).toHaveBeenCalled();
+      expect(disconnect).toHaveBeenCalled();
+      expect(component.previewingTakeId()).toBeNull();
+    } finally {
+      component.stopCompTakePreview();
+      (globalThis as any).Audio = originalAudio;
+      (mockAudioEngine.ctx as any).createMediaElementSource = originalCreate;
+      (mockAudioEngine.ctx as any).decodeAudioData = originalDecode;
+      (mockAudioEngine as any).masterGain = originalMasterGain;
+    }
+  });
+
   // ── Music Map (architecture sheet) wiring ──
   describe("music map", () => {
     it("opens from the rail with haptic + telemetry and closes again", () => {

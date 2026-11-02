@@ -3765,10 +3765,22 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
   /** ID of the currently previewing take (for play/stop toggle) */
   previewingTakeId = signal<string | null>(null);
 
-  /** Current audio buffer source for take preview */
+  /** Current audio buffer source for the decode fallback. */
   private previewSource: AudioBufferSourceNode | null = null;
+  /** Streaming preview element: comp takes are already compressed blobs. */
+  private previewElement: HTMLAudioElement | null = null;
+  private previewMediaSource: MediaElementAudioSourceNode | null = null;
+  private previewObjectUrl: string | null = null;
+  private previewRequest = 0;
 
-  /** Preview a comp take through the audio engine */
+  /**
+   * Preview a comp take through the audio engine.
+   *
+   * MediaRecorder gives us an encoded take, so decoding it to an AudioBuffer
+   * just to audition it duplicates the whole performance in the JS heap. Keep
+   * the compressed blob moving through a media element and route it into the
+   * master bus instead; only fall back to decode if the host cannot do that.
+   */
   async previewCompTake(take: CompTake) {
     this.haptic.light();
 
@@ -3780,7 +3792,57 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Stop any current preview
     this.stopCompTakePreview();
+    const request = ++this.previewRequest;
 
+    const canStream =
+      typeof Audio !== "undefined" &&
+      typeof this.audioEngine.ctx.createMediaElementSource === "function";
+    if (canStream) {
+      const url = take.blob ? URL.createObjectURL(take.blob) : take.url;
+      this.previewObjectUrl = take.blob ? url : null;
+      if (url) {
+        try {
+          const element = new Audio(url);
+          element.preload = "auto";
+          const mediaSource = this.audioEngine.ctx.createMediaElementSource(element);
+          mediaSource.connect(this.audioEngine.masterGain);
+
+          this.previewElement = element;
+          this.previewMediaSource = mediaSource;
+          element.onended = () => {
+            if (this.previewElement === element) this.stopCompTakePreview();
+          };
+          element.onerror = () => {
+            if (this.previewElement !== element) return;
+            this.stopCompTakePreview();
+            this.snackbarService.error("Could not preview take");
+          };
+
+          await element.play();
+          if (
+            request === this.previewRequest &&
+            this.previewElement === element
+          ) {
+            this.previewingTakeId.set(take.id);
+          }
+          return;
+        } catch (e) {
+          if (request !== this.previewRequest) return;
+          this.logger.warn(
+            "Streaming comp-take preview failed; falling back to decode",
+            e,
+          );
+          this.stopCompTakePreview();
+        }
+      }
+    }
+
+    await this.previewCompTakeDecoded(take);
+  }
+
+  /** Fallback for hosts without MediaElementAudioSourceNode support. */
+  private async previewCompTakeDecoded(take: CompTake): Promise<void> {
+    const request = this.previewRequest;
     try {
       const ctx = this.audioEngine.ctx;
       let audioBuffer: AudioBuffer;
@@ -3795,6 +3857,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       } else {
         return;
       }
+      if (request !== this.previewRequest) return;
 
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
@@ -3802,6 +3865,7 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       source.connect(this.audioEngine.masterGain);
       source.start(0);
       source.onended = () => {
+        if (this.previewSource !== source) return;
         this.previewingTakeId.set(null);
         this.previewSource = null;
       };
@@ -3809,13 +3873,37 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
       this.previewSource = source;
       this.previewingTakeId.set(take.id);
     } catch (e) {
+      if (request !== this.previewRequest) return;
       this.logger.warn("Failed to preview comp take", e);
       this.snackbarService.error("Could not preview take");
     }
   }
 
-  /** Stop current comp take preview */
+  /** Stop current comp take preview and release its stream URL. */
   stopCompTakePreview() {
+    this.previewRequest++;
+
+    if (this.previewElement) {
+      const element = this.previewElement;
+      element.onended = null;
+      element.onerror = null;
+      try {
+        element.pause();
+        element.removeAttribute("src");
+        element.load();
+      } catch {
+        /* element already torn down */
+      }
+      this.previewElement = null;
+    }
+    if (this.previewMediaSource) {
+      this.previewMediaSource.disconnect();
+      this.previewMediaSource = null;
+    }
+    if (this.previewObjectUrl) {
+      URL.revokeObjectURL(this.previewObjectUrl);
+      this.previewObjectUrl = null;
+    }
     if (this.previewSource) {
       try {
         this.previewSource.stop();

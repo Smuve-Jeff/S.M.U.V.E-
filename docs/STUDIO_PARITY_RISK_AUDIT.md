@@ -158,10 +158,16 @@ comp lane reads a level instead of decoding or re-scanning the performance.
    are never counted as RAM. Browsers that hide heap counters say "Not
    exposed" instead of inventing a number.
 
+**Also shipped:** comp-take audition now plays the encoded take through a
+`MediaElementAudioSourceNode` routed into the master bus, rather than decoding
+the whole take into an `AudioBuffer` first. Auditioning a long comp pass no
+longer duplicates its PCM in the heap; the decoded path remains only as a
+fallback for hosts without media-element routing.
+
 **Still open:** the other `decodeAudioData` call sites (short one-shots, library
-previews and several editor imports) still decode whole files. The new readout
-makes their heap cost visible; moving those paths onto the streamer is the
-remaining work.
+previews, recorder analysis/export and several editor imports) still decode
+whole files. The new readout makes their heap cost visible; moving those paths
+onto the streamer is the remaining work.
 
 ## 3. Battery / thermal — **PARTIAL**
 
