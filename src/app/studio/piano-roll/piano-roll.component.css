@@ -2609,3 +2609,16 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
   min-width: 0;
   white-space: nowrap;
 }
+
+/* Octave transposition shares the compact two-button row treatment. */
+.pr-octave-actions {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.pr-octave-actions .pr-tool {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+}

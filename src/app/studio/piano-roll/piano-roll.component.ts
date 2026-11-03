@@ -2178,6 +2178,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.markDirty();
   }
 
+  transposeSelection(semitones: number): void {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    if (!this.musicManager.transposeNotes(track.id, ids, semitones)) {
+      this.snackbar.info("That octave would leave the MIDI range");
+      return;
+    }
+    this.haptic.medium();
+    this.markDirty();
+  }
+
   clipSelectionToScale(): void {
     const track = this.selectedTrack();
     const ids = Array.from(this.selectedNoteIds());

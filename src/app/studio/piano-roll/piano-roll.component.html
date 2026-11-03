@@ -770,6 +770,28 @@
         <span class="material-symbols-outlined">music_note</span>
         <span>To Scale</span>
       </button>
+      <div
+        class="pr-octave-actions"
+        role="group"
+        aria-label="Transpose selected notes by octave"
+      >
+        <button
+          type="button"
+          class="pr-tool pr-tool-sm"
+          (click)="transposeSelection(-12)"
+          title="Transpose selected notes down one octave"
+        >
+          Oct −
+        </button>
+        <button
+          type="button"
+          class="pr-tool pr-tool-sm"
+          (click)="transposeSelection(12)"
+          title="Transpose selected notes up one octave"
+        >
+          Oct +
+        </button>
+      </div>
       <button
         type="button"
         class="pr-inspector-toggle"

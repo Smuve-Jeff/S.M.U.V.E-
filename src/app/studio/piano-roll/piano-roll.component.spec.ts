@@ -92,6 +92,7 @@ describe("PianoRollComponent", () => {
     rampNoteVelocity: jest.fn(() => true),
     legatoNotes: jest.fn(() => true),
     clipNotesToScale: jest.fn(() => true),
+    transposeNotes: jest.fn(() => true),
     selectedTrack: computed(() => mockTracks()[0] ?? null),
     engine: { scaleMode: signal("major"), scaleLock: signal(false) },
   };
@@ -564,6 +565,27 @@ describe("PianoRollComponent", () => {
       "n1",
       "n2",
     ]);
+  });
+
+  it("transposes the selection by octave in either direction", () => {
+    mockMusicManager.transposeNotes.mockClear();
+    mockMusicManager.transposeNotes.mockReturnValue(true);
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+
+    component.transposeSelection(12);
+    expect(mockMusicManager.transposeNotes).toHaveBeenCalledWith(
+      "1",
+      ["n1", "n2"],
+      12,
+    );
+
+    mockMusicManager.transposeNotes.mockClear();
+    component.transposeSelection(-12);
+    expect(mockMusicManager.transposeNotes).toHaveBeenCalledWith(
+      "1",
+      ["n1", "n2"],
+      -12,
+    );
   });
 
   it("clips the selection to the current key and scale", () => {

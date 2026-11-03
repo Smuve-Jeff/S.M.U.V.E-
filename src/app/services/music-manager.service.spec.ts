@@ -2474,4 +2474,38 @@ describe('MusicManagerService per-scene follow rules', () => {
     expect(service.clipNotesToScale('track-1', ['in-scale'], cMajor)).toBe(false);
   });
 
+  it('transposes selected notes by octave when the whole selection stays in range', () => {
+    const source = service.tracks()[0];
+    service.tracks.set([
+      {
+        ...source,
+        notes: [
+          { id: 'low', step: 0, midi: 60, length: 1, velocity: 0.8 },
+          { id: 'high', step: 4, midi: 72, length: 1, velocity: 0.8 },
+          { id: 'top', step: 8, midi: 120, length: 1, velocity: 0.8 },
+          { id: 'untouched', step: 12, midi: 40, length: 1, velocity: 0.8 },
+        ],
+        clips: [],
+      },
+    ]);
+
+    expect(service.transposeNotes('track-1', ['low', 'high'], 12)).toBe(true);
+    const byId = new Map(service.tracks()[0].notes.map((n) => [n.id, n]));
+    expect(byId.get('low')!.midi).toBe(72);
+    expect(byId.get('high')!.midi).toBe(84);
+    expect(byId.get('untouched')!.midi).toBe(40);
+
+    const recorder = (service as unknown as { history: { undo(): void } })
+      .history;
+    recorder.undo();
+    expect(
+      service.tracks()[0].notes.find((n) => n.id === 'low')!.midi,
+    ).toBe(60);
+
+    expect(service.transposeNotes('track-1', ['top'], 12)).toBe(false);
+    expect(
+      service.tracks()[0].notes.find((n) => n.id === 'top')!.midi,
+    ).toBe(120);
+  });
+
 });

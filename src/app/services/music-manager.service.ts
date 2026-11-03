@@ -2536,6 +2536,45 @@ export class MusicManagerService {
   }
 
   /**
+   * Transpose selected notes by a semitone offset.
+   *
+   * Returns false when any selected note would leave the MIDI 0–127 range, so
+   * an octave move never clamps several notes into a unison. The successful
+   * move records one history command.
+   */
+  transposeNotes(id: string, noteIds: string[], semitones: number): boolean {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return false;
+    const shift = Math.round(semitones);
+    if (shift === 0) return false;
+    const targetIds = new Set(noteIds);
+    const targets = t.notes.filter((n) => targetIds.has(n.id));
+    if (targets.length === 0) return false;
+    if (targets.some((n) => n.midi + shift < 0 || n.midi + shift > 127)) {
+      return false;
+    }
+
+    const before = this.clone(t.notes);
+    const after = t.notes.map((n) =>
+      targetIds.has(n.id) ? { ...n, midi: n.midi + shift } : n
+    );
+    this.runCommand(
+      'Transpose · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+    return true;
+  }
+
+  /**
    * Clip the selected notes to a scale.
    *
    * The nearest allowed pitch wins, preferring the upward candidate when two

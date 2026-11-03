@@ -232,8 +232,9 @@ L > 1 week of focused work).
 - **M** — Arpeggiator + note-repeat as *clip processors* (pattern → notes on commit),
   reusing `MusicManagerService.arpeggiateTrack` but scoped to a selection.
 - **S** — Scale lock toggle that snaps new/resized notes to the detected or chosen scale.
-- **S** — Selection ops: transpose ±octave, duplicate-to-next-bar.
-  ~~Legato-join~~, ~~clip-to-scale~~ and ~~velocity ramp~~ **shipped 3 Nov 2026**.
+- **S** — Selection ops: one-gesture duplicate-to-next-bar.
+  ~~Legato-join~~, ~~clip-to-scale~~, ~~transpose ±octave~~ and ~~velocity ramp~~
+  **shipped 3 Nov 2026**.
 - **S** — Drag-and-drop `.mid` onto the roll at the playhead.
 
 ## 6. Channel rack and step sequencer
