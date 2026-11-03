@@ -166,8 +166,14 @@ describe("StudioExportSurfaceComponent", () => {
       component.setBitrate({
         target: { value: "256000" },
       } as unknown as Event);
+      component.setSampleRate({
+        target: { value: "48000" },
+      } as unknown as Event);
       await component.shareExport();
-      expect(exportService.exportAndShare).toHaveBeenCalledWith("m4a", 256000);
+      expect(exportService.exportAndShare).toHaveBeenCalledWith("m4a", {
+        bitrate: 256000,
+        sampleRate: 48000,
+      });
     });
   });
 
@@ -358,7 +364,10 @@ describe("StudioExportSurfaceComponent", () => {
 
       await component.shareExport();
 
-      expect(exportService.exportAndShare).toHaveBeenCalledWith("m4a", 128000);
+      expect(exportService.exportAndShare).toHaveBeenCalledWith("m4a", {
+        bitrate: 128000,
+        sampleRate: 44100,
+      });
       expect(component.feedback()).toEqual({
         tone: "ok",
         text: "Share sheet opened with the mixdown",

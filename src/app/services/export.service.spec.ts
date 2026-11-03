@@ -89,6 +89,20 @@ describe('ExportService (Sprint A6)', () => {
     expect(share).toHaveBeenCalledWith(expect.objectContaining({ type: 'audio/wav' }), expect.stringMatching(/\.wav$/));
   });
 
+  it('renders a shared mixdown at the requested sample rate', async () => {
+    const render = jest
+      .spyOn(svc, 'renderProjectOffline')
+      .mockResolvedValueOnce(fakeBuffer);
+    jest.spyOn(svc, 'applySmuvePolish').mockResolvedValueOnce(fakeBuffer);
+    jest.spyOn(svc, 'shareBlob').mockResolvedValueOnce(false);
+
+    await svc.exportAndShare('wav', { sampleRate: 48000 });
+
+    expect(render).toHaveBeenCalledWith(
+      expect.objectContaining({ sampleRate: 48000 }),
+    );
+  });
+
   it('EXPORT_FORMATS covers wav/wav24/flac/mp3/m4a/opus with extensions and mimes', () => {
     expect(EXPORT_FORMATS.map((f) => f.id)).toEqual([
       'wav',

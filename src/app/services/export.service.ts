@@ -1979,14 +1979,21 @@ export class ExportService {
    * One-tap share: render the project offline with real synth voices, encode
    * to the requested format, then open the native share sheet.
    */
-  async exportAndShare(format: string, bitrate?: number): Promise<boolean> {
-    const buffer = await this.renderProjectOffline();
-    const polished = await this.applySmuvePolish(buffer);
-    const blob = await this.exportToFormat(
-      polished,
-      format,
-      bitrate ?? defaultExportBitrate(format),
+  async exportAndShare(
+    format: string,
+    options: { bitrate?: number; sampleRate?: number } = {},
+  ): Promise<boolean> {
+    const buffer = await this.renderProjectOffline(
+      options.sampleRate ? { sampleRate: options.sampleRate } : {},
     );
+    const polished = await this.applySmuvePolish(buffer);
+    const blob = exportSupportsBitrate(format)
+      ? await this.exportToFormat(
+          polished,
+          format,
+          options.bitrate ?? defaultExportBitrate(format),
+        )
+      : await this.exportToFormat(polished, format);
     const info = EXPORT_FORMATS.find((f) => f.id === format) ?? EXPORT_FORMATS[0];
     // Codec fallback returns PCM WAV, so the filename must follow the bytes.
     const extension = blob.type === 'audio/wav' ? 'wav' : info.ext;

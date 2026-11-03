@@ -356,12 +356,10 @@ export class StudioExportSurfaceComponent {
 
     this.begin(`Rendering ${this.formatLabel()} for sharing…`);
     try {
-      const shared = this.supportsBitrate()
-        ? await this.exportService.exportAndShare(
-            this.format(),
-            this.bitrate(),
-          )
-        : await this.exportService.exportAndShare(this.format());
+      const shared = await this.exportService.exportAndShare(this.format(), {
+        ...(this.supportsBitrate() ? { bitrate: this.bitrate() } : {}),
+        sampleRate: this.sampleRate(),
+      });
       this.finish(
         "ok",
         shared

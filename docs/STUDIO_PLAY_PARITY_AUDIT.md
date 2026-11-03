@@ -598,8 +598,8 @@ The gap is discovery and reach: comping lives in the vocal flow, not on every au
    master. The transport exposes a persistent "Export rate: 44.1 kHz / 48 kHz"
    toggle used by the WAV and stem actions. The Export surface now offers
    96–320 kbps for MP3, AAC and Opus, persists the choice in delivery presets,
-   and passes it to both mixdown and `exportAndShare`. **Still open:** the
-   share/social path always renders at 44.1 kHz.
+   and passes both that bitrate and the chosen 44.1/48 kHz render rate through
+   mixdown and `exportAndShare`.
 4. **No project interchange**: no `.flp`, no DAWproject, no AAF (§19).
 5. **Export progress — partly closed 2 Nov 2026.** The Export surface's
    mixdown consumes `renderProjectOffline({ onProgress })` and shows real
