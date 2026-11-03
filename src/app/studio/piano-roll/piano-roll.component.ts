@@ -30,6 +30,7 @@ import { DjMidiService } from "../../services/dj-midi.service";
 import { HardwareService } from "../../services/hardware.service";
 import { HistoryService } from "../../services/history.service";
 import { AutomationService } from "../automation.service";
+import { MidiImportService } from "../midi-import.service";
 import { SnackbarService } from "../../services/snackbar.service";
 import { ScaleDetectionService } from "../../services/scale-detection.service";
 import { QuantizationService } from "../quantization.service";
@@ -55,6 +56,14 @@ export type PianoTool = "draw" | "select" | "erase" | "velocity" | "chord";
 
 const PIANO_ROLL_ROWS_KEY = "smuve_piano_roll_rows";
 
+/** A dropped file that the MIDI importer should accept. */
+function isMidiFile(file: File): boolean {
+  return (
+    /\.(mid|midi)$/i.test(file.name) ||
+    /^audio\/(x-)?midi$/i.test(file.type)
+  );
+}
+
 @Component({
   selector: "app-piano-roll",
   standalone: true,
@@ -74,6 +83,7 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly history = inject(HistoryService);
   private readonly automation = inject(AutomationService);
   private readonly snackbar = inject(SnackbarService);
+  private readonly midiImport = inject(MidiImportService);
   private readonly quantization = inject(QuantizationService);
   /** Phase F3 — one-tap auto key/scale detection (Krumhansl–Kessler). */
   private readonly scaleDetection = inject(ScaleDetectionService);
@@ -167,6 +177,8 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedKey = signal("C");
   selectedScale = signal("major");
   scaleLockEnabled = signal(false);
+  /** True while a file is dragged over the grid. */
+  midiDropActive = signal(false);
   /** Phone-only: secondary tool rails (snap, quantize, tempo, key/scale). */
   phoneToolsOpen = signal(false);
   /**
@@ -1194,6 +1206,77 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.2 : 0.2;
     this.applyZoom(this.touchGestures.zoomLevel() + delta);
+  }
+
+  // ── MIDI file drop ───────────────────────────────────────
+
+  onGridDragOver(event: DragEvent): void {
+    const hasFiles = Array.from(event.dataTransfer?.types ?? []).includes(
+      "Files",
+    );
+    if (!hasFiles) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+    this.midiDropActive.set(true);
+  }
+
+  onGridDragLeave(event: DragEvent): void {
+    const grid = event.currentTarget as HTMLElement | null;
+    const next = event.relatedTarget as Node | null;
+    if (grid && next && grid.contains(next)) return;
+    this.midiDropActive.set(false);
+  }
+
+  /**
+   * Merge a dropped Standard MIDI File into the selected track at the playhead.
+   * Notes already in the track stay put, the imported notes become the
+   * selection, and `replaceTrackNotes` records the whole merge as one undo step.
+   */
+  async onGridDrop(event: DragEvent): Promise<void> {
+    event.preventDefault();
+    this.midiDropActive.set(false);
+    const file = Array.from(event.dataTransfer?.files ?? []).find(isMidiFile);
+    if (!file) {
+      this.snackbar.info("Drop a .mid or .midi file");
+      return;
+    }
+    const track = this.selectedTrack();
+    if (!track) {
+      this.snackbar.info("Select a track before importing MIDI");
+      return;
+    }
+
+    const atStep = Math.max(
+      0,
+      Math.round(this.musicManager.currentStep()),
+    );
+    try {
+      const summary = await this.midiImport.importFileToTrack(
+        file,
+        track.id,
+        atStep,
+      );
+      if (summary.noteCount === 0) {
+        this.snackbar.info("That MIDI file has no notes to import");
+        return;
+      }
+      const needed = Math.ceil((summary.lastStep + 1) / STEPS_PER_BAR) * STEPS_PER_BAR;
+      if (needed > this.gridSteps()) {
+        this.gridSteps.update((steps) =>
+          Math.min(256, Math.max(steps, needed)),
+        );
+      }
+      this.selectedNoteIds.set(new Set(summary.noteIds));
+      this.haptic.medium();
+      this.markDirty();
+      this.snackbar.success(
+        `Imported ${summary.noteCount} note${
+          summary.noteCount === 1 ? "" : "s"
+        } at step ${atStep + 1}`,
+      );
+    } catch {
+      this.snackbar.info("Could not import that MIDI file");
+    }
   }
 
   // ── Touch interactions ───────────────────────────────────

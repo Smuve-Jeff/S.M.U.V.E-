@@ -83,6 +83,67 @@ describe('MidiImportService', () => {
     });
   });
 
+  it('merges a parsed file into the selected track at the playhead as one edit', () => {
+    tracks.push({
+      id: 'track-1',
+      name: 'Lead',
+      notes: [{ id: 'old', midi: 48, step: 0, length: 1, velocity: 0.5 }],
+    });
+
+    const summary = svc.importParsedToTrack(
+      parsedWith({
+        tracks: [
+          {
+            name: 'Lead',
+            notes: [
+              { note: 60, velocity: 127, startTick: 480, durationTicks: 240, channel: 0 },
+            ],
+          },
+        ],
+      }) as any,
+      'track-1',
+      8,
+    );
+
+    expect(summary.trackCount).toBe(1);
+    expect(summary.noteCount).toBe(1);
+    expect(summary.noteIds).toHaveLength(1);
+    expect(summary.lastStep).toBe(14);
+    expect(replaceTrackNotes).toHaveBeenCalledWith(
+      'track-1',
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'old', step: 0 }),
+        expect.objectContaining({
+          midi: 60,
+          step: 12,
+          length: 2,
+          velocity: 1,
+        }),
+      ]),
+      'Import MIDI to clip',
+    );
+    expect(tempoSet).not.toHaveBeenCalled();
+  });
+
+  it('does not import a clip when the destination track is missing', () => {
+    const summary = svc.importParsedToTrack(
+      parsedWith({
+        tracks: [
+          {
+            name: 'Lead',
+            notes: [{ note: 60, velocity: 100, startTick: 0, durationTicks: 480 }],
+          },
+        ],
+      }) as any,
+      'missing',
+      4,
+    );
+
+    expect(summary.noteCount).toBe(0);
+    expect(summary.lastStep).toBe(4);
+    expect(replaceTrackNotes).not.toHaveBeenCalled();
+  });
+
   it('applies a plausible file tempo and ignores out-of-range ones', () => {
     svc.importParsed(
       parsedWith({ tempoBpm: 128, tracks: [{ name: 'A', notes: [{ note: 60, velocity: 100, startTick: 0, durationTicks: 480 }] }] }) as any,

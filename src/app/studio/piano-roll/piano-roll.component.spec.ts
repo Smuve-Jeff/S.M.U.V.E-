@@ -14,6 +14,7 @@ import { HistoryService } from "../../services/history.service";
 import { AutomationService } from "../automation.service";
 import { Subject } from "rxjs";
 import { QuantizationService } from "../quantization.service";
+import { MidiImportService } from "../midi-import.service";
 import { StudioFocusService } from "../shared/studio-focus.service";
 
 @Component({
@@ -183,6 +184,16 @@ describe("PianoRollComponent", () => {
   const mockHistory = {
     execute: jest.fn(),
   };
+  const mockMidiImport = {
+    importFileToTrack: jest.fn(async () => ({
+      trackCount: 1,
+      noteCount: 0,
+      skippedNotes: 0,
+      noteIds: [] as string[],
+      lastStep: 0,
+    })),
+  };
+
   const mockQuantization = {
     presets: [{ id: "straight_1_16", name: "Straight 1/16" }],
     selectedPresetId: signal("straight_1_16"),
@@ -216,6 +227,7 @@ describe("PianoRollComponent", () => {
         { provide: HardwareService, useValue: mockHardware },
         { provide: HistoryService, useValue: mockHistory },
         { provide: QuantizationService, useValue: mockQuantization },
+        { provide: MidiImportService, useValue: mockMidiImport },
       ],
     }).compileComponents();
 
@@ -242,6 +254,8 @@ describe("PianoRollComponent", () => {
     mockEnhancedTouchGestures.verticalZoomLevel.set(1);
     component.ccRecordArmed.set(false);
     component.ccLaneLearnTarget.set(null);
+    mockMusicManager.currentStep.set(0);
+    mockMidiImport.importFileToTrack.mockClear();
   });
 
   it("should create", () => {
@@ -718,6 +732,41 @@ describe("PianoRollComponent", () => {
     component.deleteSelection();
     expect(mockMusicManager.removeNotes).toHaveBeenCalledWith("1", ["n1"]);
     expect(component.selectedNoteIds().size).toBe(0);
+  });
+
+  it("imports a dropped MIDI file at the playhead and reveals the notes", async () => {
+    mockMusicManager.currentStep.set(12);
+    const file = { name: "phrase.mid", type: "audio/midi" } as File;
+    mockMidiImport.importFileToTrack.mockResolvedValueOnce({
+      trackCount: 1,
+      noteCount: 2,
+      skippedNotes: 0,
+      noteIds: ["m1", "m2"],
+      lastStep: 80,
+    });
+
+    await component.onGridDrop({
+      preventDefault: jest.fn(),
+      dataTransfer: { files: [file] },
+    } as unknown as DragEvent);
+
+    expect(mockMidiImport.importFileToTrack).toHaveBeenCalledWith(
+      file,
+      "1",
+      12,
+    );
+    expect(component.selectedNoteIds()).toEqual(new Set(["m1", "m2"]));
+    expect(component.gridSteps()).toBe(96);
+  });
+
+  it("rejects a non-MIDI file dropped on the roll", async () => {
+    const file = { name: "notes.txt", type: "text/plain" } as File;
+    await component.onGridDrop({
+      preventDefault: jest.fn(),
+      dataTransfer: { files: [file] },
+    } as unknown as DragEvent);
+
+    expect(mockMidiImport.importFileToTrack).not.toHaveBeenCalled();
   });
 
   it("selects an existing note from the WebGL grid hit-test path", () => {

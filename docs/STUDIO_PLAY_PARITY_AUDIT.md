@@ -219,8 +219,10 @@ L > 1 week of focused work).
 1. **Generative note tools are selection-scoped, not complete.** Humanize, Strum and Arpeggiate now run on the selected notes from the piano-roll toolbar; Humanize still falls back to the whole track when nothing is selected. Note-repeat remains absent from the editor.
 2. **No scale-lock on drawing.** Scale detection exists; drawing outside the scale
    is still allowed with no visual constraint toggle.
-3. **No MIDI file drop into the roll.** `MidiImportService` imports a whole file
-   into tracks; there is no "import to this clip at the playhead".
+3. ~~**No MIDI file drop into the roll.**~~ **Closed 3 Nov 2026.** Dropping a
+   `.mid`/`.midi` file on the selected track's roll merges its notes at the
+   playhead as one undoable edit, keeps existing notes, selects the import, and
+   grows the grid to cover it.
 4. ~~**Some note-group operations remain missing.**~~ **Closed 3 Nov 2026.**
    Legato-join, clip-to-scale, octave transposition, pitch inversion, time
    mirroring and one-gesture duplicate-to-next-bar all ship.
@@ -236,7 +238,8 @@ L > 1 week of focused work).
   duplicate-to-next-bar.~~ **Shipped 3 Nov 2026**, alongside the velocity ramp.
 - ~~**S** — Curve-shaped velocity ramps on the existing selection ramp.~~
   **Shipped 3 Nov 2026** — linear, ease-in, ease-out and S-curve.
-- **S** — Drag-and-drop `.mid` onto the roll at the playhead.
+- ~~**S** — Drag-and-drop `.mid` onto the roll at the playhead.~~ **Shipped
+  3 Nov 2026** — merged into the selected track in one undo step.
 
 ## 6. Channel rack and step sequencer
 

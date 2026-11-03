@@ -2635,3 +2635,10 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
   font-size: 8px;
   font-weight: 700;
 }
+
+/* MIDI file drop target: outline the grid while a file is over it. */
+.pr-grid.pr-grid-midi-drop {
+  outline: 2px dashed var(--teal-400, #2ba09c);
+  outline-offset: -3px;
+  background-color: rgba(43, 160, 156, 0.06);
+}

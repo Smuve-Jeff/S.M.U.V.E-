@@ -410,6 +410,10 @@
     <div
       class="pr-grid no-scrollbar"
       [class.select-mode]="editMode() === 'select'"
+      [class.pr-grid-midi-drop]="midiDropActive()"
+      (dragover)="onGridDragOver($event)"
+      (dragleave)="onGridDragLeave($event)"
+      (drop)="onGridDrop($event)"
       #scrollContainer
       tabindex="0"
       role="grid"
