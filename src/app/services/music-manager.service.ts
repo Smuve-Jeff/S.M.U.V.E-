@@ -2577,6 +2577,47 @@ export class MusicManagerService {
   }
 
   /**
+   * Invert selected pitches around the selection's own pitch centre.
+   *
+   * Reflecting inside [min, max] keeps every resulting note in the MIDI range
+   * without clamping, so a wide chord or phrase keeps its shape. Timing,
+   * velocity and every other note property are untouched, and the whole
+   * transform is one undoable command. A single pitch has no axis to invert
+   * around, so it returns false instead of recording a no-op.
+   */
+  invertNotes(id: string, noteIds: string[]): boolean {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return false;
+    const targetIds = new Set(noteIds);
+    const targets = t.notes.filter((n) => targetIds.has(n.id));
+    if (targets.length === 0) return false;
+
+    const pitches = targets.map((n) => n.midi);
+    const minMidi = Math.min(...pitches);
+    const maxMidi = Math.max(...pitches);
+    if (minMidi === maxMidi) return false;
+
+    const before = this.clone(t.notes);
+    const after = t.notes.map((n) =>
+      targetIds.has(n.id) ? { ...n, midi: minMidi + maxMidi - n.midi } : n
+    );
+    this.runCommand(
+      'Invert · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+    return true;
+  }
+
+  /**
    * Clip the selected notes to a scale.
    *
    * The nearest allowed pitch wins, preferring the upward candidate when two

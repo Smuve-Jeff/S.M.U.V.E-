@@ -2225,6 +2225,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.markDirty();
   }
 
+  invertSelection(): void {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    if (!this.musicManager.invertNotes(track.id, ids)) {
+      this.snackbar.info("Select notes across at least two pitches");
+      return;
+    }
+    this.haptic.medium();
+    this.markDirty();
+  }
+
   clipSelectionToScale(): void {
     const track = this.selectedTrack();
     const ids = Array.from(this.selectedNoteIds());

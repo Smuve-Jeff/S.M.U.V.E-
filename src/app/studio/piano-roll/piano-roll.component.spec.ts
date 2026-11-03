@@ -92,6 +92,7 @@ describe("PianoRollComponent", () => {
     rampNoteVelocity: jest.fn(() => true),
     legatoNotes: jest.fn(() => true),
     clipNotesToScale: jest.fn(() => true),
+    invertNotes: jest.fn(() => true),
     transposeNotes: jest.fn(() => true),
     selectedTrack: computed(() => mockTracks()[0] ?? null),
     engine: { scaleMode: signal("major"), scaleLock: signal(false) },
@@ -616,6 +617,20 @@ describe("PianoRollComponent", () => {
       -12,
     );
   });
+
+  it("inverts the selected pitches around their centre", () => {
+    mockMusicManager.invertNotes.mockClear();
+    mockMusicManager.invertNotes.mockReturnValue(true);
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+
+    component.invertSelection();
+
+    expect(mockMusicManager.invertNotes).toHaveBeenCalledWith("1", [
+      "n1",
+      "n2",
+    ]);
+  });
+
 
   it("clips the selection to the current key and scale", () => {
     mockMusicManager.clipNotesToScale.mockClear();

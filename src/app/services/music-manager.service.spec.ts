@@ -2533,9 +2533,39 @@ describe('MusicManagerService per-scene follow rules', () => {
       .history;
     recorder.undo();
     expect(service.tracks()[0].notes).toHaveLength(2);
+  });
+
+  it('inverts selected pitches around the selection centre with undo', () => {
+    const source = service.tracks()[0];
+    service.tracks.set([
+      {
+        ...source,
+        notes: [
+          { id: 'low', step: 0, midi: 60, length: 1, velocity: 0.8 },
+          { id: 'middle', step: 4, midi: 64, length: 1, velocity: 0.6 },
+          { id: 'high', step: 8, midi: 67, length: 1, velocity: 0.7 },
+          { id: 'untouched', step: 12, midi: 50, length: 1, velocity: 0.8 },
+        ],
+        clips: [],
+      },
+    ]);
+
+    expect(service.invertNotes('track-1', ['low', 'middle', 'high'])).toBe(true);
+    const byId = new Map(service.tracks()[0].notes.map((n) => [n.id, n]));
+    expect(byId.get('low')!.midi).toBe(67);
+    expect(byId.get('middle')!.midi).toBe(63);
+    expect(byId.get('high')!.midi).toBe(60);
+    expect(byId.get('untouched')!.midi).toBe(50);
+    expect(byId.get('middle')!.velocity).toBe(0.6);
+
+    const recorder = (service as unknown as { history: { undo(): void } })
+      .history;
+    recorder.undo();
     expect(
-      service.tracks()[0].notes.find((n) => n.id === ids[0]),
-    ).toBeUndefined();
+      service.tracks()[0].notes.find((n) => n.id === 'low')!.midi,
+    ).toBe(60);
+
+    expect(service.invertNotes('track-1', ['low'])).toBe(false);
   });
 
 });
