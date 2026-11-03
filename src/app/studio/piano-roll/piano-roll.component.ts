@@ -2349,8 +2349,29 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   humanizeNotes() {
     const track = this.selectedTrack();
     if (!track) return;
+    const ids = Array.from(this.selectedNoteIds());
     this.haptic.medium();
-    this.musicManager.humanizeTrack(track.id);
+    this.musicManager.humanizeTrack(track.id, ids.length ? ids : undefined);
+    this.markDirty();
+  }
+
+  /** Strum the selection by spreading its notes in pitch order. */
+  strumNotes() {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    this.haptic.medium();
+    this.musicManager.strumTrack(track.id, ids);
+    this.markDirty();
+  }
+
+  /** Turn the selection into a four-note arpeggio at its existing position. */
+  arpeggiateNotes() {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    this.haptic.medium();
+    this.musicManager.arpeggiateTrack(track.id, ids);
     this.markDirty();
   }
 

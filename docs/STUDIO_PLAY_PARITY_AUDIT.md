@@ -216,7 +216,7 @@ L > 1 week of focused work).
 - Koala Samurai: piano-roll editor for chopped samples.
 
 **Gaps**
-1. **No generative note tools.** No arpeggiator, no note-repeat, no strum, no
+1. **Generative note tools are selection-scoped, not complete.** Humanize, Strum and Arpeggiate now run on the selected notes from the piano-roll toolbar; Humanize still falls back to the whole track when nothing is selected. Note-repeat remains absent from the editor.
    randomised velocity/humanise *inside* the editor (humanise and arpeggiate exist
    only as AI-assistant actions on a whole track).
 2. **No scale-lock on drawing.** Scale detection exists; drawing outside the scale
@@ -771,7 +771,7 @@ FPS budget (`StudioVisualSchedulerService`), device profiling
     timeline makes long MIDI projects the next CPU cliff.
 
 ### P2 — depth and differentiation
-15. Generator tools in the piano roll (arp/note-repeat/strum) (§5).
+15. ~~Generator tools in the piano roll~~ **Humanize, Strum and Arp shipped 2026-11-03**; note-repeat remains (§5).
 16. DAWproject export (§19).
 17. Ableton Link / clock in (§19).
 18. Genre sound packs (§10).

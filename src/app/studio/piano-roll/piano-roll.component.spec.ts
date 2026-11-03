@@ -507,6 +507,43 @@ describe("PianoRollComponent", () => {
     );
   });
 
+  it("scopes Humanize, Strum and Arp to the selected notes", () => {
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+
+    component.humanizeNotes();
+    expect(mockMusicManager.humanizeTrack).toHaveBeenCalledWith("1", [
+      "n1",
+      "n2",
+    ]);
+
+    component.strumNotes();
+    expect(mockMusicManager.strumTrack).toHaveBeenCalledWith("1", [
+      "n1",
+      "n2",
+    ]);
+
+    component.arpeggiateNotes();
+    expect(mockMusicManager.arpeggiateTrack).toHaveBeenCalledWith("1", [
+      "n1",
+      "n2",
+    ]);
+  });
+
+  it("falls back to the whole track for Humanize but requires a selection for Strum/Arp", () => {
+    mockMusicManager.humanizeTrack.mockClear();
+    mockMusicManager.strumTrack.mockClear();
+    mockMusicManager.arpeggiateTrack.mockClear();
+    component.selectedNoteIds.set(new Set());
+
+    component.humanizeNotes();
+    component.strumNotes();
+    component.arpeggiateNotes();
+
+    expect(mockMusicManager.humanizeTrack).toHaveBeenCalledWith("1", undefined);
+    expect(mockMusicManager.strumTrack).not.toHaveBeenCalled();
+    expect(mockMusicManager.arpeggiateTrack).not.toHaveBeenCalled();
+  });
+
   it("should delete selected notes and clear selection", () => {
     component.selectedNoteIds.set(new Set(["n1"]));
     component.deleteSelection();

@@ -178,10 +178,41 @@
       type="button"
       class="pr-ai-chip"
       (click)="humanizeNotes()"
-      [attr.aria-label]="'AI: Humanize selected notes'"
+      [attr.aria-label]="
+        selectionCount() > 0
+          ? 'Humanize selected notes'
+          : 'Humanize the whole track'
+      "
+      [title]="
+        selectionCount() > 0
+          ? 'Humanize selected notes'
+          : 'Humanize the whole track'
+      "
     >
       <span class="material-symbols-outlined">auto_awesome</span>
       <span>Humanize</span>
+    </button>
+    <button
+      type="button"
+      class="pr-ai-chip"
+      (click)="strumNotes()"
+      [disabled]="selectionCount() === 0"
+      title="Strum selected notes by pitch"
+      aria-label="Strum selected notes"
+    >
+      <span class="material-symbols-outlined">graphic_eq</span>
+      <span>Strum</span>
+    </button>
+    <button
+      type="button"
+      class="pr-ai-chip"
+      (click)="arpeggiateNotes()"
+      [disabled]="selectionCount() === 0"
+      title="Arpeggiate selected notes"
+      aria-label="Arpeggiate selected notes"
+    >
+      <span class="material-symbols-outlined">ssid_chart</span>
+      <span>Arp</span>
     </button>
     <div class="pr-snap" role="group" aria-label="Quantization controls">
       <span class="pr-snap-label">Quantize</span>
