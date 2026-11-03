@@ -314,8 +314,8 @@ is more than FL Mobile's step editor). The gap is content, not engine.
 3. ~~**No insert count per channel in the mixer UI.**~~ **Shipped 3 Nov 2026** —
    every strip shows its macro + live insert count, per-strip, global and
    momentary A/B bypass with measured per-strip and global level matching
-   (strip trims follow aux sends), and a slot popover with per-slot bypass and
-   direct jumps into that track's rack.
+   (strip trims follow aux sends and their return wet levels), and a slot
+   popover with per-slot bypass and direct jumps into that track's rack.
 4. ~~**No pan law or mono-compatibility control.**~~ **Pan law shipped 3 Nov
    2026** with 0 / −3 / −4.5 dB options; per-track mono-compatibility metering
    now flags wide and out-of-phase channels, and global mono monitoring ships.

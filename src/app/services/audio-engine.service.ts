@@ -650,6 +650,11 @@ export class AudioEngineService {
   private trackSendAGains = new Map<string, GainNode>();
   /** Dead-end analyser per track id, feeding the Channel Rack's level meters. */
   private trackAnalysers = new Map<string, AnalyserNode>();
+  /** Per-strip send taps, used to include wet returns in A/B matching. */
+  private trackSendAnalysers = new Map<
+    string,
+    { a: AnalyserNode; b: AnalyserNode }
+  >();
   /** Dead-end L/R taps for per-track mono-compatibility monitoring. */
   private trackCorrelationTaps = new Map<
     string,
@@ -4297,10 +4302,39 @@ export class AudioEngineService {
     return Math.min(1, peak);
   }
 
-  /** RMS level of one strip after inserts, fader and A/B trim, in dBFS. */
+  /**
+   * Combined RMS of one strip's direct output and its send contributions in
+   * dBFS. The send feeds are weighted by the current return wet levels, so an
+   * A/B match follows the audible reverb/echo contribution rather than the raw
+   * send tap alone.
+   */
   getTrackMomentaryLevelDb(id: string): number {
-    const analyser = this.trackAnalysers.get(id);
-    if (!analyser) return -120;
+    const parts: Array<{ analyser: AnalyserNode; gain: number }> = [];
+    const direct = this.trackAnalysers.get(id);
+    if (direct) parts.push({ analyser: direct, gain: 1 });
+    const sends = this.trackSendAnalysers?.get(id);
+    if (sends) {
+      parts.push({
+        analyser: sends.a,
+        gain: Math.max(0, this.reverbWet.gain.value),
+      });
+      parts.push({
+        analyser: sends.b,
+        gain: Math.max(0, this.echoWet.gain.value),
+      });
+    }
+    if (parts.length === 0) return -120;
+
+    let power = 0;
+    for (const part of parts) {
+      const rms = this.analyserRms(part.analyser);
+      power += (rms * part.gain) ** 2;
+    }
+    const rms = Math.sqrt(power);
+    return Math.max(-120, 20 * Math.log10(Math.max(rms, 1e-6)));
+  }
+
+  private analyserRms(analyser: AnalyserNode): number {
     if (this._trackAbMeterBuffer.length !== analyser.fftSize) {
       this._trackAbMeterBuffer = new Float32Array(analyser.fftSize);
     }
@@ -4310,8 +4344,7 @@ export class AudioEngineService {
       const value = this._trackAbMeterBuffer[i];
       sumSq += value * value;
     }
-    const rms = Math.sqrt(sumSq / this._trackAbMeterBuffer.length);
-    return Math.max(-120, 20 * Math.log10(Math.max(rms, 1e-6)));
+    return Math.sqrt(sumSq / this._trackAbMeterBuffer.length);
   }
 
   /**
@@ -4410,6 +4443,7 @@ export class AudioEngineService {
       try { output.disconnect(); } catch { /* no outgoing edge */ }
     }
     this.releaseTrackCorrelation(id);
+    this.trackSendAnalysers.delete(id);
     this.trackOutputs.delete(id);
     this.trackOutputDestinations.delete(id);
     this.trackBusRoutes.delete(id);
@@ -4494,13 +4528,20 @@ export class AudioEngineService {
       sA.gain.value = 0;
       abTrim.connect(sA);
       sA.connect(this.sendAReturn);
+      const sendAMeter = this.ctx.createAnalyser();
+      sendAMeter.fftSize = 256;
+      sA.connect(sendAMeter);
       this.trackSendAGains.set(id, sA);
 
       const sB = this.ctx.createGain();
       sB.gain.value = 0;
       abTrim.connect(sB);
       sB.connect(this.sendBReturn);
+      const sendBMeter = this.ctx.createAnalyser();
+      sendBMeter.fftSize = 256;
+      sB.connect(sendBMeter);
       this.trackSendBGains.set(id, sB);
+      this.trackSendAnalysers.set(id, { a: sendAMeter, b: sendBMeter });
     }
     return this.trackPhaseNodes.get(id)!;
   }

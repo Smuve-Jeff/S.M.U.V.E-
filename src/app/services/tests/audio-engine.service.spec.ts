@@ -260,6 +260,10 @@ describe('AudioEngineService', () => {
     expect(trim.connect).toHaveBeenCalledWith(sendB);
     expect(sendA.gain.value).toBe(0);
     expect(sendB.gain.value).toBe(0);
+
+    const sendMeters = (service as any).trackSendAnalysers.get('t1');
+    expect(sendA.connect).toHaveBeenCalledWith(sendMeters.a);
+    expect(sendB.connect).toHaveBeenCalledWith(sendMeters.b);
   });
 
   it('reports a strip RMS level and silence without a meter', () => {
@@ -270,6 +274,22 @@ describe('AudioEngineService', () => {
     (service as any).trackAnalysers = new Map([['t1', analyser]]);
     expect(service.getTrackMomentaryLevelDb('t1')).toBeCloseTo(-6.02, 1);
     expect(service.getTrackMomentaryLevelDb('missing')).toBe(-120);
+  });
+
+  it('folds send-feed level into the strip measurement using return wet gains', () => {
+    const wave = (value: number) => ({
+      fftSize: 4,
+      getFloatTimeDomainData: (buffer: Float32Array) => buffer.fill(value),
+    });
+    (service as any).trackAnalysers = new Map([['t1', wave(0.5)]]);
+    (service as any).trackSendAnalysers = new Map([
+      ['t1', { a: wave(0.5), b: wave(0.5) }],
+    ]);
+    (service as any).reverbWet = { gain: { value: 1 } };
+    (service as any).echoWet = { gain: { value: 1 } };
+
+    // 0.5² direct + 0.5² send A + 0.5² send B = 0.75 → −1.25 dBFS.
+    expect(service.getTrackMomentaryLevelDb('t1')).toBeCloseTo(-1.25, 1);
   });
 
   it('should set metronome volume within bounds', () => {
