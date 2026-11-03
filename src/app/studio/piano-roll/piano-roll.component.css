@@ -2622,3 +2622,16 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
   min-width: 0;
   white-space: nowrap;
 }
+
+/* Curve selector for the selection velocity ramp. */
+.pr-velocity-curve {
+  width: 100%;
+  margin-top: 2px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  border: 1px solid var(--espresso-line);
+  background: var(--ivory-panel);
+  color: var(--espresso);
+  font-size: 8px;
+  font-weight: 700;
+}

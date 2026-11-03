@@ -564,6 +564,22 @@ describe("PianoRollComponent", () => {
     ]);
   });
 
+  it("passes the selected curve to the velocity ramp", () => {
+    mockMusicManager.rampNoteVelocity.mockClear();
+    mockMusicManager.rampNoteVelocity.mockReturnValue(true);
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+    component.setVelocityCurve("s-curve");
+
+    component.rampSelectedVelocity("up");
+
+    expect(mockMusicManager.rampNoteVelocity).toHaveBeenCalledWith(
+      "1",
+      ["n1", "n2"],
+      "up",
+      "s-curve",
+    );
+  });
+
   it("ramps the selected velocities in either direction", () => {
     mockMusicManager.rampNoteVelocity.mockClear();
     mockMusicManager.rampNoteVelocity.mockReturnValue(true);
@@ -574,6 +590,7 @@ describe("PianoRollComponent", () => {
       "1",
       ["n1", "n2"],
       "up",
+      "linear",
     );
 
     mockMusicManager.rampNoteVelocity.mockClear();
@@ -582,6 +599,7 @@ describe("PianoRollComponent", () => {
       "1",
       ["n1", "n2"],
       "down",
+      "linear",
     );
   });
 

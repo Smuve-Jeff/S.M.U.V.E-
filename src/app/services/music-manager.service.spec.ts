@@ -2398,6 +2398,37 @@ describe('MusicManagerService per-scene follow rules', () => {
     expect(service.rampNoteVelocity('track-1', ['late'], 'up')).toBe(false);
   });
 
+  it('shapes the velocity ramp with the selected curve', () => {
+    const source = service.tracks()[0];
+    service.tracks.set([
+      {
+        ...source,
+        notes: [
+          { id: 'a', step: 0, midi: 60, length: 1, velocity: 0.5 },
+          { id: 'b', step: 4, midi: 60, length: 1, velocity: 0.5 },
+          { id: 'c', step: 8, midi: 60, length: 1, velocity: 0.5 },
+        ],
+        clips: [],
+      },
+    ]);
+
+    expect(
+      service.rampNoteVelocity('track-1', ['a', 'b', 'c'], 'up', 's-curve'),
+    ).toBe(true);
+    const sCurve = service.tracks()[0].notes.map((n) => n.velocity);
+    expect(sCurve).toEqual([0.3, 0.75, 1.2]);
+
+    const recorder = (service as unknown as { history: { undo(): void } })
+      .history;
+    recorder.undo();
+    expect(
+      service.rampNoteVelocity('track-1', ['a', 'b', 'c'], 'up', 'ease-in'),
+    ).toBe(true);
+    expect(service.tracks()[0].notes.map((n) => n.velocity)).toEqual([
+      0.3, 0.52, 1.2,
+    ]);
+  });
+
   it('legato-joins chords to the next selected onset in one undoable step', () => {
     const source = service.tracks()[0];
     service.tracks.set([

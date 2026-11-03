@@ -73,6 +73,33 @@ export interface TrackNote {
   notePan?: number;
 }
 
+/** Shape applied to a velocity ramp's first-to-last progression. */
+export type VelocityCurve = 'linear' | 'ease-in' | 'ease-out' | 's-curve';
+
+/**
+ * Map a 0..1 ramp position through one of the supported velocity curves.
+ *
+ * The ramp still spans the same low/high velocity range; the curve only decides
+ * how quickly it moves through that range. Unknown values fall back to linear
+ * so persisted or older callers cannot produce NaN velocities.
+ */
+export function shapeVelocityPosition(
+  position: number,
+  curve: VelocityCurve
+): number {
+  const t = Math.max(0, Math.min(1, position));
+  switch (curve) {
+    case 'ease-in':
+      return t * t;
+    case 'ease-out':
+      return 1 - (1 - t) * (1 - t);
+    case 's-curve':
+      return t * t * (3 - 2 * t);
+    default:
+      return t;
+  }
+}
+
 /** Number of evenly spaced retriggers within one drum step. */
 export function drumRatchetCount(params: any): number {
   const value = Number(params?.ratchet);
@@ -2490,13 +2517,15 @@ export class MusicManagerService {
    *
    * Notes are ordered by start step and then pitch, so a chord ramps evenly
    * instead of following the order the artist happened to select its notes.
+   * `curve` changes how the ramp travels through the same velocity range.
    * Returns false when there are fewer than two targets, since a ramp needs a
    * span.
    */
   rampNoteVelocity(
     id: string,
     noteIds: string[],
-    direction: 'up' | 'down' = 'up'
+    direction: 'up' | 'down' = 'up',
+    curve: VelocityCurve = 'linear'
   ): boolean {
     const t = this.tracks().find((x) => x.id === id);
     if (!t) return false;
@@ -2515,10 +2544,11 @@ export class MusicManagerService {
     const after = t.notes.map((n) => {
       const position = positionById.get(n.id);
       if (position === undefined) return n;
+      const shaped = shapeVelocityPosition(position, curve);
       const velocity =
         direction === 'up'
-          ? low + (high - low) * position
-          : high - (high - low) * position;
+          ? low + (high - low) * shaped
+          : high - (high - low) * shaped;
       return { ...n, velocity: Math.round(velocity * 100) / 100 };
     });
     this.runCommand(

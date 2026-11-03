@@ -869,6 +869,20 @@
           [ngModel]="selectedNoteVelocity()"
           (ngModelChange)="setSelectedVelocity($event)"
         />
+        <select
+          class="pr-velocity-curve"
+          [ngModel]="velocityCurve()"
+          (ngModelChange)="setVelocityCurve($event)"
+          aria-label="Velocity ramp curve"
+          title="Shape the velocity ramp"
+        >
+          <option
+            *ngFor="let option of velocityCurveOptions"
+            [value]="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
         <div class="pr-ramp-actions" role="group" aria-label="Ramp selected velocities">
           <button
             type="button"

@@ -224,9 +224,9 @@ L > 1 week of focused work).
 4. ~~**Some note-group operations remain missing.**~~ **Closed 3 Nov 2026.**
    Legato-join, clip-to-scale, octave transposition, pitch inversion, time
    mirroring and one-gesture duplicate-to-next-bar all ship.
-5. **Velocity ramp now ships; deeper shapes do not.** The selection inspector
-   ramps velocities up or down in one undoable step, ordered by note start and
-   pitch. Curve-based velocity shaping remains open.
+5. ~~**Velocity shaping was linear only.**~~ **Closed 3 Nov 2026.** The
+   selection inspector ramps velocities up or down in one undoable step, ordered
+   by note start and pitch, with Linear, Ease In, Ease Out and S-Curve shapes.
 
 **Improvements**
 - **M** — Arpeggiator + note-repeat as *clip processors* (pattern → notes on commit),
@@ -234,6 +234,8 @@ L > 1 week of focused work).
 - **S** — Scale lock toggle that snaps new/resized notes to the detected or chosen scale.
 - ~~**S** — Selection ops: legato, scale-clip, transpose, invert, mirror and
   duplicate-to-next-bar.~~ **Shipped 3 Nov 2026**, alongside the velocity ramp.
+- ~~**S** — Curve-shaped velocity ramps on the existing selection ramp.~~
+  **Shipped 3 Nov 2026** — linear, ease-in, ease-out and S-curve.
 - **S** — Drag-and-drop `.mid` onto the roll at the playhead.
 
 ## 6. Channel rack and step sequencer

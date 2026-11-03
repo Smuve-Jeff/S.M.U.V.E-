@@ -18,6 +18,7 @@ import { FormsModule } from "@angular/forms";
 import {
   MusicManagerService,
   TrackNote,
+  VelocityCurve,
 } from "../../services/music-manager.service";
 import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
@@ -2319,11 +2320,35 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     this.markDirty();
   }
+  /** Curve used by the selection velocity ramp; linear preserves the old ramp. */
+  velocityCurve = signal<VelocityCurve>("linear");
+  readonly velocityCurveOptions: { value: VelocityCurve; label: string }[] = [
+    { value: "linear", label: "Linear" },
+    { value: "ease-in", label: "Ease In" },
+    { value: "ease-out", label: "Ease Out" },
+    { value: "s-curve", label: "S-Curve" },
+  ];
+
+  setVelocityCurve(curve: string): void {
+    const option = this.velocityCurveOptions.find((item) => item.value === curve);
+    if (!option) return;
+    this.velocityCurve.set(option.value);
+    this.haptic.light();
+  }
+
   rampSelectedVelocity(direction: "up" | "down") {
     const track = this.selectedTrack();
     const ids = Array.from(this.selectedNoteIds());
     if (!track || ids.length < 2) return;
-    if (!this.musicManager.rampNoteVelocity(track.id, ids, direction)) return;
+    if (
+      !this.musicManager.rampNoteVelocity(
+        track.id,
+        ids,
+        direction,
+        this.velocityCurve(),
+      )
+    )
+      return;
     this.haptic.medium();
     this.markDirty();
   }
