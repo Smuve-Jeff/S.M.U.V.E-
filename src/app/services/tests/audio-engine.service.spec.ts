@@ -266,6 +266,44 @@ describe('AudioEngineService', () => {
     expect(sendB.connect).toHaveBeenCalledWith(sendMeters.b);
   });
 
+  it('builds and tears down an isolated per-strip wet return', () => {
+    service.beginTrackAbMeasurement('t1');
+    const chain = (service as any).trackIsolatedReturns.get('t1');
+
+    expect(chain).toBeTruthy();
+    expect(chain.reverb.buffer).toBe((service as any).reverbConvolver.buffer);
+    expect((service as any).trackSendAGains.get('t1').connect).toHaveBeenCalledWith(
+      chain.reverb,
+    );
+    expect((service as any).trackSendBGains.get('t1').connect).toHaveBeenCalledWith(
+      chain.echoDelay,
+    );
+    expect(chain.reverbWet.connect).toHaveBeenCalledWith(chain.reverbMeter);
+    expect(chain.echoWet.connect).toHaveBeenCalledWith(chain.echoMeter);
+    expect(chain.sink.gain.value).toBe(0);
+    expect(chain.sink.connect).toHaveBeenCalledWith(service.ctx.destination);
+
+    service.endTrackAbMeasurement('t1');
+    expect((service as any).trackIsolatedReturns.has('t1')).toBe(false);
+  });
+
+  it('uses isolated return meters instead of send-feed estimates when present', () => {
+    const wave = (value: number) => ({
+      fftSize: 4,
+      getFloatTimeDomainData: (buffer: Float32Array) => buffer.fill(value),
+    });
+    (service as any).trackAnalysers = new Map([['t1', wave(0.5)]]);
+    (service as any).trackSendAnalysers = new Map([
+      ['t1', { a: wave(0.1), b: wave(0.1) }],
+    ]);
+    (service as any).trackIsolatedReturns = new Map([
+      ['t1', { reverbMeter: wave(0.5), echoMeter: wave(0.5) }],
+    ]);
+
+    // Direct 0.5 plus isolated wet 0.5 + 0.5, not the raw send feed.
+    expect(service.getTrackMomentaryLevelDb('t1')).toBeCloseTo(-1.25, 1);
+  });
+
   it('reports a strip RMS level and silence without a meter', () => {
     const analyser = {
       fftSize: 4,

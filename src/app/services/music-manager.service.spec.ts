@@ -1157,6 +1157,8 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
       setBaseFaderGain: jest.fn(),
       setAbMatchGainDb: jest.fn(),
       setTrackAbMatchGainDb: jest.fn(),
+      beginTrackAbMeasurement: jest.fn(),
+      endTrackAbMeasurement: jest.fn(),
       getTrackMomentaryLevelDb: () => measuredTrackLevel,
       isPlaying: () => false,
       outputMomentaryLufs: () => measuredLufs,
@@ -1501,6 +1503,8 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
       expect(service.isTrackAbLevelMatchEnabled('track-1')).toBe(true);
       expect(service.getTrackAbLevelMatchGainDb('track-1')).toBe(3);
       expect(engine.setTrackAbMatchGainDb).toHaveBeenLastCalledWith('track-1', 0);
+      expect(engine.beginTrackAbMeasurement).toHaveBeenCalledWith('track-1');
+      expect(engine.endTrackAbMeasurement).toHaveBeenCalledWith('track-1');
 
       service.toggleAllInsertsBypass('track-1');
       expect(service.tracks()[0].insertsBypassed).toBe(true);

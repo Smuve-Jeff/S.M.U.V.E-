@@ -655,6 +655,21 @@ export class AudioEngineService {
     string,
     { a: AnalyserNode; b: AnalyserNode }
   >();
+  /** Temporary isolated wet-return chains used only during strip A/B calibration. */
+  private trackIsolatedReturns = new Map<
+    string,
+    {
+      reverb: ConvolverNode;
+      reverbWet: GainNode;
+      reverbMeter: AnalyserNode;
+      echoDelay: DelayNode;
+      echoDamp: BiquadFilterNode;
+      echoFeedback: GainNode;
+      echoWet: GainNode;
+      echoMeter: AnalyserNode;
+      sink: GainNode;
+    }
+  >();
   /** Dead-end L/R taps for per-track mono-compatibility monitoring. */
   private trackCorrelationTaps = new Map<
     string,
@@ -4312,19 +4327,28 @@ export class AudioEngineService {
     const parts: Array<{ analyser: AnalyserNode; gain: number }> = [];
     const direct = this.trackAnalysers.get(id);
     if (direct) parts.push({ analyser: direct, gain: 1 });
-    const sends = this.trackSendAnalysers?.get(id);
-    if (sends) {
-      parts.push({
-        analyser: sends.a,
-        gain: Math.max(0, this.reverbWet.gain.value),
-      });
-      parts.push({
-        analyser: sends.b,
-        gain: Math.max(0, this.echoWet.gain.value),
-      });
-    }
-    if (parts.length === 0) return -120;
 
+    const isolated = this.trackIsolatedReturns.get(id);
+    if (isolated) {
+      // The private chains already include the return wet gains, so these are
+      // the actual per-strip reverb and echo contributions.
+      parts.push({ analyser: isolated.reverbMeter, gain: 1 });
+      parts.push({ analyser: isolated.echoMeter, gain: 1 });
+    } else {
+      const sends = this.trackSendAnalysers?.get(id);
+      if (sends) {
+        parts.push({
+          analyser: sends.a,
+          gain: Math.max(0, this.reverbWet.gain.value),
+        });
+        parts.push({
+          analyser: sends.b,
+          gain: Math.max(0, this.echoWet.gain.value),
+        });
+      }
+    }
+
+    if (parts.length === 0) return -120;
     let power = 0;
     for (const part of parts) {
       const rms = this.analyserRms(part.analyser);
@@ -4332,6 +4356,90 @@ export class AudioEngineService {
     }
     const rms = Math.sqrt(power);
     return Math.max(-120, 20 * Math.log10(Math.max(rms, 1e-6)));
+  }
+
+  /**
+   * Build a private per-strip copy of the shared reverb/echo return. It is fed
+   * from this strip's post-trim sends, measured through dead-end analysers, and
+   * never connected to the master, so the audible mix and export are unchanged.
+   */
+  beginTrackAbMeasurement(trackId: string): void {
+    const id = trackId.toString();
+    if (this.trackIsolatedReturns.has(id)) return;
+    this.getTrackOutput(id);
+    const sendA = this.trackSendAGains.get(id);
+    const sendB = this.trackSendBGains.get(id);
+    if (!sendA || !sendB) return;
+
+    const reverb = this.ctx.createConvolver();
+    reverb.buffer = this.reverbConvolver.buffer;
+    const reverbWet = this.ctx.createGain();
+    reverbWet.gain.value = this.reverbWet.gain.value;
+    const reverbMeter = this.ctx.createAnalyser();
+    reverbMeter.fftSize = 256;
+    sendA.connect(reverb);
+    reverb.connect(reverbWet);
+    reverbWet.connect(reverbMeter);
+
+    const echoDelay = this.ctx.createDelay(2);
+    echoDelay.delayTime.value = this.echoDelay.delayTime.value;
+    const echoDamp = this.ctx.createBiquadFilter();
+    echoDamp.type = 'lowpass';
+    echoDamp.frequency.value = this.echoDamp.frequency.value;
+    const echoFeedback = this.ctx.createGain();
+    echoFeedback.gain.value = this.echoFeedback.gain.value;
+    const echoWet = this.ctx.createGain();
+    echoWet.gain.value = this.echoWet.gain.value;
+    const echoMeter = this.ctx.createAnalyser();
+    echoMeter.fftSize = 256;
+    sendB.connect(echoDelay);
+    echoDelay.connect(echoDamp);
+    echoDamp.connect(echoFeedback);
+    echoFeedback.connect(echoDelay);
+    echoDelay.connect(echoWet);
+    echoWet.connect(echoMeter);
+    // A dead-end analyser is not pulled by Web Audio. Sum the two meter taps
+    // into a zero-gain destination so the private chain actually processes.
+    const sink = this.ctx.createGain();
+    sink.gain.value = 0;
+    reverbMeter.connect(sink);
+    echoMeter.connect(sink);
+    sink.connect(this.ctx.destination);
+
+    this.trackIsolatedReturns.set(id, {
+      reverb,
+      reverbWet,
+      reverbMeter,
+      echoDelay,
+      echoDamp,
+      echoFeedback,
+      echoWet,
+      echoMeter,
+      sink,
+    });
+  }
+
+  /** Tear down the private measurement return; shared sends remain connected. */
+  endTrackAbMeasurement(trackId: string): void {
+    const id = trackId.toString();
+    const chain = this.trackIsolatedReturns.get(id);
+    if (!chain) return;
+    try { this.trackSendAGains.get(id)?.disconnect(chain.reverb); } catch { /* already detached */ }
+    try { this.trackSendBGains.get(id)?.disconnect(chain.echoDelay); } catch { /* already detached */ }
+    for (const node of [
+      chain.reverb,
+      chain.reverbWet,
+      chain.reverbMeter,
+      chain.echoDelay,
+      chain.echoDamp,
+      chain.echoFeedback,
+      chain.echoWet,
+      chain.echoMeter,
+      chain.sink,
+    ]) {
+      try { node.disconnect(); } catch { /* already detached */ }
+    }
+    this.trackIsolatedReturns.delete(id);
   }
 
   private analyserRms(analyser: AnalyserNode): number {
@@ -4443,6 +4551,7 @@ export class AudioEngineService {
       try { output.disconnect(); } catch { /* no outgoing edge */ }
     }
     this.releaseTrackCorrelation(id);
+    this.endTrackAbMeasurement(id);
     this.trackSendAnalysers.delete(id);
     this.trackOutputs.delete(id);
     this.trackOutputDestinations.delete(id);

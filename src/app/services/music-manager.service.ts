@@ -1445,6 +1445,7 @@ export class MusicManagerService {
     });
     this.engine.setTrackAbMatchGainDb(trackId, 0);
     try {
+      this.engine.beginTrackAbMeasurement(trackId);
       this.trackAbMeasurementState.set({ trackId, state: 'wet' });
       this.applyTrackInsertsBypass(trackId);
       await this.waitForAbMeasurement();
@@ -1475,6 +1476,7 @@ export class MusicManagerService {
         message: `${track.name} A/B matched · bypass trimmed ${trim > 0 ? '+' : ''}${trim.toFixed(1)} dB`,
       };
     } finally {
+      this.engine.endTrackAbMeasurement(trackId);
       this.trackAbMeasurementState.set(null);
       this.trackAbLevelMatchBusy.set(null);
       this.applyTrackInsertsBypass(trackId);
