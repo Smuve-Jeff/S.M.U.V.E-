@@ -2398,4 +2398,42 @@ describe('MusicManagerService per-scene follow rules', () => {
     expect(service.rampNoteVelocity('track-1', ['late'], 'up')).toBe(false);
   });
 
+  it('legato-joins chords to the next selected onset in one undoable step', () => {
+    const source = service.tracks()[0];
+    service.tracks.set([
+      {
+        ...source,
+        notes: [
+          { id: 'chord-root', step: 0, midi: 60, length: 0.5, velocity: 0.8 },
+          { id: 'chord-fifth', step: 0, midi: 67, length: 0.5, velocity: 0.8 },
+          { id: 'middle', step: 4, midi: 64, length: 1, velocity: 0.8 },
+          { id: 'last', step: 8, midi: 72, length: 2, velocity: 0.8 },
+          { id: 'untouched', step: 2, midi: 55, length: 0.5, velocity: 0.8 },
+        ],
+        clips: [],
+      },
+    ]);
+    const ids = ['chord-root', 'chord-fifth', 'middle', 'last'];
+
+    expect(service.legatoNotes('track-1', ids)).toBe(true);
+
+    const byId = new Map(service.tracks()[0].notes.map((n) => [n.id, n]));
+    expect(byId.get('chord-root')!.length).toBe(4);
+    expect(byId.get('chord-fifth')!.length).toBe(4);
+    expect(byId.get('middle')!.length).toBe(4);
+    expect(byId.get('last')!.length).toBe(2);
+    expect(byId.get('untouched')!.length).toBe(0.5);
+
+    const recorder = (service as unknown as { history: { undo(): void } })
+      .history;
+    recorder.undo();
+    const restored = new Map(service.tracks()[0].notes.map((n) => [n.id, n]));
+    expect(restored.get('chord-root')!.length).toBe(0.5);
+    expect(restored.get('middle')!.length).toBe(1);
+
+    expect(
+      service.legatoNotes('track-1', ['chord-root', 'chord-fifth']),
+    ).toBe(false);
+  });
+
 });

@@ -90,6 +90,7 @@ describe("PianoRollComponent", () => {
     humanizeTrack: jest.fn(),
     arpeggiateTrack: jest.fn(),
     rampNoteVelocity: jest.fn(() => true),
+    legatoNotes: jest.fn(() => true),
     selectedTrack: computed(() => mockTracks()[0] ?? null),
     engine: { scaleMode: signal("major"), scaleLock: signal(false) },
   };
@@ -549,6 +550,28 @@ describe("PianoRollComponent", () => {
       ["n1", "n2"],
       "down",
     );
+  });
+
+  it("legato-joins the selected notes", () => {
+    mockMusicManager.legatoNotes.mockClear();
+    mockMusicManager.legatoNotes.mockReturnValue(true);
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+
+    component.legatoSelection();
+
+    expect(mockMusicManager.legatoNotes).toHaveBeenCalledWith("1", [
+      "n1",
+      "n2",
+    ]);
+  });
+
+  it("does not legato-join fewer than two selected notes", () => {
+    mockMusicManager.legatoNotes.mockClear();
+    component.selectedNoteIds.set(new Set(["n1"]));
+
+    component.legatoSelection();
+
+    expect(mockMusicManager.legatoNotes).not.toHaveBeenCalled();
   });
 
   it("does not ramp fewer than two selected notes", () => {

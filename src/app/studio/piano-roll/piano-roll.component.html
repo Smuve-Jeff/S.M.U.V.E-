@@ -754,6 +754,16 @@
       <button
         type="button"
         class="pr-inspector-toggle"
+        (click)="legatoSelection()"
+        [disabled]="selectionCount() < 2"
+        title="Legato: extend selected notes to the next selected onset"
+      >
+        <span class="material-symbols-outlined">linear_scale</span>
+        <span>Legato</span>
+      </button>
+      <button
+        type="button"
+        class="pr-inspector-toggle"
         (click)="duplicateSelection()"
         title="Duplicate selected notes"
       >

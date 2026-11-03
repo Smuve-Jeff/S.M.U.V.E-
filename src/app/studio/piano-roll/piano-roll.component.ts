@@ -2166,6 +2166,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.markDirty();
   }
 
+  legatoSelection(): void {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length < 2) return;
+    if (!this.musicManager.legatoNotes(track.id, ids)) {
+      this.snackbar.info("Select notes on at least two beats");
+      return;
+    }
+    this.haptic.medium();
+    this.markDirty();
+  }
+
   copySelection(): void {
     const track = this.selectedTrack();
     const ids = Array.from(this.selectedNoteIds());

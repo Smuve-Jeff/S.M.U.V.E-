@@ -2535,6 +2535,51 @@ export class MusicManagerService {
     return true;
   }
 
+  /**
+   * Join the selected notes legato-style.
+   *
+   * Each selected note extends to the next selected onset. Notes that start
+   * together form a chord and share that onset, and the final onset keeps its
+   * existing length because there is nothing after it to join. One history
+   * command covers the whole edit.
+   */
+  legatoNotes(id: string, noteIds: string[]): boolean {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return false;
+    const targetIds = new Set(noteIds);
+    const targets = t.notes.filter((n) => targetIds.has(n.id));
+    const onsets = Array.from(new Set(targets.map((n) => n.step))).sort(
+      (a, b) => a - b
+    );
+    if (onsets.length < 2) return false;
+
+    const nextOnset = new Map<number, number>();
+    onsets.forEach((step, i) => {
+      if (i < onsets.length - 1) nextOnset.set(step, onsets[i + 1]);
+    });
+    const before = this.clone(t.notes);
+    const after = t.notes.map((n) => {
+      if (!targetIds.has(n.id)) return n;
+      const next = nextOnset.get(n.step);
+      if (next === undefined) return n;
+      return { ...n, length: Math.max(0.05, next - n.step) };
+    });
+    this.runCommand(
+      'Legato · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+    return true;
+  }
+
   strumTrack(id: string, noteIds?: string[]) {
     const t = this.tracks().find((x) => x.id === id);
     if (!t) return;
