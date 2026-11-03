@@ -311,8 +311,8 @@ is more than FL Mobile's step editor). The gap is content, not engine.
    a coloured lane with no summing, no processing and no export.
 2. **Sends are fixed A/B.** Cubasis exposes eight global send buses with their own
    FX; we have two hard-wired destinations.
-3. **No insert count per channel in the mixer UI** — inserts live in the channel rack
-   and effects rack, so mixing and processing are two different screens.
+3. ~~**No insert count per channel in the mixer UI.**~~ **Shipped 3 Nov 2026** —
+   every strip shows its macro + live insert count and opens that track's rack.
 4. ~~**No pan law or mono-compatibility control.**~~ **Pan law shipped 3 Nov
    2026** with 0 / −3 / −4.5 dB options; per-track mono-compatibility metering
    now flags wide and out-of-phase channels, and global mono monitoring ships.
@@ -324,7 +324,8 @@ is more than FL Mobile's step editor). The gap is content, not engine.
   sum them in `AudioEngineService.getTrackOutput`, show a bus strip with its own
   inserts in the mixer, and mix buses in `ExportService.renderProjectOffline`.
 - **M** — Expand sends to N aux buses with a send matrix.
-- **S** — Insert slots on the strip that open `EffectsRackUiComponent` in a sheet.
+- ~~**S** — Insert slots on the strip that open `EffectsRackUiComponent` in a sheet.~~
+  **Shipped 3 Nov 2026** as a per-strip count + quick-open rack button.
 - ~~**S** — Pan law selector (0 / −3 / −4.5 dB) applied in the track panner.~~
   **Shipped 3 Nov 2026.**
 

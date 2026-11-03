@@ -6,6 +6,7 @@ import {
   computed,
   OnInit,
   OnDestroy,
+  output,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -74,6 +75,9 @@ export class MixerComponent implements OnInit, OnDestroy {
   /** Selected mixer pan law, shared with the engine's pan-stage compensation. */
   readonly panLaw = this.audioSession.engine.panLaw;
 
+  /** Quick-open handoff to the Studio shell's Effects Rack view. */
+  readonly openEffectsRack = output<string>();
+
   /**
    * Console view. The segmented control used to be decorative: "Strips" was
    * hard-coded active and the other two buttons had no handler, so a producer
@@ -127,6 +131,39 @@ export class MixerComponent implements OnInit, OnDestroy {
     const law = value === 0 ? 0 : value === -4.5 ? -4.5 : -3;
     this.audioSession.engine.setPanLaw(law as 0 | -3 | -4.5);
     this.haptic.light();
+  }
+
+  /** Macro slots plus live WASM kernels installed on this channel. */
+  insertNames(track: TrackModel): string[] {
+    const macro = (track.fxSlots ?? [])
+      .filter((slot) => !!slot.type)
+      .map((slot) => slot.type);
+    const live = (track.pluginIds ?? []).map((id) =>
+      id
+        .replace(/^smuve\./, "")
+        .replace(/\.v\d+$/, "")
+        .replace(/\./g, " "),
+    );
+    return [...macro, ...live];
+  }
+
+  insertCount(track: TrackModel): number {
+    return this.insertNames(track).length;
+  }
+
+  insertSummary(track: TrackModel): string {
+    const names = this.insertNames(track);
+    if (!names.length) {
+      return `No inserts on ${track.name} — open the rack to add EQ, compression or reverb`;
+    }
+    const noun = names.length === 1 ? "insert" : "inserts";
+    return `${names.length} ${noun} on ${track.name}: ${names.join(" · ")} — open the effects rack`;
+  }
+
+  openTrackInserts(track: TrackModel, event?: Event): void {
+    event?.stopPropagation();
+    this.selectTrack(track.id);
+    this.openEffectsRack.emit(track.id);
   }
 
   private analyserMap = new Map<string, AnalyserNode>();

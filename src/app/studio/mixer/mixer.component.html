@@ -338,6 +338,19 @@
           </select>
         </div>
 
+        <button
+          type="button"
+          class="mix-inserts"
+          (click)="openTrackInserts(track, $event)"
+          [attr.data-empty]="insertCount(track) === 0"
+          [attr.title]="insertSummary(track)"
+          [attr.aria-label]="'Open inserts for ' + track.name + '. ' + insertSummary(track)"
+        >
+          <span class="material-symbols-outlined mix-inserts-icon" aria-hidden="true">tune</span>
+          <span class="mix-inserts-label">FX</span>
+          <span class="mix-inserts-count">{{ insertCount(track) }}</span>
+        </button>
+
         <div class="mix-pan-wrap">
           <div class="mix-pan-label">Pan</div>
           <div

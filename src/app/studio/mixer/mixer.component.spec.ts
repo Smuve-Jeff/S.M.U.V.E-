@@ -152,6 +152,59 @@ describe("MixerComponent", () => {
     expect(component).toBeTruthy();
   });
 
+  it('counts macro and live inserts on a channel', () => {
+    const track = {
+      id: 'insert-test',
+      name: 'Bass',
+      fxSlots: [
+        { id: 'eq', type: 'EQ', params: {}, enabled: true },
+        { id: 'comp', type: 'Compressor', params: {}, enabled: false },
+      ],
+      pluginIds: ['smuve.reverb.v2', 'smuve.eq.mastering.v2'],
+    } as any;
+
+    expect(component.insertNames(track)).toEqual([
+      'EQ',
+      'Compressor',
+      'reverb',
+      'eq mastering',
+    ]);
+    expect(component.insertCount(track)).toBe(4);
+    expect(component.insertSummary(track)).toContain('EQ');
+    expect(component.insertSummary(track)).toContain('reverb');
+    expect(component.insertCount({ ...track, fxSlots: [], pluginIds: [] })).toBe(0);
+  });
+
+  it('opens the effects rack for the strip it was clicked from', () => {
+    const emitted: string[] = [];
+    component.openEffectsRack.subscribe((id) => emitted.push(id));
+    const stopPropagation = jest.fn();
+    const track = {
+      id: '1',
+      name: 'Track 1',
+      fxSlots: [],
+      pluginIds: [],
+    } as any;
+
+    component.openTrackInserts(track, { stopPropagation } as any);
+
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(component.selectedTrackId()).toBe('1');
+    expect(emitted).toEqual(['1']);
+  });
+
+  it('renders an insert count button on every strip', () => {
+    fixture.detectChanges();
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('.mix-inserts'),
+    ) as HTMLButtonElement[];
+
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0].textContent).toContain('FX');
+    expect(buttons[0].textContent).toContain('0');
+    expect(buttons[0].getAttribute('data-empty')).toBe('true');
+  });
+
   it('classifies per-track mono compatibility and formats the reading', () => {
     component.trackCorrelations.set({ '1': 0.64, '2': -0.12 });
     expect(component.trackMonoState('1')).toBe('safe');

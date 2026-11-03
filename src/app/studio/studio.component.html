@@ -1143,7 +1143,7 @@
       </div>
       <div class="comp-view" *ngSwitchCase="'mixer'">
         @defer (on viewport; prefetch on idle) {
-          <app-mixer></app-mixer>
+          <app-mixer (openEffectsRack)="openEffectsRack($event)"></app-mixer>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
             <span class="material-symbols-outlined">tune</span>

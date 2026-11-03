@@ -2682,3 +2682,62 @@ the workspace. */
     display: none;
   }
 }
+
+/* Per-strip insert count + quick-open into the Effects Rack. */
+.mix-inserts {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 20px;
+  margin: 0 6px 6px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 5px;
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.mix-inserts:hover,
+.mix-inserts:focus-visible {
+  color: var(--teal-500);
+  border-color: var(--teal-500);
+  background: rgba(14, 124, 123, 0.08);
+}
+.mix-inserts:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 1px;
+}
+.mix-inserts-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+.mix-inserts-count {
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--teal-500);
+  color: #fff;
+  font-size: 8px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+.mix-inserts[data-empty="true"] .mix-inserts-count {
+  background: var(--espresso-soft);
+  color: var(--espresso-text);
+}
+:host-context(.dark-mode) .mix-inserts[data-empty="true"] .mix-inserts-count {
+  background: #2a3140;
+  color: #c9d4e6;
+}
+@media (max-width: 768px) {
+  .mix-inserts-icon {
+    display: none;
+  }
+}
