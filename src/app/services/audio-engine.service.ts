@@ -663,6 +663,7 @@ export class AudioEngineService {
     }
   >();
   private _trackMeterBuffer = new Float32Array(0);
+  private _trackAbMeterBuffer = new Float32Array(0);
   private trackSendBGains = new Map<string, GainNode>();
   private trackOutputs = new Map<string, GainNode>();
   /** Audio-bus parent per track. Empty means the master bus. */
@@ -727,6 +728,8 @@ export class AudioEngineService {
   /** Per-channel lowpass, open by default; the `cutoff` automation target. */
   private trackFilterNodes = new Map<string, BiquadFilterNode>();
   private trackFaderGains = new Map<string, GainNode>();
+  private trackAbMatchGains = new Map<string, GainNode>();
+  private trackAbMatchValues = new Map<string, number>();
   private trackAuxSends = new Map<string, Map<string, GainNode>>();
   private trackEffectsRacks = new Map<string, DynamicEffectsRack>();
   /** Sprint B1 Phase 2 — live WASM plugin insert worklets per track. */
@@ -3855,6 +3858,23 @@ export class AudioEngineService {
     return this.abMatchGainDb();
   }
 
+  /** Apply a dB trim to one strip's bypassed A/B path. */
+  setTrackAbMatchGainDb(trackId: string, db: number): void {
+    const id = trackId.toString();
+    const safe = Number.isFinite(db) ? Math.max(-12, Math.min(12, db)) : 0;
+    this.trackAbMatchValues.set(id, safe);
+    const gain = this.trackAbMatchGains.get(id);
+    if (!gain) return;
+    const now = this.ctx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(gain.gain.value, now);
+    gain.gain.linearRampToValueAtTime(10 ** (safe / 20), now + 0.02);
+  }
+
+  getTrackAbMatchGainDb(trackId: string): number {
+    return this.trackAbMatchValues.get(trackId.toString()) ?? 0;
+  }
+
   setMonoMonitoring(enabled: boolean): boolean {
     const next = !!enabled;
     if (next === this.monoSumWired) {
@@ -4277,6 +4297,23 @@ export class AudioEngineService {
     return Math.min(1, peak);
   }
 
+  /** RMS level of one strip after inserts, fader and A/B trim, in dBFS. */
+  getTrackMomentaryLevelDb(id: string): number {
+    const analyser = this.trackAnalysers.get(id);
+    if (!analyser) return -120;
+    if (this._trackAbMeterBuffer.length !== analyser.fftSize) {
+      this._trackAbMeterBuffer = new Float32Array(analyser.fftSize);
+    }
+    analyser.getFloatTimeDomainData(this._trackAbMeterBuffer);
+    let sumSq = 0;
+    for (let i = 0; i < this._trackAbMeterBuffer.length; i++) {
+      const value = this._trackAbMeterBuffer[i];
+      sumSq += value * value;
+    }
+    const rms = Math.sqrt(sumSq / this._trackAbMeterBuffer.length);
+    return Math.max(-120, 20 * Math.log10(Math.max(rms, 1e-6)));
+  }
+
   /**
    * Stereo correlation (−1…1) of a track's post-fader signal for mono
    * compatibility. The tap is dead-end and cached per track; a source with no
@@ -4429,7 +4466,9 @@ export class AudioEngineService {
       channelFilter.connect(width);
       width.connect(panComp);
       panComp.connect(fader);
-      fader.connect(output);
+      const abTrim = this.ctx.createGain();
+      fader.connect(abTrim);
+      abTrim.connect(output);
       output.connect(this.masterGain);
       this.trackOutputDestinations.set(id, this.masterGain);
 
@@ -4438,6 +4477,7 @@ export class AudioEngineService {
       this.trackPanLawGains.set(id, panComp);
       this.trackFilterNodes.set(id, channelFilter);
       this.trackFaderGains.set(id, fader);
+      this.trackAbMatchGains.set(id, abTrim);
       this.trackOutputs.set(id, output);
 
       // Post-fader meter tap: a dead end, so metering never alters the sound.

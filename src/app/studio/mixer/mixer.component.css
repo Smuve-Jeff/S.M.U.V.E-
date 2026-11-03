@@ -2885,6 +2885,49 @@ the workspace. */
   opacity: 0.4;
   cursor: default;
 }
+.mix-insert-match {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 26px;
+  min-height: 24px;
+  padding: 0 3px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 6px;
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 900;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.mix-insert-match .material-symbols-outlined {
+  font-size: 11px;
+}
+.mix-insert-match:hover:not(:disabled),
+.mix-insert-match:focus-visible {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+.mix-insert-match.active {
+  border-color: var(--teal-500);
+  background: rgba(14, 124, 123, 0.1);
+  color: var(--teal-500);
+}
+.mix-insert-match.measuring {
+  animation: mix-ab-measure 1s ease-in-out infinite alternate;
+}
+.mix-insert-match:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.mix-insert-match-db {
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
 .mix-inserts-count {
   display: grid;
   place-items: center;

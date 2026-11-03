@@ -351,9 +351,38 @@ export class MusicManagerService {
   readonly abLevelMatchBusy = signal(false);
   readonly abLevelMatchError = signal<string | null>(null);
 
+  /** Per-strip A/B match state, keyed by track id. */
+  readonly trackAbLevelMatchEnabled = signal<Record<string, boolean>>({});
+  readonly trackAbLevelMatchGainDb = signal<Record<string, number>>({});
+  readonly trackAbLevelMatchBusy = signal<string | null>(null);
+  readonly trackAbLevelMatchError = signal<Record<string, string>>({});
+  private readonly trackAbMeasurementState = signal<{
+    trackId: string;
+    state: 'wet' | 'dry';
+  } | null>(null);
+
   /** True when this track is silent because either A/B layer is engaged. */
-  isTrackInsertsBypassed(track: { insertsBypassed?: boolean }): boolean {
+  isTrackInsertsBypassed(track: {
+    id?: string;
+    insertsBypassed?: boolean;
+  }): boolean {
+    const measured = this.trackAbMeasurementState();
+    if (measured && track.id && measured.trackId === track.id) {
+      return measured.state === 'dry';
+    }
     return this.isGlobalInsertsBypassed() || track.insertsBypassed === true;
+  }
+
+  isTrackAbLevelMatchEnabled(trackId: string): boolean {
+    return this.trackAbLevelMatchEnabled()[trackId] === true;
+  }
+
+  getTrackAbLevelMatchGainDb(trackId: string): number {
+    return this.trackAbLevelMatchGainDb()[trackId] ?? 0;
+  }
+
+  isTrackAbLevelMatchBusy(trackId: string): boolean {
+    return this.trackAbLevelMatchBusy() === trackId;
   }
 
   /** Enabled macro slots + enabled live plugin inserts on this track. */
@@ -1023,6 +1052,7 @@ export class MusicManagerService {
           prevActive,
           this.liveChainFor,
         );
+        this.applyTrackAbMatchTrim(trackId);
       },
     );
   }
@@ -1228,6 +1258,8 @@ export class MusicManagerService {
     const t = this.tracks().find((x) => x.id === trackId);
     if (
       !t ||
+      this.abLevelMatchBusy() ||
+      this.trackAbLevelMatchBusy() !== null ||
       this.isGlobalInsertsBypassed() ||
       (!(t.fxSlots?.length ?? 0) && !(t.pluginIds?.length ?? 0))
     ) {
@@ -1253,6 +1285,7 @@ export class MusicManagerService {
           nextActive,
           this.liveChainFor,
         );
+        this.applyTrackAbMatchTrim(trackId);
       },
       () => {
         this.tracks.update((ts) =>
@@ -1276,7 +1309,7 @@ export class MusicManagerService {
    * written into history or the project. Each track's own A/B flag survives.
    */
   toggleGlobalInsertsBypass(): void {
-    if (this.abLevelMatchBusy()) return;
+    if (this.abLevelMatchBusy() || this.trackAbLevelMatchBusy() !== null) return;
     this.globalInsertsBypassed.update((value) => !value);
     this.applyGlobalInsertsBypass();
   }
@@ -1296,6 +1329,13 @@ export class MusicManagerService {
   }> {
     if (this.abLevelMatchBusy()) {
       return { enabled: this.abLevelMatchEnabled(), message: 'A/B match is already measuring' };
+    }
+    if (this.trackAbLevelMatchBusy() !== null) {
+      return {
+        enabled: false,
+        message: 'Finish the strip A/B match before measuring the global mix',
+        error: true,
+      };
     }
     if (this.abLevelMatchEnabled()) {
       this.abLevelMatchEnabled.set(false);
@@ -1352,8 +1392,101 @@ export class MusicManagerService {
     }
   }
 
+  /** Measure and level-match one strip's bypassed insert path. */
+  async toggleTrackAbLevelMatch(trackId: string): Promise<{
+    enabled: boolean;
+    message: string;
+    error?: boolean;
+  }> {
+    if (this.abLevelMatchBusy()) {
+      return { enabled: false, message: 'Finish the global A/B match first', error: true };
+    }
+    if (this.trackAbLevelMatchBusy() !== null) {
+      return { enabled: false, message: 'A strip A/B match is already measuring', error: true };
+    }
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    if (!track) {
+      return { enabled: false, message: 'That channel is no longer in the mix', error: true };
+    }
+    if (this.isTrackAbLevelMatchEnabled(trackId)) {
+      this.trackAbLevelMatchEnabled.update((state) => ({ ...state, [trackId]: false }));
+      this.trackAbLevelMatchGainDb.update((state) => ({ ...state, [trackId]: 0 }));
+      this.trackAbLevelMatchError.update((state) => {
+        const next = { ...state };
+        delete next[trackId];
+        return next;
+      });
+      this.engine.setTrackAbMatchGainDb(trackId, 0);
+      this.applyTrackInsertsBypass(trackId);
+      return { enabled: false, message: `Strip A/B match off for ${track.name}` };
+    }
+    if (this.isGlobalInsertsBypassed()) {
+      return {
+        enabled: false,
+        message: 'Turn off Global A/B before matching one strip',
+        error: true,
+      };
+    }
+    if (!this.engine.isPlaying()) {
+      return { enabled: false, message: 'Play a section first so the strip can be measured', error: true };
+    }
+    const hasInserts =
+      (track.fxSlots ?? []).some((slot) => slot.enabled !== false) ||
+      (track.pluginIds?.length ?? 0) > 0;
+    if (!hasInserts) {
+      return { enabled: false, message: `${track.name} has no inserts to compare`, error: true };
+    }
+
+    this.trackAbLevelMatchBusy.set(trackId);
+    this.trackAbLevelMatchError.update((state) => {
+      const next = { ...state };
+      delete next[trackId];
+      return next;
+    });
+    this.engine.setTrackAbMatchGainDb(trackId, 0);
+    try {
+      this.trackAbMeasurementState.set({ trackId, state: 'wet' });
+      this.applyTrackInsertsBypass(trackId);
+      await this.waitForAbMeasurement();
+      const wet = this.engine.getTrackMomentaryLevelDb(trackId);
+
+      this.trackAbMeasurementState.set({ trackId, state: 'dry' });
+      this.applyTrackInsertsBypass(trackId);
+      await this.waitForAbMeasurement();
+      const dry = this.engine.getTrackMomentaryLevelDb(trackId);
+
+      if (!this.isMeasuredTrackAbLevel(wet) || !this.isMeasuredTrackAbLevel(dry)) {
+        this.trackAbLevelMatchError.update((state) => ({
+          ...state,
+          [trackId]: 'No usable signal · play a louder section',
+        }));
+        return {
+          enabled: false,
+          message: `Strip A/B match needs a measured signal on ${track.name}`,
+          error: true,
+        };
+      }
+
+      const trim = Math.max(-12, Math.min(12, Math.round((wet - dry) * 10) / 10));
+      this.trackAbLevelMatchEnabled.update((state) => ({ ...state, [trackId]: true }));
+      this.trackAbLevelMatchGainDb.update((state) => ({ ...state, [trackId]: trim }));
+      return {
+        enabled: true,
+        message: `${track.name} A/B matched · bypass trimmed ${trim > 0 ? '+' : ''}${trim.toFixed(1)} dB`,
+      };
+    } finally {
+      this.trackAbMeasurementState.set(null);
+      this.trackAbLevelMatchBusy.set(null);
+      this.applyTrackInsertsBypass(trackId);
+    }
+  }
+
   private isMeasuredAbLevel(value: number): boolean {
     return Number.isFinite(value) && value > -70;
+  }
+
+  private isMeasuredTrackAbLevel(value: number): boolean {
+    return Number.isFinite(value) && value > -90;
   }
 
   private waitForAbMeasurement(): Promise<void> {
@@ -1364,7 +1497,7 @@ export class MusicManagerService {
 
   /** Engage or release the momentary global A/B without changing the latch. */
   setGlobalInsertsBypassMomentary(active: boolean): void {
-    if (this.abLevelMatchBusy()) return;
+    if (this.abLevelMatchBusy() || this.trackAbLevelMatchBusy() !== null) return;
     if (this.momentaryGlobalInsertsBypassed() === active) return;
     this.momentaryGlobalInsertsBypassed.set(active);
     this.applyGlobalInsertsBypass();
@@ -1385,7 +1518,41 @@ export class MusicManagerService {
         this.activePluginIds(track),
         this.liveChainFor,
       );
+      this.engine.setTrackAbMatchGainDb(track.id, this.trackAbMatchTrim(track));
     }
+  }
+
+  private applyTrackInsertsBypass(trackId: string): void {
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    if (!track) return;
+    this.syncFxSlotsToRack(trackId, track.fxSlots ?? []);
+    this.engine.installTrackPluginInsert(
+      trackId,
+      this.activePluginIds(track),
+      this.liveChainFor,
+    );
+    this.applyTrackAbMatchTrim(trackId);
+  }
+
+  private applyTrackAbMatchTrim(trackId: string): void {
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    if (!track) return;
+    this.engine.setTrackAbMatchGainDb(trackId, this.trackAbMatchTrim(track));
+  }
+
+  private trackAbMatchTrim(track: {
+    id: string;
+    insertsBypassed?: boolean;
+  }): number {
+    if (
+      this.isGlobalInsertsBypassed() ||
+      this.trackAbMeasurementState()?.trackId === track.id ||
+      !this.isTrackAbLevelMatchEnabled(track.id) ||
+      track.insertsBypassed !== true
+    ) {
+      return 0;
+    }
+    return this.getTrackAbLevelMatchGainDb(track.id);
   }
 
   /**

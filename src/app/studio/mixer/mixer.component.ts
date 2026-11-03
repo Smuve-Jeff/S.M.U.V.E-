@@ -338,6 +338,14 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.haptic.medium();
   }
 
+  async toggleTrackAbLevelMatch(track: TrackModel, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    const result = await this.musicManager.toggleTrackAbLevelMatch(track.id);
+    if (result.error) this.snack.info(result.message);
+    else this.snack.success(result.message);
+    this.haptic.medium();
+  }
+
   @HostListener("document:pointerup")
   @HostListener("window:blur")
   onMomentaryGlobalRelease(): void {

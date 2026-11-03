@@ -223,6 +223,43 @@ describe('AudioEngineService', () => {
     expect(service.getAbMatchGainDb()).toBe(0);
   });
 
+  it('applies and clamps a per-strip A/B trim', () => {
+    const node = {
+      gain: {
+        value: 1,
+        setValueAtTime: jest.fn(),
+        cancelScheduledValues: jest.fn(),
+        linearRampToValueAtTime: jest.fn(),
+      },
+    };
+    (service as any).trackAbMatchGains = new Map([['t1', node]]);
+    (service as any).trackAbMatchValues = new Map();
+
+    service.setTrackAbMatchGainDb('t1', 99);
+    expect(service.getTrackAbMatchGainDb('t1')).toBe(12);
+    expect(node.gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(
+      10 ** (12 / 20),
+      0.02,
+    );
+
+    service.setTrackAbMatchGainDb('t1', -99);
+    expect(service.getTrackAbMatchGainDb('t1')).toBe(-12);
+    expect(node.gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(
+      10 ** (-12 / 20),
+      0.02,
+    );
+  });
+
+  it('reports a strip RMS level and silence without a meter', () => {
+    const analyser = {
+      fftSize: 4,
+      getFloatTimeDomainData: (buffer: Float32Array) => buffer.fill(0.5),
+    };
+    (service as any).trackAnalysers = new Map([['t1', analyser]]);
+    expect(service.getTrackMomentaryLevelDb('t1')).toBeCloseTo(-6.02, 1);
+    expect(service.getTrackMomentaryLevelDb('missing')).toBe(-120);
+  });
+
   it('should set metronome volume within bounds', () => {
     service.setMetronomeVolume(0.75);
     expect(service.metronomeVolume()).toBe(0.75);

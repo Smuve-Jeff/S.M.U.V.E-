@@ -77,6 +77,7 @@
       [class.active]="musicManager.isGlobalInsertsBypassed()"
       [disabled]="
         musicManager.abLevelMatchBusy() ||
+        musicManager.trackAbLevelMatchBusy() !== null ||
         (!hasAnyInserts() && !musicManager.isGlobalInsertsBypassed())
       "
       [attr.aria-pressed]="musicManager.isGlobalInsertsBypassed()"
@@ -102,6 +103,7 @@
       [disabled]="
         musicManager.globalInsertsBypassed() ||
         musicManager.abLevelMatchBusy() ||
+        musicManager.trackAbLevelMatchBusy() !== null ||
         !hasAnyInserts()
       "
       [attr.aria-pressed]="musicManager.momentaryGlobalInsertsBypassed()"
@@ -127,6 +129,7 @@
       [class.measuring]="musicManager.abLevelMatchBusy()"
       [disabled]="
         musicManager.abLevelMatchBusy() ||
+        musicManager.trackAbLevelMatchBusy() !== null ||
         (!hasAnyInserts() && !musicManager.abLevelMatchEnabled())
       "
       [attr.aria-pressed]="musicManager.abLevelMatchEnabled()"
@@ -461,6 +464,45 @@
           >
             <span class="material-symbols-outlined" aria-hidden="true">compare_arrows</span>
             <span>A/B</span>
+          </button>
+          <button
+            type="button"
+            class="mix-insert-match"
+            [class.active]="musicManager.isTrackAbLevelMatchEnabled(track.id)"
+            [class.measuring]="musicManager.isTrackAbLevelMatchBusy(track.id)"
+            [disabled]="
+              insertCount(track) === 0 ||
+              musicManager.isGlobalInsertsBypassed() ||
+              musicManager.abLevelMatchBusy() ||
+              musicManager.trackAbLevelMatchBusy() !== null ||
+              musicManager.isTrackAbLevelMatchBusy(track.id)
+            "
+            [attr.aria-pressed]="musicManager.isTrackAbLevelMatchEnabled(track.id)"
+            [attr.title]="
+              musicManager.isGlobalInsertsBypassed()
+                ? 'Global A/B is engaged — turn it off to match this strip'
+                : musicManager.isTrackAbLevelMatchBusy(track.id)
+                  ? 'Measuring this strip…'
+                  : musicManager.isTrackAbLevelMatchEnabled(track.id)
+                    ? 'Disable level matching for ' + track.name + ' A/B'
+                    : 'Measure and match the bypassed level for ' + track.name
+            "
+            [attr.aria-label]="
+              musicManager.isTrackAbLevelMatchEnabled(track.id)
+                ? 'Disable A/B level matching for ' + track.name
+                : 'Measure and match A/B levels for ' + track.name
+            "
+            (click)="toggleTrackAbLevelMatch(track, $event)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">graphic_eq</span>
+            <span
+              class="mix-insert-match-db"
+              *ngIf="musicManager.isTrackAbLevelMatchEnabled(track.id)"
+            >
+              {{ musicManager.getTrackAbLevelMatchGainDb(track.id) > 0 ? '+' : '' }}{{
+                musicManager.getTrackAbLevelMatchGainDb(track.id) | number: '1.1-1'
+              }}
+            </span>
           </button>
         </div>
 

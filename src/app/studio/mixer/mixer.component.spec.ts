@@ -59,6 +59,9 @@ describe("MixerComponent", () => {
   const abLevelMatchGainDb = signal(0);
   const abLevelMatchBusy = signal(false);
   const abLevelMatchError = signal<string | null>(null);
+  const trackAbLevelMatchEnabled = signal<Record<string, boolean>>({});
+  const trackAbLevelMatchGainDb = signal<Record<string, number>>({});
+  const trackAbLevelMatchBusy = signal<string | null>(null);
   const isGlobalInsertsBypassed = computed(
     () => globalInsertsBypassed() || momentaryGlobalInsertsBypassed(),
   );
@@ -105,6 +108,22 @@ describe("MixerComponent", () => {
       enabled: true,
       message: 'A/B matched',
     }),
+    trackAbLevelMatchEnabled,
+    trackAbLevelMatchGainDb,
+    trackAbLevelMatchBusy,
+    isTrackAbLevelMatchEnabled: jest.fn(
+      (trackId: string) => trackAbLevelMatchEnabled()[trackId] === true,
+    ),
+    getTrackAbLevelMatchGainDb: jest.fn(
+      (trackId: string) => trackAbLevelMatchGainDb()[trackId] ?? 0,
+    ),
+    isTrackAbLevelMatchBusy: jest.fn(
+      (trackId: string) => trackAbLevelMatchBusy() === trackId,
+    ),
+    toggleTrackAbLevelMatch: jest.fn().mockResolvedValue({
+      enabled: true,
+      message: 'Strip A/B matched',
+    }),
     toggleSoloSafe: jest.fn(),
     removeTrack: jest.fn(),
   };
@@ -140,6 +159,9 @@ describe("MixerComponent", () => {
     abLevelMatchGainDb.set(0);
     abLevelMatchBusy.set(false);
     abLevelMatchError.set(null);
+    trackAbLevelMatchEnabled.set({});
+    trackAbLevelMatchGainDb.set({});
+    trackAbLevelMatchBusy.set(null);
     await TestBed.configureTestingModule({
       imports: [MixerComponent, CommonModule, FormsModule, KnobComponent],
       providers: [
@@ -323,6 +345,16 @@ describe("MixerComponent", () => {
     expect(mockMusicManager.toggleGlobalInsertsBypass).toHaveBeenCalled();
   });
 
+  it('measures and toggles one strip A/B match through the manager', async () => {
+    const stopPropagation = jest.fn();
+    const track = { id: '1', name: 'Track 1' } as any;
+
+    await component.toggleTrackAbLevelMatch(track, { stopPropagation } as any);
+
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(mockMusicManager.toggleTrackAbLevelMatch).toHaveBeenCalledWith('1');
+  });
+
   it('measures and toggles A/B level matching through the manager', async () => {
     const stopPropagation = jest.fn();
 
@@ -467,6 +499,13 @@ describe("MixerComponent", () => {
     expect(matchAb).toBeTruthy();
     expect(matchAb?.disabled).toBe(true);
     expect(matchAb?.getAttribute('aria-pressed')).toBe('false');
+
+    const stripMatches = Array.from(
+      fixture.nativeElement.querySelectorAll('.mix-insert-match'),
+    ) as HTMLButtonElement[];
+    expect(stripMatches).toHaveLength(2);
+    expect(stripMatches[0].disabled).toBe(true);
+    expect(stripMatches[0].getAttribute('aria-pressed')).toBe('false');
   });
 
   it('classifies per-track mono compatibility and formats the reading', () => {

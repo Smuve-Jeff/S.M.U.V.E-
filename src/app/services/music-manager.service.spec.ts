@@ -1119,6 +1119,7 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
   let history: HistoryService;
   let rack: FakeRack;
   let measuredLufs = -70;
+  let measuredTrackLevel = -70;
 
   const makeTrack = (overrides: any = {}) => ({
     id: 'track-1',
@@ -1147,6 +1148,7 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
   beforeEach(() => {
     rack = new FakeRack();
     measuredLufs = -70;
+    measuredTrackLevel = -70;
     const engineMock = {
       tempo: signal(120),
       visualStep: signal(0),
@@ -1154,6 +1156,8 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
       triggerAttack: jest.fn(),
       setBaseFaderGain: jest.fn(),
       setAbMatchGainDb: jest.fn(),
+      setTrackAbMatchGainDb: jest.fn(),
+      getTrackMomentaryLevelDb: () => measuredTrackLevel,
       isPlaying: () => false,
       outputMomentaryLufs: () => measuredLufs,
       onScheduleStep: undefined as any,
@@ -1465,6 +1469,53 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
       jest.useRealTimers();
     }
   });
+
+  it('measures one strip and trims it without stacking on global A/B', async () => {
+    jest.useFakeTimers();
+    const engine = (service as any).engine;
+    engine.isPlaying = () => true;
+    service.tracks.set([
+      {
+        ...makeTrack(),
+        fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+      },
+    ]);
+    service.syncTrackFxChain('track-1');
+
+    try {
+      measuredTrackLevel = -10;
+      const pending = service.toggleTrackAbLevelMatch('track-1');
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(service.isTrackInsertsBypassed(service.tracks()[0])).toBe(false);
+
+      jest.advanceTimersByTime(650);
+      await Promise.resolve();
+      await Promise.resolve();
+      measuredTrackLevel = -13;
+
+      jest.advanceTimersByTime(650);
+      const result = await pending;
+
+      expect(result).toMatchObject({ enabled: true });
+      expect(service.isTrackAbLevelMatchEnabled('track-1')).toBe(true);
+      expect(service.getTrackAbLevelMatchGainDb('track-1')).toBe(3);
+      expect(engine.setTrackAbMatchGainDb).toHaveBeenLastCalledWith('track-1', 0);
+
+      service.toggleAllInsertsBypass('track-1');
+      expect(service.tracks()[0].insertsBypassed).toBe(true);
+      expect(engine.setTrackAbMatchGainDb).toHaveBeenLastCalledWith('track-1', 3);
+
+      service.toggleGlobalInsertsBypass();
+      expect(service.isGlobalInsertsBypassed()).toBe(true);
+      expect(engine.setTrackAbMatchGainDb).toHaveBeenLastCalledWith('track-1', 0);
+
+      service.toggleGlobalInsertsBypass();
+      expect(engine.setTrackAbMatchGainDb).toHaveBeenLastCalledWith('track-1', 3);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe('MusicManagerService recording teardown', () => {
@@ -1681,6 +1732,7 @@ describe('MusicManagerService live plugin insert wiring', () => {
             setSongLengthSteps: jest.fn(),
             triggerAttack: jest.fn(),
             setBaseFaderGain: jest.fn(),
+            setTrackAbMatchGainDb: jest.fn(),
             installTrackPluginInsert,
             releaseTrackPluginInsert,
             removeTrackRouting: jest.fn(),
