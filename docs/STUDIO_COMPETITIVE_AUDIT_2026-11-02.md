@@ -38,7 +38,7 @@ adoption or store shipment).
 | 7 | Sound Pads | At parity | `sound-pad/` + `sound-pad-grid/` — 16 pads, per-pad samples, long-press assign, MIDI notes, velocity zones | Koala/FL sampling workflows are deeper |
 | 8 | Synthesizer | At parity | `synthesizer/` — subtractive/wavetable voices, ADSR, filter, LFO, glide, per-note pan/pitch bend | FL ships 8 instruments and 1,000+ sounds; we ship a curated bank |
 | 9 | AI Producer | At parity | `ai-band/` + `AiService` — prompt beats, 3 session musicians, generated parts | BandLab has SongStarter, Audio-to-MIDI, Voice Changer and AI FX; broader generative surface |
-| 10 | Arrangement | At parity | `arrangement-view/` — WebGL timeline, 7 clip tools, fades, **equal-power overlap crossfades (3 Nov 2026)**, freeze/unfreeze, markers, groups, take lanes, automation, stem splitter | Cubasis/FL still lead on ripple editing and a tempo lane in the timeline |
+| 10 | Arrangement | At parity | `arrangement-view/` — WebGL timeline, 7 clip tools, fades, **equal-power overlap crossfades (3 Nov 2026)**, **tempo automation lane with draggable points, inline BPM and step/ramp curves (3 Nov 2026)**, freeze/unfreeze, markers, groups, take lanes, automation, stem splitter | Cubasis/FL still lead on ripple editing and time-signature automation |
 | 11 | Session View | **Ahead** | `session-view/` — clip launcher, scene CRUD, per-cell launch quantize, follow actions | No Android baseline ships an Ableton-style clip launcher (Note is iOS-only) |
 | 12 | Channel Rack | At parity | `channel-rack/` — patterns, scene columns, polymeter, LFO, meters, pattern slots | FL's rack is the origin of the pattern model and remains deeper |
 | 13 | Score View | **Ahead** | `score-view/` — editable notation, rests, velocity shading, MusicXML import/export | None of the four ship notation |
@@ -224,7 +224,7 @@ contrary to the earlier backlog wording.
 | ~~Plugin-parameter automation + per-insert metering~~ **Shipped 2 Nov 2026**; ~~WASM insert preset browser~~ **Shipped 2 Nov 2026** — 15 factory sounds plus per-plugin user presets | Makes the WASM ecosystem usable | M |
 | ~~Sampler transient chop~~ **Shipped 2 Nov 2026** — energy-rise onset detection maps variable-length slices to pads; equal Slice ×8 remains | Beatmaker table stakes; Koala/FL lead here | M |
 | MPE per-note expression | Full MPE per-channel note voices, bend range and pressure routing are wired; deeper modulation-matrix editing remains | M |
-| ~~Overlap crossfades~~ **Shipped 3 Nov 2026** — selected overlapping audio clips get a persisted equal-power fade-out/fade-in, rendered the same way live and offline. Tempo lane still open (ripple delete now ships) | Cubasis/FL timeline depth | M |
+| ~~Overlap crossfades~~ **Shipped 3 Nov 2026** — selected overlapping audio clips get a persisted equal-power fade-out/fade-in, rendered the same way live and offline. ~~Tempo lane~~ **Shipped 3 Nov 2026** — click-to-add points, drag/keyboard retiming, inline BPM, and a step/ramp envelope. Time-signature automation remains open (ripple delete now ships) | Cubasis/FL timeline depth | M |
 | Transport note-repeat | **Shipped 2 Nov 2026** — toggle + rate cycling in the transport drives the live retrigger | S |
 | Sample-rate normalisation for imports | 44.1 kHz devices currently run 48 kHz-tuned DSP | S |
 

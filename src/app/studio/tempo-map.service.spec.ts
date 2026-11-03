@@ -125,4 +125,29 @@ describe("TempoMapService", () => {
     const stored = JSON.parse(localStorage.getItem("smuve_tempo_map_v1") ?? "[]");
     expect(stored).toHaveLength(2);
   });
+
+  it("restores ramp curves from the durable tempo map", () => {
+    localStorage.setItem(
+      "smuve_tempo_map_v1",
+      JSON.stringify([
+        { id: "tempo-ramp", step: 0, bpm: 120, curve: "ramp" },
+        { id: "tempo-end", step: 16, bpm: 80 },
+      ]),
+    );
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [{ provide: AudioEngineService, useValue: engine }],
+    });
+
+    const restored = TestBed.inject(TempoMapService);
+
+    expect(restored.markers().map((marker) => marker.curve)).toEqual([
+      "ramp",
+      undefined,
+    ]);
+    expect(engine.setTempoMap).toHaveBeenLastCalledWith([
+      { step: 0, bpm: 120, curve: "ramp" },
+      { step: 16, bpm: 80 },
+    ]);
+  });
 });

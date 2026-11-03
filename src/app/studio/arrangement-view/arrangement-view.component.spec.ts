@@ -35,7 +35,10 @@ describe("ArrangementViewComponent", () => {
       step,
       bpm,
     })),
+    updateMarker: jest.fn(),
     removeMarker: jest.fn(),
+    toggleCurve: jest.fn(),
+    bpmAtStep: jest.fn(() => 118),
     barOf: jest.fn((marker: { step: number }) =>
       Math.floor(marker.step / 16) + 1,
     ),
@@ -778,6 +781,70 @@ describe("ArrangementViewComponent", () => {
     mockMusicManager.currentStep.set(32);
     component.addTempoHere();
     expect(mockTempoMap.addMarker).toHaveBeenCalledWith(32, 124);
+  });
+
+  it("adds a tempo point on a lane tap and retimes it by dragging", () => {
+    const track = { getBoundingClientRect: () => ({ left: 0, width: 1024 }) };
+    component.onTempoLanePointerDown({
+      clientX: 512,
+      currentTarget: track,
+      target: { closest: () => null },
+    } as any);
+    expect(mockTempoMap.addMarker).toHaveBeenCalledWith(512, 118);
+
+    const marker = { id: "tempo-1", step: 16, bpm: 90 };
+    const handle = {
+      closest: () => track,
+      setPointerCapture: jest.fn(),
+    };
+    component.startTempoDrag(
+      {
+        button: 0,
+        pointerId: 7,
+        clientX: 100,
+        currentTarget: handle,
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      } as any,
+      marker,
+    );
+    component.onTempoDragMove({
+      pointerId: 7,
+      clientX: 164,
+      preventDefault: jest.fn(),
+    } as any);
+
+    expect(mockTempoMap.updateMarker).toHaveBeenCalledWith("tempo-1", {
+      step: 80,
+    });
+  });
+
+  it("edits a tempo point's BPM inline", () => {
+    component.setTempoMarkerBpm(
+      { id: "tempo-1", step: 16, bpm: 90 },
+      { target: { value: "132.4" } } as any,
+    );
+    expect(mockTempoMap.updateMarker).toHaveBeenCalledWith("tempo-1", {
+      bpm: 132.4,
+    });
+  });
+
+  it("draws step and ramp tempo automation across the lane", () => {
+    const original = tempoMarkers();
+    tempoMarkers.set([
+      { id: "tempo-0", step: 0, bpm: 90, curve: "ramp" },
+      { id: "tempo-2", step: 32, bpm: 140 },
+    ]);
+    try {
+      const path = component.tempoLanePath();
+      expect(path).toContain("M 0");
+      expect(path).toContain("L 3.125");
+      expect(component.tempoMarkerTop(90)).toBeGreaterThan(
+        component.tempoMarkerTop(140),
+      );
+    } finally {
+      tempoMarkers.set(original);
+    }
   });
 
   it("crossfades two overlapping audio clips on the same track", () => {

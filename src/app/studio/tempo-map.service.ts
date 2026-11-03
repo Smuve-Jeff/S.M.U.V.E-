@@ -202,6 +202,7 @@ export class TempoMapService {
             id: String(marker.id ?? `tempo_${marker.step}`),
             step: Math.max(0, Math.round(marker.step)),
             bpm: marker.bpm,
+            ...(marker.curve === "ramp" ? { curve: "ramp" as const } : {}),
           })),
       );
     } catch {

@@ -1776,10 +1776,10 @@
   }
 }
 
-/* ── Tempo lane ── */
+/* ── Tempo automation lane ── */
 .arrangement-tempo-lane {
   margin: 8px 10px 0;
-  padding: 8px 10px 10px;
+  padding: 8px 10px 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.035);
@@ -1799,10 +1799,9 @@
   color: rgba(255, 255, 255, 0.62);
 }
 
-.arrangement-tempo-add,
-.arrangement-tempo-seek,
-.arrangement-tempo-remove {
+.arrangement-tempo-add {
   min-height: 32px;
+  padding: 0 10px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.06);
@@ -1810,42 +1809,145 @@
   font-size: 10px;
 }
 
-.arrangement-tempo-add {
-  padding: 0 10px;
-}
-
 .arrangement-tempo-track {
   position: relative;
-  height: 28px;
+  height: 92px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    repeating-linear-gradient(
+      to top,
+      rgba(255, 255, 255, 0.055) 0 1px,
+      transparent 1px 23px
+    ),
+    rgba(0, 0, 0, 0.3);
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+
+.arrangement-tempo-curve-line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.arrangement-tempo-curve-path {
+  fill: none;
+  stroke: #34f5c5;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.8;
 }
 
 .arrangement-tempo-marker {
   position: absolute;
-  top: 2px;
+  z-index: 2;
   display: flex;
+  align-items: center;
   gap: 2px;
-  transform: translateX(-2px);
+  padding: 2px;
+  border: 1px solid rgba(52, 245, 197, 0.3);
+  border-radius: 7px;
+  background: rgba(12, 18, 19, 0.94);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  transform: translate(-8px, -50%);
+}
+
+.arrangement-tempo-seek,
+.arrangement-tempo-curve,
+.arrangement-tempo-remove {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  line-height: 1;
 }
 
 .arrangement-tempo-seek {
-  padding: 0 6px;
-  border-color: rgba(14, 124, 123, 0.6);
-  background: rgba(14, 124, 123, 0.24);
-  white-space: nowrap;
+  border-color: rgba(52, 245, 197, 0.55);
+  background: rgba(14, 124, 123, 0.55);
+  color: #bffcf0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.arrangement-tempo-seek:active {
+  cursor: grabbing;
+}
+
+.arrangement-tempo-bpm {
+  width: 43px;
+  height: 22px;
+  padding: 0 2px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.arrangement-tempo-bpm::-webkit-inner-spin-button,
+.arrangement-tempo-bpm::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.arrangement-tempo-unit {
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.arrangement-tempo-curve {
+  border-color: rgba(43, 160, 156, 0.35);
+  background: rgba(14, 15, 18, 0.72);
+  color: #8ea0ae;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.arrangement-tempo-curve.is-ramp {
+  color: #34f5c5;
+  border-color: rgba(52, 245, 197, 0.55);
+  background: rgba(52, 245, 197, 0.14);
 }
 
 .arrangement-tempo-remove {
-  width: 24px;
-  padding: 0;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
 }
 
 .arrangement-tempo-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
   margin: 0;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.42);
+  pointer-events: none;
+}
+
+.arrangement-tempo-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.35);
 }
 
 /* Paste is dimmed until something has been copied. Without this the button
@@ -1853,25 +1955,4 @@
 .arrangement-sheet-grid .studio-secondary-button:disabled {
   opacity: 0.45;
   cursor: default;
-}
-
-
-/* Tempo automation: step vs continuous ramp. */
-.arrangement-tempo-curve {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border: 1px solid rgba(43, 160, 156, 0.35);
-  border-radius: 5px;
-  background: rgba(14, 15, 18, 0.72);
-  color: #8ea0ae;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-}
-.arrangement-tempo-curve.is-ramp {
-  color: #34f5c5;
-  border-color: rgba(52, 245, 197, 0.55);
-  background: rgba(52, 245, 197, 0.14);
 }

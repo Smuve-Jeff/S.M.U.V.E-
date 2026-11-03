@@ -51,7 +51,11 @@ import { StudioBottomSheetComponent } from "../shared/studio-bottom-sheet/studio
 import { AutomationCurveEditorComponent } from "../automation/automation-curve-editor.component";
 import { VcaBusService } from "../vca-bus.service";
 import { AutomationService } from "../automation.service";
-import { STEPS_PER_BAR, TempoMapService } from "../tempo-map.service";
+import {
+  STEPS_PER_BAR,
+  TempoMapService,
+  type TempoMarker,
+} from "../tempo-map.service";
 import { ArrangementMarkersService } from "../arrangement-markers.service";
 import { RecordingStatusService } from "../recording-status.service";
 
@@ -135,6 +139,20 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     initialOffset: number;
     changed: boolean;
   } | null = null;
+
+  /** Horizontal drag state for a tempo point in the timeline lane. */
+  private activeTempoDrag: {
+    pointerId: number;
+    markerId: string;
+    startClientX: number;
+    initialStep: number;
+    lastStep: number;
+    laneWidth: number;
+    moved: boolean;
+  } | null = null;
+
+  /** A drag that moved should not also seek when its pointerup synthesizes a click. */
+  private suppressTempoSeek = false;
 
   // ── Stem-Splitter UI state ───────────────────────────────
   stemOpen = signal(false);
@@ -1307,10 +1325,14 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   /** Pin the current tempo at the playhead's bar from the arrangement lane. */
   addTempoHere(): void {
     const bar = Math.floor(this.musicManager.currentStep() / STEPS_PER_BAR);
-    const marker = this.tempoMap.addMarker(
+    this.addTempoMarkerAt(
       bar * STEPS_PER_BAR,
       this.musicManager.engine.tempo(),
     );
+  }
+
+  private addTempoMarkerAt(step: number, bpm: number): void {
+    const marker = this.tempoMap.addMarker(step, bpm);
     if (!marker) {
       this.snackbar.info("Tempo must be between 20 and 300 BPM");
       return;
@@ -1319,6 +1341,145 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     this.snackbar.show(
       `⏱ Tempo ${marker.bpm} BPM pinned at bar ${this.tempoMap.barOf(marker)}`,
     );
+  }
+
+  /** Tap an empty part of the lane to add a tempo point at that bar. */
+  onTempoLanePointerDown(event: PointerEvent): void {
+    const target = event.target as Element | null;
+    if (target?.closest?.(".arrangement-tempo-marker, button, input")) return;
+    const lane = event.currentTarget as HTMLElement | null;
+    const rect = lane?.getBoundingClientRect();
+    if (!rect?.width) return;
+    const totalSteps = Math.max(1, this.totalBars()) * STEPS_PER_BAR;
+    const step = this.snapTempoStep(
+      ((event.clientX - rect.left) / rect.width) * totalSteps,
+    );
+    const existing = this.tempoMap.markers().find((marker) => marker.step === step);
+    if (existing) {
+      this.seekToTempoMarker(existing.step);
+      this.snackbar.info(`Tempo already pinned at bar ${this.tempoMap.barOf(existing)}`);
+      return;
+    }
+    this.addTempoMarkerAt(step, this.tempoMap.bpmAtStep(step));
+  }
+
+  /** Begin dragging a tempo point; horizontal movement retimes it. */
+  startTempoDrag(event: PointerEvent, marker: TempoMarker): void {
+    if (event.button > 0) return;
+    const handle = event.currentTarget as HTMLElement | null;
+    const lane = handle?.closest(".arrangement-tempo-track") as HTMLElement | null;
+    const rect = lane?.getBoundingClientRect();
+    if (!rect?.width) return;
+    event.preventDefault();
+    event.stopPropagation();
+    handle?.setPointerCapture?.(event.pointerId);
+    this.suppressTempoSeek = false;
+    this.activeTempoDrag = {
+      pointerId: event.pointerId,
+      markerId: marker.id,
+      startClientX: event.clientX,
+      initialStep: marker.step,
+      lastStep: marker.step,
+      laneWidth: rect.width,
+      moved: false,
+    };
+  }
+
+  onTempoDragMove(event: PointerEvent): void {
+    const drag = this.activeTempoDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    const totalSteps = Math.max(1, this.totalBars()) * STEPS_PER_BAR;
+    const step = this.snapTempoStep(
+      drag.initialStep +
+        ((event.clientX - drag.startClientX) / drag.laneWidth) * totalSteps,
+    );
+    if (step === drag.lastStep) return;
+    if (!this.retimeTempoMarker(drag.markerId, step, true)) return;
+    drag.lastStep = step;
+    drag.moved = true;
+  }
+
+  onTempoDragEnd(event: PointerEvent): void {
+    const drag = this.activeTempoDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const handle = event.currentTarget as HTMLElement | null;
+    if (handle?.hasPointerCapture?.(drag.pointerId)) {
+      handle.releasePointerCapture(drag.pointerId);
+    }
+    if (drag.moved) {
+      const marker = this.tempoMap
+        .markers()
+        .find((candidate) => candidate.id === drag.markerId);
+      if (marker) {
+        this.haptic.light();
+        this.snackbar.show(
+          `⏱ Tempo ${marker.bpm} BPM moved to bar ${this.tempoMap.barOf(marker)}`,
+        );
+      }
+      this.suppressTempoSeek = true;
+    }
+    this.activeTempoDrag = null;
+  }
+
+  /** Arrow keys retime a focused tempo point by one beat. */
+  onTempoDragKey(event: KeyboardEvent, marker: TempoMarker): void {
+    const delta =
+      event.key === "ArrowLeft" ? -4 : event.key === "ArrowRight" ? 4 : 0;
+    if (!delta) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.retimeTempoMarker(marker.id, this.snapTempoStep(marker.step + delta))) {
+      return;
+    }
+    this.haptic.light();
+    const moved = this.tempoMap
+      .markers()
+      .find((candidate) => candidate.id === marker.id);
+    if (moved) {
+      this.snackbar.info(
+        `Tempo ${moved.bpm} BPM at bar ${this.tempoMap.barOf(moved)}`,
+      );
+    }
+  }
+
+  private retimeTempoMarker(id: string, step: number, quiet = false): boolean {
+    const marker = this.tempoMap.markers().find((candidate) => candidate.id === id);
+    if (!marker || marker.step === step) return false;
+    if (
+      this.tempoMap
+        .markers()
+        .some((candidate) => candidate.id !== id && candidate.step === step)
+    ) {
+      if (!quiet) this.snackbar.info("A tempo change already exists at that bar");
+      return false;
+    }
+    this.tempoMap.updateMarker(id, { step });
+    return true;
+  }
+
+  private snapTempoStep(step: number): number {
+    const maxStep = Math.max(
+      0,
+      Math.max(1, this.totalBars()) * STEPS_PER_BAR - 4,
+    );
+    return Math.max(0, Math.min(maxStep, Math.round(step / 4) * 4));
+  }
+
+  /** Commit a BPM typed directly on a timeline tempo point. */
+  setTempoMarkerBpm(marker: TempoMarker, event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    if (!input) return;
+    const value = Number(input.value);
+    if (!Number.isFinite(value) || value < 20 || value > 300) {
+      input.value = String(marker.bpm);
+      this.snackbar.info("Tempo must be between 20 and 300 BPM");
+      return;
+    }
+    const bpm = Math.round(value * 10) / 10;
+    this.tempoMap.updateMarker(marker.id, { bpm });
+    this.haptic.light();
+    this.snackbar.info(`Tempo ${bpm} BPM at bar ${this.tempoMap.barOf(marker)}`);
   }
 
   removeTempoMarker(id: string, event: Event): void {
@@ -1340,13 +1501,84 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   seekToTempoMarker(step: number): void {
+    if (this.suppressTempoSeek) {
+      this.suppressTempoSeek = false;
+      return;
+    }
     this.musicManager.engine.seekToStep(step);
   }
 
   /** Marker position as a percentage of the arrangement's visible bars. */
   tempoMarkerLeft(step: number): number {
-    const bars = Math.max(1, this.effectiveBars());
+    const bars = Math.max(1, this.totalBars());
     return Math.max(0, Math.min(100, (step / (STEPS_PER_BAR * bars)) * 100));
+  }
+
+  /** Vertical position of a tempo point, using the lane's current BPM range. */
+  tempoMarkerTop(bpm: number): number {
+    const { min, max } = this.tempoLaneRange();
+    const ratio = max <= min ? 0.5 : (bpm - min) / (max - min);
+    return Math.max(10, Math.min(90, 100 - ratio * 100));
+  }
+
+  tempoLaneMin(): number {
+    return Math.round(this.tempoLaneRange().min);
+  }
+
+  tempoLaneMax(): number {
+    return Math.round(this.tempoLaneRange().max);
+  }
+
+  /** SVG path for the tempo envelope; ramps become diagonals, steps verticals. */
+  tempoLanePath(): string {
+    const totalSteps = Math.max(1, this.totalBars()) * STEPS_PER_BAR;
+    const x = (step: number) =>
+      Math.max(0, Math.min(100, (step / totalSteps) * 100)).toFixed(3);
+    const y = (bpm: number) => this.tempoMarkerTop(bpm).toFixed(3);
+    const markers = [...this.tempoMap.markers()].sort(
+      (a, b) => a.step - b.step || a.bpm - b.bpm,
+    );
+    let current: { step: number; bpm: number; curve?: "step" | "ramp" } = {
+      step: 0,
+      bpm: this.tempoMap.bpmAtStep(0),
+    };
+    const first = markers[0];
+    if (first && first.step <= 0) {
+      current = { step: 0, bpm: first.bpm, curve: first.curve };
+      markers.shift();
+    }
+    const commands = [`M 0 ${y(current.bpm)}`];
+    for (const marker of markers) {
+      if (current.curve === "ramp") {
+        commands.push(`L ${x(marker.step)} ${y(marker.bpm)}`);
+      } else {
+        commands.push(
+          `L ${x(marker.step)} ${y(current.bpm)}`,
+          `L ${x(marker.step)} ${y(marker.bpm)}`,
+        );
+      }
+      current = { step: marker.step, bpm: marker.bpm, curve: marker.curve };
+    }
+    commands.push(`L 100 ${y(current.bpm)}`);
+    return commands.join(" ");
+  }
+
+  private tempoLaneRange(): { min: number; max: number } {
+    const values = [
+      this.tempoMap.bpmAtStep(0),
+      ...this.tempoMap.markers().map((marker) => marker.bpm),
+    ].filter((value) => Number.isFinite(value));
+    let min = Math.min(...values, 120);
+    let max = Math.max(...values, 120);
+    if (max - min < 20) {
+      min -= 10;
+      max += 10;
+    }
+    const padding = Math.max(4, (max - min) * 0.1);
+    min = Math.max(20, min - padding);
+    max = Math.min(300, max + padding);
+    if (max - min < 4) max = min + 4;
+    return { min, max };
   }
 
   /** Delete all selected clips (history-aware). */

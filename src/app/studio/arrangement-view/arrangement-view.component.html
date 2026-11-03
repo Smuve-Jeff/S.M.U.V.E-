@@ -556,9 +556,9 @@
         [trackId]="musicManager.selectedTrackId()"
         (openBezierEditor)="openBezierEditor.emit($event)"
       ></app-automation-curve-editor>
-    </section>    <section class="arrangement-tempo-lane" aria-label="Tempo map lane">
+    </section>    <section class="arrangement-tempo-lane" aria-label="Tempo automation lane">
       <div class="arrangement-tempo-head">
-        <span class="arrangement-tempo-title">TEMPO LANE</span>
+        <span class="arrangement-tempo-title">TEMPO AUTOMATION</span>
         <button
           type="button"
           class="arrangement-tempo-add"
@@ -570,21 +570,53 @@
       </div>
       <div
         class="arrangement-tempo-track"
-        *ngIf="tempoMap.markers().length > 0; else noTempoMarkers"
+        (pointerdown)="onTempoLanePointerDown($event)"
+        aria-label="Tempo automation. Tap to add a point, drag a point to retime it, or type a BPM."
       >
+        <svg
+          class="arrangement-tempo-curve-line"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path class="arrangement-tempo-curve-path" [attr.d]="tempoLanePath()"></path>
+        </svg>
         <div
           class="arrangement-tempo-marker"
+          data-tempo-marker
           *ngFor="let marker of tempoMap.markers()"
           [style.left.%]="tempoMarkerLeft(marker.step)"
+          [style.top.%]="tempoMarkerTop(marker.bpm)"
         >
           <button
             type="button"
             class="arrangement-tempo-seek"
+            (pointerdown)="startTempoDrag($event, marker)"
+            (pointermove)="onTempoDragMove($event)"
+            (pointerup)="onTempoDragEnd($event)"
+            (pointercancel)="onTempoDragEnd($event)"
+            (keydown)="onTempoDragKey($event, marker)"
             (click)="seekToTempoMarker(marker.step)"
-            [attr.aria-label]="'Seek to ' + marker.bpm + ' BPM at bar ' + tempoMap.barOf(marker)"
+            [attr.aria-label]="
+              'Tempo ' + marker.bpm + ' BPM at bar ' + tempoMap.barOf(marker) +
+              '. Drag to retime or press to seek.'
+            "
+            title="Drag to retime; tap to seek"
           >
-            {{ marker.bpm }} · BAR {{ tempoMap.barOf(marker) }}
+            ◆
           </button>
+          <input
+            class="arrangement-tempo-bpm"
+            type="number"
+            min="20"
+            max="300"
+            step="0.1"
+            [value]="marker.bpm"
+            (change)="setTempoMarkerBpm(marker, $event)"
+            (pointerdown)="$event.stopPropagation()"
+            [attr.aria-label]="'Tempo at bar ' + tempoMap.barOf(marker) + ' in BPM'"
+          />
+          <span class="arrangement-tempo-unit" aria-hidden="true">BPM</span>
           <button
             type="button"
             class="arrangement-tempo-curve"
@@ -613,12 +645,15 @@
             ×
           </button>
         </div>
-      </div>
-      <ng-template #noTempoMarkers>
-        <p class="arrangement-tempo-empty">
-          One tempo throughout. Add a change at the playhead.
+        <p class="arrangement-tempo-empty" *ngIf="tempoMap.markers().length === 0">
+          Tap the lane to add a tempo point.
         </p>
-      </ng-template>
+      </div>
+      <div class="arrangement-tempo-scale" aria-hidden="true">
+        <span>{{ tempoLaneMin() }}</span>
+        <span>BPM</span>
+        <span>{{ tempoLaneMax() }}</span>
+      </div>
     </section>
 
     <section

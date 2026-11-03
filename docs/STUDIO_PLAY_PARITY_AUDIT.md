@@ -31,7 +31,7 @@ us, or stop Play review from shipping us).
 | # | Component | Verdict | The single most important gap | Effort |
 |---|---|---|---|---|
 | 1 | Shell / navigation / onboarding | At parity | No first-run project template tour; help is a shortcuts sheet | S |
-| 2 | Transport bar | Behind | Fixed 4/4, one global tempo, no tempo/time-signature track, no note-repeat | M |
+| 2 | Transport bar | Behind | Tempo map, step/ramp automation and meter selection ship; still no time-signature automation track (note-repeat now ships) | M |
 | 3 | Arrangement view | Behind | Timeline follows the song; overlap crossfades are equal-power in live and bounce (3 Nov 2026); still no drawn overlap gesture, ripple editing or track freeze | M |
 | 4 | Session view (clip launcher) | At parity | Follow-actions exist; no per-clip loop length or launch sync to external clock | S |
 | 5 | Piano roll | At parity | No arpeggiator/note-repeat generator, no strum/randomise, no MIDI-file drop | M |
@@ -757,7 +757,7 @@ FPS budget (`StudioVisualSchedulerService`), device profiling
 6. ~~Stem export.~~ **Done 2026-10-23.**
 
 ### P1 — what reviewers compare first
-7. Tempo/time-signature map + note repeat (§2).
+7. ~~Tempo map + note repeat~~ **Tempo automation and note repeat ship**; time-signature automation remains (§2).
 8. FLAC export (§17) — 24-bit WAV and 44.1/48 kHz shipped 2026-10-23.
 9. Group/bus channels and N aux sends (§8).
 10. ~~Drawn clip crossfade~~ **Equal-power crossfade shipped 2026-11-03 for selected overlapping clips**; drawn gesture + ripple editing remain (§3).
