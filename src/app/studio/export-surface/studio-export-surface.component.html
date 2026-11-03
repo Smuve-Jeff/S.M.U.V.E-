@@ -13,6 +13,19 @@
       </select>
     </label>
 
+    <label class="export-field" *ngIf="supportsBitrate()">
+      <span>Bitrate</span>
+      <select
+        [value]="bitrate()"
+        (change)="setBitrate($event)"
+        [disabled]="busy()"
+      >
+        <option *ngFor="let rate of bitrateOptions" [value]="rate">
+          {{ bitrateLabel(rate) }}
+        </option>
+      </select>
+    </label>
+
     <label class="export-field">
       <span>Sample rate</span>
       <select
@@ -69,6 +82,9 @@
           <span class="export-preset-meta">
             {{ preset.format | uppercase }} ·
             {{ rateLabel(preset.sampleRate) }} · {{ preset.stemBitDepth }}-bit
+            <ng-container *ngIf="preset.bitrate">
+              · {{ bitrateLabel(preset.bitrate) }}
+            </ng-container>
           </span>
         </button>
         <button
@@ -82,8 +98,8 @@
       </div>
     </div>
     <p class="export-preset-hint" *ngIf="presets().length === 0">
-      Save the format, rate and stem depth you deliver with, then reapply it in
-      one tap.
+      Save the format, bitrate, rate and stem depth you deliver with, then
+      reapply it in one tap.
     </p>
   </div>
 

@@ -83,10 +83,32 @@ export const EXPORT_FORMATS: ExportFormatInfo[] = [
   { id: 'wav', label: 'WAV 16-bit', ext: 'wav', mime: 'audio/wav' },
   { id: 'wav24', label: 'WAV 24-bit', ext: 'wav', mime: 'audio/wav' },
   { id: 'flac', label: 'FLAC (lossless)', ext: 'flac', mime: 'audio/flac' },
-  { id: 'mp3', label: 'MP3 192k', ext: 'mp3', mime: 'audio/mpeg', webCodecs: 'mp3' },
+  { id: 'mp3', label: 'MP3', ext: 'mp3', mime: 'audio/mpeg', webCodecs: 'mp3' },
   { id: 'm4a', label: 'AAC (M4A)', ext: 'm4a', mime: 'audio/mp4', webCodecs: 'aac' },
   { id: 'opus', label: 'Opus (OGG)', ext: 'ogg', mime: 'audio/ogg', webCodecs: 'opus' },
 ];
+
+/** Bitrates the lossy WebCodecs export path offers, in bits per second. */
+export const COMPRESSED_EXPORT_BITRATES: number[] = [
+  96_000,
+  128_000,
+  160_000,
+  192_000,
+  256_000,
+  320_000,
+];
+
+/** Codec-default bitrate; zero means the format is uncompressed. */
+export function defaultExportBitrate(format: string): number {
+  if (format === 'mp3') return 192_000;
+  if (format === 'm4a') return 128_000;
+  if (format === 'opus') return 160_000;
+  return 0;
+}
+
+export function exportSupportsBitrate(format: string): boolean {
+  return defaultExportBitrate(format) > 0;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -1496,9 +1518,10 @@ export class ExportService {
   async exportToFormat(
     buffer: AudioBuffer,
     format: string,
-    _quality: number = 16
+    qualityOrBitrate: number = 16
   ): Promise<Blob> {
     const info = EXPORT_FORMATS.find((f) => f.id === format) ?? EXPORT_FORMATS[0];
+    const bitrate = this.resolveExportBitrate(info.id, qualityOrBitrate);
 
     if (info.id === 'wav' || info.id === 'wav24') {
       const wav = await this.audioBufferToWav(
@@ -1516,7 +1539,7 @@ export class ExportService {
 
     if (info.webCodecs && typeof (globalThis as any).AudioEncoder === 'function') {
       try {
-        const encoded = await this.encodeViaWebCodecs(buffer, info);
+        const encoded = await this.encodeViaWebCodecs(buffer, info, bitrate);
         if (encoded) return encoded;
       } catch (err) {
         this.logger.warn(`WebCodecs ${info.id} encode failed, falling back to WAV`, err);
@@ -1528,10 +1551,21 @@ export class ExportService {
     return new Blob([wav], { type: 'audio/wav' });
   }
 
+  /** Validate a requested bitrate, falling back to the codec default. */
+  private resolveExportBitrate(format: string, requested: number): number {
+    const fallback = defaultExportBitrate(format);
+    if (!fallback) return 0;
+    if (!Number.isFinite(requested) || requested < 32_000 || requested > 512_000) {
+      return fallback;
+    }
+    return Math.round(requested);
+  }
+
   /** Encode an AudioBuffer to a compressed format via WebCodecs AudioEncoder. */
   private async encodeViaWebCodecs(
     buffer: AudioBuffer,
-    info: ExportFormatInfo
+    info: ExportFormatInfo,
+    bitrate: number = defaultExportBitrate(info.id)
   ): Promise<Blob | null> {
     const AudioEncoderCtor = (globalThis as any).AudioEncoder;
     if (typeof AudioEncoderCtor !== 'function') return null;
@@ -1562,7 +1596,7 @@ export class ExportService {
       codec,
       sampleRate: 48000,
       numberOfChannels: channelData.length,
-      bitrate: info.id === 'mp3' ? 192_000 : info.id === 'opus' ? 160_000 : 128_000,
+      bitrate: bitrate || defaultExportBitrate(info.id),
     };
     if (!AudioEncoderCtor.isConfigSupported) {
       return null;
@@ -1945,10 +1979,14 @@ export class ExportService {
    * One-tap share: render the project offline with real synth voices, encode
    * to the requested format, then open the native share sheet.
    */
-  async exportAndShare(format: string): Promise<boolean> {
+  async exportAndShare(format: string, bitrate?: number): Promise<boolean> {
     const buffer = await this.renderProjectOffline();
     const polished = await this.applySmuvePolish(buffer);
-    const blob = await this.exportToFormat(polished, format, 16);
+    const blob = await this.exportToFormat(
+      polished,
+      format,
+      bitrate ?? defaultExportBitrate(format),
+    );
     const info = EXPORT_FORMATS.find((f) => f.id === format) ?? EXPORT_FORMATS[0];
     // Codec fallback returns PCM WAV, so the filename must follow the bytes.
     const extension = blob.type === 'audio/wav' ? 'wav' : info.ext;

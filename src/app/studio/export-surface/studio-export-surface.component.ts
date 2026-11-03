@@ -2,7 +2,13 @@ import { CommonModule } from "@angular/common";
 import { Component, computed, inject, signal } from "@angular/core";
 
 import { ProjectWorkspaceService } from "../project-workspace.service";
-import { EXPORT_FORMATS, ExportService } from "../../services/export.service";
+import {
+  COMPRESSED_EXPORT_BITRATES,
+  EXPORT_FORMATS,
+  ExportService,
+  defaultExportBitrate,
+  exportSupportsBitrate,
+} from "../../services/export.service";
 
 type ExportFeedback = { tone: "ok" | "error"; text: string };
 
@@ -13,6 +19,8 @@ export interface ExportPreset {
   format: string;
   sampleRate: 44100 | 48000;
   stemBitDepth: 16 | 24;
+  /** Lossy-codec bitrate in bits per second; absent on older presets. */
+  bitrate?: number;
 }
 
 const EXPORT_PRESETS_KEY = "smuve_export_presets_v1";
@@ -61,6 +69,7 @@ export class StudioExportSurfaceComponent {
 
   readonly formats = EXPORT_FORMATS;
   readonly sampleRates = ExportService.SAMPLE_RATES;
+  readonly bitrateOptions = COMPRESSED_EXPORT_BITRATES;
 
   /**
    * Delivery presets. The format/rate/depth triplet is what an artist sets the
@@ -73,6 +82,10 @@ export class StudioExportSurfaceComponent {
   readonly format = signal(EXPORT_FORMATS[1].id);
   readonly sampleRate = signal<44100 | 48000>(44100);
   readonly stemBitDepth = signal<16 | 24>(24);
+  readonly bitrate = signal(defaultExportBitrate(EXPORT_FORMATS[1].id));
+  readonly supportsBitrate = computed(() =>
+    exportSupportsBitrate(this.format()),
+  );
 
   readonly busy = signal(false);
   /** Null while a render is in flight without discrete steps. */
@@ -84,14 +97,29 @@ export class StudioExportSurfaceComponent {
   private exportController: AbortController | null = null;
   readonly feedback = signal<ExportFeedback | null>(null);
 
-  readonly formatLabel = computed(
-    () =>
-      this.formats.find((entry) => entry.id === this.format())?.label ??
-      this.formats[0].label,
-  );
+  readonly formatLabel = computed(() => {
+    const info =
+      this.formats.find((entry) => entry.id === this.format()) ??
+      this.formats[0];
+    const bitrate = this.supportsBitrate() ? this.bitrate() : 0;
+    return bitrate
+      ? `${info.label} ${Math.round(bitrate / 1000)}k`
+      : info.label;
+  });
 
   setFormat(event: Event) {
-    this.format.set((event.target as HTMLSelectElement).value);
+    const format = (event.target as HTMLSelectElement).value;
+    this.format.set(format);
+    this.bitrate.set(defaultExportBitrate(format));
+  }
+
+  setBitrate(event: Event) {
+    const requested = Number((event.target as HTMLSelectElement).value);
+    this.bitrate.set(
+      this.bitrateOptions.includes(requested)
+        ? requested
+        : defaultExportBitrate(this.format()),
+    );
   }
 
   setSampleRate(event: Event) {
@@ -120,6 +148,7 @@ export class StudioExportSurfaceComponent {
       format: this.format(),
       sampleRate: this.sampleRate(),
       stemBitDepth: this.stemBitDepth(),
+      bitrate: this.bitrate(),
     };
     // Same name overwrites instead of piling up duplicates.
     const next = [
@@ -139,6 +168,13 @@ export class StudioExportSurfaceComponent {
     this.format.set(preset.format);
     this.sampleRate.set(preset.sampleRate === 48000 ? 48000 : 44100);
     this.stemBitDepth.set(preset.stemBitDepth === 16 ? 16 : 24);
+    const savedBitrate = Number(preset.bitrate);
+    this.bitrate.set(
+      exportSupportsBitrate(preset.format) &&
+        this.bitrateOptions.includes(savedBitrate)
+        ? savedBitrate
+        : defaultExportBitrate(preset.format),
+    );
     this.feedback.set({ tone: "ok", text: `Preset “${preset.name}” applied` });
   }
 
@@ -157,6 +193,10 @@ export class StudioExportSurfaceComponent {
 
   rateLabel(rate: number): string {
     return rate === 48000 ? "48 kHz" : "44.1 kHz";
+  }
+
+  bitrateLabel(bitrate: number): string {
+    return `${Math.round(bitrate / 1000)} kbps`;
   }
 
   /** Render → master polish → encode → download, at the chosen format/rate. */
@@ -181,10 +221,13 @@ export class StudioExportSurfaceComponent {
 
       this.progress.set(98);
       this.status.set(`Encoding ${this.formatLabel()}…`);
-      const blob = await this.exportService.exportToFormat(
-        polished,
-        this.format(),
-      );
+      const blob = this.supportsBitrate()
+        ? await this.exportService.exportToFormat(
+            polished,
+            this.format(),
+            this.bitrate(),
+          )
+        : await this.exportService.exportToFormat(polished, this.format());
 
       // Codec fallback returns PCM WAV, so the extension must follow the bytes.
       const extension =
@@ -313,7 +356,12 @@ export class StudioExportSurfaceComponent {
 
     this.begin(`Rendering ${this.formatLabel()} for sharing…`);
     try {
-      const shared = await this.exportService.exportAndShare(this.format());
+      const shared = this.supportsBitrate()
+        ? await this.exportService.exportAndShare(
+            this.format(),
+            this.bitrate(),
+          )
+        : await this.exportService.exportAndShare(this.format());
       this.finish(
         "ok",
         shared

@@ -46,7 +46,7 @@ us, or stop Play review from shipping us).
 | 14 | Mastering suite | Ahead | Reference A/B with loudness matching and one-tap delivery-target conform; no preset idempotence, no spectral delta, no FLAC | M |
 | 15 | Performance mode / pads / performer | At parity | Pad MIDI learn is per-screen; no MIDI-map import/export | S |
 | 16 | Automation | At parity | Aux returns, master volume and selected compressor/limiter/filter/tone parameters are lane targets; per-band threshold, ratio, attack, release and knee lanes are exposed and editable on each Mastering Suite band card | S |
-| 17 | Export / bounce / share | Behind | Stems, 24-bit and 48 kHz now ship; no FLAC, MP3 bitrate fixed, no project interchange, no export job | **L** |
+| 17 | Export / bounce / share | Behind | Stems, 24-bit, 48 kHz, FLAC and selectable lossy bitrates (MP3/AAC/Opus) now ship; no project interchange, no export job | **L** |
 | 18 | Project workspace / cloud | **Blocking** | Cloud sync is `MockCloudServer` in the shipping build | **L** |
 | 19 | MIDI hardware + sync | **Blocking** | Web MIDI only; Android WebView has no `requestMIDIAccess` | M |
 | 20 | Store/packaging (billing, background, signing) | **Blocking** | Billing is a shim, background playback stops, no release signing config | M |
@@ -589,15 +589,17 @@ The gap is discovery and reach: comping lives in the vocal flow, not on every au
    `_24bit`, the transport exposes "Export WAV (24-bit)", and stems are 24-bit so a
    receiving engineer never starts from truncated samples. Evidence:
    `export.service.ts`, `wav-encoder.util.ts`, `transport-bar`, both export specs.
-   **Still open:** no FLAC (no encoder available).
+   FLAC is now lossless 16-bit through `flac-encoder.util.ts`.
 3. ~~**Fixed 44.1 kHz.**~~ **Closed 2026-10-23.** `renderProjectOffline` takes a
    `sampleRate` (the offline context itself is created at 44.1 or 48 kHz, so the
    audio is synthesised at that rate rather than a relabelled bounce),
    `exportProjectWav(bitDepth, sampleRate)` tags non-default files `_48k`, and
    `exportStems({ bitDepth, sampleRate })` renders every stem at the same rate as the
    master. The transport exposes a persistent "Export rate: 44.1 kHz / 48 kHz"
-   toggle used by the WAV and stem actions. **Still open:** MP3 bitrate is fixed at
-   192 k, and the share/social path (`exportAndShare`) always renders at 44.1 kHz.
+   toggle used by the WAV and stem actions. The Export surface now offers
+   96–320 kbps for MP3, AAC and Opus, persists the choice in delivery presets,
+   and passes it to both mixdown and `exportAndShare`. **Still open:** the
+   share/social path always renders at 44.1 kHz.
 4. **No project interchange**: no `.flp`, no DAWproject, no AAF (§19).
 5. **Export progress — partly closed 2 Nov 2026.** The Export surface's
    mixdown consumes `renderProjectOffline({ onProgress })` and shows real

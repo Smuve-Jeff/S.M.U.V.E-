@@ -59,6 +59,9 @@ describe("StudioExportSurfaceComponent", () => {
       component.setStemBitDepth({
         target: { value: "16" },
       } as unknown as Event);
+      component.setBitrate({
+        target: { value: "256000" },
+      } as unknown as Event);
       component.setPresetName("Video deliverable");
       component.savePreset();
 
@@ -69,6 +72,7 @@ describe("StudioExportSurfaceComponent", () => {
         format: "mp3",
         sampleRate: 48000,
         stemBitDepth: 16,
+        bitrate: 256000,
       });
       // Persisted, so a reload keeps the delivery setup.
       expect(localStorage.getItem("smuve_export_presets_v1")).toContain(
@@ -88,6 +92,7 @@ describe("StudioExportSurfaceComponent", () => {
       expect(component.format()).toBe("mp3");
       expect(component.sampleRate()).toBe(48000);
       expect(component.stemBitDepth()).toBe(16);
+      expect(component.bitrate()).toBe(256000);
     });
 
     it("overwrites a preset with the same name instead of duplicating", () => {
@@ -137,6 +142,32 @@ describe("StudioExportSurfaceComponent", () => {
         target: { value: "nope" },
       } as unknown as Event);
       expect(component.sampleRate()).toBe(44100);
+    });
+
+    it("shows and applies the lossy-codec bitrate", async () => {
+      component.setFormat({ target: { value: "mp3" } } as unknown as Event);
+      expect(component.supportsBitrate()).toBe(true);
+      expect(component.bitrate()).toBe(192000);
+      expect(component.formatLabel()).toBe("MP3 192k");
+
+      component.setBitrate({
+        target: { value: "320000" },
+      } as unknown as Event);
+      expect(component.formatLabel()).toBe("MP3 320k");
+
+      await component.exportMixdown();
+      expect(exportService.exportToFormat).toHaveBeenCalledWith(
+        {},
+        "mp3",
+        320000,
+      );
+
+      component.setFormat({ target: { value: "m4a" } } as unknown as Event);
+      component.setBitrate({
+        target: { value: "256000" },
+      } as unknown as Event);
+      await component.shareExport();
+      expect(exportService.exportAndShare).toHaveBeenCalledWith("m4a", 256000);
     });
   });
 
@@ -327,7 +358,7 @@ describe("StudioExportSurfaceComponent", () => {
 
       await component.shareExport();
 
-      expect(exportService.exportAndShare).toHaveBeenCalledWith("m4a");
+      expect(exportService.exportAndShare).toHaveBeenCalledWith("m4a", 128000);
       expect(component.feedback()).toEqual({
         tone: "ok",
         text: "Share sheet opened with the mixdown",

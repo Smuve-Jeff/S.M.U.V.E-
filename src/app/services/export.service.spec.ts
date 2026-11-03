@@ -1,5 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { ExportService, EXPORT_FORMATS } from './export.service';
+import {
+  ExportService,
+  EXPORT_FORMATS,
+  defaultExportBitrate,
+} from './export.service';
 import { AudioEngineService } from './audio-engine.service';
 import { MusicManagerService } from './music-manager.service';
 import { LoggingService } from './logging.service';
@@ -208,6 +212,34 @@ describe('ExportService (Sprint A6)', () => {
     // The service itself reads tracks; a muted track contributes nothing,
     // so re-run with a local stub is unnecessary — blob still builds.
     expect(svc.exportProjectMidi().size).toBeGreaterThan(40);
+  });
+
+  it('defaults lossy bitrates per codec and leaves PCM without one', () => {
+    expect(defaultExportBitrate('mp3')).toBe(192000);
+    expect(defaultExportBitrate('m4a')).toBe(128000);
+    expect(defaultExportBitrate('opus')).toBe(160000);
+    expect(defaultExportBitrate('wav24')).toBe(0);
+  });
+
+  it('passes the selected bitrate into the WebCodecs encoder', async () => {
+    const original = (globalThis as any).AudioEncoder;
+    (globalThis as any).AudioEncoder = function () {};
+    const encode = jest
+      .spyOn(svc as any, 'encodeViaWebCodecs')
+      .mockResolvedValue(new Blob(['mp3'], { type: 'audio/mpeg' }));
+    try {
+      const blob = await svc.exportToFormat(fakeBuffer, 'mp3', 320000);
+      expect(blob.type).toBe('audio/mpeg');
+      expect(encode).toHaveBeenCalledWith(
+        fakeBuffer,
+        expect.objectContaining({ id: 'mp3' }),
+        320000,
+      );
+    } finally {
+      encode.mockRestore();
+      if (original === undefined) delete (globalThis as any).AudioEncoder;
+      else (globalThis as any).AudioEncoder = original;
+    }
   });
 
   it('exportToFormat(wav) encodes PCM to a real audio/wav blob', async () => {
