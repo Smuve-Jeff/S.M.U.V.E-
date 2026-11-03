@@ -2019,6 +2019,26 @@ describe('AudioEngineService meter map', () => {
     expect(svc.meterAtStep(0)).toEqual({ beats: 7, unit: 8 });
   });
 
+  it('keeps meter-based clip windows and tempo automation on one clock', () => {
+    const svc = makeMeterEngine();
+    (svc as any).workletNode = { port: { postMessage: jest.fn() } };
+
+    svc.setMeterMap([
+      { step: 0, beats: 4, unit: 4 },
+      { step: 32, beats: 3, unit: 4 },
+    ]);
+    svc.setTempoMap([
+      { step: 0, bpm: 120 },
+      { step: 32, bpm: 60 },
+    ]);
+
+    // Meter chooses the clip window, tempo chooses how long that window lasts.
+    expect(svc.stepAtBar(2)).toBe(32);
+    expect(svc.stepsForBars(2, 2)).toBe(24);
+    expect(svc.secondsBetweenSteps(32, 56)).toBeCloseTo(6, 9);
+    expect(svc.secondsBetweenSteps(16, 32)).toBeCloseTo(2, 9);
+  });
+
   it('maps bars through meter changes for clips and export', () => {
     const svc = makeMeterEngine();
     svc.setMeterMap([

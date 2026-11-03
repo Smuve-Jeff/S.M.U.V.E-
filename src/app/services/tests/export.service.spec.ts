@@ -506,6 +506,109 @@ describe("ExportService", () => {
     expect(stepsForBars).toHaveBeenCalledWith(2, 2);
   });
 
+  it("retimes export duration and fades through meter and tempo changes", async () => {
+    const gains: any[] = [];
+    const contexts: any[][] = [];
+    const offline = {
+      destination: {},
+      createGain: jest.fn(() => {
+        const node = {
+          gain: {
+            value: 1,
+            setValueAtTime: jest.fn(),
+            linearRampToValueAtTime: jest.fn(),
+            setTargetAtTime: jest.fn(),
+          },
+          connect: jest.fn(),
+        };
+        gains.push(node);
+        return node;
+      }),
+      createStereoPanner: jest.fn(() => ({
+        pan: { value: 0 },
+        connect: jest.fn(),
+      })),
+      createBufferSource: jest.fn(() => ({
+        buffer: null,
+        connect: jest.fn(),
+        playbackRate: { setValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+      })),
+      startRendering: jest.fn().mockResolvedValue({}),
+    };
+    const original = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn((...args: any[]) => {
+      contexts.push(args);
+      return offline;
+    });
+
+    const engine = (service as any).engine;
+    engine.masterGain = { gain: { value: 1 } };
+    engine.tempo = jest.fn(() => 120);
+    engine.getTempoMap = jest.fn(() => [
+      { step: 0, bpm: 120 },
+      { step: 32, bpm: 60 },
+    ]);
+    engine.stepAtBar = jest.fn((bar: number) =>
+      bar <= 2 ? bar * 16 : 32 + (bar - 2) * 12,
+    );
+    engine.stepsForBars = jest.fn((startBar: number, bars: number) =>
+      engine.stepAtBar(startBar + bars) - engine.stepAtBar(startBar),
+    );
+    engine.barCountForStep = jest.fn((step: number) =>
+      [0, 16, 32, 44, 56].filter((boundary) => boundary < step).length || 1,
+    );
+    (service as any).musicManager.activeLoopBars = jest.fn(() => 4);
+    (service as any).musicManager.tracks = jest.fn(() => [
+      {
+        id: "vo",
+        name: "Vocal",
+        type: "audio",
+        muted: false,
+        soloed: false,
+        gain: 1,
+        pan: 0,
+        notes: [],
+        clips: [
+          {
+            type: "audio",
+            start: 2,
+            length: 2,
+            fadeIn: 1,
+            fadeOut: 1,
+            audioData: { duration: 8, sampleRate: 44100 },
+          },
+        ],
+      },
+    ]);
+
+    try {
+      await service.renderProjectOffline();
+    } finally {
+      if (original === undefined) {
+        delete (globalThis as any).OfflineAudioContext;
+      } else {
+        (globalThis as any).OfflineAudioContext = original;
+      }
+    }
+
+    // Bar 2 starts at step 32; two 3/4 bars end at 56. The tempo drops to
+    // 60 BPM there, so the six-second clip spans 4 s to 10 s and each
+    // one-bar fade is three seconds, with the render tail ending at 11 s.
+    expect(engine.stepAtBar).toHaveBeenCalledWith(2);
+    expect(engine.stepsForBars).toHaveBeenCalledWith(2, 2);
+    expect(contexts[0]).toEqual([2, 11 * 44100, 44100]);
+    const fader = gains.find(
+      (node) => node.gain.linearRampToValueAtTime.mock.calls.length > 0,
+    );
+    expect(fader).toBeTruthy();
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(1, 0, 4);
+    expect(fader!.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(1, 1, 7);
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(2, 1, 7);
+    expect(fader!.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(2, 0, 10);
+  });
+
   it("applies clip-level gain when the clip has no fades", async () => {
     const gains = await renderClipGains({
       type: "audio",
