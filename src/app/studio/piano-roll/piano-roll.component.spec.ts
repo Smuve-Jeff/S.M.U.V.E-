@@ -511,6 +511,35 @@ describe("PianoRollComponent", () => {
     );
   });
 
+  it("duplicates the selection one bar later and selects the copies", () => {
+    mockMusicManager.tracks.update((tracks) => [
+      {
+        ...tracks[0],
+        notes: [
+          { id: "n1", midi: 60, step: 2, length: 1, velocity: 0.8 },
+          { id: "n2", midi: 64, step: 6, length: 1, velocity: 0.8 },
+        ],
+      },
+    ]);
+    mockMusicManager.duplicateNotes.mockClear();
+    mockMusicManager.duplicateNotes.mockReturnValueOnce([
+      "copy-n1",
+      "copy-n2",
+    ]);
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+
+    component.duplicateSelectionToNextBar();
+
+    expect(mockMusicManager.duplicateNotes).toHaveBeenCalledWith(
+      "1",
+      ["n1", "n2"],
+      16,
+    );
+    expect(component.selectedNoteIds()).toEqual(
+      new Set(["copy-n1", "copy-n2"]),
+    );
+  });
+
   it("scopes Humanize, Strum and Arp to the selected notes", () => {
     component.selectedNoteIds.set(new Set(["n1", "n2"]));
 

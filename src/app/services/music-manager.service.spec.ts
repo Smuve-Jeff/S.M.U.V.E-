@@ -2508,4 +2508,34 @@ describe('MusicManagerService per-scene follow rules', () => {
     ).toBe(120);
   });
 
+  it('duplicates selected notes one bar later and returns the new ids', () => {
+    const source = service.tracks()[0];
+    service.tracks.set([
+      {
+        ...source,
+        notes: [
+          { id: 'a', step: 2, midi: 64, length: 1, velocity: 0.8 },
+          { id: 'untouched', step: 8, midi: 48, length: 1, velocity: 0.8 },
+        ],
+        clips: [],
+      },
+    ]);
+
+    const ids = service.duplicateNotes('track-1', ['a'], 16);
+
+    expect(ids).toHaveLength(1);
+    const copy = service.tracks()[0].notes.find((n) => n.id === ids[0]);
+    expect(copy?.step).toBe(18);
+    expect(copy?.midi).toBe(64);
+    expect(service.duplicateNotes('track-1', ['missing'], 16)).toEqual([]);
+
+    const recorder = (service as unknown as { history: { undo(): void } })
+      .history;
+    recorder.undo();
+    expect(service.tracks()[0].notes).toHaveLength(2);
+    expect(
+      service.tracks()[0].notes.find((n) => n.id === ids[0]),
+    ).toBeUndefined();
+  });
+
 });

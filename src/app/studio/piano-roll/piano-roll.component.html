@@ -804,6 +804,15 @@
       <button
         type="button"
         class="pr-inspector-toggle"
+        (click)="duplicateSelectionToNextBar()"
+        title="Duplicate selected notes one bar later"
+      >
+        <span class="material-symbols-outlined">library_add</span>
+        <span>Dup Bar</span>
+      </button>
+      <button
+        type="button"
+        class="pr-inspector-toggle"
         (click)="copySelection()"
         title="Copy selected notes (Ctrl+C)"
       >

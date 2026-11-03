@@ -38,6 +38,8 @@ import { StudioVisualSchedulerService } from "../shared/studio-visual-scheduler.
 
 const VELOCITY_LANE_HEIGHT = 80;
 const MAX_MIDI = 96;
+/** 16 sixteenth-note steps per bar, matching the editor's 4/4 grid. */
+const STEPS_PER_BAR = 16;
 /** Movement (px) before a touch on a note becomes a drag instead of a tap. */
 const TOUCH_DRAG_SLOP_PX = 6;
 /**
@@ -2163,6 +2165,39 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!track || ids.length === 0) return;
     this.musicManager.duplicateNotes(track.id, ids, this.lengthFromSnap());
     this.haptic.light();
+    this.markDirty();
+  }
+
+  /**
+   * Copy the selection one bar later in a single gesture. The copies become
+   * the selection, so tapping again extends the phrase instead of stacking
+   * every copy on the same bar. If the copy lands past the visible grid, grow
+   * the grid to cover it rather than putting notes where the artist cannot
+   * reach them.
+   */
+  duplicateSelectionToNextBar(): void {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    const selected = track.notes.filter((n) => ids.includes(n.id));
+    if (selected.length === 0) return;
+
+    const lastEnd = Math.max(
+      ...selected.map((n) => n.step + Math.max(0.125, n.length)),
+    );
+    const needed = Math.ceil((lastEnd + STEPS_PER_BAR) / STEPS_PER_BAR) * STEPS_PER_BAR;
+    if (needed > this.gridSteps()) {
+      this.gridSteps.update((steps) => Math.min(256, Math.max(steps, needed)));
+    }
+
+    const copies = this.musicManager.duplicateNotes(
+      track.id,
+      ids,
+      STEPS_PER_BAR,
+    );
+    if (copies.length === 0) return;
+    this.selectedNoteIds.set(new Set(copies));
+    this.haptic.medium();
     this.markDirty();
   }
 

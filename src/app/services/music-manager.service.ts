@@ -1483,10 +1483,11 @@ export class MusicManagerService {
     );
   }
 
-  duplicateNotes(trackId: string, ids: string[], offset: number) {
+  duplicateNotes(trackId: string, ids: string[], offset: number): string[] {
     const t = this.tracks().find((x) => x.id === trackId);
-    if (!t) return;
+    if (!t) return [];
     const sources = t.notes.filter((n) => ids.includes(n.id));
+    if (sources.length === 0) return [];
     const dupes = sources.map((n) => ({
       ...this.clone(n),
       id: 'note-' + Date.now() + '-' + Math.random(),
@@ -1512,6 +1513,7 @@ export class MusicManagerService {
         );
       }
     );
+    return dupes.map((d) => d.id);
   }
 
   /**
