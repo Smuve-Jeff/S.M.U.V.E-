@@ -661,6 +661,8 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
    * explicit `?view=`) overrides this in ngOnInit.
    */
   activeView = signal<StudioView>("quick-session");
+  /** One-shot slot/plugin focus for the Effects Rack. */
+  readonly effectsRackFocus = signal<{ slot?: number; pluginId?: string } | null>(null);
   private readonly studioFocus = inject(StudioFocusService);
   showSmartCreationSheet = signal(false);
   /** One-tap "how does this machine make music?" sheet, opened from the rail. */
@@ -2426,8 +2428,17 @@ export class StudioComponent implements OnInit, OnDestroy, AfterViewInit {
     return true;
   }
 
-  /** Inspector → Effects Rack handoff: select the track, then open the rack. */
-  openEffectsRack(trackId: string) {
+  /** Mixer/Inspector → Effects Rack handoff, optionally focusing one insert. */
+  openEffectsRack(
+    target: string | { trackId: string; slot?: number; pluginId?: string },
+  ) {
+    const trackId = typeof target === "string" ? target : target.trackId;
+    const focus = typeof target === "string" ? null : target;
+    this.effectsRackFocus.set(
+      focus && (focus.slot !== undefined || focus.pluginId)
+        ? { slot: focus.slot, pluginId: focus.pluginId }
+        : null,
+    );
     if (trackId) this.musicManager.selectedTrackId.set(trackId);
     this.setActiveView("effects-rack");
   }

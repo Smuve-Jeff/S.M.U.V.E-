@@ -169,6 +169,18 @@ describe("MixerComponent", () => {
       'reverb',
       'eq mastering',
     ]);
+    expect(
+      component.insertEntries(track).map((entry) => [
+        entry.kind,
+        entry.slot,
+        entry.pluginId,
+      ]),
+    ).toEqual([
+      ['macro', 1, undefined],
+      ['macro', 2, undefined],
+      ['live', undefined, 'smuve.reverb.v2'],
+      ['live', undefined, 'smuve.eq.mastering.v2'],
+    ]);
     expect(component.insertCount(track)).toBe(4);
     expect(component.insertSummary(track)).toContain('EQ');
     expect(component.insertSummary(track)).toContain('reverb');
@@ -176,8 +188,8 @@ describe("MixerComponent", () => {
   });
 
   it('opens the effects rack for the strip it was clicked from', () => {
-    const emitted: string[] = [];
-    component.openEffectsRack.subscribe((id) => emitted.push(id));
+    const emitted: Array<{ trackId: string; slot?: number; pluginId?: string }> = [];
+    component.openEffectsRack.subscribe((request) => emitted.push(request));
     const stopPropagation = jest.fn();
     const track = {
       id: '1',
@@ -190,7 +202,59 @@ describe("MixerComponent", () => {
 
     expect(stopPropagation).toHaveBeenCalled();
     expect(component.selectedTrackId()).toBe('1');
-    expect(emitted).toEqual(['1']);
+    expect(emitted).toEqual([{ trackId: '1' }]);
+  });
+
+  it('lists every insert and requests the exact rack target', () => {
+    const emitted: Array<{ trackId: string; slot?: number; pluginId?: string }> = [];
+    component.openEffectsRack.subscribe((request) => emitted.push(request));
+    const stopPropagation = jest.fn();
+    const track = {
+      id: '1',
+      name: 'Track 1',
+      fxSlots: [
+        { id: 'fx1', type: 'Reverb', params: {}, enabled: true },
+        { id: 'fx2', type: 'Delay', params: {}, enabled: true },
+      ],
+      pluginIds: ['smuve.reverb.v2'],
+    } as any;
+    const entries = component.insertEntries(track);
+
+    component.jumpToInsert(track, entries[0], { stopPropagation } as any);
+    component.jumpToInsert(track, entries[2], { stopPropagation } as any);
+
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(emitted).toEqual([
+      { trackId: '1', slot: 1 },
+      { trackId: '1', pluginId: 'smuve.reverb.v2' },
+    ]);
+  });
+
+  it('toggles the insert popover from the strip button', () => {
+    const track = {
+      id: '1',
+      name: 'Track 1',
+      fxSlots: [],
+      pluginIds: [],
+    } as any;
+    const event = {
+      stopPropagation: jest.fn(),
+      currentTarget: {
+        getBoundingClientRect: () => ({
+          left: 20,
+          top: 20,
+          width: 20,
+          bottom: 40,
+        }),
+      },
+    } as any;
+
+    component.openInsertMenu(track, event);
+    expect(component.insertMenu()?.trackId).toBe('1');
+    expect(event.stopPropagation).toHaveBeenCalled();
+
+    component.openInsertMenu(track, event);
+    expect(component.insertMenu()).toBeNull();
   });
 
   it('renders an insert count button on every strip', () => {

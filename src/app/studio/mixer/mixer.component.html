@@ -341,10 +341,12 @@
         <button
           type="button"
           class="mix-inserts"
-          (click)="openTrackInserts(track, $event)"
+          (click)="openInsertMenu(track, $event)"
           [attr.data-empty]="insertCount(track) === 0"
+          [attr.aria-haspopup]="'dialog'"
+          [attr.aria-expanded]="insertMenu()?.trackId === track.id"
           [attr.title]="insertSummary(track)"
-          [attr.aria-label]="'Open inserts for ' + track.name + '. ' + insertSummary(track)"
+          [attr.aria-label]="'Show inserts for ' + track.name + '. ' + insertSummary(track)"
         >
           <span class="material-symbols-outlined mix-inserts-icon" aria-hidden="true">tune</span>
           <span class="mix-inserts-label">FX</span>
@@ -757,4 +759,72 @@
       </div>
     </div>
   </section>
+
+  <ng-container *ngIf="insertMenu() as menu">
+    <div
+      class="mix-insert-backdrop"
+      (click)="closeInsertMenu()"
+      aria-hidden="true"
+    ></div>
+    <section
+      class="mix-insert-popover"
+      role="dialog"
+      [attr.aria-label]="'Inserts for ' + (insertMenuTrack()?.name ?? 'channel')"
+      [style.left.px]="menu.left"
+      [style.top.px]="menu.top"
+    >
+      <ng-container *ngIf="insertMenuTrack() as track">
+        <header class="mix-insert-popover-head">
+          <div>
+            <span class="mix-insert-popover-kicker">CHANNEL INSERTS</span>
+            <strong>{{ track.name }}</strong>
+          </div>
+          <button
+            type="button"
+            class="mix-insert-popover-close"
+            (click)="closeInsertMenu()"
+            aria-label="Close insert list"
+            title="Close"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </header>
+
+        <div class="mix-insert-list" *ngIf="insertMenuEntries().length > 0; else noInserts">
+          <button
+            type="button"
+            class="mix-insert-row"
+            *ngFor="let entry of insertMenuEntries(); trackBy: insertEntryKey"
+            (click)="jumpToInsert(track, entry, $event)"
+          >
+            <span class="material-symbols-outlined mix-insert-row-icon" aria-hidden="true">
+              {{ entry.kind === "macro" ? "blur_on" : "bolt" }}
+            </span>
+            <span class="mix-insert-row-copy">
+              <strong>{{ entry.label }}</strong>
+              <small>
+                {{ entry.kind === "macro" ? "MACRO · SLOT " + entry.slot : "LIVE WASM" }}
+              </small>
+            </span>
+            <span class="material-symbols-outlined mix-insert-row-go" aria-hidden="true">
+              chevron_right
+            </span>
+          </button>
+        </div>
+        <ng-template #noInserts>
+          <p class="mix-insert-empty">No inserts on this channel yet.</p>
+        </ng-template>
+
+        <button
+          type="button"
+          class="mix-insert-open"
+          (click)="openTrackInserts(track, $event)"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+          Open Effects Rack
+        </button>
+      </ng-container>
+    </section>
+  </ng-container>
+
 </div>

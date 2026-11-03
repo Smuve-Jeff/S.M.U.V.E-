@@ -1,4 +1,15 @@
-import { Component, inject, computed, signal } from "@angular/core";
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  inject,
+  computed,
+  signal,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  output,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
@@ -37,7 +48,7 @@ export type { FxParamSpec };
   templateUrl: "./effects-rack-ui.component.html",
   styleUrls: ["./effects-rack-ui.component.css", "../shared/platform-ux.css"],
 })
-export class EffectsRackUiComponent {
+export class EffectsRackUiComponent implements OnChanges, AfterViewInit {
   private musicManager = inject(MusicManagerService);
   private audioEngine = inject(AudioEngineService);
   private pluginStore = inject(PluginStoreService);
@@ -45,9 +56,42 @@ export class EffectsRackUiComponent {
   private notify = inject(NotificationService);
   readonly effectPresets = inject(EffectPresetService);
   readonly wasmPresets = inject(WasmInsertPresetService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  @Input() focusSlot: number | null = null;
+  @Input() focusPluginId: string | null = null;
+  readonly focusConsumed = output<void>();
 
   selectedTrack = this.musicManager.selectedTrack;
   activeSlot = signal(1);
+
+  ngOnChanges(changes: SimpleChanges): void {
+    const slot = Number(changes["focusSlot"]?.currentValue);
+    if (Number.isInteger(slot) && slot > 0) this.activeSlot.set(slot);
+  }
+
+  ngAfterViewInit(): void {
+    if (this.focusSlot == null && !this.focusPluginId) return;
+    let target: HTMLElement | null = null;
+    if (this.focusSlot != null) {
+      target = this.host.nativeElement.querySelector<HTMLElement>(
+        `[data-fx-slot-index="${this.focusSlot}"]`,
+      );
+    } else {
+      target =
+        Array.from(
+          this.host.nativeElement.querySelectorAll<HTMLElement>(
+            "[data-plugin-id]",
+          ),
+        ).find(
+          (element) =>
+            element.getAttribute("data-plugin-id") === this.focusPluginId,
+        ) ?? null;
+    }
+    target?.scrollIntoView?.({ block: "nearest" });
+    target?.focus?.();
+    this.focusConsumed.emit();
+  }
 
   /** Sprint B1 Phase 2 — WASM plugin catalog for live inserts. */
   wasmCatalog: DspPluginManifest[] = this.pluginStore.catalog;

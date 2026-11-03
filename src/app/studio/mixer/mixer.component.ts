@@ -2,11 +2,13 @@ import {
   Component,
   Input,
   inject,
+  ElementRef,
   signal,
   computed,
   OnInit,
   OnDestroy,
   output,
+  HostListener,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -30,6 +32,20 @@ import { StudioMeterComponent } from "../shared/studio-meter/studio-meter.compon
 
 interface MeterReadings {
   [trackId: string]: number;
+}
+
+export interface MixerInsertEntry {
+  key: string;
+  label: string;
+  kind: "macro" | "live";
+  slot?: number;
+  pluginId?: string;
+}
+
+export interface MixerInsertRequest {
+  trackId: string;
+  slot?: number;
+  pluginId?: string;
 }
 
 type MonoCompatibilityState = "safe" | "wide" | "phase" | "none";
@@ -62,6 +78,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   readonly recordingStatus = inject(RecordingStatusService);
   private readonly visualScheduler = inject(StudioVisualSchedulerService);
   private readonly dialog = inject(InteractionDialogService);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   @Input() activeClip: Clip | null = null;
 
@@ -76,7 +93,19 @@ export class MixerComponent implements OnInit, OnDestroy {
   readonly panLaw = this.audioSession.engine.panLaw;
 
   /** Quick-open handoff to the Studio shell's Effects Rack view. */
-  readonly openEffectsRack = output<string>();
+  readonly openEffectsRack = output<MixerInsertRequest>();
+
+  /** Viewport-fixed insert fly-out; fixed so the strip's overflow cannot clip it. */
+  readonly insertMenu = signal<{ trackId: string; left: number; top: number } | null>(null);
+  readonly insertMenuTrack = computed(() => {
+    const id = this.insertMenu()?.trackId;
+    return id ? this.tracks().find((track) => track.id === id) ?? null : null;
+  });
+  readonly insertMenuEntries = computed(() => {
+    const track = this.insertMenuTrack();
+    return track ? this.insertEntries(track) : [];
+  });
+  private insertMenuTrigger: HTMLElement | null = null;
 
   /**
    * Console view. The segmented control used to be decorative: "Strips" was
@@ -134,21 +163,42 @@ export class MixerComponent implements OnInit, OnDestroy {
   }
 
   /** Macro slots plus live WASM kernels installed on this channel. */
-  insertNames(track: TrackModel): string[] {
-    const macro = (track.fxSlots ?? [])
-      .filter((slot) => !!slot.type)
-      .map((slot) => slot.type);
-    const live = (track.pluginIds ?? []).map((id) =>
-      id
-        .replace(/^smuve\./, "")
-        .replace(/\.v\d+$/, "")
-        .replace(/\./g, " "),
+  insertEntries(track: TrackModel): MixerInsertEntry[] {
+    const macro: MixerInsertEntry[] = (track.fxSlots ?? []).flatMap(
+      (slot, index) =>
+        slot.type
+          ? [
+              {
+                key: `macro:${slot.id}`,
+                label: slot.type,
+                kind: "macro" as const,
+                slot: index + 1,
+              },
+            ]
+          : [],
     );
+    const live: MixerInsertEntry[] = (track.pluginIds ?? []).map((id) => ({
+      key: `live:${id}`,
+      label: this.pluginInsertName(id),
+      kind: "live" as const,
+      pluginId: id,
+    }));
     return [...macro, ...live];
   }
 
+  private pluginInsertName(id: string): string {
+    return id
+      .replace(/^smuve\./, "")
+      .replace(/\.v\d+$/, "")
+      .replace(/\./g, " ");
+  }
+
+  insertNames(track: TrackModel): string[] {
+    return this.insertEntries(track).map((entry) => entry.label);
+  }
+
   insertCount(track: TrackModel): number {
-    return this.insertNames(track).length;
+    return this.insertEntries(track).length;
   }
 
   insertSummary(track: TrackModel): string {
@@ -160,10 +210,80 @@ export class MixerComponent implements OnInit, OnDestroy {
     return `${names.length} ${noun} on ${track.name}: ${names.join(" · ")} — open the effects rack`;
   }
 
+  insertEntryKey = (_: number, entry: MixerInsertEntry): string => entry.key;
+
+  openInsertMenu(track: TrackModel, event?: Event): void {
+    event?.stopPropagation();
+    if (this.insertMenu()?.trackId === track.id) {
+      this.closeInsertMenu();
+      return;
+    }
+    this.selectTrack(track.id);
+    const rect = (
+      event?.currentTarget as HTMLElement | null
+    )?.getBoundingClientRect?.();
+    const viewportWidth =
+      typeof window === "undefined" ? 1024 : window.innerWidth;
+    const viewportHeight =
+      typeof window === "undefined" ? 768 : window.innerHeight;
+    const panelWidth = 248;
+    const panelHeight = 300;
+    const left = rect
+      ? Math.max(
+          8,
+          Math.min(
+            rect.left + rect.width / 2 - panelWidth / 2,
+            viewportWidth - panelWidth - 8,
+          ),
+        )
+      : 16;
+    let top = rect ? rect.bottom + 6 : 72;
+    if (rect && top + panelHeight > viewportHeight) {
+      top = Math.max(8, rect.top - panelHeight - 6);
+    }
+    this.insertMenuTrigger = (event?.currentTarget as HTMLElement) ?? null;
+    this.insertMenu.set({ trackId: track.id, left, top });
+    setTimeout(() => {
+      this.host.nativeElement
+        .querySelector<HTMLElement>(
+          ".mix-insert-popover .mix-insert-row, .mix-insert-popover .mix-insert-open",
+        )
+        ?.focus();
+    }, 0);
+  }
+
+  closeInsertMenu(restoreFocus = true): void {
+    this.insertMenu.set(null);
+    const trigger = this.insertMenuTrigger;
+    this.insertMenuTrigger = null;
+    if (restoreFocus) trigger?.focus?.();
+  }
+
+  @HostListener("document:keydown.escape")
+  onInsertMenuEscape(): void {
+    this.closeInsertMenu();
+  }
+
+  jumpToInsert(
+    track: TrackModel,
+    entry: MixerInsertEntry,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    this.closeInsertMenu(false);
+    this.selectTrack(track.id);
+    this.openEffectsRack.emit({
+      trackId: track.id,
+      ...(entry.slot !== undefined ? { slot: entry.slot } : {}),
+      ...(entry.pluginId ? { pluginId: entry.pluginId } : {}),
+    });
+  }
+
   openTrackInserts(track: TrackModel, event?: Event): void {
     event?.stopPropagation();
+    this.closeInsertMenu(false);
     this.selectTrack(track.id);
-    this.openEffectsRack.emit(track.id);
+    this.openEffectsRack.emit({ trackId: track.id });
   }
 
   private analyserMap = new Map<string, AnalyserNode>();

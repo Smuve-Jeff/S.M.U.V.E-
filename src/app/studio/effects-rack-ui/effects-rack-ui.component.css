@@ -1847,3 +1847,9 @@
   .er-preset-name { min-height: 44px; }
   .er-preset-delete { width: 44px; min-height: 44px; }
 }
+
+/* A mixer slot request focuses the matching plugin card. */
+.er-plugin-card:focus {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}

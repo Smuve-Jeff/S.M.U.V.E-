@@ -126,6 +126,8 @@
       <div
         class="er-plugin-card"
         *ngFor="let id of trackPluginIds()"
+        [attr.data-plugin-id]="id"
+        tabindex="-1"
         [attr.aria-label]="(pluginManifest(id)?.name || id) + ' parameters'"
       >
         <header class="er-plugin-card-head">
@@ -209,6 +211,7 @@
       <div
         *ngFor="let slot of fxSlots(); let i = index"
         class="er-slot effects-rack-slot"
+        [attr.data-fx-slot-index]="i + 1"
         role="button"
         tabindex="0"
         [class.active]="activeSlot() === i + 1"

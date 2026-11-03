@@ -1236,7 +1236,11 @@
       </div>
       <div class="comp-view" *ngSwitchCase="'effects-rack'">
         @defer (on viewport; prefetch on idle) {
-          <app-effects-rack-ui></app-effects-rack-ui>
+          <app-effects-rack-ui
+            [focusSlot]="effectsRackFocus()?.slot ?? null"
+            [focusPluginId]="effectsRackFocus()?.pluginId ?? null"
+            (focusConsumed)="effectsRackFocus.set(null)"
+          ></app-effects-rack-ui>
         } @placeholder (minimum 150ms) {
           <div class="comp-view-loading" aria-live="polite">
             <span class="material-symbols-outlined">magic_button</span>

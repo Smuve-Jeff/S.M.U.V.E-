@@ -139,6 +139,24 @@ describe("EffectsRackUiComponent", () => {
     expect(component).toBeTruthy();
   });
 
+  it("selects a macro slot requested by the mixer", () => {
+    tracksSignal.set([
+      {
+        ...track,
+        fxSlots: [
+          { id: "fx1", type: "Reverb", params: { wet: 20 }, enabled: true },
+          { id: "fx2", type: "Delay", params: {}, enabled: true },
+        ],
+      },
+    ]);
+    fixture.detectChanges();
+
+    fixture.componentRef.setInput("focusSlot", 2);
+    fixture.detectChanges();
+
+    expect(component.activeSlot()).toBe(2);
+  });
+
   it("exposes the active slot and its type specs", () => {
     expect(component.activeSlot()).toBe(1);
     expect(component.paramSpecs("Reverb")).toBe(FX_PARAM_SPECS["Reverb"]);
