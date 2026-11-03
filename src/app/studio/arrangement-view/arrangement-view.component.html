@@ -680,7 +680,7 @@
           class="arrangement-tempo-marker arrangement-meter-marker"
           data-meter-marker
           *ngFor="let marker of meterMap.markers()"
-          [style.left.%]="tempoMarkerLeft(marker.step)"
+          [style.left.%]="meterMarkerLeft(marker.step)"
         >
           <button
             type="button"
@@ -732,7 +732,7 @@
       <div class="arrangement-overview-head">
         <span class="arrangement-overview-title">OVERVIEW</span>
         <span class="arrangement-overview-readout">
-          Bar {{ (musicManager.currentStep() / 16) + 1 | number: '1.0-0' }} / {{ effectiveBars() }}
+          Bar {{ currentBar() + 1 }} / {{ effectiveBars() }}
         </span>
         <label class="arrangement-zoom">
           <span class="material-symbols-outlined" aria-hidden="true">zoom_in</span>
@@ -755,7 +755,7 @@
       >
         <span
           class="arrangement-overview-playhead"
-          [style.left.%]="(musicManager.currentStep() / (16 * effectiveBars())) * 100"
+          [style.left.%]="overviewPlayheadPercent()"
           aria-hidden="true"
         ></span>
       </button>

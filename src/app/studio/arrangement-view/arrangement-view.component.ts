@@ -164,8 +164,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     pointerId: number;
     markerId: string;
     startClientX: number;
-    initialStep: number;
-    lastStep: number;
+    initialBar: number;
+    lastBar: number;
     laneWidth: number;
     moved: boolean;
   } | null = null;
@@ -256,7 +256,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       0,
       Math.min(1, (event.clientX - rect.left) / rect.width),
     );
-    this.seekToStep(Math.round(ratio * 16 * Math.max(1, this.effectiveBars())));
+    this.seekToStep(this.stepAtBar(ratio * Math.max(1, this.effectiveBars())));
   }
 
   private seekToStep(step: number): void {
@@ -292,7 +292,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
         end = Math.max(end, (clip.start ?? 0) + Math.max(0.001, clip.length ?? 4));
       }
       for (const note of track.notes ?? []) {
-        end = Math.max(end, ((note.step ?? 0) + (note.length ?? 0)) / 16);
+        end = Math.max(
+          end,
+          this.barCountForStep((note.step ?? 0) + (note.length ?? 0)),
+        );
       }
     }
     return Math.ceil(end);
@@ -310,8 +313,34 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   bars = computed(() => Array.from({ length: this.totalBars() }, (_, i) => i));
   playheadPos = computed(
-    () => (this.musicManager.currentStep() / 16) * this.barWidth(),
+    () => this.barPositionAtStep(this.musicManager.currentStep()) * this.barWidth(),
   );
+  readonly currentBar = computed(() =>
+    this.barAtStep(this.musicManager.currentStep()),
+  );
+  readonly overviewPlayheadPercent = computed(() => {
+    const bars = Math.max(1, this.effectiveBars());
+    return Math.max(
+      0,
+      Math.min(100, (this.barPositionAtStep(this.musicManager.currentStep()) / bars) * 100),
+    );
+  });
+
+  private barAtStep(step: number): number {
+    return this.engine?.barAtStep?.(step) ?? Math.floor(step / 16);
+  }
+
+  private barPositionAtStep(step: number): number {
+    return this.engine?.barPositionAtStep?.(step) ?? step / 16;
+  }
+
+  private stepAtBar(bar: number): number {
+    return this.engine?.stepAtBar?.(bar) ?? Math.round(bar * 16);
+  }
+
+  private barCountForStep(step: number): number {
+    return Math.max(1, this.engine?.barCountForStep?.(step) ?? Math.ceil(step / 16));
+  }
 
   // Sprint A4: Song-Mode UI surface.
   // Defensive optional-chaining so tests that stub `musicManager` without
@@ -319,7 +348,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   readonly engine = this.musicManager?.engine;
   readonly playMode = computed(() => this.engine?.playMode?.() ?? "song");
   readonly effectiveBars = computed(() =>
-    Math.max(1, Math.round((this.engine?.effectiveLoopLength?.() ?? 64) / 16)),
+    Math.max(
+      1,
+      this.barCountForStep(this.engine?.effectiveLoopLength?.() ?? 64),
+    ),
   );
   readonly songEnded = computed(() => this.engine?.songEnded?.() ?? false);
   togglePlayMode(): void {
@@ -457,7 +489,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     }
 
     const totalBars = this.totalBars();
-    const playheadBar = (this.musicManager.currentStep() || 0) / 16;
+    const playheadBar = this.barPositionAtStep(this.musicManager.currentStep() || 0);
 
     this.glRenderer.clear(0.02, 0.04, 0.09, 1.0);
     this.timelineRenderer.render(
@@ -1603,9 +1635,9 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
   /** Pin the transport's current meter at the playhead's bar. */
   addMeterHere(): void {
-    const bar = Math.floor(this.musicManager.currentStep() / STEPS_PER_BAR);
+    const bar = this.barAtStep(this.musicManager.currentStep());
     const signature = this.engine?.timeSignature?.() ?? { beats: 4, unit: 4 };
-    this.addMeterMarkerAt(bar * STEPS_PER_BAR, signature.beats, signature.unit);
+    this.addMeterMarkerAt(this.stepAtBar(bar), signature.beats, signature.unit);
   }
 
   private addMeterMarkerAt(step: number, beats: number, unit: number): void {
@@ -1629,10 +1661,15 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const lane = event.currentTarget as HTMLElement | null;
     const rect = lane?.getBoundingClientRect();
     if (!rect?.width) return;
-    const totalSteps = Math.max(1, this.totalBars()) * STEPS_PER_BAR;
-    const step = this.snapTempoStep(
-      ((event.clientX - rect.left) / rect.width) * totalSteps,
+    const totalBars = Math.max(1, this.totalBars());
+    const bar = Math.max(
+      0,
+      Math.min(
+        totalBars - 1,
+        Math.round(((event.clientX - rect.left) / rect.width) * totalBars),
+      ),
     );
+    const step = this.stepAtBar(bar);
     const existing = this.meterMap
       .markers()
       .find((marker) => marker.step === step);
@@ -1661,8 +1698,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       pointerId: event.pointerId,
       markerId: marker.id,
       startClientX: event.clientX,
-      initialStep: marker.step,
-      lastStep: marker.step,
+      initialBar: this.barAtStep(marker.step),
+      lastBar: this.barAtStep(marker.step),
       laneWidth: rect.width,
       moved: false,
     };
@@ -1672,14 +1709,21 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const drag = this.activeMeterDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
     event.preventDefault();
-    const totalSteps = Math.max(1, this.totalBars()) * STEPS_PER_BAR;
-    const step = this.snapTempoStep(
-      drag.initialStep +
-        ((event.clientX - drag.startClientX) / drag.laneWidth) * totalSteps,
+    const totalBars = Math.max(1, this.totalBars());
+    const bar = Math.max(
+      0,
+      Math.min(
+        totalBars - 1,
+        Math.round(
+          drag.initialBar +
+            ((event.clientX - drag.startClientX) / drag.laneWidth) * totalBars,
+        ),
+      ),
     );
-    if (step === drag.lastStep) return;
+    if (bar === drag.lastBar) return;
+    const step = this.stepAtBar(bar);
     if (!this.retimeMeterMarker(drag.markerId, step, true)) return;
-    drag.lastStep = step;
+    drag.lastBar = bar;
     drag.moved = true;
   }
 
@@ -1708,11 +1752,18 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   /** Arrow keys move a meter point by one visual bar. */
   onMeterDragKey(event: KeyboardEvent, marker: MeterMarker): void {
     const delta =
-      event.key === "ArrowLeft" ? -16 : event.key === "ArrowRight" ? 16 : 0;
+      event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
     if (!delta) return;
     event.preventDefault();
     event.stopPropagation();
-    if (!this.retimeMeterMarker(marker.id, this.snapTempoStep(marker.step + delta))) {
+    const targetBar = Math.max(
+      0,
+      Math.min(
+        Math.max(1, this.totalBars()) - 1,
+        this.barAtStep(marker.step) + delta,
+      ),
+    );
+    if (!this.retimeMeterMarker(marker.id, this.stepAtBar(targetBar))) {
       return;
     }
     this.haptic.light();
@@ -1775,7 +1826,16 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   private meterBarOf(marker: MeterMarker): number {
-    return Math.floor(marker.step / STEPS_PER_BAR) + 1;
+    return this.barAtStep(marker.step) + 1;
+  }
+
+  /** Meter-point position as a percentage of the visible bar grid. */
+  meterMarkerLeft(step: number): number {
+    const bars = Math.max(1, this.totalBars());
+    return Math.max(
+      0,
+      Math.min(100, (this.barPositionAtStep(step) / bars) * 100),
+    );
   }
 
   /** Delete all selected clips (history-aware). */
@@ -1934,10 +1994,10 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const selectedIds = new Set(this.selectedClipIds());
     selectedIds.add(clip.id);
     this.selectedClipIds.set(selectedIds);
-    const startStep = Math.max(0, Math.floor((clip.start || 0) * 16));
+    const startStep = this.stepAtBar(Math.max(0, clip.start || 0));
     const endStep = Math.max(
       startStep + 1,
-      Math.floor(((clip.start || 0) + (clip.length || 4)) * 16),
+      this.stepAtBar((clip.start || 0) + (clip.length || 4)),
     );
     this.musicManager.requestCrossLink({
       view: "piano-roll",
@@ -1952,8 +2012,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     const req = this.musicManager.crossLinkRequest();
     if (!req || req.trackId !== track.id) return false;
     if (!req.noteRange) return false;
-    const startStep = (clip.start || 0) * 16;
-    const endStep = ((clip.start || 0) + (clip.length || 4)) * 16;
+    const startStep = this.stepAtBar(clip.start || 0);
+    const endStep = this.stepAtBar((clip.start || 0) + (clip.length || 4));
     return (
       startStep <= req.noteRange.endStep && endStep >= req.noteRange.startStep
     );

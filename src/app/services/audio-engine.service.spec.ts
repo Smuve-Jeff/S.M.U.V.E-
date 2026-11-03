@@ -2018,6 +2018,26 @@ describe('AudioEngineService meter map', () => {
     svc.setMeterMap([]);
     expect(svc.meterAtStep(0)).toEqual({ beats: 7, unit: 8 });
   });
+
+  it('maps bars through meter changes for clips and export', () => {
+    const svc = makeMeterEngine();
+    svc.setMeterMap([
+      { step: 0, beats: 4, unit: 4 },
+      { step: 32, beats: 3, unit: 4 },
+    ]);
+
+    expect([0, 1, 2, 3, 4].map((bar) => svc.stepAtBar(bar))).toEqual([
+      0, 16, 32, 44, 56,
+    ]);
+    expect([31, 32, 43, 44].map((step) => svc.barAtStep(step))).toEqual([
+      1, 2, 2, 3,
+    ]);
+    expect(svc.barPositionAtStep(38)).toBeCloseTo(2.5, 6);
+    expect(svc.stepsForBars(2, 2)).toBe(24);
+    expect(svc.stepsForBars(1, 2)).toBe(28);
+    expect(svc.barCountForStep(44)).toBe(3);
+    expect(svc.barCountForStep(45)).toBe(4);
+  });
 });
 
 describe('createAudioContext', () => {

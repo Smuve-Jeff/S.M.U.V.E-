@@ -32,7 +32,7 @@ us, or stop Play review from shipping us).
 |---|---|---|---|---|
 | 1 | Shell / navigation / onboarding | At parity | No first-run project template tour; help is a shortcuts sheet | S |
 | 2 | Transport bar | Behind | Tempo and meter automation ship in the arrangement; the transport still exposes only the global meter, not the full map (note-repeat now ships) | M |
-| 3 | Arrangement view | Behind | Timeline follows the song; overlap crossfades are equal-power in live and bounce (3 Nov 2026); still no drawn overlap gesture, ripple editing or track freeze | M |
+| 3 | Arrangement view | Behind | Timeline follows the song; overlap crossfades are equal-power in live and bounce (3 Nov 2026); meter changes retime bar-based clips and export windows (3 Nov 2026); still no drawn overlap gesture, ripple editing or track freeze | M |
 | 4 | Session view (clip launcher) | At parity | Follow-actions exist; no per-clip loop length or launch sync to external clock | S |
 | 5 | Piano roll | At parity | No arpeggiator/note-repeat generator, no strum/randomise, no MIDI-file drop | M |
 | 6 | Channel rack + step sequencer | At parity | No per-lane length presets beyond polymeter; no swing-per-lane UI | S |
@@ -757,7 +757,7 @@ FPS budget (`StudioVisualSchedulerService`), device profiling
 6. ~~Stem export.~~ **Done 2026-10-23.**
 
 ### P1 — what reviewers compare first
-7. ~~Tempo map + note repeat~~ **Tempo automation and note repeat ship**; ~~time-signature automation~~ **Meter automation shipped 2026-11-03** (§2).
+7. ~~Tempo map + note repeat~~ **Tempo automation and note repeat ship**; ~~time-signature automation~~ **Meter automation shipped 2026-11-03**, including meter-aware clip and export retiming (§2, §3).
 8. FLAC export (§17) — 24-bit WAV and 44.1/48 kHz shipped 2026-10-23.
 9. Group/bus channels and N aux sends (§8).
 10. ~~Drawn clip crossfade~~ **Equal-power crossfade shipped 2026-11-03 for selected overlapping clips**; drawn gesture + ripple editing remain (§3).

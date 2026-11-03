@@ -1788,6 +1788,62 @@ export class AudioEngineService {
     return Math.max(1, Math.round(16 / this.meterAtStep(step).unit));
   }
 
+  /** Start step of a bar under the meter map. Fractional bars are supported. */
+  stepAtBar(bar: number): number {
+    if (!Number.isFinite(bar) || bar <= 0) return 0;
+    const whole = Math.floor(bar);
+    let step = 0;
+    for (let index = 0; index < whole; index++) step = this.nextBarStep(step);
+    if (bar > whole) {
+      const next = this.nextBarStep(step);
+      step += (next - step) * (bar - whole);
+    }
+    return Math.round(step);
+  }
+
+  /** Integer bar containing a step. */
+  barAtStep(step: number): number {
+    if (!(step > 0)) return 0;
+    let bar = 0;
+    let start = 0;
+    while (start < step) {
+      const next = this.nextBarStep(start);
+      if (next <= start) break;
+      if (step < next) return bar;
+      start = next;
+      bar++;
+    }
+    return bar;
+  }
+
+  /** Fractional bar position, including the current bar's progress. */
+  barPositionAtStep(step: number): number {
+    if (!(step > 0)) return 0;
+    const bar = this.barAtStep(step);
+    const start = this.stepAtBar(bar);
+    const next = this.nextBarStep(start);
+    return bar + (step - start) / Math.max(1, next - start);
+  }
+
+  /** Bars needed to cover an exclusive end step (minimum one). */
+  barCountForStep(step: number): number {
+    return step > 0 ? this.barAtStep(step - 1) + 1 : 1;
+  }
+
+  /** Steps covered by a bar length, respecting every meter change inside it. */
+  stepsForBars(startBar: number, bars: number): number {
+    if (!(bars > 0)) return 0;
+    if (!Number.isFinite(bars)) return Number.POSITIVE_INFINITY;
+    return Math.max(0, this.stepAtBar(startBar + bars) - this.stepAtBar(startBar));
+  }
+
+  /** Next bar boundary, capped by a meter marker so it always starts a bar. */
+  private nextBarStep(step: number): number {
+    const natural = step + this.stepsPerBarAt(step);
+    const nextMeter = (this.meterMap ?? []).find((marker) => marker.step > step);
+    return nextMeter && nextMeter.step < natural ? nextMeter.step : natural;
+  }
+
   /** First step of the meter region containing this position. */
   private meterOriginStep(step: number): number {
     return this.meterMarkerAtStep(step)?.step ?? 0;

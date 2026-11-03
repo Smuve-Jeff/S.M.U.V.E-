@@ -439,16 +439,24 @@ export class ExportService {
         .filter((note) => track.type !== 'drum' || !track.drumPatternLength || note.step < this.musicManager.drumPatternSpan(track))
         .map((note) => note.step + note.length),
       ...(track.clips ?? []).map((clip: any) => {
-        const startStep = Math.max(0, Number(clip.start) || 0) * 16;
-        const windowSteps = Math.max(0, Number(clip.length) || 0) * 16;
+        const startBar = Math.max(0, Number(clip.start) || 0);
+        const startStep = this.stepAtBar(startBar);
+        const windowSteps = this.stepsForBars(
+          startBar,
+          Math.max(0, Number(clip.length) || 0),
+        );
         const clipSeconds = Number.isFinite(clip.clipLengthSeconds)
           ? Math.max(0, clip.clipLengthSeconds)
           : timing.secondsForSteps(startStep, windowSteps);
         return timing.stepAtTime(timing.timeAtStep(startStep) + clipSeconds);
       }),
     ), 0);
-    const bars = Math.max(1, this.musicManager.activeLoopBars(), Math.ceil(lastEventStep / 16));
-    const totalSeconds = Math.max(1, timing.timeAtStep(bars * 16) + 1);
+    const bars = Math.max(
+      1,
+      this.musicManager.activeLoopBars(),
+      this.barCountForStep(lastEventStep),
+    );
+    const totalSeconds = Math.max(1, timing.timeAtStep(this.stepAtBar(bars)) + 1);
     if (!Number.isFinite(totalSeconds) || totalSeconds > 600) {
       throw new Error('Offline export supports up to 10 minutes per render. Shorten the arrangement first.');
     }
@@ -883,7 +891,7 @@ export class ExportService {
 
       if (track.type !== 'audio') {
         const notes = track.type === 'drum' || this.instruments.isSamplePreset(track.instrumentId)
-          ? this.musicManager.arrangementNotes(track, bars * 16)
+          ? this.musicManager.arrangementNotes(track, this.stepAtBar(bars))
           : track.notes ?? [];
         this.scheduleTrackNotes(offline, input, notes,
           track.synthParams ?? { type: 'sine' }, timing,
@@ -909,9 +917,14 @@ export class ExportService {
           offset = streamer.getResidentOffsetSeconds?.() ?? 0;
         }
         if (!buffer) throw new Error(`Audio for “${track.name}” is unavailable. Restore or re-import the clip before export.`);
-        const startStep = Math.max(0, Number(clip.start) || 0) * 16;
+        const startBar = Math.max(0, Number(clip.start) || 0);
+        const clipBars = Math.max(0, Number(clip.length) || 0);
+        const startStep = this.stepAtBar(startBar);
         const start = timing.timeAtStep(startStep);
-        const windowSeconds = timing.secondsForSteps(startStep, Math.max(0, Number(clip.length) || 0) * 16);
+        const windowSeconds = timing.secondsForSteps(
+          startStep,
+          this.stepsForBars(startBar, clipBars),
+        );
         const duration = Math.min(
           clip.clipLengthSeconds ?? windowSeconds,
           streamer ? streamer.getRemainingSecondsFrom((clip as any).clipOriginSeconds || 0) : Math.max(0, buffer.duration - offset),
@@ -927,9 +940,13 @@ export class ExportService {
           : buffer;
         const fadeInBars = Math.max(0, Math.min(clip.fadeIn ?? 0, clip.length));
         const fadeOutBars = Math.max(0, Math.min(clip.fadeOut ?? 0, clip.length));
-        const fadeInSeconds = timing.secondsForSteps(startStep, fadeInBars * 16);
-        const fadeOutStartStep = startStep + Math.max(0, clip.length - fadeOutBars) * 16;
-        const fadeOutSeconds = timing.timeAtStep(startStep + Math.max(0, clip.length) * 16)
+        const fadeInSeconds = timing.secondsForSteps(
+          startStep,
+          this.stepsForBars(startBar, fadeInBars),
+        );
+        const fadeOutStartBar = startBar + Math.max(0, clipBars - fadeOutBars);
+        const fadeOutStartStep = this.stepAtBar(fadeOutStartBar);
+        const fadeOutSeconds = timing.timeAtStep(this.stepAtBar(startBar + clipBars))
           - timing.timeAtStep(fadeOutStartStep);
         this.applyClipFade(
           fader.gain,
@@ -980,6 +997,25 @@ export class ExportService {
     const rendered = await offline.startRendering();
     reportProgress(92);
     return rendered;
+  }
+
+  private stepAtBar(bar: number): number {
+    return Math.max(0, Math.round(this.engine.stepAtBar?.(bar) ?? bar * 16));
+  }
+
+  private stepsForBars(startBar: number, bars: number): number {
+    if (!(bars > 0)) return 0;
+    return Math.max(
+      0,
+      Math.round(this.engine.stepsForBars?.(startBar, bars) ?? bars * 16),
+    );
+  }
+
+  private barCountForStep(step: number): number {
+    return Math.max(
+      1,
+      this.engine.barCountForStep?.(step) ?? Math.ceil(step / 16),
+    );
   }
 
   /**

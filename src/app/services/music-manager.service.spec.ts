@@ -217,6 +217,41 @@ describe('MusicManagerService clip glue workflows', () => {
     expect(service.arrangementNotes(track)[0]).toMatchObject({ step: 2, microOffset: 0.5 });
   });
 
+  it('retimes live clip windows through meter changes', () => {
+    const engine = engineMock as any;
+    const boundaries = [0, 16, 32, 44, 56];
+    engine.stepAtBar = (bar: number) => {
+      const whole = Math.min(boundaries.length - 1, Math.floor(bar));
+      const fraction = Math.max(0, bar - whole);
+      const next = boundaries[Math.min(boundaries.length - 1, whole + 1)];
+      return Math.round(boundaries[whole] + (next - boundaries[whole]) * fraction);
+    };
+    engine.stepsForBars = (start: number, bars: number) =>
+      engine.stepAtBar(start + bars) - engine.stepAtBar(start);
+
+    try {
+      const base = service.tracks()[0];
+      const track = {
+        ...base,
+        type: 'drum' as const,
+        drumPatternLength: 16,
+        notes: [{ id: 'hit', midi: 36, step: 8, length: 1, velocity: 0.8 }],
+        clips: [{ id: 'clip', start: 2, length: 2, type: 'midi' as const }],
+      } as any;
+
+      // Bar 2 starts at step 32 and the following 3/4 bars are 12 steps each,
+      // so the two-bar clip ends at 56 instead of the fixed 64-step window.
+      expect(service.arrangementNotes(track).map((note) => note.step)).toEqual([40]);
+      expect(service.drumStepAt(track, 31)).toBeNull();
+      expect(service.drumStepAt(track, 32)).toBe(0);
+      expect(service.drumStepAt(track, 55)).not.toBeNull();
+      expect(service.drumStepAt(track, 56)).toBeNull();
+    } finally {
+      delete engine.stepAtBar;
+      delete engine.stepsForBars;
+    }
+  });
+
   it('runs independent drum cycles across the transport wrap and preserves hidden hits', () => {
     const base = service.tracks()[0];
     const note = (id: string, step: number) => ({ id, midi: 36, step, length: 1, velocity: 0.8 });
@@ -1657,6 +1692,8 @@ describe('MusicManagerService live plugin insert wiring', () => {
       1,
       true,
       0,
+      [],
+      'linear'
     );
 
     // Classic short clip (no clipStreamer) still triggers with its AudioBuffer
@@ -1688,6 +1725,8 @@ describe('MusicManagerService live plugin insert wiring', () => {
       2,
       true,
       0,
+      [],
+      'linear'
     );
 
     // Reversed classic clip (no clipStreamer) — engine.reverseBuffer flips the
@@ -1729,6 +1768,8 @@ describe('MusicManagerService live plugin insert wiring', () => {
       2,
       true,
       0,
+      [],
+      'linear'
     );
   });
 
@@ -1744,8 +1785,8 @@ describe('MusicManagerService live plugin insert wiring', () => {
     ] as any);
     service.playStep(24, 5, 0.125, 24, true);
     expect(triggerSampler).toHaveBeenCalledTimes(2);
-    expect(triggerSampler).toHaveBeenCalledWith('buffered', buffer, 5, 1, 0, 7, 2, 4, 0, 3, 7, 48000, 2, true, 1);
-    expect(triggerSampler).toHaveBeenCalledWith('streamed', streamer, 5, 1, 0, 7, 2, 0, 0, 5, 8, 48000, 2, true, 1);
+    expect(triggerSampler).toHaveBeenCalledWith('buffered', buffer, 5, 1, 0, 7, 2, 4, 0, 3, 7, 48000, 2, true, 1, [], 'linear');
+    expect(triggerSampler).toHaveBeenCalledWith('streamed', streamer, 5, 1, 0, 7, 2, 0, 0, 5, 8, 48000, 2, true, 1, [], 'linear');
     expect(streamer.setPlayhead).toHaveBeenCalledWith(5 * 48000);
     triggerSampler.mockClear();
     service.playStep(25, 5.125, 0.125);
@@ -1816,6 +1857,8 @@ describe('MusicManagerService live plugin insert wiring', () => {
       1,
       true,
       0,
+      [],
+      'linear'
     );
 
     triggerSampler.mockClear();
@@ -1848,6 +1891,8 @@ describe('MusicManagerService live plugin insert wiring', () => {
       2,
       true,
       0,
+      [],
+      'linear'
     );
   });
 

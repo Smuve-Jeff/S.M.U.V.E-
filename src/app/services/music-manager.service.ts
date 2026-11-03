@@ -3980,16 +3980,34 @@ export class MusicManagerService {
       ? length! : Math.max(1, this.engine.loopLengthSteps?.() ?? 64);
   }
 
+  /** Convert a clip's bar-based start/length through the meter-aware clock. */
+  private clipStartStep(clip: StudioClip): number {
+    const bar = Math.max(0, clip.start || 0);
+    return Math.max(0, Math.round(this.engine.stepAtBar?.(bar) ?? bar * 16));
+  }
+
+  private clipStepLength(clip: StudioClip): number {
+    const bar = Math.max(0, clip.start || 0);
+    const bars = Math.max(0, clip.length || 0);
+    if (!Number.isFinite(bars)) return Number.POSITIVE_INFINITY;
+    return Math.max(1, Math.round(this.engine.stepsForBars?.(bar, bars) ?? bars * 16));
+  }
+
+  private barsForEndStep(step: number): number {
+    return Math.max(1, this.engine.barCountForStep?.(step) ?? Math.ceil(step / 16));
+  }
+
   /** Local drum step currently playing, or null outside a MIDI clip. */
   drumStepAt(track: TrackModel, step: number, patternStep = step): number | null {
     const clips = track.clips ?? [];
     const freeRunning = this.scenePlaybackActive() || !clips.length;
-    const clip = freeRunning ? null : clips.find((c) => c.type !== 'audio' &&
-      step >= Math.round((c.start || 0) * 16) &&
-      step < Math.round((c.start || 0) * 16) + Math.max(1, Math.round((c.length || 4) * 16)));
+    const clip = freeRunning ? null : clips.find((c) => {
+      const start = this.clipStartStep(c);
+      return c.type !== 'audio' && step >= start && step < start + this.clipStepLength(c);
+    });
     if (!freeRunning && !clip) return null;
-    const start = clip ? Math.round((clip.start || 0) * 16) : 0;
-    const end = clip ? start + Math.max(1, Math.round((clip.length || 4) * 16)) : Infinity;
+    const start = clip ? this.clipStartStep(clip) : 0;
+    const end = clip ? start + this.clipStepLength(clip) : Infinity;
     const position = freeRunning || (start === 0 && end >= (this.engine.loopLengthSteps?.() ?? 64))
       ? patternStep : step - start;
     const span = this.drumPatternSpan(track);
@@ -4003,12 +4021,12 @@ export class MusicManagerService {
     // Existing projects with no explicit drum cycle keep their old export behavior.
     if (!clips.length && !(track.type === 'drum' && track.drumPatternLength && endStep !== undefined))
       return (track.notes ?? []).map((note) => this.noteWithDrumSwing(track, note));
-    const windows = clips.length ? clips : [{ start: 0, length: endStep! / 16, type: 'midi' } as StudioClip];
+    const windows = clips.length ? clips : [{ start: 0, length: this.barsForEndStep(endStep!), type: 'midi' } as StudioClip];
     const result: TrackNote[] = [];
     for (const clip of windows) {
       if (clip.type === 'audio') continue;
-      const start = Math.round((clip.start || 0) * 16);
-      const end = Math.min(endStep ?? Infinity, start + Math.max(1, Math.round((clip.length || 4) * 16)));
+      const start = this.clipStartStep(clip);
+      const end = Math.min(endStep ?? Infinity, start + this.clipStepLength(clip));
       const notes = this.notesForClip(track, clip, track.notes ?? []);
       for (let base = start; base < end; base += span) {
         for (const note of notes) {
@@ -4105,10 +4123,8 @@ export class MusicManagerService {
         // delayed such a MIDI clip by up to a bar, and `bar === clip.start`
         // could never be true for it, so a fractional-start audio clip was
         // simply silent.
-        const startStep = Math.round((clip.start || 0) * STEPS_PER_BAR);
-        const endStep =
-          startStep +
-          Math.max(1, Math.round((clip.length || 4) * STEPS_PER_BAR));
+        const startStep = this.clipStartStep(clip);
+        const endStep = startStep + this.clipStepLength(clip);
         if (step < startStep || step >= endStep) return;
 
         // Pattern instance: a clip plays the pattern it references rather than
@@ -4322,11 +4338,29 @@ export class MusicManagerService {
             const sourceOrigin = (clip.clipStreamer ? (clip.clipOriginSeconds ?? 0) : (clip.offset ?? 0)) + elapsed * rate;
             // Phase F2 — clip fade envelope. Fades are stored in bars on
             // the clip (matching start/length units); convert to seconds.
-            const secPerBar = 4 * (60 / this.engine.tempo());
+            const fadeInBars = Math.min(clip.fadeIn || 0, clip.length);
+            const fadeOutBars = Math.min(clip.fadeOut || 0, clip.length);
+            const fadeInSteps =
+              this.engine.stepsForBars?.(clip.start || 0, fadeInBars) ??
+              fadeInBars * 16;
+            const fadeOutStartBar = Math.max(
+              0,
+              (clip.start || 0) + (clip.length || 4) - fadeOutBars,
+            );
+            const fadeOutSteps =
+              this.engine.stepsForBars?.(fadeOutStartBar, fadeOutBars) ??
+              fadeOutBars * 16;
+            const fallbackStepSeconds = 60 / this.engine.tempo() / 4;
             const fadeInSec =
-              Math.min(clip.fadeIn || 0, clip.length) * secPerBar;
+              this.engine.secondsBetweenSteps?.(
+                startStep,
+                startStep + fadeInSteps,
+              ) ?? fadeInSteps * fallbackStepSeconds;
             const fadeOutSec =
-              Math.min(clip.fadeOut || 0, clip.length) * secPerBar;
+              this.engine.secondsBetweenSteps?.(
+                endStep - fadeOutSteps,
+                endStep,
+              ) ?? fadeOutSteps * fallbackStepSeconds;
             // Phase H: when a clip carries a SampleStreamer, play from the
             // bounded resident window instead of one full decoded AudioBuffer;
             // the engine advances the clip playhead per invocation.

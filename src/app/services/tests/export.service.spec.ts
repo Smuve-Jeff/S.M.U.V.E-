@@ -477,6 +477,35 @@ describe("ExportService", () => {
     expect(calls.find(([, time]) => Math.abs(time - 8) < 1e-9)?.[0]).toBe(0);
   });
 
+  it("uses meter-aware bar starts and lengths for audio clips", async () => {
+    const engine = (service as any).engine;
+    const stepAtBar = jest.fn((bar: number) =>
+      bar <= 2 ? bar * 16 : 32 + (bar - 2) * 12,
+    );
+    const stepsForBars = jest.fn((startBar: number, bars: number) => {
+      let total = 0;
+      for (let offset = 0; offset < bars; offset++) {
+        total += startBar + offset < 2 ? 16 : 12;
+      }
+      return total;
+    });
+    engine.stepAtBar = stepAtBar;
+    engine.stepsForBars = stepsForBars;
+    engine.barCountForStep = jest.fn((step: number) => Math.ceil(step / 12));
+
+    await renderClipGains({
+      type: "audio",
+      start: 2,
+      length: 2,
+      fadeIn: 1,
+      fadeOut: 1,
+      audioData: { duration: 8, sampleRate: 44100 },
+    });
+
+    expect(stepAtBar).toHaveBeenCalledWith(2);
+    expect(stepsForBars).toHaveBeenCalledWith(2, 2);
+  });
+
   it("applies clip-level gain when the clip has no fades", async () => {
     const gains = await renderClipGains({
       type: "audio",
