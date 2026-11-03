@@ -4353,6 +4353,8 @@ export class MusicManagerService {
                 (clip as any).clipChannels ?? 2,
                 true,
                 elapsed,
+                [],
+                clip.fadeCurve ?? 'linear',
               );
             } else {
               const reversedClip = (clip as any).reversed && !(
@@ -4381,6 +4383,8 @@ export class MusicManagerService {
                 (clip as any).clipChannels ?? 2,
                 true,
                 elapsed,
+                [],
+                clip.fadeCurve ?? 'linear',
               );
             }
           }

@@ -811,9 +811,11 @@ describe("ArrangementViewComponent", () => {
 
     expect(mockMusicManager.updateClip).toHaveBeenCalledWith("1", "clip-a", {
       fadeOut: 1,
+      fadeCurve: "equalPower",
     });
     expect(mockMusicManager.updateClip).toHaveBeenCalledWith("1", "clip-b", {
       fadeIn: 1,
+      fadeCurve: "equalPower",
     });
     expect(mockSnackbar.show).toHaveBeenCalledWith(
       expect.stringContaining("Crossfade"),

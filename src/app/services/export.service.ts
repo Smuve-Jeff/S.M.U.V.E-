@@ -23,6 +23,11 @@ import {
 } from './loudness-meter';
 import { LoggingService } from './logging.service';
 import { PluginStoreService } from './plugin-store.service';
+import type { ClipFadeCurve } from '../types/studio.types';
+import {
+  normalizeFadeCurve,
+  scheduleFadeSegment,
+} from '../studio/clip-fade.util';
 import {
   MidiTrackData,
   MidiNoteEvent,
@@ -926,7 +931,15 @@ export class ExportService {
         const fadeOutStartStep = startStep + Math.max(0, clip.length - fadeOutBars) * 16;
         const fadeOutSeconds = timing.timeAtStep(startStep + Math.max(0, clip.length) * 16)
           - timing.timeAtStep(fadeOutStartStep);
-        this.applyClipFade(fader.gain, start, duration, fadeInSeconds, fadeOutSeconds, clipGain);
+        this.applyClipFade(
+          fader.gain,
+          start,
+          duration,
+          fadeInSeconds,
+          fadeOutSeconds,
+          clipGain,
+          clip.fadeCurve ?? 'linear'
+        );
         if (streamer) {
           const clipSampleRate = (clip as any).clipSampleRate || 48000;
           const sampleRateRatio = clipSampleRate / buffer.sampleRate;
@@ -1120,19 +1133,31 @@ export class ExportService {
     duration: number,
     fadeInSeconds: number,
     fadeOutSeconds: number,
-    peak: number = 1
+    peak: number = 1,
+    fadeCurve: ClipFadeCurve = 'linear'
   ): void {
     const safeDuration = Math.max(0.001, duration);
     const fadeIn = Math.max(0, Math.min(fadeInSeconds, safeDuration));
     const fadeOut = Math.max(0, Math.min(fadeOutSeconds, safeDuration));
+    const curve = normalizeFadeCurve(fadeCurve);
 
     gain.setValueAtTime(0, start);
-    if (fadeIn > 0) gain.linearRampToValueAtTime(peak, start + fadeIn);
-    else gain.setTargetAtTime(peak, start, 0.005);
+    if (fadeIn > 0) {
+      if (curve === 'equalPower') {
+        scheduleFadeSegment(gain, 'in', curve, start, fadeIn, peak);
+      } else {
+        gain.linearRampToValueAtTime(peak, start + fadeIn);
+      }
+    } else gain.setTargetAtTime(peak, start, 0.005);
     if (fadeOut > 0) {
       const fadeStart = start + Math.max(fadeIn, safeDuration - fadeOut);
+      const fadeWindow = Math.max(0.001, start + safeDuration - fadeStart);
       gain.setValueAtTime(peak, fadeStart);
-      gain.linearRampToValueAtTime(0, start + safeDuration);
+      if (curve === 'equalPower') {
+        scheduleFadeSegment(gain, 'out', curve, fadeStart, fadeWindow, peak);
+      } else {
+        gain.linearRampToValueAtTime(0, start + safeDuration);
+      }
     }
   }
 

@@ -4,6 +4,8 @@ import { InstrumentsService, scheduleOfflinePresetSample } from "../services/ins
 import { drumRatchetCount, MusicManagerService } from "../services/music-manager.service";
 import { WavEncoder } from "./wav-encoder.util";
 import { LoggingService } from "../services/logging.service";
+import type { ClipFadeCurve } from "../types/studio.types";
+import { normalizeFadeCurve, scheduleFadeSegment } from "./clip-fade.util";
 import { connectOfflineMasterChain } from "../services/offline-master-chain";
 
 export type BounceFormat = "wav-16" | "wav-32" | "wav-32-float";
@@ -595,6 +597,7 @@ export class OfflineBounceService {
       length?: number;
       fadeIn?: number;
       fadeOut?: number;
+      fadeCurve?: ClipFadeCurve;
       originalBpm?: number;
     },
     buffer: AudioBuffer,
@@ -617,17 +620,34 @@ export class OfflineBounceService {
     const gain = ctx.createGain();
     const fadeIn = Math.min(clip.fadeIn || 0, clip.length || 4) * secPerBar;
     const fadeOut = Math.min(clip.fadeOut || 0, clip.length || 4) * secPerBar;
+    const curve = normalizeFadeCurve(clip.fadeCurve);
 
     gain.gain.setValueAtTime(0, startTime);
     if (fadeIn > 0) {
-      gain.gain.linearRampToValueAtTime(trackGain, startTime + fadeIn);
+      if (curve === "equalPower") {
+        scheduleFadeSegment(gain.gain, "in", curve, startTime, fadeIn, trackGain);
+      } else {
+        gain.gain.linearRampToValueAtTime(trackGain, startTime + fadeIn);
+      }
     } else {
       gain.gain.setValueAtTime(trackGain, startTime);
     }
     if (fadeOut > 0) {
       const fadeStart = startTime + Math.max(fadeIn, clipDur - fadeOut);
+      const fadeWindow = Math.max(0.001, startTime + clipDur - fadeStart);
       gain.gain.setValueAtTime(trackGain, fadeStart);
-      gain.gain.linearRampToValueAtTime(0, startTime + clipDur);
+      if (curve === "equalPower") {
+        scheduleFadeSegment(
+          gain.gain,
+          "out",
+          curve,
+          fadeStart,
+          fadeWindow,
+          trackGain,
+        );
+      } else {
+        gain.gain.linearRampToValueAtTime(0, startTime + clipDur);
+      }
     } else {
       gain.gain.setValueAtTime(
         trackGain,

@@ -452,6 +452,31 @@ describe("ExportService", () => {
     );
   });
 
+  it("renders a persisted equal-power crossfade without a centre dip", async () => {
+    const gains = await renderClipGains({
+      type: "audio",
+      start: 0,
+      length: 4,
+      fadeIn: 1,
+      fadeOut: 1,
+      fadeCurve: "equalPower",
+      audioData: { duration: 8, sampleRate: 44100 },
+    });
+
+    const fader = gains.find(
+      (node) => node.gain.linearRampToValueAtTime.mock.calls.length > 0,
+    );
+    expect(fader).toBeTruthy();
+    const calls = fader!.gain.linearRampToValueAtTime.mock.calls;
+    expect(calls).toHaveLength(48);
+    const midpointIn = calls.find(([, time]) => Math.abs(time - 1) < 1e-9);
+    const midpointOut = calls.find(([, time]) => Math.abs(time - 7) < 1e-9);
+    expect(midpointIn?.[0]).toBeCloseTo(Math.SQRT1_2, 6);
+    expect(midpointOut?.[0]).toBeCloseTo(Math.SQRT1_2, 6);
+    expect(calls.find(([, time]) => Math.abs(time - 2) < 1e-9)?.[0]).toBe(1);
+    expect(calls.find(([, time]) => Math.abs(time - 8) < 1e-9)?.[0]).toBe(0);
+  });
+
   it("applies clip-level gain when the clip has no fades", async () => {
     const gains = await renderClipGains({
       type: "audio",

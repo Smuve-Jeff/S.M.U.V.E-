@@ -1278,9 +1278,11 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
 
     this.musicManager.updateClip(left.track.id, left.clip.id, {
       fadeOut: overlap,
+      fadeCurve: "equalPower",
     });
     this.musicManager.updateClip(right.track.id, right.clip.id, {
       fadeIn: overlap,
+      fadeCurve: "equalPower",
     });
     this.haptic.medium();
     this.markDirty();

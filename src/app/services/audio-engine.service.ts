@@ -23,6 +23,12 @@ import {
   phaseCorrelation,
   truePeakDb,
 } from './loudness-meter';
+import type { ClipFadeCurve } from '../types/studio.types';
+import {
+  fadeValueAtPhase,
+  normalizeFadeCurve,
+  scheduleFadeSegment,
+} from '../studio/clip-fade.util';
 
 export type DeckId = 'A' | 'B';
 
@@ -3712,6 +3718,7 @@ export class AudioEngineService {
     stopWithTransport: boolean = false,
     fadeElapsedSeconds: number = 0,
     control: VoiceControlPoint[] = [],
+    fadeCurve: ClipFadeCurve = 'linear',
   ) {
     const isStreamer =
       bufferOrStreamer instanceof SampleStreamer ||
@@ -3775,23 +3782,70 @@ export class AudioEngineService {
     const fadeIn = Math.max(0, Math.min(fadeInSec || 0, total));
     const fadeOut = Math.max(0, Math.min(fadeOutSec || 0, total));
     const fadeOutStart = Math.max(fadeIn, total - fadeOut);
+    const fadeOutWindow = Math.max(0.001, total - fadeOutStart);
+    const curve = normalizeFadeCurve(fadeCurve);
     const envelopeAt = (position: number) => {
-      if (fadeIn > 0 && position < fadeIn) return velocity * position / fadeIn;
-      if (fadeOut > 0 && position >= fadeOutStart)
-        return velocity * Math.max(0, (total - position) / Math.max(0.001, total - fadeOutStart));
+      if (fadeIn > 0 && position < fadeIn) {
+        return velocity * fadeValueAtPhase(position / fadeIn, 'in', curve);
+      }
+      if (fadeOut > 0 && position >= fadeOutStart) {
+        return velocity * fadeValueAtPhase(
+          (position - fadeOutStart) / fadeOutWindow,
+          'out',
+          curve,
+        );
+      }
       return velocity;
     };
     if (fadeElapsed === 0) {
       gain.gain.setValueAtTime(0, time);
-      if (fadeIn > 0) gain.gain.linearRampToValueAtTime(velocity, time + fadeIn);
-      else gain.gain.setTargetAtTime(velocity, time, 0.005);
+      if (fadeIn > 0) {
+        if (curve === 'equalPower') {
+          scheduleFadeSegment(gain.gain, 'in', curve, time, fadeIn, velocity);
+        } else {
+          gain.gain.linearRampToValueAtTime(velocity, time + fadeIn);
+        }
+      } else gain.gain.setTargetAtTime(velocity, time, 0.005);
     } else {
       gain.gain.setValueAtTime(envelopeAt(fadeElapsed), time);
-      if (fadeIn > fadeElapsed) gain.gain.linearRampToValueAtTime(velocity, time + fadeIn - fadeElapsed);
+      if (fadeIn > fadeElapsed) {
+        if (curve === 'equalPower') {
+          scheduleFadeSegment(
+            gain.gain, 'in', curve, time, fadeIn, velocity, fadeElapsed / fadeIn,
+          );
+        } else {
+          gain.gain.linearRampToValueAtTime(velocity, time + fadeIn - fadeElapsed);
+        }
+      }
     }
     if (fadeOut > 0) {
-      if (fadeOutStart > fadeElapsed) gain.gain.setValueAtTime(velocity, time + fadeOutStart - fadeElapsed);
-      gain.gain.linearRampToValueAtTime(0, time + safeDuration);
+      if (fadeOutStart > fadeElapsed) {
+        gain.gain.setValueAtTime(velocity, time + fadeOutStart - fadeElapsed);
+        if (curve === 'equalPower') {
+          scheduleFadeSegment(
+            gain.gain,
+            'out',
+            curve,
+            time + fadeOutStart - fadeElapsed,
+            fadeOutWindow,
+            velocity,
+          );
+        } else {
+          gain.gain.linearRampToValueAtTime(0, time + safeDuration);
+        }
+      } else if (curve === 'equalPower') {
+        scheduleFadeSegment(
+          gain.gain,
+          'out',
+          curve,
+          time,
+          fadeOutWindow,
+          velocity,
+          (fadeElapsed - fadeOutStart) / fadeOutWindow,
+        );
+      } else {
+        gain.gain.linearRampToValueAtTime(0, time + safeDuration);
+      }
     } else {
       gain.gain.setValueAtTime(velocity, time + safeDuration - 0.001);
     }

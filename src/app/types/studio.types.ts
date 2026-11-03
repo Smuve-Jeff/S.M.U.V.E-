@@ -22,6 +22,8 @@ export interface StudioCompRegion {
   fade?: number;
 }
 
+export type ClipFadeCurve = 'linear' | 'equalPower';
+
 export interface StudioClip {
   id: string;
   name: string;
@@ -47,6 +49,9 @@ export interface StudioClip {
   /** Phase F2 — audio clip fade-out length in bars (0 = none; converted to
    *  seconds at playback via tempo). */
   fadeOut?: number;
+  /** Fade shape shared by both clip edges. Equal-power is selected by the
+   *  arrangement's crossfade action; ordinary fades remain linear. */
+  fadeCurve?: ClipFadeCurve;
   /**
    * Pattern this clip plays (id of a `PatternSlot` on the owning track).
    * Undefined/equal to the track's active slot means "the live working

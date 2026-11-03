@@ -32,7 +32,7 @@ us, or stop Play review from shipping us).
 |---|---|---|---|---|
 | 1 | Shell / navigation / onboarding | At parity | No first-run project template tour; help is a shortcuts sheet | S |
 | 2 | Transport bar | Behind | Fixed 4/4, one global tempo, no tempo/time-signature track, no note-repeat | M |
-| 3 | Arrangement view | Behind | Timeline follows the song and clip fades now survive export; still no drawn-overlap crossfade, ripple editing or track freeze | M |
+| 3 | Arrangement view | Behind | Timeline follows the song; overlap crossfades are equal-power in live and bounce (3 Nov 2026); still no drawn overlap gesture, ripple editing or track freeze | M |
 | 4 | Session view (clip launcher) | At parity | Follow-actions exist; no per-clip loop length or launch sync to external clock | S |
 | 5 | Piano roll | At parity | No arpeggiator/note-repeat generator, no strum/randomise, no MIDI-file drop | M |
 | 6 | Channel rack + step sequencer | At parity | No per-lane length presets beyond polymeter; no swing-per-lane UI | S |
@@ -147,11 +147,12 @@ L > 1 week of focused work).
    `arrangement-view.component.ts` (`totalBars`, `songEndBar`, `extendTimeline`,
    `ensureTimelineCovers`), `music-manager.service.ts` (`arrangementEndBar`), tests in
    both specs.
-2. **No crossfade between adjacent audio clips.** Per-clip fade-in/out exists and,
-   as of 2026-10-23, the offline render applies the same envelope as live playback
-   (a bounced fade used to be a hard edge). Drawing an overlap between two touching
-   clips is still a manual two-step (set fade-out on A, fade-in on B); the
-   `crossfade` hits in the codebase are DJ-deck only.
+2. ~~**No crossfade between adjacent audio clips.**~~ **Closed 2026-11-03.** Two
+   overlapping audio clips selected together now get a persisted `fadeCurve:
+   "equalPower"` envelope across their shared overlap (`crossfadeSelected()`); live
+   `triggerSampler`, export and offline bounce use the same 24-step equal-power
+   scheduler, removing the ~3 dB centre dip from the old linear pair. The overlap is
+   still created by moving a clip, not by a drawn crossfade gesture.
 3. **No range/ripple editing.** Trim affects one clip; moving a clip does not offer
    ripple or "insert time".
 4. **No track freeze / bounce-in-place for MIDI.** `bounceSelected` exists on a
@@ -164,8 +165,9 @@ L > 1 week of focused work).
 - **M** — Dynamic song length: drop the 64 constant, derive bars from
   `songStructureEnd`, virtualise the WebGL draw range by viewport, and add an
   "end of song" marker. This alone changes the product category.
-- **M** — Crossfade tool: when two audio clips touch, draw the overlap and apply an
-  equal-power fade on both edges (reuse the existing fade scheduling).
+- ~~**M** — Crossfade tool: when two audio clips touch, draw the overlap and apply an
+  equal-power fade on both edges.~~ **Shipped 2026-11-03 for selected overlapping
+  clips**; a drawn overlap gesture remains.
 - **S** — Range selection + ripple delete / insert-time on the selected range.
 - **M** — Track freeze: render a MIDI track through `OfflineBounceService`, store the
   buffer in `stemAudioCache`, mark the track `frozen`, and bypass live voices.
@@ -758,7 +760,7 @@ FPS budget (`StudioVisualSchedulerService`), device profiling
 7. Tempo/time-signature map + note repeat (§2).
 8. FLAC export (§17) — 24-bit WAV and 44.1/48 kHz shipped 2026-10-23.
 9. Group/bus channels and N aux sends (§8).
-10. Drawn clip crossfade + ripple editing (§3) — fades now survive export.
+10. ~~Drawn clip crossfade~~ **Equal-power crossfade shipped 2026-11-03 for selected overlapping clips**; drawn gesture + ripple editing remain (§3).
 11. Latency calibration wizard (§11).
 12. Background playback (§20).
 13. Mastering preset idempotence + spectral delta vs reference (§14).
@@ -833,10 +835,13 @@ Seven items from this audit were implemented and verified in the same working tr
 4. **Fades survive export** (§3). The offline render used to sum audio clips straight
    into the track bus, so a clip fade heard live came out of the bounce and every stem
    as a hard edge. Each clip now owns a panner + fade gain whose envelope is copied
-   from `triggerSampler` (same clamps, same linear ramps, same "fade-out never starts
-   before the fade-in ends"), which also makes an overlapping pair sum as a crossfade.
+   from `triggerSampler` (same clamps, same linear/equal-power curve scheduling,
+   same "fade-out never starts before the fade-in ends"), which also makes an
+   overlapping pair sum as a crossfade.
    - Tests: `tests/export.service.spec.ts` ("bounces an audio clip's fades instead of
-     exporting a hard edge" asserts the 0→1 @ 2 s and 1→0 @ 6–8 s ramps at 120 BPM).
+     exporting a hard edge" asserts the 0→1 @ 2 s and 1→0 @ 6–8 s ramps at 120 BPM;
+     "renders a persisted equal-power crossfade without a centre dip" asserts 24-step
+     ramps and √½ at both midpoints).
 5. **44.1/48 kHz delivery rate** (§17). `renderProjectOffline` accepts a
    `sampleRate` and builds the `OfflineAudioContext` at that rate, so a 48 kHz master
    is synthesised at 48 kHz; `exportProjectWav(bitDepth, sampleRate)` tags the file
