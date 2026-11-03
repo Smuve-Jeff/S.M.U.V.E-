@@ -801,6 +801,26 @@
           [ngModel]="selectedNoteVelocity()"
           (ngModelChange)="setSelectedVelocity($event)"
         />
+        <div class="pr-ramp-actions" role="group" aria-label="Ramp selected velocities">
+          <button
+            type="button"
+            class="pr-tool pr-tool-sm"
+            (click)="rampSelectedVelocity('up')"
+            [disabled]="selectionCount() < 2"
+            title="Ramp selected velocities up from the first note to the last"
+          >
+            Ramp ↑
+          </button>
+          <button
+            type="button"
+            class="pr-tool pr-tool-sm"
+            (click)="rampSelectedVelocity('down')"
+            [disabled]="selectionCount() < 2"
+            title="Ramp selected velocities down from the first note to the last"
+          >
+            Ramp ↓
+          </button>
+        </div>
       </div>
       <div class="pr-inspector-pill">
         <div class="pr-inspector-pill-label">Prob.</div>

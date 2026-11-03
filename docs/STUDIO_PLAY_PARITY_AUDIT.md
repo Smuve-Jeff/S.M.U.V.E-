@@ -217,21 +217,22 @@ L > 1 week of focused work).
 
 **Gaps**
 1. **Generative note tools are selection-scoped, not complete.** Humanize, Strum and Arpeggiate now run on the selected notes from the piano-roll toolbar; Humanize still falls back to the whole track when nothing is selected. Note-repeat remains absent from the editor.
-   randomised velocity/humanise *inside* the editor (humanise and arpeggiate exist
-   only as AI-assistant actions on a whole track).
 2. **No scale-lock on drawing.** Scale detection exists; drawing outside the scale
    is still allowed with no visual constraint toggle.
 3. **No MIDI file drop into the roll.** `MidiImportService` imports a whole file
    into tracks; there is no "import to this clip at the playhead".
 4. **No note-group operations** (legato-join, clip-to-scale, invert, mirror, duplicate
    to next bar with one gesture).
-5. **Velocity editing is per-note only** — no velocity ramp/shape over a selection.
+5. **Velocity ramp now ships; deeper shapes do not.** The selection inspector
+   ramps velocities up or down in one undoable step, ordered by note start and
+   pitch. Curve-based velocity shaping remains open.
 
 **Improvements**
 - **M** — Arpeggiator + note-repeat as *clip processors* (pattern → notes on commit),
   reusing `MusicManagerService.arpeggiateTrack` but scoped to a selection.
 - **S** — Scale lock toggle that snaps new/resized notes to the detected or chosen scale.
-- **S** — Selection ops: legato-join, transpose ±octave, duplicate-to-next-bar, velocity ramp.
+- **S** — Selection ops: legato-join, transpose ±octave, duplicate-to-next-bar.
+  ~~Velocity ramp~~ **shipped 3 Nov 2026**.
 - **S** — Drag-and-drop `.mid` onto the roll at the playhead.
 
 ## 6. Channel rack and step sequencer

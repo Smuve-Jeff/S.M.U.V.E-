@@ -89,6 +89,7 @@ describe("PianoRollComponent", () => {
     ),
     humanizeTrack: jest.fn(),
     arpeggiateTrack: jest.fn(),
+    rampNoteVelocity: jest.fn(() => true),
     selectedTrack: computed(() => mockTracks()[0] ?? null),
     engine: { scaleMode: signal("major"), scaleLock: signal(false) },
   };
@@ -527,6 +528,36 @@ describe("PianoRollComponent", () => {
       "n1",
       "n2",
     ]);
+  });
+
+  it("ramps the selected velocities in either direction", () => {
+    mockMusicManager.rampNoteVelocity.mockClear();
+    mockMusicManager.rampNoteVelocity.mockReturnValue(true);
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+
+    component.rampSelectedVelocity("up");
+    expect(mockMusicManager.rampNoteVelocity).toHaveBeenCalledWith(
+      "1",
+      ["n1", "n2"],
+      "up",
+    );
+
+    mockMusicManager.rampNoteVelocity.mockClear();
+    component.rampSelectedVelocity("down");
+    expect(mockMusicManager.rampNoteVelocity).toHaveBeenCalledWith(
+      "1",
+      ["n1", "n2"],
+      "down",
+    );
+  });
+
+  it("does not ramp fewer than two selected notes", () => {
+    mockMusicManager.rampNoteVelocity.mockClear();
+    component.selectedNoteIds.set(new Set(["n1"]));
+
+    component.rampSelectedVelocity("up");
+
+    expect(mockMusicManager.rampNoteVelocity).not.toHaveBeenCalled();
   });
 
   it("falls back to the whole track for Humanize but requires a selection for Strum/Arp", () => {

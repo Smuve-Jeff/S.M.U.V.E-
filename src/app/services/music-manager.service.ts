@@ -2483,6 +2483,58 @@ export class MusicManagerService {
     );
   }
 
+  /**
+   * Shape the selected velocities into a linear ramp.
+   *
+   * Notes are ordered by start step and then pitch, so a chord ramps evenly
+   * instead of following the order the artist happened to select its notes.
+   * Returns false when there are fewer than two targets, since a ramp needs a
+   * span.
+   */
+  rampNoteVelocity(
+    id: string,
+    noteIds: string[],
+    direction: 'up' | 'down' = 'up'
+  ): boolean {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return false;
+    const targetIds = new Set(noteIds);
+    const targets = t.notes
+      .filter((n) => targetIds.has(n.id))
+      .sort((a, b) => a.step - b.step || a.midi - b.midi);
+    if (targets.length < 2) return false;
+
+    const before = this.clone(t.notes);
+    const low = 0.3;
+    const high = 1.2;
+    const positionById = new Map(
+      targets.map((n, i) => [n.id, i / (targets.length - 1)])
+    );
+    const after = t.notes.map((n) => {
+      const position = positionById.get(n.id);
+      if (position === undefined) return n;
+      const velocity =
+        direction === 'up'
+          ? low + (high - low) * position
+          : high - (high - low) * position;
+      return { ...n, velocity: Math.round(velocity * 100) / 100 };
+    });
+    this.runCommand(
+      'Velocity ramp · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+    return true;
+  }
+
   strumTrack(id: string, noteIds?: string[]) {
     const t = this.tracks().find((x) => x.id === id);
     if (!t) return;

@@ -2216,6 +2216,15 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     );
     this.markDirty();
   }
+  rampSelectedVelocity(direction: "up" | "down") {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length < 2) return;
+    if (!this.musicManager.rampNoteVelocity(track.id, ids, direction)) return;
+    this.haptic.medium();
+    this.markDirty();
+  }
+
   setSelectedProbability(value: number) {
     const track = this.selectedTrack();
     if (!track) return;

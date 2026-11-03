@@ -2595,3 +2595,17 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
   opacity: 0.45;
   cursor: default;
 }
+
+/* Velocity-ramp shortcuts live inside the selected-note inspector. */
+.pr-ramp-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.pr-ramp-actions .pr-tool {
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+}

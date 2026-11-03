@@ -2347,4 +2347,55 @@ describe('MusicManagerService per-scene follow rules', () => {
     ).toHaveLength(0);
   });
 
+  it('ramps selected velocities by note time and pitch in one undoable step', () => {
+    const source = service.tracks()[0];
+    service.tracks.set([
+      {
+        ...source,
+        notes: [
+          { id: 'late', step: 8, midi: 60, length: 1, velocity: 0.5 },
+          { id: 'chord-low', step: 4, midi: 60, length: 1, velocity: 0.5 },
+          { id: 'chord-high', step: 4, midi: 67, length: 1, velocity: 0.5 },
+          { id: 'untouched', step: 2, midi: 72, length: 1, velocity: 0.5 },
+        ],
+        clips: [],
+      },
+    ]);
+
+    expect(
+      service.rampNoteVelocity(
+        'track-1',
+        ['late', 'chord-low', 'chord-high'],
+        'up',
+      ),
+    ).toBe(true);
+
+    const byId = new Map(service.tracks()[0].notes.map((n) => [n.id, n]));
+    expect(byId.get('chord-low')!.velocity).toBe(0.3);
+    expect(byId.get('chord-high')!.velocity).toBe(0.75);
+    expect(byId.get('late')!.velocity).toBe(1.2);
+    expect(byId.get('untouched')!.velocity).toBe(0.5);
+
+    const recorder = (service as unknown as { history: { undo(): void } })
+      .history;
+    recorder.undo();
+    expect(
+      service.tracks()[0].notes.every((n) => n.velocity === 0.5),
+    ).toBe(true);
+
+    expect(
+      service.rampNoteVelocity(
+        'track-1',
+        ['late', 'chord-low', 'chord-high'],
+        'down',
+      ),
+    ).toBe(true);
+    const reversed = new Map(service.tracks()[0].notes.map((n) => [n.id, n]));
+    expect(reversed.get('chord-low')!.velocity).toBe(1.2);
+    expect(reversed.get('chord-high')!.velocity).toBe(0.75);
+    expect(reversed.get('late')!.velocity).toBe(0.3);
+
+    expect(service.rampNoteVelocity('track-1', ['late'], 'up')).toBe(false);
+  });
+
 });
