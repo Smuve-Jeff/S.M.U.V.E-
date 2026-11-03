@@ -73,6 +73,29 @@
     </button>
     <button
       type="button"
+      class="mix-global-ab"
+      [class.active]="musicManager.globalInsertsBypassed()"
+      [disabled]="
+        !hasAnyInserts() && !musicManager.globalInsertsBypassed()
+      "
+      [attr.aria-pressed]="musicManager.globalInsertsBypassed()"
+      [attr.title]="
+        musicManager.globalInsertsBypassed()
+          ? 'Restore inserts on every strip'
+          : 'Bypass inserts on every strip (global A/B)'
+      "
+      [attr.aria-label]="
+        musicManager.globalInsertsBypassed()
+          ? 'Restore all inserts on every strip'
+          : 'Bypass all inserts on every strip'
+      "
+      (click)="toggleGlobalInsertsBypass($event)"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">compare_arrows</span>
+      <span>Global A/B</span>
+    </button>
+    <button
+      type="button"
       class="mix-phone-tools"
       [class.active]="phoneToolsOpen()"
       (click)="phoneToolsOpen.set(!phoneToolsOpen())"
@@ -356,18 +379,24 @@
           <button
             type="button"
             class="mix-insert-ab"
-            [class.active]="track.insertsBypassed"
-            [disabled]="insertCount(track) === 0"
-            [attr.aria-pressed]="track.insertsBypassed === true"
+            [class.active]="isTrackInsertsBypassed(track)"
+            [disabled]="
+              insertCount(track) === 0 || musicManager.globalInsertsBypassed()
+            "
+            [attr.aria-pressed]="isTrackInsertsBypassed(track)"
             [attr.title]="
-              track.insertsBypassed
-                ? 'Restore all inserts on ' + track.name
-                : 'Bypass all inserts on ' + track.name + ' (A/B)'
+              musicManager.globalInsertsBypassed()
+                ? 'Global A/B is engaged — restore it to change this channel'
+                : track.insertsBypassed
+                  ? 'Restore all inserts on ' + track.name
+                  : 'Bypass all inserts on ' + track.name + ' (A/B)'
             "
             [attr.aria-label]="
-              track.insertsBypassed
-                ? 'Restore all inserts on ' + track.name
-                : 'Bypass all inserts on ' + track.name
+              musicManager.globalInsertsBypassed()
+                ? 'Global A/B is engaged for all channels'
+                : track.insertsBypassed
+                  ? 'Restore all inserts on ' + track.name
+                  : 'Bypass all inserts on ' + track.name
             "
             (click)="toggleAllInsertsBypass(track, $event)"
           >
@@ -843,11 +872,11 @@
               type="button"
               class="mix-insert-bypass"
               [class.bypassed]="!entry.enabled"
-              [disabled]="track.insertsBypassed"
+              [disabled]="isTrackInsertsBypassed(track)"
               [attr.aria-pressed]="!entry.enabled"
               [attr.aria-label]="(entry.enabled ? 'Bypass ' : 'Enable ') + entry.label"
               [attr.title]="
-                track.insertsBypassed
+                isTrackInsertsBypassed(track)
                   ? 'Disengage A/B bypass to change this insert'
                   : (entry.enabled ? 'Bypass ' : 'Enable ') + entry.label
               "

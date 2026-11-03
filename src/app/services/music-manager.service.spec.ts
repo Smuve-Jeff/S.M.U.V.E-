@@ -1362,6 +1362,37 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
       true,
     ]);
   });
+
+  it('applies global A/B to every track and preserves per-track A/B', () => {
+    service.tracks.set([
+      {
+        ...makeTrack(),
+        fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+        pluginIds: ['smuve.saturation.v2'],
+      },
+      {
+        ...makeTrack({ id: 'track-2', name: 'Pad' }),
+        pluginIds: ['smuve.chorus.v1'],
+        insertsBypassed: true,
+      },
+    ]);
+    service.syncTrackFxChain('track-1');
+
+    service.toggleGlobalInsertsBypass();
+
+    expect(service.globalInsertsBypassed()).toBe(true);
+    expect(service.activeEffectCount('track-1')).toBe(0);
+    expect(service.activeEffectCount('track-2')).toBe(0);
+    expect(rack.inserts.map((slot) => slot.plugin.enabled)).toEqual([false]);
+
+    service.toggleGlobalInsertsBypass();
+
+    expect(service.globalInsertsBypassed()).toBe(false);
+    expect(service.activeEffectCount('track-1')).toBe(2);
+    expect(service.activeEffectCount('track-2')).toBe(0);
+    expect(service.tracks()[1].insertsBypassed).toBe(true);
+    expect(rack.inserts.map((slot) => slot.plugin.enabled)).toEqual([true]);
+  });
 });
 
 describe('MusicManagerService recording teardown', () => {

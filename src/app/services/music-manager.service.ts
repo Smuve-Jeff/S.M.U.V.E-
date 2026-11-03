@@ -331,10 +331,18 @@ export class MusicManagerService {
     return this.tracks().length + Math.max(0, additional) <= this.trackLimit();
   }
 
+  /** Session-wide A/B override for every track insert chain. */
+  readonly globalInsertsBypassed = signal(false);
+
+  /** True when this track is silent because either A/B layer is engaged. */
+  isTrackInsertsBypassed(track: { insertsBypassed?: boolean }): boolean {
+    return this.globalInsertsBypassed() || track.insertsBypassed === true;
+  }
+
   /** Enabled macro slots + enabled live plugin inserts on this track. */
   activeEffectCount(trackId: string): number {
     const track = this.tracks().find((candidate) => candidate.id === trackId);
-    if (!track || track.insertsBypassed) return 0;
+    if (!track || this.isTrackInsertsBypassed(track)) return 0;
     return (
       (track.fxSlots ?? []).filter((slot) => slot.enabled !== false).length +
       this.activePluginIds(track).length
@@ -347,9 +355,11 @@ export class MusicManagerService {
     return (track.pluginIds ?? []).filter((id) => !bypassed.has(id));
   }
 
-  /** Live plugins currently processing audio; the A/B override wins. */
+  /** Live plugins currently processing audio; either A/B layer can mute. */
   private activePluginIds(track: TrackModel): string[] {
-    return track.insertsBypassed ? [] : this.installedPluginIds(track);
+    return this.isTrackInsertsBypassed(track)
+      ? []
+      : this.installedPluginIds(track);
   }
 
   canAddEffect(trackId: string, additional = 1): boolean {
@@ -879,7 +889,7 @@ export class MusicManagerService {
     const nextBypassed = prevBypassed.filter((id) => next.includes(id));
     const prevActive = this.activePluginIds(t);
     const nextInstalled = next.filter((id) => !nextBypassed.includes(id));
-    const nextActive = t.insertsBypassed ? [] : nextInstalled;
+    const nextActive = this.isTrackInsertsBypassed(t) ? [] : nextInstalled;
     if (
       nextActive.length > prevActive.length &&
       !this.canAddEffect(trackId, nextActive.length - prevActive.length)
@@ -943,7 +953,11 @@ export class MusicManagerService {
    */
   toggleTrackPluginBypass(trackId: string, pluginId: string): void {
     const t = this.tracks().find((x) => x.id === trackId);
-    if (!t || t.insertsBypassed || !(t.pluginIds ?? []).includes(pluginId)) {
+    if (
+      !t ||
+      this.isTrackInsertsBypassed(t) ||
+      !(t.pluginIds ?? []).includes(pluginId)
+    ) {
       return;
     }
     const prevBypassed = [...(t.bypassedPluginIds ?? [])];
@@ -1165,7 +1179,7 @@ export class MusicManagerService {
   /** Toggle a macro FX slot's bypass state (undoable). */
   toggleFxSlot(trackId: string, slotId: string): void {
     const t = this.tracks().find((x) => x.id === trackId);
-    if (!t || t.insertsBypassed) return;
+    if (!t || this.isTrackInsertsBypassed(t)) return;
     const target = (t.fxSlots ?? []).find((slot) => slot.id === slotId);
     if (target && target.enabled === false && !this.canAddEffect(trackId)) {
       this.logger.warn(
@@ -1195,7 +1209,11 @@ export class MusicManagerService {
    */
   toggleAllInsertsBypass(trackId: string): void {
     const t = this.tracks().find((x) => x.id === trackId);
-    if (!t || (!(t.fxSlots?.length ?? 0) && !(t.pluginIds?.length ?? 0))) {
+    if (
+      !t ||
+      this.globalInsertsBypassed() ||
+      (!(t.fxSlots?.length ?? 0) && !(t.pluginIds?.length ?? 0))
+    ) {
       return;
     }
     const before = t.insertsBypassed === true;
@@ -1236,6 +1254,24 @@ export class MusicManagerService {
   }
 
   /**
+   * Global A/B: mute or restore every track's insert chain in one action.
+   * This is a session comparison state, not a project edit, so it is not
+   * written into history or the project. Each track's own A/B flag survives.
+   */
+  toggleGlobalInsertsBypass(): void {
+    const next = !this.globalInsertsBypassed();
+    this.globalInsertsBypassed.set(next);
+    for (const track of this.tracks()) {
+      this.syncFxSlotsToRack(track.id, track.fxSlots ?? []);
+      this.engine.installTrackPluginInsert(
+        track.id,
+        this.activePluginIds(track),
+        this.liveChainFor,
+      );
+    }
+  }
+
+  /**
    * trackId → (macro fx slot id → live insert). Lets `syncFxSlotsToRack` diff the
    * data-only macro chain against the rack's inserts instead of tearing the whole
    * rack down and rebuilding it on every edit.
@@ -1266,7 +1302,7 @@ export class MusicManagerService {
     const track = this.tracks().find((candidate) => candidate.id === trackId);
     const pluginCount = track ? this.activePluginIds(track).length : 0;
     const macroRoom = Math.max(0, this.effectLimit() - pluginCount);
-    const allBypassed = track?.insertsBypassed === true;
+    const allBypassed = track ? this.isTrackInsertsBypassed(track) : false;
     const pluginSlots = slots.filter(
       (slot) => !!FX_TYPE_TO_PLUGIN_ID[slot.type],
     );

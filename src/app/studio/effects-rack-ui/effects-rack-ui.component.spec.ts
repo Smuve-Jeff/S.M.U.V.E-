@@ -37,6 +37,9 @@ describe("EffectsRackUiComponent", () => {
   const musicManagerMock = {
     tracks: tracksSignal,
     selectedTrack: computed(() => tracksSignal()[0]),
+    isTrackInsertsBypassed: jest.fn(
+      (track: any) => track?.insertsBypassed === true,
+    ),
     setTrackPlugins: jest.fn(),
     addFxSlot: jest.fn((_trackId: string, type: string) => {
       track.fxSlots = [

@@ -312,9 +312,9 @@ is more than FL Mobile's step editor). The gap is content, not engine.
 2. **Sends are fixed A/B.** Cubasis exposes eight global send buses with their own
    FX; we have two hard-wired destinations.
 3. ~~**No insert count per channel in the mixer UI.**~~ **Shipped 3 Nov 2026** —
-   every strip shows its macro + live insert count, a whole-chain A/B bypass,
-   and a slot popover with per-slot bypass and direct jumps into that track's
-   rack.
+   every strip shows its macro + live insert count, per-strip and global A/B
+   bypass, and a slot popover with per-slot bypass and direct jumps into that
+   track's rack.
 4. ~~**No pan law or mono-compatibility control.**~~ **Pan law shipped 3 Nov
    2026** with 0 / −3 / −4.5 dB options; per-track mono-compatibility metering
    now flags wide and out-of-phase channels, and global mono monitoring ships.

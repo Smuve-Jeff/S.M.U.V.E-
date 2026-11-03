@@ -108,9 +108,10 @@ export class EffectsRackUiComponent implements OnChanges, AfterViewInit {
   );
 
   /** Whole-chain A/B override; leaves the individual choices untouched. */
-  insertsBypassed = computed(
-    () => this.selectedTrack()?.insertsBypassed === true,
-  );
+  insertsBypassed = computed(() => {
+    const track = this.selectedTrack();
+    return track ? this.musicManager.isTrackInsertsBypassed(track) : false;
+  });
 
   hasPlugin(id: string): boolean {
     return this.trackPluginIds().includes(id);

@@ -132,6 +132,46 @@
   font-size: 16px;
 }
 
+.mix-global-ab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 8px;
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.mix-global-ab .material-symbols-outlined {
+  font-size: 15px;
+}
+.mix-global-ab:hover:not(:disabled),
+.mix-global-ab:focus-visible {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+.mix-global-ab.active {
+  border-color: var(--amber-500, #c47a13);
+  background: rgba(196, 122, 19, 0.14);
+  color: var(--amber-600, #8a5208);
+}
+.mix-global-ab:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (max-width: 768px) {
+  .mix-global-ab {
+    min-height: 44px;
+  }
+}
+
 /* ---------- STRIPS CONTAINER ---------- */
 .mix-strips {
   flex: 1 1 auto;

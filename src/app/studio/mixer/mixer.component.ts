@@ -164,6 +164,16 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.haptic.light();
   }
 
+  /** True when global or per-track A/B is muting this channel's inserts. */
+  isTrackInsertsBypassed(track: TrackModel): boolean {
+    return this.musicManager.isTrackInsertsBypassed(track);
+  }
+
+  /** Whether the global A/B control has anything to act on. */
+  hasAnyInserts(): boolean {
+    return this.tracks().some((track) => this.insertCount(track) > 0);
+  }
+
   /** Macro slots plus live WASM kernels installed on this channel. */
   insertEntries(track: TrackModel): MixerInsertEntry[] {
     const macro: MixerInsertEntry[] = (track.fxSlots ?? []).flatMap(
@@ -176,18 +186,20 @@ export class MixerComponent implements OnInit, OnDestroy {
                 kind: "macro" as const,
                 slot: index + 1,
                 slotId: slot.id,
-                enabled: !track.insertsBypassed && slot.enabled !== false,
+                enabled:
+                  !this.isTrackInsertsBypassed(track) && slot.enabled !== false,
               },
             ]
           : [],
     );
     const bypassed = new Set(track.bypassedPluginIds ?? []);
+    const allBypassed = this.isTrackInsertsBypassed(track);
     const live: MixerInsertEntry[] = (track.pluginIds ?? []).map((id) => ({
       key: `live:${id}`,
       label: this.pluginInsertName(id),
       kind: "live" as const,
       pluginId: id,
-      enabled: !track.insertsBypassed && !bypassed.has(id),
+      enabled: !allBypassed && !bypassed.has(id),
     }));
     return [...macro, ...live];
   }
@@ -213,7 +225,7 @@ export class MixerComponent implements OnInit, OnDestroy {
       return `No inserts on ${track.name} — open the rack to add EQ, compression or reverb`;
     }
     const noun = names.length === 1 ? "insert" : "inserts";
-    if (track.insertsBypassed) {
+    if (this.isTrackInsertsBypassed(track)) {
       return `${names.length} ${noun} on ${track.name}: ${names.join(" · ")} — A/B bypassed`;
     }
     return `${names.length} ${noun} on ${track.name}: ${names.join(" · ")} — open the effects rack`;
@@ -279,7 +291,7 @@ export class MixerComponent implements OnInit, OnDestroy {
     event?: Event,
   ): void {
     event?.stopPropagation();
-    if (track.insertsBypassed) return;
+    if (this.isTrackInsertsBypassed(track)) return;
     if (entry.kind === "macro" && entry.slotId) {
       this.musicManager.toggleFxSlot(track.id, entry.slotId);
     } else if (entry.kind === "live" && entry.pluginId) {
@@ -292,7 +304,14 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   toggleAllInsertsBypass(track: TrackModel, event?: Event): void {
     event?.stopPropagation();
+    if (this.musicManager.globalInsertsBypassed()) return;
     this.musicManager.toggleAllInsertsBypass(track.id);
+    this.haptic.light();
+  }
+
+  toggleGlobalInsertsBypass(event?: Event): void {
+    event?.stopPropagation();
+    this.musicManager.toggleGlobalInsertsBypass();
     this.haptic.light();
   }
 

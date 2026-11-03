@@ -53,6 +53,8 @@ describe("MixerComponent", () => {
     },
   };
 
+  const globalInsertsBypassed = signal(false);
+
   const mockMusicManager = {
     tracks: signal([
       { id: "1", name: "Track 1", gain: 1, pan: 0, mute: false, solo: false },
@@ -74,6 +76,14 @@ describe("MixerComponent", () => {
     toggleFxSlot: jest.fn(),
     toggleTrackPluginBypass: jest.fn(),
     toggleAllInsertsBypass: jest.fn(),
+    globalInsertsBypassed,
+    isTrackInsertsBypassed: jest.fn(
+      (track: any) =>
+        globalInsertsBypassed() || track?.insertsBypassed === true,
+    ),
+    toggleGlobalInsertsBypass: jest.fn(() =>
+      globalInsertsBypassed.update((value) => !value),
+    ),
     toggleSoloSafe: jest.fn(),
     removeTrack: jest.fn(),
   };
@@ -103,6 +113,7 @@ describe("MixerComponent", () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     mockPanLaw.set(-3);
+    globalInsertsBypassed.set(false);
     await TestBed.configureTestingModule({
       imports: [MixerComponent, CommonModule, FormsModule, KnobComponent],
       providers: [
@@ -261,6 +272,31 @@ describe("MixerComponent", () => {
     expect(mockMusicManager.toggleAllInsertsBypass).toHaveBeenCalledWith('1');
   });
 
+  it('engages global A/B and blocks per-strip A/B while active', () => {
+    const track = {
+      id: '1',
+      name: 'Track 1',
+      fxSlots: [{ id: 'fx1', type: 'EQ', params: {}, enabled: true }],
+      pluginIds: ['smuve.reverb.v2'],
+    } as any;
+    globalInsertsBypassed.set(true);
+
+    expect(component.isTrackInsertsBypassed(track)).toBe(true);
+    expect(component.insertEntries(track).every((entry) => !entry.enabled)).toBe(
+      true,
+    );
+
+    const stopPropagation = jest.fn();
+    component.toggleAllInsertsBypass(track, { stopPropagation } as any);
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(mockMusicManager.toggleAllInsertsBypass).not.toHaveBeenCalled();
+
+    const globalStop = jest.fn();
+    component.toggleGlobalInsertsBypass({ stopPropagation: globalStop } as any);
+    expect(globalStop).toHaveBeenCalled();
+    expect(mockMusicManager.toggleGlobalInsertsBypass).toHaveBeenCalled();
+  });
+
   it('marks a bypassed live insert without removing it', () => {
     const track = {
       id: '1',
@@ -345,6 +381,13 @@ describe("MixerComponent", () => {
     expect(ab).toHaveLength(2);
     expect(ab[0].disabled).toBe(true);
     expect(ab[0].getAttribute('aria-pressed')).toBe('false');
+
+    const globalAb = fixture.nativeElement.querySelector(
+      '.mix-global-ab',
+    ) as HTMLButtonElement | null;
+    expect(globalAb).toBeTruthy();
+    expect(globalAb?.disabled).toBe(true);
+    expect(globalAb?.getAttribute('aria-pressed')).toBe('false');
   });
 
   it('classifies per-track mono compatibility and formats the reading', () => {
