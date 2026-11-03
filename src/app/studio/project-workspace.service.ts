@@ -14,6 +14,7 @@ import { AutomationService } from "./automation.service";
 import { ArrangementMarkersService, type ArrangementMarker } from "./arrangement-markers.service";
 import { SidechainRoutingService, type SidechainRoute } from "./sidechain-routing.service";
 import { TempoMapService, type TempoMarker } from "./tempo-map.service";
+import { MeterMapService, type MeterMarker } from "./meter-map.service";
 import { VcaBusService, type VcaAssignments, type VcaBus } from "./vca-bus.service";
 import { PROJECT_FORMAT_VERSION, buildProjectArchive } from "./project-archive.util";
 import {
@@ -69,6 +70,7 @@ export interface ProjectPlaybackState {
 
 export interface ProjectPerformanceState {
   tempoMap: TempoMarker[];
+  meterMap?: MeterMarker[];
   markers: ArrangementMarker[];
   vca: { buses: VcaBus[]; assignments: VcaAssignments };
   sidechain: SidechainRoute[];
@@ -87,6 +89,8 @@ export interface ProjectBundle {
   formatVersion?: number;
   /** Tempo changes pinned to absolute song steps. */
   tempoMap?: TempoMarker[];
+  /** Time-signature changes pinned to absolute song steps. */
+  meterMap?: MeterMarker[];
   /** Named arrangement locations, in bars. */
   markers?: ArrangementMarker[];
   /** VCA control-surface groups and their track assignments. */
@@ -268,6 +272,7 @@ export class ProjectWorkspaceService {
   private readonly history = inject(HistoryService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly tempoMap = inject(TempoMapService);
+  private readonly meterMap = inject(MeterMapService);
   private readonly markers = inject(ArrangementMarkersService);
   private readonly vcaBuses = inject(VcaBusService);
   private readonly sidechainRouting = inject(SidechainRoutingService);
@@ -1185,6 +1190,7 @@ export class ProjectWorkspaceService {
       },
       formatVersion: PROJECT_FORMAT_VERSION,
       tempoMap: performance.tempoMap,
+      meterMap: performance.meterMap,
       markers: performance.markers,
       vca: performance.vca,
       sidechain: performance.sidechain,
@@ -1276,6 +1282,7 @@ export class ProjectWorkspaceService {
     const engine = this.musicManager.engine;
     return {
       tempoMap: this.tempoMap.markers().map((marker) => ({ ...marker })),
+      meterMap: this.meterMap.markers().map((marker) => ({ ...marker })),
       markers: this.markers.markers().map((marker) => ({ ...marker })),
       vca: {
         buses: this.vcaBuses.buses().map((bus) => ({ ...bus })),
@@ -1341,6 +1348,7 @@ export class ProjectWorkspaceService {
   /** Apply saved tempo/markers/VCA/sidechain/loop, resetting when absent. */
   private applyPerformanceState(bundle: ProjectBundle): void {
     this.tempoMap.replaceAll(bundle.tempoMap ?? []);
+    this.meterMap.replaceAll(bundle.meterMap ?? []);
     this.markers.replaceAll(bundle.markers ?? []);
 
     const vca = bundle.vca ?? { buses: [], assignments: {} };
@@ -1477,6 +1485,7 @@ export class ProjectWorkspaceService {
    */
   private resetProjectState(): void {
     this.tempoMap.clear();
+    this.meterMap.clear();
     this.markers.clear();
     this.vcaBuses.replaceRouting([], {});
     this.sidechainRouting.clear();
@@ -1673,6 +1682,7 @@ export class ProjectWorkspaceService {
     return {
       performance: {
         tempoMap: (bundle.tempoMap ?? []).map((marker) => ({ ...marker })),
+        meterMap: (bundle.meterMap ?? []).map((marker) => ({ ...marker })),
         markers: (bundle.markers ?? []).map((marker) => ({ ...marker })),
         vca: {
           buses: (bundle.vca?.buses ?? []).map((bus) => ({ ...bus })),
@@ -1952,6 +1962,14 @@ export class ProjectWorkspaceService {
         marker.step < 0 || !Number.isFinite(marker.bpm) ||
         marker.bpm < 20 || marker.bpm > 300
       )) throw new Error('Invalid tempo map.');
+    }
+    if (bundle.meterMap !== undefined) {
+      if (!Array.isArray(bundle.meterMap) || bundle.meterMap.some((marker) =>
+        !marker || typeof marker.id !== 'string' || !Number.isFinite(marker.step) ||
+        marker.step < 0 || !Number.isFinite(marker.beats) ||
+        marker.beats < 1 || marker.beats > 16 ||
+        ![2, 4, 8, 16].includes(marker.unit)
+      )) throw new Error('Invalid meter map.');
     }
     if (bundle.markers !== undefined) {
       if (!Array.isArray(bundle.markers) || bundle.markers.some((marker) =>

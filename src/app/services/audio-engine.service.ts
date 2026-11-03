@@ -645,6 +645,8 @@ export class AudioEngineService {
    * through `setTempoMap()`.
    */
   private tempoMap: { step: number; bpm: number; curve?: 'step' | 'ramp' }[] = [];
+  /** Song meter map: [{ step, beats, unit }]. Empty = the global time signature. */
+  private meterMap: { step: number; beats: number; unit: number }[] = [];
   public isPlaying = signal(false);
   public isRecording = signal(false);
   public isCountIn = signal(false);
@@ -1381,7 +1383,7 @@ export class AudioEngineService {
     // measurement window restarts with the transport.
     this.resetLoudnessMeasurement();
     const safeBars = Math.max(1, Math.floor(bars));
-    this.countInRemainingSteps = this.stepsPerBar() * safeBars;
+    this.countInRemainingSteps = this.stepsPerBarAt(this.currentStep) * safeBars;
     this.countInStartStep = this.currentStep;
     if (!this.workletNode) this.currentStep = 0;
     this.nextNoteTime = this.ctx.currentTime + 0.05;
@@ -1532,8 +1534,9 @@ export class AudioEngineService {
     if (this.songEnded() || !this.isPlaying()) return;
 
     if (this.isCountIn()) {
-      if (step % this.stepsPerNotatedBeat() === 0) {
-        this.playMetronomeClick(time, step % this.stepsPerBar() === 0, true);
+      this.applyMeterAtStep(step);
+      if (this.isMeterBeatDownbeat(step)) {
+        this.playMetronomeClick(time, this.isMeterBarDownbeat(step), true);
       }
       this.countInRemainingSteps--;
       if (this.countInRemainingSteps <= 0) {
@@ -1593,11 +1596,9 @@ export class AudioEngineService {
     this.resumeAudioAtNextStep = false;
     this.onScheduleStep?.(loopedStep, time, stepDuration, patternStep, resumeAudio);
 
-    if (
-      this.metronomeEnabled() &&
-      loopedStep % this.stepsPerNotatedBeat() === 0
-    ) {
-      this.playMetronomeClick(time, loopedStep % this.stepsPerBar() === 0);
+    this.applyMeterAtStep(loopedStep);
+    if (this.metronomeEnabled() && this.isMeterBeatDownbeat(loopedStep)) {
+      this.playMetronomeClick(time, this.isMeterBarDownbeat(loopedStep));
     }
 
     const visualDelay = (time - this.ctx.currentTime) * 1000;
@@ -1736,6 +1737,91 @@ export class AudioEngineService {
 
   getTempoMap(): { step: number; bpm: number; curve?: 'step' | 'ramp' }[] {
     return this.tempoMap.map((marker) => ({ ...marker }));
+  }
+
+  /**
+   * Replace the song meter map. The map is pinned to absolute song steps so a
+   * meter change survives timeline edits elsewhere. An empty map falls back to
+   * the transport's global time signature.
+   */
+  setMeterMap(map: { step: number; beats: number; unit: number }[]): void {
+    this.meterMap = [...map]
+      .filter(
+        (entry) =>
+          entry &&
+          Number.isFinite(entry.step) &&
+          Number.isFinite(entry.beats) &&
+          Number.isFinite(entry.unit),
+      )
+      .map((entry) => {
+        const rawUnit = Math.round(entry.unit);
+        return {
+          step: Math.max(0, Math.round(entry.step)),
+          beats: Math.min(16, Math.max(1, Math.round(entry.beats))),
+          unit: [2, 4, 8, 16].includes(rawUnit) ? rawUnit : 4,
+        };
+      })
+      .sort((a, b) => a.step - b.step);
+    this.applyMeterAtStep(this.currentStep);
+  }
+
+  getMeterMap(): { step: number; beats: number; unit: number }[] {
+    return this.meterMap.map((marker) => ({ ...marker }));
+  }
+
+  /** Meter in force at an absolute song step. */
+  meterAtStep(step: number): { beats: number; unit: number } {
+    const marker = this.meterMarkerAtStep(step);
+    if (marker) return { beats: marker.beats, unit: marker.unit };
+    const signature = this.timeSignature();
+    return { beats: signature.beats, unit: signature.unit };
+  }
+
+  /** Steps in one notated bar at this song position. */
+  stepsPerBarAt(step: number): number {
+    const meter = this.meterAtStep(step);
+    return meter.beats * Math.max(1, Math.round(16 / meter.unit));
+  }
+
+  /** Steps in one notated beat at this song position. */
+  stepsPerNotatedBeatAt(step: number): number {
+    return Math.max(1, Math.round(16 / this.meterAtStep(step).unit));
+  }
+
+  /** First step of the meter region containing this position. */
+  private meterOriginStep(step: number): number {
+    return this.meterMarkerAtStep(step)?.step ?? 0;
+  }
+
+  isMeterBarDownbeat(step: number): boolean {
+    const origin = this.meterOriginStep(step);
+    return (step - origin) % this.stepsPerBarAt(step) === 0;
+  }
+
+  isMeterBeatDownbeat(step: number): boolean {
+    const origin = this.meterOriginStep(step);
+    return (step - origin) % this.stepsPerNotatedBeatAt(step) === 0;
+  }
+
+  /** Update the transport readout as playback crosses a meter marker. */
+  applyMeterAtStep(step: number): void {
+    const marker = this.meterMarkerAtStep(step);
+    if (!marker) return;
+    const current = this.timeSignature();
+    if (current.beats !== marker.beats || current.unit !== marker.unit) {
+      this.timeSignature.set({ beats: marker.beats, unit: marker.unit });
+    }
+  }
+
+  private meterMarkerAtStep(
+    step: number,
+  ): { step: number; beats: number; unit: number } | undefined {
+    let found: { step: number; beats: number; unit: number } | undefined;
+    for (const marker of this.meterMap ?? []) {
+      if (marker.step <= step) found = marker;
+      else break;
+    }
+    return found;
   }
 
   /**

@@ -657,6 +657,75 @@
     </section>
 
     <section
+      class="arrangement-tempo-lane arrangement-meter-lane"
+      aria-label="Meter automation lane"
+    >
+      <div class="arrangement-tempo-head">
+        <span class="arrangement-tempo-title">METER AUTOMATION</span>
+        <button
+          type="button"
+          class="arrangement-tempo-add"
+          (click)="addMeterHere()"
+          title="Pin the current time signature at the playhead"
+        >
+          + AT PLAYHEAD
+        </button>
+      </div>
+      <div
+        class="arrangement-tempo-track arrangement-meter-track"
+        (pointerdown)="onMeterLanePointerDown($event)"
+        aria-label="Meter automation. Tap to add a meter change, drag a point to retime it, or choose a time signature."
+      >
+        <div
+          class="arrangement-tempo-marker arrangement-meter-marker"
+          data-meter-marker
+          *ngFor="let marker of meterMap.markers()"
+          [style.left.%]="tempoMarkerLeft(marker.step)"
+        >
+          <button
+            type="button"
+            class="arrangement-tempo-seek"
+            (pointerdown)="startMeterDrag($event, marker)"
+            (pointermove)="onMeterDragMove($event)"
+            (pointerup)="onMeterDragEnd($event)"
+            (pointercancel)="onMeterDragEnd($event)"
+            (keydown)="onMeterDragKey($event, marker)"
+            (click)="seekToMeterMarker(marker.step)"
+            [attr.aria-label]="
+              'Meter ' + meterMarkerLabel(marker) + ' at bar ' + meterBarOf(marker) +
+              '. Drag to retime or press to seek.'
+            "
+            title="Drag to retime; tap to seek"
+          >
+            ◆
+          </button>
+          <select
+            class="arrangement-meter-select"
+            [value]="meterMarkerLabel(marker)"
+            (change)="setMeterMarkerSignature(marker, $event)"
+            (pointerdown)="$event.stopPropagation()"
+            [attr.aria-label]="'Time signature at bar ' + meterBarOf(marker)"
+          >
+            <option *ngFor="let option of meterOptions" [value]="option">
+              {{ option }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="arrangement-tempo-remove"
+            (click)="removeMeterMarker(marker.id, $event)"
+            [attr.aria-label]="'Remove meter change at bar ' + meterBarOf(marker)"
+          >
+            ×
+          </button>
+        </div>
+        <p class="arrangement-tempo-empty" *ngIf="meterMap.markers().length === 0">
+          Tap the lane to add a meter change.
+        </p>
+      </div>
+    </section>
+
+    <section
       class="arrangement-overview"
       aria-label="Arrangement overview"
     >

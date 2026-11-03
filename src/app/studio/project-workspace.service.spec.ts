@@ -15,6 +15,7 @@ import {
 import { ArrangementMarkersService } from "./arrangement-markers.service";
 import { SidechainRoutingService } from "./sidechain-routing.service";
 import { TempoMapService } from "./tempo-map.service";
+import { MeterMapService } from "./meter-map.service";
 import { VcaBusService } from "./vca-bus.service";
 
 const createFakeAudioBuffer = (
@@ -46,6 +47,7 @@ describe("ProjectWorkspaceService", () => {
   let deleteItems: jest.Mock;
   let projectRemove: jest.Mock;
   let tempoMarkers: ReturnType<typeof signal<any[]>>;
+  let meterMarkers: ReturnType<typeof signal<any[]>>;
   let arrangementMarkers: ReturnType<typeof signal<any[]>>;
   let vcaBuses: ReturnType<typeof signal<any[]>>;
   let vcaAssignments: ReturnType<typeof signal<Record<string, string | null>>>;
@@ -59,6 +61,14 @@ describe("ProjectWorkspaceService", () => {
         markers: tempoMarkers,
         clear: () => tempoMarkers.set([]),
         replaceAll: (markers: any[]) => tempoMarkers.set([...(markers ?? [])]),
+      },
+    },
+    {
+      provide: MeterMapService,
+      useValue: {
+        markers: meterMarkers,
+        clear: () => meterMarkers.set([]),
+        replaceAll: (markers: any[]) => meterMarkers.set([...(markers ?? [])]),
       },
     },
     {
@@ -154,6 +164,7 @@ describe("ProjectWorkspaceService", () => {
     deleteItems = jest.fn().mockResolvedValue(undefined);
     projectRemove = jest.fn().mockResolvedValue(false);
     tempoMarkers = signal<any[]>([]);
+    meterMarkers = signal<any[]>([]);
     arrangementMarkers = signal<any[]>([]);
     vcaBuses = signal<any[]>([]);
     vcaAssignments = signal<Record<string, string | null>>({});
@@ -1067,6 +1078,10 @@ describe("ProjectWorkspaceService", () => {
       { id: "tempo-1", step: 0, bpm: 120 },
       { id: "tempo-2", step: 32, bpm: 90 },
     ]);
+    meterMarkers.set([
+      { id: "meter-1", step: 0, beats: 4, unit: 4 },
+      { id: "meter-2", step: 32, beats: 3, unit: 4 },
+    ]);
     arrangementMarkers.set([
       { id: "marker-1", name: "Drop", time: 8, color: "#facc15" },
     ]);
@@ -1096,6 +1111,7 @@ describe("ProjectWorkspaceService", () => {
 
     const snapshot = service.createSnapshot();
     expect(snapshot.tempoMap).toHaveLength(2);
+    expect(snapshot.meterMap).toHaveLength(2);
     expect(snapshot.markers).toHaveLength(1);
     expect(snapshot.vca?.assignments["track-1"]).toBe("vca-1");
     expect(snapshot.sidechain).toEqual([
@@ -1117,6 +1133,7 @@ describe("ProjectWorkspaceService", () => {
     );
 
     tempoMarkers.set([]);
+    meterMarkers.set([]);
     arrangementMarkers.set([]);
     vcaBuses.set([]);
     vcaAssignments.set({});
@@ -1129,6 +1146,7 @@ describe("ProjectWorkspaceService", () => {
     service.restoreFromSnapshot(snapshot);
 
     expect(tempoMarkers().map((marker: any) => marker.bpm)).toEqual([120, 90]);
+    expect(meterMarkers().map((marker: any) => marker.beats)).toEqual([4, 3]);
     expect(arrangementMarkers()[0].name).toBe("Drop");
     expect(vcaAssignments()["track-1"]).toBe("vca-1");
     expect(engine.setVcaMultiplier).toHaveBeenCalledWith("track-1", 0.5);
@@ -1159,6 +1177,7 @@ describe("ProjectWorkspaceService", () => {
   it("resets project-scoped state when opening an older bundle", () => {
     const engine = (TestBed.inject(MusicManagerService) as any).engine;
     tempoMarkers.set([{ id: "tempo-1", step: 0, bpm: 150 }]);
+    meterMarkers.set([{ id: "meter-1", step: 0, beats: 3, unit: 4 }]);
     arrangementMarkers.set([{ id: "marker-1", name: "Old", time: 1 }]);
     vcaBuses.set([{ id: "vca-1", name: "Old", faderValue: 0.2, muted: false }]);
     vcaAssignments.set({ "track-1": "vca-1" });
@@ -1172,6 +1191,7 @@ describe("ProjectWorkspaceService", () => {
     service.restoreFromSnapshot(makeBundle());
 
     expect(tempoMarkers()).toEqual([]);
+    expect(meterMarkers()).toEqual([]);
     expect(arrangementMarkers()).toEqual([]);
     expect(vcaBuses()).toEqual([]);
     expect(vcaAssignments()).toEqual({});

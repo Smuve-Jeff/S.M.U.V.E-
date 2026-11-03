@@ -1977,6 +1977,49 @@ describe('AudioEngineService tempo map', () => {
   });
 });
 
+describe('AudioEngineService meter map', () => {
+  function makeMeterEngine() {
+    const svc = makeBareEngine();
+    (svc as any).timeSignature = signal({ beats: 4, unit: 4 });
+    (svc as any).meterMap = [];
+    (svc as any).currentStep = 0;
+    return svc;
+  }
+
+  it('resolves meter changes and meters each bar from its marker', () => {
+    const svc = makeMeterEngine();
+
+    svc.setMeterMap([
+      { step: 32, beats: 3, unit: 4 },
+      { step: 0, beats: 4, unit: 4 },
+    ]);
+
+    expect(svc.meterAtStep(0)).toEqual({ beats: 4, unit: 4 });
+    expect(svc.meterAtStep(31)).toEqual({ beats: 4, unit: 4 });
+    expect(svc.meterAtStep(32)).toEqual({ beats: 3, unit: 4 });
+    expect(svc.stepsPerBarAt(0)).toBe(16);
+    expect(svc.stepsPerBarAt(32)).toBe(12);
+    expect(svc.stepsPerNotatedBeatAt(32)).toBe(4);
+    expect(svc.isMeterBarDownbeat(32)).toBe(true);
+    expect(svc.isMeterBarDownbeat(44)).toBe(true);
+    expect(svc.isMeterBarDownbeat(40)).toBe(false);
+    expect(svc.getMeterMap()).toEqual([
+      { step: 0, beats: 4, unit: 4 },
+      { step: 32, beats: 3, unit: 4 },
+    ]);
+  });
+
+  it('pushes the meter in force into the transport signal', () => {
+    const svc = makeMeterEngine();
+
+    svc.setMeterMap([{ step: 0, beats: 7, unit: 8 }]);
+    expect(svc.timeSignature()).toEqual({ beats: 7, unit: 8 });
+
+    svc.setMeterMap([]);
+    expect(svc.meterAtStep(0)).toEqual({ beats: 7, unit: 8 });
+  });
+});
+
 describe('createAudioContext', () => {
   const original = (window as any).AudioContext;
 

@@ -16,6 +16,7 @@ import { InteractionDialogService } from "../../services/interaction-dialog.serv
 import { RecordingStatusService } from "../recording-status.service";
 
 import { TempoMapService } from "../tempo-map.service";
+import { MeterMapService } from "../meter-map.service";
 
 describe("ArrangementViewComponent", () => {
   let component: ArrangementViewComponent;
@@ -28,6 +29,25 @@ describe("ArrangementViewComponent", () => {
   const tempoMarkers = signal([
     { id: "tempo-1", step: 16, bpm: 90 },
   ]);
+  const meterMarkers = signal([
+    { id: "meter-1", step: 0, beats: 4, unit: 4 },
+  ]);
+  const mockMeterMap = {
+    markers: meterMarkers,
+    addMarker: jest.fn((step: number, beats: number, unit: number) => ({
+      id: "meter-new",
+      step,
+      beats,
+      unit,
+    })),
+    updateMarker: jest.fn(),
+    removeMarker: jest.fn(),
+    meterAtStep: jest.fn((step: number) => {
+      const matches = meterMarkers().filter((marker) => marker.step <= step);
+      return matches[matches.length - 1] ?? null;
+    }),
+  };
+
   const mockTempoMap = {
     markers: tempoMarkers,
     addMarker: jest.fn((step: number, bpm: number) => ({
@@ -128,10 +148,18 @@ describe("ArrangementViewComponent", () => {
       providers: [
         { provide: AudioSessionService, useValue: mockAudioSession },
         { provide: TempoMapService, useValue: mockTempoMap },
+        { provide: MeterMapService, useValue: mockMeterMap },
         { provide: RecordingStatusService, useValue: mockRecordingStatus },
         {
           provide: MusicManagerService,
-          useValue: { ...mockMusicManager, engine: { tempo: signal(124), seekToStep } },
+          useValue: {
+            ...mockMusicManager,
+            engine: {
+              tempo: signal(124),
+              timeSignature: signal({ beats: 4, unit: 4 }),
+              seekToStep,
+            },
+          },
         },
         {
           provide: AudioEngineService,
@@ -781,6 +809,59 @@ describe("ArrangementViewComponent", () => {
     mockMusicManager.currentStep.set(32);
     component.addTempoHere();
     expect(mockTempoMap.addMarker).toHaveBeenCalledWith(32, 124);
+  });
+
+  it("adds a meter change at the playhead and from the lane", () => {
+    mockMusicManager.currentStep.set(32);
+    component.addMeterHere();
+    expect(mockMeterMap.addMarker).toHaveBeenCalledWith(32, 4, 4);
+
+    const track = { getBoundingClientRect: () => ({ left: 0, width: 1024 }) };
+    component.onMeterLanePointerDown({
+      clientX: 512,
+      currentTarget: track,
+      target: { closest: () => null },
+    } as any);
+    expect(mockMeterMap.addMarker).toHaveBeenCalledWith(512, 4, 4);
+  });
+
+  it("edits a meter point inline", () => {
+    component.setMeterMarkerSignature(
+      { id: "meter-1", step: 0, beats: 4, unit: 4 },
+      { target: { value: "3/4" } } as any,
+    );
+    expect(mockMeterMap.updateMarker).toHaveBeenCalledWith("meter-1", {
+      beats: 3,
+      unit: 4,
+    });
+  });
+
+  it("retimes a meter point by dragging it", () => {
+    const track = { getBoundingClientRect: () => ({ left: 0, width: 1024 }) };
+    const handle = {
+      closest: () => track,
+      setPointerCapture: jest.fn(),
+    };
+    component.startMeterDrag(
+      {
+        button: 0,
+        pointerId: 9,
+        clientX: 100,
+        currentTarget: handle,
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      } as any,
+      { id: "meter-1", step: 0, beats: 4, unit: 4 },
+    );
+    component.onMeterDragMove({
+      pointerId: 9,
+      clientX: 164,
+      preventDefault: jest.fn(),
+    } as any);
+
+    expect(mockMeterMap.updateMarker).toHaveBeenCalledWith("meter-1", {
+      step: 64,
+    });
   });
 
   it("adds a tempo point on a lane tap and retimes it by dragging", () => {

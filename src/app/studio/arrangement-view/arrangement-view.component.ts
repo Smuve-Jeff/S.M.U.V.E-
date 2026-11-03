@@ -56,6 +56,11 @@ import {
   TempoMapService,
   type TempoMarker,
 } from "../tempo-map.service";
+import {
+  MeterMapService,
+  METER_OPTIONS,
+  type MeterMarker,
+} from "../meter-map.service";
 import { ArrangementMarkersService } from "../arrangement-markers.service";
 import { RecordingStatusService } from "../recording-status.service";
 
@@ -154,6 +159,19 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   /** A drag that moved should not also seek when its pointerup synthesizes a click. */
   private suppressTempoSeek = false;
 
+  /** Horizontal drag state for a meter point. */
+  private activeMeterDrag: {
+    pointerId: number;
+    markerId: string;
+    startClientX: number;
+    initialStep: number;
+    lastStep: number;
+    laneWidth: number;
+    moved: boolean;
+  } | null = null;
+
+  private suppressMeterSeek = false;
+
   // ── Stem-Splitter UI state ───────────────────────────────
   stemOpen = signal(false);
   stemProgress = signal(0);
@@ -166,6 +184,8 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   editMode = signal<ArrangementTool>("select");
   activeTool = signal<"select" | "blade" | "glue">("select");
   readonly tempoMap = inject(TempoMapService);
+  readonly meterMap = inject(MeterMapService);
+  readonly meterOptions = METER_OPTIONS;
   selectedClipIds = signal<Set<string>>(new Set());
   snapEnabled = signal(true);
   private readonly automation = inject(AutomationService);
@@ -1579,6 +1599,183 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     max = Math.min(300, max + padding);
     if (max - min < 4) max = min + 4;
     return { min, max };
+  }
+
+  /** Pin the transport's current meter at the playhead's bar. */
+  addMeterHere(): void {
+    const bar = Math.floor(this.musicManager.currentStep() / STEPS_PER_BAR);
+    const signature = this.engine?.timeSignature?.() ?? { beats: 4, unit: 4 };
+    this.addMeterMarkerAt(bar * STEPS_PER_BAR, signature.beats, signature.unit);
+  }
+
+  private addMeterMarkerAt(step: number, beats: number, unit: number): void {
+    const marker = this.meterMap.addMarker(step, beats, unit);
+    if (!marker) {
+      this.snackbar.info("Choose a valid time signature");
+      return;
+    }
+    this.haptic.light();
+    this.snackbar.show(
+      `🎵 Meter ${marker.beats}/${marker.unit} pinned at bar ${this.meterBarOf(marker)}`,
+    );
+  }
+
+  /** Tap an empty part of the meter lane to add a change at that bar. */
+  onMeterLanePointerDown(event: PointerEvent): void {
+    const target = event.target as Element | null;
+    if (target?.closest?.(".arrangement-meter-marker, button, select, input")) {
+      return;
+    }
+    const lane = event.currentTarget as HTMLElement | null;
+    const rect = lane?.getBoundingClientRect();
+    if (!rect?.width) return;
+    const totalSteps = Math.max(1, this.totalBars()) * STEPS_PER_BAR;
+    const step = this.snapTempoStep(
+      ((event.clientX - rect.left) / rect.width) * totalSteps,
+    );
+    const existing = this.meterMap
+      .markers()
+      .find((marker) => marker.step === step);
+    if (existing) {
+      this.seekToMeterMarker(existing.step);
+      this.snackbar.info(
+        `Meter change already pinned at bar ${this.meterBarOf(existing)}`,
+      );
+      return;
+    }
+    const signature = this.engine?.timeSignature?.() ?? { beats: 4, unit: 4 };
+    this.addMeterMarkerAt(step, signature.beats, signature.unit);
+  }
+
+  startMeterDrag(event: PointerEvent, marker: MeterMarker): void {
+    if (event.button > 0) return;
+    const handle = event.currentTarget as HTMLElement | null;
+    const lane = handle?.closest(".arrangement-meter-track") as HTMLElement | null;
+    const rect = lane?.getBoundingClientRect();
+    if (!rect?.width) return;
+    event.preventDefault();
+    event.stopPropagation();
+    handle?.setPointerCapture?.(event.pointerId);
+    this.suppressMeterSeek = false;
+    this.activeMeterDrag = {
+      pointerId: event.pointerId,
+      markerId: marker.id,
+      startClientX: event.clientX,
+      initialStep: marker.step,
+      lastStep: marker.step,
+      laneWidth: rect.width,
+      moved: false,
+    };
+  }
+
+  onMeterDragMove(event: PointerEvent): void {
+    const drag = this.activeMeterDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    const totalSteps = Math.max(1, this.totalBars()) * STEPS_PER_BAR;
+    const step = this.snapTempoStep(
+      drag.initialStep +
+        ((event.clientX - drag.startClientX) / drag.laneWidth) * totalSteps,
+    );
+    if (step === drag.lastStep) return;
+    if (!this.retimeMeterMarker(drag.markerId, step, true)) return;
+    drag.lastStep = step;
+    drag.moved = true;
+  }
+
+  onMeterDragEnd(event: PointerEvent): void {
+    const drag = this.activeMeterDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const handle = event.currentTarget as HTMLElement | null;
+    if (handle?.hasPointerCapture?.(drag.pointerId)) {
+      handle.releasePointerCapture(drag.pointerId);
+    }
+    if (drag.moved) {
+      const marker = this.meterMap
+        .markers()
+        .find((candidate) => candidate.id === drag.markerId);
+      if (marker) {
+        this.haptic.light();
+        this.snackbar.show(
+          `🎵 Meter ${marker.beats}/${marker.unit} moved to bar ${this.meterBarOf(marker)}`,
+        );
+      }
+      this.suppressMeterSeek = true;
+    }
+    this.activeMeterDrag = null;
+  }
+
+  /** Arrow keys move a meter point by one visual bar. */
+  onMeterDragKey(event: KeyboardEvent, marker: MeterMarker): void {
+    const delta =
+      event.key === "ArrowLeft" ? -16 : event.key === "ArrowRight" ? 16 : 0;
+    if (!delta) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.retimeMeterMarker(marker.id, this.snapTempoStep(marker.step + delta))) {
+      return;
+    }
+    this.haptic.light();
+    const moved = this.meterMap
+      .markers()
+      .find((candidate) => candidate.id === marker.id);
+    if (moved) {
+      this.snackbar.info(
+        `Meter ${moved.beats}/${moved.unit} at bar ${this.meterBarOf(moved)}`,
+      );
+    }
+  }
+
+  private retimeMeterMarker(id: string, step: number, quiet = false): boolean {
+    const marker = this.meterMap.markers().find((candidate) => candidate.id === id);
+    if (!marker || marker.step === step) return false;
+    if (
+      this.meterMap
+        .markers()
+        .some((candidate) => candidate.id !== id && candidate.step === step)
+    ) {
+      if (!quiet) this.snackbar.info("A meter change already exists at that bar");
+      return false;
+    }
+    this.meterMap.updateMarker(id, { step });
+    return true;
+  }
+
+  setMeterMarkerSignature(marker: MeterMarker, event: Event): void {
+    const select = event.target as HTMLSelectElement | null;
+    if (!select) return;
+    const [beats, unit] = select.value.split("/").map(Number);
+    if (!Number.isFinite(beats) || !Number.isFinite(unit)) {
+      select.value = this.meterMarkerLabel(marker);
+      return;
+    }
+    this.meterMap.updateMarker(marker.id, { beats, unit });
+    this.haptic.light();
+    this.snackbar.info(
+      `Meter ${beats}/${unit} at bar ${this.meterBarOf(marker)}`,
+    );
+  }
+
+  removeMeterMarker(id: string, event: Event): void {
+    event.stopPropagation();
+    this.meterMap.removeMarker(id);
+    this.haptic.light();
+  }
+
+  seekToMeterMarker(step: number): void {
+    if (this.suppressMeterSeek) {
+      this.suppressMeterSeek = false;
+      return;
+    }
+    this.musicManager.engine.seekToStep(step);
+  }
+
+  meterMarkerLabel(marker: MeterMarker): string {
+    return `${marker.beats}/${marker.unit}`;
+  }
+
+  private meterBarOf(marker: MeterMarker): number {
+    return Math.floor(marker.step / STEPS_PER_BAR) + 1;
   }
 
   /** Delete all selected clips (history-aware). */

@@ -1950,6 +1950,36 @@
   color: rgba(255, 255, 255, 0.35);
 }
 
+/* Meter changes share the tempo lane chrome; only the track height and the
+   value control differ. */
+.arrangement-meter-lane {
+  margin-top: 8px;
+  border-color: rgba(52, 245, 197, 0.16);
+}
+
+.arrangement-meter-track {
+  height: 44px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.arrangement-meter-marker {
+  top: 50%;
+}
+
+.arrangement-meter-select {
+  width: 62px;
+  height: 22px;
+  padding: 0 2px;
+  border: 1px solid rgba(52, 245, 197, 0.32);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #bffcf0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-align: center;
+  cursor: pointer;
+}
+
 /* Paste is dimmed until something has been copied. Without this the button
    reads as merely inactive rather than as waiting on a copy. */
 .arrangement-sheet-grid .studio-secondary-button:disabled {
