@@ -31,6 +31,8 @@ interface MeterReadings {
   [trackId: string]: number;
 }
 
+type MonoCompatibilityState = "safe" | "wide" | "phase" | "none";
+
 @Component({
   selector: "app-mixer",
   standalone: true,
@@ -133,6 +135,7 @@ export class MixerComponent implements OnInit, OnDestroy {
   private masterBuffer: Float32Array<ArrayBuffer> | null = null;
   private dragCleanup: (() => void) | null = null;
   trackLevels = signal<MeterReadings>({});
+  trackCorrelations = signal<MeterReadings>({});
   trackPeakHolds = signal<MeterReadings>({});
   masterPeakHold = signal(0);
   /**
@@ -231,6 +234,13 @@ export class MixerComponent implements OnInit, OnDestroy {
     });
     this.trackLevels.set(levels);
 
+    const correlations: MeterReadings = {};
+    for (const track of tracks) {
+      const correlation = this.audioSession.engine.getTrackCorrelation(track.id);
+      if (correlation !== null) correlations[track.id] = correlation;
+    }
+    this.trackCorrelations.set(correlations);
+
     const DECAY = 0.015;
     this.trackPeakHolds.update((holds) => {
       const next: MeterReadings = {};
@@ -265,6 +275,48 @@ export class MixerComponent implements OnInit, OnDestroy {
   getTrackPeakHold(id: string): number {
     return Math.min(1, this.trackPeakHolds()[id] || 0);
   }
+
+  trackCorrelation(id: string): number | null {
+    return this.trackCorrelations()[id] ?? null;
+  }
+
+  trackMonoState(id: string): MonoCompatibilityState {
+    const correlation = this.trackCorrelation(id);
+    if (correlation === null) return "none";
+    if (correlation < 0) return "phase";
+    if (correlation < 0.3) return "wide";
+    return "safe";
+  }
+
+  trackMonoText(id: string): string {
+    const correlation = this.trackCorrelation(id);
+    if (correlation === null) return "—";
+    const rounded = Math.round(correlation * 100) / 100;
+    const sign = rounded > 0 ? "+" : rounded < 0 ? "−" : "";
+    return `${sign}${Math.abs(rounded).toFixed(2)}`;
+  }
+
+  trackMonoLabel(id: string): string {
+    switch (this.trackMonoState(id)) {
+      case "safe":
+        return "MONO SAFE";
+      case "wide":
+        return "WIDE";
+      case "phase":
+        return "OUT OF PHASE";
+      default:
+        return "NO SIGNAL";
+    }
+  }
+
+  trackMonoTitle(track: TrackModel): string {
+    const label = this.trackMonoLabel(track.id);
+    const value = this.trackMonoText(track.id);
+    return `Mono compatibility for ${track.name}: ${label}${
+      value === "—" ? "" : ` (${value})`
+    }`;
+  }
+
   /**
    * Peak amplitude of a time-domain analyser buffer, clamped to 0..1.
    *

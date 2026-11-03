@@ -52,6 +52,32 @@ export function panLawGain(pan: number, law: PanLawDb): number {
 }
 
 /**
+ * Correlation for a stereo pair, with the edge cases a mono-compatibility
+ * meter needs: silence has no verdict, and a one-sided source is already mono
+ * (so it reads as +1 rather than an artificial centre-zero correlation).
+ */
+export function monoCompatibilityCorrelation(
+  left: Float32Array,
+  right: Float32Array
+): number | null {
+  const length = Math.min(left.length, right.length);
+  if (length < 2) return null;
+  let leftEnergy = 0;
+  let rightEnergy = 0;
+  for (let i = 0; i < length; i++) {
+    leftEnergy += left[i] * left[i];
+    rightEnergy += right[i] * right[i];
+  }
+  const louder = Math.max(leftEnergy, rightEnergy);
+  const quieter = Math.min(leftEnergy, rightEnergy);
+  if (louder < 1e-12) return null;
+  // A channel more than ~30 dB below the other is effectively one-sided.
+  if (quieter / louder < 1e-3) return 1;
+  const correlation = phaseCorrelation(left, right);
+  return Number.isFinite(correlation) ? correlation : null;
+}
+
+/**
  * One live plugin insert slot. `kernel` is the name the
  * `plugin-chain-processor` worklet resolves on the audio thread
  * ('compressor' | 'limiter' | 'eq' | 'saturate' | 'process'); an unknown name
@@ -617,6 +643,18 @@ export class AudioEngineService {
   private trackSendAGains = new Map<string, GainNode>();
   /** Dead-end analyser per track id, feeding the Channel Rack's level meters. */
   private trackAnalysers = new Map<string, AnalyserNode>();
+  /** Dead-end L/R taps for per-track mono-compatibility monitoring. */
+  private trackCorrelationTaps = new Map<
+    string,
+    {
+      source: AudioNode;
+      splitter: ChannelSplitterNode;
+      left: AnalyserNode;
+      right: AnalyserNode;
+      leftBuffer: Float32Array<ArrayBuffer>;
+      rightBuffer: Float32Array<ArrayBuffer>;
+    }
+  >();
   private _trackMeterBuffer = new Float32Array(0);
   private trackSendBGains = new Map<string, GainNode>();
   private trackOutputs = new Map<string, GainNode>();
@@ -4212,6 +4250,55 @@ export class AudioEngineService {
   }
 
   /**
+   * Stereo correlation (−1…1) of a track's post-fader signal for mono
+   * compatibility. The tap is dead-end and cached per track; a source with no
+   * live fader reports null rather than a misleading zero.
+   */
+  getTrackCorrelation(id: string): number | null {
+    const source = this.trackFaderGains.get(id);
+    if (!source) return null;
+    let tap = this.trackCorrelationTaps.get(id);
+    if (!tap) {
+      const splitter = this.ctx.createChannelSplitter(2);
+      const left = this.ctx.createAnalyser();
+      const right = this.ctx.createAnalyser();
+      left.fftSize = 512;
+      right.fftSize = 512;
+      source.connect(splitter);
+      splitter.connect(left, 0);
+      splitter.connect(right, 1);
+      tap = {
+        source,
+        splitter,
+        left,
+        right,
+        leftBuffer: new Float32Array(left.fftSize),
+        rightBuffer: new Float32Array(right.fftSize),
+      };
+      this.trackCorrelationTaps.set(id, tap);
+    }
+    tap.left.getFloatTimeDomainData(tap.leftBuffer);
+    tap.right.getFloatTimeDomainData(tap.rightBuffer);
+    return monoCompatibilityCorrelation(tap.leftBuffer, tap.rightBuffer);
+  }
+
+  private releaseTrackCorrelation(id: string): void {
+    const tap = this.trackCorrelationTaps.get(id);
+    if (!tap) return;
+    try {
+      tap.source.disconnect(tap.splitter);
+    } catch {
+      /* already detached */
+    }
+    try {
+      tap.splitter.disconnect();
+    } catch {
+      /* already detached */
+    }
+    this.trackCorrelationTaps.delete(id);
+  }
+
+  /**
    * Route a track's post-fader output into an audio bus, or back to master.
    *
    * This is the live half of the same routing model the offline renderer
@@ -4257,6 +4344,7 @@ export class AudioEngineService {
     if (output) {
       try { output.disconnect(); } catch { /* no outgoing edge */ }
     }
+    this.releaseTrackCorrelation(id);
     this.trackOutputs.delete(id);
     this.trackOutputDestinations.delete(id);
     this.trackBusRoutes.delete(id);

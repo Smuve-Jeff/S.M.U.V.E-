@@ -371,6 +371,18 @@
           ></div>
         </div>
 
+        <div
+          class="mix-mono"
+          [attr.data-state]="trackMonoState(track.id)"
+          [attr.title]="trackMonoTitle(track)"
+          [attr.aria-label]="trackMonoTitle(track)"
+          role="img"
+        >
+          <span class="mix-mono-dot" aria-hidden="true"></span>
+          <span class="mix-mono-label">MC</span>
+          <span class="mix-mono-value">{{ trackMonoText(track.id) }}</span>
+        </div>
+
         <!-- ――― AUX Sends — A feeds the master reverb, B the tempo-synced echo,
              0-150 % faders ――― -->
         <div class="mix-strip-sends">

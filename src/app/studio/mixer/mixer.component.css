@@ -2611,3 +2611,74 @@ the workspace. */
     display: none;
   }
 }
+
+/* Per-track mono-compatibility monitor. The engine taps the post-fader pair,
+   so this reports source width/phase rather than a decorative status. */
+.mix-mono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 17px;
+  margin: 5px 6px 0;
+  border: 1px solid var(--espresso-line);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--espresso-muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.mix-mono-dot {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 4px currentColor;
+}
+.mix-mono-label {
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  opacity: 0.66;
+}
+.mix-mono-value {
+  font-weight: 800;
+}
+.mix-mono[data-state="safe"] {
+  color: #147a67;
+  border-color: rgba(20, 122, 103, 0.28);
+  background: rgba(52, 245, 197, 0.08);
+}
+.mix-mono[data-state="wide"] {
+  color: #986000;
+  border-color: rgba(255, 182, 39, 0.38);
+  background: rgba(255, 182, 39, 0.1);
+}
+.mix-mono[data-state="phase"] {
+  color: #b31344;
+  border-color: rgba(255, 61, 110, 0.38);
+  background: rgba(255, 61, 110, 0.1);
+}
+.mix-mono[data-state="none"] {
+  opacity: 0.55;
+}
+:host-context(.dark-mode) .mix-mono[data-state="safe"] {
+  color: #34f5c5;
+}
+:host-context(.dark-mode) .mix-mono[data-state="wide"] {
+  color: #ffc457;
+}
+:host-context(.dark-mode) .mix-mono[data-state="phase"] {
+  color: #ff6b93;
+}
+@media (max-width: 768px) {
+  .mix-mono {
+    margin-inline: 4px;
+  }
+  .mix-mono-label {
+    display: none;
+  }
+}

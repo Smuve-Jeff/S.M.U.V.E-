@@ -45,6 +45,7 @@ describe("MixerComponent", () => {
       /** Real L/R correlation from the engine's stereo metering tap. */
       outputCorrelation: signal(0),
       getTrackOutput: () => ({ connect: () => {} }),
+      getTrackCorrelation: jest.fn(() => 0.64),
       panLaw: mockPanLaw,
       setPanLaw: jest.fn((law: 0 | -3 | -4.5) => mockPanLaw.set(law)),
       connectSidechain,
@@ -149,6 +150,47 @@ describe("MixerComponent", () => {
   });
   it("should create", () => {
     expect(component).toBeTruthy();
+  });
+
+  it('classifies per-track mono compatibility and formats the reading', () => {
+    component.trackCorrelations.set({ '1': 0.64, '2': -0.12 });
+    expect(component.trackMonoState('1')).toBe('safe');
+    expect(component.trackMonoText('1')).toBe('+0.64');
+    expect(component.trackMonoState('2')).toBe('phase');
+    expect(component.trackMonoText('2')).toBe('−0.12');
+
+    component.trackCorrelations.set({ '1': 0.12 });
+    expect(component.trackMonoState('1')).toBe('wide');
+    expect(component.trackMonoLabel('1')).toBe('WIDE');
+
+    component.trackCorrelations.set({});
+    expect(component.trackMonoState('1')).toBe('none');
+    expect(component.trackMonoText('1')).toBe('—');
+  });
+
+  it('samples per-track correlation during the metering task', () => {
+    mockAudioSession.engine.getTrackCorrelation
+      .mockReturnValueOnce(0.42)
+      .mockReturnValueOnce(null);
+
+    (component as any).updateMeters();
+
+    expect(mockAudioSession.engine.getTrackCorrelation).toHaveBeenCalledWith('1');
+    expect(mockAudioSession.engine.getTrackCorrelation).toHaveBeenCalledWith('2');
+    expect(component.trackCorrelations()).toEqual({ '1': 0.42 });
+  });
+
+  it('renders a mono-compatibility badge on every channel strip', () => {
+    component.trackCorrelations.set({ '1': 0.5, '2': -0.2 });
+    fixture.detectChanges();
+
+    const badges = Array.from(
+      fixture.nativeElement.querySelectorAll('.mix-mono'),
+    ) as HTMLElement[];
+    expect(badges).toHaveLength(2);
+    expect(badges[0].textContent).toContain('+0.50');
+    expect(badges[0].getAttribute('data-state')).toBe('safe');
+    expect(badges[1].getAttribute('data-state')).toBe('phase');
   });
 
   it('reads the live phase correlation from the engine instead of faking it', () => {

@@ -293,6 +293,8 @@ is more than FL Mobile's step editor). The gap is content, not engine.
 - Horizon-style strips: fader, pan, mute/solo, peak hold, master fader, AUX A/B
   send view with dB readouts, VCA bus rack (create/delete, assignments, multiplier),
   mobile inspector, drag/keyboard fader input, haptics.
+- Per-strip mono-compatibility correlation from a post-fader L/R tap; silence is
+  unavailable and one-sided mono sources read safe.
 
 **Baseline**
 - Cubasis: channel strips with 8 inserts, 8 global send buses, 8 master inserts,
@@ -312,7 +314,8 @@ is more than FL Mobile's step editor). The gap is content, not engine.
 3. **No insert count per channel in the mixer UI** — inserts live in the channel rack
    and effects rack, so mixing and processing are two different screens.
 4. ~~**No pan law or mono-compatibility control.**~~ **Pan law shipped 3 Nov
-   2026** with 0 / −3 / −4.5 dB options; mono monitoring already ships.
+   2026** with 0 / −3 / −4.5 dB options; per-track mono-compatibility metering
+   now flags wide and out-of-phase channels, and global mono monitoring ships.
 5. **No meter scaling options** (peak/RMS/LUFS per strip) and no numeric fader entry
    beyond the drag readout.
 

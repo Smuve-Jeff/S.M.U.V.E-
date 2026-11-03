@@ -7,6 +7,7 @@ import {
   clampFinite,
   computeCrossfaderGains,
   createAudioContext,
+  monoCompatibilityCorrelation,
   panLawGain,
 } from './audio-engine.service';
 
@@ -2177,5 +2178,61 @@ describe('setPanLaw', () => {
     );
     expect(hardRight.gain.setTargetAtTime).toHaveBeenCalledWith(1, 1.234, 0.05);
     expect(fader.gain.setTargetAtTime).not.toHaveBeenCalled();
+  });
+});
+
+describe('monoCompatibilityCorrelation', () => {
+  it('has no verdict for silence and treats a one-sided source as mono', () => {
+    expect(
+      monoCompatibilityCorrelation(new Float32Array(8), new Float32Array(8)),
+    ).toBeNull();
+
+    const left = new Float32Array(8);
+    for (let i = 0; i < left.length; i++) left[i] = i % 2 ? -0.5 : 0.5;
+    expect(monoCompatibilityCorrelation(left, new Float32Array(8))).toBe(1);
+  });
+
+  it('reports anti-phase stereo and identical stereo', () => {
+    const left = new Float32Array([1, -1, 1, -1, 1, -1]);
+    const inverted = new Float32Array([-1, 1, -1, 1, -1, 1]);
+    expect(monoCompatibilityCorrelation(left, left)).toBeCloseTo(1, 5);
+    expect(monoCompatibilityCorrelation(left, inverted)).toBeCloseTo(-1, 5);
+  });
+});
+
+describe('getTrackCorrelation', () => {
+  it('returns null when a track has no live fader tap', () => {
+    const svc = makeBareEngine();
+    (svc as any).trackFaderGains = new Map();
+    (svc as any).trackCorrelationTaps = new Map();
+    expect(svc.getTrackCorrelation('missing')).toBeNull();
+  });
+
+  it('reads a cached stereo split from the post-fader path', () => {
+    const svc = makeBareEngine();
+    const wave = (buffer: Float32Array) => {
+      for (let i = 0; i < buffer.length; i++) buffer[i] = i % 2 ? -0.5 : 0.5;
+    };
+    const source = { connect: jest.fn() };
+    const splitter = { connect: jest.fn(), disconnect: jest.fn() };
+    const left = { fftSize: 0, getFloatTimeDomainData: wave };
+    const right = { fftSize: 0, getFloatTimeDomainData: wave };
+    (svc as any).trackFaderGains = new Map([['t1', source]]);
+    (svc as any).trackCorrelationTaps = new Map();
+    (svc as any).ctx = {
+      currentTime: 1.234,
+      createChannelSplitter: jest.fn(() => splitter),
+      createAnalyser: jest
+        .fn()
+        .mockReturnValueOnce(left)
+        .mockReturnValueOnce(right),
+    };
+
+    expect(svc.getTrackCorrelation('t1')).toBeCloseTo(1, 5);
+    expect(source.connect).toHaveBeenCalledWith(splitter);
+    expect(splitter.connect).toHaveBeenCalledWith(left, 0);
+    expect(splitter.connect).toHaveBeenCalledWith(right, 1);
+    expect(svc.getTrackCorrelation('t1')).toBeCloseTo(1, 5);
+    expect((svc as any).ctx.createAnalyser).toHaveBeenCalledTimes(2);
   });
 });
