@@ -7,6 +7,7 @@ import {
   clampFinite,
   computeCrossfaderGains,
   createAudioContext,
+  panLawGain,
 } from './audio-engine.service';
 
 // Minimal bare-instance helper: skips the heavy constructor (which needs a
@@ -2128,5 +2129,53 @@ describe('createAudioContext', () => {
 
     expect(result.available).toBe(true);
     expect(constructed).toEqual([{ latencyHint: 'interactive' }]);
+  });
+});
+
+describe('panLawGain', () => {
+  it('leaves the default equal-power response untouched', () => {
+    expect(panLawGain(0, -3)).toBe(1);
+    expect(panLawGain(0.5, -3)).toBe(1);
+    expect(panLawGain(1, -3)).toBe(1);
+  });
+
+  it('lifts a 0 dB centre and attenuates a −4.5 dB centre', () => {
+    expect(panLawGain(0, 0)).toBeCloseTo(Math.SQRT2, 4);
+    expect(panLawGain(0, -4.5)).toBeCloseTo(0.8414, 4);
+  });
+
+  it('converges on the selected law at hard left and right', () => {
+    for (const law of [0, -3, -4.5] as const) {
+      expect(panLawGain(-1, law)).toBe(1);
+      expect(panLawGain(1, law)).toBe(1);
+    }
+  });
+});
+
+describe('setPanLaw', () => {
+  it('recompensates pan stages without writing the VCA/fader gain', () => {
+    const svc = makeBareEngine();
+    (svc as any).panLaw = signal(-3);
+    const centre = { gain: { setTargetAtTime: jest.fn() } };
+    const hardRight = { gain: { setTargetAtTime: jest.fn() } };
+    const fader = { gain: { setTargetAtTime: jest.fn() } };
+    (svc as any).trackPanLawGains = new Map([
+      ['centre', centre],
+      ['right', hardRight],
+    ]);
+    (svc as any).tracksMap = new Map([
+      ['centre', { pan: 0 }],
+      ['right', { pan: 1 }],
+    ]);
+    (svc as any).trackFaderGains = new Map([['centre', fader]]);
+
+    expect(svc.setPanLaw(-4.5)).toBe(-4.5);
+    expect(centre.gain.setTargetAtTime).toHaveBeenCalledWith(
+      panLawGain(0, -4.5),
+      1.234,
+      0.05
+    );
+    expect(hardRight.gain.setTargetAtTime).toHaveBeenCalledWith(1, 1.234, 0.05);
+    expect(fader.gain.setTargetAtTime).not.toHaveBeenCalled();
   });
 });

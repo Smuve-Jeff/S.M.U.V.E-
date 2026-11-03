@@ -33,6 +33,24 @@ import {
 export type DeckId = 'A' | 'B';
 
 export type CrossfaderCurve = 'linear' | 'power' | 'exp' | 'cut';
+
+/** Centre attenuation selected for the mixer's pan law. */
+export type PanLawDb = 0 | -3 | -4.5;
+
+/**
+ * Gain compensation that turns StereoPannerNode's equal-power centre response
+ * into the selected pan law. The correction fades to unity at hard left/right,
+ * where every law converges because only one channel is audible.
+ */
+export function panLawGain(pan: number, law: PanLawDb): number {
+  const position = Math.max(
+    0,
+    Math.min(1, Number.isFinite(pan) ? Math.abs(pan) : 0)
+  );
+  const centreDb = law === 0 ? 3.0103 : law === -4.5 ? -1.5 : 0;
+  return Math.pow(10, (centreDb * (1 - position)) / 20);
+}
+
 /**
  * One live plugin insert slot. `kernel` is the name the
  * `plugin-chain-processor` worklet resolves on the audio thread
@@ -653,8 +671,14 @@ export class AudioEngineService {
     gain.gain.setValueAtTime(gain.gain.value, now);
     gain.gain.linearRampToValueAtTime(target, now + AudioEngineService.VCA_RAMP_SECONDS);
   }
+
+  /** Mixer centre attenuation. Defaults to the equal-power −3 dB law. */
+  readonly panLaw = signal<PanLawDb>(-3);
+
   private trackPhaseNodes = new Map<string, GainNode>();
   private trackWidthNodes = new Map<string, StereoPannerNode>();
+  /** Pan-law compensation, after the panner and before the VCA-driven fader. */
+  private trackPanLawGains = new Map<string, GainNode>();
   /** Per-channel lowpass, open by default; the `cutoff` automation target. */
   private trackFilterNodes = new Map<string, BiquadFilterNode>();
   private trackFaderGains = new Map<string, GainNode>();
@@ -4257,8 +4281,13 @@ export class AudioEngineService {
       // Complete Pro Signal Chain
       const phase = this.ctx.createGain(); // Phase Inversion Node
       const width = this.ctx.createStereoPanner(); // Stereo Width / Pan
+      const panComp = this.ctx.createGain(); // Pan-law centre compensation
       const fader = this.ctx.createGain(); // Post-fader Gain
       const output = this.ctx.createGain(); // Final Track Out
+      panComp.gain.value = panLawGain(
+        this.tracksMap.get(id)?.pan ?? 0,
+        this.panLaw()
+      );
 
       // Channel filter: sits after the insert rack so a `cutoff` automation
       // lane sweeps the whole channel (notes and clips), not just new voices.
@@ -4282,13 +4311,15 @@ export class AudioEngineService {
       phase.connect(rack.input);
       rack.output.connect(channelFilter);
       channelFilter.connect(width);
-      width.connect(fader);
+      width.connect(panComp);
+      panComp.connect(fader);
       fader.connect(output);
       output.connect(this.masterGain);
       this.trackOutputDestinations.set(id, this.masterGain);
 
       this.trackPhaseNodes.set(id, phase);
       this.trackWidthNodes.set(id, width);
+      this.trackPanLawGains.set(id, panComp);
       this.trackFilterNodes.set(id, channelFilter);
       this.trackFaderGains.set(id, fader);
       this.trackOutputs.set(id, output);
@@ -4730,6 +4761,18 @@ export class AudioEngineService {
     } catch { /* already stopped */ }
   }
 
+  /** Select the pan law and recompensate every existing pan stage. */
+  setPanLaw(law: PanLawDb): PanLawDb {
+    const safe: PanLawDb = law === 0 || law === -4.5 ? law : -3;
+    this.panLaw.set(safe);
+    const now = this.ctx.currentTime;
+    for (const [id, panComp] of this.trackPanLawGains) {
+      const pan = this.tracksMap.get(id)?.pan ?? 0;
+      panComp.gain.setTargetAtTime(panLawGain(pan, safe), now, 0.05);
+    }
+    return safe;
+  }
+
   updateTrack(id: string | number, patch: any) {
     const idStr = id.toString();
     this.getTrackOutput(idStr); // Ensure nodes exist
@@ -4754,8 +4797,17 @@ export class AudioEngineService {
         0.01
       );
 
-    if (patch.pan !== undefined && width)
-      width.pan.setTargetAtTime(patch.pan, this.ctx.currentTime, 0.05);
+    if (patch.pan !== undefined) {
+      if (width)
+        width.pan.setTargetAtTime(patch.pan, this.ctx.currentTime, 0.05);
+      const panComp = this.trackPanLawGains.get(idStr);
+      if (panComp)
+        panComp.gain.setTargetAtTime(
+          panLawGain(patch.pan, this.panLaw()),
+          this.ctx.currentTime,
+          0.05
+        );
+    }
 
     if (patch.cutoff !== undefined && filter) {
       const hz = Number(patch.cutoff);

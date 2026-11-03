@@ -311,7 +311,8 @@ is more than FL Mobile's step editor). The gap is content, not engine.
    FX; we have two hard-wired destinations.
 3. **No insert count per channel in the mixer UI** — inserts live in the channel rack
    and effects rack, so mixing and processing are two different screens.
-4. **No pan law or mono-compatibility control** (pro users on headphones notice).
+4. ~~**No pan law or mono-compatibility control.**~~ **Pan law shipped 3 Nov
+   2026** with 0 / −3 / −4.5 dB options; mono monitoring already ships.
 5. **No meter scaling options** (peak/RMS/LUFS per strip) and no numeric fader entry
    beyond the drag readout.
 
@@ -321,7 +322,8 @@ is more than FL Mobile's step editor). The gap is content, not engine.
   inserts in the mixer, and mix buses in `ExportService.renderProjectOffline`.
 - **M** — Expand sends to N aux buses with a send matrix.
 - **S** — Insert slots on the strip that open `EffectsRackUiComponent` in a sheet.
-- **S** — Pan law selector (0 / −3 / −4.5 dB) applied in the track panner.
+- ~~**S** — Pan law selector (0 / −3 / −4.5 dB) applied in the track panner.~~
+  **Shipped 3 Nov 2026.**
 
 ## 9. Effects and plugin store
 

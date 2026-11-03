@@ -2570,3 +2570,44 @@ the workspace. */
   .mix-bus-rack { margin-inline: 0.6rem; }
   .mix-bus-route { grid-template-columns: minmax(0, 1fr) minmax(6rem, 0.9fr); }
 }
+
+/* Pan-law selector: compact, beside the console view control. */
+.mix-pan-law {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--espresso-line);
+  border-radius: 8px;
+  background: var(--ivory-panel);
+}
+.mix-pan-law > span {
+  color: var(--espresso-muted);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mix-pan-law select {
+  border: 0;
+  background: transparent;
+  color: var(--espresso-text);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.mix-pan-law select:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.mix-pan-law option {
+  color: #111;
+}
+@media (max-width: 768px) {
+  .mix-pan-law > span {
+    display: none;
+  }
+}

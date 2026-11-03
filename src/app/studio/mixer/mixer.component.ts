@@ -69,6 +69,9 @@ export class MixerComponent implements OnInit, OnDestroy {
   selectedTrackId = this.musicManager.selectedTrackId;
   tracks = this.musicManager.tracks;
 
+  /** Selected mixer pan law, shared with the engine's pan-stage compensation. */
+  readonly panLaw = this.audioSession.engine.panLaw;
+
   /**
    * Console view. The segmented control used to be decorative: "Strips" was
    * hard-coded active and the other two buttons had no handler, so a producer
@@ -116,6 +119,12 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   updatePanPercent(id: string, value: number): void {
     this.musicManager.updateTrackPan(id, Math.max(-100, Math.min(100, value)));
+  }
+
+  setPanLaw(value: number): void {
+    const law = value === 0 ? 0 : value === -4.5 ? -4.5 : -3;
+    this.audioSession.engine.setPanLaw(law as 0 | -3 | -4.5);
+    this.haptic.light();
   }
 
   private analyserMap = new Map<string, AnalyserNode>();

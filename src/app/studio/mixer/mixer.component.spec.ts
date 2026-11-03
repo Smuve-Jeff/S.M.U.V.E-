@@ -23,6 +23,8 @@ describe("MixerComponent", () => {
     writeSmoothing: jest.fn(() => 0.35),
   };
 
+  const mockPanLaw = signal<0 | -3 | -4.5>(-3);
+
   const mockAudioSession = {
     isPlaying: signal(false),
     isRecording: signal(false),
@@ -43,6 +45,8 @@ describe("MixerComponent", () => {
       /** Real L/R correlation from the engine's stereo metering tap. */
       outputCorrelation: signal(0),
       getTrackOutput: () => ({ connect: () => {} }),
+      panLaw: mockPanLaw,
+      setPanLaw: jest.fn((law: 0 | -3 | -4.5) => mockPanLaw.set(law)),
       connectSidechain,
       disconnectSidechain,
     },
@@ -94,6 +98,7 @@ describe("MixerComponent", () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPanLaw.set(-3);
     await TestBed.configureTestingModule({
       imports: [MixerComponent, CommonModule, FormsModule, KnobComponent],
       providers: [
@@ -459,5 +464,12 @@ describe("MixerComponent", () => {
     component.toggleSidechain("1", null);
     fixture.detectChanges();
     expect(component.sidechainCount()).toBe(0);
+  });
+
+  it('selects the mixer pan law', () => {
+    component.setPanLaw(-4.5);
+
+    expect(mockAudioSession.engine.setPanLaw).toHaveBeenCalledWith(-4.5);
+    expect(component.panLaw()).toBe(-4.5);
   });
 });
