@@ -2178,6 +2178,26 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.markDirty();
   }
 
+  clipSelectionToScale(): void {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    const pitchClasses = Array.from({ length: 12 }, (_, pc) => pc).filter(
+      (pc) => this.isInScale(pc),
+    );
+    if (!this.musicManager.clipNotesToScale(track.id, ids, pitchClasses)) {
+      this.snackbar.info("Selection already fits the scale");
+      return;
+    }
+    this.haptic.medium();
+    this.markDirty();
+    this.snackbar.success(
+      `Clipped to ${this.selectedKey()} ${this.detectedScaleLabel(
+        this.selectedScale(),
+      )}`,
+    );
+  }
+
   copySelection(): void {
     const track = this.selectedTrack();
     const ids = Array.from(this.selectedNoteIds());

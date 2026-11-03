@@ -91,6 +91,7 @@ describe("PianoRollComponent", () => {
     arpeggiateTrack: jest.fn(),
     rampNoteVelocity: jest.fn(() => true),
     legatoNotes: jest.fn(() => true),
+    clipNotesToScale: jest.fn(() => true),
     selectedTrack: computed(() => mockTracks()[0] ?? null),
     engine: { scaleMode: signal("major"), scaleLock: signal(false) },
   };
@@ -563,6 +564,22 @@ describe("PianoRollComponent", () => {
       "n1",
       "n2",
     ]);
+  });
+
+  it("clips the selection to the current key and scale", () => {
+    mockMusicManager.clipNotesToScale.mockClear();
+    mockMusicManager.clipNotesToScale.mockReturnValue(true);
+    component.selectedKey.set("C");
+    component.selectedScale.set("major");
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+
+    component.clipSelectionToScale();
+
+    expect(mockMusicManager.clipNotesToScale).toHaveBeenCalledWith(
+      "1",
+      ["n1", "n2"],
+      [0, 2, 4, 5, 7, 9, 11],
+    );
   });
 
   it("does not legato-join fewer than two selected notes", () => {

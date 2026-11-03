@@ -2536,6 +2536,62 @@ export class MusicManagerService {
   }
 
   /**
+   * Clip the selected notes to a scale.
+   *
+   * The nearest allowed pitch wins, preferring the upward candidate when two
+   * candidates are equally close. Notes that already belong to the scale are
+   * left byte-for-byte untouched, and the whole edit is one history command.
+   */
+  clipNotesToScale(
+    id: string,
+    noteIds: string[],
+    pitchClasses: number[]
+  ): boolean {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return false;
+    const allowed = new Set(
+      pitchClasses.map((pc) => ((Math.round(pc) % 12) + 12) % 12)
+    );
+    if (allowed.size === 0) return false;
+    const targetIds = new Set(noteIds);
+    const before = this.clone(t.notes);
+    let changed = false;
+    const after = t.notes.map((n) => {
+      if (!targetIds.has(n.id)) return n;
+      const midi = Math.round(n.midi);
+      if (allowed.has(((midi % 12) + 12) % 12)) return n;
+      for (let distance = 1; distance <= 6; distance++) {
+        const up = midi + distance;
+        if (up <= 127 && allowed.has(up % 12)) {
+          changed = true;
+          return { ...n, midi: up };
+        }
+        const down = midi - distance;
+        if (down >= 0 && allowed.has(down % 12)) {
+          changed = true;
+          return { ...n, midi: down };
+        }
+      }
+      return n;
+    });
+    if (!changed) return false;
+    this.runCommand(
+      'Clip to scale · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+    return true;
+  }
+
+  /**
    * Join the selected notes legato-style.
    *
    * Each selected note extends to the next selected onset. Notes that start

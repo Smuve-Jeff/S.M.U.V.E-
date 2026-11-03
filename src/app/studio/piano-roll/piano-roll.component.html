@@ -764,6 +764,15 @@
       <button
         type="button"
         class="pr-inspector-toggle"
+        (click)="clipSelectionToScale()"
+        title="Clip selected pitches to the current key and scale"
+      >
+        <span class="material-symbols-outlined">music_note</span>
+        <span>To Scale</span>
+      </button>
+      <button
+        type="button"
+        class="pr-inspector-toggle"
         (click)="duplicateSelection()"
         title="Duplicate selected notes"
       >

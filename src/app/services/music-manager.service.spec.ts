@@ -2436,4 +2436,42 @@ describe('MusicManagerService per-scene follow rules', () => {
     ).toBe(false);
   });
 
+  it('clips selected pitches to a scale with nearest-note correction and undo', () => {
+    const source = service.tracks()[0];
+    service.tracks.set([
+      {
+        ...source,
+        notes: [
+          { id: 'in-scale', step: 0, midi: 60, length: 1, velocity: 0.8 },
+          { id: 'c-sharp', step: 1, midi: 61, length: 1, velocity: 0.8 },
+          { id: 'f-sharp', step: 2, midi: 66, length: 1, velocity: 0.8 },
+          { id: 'a-sharp', step: 3, midi: 70, length: 1, velocity: 0.8 },
+          { id: 'untouched', step: 4, midi: 61, length: 1, velocity: 0.8 },
+        ],
+        clips: [],
+      },
+    ]);
+    const ids = ['in-scale', 'c-sharp', 'f-sharp', 'a-sharp'];
+    const cMajor = [0, 2, 4, 5, 7, 9, 11];
+
+    expect(service.clipNotesToScale('track-1', ids, cMajor)).toBe(true);
+
+    const byId = new Map(service.tracks()[0].notes.map((n) => [n.id, n]));
+    expect(byId.get('in-scale')!.midi).toBe(60);
+    // Equal-distance candidates prefer the upward note (C# -> D).
+    expect(byId.get('c-sharp')!.midi).toBe(62);
+    expect(byId.get('f-sharp')!.midi).toBe(67);
+    expect(byId.get('a-sharp')!.midi).toBe(71);
+    expect(byId.get('untouched')!.midi).toBe(61);
+
+    const recorder = (service as unknown as { history: { undo(): void } })
+      .history;
+    recorder.undo();
+    const restored = new Map(service.tracks()[0].notes.map((n) => [n.id, n]));
+    expect(restored.get('c-sharp')!.midi).toBe(61);
+    expect(restored.get('f-sharp')!.midi).toBe(66);
+
+    expect(service.clipNotesToScale('track-1', ['in-scale'], cMajor)).toBe(false);
+  });
+
 });

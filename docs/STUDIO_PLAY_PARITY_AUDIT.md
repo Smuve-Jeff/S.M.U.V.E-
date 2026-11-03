@@ -221,8 +221,8 @@ L > 1 week of focused work).
    is still allowed with no visual constraint toggle.
 3. **No MIDI file drop into the roll.** `MidiImportService` imports a whole file
    into tracks; there is no "import to this clip at the playhead".
-4. **Some note-group operations remain missing.** Legato-join shipped 3 Nov
-   2026; clip-to-scale, invert, mirror and one-gesture duplicate-to-next-bar
+4. **Some note-group operations remain missing.** Legato-join and clip-to-scale
+   shipped 3 Nov 2026; invert, mirror and one-gesture duplicate-to-next-bar
    remain.
 5. **Velocity ramp now ships; deeper shapes do not.** The selection inspector
    ramps velocities up or down in one undoable step, ordered by note start and
@@ -233,7 +233,7 @@ L > 1 week of focused work).
   reusing `MusicManagerService.arpeggiateTrack` but scoped to a selection.
 - **S** — Scale lock toggle that snaps new/resized notes to the detected or chosen scale.
 - **S** — Selection ops: transpose ±octave, duplicate-to-next-bar.
-  ~~Legato-join~~ **shipped 3 Nov 2026**; ~~velocity ramp~~ **shipped 3 Nov 2026**.
+  ~~Legato-join~~, ~~clip-to-scale~~ and ~~velocity ramp~~ **shipped 3 Nov 2026**.
 - **S** — Drag-and-drop `.mid` onto the roll at the playhead.
 
 ## 6. Channel rack and step sequencer
