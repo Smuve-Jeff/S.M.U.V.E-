@@ -444,6 +444,32 @@ export function createAudioContext(): { context: AudioContext; available: boolea
   }
 }
 
+/**
+ * Seconds covered by a linear BPM ramp over a span of sixteenth-note steps.
+ *
+ * Integrating 1/BPM rather than averaging the endpoints is what makes the
+ * result additive: splitting a ramp at a clip or fade boundary must not
+ * change the total duration of the span.
+ */
+export function tempoRampSeconds(
+  steps: number,
+  fromBpm: number,
+  toBpm: number,
+  stepsPerBeat = 4,
+): number {
+  const span = Math.max(0, steps);
+  if (span === 0) return 0;
+  const from = Math.max(1, fromBpm);
+  const to = Math.max(1, toBpm);
+  if (Math.abs(to - from) < 1e-9) {
+    return (span * 60) / from / Math.max(1, stepsPerBeat);
+  }
+  return (
+    ((span * 60) / Math.max(1, stepsPerBeat)) *
+    (Math.log(to / from) / (to - from))
+  );
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -1719,18 +1745,17 @@ export class AudioEngineService {
       const to = breakpoints[i + 1];
       const span = to - from;
       if (span <= 0) continue;
-      // The mean of the ramp endpoints is an accurate, allocation-free
-      // integration for the short step windows the transport uses.
+      // Integrate 1/BPM exactly across a linear ramp so splitting a span at
+      // a clip or fade boundary cannot change its total duration.
       const marker = [...this.tempoMap]
         .reverse()
         .find((candidate) => candidate.step <= from);
-      const bpm = Math.max(
-        1,
+      const fromBpm = Math.max(1, this.tempoAtStep(from));
+      const toBpm = Math.max(1, this.tempoAtStep(to));
+      seconds +=
         marker?.curve === 'ramp'
-          ? (this.tempoAtStep(from) + this.tempoAtStep(to)) / 2
-          : this.tempoAtStep(from),
-      );
-      seconds += (span * 60) / bpm / this.stepsPerBeat();
+          ? tempoRampSeconds(span, fromBpm, toBpm, this.stepsPerBeat())
+          : (span * 60) / fromBpm / this.stepsPerBeat();
     }
     return seconds;
   }

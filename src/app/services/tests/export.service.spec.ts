@@ -697,8 +697,10 @@ describe("ExportService", () => {
       }
     }
 
-    // The ramp averages 90 BPM for the first bar (8/3 s), then 60 BPM makes
-    // the two 3/4 bars six seconds. The one-bar fades are 8/3 s and 3 s.
+    // The 120→60 ramp integrates to 4 ln 2 seconds for the first bar, then
+    // 60 BPM makes the two 3/4 bars six seconds. The one-bar fades are
+    // 4 ln 2 s and 3 s, and the render adds a one-second tail.
+    const rampBar = 4 * Math.log(2);
     const fader = gains.find(
       (node) => node.gain.linearRampToValueAtTime.mock.calls.length > 0,
     );
@@ -706,15 +708,30 @@ describe("ExportService", () => {
     expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(1, 0, 0);
     const fadeIn = fader!.gain.linearRampToValueAtTime.mock.calls[0];
     expect(fadeIn[0]).toBe(1);
-    expect(fadeIn[1]).toBeCloseTo(8 / 3, 6);
+    expect(fadeIn[1]).toBeCloseTo(rampBar, 6);
     const hold = fader!.gain.setValueAtTime.mock.calls[1];
     expect(hold[0]).toBe(1);
-    expect(hold[1]).toBeCloseTo(17 / 3, 6);
+    expect(hold[1]).toBeCloseTo(rampBar + 3, 6);
     const fadeOut = fader!.gain.linearRampToValueAtTime.mock.calls[1];
     expect(fadeOut[0]).toBe(0);
-    expect(fadeOut[1]).toBeCloseTo(26 / 3, 6);
+    expect(fadeOut[1]).toBeCloseTo(rampBar + 6, 6);
     expect(contexts[0][2]).toBe(44100);
-    expect(contexts[0][1] / contexts[0][2]).toBeCloseTo(29 / 3, 5);
+    expect(contexts[0][1]).toBe(Math.ceil((rampBar + 7) * 44100));
+  });
+
+  it("keeps ramped export timing additive across subwindows", () => {
+    const engine = (service as any).engine;
+    engine.tempo = jest.fn(() => 120);
+    engine.getTempoMap = jest.fn(() => [
+      { step: 0, bpm: 120, curve: "ramp" },
+      { step: 16, bpm: 60 },
+    ]);
+
+    const timing = (service as any).buildTempoTimeline();
+    const whole = timing.secondsForSteps(0, 16);
+    expect(timing.secondsForSteps(0, 8) + timing.secondsForSteps(8, 8))
+      .toBeCloseTo(whole, 9);
+    expect(whole).toBeCloseTo(4 * Math.log(2), 9);
   });
 
   it("applies clip-level gain when the clip has no fades", async () => {

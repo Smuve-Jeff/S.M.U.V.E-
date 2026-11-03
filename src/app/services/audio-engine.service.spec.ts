@@ -2056,10 +2056,14 @@ describe('AudioEngineService meter map', () => {
       0, 16, 28, 40,
     ]);
     expect(svc.stepsForBars(0, 3)).toBe(40);
-    // 120→60 BPM averages 90 across the first bar, then holds at 60 in 3/4.
-    expect(svc.secondsBetweenSteps(0, 16)).toBeCloseTo(8 / 3, 9);
+    // A linear BPM ramp integrates to the logarithmic mean, not the
+    // arithmetic mean; subwindows must add up to the whole first bar.
+    const rampBar = 4 * Math.log(2);
+    expect(svc.secondsBetweenSteps(0, 8) + svc.secondsBetweenSteps(8, 16))
+      .toBeCloseTo(svc.secondsBetweenSteps(0, 16), 9);
+    expect(svc.secondsBetweenSteps(0, 16)).toBeCloseTo(rampBar, 9);
     expect(svc.secondsBetweenSteps(16, 40)).toBeCloseTo(6, 9);
-    expect(svc.secondsBetweenSteps(0, 40)).toBeCloseTo(26 / 3, 9);
+    expect(svc.secondsBetweenSteps(0, 40)).toBeCloseTo(rampBar + 6, 9);
   });
 
   it('maps bars through meter changes for clips and export', () => {

@@ -1,5 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { AudioEngineService, type VoiceControlPoint } from './audio-engine.service';
+import {
+  AudioEngineService,
+  tempoRampSeconds,
+  type VoiceControlPoint,
+} from './audio-engine.service';
 import { InstrumentsService, scheduleOfflinePresetSample } from './instruments.service';
 import { connectOfflineMasterChain } from './offline-master-chain';
 import {
@@ -1106,11 +1110,12 @@ export class ExportService {
         const span = to - from;
         if (span <= 0) continue;
         const active = pointAtStep(from);
-        const bpm =
+        const fromBpm = Math.max(1, bpmAtStep(from));
+        const toBpm = Math.max(1, bpmAtStep(to));
+        seconds +=
           active?.curve === 'ramp'
-            ? (bpmAtStep(from) + bpmAtStep(to)) / 2
-            : bpmAtStep(from);
-        seconds += (span * 60) / Math.max(1, bpm) / STEPS_PER_BEAT;
+            ? tempoRampSeconds(span, fromBpm, toBpm, STEPS_PER_BEAT)
+            : (span * 60) / fromBpm / STEPS_PER_BEAT;
       }
       return seconds;
     };
