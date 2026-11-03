@@ -609,6 +609,114 @@ describe("ExportService", () => {
     expect(fader!.gain.linearRampToValueAtTime).toHaveBeenNthCalledWith(2, 0, 10);
   });
 
+  it("retimes a clip across a ramped tempo and meter boundary in the bounce", async () => {
+    const gains: any[] = [];
+    const contexts: any[][] = [];
+    const offline = {
+      destination: {},
+      createGain: jest.fn(() => {
+        const node = {
+          gain: {
+            value: 1,
+            setValueAtTime: jest.fn(),
+            linearRampToValueAtTime: jest.fn(),
+            setTargetAtTime: jest.fn(),
+          },
+          connect: jest.fn(),
+        };
+        gains.push(node);
+        return node;
+      }),
+      createStereoPanner: jest.fn(() => ({
+        pan: { value: 0 },
+        connect: jest.fn(),
+      })),
+      createBufferSource: jest.fn(() => ({
+        buffer: null,
+        connect: jest.fn(),
+        playbackRate: { setValueAtTime: jest.fn() },
+        start: jest.fn(),
+        stop: jest.fn(),
+      })),
+      startRendering: jest.fn().mockResolvedValue({}),
+    };
+    const original = (globalThis as any).OfflineAudioContext;
+    (globalThis as any).OfflineAudioContext = jest.fn((...args: any[]) => {
+      contexts.push(args);
+      return offline;
+    });
+
+    const engine = (service as any).engine;
+    engine.masterGain = { gain: { value: 1 } };
+    engine.tempo = jest.fn(() => 120);
+    engine.getTempoMap = jest.fn(() => [
+      { step: 0, bpm: 120, curve: 'ramp' },
+      { step: 16, bpm: 60 },
+    ]);
+    engine.stepAtBar = jest.fn((bar: number) => {
+      const bars = [0, 16, 28, 40];
+      return bars[Math.min(bar, bars.length - 1)];
+    });
+    engine.stepsForBars = jest.fn((startBar: number, bars: number) =>
+      engine.stepAtBar(startBar + bars) - engine.stepAtBar(startBar),
+    );
+    engine.barCountForStep = jest.fn((step: number) =>
+      [0, 16, 28, 40].filter((boundary) => boundary < step).length || 1,
+    );
+    (service as any).musicManager.activeLoopBars = jest.fn(() => 3);
+    (service as any).musicManager.tracks = jest.fn(() => [
+      {
+        id: "vo",
+        name: "Vocal",
+        type: "audio",
+        muted: false,
+        soloed: false,
+        gain: 1,
+        pan: 0,
+        notes: [],
+        clips: [
+          {
+            type: "audio",
+            start: 0,
+            length: 3,
+            fadeIn: 1,
+            fadeOut: 1,
+            audioData: { duration: 12, sampleRate: 44100 },
+          },
+        ],
+      },
+    ]);
+
+    try {
+      await service.renderProjectOffline();
+    } finally {
+      if (original === undefined) {
+        delete (globalThis as any).OfflineAudioContext;
+      } else {
+        (globalThis as any).OfflineAudioContext = original;
+      }
+    }
+
+    // The ramp averages 90 BPM for the first bar (8/3 s), then 60 BPM makes
+    // the two 3/4 bars six seconds. The one-bar fades are 8/3 s and 3 s.
+    const fader = gains.find(
+      (node) => node.gain.linearRampToValueAtTime.mock.calls.length > 0,
+    );
+    expect(fader).toBeTruthy();
+    expect(fader!.gain.setValueAtTime).toHaveBeenNthCalledWith(1, 0, 0);
+    const fadeIn = fader!.gain.linearRampToValueAtTime.mock.calls[0];
+    expect(fadeIn[0]).toBe(1);
+    expect(fadeIn[1]).toBeCloseTo(8 / 3, 6);
+    const hold = fader!.gain.setValueAtTime.mock.calls[1];
+    expect(hold[0]).toBe(1);
+    expect(hold[1]).toBeCloseTo(17 / 3, 6);
+    const fadeOut = fader!.gain.linearRampToValueAtTime.mock.calls[1];
+    expect(fadeOut[0]).toBe(0);
+    expect(fadeOut[1]).toBeCloseTo(26 / 3, 6);
+    expect(contexts[0][2]).toBe(44100);
+    expect(contexts[0][1] / contexts[0][2]).toBeCloseTo(29 / 3, 5);
+  });
+
   it("applies clip-level gain when the clip has no fades", async () => {
     const gains = await renderClipGains({
       type: "audio",

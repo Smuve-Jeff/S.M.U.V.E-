@@ -2039,6 +2039,29 @@ describe('AudioEngineService meter map', () => {
     expect(svc.secondsBetweenSteps(16, 32)).toBeCloseTo(2, 9);
   });
 
+  it('keeps a ramped tempo and meter boundary aligned for live clip windows', () => {
+    const svc = makeMeterEngine();
+    (svc as any).workletNode = { port: { postMessage: jest.fn() } };
+
+    svc.setMeterMap([
+      { step: 0, beats: 4, unit: 4 },
+      { step: 16, beats: 3, unit: 4 },
+    ]);
+    svc.setTempoMap([
+      { step: 0, bpm: 120, curve: 'ramp' },
+      { step: 16, bpm: 60 },
+    ]);
+
+    expect([0, 1, 2, 3].map((bar) => svc.stepAtBar(bar))).toEqual([
+      0, 16, 28, 40,
+    ]);
+    expect(svc.stepsForBars(0, 3)).toBe(40);
+    // 120→60 BPM averages 90 across the first bar, then holds at 60 in 3/4.
+    expect(svc.secondsBetweenSteps(0, 16)).toBeCloseTo(8 / 3, 9);
+    expect(svc.secondsBetweenSteps(16, 40)).toBeCloseTo(6, 9);
+    expect(svc.secondsBetweenSteps(0, 40)).toBeCloseTo(26 / 3, 9);
+  });
+
   it('maps bars through meter changes for clips and export', () => {
     const svc = makeMeterEngine();
     svc.setMeterMap([
