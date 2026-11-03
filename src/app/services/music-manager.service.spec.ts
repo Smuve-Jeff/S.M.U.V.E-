@@ -1628,6 +1628,40 @@ describe('MusicManagerService live plugin insert wiring', () => {
     expect(service.arrangementEndBar()).toBe(94);
   });
 
+  it('captures a scene into an undoable arrangement block', () => {
+    const base = service.tracks()[0];
+    service.tracks.set([
+      {
+        ...base,
+        activePatternSlotId: 'slot-a',
+        steps: [true],
+        patternSlots: [
+          {
+            id: 'slot-a',
+            name: 'Verse Keys',
+            activeVersionId: 'v1',
+            versions: [{ id: 'v1', steps: [true], notes: [] }],
+          },
+        ],
+      } as any,
+    ]);
+
+    expect(service.appendSceneToArrangement(0, 4)).toBe(1);
+
+    const clip = service.tracks()[0].clips[0];
+    expect(clip).toMatchObject({
+      start: 0,
+      length: 4,
+      name: 'Verse Keys',
+      type: 'midi',
+      patternSlotId: 'slot-a',
+    });
+    expect(service.arrangementEndBar()).toBe(4);
+
+    history.undo();
+    expect(service.tracks()[0].clips).toHaveLength(0);
+  });
+
   it('stamps clipStreamer admission fields on addAudioTrack and dispatches streamed vs classic clips in playStep', () => {
     const triggerSampler = jest.fn();
     (service as any).engine.triggerSampler = triggerSampler;

@@ -3446,6 +3446,69 @@ export class MusicManagerService {
   }
 
   /**
+   * Commit one scene column to the arrangement.
+   *
+   * Every channel with material in the column gets a clip referencing the
+   * scene's existing pattern slot, so capture copies no notes and later edits
+   * to that pattern still flow into the arrangement. The block is appended at
+   * the current song end and recorded as one history step.
+   */
+  appendSceneToArrangement(column: number, bars = 4): number {
+    const length = Math.max(1, Math.min(32, Math.round(Number(bars) || 4)));
+    const start = this.arrangementEndBar();
+    const stamp = Date.now();
+    const captures: Array<{ trackId: string; clip: StudioClip }> = [];
+    for (const track of this.tracks()) {
+      if (track.type === "audio") continue;
+      const slot = track.patternSlots?.[column];
+      if (!slot || !this.patternSlotHasContent(track, slot)) continue;
+      captures.push({
+        trackId: track.id,
+        clip: {
+          id: `clip_${stamp}_${captures.length}`,
+          start,
+          length,
+          name: slot.name,
+          type: "midi",
+          patternSlotId: slot.id,
+        },
+      });
+    }
+    if (captures.length === 0) return 0;
+
+    const byTrack = new Map(
+      captures.map((entry) => [entry.trackId, entry.clip]),
+    );
+    const ids = new Set(captures.map((entry) => entry.clip.id));
+    this.runCommand(
+      `Capture Scene · ${column + 1}`,
+      () => {
+        this.tracks.update((tracks) =>
+          tracks.map((track) => {
+            const clip = byTrack.get(track.id);
+            return clip
+              ? { ...track, clips: [...track.clips, this.clone(clip)] }
+              : track;
+          }),
+        );
+      },
+      () => {
+        this.tracks.update((tracks) =>
+          tracks.map((track) =>
+            track.clips.some((clip) => ids.has(clip.id))
+              ? {
+                  ...track,
+                  clips: track.clips.filter((clip) => !ids.has(clip.id)),
+                }
+              : track,
+          ),
+        );
+      },
+    );
+    return captures.length;
+  }
+
+  /**
    * Launch a scene column: channels that have material in it switch to that
    * pattern and playback follows the live patterns (not the arrangement's clip
    * windows). Channels without the scene keep what they are playing, exactly

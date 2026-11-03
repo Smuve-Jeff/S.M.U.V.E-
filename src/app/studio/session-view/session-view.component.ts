@@ -604,6 +604,32 @@ export class SessionViewComponent implements OnDestroy {
     this.launchScene(scene);
   }
 
+  captureSelectedSceneToArrangement(): void {
+    const scene = this.actionScene();
+    if (scene) this.captureSceneToArrangement(scene);
+  }
+
+  /**
+   * Append the scene's pattern-bearing channels to the song end. The scene's
+   * own advance length is used when it has one; otherwise the global Follow
+   * interval supplies the block length.
+   */
+  captureSceneToArrangement(scene: SessionSceneView): void {
+    const added = this.musicManager.appendSceneToArrangement(
+      scene.index,
+      this.sceneRuleBars(scene),
+    );
+    if (added === 0) {
+      this.snackbar.info(`Scene “${scene.name}” has no material to capture`);
+      return;
+    }
+    this.closeSceneActions();
+    this.haptic.medium();
+    this.snackbar.success(
+      `Captured “${scene.name}” · ${added} clip${added === 1 ? "" : "s"} added at the song end`,
+    );
+  }
+
   /** Add a scene by adding a pattern to every pattern-bearing channel. */
   addScene(): void {
     const tracks = this.musicManager

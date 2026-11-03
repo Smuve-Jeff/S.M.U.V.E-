@@ -776,7 +776,7 @@ FPS budget (`StudioVisualSchedulerService`), device profiling
 17. Ableton Link / clock in (§19).
 18. Genre sound packs (§10).
 19. Insert presets + GR meters (§9).
-20. Capture-to-arrangement from session view (§4).
+20. ~~Capture-to-arrangement from session view (§4).~~ **Shipped 2026-11-03** — the scene action appends its pattern clips to the song end as one undoable edit.
 
 ### P3 — polish
 21. Scale lock, pad note-repeat, MIDI map import/export (§5, §15).

@@ -387,7 +387,7 @@ opposite of an onboarding screen's job.
 | View | Phone | Desktop Chrome | Main gap vs Play-Store field |
 | --- | --- | --- | --- |
 | Arrangement | Beginner wizard by default; pro timeline behind "SHOW PRO MODE"; dense transport dock works | WebGL timeline, inspector docked; 64-bar ceiling removed | No tempo/time-signature map; no ripple edit; no freeze/bounce-in-place (FL/Cubasis have all three) |
-| Session (clip launcher) | Scene tabs scroll horizontally; launch targets ≥ 44 (0 under 44) | Scene grid + follow actions | Good; capture-to-arrangement still missing (BandLab/Ableton Note) |
+| Session (clip launcher) | Scene tabs scroll horizontally; launch targets ≥ 44 (0 under 44) | Scene grid + follow actions | Good; scenes can now be captured to the song end (BandLab/Ableton Note) |
 | Piano Roll | Grid below fold; key rail hidden; toolbar scrolls away | Grid fills; 44/44 controls under 44px | FL Mobile keeps keys + velocity; note repeat/arp only via AI panel, not a tool |
 | Drum Machine | Style card before grid (grid at y=1053); 149/186 controls < 44 | Grid visible; 132 controls < 24px | Strong per-step depth (probability, ratchet, polymeter); groove chips scroll but no affordance |
 | Mixer | ~300px header before strips; strips clipped pre-fix; 6-char names | Empty console area with 3 tracks; faders clipped pre-fix | No group/bus faders or N sends (FL/Cubasis); phase panel is not a per-strip tool |

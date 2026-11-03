@@ -227,7 +227,7 @@
   <app-studio-bottom-sheet
     [open]="!!sceneActionSceneId()"
     [title]="actionScene()?.name ?? 'Scene'"
-    description="Rename, launch, duplicate or delete this scene, or set how it ends when it is playing."
+    description="Rename, launch, capture to the song, duplicate or delete this scene, or set how it ends when it is playing."
     (closed)="closeSceneActions()"
   >
     <label class="sv-sheet-field">
@@ -306,6 +306,14 @@
       </button>
       <button type="button" class="sv-sheet-btn" (click)="launchSelectedScene()">
         Launch
+      </button>
+      <button
+        type="button"
+        class="sv-sheet-btn"
+        (click)="captureSelectedSceneToArrangement()"
+        title="Append this scene's patterns to the arrangement at the song end"
+      >
+        Capture to Song
       </button>
       <button type="button" class="sv-sheet-btn" (click)="duplicateSelectedScene()">
         Duplicate
