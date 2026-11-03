@@ -4487,15 +4487,18 @@ export class AudioEngineService {
       output.connect(meter);
       this.trackAnalysers.set(id, meter);
 
+      // Sends tap after the A/B trim so a level-matched bypass follows the
+      // channel's send contribution instead of leaving the reverb/echo louder
+      // than the dry path.
       const sA = this.ctx.createGain();
       sA.gain.value = 0;
-      fader.connect(sA);
+      abTrim.connect(sA);
       sA.connect(this.sendAReturn);
       this.trackSendAGains.set(id, sA);
 
       const sB = this.ctx.createGain();
       sB.gain.value = 0;
-      fader.connect(sB);
+      abTrim.connect(sB);
       sB.connect(this.sendBReturn);
       this.trackSendBGains.set(id, sB);
     }

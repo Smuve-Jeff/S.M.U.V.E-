@@ -250,6 +250,18 @@ describe('AudioEngineService', () => {
     );
   });
 
+  it('taps both aux sends from the per-strip A/B trim', () => {
+    service.getTrackOutput('t1');
+    const trim = (service as any).trackAbMatchGains.get('t1');
+    const sendA = (service as any).trackSendAGains.get('t1');
+    const sendB = (service as any).trackSendBGains.get('t1');
+
+    expect(trim.connect).toHaveBeenCalledWith(sendA);
+    expect(trim.connect).toHaveBeenCalledWith(sendB);
+    expect(sendA.gain.value).toBe(0);
+    expect(sendB.gain.value).toBe(0);
+  });
+
   it('reports a strip RMS level and silence without a meter', () => {
     const analyser = {
       fftSize: 4,
