@@ -71,7 +71,8 @@ export type ArrangementTool =
   | "trim"
   | "slip"
   | "duplicate"
-  | "glue";
+  | "glue"
+  | "crossfade";
 
 @Component({
   selector: "app-arrangement-view",
@@ -137,12 +138,17 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     pointerId: number;
     clipId: string;
     trackId: string;
-    mode: 'move' | 'trim-start' | 'trim-end' | 'slip';
+    mode: 'move' | 'trim-start' | 'trim-end' | 'slip' | 'crossfade';
     startClientX: number;
     initialStart: number;
     initialLength: number;
     initialOffset: number;
     changed: boolean;
+    crossfadeLeftId?: string;
+    crossfadeRightId?: string;
+    crossfadeOverlap?: number;
+    crossfadeBarAtDown?: number;
+    crossfadeFade?: number;
   } | null = null;
 
   /** Horizontal drag state for a tempo point in the timeline lane. */
@@ -215,6 +221,7 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     { id: "slip", label: "Slip", icon: "swap_horiz" },
     { id: "duplicate", label: "Duplicate", icon: "content_copy" },
     { id: "glue", label: "Glue", icon: "join_full" },
+    { id: "crossfade", label: "X-Fade", icon: "compare_arrows" },
   ];
 
   setEditMode(mode: ArrangementTool): void {
@@ -669,6 +676,42 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       this.selectedClipIds.set(next);
     }
 
+    if (this.editMode() === 'crossfade') {
+      if (e.button !== 0 || e.shiftKey) return;
+      const pair = this.findCrossfadePair(trackId, clip.id);
+      if (!pair) {
+        this.snackbar.info(
+          "X-Fade needs two overlapping audio clips on the same track",
+        );
+        return;
+      }
+      this.selectedClipIds.set(
+        new Set([pair.left.clip.id, pair.right.clip.id]),
+      );
+      const target = e.currentTarget as HTMLElement | null;
+      target?.setPointerCapture?.(e.pointerId);
+      this.activeClipGesture = {
+        pointerId: e.pointerId,
+        clipId: clip.id,
+        trackId,
+        mode: 'crossfade',
+        startClientX: e.clientX,
+        initialStart: clip.start,
+        initialLength: clip.length,
+        initialOffset: clip.offset ?? 0,
+        changed: false,
+        crossfadeLeftId: pair.left.clip.id,
+        crossfadeRightId: pair.right.clip.id,
+        crossfadeOverlap: pair.overlap,
+        crossfadeBarAtDown: barX,
+        crossfadeFade: this.clampCrossfadeBars(
+          barX - pair.right.clip.start,
+          pair.overlap,
+        ),
+      };
+      return;
+    }
+
     if (e.button !== 0 || e.shiftKey || this.editMode() === 'split') {
       if (this.editMode() === 'split') this.musicManager.splitClip(trackId, clip.id, barX);
       this.markDirty();
@@ -707,6 +750,28 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
     if (!gesture || gesture.pointerId !== e.pointerId) return;
     const delta = (e.clientX - gesture.startClientX) / Math.max(1, this.barWidth());
     const snapped = this.snapEnabled() ? Math.round(delta * 4) / 4 : delta;
+
+    if (gesture.mode === 'crossfade') {
+      const left = gesture.crossfadeLeftId
+        ? this.findClipOwner(gesture.crossfadeLeftId)
+        : null;
+      const right = gesture.crossfadeRightId
+        ? this.findClipOwner(gesture.crossfadeRightId)
+        : null;
+      if (!left || !right) return;
+      const pointerBar = (gesture.crossfadeBarAtDown ?? 0) + snapped;
+      const fade = this.clampCrossfadeBars(
+        pointerBar - right.clip.start,
+        gesture.crossfadeOverlap ?? 0,
+      );
+      if (Math.abs(fade - (gesture.crossfadeFade ?? 0)) < 0.001) return;
+      this.writeCrossfade(left, right, fade);
+      gesture.crossfadeFade = fade;
+      gesture.changed = true;
+      this.markDirty();
+      return;
+    }
+
     const clip = this.findClipOwner(gesture.clipId)?.clip;
     if (!clip) return;
     const patch: Partial<StudioClip> = {};
@@ -760,14 +825,37 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   onGridPointerUp(e: PointerEvent): void {
-    if (this.activeClipGesture?.pointerId !== e.pointerId) return;
-    if (this.activeClipGesture.changed) this.haptic.light();
+    const gesture = this.activeClipGesture;
+    if (gesture?.pointerId !== e.pointerId) return;
+    if (gesture.mode === 'crossfade' && gesture.changed) {
+      const left = gesture.crossfadeLeftId
+        ? this.findClipOwner(gesture.crossfadeLeftId)
+        : null;
+      const right = gesture.crossfadeRightId
+        ? this.findClipOwner(gesture.crossfadeRightId)
+        : null;
+      this.haptic.medium();
+      this.snackbar.show(
+        `🎚 Crossfade ${this.formatFade(gesture.crossfadeFade ?? 0)} · ${
+          left?.clip.name || "clip"
+        } → ${right?.clip.name || "clip"}`,
+      );
+    } else if (gesture.changed) {
+      this.haptic.light();
+    }
     this.activeClipGesture = null;
   }
 
   /** Lane click to create clips from WebGL */
   onLanePointerDownWorld(track: TrackModel, barX: number) {
     this.selectTrack(track.id);
+
+    if (this.editMode() === 'crossfade') {
+      this.snackbar.info(
+        "Drag across two overlapping audio clips on this track to draw a crossfade",
+      );
+      return;
+    }
 
     if (this.editMode() === 'draw') {
       const bar = this.snapEnabled() ? Math.round(barX * 4) / 4 : barX;
@@ -1310,6 +1398,68 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * The best overlapping audio partner for `clipId` on one track.
+   *
+   * The earlier clip is `left` and the later one is `right`; `overlap` is the
+   * shared bar range. The X-Fade tool and the toolbar action both use this so
+   * one tap and one drag cannot disagree about which pair is being edited.
+   */
+  private findCrossfadePair(trackId: string, clipId: string): {
+    left: { track: TrackModel; clip: StudioClip };
+    right: { track: TrackModel; clip: StudioClip };
+    overlap: number;
+  } | null {
+    const track = this.tracks().find((candidate) => candidate.id === trackId);
+    const clip = track?.clips.find((candidate) => candidate.id === clipId);
+    if (!track || !clip || clip.type !== "audio") return null;
+
+    let best: {
+      left: { track: TrackModel; clip: StudioClip };
+      right: { track: TrackModel; clip: StudioClip };
+      overlap: number;
+    } | null = null;
+    for (const other of track.clips) {
+      if (other.id === clip.id || other.type !== "audio") continue;
+      const [left, right] =
+        clip.start <= other.start ? [clip, other] : [other, clip];
+      const overlap =
+        Math.min(left.start + left.length, right.start + right.length) -
+        right.start;
+      if (overlap <= 0 || (best && best.overlap >= overlap)) continue;
+      best = {
+        left: { track, clip: left },
+        right: { track, clip: right },
+        overlap,
+      };
+    }
+    return best;
+  }
+
+  /** Clamp a drawn crossfade to the actual overlap, snapped to ¼ bar. */
+  private clampCrossfadeBars(bars: number, overlap: number): number {
+    const limit = Math.max(0, overlap);
+    if (limit <= 0) return 0;
+    const snapped = this.snapEnabled() ? Math.round(bars * 4) / 4 : bars;
+    return Math.max(Math.min(0.25, limit), Math.min(limit, snapped));
+  }
+
+  /** Write the same equal-power fade pair used by both crossfade gestures. */
+  private writeCrossfade(
+    left: { track: TrackModel; clip: StudioClip },
+    right: { track: TrackModel; clip: StudioClip },
+    fade: number,
+  ): void {
+    this.musicManager.updateClip(left.track.id, left.clip.id, {
+      fadeOut: fade,
+      fadeCurve: "equalPower",
+    });
+    this.musicManager.updateClip(right.track.id, right.clip.id, {
+      fadeIn: fade,
+      fadeCurve: "equalPower",
+    });
+  }
+
+  /**
    * Crossfade exactly two overlapping audio clips on the same track.
    *
    * The overlap is the shared time range; the earlier clip fades out across
@@ -1338,22 +1488,17 @@ export class ArrangementViewComponent implements AfterViewInit, OnDestroy {
       first.clip.start <= second.clip.start
         ? [first, second]
         : [second, first];
-    const leftEnd = left.clip.start + left.clip.length;
-    const rightEnd = right.clip.start + right.clip.length;
-    const overlap = Math.min(leftEnd, rightEnd) - right.clip.start;
+    const overlap =
+      Math.min(
+        left.clip.start + left.clip.length,
+        right.clip.start + right.clip.length,
+      ) - right.clip.start;
     if (overlap <= 0) {
       this.snackbar.info("Move the clips so they overlap, then crossfade");
       return;
     }
 
-    this.musicManager.updateClip(left.track.id, left.clip.id, {
-      fadeOut: overlap,
-      fadeCurve: "equalPower",
-    });
-    this.musicManager.updateClip(right.track.id, right.clip.id, {
-      fadeIn: overlap,
-      fadeCurve: "equalPower",
-    });
+    this.writeCrossfade(left, right, overlap);
     this.haptic.medium();
     this.markDirty();
     this.snackbar.show(

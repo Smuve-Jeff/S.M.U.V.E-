@@ -970,6 +970,68 @@ describe("ArrangementViewComponent", () => {
     );
   });
 
+  it("draws a shorter crossfade across an overlap with the X-Fade tool", () => {
+    const left = {
+      id: "clip-a",
+      start: 0,
+      length: 4,
+      name: "Verse",
+      type: "audio" as const,
+    };
+    const right = {
+      id: "clip-b",
+      start: 3,
+      length: 4,
+      name: "Chorus",
+      type: "audio" as const,
+    };
+    mockMusicManager.tracks.set([
+      {
+        id: "1",
+        name: "Lead",
+        clips: [left, right],
+        mute: false,
+        solo: false,
+      },
+    ]);
+    const capture = { setPointerCapture: jest.fn() };
+    component.setEditMode("crossfade");
+
+    component.onClipPointerDown(
+      {
+        stopPropagation: jest.fn(),
+        button: 0,
+        shiftKey: false,
+        pointerId: 9,
+        clientX: 100,
+        currentTarget: capture,
+      } as any,
+      "1",
+      left,
+      3.5,
+    );
+    expect(capture.setPointerCapture).toHaveBeenCalledWith(9);
+    expect(component.selectedClipIds()).toEqual(new Set(["clip-a", "clip-b"]));
+
+    component.onGridPointerMove({
+      pointerId: 9,
+      clientX: 100 + component.barWidth() * 0.25,
+    } as any);
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith("1", "clip-a", {
+      fadeOut: 0.75,
+      fadeCurve: "equalPower",
+    });
+    expect(mockMusicManager.updateClip).toHaveBeenCalledWith("1", "clip-b", {
+      fadeIn: 0.75,
+      fadeCurve: "equalPower",
+    });
+
+    component.onGridPointerUp({ pointerId: 9 } as any);
+    expect(mockSnackbar.show).toHaveBeenCalledWith(
+      expect.stringContaining("Crossfade 0.75 bars"),
+    );
+  });
+
   it("refuses to crossfade clips that do not overlap", () => {
     mockMusicManager.tracks.set([
       {

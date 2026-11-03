@@ -166,8 +166,9 @@ L > 1 week of focused work).
   `songStructureEnd`, virtualise the WebGL draw range by viewport, and add an
   "end of song" marker. This alone changes the product category.
 - ~~**M** — Crossfade tool: when two audio clips touch, draw the overlap and apply an
-  equal-power fade on both edges.~~ **Shipped 2026-11-03 for selected overlapping
-  clips**; a drawn overlap gesture remains.
+  equal-power fade on both edges.~~ **Shipped 2026-11-03** — selected clips use a
+  full-overlap action, and the X-Fade tool lets the artist drag a shorter
+  equal-power crossfade inside the overlap.
 - **S** — Range selection + ripple delete / insert-time on the selected range.
 - **M** — Track freeze: render a MIDI track through `OfflineBounceService`, store the
   buffer in `stemAudioCache`, mark the track `frozen`, and bypass live voices.
@@ -760,7 +761,7 @@ FPS budget (`StudioVisualSchedulerService`), device profiling
 7. ~~Tempo map + note repeat~~ **Tempo automation and note repeat ship**; ~~time-signature automation~~ **Meter automation shipped 2026-11-03**, including meter-aware clip and export retiming (§2, §3).
 8. FLAC export (§17) — 24-bit WAV and 44.1/48 kHz shipped 2026-10-23.
 9. Group/bus channels and N aux sends (§8).
-10. ~~Drawn clip crossfade~~ **Equal-power crossfade shipped 2026-11-03 for selected overlapping clips**; drawn gesture + ripple editing remain (§3).
+10. ~~Drawn clip crossfade~~ **Equal-power crossfade shipped 2026-11-03**, including the drag-drawn X-Fade tool; ripple editing remains (§3).
 11. Latency calibration wizard (§11).
 12. Background playback (§20).
 13. Mastering preset idempotence + spectral delta vs reference (§14).
@@ -883,7 +884,7 @@ warning only).
 | Release signing (§20) | Needs the owner's upload keystore; generating and committing one would be a security incident |
 | Android MIDI bridge (§19) | Needs a Capacitor plugin plus a physical controller to verify; there is no device in this environment, and claiming MIDI works untested is worse than documenting the gap |
 | Background playback (§20) | Needs a foreground service/media session wired to the WebView audio context; cannot be exercised without a device |
-| Tempo map, drawn crossfades, freeze, buses, FLAC, DAWproject, Link | Larger, independent features; each needs its own design and test pass rather than a rushed batch. Per-clip fades are now exported, but a one-gesture overlap between two touching clips is still open |
+| Tempo map, freeze, buses, FLAC, DAWproject, Link | Larger, independent features; each needs its own design and test pass rather than a rushed batch. The X-Fade tool draws inside an existing overlap, but pulling two touching clips into an overlap as one gesture is still open |
 
 ## Verification appendix
 
