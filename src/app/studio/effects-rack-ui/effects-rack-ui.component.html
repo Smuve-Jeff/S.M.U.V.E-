@@ -229,7 +229,7 @@
         role="button"
         tabindex="0"
         [class.active]="activeSlot() === i + 1"
-        [class.disabled]="!slot.enabled"
+        [class.disabled]="!isSlotEnabled(slot)"
         (click)="selectSlot(i + 1)"
         (keydown.enter)="selectSlot(i + 1)"
         (keydown.space)="selectSlot(i + 1); $event.preventDefault()"
@@ -239,23 +239,32 @@
           (i + 1) +
           ': ' +
           slot.type +
-          (slot.enabled ? ' · enabled' : ' · disabled')
+          (insertsBypassed()
+            ? ' · A/B bypassed'
+            : isSlotEnabled(slot)
+              ? ' · enabled'
+              : ' · disabled')
         "
       >
         <span
           class="er-slot-status"
-          [class.enabled]="slot.enabled"
-          [class.disabled]="!slot.enabled"
+          [class.enabled]="isSlotEnabled(slot)"
+          [class.disabled]="!isSlotEnabled(slot)"
           aria-hidden="true"
         ></span>
         <span class="er-slot-name">{{ slot.type || 'Empty' }}</span>
         <button
           type="button"
           class="er-slot-toggle effects-rack-slot-action"
-          [class.enabled]="slot.enabled"
+          [class.enabled]="isSlotEnabled(slot)"
+          [disabled]="insertsBypassed()"
           (click)="toggleFx(slot.id); $event.stopPropagation()"
           [attr.aria-label]="
-            slot.enabled ? 'Disable ' + slot.type : 'Enable ' + slot.type
+            insertsBypassed()
+              ? 'A/B bypass is engaged for this track'
+              : slot.enabled
+                ? 'Disable ' + slot.type
+                : 'Enable ' + slot.type
           "
         >
           <span class="material-symbols-outlined">

@@ -338,20 +338,43 @@
           </select>
         </div>
 
-        <button
-          type="button"
-          class="mix-inserts"
-          (click)="openInsertMenu(track, $event)"
-          [attr.data-empty]="insertCount(track) === 0"
-          [attr.aria-haspopup]="'dialog'"
-          [attr.aria-expanded]="insertMenu()?.trackId === track.id"
-          [attr.title]="insertSummary(track)"
-          [attr.aria-label]="'Show inserts for ' + track.name + '. ' + insertSummary(track)"
-        >
-          <span class="material-symbols-outlined mix-inserts-icon" aria-hidden="true">tune</span>
-          <span class="mix-inserts-label">FX</span>
-          <span class="mix-inserts-count">{{ insertCount(track) }}</span>
-        </button>
+        <div class="mix-insert-actions">
+          <button
+            type="button"
+            class="mix-inserts"
+            (click)="openInsertMenu(track, $event)"
+            [attr.data-empty]="insertCount(track) === 0"
+            [attr.aria-haspopup]="'dialog'"
+            [attr.aria-expanded]="insertMenu()?.trackId === track.id"
+            [attr.title]="insertSummary(track)"
+            [attr.aria-label]="'Show inserts for ' + track.name + '. ' + insertSummary(track)"
+          >
+            <span class="material-symbols-outlined mix-inserts-icon" aria-hidden="true">tune</span>
+            <span class="mix-inserts-label">FX</span>
+            <span class="mix-inserts-count">{{ insertCount(track) }}</span>
+          </button>
+          <button
+            type="button"
+            class="mix-insert-ab"
+            [class.active]="track.insertsBypassed"
+            [disabled]="insertCount(track) === 0"
+            [attr.aria-pressed]="track.insertsBypassed === true"
+            [attr.title]="
+              track.insertsBypassed
+                ? 'Restore all inserts on ' + track.name
+                : 'Bypass all inserts on ' + track.name + ' (A/B)'
+            "
+            [attr.aria-label]="
+              track.insertsBypassed
+                ? 'Restore all inserts on ' + track.name
+                : 'Bypass all inserts on ' + track.name
+            "
+            (click)="toggleAllInsertsBypass(track, $event)"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">compare_arrows</span>
+            <span>A/B</span>
+          </button>
+        </div>
 
         <div class="mix-pan-wrap">
           <div class="mix-pan-label">Pan</div>
@@ -820,9 +843,14 @@
               type="button"
               class="mix-insert-bypass"
               [class.bypassed]="!entry.enabled"
+              [disabled]="track.insertsBypassed"
               [attr.aria-pressed]="!entry.enabled"
               [attr.aria-label]="(entry.enabled ? 'Bypass ' : 'Enable ') + entry.label"
-              [attr.title]="(entry.enabled ? 'Bypass ' : 'Enable ') + entry.label"
+              [attr.title]="
+                track.insertsBypassed
+                  ? 'Disengage A/B bypass to change this insert'
+                  : (entry.enabled ? 'Bypass ' : 'Enable ') + entry.label
+              "
               (click)="toggleInsertBypass(track, entry, $event)"
             >
               <span class="material-symbols-outlined" aria-hidden="true">

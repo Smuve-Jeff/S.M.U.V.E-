@@ -73,6 +73,7 @@ describe("MixerComponent", () => {
     toggleSolo: jest.fn(),
     toggleFxSlot: jest.fn(),
     toggleTrackPluginBypass: jest.fn(),
+    toggleAllInsertsBypass: jest.fn(),
     toggleSoloSafe: jest.fn(),
     removeTrack: jest.fn(),
   };
@@ -235,6 +236,31 @@ describe("MixerComponent", () => {
     ]);
   });
 
+  it('shows every insert as bypassed while A/B is engaged', () => {
+    const track = {
+      id: '1',
+      name: 'Track 1',
+      fxSlots: [{ id: 'fx1', type: 'EQ', params: {}, enabled: true }],
+      pluginIds: ['smuve.reverb.v2'],
+      insertsBypassed: true,
+    } as any;
+
+    const entries = component.insertEntries(track);
+
+    expect(entries.map((entry) => entry.enabled)).toEqual([false, false]);
+    expect(component.insertSummary(track)).toContain('A/B bypassed');
+  });
+
+  it('toggles whole-chain A/B bypass from the strip', () => {
+    const track = { id: '1', name: 'Track 1' } as any;
+    const stopPropagation = jest.fn();
+
+    component.toggleAllInsertsBypass(track, { stopPropagation } as any);
+
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(mockMusicManager.toggleAllInsertsBypass).toHaveBeenCalledWith('1');
+  });
+
   it('marks a bypassed live insert without removing it', () => {
     const track = {
       id: '1',
@@ -312,6 +338,13 @@ describe("MixerComponent", () => {
     expect(buttons[0].textContent).toContain('FX');
     expect(buttons[0].textContent).toContain('0');
     expect(buttons[0].getAttribute('data-empty')).toBe('true');
+
+    const ab = Array.from(
+      fixture.nativeElement.querySelectorAll('.mix-insert-ab'),
+    ) as HTMLButtonElement[];
+    expect(ab).toHaveLength(2);
+    expect(ab[0].disabled).toBe(true);
+    expect(ab[0].getAttribute('aria-pressed')).toBe('false');
   });
 
   it('classifies per-track mono compatibility and formats the reading', () => {

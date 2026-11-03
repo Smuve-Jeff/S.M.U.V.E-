@@ -107,12 +107,21 @@ export class EffectsRackUiComponent implements OnChanges, AfterViewInit {
     () => new Set(this.selectedTrack()?.bypassedPluginIds ?? []),
   );
 
+  /** Whole-chain A/B override; leaves the individual choices untouched. */
+  insertsBypassed = computed(
+    () => this.selectedTrack()?.insertsBypassed === true,
+  );
+
   hasPlugin(id: string): boolean {
     return this.trackPluginIds().includes(id);
   }
 
   isPluginBypassed(id: string): boolean {
-    return this.trackBypassedPluginIds().has(id);
+    return this.insertsBypassed() || this.trackBypassedPluginIds().has(id);
+  }
+
+  isSlotEnabled(slot: { enabled?: boolean }): boolean {
+    return !this.insertsBypassed() && slot.enabled !== false;
   }
 
   togglePluginInsert(manifest: DspPluginManifest): void {

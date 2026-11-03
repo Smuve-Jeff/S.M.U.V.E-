@@ -1153,6 +1153,7 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
     setBaseFaderGain: jest.fn(),
       onScheduleStep: undefined as any,
       getTrackEffectsRack: jest.fn(() => rack),
+      installTrackPluginInsert: jest.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -1330,6 +1331,36 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
     service.syncTrackFxChain('track-1');
 
     expect(pluginIds()).toEqual(['smuve.chorus.v1']);
+  });
+
+  it('bypasses every macro insert on the live rack during A/B, and restores on undo', () => {
+    service.tracks.set([
+      makeTrack({
+        fxSlots: [
+          { id: 'fx1', type: 'Reverb', params: {}, enabled: true },
+          { id: 'fx2', type: 'Chorus', params: {}, enabled: true },
+        ],
+      }),
+    ]);
+    service.syncTrackFxChain('track-1');
+    expect(rack.inserts.map((slot) => slot.plugin.enabled)).toEqual([
+      true,
+      true,
+    ]);
+
+    service.toggleAllInsertsBypass('track-1');
+
+    expect(rack.inserts.map((slot) => slot.plugin.enabled)).toEqual([
+      false,
+      false,
+    ]);
+
+    history.undo();
+
+    expect(rack.inserts.map((slot) => slot.plugin.enabled)).toEqual([
+      true,
+      true,
+    ]);
   });
 });
 
@@ -1615,6 +1646,39 @@ describe('MusicManagerService live plugin insert wiring', () => {
     history.undo();
 
     expect(service.tracks()[0].bypassedPluginIds).toEqual([]);
+    expect(installTrackPluginInsert).toHaveBeenLastCalledWith(
+      'track-1',
+      ['smuve.saturation.v2'],
+      expect.any(Function),
+    );
+  });
+
+  it('bypasses the whole insert chain as one undoable A/B step', () => {
+    service.tracks.set([
+      {
+        ...makeTrack(),
+        fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+        pluginIds: ['smuve.saturation.v2'],
+      },
+    ]);
+    installTrackPluginInsert.mockClear();
+
+    service.toggleAllInsertsBypass('track-1');
+
+    expect(service.tracks()[0].insertsBypassed).toBe(true);
+    expect(service.tracks()[0].fxSlots[0].enabled).toBe(true);
+    expect(service.activeEffectCount('track-1')).toBe(0);
+    expect(installTrackPluginInsert).toHaveBeenLastCalledWith(
+      'track-1',
+      [],
+      expect.any(Function),
+    );
+
+    history.undo();
+
+    expect(service.tracks()[0].insertsBypassed).toBe(false);
+    expect(service.tracks()[0].fxSlots[0].enabled).toBe(true);
+    expect(service.activeEffectCount('track-1')).toBe(2);
     expect(installTrackPluginInsert).toHaveBeenLastCalledWith(
       'track-1',
       ['smuve.saturation.v2'],

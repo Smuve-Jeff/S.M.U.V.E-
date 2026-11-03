@@ -223,6 +223,12 @@ export interface TrackModel extends StudioTrack {
    * not look like an uninstall.
    */
   bypassedPluginIds?: string[];
+  /**
+   * A/B override: true while every insert is temporarily bypassed. Individual
+   * slot/plugin bypass choices are preserved so disengaging A/B restores the
+   * exact previous chain without writing a second set of edits.
+   */
+  insertsBypassed?: boolean;
   synthParams?: any;
   gain: number;
   sendA: number;
@@ -328,17 +334,22 @@ export class MusicManagerService {
   /** Enabled macro slots + enabled live plugin inserts on this track. */
   activeEffectCount(trackId: string): number {
     const track = this.tracks().find((candidate) => candidate.id === trackId);
-    if (!track) return 0;
+    if (!track || track.insertsBypassed) return 0;
     return (
       (track.fxSlots ?? []).filter((slot) => slot.enabled !== false).length +
       this.activePluginIds(track).length
     );
   }
 
-  /** Live plugins that are installed (i.e. not bypassed) on this track. */
-  private activePluginIds(track: TrackModel): string[] {
+  /** Live plugins that are installed (i.e. not individually bypassed). */
+  private installedPluginIds(track: TrackModel): string[] {
     const bypassed = new Set(track.bypassedPluginIds ?? []);
     return (track.pluginIds ?? []).filter((id) => !bypassed.has(id));
+  }
+
+  /** Live plugins currently processing audio; the A/B override wins. */
+  private activePluginIds(track: TrackModel): string[] {
+    return track.insertsBypassed ? [] : this.installedPluginIds(track);
   }
 
   canAddEffect(trackId: string, additional = 1): boolean {
@@ -867,7 +878,8 @@ export class MusicManagerService {
     const prevBypassed = [...(t.bypassedPluginIds ?? [])];
     const nextBypassed = prevBypassed.filter((id) => next.includes(id));
     const prevActive = this.activePluginIds(t);
-    const nextActive = next.filter((id) => !nextBypassed.includes(id));
+    const nextInstalled = next.filter((id) => !nextBypassed.includes(id));
+    const nextActive = t.insertsBypassed ? [] : nextInstalled;
     if (
       nextActive.length > prevActive.length &&
       !this.canAddEffect(trackId, nextActive.length - prevActive.length)
@@ -931,7 +943,9 @@ export class MusicManagerService {
    */
   toggleTrackPluginBypass(trackId: string, pluginId: string): void {
     const t = this.tracks().find((x) => x.id === trackId);
-    if (!t || !(t.pluginIds ?? []).includes(pluginId)) return;
+    if (!t || t.insertsBypassed || !(t.pluginIds ?? []).includes(pluginId)) {
+      return;
+    }
     const prevBypassed = [...(t.bypassedPluginIds ?? [])];
     const current = new Set(prevBypassed);
     const wasBypassed = current.has(pluginId);
@@ -1151,7 +1165,7 @@ export class MusicManagerService {
   /** Toggle a macro FX slot's bypass state (undoable). */
   toggleFxSlot(trackId: string, slotId: string): void {
     const t = this.tracks().find((x) => x.id === trackId);
-    if (!t) return;
+    if (!t || t.insertsBypassed) return;
     const target = (t.fxSlots ?? []).find((slot) => slot.id === slotId);
     if (target && target.enabled === false && !this.canAddEffect(trackId)) {
       this.logger.warn(
@@ -1171,6 +1185,53 @@ export class MusicManagerService {
       'Toggle FX Slot · ' + t.name,
       () => this.writeFxSlots(trackId, after),
       () => this.writeFxSlots(trackId, before)
+    );
+  }
+
+  /**
+   * A/B compare: bypass or restore the whole insert chain as one undoable
+   * command. The override is separate from each slot's `enabled` flag and each
+   * plugin's bypass list, so A/B never destroys the mix the producer built.
+   */
+  toggleAllInsertsBypass(trackId: string): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t || (!(t.fxSlots?.length ?? 0) && !(t.pluginIds?.length ?? 0))) {
+      return;
+    }
+    const before = t.insertsBypassed === true;
+    const next = !before;
+    const installed = this.installedPluginIds(t);
+    const prevActive = before ? [] : installed;
+    const nextActive = next ? [] : installed;
+    const slots = t.fxSlots ?? [];
+    this.runCommand(
+      `${next ? 'Bypass' : 'Restore'} All Inserts · ${t.name}`,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, insertsBypassed: next } : x,
+          ),
+        );
+        this.syncFxSlotsToRack(trackId, slots);
+        this.engine.installTrackPluginInsert(
+          trackId,
+          nextActive,
+          this.liveChainFor,
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, insertsBypassed: before } : x,
+          ),
+        );
+        this.syncFxSlotsToRack(trackId, slots);
+        this.engine.installTrackPluginInsert(
+          trackId,
+          prevActive,
+          this.liveChainFor,
+        );
+      },
     );
   }
 
@@ -1205,6 +1266,7 @@ export class MusicManagerService {
     const track = this.tracks().find((candidate) => candidate.id === trackId);
     const pluginCount = track ? this.activePluginIds(track).length : 0;
     const macroRoom = Math.max(0, this.effectLimit() - pluginCount);
+    const allBypassed = track?.insertsBypassed === true;
     const pluginSlots = slots.filter(
       (slot) => !!FX_TYPE_TO_PLUGIN_ID[slot.type],
     );
@@ -1212,12 +1274,12 @@ export class MusicManagerService {
     // toggle; only *enabled* slots consume the active-effect budget.
     const activeIds = new Set(
       pluginSlots
-        .filter((slot) => slot.enabled !== false)
+        .filter((slot) => !allBypassed && slot.enabled !== false)
         .slice(0, macroRoom)
         .map((slot) => slot.id),
     );
     const liveSlots = pluginSlots.filter(
-      (slot) => slot.enabled === false || activeIds.has(slot.id),
+      (slot) => allBypassed || slot.enabled === false || activeIds.has(slot.id),
     );
     const allowed = new Set(liveSlots.map((slot) => slot.id));
 
@@ -1261,7 +1323,8 @@ export class MusicManagerService {
       if (!slot || !allowed.has(slot.id)) continue;
       const rackSlot = rack.inserts.find((s) => s.id === entry.insertId);
       if (!rackSlot) continue;
-      if (rackSlot.plugin.enabled !== slot.enabled) {
+      const shouldEnable = !allBypassed && slot.enabled !== false;
+      if (rackSlot.plugin.enabled !== shouldEnable) {
         rack.toggleInsert(entry.insertId);
       }
     }
@@ -1334,6 +1397,7 @@ export class MusicManagerService {
     }));
     delete copy.pluginIds;
     delete copy.bypassedPluginIds;
+    delete copy.insertsBypassed;
 
     this.runCommand(
       'Duplicate Track · ' + source.name,

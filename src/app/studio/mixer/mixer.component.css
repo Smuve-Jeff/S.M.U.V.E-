@@ -2683,14 +2683,22 @@ the workspace. */
   }
 }
 
-/* Per-strip insert count + quick-open into the Effects Rack. */
+/* Per-strip insert count, A/B compare and quick-open into the Effects Rack. */
+.mix-insert-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin: 0 6px 6px;
+}
 .mix-inserts {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
   justify-content: center;
   gap: 4px;
+  min-width: 0;
   min-height: 20px;
-  margin: 0 6px 6px;
+  margin: 0;
   border: 1px solid var(--espresso-line);
   border-radius: 5px;
   background: var(--ivory-panel);
@@ -2714,6 +2722,41 @@ the workspace. */
 .mix-inserts-icon {
   font-size: 12px;
   line-height: 1;
+}
+.mix-insert-ab {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 38px;
+  padding: 0 5px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 5px;
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.mix-insert-ab .material-symbols-outlined {
+  font-size: 11px;
+}
+.mix-insert-ab:hover:not(:disabled),
+.mix-insert-ab:focus-visible {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+.mix-insert-ab.active {
+  border-color: var(--amber-500, #c47a13);
+  background: rgba(196, 122, 19, 0.12);
+  color: var(--amber-600, #8a5208);
+}
+.mix-insert-ab:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .mix-inserts-count {
   display: grid;
@@ -2860,9 +2903,13 @@ the workspace. */
   color: var(--teal-500);
   cursor: pointer;
 }
-.mix-insert-bypass:hover,
+.mix-insert-bypass:hover:not(:disabled),
 .mix-insert-bypass:focus-visible {
   background: rgba(14, 124, 123, 0.12);
+}
+.mix-insert-bypass:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 .mix-insert-bypass.bypassed {
   color: var(--espresso-muted);

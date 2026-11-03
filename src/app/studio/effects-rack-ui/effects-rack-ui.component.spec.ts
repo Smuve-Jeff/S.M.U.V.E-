@@ -114,6 +114,7 @@ describe("EffectsRackUiComponent", () => {
     ];
     track.pluginIds = [];
     delete (track as any).bypassedPluginIds;
+    delete (track as any).insertsBypassed;
     tracksSignal.set([{ ...track }]);
     wasmPresetMock.presetsFor.mockReturnValue([]);
 
@@ -148,6 +149,19 @@ describe("EffectsRackUiComponent", () => {
 
     expect(component.trackPluginIds()).toEqual(["smuve.reverb.v2"]);
     expect(component.isPluginBypassed("smuve.reverb.v2")).toBe(true);
+    const chip = fixture.nativeElement.querySelector(".er-wasm-chip");
+    expect(chip?.classList).toContain("bypassed");
+  });
+
+  it("marks the whole chain as bypassed during A/B", () => {
+    track.pluginIds = ["smuve.reverb.v2"];
+    (track as any).insertsBypassed = true;
+    tracksSignal.set([{ ...track }]);
+    fixture.detectChanges();
+
+    expect(component.insertsBypassed()).toBe(true);
+    expect(component.isPluginBypassed("smuve.reverb.v2")).toBe(true);
+    expect(component.isSlotEnabled({ enabled: true })).toBe(false);
     const chip = fixture.nativeElement.querySelector(".er-wasm-chip");
     expect(chip?.classList).toContain("bypassed");
   });
