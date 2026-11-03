@@ -331,12 +331,18 @@ export class MusicManagerService {
     return this.tracks().length + Math.max(0, additional) <= this.trackLimit();
   }
 
-  /** Session-wide A/B override for every track insert chain. */
+  /** Latched global A/B state for every track insert chain. */
   readonly globalInsertsBypassed = signal(false);
+  /** Momentary global A/B state, held only while the control is pressed. */
+  readonly momentaryGlobalInsertsBypassed = signal(false);
+  /** Effective global A/B state: either the latch or the momentary hold. */
+  readonly isGlobalInsertsBypassed = computed(
+    () => this.globalInsertsBypassed() || this.momentaryGlobalInsertsBypassed(),
+  );
 
   /** True when this track is silent because either A/B layer is engaged. */
   isTrackInsertsBypassed(track: { insertsBypassed?: boolean }): boolean {
-    return this.globalInsertsBypassed() || track.insertsBypassed === true;
+    return this.isGlobalInsertsBypassed() || track.insertsBypassed === true;
   }
 
   /** Enabled macro slots + enabled live plugin inserts on this track. */
@@ -1211,7 +1217,7 @@ export class MusicManagerService {
     const t = this.tracks().find((x) => x.id === trackId);
     if (
       !t ||
-      this.globalInsertsBypassed() ||
+      this.isGlobalInsertsBypassed() ||
       (!(t.fxSlots?.length ?? 0) && !(t.pluginIds?.length ?? 0))
     ) {
       return;
@@ -1259,8 +1265,18 @@ export class MusicManagerService {
    * written into history or the project. Each track's own A/B flag survives.
    */
   toggleGlobalInsertsBypass(): void {
-    const next = !this.globalInsertsBypassed();
-    this.globalInsertsBypassed.set(next);
+    this.globalInsertsBypassed.update((value) => !value);
+    this.applyGlobalInsertsBypass();
+  }
+
+  /** Engage or release the momentary global A/B without changing the latch. */
+  setGlobalInsertsBypassMomentary(active: boolean): void {
+    if (this.momentaryGlobalInsertsBypassed() === active) return;
+    this.momentaryGlobalInsertsBypassed.set(active);
+    this.applyGlobalInsertsBypass();
+  }
+
+  private applyGlobalInsertsBypass(): void {
     for (const track of this.tracks()) {
       this.syncFxSlotsToRack(track.id, track.fxSlots ?? []);
       this.engine.installTrackPluginInsert(

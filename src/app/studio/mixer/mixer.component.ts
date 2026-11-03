@@ -304,7 +304,7 @@ export class MixerComponent implements OnInit, OnDestroy {
 
   toggleAllInsertsBypass(track: TrackModel, event?: Event): void {
     event?.stopPropagation();
-    if (this.musicManager.globalInsertsBypassed()) return;
+    if (this.musicManager.isGlobalInsertsBypassed()) return;
     this.musicManager.toggleAllInsertsBypass(track.id);
     this.haptic.light();
   }
@@ -313,6 +313,26 @@ export class MixerComponent implements OnInit, OnDestroy {
     event?.stopPropagation();
     this.musicManager.toggleGlobalInsertsBypass();
     this.haptic.light();
+  }
+
+  beginMomentaryGlobalBypass(event?: Event): void {
+    event?.stopPropagation();
+    if (this.musicManager.globalInsertsBypassed()) return;
+    if ((event as KeyboardEvent | undefined)?.key === " ") {
+      event?.preventDefault();
+    }
+    this.musicManager.setGlobalInsertsBypassMomentary(true);
+    this.haptic.light();
+  }
+
+  endMomentaryGlobalBypass(): void {
+    this.musicManager.setGlobalInsertsBypassMomentary(false);
+  }
+
+  @HostListener("document:pointerup")
+  @HostListener("window:blur")
+  onMomentaryGlobalRelease(): void {
+    this.endMomentaryGlobalBypass();
   }
 
   jumpToInsert(

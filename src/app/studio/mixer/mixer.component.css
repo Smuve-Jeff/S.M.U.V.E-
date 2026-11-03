@@ -166,8 +166,45 @@
   cursor: default;
 }
 
+.mix-global-hold {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 8px;
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.mix-global-hold .material-symbols-outlined {
+  font-size: 15px;
+}
+.mix-global-hold:hover:not(:disabled),
+.mix-global-hold:focus-visible {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+.mix-global-hold.active {
+  border-color: var(--amber-500, #c47a13);
+  background: rgba(196, 122, 19, 0.14);
+  color: var(--amber-600, #8a5208);
+}
+.mix-global-hold:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 @media (max-width: 768px) {
-  .mix-global-ab {
+  .mix-global-ab,
+  .mix-global-hold {
     min-height: 44px;
   }
 }

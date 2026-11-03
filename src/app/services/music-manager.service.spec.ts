@@ -1393,6 +1393,29 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
     expect(service.tracks()[1].insertsBypassed).toBe(true);
     expect(rack.inserts.map((slot) => slot.plugin.enabled)).toEqual([true]);
   });
+
+  it('engages momentary global A/B without changing the latch', () => {
+    service.tracks.set([
+      {
+        ...makeTrack(),
+        fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+      },
+    ]);
+    service.syncTrackFxChain('track-1');
+
+    service.setGlobalInsertsBypassMomentary(true);
+
+    expect(service.globalInsertsBypassed()).toBe(false);
+    expect(service.isGlobalInsertsBypassed()).toBe(true);
+    expect(service.activeEffectCount('track-1')).toBe(0);
+    expect(rack.inserts.map((slot) => slot.plugin.enabled)).toEqual([false]);
+
+    service.setGlobalInsertsBypassMomentary(false);
+
+    expect(service.isGlobalInsertsBypassed()).toBe(false);
+    expect(service.activeEffectCount('track-1')).toBe(1);
+    expect(rack.inserts.map((slot) => slot.plugin.enabled)).toEqual([true]);
+  });
 });
 
 describe('MusicManagerService recording teardown', () => {

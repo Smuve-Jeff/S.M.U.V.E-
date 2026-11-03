@@ -74,18 +74,18 @@
     <button
       type="button"
       class="mix-global-ab"
-      [class.active]="musicManager.globalInsertsBypassed()"
+      [class.active]="musicManager.isGlobalInsertsBypassed()"
       [disabled]="
-        !hasAnyInserts() && !musicManager.globalInsertsBypassed()
+        !hasAnyInserts() && !musicManager.isGlobalInsertsBypassed()
       "
-      [attr.aria-pressed]="musicManager.globalInsertsBypassed()"
+      [attr.aria-pressed]="musicManager.isGlobalInsertsBypassed()"
       [attr.title]="
-        musicManager.globalInsertsBypassed()
+        musicManager.isGlobalInsertsBypassed()
           ? 'Restore inserts on every strip'
           : 'Bypass inserts on every strip (global A/B)'
       "
       [attr.aria-label]="
-        musicManager.globalInsertsBypassed()
+        musicManager.isGlobalInsertsBypassed()
           ? 'Restore all inserts on every strip'
           : 'Bypass all inserts on every strip'
       "
@@ -93,6 +93,29 @@
     >
       <span class="material-symbols-outlined" aria-hidden="true">compare_arrows</span>
       <span>Global A/B</span>
+    </button>
+    <button
+      type="button"
+      class="mix-global-hold"
+      [class.active]="musicManager.momentaryGlobalInsertsBypassed()"
+      [disabled]="
+        musicManager.globalInsertsBypassed() || !hasAnyInserts()
+      "
+      [attr.aria-pressed]="musicManager.momentaryGlobalInsertsBypassed()"
+      title="Hold to bypass every strip; release to restore"
+      aria-label="Hold to bypass all inserts on every strip; release to restore"
+      (pointerdown)="beginMomentaryGlobalBypass($event)"
+      (pointerup)="endMomentaryGlobalBypass()"
+      (pointerleave)="endMomentaryGlobalBypass()"
+      (pointercancel)="endMomentaryGlobalBypass()"
+      (keydown.space)="beginMomentaryGlobalBypass($event)"
+      (keydown.enter)="beginMomentaryGlobalBypass($event)"
+      (keyup.space)="endMomentaryGlobalBypass()"
+      (keyup.enter)="endMomentaryGlobalBypass()"
+      (blur)="endMomentaryGlobalBypass()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">touch_app</span>
+      <span>Hold A/B</span>
     </button>
     <button
       type="button"
@@ -381,18 +404,18 @@
             class="mix-insert-ab"
             [class.active]="isTrackInsertsBypassed(track)"
             [disabled]="
-              insertCount(track) === 0 || musicManager.globalInsertsBypassed()
+              insertCount(track) === 0 || musicManager.isGlobalInsertsBypassed()
             "
             [attr.aria-pressed]="isTrackInsertsBypassed(track)"
             [attr.title]="
-              musicManager.globalInsertsBypassed()
+              musicManager.isGlobalInsertsBypassed()
                 ? 'Global A/B is engaged — restore it to change this channel'
                 : track.insertsBypassed
                   ? 'Restore all inserts on ' + track.name
                   : 'Bypass all inserts on ' + track.name + ' (A/B)'
             "
             [attr.aria-label]="
-              musicManager.globalInsertsBypassed()
+              musicManager.isGlobalInsertsBypassed()
                 ? 'Global A/B is engaged for all channels'
                 : track.insertsBypassed
                   ? 'Restore all inserts on ' + track.name
