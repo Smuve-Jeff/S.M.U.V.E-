@@ -329,6 +329,15 @@ export class MixerComponent implements OnInit, OnDestroy {
     this.musicManager.setGlobalInsertsBypassMomentary(false);
   }
 
+  async toggleAbLevelMatch(event?: Event): Promise<void> {
+    event?.stopPropagation();
+    if (this.musicManager.abLevelMatchBusy()) return;
+    const result = await this.musicManager.toggleAbLevelMatch();
+    if (result.error) this.snack.info(result.message);
+    else this.snack.success(result.message);
+    this.haptic.medium();
+  }
+
   @HostListener("document:pointerup")
   @HostListener("window:blur")
   onMomentaryGlobalRelease(): void {

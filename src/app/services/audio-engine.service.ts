@@ -582,6 +582,13 @@ export class AudioEngineService {
    * measurement can never change the sound.
    */
   public masterOutput = this.ctx.createGain();
+  /**
+   * Dedicated level-match trim for the global mixer A/B. It sits after the
+   * master output and before the monitor/meter taps, so it never rewrites a
+   * fader, project state or the offline bounce. Unity while matching is off.
+   */
+  public abMatchGain = this.ctx.createGain();
+  readonly abMatchGainDb = signal(0);
 
   /**
    * Mono-sum monitoring. This is a listening check, not a mix change: it sits
@@ -922,9 +929,11 @@ export class AudioEngineService {
     // 100 Hz and lifted +4 dB above 1.5 kHz while the bounced file was not —
     // the mix being judged was not the mix being exported. K-weighting now
     // lives inside the shared meter, where it cannot touch the audio path.
-    this.masterOutput.connect(this.ctx.destination);
-    this.masterOutput.connect(this.masterAnalyser);
-    this.masterOutput.connect(this.lufsSplitter);
+    this.abMatchGain.gain.value = 1;
+    this.masterOutput.connect(this.abMatchGain);
+    this.abMatchGain.connect(this.ctx.destination);
+    this.abMatchGain.connect(this.masterAnalyser);
+    this.abMatchGain.connect(this.lufsSplitter);
     this.lufsSplitter.connect(this.lufsAnalyserLeft, 0);
     this.lufsSplitter.connect(this.lufsAnalyserRight, 1);
 
@@ -3827,6 +3836,25 @@ export class AudioEngineService {
    * -6 dB sum so a correlated source cannot clip; disabling restores the
    * untouched stereo master. This never changes the export tap.
    */
+  /**
+   * Apply the global A/B level-match trim in dB. Positive values lift the
+   * bypassed path; the processed path stays unity. Clamped to ±12 dB so a bad
+   * measurement cannot mute or clip the console.
+   */
+  setAbMatchGainDb(db: number): void {
+    const safe = Number.isFinite(db) ? Math.max(-12, Math.min(12, db)) : 0;
+    this.abMatchGainDb.set(safe);
+    const now = this.ctx.currentTime;
+    const gain = this.abMatchGain.gain;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(gain.value, now);
+    gain.linearRampToValueAtTime(10 ** (safe / 20), now + 0.02);
+  }
+
+  getAbMatchGainDb(): number {
+    return this.abMatchGainDb();
+  }
+
   setMonoMonitoring(enabled: boolean): boolean {
     const next = !!enabled;
     if (next === this.monoSumWired) {
@@ -3835,8 +3863,8 @@ export class AudioEngineService {
     }
     try {
       if (next) {
-        this.masterOutput.disconnect(this.ctx.destination);
-        this.masterOutput.connect(this.monoSumSplitter);
+        this.abMatchGain.disconnect(this.ctx.destination);
+        this.abMatchGain.connect(this.monoSumSplitter);
         this.monoSumSplitter.connect(this.monoSumLeft, 0);
         this.monoSumSplitter.connect(this.monoSumRight, 1);
         // Both halves feed both outputs: each speaker gets 0.5L + 0.5R.
@@ -3848,11 +3876,11 @@ export class AudioEngineService {
       } else {
         this.monoSumMerger.disconnect(this.ctx.destination);
         try {
-          this.masterOutput.disconnect(this.monoSumSplitter);
+          this.abMatchGain.disconnect(this.monoSumSplitter);
         } catch {
           /* already detached */
         }
-        this.masterOutput.connect(this.ctx.destination);
+        this.abMatchGain.connect(this.ctx.destination);
       }
       this.monoSumWired = next;
       this.monoMonitoring.set(next);
@@ -3866,8 +3894,8 @@ export class AudioEngineService {
         /* ignore */
       }
       try {
-        this.masterOutput.disconnect(this.monoSumSplitter);
-        this.masterOutput.connect(this.ctx.destination);
+        this.abMatchGain.disconnect(this.monoSumSplitter);
+        this.abMatchGain.connect(this.ctx.destination);
       } catch {
         /* ignore */
       }
@@ -5696,6 +5724,8 @@ export class AudioEngineService {
   readonly outputPeak = signal<number>(0);
   readonly outputRms = signal<number>(0);
   readonly outputLufs = signal<number>(-70);
+  /** Most recent 400 ms K-weighted loudness, used for A/B level matching. */
+  readonly outputMomentaryLufs = signal<number>(-70);
   /** Live L/R phase correlation in [-1, 1], measured from the metering tap. */
   readonly outputCorrelation = signal<number>(0);
   /** Live loudness range in LU, refreshed once a second (a slow statistic). */
@@ -5901,6 +5931,7 @@ export class AudioEngineService {
     this._meterPollsSinceLra = 0;
     this._liveTruePeakDb = -120;
     this.outputLufs.set(-70);
+    this.outputMomentaryLufs.set(-70);
     this.outputCorrelation.set(0);
     this.outputLra.set(0);
     this.outputTruePeak.set(-120);
@@ -5968,6 +5999,12 @@ export class AudioEngineService {
       this.outputLufs.set(
         integrated !== undefined && Number.isFinite(integrated)
           ? Math.max(-70, Math.round(integrated * 10) / 10)
+          : -70,
+      );
+      const momentary = this.loudnessMeter?.momentaryLufs();
+      this.outputMomentaryLufs.set(
+        momentary !== undefined && Number.isFinite(momentary)
+          ? Math.max(-70, Math.round(momentary * 10) / 10)
           : -70,
       );
       this.outputCorrelation.set(

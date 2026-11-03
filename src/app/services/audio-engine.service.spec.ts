@@ -215,6 +215,7 @@ function makeSongBareEngine(): AudioEngineService {
   // start() restarts the integrated loudness window, so the metering signals
   // it writes have to exist on a bare instance too.
   (svc as any).outputLufs = signal(-70);
+  (svc as any).outputMomentaryLufs = signal(-70);
   (svc as any).outputCorrelation = signal(0);
   (svc as any).outputLra = signal(0);
   (svc as any).outputTruePeak = signal(-120);

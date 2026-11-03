@@ -15,6 +15,7 @@ describe('AudioEngineService', () => {
         value: 0,
         setTargetAtTime: jest.fn(),
         setValueAtTime: jest.fn(),
+        cancelScheduledValues: jest.fn(),
         linearRampToValueAtTime: jest.fn(),
         exponentialRampToValueAtTime: jest.fn(),
       },
@@ -183,7 +184,7 @@ describe('AudioEngineService', () => {
     localStorage.clear();
     expect(service.setMonoMonitoring(true)).toBe(true);
     expect(service.monoMonitoring()).toBe(true);
-    expect(service.masterOutput.disconnect).toHaveBeenCalledWith(
+    expect(service.abMatchGain.disconnect).toHaveBeenCalledWith(
       mockAudioContext.destination,
     );
     expect(service['monoSumMerger'].connect).toHaveBeenCalledWith(
@@ -200,6 +201,26 @@ describe('AudioEngineService', () => {
       JSON.parse(localStorage.getItem('smuve_studio_transport_prefs') || '{}')
         .mono,
     ).toBe(false);
+  });
+
+  it('applies and clamps the A/B level-match trim on the master output stage', () => {
+    service.setAbMatchGainDb(99);
+
+    expect(service.getAbMatchGainDb()).toBe(12);
+    expect(service.abMatchGain.gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(
+      10 ** (12 / 20),
+      0.02,
+    );
+
+    service.setAbMatchGainDb(-99);
+    expect(service.getAbMatchGainDb()).toBe(-12);
+    expect(service.abMatchGain.gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(
+      10 ** (-12 / 20),
+      0.02,
+    );
+
+    service.setAbMatchGainDb(Number.NaN);
+    expect(service.getAbMatchGainDb()).toBe(0);
   });
 
   it('should set metronome volume within bounds', () => {

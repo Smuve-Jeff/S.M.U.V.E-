@@ -335,10 +335,21 @@ export class MusicManagerService {
   readonly globalInsertsBypassed = signal(false);
   /** Momentary global A/B state, held only while the control is pressed. */
   readonly momentaryGlobalInsertsBypassed = signal(false);
-  /** Effective global A/B state: either the latch or the momentary hold. */
-  readonly isGlobalInsertsBypassed = computed(
-    () => this.globalInsertsBypassed() || this.momentaryGlobalInsertsBypassed(),
-  );
+  /** A temporary wet/dry override used while Match A/B measures both sides. */
+  private readonly abMeasurementState = signal<'wet' | 'dry' | null>(null);
+  /** Effective global A/B state: latch, momentary hold, or calibration override. */
+  readonly isGlobalInsertsBypassed = computed(() => {
+    const measured = this.abMeasurementState();
+    if (measured !== null) return measured === 'dry';
+    return this.globalInsertsBypassed() || this.momentaryGlobalInsertsBypassed();
+  });
+
+  /** True when the bypassed path is trimmed to the processed path's level. */
+  readonly abLevelMatchEnabled = signal(false);
+  /** Trim applied to the bypassed path; zero while processed inserts are active. */
+  readonly abLevelMatchGainDb = signal(0);
+  readonly abLevelMatchBusy = signal(false);
+  readonly abLevelMatchError = signal<string | null>(null);
 
   /** True when this track is silent because either A/B layer is engaged. */
   isTrackInsertsBypassed(track: { insertsBypassed?: boolean }): boolean {
@@ -1265,18 +1276,108 @@ export class MusicManagerService {
    * written into history or the project. Each track's own A/B flag survives.
    */
   toggleGlobalInsertsBypass(): void {
+    if (this.abLevelMatchBusy()) return;
     this.globalInsertsBypassed.update((value) => !value);
     this.applyGlobalInsertsBypass();
   }
 
+  /**
+   * Measure the processed and bypassed master loudness, then trim the bypassed
+   * path to match. The measurement temporarily overrides the user's A/B state;
+   * the latch, momentary hold and per-track choices are restored afterward.
+   *
+   * Returns a user-facing outcome instead of throwing so the mixer can report
+   * "play a section" or "no signal" honestly.
+   */
+  async toggleAbLevelMatch(): Promise<{
+    enabled: boolean;
+    message: string;
+    error?: boolean;
+  }> {
+    if (this.abLevelMatchBusy()) {
+      return { enabled: this.abLevelMatchEnabled(), message: 'A/B match is already measuring' };
+    }
+    if (this.abLevelMatchEnabled()) {
+      this.abLevelMatchEnabled.set(false);
+      this.abLevelMatchGainDb.set(0);
+      this.engine.setAbMatchGainDb(0);
+      this.abLevelMatchError.set(null);
+      this.applyGlobalInsertsBypass();
+      return { enabled: false, message: 'A/B level match off · trim 0 dB' };
+    }
+    if (!this.engine.isPlaying()) {
+      return {
+        enabled: false,
+        message: 'Play a section first so Match A/B can measure both sides',
+        error: true,
+      };
+    }
+
+    this.abLevelMatchBusy.set(true);
+    this.abLevelMatchError.set(null);
+    this.engine.setAbMatchGainDb(0);
+    try {
+      this.abMeasurementState.set('wet');
+      this.applyGlobalInsertsBypass();
+      await this.waitForAbMeasurement();
+
+      const wet = this.engine.outputMomentaryLufs();
+      this.abMeasurementState.set('dry');
+      this.applyGlobalInsertsBypass();
+      await this.waitForAbMeasurement();
+
+      const dry = this.engine.outputMomentaryLufs();
+      if (!this.isMeasuredAbLevel(wet) || !this.isMeasuredAbLevel(dry)) {
+        this.abLevelMatchGainDb.set(0);
+        this.abLevelMatchError.set('No usable signal · roll a loud section and try again');
+        return {
+          enabled: false,
+          message: 'Match A/B needs a measured signal · roll a louder section',
+          error: true,
+        };
+      }
+
+      const delta = Math.round((wet - dry) * 10) / 10;
+      const trim = Math.max(-12, Math.min(12, delta));
+      this.abLevelMatchGainDb.set(trim);
+      this.abLevelMatchEnabled.set(true);
+      return {
+        enabled: true,
+        message: `A/B matched · bypass trimmed ${trim > 0 ? '+' : ''}${trim.toFixed(1)} dB to the processed path`,
+      };
+    } finally {
+      this.abMeasurementState.set(null);
+      this.abLevelMatchBusy.set(false);
+      this.applyGlobalInsertsBypass();
+    }
+  }
+
+  private isMeasuredAbLevel(value: number): boolean {
+    return Number.isFinite(value) && value > -70;
+  }
+
+  private waitForAbMeasurement(): Promise<void> {
+    // The momentary meter is a 400 ms window; wait past it plus a safety margin
+    // so the reading is entirely from the state just selected.
+    return new Promise((resolve) => setTimeout(resolve, 650));
+  }
+
   /** Engage or release the momentary global A/B without changing the latch. */
   setGlobalInsertsBypassMomentary(active: boolean): void {
+    if (this.abLevelMatchBusy()) return;
     if (this.momentaryGlobalInsertsBypassed() === active) return;
     this.momentaryGlobalInsertsBypassed.set(active);
     this.applyGlobalInsertsBypass();
   }
 
   private applyGlobalInsertsBypass(): void {
+    const trim =
+      this.abLevelMatchEnabled() &&
+      this.abMeasurementState() === null &&
+      this.isGlobalInsertsBypassed()
+        ? this.abLevelMatchGainDb()
+        : 0;
+    this.engine.setAbMatchGainDb(trim);
     for (const track of this.tracks()) {
       this.syncFxSlotsToRack(track.id, track.fxSlots ?? []);
       this.engine.installTrackPluginInsert(

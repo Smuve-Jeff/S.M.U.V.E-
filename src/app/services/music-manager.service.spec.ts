@@ -1118,6 +1118,7 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
   let service: MusicManagerService;
   let history: HistoryService;
   let rack: FakeRack;
+  let measuredLufs = -70;
 
   const makeTrack = (overrides: any = {}) => ({
     id: 'track-1',
@@ -1145,12 +1146,16 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
 
   beforeEach(() => {
     rack = new FakeRack();
+    measuredLufs = -70;
     const engineMock = {
       tempo: signal(120),
       visualStep: signal(0),
       setSongLengthSteps: jest.fn(),
       triggerAttack: jest.fn(),
-    setBaseFaderGain: jest.fn(),
+      setBaseFaderGain: jest.fn(),
+      setAbMatchGainDb: jest.fn(),
+      isPlaying: () => false,
+      outputMomentaryLufs: () => measuredLufs,
       onScheduleStep: undefined as any,
       getTrackEffectsRack: jest.fn(() => rack),
       installTrackPluginInsert: jest.fn(),
@@ -1415,6 +1420,50 @@ describe('MusicManagerService macro FX slots (rack wiring)', () => {
     expect(service.isGlobalInsertsBypassed()).toBe(false);
     expect(service.activeEffectCount('track-1')).toBe(1);
     expect(rack.inserts.map((slot) => slot.plugin.enabled)).toEqual([true]);
+  });
+
+  it('measures both A/B sides and trims only the bypassed path', async () => {
+    jest.useFakeTimers();
+    const engine = (service as any).engine;
+    engine.isPlaying = () => true;
+    service.tracks.set([
+      {
+        ...makeTrack(),
+        fxSlots: [{ id: 'fx1', type: 'Reverb', params: {}, enabled: true }],
+      },
+    ]);
+    service.syncTrackFxChain('track-1');
+
+    try {
+      measuredLufs = -13;
+      const pending = service.toggleAbLevelMatch();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(service.isGlobalInsertsBypassed()).toBe(false);
+
+      jest.advanceTimersByTime(650);
+      await Promise.resolve();
+      await Promise.resolve();
+      measuredLufs = -15;
+
+      jest.advanceTimersByTime(650);
+      const result = await pending;
+
+      expect(result).toMatchObject({ enabled: true });
+      expect(service.abLevelMatchEnabled()).toBe(true);
+      expect(service.abLevelMatchGainDb()).toBe(2);
+      // Current state is processed, so the trim is not applied yet.
+      expect(engine.setAbMatchGainDb).toHaveBeenLastCalledWith(0);
+
+      service.toggleGlobalInsertsBypass();
+      expect(service.isGlobalInsertsBypassed()).toBe(true);
+      expect(engine.setAbMatchGainDb).toHaveBeenLastCalledWith(2);
+
+      service.toggleGlobalInsertsBypass();
+      expect(engine.setAbMatchGainDb).toHaveBeenLastCalledWith(0);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
 

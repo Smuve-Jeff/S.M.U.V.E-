@@ -55,6 +55,10 @@ describe("MixerComponent", () => {
 
   const globalInsertsBypassed = signal(false);
   const momentaryGlobalInsertsBypassed = signal(false);
+  const abLevelMatchEnabled = signal(false);
+  const abLevelMatchGainDb = signal(0);
+  const abLevelMatchBusy = signal(false);
+  const abLevelMatchError = signal<string | null>(null);
   const isGlobalInsertsBypassed = computed(
     () => globalInsertsBypassed() || momentaryGlobalInsertsBypassed(),
   );
@@ -93,6 +97,14 @@ describe("MixerComponent", () => {
     setGlobalInsertsBypassMomentary: jest.fn((active: boolean) =>
       momentaryGlobalInsertsBypassed.set(active),
     ),
+    abLevelMatchEnabled,
+    abLevelMatchGainDb,
+    abLevelMatchBusy,
+    abLevelMatchError,
+    toggleAbLevelMatch: jest.fn().mockResolvedValue({
+      enabled: true,
+      message: 'A/B matched',
+    }),
     toggleSoloSafe: jest.fn(),
     removeTrack: jest.fn(),
   };
@@ -124,6 +136,10 @@ describe("MixerComponent", () => {
     mockPanLaw.set(-3);
     globalInsertsBypassed.set(false);
     momentaryGlobalInsertsBypassed.set(false);
+    abLevelMatchEnabled.set(false);
+    abLevelMatchGainDb.set(0);
+    abLevelMatchBusy.set(false);
+    abLevelMatchError.set(null);
     await TestBed.configureTestingModule({
       imports: [MixerComponent, CommonModule, FormsModule, KnobComponent],
       providers: [
@@ -307,6 +323,15 @@ describe("MixerComponent", () => {
     expect(mockMusicManager.toggleGlobalInsertsBypass).toHaveBeenCalled();
   });
 
+  it('measures and toggles A/B level matching through the manager', async () => {
+    const stopPropagation = jest.fn();
+
+    await component.toggleAbLevelMatch({ stopPropagation } as any);
+
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(mockMusicManager.toggleAbLevelMatch).toHaveBeenCalledTimes(1);
+  });
+
   it('holds global A/B only while the control is pressed', () => {
     const track = {
       id: '1',
@@ -435,6 +460,13 @@ describe("MixerComponent", () => {
     expect(holdAb).toBeTruthy();
     expect(holdAb?.disabled).toBe(true);
     expect(holdAb?.getAttribute('aria-pressed')).toBe('false');
+
+    const matchAb = fixture.nativeElement.querySelector(
+      '.mix-global-match',
+    ) as HTMLButtonElement | null;
+    expect(matchAb).toBeTruthy();
+    expect(matchAb?.disabled).toBe(true);
+    expect(matchAb?.getAttribute('aria-pressed')).toBe('false');
   });
 
   it('classifies per-track mono compatibility and formats the reading', () => {

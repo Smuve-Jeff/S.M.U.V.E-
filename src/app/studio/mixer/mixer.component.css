@@ -202,9 +202,59 @@
   cursor: default;
 }
 
+.mix-global-match {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 8px;
+  background: var(--ivory-panel);
+  color: var(--espresso-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.mix-global-match .material-symbols-outlined {
+  font-size: 15px;
+}
+.mix-global-match:hover:not(:disabled),
+.mix-global-match:focus-visible {
+  border-color: var(--teal-500);
+  color: var(--teal-500);
+}
+.mix-global-match.active {
+  border-color: var(--teal-500);
+  background: rgba(20, 120, 110, 0.12);
+  color: var(--teal-500);
+}
+.mix-global-match.measuring {
+  animation: mix-ab-measure 1s ease-in-out infinite alternate;
+}
+.mix-ab-match-db {
+  padding-left: 5px;
+  border-left: 1px solid currentColor;
+  font-variant-numeric: tabular-nums;
+  font-size: 9px;
+  opacity: 0.85;
+}
+.mix-global-match:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+@keyframes mix-ab-measure {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
 @media (max-width: 768px) {
   .mix-global-ab,
-  .mix-global-hold {
+  .mix-global-hold,
+  .mix-global-match {
     min-height: 44px;
   }
 }

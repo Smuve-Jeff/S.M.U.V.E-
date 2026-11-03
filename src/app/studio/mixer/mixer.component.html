@@ -76,7 +76,8 @@
       class="mix-global-ab"
       [class.active]="musicManager.isGlobalInsertsBypassed()"
       [disabled]="
-        !hasAnyInserts() && !musicManager.isGlobalInsertsBypassed()
+        musicManager.abLevelMatchBusy() ||
+        (!hasAnyInserts() && !musicManager.isGlobalInsertsBypassed())
       "
       [attr.aria-pressed]="musicManager.isGlobalInsertsBypassed()"
       [attr.title]="
@@ -99,7 +100,9 @@
       class="mix-global-hold"
       [class.active]="musicManager.momentaryGlobalInsertsBypassed()"
       [disabled]="
-        musicManager.globalInsertsBypassed() || !hasAnyInserts()
+        musicManager.globalInsertsBypassed() ||
+        musicManager.abLevelMatchBusy() ||
+        !hasAnyInserts()
       "
       [attr.aria-pressed]="musicManager.momentaryGlobalInsertsBypassed()"
       title="Hold to bypass every strip; release to restore"
@@ -116,6 +119,37 @@
     >
       <span class="material-symbols-outlined" aria-hidden="true">touch_app</span>
       <span>Hold A/B</span>
+    </button>
+    <button
+      type="button"
+      class="mix-global-match"
+      [class.active]="musicManager.abLevelMatchEnabled()"
+      [class.measuring]="musicManager.abLevelMatchBusy()"
+      [disabled]="
+        musicManager.abLevelMatchBusy() ||
+        (!hasAnyInserts() && !musicManager.abLevelMatchEnabled())
+      "
+      [attr.aria-pressed]="musicManager.abLevelMatchEnabled()"
+      [attr.aria-label]="
+        musicManager.abLevelMatchEnabled()
+          ? 'Disable A/B level matching'
+          : 'Measure and match the bypassed level to the processed inserts'
+      "
+      [attr.title]="
+        musicManager.abLevelMatchError() ||
+        (musicManager.abLevelMatchEnabled()
+          ? 'Disable A/B level matching'
+          : 'Play a section, then measure both sides and trim the bypass to the processed level')
+      "
+      (click)="toggleAbLevelMatch($event)"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">graphic_eq</span>
+      <span>{{ musicManager.abLevelMatchBusy() ? 'Matching…' : 'Match A/B' }}</span>
+      <span class="mix-ab-match-db" *ngIf="musicManager.abLevelMatchEnabled()">
+        {{ musicManager.abLevelMatchGainDb() > 0 ? '+' : '' }}{{
+          musicManager.abLevelMatchGainDb() | number: '1.1-1'
+        }} dB
+      </span>
     </button>
     <button
       type="button"
@@ -404,7 +438,9 @@
             class="mix-insert-ab"
             [class.active]="isTrackInsertsBypassed(track)"
             [disabled]="
-              insertCount(track) === 0 || musicManager.isGlobalInsertsBypassed()
+              insertCount(track) === 0 ||
+              musicManager.isGlobalInsertsBypassed() ||
+              musicManager.abLevelMatchBusy()
             "
             [attr.aria-pressed]="isTrackInsertsBypassed(track)"
             [attr.title]="
