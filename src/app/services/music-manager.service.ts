@@ -2577,6 +2577,53 @@ export class MusicManagerService {
   }
 
   /**
+   * Mirror selected note timing across the selection's span.
+   *
+   * Each note's start is reflected as `spanStart + spanEnd - (start + length)`
+   * while its duration is kept, so the phrase plays backwards without changing
+   * pitch or any other property. Unselected notes are untouched. A symmetrical
+   * selection (or one note that already fills the span) would produce no
+   * change, so it returns false instead of recording a no-op.
+   */
+  mirrorNotes(id: string, noteIds: string[]): boolean {
+    const t = this.tracks().find((x) => x.id === id);
+    if (!t) return false;
+    const targetIds = new Set(noteIds);
+    const targets = t.notes.filter((n) => targetIds.has(n.id));
+    if (targets.length === 0) return false;
+
+    const spanStart = Math.min(...targets.map((n) => n.step));
+    const spanEnd = Math.max(
+      ...targets.map((n) => n.step + Math.max(0.125, n.length))
+    );
+    let changed = false;
+    const after = t.notes.map((n) => {
+      if (!targetIds.has(n.id)) return n;
+      const start =
+        spanStart + spanEnd - (n.step + Math.max(0.125, n.length));
+      if (start !== n.step) changed = true;
+      return { ...n, step: start };
+    });
+    if (!changed) return false;
+
+    const before = this.clone(t.notes);
+    this.runCommand(
+      'Mirror · ' + t.name,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: after } : x))
+        );
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) => (x.id === id ? { ...x, notes: before } : x))
+        );
+      }
+    );
+    return true;
+  }
+
+  /**
    * Invert selected pitches around the selection's own pitch centre.
    *
    * Reflecting inside [min, max] keeps every resulting note in the MIDI range

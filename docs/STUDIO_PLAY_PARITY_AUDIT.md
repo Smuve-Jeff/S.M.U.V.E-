@@ -221,9 +221,9 @@ L > 1 week of focused work).
    is still allowed with no visual constraint toggle.
 3. **No MIDI file drop into the roll.** `MidiImportService` imports a whole file
    into tracks; there is no "import to this clip at the playhead".
-4. **Some note-group operations remain missing.** Legato-join, clip-to-scale,
-   octave transposition, pitch inversion and one-gesture duplicate-to-next-bar
-   shipped 3 Nov 2026; time mirroring remains.
+4. ~~**Some note-group operations remain missing.**~~ **Closed 3 Nov 2026.**
+   Legato-join, clip-to-scale, octave transposition, pitch inversion, time
+   mirroring and one-gesture duplicate-to-next-bar all ship.
 5. **Velocity ramp now ships; deeper shapes do not.** The selection inspector
    ramps velocities up or down in one undoable step, ordered by note start and
    pitch. Curve-based velocity shaping remains open.
@@ -232,9 +232,8 @@ L > 1 week of focused work).
 - **M** — Arpeggiator + note-repeat as *clip processors* (pattern → notes on commit),
   reusing `MusicManagerService.arpeggiateTrack` but scoped to a selection.
 - **S** — Scale lock toggle that snaps new/resized notes to the detected or chosen scale.
-- **S** — Selection ops: time mirroring.
-  ~~Legato-join~~, ~~clip-to-scale~~, ~~transpose ±octave~~, ~~invert~~,
-  ~~duplicate-to-next-bar~~ and ~~velocity ramp~~ **shipped 3 Nov 2026**.
+- ~~**S** — Selection ops: legato, scale-clip, transpose, invert, mirror and
+  duplicate-to-next-bar.~~ **Shipped 3 Nov 2026**, alongside the velocity ramp.
 - **S** — Drag-and-drop `.mid` onto the roll at the playhead.
 
 ## 6. Channel rack and step sequencer

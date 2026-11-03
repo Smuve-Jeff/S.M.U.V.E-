@@ -2568,4 +2568,38 @@ describe('MusicManagerService per-scene follow rules', () => {
     expect(service.invertNotes('track-1', ['low'])).toBe(false);
   });
 
+  it('mirrors selected timing across the selection span with undo', () => {
+    const source = service.tracks()[0];
+    service.tracks.set([
+      {
+        ...source,
+        notes: [
+          { id: 'a', step: 0, midi: 60, length: 2, velocity: 0.8 },
+          { id: 'b', step: 4, midi: 64, length: 1, velocity: 0.6 },
+          { id: 'c', step: 8, midi: 67, length: 2, velocity: 0.7 },
+          { id: 'untouched', step: 2, midi: 50, length: 1, velocity: 0.8 },
+        ],
+        clips: [],
+      },
+    ]);
+
+    expect(service.mirrorNotes('track-1', ['a', 'b', 'c'])).toBe(true);
+    const byId = new Map(service.tracks()[0].notes.map((n) => [n.id, n]));
+    expect(byId.get('a')!.step).toBe(8);
+    expect(byId.get('b')!.step).toBe(5);
+    expect(byId.get('c')!.step).toBe(0);
+    expect(byId.get('a')!.length).toBe(2);
+    expect(byId.get('b')!.midi).toBe(64);
+    expect(byId.get('untouched')!.step).toBe(2);
+
+    const recorder = (service as unknown as { history: { undo(): void } })
+      .history;
+    recorder.undo();
+    expect(
+      service.tracks()[0].notes.find((n) => n.id === 'a')!.step,
+    ).toBe(0);
+
+    expect(service.mirrorNotes('track-1', ['a'])).toBe(false);
+  });
+
 });

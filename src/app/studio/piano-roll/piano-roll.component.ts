@@ -2225,6 +2225,18 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     this.markDirty();
   }
 
+  mirrorSelection(): void {
+    const track = this.selectedTrack();
+    const ids = Array.from(this.selectedNoteIds());
+    if (!track || ids.length === 0) return;
+    if (!this.musicManager.mirrorNotes(track.id, ids)) {
+      this.snackbar.info("Selection is already symmetrical");
+      return;
+    }
+    this.haptic.medium();
+    this.markDirty();
+  }
+
   invertSelection(): void {
     const track = this.selectedTrack();
     const ids = Array.from(this.selectedNoteIds());

@@ -93,6 +93,7 @@ describe("PianoRollComponent", () => {
     legatoNotes: jest.fn(() => true),
     clipNotesToScale: jest.fn(() => true),
     invertNotes: jest.fn(() => true),
+    mirrorNotes: jest.fn(() => true),
     transposeNotes: jest.fn(() => true),
     selectedTrack: computed(() => mockTracks()[0] ?? null),
     engine: { scaleMode: signal("major"), scaleLock: signal(false) },
@@ -626,6 +627,19 @@ describe("PianoRollComponent", () => {
     component.invertSelection();
 
     expect(mockMusicManager.invertNotes).toHaveBeenCalledWith("1", [
+      "n1",
+      "n2",
+    ]);
+  });
+
+  it("mirrors the selected timing across the selection", () => {
+    mockMusicManager.mirrorNotes.mockClear();
+    mockMusicManager.mirrorNotes.mockReturnValue(true);
+    component.selectedNoteIds.set(new Set(["n1", "n2"]));
+
+    component.mirrorSelection();
+
+    expect(mockMusicManager.mirrorNotes).toHaveBeenCalledWith("1", [
       "n1",
       "n2",
     ]);
