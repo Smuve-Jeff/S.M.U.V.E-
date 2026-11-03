@@ -39,7 +39,9 @@ export interface MixerInsertEntry {
   label: string;
   kind: "macro" | "live";
   slot?: number;
+  slotId?: string;
   pluginId?: string;
+  enabled: boolean;
 }
 
 export interface MixerInsertRequest {
@@ -173,15 +175,19 @@ export class MixerComponent implements OnInit, OnDestroy {
                 label: slot.type,
                 kind: "macro" as const,
                 slot: index + 1,
+                slotId: slot.id,
+                enabled: slot.enabled !== false,
               },
             ]
           : [],
     );
+    const bypassed = new Set(track.bypassedPluginIds ?? []);
     const live: MixerInsertEntry[] = (track.pluginIds ?? []).map((id) => ({
       key: `live:${id}`,
       label: this.pluginInsertName(id),
       kind: "live" as const,
       pluginId: id,
+      enabled: !bypassed.has(id),
     }));
     return [...macro, ...live];
   }
@@ -246,7 +252,7 @@ export class MixerComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.host.nativeElement
         .querySelector<HTMLElement>(
-          ".mix-insert-popover .mix-insert-row, .mix-insert-popover .mix-insert-open",
+          ".mix-insert-popover .mix-insert-jump, .mix-insert-popover .mix-insert-open",
         )
         ?.focus();
     }, 0);
@@ -262,6 +268,22 @@ export class MixerComponent implements OnInit, OnDestroy {
   @HostListener("document:keydown.escape")
   onInsertMenuEscape(): void {
     this.closeInsertMenu();
+  }
+
+  toggleInsertBypass(
+    track: TrackModel,
+    entry: MixerInsertEntry,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    if (entry.kind === "macro" && entry.slotId) {
+      this.musicManager.toggleFxSlot(track.id, entry.slotId);
+    } else if (entry.kind === "live" && entry.pluginId) {
+      this.musicManager.toggleTrackPluginBypass(track.id, entry.pluginId);
+    } else {
+      return;
+    }
+    this.haptic.light();
   }
 
   jumpToInsert(

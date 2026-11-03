@@ -1853,3 +1853,34 @@
   outline: 2px solid var(--teal-500);
   outline-offset: 2px;
 }
+
+/* A bypassed live insert remains in the chain, so it stays listed but loses
+   its level meter and gains a clear, non-destructive state. */
+.er-wasm-chip.bypassed {
+  opacity: 0.58;
+  border-style: dashed;
+}
+.er-wasm-chip.bypassed .er-chip-meter {
+  display: none;
+}
+.er-plugin-card-bypassed {
+  opacity: 0.72;
+}
+.er-plugin-bypass-note {
+  padding: 1px 4px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 4px;
+  color: var(--espresso-muted);
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.er-wasm-item.bypassed {
+  opacity: 0.7;
+}
+.er-wasm-item.bypassed .er-wasm-item-badge {
+  color: var(--espresso-muted);
+  border-color: var(--espresso-line);
+}

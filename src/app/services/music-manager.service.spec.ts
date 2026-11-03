@@ -1596,6 +1596,32 @@ describe('MusicManagerService live plugin insert wiring', () => {
     expect(provider([])).toEqual([]);
   });
 
+  it('bypasses a live plugin without removing it from the chain, and restores on undo', () => {
+    service.setTrackPlugins('track-1', ['smuve.saturation.v2']);
+    installTrackPluginInsert.mockClear();
+
+    service.toggleTrackPluginBypass('track-1', 'smuve.saturation.v2');
+
+    expect(service.tracks()[0].pluginIds).toEqual(['smuve.saturation.v2']);
+    expect(service.tracks()[0].bypassedPluginIds).toEqual([
+      'smuve.saturation.v2',
+    ]);
+    expect(installTrackPluginInsert).toHaveBeenLastCalledWith(
+      'track-1',
+      [],
+      expect.any(Function),
+    );
+
+    history.undo();
+
+    expect(service.tracks()[0].bypassedPluginIds).toEqual([]);
+    expect(installTrackPluginInsert).toHaveBeenLastCalledWith(
+      'track-1',
+      ['smuve.saturation.v2'],
+      expect.any(Function),
+    );
+  });
+
   it('releases the live insert when a track is deleted, and restores it on undo', () => {
     service.tracks.set([{ ...makeTrack(), pluginIds: ['smuve.saturation.v2'] }]);
 

@@ -23,7 +23,7 @@
     <!-- Sprint B1 Phase 2: WASM live insert chain -->
     <section
       class="er-wasm effects-rack-wasm"
-      *ngIf="selectedTrack()"
+      *ngIf="selectedTrack() as track"
       aria-label="WASM plugin inserts"
     >
       <div class="er-wasm-head">
@@ -35,7 +35,12 @@
         <span
           *ngFor="let id of trackPluginIds()"
           class="er-wasm-chip"
-          title="Installed on this track's live chain"
+          [class.bypassed]="isPluginBypassed(id)"
+          [attr.title]="
+            isPluginBypassed(id)
+              ? 'Bypassed on this track — still in the chain'
+              : 'Installed on this track\'s live chain'
+          "
         >
           <span class="material-symbols-outlined">bolt</span>
           {{ id.split('.').slice(0, 2).join(' ') }}
@@ -52,7 +57,8 @@
           *ngFor="let manifest of wasmCatalog"
           type="button"
           class="er-wasm-item"
-          [class.active]="hasPlugin(manifest.id)"
+          [class.active]="hasPlugin(manifest.id) && !isPluginBypassed(manifest.id)"
+          [class.bypassed]="isPluginBypassed(manifest.id)"
           (click)="togglePluginInsert(manifest)"
           [attr.aria-pressed]="hasPlugin(manifest.id)"
           [attr.title]="manifest.name + ' — ' + manifest.description"
@@ -60,7 +66,11 @@
           <span class="material-symbols-outlined">{{ manifest.icon }}</span>
           <span class="er-wasm-item-name">{{ manifest.name }}</span>
           <span class="er-wasm-item-badge">{{
-            hasPlugin(manifest.id) ? 'ON' : 'OFF'
+            isPluginBypassed(manifest.id)
+              ? 'BYP'
+              : hasPlugin(manifest.id)
+                ? 'ON'
+                : 'OFF'
           }}</span>
         </button>
       </div>
@@ -127,11 +137,15 @@
         class="er-plugin-card"
         *ngFor="let id of trackPluginIds()"
         [attr.data-plugin-id]="id"
+        [class.er-plugin-card-bypassed]="isPluginBypassed(id)"
         tabindex="-1"
         [attr.aria-label]="(pluginManifest(id)?.name || id) + ' parameters'"
       >
         <header class="er-plugin-card-head">
           <span class="er-plugin-badge">TRACK</span>
+          <span class="er-plugin-bypass-note" *ngIf="isPluginBypassed(id)">
+            BYPASSED
+          </span>
           <b>{{ pluginManifest(id)?.name || id }}</b>
         </header>
         <div class="er-plugin-knobs">

@@ -791,25 +791,45 @@
         </header>
 
         <div class="mix-insert-list" *ngIf="insertMenuEntries().length > 0; else noInserts">
-          <button
-            type="button"
+          <div
             class="mix-insert-row"
             *ngFor="let entry of insertMenuEntries(); trackBy: insertEntryKey"
-            (click)="jumpToInsert(track, entry, $event)"
+            [class.mix-insert-row-bypassed]="!entry.enabled"
           >
-            <span class="material-symbols-outlined mix-insert-row-icon" aria-hidden="true">
-              {{ entry.kind === "macro" ? "blur_on" : "bolt" }}
-            </span>
-            <span class="mix-insert-row-copy">
-              <strong>{{ entry.label }}</strong>
-              <small>
-                {{ entry.kind === "macro" ? "MACRO · SLOT " + entry.slot : "LIVE WASM" }}
-              </small>
-            </span>
-            <span class="material-symbols-outlined mix-insert-row-go" aria-hidden="true">
-              chevron_right
-            </span>
-          </button>
+            <button
+              type="button"
+              class="mix-insert-jump"
+              (click)="jumpToInsert(track, entry, $event)"
+              [attr.aria-label]="'Open ' + entry.label + ' in the Effects Rack'"
+            >
+              <span class="material-symbols-outlined mix-insert-row-icon" aria-hidden="true">
+                {{ entry.kind === "macro" ? "blur_on" : "bolt" }}
+              </span>
+              <span class="mix-insert-row-copy">
+                <strong>{{ entry.label }}</strong>
+                <small>
+                  {{ entry.kind === "macro" ? "MACRO · SLOT " + entry.slot : "LIVE WASM" }}
+                  <span *ngIf="!entry.enabled"> · BYPASSED</span>
+                </small>
+              </span>
+              <span class="material-symbols-outlined mix-insert-row-go" aria-hidden="true">
+                chevron_right
+              </span>
+            </button>
+            <button
+              type="button"
+              class="mix-insert-bypass"
+              [class.bypassed]="!entry.enabled"
+              [attr.aria-pressed]="!entry.enabled"
+              [attr.aria-label]="(entry.enabled ? 'Bypass ' : 'Enable ') + entry.label"
+              [attr.title]="(entry.enabled ? 'Bypass ' : 'Enable ') + entry.label"
+              (click)="toggleInsertBypass(track, entry, $event)"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">
+                {{ entry.enabled ? "power_settings_new" : "power_off" }}
+              </span>
+            </button>
+          </div>
         </div>
         <ng-template #noInserts>
           <p class="mix-insert-empty">No inserts on this channel yet.</p>

@@ -71,6 +71,8 @@ describe("MixerComponent", () => {
     updateSend: jest.fn(),
     toggleMute: jest.fn(),
     toggleSolo: jest.fn(),
+    toggleFxSlot: jest.fn(),
+    toggleTrackPluginBypass: jest.fn(),
     toggleSoloSafe: jest.fn(),
     removeTrack: jest.fn(),
   };
@@ -181,6 +183,9 @@ describe("MixerComponent", () => {
       ['live', undefined, 'smuve.reverb.v2'],
       ['live', undefined, 'smuve.eq.mastering.v2'],
     ]);
+    expect(
+      component.insertEntries(track).map((entry) => entry.enabled),
+    ).toEqual([true, false, true, true]);
     expect(component.insertCount(track)).toBe(4);
     expect(component.insertSummary(track)).toContain('EQ');
     expect(component.insertSummary(track)).toContain('reverb');
@@ -228,6 +233,46 @@ describe("MixerComponent", () => {
       { trackId: '1', slot: 1 },
       { trackId: '1', pluginId: 'smuve.reverb.v2' },
     ]);
+  });
+
+  it('marks a bypassed live insert without removing it', () => {
+    const track = {
+      id: '1',
+      name: 'Track 1',
+      fxSlots: [],
+      pluginIds: ['smuve.reverb.v2'],
+      bypassedPluginIds: ['smuve.reverb.v2'],
+    } as any;
+
+    const entry = component.insertEntries(track)[0];
+
+    expect(entry.label).toBe('reverb');
+    expect(entry.enabled).toBe(false);
+  });
+
+  it('toggles macro and live bypass from the popover', () => {
+    const track = {
+      id: '1',
+      name: 'Track 1',
+      fxSlots: [{ id: 'fx1', type: 'EQ', params: {}, enabled: true }],
+      pluginIds: ['smuve.reverb.v2'],
+    } as any;
+    const entries = component.insertEntries(track);
+    const stopPropagation = jest.fn();
+
+    component.toggleInsertBypass(track, entries[0], {
+      stopPropagation,
+    } as any);
+    component.toggleInsertBypass(track, entries[1], {
+      stopPropagation,
+    } as any);
+
+    expect(stopPropagation).toHaveBeenCalledTimes(2);
+    expect(mockMusicManager.toggleFxSlot).toHaveBeenCalledWith('1', 'fx1');
+    expect(mockMusicManager.toggleTrackPluginBypass).toHaveBeenCalledWith(
+      '1',
+      'smuve.reverb.v2',
+    );
   });
 
   it('toggles the insert popover from the strip button', () => {

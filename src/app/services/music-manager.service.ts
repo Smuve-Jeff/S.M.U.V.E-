@@ -217,6 +217,12 @@ export interface TrackModel extends StudioTrack {
   fxSlots: FxSlot[];
   /** Sprint B1 Phase 2 — WASM plugin inserts on this track's live chain. */
   pluginIds?: string[];
+  /**
+   * Live plugin ids that stay in the chain but are removed from the audio
+   * graph. Kept separate from `pluginIds` so bypass is reversible and does
+   * not look like an uninstall.
+   */
+  bypassedPluginIds?: string[];
   synthParams?: any;
   gain: number;
   sendA: number;
@@ -319,14 +325,20 @@ export class MusicManagerService {
     return this.tracks().length + Math.max(0, additional) <= this.trackLimit();
   }
 
-  /** Enabled macro slots + live plugin inserts on this track. */
+  /** Enabled macro slots + enabled live plugin inserts on this track. */
   activeEffectCount(trackId: string): number {
     const track = this.tracks().find((candidate) => candidate.id === trackId);
     if (!track) return 0;
     return (
       (track.fxSlots ?? []).filter((slot) => slot.enabled !== false).length +
-      (track.pluginIds?.length ?? 0)
+      this.activePluginIds(track).length
     );
+  }
+
+  /** Live plugins that are installed (i.e. not bypassed) on this track. */
+  private activePluginIds(track: TrackModel): string[] {
+    const bypassed = new Set(track.bypassedPluginIds ?? []);
+    return (track.pluginIds ?? []).filter((id) => !bypassed.has(id));
   }
 
   canAddEffect(trackId: string, additional = 1): boolean {
@@ -852,9 +864,13 @@ export class MusicManagerService {
     if (!t) return;
     const prev = [...(t.pluginIds ?? [])];
     const next = [...pluginIds];
+    const prevBypassed = [...(t.bypassedPluginIds ?? [])];
+    const nextBypassed = prevBypassed.filter((id) => next.includes(id));
+    const prevActive = this.activePluginIds(t);
+    const nextActive = next.filter((id) => !nextBypassed.includes(id));
     if (
-      next.length > prev.length &&
-      !this.canAddEffect(trackId, next.length - prev.length)
+      nextActive.length > prevActive.length &&
+      !this.canAddEffect(trackId, nextActive.length - prevActive.length)
     ) {
       this.logger.warn(
         `Effect budget reached (${this.effectLimit()}); plugin insert was not added.`,
@@ -869,17 +885,100 @@ export class MusicManagerService {
       'Edit WASM Chain · ' + t.name,
       () => {
         this.tracks.update((ts) =>
-          ts.map((x) => (x.id === trackId ? { ...x, pluginIds: next } : x))
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  pluginIds: next,
+                  bypassedPluginIds: nextBypassed,
+                }
+              : x
+          )
         );
-        this.engine.installTrackPluginInsert(trackId, next, this.liveChainFor);
+        this.engine.installTrackPluginInsert(
+          trackId,
+          nextActive,
+          this.liveChainFor,
+        );
         this.pluginStore.preload(next);
       },
       () => {
         this.tracks.update((ts) =>
-          ts.map((x) => (x.id === trackId ? { ...x, pluginIds: prev } : x))
+          ts.map((x) =>
+            x.id === trackId
+              ? {
+                  ...x,
+                  pluginIds: prev,
+                  bypassedPluginIds: prevBypassed,
+                }
+              : x
+          )
         );
-        this.engine.installTrackPluginInsert(trackId, prev, this.liveChainFor);
+        this.engine.installTrackPluginInsert(
+          trackId,
+          prevActive,
+          this.liveChainFor,
+        );
       }
+    );
+  }
+
+  /**
+   * Bypass (or re-enable) one live WASM insert without removing it from the
+   * channel's chain. The bypass list is persisted with the track, and the
+   * engine receives only the active subset so a bypassed plugin stops
+   * processing immediately and frees effect budget.
+   */
+  toggleTrackPluginBypass(trackId: string, pluginId: string): void {
+    const t = this.tracks().find((x) => x.id === trackId);
+    if (!t || !(t.pluginIds ?? []).includes(pluginId)) return;
+    const prevBypassed = [...(t.bypassedPluginIds ?? [])];
+    const current = new Set(prevBypassed);
+    const wasBypassed = current.has(pluginId);
+    if (wasBypassed && !this.canAddEffect(trackId)) {
+      this.logger.warn(
+        `Effect budget reached (${this.effectLimit()}); enable failed.`,
+      );
+      this.notify?.show(
+        `Effect limit reached (${this.effectLimit()}). Bypass an insert first.`,
+        'warning',
+      );
+      return;
+    }
+    const nextBypassed = wasBypassed
+      ? prevBypassed.filter((id) => id !== pluginId)
+      : [...prevBypassed, pluginId];
+    const prevActive = this.activePluginIds(t);
+    const nextActive = (t.pluginIds ?? []).filter(
+      (id) => !nextBypassed.includes(id),
+    );
+    this.runCommand(
+      `Toggle WASM Bypass · ${t.name}`,
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, bypassedPluginIds: nextBypassed } : x,
+          ),
+        );
+        this.engine.installTrackPluginInsert(
+          trackId,
+          nextActive,
+          this.liveChainFor,
+        );
+        if (wasBypassed) void this.pluginStore.preload([pluginId]);
+      },
+      () => {
+        this.tracks.update((ts) =>
+          ts.map((x) =>
+            x.id === trackId ? { ...x, bypassedPluginIds: prevBypassed } : x,
+          ),
+        );
+        this.engine.installTrackPluginInsert(
+          trackId,
+          prevActive,
+          this.liveChainFor,
+        );
+      },
     );
   }
 
@@ -1104,7 +1203,7 @@ export class MusicManagerService {
     if (typeof getRack !== 'function') return;
     const rack = getRack.call(this.engine, trackId);
     const track = this.tracks().find((candidate) => candidate.id === trackId);
-    const pluginCount = track?.pluginIds?.length ?? 0;
+    const pluginCount = track ? this.activePluginIds(track).length : 0;
     const macroRoom = Math.max(0, this.effectLimit() - pluginCount);
     const pluginSlots = slots.filter(
       (slot) => !!FX_TYPE_TO_PLUGIN_ID[slot.type],
@@ -1234,6 +1333,7 @@ export class MusicManagerService {
       id: 'clip_' + Date.now() + '-' + Math.random(),
     }));
     delete copy.pluginIds;
+    delete copy.bypassedPluginIds;
 
     this.runCommand(
       'Duplicate Track · ' + source.name,
@@ -1287,10 +1387,11 @@ export class MusicManagerService {
           );
         });
         this.selectedTrackId.set(prevSelected);
-        if (snapshot.pluginIds?.length) {
+        const activePlugins = this.activePluginIds(snapshot);
+        if (activePlugins.length) {
           this.engine.installTrackPluginInsert(
             id,
-            snapshot.pluginIds,
+            activePlugins,
             this.liveChainFor
           );
         }

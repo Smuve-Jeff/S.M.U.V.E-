@@ -152,6 +152,31 @@ describe('MusicManagerService device budgets', () => {
     expect(service.tracks()[0].fxSlots).toHaveLength(3);
   });
 
+  it('does not count a bypassed live insert and refuses to re-enable it over budget', () => {
+    service.tracks.set([
+      makeTrack({
+        fxSlots: [
+          { id: 'fx-active', type: 'Reverb', params: {}, enabled: true },
+        ],
+        pluginIds: ['smuve.saturation.v2'],
+        bypassedPluginIds: ['smuve.saturation.v2'],
+      }),
+    ]);
+
+    expect(service.activeEffectCount('track-1')).toBe(1);
+    expect(service.canAddEffect('track-1')).toBe(false);
+
+    service.toggleTrackPluginBypass('track-1', 'smuve.saturation.v2');
+
+    expect(service.tracks()[0].bypassedPluginIds).toEqual([
+      'smuve.saturation.v2',
+    ]);
+    expect(notify.show).toHaveBeenCalledWith(
+      'Effect limit reached (1). Bypass an insert first.',
+      'warning',
+    );
+  });
+
   it('refuses an over-budget live plugin insert without changing the chain', () => {
     service.tracks.set([
       makeTrack({

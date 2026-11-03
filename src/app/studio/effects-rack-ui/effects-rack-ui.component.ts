@@ -102,8 +102,17 @@ export class EffectsRackUiComponent implements OnChanges, AfterViewInit {
     return track?.pluginIds ?? [];
   });
 
+  /** Live plugins that are installed but bypassed on the selected track. */
+  trackBypassedPluginIds = computed(
+    () => new Set(this.selectedTrack()?.bypassedPluginIds ?? []),
+  );
+
   hasPlugin(id: string): boolean {
     return this.trackPluginIds().includes(id);
+  }
+
+  isPluginBypassed(id: string): boolean {
+    return this.trackBypassedPluginIds().has(id);
   }
 
   togglePluginInsert(manifest: DspPluginManifest): void {
