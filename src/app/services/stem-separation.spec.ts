@@ -75,6 +75,33 @@ describe('StemSeparationService', () => {
       // Mock returns fixed 2-channel buffers regardless of input
       expect(stems.vocals.numberOfChannels).toBeGreaterThanOrEqual(1);
     });
+
+    it('returns stems that reconstruct the selected mix', async () => {
+      const ctx = new AudioContext();
+      const buffer = ctx.createBuffer(2, 4096, 44100);
+      for (let c = 0; c < 2; c++) {
+        const data = buffer.getChannelData(c);
+        for (let i = 0; i < data.length; i++) {
+          data[i] = 0.4 * Math.sin((2 * Math.PI * (c === 0 ? 220 : 660) * i) / 44100);
+        }
+      }
+
+      const stems = await service.separate(buffer);
+
+      for (let c = 0; c < 2; c++) {
+        const mix = buffer.getChannelData(c);
+        const sum = new Float32Array(mix.length);
+        for (const stem of [stems.vocals, stems.bass, stems.drums, stems.other]) {
+          const part = stem.getChannelData(c);
+          for (let i = 0; i < sum.length; i++) sum[i] += part[i];
+        }
+        let worst = 0;
+        for (let i = 0; i < sum.length; i++) {
+          worst = Math.max(worst, Math.abs(sum[i] - mix[i]));
+        }
+        expect(worst).toBeLessThan(1e-5);
+      }
+    });
   });
 
   describe('on-device separation', () => {

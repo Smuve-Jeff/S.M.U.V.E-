@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { NotificationService } from './notification.service';
 import { AuxAudioContextService } from './aux-audio-context.service';
+import { separateIntoStems } from './stem-separation.dsp';
 
 export interface Stems {
   vocals: AudioBuffer;
@@ -155,8 +156,12 @@ export class StemSeparationService {
   }
 
   /**
-   * Legacy offline separation using biquad filtering.
-   * Kept as fallback and for environments without AudioWorklet.
+   * On-device separation with a spectral mask.
+   *
+   * Vocals are the centre channel's 300–4000 Hz band, so side-only material
+   * cannot leak into them; bass and drums are spectral bands of the full mix.
+   * Instrumental is the mix minus vocals and other is the residual, which makes
+   * the stems add back up to the input instead of being unrelated renders.
    */
   async separate(buffer: AudioBuffer): Promise<Stems> {
     this.notificationService.show(
@@ -164,66 +169,36 @@ export class StemSeparationService {
       'info'
     );
 
-    const length = buffer.length;
-    const sampleRate = buffer.sampleRate;
-    const channels = buffer.numberOfChannels;
-
-    const offlineCtx = new OfflineAudioContext(channels, length, sampleRate);
-
-    const renderStem = async (
-      filterType: 'lowpass' | 'bandpass' | 'highpass' | 'allpass',
-      freq: number,
-      q = 1,
-      gain = 1
-    ): Promise<AudioBuffer> => {
-      const stemCtx = new OfflineAudioContext(channels, length, sampleRate);
-      const stemSource = stemCtx.createBufferSource();
-      stemSource.buffer = buffer;
-
-      if (filterType !== 'allpass') {
-        const filter = stemCtx.createBiquadFilter();
-        filter.type = filterType;
-        filter.frequency.value = freq;
-        filter.Q.value = q;
-        const g = stemCtx.createGain();
-        g.gain.value = gain;
-        stemSource.connect(filter).connect(g).connect(stemCtx.destination);
-      } else {
-        const g = stemCtx.createGain();
-        g.gain.value = gain;
-        stemSource.connect(g).connect(stemCtx.destination);
-      }
-
-      stemSource.start(0);
-      return await stemCtx.startRendering();
-    };
-
-    const [bass, vocals, drums, instrumental] = await Promise.all([
-      renderStem('lowpass', 200, 0.7, 1.2),
-      renderStem('bandpass', 1500, 0.5, 0.9),
-      renderStem('highpass', 2500, 0.7, 0.8),
-      renderStem('allpass', 0, 1, 0.7),
-    ]);
-
-    const other = new AudioBuffer({
-      length,
-      sampleRate,
-      numberOfChannels: channels,
-    });
-    for (let c = 0; c < channels; c++) {
-      const oData = other.getChannelData(c);
-      const iData = instrumental.getChannelData(c);
-      for (let i = 0; i < length; i++) {
-        oData[i] = iData[i] * 0.15;
-      }
+    const channels: Float32Array[] = [];
+    for (let c = 0; c < buffer.numberOfChannels; c++) {
+      channels.push(new Float32Array(buffer.getChannelData(c)));
     }
+
+    const parts = separateIntoStems(channels, buffer.sampleRate);
+    const toBuffer = (data: Float32Array[]): AudioBuffer => {
+      const stem = new AudioBuffer({
+        length: buffer.length,
+        sampleRate: buffer.sampleRate,
+        numberOfChannels: Math.max(1, channels.length),
+      });
+      for (let c = 0; c < stem.numberOfChannels; c++) {
+        stem.getChannelData(c).set(data[c] ?? data[0]);
+      }
+      return stem;
+    };
 
     this.notificationService.show(
       'Stem separation complete: spectral components decoupled (DSP).',
       'success'
     );
 
-    return { vocals, drums, bass, instrumental, other };
+    return {
+      vocals: toBuffer(parts.vocals),
+      drums: toBuffer(parts.drums),
+      bass: toBuffer(parts.bass),
+      instrumental: toBuffer(parts.instrumental),
+      other: toBuffer(parts.other),
+    };
   }
 
   /** Cancel an in-progress on-device separation */
