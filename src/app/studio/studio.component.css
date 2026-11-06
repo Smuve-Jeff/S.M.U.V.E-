@@ -5416,3 +5416,13 @@ button.comp-meta-state-pill:focus-visible {
     display: none;
   }
 }
+
+/* The desktop tool strip is one labelled row down to 1120px. At 1024 the
+   shortcut chips on SAVE and EXPORT were the last ~50px past the rail, so the
+   row had to be scrolled sideways to reach INSIGHTS. The chips are decoration;
+   hide them before the buttons. */
+@media (max-width: 1120px) {
+  .comp-tool-btn .comp-kbd {
+    display: none;
+  }
+}
