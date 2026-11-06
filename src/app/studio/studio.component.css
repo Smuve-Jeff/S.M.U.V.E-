@@ -259,6 +259,44 @@
   }
 }
 
+/* Narrow desktop / portrait tablet: the right utility cluster has more
+   content than the remaining row can hold. Give it its own row instead of
+   hiding Share, Collab and AI behind an invisible horizontal scroll.
+   `:host` is required to outrank the global `body .comp-shell .comp-topbar`
+   fixed-height tier. */
+@media (min-width: 769px) and (max-width: 1152px) and (min-height: 501px) {
+  :host .comp-shell .comp-topbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 64px;
+    padding-block: 6px;
+    row-gap: 6px;
+  }
+
+  :host .comp-shell .comp-topbar-left {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  :host .comp-shell .comp-topbar-center {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    max-width: none;
+    overflow-x: auto;
+  }
+
+  :host .comp-shell .comp-topbar-right {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    max-width: none;
+    justify-content: flex-end;
+    flex: initial;
+  }
+}
+
 .comp-brand {
   display: flex;
   align-items: center;
@@ -673,8 +711,10 @@
 }
 .comp-shell.comp-mobile-nav:not(.comp-compact) .comp-topbar,
 .comp-shell.comp-mobile-nav:not(.comp-compact) .comp-topbar-tools,
+.comp-shell.comp-mobile-nav:not(.comp-compact) app-ai-band,
 .comp-shell.comp-mobile-nav:not(.comp-compact) .comp-stage-marquee,
-.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-footer {
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-footer,
+.comp-shell.comp-mobile-nav:not(.comp-compact) .comp-bottombar {
   grid-column: 1 / -1;
 }
 .comp-shell.comp-mobile-nav:not(.comp-compact) .comp-main {
@@ -5092,12 +5132,19 @@ button.comp-meta-state-pill:focus-visible {
    is always one tap away. */
 .comp-view.comp-arrangement-stage.comp-gate-active {
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
+/* The return pill used to float over the timeline. It is part of the canvas
+   chrome, not an overlay: keeping it in flow means it can never cover track
+   headers, tempo automation or the transport. */
 .comp-gate-return {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
+  position: static;
+  order: 2;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin: 8px 12px 0;
   z-index: 12;
   display: flex;
   align-items: center;
@@ -5139,6 +5186,14 @@ button.comp-meta-state-pill:focus-visible {
   font-size: 11px;
   line-height: 1.3;
   color: color-mix(in srgb, #f7f3ea 72%, transparent);
+}
+
+/* Outrank the generic `.comp-view > * { flex: 1 1 auto }` rule, which
+   otherwise shrinks this in-flow pill to a sliver at the bottom of the
+   arrangement canvas. */
+.comp-view.comp-arrangement-stage .comp-gate-return {
+  flex: 0 0 auto;
+  min-height: 54px;
 }
 
 @media (max-width: 640px) {

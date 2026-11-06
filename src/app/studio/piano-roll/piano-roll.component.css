@@ -2642,3 +2642,17 @@ it. Desktop is untouched — `.pr-velocity-drawer` is `display: contents` there.
   outline-offset: -3px;
   background-color: rgba(43, 160, 156, 0.06);
 }
+
+/* Phone portrait: eight 44px tools plus the zoom group cannot fit one 390px
+   row. Let the toolbar wrap so Chord Stamp stays reachable instead of being
+   clipped by the shell's horizontal overflow guard. This lives at the end of
+   the sheet because several later mobile blocks set `flex-wrap: nowrap`. */
+@media (max-width: 480px) {
+  .pr-header-tools {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}

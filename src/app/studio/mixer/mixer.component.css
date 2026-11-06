@@ -919,6 +919,7 @@
     padding: 6px 4px;
     gap: 4px;
   }
+
 }
 
 /* ---------- Sprint 2: VCA bus rack (origin/main @ 28c08c2 had HTML but no styles) ---------- */
@@ -3151,4 +3152,40 @@ the workspace. */
   border-color: var(--teal-500);
   color: var(--teal-500);
   background: rgba(14, 124, 123, 0.1);
+}
+
+/* Phone portrait: the two AUX sends are wider than a strip at this width.
+   Put them on separate grid cells so the B send cannot bleed into the next
+   channel. Declared last because the base flex rule appears later than the
+   mobile block; same-specificity declarations earlier in the sheet lose. */
+@media (max-width: 480px) {
+  .mix-strip-sends {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 3px 4px;
+    padding-inline: 4px;
+  }
+
+  .mix-sends-label {
+    grid-column: 1 / -1;
+    width: auto;
+    font-size: 9px;
+  }
+
+  .mix-send-knob-wrap {
+    width: 100%;
+    min-width: 0;
+    gap: 1px;
+    font-size: 9px;
+  }
+
+  .mix-send-db {
+    font-size: 9px;
+  }
+
+  .mix-send-range {
+    flex: 1 1 18px;
+    width: auto;
+    min-width: 0;
+  }
 }
