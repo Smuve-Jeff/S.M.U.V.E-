@@ -2960,3 +2960,46 @@ input[type='range'] {
     display: none !important;
   }
 }
+
+/* Phone touch floor: standalone controls the curated floor missed. Sequencer
+   grid cells stay compact; these are independent taps that were still below
+   the 44px target. */
+@media (max-width: 768px), (max-width: 932px) and (orientation: landscape) {
+  app-studio .qs-tiny {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  app-studio .qs-tempo button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  app-studio .dm-bar-tab {
+    min-height: 44px !important;
+  }
+
+  app-studio .mix-send-range {
+    min-height: 44px !important;
+  }
+
+  /* Channel Rack quick actions were hover-only, so touch devices could not
+     expose them at all. Keep the row visible and give its standalone
+     buttons a real target. */
+  app-studio .channel-rack-actions {
+    opacity: 1 !important;
+  }
+
+  app-studio .channel-rack-actions > button,
+  app-studio .channel-name > button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  app-studio .channel-name > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1 !important;
+  }
+}
