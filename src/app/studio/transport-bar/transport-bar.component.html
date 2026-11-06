@@ -125,26 +125,25 @@
     </button>
     <button
       type="button"
-      class="ctb-toggle"
+      class="ctb-toggle ctb-click-toggle"
       [class.ctb-toggle-active]="metronomeEnabled()"
       (click)="toggleMetronome()"
       [attr.aria-pressed]="metronomeEnabled()"
       [attr.aria-label]="
-        (metronomeEnabled() ? 'Turn OFF metronome' : 'Turn ON metronome') +
-        ' — currently ' +
-        (metronomeEnabled() ? 'on' : 'off')
+        (metronomeEnabled() ? 'Turn OFF click track' : 'Turn ON click track') +
+        ' — ' +
+        metronomeSummary()
       "
       [attr.title]="
-        metronomeEnabled()
-          ? 'Metronome is ON · click to mute'
-          : 'Metronome is OFF · click to enable'
+        'Click track — ' + metronomeSummary() + '. Volume and count-in are in More.'
       "
     >
       <!-- `metronome` is not in the Material Symbols build Google serves, so it
            fell back to the letters "metronome" (and, clipped to 44px on a
            phone, to an empty circle). `timer` is the closest glyph that
            actually renders: a tick device, which is what a click track is. -->
-      <span class="material-symbols-outlined">timer</span>
+      <span class="material-symbols-outlined" aria-hidden="true">timer</span>
+      <span class="ctb-click-label" aria-hidden="true">Click</span>
     </button>
   </div>
 
@@ -385,7 +384,7 @@
   </section>
 
   <details class="ctb-secondary">
-    <summary class="ctb-secondary-trigger" aria-label="More studio controls" aria-controls="ctb-secondary-controls" title="More studio controls">
+    <summary class="ctb-secondary-trigger" aria-label="More studio controls — click volume, count-in, test sound and utilities" aria-controls="ctb-secondary-controls" title="More studio controls — click volume, count-in, test sound and utilities">
       <span class="material-symbols-outlined" aria-hidden="true">tune</span>
       <span>More</span>
     </summary>
@@ -511,39 +510,90 @@
     </span>
   </div>
 
-  <!-- Pro: Count-in picker -->
+  <!-- Pro: Click track — on/off, volume, test and count-in in one place. -->
   <div
-    class="ctb-group ctb-countin"
+    class="ctb-group ctb-click-settings"
     role="group"
-    aria-label="Count-in bars before play / record"
+    aria-label="Click track volume and count-in"
   >
-    <span
-      class="ctb-countin-label"
-      title="Count-in beats audibly before play &amp; record"
-      >CI</span
+    <div class="ctb-click-head">
+      <span class="material-symbols-outlined" aria-hidden="true">timer</span>
+      <div class="ctb-click-head-copy">
+        <strong>Click track</strong>
+        <small>{{ metronomeSummary() }}</small>
+      </div>
+      <button
+        type="button"
+        class="ctb-click-power"
+        [class.is-on]="metronomeEnabled()"
+        (click)="toggleMetronome()"
+        [attr.aria-pressed]="metronomeEnabled()"
+        [attr.aria-label]="
+          metronomeEnabled() ? 'Turn OFF click track' : 'Turn ON click track'
+        "
+      >
+        {{ metronomeEnabled() ? 'ON' : 'OFF' }}
+      </button>
+      <button
+        type="button"
+        class="ctb-click-test"
+        (click)="testMetronome()"
+        aria-label="Play a test metronome click"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">volume_up</span>
+        Test
+      </button>
+    </div>
+
+    <label class="ctb-click-volume">
+      <span>Volume</span>
+      <input
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        [ngModel]="metronomeVolumePercent()"
+        (input)="updateMetronomeVolume($event)"
+        class="ctb-volume-slider ctb-click-volume-slider"
+        aria-label="Click track volume"
+      />
+      <strong>{{ metronomeVolumePercent() }}%</strong>
+    </label>
+
+    <div
+      class="ctb-countin"
+      role="group"
+      aria-label="Count-in bars before play / record"
     >
-    <button
-      *ngFor="let n of [0, 1, 2]"
-      type="button"
-      class="ctb-countin-chip"
-      [class.ctb-countin-active]="countInBars() === n"
-      (click)="setCountIn(n)"
-      [attr.aria-label]="
-        n === 0
-          ? 'Turn OFF count-in (play &amp; record start immediately)'
-          : 'Set ' +
-            n +
-            '-bar count-in · click beat before play and record start'
-      "
-      [attr.aria-pressed]="countInBars() === n"
-      [attr.title]="
-        n === 0
-          ? 'No count-in · play &amp; record start on the next beat'
-          : 'Audible ' + n + '-bar count-in before play &amp; record'
-      "
-    >
-      {{ n === 0 ? 'OFF' : n + 'B' }}
-    </button>
+      <span
+        class="ctb-countin-label"
+        title="Count-in beats audibly before play &amp; record"
+        >Count-in</span
+      >
+      <button
+        *ngFor="let n of [0, 1, 2]"
+        type="button"
+        class="ctb-countin-chip"
+        [class.ctb-countin-active]="countInBars() === n"
+        (click)="setCountIn(n)"
+        [attr.aria-label]="
+          n === 0
+            ? 'Turn OFF count-in (play &amp; record start immediately)'
+            : 'Set ' +
+              n +
+              '-bar count-in · click beat before play and record start'
+        "
+        [attr.aria-pressed]="countInBars() === n"
+        [attr.title]="
+          n === 0
+            ? 'No count-in · play &amp; record start on the next beat'
+            : 'Audible ' + n + '-bar count-in before play &amp; record'
+        "
+      >
+        {{ n === 0 ? 'OFF' : n + 'B' }}
+      </button>
+    </div>
+    <p class="ctb-click-note">Count-in uses the same click volume.</p>
   </div>
 
   <!-- Pro: A/B Loop Region -->

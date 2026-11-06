@@ -5329,7 +5329,16 @@ export class AudioEngineService {
   toggleMetronome() {
     this.metronomeEnabled.update((v) => !v);
     this.persistTransportPrefs();
+    // Enabling while stopped otherwise makes no sound until Play, which reads
+    // as a broken toggle. During playback the next scheduled beat is feedback.
+    if (this.metronomeEnabled() && !this.isPlaying()) this.auditionMetronome();
     return this.metronomeEnabled();
+  }
+
+  /** One immediate click for the Click settings "Test" control. */
+  auditionMetronome(): void {
+    this.resume();
+    this.playMetronomeClick(this.ctx.currentTime + 0.01, true, true);
   }
 
   /**

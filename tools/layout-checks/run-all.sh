@@ -12,6 +12,7 @@ probes=(
   overhang-check
   beginner-strip-check
   arrangement-phone-check
+  transport-phone-check
 )
 
 failed=0

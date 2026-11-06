@@ -78,6 +78,10 @@ export class TransportBarComponent {
   isStopped = this.audioSession.isStopped;
   masterVolume = this.audioSession.masterVolume;
   metronomeEnabled = this.audioEngine.metronomeEnabled;
+  metronomeVolume = this.audioEngine.metronomeVolume;
+  metronomeVolumePercent = computed(() =>
+    Math.round(this.metronomeVolume() * 100),
+  );
   loopEnabled = this.audioEngine.playbackLoopEnabled;
   /** A/B loop region (steps 0..loopLength) */
   loopStartStep = this.audioEngine.playbackLoopStart;
@@ -337,6 +341,14 @@ export class TransportBarComponent {
 
   // ── Pro: Count-in picker ───────────────────────────────
   countInBars = signal<0 | 1 | 2>(0);
+
+  /** Shared wording for the click toggle and the Click settings panel. */
+  metronomeSummary = computed(() => {
+    const countIn = this.countInBars();
+    return `Click ${this.metronomeEnabled() ? 'on' : 'off'} · volume ${this.metronomeVolumePercent()}% · ${
+      countIn === 0 ? 'count-in off' : `${countIn}-bar count-in`
+    }`;
+  });
 
   // ── Pro: History — undo/redo (backed by HistoryService) ──
   /** Convenience flags so templates can wire disabled state */
@@ -1004,9 +1016,16 @@ export class TransportBarComponent {
   }
 
   toggleMetronome(): void {
-    // Always arm the AudioContext in user-gesture context
+    // Always arm the AudioContext in user-gesture context. The engine auditions
+    // one click when this turns the metronome on while the transport is stopped.
     this.audioEngine.resume();
     this.audioEngine.toggleMetronome();
+  }
+
+  testMetronome(): void {
+    this.audioEngine.resume();
+    this.audioEngine.auditionMetronome();
+    this.haptic.light();
   }
 
   updateMetronomeVolume(event: Event): void {

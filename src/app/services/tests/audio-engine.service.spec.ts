@@ -180,6 +180,12 @@ describe('AudioEngineService', () => {
     expect(service.metronomeEnabled()).toBe(false);
   });
 
+  it('auditions one click when enabled while stopped', () => {
+    mockAudioContext.createOscillator.mockClear();
+    expect(service.toggleMetronome()).toBe(true);
+    expect(mockAudioContext.createOscillator).toHaveBeenCalledTimes(1);
+  });
+
   it('routes the master through a mono sum and remembers the choice', () => {
     localStorage.clear();
     expect(service.setMonoMonitoring(true)).toBe(true);

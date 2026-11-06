@@ -363,11 +363,14 @@ body .comp-shell .comp-chrome-rail {
   body .comp-shell .ctb-primary-row .ctb-position {
     scroll-snap-align: end;
   }
-  /* Live controls first: playback → tempo → loop/metronome → position. */
-  body .comp-shell .ctb-primary-row .ctb-tempo {
+  /* The loop/Click pair and the BPM are the phone's most-used secondary
+     transport. Keep both inside the initial rail: playback → loop/Click →
+     tempo → position. Tempo used to come first, which pushed the 44px Click
+     target past the rail's right edge at 390px. */
+  body .comp-shell .ctb-primary-row .ctb-toggles {
     order: 1;
   }
-  body .comp-shell .ctb-primary-row .ctb-toggles {
+  body .comp-shell .ctb-primary-row .ctb-tempo {
     order: 2;
   }
   body .comp-shell .ctb-primary-row .ctb-position {
@@ -427,7 +430,7 @@ body .comp-shell .comp-chrome-rail {
       display: none;
     }
     body .comp-shell .ctb-primary-row {
-      gap: 3px;
+      gap: 1px;
     }
     body .comp-shell .ctb-bpm {
       min-width: 48px;

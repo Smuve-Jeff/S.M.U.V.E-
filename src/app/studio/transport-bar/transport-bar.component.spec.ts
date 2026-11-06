@@ -66,6 +66,7 @@ describe("TransportBarComponent", () => {
       return { beats, unit };
     }),
     metronomeEnabled: signal(false),
+    metronomeVolume: signal(0.5),
     isPlaying: jest.fn(() => true),
     isCountIn: jest.fn(() => false),
     // Mirrors the engine's clamp + tenth-of-a-BPM precision.
@@ -91,6 +92,7 @@ describe("TransportBarComponent", () => {
     resume: jest.fn(),
     startCountIn: jest.fn(),
     toggleMetronome: jest.fn(),
+    auditionMetronome: jest.fn(),
     setMetronomeVolume: jest.fn(),
     getContext: jest.fn(() => null),
     masterGain: {},
@@ -320,13 +322,38 @@ describe("TransportBarComponent", () => {
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       fixture.detectChanges();
       expect(details.open).toBe(true);
+      expect(details.querySelector(".ctb-click-settings")).toBeTruthy();
       expect(details.querySelector(".ctb-countin")).toBeTruthy();
+      expect(details.querySelector(".ctb-click-volume-slider")).toBeTruthy();
+      expect(details.querySelector(".ctb-click-test")).toBeTruthy();
       expect(details.querySelector(".ctb-loop-ab")).toBeTruthy();
       expect(details.querySelector(".ctb-undo")).toBeTruthy();
       expect(details.querySelector(".ctb-test-sound")).toBeTruthy();
       expect(details.querySelector(".ctb-volume-slider")).toBeTruthy();
       expect(details.querySelector(".ctb-output-group")).toBeTruthy();
       expect(details.querySelector(".ctb-ideas")).toBeTruthy();
+    });
+
+    it("labels the click toggle and exposes its level, test and count-in", () => {
+      const toggle = fixture.nativeElement.querySelector(
+        ".ctb-click-toggle",
+      ) as HTMLButtonElement;
+      expect(toggle.querySelector(".ctb-click-label")?.textContent?.trim()).toBe(
+        "Click",
+      );
+      expect(toggle.getAttribute("aria-label")).toContain("volume 50%");
+
+      const input = fixture.nativeElement.querySelector(
+        ".ctb-click-volume-slider",
+      ) as HTMLInputElement;
+      input.value = "75";
+      input.dispatchEvent(new Event("input"));
+      fixture.detectChanges();
+      expect(mockAudioEngine.setMetronomeVolume).toHaveBeenCalledWith(0.75);
+
+      component.testMetronome();
+      expect(mockAudioEngine.resume).toHaveBeenCalled();
+      expect(mockAudioEngine.auditionMetronome).toHaveBeenCalled();
     });
   });
 

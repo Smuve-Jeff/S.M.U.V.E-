@@ -37,6 +37,7 @@ master strip and inspector rather than on a populated console.
 | `overhang-check.cjs` | On a landscape and a portrait phone, no control inside the deck overhangs the deck by more than 4px. |
 | `beginner-strip-check.cjs` | Beginner Mode's step strip stays under 96px on a 360x640 portrait phone with its instruction visible, and collapses to a single row under 40px at 568x320, leaving the tool at least four times the strip's height. Measured in the Studio on 2026-11-02: 66.5px and 24.0px, with 139px of tool below the strip in landscape. |
 | `arrangement-phone-check.cjs` | On 844x390 and 390x844, the Arrangement header has a visible thin horizontal scrollbar and can reach its final control, all four track-header buttons are 32x44px and stay inside the column, and the Beginner gate is compact, hides its secondary copy, and does not intercept those controls. |
+| `transport-phone-check.cjs` | On 844x390, 390x844 and 360x800, the loop and Click toggles and the BPM are fully inside the primary strip; the toggles are 44x44 and hit-test to themselves; the Click toggle shows its label; More opens a Click panel with volume, OFF/1B/2B count-in and a test click; the Drum Machine click toggle is 44x44 and tappable when present. |
 
 ## Deliberate tolerances
 

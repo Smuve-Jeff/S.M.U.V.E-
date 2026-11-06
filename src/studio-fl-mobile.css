@@ -2075,6 +2075,14 @@ body .comp-shell .comp-tab-create-hero .comp-tab-label {
     min-height: 32px !important;
     flex: 0 0 auto;
   }
+  /* The loop + Click pair is the phone metronome; keep the 44px touch floor
+     even in this compact landscape tier. */
+  body .comp-shell .ctb-toggles .ctb-toggle {
+    width: 44px;
+    height: 44px;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
   body .comp-shell .ctb-tap,
   body .comp-shell .ctb-undo-btn,
   body .comp-shell .ctb-punch,

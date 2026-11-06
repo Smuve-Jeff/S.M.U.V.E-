@@ -292,6 +292,25 @@
   .ctb-primary-row::-webkit-scrollbar {
     display: none;
   }
+
+  /* The Click panel is now taller and wider than the rest of More. Keep the
+     landscape sheet inside the viewport and let its own rows wrap instead of
+     spilling under the right edge. */
+  .ctb-secondary-panel {
+    right: max(8px, env(safe-area-inset-right, 0px));
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    box-sizing: border-box;
+  }
+
+  .ctb-click-settings {
+    min-width: 0;
+    max-width: calc(100vw - 32px);
+  }
+
+  .ctb-click-head {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 480px) {
@@ -300,6 +319,13 @@
      The record button's own label/title still names the armed target, so drop
      the duplicate chip here and keep the primary toggles visible. */
   .ctb-primary-row .ctb-rec-target {
+    display: none;
+  }
+
+  /* The More label costs the primary strip its last ~30px at 390px. The
+     icon still names the action through its aria-label/title, and the row
+     now has enough room to show the whole CLICK toggle. */
+  .ctb-secondary-trigger span:last-child {
     display: none;
   }
 }
@@ -1937,4 +1963,194 @@ select.ctb-timesig:focus-visible {
 select.ctb-timesig option {
   background: var(--ivory-panel, #14192e);
   color: var(--espresso-text, #e2e8f0);
+}
+
+/* ── Click track ─────────────────────────────────────────────────────────
+   One place for the click on/off, its level, a test click and the count-in.
+   The primary toggle stays a single tap; More opens this panel. */
+.ctb-click-label {
+  display: none;
+}
+
+.ctb-click-settings {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  padding: 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 12px;
+  background: var(--ivory-panel);
+}
+
+.ctb-click-head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ctb-click-head > .material-symbols-outlined {
+  flex: 0 0 auto;
+  color: var(--teal-500);
+  font-size: 18px;
+}
+
+.ctb-click-head-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ctb-click-head-copy strong {
+  color: var(--espresso-text);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ctb-click-head-copy small {
+  overflow: hidden;
+  color: var(--espresso-muted);
+  font-size: 9px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ctb-click-power,
+.ctb-click-test {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 48px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--espresso-line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--espresso-text);
+  font: 800 10px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ctb-click-power.is-on {
+  border-color: var(--teal-500);
+  background: var(--teal-500);
+  color: #fff;
+}
+
+.ctb-click-test .material-symbols-outlined {
+  font-size: 15px;
+}
+
+.ctb-click-volume {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  color: var(--espresso-muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ctb-click-volume .ctb-click-volume-slider {
+  flex: 1 1 auto;
+  min-width: 56px;
+}
+
+.ctb-click-volume strong {
+  min-width: 38px;
+  color: var(--espresso-text);
+  font: 700 11px/1 var(--font-mono);
+  text-align: right;
+}
+
+.ctb-click-settings .ctb-countin {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  min-height: 40px;
+  padding: 0;
+}
+
+.ctb-click-settings .ctb-countin-label {
+  white-space: nowrap;
+}
+
+.ctb-click-settings .ctb-countin-chip {
+  min-width: 38px;
+  min-height: 34px;
+}
+
+.ctb-click-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--espresso-muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .ctb-click-settings {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .ctb-click-head {
+    flex-wrap: wrap;
+  }
+
+  .ctb-click-head-copy {
+    flex: 1 1 140px;
+  }
+
+  .ctb-click-power,
+  .ctb-click-test,
+  .ctb-click-volume,
+  .ctb-click-settings .ctb-countin {
+    min-height: 44px;
+  }
+
+  /* styles.css hides the legacy inline count-in on phones; inside the Click
+     settings panel it is the only count-in control and must stay visible. */
+  .ctb-click-settings .ctb-countin {
+    display: flex;
+  }
+}
+
+@media (max-width: 640px), (pointer: coarse) {
+  .ctb-toggles .ctb-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    min-width: 44px;
+    min-height: 44px;
+    line-height: 1;
+  }
+
+  .ctb-toggles .ctb-toggle .material-symbols-outlined {
+    font-size: 15px;
+  }
+
+  .ctb-click-label {
+    display: block;
+    margin-top: 1px;
+    font: 800 7px/1 var(--font-mono, monospace);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
 }
