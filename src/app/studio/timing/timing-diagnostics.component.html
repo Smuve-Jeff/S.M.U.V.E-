@@ -1,0 +1,104 @@
+<section
+  class="td-panel"
+  role="dialog"
+  aria-label="PPQ timing diagnostics"
+  data-testid="timing-diagnostics"
+>
+  <header class="td-head">
+    <div class="td-title">
+      <span
+        class="td-pulse"
+        [class.td-pulse-ramp]="isRamping()"
+        aria-hidden="true"
+      ></span>
+      <h3>PPQ Timing</h3>
+    </div>
+    <button
+      type="button"
+      class="td-close"
+      (click)="closed.emit()"
+      aria-label="Close timing diagnostics"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+  </header>
+
+  <div class="td-grid">
+    <div class="td-cell td-cell-wide">
+      <span class="td-label">Clock</span>
+      <span class="td-value">{{ ppq }} PPQ</span>
+      <span class="td-sub">{{ ticksPerStep }} ticks / 16th</span>
+    </div>
+    <div class="td-cell">
+      <span class="td-label">Step</span>
+      <span class="td-value" data-testid="td-step">#{{ transportStep() }}</span>
+      <span class="td-sub">bar tick {{ barTick() }}</span>
+    </div>
+    <div class="td-cell">
+      <span class="td-label">Abs. tick</span>
+      <span class="td-value" data-testid="td-tick">{{ absoluteTick() }}</span>
+      <span class="td-sub">960 per quarter</span>
+    </div>
+    <div class="td-cell td-cell-wide">
+      <span class="td-label">Tempo</span>
+      <span class="td-value" data-testid="td-bpm">{{ bpmLabel() }} BPM</span>
+      <span class="td-sub" [class.td-ramp-on]="isRamping()">{{
+        rampLabel()
+      }}</span>
+    </div>
+    <div class="td-cell">
+      <span class="td-label">Step time</span>
+      <span class="td-value">{{ stepSecondsMs() }} ms</span>
+      <span class="td-sub">integrated</span>
+    </div>
+    <div class="td-cell">
+      <span class="td-label">Map</span>
+      <span class="td-value">{{ markerCount() }}</span>
+      <span class="td-sub">tempo marker{{ markerCount() === 1 ? "" : "s" }}</span>
+    </div>
+  </div>
+
+  <div class="td-note" *ngIf="lastNote() as note; else noNote">
+    <div class="td-note-head">
+      <span class="td-note-track" [title]="note.trackId">{{
+        note.trackName
+      }}</span>
+      <span class="td-note-when"
+        >step {{ note.step }} · tick {{ note.absoluteTick }}</span
+      >
+    </div>
+    <div class="td-note-grid">
+      <div class="td-note-cell">
+        <span class="td-label">Offset</span>
+        <span class="td-value" data-testid="td-note-offset"
+          >+{{ note.offsetTicks }} t</span
+        >
+      </div>
+      <div class="td-note-cell">
+        <span class="td-label">Length</span>
+        <span class="td-value"
+          >{{ note.durationTicks }} t · {{ lastNoteDurationMs() }} ms</span
+        >
+      </div>
+      <div class="td-note-cell">
+        <span class="td-label">Note tempo</span>
+        <span class="td-value">{{ formatBpm(note.bpm) }} BPM</span>
+      </div>
+      <div class="td-note-cell">
+        <span class="td-label">Lead</span>
+        <span class="td-value">{{ lastNoteLeadLabel() }}</span>
+      </div>
+    </div>
+  </div>
+  <ng-template #noNote>
+    <p class="td-empty">
+      No note scheduled yet — press Play to watch the tick clock.
+    </p>
+  </ng-template>
+
+  <footer class="td-foot">
+    Edits are stored in 16th steps. Scheduling converts them to integer ticks at
+    {{ ppq }} PPQ, so triplets, swing, ratchets, micro-offsets and tempo ramps
+    never re-round themselves per tempo.
+  </footer>
+</section>

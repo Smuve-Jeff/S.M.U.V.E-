@@ -199,6 +199,18 @@
         tempoMap.markerCount()
       }}</span>
     </button>
+    <button
+      type="button"
+      class="ctb-btn ctb-timing-diag-btn"
+      [class.ctb-tempo-map-on]="timingDiagnosticsOpen()"
+      (click)="timingDiagnosticsOpen.set(!timingDiagnosticsOpen())"
+      [attr.aria-expanded]="timingDiagnosticsOpen()"
+      aria-controls="ctb-timing-diagnostics"
+      aria-label="PPQ timing diagnostics — tick clock, tempo ramp and last scheduled note"
+      title="PPQ timing diagnostics — tick clock, tempo ramp and last scheduled note"
+    >
+      <span class="material-symbols-outlined">speed</span>
+    </button>
   </div>
 
   <!-- Stage 2.0 — Live position readout (Bar : Beat : Sixteenth) + time signature -->
@@ -382,6 +394,13 @@
       </button>
     </footer>
   </section>
+
+  <!-- PPQ timing diagnostics: the tick clock the scheduler actually uses. -->
+  <app-timing-diagnostics
+    id="ctb-timing-diagnostics"
+    *ngIf="timingDiagnosticsOpen()"
+    (closed)="timingDiagnosticsOpen.set(false)"
+  ></app-timing-diagnostics>
 
   <details class="ctb-secondary">
     <summary class="ctb-secondary-trigger" aria-label="More studio controls — click volume, count-in, test sound and utilities" aria-controls="ctb-secondary-controls" title="More studio controls — click volume, count-in, test sound and utilities">

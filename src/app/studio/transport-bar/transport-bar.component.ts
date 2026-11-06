@@ -40,11 +40,17 @@ import { GamepadService } from "../../services/gamepad.service";
 import { HardwareConnectionsComponent } from "../hardware-connections/hardware-connections.component";
 import { StudioMidiLearnService } from "../studio-midi-learn.service";
 import { LiveEngineService } from "../../services/live-engine.service";
+import { TimingDiagnosticsComponent } from "../timing/timing-diagnostics.component";
 
 @Component({
   selector: "app-transport-bar",
   standalone: true,
-  imports: [CommonModule, FormsModule, HardwareConnectionsComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    HardwareConnectionsComponent,
+    TimingDiagnosticsComponent,
+  ],
   templateUrl: "./transport-bar.component.html",
   styleUrls: ["./transport-bar.component.css", "../shared/platform-ux.css"],
 })
@@ -207,6 +213,8 @@ export class TransportBarComponent {
   /** Song tempo map — multiple tempo changes instead of one global BPM. */
   readonly tempoMap = inject(TempoMapService);
   tempoMapOpen = signal(false);
+  /** Live PPQ timing diagnostics — tick clock, tempo ramp and last note. */
+  timingDiagnosticsOpen = signal(false);
   /** Undo history panel: the stack's last 40 steps, newest first. */
   historyOpen = signal(false);
   /** MIDI learn, audio inputs and gamepad status in one place. */

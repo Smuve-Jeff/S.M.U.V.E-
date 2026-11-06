@@ -58,6 +58,13 @@ describe("TransportBarComponent", () => {
       return next;
     }),
     tempo: signal(120),
+    tempoAtStep: jest.fn(() => 120),
+    secondsBetweenSteps: jest.fn(
+      (from: number, to: number) => (to - from) * 0.125,
+    ),
+    getTempoMap: jest.fn(
+      () => [] as { step: number; bpm: number; curve?: "step" | "ramp" }[],
+    ),
     timeSignature: meter,
     stepsPerBar: () => meter().beats * (16 / meter().unit),
     stepsPerNotatedBeat: () => 16 / meter().unit,
@@ -127,6 +134,7 @@ describe("TransportBarComponent", () => {
     selectedTrack: () => null,
     applyGeneratedRecipe: jest.fn(),
     projectName: "Test Project",
+    lastScheduledNote: signal(null),
     tracks: () => [] as unknown[],
     snapshotProject: jest.fn(() => ({})),
     stopScenePlayback: jest.fn(),
@@ -216,6 +224,32 @@ describe("TransportBarComponent", () => {
     fixture = TestBed.createComponent(TransportBarComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  it("opens the PPQ timing diagnostics and closes them from the panel", () => {
+    expect(
+      fixture.nativeElement.querySelector("app-timing-diagnostics"),
+    ).toBeNull();
+
+    const toggle = fixture.nativeElement.querySelector(
+      ".ctb-timing-diag-btn",
+    ) as HTMLButtonElement;
+    expect(toggle).toBeTruthy();
+    toggle.click();
+    fixture.detectChanges();
+
+    const panel = fixture.nativeElement.querySelector(
+      "app-timing-diagnostics",
+    );
+    expect(panel).toBeTruthy();
+    expect(panel.textContent).toContain("PPQ Timing");
+    expect(panel.textContent).toContain("960 PPQ");
+
+    (panel.querySelector(".td-close") as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(
+      fixture.nativeElement.querySelector("app-timing-diagnostics"),
+    ).toBeNull();
   });
 
   it("shows the exact target and input behind the REC chip", () => {

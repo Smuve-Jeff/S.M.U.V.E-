@@ -678,6 +678,24 @@ describe("PianoRollComponent", () => {
   });
 
 
+  it("shows and snaps micro-offset on the PPQ tick grid", () => {
+    mockTracks.update((list) =>
+      list.map((track) => ({
+        ...track,
+        notes: [
+          { id: "micro", midi: 60, step: 4, length: 1, velocity: 0.8 },
+        ],
+      })) as any,
+    );
+    component.selectedNoteIds.set(new Set(["micro"]));
+
+    component.setSelectedMicroOffset(1 / 3);
+
+    const saved = (mockTracks()[0].notes?.[0] as any)?.microOffset;
+    expect(saved).toBeCloseTo(80 / 240, 12);
+    expect(component.selectedNoteMicroOffsetTicks()).toBe(80);
+  });
+
   it("clips the selection to the current key and scale", () => {
     mockMusicManager.clipNotesToScale.mockClear();
     mockMusicManager.clipNotesToScale.mockReturnValue(true);

@@ -33,6 +33,14 @@ import { AudioImportService } from '../studio/audio-import.service';
 import { buildFrozenTrack, restoreFrozenTrack } from '../studio/track-freeze.util';
 import { takePlacementFor } from '../studio/recorded-take-placement.util';
 import { Project, StudioTrack, StudioClip, TrackType } from '../types/studio.types';
+import {
+  TICKS_PER_STEP,
+  ratchetOffsetTicks,
+  stepTiming,
+  stepsToTicks,
+  swingDelayTicks,
+  type StepTiming,
+} from '../studio/timing/ppq';
 
 export interface TrackNote {
   id: string;
@@ -65,6 +73,18 @@ export interface TrackNote {
     | 'accent';
   /** Pro Precision: note pan override (-1..1) */
   notePan?: number;
+}
+
+/** Last note handed to the scheduler, for the live PPQ diagnostics panel. */
+export interface ScheduledNoteTiming {
+  trackId: string;
+  trackName: string;
+  step: number;
+  offsetTicks: number;
+  absoluteTick: number;
+  durationTicks: number;
+  bpm: number;
+  scheduledTime: number;
 }
 
 /** Shape applied to a velocity ramp's first-to-last progression. */
@@ -530,6 +550,8 @@ export class MusicManagerService {
   /** Bars elapsed since the current scene was launched. */
   private sceneBarsElapsed = 0;
   projectLoaded = signal(true);
+  /** Latest scheduled note, read by the timing diagnostics overlay. */
+  readonly lastScheduledNote = signal<ScheduledNoteTiming | null>(null);
 
   selectedTrack = computed(
     () => this.tracks().find((t) => t.id === this.selectedTrackId()) || null
@@ -538,9 +560,16 @@ export class MusicManagerService {
   constructor() {
     this.setupProjectSync();
     this.engine.onPreparePlayback = () => this.preparePlaybackSamples();
-    this.engine.onScheduleStep = (step, time, duration, patternStep, resumeAudio) => {
+    this.engine.onScheduleStep = (
+      step,
+      time,
+      duration,
+      patternStep,
+      resumeAudio,
+      timing,
+    ) => {
       this.currentStep.set(step);
-      this.playStep(step, time, duration, patternStep, resumeAudio);
+      this.playStep(step, time, duration, patternStep, resumeAudio, timing);
     };
 
     // Song mode is the arrangement: entering it leaves the live scene behind so
@@ -4926,7 +4955,14 @@ export class MusicManagerService {
     return Promise.all(tracks.map((track) => this.prepareTrackSamples(track))).then(() => undefined);
   }
 
-  playStep(step: number, time: number, duration: number, patternStep = step, resumeAudio = false) {
+  playStep(
+    step: number,
+    time: number,
+    duration: number,
+    patternStep = step,
+    resumeAudio = false,
+    timing?: StepTiming,
+  ) {
     this.advanceSceneFollow(step);
     const STEPS_PER_BAR = 16;
     const stepInBar = step % STEPS_PER_BAR;
@@ -4935,7 +4971,12 @@ export class MusicManagerService {
       (t) => t.id === MusicManagerService.DRUM_TRACK_ID
     );
     const swingOffset = isOffbeat ? (drumTrack as any)?.swingAmount || 0 : 0;
-    const swungTime = time + swingOffset * duration * 0.5;
+    const timingContext = timing ?? stepTiming(step, duration);
+    const tickSeconds = (offsetTicks: number) =>
+      timingContext.secondsAtOffset(offsetTicks);
+    // Global swing is half a step at 100%; channel swing is applied per note.
+    const swungTicks = swingDelayTicks(swingOffset, 0.5);
+    const swungTime = time + tickSeconds(swungTicks);
 
     const allTracks = this.tracks();
     const hasSolo = allTracks.some((t) => t.soloed);
@@ -5011,10 +5052,14 @@ export class MusicManagerService {
               // half/third of a step early — the on-screen grid and what you
               // heard disagreed. microOffset stays additive on top.
               const stepFraction = n.step - Math.floor(n.step);
-              const microTime =
-                swungTime +
-                (this.noteWithDrumSwing(t, n).microOffset ?? 0) * duration +
-                stepFraction * duration;
+              const swungNote = this.noteWithDrumSwing(t, n);
+              // Both the sub-step position and the artist's micro-offset are
+              // quantized onto the PPQ grid once, then converted with the
+              // step's exact seconds-per-tick. No per-tempo re-rounding.
+              const startOffsetTicks =
+                stepsToTicks(stepFraction) +
+                stepsToTicks(swungNote.microOffset ?? 0);
+              const microTime = time + tickSeconds(swungTicks + startOffsetTicks);
               const baseFreq = 440 * Math.pow(2, (n.midi - 69) / 12);
               const freq = baseFreq * Math.pow(2, (n.pitchBend ?? 0) / 12);
               // Slide notes: glide from the base pitch to the pitch-bend target
@@ -5048,9 +5093,24 @@ export class MusicManagerService {
 
               const notePan = n.notePan ?? t.pan;
               const ratchet = t.type === 'drum' ? drumRatchetCount(n.params) : 1;
-              const ratchetDuration = ratchet > 1
-                ? Math.min(n.length * duration * lengthMul, duration / ratchet)
-                : n.length * duration * lengthMul;
+              const noteTicks = Math.max(1, stepsToTicks(n.length * lengthMul));
+              const ratchetTicks = ratchet > 1
+                ? Math.max(1, Math.min(noteTicks, Math.round(TICKS_PER_STEP / ratchet)))
+                : noteTicks;
+              const ratchetDuration =
+                time + tickSeconds(swungTicks + startOffsetTicks + ratchetTicks) -
+                microTime;
+              this.lastScheduledNote.set({
+                trackId: t.id,
+                trackName: t.name,
+                step,
+                offsetTicks: swungTicks + startOffsetTicks,
+                absoluteTick:
+                  stepsToTicks(step) + swungTicks + startOffsetTicks,
+                durationTicks: noteTicks,
+                bpm: timingContext.bpmStart,
+                scheduledTime: microTime,
+              });
               // CC1/10/11/74 and pitch bend are automation lanes in the piano
               // roll. Sample them across this note so the shared voice builder
               // can schedule the curve; before this, the lanes were silent.
@@ -5121,7 +5181,7 @@ export class MusicManagerService {
                   this.engine.triggerSampler(
                     t.id,
                     oneShot,
-                    microTime + hit * duration / ratchet,
+                    time + tickSeconds(swungTicks + startOffsetTicks + ratchetOffsetTicks(hit, ratchet)),
                     n.velocity ?? 0.8,
                     ccPan,
                     Math.max(0.01, oneShot.duration),
@@ -5143,7 +5203,7 @@ export class MusicManagerService {
                   );
                   for (let hit = 0; hit < ratchet; hit++) {
                     this.engine.triggerSampler(
-                      t.id, sample.buffer, microTime + hit * duration / ratchet, n.velocity ?? 0.8, ccPan,
+                      t.id, sample.buffer, time + tickSeconds(swungTicks + startOffsetTicks + ratchetOffsetTicks(hit, ratchet)), n.velocity ?? 0.8, ccPan,
                       sampleDuration, sample.rate, 0,
                       sample.oneShot ? 0 : Math.min(sample.release, sampleDuration),
                       0, 0, 48000, 2, true, 0, ccCurve,
@@ -5160,7 +5220,7 @@ export class MusicManagerService {
                 this.engine.triggerAttack(
                   t.id,
                   freq,
-                  microTime + hit * duration / ratchet,
+                  time + tickSeconds(swungTicks + startOffsetTicks + ratchetOffsetTicks(hit, ratchet)),
                   n.velocity,
                   ratchetDuration,
                   // Track gain lives on the fader, not in the voice peak.

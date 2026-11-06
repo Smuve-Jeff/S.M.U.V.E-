@@ -20,6 +20,7 @@ import {
   TrackNote,
   VelocityCurve,
 } from "../../services/music-manager.service";
+import { TICKS_PER_STEP, quantizeMicroOffset, stepsToTicks } from "../timing/ppq";
 import { AudioSessionService } from "../audio-session.service";
 import { AudioEngineService } from "../../services/audio-engine.service";
 import { EnhancedTouchGestureService } from "../../services/enhanced-touch-gesture.service";
@@ -417,6 +418,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
     const first = track.notes.find((n) => ids.has(n.id));
     return Number((first?.microOffset ?? 0).toFixed(3));
   });
+  /** Exact PPQ ticks represented by the selected note's micro-offset. */
+  readonly selectedNoteMicroOffsetTicks = computed(() =>
+    stepsToTicks(this.selectedNoteMicroOffset()),
+  );
+  readonly ticksPerStep = TICKS_PER_STEP;
   selectedNotePitchBend = computed(() => {
     const track = this.selectedTrack();
     const ids = this.selectedNoteIds();
@@ -2446,10 +2452,11 @@ export class PianoRollComponent implements OnInit, AfterViewInit, OnDestroy {
   setSelectedMicroOffset(value: number) {
     const track = this.selectedTrack();
     if (!track) return;
+    // One tick at 960 PPQ = 1/240 of a 16th step. Snapping here means the
+    // value the inspector shows is exactly what the scheduler plays.
+    const microOffset = quantizeMicroOffset(value);
     Array.from(this.selectedNoteIds()).forEach((id) =>
-      this.musicManager.updateNote(track.id, id, {
-        microOffset: Number(value.toFixed(3)),
-      }),
+      this.musicManager.updateNote(track.id, id, { microOffset }),
     );
   }
   setSelectedAftertouch(value: number) {

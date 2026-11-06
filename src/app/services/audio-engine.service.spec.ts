@@ -334,6 +334,23 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       expect(svc.songEnded()).toBe(false);
     });
 
+    it('hands the sequencer a PPQ timing context with every step', () => {
+      svc.isPlaying.set(true);
+      const contexts: any[] = [];
+      svc.onScheduleStep = (_step, _time, _duration, _pattern, _resume, timing) =>
+        contexts.push(timing);
+
+      (svc as any).handleTick(3, 10, 0.125);
+
+      expect(contexts).toHaveLength(1);
+      expect(contexts[0]).toMatchObject({
+        step: 3,
+        stepStartTick: 720,
+        ticksPerStep: 240,
+      });
+      expect(contexts[0].secondsPerTick * 240).toBeCloseTo(0.125, 12);
+    });
+
     it('keeps an unwrapped pattern phase while display steps wrap, and resets at an explicit loop', () => {
       svc.playMode.set('pattern');
       svc.isPlaying.set(true);
@@ -367,7 +384,7 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       const scheduled = jest.fn();
       svc.onScheduleStep = scheduled;
       (svc as any).scheduler();
-      expect(scheduled).toHaveBeenCalledWith(24, 0.05, expect.any(Number), 24, true);
+      expect(scheduled).toHaveBeenCalledWith(24, 0.05, expect.any(Number), 24, true, expect.objectContaining({ ticksPerStep: 240 }));
       expect(svc.seekToStep(999)).toBe(63);
       expect(svc.seekToStep(-10)).toBe(0);
       expect(svc.seekToStep(NaN)).toBeNull();
@@ -382,7 +399,7 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       const scheduled = jest.fn();
       svc.onScheduleStep = scheduled;
       (svc as any).scheduler();
-      expect(scheduled).toHaveBeenCalledWith(18, 0.05, expect.any(Number), 18, true);
+      expect(scheduled).toHaveBeenCalledWith(18, 0.05, expect.any(Number), 18, true, expect.objectContaining({ ticksPerStep: 240 }));
       expect(svc.seekToStep(100)).toBe(19);
       svc.isRecording.set(true);
       expect(svc.seekToStep(16)).toBeNull();
@@ -419,7 +436,7 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
         port.onmessage({ data: { type: 'TICK', payload: { step: 0, generation: 0, time: 0, duration: 0.1 } } });
         expect(scheduled).not.toHaveBeenCalled();
         port.onmessage({ data: { type: 'TICK', payload: { step: 24, generation: 1, time: 0.05, duration: 0.1 } } });
-        expect(scheduled).toHaveBeenCalledWith(24, 0.05, 0.1, 24, true);
+        expect(scheduled).toHaveBeenCalledWith(24, 0.05, 0.1, 24, true, expect.objectContaining({ ticksPerStep: 240 }));
       } finally { restoreAudioWorkletNode(); }
     });
 
@@ -450,7 +467,7 @@ describe('AudioEngineService · Sprint A4 (Song Mode)', () => {
       (svc as any).scheduler();
       (svc as any).nextNoteTime = 0;
       (svc as any).scheduler();
-      expect(scheduled).toHaveBeenCalledWith(24, 0, expect.any(Number), 24, true);
+      expect(scheduled).toHaveBeenCalledWith(24, 0, expect.any(Number), 24, true, expect.objectContaining({ ticksPerStep: 240 }));
     });
 
     it('integrates tempo changes when finding audio clip positions', () => {
@@ -1977,6 +1994,36 @@ describe('AudioEngineService tempo map', () => {
     (svc as any).tempoMap = [];
     svc.setTempoMap([]);
     expect(svc.tempoAtStep(64)).toBe(128);
+  });
+
+  it('integrates sub-step offsets through a tempo ramp', () => {
+    const svc = makeBareEngine();
+    (svc as any).tempo = signal(120);
+    (svc as any).tempoMap = [];
+    (svc as any).stepsPerBeat = () => 4;
+    svc.setTempoMap([
+      { step: 0, bpm: 120, curve: 'ramp' },
+      { step: 16, bpm: 60 },
+    ]);
+
+    const stepDuration = svc.secondsBetweenSteps(8, 9);
+    const timing = (svc as any).scheduleTiming(8, stepDuration);
+
+    expect(timing.bpmStart).toBeCloseTo(90, 9);
+    expect(timing.bpmEnd).toBeCloseTo(86.25, 9);
+    // Half a step into a linear BPM ramp is not half of the step's log-mean
+    // duration; the offset must integrate the same curve, not scale it.
+    expect(timing.secondsAtOffset(120)).toBeCloseTo(
+      svc.secondsBetweenSteps(8, 8.5),
+      9,
+    );
+    expect(timing.secondsBetweenOffsets(0, 240)).toBeCloseTo(
+      stepDuration,
+      9,
+    );
+    expect(
+      Math.abs(timing.secondsAtOffset(120) - stepDuration / 2),
+    ).toBeGreaterThan(1e-4);
   });
 });
 

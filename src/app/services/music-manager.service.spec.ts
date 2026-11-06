@@ -13,6 +13,7 @@ import { TakeManagerService } from './take-manager.service';
 import { AutomationService } from '../studio/automation.service';
 import { IdeasGeneratorService } from './ideas-generator.service';
 import { StudioDeviceProfileService } from './studio-device-profile.service';
+import { stepTiming } from '../studio/timing/ppq';
 
 describe('MusicManagerService clip glue workflows', () => {
   let service: MusicManagerService;
@@ -1040,6 +1041,96 @@ describe('MusicManagerService pattern slots (channel rack / performance grid)', 
         6,
       );
     });
+
+    it.each([90, 120, 174])(
+      'keeps a triplet exactly a third late and 4/3 long at %i BPM',
+      (bpm) => {
+        const duration = 60 / bpm / 4;
+        service.tracks.set([
+          makeTrack({
+            notes: [{ id: 'trip', midi: 62, step: 4 + 4 / 3, length: 4 / 3, velocity: 0.8 }],
+          }),
+        ]);
+        engineMock.triggerAttack.mockClear();
+
+        service.playStep(5, 10, duration);
+
+        const call = engineMock.triggerAttack.mock.calls[0];
+        expect(call[2]).toBeCloseTo(10 + duration / 3, 10);
+        expect(call[4]).toBeCloseTo(duration * 4 / 3, 10);
+      },
+    );
+
+    it('quantizes a per-step micro-offset onto whole PPQ ticks', () => {
+      service.tracks.set([
+        makeTrack({
+          notes: [{ id: 'nudged', midi: 60, step: 4, length: 1, velocity: 0.8, microOffset: 1 / 3 }],
+        }),
+      ]);
+      engineMock.triggerAttack.mockClear();
+
+      service.playStep(4, 10, 0.25);
+
+      // 1/3 step = 80 ticks at 960 PPQ; no decimal drift.
+      expect(engineMock.triggerAttack.mock.calls[0][2]).toBeCloseTo(
+        10 + (80 / 240) * 0.25,
+        12,
+      );
+    });
+
+    it('uses the engine ramp timing for offsets, lengths and diagnostics', () => {
+      service.tracks.set([
+        makeTrack({
+          notes: [{ id: 'trip', midi: 62, step: 4 + 4 / 3, length: 1, velocity: 0.8 }],
+        }),
+      ]);
+      engineMock.triggerAttack.mockClear();
+
+      // A ramp makes a tick's duration position-dependent, so the sequencer
+      // must ask the engine for the offset instead of scaling one step.
+      const timing = {
+        ...stepTiming(5, 0.3, 75, 90),
+        secondsAtOffset: (ticks: number) => ticks * 0.001,
+        secondsBetweenOffsets: (from: number, to: number) => (to - from) * 0.001,
+      };
+      service.playStep(5, 20, 0.3, 5, false, timing);
+
+      expect(engineMock.triggerAttack.mock.calls[0][2]).toBeCloseTo(
+        20 + 80 * 0.001,
+        12,
+      );
+      expect(service.lastScheduledNote()).toMatchObject({
+        trackName: 'Lead',
+        step: 5,
+        offsetTicks: 80,
+        absoluteTick: 5 * 240 + 80,
+        durationTicks: 240,
+        bpm: 75,
+      });
+    });
+
+    it.each([90, 120, 174])(
+      'keeps global swing a half-step fraction at %i BPM',
+      (bpm) => {
+        const duration = 60 / bpm / 4;
+        service.tracks.set([
+          makeTrack({
+            id: MusicManagerService.DRUM_TRACK_ID,
+            type: 'drum',
+            swingAmount: 0.4,
+            notes: [{ id: 'hit', midi: 36, step: 1, length: 1, velocity: 0.8 }],
+          }),
+        ]);
+        engineMock.triggerAttack.mockClear();
+
+        service.playStep(1, 10, duration);
+
+        expect(engineMock.triggerAttack.mock.calls[0][2]).toBeCloseTo(
+          10 + duration * 0.2,
+          10,
+        );
+      },
+    );
 
     it('still schedules an on-grid note exactly on its step', () => {
       service.tracks.set([

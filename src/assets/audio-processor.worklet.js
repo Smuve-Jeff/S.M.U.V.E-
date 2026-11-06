@@ -381,6 +381,23 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
     return bpm > 0 ? bpm : this.tempo;
   }
 
+  /**
+   * Exact seconds for a musical span under a linear BPM ramp. For a hold the
+   * result is simply span / BPM; for a ramp it is the integral of 1/BPM.
+   */
+  secondsForTempoSpan(span, fromBpm, toBpm) {
+    const steps = Math.max(0, span);
+    const from = Math.max(1, fromBpm);
+    const to = Math.max(1, toBpm);
+    if (Math.abs(to - from) < 1e-9) {
+      return (steps * 60) / from / this.stepsPerBeat;
+    }
+    return (
+      ((steps * 60) / this.stepsPerBeat) *
+      (Math.log(to / from) / (to - from))
+    );
+  }
+
   process(inputs, outputs, _parameters) {
     const output = outputs[0];
     const outL = output[0];
@@ -391,7 +408,11 @@ class SmuveAudioProcessor extends AudioWorkletProcessor {
         // Tempo is resolved per step: a tempo map must bend the timeline at
         // the marker, not just at the start of playback.
         const bpm = this.tempoForStep(this.currentStep);
-        const stepDuration = 60 / bpm / this.stepsPerBeat;
+        const nextBpm = this.tempoForStep(this.currentStep + 1);
+        // Integrate 1/BPM across the step. A ramp marker interpolates BPM
+        // linearly in musical position, so the log-mean gives the exact
+        // boundary time instead of using only the step's starting tempo.
+        const stepDuration = this.secondsForTempoSpan(1, bpm, nextBpm);
         this.port.postMessage({
           type: 'TICK',
           payload: {

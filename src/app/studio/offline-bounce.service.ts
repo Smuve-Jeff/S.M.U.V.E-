@@ -7,6 +7,7 @@ import { LoggingService } from "../services/logging.service";
 import type { ClipFadeCurve } from "../types/studio.types";
 import { normalizeFadeCurve, scheduleFadeSegment } from "./clip-fade.util";
 import { connectOfflineMasterChain } from "../services/offline-master-chain";
+import { TICKS_PER_STEP } from "./timing/ppq";
 
 export type BounceFormat = "wav-16" | "wav-32" | "wav-32-float";
 export type BounceState =
@@ -388,6 +389,11 @@ export class OfflineBounceService {
         ? pool.filter((t: any) => t.soloed === true || t.soloSafe === true)
         : pool.filter((t: any) => !t.muted);
 
+    const secondsAtStep = (step: number) =>
+      typeof (this.engine as any).secondsBetweenSteps === "function"
+        ? (this.engine as any).secondsBetweenSteps(0, step)
+        : step * stepDuration;
+
     let trackCount = 0;
 
     for (const track of activeTracks) {
@@ -423,6 +429,7 @@ export class OfflineBounceService {
           track.instrumentId,
           track.pan ?? 0,
           track.type === "drum",
+          secondsAtStep,
         );
       }
 
@@ -506,13 +513,19 @@ export class OfflineBounceService {
     instrumentId: string,
     trackPan: number,
     isDrum = false,
+    secondsAtStep?: (step: number) => number,
   ): void {
     if (isDrum && note.probability !== undefined && Math.random() >= note.probability) return;
-    const startTime = Math.max(0, (note.step + (note.microOffset ?? 0)) * stepDuration);
+    const secondsAt = secondsAtStep ?? ((step: number) => step * stepDuration);
+    const startStep = note.step + (note.microOffset ?? 0);
+    const startTime = Math.max(0, secondsAt(startStep));
     const ratchet = isDrum ? drumRatchetCount(note.params) : 1;
-    const duration = ratchet > 1
-      ? Math.min(note.length * stepDuration, stepDuration / ratchet)
-      : note.length * stepDuration;
+    const noteSteps = Math.max(1 / TICKS_PER_STEP, note.length);
+    const ratchetSteps = ratchet > 1
+      ? Math.max(1 / TICKS_PER_STEP, Math.min(noteSteps, 1 / ratchet))
+      : noteSteps;
+    const duration = secondsAt(startStep + ratchetSteps) - startTime;
+    const hitTime = (hit: number) => secondsAt(startStep + hit / ratchet);
     const freq = 440 * Math.pow(2, (note.midi - 69) / 12);
     const velocity = note.velocity ?? 0.8;
 
@@ -536,7 +549,7 @@ export class OfflineBounceService {
         gain.gain.value = Math.max(0, Math.min(1, velocity * trackGain));
         source.connect(gain);
         gain.connect(destination);
-        source.start(startTime + hit * stepDuration / ratchet);
+        source.start(hitTime(hit));
       }
       return;
     }
@@ -550,9 +563,14 @@ export class OfflineBounceService {
         : note.articulation === 'legato' ? 1.1
         : note.articulation === 'pizzicato' ? 0.15
         : note.articulation === 'accent' ? 0.5 : 1;
+      const sampleSteps = Math.max(1 / TICKS_PER_STEP, note.length * lengthMul);
+      const sampleRatchetSteps = ratchet > 1
+        ? Math.max(1 / TICKS_PER_STEP, Math.min(sampleSteps, 1 / ratchet))
+        : sampleSteps;
+      const sampleDuration = secondsAt(startStep + sampleRatchetSteps) - startTime;
       for (let hit = 0; hit < ratchet; hit++) {
-        scheduleOfflinePresetSample(ctx, destination, sample, startTime + hit * stepDuration / ratchet,
-          ratchet > 1 ? Math.min(note.length * stepDuration * lengthMul, stepDuration / ratchet) : duration * lengthMul,
+        scheduleOfflinePresetSample(ctx, destination, sample,
+          hitTime(hit), sampleDuration,
           velocity * trackGain, note.notePan ?? trackPan);
       }
       return;
@@ -566,7 +584,7 @@ export class OfflineBounceService {
         ctx,
         destination,
         freq,
-        startTime + hit * stepDuration / ratchet,
+        hitTime(hit),
         velocity * Math.max(0, trackGain),
         duration,
         { ...synthParams, ...(note.params ?? {}) },

@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from "@angular/core";
 import { MusicManagerService } from "../services/music-manager.service";
 import { AudioEngineService } from "../services/audio-engine.service";
+import { TICKS_PER_STEP, swingDelayTicks } from "./timing/ppq";
 
 @Injectable({
   providedIn: "root",
@@ -65,8 +66,8 @@ export class SequencerService {
 
     // Apply Swing
     if (stepIndex % 2 === 1) {
-      const swingOffset = (this.swingAmount() / 100) * (duration / 2);
-      playTime += swingOffset;
+      const secondsPerTick = duration / TICKS_PER_STEP;
+      playTime += swingDelayTicks(this.swingAmount() / 100, 0.5) * secondsPerTick;
     }
 
     this.musicManager.playStep(stepIndex, playTime, duration);

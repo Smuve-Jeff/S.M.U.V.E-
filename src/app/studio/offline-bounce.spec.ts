@@ -150,6 +150,39 @@ describe("OfflineBounceService", () => {
     } finally { random.mockRestore(); }
   });
 
+  it("takes note starts and lengths from the integrated tempo ramp", () => {
+    const param = () => ({
+      value: 0,
+      setValueAtTime: jest.fn(),
+      setTargetAtTime: jest.fn(),
+      linearRampToValueAtTime: jest.fn(),
+    });
+    const ctx: any = {
+      createGain: jest.fn(() => ({ gain: param(), connect: jest.fn() })),
+    };
+    const note = { step: 2, midi: 60, length: 1, velocity: 0.8 };
+    const secondsAt = (step: number) => step * 0.25 + 0.5;
+    mockAudioEngine.scheduleOfflineNote.mockClear();
+
+    (service as any).renderNote(
+      ctx,
+      note,
+      1,
+      { type: "sine" },
+      {},
+      0.125,
+      "synth-lead",
+      0,
+      false,
+      secondsAt,
+    );
+
+    const call = mockAudioEngine.scheduleOfflineNote.mock.calls[0];
+    expect(call[3]).toBeCloseTo(secondsAt(2), 9);
+    expect(call[5]).toBeCloseTo(secondsAt(3) - secondsAt(2), 9);
+    expect(call[3]).not.toBeCloseTo(2 * 0.125, 9);
+  });
+
   it("retriggers preset and imported samples during a track bounce", () => {
     const starts: number[] = [];
     const param = () => ({ value: 0, setValueAtTime: jest.fn(), setTargetAtTime: jest.fn(), linearRampToValueAtTime: jest.fn() });

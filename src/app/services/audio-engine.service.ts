@@ -24,6 +24,11 @@ import {
   normalizeFadeCurve,
   scheduleFadeSegment,
 } from '../studio/clip-fade.util';
+import {
+  TICKS_PER_STEP,
+  stepTiming,
+  type StepTiming,
+} from '../studio/timing/ppq';
 
 export type DeckId = 'A' | 'B';
 
@@ -868,7 +873,8 @@ export class AudioEngineService {
     time: number,
     duration: number,
     patternStep?: number,
-    resumeAudio?: boolean
+    resumeAudio?: boolean,
+    timing?: StepTiming
   ) => void;
   public onCountInComplete?: () => void;
   /** Sprint A4 — fire-once callback when song-mode playback reaches the end. */
@@ -1571,8 +1577,10 @@ export class AudioEngineService {
     this.nextNoteTime = this.ctx.currentTime + 0.05;
     // Anchor the fractional transport clock to the first scheduled step. A
     // capture that starts before it reads as negative pre-roll.
-    this.visualStepDuration =
-      60 / this.tempoAtStep(this.currentStep) / this.stepsPerBeat();
+    this.visualStepDuration = this.secondsBetweenSteps(
+      this.currentStep,
+      this.currentStep + 1,
+    );
     this.visualStepTime = this.nextNoteTime;
 
     if (this.workletNode) {
@@ -1677,6 +1685,41 @@ export class AudioEngineService {
     this.sendMidiToAll([0xfc]);
   }
 
+  /**
+   * Timing context for one step. The absolute step boundaries come from the
+   * worklet (or the fallback scheduler), which already integrates a tempo
+   * ramp. Within a ramp, `secondsAtOffset()` integrates the same curve for
+   * every tick, so a triplet or swung note never uses a rounded step duration.
+   */
+  private scheduleTiming(step: number, stepDuration: number): StepTiming {
+    const bpmStart = this.tempoAtStep(step);
+    const bpmEnd = this.tempoAtStep(step + 1);
+    const timing = stepTiming(step, stepDuration, bpmStart, bpmEnd);
+    const rampCoveringStep = this.tempoMap.some((marker, index) => {
+      const next = this.tempoMap[index + 1];
+      return (
+        marker.curve === 'ramp' &&
+        !!next &&
+        marker.step <= step &&
+        step < next.step
+      );
+    });
+    if (!rampCoveringStep) return timing;
+    return {
+      ...timing,
+      secondsAtOffset: (offsetTicks: number) =>
+        this.secondsBetweenSteps(
+          step,
+          step + offsetTicks / TICKS_PER_STEP,
+        ),
+      secondsBetweenOffsets: (fromTicks: number, toTicks: number) =>
+        this.secondsBetweenSteps(
+          step + fromTicks / TICKS_PER_STEP,
+          step + toTicks / TICKS_PER_STEP,
+        ),
+    };
+  }
+
   private handleTick(step: number, time: number, stepDuration: number) {
     // Sprint A4 — guard against re-entrant ticks after the song has ended.
     // The worklet may emit one or two trailing TICKs after STOP is queued;
@@ -1761,7 +1804,14 @@ export class AudioEngineService {
       ? step : loopedStep;
     const resumeAudio = this.resumeAudioAtNextStep;
     this.resumeAudioAtNextStep = false;
-    this.onScheduleStep?.(loopedStep, time, stepDuration, patternStep, resumeAudio);
+    this.onScheduleStep?.(
+      loopedStep,
+      time,
+      stepDuration,
+      patternStep,
+      resumeAudio,
+      this.scheduleTiming(step, stepDuration),
+    );
 
     this.applyMeterAtStep(loopedStep);
     if (this.metronomeEnabled() && this.isMeterBeatDownbeat(loopedStep)) {
@@ -1792,8 +1842,10 @@ export class AudioEngineService {
       // instead of only changing the first step of the buffer.
       const tempoStep = this.playMode() === 'pattern' && !this.playbackLoopEnabled()
         ? this.currentStep % this.loopLengthSteps() : this.currentStep;
-      const stepDuration =
-        60 / this.tempoAtStep(tempoStep) / this.stepsPerBeat();
+      const stepDuration = this.secondsBetweenSteps(
+        tempoStep,
+        tempoStep + 1,
+      );
       this.handleTick(this.currentStep, this.nextNoteTime, stepDuration);
       if (!this.isPlaying()) break;
       this.nextNoteTime += stepDuration;
@@ -2204,7 +2256,7 @@ export class AudioEngineService {
     const stepDuration =
       this.visualStepDuration > 0
         ? this.visualStepDuration
-        : 60 / this.tempoAtStep(this.currentStep) / this.stepsPerBeat();
+        : this.secondsBetweenSteps(this.currentStep, this.currentStep + 1);
     const position =
       this.visualStep() + (contextTime - this.visualStepTime) / stepDuration;
     return this.mapTransportPosition(position);
@@ -5466,7 +5518,10 @@ export class AudioEngineService {
     this.currentBeat.set(position / this.stepsPerBeat());
     this.nextNoteTime = this.ctx.currentTime + 0.05;
     this.visualStepTime = this.nextNoteTime;
-    this.visualStepDuration = 60 / this.tempoAtStep(position) / this.stepsPerBeat();
+    this.visualStepDuration = this.secondsBetweenSteps(
+      position,
+      position + 1,
+    );
     if (this.isPlaying()) this.allNotesOff();
     this.workletNode?.port.postMessage({ type: 'SEEK', payload: {
       step: rawStep, generation: this.clockGeneration, time: this.nextNoteTime,
