@@ -91,7 +91,6 @@ describe('StrategyHubComponent', () => {
     strategicDecrees: signal(['Decree 1', 'Decree 2', 'Decree 3', 'Decree 4']),
     performDeepAudit: jest.fn().mockResolvedValue(undefined),
     industryDeepSearch: jest.fn().mockResolvedValue(undefined),
-    unlockUpgrade: jest.fn(),
     getDynamicChecklist: jest.fn().mockReturnValue([
       {
         id: 'task-1',
@@ -112,7 +111,7 @@ describe('StrategyHubComponent', () => {
         title: 'Test Upgrade',
         type: 'Software',
         description: 'Desc',
-        cost: '$0',
+        cost: 'Included',
         url: '',
         impact: 'High',
         rationale: 'Because it matters.',
@@ -122,10 +121,6 @@ describe('StrategyHubComponent', () => {
         actionLabel: 'Open Studio',
         toolId: 'studio',
         state: 'suggested',
-        outcomeMetric: {
-          label: 'Expected gain',
-          value: 'Faster turnarounds',
-        },
       },
     ]),
   };
@@ -155,9 +150,6 @@ describe('StrategyHubComponent', () => {
     updateCampaign: jest.fn().mockResolvedValue(undefined),
     deleteCampaign: jest.fn().mockResolvedValue(undefined),
     hasAudienceData: signal(true),
-    getProjections: jest
-      .fn()
-      .mockReturnValue({ reach: 1500, conversions: 15, engagement: 50 }),
   };
 
   const mockProfileService = {
@@ -480,13 +472,6 @@ describe('StrategyHubComponent', () => {
     expect(component.showCampaignForm()).toBe(false);
   });
 
-  it('should return correct impact colors', () => {
-    expect(component.getImpactColor('Extreme')).toContain('font-black');
-    expect(component.getImpactColor('High')).toBe('text-brand-primary');
-    expect(component.getImpactColor('Medium')).toBe('text-yellow-400');
-    expect(component.getImpactColor('Low')).toBe('text-white');
-  });
-
   it('should return correct campaign status classes', () => {
     expect(component.getCampaignStatusClass('Active')).toContain(
       'brand-primary'
@@ -537,6 +522,43 @@ describe('StrategyHubComponent', () => {
     expect(component.formatReportedMetric(0)).toBe('Not reported');
     expect(component.formatReportedMetric(12500)).toBe('12.5K');
     expect(element.textContent).toContain('12.5K');
+  });
+
+  it('presents included workspace tools without purchase or performance claims', () => {
+    component.setTab('overview');
+    fixture.detectChanges();
+
+    const text = ((fixture.nativeElement as HTMLElement).textContent ?? '')
+      .replace(/\s+/g, ' ');
+    expect(text).toContain('WORKSPACE NEXT STEPS');
+    expect(text).toContain('No purchase, license, or performance outcome');
+    expect(text).not.toContain('Efficiency');
+    expect(text).not.toContain('400%');
+  });
+
+  it('keeps a campaign draft when the service reports no write', async () => {
+    mockMarketingService.createCampaign.mockResolvedValueOnce(false);
+    component.newCampaign.set({
+      name: 'Keep this draft',
+      budget: 10,
+      platforms: ['Instagram'],
+    });
+    component.showCampaignForm.set(true);
+
+    await component.saveCampaign();
+
+    expect(component.newCampaign().name).toBe('Keep this draft');
+    expect(component.showCampaignForm()).toBe(true);
+    expect(component.campaignError()).toContain('still here');
+  });
+
+  it('surfaces a recommendation write that did not persist', async () => {
+    const rec = component.upgradeRecs()[0];
+    mockProfileService.setRecommendationState.mockResolvedValueOnce(false);
+
+    await component.dismissRecommendation(rec);
+
+    expect(component.recommendationError()).toContain('Could not update');
   });
 
   it('labels session items as a local checklist rather than evidence', () => {

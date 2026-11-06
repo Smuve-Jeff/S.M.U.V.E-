@@ -102,7 +102,7 @@
           >
           <span
             class="text-[9px] font-black text-white/90 uppercase tracking-[0.2em]"
-            >AUTHORITY: S.M.U.V.E.-LEVEL</span
+            >SOURCE: LOCAL SESSION &amp; PROFILE</span
           >
         </div>
       </div>
@@ -316,13 +316,18 @@
             <h3
               class="text-lg md:text-2xl font-black text-white uppercase tracking-tight italic"
             >
-              POWERFUL UPGRADES
+              WORKSPACE NEXT STEPS
             </h3>
             <span
               class="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em]"
-              >S.M.U.V.E.-LEVEL UNLOCKS</span
+              >INCLUDED TOOLS</span
             >
           </div>
+          <p class="text-[10px] text-silver-dim leading-relaxed max-w-2xl">
+            These cards open tools already in your workspace. No purchase,
+            license, or performance outcome is claimed; completing a tool is your
+            own record.
+          </p>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             @for (rec of upgradeRecs(); track rec.id) {
               <div
@@ -335,7 +340,7 @@
                   <div
                     class="absolute top-0 right-0 bg-brand-primary text-black px-4 py-1 text-[8px] font-black uppercase tracking-widest rounded-bl-xl shadow-lg"
                   >
-                    S.M.U.V.E.-MODE ACTIVE
+                    MARKED ACQUIRED
                   </div>
                 }
 
@@ -354,31 +359,6 @@
                   </p>
                 </div>
 
-                <div
-                  class="flex items-center justify-between py-4 border-y border-white/5"
-                >
-                  <div class="space-y-1">
-                    <span
-                      class="block text-[8px] font-black text-white/90 uppercase"
-                      >Impact</span
-                    >
-                    <span
-                      class="text-[10px] font-black"
-                      [class]="getImpactColor(rec.impact)"
-                      >{{ rec.impact }}</span
-                    >
-                  </div>
-                  <div class="space-y-1 text-right">
-                    <span
-                      class="block text-[8px] font-black text-white/90 uppercase"
-                      >Efficiency</span
-                    >
-                    <span class="text-[10px] font-black text-white">{{
-                      rec.outcomeMetric?.value || 'N/A'
-                    }}</span>
-                  </div>
-                </div>
-
                 <div class="flex flex-col gap-3">
                   <button
                     type="button"
@@ -387,33 +367,19 @@
                     (click)="dismissRecommendation(rec)"
                     class="text-xs text-white/90 hover:text-white"
                   >Dismiss recommendation</button>
-                  @if (rec.state === 'locked' || !rec.state) {
-                    <button
-                      type="button"
-                      (click)="aiService.unlockUpgrade(rec.id)"
-                      [disabled]="aiService.isProcessing()"
-                      class="w-full py-4 bg-brand-primary text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all shadow-[0_0_20px_rgba(255,62,62,0.2)]"
-                    >
-                      {{
-                        aiService.isProcessing()
-                          ? 'PROCESSING NEURAL LINK...'
-                          : rec.actionLabel
-                      }}
-                    </button>
-                  } @else {
-                    <button
-                      type="button"
-                      (click)="focusRecommendation(rec)"
-                      class="w-full py-4 bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-black transition-all border border-white/10"
-                    >
-                      ENTER COMMAND CENTER
-                    </button>
-                  }
+                  <button
+                    type="button"
+                    [disabled]="!rec.toolId"
+                    (click)="focusRecommendation(rec)"
+                    class="w-full py-4 bg-brand-primary text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {{ rec.actionLabel }}
+                  </button>
                 </div>
-                @if (recommendationError()) { <p role="alert" class="text-xs text-amber-300">{{ recommendationError() }}</p> }
               </div>
             }
           </div>
+          @if (recommendationError()) { <p role="alert" class="text-xs text-amber-300">{{ recommendationError() }}</p> }
         </section>
 
         @if (recommendationInbox().length) {
@@ -469,7 +435,7 @@
           <div>
             <p class="text-[9px] text-brand-primary uppercase tracking-[0.35em] font-black">Campaign operations</p>
             <h2 class="text-3xl font-black text-white uppercase italic tracking-tighter">Campaigns</h2>
-            <p class="mt-2 text-xs text-silver-dim">Plans are saved to your artist profile. Performance metrics remain zero until reported by a real source.</p>
+            <p class="mt-2 text-xs text-silver-dim">Plans and statuses are your own record. No ad or social account is connected, and performance metrics remain blank until a source reports them.</p>
           </div>
           <button
             type="button"
@@ -478,6 +444,8 @@
             class="min-h-11 px-5 py-3 rounded-xl bg-brand-primary text-black text-[10px] font-black uppercase tracking-widest hover:bg-white transition-colors"
           >{{ showCampaignForm() ? 'Close form' : 'New campaign' }}</button>
         </header>
+
+        @if (campaignError()) { <p role="alert" data-testid="strategy-campaign-error" class="text-sm text-amber-300">{{ campaignError() }}</p> }
 
         @if (showCampaignForm()) {
           <form class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/[0.04] border border-white/10 rounded-3xl p-5 md:p-7" (ngSubmit)="saveCampaign()">
@@ -503,7 +471,6 @@
               Goals (comma-separated)
               <input [ngModel]="newCampaign().goals?.join(', ') || ''" (ngModelChange)="setCampaignGoals($event)" name="campaignGoals" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white normal-case tracking-normal" placeholder="Pre-saves, show attendance, video views" />
             </label>
-            @if (campaignError()) { <p role="alert" class="md:col-span-2 text-sm text-amber-300">{{ campaignError() }}</p> }
             <div class="md:col-span-2 flex justify-end">
               <button type="submit" data-testid="strategy-save-campaign" [disabled]="!canSaveCampaign() || isSavingCampaign()" class="min-h-11 px-6 py-3 rounded-xl bg-brand-primary text-black text-[10px] font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed">{{ isSavingCampaign() ? 'Saving…' : 'Save campaign' }}</button>
             </div>
@@ -612,8 +579,12 @@
           <h3
             class="text-[10px] font-black text-brand-primary uppercase tracking-[0.5em]"
           >
-            MARKET ANOMALIES
+            PROFILE & RELEASE ALERTS
           </h3>
+          <p class="text-[10px] text-silver-dim leading-relaxed">
+            Derived from your release dates and lifecycle evidence. No external
+            market feed is connected.
+          </p>
           <div class="space-y-4">
             @for (alert of aiService.marketAlerts(); track alert.id) {
               <div

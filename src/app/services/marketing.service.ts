@@ -36,14 +36,16 @@ export class MarketingService {
       this.streamingData().length > 0
   );
 
-  async createCampaign(campaign: Omit<MarketingCampaign, 'id'>): Promise<void> {
+  async createCampaign(
+    campaign: Omit<MarketingCampaign, 'id'>
+  ): Promise<boolean> {
     const newCampaign: MarketingCampaign = {
       ...campaign,
       id: `camp-${Date.now()}`,
     };
 
     const currentProfile = this.profileService.profile();
-    await this.profileService.updateProfile({
+    return this.profileService.updateProfile({
       ...currentProfile,
       marketingCampaigns: [
         ...(currentProfile.marketingCampaigns || []),
@@ -52,38 +54,29 @@ export class MarketingService {
     });
   }
 
-  async updateCampaign(updatedCampaign: MarketingCampaign): Promise<void> {
+  async updateCampaign(
+    updatedCampaign: MarketingCampaign
+  ): Promise<boolean> {
     const currentProfile = this.profileService.profile();
     const updatedCampaigns = (currentProfile.marketingCampaigns || []).map(
       (c) => (c.id === updatedCampaign.id ? updatedCampaign : c)
     );
 
-    await this.profileService.updateProfile({
+    return this.profileService.updateProfile({
       ...currentProfile,
       marketingCampaigns: updatedCampaigns,
     });
   }
 
-  async deleteCampaign(campaignId: string): Promise<void> {
+  async deleteCampaign(campaignId: string): Promise<boolean> {
     const currentProfile = this.profileService.profile();
     const filteredCampaigns = (currentProfile.marketingCampaigns || []).filter(
       (c) => c.id !== campaignId
     );
 
-    await this.profileService.updateProfile({
+    return this.profileService.updateProfile({
       ...currentProfile,
       marketingCampaigns: filteredCampaigns,
     });
-  }
-
-  getProjections(budget: number, platform: string) {
-    // High-fidelity simulation logic
-    const multiplier =
-      platform === 'TikTok' ? 25 : platform === 'Instagram' ? 15 : 10;
-    return {
-      reach: budget * multiplier,
-      conversions: Math.floor(budget * 0.15),
-      engagement: Math.floor(budget * 0.5),
-    };
   }
 }

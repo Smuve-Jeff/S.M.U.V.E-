@@ -497,7 +497,7 @@ export class CommandCenterComponent implements OnInit, OnDestroy {
   private async runDirectiveAction(
     rec: CommandDirective,
     verb: string,
-    action: () => Promise<void>
+    action: () => Promise<unknown>
   ): Promise<void> {
     if (this.pendingDirectiveIds().includes(rec.id)) return;
     this.actionError.set('');

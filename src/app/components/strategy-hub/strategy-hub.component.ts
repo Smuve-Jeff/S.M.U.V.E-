@@ -104,13 +104,6 @@ export class StrategyHubComponent implements OnInit {
   isSearchingIndustry = signal(false);
   industrySearchError = signal('');
 
-  adSpend = signal(100);
-
-  adProjections = computed(() => {
-    const platform = (this.newCampaign().platforms || ['Instagram'])[0];
-    return this.marketingService.getProjections(this.adSpend(), platform);
-  });
-
   strategicTasks = signal<StrategicTask[]>([]);
 
   /**
@@ -266,7 +259,7 @@ export class StrategyHubComponent implements OnInit {
     this.campaignError.set('');
     this.isSavingCampaign.set(true);
     try {
-      await this.marketingService.createCampaign({
+      const saved = await this.marketingService.createCampaign({
         name,
         // A blank or zero field means the artist has not set spend, so the
         // campaign is stored without a budget rather than with a $0 claim.
@@ -277,6 +270,8 @@ export class StrategyHubComponent implements OnInit {
         goals: draft.goals?.filter(Boolean) ?? [],
         platforms,
         strategyLevel: draft.strategyLevel || 'Modern Professional',
+        // Required storage shape; the card hides these until a source reports
+        // real figures, so a zero is never presented as performance.
         metrics: {
           reach: 0,
           impressions: 0,
@@ -288,6 +283,12 @@ export class StrategyHubComponent implements OnInit {
           cpc: 0,
         },
       });
+      if (saved === false) {
+        this.campaignError.set(
+          'Campaign could not be saved. Your draft is still here; try again.'
+        );
+        return;
+      }
       this.newCampaign.set({
         name: '',
         budget: 0,
@@ -307,9 +308,18 @@ export class StrategyHubComponent implements OnInit {
 
   async toggleCampaignStatus(campaign: MarketingCampaign): Promise<void> {
     if (campaign.status === 'Completed') return;
+    this.campaignError.set('');
     const status = campaign.status === 'Active' ? 'Paused' : 'Active';
     try {
-      await this.marketingService.updateCampaign({ ...campaign, status });
+      const saved = await this.marketingService.updateCampaign({
+        ...campaign,
+        status,
+      });
+      if (saved === false) {
+        this.campaignError.set(
+          'Campaign status could not be updated. Try again.'
+        );
+      }
     } catch {
       this.campaignError.set('Campaign status could not be updated. Try again.');
     }
@@ -321,7 +331,10 @@ export class StrategyHubComponent implements OnInit {
     if (!window.confirm(`Delete campaign “${campaign.name}”? This cannot be undone.`)) return;
     this.campaignError.set('');
     try {
-      await this.marketingService.deleteCampaign(id);
+      const saved = await this.marketingService.deleteCampaign(id);
+      if (saved === false) {
+        this.campaignError.set('Campaign could not be deleted. Try again.');
+      }
     } catch {
       this.campaignError.set('Campaign could not be deleted. Try again.');
     }
@@ -329,13 +342,18 @@ export class StrategyHubComponent implements OnInit {
 
   private async runRecommendationAction(
     rec: UpgradeRecommendation,
-    action: () => Promise<void>,
+    action: () => Promise<unknown>,
   ): Promise<void> {
     if (this.pendingRecommendationIds().includes(rec.id)) return;
     this.recommendationError.set('');
     this.pendingRecommendationIds.update((ids) => [...ids, rec.id]);
     try {
-      await action();
+      const result = await action();
+      if (result === false) {
+        this.recommendationError.set(
+          `Could not update “${rec.title}”. Try again.`
+        );
+      }
     } catch {
       this.recommendationError.set(`Could not update “${rec.title}”. Try again.`);
     } finally {
@@ -382,19 +400,6 @@ export class StrategyHubComponent implements OnInit {
   focusRecommendation(rec: UpgradeRecommendation) {
     if (rec.toolId) {
       this.uiService.navigateToView(rec.toolId as any);
-    }
-  }
-
-  getImpactColor(impact: string): string {
-    switch (impact) {
-      case 'Extreme':
-        return 'text-brand-primary font-black';
-      case 'High':
-        return 'text-brand-primary';
-      case 'Medium':
-        return 'text-yellow-400';
-      default:
-        return 'text-white';
     }
   }
 

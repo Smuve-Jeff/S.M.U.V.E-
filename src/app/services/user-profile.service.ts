@@ -373,7 +373,7 @@ export class UserProfileService {
     };
   }
 
-  async acquireUpgrade(u: any) {
+  async acquireUpgrade(u: any): Promise<boolean> {
     const p = this.profile();
     if (u.type === 'Gear' && !p.equipment.includes(u.title)) {
       p.equipment.push(u.title);
@@ -404,9 +404,9 @@ export class UserProfileService {
         },
       ];
     }
-    await this.updateProfile(p);
+    return this.updateProfile(p);
   }
-  async completeUpgrade(u: any) {
+  async completeUpgrade(u: any): Promise<boolean> {
     const p = this.profile();
     if (u.type === 'Gear' && !p.equipment.includes(u.title)) {
       p.equipment.push(u.title);
@@ -436,7 +436,7 @@ export class UserProfileService {
         },
       ];
     }
-    await this.updateProfile(p);
+    return this.updateProfile(p);
   }
   async updateExpertise(u: Partial<ExpertiseLevels>) {
     await this.updateProfile({
@@ -503,8 +503,8 @@ export class UserProfileService {
     id: string,
     state: RecommendationHistoryEntry['state'],
     meta?: any
-  ) {
-    if (!id) return;
+  ): Promise<boolean> {
+    if (!id) return false;
     const p = this.profile();
     const now = Date.now();
     p.recommendationPreferences = {
@@ -525,7 +525,7 @@ export class UserProfileService {
         updatedAt: now,
       },
     ];
-    await this.updateProfile(p);
+    return this.updateProfile(p);
   }
 
   /** Per-cabinet Tha Spot stats, keyed by game id. */

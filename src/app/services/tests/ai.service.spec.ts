@@ -834,8 +834,8 @@ describe('AiService', () => {
       const dimensions = [
         { key: 'Sonic Cohesion', score: report.sonicCohesion },
         { key: 'Arrangement Depth', score: report.arrangementDepth },
-        { key: 'Market Viability', score: report.marketViability },
-        { key: 'Technical Authority', score: report.technicalAuthority! },
+        { key: 'Catalogue Readiness', score: report.marketViability },
+        { key: 'Technical Setup', score: report.technicalAuthority! },
       ];
       const maxScore = Math.max(...dimensions.map((d) => d.score));
       const minScore = Math.min(...dimensions.map((d) => d.score));

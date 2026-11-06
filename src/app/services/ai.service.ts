@@ -1379,8 +1379,8 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
     const dimensions = [
       { key: 'Sonic Cohesion', score: report.sonicCohesion },
       { key: 'Arrangement Depth', score: report.arrangementDepth },
-      { key: 'Market Viability', score: report.marketViability },
-      { key: 'Technical Authority', score: report.technicalAuthority ?? this.technicalScore() },
+      { key: 'Catalogue Readiness', score: report.marketViability },
+      { key: 'Technical Setup', score: report.technicalAuthority ?? this.technicalScore() },
     ].sort((a, b) => b.score - a.score);
 
     const strongest = dimensions[0];
@@ -1436,7 +1436,7 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       const lines = [
         `OVERALL: ${report.overallScore}/100`,
         `SONIC COHESION: ${report.sonicCohesion}%   ARRANGEMENT DEPTH: ${report.arrangementDepth}%`,
-        `MARKET VIABILITY: ${report.marketViability}%   TECHNICAL AUTHORITY: ${this.technicalScore()}%`,
+        `CATALOGUE READINESS: ${report.marketViability}%   TECHNICAL SETUP: ${this.technicalScore()}%`,
         '',
         'CRITICAL DEFICITS:',
         ...(report.criticalDeficits.length
@@ -1471,9 +1471,10 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
   }
 
   /**
-   * Technical authority, shared by the executive audit and the deep audit.
-   * Every input is a real profile/security signal; the result is clamped so the
-   * additive weights can never exceed the 0-100 scale.
+   * Technical setup score, shared by the executive audit and the deep audit.
+   * Every input is a real profile/security signal, and the weights add up to
+   * 100. It used to start every artist at 40, which awarded points for settings
+   * that were never checked; a blank profile now scores 0.
    */
   technicalScore(): number {
     const profile = this.userProfileService.profile();
@@ -1482,12 +1483,11 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       0,
       Math.min(
         100,
-        40 +
-          (security?.twoFactorEnabled ? 20 : 0) +
+        (security?.twoFactorEnabled ? 25 : 0) +
           (security?.auditLogEnabled ? 15 : 0) +
-          (security?.endToEndEncryption ? 15 : 0) +
-          (profile.settings?.audio?.sampleRate >= 48000 ? 15 : 0) +
-          (profile.profileSetupCompleted ? 10 : 0)
+          (security?.endToEndEncryption ? 20 : 0) +
+          (profile.settings?.audio?.sampleRate >= 48000 ? 20 : 0) +
+          (profile.profileSetupCompleted ? 20 : 0)
       )
     );
   }
