@@ -67,6 +67,7 @@ import { AiAssistantComponent } from "./shared/ai-assistant/ai-assistant.compone
 import { AiProduceComponent } from "../components/ai-produce/ai-produce.component";
 import { DjDeckComponent } from "./dj-deck/dj-deck.component";
 import { VocalSuiteComponent } from "./vocal-suite/vocal-suite.component";
+import { TunerComponent } from "./tuner/tuner.component";
 import { ChannelRackComponent } from "./channel-rack/channel-rack.component";
 import { EffectsRackUiComponent } from "./effects-rack-ui/effects-rack-ui.component";
 import { AiBandComponent } from "./ai-band/ai-band.component";
@@ -265,6 +266,7 @@ const SELF_HOSTING_VIEWS = new Set<string>([
   'sound-browser',
   'sound-pad',
   'synthesizer',
+  'tuner',
   'vocal-suite',
 ]);
 
@@ -310,6 +312,7 @@ const SELF_HOSTING_VIEWS = new Set<string>([
     StudioTransportShellComponent,
     SessionViewComponent,
     QuickSessionComponent,
+    TunerComponent,
     SmartCreationSheetComponent,
     AudioRepairComponent,
     ArchitectureMapComponent,

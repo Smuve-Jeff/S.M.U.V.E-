@@ -1,0 +1,89 @@
+<section class="tuner" aria-label="Tuner">
+  <header class="tuner-head">
+    <div class="tuner-title">
+      <span class="material-symbols-outlined" aria-hidden="true">speed</span>
+      <div>
+        <h2>Tuner</h2>
+        <p>
+          Check intonation before a take. The click counts you in — this tells
+          you the note is right.
+        </p>
+      </div>
+    </div>
+    <button
+      type="button"
+      class="tuner-action"
+      [class.is-on]="listening()"
+      [disabled]="starting()"
+      [attr.aria-busy]="starting()"
+      (click)="toggle()"
+      [attr.aria-pressed]="listening()"
+      [attr.aria-label]="
+        starting()
+          ? 'Opening the microphone input'
+          : listening()
+            ? 'Stop the tuner and close the input'
+            : 'Start the tuner'
+      "
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">{{
+        starting() ? "hourglass_top" : listening() ? "stop" : "mic"
+      }}</span>
+      {{ starting() ? "Connecting" : listening() ? "Stop" : "Start" }}
+    </button>
+  </header>
+
+  @if (error()) {
+    <p class="tuner-error" role="alert">{{ error() }}</p>
+  }
+
+  <div class="tuner-readout" [class.is-in-tune]="reading()?.inTune">
+    @if (reading(); as note) {
+      <div class="tuner-note">
+        <span class="tuner-letter">{{ note.note }}</span>
+        <span class="tuner-octave">{{ note.octave }}</span>
+      </div>
+
+      <div class="tuner-scale" aria-hidden="true">
+        <span class="tuner-tick tuner-tick-flat"></span>
+        <span class="tuner-tick tuner-tick-sharp"></span>
+        <span class="tuner-centre"></span>
+        <span class="tuner-needle" [style.left.%]="needle()"></span>
+      </div>
+
+      <p class="tuner-cents">
+        {{ note.cents > 0 ? "+" : "" }}{{ note.cents | number: "1.0-0" }} cents
+      </p>
+      <p class="tuner-frequency">{{ note.frequency | number: "1.1-1" }} Hz</p>
+    } @else {
+      <div class="tuner-note tuner-idle">
+        <span class="tuner-letter">–</span>
+      </div>
+      <p class="tuner-hint">
+        {{ listening() ? "Play a note…" : "Start the tuner to hear this input." }}
+      </p>
+    }
+  </div>
+
+  <footer class="tuner-foot">
+    <span class="tuner-device" [attr.title]="deviceLabel()">{{
+      deviceLabel()
+    }}</span>
+    <span class="tuner-level" aria-hidden="true">
+      <span class="tuner-level-fill" [style.width.%]="level() * 100"></span>
+    </span>
+    <span class="tuner-status" [class.is-in-tune]="reading()?.inTune">
+      {{
+        !listening()
+          ? starting()
+            ? "Opening input"
+            : "Idle"
+          : reading()?.inTune
+            ? "In tune"
+            : reading()
+              ? "Adjust"
+              : "Listening"
+      }}
+    </span>
+  </footer>
+</section>

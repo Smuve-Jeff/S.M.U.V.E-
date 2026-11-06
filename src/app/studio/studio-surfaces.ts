@@ -25,6 +25,7 @@ export type StudioSurfaceId =
   | "sound-browser"
   | "sound-pad"
   | "synthesizer"
+  | "tuner"
   | "chord-editor"
   | "sampler"
   | "score"
@@ -95,6 +96,12 @@ export const STUDIO_SURFACE_GROUPS: StudioSurfaceGroup[] = [
         label: "Quick Recorder",
         icon: "mic_external_on",
         description: "Instant voice memo & mic capture",
+      },
+      {
+        id: "tuner",
+        label: "Tuner",
+        icon: "speed",
+        description: "Check intonation before a take",
       },
       {
         id: "chord-editor",

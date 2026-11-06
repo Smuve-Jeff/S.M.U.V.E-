@@ -1225,6 +1225,16 @@
           </div>
         }
       </div>
+      <div class="comp-view" *ngSwitchCase="'tuner'">
+        @defer (on viewport; prefetch on idle) {
+          <app-tuner></app-tuner>
+        } @placeholder (minimum 150ms) {
+          <div class="comp-view-loading" aria-live="polite">
+            <span class="material-symbols-outlined">speed</span>
+            Sounding the Tuner…
+          </div>
+        }
+      </div>
       <div class="comp-view" *ngSwitchCase="'channel-rack'">
         @defer (on viewport; prefetch on idle) {
           <app-channel-rack></app-channel-rack>
