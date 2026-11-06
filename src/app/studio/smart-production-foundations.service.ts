@@ -2,7 +2,8 @@ import { Injectable, computed, signal } from "@angular/core";
 
 export type SmartProductionFeature =
   | "stemSeparation"
-  | "keyBpmDetection"
+  | "bpmDetection"
+  | "keyDetection"
   | "vocalEnhancement"
   | "takeRanking";
 
@@ -27,8 +28,16 @@ export class SmartProductionFoundationsService {
       status: "ready",
     },
     {
-      feature: "keyBpmDetection",
-      label: "Key/BPM Detection",
+      // Tempo is measured on the device when audio is imported, so this half
+      // of the old combined row never needed the analysis endpoint.
+      feature: "bpmDetection",
+      label: "BPM Detection",
+      status: "ready",
+      reason: "Measured locally when audio is imported",
+    },
+    {
+      feature: "keyDetection",
+      label: "Key Detection",
       status: this.backendConfigured() ? "ready" : "unsupported",
       reason: this.backendConfigured()
         ? undefined

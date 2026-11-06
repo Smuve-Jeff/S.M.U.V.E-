@@ -15,8 +15,8 @@ describe("SmartProductionFoundationsService", () => {
     expect(service).toBeTruthy();
   });
 
-  it("should list 4 capabilities", () => {
-    expect(service.capabilities().length).toBe(4);
+  it("should list 5 capabilities", () => {
+    expect(service.capabilities().length).toBe(5);
   });
 
   it("should show stem separation as ready", () => {
@@ -26,19 +26,21 @@ describe("SmartProductionFoundationsService", () => {
     expect(cap!.status).toBe("ready");
   });
 
-  it("should show key/bpm detection as unsupported by default", () => {
-    const cap = service
-      .capabilities()
-      .find((c) => c.feature === "keyBpmDetection");
+  it("reports BPM detection as ready without any backend", () => {
+    const cap = service.capabilities().find((c) => c.feature === "bpmDetection");
+    expect(cap!.status).toBe("ready");
+    expect(cap!.reason).toContain("locally");
+  });
+
+  it("should show key detection as unsupported by default", () => {
+    const cap = service.capabilities().find((c) => c.feature === "keyDetection");
     expect(cap!.status).toBe("unsupported");
     expect(cap!.reason).toContain("server-side");
   });
 
-  it("should activate key/bpm detection when backend is configured", () => {
+  it("should activate key detection when backend is configured", () => {
     service.setBackendConfigured(true);
-    const cap = service
-      .capabilities()
-      .find((c) => c.feature === "keyBpmDetection");
+    const cap = service.capabilities().find((c) => c.feature === "keyDetection");
     expect(cap!.status).toBe("ready");
     expect(cap!.reason).toBeUndefined();
   });

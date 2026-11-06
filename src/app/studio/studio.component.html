@@ -3247,7 +3247,12 @@
           <span class="comp-aimix-section-title">Smart Production</span>
           <div class="comp-import-smart-row" *ngFor="let cap of smartProduction.capabilities()">
             <span>{{ cap.label }}</span>
-            <span *ngIf="cap.status === 'ready'" class="comp-import-smart-ready">Ready</span>
+            <span
+              *ngIf="cap.status === 'ready'"
+              class="comp-import-smart-ready"
+              [title]="cap.reason"
+              >Ready</span
+            >
             <span *ngIf="cap.status !== 'ready'" class="comp-import-smart-disabled" [title]="cap.reason">
               {{ cap.reason }}
             </span>
