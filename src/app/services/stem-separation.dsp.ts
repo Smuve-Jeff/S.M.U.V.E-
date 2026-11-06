@@ -20,6 +20,8 @@
 
 const FFT_SIZE = 2048;
 const HOP = 512;
+/** Frames between event-loop yields during separation. */
+const FRAMES_PER_YIELD = 48;
 const BAND_EDGE_HZ = 80;
 
 const VOCAL_LOW_HZ = 300;
@@ -112,12 +114,12 @@ function bandGain(hz: number, low: number, high: number): number {
  * normalises the window sum, so the output has the input's amplitude at the
  * edges as well as in the middle.
  */
-function stftBand(
+async function stftBand(
   input: Float32Array,
   sampleRate: number,
   low: number,
   high: number
-): Float32Array {
+): Promise<Float32Array> {
   const length = input.length;
   if (length === 0) {
     return new Float32Array(0);
@@ -140,6 +142,7 @@ function stftBand(
   }
 
   const half = FFT_SIZE / 2;
+  let frame = 0;
   for (let start = 0; start + FFT_SIZE <= padded; start += HOP) {
     for (let i = 0; i < FFT_SIZE; i++) {
       const src = start + i - FFT_SIZE;
@@ -166,6 +169,13 @@ function stftBand(
       accumulated[index] += re[i] * window[i];
       weights[index] += window[i] * window[i];
     }
+
+    // Separation runs on the main thread, so hand the event loop a slice back:
+    // a four-minute track is ~20k frames and must not freeze the studio.
+    frame += 1;
+    if (frame % FRAMES_PER_YIELD === 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
   }
 
   const output = new Float32Array(length);
@@ -176,10 +186,10 @@ function stftBand(
   return output;
 }
 
-export function separateIntoStems(
+export async function separateIntoStems(
   channels: Float32Array[],
   sampleRate: number
-): StemChannels {
+): Promise<StemChannels> {
   const channelCount = Math.max(1, channels.length);
   const length = channels[0]?.length ?? 0;
   const source = channels.length > 0 ? channels : [new Float32Array(0)];
@@ -191,7 +201,7 @@ export function separateIntoStems(
     mid[i] = (left[i] + right[i]) * 0.5;
   }
 
-  const vocalMono = stftBand(mid, sampleRate, VOCAL_LOW_HZ, VOCAL_HIGH_HZ);
+  const vocalMono = await stftBand(mid, sampleRate, VOCAL_LOW_HZ, VOCAL_HIGH_HZ);
 
   const vocals: Float32Array[] = [];
   const drums: Float32Array[] = [];
@@ -201,8 +211,8 @@ export function separateIntoStems(
 
   for (let c = 0; c < channelCount; c++) {
     const mix = source[c] ?? source[0] ?? new Float32Array(length);
-    const bassChannel = stftBand(mix, sampleRate, 0, BASS_HIGH_HZ);
-    const drumChannel = stftBand(mix, sampleRate, DRUM_LOW_HZ, sampleRate / 2);
+    const bassChannel = await stftBand(mix, sampleRate, 0, BASS_HIGH_HZ);
+    const drumChannel = await stftBand(mix, sampleRate, DRUM_LOW_HZ, sampleRate / 2);
 
     const vocalChannel = new Float32Array(length);
     const instrumentalChannel = new Float32Array(length);

@@ -29,10 +29,10 @@ function maxError(a: Float32Array, b: Float32Array): number {
 }
 
 describe("separateIntoStems", () => {
-  it("builds stems that add back up to the input", () => {
+  it("builds stems that add back up to the input", async () => {
     const left = tone(220);
     const right = tone(660, 0.5, 0.7);
-    const stems = separateIntoStems([left, right], SAMPLE_RATE);
+    const stems = await separateIntoStems([left, right], SAMPLE_RATE);
 
     for (const [channel, mix] of [left, right].entries()) {
       const sum = new Float32Array(mix.length);
@@ -44,43 +44,43 @@ describe("separateIntoStems", () => {
     }
   });
 
-  it("keeps a low tone in bass and out of the vocals", () => {
+  it("keeps a low tone in bass and out of the vocals", async () => {
     const low = tone(100);
-    const stems = separateIntoStems([low, low], SAMPLE_RATE);
+    const stems = await separateIntoStems([low, low], SAMPLE_RATE);
 
     expect(ratio(stems.bass[0], low)).toBeGreaterThan(0.8);
     expect(ratio(stems.vocals[0], low)).toBeLessThan(0.01);
   });
 
-  it("keeps the top octave in drums and out of the vocals", () => {
+  it("keeps the top octave in drums and out of the vocals", async () => {
     const high = tone(8000);
-    const stems = separateIntoStems([high, high], SAMPLE_RATE);
+    const stems = await separateIntoStems([high, high], SAMPLE_RATE);
 
     expect(ratio(stems.drums[0], high)).toBeGreaterThan(0.8);
     expect(ratio(stems.vocals[0], high)).toBeLessThan(0.01);
   });
 
-  it("takes a centred mid-band tone out of the accompaniment", () => {
+  it("takes a centred mid-band tone out of the accompaniment", async () => {
     const centre = tone(1000);
-    const stems = separateIntoStems([centre, centre], SAMPLE_RATE);
+    const stems = await separateIntoStems([centre, centre], SAMPLE_RATE);
 
     expect(ratio(stems.vocals[0], centre)).toBeGreaterThan(0.8);
     expect(ratio(stems.instrumental[0], centre)).toBeLessThan(0.05);
   });
 
-  it("never turns side-only content into vocals", () => {
+  it("never turns side-only content into vocals", async () => {
     const left = tone(1000);
     const right = tone(1000, 0.5, Math.PI); // same tone, inverted = pure side
-    const stems = separateIntoStems([left, right], SAMPLE_RATE);
+    const stems = await separateIntoStems([left, right], SAMPLE_RATE);
 
     expect(energy(stems.vocals[0]) / energy(left)).toBeLessThan(1e-6);
     // Side content belongs to the accompaniment, not to the centre band.
     expect(ratio(stems.instrumental[0], left)).toBeGreaterThan(0.9);
   });
 
-  it("handles mono input without inventing a second channel", () => {
+  it("handles mono input without inventing a second channel", async () => {
     const mono = tone(1000);
-    const stems = separateIntoStems([mono], SAMPLE_RATE);
+    const stems = await separateIntoStems([mono], SAMPLE_RATE);
 
     expect(stems.vocals.length).toBe(1);
     expect(ratio(stems.vocals[0], mono)).toBeGreaterThan(0.8);

@@ -174,7 +174,7 @@ export class StemSeparationService {
       channels.push(new Float32Array(buffer.getChannelData(c)));
     }
 
-    const parts = separateIntoStems(channels, buffer.sampleRate);
+    const parts = await separateIntoStems(channels, buffer.sampleRate);
     const toBuffer = (data: Float32Array[]): AudioBuffer => {
       const stem = new AudioBuffer({
         length: buffer.length,
