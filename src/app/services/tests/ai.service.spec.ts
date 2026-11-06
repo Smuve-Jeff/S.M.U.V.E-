@@ -32,17 +32,16 @@ describe('AiService', () => {
     title: 'Test Upgrade',
     type: 'Software',
     description: 'A test upgrade',
-    cost: '100',
+    cost: 'Included',
+    url: '',
     impact: 'High',
     rationale: 'Because of testing',
     targetArea: 'Production',
     priority: 'High',
     prerequisites: [],
-    actionLabel: 'Unlock',
+    actionLabel: 'Open test tool',
     toolId: 'test-tool',
-    outcomeMetric: { label: 'Test Metric', value: '10%' },
-    state: 'locked',
-    rankScore: 100,
+    state: 'suggested',
   };
 
   beforeEach(() => {
@@ -119,6 +118,12 @@ describe('AiService', () => {
 
   afterEach(() => {
     httpMock.verify();
+  });
+
+  it('starts every included tool as a suggestion, never a locked upgrade', () => {
+    expect(
+      service.availableUpgrades().every((rec) => rec.state === 'suggested')
+    ).toBe(true);
   });
 
   it('reflects persisted recommendation decisions in the available cards', () => {
@@ -205,25 +210,6 @@ describe('AiService', () => {
       /empty/i,
     );
     expect(service.industryIntelligence()).toEqual([]);
-  });
-
-  it('should unlock an upgrade', (done) => {
-    expect(service.isUnlocked('test-upgrade')).toBe(false);
-    service.unlockUpgrade('test-upgrade');
-    expect(service.isProcessing()).toBe(true);
-    setTimeout(() => {
-      expect(service.isUnlocked('test-upgrade')).toBe(true);
-      expect(service.isProcessing()).toBe(false);
-      done();
-    }, 1600);
-  });
-
-  it('should not try to unlock an already unlocked upgrade', () => {
-    service.unlockedUpgrades.set(['test-upgrade']);
-    service.unlockUpgrade('test-upgrade');
-    expect(loggingServiceMock.info).toHaveBeenCalledWith(
-      'Upgrade test-upgrade is already unlocked.'
-    );
   });
 
   const calibratedProfile = {

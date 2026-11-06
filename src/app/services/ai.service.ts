@@ -1,6 +1,5 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { UserProfileService } from './user-profile.service';
-import { MainViewMode } from './user-context.service';
 import { MusicManagerService } from './music-manager.service';
 import { STRATEGIC_DECREES } from './ai-knowledge.data';
 import { NEURAL_UPGRADE_BLUEPRINTS } from './neural-upgrades.data';
@@ -48,21 +47,9 @@ import { SmuveMemoryService } from './smuve-memory.service';
 import { UserStoreService } from './user-store.service';
 import { GUEST_AI_LOCK_NOTICE, mayUseAi } from './guest-access';
 import { buildMarketAlerts } from './market-alerts.util';
+import type { UpgradeRecommendation } from '../types/ai.types';
 
-export interface UpgradeRecommendation {
-  id: string;
-  title: string;
-  type: string;
-  description: string;
-  cost: string;
-  impact: 'Low' | 'Medium' | 'High' | 'Critical' | 'Extreme';
-  prerequisites: string[];
-  actionLabel: string;
-  toolId: string;
-  outcomeMetric: { label: string; value: string };
-  preferredViews?: MainViewMode[];
-  state?: 'locked' | 'unlocked' | 'saved' | 'dismissed' | 'not-relevant' | 'acquired' | 'completed';
-}
+export type { UpgradeRecommendation } from '../types/ai.types';
 
 @Injectable({
   providedIn: 'root',
@@ -92,7 +79,6 @@ export class AiService {
   private userStore = inject(UserStoreService);
 
   strategicDecrees = signal<string[]>(STRATEGIC_DECREES);
-  unlockedUpgrades = signal<string[]>([]);
   /**
    * Release-window and lifecycle alerts, derived from the profile's own
    * evidence. This used to be a writable signal that no producer ever wrote,
@@ -205,13 +191,13 @@ export class AiService {
     return 'Standard';
   });
 
-  availableUpgrades = computed(() => {
+  availableUpgrades = computed<UpgradeRecommendation[]>(() => {
+    const preferences =
+      this.userProfileService.profile().recommendationPreferences;
     return NEURAL_UPGRADE_BLUEPRINTS.map((u) => ({
       ...u,
-      state:
-        this.userProfileService.profile().recommendationPreferences?.[u.id]?.state ||
-        (this.isUnlocked(u.id) ? 'unlocked' : 'locked'),
-    })) as UpgradeRecommendation[];
+      state: preferences?.[u.id]?.state ?? 'suggested',
+    }));
   });
 
   /**
@@ -1115,24 +1101,6 @@ Remember: sharpen the artist's decisions, sign the work with a GOD's signature, 
       throw new Error('AI image provider returned no concept frame.');
     }
     return response.url;
-  }
-
-  isUnlocked(id: string) {
-    return this.unlockedUpgrades().includes(id);
-  }
-  unlockUpgrade(id: string): Promise<void> {
-    if (this.unlockedUpgrades().includes(id)) {
-      this.loggingService.info(`Upgrade ${id} is already unlocked.`);
-      return Promise.resolve();
-    }
-    this.isProcessing.set(true);
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        this.unlockedUpgrades.update((u) => [...u, id]);
-        this.isProcessing.set(false);
-        resolve();
-      }, 1500);
-    });
   }
 
   // ── Session musician transport ──────────────────────────────────────

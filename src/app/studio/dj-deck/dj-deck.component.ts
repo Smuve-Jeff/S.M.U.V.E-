@@ -26,7 +26,6 @@ import { AudioEngineService } from "../../services/audio-engine.service";
 import { DatabaseService } from "../../services/database.service";
 import { UIService } from "../../services/ui.service";
 import { UserProfileService } from "../../services/user-profile.service";
-import { AiService } from "../../services/ai.service";
 import { RecordingStatusService } from "../recording-status.service";
 import { SwipeContainerComponent } from "../shared/swipe-container/swipe-container.component";
 
@@ -154,7 +153,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild("meterA") meterA!: ElementRef<HTMLCanvasElement>;
   @ViewChild("meterB") meterB!: ElementRef<HTMLCanvasElement>;
 
-  private neuralOrchestrator = inject(AiService);
   theme = input<AppTheme>(inject(UIService).activeTheme());
 
   midiEnabled = signal(false);
@@ -162,9 +160,6 @@ export class DjDeckComponent implements OnInit, OnDestroy, AfterViewInit {
   showSampleLibrary = signal(false);
   isMobile = signal(false);
 
-  hasNeuralStemSplitter = computed(() =>
-    this.neuralOrchestrator.isUnlocked("upg-neural-stem-splitter"),
-  );
   stems = ["vocals", "drums", "bass", "instrumental"];
 
   rotationA = signal(0);

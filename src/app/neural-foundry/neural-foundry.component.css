@@ -7,7 +7,6 @@
   --foundry-cyan: #00e5ff;
   --foundry-magenta: #ff007f;
   --foundry-amber: #ffb800;
-  --foundry-unlocked: #00e5ff;
 }
 
 .foundry-container {
@@ -47,6 +46,17 @@
   text-transform: uppercase;
   color: var(--foundry-text-dim);
   margin-top: 0.5rem;
+}
+
+.foundry-header .foundry-note {
+  max-width: 42rem;
+  margin: 1rem auto 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: 1.5;
+  text-transform: none;
+  color: var(--foundry-text-dim);
 }
 
 @keyframes foundry-shimmer {
@@ -144,11 +154,11 @@
     0 0 30px rgba(0, 229, 255, 0.08);
 }
 
-.upgrade-card.unlocked {
+.upgrade-card.completed {
   border-color: rgba(0, 229, 255, 0.3);
 }
 
-.upgrade-card.unlocked::before {
+.upgrade-card.completed::before {
   background: linear-gradient(
     90deg,
     transparent,
@@ -176,7 +186,7 @@
   margin-bottom: 0.5rem;
 }
 
-.upgrade-card.unlocked .upgrade-type {
+.upgrade-card.completed .upgrade-type {
   background: rgba(255, 184, 0, 0.1);
   color: var(--foundry-amber);
   border-color: rgba(255, 184, 0, 0.2);
@@ -212,24 +222,6 @@
   font-weight: 800;
 }
 
-/* Progress bar */
-.upgrade-progress {
-  margin: 1rem 0;
-}
-
-.progress-bar-track {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.5s ease;
-}
-
 .card-footer {
   margin-top: auto;
   padding-top: 1rem;
@@ -259,7 +251,7 @@
   color: rgba(250, 249, 255, 0.7);
 }
 
-.unlock-button {
+.tool-button {
   padding: 10px 20px;
   border-radius: 10px;
   border: 1px solid var(--foundry-cyan);
@@ -274,22 +266,15 @@
   font-family: inherit;
 }
 
-.unlock-button:hover:not(:disabled) {
+.tool-button:hover:not(:disabled) {
   background: var(--foundry-cyan);
   color: #07060d;
   box-shadow: 0 0 25px rgba(0, 229, 255, 0.3);
 }
 
-.unlock-button:disabled {
+.tool-button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.upgrade-card.unlocked .unlock-button {
-  background: rgba(0, 229, 255, 0.06);
-  border-color: rgba(0, 229, 255, 0.2);
-  color: var(--foundry-cyan);
-  cursor: default;
 }
 
 .no-upgrades {
@@ -329,7 +314,7 @@
     flex-direction: column;
     align-items: stretch;
   }
-  .unlock-button {
+  .tool-button {
     text-align: center;
   }
 }

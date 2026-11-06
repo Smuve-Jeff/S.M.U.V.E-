@@ -10,7 +10,6 @@ import { DatabaseService } from "../../services/database.service";
 import { UIService } from "../../services/ui.service";
 import { UserProfileService } from "../../services/user-profile.service";
 import { initialDeckState } from "../../services/user-context.service";
-import { AiService } from "../../services/ai.service";
 import { DjMidiService } from "../../services/dj-midi.service";
 
 describe("DjDeckComponent", () => {
@@ -195,10 +194,6 @@ describe("DjDeckComponent", () => {
               settings: { ui: {} },
             }),
           },
-        },
-        {
-          provide: AiService,
-          useValue: { isUnlocked: jest.fn().mockReturnValue(false) },
         },
         { provide: DjMidiService, useValue: { initMidi: jest.fn() } },
       ],

@@ -449,7 +449,8 @@ export const WORKSPACE_REGISTRY: WorkspaceConfig[] = [
     mode: 'neural-foundry',
     routePath: '/neural-foundry',
     label: 'Neural Foundry',
-    description: 'Unlock neural upgrades and track their activation progress.',
+    description:
+      'Open included workspace tools and review the recommendation record each one carries.',
     icon: 'psychology',
     category: 'STRATEGY',
     related: ['command-center', 'strategy', 'produce'],
