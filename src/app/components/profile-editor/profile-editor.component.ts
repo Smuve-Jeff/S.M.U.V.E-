@@ -64,6 +64,46 @@ interface ProfileNextStep {
   source: 'artist-contract' | 'pathway' | 'profile-coverage';
 }
 
+/** A draft is compared with the committed file, so it must not share objects. */
+const cloneProfile = (profile: UserProfile): UserProfile =>
+  JSON.parse(JSON.stringify(profile)) as UserProfile;
+
+/**
+ * Deep equality for the draft guard. Unchanged nested objects keep their
+ * reference through the editor's immutable updates, so the common path exits
+ * on `Object.is` instead of walking an image-heavy profile on every keystroke.
+ */
+const profileValuesEqual = (left: unknown, right: unknown): boolean => {
+  if (Object.is(left, right)) return true;
+  if (left === null || right === null) return false;
+
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((item, index) => profileValuesEqual(item, right[index]))
+    );
+  }
+
+  if (typeof left !== 'object' || typeof right !== 'object') return false;
+  const leftRecord = left as Record<string, unknown>;
+  const rightRecord = right as Record<string, unknown>;
+  const keys = (value: Record<string, unknown>) =>
+    Object.keys(value).filter((key) => value[key] !== undefined);
+  const leftKeys = keys(leftRecord);
+  const rightKeys = keys(rightRecord);
+
+  return (
+    leftKeys.length === rightKeys.length &&
+    leftKeys.every(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(rightRecord, key) &&
+        profileValuesEqual(leftRecord[key], rightRecord[key])
+    )
+  );
+};
+
 @Component({
   selector: 'app-profile-editor',
   templateUrl: './profile-editor.component.html',
@@ -154,9 +194,21 @@ export class ProfileEditorComponent implements OnInit {
   });
 
   // Profile editing
-  editableProfile = signal<UserProfile>({
-    ...this.userProfileService.profile(),
-  });
+  editableProfile = signal<UserProfile>(
+    cloneProfile(this.userProfileService.profile())
+  );
+  /** Last successfully committed profile; the working copy is compared to it. */
+  private committedProfile = signal<UserProfile>(
+    cloneProfile(this.userProfileService.profile())
+  );
+  /** True when the working copy differs from the last committed profile. */
+  hasUnsavedChanges = computed(
+    () =>
+      !profileValuesEqual(
+        this.editableProfile(),
+        this.committedProfile()
+      )
+  );
   /**
    * Commit lifecycle for the header. `failed` exists because a commit can be
    * rejected (the uplink validates the name and genre), and reporting that as
@@ -167,6 +219,8 @@ export class ProfileEditorComponent implements OnInit {
   saveStatus = signal<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   saveError = signal<string | null>(null);
   activeSection = signal<string>('basic');
+  /** Inline confirmation for discarding an uncommitted draft. */
+  discardPending = signal(false);
 
   /** Inline roster form state for the Professional Team pane. */
   addingTeamMember = signal(false);
@@ -188,12 +242,16 @@ export class ProfileEditorComponent implements OnInit {
     switch (this.saveStatus()) {
       case 'saving':
         return 'SYNCING...';
-      case 'saved':
-        return 'LAST_COMMIT: SAVED';
       case 'failed':
         return 'LAST_COMMIT: FAILED';
+      case 'saved':
+        return this.hasUnsavedChanges()
+          ? 'DRAFT: UNSAVED CHANGES'
+          : 'LAST_COMMIT: SAVED';
       default:
-        return 'VAULT_STATUS: READY';
+        return this.hasUnsavedChanges()
+          ? 'DRAFT: UNSAVED CHANGES'
+          : 'VAULT_STATUS: READY';
     }
   });
 
@@ -883,19 +941,25 @@ export class ProfileEditorComponent implements OnInit {
     this.showUplink.set(true);
     this.saveStatus.set('saving');
     this.saveError.set(null);
+    this.discardPending.set(false);
+    // The uplink runs through several animated stages. Capture exactly what
+    // was submitted so an edit made mid-flight stays unsaved instead of being
+    // silently counted as part of the commit that already left.
+    const submitted = cloneProfile(this.editableProfile());
     const section =
       this.profileModule.sections.find((entry) => entry.id === this.activeSection())
         ?.label ?? 'Profile Editor';
     try {
-      const committed = await this.uplinkService.initiateUplink(
-        this.editableProfile()
-      );
+      const committed = await this.uplinkService.initiateUplink(submitted);
       if (committed) {
         this.revisionSource.markSource({
           id: 'profile-editor',
           label: 'Profile Editor',
           detail: section,
         });
+        // Only the submitted snapshot was committed. Anything typed while the
+        // uplink ran remains a draft and keeps the unsaved warning visible.
+        this.committedProfile.set(submitted);
         this.saveStatus.set('saved');
       } else {
         this.saveStatus.set('failed');
@@ -907,6 +971,26 @@ export class ProfileEditorComponent implements OnInit {
     } catch (err: any) {
       this.saveStatus.set('failed');
       this.saveError.set(err?.message || 'COMMIT FAILED. RETRY THE UPLINK.');
+    }
+  }
+
+  requestDiscard(): void {
+    if (this.saveStatus() === 'saving' || !this.hasUnsavedChanges()) return;
+    this.discardPending.set(true);
+  }
+
+  cancelDiscard(): void {
+    this.discardPending.set(false);
+  }
+
+  /** Restore the last committed profile without writing anything to storage. */
+  discardDraft(): void {
+    if (this.saveStatus() === 'saving') return;
+    this.editableProfile.set(cloneProfile(this.committedProfile()));
+    this.discardPending.set(false);
+    if (this.saveStatus() === 'failed') {
+      this.saveStatus.set('idle');
+      this.saveError.set(null);
     }
   }
 
@@ -936,6 +1020,12 @@ export class ProfileEditorComponent implements OnInit {
       role: draft.role.trim() || undefined,
     });
     this.editableProfile.update((local) => ({ ...local, team: stored.team }));
+    // The roster write lands in the store immediately, so the committed copy
+    // must move with it or the next edit would look like it changed the team.
+    this.committedProfile.update((committed) => ({
+      ...committed,
+      team: stored.team,
+    }));
     this.cancelTeamMember();
   }
 
@@ -943,6 +1033,10 @@ export class ProfileEditorComponent implements OnInit {
     if (!id) return;
     const stored = await this.userProfileService.removeTeamMember(id);
     this.editableProfile.update((local) => ({ ...local, team: stored.team }));
+    this.committedProfile.update((committed) => ({
+      ...committed,
+      team: stored.team,
+    }));
   }
 
   async queueConnectorRefresh(connectorId: ConnectorPlatform): Promise<void> {
@@ -1061,7 +1155,7 @@ export class ProfileEditorComponent implements OnInit {
         label: 'Profile Archive Import',
         detail: file.name,
       });
-      this.editableProfile.set({ ...this.userProfileService.profile() });
+      this.editableProfile.set(cloneProfile(this.userProfileService.profile()));
       this.archiveNotice.set({
         kind: 'ok',
         text: 'ARCHIVE IMPORTED. COMMIT TO STORE IT IN THE VAULT.',

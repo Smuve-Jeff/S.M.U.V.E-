@@ -19,7 +19,10 @@ import {
 import { UserProfileService } from '../../services/user-profile.service';
 import { ArtistLifecycleService } from '../../services/artist-lifecycle.service';
 import {
+  ArtistLifecycleHistoryEntry,
+  LifecyclePhaseId,
   LifecycleStatus,
+  LIFECYCLE_PHASE_LABEL,
   LIFECYCLE_PHASE_ORDER,
 } from '../../types/artist-lifecycle.types';
 import { ReadinessState } from '../../types/release-readiness.types';
@@ -27,6 +30,32 @@ import { ReleaseProject, ReleaseType } from '../../types/release.types';
 
 /** Every expandable card in this hub, owned by the service so they cannot drift. */
 type HubPanel = ArtistDevelopmentPanel;
+
+interface MomentumPhaseMove {
+  id: LifecyclePhaseId;
+  label: string;
+  from: number;
+  to: number;
+  delta: number;
+}
+
+interface DevelopmentMomentum {
+  latest: ArtistLifecycleHistoryEntry;
+  previous: ArtistLifecycleHistoryEntry | null;
+  /** Change from the previous snapshot, or null when only a baseline exists. */
+  scoreDelta: number | null;
+  /** Change from the oldest recorded snapshot. */
+  sinceFirst: number | null;
+  points: { generatedAt: string; overallScore: number }[];
+  phaseMoves: MomentumPhaseMove[];
+  focusChanged: boolean | null;
+  focusTitle: string | null;
+}
+
+const historyTime = (entry: ArtistLifecycleHistoryEntry): number => {
+  const parsed = Date.parse(String(entry?.generatedAt || ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 @Component({
   selector: 'app-artist-development-hub',
@@ -135,7 +164,105 @@ export class ArtistDevelopmentHubComponent implements OnInit {
 
   readiness = computed(() => this.lifecycle().releaseReadiness);
 
+  /** Snapshots the profile has recorded when evidence changed, newest first. */
+  readonly lifecycleHistory = computed<ArtistLifecycleHistoryEntry[]>(() => {
+    const raw = this.userProfile.profile()?.lifecycleHistory;
+    if (!Array.isArray(raw)) return [];
+    return [...raw]
+      .filter(
+        (entry) =>
+          Boolean(entry) &&
+          typeof entry.generatedAt === 'string' &&
+          Number.isFinite(entry.overallScore)
+      )
+      .sort((a, b) => historyTime(b) - historyTime(a));
+  });
+
+  /**
+   * The recorded development trend. Every value is a comparison of snapshots
+   * the profile actually stored; one snapshot is labelled a baseline instead
+   * of being sold as momentum.
+   */
+  readonly developmentMomentum = computed<DevelopmentMomentum | null>(() => {
+    const history = this.lifecycleHistory();
+    if (!history.length) return null;
+
+    const latest = history[0];
+    const previous = history[1] ?? null;
+    const oldest = history[history.length - 1];
+    const numeric = (value: unknown): number | null =>
+      typeof value === 'number' && Number.isFinite(value) ? value : null;
+    const phaseMoves: MomentumPhaseMove[] = [];
+
+    if (previous) {
+      for (const id of LIFECYCLE_PHASE_ORDER) {
+        const before = numeric(previous.phaseScores?.[id]);
+        const after = numeric(latest.phaseScores?.[id]);
+        if (before === null || after === null || before === after) continue;
+        phaseMoves.push({
+          id,
+          label: LIFECYCLE_PHASE_LABEL[id],
+          from: before,
+          to: after,
+          delta: after - before,
+        });
+      }
+    }
+
+    const currentFocus = this.lifecycle().nextBestMove;
+    const focusTitle =
+      currentFocus && latest.nextBestMoveId === currentFocus.id
+        ? currentFocus.title
+        : null;
+
+    return {
+      latest,
+      previous,
+      scoreDelta: previous
+        ? latest.overallScore - previous.overallScore
+        : null,
+      sinceFirst:
+        history.length > 1
+          ? latest.overallScore - oldest.overallScore
+          : null,
+      points: history
+        .slice(0, 8)
+        .reverse()
+        .map((entry) => ({
+          generatedAt: entry.generatedAt,
+          overallScore: entry.overallScore,
+        })),
+      phaseMoves,
+      focusChanged: previous
+        ? latest.nextBestMoveId !== previous.nextBestMoveId
+        : null,
+      focusTitle,
+    };
+  });
+
   readonly lifecyclePhaseOrder = LIFECYCLE_PHASE_ORDER;
+
+  signedScore(value: number | null): string {
+    if (value === null) return '—';
+    return value > 0 ? `+${value}` : String(value);
+  }
+
+  momentumTone(value: number | null): string {
+    if (value === null || value === 0) return 'text-slate-400';
+    return value > 0 ? 'text-emerald-400' : 'text-rose-400';
+  }
+
+  momentumArrow(value: number | null): string {
+    if (value === null || value === 0) return '→';
+    return value > 0 ? '▲' : '▼';
+  }
+
+  momentumBarHeight(score: number): string {
+    const safe = Number.isFinite(score)
+      ? Math.max(0, Math.min(100, score))
+      : 0;
+    return `${Math.max(4, safe)}%`;
+  }
 
   lifecycleTone(status: LifecycleStatus): string {
     switch (status) {

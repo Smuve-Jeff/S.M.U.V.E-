@@ -810,6 +810,115 @@ describe('ProfileEditorComponent', () => {
     });
   });
 
+  describe('draft safety', () => {
+    it('marks the header as unsaved after an edit and clears it on commit', async () => {
+      const { fixture, component, button, text } = await createComponent();
+      expect(component.hasUnsavedChanges()).toBe(false);
+      expect(text()).not.toContain('DRAFT: UNSAVED CHANGES');
+
+      component.updateProfileField('location', 'Atlanta');
+      fixture.detectChanges();
+
+      expect(component.hasUnsavedChanges()).toBe(true);
+      expect(text()).toContain('DRAFT: UNSAVED CHANGES');
+      expect(text()).toContain('Your edits are not in the vault until you commit.');
+
+      button('Commit Neural Protocol').click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component.hasUnsavedChanges()).toBe(false);
+      expect(text()).toContain('LAST_COMMIT: SAVED');
+      expect(text()).not.toContain('DRAFT: UNSAVED CHANGES');
+    });
+
+    it('requires confirmation before restoring the committed profile', async () => {
+      const { fixture, component, button, text } = await createComponent();
+      const committedLocation = component.editableProfile().location;
+      component.updateProfileField('location', 'Atlanta');
+      fixture.detectChanges();
+
+      button('Discard draft').click();
+      fixture.detectChanges();
+      expect(component.discardPending()).toBe(true);
+      expect(component.editableProfile().location).toBe('Atlanta');
+      expect(text()).toContain('Discard all edits since the last commit?');
+
+      button('Keep editing').click();
+      fixture.detectChanges();
+      expect(component.discardPending()).toBe(false);
+      expect(component.editableProfile().location).toBe('Atlanta');
+      expect(component.hasUnsavedChanges()).toBe(true);
+
+      button('Discard draft').click();
+      fixture.detectChanges();
+      button('Yes, discard').click();
+      fixture.detectChanges();
+
+      expect(component.editableProfile().location).toBe(committedLocation);
+      expect(component.hasUnsavedChanges()).toBe(false);
+      expect(component.discardPending()).toBe(false);
+      expect(text()).not.toContain('Uncommitted draft');
+    });
+
+    it('keeps the draft and failure visible when a commit is rejected', async () => {
+      const { fixture, component, button, text } = await createComponent();
+      uplink.initiateUplink.mockResolvedValue(false);
+      uplink.status.mockReturnValue({
+        stage: 'failed',
+        message: 'TRANSMISSION SEVERED',
+        logs: [],
+        error: 'GENRE_UNDEFINED: Strategic alignment requires a primary domain.',
+      });
+      component.updateProfileField('location', 'Atlanta');
+      fixture.detectChanges();
+
+      button('Commit Neural Protocol').click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component.saveStatus()).toBe('failed');
+      expect(component.hasUnsavedChanges()).toBe(true);
+      expect(text()).toContain('LAST_COMMIT: FAILED');
+      expect(text()).toContain('Discard draft');
+    });
+
+    it('keeps an edit made while the commit is in flight unsaved', async () => {
+      const { fixture, component, button, text } = await createComponent();
+      let finish: (value: boolean) => void = () => undefined;
+      uplink.initiateUplink.mockReturnValue(
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        })
+      );
+      component.updateProfileField('location', 'Atlanta');
+      fixture.detectChanges();
+
+      button('Commit Neural Protocol').click();
+      await Promise.resolve();
+      component.updateProfileField('website', 'https://nova.example');
+      fixture.detectChanges();
+
+      finish(true);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component.saveStatus()).toBe('saved');
+      expect(component.hasUnsavedChanges()).toBe(true);
+      expect(text()).toContain('DRAFT: UNSAVED CHANGES');
+    });
+
+    it('does not mark a value that did not change as a draft edit', async () => {
+      const { fixture, component } = await createComponent();
+      const current = component.editableProfile().artistName;
+
+      component.updateProfileField('artistName', current);
+      fixture.detectChanges();
+
+      expect(component.hasUnsavedChanges()).toBe(false);
+    });
+  });
+
   describe('professional team', () => {
     it('deploys a drafted member onto the roster', async () => {
       const { fixture, component, button, text } = await createComponent();

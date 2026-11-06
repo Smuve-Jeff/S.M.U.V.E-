@@ -405,6 +405,92 @@ describe('ArtistDevelopmentHubComponent', () => {
     expect(text()).toContain(component.lifecycle().summary);
   });
 
+  it('shows recorded development momentum without inventing a trend', async () => {
+    const { fixture, component, text } = await createComponent();
+    expect(component.developmentMomentum()).toBeNull();
+    expect(text()).toContain('No development snapshots yet');
+
+    const next = component.nextAction()!;
+    const oldest = {
+      generatedAt: '2026-01-01T00:00:00.000Z',
+      overallScore: 40,
+      phaseScores: { identity: 30, craft: 40 },
+      nextBestMoveId: 'first-move',
+      releaseReadinessScore: null,
+    };
+    const middle = {
+      generatedAt: '2026-02-01T00:00:00.000Z',
+      overallScore: 50,
+      phaseScores: { identity: 40, craft: 40 },
+      nextBestMoveId: 'previous-move',
+      releaseReadinessScore: null,
+    };
+    const latest = {
+      generatedAt: '2026-03-01T00:00:00.000Z',
+      overallScore: 60,
+      phaseScores: { identity: 55, craft: 40 },
+      nextBestMoveId: next.step.id,
+      releaseReadinessScore: null,
+    };
+
+    // Stored in an arbitrary order on purpose: the view sorts the records.
+    profile.update(
+      (current) =>
+        ({
+          ...current,
+          lifecycleHistory: [oldest, latest, middle],
+        }) as any
+    );
+    fixture.detectChanges();
+
+    const momentum = component.developmentMomentum()!;
+    expect(component.lifecycleHistory().map((e) => e.overallScore)).toEqual([
+      60, 50, 40,
+    ]);
+    expect(momentum.scoreDelta).toBe(10);
+    expect(momentum.sinceFirst).toBe(20);
+    expect(momentum.points.map((point) => point.overallScore)).toEqual([
+      40, 50, 60,
+    ]);
+    expect(momentum.phaseMoves).toContainEqual(
+      expect.objectContaining({ id: 'identity', delta: 15 })
+    );
+    expect(momentum.focusChanged).toBe(true);
+    expect(momentum.focusTitle).toBe(next.step.title);
+    expect(component.momentumBarHeight(0)).toBe('4%');
+    expect(component.momentumBarHeight(120)).toBe('100%');
+    expect(text()).toContain('Development momentum');
+    expect(text()).toContain('+10 pts');
+    expect(text()).toContain('+20 since first record');
+  });
+
+  it('labels a single snapshot as a baseline instead of a trend', async () => {
+    const { fixture, component, text } = await createComponent();
+
+    profile.update(
+      (current) =>
+        ({
+          ...current,
+          lifecycleHistory: [
+            {
+              generatedAt: '2026-03-01T00:00:00.000Z',
+              overallScore: 42,
+              phaseScores: { identity: 42 },
+              nextBestMoveId: null,
+              releaseReadinessScore: null,
+            },
+          ],
+        }) as any
+    );
+    fixture.detectChanges();
+
+    const momentum = component.developmentMomentum()!;
+    expect(momentum.scoreDelta).toBeNull();
+    expect(momentum.sinceFirst).toBeNull();
+    expect(text()).toContain('Baseline snapshot');
+    expect(text()).toContain('No earlier snapshot to compare.');
+  });
+
   it('says release readiness cannot be judged before a release exists', async () => {
     const { component, text } = await createComponent();
 
@@ -416,6 +502,13 @@ describe('ArtistDevelopmentHubComponent', () => {
   });
 
   it('scores readiness for the release stored in the pipeline', async () => {
+    // Keep the planned release in the future: readiness correctly penalises a
+    // Planning release whose catalogue date has already passed.
+    const plannedReleaseDate = new Date(
+      Date.now() + 30 * 24 * 60 * 60 * 1000
+    )
+      .toISOString()
+      .slice(0, 10);
     profile.set({
       primaryGenre: 'Ambient',
       proName: 'ASCAP',
@@ -429,7 +522,7 @@ describe('ArtistDevelopmentHubComponent', () => {
           title: 'Window Light',
           isrc: 'US-AAA-25-00001',
           upc: '00123456789012',
-          releaseDate: '2025-02-01',
+          releaseDate: plannedReleaseDate,
           distributor: 'DistroKid',
           platforms: ['Spotify'],
         },

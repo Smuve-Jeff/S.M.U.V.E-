@@ -246,6 +246,162 @@
             }
           </div>
 
+          <!-- Development momentum, computed only from recorded evidence -->
+          <div
+            class="bg-brand-dark/40 border border-white/5 rounded-2xl p-5 space-y-4"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <div
+                  class="text-[8px] font-black uppercase tracking-[0.3em] text-brand-primary"
+                >
+                  Development momentum
+                </div>
+                <p class="text-[9px] text-slate-500 mt-1">
+                  Recorded from profile evidence, not check-ins.
+                </p>
+              </div>
+              @if (developmentMomentum(); as momentum) {
+                <span
+                  class="text-[7px] uppercase tracking-widest font-bold text-slate-500"
+                >
+                  {{ momentum.points.length }} snapshot{{
+                    momentum.points.length === 1 ? '' : 's'
+                  }}
+                </span>
+              }
+            </div>
+
+            @if (developmentMomentum(); as momentum) {
+              <div class="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <div class="flex flex-wrap items-end gap-2">
+                    <span class="text-3xl font-black text-white">
+                      {{ momentum.latest.overallScore }}%
+                    </span>
+                    @if (momentum.scoreDelta !== null) {
+                      <span
+                        class="text-[10px] font-black"
+                        [ngClass]="momentumTone(momentum.scoreDelta)"
+                      >
+                        {{ momentumArrow(momentum.scoreDelta) }}
+                        {{ signedScore(momentum.scoreDelta) }} pts
+                      </span>
+                    } @else {
+                      <span
+                        class="text-[9px] font-bold uppercase tracking-widest text-slate-500"
+                      >
+                        Baseline snapshot
+                      </span>
+                    }
+                  </div>
+                  <div
+                    class="text-[8px] text-slate-500 uppercase tracking-widest mt-1"
+                  >
+                    {{ formatDate(momentum.latest.generatedAt) }}
+                    @if (momentum.sinceFirst !== null) {
+                      · {{ signedScore(momentum.sinceFirst) }} since first record
+                    }
+                  </div>
+                </div>
+                <div
+                  class="flex items-end gap-1 h-14 w-full sm:w-40"
+                  aria-label="Recorded development score history"
+                >
+                  @for (point of momentum.points; track point.generatedAt) {
+                    <div
+                      class="flex-1 rounded-t-sm bg-violet-500/60"
+                      style="min-height: 3px"
+                      [style.height]="momentumBarHeight(point.overallScore)"
+                      [title]="
+                        formatDate(point.generatedAt) +
+                        ': ' +
+                        point.overallScore +
+                        '%'
+                      "
+                    ></div>
+                  }
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div
+                  class="rounded-xl border border-white/5 bg-black/20 px-3 py-2"
+                >
+                  <div
+                    class="text-[7px] uppercase tracking-widest font-bold text-slate-500"
+                  >
+                    Next focus
+                  </div>
+                  <div class="text-[10px] text-slate-300 mt-1">
+                    @if (momentum.focusTitle) {
+                      {{ momentum.focusTitle }}
+                    } @else if (momentum.focusChanged) {
+                      The recorded focus changed; today's queue has moved on.
+                    } @else {
+                      No new focus recorded.
+                    }
+                  </div>
+                </div>
+                <div
+                  class="rounded-xl border border-white/5 bg-black/20 px-3 py-2"
+                >
+                  <div
+                    class="text-[7px] uppercase tracking-widest font-bold text-slate-500"
+                  >
+                    Since previous snapshot
+                  </div>
+                  <div class="text-[10px] text-slate-300 mt-1">
+                    @if (momentum.previous) {
+                      @if (momentum.focusChanged) {
+                        Focus changed.
+                      } @else {
+                        Focus held steady.
+                      }
+                      @if (momentum.phaseMoves.length) {
+                        {{ momentum.phaseMoves.length }} phase{{
+                          momentum.phaseMoves.length === 1 ? '' : 's'
+                        }}
+                        moved.
+                      } @else {
+                        No phase-level change.
+                      }
+                    } @else {
+                      No earlier snapshot to compare.
+                    }
+                  </div>
+                </div>
+              </div>
+
+              @if (momentum.phaseMoves.length) {
+                <div class="flex flex-wrap gap-2">
+                  @for (move of momentum.phaseMoves; track move.id) {
+                    <span
+                      class="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[8px] font-bold uppercase tracking-widest"
+                    >
+                      {{ move.label }}
+                      <span [ngClass]="momentumTone(move.delta)"
+                        >{{ momentumArrow(move.delta) }}
+                        {{ signedScore(move.delta) }}</span
+                      >
+                    </span>
+                  }
+                </div>
+              }
+
+              <p class="text-[8px] text-slate-500 leading-relaxed">
+                A higher score means more completed pathway evidence, not a
+                better artist. Snapshots only change when the record does.
+              </p>
+            } @else {
+              <p class="text-[10px] text-slate-400 leading-relaxed">
+                No development snapshots yet. S.M.U.V.E. records one whenever
+                profile evidence changes, so the first entry appears after your
+                next update.
+              </p>
+            }
+          </div>
+
           <!-- Release readiness for the release actually in the pipeline -->
           <div class="bg-brand-dark/40 border border-white/5 rounded-2xl p-5 space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
