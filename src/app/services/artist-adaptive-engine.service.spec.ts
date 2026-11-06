@@ -97,4 +97,33 @@ describe('Profile-adaptive music manager', () => {
     expect(career.careerStage.id).not.toBe('elite');
     expect(career.careerStage.typicalGigRate).toContain('Unquoted');
   });
+
+  it('describes sync gaps without promising multiplied revenue', () => {
+    profile.update((p) => ({
+      ...p,
+      team: [],
+      services: [],
+      settings: {
+        ...p.settings,
+        security: {
+          ...p.settings.security,
+          shareProfileAnswersWithAi: true,
+          hideSensitiveProfileDetails: false,
+        },
+      },
+      syncDetails: {
+        isSyncReady: 'Not Started',
+        hasCleanVersions: 'No',
+        hasInstrumentals: 'No',
+        hasStems: 'No',
+        oneStopClearance: 'No',
+      },
+    } as any));
+
+    const missed = TestBed.inject(ArtistAiCoachService).coachState().personalized.missedOpportunities.join(' ');
+
+    expect(missed).toContain('Sync assets are');
+    expect(missed).toContain('before a pitch is credible');
+    expect(missed).not.toMatch(/multiply revenue/i);
+  });
 });

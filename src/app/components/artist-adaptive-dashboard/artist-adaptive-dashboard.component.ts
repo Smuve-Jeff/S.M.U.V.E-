@@ -17,17 +17,51 @@ import { MusicalDnaService } from '../../services/musical-dna.service';
       <div class="container">
         <div class="card dna-card">
           <h2>Musical DNA Fingerprint</h2>
-          <div class="dna-signature">{{ dnaSignature() }}</div>
-          <p class="fidelity">Fidelity: {{ dnaReading().fidelity }}/100</p>
-          <div class="dimensions">
-            @for (dim of dnaReading().dimensions; track dim.id) {
-              <div class="dimension">
-                <span class="label">{{ dim.label }}</span>
-                <div class="posture" [attr.data-posture]="dim.posture">{{ dim.posture }}</div>
-                <small>{{ dim.confidence }}/100 confidence</small>
-              </div>
-            }
+          @if (dnaWithheld()) {
+            <p class="privacy-note">
+              Withheld — this profile's answers are marked private from AI. S.M.U.V.E.
+              will not display or personalize against the fingerprint until sharing is
+              enabled in Settings → Privacy.
+            </p>
+          } @else {
+            <div class="dna-signature">{{ dnaSignature() }}</div>
+            <p class="fidelity">Profile evidence fidelity: {{ dnaReading().fidelity }}/100</p>
+            <div class="dimensions">
+              @for (dim of dnaReading().dimensions; track dim.id) {
+                <div class="dimension">
+                  <span class="label">{{ dim.label }}</span>
+                  <div class="posture" [attr.data-posture]="dim.posture">{{ dim.posture }}</div>
+                  <small>{{ dim.confidence }}/100 confidence</small>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="card evidence-card">
+          <h2>What This Adaptation Reads</h2>
+          <div class="evidence">
+            <div class="evidence-row">
+              <span>Profile answers complete</span>
+              <strong>{{ adaptation().knowledge.completeness }}%</strong>
+            </div>
+            <div class="evidence-row">
+              <span>Evidence state</span>
+              <strong>{{ adaptation().knowledge.state }}</strong>
+            </div>
+            <div class="evidence-row">
+              <span>Unanswered profile questions</span>
+              <strong>{{ adaptation().knowledge.missing.length }}</strong>
+            </div>
+            <div class="evidence-row">
+              <span>Catalog records documented</span>
+              <strong>{{ adaptation().knowledge.presence.catalogAverageCompleteness }}%</strong>
+            </div>
           </div>
+          <p class="evidence-note">
+            Readiness scores on this page count declared questionnaire answers. They are
+            not verified bookings, placements, or platform metrics.
+          </p>
         </div>
 
         <div class="card genre-card">
@@ -62,8 +96,12 @@ import { MusicalDnaService } from '../../services/musical-dna.service';
         </div>
 
         <div class="card readiness-card">
-          <h2>Live Readiness</h2>
+          <h2>Declared Live Readiness</h2>
           <div class="score">{{ adaptation().liveReadiness.score }}%</div>
+          <p class="card-note">
+            Counts your declared tour tier, backline access, routed regions, and catalog
+            size. It does not confirm rehearsals, draw, or bookings.
+          </p>
           @if (adaptation().liveReadiness.gaps.length > 0) {
             <div class="gaps">
               @for (gap of adaptation().liveReadiness.gaps; track gap) {
@@ -75,9 +113,13 @@ import { MusicalDnaService } from '../../services/musical-dna.service';
         </div>
 
         <div class="card sync-card">
-          <h2>Sync & Licensing Readiness</h2>
+          <h2>Declared Sync Asset Readiness</h2>
           <div class="score">{{ adaptation().syncReadiness.score }}%</div>
-          <p class="model">Clearance: {{ adaptation().syncReadiness.clearanceModel }}</p>
+          <p class="card-note">
+            Counts declared clean, instrumental, stem, and one-stop status. No placement,
+            clearance, or revenue is implied.
+          </p>
+          <p class="model">Clearance model: {{ adaptation().syncReadiness.clearanceModel }}</p>
           @if (adaptation().syncReadiness.missingAssets.length > 0) {
             <div class="assets">
               <strong>Missing Assets:</strong>
@@ -90,7 +132,7 @@ import { MusicalDnaService } from '../../services/musical-dna.service';
 
         @if (adaptation().warningsAndProtections.length > 0) {
           <div class="card warnings-card">
-            <h2>⚠️ Warnings & Protections</h2>
+            <h2>Warnings & Protections</h2>
             @for (warning of adaptation().warningsAndProtections; track warning) {
               <div class="warning">{{ warning }}</div>
             }
@@ -120,6 +162,12 @@ import { MusicalDnaService } from '../../services/musical-dna.service';
     .posture[data-posture="instinct-led"] { background: #f59e0b; color: #000; }
     .posture[data-posture="vision-led"] { background: #3b82f6; color: #fff; }
     .posture[data-posture="unread"] { background: #6b7280; color: #fff; }
+    .privacy-note { font-size: 0.85rem; opacity: 0.75; line-height: 1.5; margin: 0; }
+    .card-note { font-size: 0.8rem; opacity: 0.65; line-height: 1.45; margin: 0.75rem 0 0; }
+    .evidence { display: grid; gap: 0.25rem; }
+    .evidence-row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; padding: 0.45rem 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .evidence-row span { opacity: 0.75; }
+    .evidence-note { font-size: 0.8rem; opacity: 0.65; line-height: 1.45; margin: 0.9rem 0 0; }
     .section { margin-bottom: 1rem; }
     ul { list-style: none; padding: 0; margin: 0.5rem 0 0 0; }
     li { font-size: 0.85rem; opacity: 0.8; padding: 0.25rem 0; }
@@ -128,6 +176,7 @@ import { MusicalDnaService } from '../../services/musical-dna.service';
     .gaps { display: grid; gap: 0.5rem; margin: 0.75rem 0; }
     .gap { font-size: 0.85rem; opacity: 0.8; padding: 0.5rem; background: rgba(239,68,68,0.1); border-left: 3px solid #ef4444; border-radius: 4px; }
     .next-move { font-size: 0.85rem; margin: 0.75rem 0 0 0; opacity: 0.8; }
+    .model { font-size: 0.8rem; opacity: 0.7; margin: 0.5rem 0 0; }
     .assets { margin-top: 0.75rem; }
     .asset { font-size: 0.85rem; opacity: 0.8; padding: 0.25rem 0; }
     .warnings-card { border-color: #ef4444; border-width: 2px; }
@@ -140,5 +189,9 @@ export class ArtistAdaptiveDashboardComponent {
   private readonly dnaService = inject(MusicalDnaService);
   readonly adaptation = computed(() => this.adaptiveEngine.adaptationState());
   readonly dnaReading = computed(() => this.dnaService.reading());
+  readonly dnaWithheld = computed(
+    () =>
+      this.adaptation().profile?.settings?.security?.shareProfileAnswersWithAi !== true
+  );
   dnaSignature(): string { return this.dnaService.signature() || 'Fingerprint still forming.'; }
 }

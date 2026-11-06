@@ -12,6 +12,7 @@ import { RouterModule } from '@angular/router';
       <div class="header">
         <h1>S.M.U.V.E. Artist Coach</h1>
         <p>Personalized guidance based on your profile, genre, and stage</p>
+        <p class="evidence-note">Targets and readiness below come from your declared profile; nothing here is a booking, placement, or platform measurement.</p>
         <a [routerLink]="['/adaptive-profile']" class="link-button">View Adaptive Profile</a>
       </div>
 
@@ -58,7 +59,7 @@ import { RouterModule } from '@angular/router';
 
         @if (coach().personalized.missedOpportunities.length > 0) {
           <div class="card opportunities-card">
-            <h2>💡 Missed Opportunities</h2>
+            <h2>Missed Opportunities</h2>
             <div class="opportunity-list">
               @for (opp of coach().personalized.missedOpportunities; track opp) {
                 <div class="opportunity-item">{{ opp }}</div>
@@ -69,7 +70,7 @@ import { RouterModule } from '@angular/router';
 
         @if (coach().personalized.warnings.length > 0) {
           <div class="card warnings-card">
-            <h2>⚠️ Warnings</h2>
+            <h2>Warnings</h2>
             <div class="warning-list">
               @for (warning of coach().personalized.warnings; track warning) {
                 <div class="warning-item">{{ warning }}</div>
@@ -83,6 +84,7 @@ import { RouterModule } from '@angular/router';
   styles: [`
     .coach-container { padding: 2rem; display: grid; gap: 2rem; }
     .header { text-align: center; margin-bottom: 1rem; }
+    .evidence-note { font-size: 0.85rem; opacity: 0.65; margin: 0.75rem 0 0 0; line-height: 1.5; }
     .link-button { display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: #6ee7b7; color: #000; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
     .layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; }
     .card { border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; background: rgba(255,255,255,0.02); backdrop-filter: blur(8px); }

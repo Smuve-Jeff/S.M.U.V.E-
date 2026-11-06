@@ -508,4 +508,43 @@ describe('StrategyHubComponent', () => {
     expect(component.recommendationInbox().length).toBe(1);
     expect(component.recommendationInbox()[0].state).toBe('saved');
   });
+
+  it('hides the analytics tiles when no source is connected instead of printing zeros', () => {
+    const social = mockMarketingService.socialData();
+    const streaming = mockMarketingService.streamingData();
+    try {
+      mockMarketingService.hasAudienceData.set(false);
+      mockMarketingService.socialData.set([]);
+      mockMarketingService.streamingData.set([]);
+      component.setTab('analytics');
+      fixture.detectChanges();
+
+      const element = fixture.nativeElement as HTMLElement;
+      expect(element.querySelector('[data-testid="strategy-analytics-tiles"]')).toBeNull();
+      expect(element.textContent).toContain('No analytics source connected');
+    } finally {
+      mockMarketingService.hasAudienceData.set(true);
+      mockMarketingService.socialData.set(social);
+      mockMarketingService.streamingData.set(streaming);
+    }
+  });
+
+  it('renders unreported platform totals as not reported rather than zero', () => {
+    component.setTab('social');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(component.formatReportedMetric(0)).toBe('Not reported');
+    expect(component.formatReportedMetric(12500)).toBe('12.5K');
+    expect(element.textContent).toContain('12.5K');
+  });
+
+  it('labels session items as a local checklist rather than evidence', () => {
+    component.setTab('overview');
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('SESSION CHECKLIST');
+    expect(text).toContain('not saved as evidence');
+  });
 });

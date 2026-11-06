@@ -217,7 +217,7 @@ export class ArtistAiCoachService {
       opportunities.push(`No team recorded — consider: ${genre.businessPlaybook.releaseStrategy.includes('album') ? 'producer, engineer, mixer' : 'collaborator, engineer'}`);
     }
     if (adaptation.syncReadiness.score < 50) {
-      opportunities.push(`Sync licensing is ${adaptation.syncReadiness.score}% ready — ${genre.businessPlaybook.syncOpportunities[0] || 'film/TV placements'} could multiply revenue`);
+      opportunities.push(`Sync assets are ${adaptation.syncReadiness.score}% complete — ${genre.businessPlaybook.syncOpportunities[0] || 'film/TV and game briefs'} need the missing assets before a pitch is credible`);
     }
     if (!knowledge.presence.hasForArtists) {
       opportunities.push('No For Artists dashboard claimed — editorial pitching and analytics require this');

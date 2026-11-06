@@ -213,10 +213,8 @@
             <h3
               class="text-sm font-black text-white uppercase tracking-tight flex items-center justify-between"
             >
-              MANDATORY TASKS
-              <span class="text-[9px] text-brand-primary"
-                >S.M.U.V.E.-ORDER</span
-              >
+              SESSION CHECKLIST
+              <span class="text-[9px] text-brand-primary">LOCAL PLANNING</span>
             </h3>
             <!-- LIFECYCLE ORDERS — evidence-linked, never tickable -->
             <div class="space-y-3">
@@ -263,8 +261,12 @@
             <div class="border-t border-white/5 pt-6 space-y-3">
               <span
                 class="block text-[9px] font-black uppercase tracking-[0.3em] text-white/90"
-                >Session mandates</span
+                >Session checklist</span
               >
+              <p class="text-[8px] text-silver-dim leading-relaxed">
+                Ticking an item is a local planning aid; it is not saved as evidence and
+                never changes a pathway or score.
+              </p>
               @for (task of strategicTasks(); track task.id) {
                 <button
                   (click)="toggleTask(task.id)"
@@ -303,7 +305,7 @@
               (click)="refreshStrategicIntelligence()"
               class="w-full py-4 text-[9px] font-black text-white/90 uppercase tracking-[0.2em] border border-white/5 rounded-2xl hover:border-brand-primary/30 hover:text-brand-primary transition-all"
             >
-              REGENERATE PIPELINE
+              REFRESH CHECKLIST
             </button>
           </div>
         </div>
@@ -554,7 +556,7 @@
             PERFORMANCE METRICS
           </h2>
           <p class="text-xs text-silver-dim uppercase tracking-widest">
-            Total catalog telemetry and conversion analysis
+            Reported figures from linked accounts only
           </p>
         </header>
 
@@ -576,50 +578,34 @@
           </div>
         }
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        @if (hasAudienceData()) {
           <div
-            class="glass-v42 p-8 rounded-3xl space-y-2 border border-white/5"
+            data-testid="strategy-analytics-tiles"
+            class="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
-            <span
-              class="text-[9px] font-black text-brand-primary uppercase tracking-widest"
-              >TOTAL REACH</span
-            >
-            <div class="text-4xl font-black text-white italic tracking-tighter">
-              {{ formatNumber(totalFollowers()) }}
+            <div class="glass-v42 p-8 rounded-3xl space-y-2 border border-white/5">
+              <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest">TOTAL FOLLOWERS</span>
+              <div class="text-4xl font-black text-white italic tracking-tighter">
+                {{ formatReportedMetric(totalFollowers()) }}
+              </div>
+              <p class="text-[9px] text-silver-dim uppercase font-bold">Sum of linked social accounts</p>
             </div>
-            <p class="text-[9px] text-silver-dim uppercase font-bold">
-              Aggregate cross-platform footprint
-            </p>
-          </div>
-          <div
-            class="glass-v42 p-8 rounded-3xl space-y-2 border border-white/5"
-          >
-            <span
-              class="text-[9px] font-black text-brand-primary uppercase tracking-widest"
-              >SONIC CONSUMPTION</span
-            >
-            <div class="text-4xl font-black text-white italic tracking-tighter">
-              {{ formatNumber(totalStreams()) }}
+            <div class="glass-v42 p-8 rounded-3xl space-y-2 border border-white/5">
+              <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest">REPORTED STREAMS</span>
+              <div class="text-4xl font-black text-white italic tracking-tighter">
+                {{ formatReportedMetric(totalStreams()) }}
+              </div>
+              <p class="text-[9px] text-silver-dim uppercase font-bold">Total streams reported by linked platforms</p>
             </div>
-            <p class="text-[9px] text-silver-dim uppercase font-bold">
-              Total platform audio deliveries
-            </p>
-          </div>
-          <div
-            class="glass-v42 p-8 rounded-3xl space-y-2 border border-white/5"
-          >
-            <span
-              class="text-[9px] font-black text-brand-primary uppercase tracking-widest"
-              >ACTIVE RETENTION</span
-            >
-            <div class="text-4xl font-black text-white italic tracking-tighter">
-              {{ formatNumber(totalMonthlyListeners()) }}
+            <div class="glass-v42 p-8 rounded-3xl space-y-2 border border-white/5">
+              <span class="text-[9px] font-black text-brand-primary uppercase tracking-widest">MONTHLY LISTENERS</span>
+              <div class="text-4xl font-black text-white italic tracking-tighter">
+                {{ formatReportedMetric(totalMonthlyListeners()) }}
+              </div>
+              <p class="text-[9px] text-silver-dim uppercase font-bold">Monthly listeners reported by linked platforms</p>
             </div>
-            <p class="text-[9px] text-silver-dim uppercase font-bold">
-              Unique monthly algorithmic triggers
-            </p>
           </div>
-        </div>
+        }
 
         <!-- MARKET ALERTS -->
         <section class="space-y-6">
@@ -670,6 +656,14 @@
                   >
                 </div>
               </div>
+            } @empty {
+              <div class="rounded-3xl border border-dashed border-white/15 p-8 text-center">
+                <p class="text-sm text-white font-bold">No market alerts</p>
+                <p class="mt-2 text-xs text-silver-dim">
+                  Alerts appear only when a monitored source reports one; nothing is
+                  generated to fill the panel.
+                </p>
+              </div>
             }
           </div>
         </section>
@@ -691,7 +685,7 @@
               @for (platform of socialStats(); track platform.platform) {
                 <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-5" [attr.data-testid]="'strategy-social-' + platform.platform">
                   <div class="flex items-start justify-between gap-3"><h4 class="text-sm font-black text-white">{{ platform.platform }}</h4><span class="text-[8px] text-silver-dim">{{ formatPlatformDate(platform.lastUpdated) }}</span></div>
-                  <p class="mt-5 text-2xl font-black text-white">{{ formatNumber(platform.followers) }}</p><p class="text-[8px] text-silver-dim uppercase tracking-widest">Reported followers</p>
+                  <p class="mt-5 text-2xl font-black text-white">{{ formatReportedMetric(platform.followers) }}</p><p class="text-[8px] text-silver-dim uppercase tracking-widest">Reported followers</p>
                   <p class="mt-3 text-xs text-brand-primary">{{ platform.engagementRate > 0 ? platform.engagementRate + '% reported engagement' : 'No engagement data reported' }}</p>
                 </article>
               }
@@ -707,7 +701,7 @@
               @for (platform of streamingStats(); track platform.platform) {
                 <article class="rounded-2xl border border-white/10 bg-white/[0.03] p-5" [attr.data-testid]="'strategy-streaming-' + platform.platform">
                   <div class="flex items-start justify-between gap-3"><h4 class="text-sm font-black text-white">{{ platform.platform }}</h4><span class="text-[8px] text-silver-dim">{{ formatPlatformDate(platform.lastUpdated) }}</span></div>
-                  <div class="mt-5 grid grid-cols-2 gap-3"><div><p class="text-xl font-black text-white">{{ formatNumber(platform.monthlyListeners) }}</p><p class="text-[8px] text-silver-dim uppercase">Monthly listeners</p></div><div><p class="text-xl font-black text-white">{{ formatNumber(platform.totalStreams) }}</p><p class="text-[8px] text-silver-dim uppercase">Total streams</p></div></div>
+                  <div class="mt-5 grid grid-cols-2 gap-3"><div><p class="text-xl font-black text-white">{{ formatReportedMetric(platform.monthlyListeners) }}</p><p class="text-[8px] text-silver-dim uppercase">Monthly listeners</p></div><div><p class="text-xl font-black text-white">{{ formatReportedMetric(platform.totalStreams) }}</p><p class="text-[8px] text-silver-dim uppercase">Total streams</p></div></div>
                   <p class="mt-3 text-[10px] text-silver-dim">{{ platform.playlistAdds > 0 ? formatNumber(platform.playlistAdds) + ' reported playlist adds' : 'No playlist-add data reported' }}</p>
                 </article>
               }
